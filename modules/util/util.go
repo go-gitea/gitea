@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package util
 
@@ -185,19 +186,11 @@ func ToUpperASCII(s string) string {
 	return string(b)
 }
 
-var (
-	titleCaser        = cases.Title(language.English)
-	titleCaserNoLower = cases.Title(language.English, cases.NoLower)
-)
+var titleCaser = cases.Title(language.English)
 
 // ToTitleCase returns s with all english words capitalized
 func ToTitleCase(s string) string {
 	return titleCaser.String(s)
-}
-
-// ToTitleCaseNoLower returns s with all english words capitalized without lowercasing
-func ToTitleCaseNoLower(s string) string {
-	return titleCaserNoLower.String(s)
 }
 
 var (

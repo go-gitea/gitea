@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package packages
 
@@ -14,11 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/packages/cargo"
-	"code.gitea.io/gitea/routers/api/packages/chef"
 	"code.gitea.io/gitea/routers/api/packages/composer"
 	"code.gitea.io/gitea/routers/api/packages/conan"
-	"code.gitea.io/gitea/routers/api/packages/conda"
 	"code.gitea.io/gitea/routers/api/packages/container"
 	"code.gitea.io/gitea/routers/api/packages/generic"
 	"code.gitea.io/gitea/routers/api/packages/helm"
@@ -43,9 +41,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	}
 }
 
-// CommonRoutes provide endpoints for most package managers (except containers - see below)
-// These are mounted on `/api/packages` (not `/api/v1/packages`)
-func CommonRoutes(ctx gocontext.Context) *web.Route {
+func Routes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
 	r.Use(context.PackageContexter(ctx))
@@ -55,7 +51,6 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 		&auth.Basic{},
 		&nuget.Auth{},
 		&conan.Auth{},
-		&chef.Auth{},
 	}
 	if setting.Service.EnableReverseProxyAuth {
 		authMethods = append(authMethods, &auth.ReverseProxy{})
@@ -74,39 +69,6 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 	})
 
 	r.Group("/{username}", func() {
-		r.Group("/cargo", func() {
-			r.Group("/api/v1/crates", func() {
-				r.Get("", cargo.SearchPackages)
-				r.Put("/new", reqPackageAccess(perm.AccessModeWrite), cargo.UploadPackage)
-				r.Group("/{package}", func() {
-					r.Group("/{version}", func() {
-						r.Get("/download", cargo.DownloadPackageFile)
-						r.Delete("/yank", reqPackageAccess(perm.AccessModeWrite), cargo.YankPackage)
-						r.Put("/unyank", reqPackageAccess(perm.AccessModeWrite), cargo.UnyankPackage)
-					})
-					r.Get("/owners", cargo.ListOwners)
-				})
-			})
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/chef", func() {
-			r.Group("/api/v1", func() {
-				r.Get("/universe", chef.PackagesUniverse)
-				r.Get("/search", chef.EnumeratePackages)
-				r.Group("/cookbooks", func() {
-					r.Get("", chef.EnumeratePackages)
-					r.Post("", reqPackageAccess(perm.AccessModeWrite), chef.UploadPackage)
-					r.Group("/{name}", func() {
-						r.Get("", chef.PackageMetadata)
-						r.Group("/versions/{version}", func() {
-							r.Get("", chef.PackageVersionMetadata)
-							r.Delete("", reqPackageAccess(perm.AccessModeWrite), chef.DeletePackageVersion)
-							r.Get("/download", chef.DownloadPackage)
-						})
-						r.Delete("", reqPackageAccess(perm.AccessModeWrite), chef.DeletePackage)
-					})
-				})
-			})
-		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/composer", func() {
 			r.Get("/packages.json", composer.ServiceIndex)
 			r.Get("/search.json", composer.SearchPackages)
@@ -204,43 +166,6 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				})
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/conda", func() {
-			var (
-				downloadPattern = regexp.MustCompile(`\A(.+/)?(.+)/((?:[^/]+(?:\.tar\.bz2|\.conda))|(?:current_)?repodata\.json(?:\.bz2)?)\z`)
-				uploadPattern   = regexp.MustCompile(`\A(.+/)?([^/]+(?:\.tar\.bz2|\.conda))\z`)
-			)
-
-			r.Get("/*", func(ctx *context.Context) {
-				m := downloadPattern.FindStringSubmatch(ctx.Params("*"))
-				if len(m) == 0 {
-					ctx.Status(http.StatusNotFound)
-					return
-				}
-
-				ctx.SetParams("channel", strings.TrimSuffix(m[1], "/"))
-				ctx.SetParams("architecture", m[2])
-				ctx.SetParams("filename", m[3])
-
-				switch m[3] {
-				case "repodata.json", "repodata.json.bz2", "current_repodata.json", "current_repodata.json.bz2":
-					conda.EnumeratePackages(ctx)
-				default:
-					conda.DownloadPackageFile(ctx)
-				}
-			})
-			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), func(ctx *context.Context) {
-				m := uploadPattern.FindStringSubmatch(ctx.Params("*"))
-				if len(m) == 0 {
-					ctx.Status(http.StatusNotFound)
-					return
-				}
-
-				ctx.SetParams("channel", strings.TrimSuffix(m[1], "/"))
-				ctx.SetParams("filename", m[2])
-
-				conda.UploadPackageFile(ctx)
-			})
-		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
 			r.Group("/{packagename}/{packageversion}", func() {
 				r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
@@ -286,18 +211,9 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				}, reqPackageAccess(perm.AccessModeWrite))
 				r.Get("/symbols/{filename}/{guid:[0-9a-fA-F]{32}[fF]{8}}/{filename2}", nuget.DownloadSymbolFile)
 				r.Get("/Packages(Id='{id:[^']+}',Version='{version:[^']+}')", nuget.RegistrationLeafV2)
-				r.Group("/Packages()", func() {
-					r.Get("", nuget.SearchServiceV2)
-					r.Get("/$count", nuget.SearchServiceV2Count)
-				})
-				r.Group("/FindPackagesById()", func() {
-					r.Get("", nuget.EnumeratePackageVersionsV2)
-					r.Get("/$count", nuget.EnumeratePackageVersionsV2Count)
-				})
-				r.Group("/Search()", func() {
-					r.Get("", nuget.SearchServiceV2)
-					r.Get("/$count", nuget.SearchServiceV2Count)
-				})
+				r.Get("/Packages()", nuget.SearchServiceV2)
+				r.Get("/FindPackagesById()", nuget.EnumeratePackageVersionsV2)
+				r.Get("/Search()", nuget.SearchServiceV2)
 			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {
@@ -393,9 +309,6 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 	return r
 }
 
-// ContainerRoutes provides endpoints that implement the OCI API to serve containers
-// These have to be mounted on `/v2/...` to comply with the OCI spec:
-// https://github.com/opencontainers/distribution-spec/blob/main/spec.md
 func ContainerRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 

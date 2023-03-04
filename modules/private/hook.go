@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package private
 
@@ -57,7 +58,6 @@ type HookOptions struct {
 	PullRequestID                   int64
 	DeployKeyID                     int64 // if the pusher is a DeployKey, then UserID is the repo's org user.
 	IsWiki                          bool
-	ActionPerm                      int
 }
 
 // SSHLogOption ssh log options

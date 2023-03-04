@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package integration
 
@@ -8,7 +9,6 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -25,18 +25,19 @@ type apiUserOrgPermTestCase struct {
 func TestTokenNeeded(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
+	session := emptyTestSession(t)
 	req := NewRequest(t, "GET", "/api/v1/users/user1/orgs/user6/permissions")
-	MakeRequest(t, req, http.StatusUnauthorized)
+	session.MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func sampleTest(t *testing.T, auoptc apiUserOrgPermTestCase) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, auoptc.LoginUser)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrg)
+	token := getTokenForLoggedInUser(t, session)
 
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/orgs/%s/permissions?token=%s", auoptc.User, auoptc.Organization, token))
-	resp := MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var apiOP api.OrganizationPermissions
 	DecodeJSON(t, resp, &apiOP)
@@ -126,10 +127,10 @@ func TestUnknowUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrg)
+	token := getTokenForLoggedInUser(t, session)
 
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/unknow/orgs/org25/permissions?token=%s", token))
-	resp := MakeRequest(t, req, http.StatusNotFound)
+	resp := session.MakeRequest(t, req, http.StatusNotFound)
 
 	var apiError api.APIError
 	DecodeJSON(t, resp, &apiError)
@@ -140,10 +141,10 @@ func TestUnknowOrganization(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrg)
+	token := getTokenForLoggedInUser(t, session)
 
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/user1/orgs/unknow/permissions?token=%s", token))
-	resp := MakeRequest(t, req, http.StatusNotFound)
+	resp := session.MakeRequest(t, req, http.StatusNotFound)
 	var apiError api.APIError
 	DecodeJSON(t, resp, &apiError)
 	assert.Equal(t, "GetUserByName", apiError.Message)

@@ -1,10 +1,12 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -494,7 +496,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	}
 
 	if opts.OnlyShowRelevant {
-		// Only show a repo that has at least a topic, an icon, or a description
+		// Only show a repo that either has a topic or description.
 		subQueryCond := builder.NewCond()
 
 		// Topic checking. Topics are present.
@@ -504,13 +506,13 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			subQueryCond = subQueryCond.Or(builder.And(builder.Neq{"topics": "null"}, builder.Neq{"topics": "[]"}))
 		}
 
-		// Description checking. Description not empty
+		// Description checking. Description not empty.
 		subQueryCond = subQueryCond.Or(builder.Neq{"description": ""})
 
-		// Repo has a avatar
+		// Repo has a avatar.
 		subQueryCond = subQueryCond.Or(builder.Neq{"avatar": ""})
 
-		// Always hide repo's that are empty
+		// Always hide repo's that are empty.
 		subQueryCond = subQueryCond.And(builder.Eq{"is_empty": false})
 
 		cond = cond.And(subQueryCond)
@@ -521,13 +523,14 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 
 // SearchRepository returns repositories based on search options,
 // it returns results in given range and number of total results.
-func SearchRepository(ctx context.Context, opts *SearchRepoOptions) (RepositoryList, int64, error) {
+func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	cond := SearchRepositoryCondition(opts)
-	return SearchRepositoryByCondition(ctx, opts, cond, true)
+	return SearchRepositoryByCondition(opts, cond, true)
 }
 
 // SearchRepositoryByCondition search repositories by condition
-func SearchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
+func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
+	ctx := db.DefaultContext
 	sess, count, err := searchRepositoryByCondition(ctx, opts, cond)
 	if err != nil {
 		return nil, 0, err
@@ -654,9 +657,9 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
-func SearchRepositoryByName(ctx context.Context, opts *SearchRepoOptions) (RepositoryList, int64, error) {
+func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	opts.IncludeDescription = false
-	return SearchRepository(ctx, opts)
+	return SearchRepository(opts)
 }
 
 // SearchRepositoryIDs takes keyword and part of repository name to search,
@@ -712,7 +715,7 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 
 	cond := builder.NewCond()
 	if opts.Actor == nil {
-		return nil, 0, util.NewInvalidArgumentErrorf("GetUserRepositories: Actor is needed but not given")
+		return nil, 0, errors.New("GetUserRepositories: Actor is needed but not given")
 	}
 	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {

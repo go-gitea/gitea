@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package vagrant
 
@@ -192,23 +193,19 @@ func UploadPackageFile(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: strings.ToLower(boxProvider),
 			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Data:   buf,
+			IsLead: true,
 			Properties: map[string]string{
 				vagrant_module.PropertyProvider: strings.TrimSuffix(boxProvider, ".box"),
 			},
 		},
 	)
 	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageFile:
+		if err == packages_model.ErrDuplicatePackageFile {
 			apiError(ctx, http.StatusConflict, err)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
+			return
 		}
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

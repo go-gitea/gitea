@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repository
 
@@ -22,20 +23,30 @@ import (
 	"xorm.io/builder"
 )
 
-// GitFsckRepos calls 'git fsck' to check repository health.
-func GitFsckRepos(ctx context.Context, timeout time.Duration, args git.TrustedCmdArgs) error {
+// GitFsck calls 'git fsck' to check repository health.
+func GitFsck(ctx context.Context, timeout time.Duration, args []git.CmdArg) error {
 	log.Trace("Doing: GitFsck")
 
 	if err := db.Iterate(
 		ctx,
+		new(repo_model.Repository),
 		builder.Expr("id>0 AND is_fsck_enabled=?", true),
-		func(ctx context.Context, repo *repo_model.Repository) error {
+		func(idx int, bean interface{}) error {
+			repo := bean.(*repo_model.Repository)
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("before fsck of %s", repo.FullName())
 			default:
 			}
-			return GitFsckRepo(ctx, repo, timeout, args)
+			log.Trace("Running health check on repository %v", repo)
+			repoPath := repo.RepoPath()
+			if err := git.Fsck(ctx, repoPath, timeout, args...); err != nil {
+				log.Warn("Failed to health check repository (%v): %v", repo, err)
+				if err = system_model.CreateRepositoryNotice("Failed to health check repository (%s): %v", repo.FullName(), err); err != nil {
+					log.Error("CreateRepositoryNotice: %v", err)
+				}
+			}
+			return nil
 		},
 	); err != nil {
 		log.Trace("Error: GitFsck: %v", err)
@@ -46,27 +57,17 @@ func GitFsckRepos(ctx context.Context, timeout time.Duration, args git.TrustedCm
 	return nil
 }
 
-// GitFsckRepo calls 'git fsck' to check an individual repository's health.
-func GitFsckRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args git.TrustedCmdArgs) error {
-	log.Trace("Running health check on repository %-v", repo)
-	repoPath := repo.RepoPath()
-	if err := git.Fsck(ctx, repoPath, timeout, args); err != nil {
-		log.Warn("Failed to health check repository (%-v): %v", repo, err)
-		if err = system_model.CreateRepositoryNotice("Failed to health check repository (%s): %v", repo.FullName(), err); err != nil {
-			log.Error("CreateRepositoryNotice: %v", err)
-		}
-	}
-	return nil
-}
-
 // GitGcRepos calls 'git gc' to remove unnecessary files and optimize the local repository
-func GitGcRepos(ctx context.Context, timeout time.Duration, args git.TrustedCmdArgs) error {
+func GitGcRepos(ctx context.Context, timeout time.Duration, args ...git.CmdArg) error {
 	log.Trace("Doing: GitGcRepos")
+	args = append([]git.CmdArg{"gc"}, args...)
 
 	if err := db.Iterate(
 		ctx,
+		new(repo_model.Repository),
 		builder.Gt{"id": 0},
-		func(ctx context.Context, repo *repo_model.Repository) error {
+		func(idx int, bean interface{}) error {
+			repo := bean.(*repo_model.Repository)
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("before GC of %s", repo.FullName())
@@ -85,9 +86,9 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args git.TrustedCmdA
 }
 
 // GitGcRepo calls 'git gc' to remove unnecessary files and optimize the local repository
-func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args git.TrustedCmdArgs) error {
+func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args []git.CmdArg) error {
 	log.Trace("Running git gc on %-v", repo)
-	command := git.NewCommand(ctx, "gc").AddArguments(args...).
+	command := git.NewCommand(ctx, args...).
 		SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName()))
 	var stdout string
 	var err error
@@ -119,8 +120,10 @@ func gatherMissingRepoRecords(ctx context.Context) ([]*repo_model.Repository, er
 	repos := make([]*repo_model.Repository, 0, 10)
 	if err := db.Iterate(
 		ctx,
+		new(repo_model.Repository),
 		builder.Gt{"id": 0},
-		func(ctx context.Context, repo *repo_model.Repository) error {
+		func(idx int, bean interface{}) error {
+			repo := bean.(*repo_model.Repository)
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("during gathering missing repo records before checking %s", repo.FullName())

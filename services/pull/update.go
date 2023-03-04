@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package pull
 
@@ -8,7 +9,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -48,10 +48,10 @@ func Update(ctx context.Context, pull *issues_model.PullRequest, doer *user_mode
 		return fmt.Errorf("Not support update agit flow pull request's head branch")
 	}
 
-	if err := pr.LoadHeadRepo(ctx); err != nil {
+	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return fmt.Errorf("LoadHeadRepo: %w", err)
-	} else if err = pr.LoadBaseRepo(ctx); err != nil {
+	} else if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
 		return fmt.Errorf("LoadBaseRepo: %w", err)
 	}
@@ -93,30 +93,21 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		return false, false, err
 	}
 
-	if err := pull.LoadBaseRepo(ctx); err != nil {
-		return false, false, err
-	}
-
 	pr := &issues_model.PullRequest{
 		HeadRepoID: pull.BaseRepoID,
-		HeadRepo:   pull.BaseRepo,
 		BaseRepoID: pull.HeadRepoID,
-		BaseRepo:   pull.HeadRepo,
 		HeadBranch: pull.BaseBranch,
 		BaseBranch: pull.HeadBranch,
 	}
 
-	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	err = pr.LoadProtectedBranch()
 	if err != nil {
 		return false, false, err
 	}
 
 	// can't do rebase on protected branch because need force push
-	if pb == nil {
-		if err := pr.LoadBaseRepo(ctx); err != nil {
-			return false, false, err
-		}
-		prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
+	if pr.ProtectedBranch == nil {
+		prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
 		if err != nil {
 			if repo_model.IsErrUnitTypeNotExist(err) {
 				return false, false, nil
@@ -128,11 +119,8 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 	}
 
 	// Update function need push permission
-	if pb != nil {
-		pb.Repo = pull.BaseRepo
-		if !pb.CanUserPush(ctx, user) {
-			return false, false, nil
-		}
+	if pr.ProtectedBranch != nil && !pr.ProtectedBranch.CanUserPush(user.ID) {
+		return false, false, nil
 	}
 
 	baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, user)
@@ -160,10 +148,10 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 // GetDiverging determines how many commits a PR is ahead or behind the PR base branch
 func GetDiverging(ctx context.Context, pr *issues_model.PullRequest) (*git.DivergeObject, error) {
 	log.Trace("GetDiverging[%d]: compare commits", pr.ID)
-	if err := pr.LoadBaseRepo(ctx); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		return nil, err
 	}
-	if err := pr.LoadHeadRepo(ctx); err != nil {
+	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		return nil, err
 	}
 

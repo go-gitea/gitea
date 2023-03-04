@@ -1,11 +1,11 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package gitgraph
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"strings"
 
@@ -89,8 +89,9 @@ func (graph *Graph) AddCommit(row, column int, flowID int64, data []byte) error 
 // LoadAndProcessCommits will load the git.Commits for each commit in the graph,
 // the associate the commit with the user author, and check the commit verification
 // before finally retrieving the latest status
-func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_model.Repository, gitRepo *git.Repository) error {
+func (graph *Graph) LoadAndProcessCommits(repository *repo_model.Repository, gitRepo *git.Repository) error {
 	var err error
+
 	var ok bool
 
 	emails := map[string]*user_model.User{}
@@ -108,12 +109,12 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		if c.Commit.Author != nil {
 			email := c.Commit.Author.Email
 			if c.User, ok = emails[email]; !ok {
-				c.User, _ = user_model.GetUserByEmail(ctx, email)
+				c.User, _ = user_model.GetUserByEmail(email)
 				emails[email] = c.User
 			}
 		}
 
-		c.Verification = asymkey_model.ParseCommitWithSignature(ctx, c.Commit)
+		c.Verification = asymkey_model.ParseCommitWithSignature(c.Commit)
 
 		_ = asymkey_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
 			return repo_model.IsOwnerMemberCollaborator(repository, user.ID)

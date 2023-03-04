@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
@@ -23,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/services/forms"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
@@ -130,13 +130,13 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		opts.IncludeDrafts = writeAccess
 	}
 
-	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
+	releases, err := repo_model.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.ServerError("GetReleasesByRepoID", err)
 		return
 	}
 
-	count, err := repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, opts)
+	count, err := repo_model.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return
@@ -157,7 +157,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 
 	for _, r := range releases {
 		if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
-			r.Publisher, err = user_model.GetUserByID(ctx, r.PublisherID)
+			r.Publisher, err = user_model.GetUserByID(r.PublisherID)
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					r.Publisher = user_model.NewGhostUser()
@@ -200,30 +200,6 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.HTML(http.StatusOK, tplReleases)
 }
 
-// ReleasesFeedRSS get feeds for releases in RSS format
-func ReleasesFeedRSS(ctx *context.Context) {
-	releasesOrTagsFeed(ctx, true, "rss")
-}
-
-// TagsListFeedRSS get feeds for tags in RSS format
-func TagsListFeedRSS(ctx *context.Context) {
-	releasesOrTagsFeed(ctx, false, "rss")
-}
-
-// ReleasesFeedAtom get feeds for releases in Atom format
-func ReleasesFeedAtom(ctx *context.Context) {
-	releasesOrTagsFeed(ctx, true, "atom")
-}
-
-// TagsListFeedAtom get feeds for tags in RSS format
-func TagsListFeedAtom(ctx *context.Context) {
-	releasesOrTagsFeed(ctx, false, "atom")
-}
-
-func releasesOrTagsFeed(ctx *context.Context, isReleasesOnly bool, formatType string) {
-	feed.ShowReleaseFeed(ctx, ctx.Repo.Repository, isReleasesOnly, formatType)
-}
-
 // SingleRelease renders a single release's page
 func SingleRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
@@ -248,7 +224,7 @@ func SingleRelease(ctx *context.Context) {
 		return
 	}
 
-	release.Publisher, err = user_model.GetUserByID(ctx, release.PublisherID)
+	release.Publisher, err = user_model.GetUserByID(release.PublisherID)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			release.Publisher = user_model.NewGhostUser()
@@ -290,12 +266,12 @@ func LatestRelease(ctx *context.Context) {
 		return
 	}
 
-	if err := release.LoadAttributes(ctx); err != nil {
+	if err := release.LoadAttributes(); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
 
-	ctx.Redirect(release.Link())
+	ctx.Redirect(release.HTMLURL())
 }
 
 // NewRelease render creating or edit release page
@@ -313,7 +289,7 @@ func NewRelease(ctx *context.Context) {
 
 		if rel != nil {
 			rel.Repo = ctx.Repo.Repository
-			if err := rel.LoadAttributes(ctx); err != nil {
+			if err := rel.LoadAttributes(); err != nil {
 				ctx.ServerError("LoadAttributes", err)
 				return
 			}
@@ -328,14 +304,6 @@ func NewRelease(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
-	var err error
-	// Get assignees.
-	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
-	if err != nil {
-		ctx.ServerError("GetAssignees", err)
-		return
-	}
-
 	upload.AddUploadContext(ctx, "release")
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
@@ -486,18 +454,11 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["IsDraft"] = rel.IsDraft
 
 	rel.Repo = ctx.Repo.Repository
-	if err := rel.LoadAttributes(ctx); err != nil {
+	if err := rel.LoadAttributes(); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
 	ctx.Data["attachments"] = rel.Attachments
-
-	// Get assignees.
-	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, rel.Repo)
-	if err != nil {
-		ctx.ServerError("GetAssignees", err)
-		return
-	}
 
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }

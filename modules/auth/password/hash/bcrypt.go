@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	MustRegister("bcrypt", NewBcryptHasher)
+	Register("bcrypt", NewBcryptHasher)
 }
 
 // BcryptHasher implements PasswordHasher
@@ -34,9 +34,6 @@ func (hasher *BcryptHasher) VerifyPassword(password, hashedPassword, salt string
 // The provided config should be either empty or the string representation of the "<cost>"
 // as an integer
 func NewBcryptHasher(config string) *BcryptHasher {
-	// This matches the original configuration for `bcrypt` prior to storing hash parameters
-	// in the database.
-	// THESE VALUES MUST NOT BE CHANGED OR BACKWARDS COMPATIBILITY WILL BREAK
 	hasher := &BcryptHasher{
 		cost: 10, // cost=10. i.e. 2^10 rounds of key expansion.
 	}

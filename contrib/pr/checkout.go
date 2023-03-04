@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package main
 
@@ -49,8 +50,7 @@ func runPR() {
 		log.Fatal(err)
 	}
 	setting.SetCustomPathAndConf("", "", "")
-	setting.InitProviderAllowEmpty()
-	setting.LoadCommonSettings()
+	setting.LoadAllowEmpty()
 
 	setting.RepoRootPath, err = os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
@@ -83,7 +83,7 @@ func runPR() {
 		setting.Database.Path = ":memory:"
 		setting.Database.Timeout = 500
 	*/
-	dbCfg := setting.CfgProvider.Section("database")
+	dbCfg := setting.Cfg.Section("database")
 	dbCfg.NewKey("DB_TYPE", "sqlite3")
 	dbCfg.NewKey("PATH", ":memory:")
 

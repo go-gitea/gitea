@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package models
 
@@ -21,7 +22,7 @@ func GetYamlFixturesAccess() (string, error) {
 	}
 
 	for _, repo := range repos {
-		repo.MustOwner(db.DefaultContext)
+		repo.MustOwner()
 		if err := access_model.RecalculateAccesses(db.DefaultContext, repo); err != nil {
 			return "", err
 		}

@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package integration
 
@@ -29,6 +30,7 @@ func TestAPIReposGitTrees(t *testing.T) {
 	// Login as User2.
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session)
+	session = emptyTestSession(t) // don't want anyone logged in for this
 
 	// Test a public repo that anyone can GET the tree of
 	for _, ref := range [...]string{
@@ -36,7 +38,7 @@ func TestAPIReposGitTrees(t *testing.T) {
 		repo1TreeSHA, // Tree SHA
 	} {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", user2.Name, repo1.Name, ref)
-		MakeRequest(t, req, http.StatusOK)
+		session.MakeRequest(t, req, http.StatusOK)
 	}
 
 	// Tests a private repo with no token so will fail
@@ -45,30 +47,31 @@ func TestAPIReposGitTrees(t *testing.T) {
 		repo1TreeSHA, // Tag
 	} {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", user2.Name, repo16.Name, ref)
-		MakeRequest(t, req, http.StatusNotFound)
+		session.MakeRequest(t, req, http.StatusNotFound)
 	}
 
 	// Test using access token for a private repo that the user of the token owns
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s?token=%s", user2.Name, repo16.Name, repo16TreeSHA, token)
-	MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	// Test using bad sha
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", user2.Name, repo1.Name, badSHA)
-	MakeRequest(t, req, http.StatusBadRequest)
+	session.MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test using org repo "user3/repo3" where user2 is a collaborator
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s?token=%s", user3.Name, repo3.Name, repo3TreeSHA, token)
-	MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	// Test using org repo "user3/repo3" with no user token
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", user3.Name, repo3TreeSHA, repo3.Name)
-	MakeRequest(t, req, http.StatusNotFound)
+	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Login as User4.
 	session = loginUser(t, user4.Name)
 	token4 := getTokenForLoggedInUser(t, session)
+	session = emptyTestSession(t) // don't want anyone logged in for this
 
 	// Test using org repo "user3/repo3" where user4 is a NOT collaborator
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/d56a3073c1dbb7b15963110a049d50cdb5db99fc?access=%s", user3.Name, repo3.Name, token4)
-	MakeRequest(t, req, http.StatusNotFound)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }

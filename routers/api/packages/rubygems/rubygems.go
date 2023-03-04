@@ -1,12 +1,12 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package rubygems
 
 import (
 	"compress/gzip"
 	"compress/zlib"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -218,11 +218,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	rp, err := rubygems_module.ParsePackageMetaData(buf)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
@@ -253,20 +249,16 @@ func UploadPackageFile(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: filename,
 			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Data:   buf,
+			IsLead: true,
 		},
 	)
 	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageVersion:
+		if err == packages_model.ErrDuplicatePackageVersion {
 			apiError(ctx, http.StatusBadRequest, err)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
+			return
 		}
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

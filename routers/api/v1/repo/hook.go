@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
@@ -10,13 +11,12 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/convert"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -69,11 +69,7 @@ func ListHooks(ctx *context.APIContext) {
 
 	apiHooks := make([]*api.Hook, len(hooks))
 	for i := range hooks {
-		apiHooks[i], err = webhook_service.ToHook(ctx.Repo.RepoLink, hooks[i])
-		if err != nil {
-			ctx.InternalServerError(err)
-			return
-		}
+		apiHooks[i] = convert.ToHook(ctx.Repo.RepoLink, hooks[i])
 	}
 
 	ctx.SetTotalCountHeader(count)
@@ -116,12 +112,7 @@ func GetHook(ctx *context.APIContext) {
 	if err != nil {
 		return
 	}
-	apiHook, err := webhook_service.ToHook(repo.RepoLink, hook)
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-	ctx.JSON(http.StatusOK, apiHook)
+	ctx.JSON(http.StatusOK, convert.ToHook(repo.RepoLink, hook))
 }
 
 // TestHook tests a hook
@@ -174,10 +165,10 @@ func TestHook(ctx *context.APIContext) {
 		return
 	}
 
-	commit := convert.ToPayloadCommit(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
+	commit := convert.ToPayloadCommit(ctx.Repo.Repository, ctx.Repo.Commit)
 
 	commitID := ctx.Repo.Commit.ID.String()
-	if err := webhook_service.PrepareWebhook(ctx, hook, webhook_module.HookEventPush, &api.PushPayload{
+	if err := webhook_service.PrepareWebhook(ctx, hook, webhook.HookEventPush, &api.PushPayload{
 		Ref:          ref,
 		Before:       commitID,
 		After:        commitID,
@@ -185,9 +176,9 @@ func TestHook(ctx *context.APIContext) {
 		Commits:      []*api.PayloadCommit{commit},
 		TotalCommits: 1,
 		HeadCommit:   commit,
-		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, perm.AccessModeNone),
-		Pusher:       convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
-		Sender:       convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
+		Repo:         convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
+		Pusher:       convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone),
+		Sender:       convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone),
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "PrepareWebhook: ", err)
 		return

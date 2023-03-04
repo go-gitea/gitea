@@ -1,10 +1,12 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package asymkey
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -58,9 +60,9 @@ func calcFingerprintSSHKeygen(publicKeyContent string) (string, error) {
 		if strings.Contains(stderr, "is not a public key file") {
 			return "", ErrKeyUnableVerify{stderr}
 		}
-		return "", util.NewInvalidArgumentErrorf("'ssh-keygen -lf %s' failed with error '%s': %s", tmpPath, err, stderr)
+		return "", fmt.Errorf("'ssh-keygen -lf %s' failed with error '%s': %s", tmpPath, err, stderr)
 	} else if len(stdout) < 2 {
-		return "", util.NewInvalidArgumentErrorf("not enough output for calculating fingerprint: %s", stdout)
+		return "", errors.New("not enough output for calculating fingerprint: " + stdout)
 	}
 	return strings.Split(stdout, " ")[1], nil
 }

@@ -1,6 +1,7 @@
 import {prettyNumber} from '../utils.js';
 
 const {lang} = document.documentElement;
+
 const dateFormatter = new Intl.DateTimeFormat(lang, {year: 'numeric', month: 'long', day: 'numeric'});
 const shortDateFormatter = new Intl.DateTimeFormat(lang, {year: 'numeric', month: 'short', day: 'numeric'});
 const dateTimeFormatter = new Intl.DateTimeFormat(lang, {year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric'});

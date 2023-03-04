@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package organization
 
@@ -12,7 +13,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
-	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -107,17 +107,25 @@ func (org *Organization) IsOrgMember(uid int64) (bool, error) {
 
 // CanCreateOrgRepo returns true if given user can create repo in organization
 func (org *Organization) CanCreateOrgRepo(uid int64) (bool, error) {
-	return CanCreateOrgRepo(db.DefaultContext, org.ID, uid)
+	return CanCreateOrgRepo(org.ID, uid)
 }
 
-// GetTeam returns named team of organization.
-func (org *Organization) GetTeam(ctx context.Context, name string) (*Team, error) {
+func (org *Organization) getTeam(ctx context.Context, name string) (*Team, error) {
 	return GetTeam(ctx, org.ID, name)
 }
 
+// GetTeam returns named team of organization.
+func (org *Organization) GetTeam(name string) (*Team, error) {
+	return org.getTeam(db.DefaultContext, name)
+}
+
+func (org *Organization) getOwnerTeam(ctx context.Context) (*Team, error) {
+	return org.getTeam(ctx, OwnerTeamName)
+}
+
 // GetOwnerTeam returns owner team of organization.
-func (org *Organization) GetOwnerTeam(ctx context.Context) (*Team, error) {
-	return org.GetTeam(ctx, OwnerTeamName)
+func (org *Organization) GetOwnerTeam() (*Team, error) {
+	return org.getOwnerTeam(db.DefaultContext)
 }
 
 // FindOrgTeams returns all teams of a given organization
@@ -156,8 +164,8 @@ func (org *Organization) hasMemberWithUserID(ctx context.Context, userID int64) 
 }
 
 // AvatarLink returns the full avatar link with http host
-func (org *Organization) AvatarLink(ctx context.Context) string {
-	return org.AsUser().AvatarLink(ctx)
+func (org *Organization) AvatarLink() string {
+	return org.AsUser().AvatarLink()
 }
 
 // HTMLURL returns the organization's full link.
@@ -269,7 +277,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 	org.NumMembers = 1
 	org.Type = user_model.UserTypeOrganization
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -334,7 +342,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 }
 
 // GetOrgByName returns organization by given name.
-func GetOrgByName(ctx context.Context, name string) (*Organization, error) {
+func GetOrgByName(name string) (*Organization, error) {
 	if len(name) == 0 {
 		return nil, ErrOrgNotExist{0, name}
 	}
@@ -342,7 +350,7 @@ func GetOrgByName(ctx context.Context, name string) (*Organization, error) {
 		LowerName: strings.ToLower(name),
 		Type:      user_model.UserTypeOrganization,
 	}
-	has, err := db.GetEngine(ctx).Get(u)
+	has, err := db.GetEngine(db.DefaultContext).Get(u)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -363,7 +371,6 @@ func DeleteOrganization(ctx context.Context, org *Organization) error {
 		&TeamUser{OrgID: org.ID},
 		&TeamUnit{OrgID: org.ID},
 		&TeamInvite{OrgID: org.ID},
-		&secret_model.Secret{OwnerID: org.ID},
 	); err != nil {
 		return fmt.Errorf("DeleteBeans: %w", err)
 	}
@@ -559,7 +566,7 @@ func AddOrgUser(orgID, uid int64) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -696,7 +703,7 @@ func AccessibleReposEnv(ctx context.Context, org *Organization, userID int64) (A
 	var user *user_model.User
 
 	if userID > 0 {
-		u, err := user_model.GetUserByID(ctx, userID)
+		u, err := user_model.GetUserByIDCtx(ctx, userID)
 		if err != nil {
 			return nil, err
 		}

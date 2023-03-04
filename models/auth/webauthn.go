@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package auth
 
@@ -12,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/duo-labs/webauthn/webauthn"
 	"xorm.io/xorm"
 )
 

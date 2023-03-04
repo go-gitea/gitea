@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package issue
 
@@ -17,7 +18,7 @@ func ClearLabels(issue *issues_model.Issue, doer *user_model.User) (err error) {
 		return
 	}
 
-	notification.NotifyIssueClearLabels(db.DefaultContext, doer, issue)
+	notification.NotifyIssueClearLabels(doer, issue)
 
 	return nil
 }
@@ -28,7 +29,7 @@ func AddLabel(issue *issues_model.Issue, doer *user_model.User, label *issues_mo
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, []*issues_model.Label{label}, nil)
+	notification.NotifyIssueChangeLabels(doer, issue, []*issues_model.Label{label}, nil)
 	return nil
 }
 
@@ -38,13 +39,13 @@ func AddLabels(issue *issues_model.Issue, doer *user_model.User, labels []*issue
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, labels, nil)
+	notification.NotifyIssueChangeLabels(doer, issue, labels, nil)
 	return nil
 }
 
 // RemoveLabel removes a label from issue by given ID.
 func RemoveLabel(issue *issues_model.Issue, doer *user_model.User, label *issues_model.Label) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -73,7 +74,7 @@ func RemoveLabel(issue *issues_model.Issue, doer *user_model.User, label *issues
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, nil, []*issues_model.Label{label})
+	notification.NotifyIssueChangeLabels(doer, issue, nil, []*issues_model.Label{label})
 	return nil
 }
 
@@ -88,6 +89,6 @@ func ReplaceLabels(issue *issues_model.Issue, doer *user_model.User, labels []*i
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, labels, old)
+	notification.NotifyIssueChangeLabels(doer, issue, labels, old)
 	return nil
 }

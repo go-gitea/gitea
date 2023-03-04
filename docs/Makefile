@@ -2,8 +2,6 @@ THEME := themes/gitea
 PUBLIC := public
 ARCHIVE := https://dl.gitea.io/theme/master.tar.gz
 
-HUGO_PACKAGE := github.com/gohugoio/hugo@v0.82.0
-
 .PHONY: all
 all: build
 
@@ -13,19 +11,19 @@ clean:
 
 .PHONY: trans-copy
 trans-copy:
-	bash scripts/trans-copy.sh
+	@bash scripts/trans-copy
 
 .PHONY: server
 server: $(THEME)
-	go run $(HUGO_PACKAGE) server
+	hugo server
 
 .PHONY: build
 build: $(THEME)
-	go run $(HUGO_PACKAGE) --cleanDestinationDir
+	hugo --cleanDestinationDir
 
 .PHONY: build-offline
 build-offline: $(THEME)
-	go run $(HUGO_PACKAGE) --baseURL="/" --cleanDestinationDir
+	hugo --baseURL="/" --cleanDestinationDir
 
 .PHONY: update
 update: $(THEME)

@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package asymkey
 
@@ -64,6 +65,9 @@ func (key *GPGKey) AfterLoad(session *xorm.Session) {
 
 // PaddedKeyID show KeyID padded to 16 characters
 func (key *GPGKey) PaddedKeyID() string {
+	if len(key.KeyID) > 15 {
+		return key.KeyID
+	}
 	return PaddedKeyID(key.KeyID)
 }
 
@@ -238,7 +242,7 @@ func DeleteGPGKey(doer *user_model.User, id int64) (err error) {
 		return ErrGPGKeyAccessDenied{doer.ID, key.ID}
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}

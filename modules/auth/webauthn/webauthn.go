@@ -1,19 +1,20 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package webauthn
 
 import (
 	"encoding/binary"
 	"encoding/gob"
+	"net/url"
 
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-webauthn/webauthn/protocol"
-	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/duo-labs/webauthn/protocol"
+	"github.com/duo-labs/webauthn/webauthn"
 )
 
 // WebAuthn represents the global WebAuthn instance
@@ -23,13 +24,13 @@ var WebAuthn *webauthn.WebAuthn
 func Init() {
 	gob.Register(&webauthn.SessionData{})
 
-	appURL, _ := protocol.FullyQualifiedOrigin(setting.AppURL)
+	appURL, _ := url.Parse(setting.AppURL)
 
 	WebAuthn = &webauthn.WebAuthn{
 		Config: &webauthn.Config{
 			RPDisplayName: setting.AppName,
 			RPID:          setting.Domain,
-			RPOrigins:     []string{appURL},
+			RPOrigin:      protocol.FullyQualifiedOrigin(appURL),
 			AuthenticatorSelection: protocol.AuthenticatorSelection{
 				UserVerification: "discouraged",
 			},
@@ -63,7 +64,7 @@ func (u *User) WebAuthnDisplayName() string {
 
 // WebAuthnIcon implements the webauthn.User interface
 func (u *User) WebAuthnIcon() string {
-	return (*user_model.User)(u).AvatarLink(db.DefaultContext)
+	return (*user_model.User)(u).AvatarLink()
 }
 
 // WebAuthnCredentials implementns the webauthn.User interface

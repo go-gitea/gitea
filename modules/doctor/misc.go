@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package doctor
 
@@ -29,9 +30,10 @@ import (
 func iterateRepositories(ctx context.Context, each func(*repo_model.Repository) error) error {
 	err := db.Iterate(
 		ctx,
+		new(repo_model.Repository),
 		builder.Gt{"id": 0},
-		func(ctx context.Context, bean *repo_model.Repository) error {
-			return each(bean)
+		func(idx int, bean interface{}) error {
+			return each(bean.(*repo_model.Repository))
 		},
 	)
 	return err
@@ -141,7 +143,7 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 		if owner, has := cache.Get(repo.OwnerID); has {
 			repo.Owner = owner.(*user_model.User)
 		} else {
-			if err := repo.LoadOwner(ctx); err != nil {
+			if err := repo.GetOwner(ctx); err != nil {
 				return err
 			}
 			cache.Add(repo.OwnerID, repo.Owner)

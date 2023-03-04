@@ -1,10 +1,12 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package packages
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 
@@ -16,7 +18,7 @@ import (
 )
 
 // ErrDuplicatePackageVersion indicates a duplicated package version error
-var ErrDuplicatePackageVersion = util.NewAlreadyExistErrorf("package version already exists")
+var ErrDuplicatePackageVersion = errors.New("Package version already exists")
 
 func init() {
 	db.RegisterModel(new(PackageVersion))
@@ -31,7 +33,7 @@ type PackageVersion struct {
 	LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	IsInternal    bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	MetadataJSON  string             `xorm:"metadata_json LONGTEXT"`
+	MetadataJSON  string             `xorm:"metadata_json TEXT"`
 	DownloadCount int64              `xorm:"NOT NULL DEFAULT 0"`
 }
 
@@ -301,14 +303,9 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 	cond := opts.toConds().
 		And(builder.Expr("pv2.id IS NULL"))
 
-	joinCond := builder.Expr("package_version.package_id = pv2.package_id AND (package_version.created_unix < pv2.created_unix OR (package_version.created_unix = pv2.created_unix AND package_version.id < pv2.id))")
-	if !opts.IsInternal.IsNone() {
-		joinCond = joinCond.And(builder.Eq{"pv2.is_internal": opts.IsInternal.IsTrue()})
-	}
-
 	sess := db.GetEngine(ctx).
 		Table("package_version").
-		Join("LEFT", "package_version pv2", joinCond).
+		Join("LEFT", "package_version pv2", "package_version.package_id = pv2.package_id AND pv2.is_internal = ? AND (package_version.created_unix < pv2.created_unix OR (package_version.created_unix = pv2.created_unix AND package_version.id < pv2.id))", false).
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Where(cond)
 
@@ -321,22 +318,4 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 	pvs := make([]*PackageVersion, 0, 10)
 	count, err := sess.FindAndCount(&pvs)
 	return pvs, count, err
-}
-
-// ExistVersion checks if a version matching the search options exist
-func ExistVersion(ctx context.Context, opts *PackageSearchOptions) (bool, error) {
-	return db.GetEngine(ctx).
-		Where(opts.toConds()).
-		Table("package_version").
-		Join("INNER", "package", "package.id = package_version.package_id").
-		Exist(new(PackageVersion))
-}
-
-// CountVersions counts all versions of packages matching the search options
-func CountVersions(ctx context.Context, opts *PackageSearchOptions) (int64, error) {
-	return db.GetEngine(ctx).
-		Where(opts.toConds()).
-		Table("package_version").
-		Join("INNER", "package", "package.id = package_version.package_id").
-		Count(new(PackageVersion))
 }

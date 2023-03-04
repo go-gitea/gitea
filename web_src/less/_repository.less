@@ -1,4 +1,28 @@
 .repository {
+  .popup.commit-statuses {
+    // we had better limit the max size of the popup, and add scroll bars if the content size is too large.
+    // otherwise some part of the popup will be hidden by viewport boundary
+    max-height: 45vh;
+    max-width: 60vw;
+
+    &.ui.right {
+      // Override `.ui.attached.header .right:not(.dropdown) height: 30px;` which would otherwise lead to
+      // the status popup box having its height fixed at 30px. See https://github.com/go-gitea/gitea/issues/18498
+      height: auto;
+    }
+
+    overflow: auto;
+    padding: 0;
+
+    .list {
+      padding: .8em; // to make the scrollbar align to the border, we move the padding from outer `.popup` to this inside `.list`
+
+      > .item {
+        line-height: 2;
+      }
+    }
+  }
+
   .repo-header {
     .ui.compact.menu {
       margin-left: 1rem;
@@ -68,7 +92,7 @@
   .metas {
     .menu {
       overflow-x: auto;
-      max-height: 500px;
+      max-height: 300px;
     }
 
     .ui.list {
@@ -80,6 +104,10 @@
         margin-top: .125rem;
         margin-left: 6.75px;
         margin-right: 8.75px;
+      }
+
+      .hide {
+        display: none !important;
       }
 
       .dependency {
@@ -127,6 +155,12 @@
   }
 
   .filter.menu {
+    .label.color {
+      border-radius: 3px;
+      margin-left: 15px;
+      padding: 0 8px;
+    }
+
     &.labels {
       .label-filter .menu .info {
         display: inline-block;
@@ -147,7 +181,7 @@
     }
 
     .menu {
-      max-height: 500px;
+      max-height: 300px;
       overflow-x: auto;
       right: 0 !important;
       left: auto !important;
@@ -156,7 +190,7 @@
 
   .select-label {
     .desc {
-      padding-left: 23px;
+      padding-left: 16px;
     }
   }
 
@@ -193,7 +227,7 @@
       border-right: none;
     }
 
-    #more-btn {
+    #download-btn {
       border-left: none;
     }
 
@@ -438,10 +472,6 @@
       pre {
         overflow: auto;
       }
-
-      .asciicast {
-        padding: 5px !important;
-      }
     }
 
     .sidebar {
@@ -520,7 +550,7 @@
             position: absolute;
             top: 9px;
             left: 10px;
-            color: var(--color-grey);
+            color: #b0c4ce;
           }
         }
       }
@@ -575,7 +605,7 @@
         min-width: 220px;
 
         .filter.menu {
-          max-height: 500px;
+          max-height: 300px;
           overflow-x: auto;
         }
       }
@@ -887,8 +917,8 @@
                 border: 1px solid var(--color-light-border);
 
                 &.isSigned.isWarning {
-                  border: 1px solid var(--color-red-badge);
-                  background: var(--color-red-badge-bg);
+                  border: 1px solid #db2828;
+                  background: fade(#db2828, 10%);
 
                   .shortsha {
                     display: inline-block;
@@ -896,13 +926,13 @@
                   }
 
                   &:hover {
-                    background: var(--color-red-badge-hover-bg) !important;
+                    background: fade(#db2828, 30%) !important;
                   }
                 }
 
                 &.isSigned.isVerified {
-                  border: 1px solid var(--color-green-badge);
-                  background: var(--color-green-badge-bg);
+                  border: 1px solid #21ba45;
+                  background: fade(#21ba45, 10%);
 
                   .shortsha {
                     display: inline-block;
@@ -910,13 +940,13 @@
                   }
 
                   &:hover {
-                    background: var(--color-green-badge-hover-bg) !important;
+                    background: fade(#21ba45, 30%) !important;
                   }
                 }
 
                 &.isSigned.isVerifiedUntrusted {
-                  border: 1px solid var(--color-yellow-badge);
-                  background: var(--color-yellow-badge-bg);
+                  border: 1px solid #fbbd08;
+                  background: fade(#fbbd08, 10%);
 
                   .shortsha {
                     display: inline-block;
@@ -924,13 +954,13 @@
                   }
 
                   &:hover {
-                    background: var(--color-yellow-badge-hover-bg) !important;
+                    background: fade(#fbbd08, 30%) !important;
                   }
                 }
 
                 &.isSigned.isVerifiedUnmatched {
-                  border: 1px solid var(--color-orange-badge);
-                  background: var(--color-orange-badge-bg);
+                  border: 1px solid #f2711c;
+                  background: fade(#f2711c, 10%);
 
                   .shortsha {
                     display: inline-block;
@@ -938,7 +968,7 @@
                   }
 
                   &:hover {
-                    background: var(--color-orange-badge-hover-bg) !important;
+                    background: fade(#f2711c, 30%) !important;
                   }
                 }
               }
@@ -950,17 +980,6 @@
           float: right;
           margin-right: 8px;
           margin-top: 4px;
-        }
-
-        .comparebox {
-          line-height: 32px;
-          vertical-align: middle;
-
-          .compare.label {
-            font-size: 1rem;
-            margin: 0;
-            border: 1px solid var(--color-light-border);
-          }
         }
 
         .comment-form-reply .footer {
@@ -1416,8 +1435,8 @@
     }
 
     &.isSigned.isWarning {
-      border: 1px solid var(--color-red-badge);
-      background: var(--color-red-badge-bg);
+      border: 1px solid #db2828;
+      background: fade(#db2828, 10%);
 
       .shortsha {
         display: inline-block;
@@ -1425,18 +1444,18 @@
       }
 
       .detail.icon {
-        border-left: 1px solid var(--color-red-badge);
-        color: var(--color-red-badge);
+        border-left: 1px solid #db2828;
+        color: #db2828;
       }
 
       &:hover {
-        background: var(--color-red-badge-hover-bg) !important;
+        background: fade(#db2828, 30%) !important;
       }
     }
 
     &.isSigned.isVerified {
-      border: 1px solid var(--color-green-badge);
-      background: var(--color-green-badge-bg);
+      border: 1px solid #21ba45;
+      background: fade(#21ba45, 10%);
 
       .shortsha {
         display: inline-block;
@@ -1444,18 +1463,18 @@
       }
 
       .detail.icon {
-        border-left: 1px solid var(--color-green-badge);
-        color: var(--color-green-badge);
+        border-left: 1px solid #21ba45;
+        color: #21ba45;
       }
 
       &:hover {
-        background: var(--color-green-badge-hover-bg) !important;
+        background: fade(#21ba45, 30%) !important;
       }
     }
 
     &.isSigned.isVerifiedUntrusted {
-      border: 1px solid var(--color-yellow-badge);
-      background: var(--color-yellow-badge-bg);
+      border: 1px solid #fbbd08;
+      background: fade(#fbbd08, 10%);
 
       .shortsha {
         display: inline-block;
@@ -1463,18 +1482,18 @@
       }
 
       .detail.icon {
-        border-left: 1px solid var(--color-yellow-badge);
-        color: var(--color-yellow-badge);
+        border-left: 1px solid #fbbd08;
+        color: #fbbd08;
       }
 
       &:hover {
-        background: var(--color-yellow-badge-hover-bg) !important;
+        background: fade(#fbbd08, 30%) !important;
       }
     }
 
     &.isSigned.isVerifiedUnmatched {
-      border: 1px solid var(--color-orange-badge);
-      background: var(--color-orange-badge-bg);
+      border: 1px solid #f2711c;
+      background: fade(#f2711c, 10%);
 
       .shortsha {
         display: inline-block;
@@ -1482,12 +1501,12 @@
       }
 
       .detail.icon {
-        border-left: 1px solid var(--color-orange-badge);
-        color: var(--color-orange-badge);
+        border-left: 1px solid #f2711c;
+        color: #f2711c;
       }
 
       &:hover {
-        background: var(--color-orange-badge-hover-bg) !important;
+        background: fade(#f2711c, 30%) !important;
       }
     }
   }
@@ -1578,8 +1597,6 @@
       border-bottom: 1px solid var(--color-secondary);
       padding-left: 2px;
       padding-right: 2px;
-      margin-left: -1px;
-      margin-right: -1px;
     }
 
     > div::after {
@@ -1857,13 +1874,11 @@
       border-top: 1px solid var(--color-secondary);
       margin-top: 20px;
       padding-top: 15px;
-      padding-left: 0;
 
       .release-list-title {
         font-size: 2rem;
         font-weight: normal;
-        margin-top: -4px;
-        margin-bottom: 0;
+        margin-top: -6px;
       }
 
       > li {
@@ -1881,6 +1896,11 @@
 
           .label {
             margin-right: 0;
+          }
+
+          .tag:not(.icon) {
+            display: block;
+            margin-top: 15px;
           }
 
           .commit {
@@ -1902,7 +1922,7 @@
 
           .author {
             img {
-              margin-bottom: 3px;
+              margin-bottom: -3px;
             }
           }
 
@@ -1965,7 +1985,7 @@
       }
 
       .release-tag-name {
-        font-size: 18px;
+        font-size: 20px;
         font-weight: normal;
       }
     }
@@ -2465,56 +2485,6 @@
 
 // End of .repository
 
-#cite-repo-modal {
-  #citation-panel {
-    width: 500px;
-
-    @media @mediaSm {
-      width: 100%;
-    }
-
-    input {
-      border-radius: 0;
-      padding: 5px 10px;
-      width: 50%;
-      line-height: 1.4;
-    }
-
-    .citation.button {
-      font-size: 13px;
-      padding: 7.5px 5px;
-    }
-
-    #citation-copy-content {
-      border-radius: 0;
-      padding: 5px 10px;
-      font-size: 1.2em;
-      line-height: 1.4;
-    }
-
-    #citation-copy-apa,
-    #citation-copy-bibtex {
-      border-right: none;
-    }
-
-    #goto-citation-btn {
-      border-left: none;
-    }
-
-    >:first-child {
-      border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
-    }
-
-    >:last-child {
-      border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
-    }
-
-    .icon.button {
-      padding: 0 10px;
-    }
-  }
-}
-
 &.user-cards {
   .list {
     padding: 0;
@@ -2577,8 +2547,16 @@
   }
 }
 
+#issue-filters.hide {
+  display: none;
+}
+
 #issue-actions {
   margin-top: -1rem !important; // counteract padding from Semantic
+}
+
+#issue-actions.hide {
+  display: none;
 }
 
 .ui.menu .item > img:not(.ui) {
@@ -2603,19 +2581,12 @@
     }
   }
 
-  &.webhooks .list > .item:not(:first-child),
-  &.githooks .list > .item:not(:first-child),
-  &.runners .list > .item:not(:first-child) {
-    padding: .25rem 1rem;
-    margin: 12px -1rem -1rem;
-  }
-
   .list {
     > .item {
       &:not(:first-child) {
         border-top: 1px solid var(--color-secondary);
         padding: 1rem;
-        margin: 16px -1rem -1rem;
+        margin: 15px -1rem -1rem;
       }
 
       > .svg {
@@ -2745,7 +2716,7 @@
 }
 
 .edit-label.modal,
-.new-label.modal {
+.new-label.segment {
   .form {
     .column {
       padding-right: 0;
@@ -2757,9 +2728,12 @@
     }
 
     .color.picker.column {
-      display: flex;
-      .minicolors {
-        flex: 1;
+      width: auto;
+
+      .color-picker {
+        height: 35px;
+        width: auto;
+        padding-left: 30px;
       }
     }
 
@@ -2840,41 +2814,17 @@
   line-height: 1.3em; // there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly
 }
 
-// Scoped labels with different colors on left and right, and slanted divider in the middle
-.scope-parent {
-  background: none !important;
-  padding: 0 !important;
-}
-
-.ui.label.scope-left {
-  border-bottom-right-radius: 0;
-  border-top-right-radius: 0;
-  padding-right: 0;
-  margin-right: 0;
-}
-
-.ui.label.scope-middle {
-  width: 12px;
-  border-radius: 0;
-  padding-left: 0;
-  padding-right: 0;
-  margin-left: 0;
-  margin-right: 0;
-}
-
-.ui.label.scope-right {
-  border-bottom-left-radius: 0;
-  border-top-left-radius: 0;
-  padding-left: 0;
-  margin-left: 0;
-}
-
 .repo-button-row {
   margin-bottom: 10px;
 }
 
 .repo-button-row > * {
   margin-top: 10px;
+}
+
+.repo-button-row .dropdown > .dropdown.icon {
+  margin-left: .25rem !important;
+  margin-right: 0 !important;
 }
 
 .wiki .repo-button-row {
@@ -3188,7 +3138,6 @@ td.blob-excerpt {
 }
 #diff-file-boxes {
   flex: 1;
-  max-width: 100%;
 }
 
 #diff-file-tree {
@@ -3282,15 +3231,11 @@ td.blob-excerpt {
     position: sticky;
     top: 77px;
     z-index: 7;
-    
+
     @media (max-width: 480px) {
       position: static;
     }
   }
-}
-
-.diff-file-body {
-  overflow-x: scroll;
 }
 
 .diff-stats-bar {

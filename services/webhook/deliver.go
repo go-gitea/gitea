@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package webhook
 
@@ -7,6 +8,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/tls"
 	"encoding/hex"
 	"fmt"
@@ -21,14 +23,11 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/gobwas/glob"
-	"github.com/minio/sha256-simd"
 )
 
 // Deliver deliver hook task
@@ -44,7 +43,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 			return
 		}
 		// There was a panic whilst delivering a hook...
-		log.Error("PANIC whilst trying to deliver webhook task[%d] to webhook %s Panic: %v\nStacktrace: %s", t.ID, w.URL, err, log.Stack(2))
+		log.Error("PANIC whilst trying to deliver webhook[%d] to %s Panic: %v\nStacktrace: %s", t.ID, w.URL, err, log.Stack(2))
 	}()
 
 	t.IsDelivered = true
@@ -53,7 +52,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 	switch w.HTTPMethod {
 	case "":
-		log.Info("HTTP Method for webhook %s empty, setting to POST as default", w.URL)
+		log.Info("HTTP Method for webhook %d empty, setting to POST as default", t.ID)
 		fallthrough
 	case http.MethodPost:
 		switch w.ContentType {
@@ -79,32 +78,27 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	case http.MethodGet:
 		u, err := url.Parse(w.URL)
 		if err != nil {
-			return fmt.Errorf("unable to deliver webhook task[%d] as cannot parse webhook url %s: %w", t.ID, w.URL, err)
+			return err
 		}
 		vals := u.Query()
 		vals["payload"] = []string{t.PayloadContent}
 		u.RawQuery = vals.Encode()
 		req, err = http.NewRequest("GET", u.String(), nil)
 		if err != nil {
-			return fmt.Errorf("unable to deliver webhook task[%d] as unable to create HTTP request for webhook url %s: %w", t.ID, w.URL, err)
+			return err
 		}
 	case http.MethodPut:
 		switch w.Type {
-		case webhook_module.MATRIX:
-			txnID, err := getMatrixTxnID([]byte(t.PayloadContent))
+		case webhook_model.MATRIX:
+			req, err = getMatrixHookRequest(w, t)
 			if err != nil {
 				return err
 			}
-			url := fmt.Sprintf("%s/%s", w.URL, url.PathEscape(txnID))
-			req, err = http.NewRequest("PUT", url, strings.NewReader(t.PayloadContent))
-			if err != nil {
-				return fmt.Errorf("unable to deliver webhook task[%d] as cannot create matrix request for webhook url %s: %w", t.ID, w.URL, err)
-			}
 		default:
-			return fmt.Errorf("invalid http method for webhook task[%d] in webhook %s: %v", t.ID, w.URL, w.HTTPMethod)
+			return fmt.Errorf("invalid http method for webhook: [%d] %v", t.ID, w.HTTPMethod)
 		}
 	default:
-		return fmt.Errorf("invalid http method for webhook task[%d] in webhook %s: %v", t.ID, w.URL, w.HTTPMethod)
+		return fmt.Errorf("invalid http method for webhook: [%d] %v", t.ID, w.HTTPMethod)
 	}
 
 	var signatureSHA1 string
@@ -136,16 +130,6 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	req.Header["X-GitHub-Event"] = []string{event}
 	req.Header["X-GitHub-Event-Type"] = []string{eventType}
 
-	// Add Authorization Header
-	authorization, err := w.HeaderAuthorization()
-	if err != nil {
-		log.Error("Webhook could not get Authorization header [%d]: %v", w.ID, err)
-		return err
-	}
-	if authorization != "" {
-		req.Header["Authorization"] = []string{authorization}
-	}
-
 	// Record delivery information.
 	t.RequestInfo = &webhook_model.HookRequest{
 		URL:        req.URL.String(),
@@ -160,20 +144,6 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		Headers: map[string]string{},
 	}
 
-	// OK We're now ready to attempt to deliver the task - we must double check that it
-	// has not been delivered in the meantime
-	updated, err := webhook_model.MarkTaskDelivered(ctx, t)
-	if err != nil {
-		log.Error("MarkTaskDelivered[%d]: %v", t.ID, err)
-		return fmt.Errorf("unable to mark task[%d] delivered in the db: %w", t.ID, err)
-	}
-	if !updated {
-		// This webhook task has already been attempted to be delivered or is in the process of being delivered
-		log.Trace("Webhook Task[%d] already delivered", t.ID)
-		return nil
-	}
-
-	// All code from this point will update the hook task
 	defer func() {
 		t.Delivered = time.Now().UnixNano()
 		if t.IsSucceed {
@@ -190,9 +160,9 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 		// Update webhook last delivery status.
 		if t.IsSucceed {
-			w.LastStatus = webhook_module.HookStatusSucceed
+			w.LastStatus = webhook_model.HookStatusSucceed
 		} else {
-			w.LastStatus = webhook_module.HookStatusFail
+			w.LastStatus = webhook_model.HookStatusFail
 		}
 		if err = webhook_model.UpdateWebhookLastStatus(w); err != nil {
 			log.Error("UpdateWebhookLastStatus: %v", err)
@@ -205,14 +175,13 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	}
 
 	if !w.IsActive {
-		log.Trace("Webhook %s in Webhook Task[%d] is not active", w.URL, t.ID)
 		return nil
 	}
 
 	resp, err := webhookHTTPClient.Do(req.WithContext(ctx))
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
-		return fmt.Errorf("unable to deliver webhook task[%d] in %s due to error in http client: %w", t.ID, w.URL, err)
+		return err
 	}
 	defer resp.Body.Close()
 
@@ -226,7 +195,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	p, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("read body: %s", err)
-		return fmt.Errorf("unable to deliver webhook task[%d] in %s as unable to read response body: %w", t.ID, w.URL, err)
+		return err
 	}
 	t.ResponseInfo.Body = string(p)
 	return nil
@@ -288,37 +257,17 @@ func Init() error {
 	}
 	go graceful.GetManager().RunWithShutdownFns(hookQueue.Run)
 
-	go graceful.GetManager().RunWithShutdownContext(populateWebhookSendingQueue)
+	tasks, err := webhook_model.FindUndeliveredHookTasks(graceful.GetManager().HammerContext())
+	if err != nil {
+		log.Error("FindUndeliveredHookTasks failed: %v", err)
+		return err
+	}
 
-	return nil
-}
-
-func populateWebhookSendingQueue(ctx context.Context) {
-	ctx, _, finished := process.GetManager().AddContext(ctx, "Webhook: Populate sending queue")
-	defer finished()
-
-	lowerID := int64(0)
-	for {
-		taskIDs, err := webhook_model.FindUndeliveredHookTaskIDs(ctx, lowerID)
-		if err != nil {
-			log.Error("Unable to populate webhook queue as FindUndeliveredHookTaskIDs failed: %v", err)
-			return
-		}
-		if len(taskIDs) == 0 {
-			return
-		}
-		lowerID = taskIDs[len(taskIDs)-1]
-
-		for _, taskID := range taskIDs {
-			select {
-			case <-ctx.Done():
-				log.Warn("Shutdown before Webhook Sending queue finishing being populated")
-				return
-			default:
-			}
-			if err := enqueueHookTask(taskID); err != nil {
-				log.Error("Unable to push HookTask[%d] to the Webhook Sending queue: %v", taskID, err)
-			}
+	for _, task := range tasks {
+		if err := enqueueHookTask(task); err != nil {
+			log.Error("enqueueHookTask failed: %v", err)
 		}
 	}
+
+	return nil
 }

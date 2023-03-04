@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin notice">
+<div class="page-content admin notice">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -46,7 +46,7 @@
 										</form>
 									</div>
 									<div class="ui floating upward dropdown small button">
-										<span class="text">{{.locale.Tr "admin.notices.operations"}}</span>
+										<span class="text">{{.locale.Tr "admin.notices.actions"}}</span>
 										<div class="menu">
 											<div class="item select action" data-action="select-all">
 												{{.locale.Tr "admin.notices.select_all"}}

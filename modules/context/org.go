@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package context
 
@@ -9,9 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -28,32 +27,6 @@ type Organization struct {
 
 	Team  *organization.Team
 	Teams []*organization.Team
-}
-
-func (org *Organization) CanWriteUnit(ctx *Context, unitType unit.Type) bool {
-	if ctx.Doer == nil {
-		return false
-	}
-	return org.UnitPermission(ctx, ctx.Doer.ID, unitType) >= perm.AccessModeWrite
-}
-
-func (org *Organization) UnitPermission(ctx *Context, doerID int64, unitType unit.Type) perm.AccessMode {
-	if doerID > 0 {
-		teams, err := organization.GetUserOrgTeams(ctx, org.Organization.ID, doerID)
-		if err != nil {
-			log.Error("GetUserOrgTeams: %v", err)
-			return perm.AccessModeNone
-		}
-		if len(teams) > 0 {
-			return teams.UnitMaxAccess(unitType)
-		}
-	}
-
-	if org.Organization.Visibility == structs.VisibleTypePublic {
-		return perm.AccessModeRead
-	}
-
-	return perm.AccessModeNone
 }
 
 // HandleOrgAssignment handles organization assignment
@@ -80,7 +53,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	orgName := ctx.Params(":org")
 
 	var err error
-	ctx.Org.Organization, err = organization.GetOrgByName(ctx, orgName)
+	ctx.Org.Organization, err = organization.GetOrgByName(orgName)
 	if err != nil {
 		if organization.IsErrOrgNotExist(err) {
 			redirectUserID, err := user_model.LookupUserRedirect(orgName)

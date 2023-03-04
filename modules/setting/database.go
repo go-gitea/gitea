@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package setting
 
@@ -49,16 +50,15 @@ var (
 		MaxOpenConns      int
 		ConnMaxLifetime   time.Duration
 		IterateBufferSize int
-		AutoMigration     bool
 	}{
 		Timeout:           500,
 		IterateBufferSize: 50,
 	}
 )
 
-// LoadDBSetting loads the database settings
-func LoadDBSetting() {
-	sec := CfgProvider.Section("database")
+// InitDBConfig loads the database settings
+func InitDBConfig() {
+	sec := Cfg.Section("database")
 	Database.Type = sec.Key("DB_TYPE").String()
 	defaultCharset := "utf8"
 	Database.UseMySQL = false
@@ -106,7 +106,6 @@ func LoadDBSetting() {
 	Database.LogSQL = sec.Key("LOG_SQL").MustBool(true)
 	Database.DBConnectRetries = sec.Key("DB_RETRIES").MustInt(10)
 	Database.DBConnectBackoff = sec.Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
-	Database.AutoMigration = sec.Key("AUTO_MIGRATION").MustBool(true)
 }
 
 // DBConnStr returns database connection string

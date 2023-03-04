@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
@@ -26,7 +27,7 @@ func AddTimeManually(c *context.Context) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
-	url := issue.Link()
+	url := issue.HTMLURL()
 
 	if c.HasError() {
 		c.Flash.Error(c.GetErrMsg())
@@ -83,5 +84,5 @@ func DeleteTime(c *context.Context) {
 	}
 
 	c.Flash.Success(c.Tr("repo.issues.del_time_history", util.SecToTime(t.Time)))
-	c.Redirect(issue.Link())
+	c.Redirect(issue.HTMLURL())
 }

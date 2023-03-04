@@ -1,28 +1,29 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package rubygems
 
 import (
 	"archive/tar"
 	"compress/gzip"
+	"errors"
 	"io"
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
 
 var (
 	// ErrMissingMetadataFile indicates a missing metadata.gz file
-	ErrMissingMetadataFile = util.NewInvalidArgumentErrorf("metadata.gz file is missing")
+	ErrMissingMetadataFile = errors.New("Metadata file is missing")
 	// ErrInvalidName indicates an invalid id in the metadata.gz file
-	ErrInvalidName = util.NewInvalidArgumentErrorf("package name is invalid")
+	ErrInvalidName = errors.New("Metadata file contains an invalid name")
 	// ErrInvalidVersion indicates an invalid version in the metadata.gz file
-	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
+	ErrInvalidVersion = errors.New("Metadata file contains an invalid version")
 )
 
 var versionMatcher = regexp.MustCompile(`\A[0-9]+(?:\.[0-9a-zA-Z]+)*(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z`)
@@ -119,7 +120,7 @@ func (r requirement) AsVersionRequirement() []VersionRequirement {
 		if !ok {
 			continue
 		}
-		vm, ok := req[1].(map[string]interface{})
+		vm, ok := req[1].(map[interface{}]interface{})
 		if !ok {
 			continue
 		}

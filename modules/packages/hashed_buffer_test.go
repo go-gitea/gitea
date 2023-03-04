@@ -1,10 +1,11 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package packages
 
 import (
-	"encoding/hex"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -36,10 +37,10 @@ func TestHashedBuffer(t *testing.T) {
 		assert.Equal(t, c.Data, string(data))
 
 		hashMD5, hashSHA1, hashSHA256, hashSHA512 := buf.Sums()
-		assert.Equal(t, c.HashMD5, hex.EncodeToString(hashMD5))
-		assert.Equal(t, c.HashSHA1, hex.EncodeToString(hashSHA1))
-		assert.Equal(t, c.HashSHA256, hex.EncodeToString(hashSHA256))
-		assert.Equal(t, c.HashSHA512, hex.EncodeToString(hashSHA512))
+		assert.Equal(t, c.HashMD5, fmt.Sprintf("%x", hashMD5))
+		assert.Equal(t, c.HashSHA1, fmt.Sprintf("%x", hashSHA1))
+		assert.Equal(t, c.HashSHA256, fmt.Sprintf("%x", hashSHA256))
+		assert.Equal(t, c.HashSHA512, fmt.Sprintf("%x", hashSHA512))
 
 		assert.NoError(t, buf.Close())
 	}

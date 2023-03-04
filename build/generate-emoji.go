@@ -1,6 +1,7 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // Copyright 2015 Kenneth Shaw
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 //go:build ignore
 
@@ -189,10 +190,6 @@ func generate() ([]byte, error) {
 		}
 	}
 
-	sort.Slice(data, func(i, j int) bool {
-		return data[i].Aliases[0] < data[j].Aliases[0]
-	})
-
 	// add header
 	str := replacer.Replace(fmt.Sprintf(hdr, gemojiURL, data))
 
@@ -212,8 +209,8 @@ func generate() ([]byte, error) {
 
 const hdr = `
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
-
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package emoji
 

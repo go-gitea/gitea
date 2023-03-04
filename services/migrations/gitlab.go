@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package migrations
 
@@ -352,10 +353,8 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 	releases := make([]*base.Release, 0, perPage)
 	for i := 1; ; i++ {
 		ls, _, err := g.client.Releases.ListReleases(g.repoID, &gitlab.ListReleasesOptions{
-			ListOptions: gitlab.ListOptions{
-				Page:    i,
-				PerPage: perPage,
-			},
+			Page:    i,
+			PerPage: perPage,
 		}, nil, gitlab.WithContext(g.ctx))
 		if err != nil {
 			return nil, err

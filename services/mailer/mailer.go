@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package mailer
 
@@ -36,7 +37,6 @@ type Message struct {
 	FromAddress     string
 	FromDisplayName string
 	To              string // Use only one recipient to prevent leaking of addresses
-	ReplyTo         string
 	Subject         string
 	Date            time.Time
 	Body            string
@@ -48,9 +48,6 @@ func (m *Message) ToMessage() *gomail.Message {
 	msg := gomail.NewMessage()
 	msg.SetAddressHeader("From", m.FromAddress, m.FromDisplayName)
 	msg.SetHeader("To", m.To)
-	if m.ReplyTo != "" {
-		msg.SetHeader("Reply-To", m.ReplyTo)
-	}
 	for header := range m.Headers {
 		msg.SetHeader(header, m.Headers[header]...)
 	}

@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package setting
 
@@ -41,7 +42,6 @@ var (
 		EnablePushCreateOrg                     bool
 		DisabledRepoUnits                       []string
 		DefaultRepoUnits                        []string
-		DefaultForkRepoUnits                    []string
 		PrefixArchiveFiles                      bool
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
@@ -49,7 +49,6 @@ var (
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
 		DisableDownloadSourceArchives           bool
-		AllowForkWithoutMaximumLimit            bool
 
 		// Repository editor settings
 		Editor struct {
@@ -158,12 +157,10 @@ var (
 		EnablePushCreateOrg:                     false,
 		DisabledRepoUnits:                       []string{},
 		DefaultRepoUnits:                        []string{},
-		DefaultForkRepoUnits:                    []string{},
 		PrefixArchiveFiles:                      true,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
-		AllowForkWithoutMaximumLimit:            true,
 
 		// Repository editor settings
 		Editor: struct {
@@ -224,6 +221,7 @@ var (
 			DefaultMergeMessageOfficialApproversOnly: true,
 			PopulateSquashCommentWithCommitMessages:  false,
 			AddCoCommitterTrailers:                   true,
+			TestConflictingPatchesWithGitApply:       true,
 		},
 
 		// Issue settings
@@ -270,10 +268,10 @@ var (
 	}{}
 )
 
-func loadRepositoryFrom(rootCfg ConfigProvider) {
+func newRepository() {
 	var err error
 	// Determine and create root git repository path.
-	sec := rootCfg.Section("repository")
+	sec := Cfg.Section("repository")
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
@@ -295,19 +293,19 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		log.Warn("SCRIPT_TYPE %q is not on the current PATH. Are you sure that this is the correct SCRIPT_TYPE?", ScriptType)
 	}
 
-	if err = sec.MapTo(&Repository); err != nil {
+	if err = Cfg.Section("repository").MapTo(&Repository); err != nil {
 		log.Fatal("Failed to map Repository settings: %v", err)
-	} else if err = rootCfg.Section("repository.editor").MapTo(&Repository.Editor); err != nil {
+	} else if err = Cfg.Section("repository.editor").MapTo(&Repository.Editor); err != nil {
 		log.Fatal("Failed to map Repository.Editor settings: %v", err)
-	} else if err = rootCfg.Section("repository.upload").MapTo(&Repository.Upload); err != nil {
+	} else if err = Cfg.Section("repository.upload").MapTo(&Repository.Upload); err != nil {
 		log.Fatal("Failed to map Repository.Upload settings: %v", err)
-	} else if err = rootCfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
+	} else if err = Cfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
 		log.Fatal("Failed to map Repository.Local settings: %v", err)
-	} else if err = rootCfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
+	} else if err = Cfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
 	}
 
-	if !rootCfg.Section("packages").Key("ENABLED").MustBool(true) {
+	if !Cfg.Section("packages").Key("ENABLED").MustBool(true) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
 	}
 
@@ -354,5 +352,5 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
 
-	RepoArchive.Storage = getStorage(rootCfg, "repo-archive", "", nil)
+	RepoArchive.Storage = getStorage("repo-archive", "", nil)
 }

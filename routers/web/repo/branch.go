@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
@@ -91,7 +92,7 @@ func DeleteBranchPost(ctx *context.Context) {
 	defer redirect(ctx)
 	branchName := ctx.FormString("name")
 
-	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
+	if err := repo_service.DeleteBranch(ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
 			log.Debug("DeleteBranch: Can't delete non existing branch '%s'", branchName)
@@ -99,7 +100,7 @@ func DeleteBranchPost(ctx *context.Context) {
 		case errors.Is(err, repo_service.ErrBranchIsDefault):
 			log.Debug("DeleteBranch: Can't delete default branch '%s'", branchName)
 			ctx.Flash.Error(ctx.Tr("repo.branch.default_deletion_failed", branchName))
-		case errors.Is(err, git_model.ErrBranchIsProtected):
+		case errors.Is(err, repo_service.ErrBranchIsProtected):
 			log.Debug("DeleteBranch: Can't delete protected branch '%s'", branchName)
 			ctx.Flash.Error(ctx.Tr("repo.branch.protected_deletion_failed", branchName))
 		default:
@@ -120,7 +121,7 @@ func RestoreBranchPost(ctx *context.Context) {
 	branchID := ctx.FormInt64("branch_id")
 	branchName := ctx.FormString("name")
 
-	deletedBranch, err := git_model.GetDeletedBranchByID(ctx, ctx.Repo.Repository.ID, branchID)
+	deletedBranch, err := git_model.GetDeletedBranchByID(ctx.Repo.Repository.ID, branchID)
 	if err != nil {
 		log.Error("GetDeletedBranchByID: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", branchName))
@@ -189,9 +190,9 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 		return nil, nil, 0
 	}
 
-	rules, err := git_model.FindRepoProtectedBranchRules(ctx, ctx.Repo.Repository.ID)
+	protectedBranches, err := git_model.GetProtectedBranches(ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("FindRepoProtectedBranchRules", err)
+		ctx.ServerError("GetProtectedBranches", err)
 		return nil, nil, 0
 	}
 
@@ -208,7 +209,7 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 			continue
 		}
 
-		branch := loadOneBranch(ctx, rawBranches[i], defaultBranch, &rules, repoIDToRepo, repoIDToGitRepo)
+		branch := loadOneBranch(ctx, rawBranches[i], defaultBranch, protectedBranches, repoIDToRepo, repoIDToGitRepo)
 		if branch == nil {
 			return nil, nil, 0
 		}
@@ -220,7 +221,7 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 	if defaultBranch != nil {
 		// Always add the default branch
 		log.Debug("loadOneBranch: load default: '%s'", defaultBranch.Name)
-		defaultBranchBranch = loadOneBranch(ctx, defaultBranch, defaultBranch, &rules, repoIDToRepo, repoIDToGitRepo)
+		defaultBranchBranch = loadOneBranch(ctx, defaultBranch, defaultBranch, protectedBranches, repoIDToRepo, repoIDToGitRepo)
 		branches = append(branches, defaultBranchBranch)
 	}
 
@@ -236,7 +237,7 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 	return defaultBranchBranch, branches, totalNumOfBranches
 }
 
-func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, protectedBranches *git_model.ProtectedBranchRules,
+func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, protectedBranches []*git_model.ProtectedBranch,
 	repoIDToRepo map[int64]*repo_model.Repository,
 	repoIDToGitRepo map[int64]*git.Repository,
 ) *Branch {
@@ -249,8 +250,13 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 	}
 
 	branchName := rawBranch.Name
-	p := protectedBranches.GetFirstMatched(branchName)
-	isProtected := p != nil
+	var isProtected bool
+	for _, b := range protectedBranches {
+		if b.BranchName == branchName {
+			isProtected = true
+			break
+		}
+	}
 
 	divergence := &git.DivergeObject{
 		Ahead:  -1,
@@ -273,14 +279,14 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 	mergeMovedOn := false
 	if pr != nil {
 		pr.HeadRepo = ctx.Repo.Repository
-		if err := pr.LoadIssue(ctx); err != nil {
-			ctx.ServerError("LoadIssue", err)
+		if err := pr.LoadIssue(); err != nil {
+			ctx.ServerError("pr.LoadIssue", err)
 			return nil
 		}
 		if repo, ok := repoIDToRepo[pr.BaseRepoID]; ok {
 			pr.BaseRepo = repo
-		} else if err := pr.LoadBaseRepo(ctx); err != nil {
-			ctx.ServerError("LoadBaseRepo", err)
+		} else if err := pr.LoadBaseRepoCtx(ctx); err != nil {
+			ctx.ServerError("pr.LoadBaseRepo", err)
 			return nil
 		} else {
 			repoIDToRepo[pr.BaseRepoID] = pr.BaseRepo
@@ -326,13 +332,13 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 func getDeletedBranches(ctx *context.Context) ([]*Branch, error) {
 	branches := []*Branch{}
 
-	deletedBranches, err := git_model.GetDeletedBranches(ctx, ctx.Repo.Repository.ID)
+	deletedBranches, err := git_model.GetDeletedBranches(ctx.Repo.Repository.ID)
 	if err != nil {
 		return branches, err
 	}
 
 	for i := range deletedBranches {
-		deletedBranches[i].LoadUser(ctx)
+		deletedBranches[i].LoadUser()
 		branches = append(branches, &Branch{
 			Name:          deletedBranches[i].Name,
 			IsDeleted:     true,

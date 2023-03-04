@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo_test
 
@@ -115,7 +116,7 @@ func TestMetas(t *testing.T) {
 	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleRegexp
 	testSuccess(markup.IssueNameStyleRegexp)
 
-	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 3)
+	repo, err := repo_model.GetRepositoryByID(3)
 	assert.NoError(t, err)
 
 	metas = repo.ComposeMetas()

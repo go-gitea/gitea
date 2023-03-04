@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package issue
 
@@ -66,7 +67,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	}
 
 	// check issue dependencies
-	user, err := user_model.GetUserByID(db.DefaultContext, 1)
+	user, err := user_model.GetUserByID(1)
 	assert.NoError(t, err)
 	issue1, err := issues_model.GetIssueByID(db.DefaultContext, 1)
 	assert.NoError(t, err)

@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package stats
 
@@ -29,14 +30,14 @@ func TestMain(m *testing.M) {
 
 func TestRepoStatsIndex(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	setting.CfgProvider = ini.Empty()
+	setting.Cfg = ini.Empty()
 
-	setting.LoadQueueSettings()
+	setting.NewQueueService()
 
 	err := Init()
 	assert.NoError(t, err)
 
-	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 1)
+	repo, err := repo_model.GetRepositoryByID(1)
 	assert.NoError(t, err)
 
 	err = UpdateRepoIndexer(repo)

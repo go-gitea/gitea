@@ -1,14 +1,14 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package conan
 
 import (
 	"bufio"
+	"errors"
 	"io"
 	"strings"
-
-	"code.gitea.io/gitea/modules/util"
 )
 
 // Conaninfo represents infos of a Conan package
@@ -80,7 +80,7 @@ func readSections(r io.Reader) (map[string][]string, error) {
 			continue
 		}
 		if line != "" {
-			return nil, util.NewInvalidArgumentErrorf("invalid conaninfo.txt")
+			return nil, errors.New("Invalid conaninfo.txt")
 		}
 	}
 	if err := scanner.Err(); err != nil {

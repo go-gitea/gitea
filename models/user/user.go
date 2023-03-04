@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package user
 
@@ -27,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/validation"
 
 	"xorm.io/builder"
 )
@@ -253,15 +253,6 @@ func (u *User) CanCreateOrganization() bool {
 // CanEditGitHook returns true if user can edit Git hooks.
 func (u *User) CanEditGitHook() bool {
 	return !setting.DisableGitHooks && (u.IsAdmin || u.AllowGitHook)
-}
-
-// CanForkRepo returns if user login can fork a repository
-// It checks especially that the user can create repos, and potentially more
-func (u *User) CanForkRepo() bool {
-	if setting.Repository.AllowForkWithoutMaximumLimit {
-		return true
-	}
-	return u.CanCreateRepo()
 }
 
 // CanImportLocal returns true if user can migrate repository by local path.
@@ -492,6 +483,32 @@ func GetUserSalt() (string, error) {
 	return hex.EncodeToString(rBytes), nil
 }
 
+// NewGhostUser creates and returns a fake user for someone has deleted their account.
+func NewGhostUser() *User {
+	return &User{
+		ID:        -1,
+		Name:      "Ghost",
+		LowerName: "ghost",
+	}
+}
+
+// NewReplaceUser creates and returns a fake user for external user
+func NewReplaceUser(name string) *User {
+	return &User{
+		ID:        -1,
+		Name:      name,
+		LowerName: strings.ToLower(name),
+	}
+}
+
+// IsGhost check if user is fake user for a deleted account
+func (u *User) IsGhost() bool {
+	if u == nil {
+		return false
+	}
+	return u.ID == -1 && u.Name == "Ghost"
+}
+
 var (
 	reservedUsernames = []string{
 		".",
@@ -529,7 +546,6 @@ var (
 		"swagger.v1.json",
 		"user",
 		"v2",
-		"gitea-actions",
 	}
 
 	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom"}
@@ -538,7 +554,7 @@ var (
 // IsUsableUsername returns an error when a username is reserved
 func IsUsableUsername(name string) error {
 	// Validate username make sure it satisfies requirement.
-	if !validation.IsValidUsername(name) {
+	if db.AlphaDashDotPattern.MatchString(name) {
 		// Note: usually this error is normally caught up earlier in the UI
 		return db.ErrNameCharsNotAllowed{Name: name}
 	}
@@ -572,11 +588,6 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	u.Theme = setting.UI.DefaultTheme
 	u.IsRestricted = setting.Service.DefaultUserIsRestricted
 	u.IsActive = !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm)
-
-	// Ensure consistency of the dates.
-	if u.UpdatedUnix < u.CreatedUnix {
-		u.UpdatedUnix = u.CreatedUnix
-	}
 
 	// overwrite defaults if set
 	if len(overwriteDefault) != 0 && overwriteDefault[0] != nil {
@@ -616,7 +627,7 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -655,15 +666,7 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return err
 	}
 
-	if u.CreatedUnix == 0 {
-		// Caller expects auto-time for creation & update timestamps.
-		err = db.Insert(ctx, u)
-	} else {
-		// Caller sets the timestamps themselves. They are responsible for ensuring
-		// both `CreatedUnix` and `UpdatedUnix` are set appropriately.
-		_, err = db.GetEngine(ctx).NoAutoTime().Insert(u)
-	}
-	if err != nil {
+	if err = db.Insert(ctx, u); err != nil {
 		return err
 	}
 
@@ -743,7 +746,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -886,7 +889,7 @@ func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 
 // UpdateUserSetting updates user's settings.
 func UpdateUserSetting(u *User) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -923,7 +926,12 @@ func UserPath(userName string) string { //revive:disable-line:exported
 }
 
 // GetUserByID returns the user object by given ID if exists.
-func GetUserByID(ctx context.Context, id int64) (*User, error) {
+func GetUserByID(id int64) (*User, error) {
+	return GetUserByIDCtx(db.DefaultContext, id)
+}
+
+// GetUserByIDCtx returns the user object by given ID if exists.
+func GetUserByIDCtx(ctx context.Context, id int64) (*User, error) {
 	u := new(User)
 	has, err := db.GetEngine(ctx).ID(id).Get(u)
 	if err != nil {
@@ -932,20 +940,6 @@ func GetUserByID(ctx context.Context, id int64) (*User, error) {
 		return nil, ErrUserNotExist{id, "", 0}
 	}
 	return u, nil
-}
-
-// GetPossibleUserByID returns the user if id > 0 or return system usrs if id < 0
-func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
-	switch id {
-	case -1:
-		return NewGhostUser(), nil
-	case ActionsUserID:
-		return NewActionsUser(), nil
-	case 0:
-		return nil, ErrUserNotExist{}
-	default:
-		return GetUserByID(ctx, id)
-	}
 }
 
 // GetUserByNameCtx returns user by given name.
@@ -980,15 +974,14 @@ func GetUserEmailsByNames(ctx context.Context, names []string) []string {
 }
 
 // GetMaileableUsersByIDs gets users from ids, but only if they can receive mails
-func GetMaileableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]*User, error) {
+func GetMaileableUsersByIDs(ids []int64, isMention bool) ([]*User, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
 	ous := make([]*User, 0, len(ids))
 
 	if isMention {
-		return ous, db.GetEngine(ctx).
-			In("id", ids).
+		return ous, db.GetEngine(db.DefaultContext).In("id", ids).
 			Where("`type` = ?", UserTypeIndividual).
 			And("`prohibit_login` = ?", false).
 			And("`is_active` = ?", true).
@@ -996,8 +989,7 @@ func GetMaileableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([
 			Find(&ous)
 	}
 
-	return ous, db.GetEngine(ctx).
-		In("id", ids).
+	return ous, db.GetEngine(db.DefaultContext).In("id", ids).
 		Where("`type` = ?", UserTypeIndividual).
 		And("`prohibit_login` = ?", false).
 		And("`is_active` = ?", true).
@@ -1030,10 +1022,10 @@ func GetUserNameByID(ctx context.Context, id int64) (string, error) {
 }
 
 // GetUserIDsByNames returns a slice of ids corresponds to names.
-func GetUserIDsByNames(ctx context.Context, names []string, ignoreNonExistent bool) ([]int64, error) {
+func GetUserIDsByNames(names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))
 	for _, name := range names {
-		u, err := GetUserByName(ctx, name)
+		u, err := GetUserByName(db.DefaultContext, name)
 		if err != nil {
 			if ignoreNonExistent {
 				continue
@@ -1060,11 +1052,11 @@ type UserCommit struct { //revive:disable-line:exported
 }
 
 // ValidateCommitWithEmail check if author's e-mail of commit is corresponding to a user.
-func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
+func ValidateCommitWithEmail(c *git.Commit) *User {
 	if c.Author == nil {
 		return nil
 	}
-	u, err := GetUserByEmail(ctx, c.Author.Email)
+	u, err := GetUserByEmail(c.Author.Email)
 	if err != nil {
 		return nil
 	}
@@ -1072,7 +1064,7 @@ func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 }
 
 // ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
-func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) []*UserCommit {
+func ValidateCommitsWithEmails(oldCommits []*git.Commit) []*UserCommit {
 	var (
 		emails     = make(map[string]*User)
 		newCommits = make([]*UserCommit, 0, len(oldCommits))
@@ -1081,7 +1073,7 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) []
 		var u *User
 		if c.Author != nil {
 			if v, ok := emails[c.Author.Email]; !ok {
-				u, _ = GetUserByEmail(ctx, c.Author.Email)
+				u, _ = GetUserByEmail(c.Author.Email)
 				emails[c.Author.Email] = u
 			} else {
 				u = v
@@ -1097,7 +1089,12 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) []
 }
 
 // GetUserByEmail returns the user object by given e-mail if exists.
-func GetUserByEmail(ctx context.Context, email string) (*User, error) {
+func GetUserByEmail(email string) (*User, error) {
+	return GetUserByEmailContext(db.DefaultContext, email)
+}
+
+// GetUserByEmailContext returns the user object by given e-mail if exists with db context
+func GetUserByEmailContext(ctx context.Context, email string) (*User, error) {
 	if len(email) == 0 {
 		return nil, ErrUserNotExist{0, email, 0}
 	}
@@ -1110,7 +1107,7 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 		return nil, err
 	}
 	if has {
-		return GetUserByID(ctx, emailAddress.UID)
+		return GetUserByIDCtx(ctx, emailAddress.UID)
 	}
 
 	// Finally, if email address is the protected email address:
@@ -1154,7 +1151,7 @@ func GetUserByOpenID(uri string) (*User, error) {
 		return nil, err
 	}
 	if has {
-		return GetUserByID(db.DefaultContext, oid.UID)
+		return GetUserByID(oid.UID)
 	}
 
 	return nil, ErrUserNotExist{0, uri, 0}

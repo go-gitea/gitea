@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package activities
 
@@ -97,12 +98,12 @@ func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository
 	}
 	users := make(map[int64]*ActivityAuthorData)
 	var unknownUserID int64
-	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink(ctx)
+	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink()
 	for _, v := range code.Authors {
 		if len(v.Email) == 0 {
 			continue
 		}
-		u, err := user_model.GetUserByEmail(ctx, v.Email)
+		u, err := user_model.GetUserByEmail(v.Email)
 		if u == nil || user_model.IsErrUserNotExist(err) {
 			unknownUserID--
 			users[unknownUserID] = &ActivityAuthorData{
@@ -119,7 +120,7 @@ func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository
 			users[u.ID] = &ActivityAuthorData{
 				Name:       u.DisplayName(),
 				Login:      u.LowerName,
-				AvatarLink: u.AvatarLink(ctx),
+				AvatarLink: u.AvatarLink(),
 				HomeLink:   u.HomeLink(),
 				Commits:    v.Commits,
 			}

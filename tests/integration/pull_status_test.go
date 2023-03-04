@@ -1,6 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
-
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 package integration
 
 import (
@@ -11,7 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -64,18 +63,13 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			api.CommitStatusWarning: "gitea-exclamation",
 		}
 
-		testCtx := NewAPITestContext(t, "user1", "repo1", auth_model.AccessTokenScopeRepo)
+		testCtx := NewAPITestContext(t, "user1", "repo1")
 
 		// Update commit status, and check if icon is updated as well
 		for _, status := range statusList {
 
 			// Call API to add status for commit
-			t.Run("CreateStatus", doAPICreateCommitStatus(testCtx, commitID, api.CreateStatusOption{
-				State:       status,
-				TargetURL:   "http://test.ci/",
-				Description: "",
-				Context:     "testci",
-			}))
+			t.Run("CreateStatus", doAPICreateCommitStatus(testCtx, commitID, status))
 
 			req = NewRequestf(t, "GET", "/user1/repo1/pulls/1/commits")
 			resp = session.MakeRequest(t, req, http.StatusOK)
@@ -93,13 +87,15 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 	})
 }
 
-func doAPICreateCommitStatus(ctx APITestContext, commitID string, data api.CreateStatusOption) func(*testing.T) {
+func doAPICreateCommitStatus(ctx APITestContext, commitID string, status api.CommitStatusState) func(*testing.T) {
 	return func(t *testing.T) {
-		req := NewRequestWithJSON(
-			t,
-			http.MethodPost,
-			fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s?token=%s", ctx.Username, ctx.Reponame, commitID, ctx.Token),
-			data,
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s?token=%s", ctx.Username, ctx.Reponame, commitID, ctx.Token),
+			api.CreateStatusOption{
+				State:       status,
+				TargetURL:   "http://test.ci/",
+				Description: "",
+				Context:     "testci",
+			},
 		)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)

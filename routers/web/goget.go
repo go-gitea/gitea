@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package web
 
@@ -52,7 +53,7 @@ func goGet(ctx *context.Context) {
 	}
 	branchName := setting.Repository.DefaultBranch
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ownerName, repoName)
 	if err == nil && len(repo.DefaultBranch) > 0 {
 		branchName = repo.DefaultBranch
 	}

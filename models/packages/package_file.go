@@ -1,17 +1,18 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package packages
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -22,9 +23,9 @@ func init() {
 
 var (
 	// ErrDuplicatePackageFile indicates a duplicated package file error
-	ErrDuplicatePackageFile = util.NewAlreadyExistErrorf("package file already exists")
+	ErrDuplicatePackageFile = errors.New("Package file does exist already")
 	// ErrPackageFileNotExist indicates a package file not exist error
-	ErrPackageFileNotExist = util.NewNotExistErrorf("package file does not exist")
+	ErrPackageFileNotExist = errors.New("Package file does not exist")
 )
 
 // EmptyFileKey is a named constant for an empty file key
@@ -197,14 +198,4 @@ func SearchFiles(ctx context.Context, opts *PackageFileSearchOptions) ([]*Packag
 	pfs := make([]*PackageFile, 0, 10)
 	count, err := sess.FindAndCount(&pfs)
 	return pfs, count, err
-}
-
-// CalculateFileSize sums up all blob sizes matching the search options.
-// It does NOT respect the deduplication of blobs.
-func CalculateFileSize(ctx context.Context, opts *PackageFileSearchOptions) (int64, error) {
-	return db.GetEngine(ctx).
-		Table("package_file").
-		Where(opts.toConds()).
-		Join("INNER", "package_blob", "package_blob.id = package_file.blob_id").
-		SumInt(new(PackageBlob), "size")
 }

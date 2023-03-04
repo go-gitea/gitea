@@ -58,33 +58,29 @@ https://github.com/loganinak/MigrateGitlabToGogs
 
 ## Where does Gitea store what file
 
-- _`AppWorkPath`_
-  - The `--work-path` flag
-  - Else Environment variable `GITEA_WORK_DIR`
-  - Else a built-in value set at build time
+- WorkPath
+  - Environment variable `GITEA_WORK_DIR`
+  - Else `--work-path` flag
   - Else the directory that contains the Gitea binary
-- `%(APP_DATA_PATH)` (default for database, indexers, etc.)
+- AppDataPath (default for database, indexers, etc.)
   - `APP_DATA_PATH` from `app.ini`
-  - Else _`AppWorkPath`_`/data`
-- _`CustomPath`_ (custom templates)
-  - The `--custom-path` flag
-  - Else Environment variable `GITEA_CUSTOM`
-  - Else a built-in value set at build time
-  - Else _`AppWorkPath`_`/custom`
+  - Else `%(WorkPath)/data`
+- CustomPath (custom templates)
+  - Environment variable `GITEA_CUSTOM`
+  - Else `%(WorkPath)/custom`
 - HomeDir
   - Unix: Environment variable `HOME`
   - Windows: Environment variable `USERPROFILE`, else environment variables `HOMEDRIVE`+`HOMEPATH`
 - RepoRootPath
   - `ROOT` in the \[repository] section of `app.ini` if absolute
-  - Else _`AppWorkPath`_`/ROOT` if `ROOT` in the \[repository] section of `app.ini` if relative
-  - Default `%(APP_DATA_PATH)/gitea-repositories`
+  - Else `%(AppWorkPath)/ROOT` if `ROOT` in the \[repository] section of `app.ini` if relative
+  - Default `%(AppDataPath)/gitea-repositories`
 - INI (config file)
-  - `--config` flag
-  - A possible built-in value set a build time
-  - Else _`CustomPath`_`/conf/app.ini`
+  - `-c` flag
+  - Else `%(CustomPath)/conf/app.ini`
 - SQLite Database
   - `PATH` in `database` section of `app.ini`
-  - Else `%(APP_DATA_PATH)/gitea.db`
+  - Else `%(AppDataPath)/gitea.db`
 
 ## Not seeing a clone URL or the clone URL being incorrect
 
@@ -137,8 +133,6 @@ You can, however, disable showing its documentation by setting `ENABLE_SWAGGER` 
 For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}}).
 
 You can see the latest API (for example) on <https://try.gitea.io/api/swagger>.
-
-You can also see an example of the `swagger.json` file at <https://try.gitea.io/swagger.v1.json>.
 
 ## Adjusting your server for public/private use
 
@@ -449,14 +443,3 @@ It is highly recommended to back-up your database before running these commands.
 If you are using Cloudflare, turn off the auto-minify option in the dashboard.
 
 `Speed` -> `Optimization` -> Uncheck `HTML` within the `Auto-Minify` settings.
-
-## How to adopt repositories from disk
-
-- Add your (bare) repositories to the correct spot for your configuration (`repository.ROOT`), ensuring they are in the correct layout `<REPO_ROOT>/[user]/[repo].git`.
-  - **Note:** the directory names must be lowercase.
-  - You can also check `<ROOT_URL>/admin/config` for the repository root path.
-- Ensure that the user/org exists that you want to adopt repositories for.
-- As an admin, go to `<ROOT_URL>/admin/repos/unadopted` and search.
-  - Users can also be given similar permissions via config [`ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`]({{< relref "doc/advanced/config-cheat-sheet.en-us.md#repository" >}}).
-- If the above steps are done correctly, you should be able to select repositories to adopt.
-  - If no repositories are found, enable [debug logging]({{< relref "doc/advanced/config-cheat-sheet.en-us.md#repository" >}}) to check for any specific errors.

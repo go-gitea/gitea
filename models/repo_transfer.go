@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package models
 
@@ -39,9 +40,9 @@ func init() {
 }
 
 // LoadAttributes fetches the transfer recipient from the database
-func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
+func (r *RepoTransfer) LoadAttributes() error {
 	if r.Recipient == nil {
-		u, err := user_model.GetUserByID(ctx, r.RecipientID)
+		u, err := user_model.GetUserByID(r.RecipientID)
 		if err != nil {
 			return err
 		}
@@ -51,7 +52,7 @@ func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
 
 	if r.Recipient.IsOrganization() && len(r.TeamIDs) != len(r.Teams) {
 		for _, v := range r.TeamIDs {
-			team, err := organization.GetTeamByID(ctx, v)
+			team, err := organization.GetTeamByID(db.DefaultContext, v)
 			if err != nil {
 				return err
 			}
@@ -65,7 +66,7 @@ func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
 	}
 
 	if r.Doer == nil {
-		u, err := user_model.GetUserByID(ctx, r.DoerID)
+		u, err := user_model.GetUserByID(r.DoerID)
 		if err != nil {
 			return err
 		}
@@ -80,7 +81,7 @@ func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
 // For user, it checks if it's himself
 // For organizations, it checks if the user is able to create repos
 func (r *RepoTransfer) CanUserAcceptTransfer(u *user_model.User) bool {
-	if err := r.LoadAttributes(db.DefaultContext); err != nil {
+	if err := r.LoadAttributes(); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return false
 	}
@@ -89,7 +90,7 @@ func (r *RepoTransfer) CanUserAcceptTransfer(u *user_model.User) bool {
 		return r.RecipientID == u.ID
 	}
 
-	allowed, err := organization.CanCreateOrgRepo(db.DefaultContext, r.RecipientID, u.ID)
+	allowed, err := organization.CanCreateOrgRepo(r.RecipientID, u.ID)
 	if err != nil {
 		log.Error("CanCreateOrgRepo: %v", err)
 		return false
@@ -100,10 +101,10 @@ func (r *RepoTransfer) CanUserAcceptTransfer(u *user_model.User) bool {
 
 // GetPendingRepositoryTransfer fetches the most recent and ongoing transfer
 // process for the repository
-func GetPendingRepositoryTransfer(ctx context.Context, repo *repo_model.Repository) (*RepoTransfer, error) {
+func GetPendingRepositoryTransfer(repo *repo_model.Repository) (*RepoTransfer, error) {
 	transfer := new(RepoTransfer)
 
-	has, err := db.GetEngine(ctx).Where("repo_id = ? ", repo.ID).Get(transfer)
+	has, err := db.GetEngine(db.DefaultContext).Where("repo_id = ? ", repo.ID).Get(transfer)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +124,7 @@ func deleteRepositoryTransfer(ctx context.Context, repoID int64) error {
 // CancelRepositoryTransfer marks the repository as ready and remove pending transfer entry,
 // thus cancel the transfer process.
 func CancelRepositoryTransfer(repo *repo_model.Repository) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -154,48 +155,56 @@ func TestRepositoryReadyForTransfer(status repo_model.RepositoryStatus) error {
 
 // CreatePendingRepositoryTransfer transfer a repo from one owner to a new one.
 // it marks the repository transfer as "pending"
-func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.User, repoID int64, teams []*organization.Team) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-		if err != nil {
-			return err
-		}
+func CreatePendingRepositoryTransfer(doer, newOwner *user_model.User, repoID int64, teams []*organization.Team) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
 
-		// Make sure repo is ready to transfer
-		if err := TestRepositoryReadyForTransfer(repo.Status); err != nil {
-			return err
-		}
+	repo, err := repo_model.GetRepositoryByIDCtx(ctx, repoID)
+	if err != nil {
+		return err
+	}
 
-		repo.Status = repo_model.RepositoryPendingTransfer
-		if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
-			return err
-		}
+	// Make sure repo is ready to transfer
+	if err := TestRepositoryReadyForTransfer(repo.Status); err != nil {
+		return err
+	}
 
-		// Check if new owner has repository with same name.
-		if has, err := repo_model.IsRepositoryExist(ctx, newOwner, repo.Name); err != nil {
-			return fmt.Errorf("IsRepositoryExist: %w", err)
-		} else if has {
-			return repo_model.ErrRepoAlreadyExist{
-				Uname: newOwner.LowerName,
-				Name:  repo.Name,
-			}
-		}
+	repo.Status = repo_model.RepositoryPendingTransfer
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+		return err
+	}
 
-		transfer := &RepoTransfer{
-			RepoID:      repo.ID,
-			RecipientID: newOwner.ID,
-			CreatedUnix: timeutil.TimeStampNow(),
-			UpdatedUnix: timeutil.TimeStampNow(),
-			DoerID:      doer.ID,
-			TeamIDs:     make([]int64, 0, len(teams)),
+	// Check if new owner has repository with same name.
+	if has, err := repo_model.IsRepositoryExist(ctx, newOwner, repo.Name); err != nil {
+		return fmt.Errorf("IsRepositoryExist: %w", err)
+	} else if has {
+		return repo_model.ErrRepoAlreadyExist{
+			Uname: newOwner.LowerName,
+			Name:  repo.Name,
 		}
+	}
 
-		for k := range teams {
-			transfer.TeamIDs = append(transfer.TeamIDs, teams[k].ID)
-		}
+	transfer := &RepoTransfer{
+		RepoID:      repo.ID,
+		RecipientID: newOwner.ID,
+		CreatedUnix: timeutil.TimeStampNow(),
+		UpdatedUnix: timeutil.TimeStampNow(),
+		DoerID:      doer.ID,
+		TeamIDs:     make([]int64, 0, len(teams)),
+	}
 
-		return db.Insert(ctx, transfer)
-	})
+	for k := range teams {
+		transfer.TeamIDs = append(transfer.TeamIDs, teams[k].ID)
+	}
+
+	if err := db.Insert(ctx, transfer); err != nil {
+		return err
+	}
+
+	return committer.Commit()
 }
 
 // TransferOwnership transfers all corresponding repository items from old user to new one.
@@ -234,7 +243,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 		}
 	}()
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}

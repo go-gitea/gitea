@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package nuget
 
@@ -7,13 +8,13 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/hashicorp/go-version"
@@ -21,13 +22,13 @@ import (
 
 var (
 	// ErrMissingNuspecFile indicates a missing Nuspec file
-	ErrMissingNuspecFile = util.NewInvalidArgumentErrorf("Nuspec file is missing")
+	ErrMissingNuspecFile = errors.New("Nuspec file is missing")
 	// ErrNuspecFileTooLarge indicates a Nuspec file which is too large
-	ErrNuspecFileTooLarge = util.NewInvalidArgumentErrorf("Nuspec file is too large")
+	ErrNuspecFileTooLarge = errors.New("Nuspec file is too large")
 	// ErrNuspecInvalidID indicates an invalid id in the Nuspec file
-	ErrNuspecInvalidID = util.NewInvalidArgumentErrorf("Nuspec file contains an invalid id")
+	ErrNuspecInvalidID = errors.New("Nuspec file contains an invalid id")
 	// ErrNuspecInvalidVersion indicates an invalid version in the Nuspec file
-	ErrNuspecInvalidVersion = util.NewInvalidArgumentErrorf("Nuspec file contains an invalid version")
+	ErrNuspecInvalidVersion = errors.New("Nuspec file contains an invalid version")
 )
 
 // PackageType specifies the package type the metadata describes

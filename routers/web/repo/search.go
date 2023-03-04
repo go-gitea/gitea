@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
@@ -54,7 +55,7 @@ func Search(ctx *context.Context) {
 		ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
 	}
 
-	ctx.Data["SourcePath"] = ctx.Repo.Repository.Link()
+	ctx.Data["SourcePath"] = ctx.Repo.Repository.HTMLURL()
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 

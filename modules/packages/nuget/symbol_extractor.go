@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package nuget
 
@@ -7,6 +8,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -14,14 +16,13 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/packages"
-	"code.gitea.io/gitea/modules/util"
 )
 
 var (
-	ErrMissingPdbFiles       = util.NewInvalidArgumentErrorf("package does not contain PDB files")
-	ErrInvalidFiles          = util.NewInvalidArgumentErrorf("package contains invalid files")
-	ErrInvalidPdbMagicNumber = util.NewInvalidArgumentErrorf("invalid Portable PDB magic number")
-	ErrMissingPdbStream      = util.NewInvalidArgumentErrorf("missing PDB stream")
+	ErrMissingPdbFiles       = errors.New("Package does not contain PDB files")
+	ErrInvalidFiles          = errors.New("Package contains invalid files")
+	ErrInvalidPdbMagicNumber = errors.New("Invalid Portable PDB magic number")
+	ErrMissingPdbStream      = errors.New("Missing PDB stream")
 )
 
 type PortablePdb struct {

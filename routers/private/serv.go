@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 // Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
 package private
@@ -51,7 +52,7 @@ func ServNoCommand(ctx *context.PrivateContext) {
 	results.Key = key
 
 	if key.Type == asymkey_model.KeyTypeUser || key.Type == asymkey_model.KeyTypePrincipal {
-		user, err := user_model.GetUserByID(ctx, key.OwnerID)
+		user, err := user_model.GetUserByID(key.OwnerID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.JSON(http.StatusUnauthorized, private.Response{
@@ -259,7 +260,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	} else {
 		// Get the user represented by the Key
 		var err error
-		user, err = user_model.GetUserByID(ctx, key.OwnerID)
+		user, err = user_model.GetUserByID(key.OwnerID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.JSON(http.StatusUnauthorized, private.ErrServCommand{
@@ -368,7 +369,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			return
 		}
 
-		repo, err = repo_service.PushCreateRepo(ctx, user, owner, results.RepoName)
+		repo, err = repo_service.PushCreateRepo(user, owner, results.RepoName)
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
 			ctx.JSON(http.StatusNotFound, private.ErrServCommand{
@@ -382,7 +383,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	if results.IsWiki {
 		// Ensure the wiki is enabled before we allow access to it
-		if _, err := repo.GetUnit(ctx, unit.TypeWiki); err != nil {
+		if _, err := repo.GetUnit(unit.TypeWiki); err != nil {
 			if repo_model.IsErrUnitTypeNotExist(err) {
 				ctx.JSON(http.StatusForbidden, private.ErrServCommand{
 					Results: results,

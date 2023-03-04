@@ -1,5 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package cmd
 
@@ -33,7 +34,7 @@ func runMigrate(ctx *cli.Context) error {
 	log.Info("AppPath: %s", setting.AppPath)
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)
-	log.Info("Log path: %s", setting.Log.RootPath)
+	log.Info("Log path: %s", setting.LogRootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
 
 	if err := db.InitEngineWithMigration(context.Background(), migrations.Migrate); err != nil {

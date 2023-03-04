@@ -1,5 +1,6 @@
 // Copyright 2022 Gitea. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package pull
 
@@ -74,7 +75,7 @@ func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *AutoMe
 		return false, nil, err
 	}
 
-	doer, err := user_model.GetUserByID(ctx, scheduledPRM.DoerID)
+	doer, err := user_model.GetUserByIDCtx(ctx, scheduledPRM.DoerID)
 	if err != nil {
 		return false, nil, err
 	}

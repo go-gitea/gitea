@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package migrations
 
@@ -19,7 +20,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
-	migrate_base "code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
@@ -57,7 +57,7 @@ func initMigrationTest(t *testing.T) func() {
 		setting.CustomConf = giteaConf
 	}
 
-	setting.InitProviderAndLoadCommonSettingsForTest()
+	setting.LoadForTest()
 
 	assert.True(t, len(setting.RepoRootPath) != 0)
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
@@ -83,8 +83,8 @@ func initMigrationTest(t *testing.T) func() {
 	}
 
 	assert.NoError(t, git.InitFull(context.Background()))
-	setting.LoadDBSetting()
-	setting.InitLogs(true)
+	setting.InitDBConfig()
+	setting.NewLogServices(true)
 	return deferFn
 }
 
@@ -292,7 +292,7 @@ func doMigrationTest(t *testing.T, version string) {
 		return
 	}
 
-	setting.InitSQLLog(false)
+	setting.NewXORMLogService(false)
 
 	err := db.InitEngineWithMigration(context.Background(), wrappedMigrate)
 	assert.NoError(t, err)
@@ -302,7 +302,7 @@ func doMigrationTest(t *testing.T, version string) {
 
 	err = db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
 		currentEngine = x
-		return migrate_base.RecreateTables(beans...)(x)
+		return migrations.RecreateTables(beans...)(x)
 	})
 	assert.NoError(t, err)
 	currentEngine.Close()
@@ -310,7 +310,7 @@ func doMigrationTest(t *testing.T, version string) {
 	// We do this a second time to ensure that there is not a problem with retained indices
 	err = db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
 		currentEngine = x
-		return migrate_base.RecreateTables(beans...)(x)
+		return migrations.RecreateTables(beans...)(x)
 	})
 	assert.NoError(t, err)
 

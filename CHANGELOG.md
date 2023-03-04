@@ -65,6 +65,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.18.2](https://github.com/go-gitea/gitea/releases/tag/v1.18.2) - 2023-01-19
 
 * BUGFIXES
+  * When updating by rebase we need to set the environment for head repo (#22535) (#22536)
   * Fix issue not auto-closing when it includes a reference to a branch (#22514) (#22521)
   * Fix invalid issue branch reference if not specified in template (#22513) (#22520)
   * Fix 500 error viewing pull request when fork has pull requests disabled (#22512) (#22515)
@@ -114,7 +115,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Restore previous official review when an official review is deleted (#22449) (#22460)
   * Log STDERR of external renderer when it fails (#22442) (#22444)
 
-## [1.18.0](https://github.com/go-gitea/gitea/releases/tag/v1.18.0) - 2022-12-29
+## [1.18.0](https://github.com/go-gitea/gitea/releases/tag/1.18.0) - 2022-12-22
 
 * SECURITY
   * Remove ReverseProxy authentication from the API (#22219) (#22251)
@@ -310,7 +311,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Update JS dependencies, adjust eslint (#20659)
   * Add more linters to improve code readability (#19989)
 
-## [1.17.4](https://github.com/go-gitea/gitea/releases/tag/v1.17.4) - 2022-12-21
+## [1.17.4](https://github.com/go-gitea/gitea/releases/tag/1.17.4) - 2022-12-21
 
 * SECURITY
   * Do not allow Ghost access to limited visible user/org (#21849) (#21875)

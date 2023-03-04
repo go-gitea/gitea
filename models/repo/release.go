@@ -1,11 +1,13 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -88,17 +90,16 @@ func init() {
 	db.RegisterModel(new(Release))
 }
 
-// LoadAttributes load repo and publisher attributes for a release
-func (r *Release) LoadAttributes(ctx context.Context) error {
+func (r *Release) loadAttributes(ctx context.Context) error {
 	var err error
 	if r.Repo == nil {
-		r.Repo, err = GetRepositoryByID(ctx, r.RepoID)
+		r.Repo, err = GetRepositoryByIDCtx(ctx, r.RepoID)
 		if err != nil {
 			return err
 		}
 	}
 	if r.Publisher == nil {
-		r.Publisher, err = user_model.GetUserByID(ctx, r.PublisherID)
+		r.Publisher, err = user_model.GetUserByIDCtx(ctx, r.PublisherID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				r.Publisher = user_model.NewGhostUser()
@@ -108,6 +109,11 @@ func (r *Release) LoadAttributes(ctx context.Context) error {
 		}
 	}
 	return GetReleaseAttachments(ctx, r)
+}
+
+// LoadAttributes load repo and publisher attributes for a release
+func (r *Release) LoadAttributes() error {
+	return r.loadAttributes(db.DefaultContext)
 }
 
 // APIURL the api url for a release. release must have attributes loaded
@@ -128,11 +134,6 @@ func (r *Release) TarURL() string {
 // HTMLURL the url for a release on the web UI. release must have attributes loaded
 func (r *Release) HTMLURL() string {
 	return r.Repo.HTMLURL() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
-}
-
-// Link the relative url for a release on the web UI. release must have attributes loaded
-func (r *Release) Link() string {
-	return r.Repo.Link() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
 }
 
 // IsReleaseExist returns true if release with given tag name already exists.
@@ -160,7 +161,7 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 
 	for i := range attachments {
 		if attachments[i].ReleaseID != 0 {
-			return util.NewPermissionDeniedErrorf("release permission denied")
+			return errors.New("release permission denied")
 		}
 		attachments[i].ReleaseID = releaseID
 		// No assign value could be 0, so ignore AllCols().
@@ -240,8 +241,8 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 }
 
 // GetReleasesByRepoID returns a list of releases of repository.
-func GetReleasesByRepoID(ctx context.Context, repoID int64, opts FindReleasesOptions) ([]*Release, error) {
-	sess := db.GetEngine(ctx).
+func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) ([]*Release, error) {
+	sess := db.GetEngine(db.DefaultContext).
 		Desc("created_unix", "id").
 		Where(opts.toConds(repoID))
 
@@ -290,8 +291,8 @@ func GetReleasesByRepoIDAndNames(ctx context.Context, repoID int64, tagNames []s
 }
 
 // GetReleaseCountByRepoID returns the count of releases of repository
-func GetReleaseCountByRepoID(ctx context.Context, repoID int64, opts FindReleasesOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds(repoID)).Count(&Release{})
+func GetReleaseCountByRepoID(repoID int64, opts FindReleasesOptions) (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(opts.toConds(repoID)).Count(&Release{})
 }
 
 type releaseMetaSearch struct {
@@ -380,8 +381,8 @@ func SortReleases(rels []*Release) {
 }
 
 // DeleteReleaseByID deletes a release from database by given ID.
-func DeleteReleaseByID(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).ID(id).Delete(new(Release))
+func DeleteReleaseByID(id int64) error {
+	_, err := db.GetEngine(db.DefaultContext).ID(id).Delete(new(Release))
 	return err
 }
 

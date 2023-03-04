@@ -1,10 +1,12 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repository
 
 import (
 	"context"
+	"crypto/md5"
 	"fmt"
 	"image/png"
 	"io"
@@ -20,18 +22,18 @@ import (
 
 // UploadAvatar saves custom avatar for repository.
 // FIXME: split uploads to different subdirs in case we have massive number of repos.
-func UploadAvatar(ctx context.Context, repo *repo_model.Repository, data []byte) error {
+func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 	m, err := avatar.Prepare(data)
 	if err != nil {
 		return err
 	}
 
-	newAvatar := avatar.HashAvatar(repo.ID, data)
+	newAvatar := fmt.Sprintf("%d-%x", repo.ID, md5.Sum(data))
 	if repo.Avatar == newAvatar { // upload the same picture
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -65,7 +67,7 @@ func UploadAvatar(ctx context.Context, repo *repo_model.Repository, data []byte)
 }
 
 // DeleteAvatar deletes the repos's custom avatar.
-func DeleteAvatar(ctx context.Context, repo *repo_model.Repository) error {
+func DeleteAvatar(repo *repo_model.Repository) error {
 	// Avatar not exists
 	if len(repo.Avatar) == 0 {
 		return nil
@@ -74,7 +76,7 @@ func DeleteAvatar(ctx context.Context, repo *repo_model.Repository) error {
 	avatarPath := repo.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", repo.ID, avatarPath)
 
-	ctx, committer, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -94,7 +96,7 @@ func DeleteAvatar(ctx context.Context, repo *repo_model.Repository) error {
 
 // RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
 func RemoveRandomAvatars(ctx context.Context) error {
-	return db.Iterate(ctx, nil, func(ctx context.Context, repository *repo_model.Repository) error {
+	return db.IterateObjects(ctx, func(repository *repo_model.Repository) error {
 		select {
 		case <-ctx.Done():
 			return db.ErrCancelledf("before random avatars removed for %s", repository.FullName())
@@ -102,7 +104,7 @@ func RemoveRandomAvatars(ctx context.Context) error {
 		}
 		stringifiedID := strconv.FormatInt(repository.ID, 10)
 		if repository.Avatar == stringifiedID {
-			return DeleteAvatar(ctx, repository)
+			return DeleteAvatar(repository)
 		}
 		return nil
 	})

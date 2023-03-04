@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package user
 
@@ -10,7 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/cache"
-	setting_module "code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
 )
@@ -155,20 +155,15 @@ func SetUserSetting(userID int64, key, value string) error {
 		return err
 	}
 
-	if err := upsertUserSettingValue(userID, key, value); err != nil {
-		return err
-	}
+	_, err := cache.GetString(genSettingCacheKey(userID, key), func() (string, error) {
+		return value, upsertUserSettingValue(userID, key, value)
+	})
 
-	cc := cache.GetCache()
-	if cc != nil {
-		return cc.Put(genSettingCacheKey(userID, key), value, setting_module.CacheService.TTLSeconds())
-	}
-
-	return nil
+	return err
 }
 
 func upsertUserSettingValue(userID int64, key, value string) error {
-	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	return db.WithTx(func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
 
 		// here we use a general method to do a safe upsert for different databases (and most transaction levels)

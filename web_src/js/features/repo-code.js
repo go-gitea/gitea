@@ -3,7 +3,6 @@ import {svg} from '../svg.js';
 import {invertFileFolding} from './file-fold.js';
 import {createTippy} from '../modules/tippy.js';
 import {copyToClipboard} from './clipboard.js';
-import {toAbsoluteUrl} from '../utils.js';
 
 export const singleAnchorRegex = /^#(L|n)([1-9][0-9]*)$/;
 export const rangeAnchorRegex = /^#(L[1-9][0-9]*)-(L[1-9][0-9]*)$/;
@@ -20,18 +19,17 @@ function selectRange($list, $select, $from) {
   $list.removeClass('active');
 
   // add hashchange to permalink
-  const $refInNewIssue = $('a.ref-in-new-issue');
+  const $issue = $('a.ref-in-new-issue');
   const $copyPermalink = $('a.copy-line-permalink');
   const $viewGitBlame = $('a.view_git_blame');
 
   const updateIssueHref = function (anchor) {
-    if ($refInNewIssue.length === 0) {
+    if ($issue.length === 0) {
       return;
     }
-    const urlIssueNew = $refInNewIssue.attr('data-url-issue-new');
-    const urlParamBodyLink = $refInNewIssue.attr('data-url-param-body-link');
-    const issueContent = `${toAbsoluteUrl(urlParamBodyLink)}#${anchor}`; // the default content for issue body
-    $refInNewIssue.attr('href', `${urlIssueNew}?body=${encodeURIComponent(issueContent)}`);
+    let href = $issue.attr('href');
+    href = `${href.replace(/%23L\d+$|%23L\d+-L\d+$/, '')}%23${anchor}`;
+    $issue.attr('href', href);
   };
 
   const updateViewGitBlameFragment = function (anchor) {
@@ -190,7 +188,7 @@ export function initRepoCodeView() {
     currentTarget.closest('tr').outerHTML = blob;
   });
   $(document).on('click', '.copy-line-permalink', async (e) => {
-    const success = await copyToClipboard(toAbsoluteUrl(e.currentTarget.getAttribute('data-url')));
+    const success = await copyToClipboard(e.currentTarget.getAttribute('data-url'));
     if (!success) return;
     document.querySelector('.code-line-button')?._tippy?.hide();
   });

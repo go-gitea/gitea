@@ -1,10 +1,10 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package helm
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,7 +23,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
@@ -164,11 +164,7 @@ func UploadPackage(ctx *context.Context) {
 
 	metadata, err := helm_module.ParseChartArchive(buf)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -193,21 +189,17 @@ func UploadPackage(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: createFilename(metadata),
 			},
-			Creator:           ctx.Doer,
 			Data:              buf,
 			IsLead:            true,
 			OverwriteExisting: true,
 		},
 	)
 	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageVersion:
+		if err == packages_model.ErrDuplicatePackageVersion {
 			apiError(ctx, http.StatusConflict, err)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
+			return
 		}
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

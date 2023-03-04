@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package git
 
@@ -9,7 +10,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"regexp"
+
+	"code.gitea.io/gitea/modules/process"
 )
 
 // BlamePart represents block of blame - continuous lines with one sha
@@ -20,12 +24,12 @@ type BlamePart struct {
 
 // BlameReader returns part of file blame one by one
 type BlameReader struct {
-	cmd            *Command
-	output         io.WriteCloser
+	cmd            *exec.Cmd
 	reader         io.ReadCloser
-	bufferedReader *bufio.Reader
-	done           chan error
 	lastSha        *string
+	cancel         context.CancelFunc   // Cancels the context that this reader runs in
+	finished       process.FinishedFunc // Tells the process manager we're finished and it can remove the associated process from the process table
+	bufferedReader *bufio.Reader
 }
 
 var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
@@ -94,45 +98,53 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 
 // Close BlameReader - don't run NextPart after invoking that
 func (r *BlameReader) Close() error {
-	err := <-r.done
+	defer r.finished() // Only remove the process from the process table when the underlying command is closed
+	r.cancel()         // However, first cancel our own context early
 	r.bufferedReader = nil
+
 	_ = r.reader.Close()
-	_ = r.output.Close()
-	return err
+	if err := r.cmd.Wait(); err != nil {
+		return fmt.Errorf("Wait: %w", err)
+	}
+
+	return nil
 }
 
 // CreateBlameReader creates reader for given repository, commit and file
 func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*BlameReader, error) {
-	cmd := NewCommandContextNoGlobals(ctx, "blame", "--porcelain").
-		AddDynamicArguments(commitID).
-		AddDashesAndList(file).
-		SetDescription(fmt.Sprintf("GetBlame [repo_path: %s]", repoPath))
+	return createBlameReader(ctx, repoPath, GitExecutable, "blame", commitID, "--porcelain", "--", file)
+}
+
+func createBlameReader(ctx context.Context, dir string, command ...string) (*BlameReader, error) {
+	// Here we use the provided context - this should be tied to the request performing the blame so that it does not hang around.
+	ctx, cancel, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("GetBlame [repo_path: %s]", dir))
+
+	cmd := exec.CommandContext(ctx, command[0], command[1:]...)
+	cmd.Dir = dir
+	cmd.Stderr = os.Stderr
+	process.SetSysProcAttribute(cmd)
+
 	reader, stdout, err := os.Pipe()
 	if err != nil {
-		return nil, err
+		defer finished()
+		return nil, fmt.Errorf("StdoutPipe: %w", err)
 	}
+	cmd.Stdout = stdout
 
-	done := make(chan error, 1)
-
-	go func(cmd *Command, dir string, stdout io.WriteCloser, done chan error) {
-		if err := cmd.Run(&RunOpts{
-			UseContextTimeout: true,
-			Dir:               dir,
-			Stdout:            stdout,
-			Stderr:            os.Stderr,
-		}); err == nil {
-			stdout.Close()
-		}
-		done <- err
-	}(cmd, repoPath, stdout, done)
+	if err = cmd.Start(); err != nil {
+		defer finished()
+		_ = stdout.Close()
+		return nil, fmt.Errorf("Start: %w", err)
+	}
+	_ = stdout.Close()
 
 	bufferedReader := bufio.NewReader(reader)
 
 	return &BlameReader{
 		cmd:            cmd,
-		output:         stdout,
 		reader:         reader,
+		cancel:         cancel,
+		finished:       finished,
 		bufferedReader: bufferedReader,
-		done:           done,
 	}, nil
 }

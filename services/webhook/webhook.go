@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package webhook
 
@@ -18,58 +19,62 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/gobwas/glob"
 )
 
 type webhook struct {
-	name           webhook_module.HookType
-	payloadCreator func(p api.Payloader, event webhook_module.HookEventType, meta string) (api.Payloader, error)
+	name           webhook_model.HookType
+	payloadCreator func(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error)
 }
 
-var webhooks = map[webhook_module.HookType]*webhook{
-	webhook_module.SLACK: {
-		name:           webhook_module.SLACK,
+var webhooks = map[webhook_model.HookType]*webhook{
+	webhook_model.SLACK: {
+		name:           webhook_model.SLACK,
 		payloadCreator: GetSlackPayload,
 	},
-	webhook_module.DISCORD: {
-		name:           webhook_module.DISCORD,
+	webhook_model.DISCORD: {
+		name:           webhook_model.DISCORD,
 		payloadCreator: GetDiscordPayload,
 	},
-	webhook_module.DINGTALK: {
-		name:           webhook_module.DINGTALK,
+	webhook_model.DINGTALK: {
+		name:           webhook_model.DINGTALK,
 		payloadCreator: GetDingtalkPayload,
 	},
-	webhook_module.TELEGRAM: {
-		name:           webhook_module.TELEGRAM,
+	webhook_model.TELEGRAM: {
+		name:           webhook_model.TELEGRAM,
 		payloadCreator: GetTelegramPayload,
 	},
-	webhook_module.MSTEAMS: {
-		name:           webhook_module.MSTEAMS,
+	webhook_model.MSTEAMS: {
+		name:           webhook_model.MSTEAMS,
 		payloadCreator: GetMSTeamsPayload,
 	},
-	webhook_module.FEISHU: {
-		name:           webhook_module.FEISHU,
+	webhook_model.FEISHU: {
+		name:           webhook_model.FEISHU,
 		payloadCreator: GetFeishuPayload,
 	},
-	webhook_module.MATRIX: {
-		name:           webhook_module.MATRIX,
+	webhook_model.MATRIX: {
+		name:           webhook_model.MATRIX,
 		payloadCreator: GetMatrixPayload,
 	},
-	webhook_module.WECHATWORK: {
-		name:           webhook_module.WECHATWORK,
+	webhook_model.WECHATWORK: {
+		name:           webhook_model.WECHATWORK,
 		payloadCreator: GetWechatworkPayload,
 	},
-	webhook_module.PACKAGIST: {
-		name:           webhook_module.PACKAGIST,
+	webhook_model.PACKAGIST: {
+		name:           webhook_model.PACKAGIST,
 		payloadCreator: GetPackagistPayload,
 	},
 }
 
+// RegisterWebhook registers a webhook
+func RegisterWebhook(name string, webhook *webhook) {
+	webhooks[name] = webhook
+}
+
 // IsValidHookTaskType returns true if a webhook registered
 func IsValidHookTaskType(name string) bool {
-	if name == webhook_module.GITEA || name == webhook_module.GOGS {
+	if name == webhook_model.GITEA || name == webhook_model.GOGS {
 		return true
 	}
 	_, ok := webhooks[name]
@@ -111,26 +116,19 @@ func handle(data ...queue.Data) []queue.Data {
 	for _, taskID := range data {
 		task, err := webhook_model.GetHookTaskByID(ctx, taskID.(int64))
 		if err != nil {
-			log.Error("GetHookTaskByID[%d] failed: %v", taskID.(int64), err)
-			continue
-		}
-
-		if task.IsDelivered {
-			// Already delivered in the meantime
-			log.Trace("Task[%d] has already been delivered", task.ID)
-			continue
-		}
-
-		if err := Deliver(ctx, task); err != nil {
-			log.Error("Unable to deliver webhook task[%d]: %v", task.ID, err)
+			log.Error("GetHookTaskByID failed: %v", err)
+		} else {
+			if err := Deliver(ctx, task); err != nil {
+				log.Error("webhook.Deliver failed: %v", err)
+			}
 		}
 	}
 
 	return nil
 }
 
-func enqueueHookTask(taskID int64) error {
-	err := hookQueue.Push(taskID)
+func enqueueHookTask(task *webhook_model.HookTask) error {
+	err := hookQueue.PushFunc(task.ID, nil)
 	if err != nil && err != queue.ErrAlreadyInQueue {
 		return err
 	}
@@ -153,7 +151,7 @@ func checkBranch(w *webhook_model.Webhook, branch string) bool {
 }
 
 // PrepareWebhook creates a hook task and enqueues it for processing
-func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook_module.HookEventType, p api.Payloader) error {
+func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
 	// Skip sending if webhooks are disabled.
 	if setting.DisableWebhooks {
 		return nil
@@ -172,7 +170,7 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 	// Avoid sending "0 new commits" to non-integration relevant webhooks (e.g. slack, discord, etc.).
 	// Integration webhooks (e.g. drone) still receive the required data.
 	if pushEvent, ok := p.(*api.PushPayload); ok &&
-		w.Type != webhook_module.GITEA && w.Type != webhook_module.GOGS &&
+		w.Type != webhook_model.GITEA && w.Type != webhook_model.GOGS &&
 		len(pushEvent.Commits) == 0 {
 		return nil
 	}
@@ -207,11 +205,11 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 		return fmt.Errorf("CreateHookTask: %w", err)
 	}
 
-	return enqueueHookTask(task.ID)
+	return enqueueHookTask(task)
 }
 
 // PrepareWebhooks adds new webhooks to task queue for given payload.
-func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_module.HookEventType, p api.Payloader) error {
+func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_model.HookEventType, p api.Payloader) error {
 	owner := source.Owner
 
 	var ws []*webhook_model.Webhook
@@ -226,7 +224,7 @@ func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_modu
 		}
 		ws = append(ws, repoHooks...)
 
-		owner = source.Repository.MustOwner(ctx)
+		owner = source.Repository.MustOwner()
 	}
 
 	// check if owner is an org and append additional webhooks
@@ -267,5 +265,5 @@ func ReplayHookTask(ctx context.Context, w *webhook_model.Webhook, uuid string) 
 		return err
 	}
 
-	return enqueueHookTask(task.ID)
+	return enqueueHookTask(task)
 }

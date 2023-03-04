@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package queue
 
@@ -124,10 +125,7 @@ func (q *ChannelQueue) Shutdown() {
 		log.Trace("ChannelQueue: %s Flushing", q.name)
 		// We can't use Cleanup here because that will close the channel
 		if err := q.FlushWithContext(q.terminateCtx); err != nil {
-			count := atomic.LoadInt64(&q.numInQueue)
-			if count > 0 {
-				log.Warn("ChannelQueue: %s Terminated before completed flushing", q.name)
-			}
+			log.Warn("ChannelQueue: %s Terminated before completed flushing", q.name)
 			return
 		}
 		log.Debug("ChannelQueue: %s Flushed", q.name)

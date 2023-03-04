@@ -1,5 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package auth
 
@@ -16,8 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/externalaccount"
 
-	"github.com/go-webauthn/webauthn/protocol"
-	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/duo-labs/webauthn/protocol"
+	"github.com/duo-labs/webauthn/webauthn"
 )
 
 var tplWebAuthn base.TplName = "user/auth/webauthn"
@@ -49,7 +50,7 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 		return
 	}
 
-	user, err := user_model.GetUserByID(ctx, idSess)
+	user, err := user_model.GetUserByID(idSess)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -91,7 +92,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	}()
 
 	// Load the user from the db
-	user, err := user_model.GetUserByID(ctx, idSess)
+	user, err := user_model.GetUserByID(idSess)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return

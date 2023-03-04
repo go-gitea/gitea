@@ -1,6 +1,7 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package git
 
@@ -99,16 +100,6 @@ func (te *TreeEntry) FollowLinks() (*TreeEntry, error) {
 		}
 	}
 	return entry, nil
-}
-
-// returns the Tree pointed to by this TreeEntry, or nil if this is not a tree
-func (te *TreeEntry) Tree() *Tree {
-	t, err := te.ptree.repo.getTree(te.ID)
-	if err != nil {
-		return nil
-	}
-	t.ptree = te.ptree
-	return t
 }
 
 // GetSubJumpablePathName return the full path of subdirectory jumpable ( contains only one directory )

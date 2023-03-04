@@ -1,5 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 // Package cmd provides subcommands to the gitea binary - such as "web" or
 // "admin".
@@ -57,10 +58,9 @@ func confirm() (bool, error) {
 }
 
 func initDB(ctx context.Context) error {
-	setting.InitProviderFromExistingFile()
-	setting.LoadCommonSettings()
-	setting.LoadDBSetting()
-	setting.InitSQLLog(false)
+	setting.LoadFromExisting()
+	setting.InitDBConfig()
+	setting.NewXORMLogService(false)
 
 	if setting.Database.Type == "" {
 		log.Fatal(`Database settings are missing from the configuration file: %q.

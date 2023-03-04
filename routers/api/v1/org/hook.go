@@ -1,17 +1,18 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package org
 
 import (
 	"net/http"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
 // ListHooks list an organziation's webhooks
@@ -39,18 +40,18 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	opts := &webhook_model.ListWebhookOptions{
+	opts := &webhook.ListWebhookOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		OrgID:       ctx.Org.Organization.ID,
 	}
 
-	count, err := webhook_model.CountWebhooksByOpts(opts)
+	count, err := webhook.CountWebhooksByOpts(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	orgHooks, err := webhook_model.ListWebhooksByOpts(ctx, opts)
+	orgHooks, err := webhook.ListWebhooksByOpts(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -58,11 +59,7 @@ func ListHooks(ctx *context.APIContext) {
 
 	hooks := make([]*api.Hook, len(orgHooks))
 	for i, hook := range orgHooks {
-		hooks[i], err = webhook_service.ToHook(ctx.Org.Organization.AsUser().HomeLink(), hook)
-		if err != nil {
-			ctx.InternalServerError(err)
-			return
-		}
+		hooks[i] = convert.ToHook(ctx.Org.Organization.AsUser().HomeLink(), hook)
 	}
 
 	ctx.SetTotalCountHeader(count)
@@ -98,13 +95,7 @@ func GetHook(ctx *context.APIContext) {
 	if err != nil {
 		return
 	}
-
-	apiHook, err := webhook_service.ToHook(org.AsUser().HomeLink(), hook)
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-	ctx.JSON(http.StatusOK, apiHook)
+	ctx.JSON(http.StatusOK, convert.ToHook(org.AsUser().HomeLink(), hook))
 }
 
 // CreateHook create a hook for an organization
@@ -200,8 +191,8 @@ func DeleteHook(ctx *context.APIContext) {
 
 	org := ctx.Org.Organization
 	hookID := ctx.ParamsInt64(":id")
-	if err := webhook_model.DeleteWebhookByOrgID(org.ID, hookID); err != nil {
-		if webhook_model.IsErrWebhookNotExist(err) {
+	if err := webhook.DeleteWebhookByOrgID(org.ID, hookID); err != nil {
+		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteWebhookByOrgID", err)

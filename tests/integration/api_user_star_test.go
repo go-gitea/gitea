@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package integration
 
@@ -8,7 +9,6 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -23,12 +23,11 @@ func TestAPIStar(t *testing.T) {
 
 	session := loginUser(t, user)
 	token := getTokenForLoggedInUser(t, session)
-	tokenWithRepoScope := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 
 	t.Run("Star", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, tokenWithRepoScope))
+		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, token))
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 
@@ -49,7 +48,7 @@ func TestAPIStar(t *testing.T) {
 	t.Run("GetMyStarredRepos", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred?token=%s", tokenWithRepoScope))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred?token=%s", token))
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))
@@ -63,17 +62,17 @@ func TestAPIStar(t *testing.T) {
 	t.Run("IsStarring", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, tokenWithRepoScope))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, token))
 		MakeRequest(t, req, http.StatusNoContent)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo+"notexisting", tokenWithRepoScope))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo+"notexisting", token))
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("Unstar", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, tokenWithRepoScope))
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, token))
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 }

@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package integration
 
@@ -10,9 +11,9 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 	"time"
 
@@ -105,11 +106,13 @@ func TestPackageNuGet(t *testing.T) {
 		return &buf
 	}
 
-	content, _ := io.ReadAll(createPackage(packageName, packageVersion))
+	content, _ := ioutil.ReadAll(createPackage(packageName, packageVersion))
 
 	url := fmt.Sprintf("/api/packages/%s/nuget", user.Name)
 
 	t.Run("ServiceIndex", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
 		t.Run("v2", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
@@ -373,6 +376,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 	})
 
 	t.Run("SearchService", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
 		cases := []struct {
 			Query           string
 			Skip            int
@@ -388,6 +393,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		}
 
 		t.Run("v2", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
 			t.Run("Search()", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
@@ -401,12 +408,6 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 					assert.Equal(t, c.ExpectedTotal, result.Count, "case %d: unexpected total hits", i)
 					assert.Len(t, result.Entries, c.ExpectedResults, "case %d: unexpected result count", i)
-
-					req = NewRequest(t, "GET", fmt.Sprintf("%s/Search()/$count?searchTerm='%s'&skip=%d&take=%d", url, c.Query, c.Skip, c.Take))
-					req = AddBasicAuthHeader(req, user.Name)
-					resp = MakeRequest(t, req, http.StatusOK)
-
-					assert.Equal(t, strconv.FormatInt(c.ExpectedTotal, 10), resp.Body.String(), "case %d: unexpected total hits", i)
 				}
 			})
 
@@ -414,7 +415,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				defer tests.PrintCurrentTest(t)()
 
 				for i, c := range cases {
-					req := NewRequest(t, "GET", fmt.Sprintf("%s/Packages()?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take))
+					req := NewRequest(t, "GET", fmt.Sprintf("%s/Search()?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take))
 					req = AddBasicAuthHeader(req, user.Name)
 					resp := MakeRequest(t, req, http.StatusOK)
 
@@ -423,12 +424,6 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 					assert.Equal(t, c.ExpectedTotal, result.Count, "case %d: unexpected total hits", i)
 					assert.Len(t, result.Entries, c.ExpectedResults, "case %d: unexpected result count", i)
-
-					req = NewRequest(t, "GET", fmt.Sprintf("%s/Packages()/$count?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take))
-					req = AddBasicAuthHeader(req, user.Name)
-					resp = MakeRequest(t, req, http.StatusOK)
-
-					assert.Equal(t, strconv.FormatInt(c.ExpectedTotal, 10), resp.Body.String(), "case %d: unexpected total hits", i)
 				}
 			})
 		})
@@ -519,6 +514,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		})
 
 		t.Run("RegistrationLeaf", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
 			t.Run("v2", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
@@ -554,6 +551,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 	})
 
 	t.Run("PackageService", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
 		t.Run("v2", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
@@ -566,12 +565,6 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 			assert.Len(t, result.Entries, 1)
 			assert.Equal(t, packageVersion, result.Entries[0].Properties.Version)
-
-			req = NewRequest(t, "GET", fmt.Sprintf("%s/FindPackagesById()/$count?id='%s'", url, packageName))
-			req = AddBasicAuthHeader(req, user.Name)
-			resp = MakeRequest(t, req, http.StatusOK)
-
-			assert.Equal(t, "1", resp.Body.String())
 		})
 
 		t.Run("v3", func(t *testing.T) {

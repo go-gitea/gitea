@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repository
 
@@ -25,7 +26,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 
 	testTeamRepositories := func(teamID int64, repoIds []int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, team.LoadRepositories(db.DefaultContext), "%s: GetRepositories", team.Name)
+		assert.NoError(t, team.GetRepositoriesCtx(db.DefaultContext), "%s: GetRepositories", team.Name)
 		assert.Len(t, team.Repos, team.NumRepos, "%s: len repo", team.Name)
 		assert.Len(t, team.Repos, len(repoIds), "%s: repo count", team.Name)
 		for i, rid := range repoIds {
@@ -36,7 +37,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Get an admin user.
-	user, err := user_model.GetUserByID(db.DefaultContext, 1)
+	user, err := user_model.GetUserByID(1)
 	assert.NoError(t, err, "GetUserByID")
 
 	// Create org.
@@ -49,7 +50,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.NoError(t, organization.CreateOrganization(org, user), "CreateOrganization")
 
 	// Check Owner team.
-	ownerTeam, err := org.GetOwnerTeam(db.DefaultContext)
+	ownerTeam, err := org.GetOwnerTeam()
 	assert.NoError(t, err, "GetOwnerTeam")
 	assert.True(t, ownerTeam.IncludesAllRepositories, "Owner team includes all repositories")
 
@@ -63,7 +64,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		}
 	}
 	// Get fresh copy of Owner team after creating repos.
-	ownerTeam, err = org.GetOwnerTeam(db.DefaultContext)
+	ownerTeam, err = org.GetOwnerTeam()
 	assert.NoError(t, err, "GetOwnerTeam")
 
 	// Create teams and check repositories.
@@ -153,7 +154,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Get sample repo and change visibility
-	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 9)
+	repo, err := repo_model.GetRepositoryByID(9)
 	assert.NoError(t, err)
 	repo.IsPrivate = true
 
@@ -171,7 +172,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 
 func TestGetDirectorySize(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 1)
+	repo, err := repo_model.GetRepositoryByID(1)
 	assert.NoError(t, err)
 
 	size, err := getDirectorySize(repo.RepoPath())

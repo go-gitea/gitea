@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package db_test
 
@@ -58,7 +59,7 @@ func TestSyncMaxResourceIndex(t *testing.T) {
 	assert.EqualValues(t, 62, maxIndex)
 
 	// commit transaction
-	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	err = db.WithTx(func(ctx context.Context) error {
 		err = db.SyncMaxResourceIndex(ctx, "test_index", 10, 73)
 		assert.NoError(t, err)
 		maxIndex, err = getCurrentResourceIndex(ctx, "test_index", 10)
@@ -72,7 +73,7 @@ func TestSyncMaxResourceIndex(t *testing.T) {
 	assert.EqualValues(t, 73, maxIndex)
 
 	// rollback transaction
-	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	err = db.WithTx(func(ctx context.Context) error {
 		err = db.SyncMaxResourceIndex(ctx, "test_index", 10, 84)
 		maxIndex, err = getCurrentResourceIndex(ctx, "test_index", 10)
 		assert.NoError(t, err)
@@ -101,7 +102,7 @@ func TestGetNextResourceIndex(t *testing.T) {
 	assert.EqualValues(t, 2, maxIndex)
 
 	// commit transaction
-	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	err = db.WithTx(func(ctx context.Context) error {
 		maxIndex, err = db.GetNextResourceIndex(ctx, "test_index", 20)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 3, maxIndex)
@@ -113,7 +114,7 @@ func TestGetNextResourceIndex(t *testing.T) {
 	assert.EqualValues(t, 3, maxIndex)
 
 	// rollback transaction
-	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	err = db.WithTx(func(ctx context.Context) error {
 		maxIndex, err = db.GetNextResourceIndex(ctx, "test_index", 20)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 4, maxIndex)

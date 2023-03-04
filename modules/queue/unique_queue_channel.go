@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package queue
 
@@ -177,9 +178,7 @@ func (q *ChannelUniqueQueue) Shutdown() {
 	go func() {
 		log.Trace("ChannelUniqueQueue: %s Flushing", q.name)
 		if err := q.FlushWithContext(q.terminateCtx); err != nil {
-			if !q.IsEmpty() {
-				log.Warn("ChannelUniqueQueue: %s Terminated before completed flushing", q.name)
-			}
+			log.Warn("ChannelUniqueQueue: %s Terminated before completed flushing", q.name)
 			return
 		}
 		log.Debug("ChannelUniqueQueue: %s Flushed", q.name)

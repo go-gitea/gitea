@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package user
 
@@ -9,14 +10,13 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/convert"
 )
 
 // ListAccessTokens list all the access tokens
@@ -63,7 +63,6 @@ func ListAccessTokens(ctx *context.APIContext) {
 			ID:             tokens[i].ID,
 			Name:           tokens[i].Name,
 			TokenLastEight: tokens[i].TokenLastEight,
-			Scopes:         tokens[i].Scope.StringSlice(),
 		}
 	}
 
@@ -84,9 +83,9 @@ func CreateAccessToken(ctx *context.APIContext) {
 	// - name: username
 	//   in: path
 	//   description: username of user
-	//   required: true
 	//   type: string
-	// - name: body
+	//   required: true
+	// - name: userCreateToken
 	//   in: body
 	//   schema:
 	//     "$ref": "#/definitions/CreateAccessTokenOption"
@@ -112,13 +111,6 @@ func CreateAccessToken(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "AccessTokenByNameExists", errors.New("access token name has been used already"))
 		return
 	}
-
-	scope, err := auth_model.AccessTokenScope(strings.Join(form.Scopes, ",")).Normalize()
-	if err != nil {
-		ctx.Error(http.StatusBadRequest, "AccessTokenScope.Normalize", fmt.Errorf("invalid access token scope provided: %w", err))
-		return
-	}
-	t.Scope = scope
 
 	if err := auth_model.NewAccessToken(t); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewAccessToken", err)

@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package issues_test
 
@@ -134,7 +135,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 
 	allReviews, err := issues_model.GetReviewersByIssueID(issue.ID)
 	for _, reviewer := range allReviews {
-		assert.NoError(t, reviewer.LoadReviewer(db.DefaultContext))
+		assert.NoError(t, reviewer.LoadReviewer())
 	}
 	assert.NoError(t, err)
 	if assert.Len(t, allReviews, 3) {

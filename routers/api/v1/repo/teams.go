@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
@@ -10,7 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/services/convert"
+	"code.gitea.io/gitea/modules/convert"
 	org_service "code.gitea.io/gitea/services/org"
 )
 
@@ -47,7 +48,7 @@ func ListTeams(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeams, err := convert.ToTeams(ctx, teams, false)
+	apiTeams, err := convert.ToTeams(teams, false)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -98,7 +99,7 @@ func IsTeam(ctx *context.APIContext) {
 	}
 
 	if models.HasRepository(team, ctx.Repo.Repository.ID) {
-		apiTeam, err := convert.ToTeam(ctx, team)
+		apiTeam, err := convert.ToTeam(team)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return

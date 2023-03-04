@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package issue
 
@@ -22,7 +23,7 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(issue.Assignees))
 
-	user1, err := user_model.GetUserByID(db.DefaultContext, 1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him
+	user1, err := user_model.GetUserByID(1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him
 	assert.NoError(t, err)
 
 	// Check if he got removed

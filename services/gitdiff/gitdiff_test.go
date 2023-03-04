@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package gitdiff
 
@@ -626,7 +627,7 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 		return
 	}
 	defer gitRepo.Close()
-	for _, behavior := range []git.TrustedCmdArgs{{"-w"}, {"--ignore-space-at-eol"}, {"-b"}, nil} {
+	for _, behavior := range []git.CmdArg{"-w", "--ignore-space-at-eol", "-b", ""} {
 		diffs, err := GetDiff(gitRepo,
 			&DiffOptions{
 				AfterCommitID:      "bd7063cc7c04689c4d082183d32a604ed27a24f9",

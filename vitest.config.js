@@ -1,7 +1,7 @@
 import {defineConfig} from 'vitest/dist/config.js';
-import {readFile} from 'node:fs/promises';
+import {readFile} from 'fs/promises';
 import {dataToEsm} from '@rollup/pluginutils';
-import {extname} from 'node:path';
+import {extname} from 'path';
 
 function stringPlugin() {
   return {

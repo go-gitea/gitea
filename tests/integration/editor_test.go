@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package integration
 
@@ -9,8 +10,6 @@ import (
 	"net/url"
 	"path"
 	"testing"
-
-	"code.gitea.io/gitea/modules/json"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -45,16 +44,15 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 
 		csrf := GetCSRF(t, session, "/user2/repo1/settings/branches")
 		// Change master branch to protected
-		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"_csrf":       csrf,
-			"rule_name":   "master",
-			"enable_push": "true",
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/master", map[string]string{
+			"_csrf":     csrf,
+			"protected": "on",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 		// Check if master branch has been locked successfully
 		flashCookie := session.GetCookie("macaron_flash")
 		assert.NotNil(t, flashCookie)
-		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Brule%2B%2527master%2527%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
+		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Bbranch%2B%2527master%2527%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
 
 		// Request editor page
 		req = NewRequest(t, "GET", "/user2/repo1/_new/master/")
@@ -79,22 +77,16 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 
 		// remove the protected branch
 		csrf = GetCSRF(t, session, "/user2/repo1/settings/branches")
-
 		// Change master branch to protected
-		req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/1/delete", map[string]string{
-			"_csrf": csrf,
+		req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/master", map[string]string{
+			"_csrf":     csrf,
+			"protected": "off",
 		})
-
-		resp = session.MakeRequest(t, req, http.StatusOK)
-
-		res := make(map[string]string)
-		assert.NoError(t, json.NewDecoder(resp.Body).Decode(&res))
-		assert.EqualValues(t, "/user2/repo1/settings/branches", res["redirect"])
-
+		session.MakeRequest(t, req, http.StatusSeeOther)
 		// Check if master branch has been locked successfully
 		flashCookie = session.GetCookie("macaron_flash")
 		assert.NotNil(t, flashCookie)
-		assert.EqualValues(t, "error%3DRemoving%2Bbranch%2Bprotection%2Brule%2B%25271%2527%2Bfailed.", flashCookie.Value)
+		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Bbranch%2B%2527master%2527%2Bhas%2Bbeen%2Bdisabled.", flashCookie.Value)
 	})
 }
 

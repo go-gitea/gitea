@@ -1,15 +1,16 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package conan
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -25,7 +26,7 @@ var (
 	namePattern     = regexp.MustCompile(fmt.Sprintf(`^[a-zA-Z0-9_][a-zA-Z0-9_\+\.-]{%d,%d}$`, minChars-1, maxChars-1))
 	revisionPattern = regexp.MustCompile(fmt.Sprintf(`^[a-zA-Z0-9]{1,%d}$`, maxChars))
 
-	ErrValidation = util.NewInvalidArgumentErrorf("could not validate one or more reference fields")
+	ErrValidation = errors.New("Could not validate one or more reference fields")
 )
 
 // RecipeReference represents a recipe <Name>/<Version>@<User>/<Channel>#<Revision>

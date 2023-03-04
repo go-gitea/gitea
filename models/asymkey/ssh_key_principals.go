@@ -1,9 +1,11 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package asymkey
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -11,7 +13,6 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // __________       .__              .__             .__
@@ -25,7 +26,7 @@ import (
 
 // AddPrincipalKey adds new principal to database and authorized_principals file.
 func AddPrincipalKey(ownerID int64, content string, authSourceID int64) (*PublicKey, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +71,7 @@ func CheckPrincipalKeyString(user *user_model.User, content string) (_ string, e
 
 	content = strings.TrimSpace(content)
 	if strings.ContainsAny(content, "\r\n") {
-		return "", util.NewInvalidArgumentErrorf("only a single line with a single principal please")
+		return "", errors.New("only a single line with a single principal please")
 	}
 
 	// check all the allowed principals, email, username or anything

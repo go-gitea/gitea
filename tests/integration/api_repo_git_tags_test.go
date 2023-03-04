@@ -1,5 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package integration
 
@@ -8,7 +9,6 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -46,7 +46,7 @@ func TestAPIGitTags(t *testing.T) {
 
 	// SHOULD work for annotated tags
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s?token=%s", user.Name, repo.Name, aTag.ID.String(), token)
-	res := MakeRequest(t, req, http.StatusOK)
+	res := session.MakeRequest(t, req, http.StatusOK)
 
 	var tag *api.AnnotatedTag
 	DecodeJSON(t, res, &tag)
@@ -61,7 +61,7 @@ func TestAPIGitTags(t *testing.T) {
 
 	// Should NOT work for lightweight tags
 	badReq := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s?token=%s", user.Name, repo.Name, commit.ID.String(), token)
-	MakeRequest(t, badReq, http.StatusBadRequest)
+	session.MakeRequest(t, badReq, http.StatusBadRequest)
 }
 
 func TestAPIDeleteTagByName(t *testing.T) {
@@ -70,13 +70,13 @@ func TestAPIDeleteTagByName(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/tags/delete-tag?token=%s",
 		owner.Name, repo.Name, token)
 
 	req := NewRequestf(t, http.MethodDelete, urlStr)
-	_ = MakeRequest(t, req, http.StatusNoContent)
+	_ = session.MakeRequest(t, req, http.StatusNoContent)
 
 	// Make sure that actual releases can't be deleted outright
 	createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
@@ -84,5 +84,5 @@ func TestAPIDeleteTagByName(t *testing.T) {
 		owner.Name, repo.Name, token)
 
 	req = NewRequestf(t, http.MethodDelete, urlStr)
-	_ = MakeRequest(t, req, http.StatusConflict)
+	_ = session.MakeRequest(t, req, http.StatusConflict)
 }

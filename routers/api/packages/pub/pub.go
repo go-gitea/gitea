@@ -1,10 +1,10 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package pub
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,7 +20,6 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	pub_module "code.gitea.io/gitea/modules/packages/pub"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -175,11 +174,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	pck, err := pub_module.ParsePackage(buf)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -204,20 +199,16 @@ func UploadPackageFile(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: strings.ToLower(pck.Version + ".tar.gz"),
 			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Data:   buf,
+			IsLead: true,
 		},
 	)
 	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageVersion:
+		if err == packages_model.ErrDuplicatePackageVersion {
 			apiError(ctx, http.StatusBadRequest, err)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
+			return
 		}
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

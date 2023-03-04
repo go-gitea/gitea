@@ -1,7 +1,10 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package setting
+
+import "code.gitea.io/gitea/modules/log"
 
 // Project settings
 var (
@@ -14,6 +17,8 @@ var (
 	}
 )
 
-func loadProjectFrom(rootCfg ConfigProvider) {
-	mustMapSetting(rootCfg, "project", &Project)
+func newProject() {
+	if err := Cfg.Section("project").MapTo(&Project); err != nil {
+		log.Fatal("Failed to map Project settings: %v", err)
+	}
 }

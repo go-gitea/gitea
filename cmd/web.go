@@ -1,5 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package cmd
 
@@ -158,8 +159,7 @@ func runWeb(ctx *cli.Context) error {
 
 	log.Info("Global init")
 	// Perform global initialization
-	setting.InitProviderFromExistingFile()
-	setting.LoadCommonSettings()
+	setting.LoadFromExisting()
 	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 
 	// We check that AppDataPath exists here (it should have been created during installation)

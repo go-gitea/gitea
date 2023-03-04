@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package charset
 
@@ -242,7 +243,7 @@ func (counts runeCountType) needsEscape() bool {
 type runeType int
 
 const (
-	basicASCIIRuneType runeType = iota // <- This is technically deadcode but its self-documenting so it should stay
+	basicASCIIRuneType runeType = iota //nolint // <- This is technically deadcode but its self-documenting so it should stay
 	brokenRuneType
 	nonBasicASCIIRuneType
 	ambiguousRuneType

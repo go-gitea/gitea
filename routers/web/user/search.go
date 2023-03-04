@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package user
 
@@ -9,7 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/services/convert"
+	"code.gitea.io/gitea/modules/convert"
 )
 
 // Search search users
@@ -38,6 +39,6 @@ func Search(ctx *context.Context) {
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
-		"data": convert.ToUsers(ctx, ctx.Doer, users),
+		"data": convert.ToUsers(ctx.Doer, users),
 	})
 }

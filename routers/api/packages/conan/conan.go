@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package conan
 
@@ -347,9 +348,8 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 			Filename:     strings.ToLower(filename),
 			CompositeKey: fileKey,
 		},
-		Creator: ctx.Doer,
-		Data:    buf,
-		IsLead:  isConanfileFile,
+		Data:   buf,
+		IsLead: isConanfileFile,
 		Properties: map[string]string{
 			conan_module.PropertyRecipeUser:     rref.User,
 			conan_module.PropertyRecipeChannel:  rref.Channel,
@@ -416,14 +416,11 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		pfci,
 	)
 	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageFile:
+		if err == packages_model.ErrDuplicatePackageFile {
 			apiError(ctx, http.StatusBadRequest, err)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
+			return
 		}
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -606,7 +603,7 @@ func DeletePackageV2(ctx *context.Context) {
 }
 
 func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeReference, ignoreRecipeRevision bool, pref *conan_module.PackageReference, ignorePackageRevision bool) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -678,7 +675,7 @@ func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeRef
 	}
 
 	if versionDeleted {
-		notification.NotifyPackageDelete(apictx, apictx.Doer, pd)
+		notification.NotifyPackageDelete(apictx.Doer, pd)
 	}
 
 	return nil

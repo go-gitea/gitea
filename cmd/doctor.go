@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package cmd
 
@@ -13,7 +14,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
-	migrate_base "code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/doctor"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -87,16 +87,14 @@ func runRecreateTable(ctx *cli.Context) error {
 	golog.SetPrefix("")
 	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
 
-	setting.InitProviderFromExistingFile()
-	setting.LoadCommonSettings()
-	setting.LoadDBSetting()
+	setting.LoadFromExisting()
+	setting.InitDBConfig()
 
-	setting.Log.EnableXORMLog = ctx.Bool("debug")
+	setting.EnableXORMLog = ctx.Bool("debug")
 	setting.Database.LogSQL = ctx.Bool("debug")
-	// FIXME: don't use CfgProvider directly
-	setting.CfgProvider.Section("log").Key("XORM").SetValue(",")
+	setting.Cfg.Section("log").Key("XORM").SetValue(",")
 
-	setting.InitSQLLog(!ctx.Bool("debug"))
+	setting.NewXORMLogService(!ctx.Bool("debug"))
 	stdCtx, cancel := installSignals()
 	defer cancel()
 
@@ -116,7 +114,7 @@ func runRecreateTable(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	recreateTables := migrate_base.RecreateTables(beans...)
+	recreateTables := migrations.RecreateTables(beans...)
 
 	return db.InitEngineWithMigration(stdCtx, func(x *xorm.Engine) error {
 		if err := migrations.EnsureUpToDate(x); err != nil {

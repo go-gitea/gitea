@@ -1,5 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package log
 
@@ -225,24 +226,14 @@ func compressOldLogFile(fname string, compressionLevel int) error {
 
 func (log *FileLogger) deleteOldLog() {
 	dir := filepath.Dir(log.Filename)
-	_ = filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) (returnErr error) {
+	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) (returnErr error) {
 		defer func() {
 			if r := recover(); r != nil {
 				returnErr = fmt.Errorf("Unable to delete old log '%s', error: %+v", path, r)
 			}
 		}()
 
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil
-		}
-		info, err := d.Info()
-		if err != nil {
-			return err
-		}
-		if info.ModTime().Unix() < (time.Now().Unix() - 60*60*24*log.Maxdays) {
+		if !info.IsDir() && info.ModTime().Unix() < (time.Now().Unix()-60*60*24*log.Maxdays) {
 			if strings.HasPrefix(filepath.Base(path), filepath.Base(log.Filename)) {
 				if err := util.Remove(path); err != nil {
 					returnErr = fmt.Errorf("Failed to remove %s: %w", path, err)

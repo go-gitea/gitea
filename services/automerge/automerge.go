@@ -1,5 +1,6 @@
 // Copyright 2021 Gitea. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package automerge
 
@@ -62,7 +63,7 @@ func addToQueue(pr *issues_model.PullRequest, sha string) {
 
 // ScheduleAutoMerge if schedule is false and no error, pull can be merged directly
 func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, style repo_model.MergeStyle, message string) (scheduled bool, err error) {
-	err = db.WithTx(ctx, func(ctx context.Context) error {
+	err = db.WithTx(func(ctx context.Context) error {
 		lastCommitStatus, err := pull_service.GetPullRequestCommitStatusState(ctx, pull)
 		if err != nil {
 			return err
@@ -80,20 +81,20 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 
 		_, err = issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer)
 		return err
-	})
+	}, ctx)
 	return scheduled, err
 }
 
 // RemoveScheduledAutoMerge cancels a previously scheduled pull request
 func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	return db.WithTx(func(ctx context.Context) error {
 		if err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
 			return err
 		}
 
 		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer)
 		return err
-	})
+	}, ctx)
 }
 
 // MergeScheduledPullRequest merges a previously scheduled pull request when all checks succeeded
@@ -187,7 +188,7 @@ func handlePull(pullID int64, sha string) {
 	// We get the latest sha commit hash again to handle the case where the check of a previous push
 	// did not succeed or was not finished yet.
 
-	if err = pr.LoadHeadRepo(ctx); err != nil {
+	if err = pr.LoadHeadRepoCtx(ctx); err != nil {
 		log.Error("%-v LoadHeadRepo: %v", pr, err)
 		return
 	}
@@ -218,7 +219,7 @@ func handlePull(pullID int64, sha string) {
 	}
 
 	// Merge if all checks succeeded
-	doer, err := user_model.GetUserByID(ctx, scheduledPRM.DoerID)
+	doer, err := user_model.GetUserByIDCtx(ctx, scheduledPRM.DoerID)
 	if err != nil {
 		log.Error("Unable to get scheduled User[%d]: %v", scheduledPRM.DoerID, err)
 		return
@@ -243,7 +244,7 @@ func handlePull(pullID int64, sha string) {
 	if pr.BaseRepoID == pr.HeadRepoID {
 		baseGitRepo = headGitRepo
 	} else {
-		if err = pr.LoadBaseRepo(ctx); err != nil {
+		if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 			log.Error("%-v LoadBaseRepo: %v", pr, err)
 			return
 		}
@@ -256,7 +257,7 @@ func handlePull(pullID int64, sha string) {
 		defer baseGitRepo.Close()
 	}
 
-	if err := pull_service.Merge(ctx, pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message, true); err != nil {
+	if err := pull_service.Merge(ctx, pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message); err != nil {
 		log.Error("pull_service.Merge: %v", err)
 		return
 	}

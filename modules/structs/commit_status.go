@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package structs
 
@@ -18,8 +19,6 @@ const (
 	CommitStatusFailure CommitStatusState = "failure"
 	// CommitStatusWarning is for when the CommitStatus is Warning
 	CommitStatusWarning CommitStatusState = "warning"
-	// CommitStatusRunning is for when the CommitStatus is Running
-	CommitStatusRunning CommitStatusState = "running"
 )
 
 // NoBetterThan returns true if this State is no better than the given State

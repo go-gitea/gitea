@@ -1,13 +1,15 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package password
 
 import (
 	"context"
 
-	"code.gitea.io/gitea/modules/auth/password/pwn"
 	"code.gitea.io/gitea/modules/setting"
+
+	"go.jolheiser.com/pwn"
 )
 
 // IsPwned checks whether a password has been pwned

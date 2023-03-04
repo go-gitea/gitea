@@ -1,6 +1,7 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package wiki
 
@@ -35,7 +36,7 @@ const (
 )
 
 func nameAllowed(name string) error {
-	if util.SliceContainsString(reservedWikiNames, name) {
+	if util.IsStringInSlice(name, reservedWikiNames) {
 		return repo_model.ErrWikiReservedName{
 			Title: name,
 		}

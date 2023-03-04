@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package queue
 
@@ -39,7 +40,7 @@ func TestPersistableChannelQueue(t *testing.T) {
 		Workers:      1,
 		BoostWorkers: 0,
 		MaxWorkers:   10,
-		Name:         "test-queue",
+		Name:         "first",
 	}, &testData{})
 	assert.NoError(t, err)
 
@@ -135,7 +136,7 @@ func TestPersistableChannelQueue(t *testing.T) {
 		Workers:      1,
 		BoostWorkers: 0,
 		MaxWorkers:   10,
-		Name:         "test-queue",
+		Name:         "second",
 	}, &testData{})
 	assert.NoError(t, err)
 
@@ -227,7 +228,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 		Workers:      1,
 		BoostWorkers: 0,
 		MaxWorkers:   10,
-		Name:         "test-queue",
+		Name:         "first",
 	}, &testData{})
 	assert.NoError(t, err)
 
@@ -433,7 +434,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 		Workers:      1,
 		BoostWorkers: 0,
 		MaxWorkers:   10,
-		Name:         "test-queue",
+		Name:         "second",
 	}, &testData{})
 	assert.NoError(t, err)
 	pausable, ok = queue.(Pausable)

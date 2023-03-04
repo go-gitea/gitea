@@ -1,14 +1,13 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package user_test
 
 import (
-	"context"
 	"math/rand"
 	"strings"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -17,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +24,7 @@ import (
 func TestOAuth2Application_LoadUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
-	user, err := user_model.GetUserByID(db.DefaultContext, app.UID)
+	user, err := user_model.GetUserByID(app.UID)
 	assert.NoError(t, err)
 	assert.NotNil(t, user)
 }
@@ -256,68 +254,16 @@ func TestCreateUserEmailAlreadyUsed(t *testing.T) {
 	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
 }
 
-func TestCreateUserCustomTimestamps(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	// Add new user with a custom creation timestamp.
-	var creationTimestamp timeutil.TimeStamp = 12345
-	user.Name = "testuser"
-	user.LowerName = strings.ToLower(user.Name)
-	user.ID = 0
-	user.Email = "unique@example.com"
-	user.CreatedUnix = creationTimestamp
-	err := user_model.CreateUser(user)
-	assert.NoError(t, err)
-
-	fetched, err := user_model.GetUserByID(context.Background(), user.ID)
-	assert.NoError(t, err)
-	assert.Equal(t, creationTimestamp, fetched.CreatedUnix)
-	assert.Equal(t, creationTimestamp, fetched.UpdatedUnix)
-}
-
-func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	// There is no way to use a mocked time for the XORM auto-time functionality,
-	// so use the real clock to approximate the expected timestamp.
-	timestampStart := time.Now().Unix()
-
-	// Add new user without a custom creation timestamp.
-	user.Name = "Testuser"
-	user.LowerName = strings.ToLower(user.Name)
-	user.ID = 0
-	user.Email = "unique@example.com"
-	user.CreatedUnix = 0
-	user.UpdatedUnix = 0
-	err := user_model.CreateUser(user)
-	assert.NoError(t, err)
-
-	timestampEnd := time.Now().Unix()
-
-	fetched, err := user_model.GetUserByID(context.Background(), user.ID)
-	assert.NoError(t, err)
-
-	assert.LessOrEqual(t, timestampStart, fetched.CreatedUnix)
-	assert.LessOrEqual(t, fetched.CreatedUnix, timestampEnd)
-
-	assert.LessOrEqual(t, timestampStart, fetched.UpdatedUnix)
-	assert.LessOrEqual(t, fetched.UpdatedUnix, timestampEnd)
-}
-
 func TestGetUserIDsByNames(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// ignore non existing
-	IDs, err := user_model.GetUserIDsByNames(db.DefaultContext, []string{"user1", "user2", "none_existing_user"}, true)
+	IDs, err := user_model.GetUserIDsByNames([]string{"user1", "user2", "none_existing_user"}, true)
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{1, 2}, IDs)
 
 	// ignore non existing
-	IDs, err = user_model.GetUserIDsByNames(db.DefaultContext, []string{"user1", "do_not_exist"}, false)
+	IDs, err = user_model.GetUserIDsByNames([]string{"user1", "do_not_exist"}, false)
 	assert.Error(t, err)
 	assert.Equal(t, []int64(nil), IDs)
 }
@@ -325,14 +271,14 @@ func TestGetUserIDsByNames(t *testing.T) {
 func TestGetMaileableUsersByIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	results, err := user_model.GetMaileableUsersByIDs(db.DefaultContext, []int64{1, 4}, false)
+	results, err := user_model.GetMaileableUsersByIDs([]int64{1, 4}, false)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	if len(results) > 1 {
 		assert.Equal(t, results[0].ID, 1)
 	}
 
-	results, err = user_model.GetMaileableUsersByIDs(db.DefaultContext, []int64{1, 4}, true)
+	results, err = user_model.GetMaileableUsersByIDs([]int64{1, 4}, true)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2)
 	if len(results) > 2 {

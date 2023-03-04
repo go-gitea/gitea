@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 //go:build gogit
 
@@ -43,15 +44,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	checker, deferable := repo.CheckAttributeReader(commitID)
 	defer deferable()
 
-	// sizes contains the current calculated size of all files by language
 	sizes := make(map[string]int64)
-	// by default we will only count the sizes of programming languages or markup languages
-	// unless they are explicitly set using linguist-language
-	includedLanguage := map[string]bool{}
-	// or if there's only one language in the repository
-	firstExcludedLanguage := ""
-	firstExcludedLanguageSize := int64(0)
-
 	err = tree.Files().ForEach(func(f *object.File) error {
 		if f.Size == 0 {
 			return nil
@@ -82,8 +75,8 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 						language = group
 					}
 
-					// this language will always be added to the size
 					sizes[language] += f.Size
+
 					return nil
 				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
 					// strip off a ? if present
@@ -97,7 +90,6 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 							language = group
 						}
 
-						// this language will always be added to the size
 						sizes[language] += f.Size
 						return nil
 					}
@@ -132,18 +124,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			language = group
 		}
 
-		included, checked := includedLanguage[language]
-		if !checked {
-			langtype := enry.GetLanguageType(language)
-			included = langtype == enry.Programming || langtype == enry.Markup
-			includedLanguage[language] = included
-		}
-		if included {
-			sizes[language] += f.Size
-		} else if len(sizes) == 0 && (firstExcludedLanguage == "" || firstExcludedLanguage == language) {
-			firstExcludedLanguage = language
-			firstExcludedLanguageSize += f.Size
-		}
+		sizes[language] += f.Size
 
 		return nil
 	})
@@ -151,9 +132,14 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil, err
 	}
 
-	// If there are no included languages add the first excluded language
-	if len(sizes) == 0 && firstExcludedLanguage != "" {
-		sizes[firstExcludedLanguage] = firstExcludedLanguageSize
+	// filter special languages unless they are the only language
+	if len(sizes) > 1 {
+		for language := range sizes {
+			langtype := enry.GetLanguageType(language)
+			if langtype != enry.Programming && langtype != enry.Markup {
+				delete(sizes, language)
+			}
+		}
 	}
 
 	return sizes, nil

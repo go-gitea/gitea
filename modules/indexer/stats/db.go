@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package stats
 
@@ -21,7 +22,7 @@ func (db *DBIndexer) Index(id int64) error {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().ShutdownContext(), fmt.Sprintf("Stats.DB Index Repo[%d]", id))
 	defer finished()
 
-	repo, err := repo_model.GetRepositoryByID(ctx, id)
+	repo, err := repo_model.GetRepositoryByID(id)
 	if err != nil {
 		return err
 	}

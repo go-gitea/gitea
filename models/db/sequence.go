@@ -1,10 +1,10 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package db
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 
@@ -12,7 +12,7 @@ import (
 )
 
 // CountBadSequences looks for broken sequences from recreate-table mistakes
-func CountBadSequences(_ context.Context) (int64, error) {
+func CountBadSequences() (int64, error) {
 	if !setting.Database.UsePostgreSQL {
 		return 0, nil
 	}
@@ -33,7 +33,7 @@ func CountBadSequences(_ context.Context) (int64, error) {
 }
 
 // FixBadSequences fixes for broken sequences from recreate-table mistakes
-func FixBadSequences(_ context.Context) error {
+func FixBadSequences() error {
 	if !setting.Database.UsePostgreSQL {
 		return nil
 	}

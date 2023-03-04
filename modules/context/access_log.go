@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package context
 
@@ -27,7 +28,7 @@ var signedUserNameStringPointerKey interface{} = "signedUserNameStringPointerKey
 // AccessLogger returns a middleware to log access logger
 func AccessLogger() func(http.Handler) http.Handler {
 	logger := log.GetLogger("access")
-	logTemplate, _ := template.New("log").Parse(setting.Log.AccessLogTemplate)
+	logTemplate, _ := template.New("log").Parse(setting.AccessLogTemplate)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			start := time.Now()

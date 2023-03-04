@@ -26,18 +26,39 @@
 <script>
 import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
-import {useLightTextOnBackground} from '../utils.js';
 
 const {appSubUrl, i18n} = window.config;
 
+// NOTE: see models/issue_label.go for similar implementation
+const srgbToLinear = (color) => {
+  color /= 255;
+  if (color <= 0.04045) {
+    return color / 12.92;
+  }
+  return ((color + 0.055) / 1.055) ** 2.4;
+};
+const luminance = (colorString) => {
+  const r = srgbToLinear(parseInt(colorString.substring(0, 2), 16));
+  const g = srgbToLinear(parseInt(colorString.substring(2, 4), 16));
+  const b = srgbToLinear(parseInt(colorString.substring(4, 6), 16));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const luminanceThreshold = 0.179;
+
 export default {
-  components: {SvgIcon},
+  name: 'ContextPopup',
+
+  components: {
+    SvgIcon,
+  },
+
   data: () => ({
     loading: false,
     issue: null,
     i18nErrorOccurred: i18n.error_occurred,
     i18nErrorMessage: null,
   }),
+
   computed: {
     createdAt() {
       return new Date(this.issue.created_at).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
@@ -77,15 +98,16 @@ export default {
     labels() {
       return this.issue.labels.map((label) => {
         let textColor;
-        if (useLightTextOnBackground(label.color)) {
-          textColor = '#eeeeee';
+        if (luminance(label.color) < luminanceThreshold) {
+          textColor = '#ffffff';
         } else {
-          textColor = '#111111';
+          textColor = '#000000';
         }
         return {name: label.name, color: `#${label.color}`, textColor};
       });
     }
   },
+
   mounted() {
     this.$refs.root.addEventListener('us-load-context-popup', (e) => {
       const data = e.detail;
@@ -94,6 +116,7 @@ export default {
       }
     });
   },
+
   methods: {
     load(data) {
       this.loading = true;

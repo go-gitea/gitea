@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repository
 
@@ -9,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unittest"
@@ -103,10 +103,10 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 }
 
 func enableGravatar(t *testing.T) {
-	err := system_model.SetSettingNoVersion(db.DefaultContext, system_model.KeyPictureDisableGravatar, "false")
+	err := system_model.SetSettingNoVersion(system_model.KeyPictureDisableGravatar, "false")
 	assert.NoError(t, err)
 	setting.GravatarSource = "https://secure.gravatar.com/avatar"
-	err = system_model.Init(db.DefaultContext)
+	err = system_model.Init()
 	assert.NoError(t, err)
 }
 
@@ -137,13 +137,13 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 
 	assert.Equal(t,
 		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon&s=84",
-		pushCommits.AvatarLink(db.DefaultContext, "user2@example.com"))
+		pushCommits.AvatarLink("user2@example.com"))
 
 	assert.Equal(t,
 		"https://secure.gravatar.com/avatar/"+
 			fmt.Sprintf("%x", md5.Sum([]byte("nonexistent@example.com")))+
 			"?d=identicon&s=84",
-		pushCommits.AvatarLink(db.DefaultContext, "nonexistent@example.com"))
+		pushCommits.AvatarLink("nonexistent@example.com"))
 }
 
 func TestCommitToPushCommit(t *testing.T) {

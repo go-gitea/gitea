@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package setting
 
@@ -29,8 +30,8 @@ var Webhook = struct {
 	ProxyHosts:     []string{},
 }
 
-func loadWebhookFrom(rootCfg ConfigProvider) {
-	sec := rootCfg.Section("webhook")
+func newWebhookService() {
+	sec := Cfg.Section("webhook")
 	Webhook.QueueLength = sec.Key("QUEUE_LENGTH").MustInt(1000)
 	Webhook.DeliverTimeout = sec.Key("DELIVER_TIMEOUT").MustInt(5)
 	Webhook.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool()

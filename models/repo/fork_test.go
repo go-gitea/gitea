@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo_test
 
@@ -17,14 +18,14 @@ func TestGetUserFork(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// User13 has repo 11 forked from repo10
-	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 10)
+	repo, err := repo_model.GetRepositoryByID(10)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
 	repo, err = repo_model.GetUserFork(db.DefaultContext, repo.ID, 13)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
 
-	repo, err = repo_model.GetRepositoryByID(db.DefaultContext, 9)
+	repo, err = repo_model.GetRepositoryByID(9)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
 	repo, err = repo_model.GetUserFork(db.DefaultContext, repo.ID, 13)

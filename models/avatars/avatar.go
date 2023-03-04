@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package avatars
 
@@ -21,7 +22,7 @@ import (
 
 const (
 	// DefaultAvatarClass is the default class of a rendered avatar
-	DefaultAvatarClass = "ui avatar gt-vm"
+	DefaultAvatarClass = "ui avatar vm"
 	// DefaultAvatarPixelSize is the default size in pixels of a rendered avatar
 	DefaultAvatarPixelSize = 28
 )
@@ -100,7 +101,7 @@ func saveEmailHash(email string) string {
 			Hash:  emailHash,
 		}
 		// OK we're going to open a session just because I think that that might hide away any problems with postgres reporting errors
-		if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		if err := db.WithTx(func(ctx context.Context) error {
 			has, err := db.GetEngine(ctx).Where("email = ? AND hash = ?", emailHash.Email, emailHash.Hash).Get(new(EmailHash))
 			if has || err != nil {
 				// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time
@@ -147,13 +148,13 @@ func generateRecognizedAvatarURL(u url.URL, size int) string {
 // generateEmailAvatarLink returns a email avatar link.
 // if final is true, it may use a slow path (eg: query DNS).
 // if final is false, it always uses a fast path.
-func generateEmailAvatarLink(ctx context.Context, email string, size int, final bool) string {
+func generateEmailAvatarLink(email string, size int, final bool) string {
 	email = strings.TrimSpace(email)
 	if email == "" {
 		return DefaultAvatarLink()
 	}
 
-	enableFederatedAvatar := system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureEnableFederatedAvatar)
+	enableFederatedAvatar := system_model.GetSettingBool(system_model.KeyPictureEnableFederatedAvatar)
 
 	var err error
 	if enableFederatedAvatar && system_model.LibravatarService != nil {
@@ -174,7 +175,7 @@ func generateEmailAvatarLink(ctx context.Context, email string, size int, final 
 		return urlStr
 	}
 
-	disableGravatar := system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
+	disableGravatar := system_model.GetSettingBool(system_model.KeyPictureDisableGravatar)
 	if !disableGravatar {
 		// copy GravatarSourceURL, because we will modify its Path.
 		avatarURLCopy := *system_model.GravatarSourceURL
@@ -186,11 +187,11 @@ func generateEmailAvatarLink(ctx context.Context, email string, size int, final 
 }
 
 // GenerateEmailAvatarFastLink returns a avatar link (fast, the link may be a delegated one: "/avatar/${hash}")
-func GenerateEmailAvatarFastLink(ctx context.Context, email string, size int) string {
-	return generateEmailAvatarLink(ctx, email, size, false)
+func GenerateEmailAvatarFastLink(email string, size int) string {
+	return generateEmailAvatarLink(email, size, false)
 }
 
 // GenerateEmailAvatarFinalLink returns a avatar final link (maybe slow)
-func GenerateEmailAvatarFinalLink(ctx context.Context, email string, size int) string {
-	return generateEmailAvatarLink(ctx, email, size, true)
+func GenerateEmailAvatarFinalLink(email string, size int) string {
+	return generateEmailAvatarLink(email, size, true)
 }

@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package web
 
@@ -7,6 +8,7 @@ import (
 	goctx "context"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/modules/context"
@@ -17,9 +19,16 @@ import (
 )
 
 // Bind binding an obj to a handler
-func Bind[T any](obj T) http.HandlerFunc {
+func Bind(obj interface{}) http.HandlerFunc {
+	tp := reflect.TypeOf(obj)
+	if tp.Kind() == reflect.Ptr {
+		tp = tp.Elem()
+	}
+	if tp.Kind() != reflect.Struct {
+		panic("Only structs are allowed to bind")
+	}
 	return Wrap(func(ctx *context.Context) {
-		theObj := new(T) // create a new form obj for every request but not use obj directly
+		theObj := reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)
 		SetForm(ctx, theObj)
 		middleware.AssignForm(theObj, ctx.Data)

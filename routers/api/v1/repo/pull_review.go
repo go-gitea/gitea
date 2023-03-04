@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
@@ -13,11 +14,11 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -70,7 +71,7 @@ func ListPullReviews(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pr.LoadIssue(ctx); err != nil {
+	if err = pr.LoadIssue(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return
 	}
@@ -475,7 +476,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 
 // preparePullReviewType return ReviewType and false or nil and true if an error happen
 func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest, event api.ReviewStateType, body string, hasComments bool) (issues_model.ReviewType, bool) {
-	if err := pr.LoadIssue(ctx); err != nil {
+	if err := pr.LoadIssue(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return -1, true
 	}
@@ -673,7 +674,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 	for _, r := range opts.Reviewers {
 		var reviewer *user_model.User
 		if strings.Contains(r, "@") {
-			reviewer, err = user_model.GetUserByEmail(ctx, r)
+			reviewer, err = user_model.GetUserByEmail(r)
 		} else {
 			reviewer, err = user_model.GetUserByName(ctx, r)
 		}

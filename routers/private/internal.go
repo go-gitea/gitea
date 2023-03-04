@@ -1,11 +1,13 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 // Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
 package private
 
 import (
 	"net/http"
+	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/modules/context"
@@ -38,9 +40,13 @@ func CheckInternalToken(next http.Handler) http.Handler {
 }
 
 // bind binding an obj to a handler
-func bind[T any](obj T) http.HandlerFunc {
+func bind(obj interface{}) http.HandlerFunc {
+	tp := reflect.TypeOf(obj)
+	for tp.Kind() == reflect.Ptr {
+		tp = tp.Elem()
+	}
 	return web.Wrap(func(ctx *context.PrivateContext) {
-		theObj := new(T) // create a new form obj for every request but not use obj directly
+		theObj := reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)
 		web.SetForm(ctx, theObj)
 	})

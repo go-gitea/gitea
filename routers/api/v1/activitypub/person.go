@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package activitypub
 
@@ -55,7 +56,7 @@ func Person(ctx *context.APIContext) {
 	person.Icon = ap.Image{
 		Type:      ap.ImageType,
 		MediaType: "image/png",
-		URL:       ap.IRI(ctx.ContextUser.AvatarLink(ctx)),
+		URL:       ap.IRI(ctx.ContextUser.AvatarLink()),
 	}
 
 	person.Inbox = ap.IRI(link + "/inbox")

@@ -1,5 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.package models
 
 package activities_test
 
@@ -73,7 +74,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		}
 
 		// get the action for comparison
-		actions, count, err := activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
+		actions, err := activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
 			RequestedUser:   user,
 			Actor:           doer,
 			IncludePrivate:  true,
@@ -90,7 +91,6 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		}
 		assert.NoError(t, err)
 		assert.Len(t, actions, contributions, "invalid action count: did the test data became too old?")
-		assert.Equal(t, count, int64(contributions))
 		assert.Equal(t, tc.CountResult, contributions, fmt.Sprintf("testcase '%s'", tc.desc))
 
 		// Test JSON rendering

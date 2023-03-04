@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package setting
 
@@ -10,7 +11,7 @@ import (
 	ini "gopkg.in/ini.v1"
 )
 
-func Test_getCronSettings(t *testing.T) {
+func Test_GetCronSettings(t *testing.T) {
 	type BaseStruct struct {
 		Base   bool
 		Second string
@@ -27,8 +28,7 @@ Base = true
 Second = white rabbit
 Extend = true
 `
-	cfg, err := ini.Load([]byte(iniStr))
-	assert.NoError(t, err)
+	Cfg, _ = ini.Load([]byte(iniStr))
 
 	extended := &Extended{
 		BaseStruct: BaseStruct{
@@ -36,7 +36,8 @@ Extend = true
 		},
 	}
 
-	_, err = getCronSettings(cfg, "test", extended)
+	_, err := GetCronSettings("test", extended)
+
 	assert.NoError(t, err)
 	assert.True(t, extended.Base)
 	assert.EqualValues(t, extended.Second, "white rabbit")

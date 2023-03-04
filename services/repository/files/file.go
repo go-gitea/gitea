@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package files
 
@@ -21,7 +22,7 @@ import (
 func GetFileResponseFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, branch, treeName string) (*api.FileResponse, error) {
 	fileContents, _ := GetContents(ctx, repo, treeName, branch, false) // ok if fails, then will be nil
 	fileCommitResponse, _ := GetFileCommitResponse(repo, commit)       // ok if fails, then will be nil
-	verification := GetPayloadCommitVerification(ctx, commit)
+	verification := GetPayloadCommitVerification(commit)
 	fileResponse := &api.FileResponse{
 		Content:      fileContents,
 		Commit:       fileCommitResponse,

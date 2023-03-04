@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package setting
 
@@ -67,8 +68,9 @@ var Git = struct {
 	},
 }
 
-func loadGitFrom(rootCfg ConfigProvider) {
-	sec := rootCfg.Section("git")
+func newGit() {
+	sec := Cfg.Section("git")
+
 	if err := sec.MapTo(&Git); err != nil {
 		log.Fatal("Failed to map Git settings: %v", err)
 	}

@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package doctor
 
@@ -17,9 +18,10 @@ import (
 func iterateUserAccounts(ctx context.Context, each func(*user.User) error) error {
 	err := db.Iterate(
 		ctx,
+		new(user.User),
 		builder.Gt{"id": 0},
-		func(ctx context.Context, bean *user.User) error {
-			return each(bean)
+		func(idx int, bean interface{}) error {
+			return each(bean.(*user.User))
 		},
 	)
 	return err

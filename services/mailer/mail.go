@@ -1,6 +1,7 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package mailer
 
@@ -17,6 +18,7 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -29,8 +31,6 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
-	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
-	"code.gitea.io/gitea/services/mailer/token"
 
 	"gopkg.in/gomail.v2"
 )
@@ -265,7 +265,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		"Issue":           ctx.Issue,
 		"Comment":         ctx.Comment,
 		"IsPull":          ctx.Issue.IsPull,
-		"User":            ctx.Issue.Repo.MustOwner(ctx),
+		"User":            ctx.Issue.Repo.MustOwner(),
 		"Repo":            ctx.Issue.Repo.FullName(),
 		"Doer":            ctx.Doer,
 		"IsMention":       fromMention,
@@ -274,7 +274,6 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		"ActionName":      actName,
 		"ReviewComments":  reviewComments,
 		"Language":        locale.Language(),
-		"CanReply":        setting.IncomingEmail.Enabled && commentType != issues_model.CommentTypePullRequestPush,
 		// helper
 		"locale":    locale,
 		"Str2html":  templates.Str2html,
@@ -305,57 +304,14 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	msgID := createReference(ctx.Issue, ctx.Comment, ctx.ActionType)
 	reference := createReference(ctx.Issue, nil, activities_model.ActionType(0))
 
-	var replyPayload []byte
-	if ctx.Comment != nil && ctx.Comment.Type == issues_model.CommentTypeCode {
-		replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Comment)
-	} else {
-		replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Issue)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	unsubscribePayload, err := incoming_payload.CreateReferencePayload(ctx.Issue)
-	if err != nil {
-		return nil, err
-	}
-
 	msgs := make([]*Message, 0, len(recipients))
 	for _, recipient := range recipients {
 		msg := NewMessageFrom(recipient.Email, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
-		msg.SetHeader("Message-ID", msgID)
-		msg.SetHeader("In-Reply-To", reference)
-
-		references := []string{reference}
-		listUnsubscribe := []string{"<" + ctx.Issue.HTMLURL() + ">"}
-
-		if setting.IncomingEmail.Enabled {
-			if ctx.Comment != nil {
-				token, err := token.CreateToken(token.ReplyHandlerType, recipient, replyPayload)
-				if err != nil {
-					log.Error("CreateToken failed: %v", err)
-				} else {
-					replyAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmail.TokenPlaceholder, token, 1)
-					msg.ReplyTo = replyAddress
-					msg.SetHeader("List-Post", fmt.Sprintf("<mailto:%s>", replyAddress))
-
-					references = append(references, fmt.Sprintf("<reply-%s@%s>", token, setting.Domain))
-				}
-			}
-
-			token, err := token.CreateToken(token.UnsubscribeHandlerType, recipient, unsubscribePayload)
-			if err != nil {
-				log.Error("CreateToken failed: %v", err)
-			} else {
-				unsubAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmail.TokenPlaceholder, token, 1)
-				listUnsubscribe = append(listUnsubscribe, "<mailto:"+unsubAddress+">")
-			}
-		}
-
-		msg.SetHeader("References", references...)
-		msg.SetHeader("List-Unsubscribe", listUnsubscribe...)
+		msg.SetHeader("Message-ID", "<"+msgID+">")
+		msg.SetHeader("In-Reply-To", "<"+reference+">")
+		msg.SetHeader("References", "<"+reference+">")
 
 		for key, value := range generateAdditionalHeaders(ctx, actType, recipient) {
 			msg.SetHeader(key, value)
@@ -384,14 +340,14 @@ func createReference(issue *issues_model.Issue, comment *issues_model.Comment, a
 			extra = fmt.Sprintf("/close/%d", time.Now().UnixNano()/1e6)
 		case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
 			extra = fmt.Sprintf("/reopen/%d", time.Now().UnixNano()/1e6)
-		case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
+		case activities_model.ActionMergePullRequest:
 			extra = fmt.Sprintf("/merge/%d", time.Now().UnixNano()/1e6)
 		case activities_model.ActionPullRequestReadyForReview:
 			extra = fmt.Sprintf("/ready/%d", time.Now().UnixNano()/1e6)
 		}
 	}
 
-	return fmt.Sprintf("<%s/%s/%d%s@%s>", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
+	return fmt.Sprintf("%s/%s/%d%s@%s", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
 }
 
 func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient *user_model.User) map[string]string {
@@ -403,6 +359,8 @@ func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient
 
 		// https://datatracker.ietf.org/doc/html/rfc2369
 		"List-Archive": fmt.Sprintf("<%s>", repo.HTMLURL()),
+		//"List-Post": https://github.com/go-gitea/gitea/pull/13585
+		"List-Unsubscribe": ctx.Issue.HTMLURL(),
 
 		"X-Mailer":                  "Gitea",
 		"X-Gitea-Reason":            reason,
@@ -437,13 +395,13 @@ func sanitizeSubject(subject string) string {
 }
 
 // SendIssueAssignedMail composes and sends issue assigned email
-func SendIssueAssignedMail(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, content string, comment *issues_model.Comment, recipients []*user_model.User) error {
+func SendIssueAssignedMail(issue *issues_model.Issue, doer *user_model.User, content string, comment *issues_model.Comment, recipients []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
 	}
 
-	if err := issue.LoadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(db.DefaultContext); err != nil {
 		log.Error("Unable to load repo [%d] for issue #%d [%d]. Error: %v", issue.RepoID, issue.Index, issue.ID, err)
 		return err
 	}
@@ -459,7 +417,7 @@ func SendIssueAssignedMail(ctx context.Context, issue *issues_model.Issue, doer 
 
 	for lang, tos := range langMap {
 		msgs, err := composeIssueCommentMessages(&mailCommentContext{
-			Context:    ctx,
+			Context:    context.TODO(), // TODO: use a correct context
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: activities_model.ActionType(0),
@@ -493,7 +451,7 @@ func actionToTemplate(issue *issues_model.Issue, actionType activities_model.Act
 		name = "close"
 	case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
 		name = "reopen"
-	case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
+	case activities_model.ActionMergePullRequest:
 		name = "merge"
 	case activities_model.ActionPullReviewDismissed:
 		name = "review_dismissed"

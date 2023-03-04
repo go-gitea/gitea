@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package cron
 
@@ -16,7 +17,7 @@ import (
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
-	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
+	packages_service "code.gitea.io/gitea/services/packages"
 	repo_service "code.gitea.io/gitea/services/repository"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 )
@@ -59,7 +60,11 @@ func registerRepoHealthCheck() {
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		rhcConfig := config.(*RepoHealthCheckConfig)
 		// the git args are set by config, they can be safe to be trusted
-		return repo_service.GitFsckRepos(ctx, rhcConfig.Timeout, git.ToTrustedCmdArgs(rhcConfig.Args))
+		args := make([]git.CmdArg, 0, len(rhcConfig.Args))
+		for _, arg := range rhcConfig.Args {
+			args = append(args, git.CmdArg(arg))
+		}
+		return repo_service.GitFsck(ctx, rhcConfig.Timeout, args)
 	})
 }
 
@@ -152,7 +157,7 @@ func registerCleanupPackages() {
 		OlderThan: 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		realConfig := config.(*OlderThanConfig)
-		return packages_cleanup_service.Cleanup(ctx, realConfig.OlderThan)
+		return packages_service.Cleanup(ctx, realConfig.OlderThan)
 	})
 }
 

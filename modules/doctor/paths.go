@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package doctor
 
@@ -67,8 +68,7 @@ func checkConfigurationFiles(ctx context.Context, logger log.Logger, autofix boo
 		return err
 	}
 
-	setting.InitProviderFromExistingFile()
-	setting.LoadCommonSettings()
+	setting.LoadFromExisting()
 
 	configurationFiles := []configurationFile{
 		{"Configuration File Path", setting.CustomConf, false, true, false},
@@ -76,7 +76,7 @@ func checkConfigurationFiles(ctx context.Context, logger log.Logger, autofix boo
 		{"Data Root Path", setting.AppDataPath, true, true, true},
 		{"Custom File Root Path", setting.CustomPath, true, false, false},
 		{"Work directory", setting.AppWorkPath, true, true, false},
-		{"Log Root Path", setting.Log.RootPath, true, true, true},
+		{"Log Root Path", setting.LogRootPath, true, true, true},
 	}
 
 	if options.IsDynamic() {

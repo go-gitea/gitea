@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package queue
 
@@ -94,8 +95,7 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 			},
 			Workers: 0,
 		},
-		DataDir:   config.DataDir,
-		QueueName: config.Name + "-level",
+		DataDir: config.DataDir,
 	}
 
 	levelQueue, err := NewLevelQueue(wrappedHandle, levelCfg, exemplar)
@@ -173,18 +173,16 @@ func (q *PersistableChannelQueue) Run(atShutdown, atTerminate func(func())) {
 	atShutdown(q.Shutdown)
 	atTerminate(q.Terminate)
 
-	if lq, ok := q.internal.(*LevelQueue); ok && lq.byteFIFO.Len(lq.terminateCtx) != 0 {
+	if lq, ok := q.internal.(*LevelQueue); ok && lq.byteFIFO.Len(lq.shutdownCtx) != 0 {
 		// Just run the level queue - we shut it down once it's flushed
 		go q.internal.Run(func(_ func()) {}, func(_ func()) {})
 		go func() {
-			for !lq.IsEmpty() {
-				_ = lq.Flush(0)
+			for !q.IsEmpty() {
+				_ = q.internal.Flush(0)
 				select {
 				case <-time.After(100 * time.Millisecond):
-				case <-lq.shutdownCtx.Done():
-					if lq.byteFIFO.Len(lq.terminateCtx) > 0 {
-						log.Warn("LevelQueue: %s shut down before completely flushed", q.internal.(*LevelQueue).Name())
-					}
+				case <-q.internal.(*LevelQueue).shutdownCtx.Done():
+					log.Warn("LevelQueue: %s shut down before completely flushed", q.internal.(*LevelQueue).Name())
 					return
 				}
 			}
@@ -319,21 +317,9 @@ func (q *PersistableChannelQueue) Shutdown() {
 	// Redirect all remaining data in the chan to the internal channel
 	log.Trace("PersistableChannelQueue: %s Redirecting remaining data", q.delayedStarter.name)
 	close(q.channelQueue.dataChan)
-	countOK, countLost := 0, 0
 	for data := range q.channelQueue.dataChan {
-		err := q.internal.Push(data)
-		if err != nil {
-			log.Error("PersistableChannelQueue: %s Unable redirect %v due to: %v", q.delayedStarter.name, data, err)
-			countLost++
-		} else {
-			countOK++
-		}
+		_ = q.internal.Push(data)
 		atomic.AddInt64(&q.channelQueue.numInQueue, -1)
-	}
-	if countLost > 0 {
-		log.Warn("PersistableChannelQueue: %s %d will be restored on restart, %d lost", q.delayedStarter.name, countOK, countLost)
-	} else if countOK > 0 {
-		log.Warn("PersistableChannelQueue: %s %d will be restored on restart", q.delayedStarter.name, countOK)
 	}
 	log.Trace("PersistableChannelQueue: %s Done Redirecting remaining data", q.delayedStarter.name)
 

@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package storage
 
@@ -129,7 +130,7 @@ func (l *LocalStorage) URL(path, name string) (*url.URL, error) {
 
 // IterateObjects iterates across the objects in the local storage
 func (l *LocalStorage) IterateObjects(fn func(path string, obj Object) error) error {
-	return filepath.WalkDir(l.dir, func(path string, d os.DirEntry, err error) error {
+	return filepath.Walk(l.dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -141,7 +142,7 @@ func (l *LocalStorage) IterateObjects(fn func(path string, obj Object) error) er
 		if path == l.dir {
 			return nil
 		}
-		if d.IsDir() {
+		if info.IsDir() {
 			return nil
 		}
 		relPath, err := filepath.Rel(l.dir, path)

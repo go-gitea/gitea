@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package db
 
@@ -26,10 +27,4 @@ const (
 	SearchOrderByStarsReverse          SearchOrderBy = "num_stars DESC"
 	SearchOrderByForks                 SearchOrderBy = "num_forks ASC"
 	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
-)
-
-const (
-	// Which means a condition to filter the records which don't match any id.
-	// It's different from zero which means the condition could be ignored.
-	NoneID = -1
 )

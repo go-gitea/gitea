@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package unit
 
@@ -27,7 +28,6 @@ const (
 	TypeExternalTracker             // 7 ExternalTracker
 	TypeProjects                    // 8 Kanban board
 	TypePackages                    // 9 Packages
-	TypeActions                     // 10 Actions
 )
 
 // Value returns integer value for unit type
@@ -55,8 +55,6 @@ func (u Type) String() string {
 		return "TypeProjects"
 	case TypePackages:
 		return "TypePackages"
-	case TypeActions:
-		return "TypeActions"
 	}
 	return fmt.Sprintf("Unknown Type %d", u)
 }
@@ -80,7 +78,6 @@ var (
 		TypeExternalTracker,
 		TypeProjects,
 		TypePackages,
-		TypeActions,
 	}
 
 	// DefaultRepoUnits contains the default unit types
@@ -92,12 +89,6 @@ var (
 		TypeWiki,
 		TypeProjects,
 		TypePackages,
-	}
-
-	// ForkRepoUnits contains the default unit types for forks
-	DefaultForkRepoUnits = []Type{
-		TypeCode,
-		TypePullRequests,
 	}
 
 	// NotAllowedDefaultRepoUnits contains units that can't be default
@@ -116,41 +107,26 @@ var (
 	DisabledRepoUnits = []Type{}
 )
 
-// Get valid set of default repository units from settings
-func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
-	units := defaultUnits
-
-	// Use setting if not empty
-	if len(settingDefaultUnits) > 0 {
+// LoadUnitConfig load units from settings
+func LoadUnitConfig() {
+	setDefaultRepoUnits := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
+	// Default repo units set if setting is not empty
+	if len(setDefaultRepoUnits) > 0 {
 		// MustRepoUnits required as default
-		units = make([]Type, len(MustRepoUnits))
-		copy(units, MustRepoUnits)
-		for _, settingUnit := range settingDefaultUnits {
-			if !settingUnit.CanBeDefault() {
-				log.Warn("Not allowed as default unit: %s", settingUnit.String())
+		DefaultRepoUnits = make([]Type, len(MustRepoUnits))
+		copy(DefaultRepoUnits, MustRepoUnits)
+		for _, defaultU := range setDefaultRepoUnits {
+			if !defaultU.CanBeDefault() {
+				log.Warn("Not allowed as default unit: %s", defaultU.String())
 				continue
 			}
 			// MustRepoUnits already added
-			if settingUnit.CanDisable() {
-				units = append(units, settingUnit)
+			if defaultU.CanDisable() {
+				DefaultRepoUnits = append(DefaultRepoUnits, defaultU)
 			}
 		}
 	}
 
-	// Remove disabled units
-	for _, disabledUnit := range DisabledRepoUnits {
-		for i, unit := range units {
-			if unit == disabledUnit {
-				units = append(units[:i], units[i+1:]...)
-			}
-		}
-	}
-
-	return units
-}
-
-// LoadUnitConfig load units from settings
-func LoadUnitConfig() {
 	DisabledRepoUnits = FindUnitTypes(setting.Repository.DisabledRepoUnits...)
 	// Check that must units are not disabled
 	for i, disabledU := range DisabledRepoUnits {
@@ -159,11 +135,14 @@ func LoadUnitConfig() {
 			DisabledRepoUnits = append(DisabledRepoUnits[:i], DisabledRepoUnits[i+1:]...)
 		}
 	}
-
-	setDefaultRepoUnits := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
-	DefaultRepoUnits = validateDefaultRepoUnits(DefaultRepoUnits, setDefaultRepoUnits)
-	setDefaultForkRepoUnits := FindUnitTypes(setting.Repository.DefaultForkRepoUnits...)
-	DefaultForkRepoUnits = validateDefaultRepoUnits(DefaultForkRepoUnits, setDefaultForkRepoUnits)
+	// Remove disabled units from default units
+	for _, disabledU := range DisabledRepoUnits {
+		for i, defaultU := range DefaultRepoUnits {
+			if defaultU == disabledU {
+				DefaultRepoUnits = append(DefaultRepoUnits[:i], DefaultRepoUnits[i+1:]...)
+			}
+		}
+	}
 }
 
 // UnitGlobalDisabled checks if unit type is global disabled
@@ -310,15 +289,6 @@ var (
 		perm.AccessModeRead,
 	}
 
-	UnitActions = Unit{
-		TypeActions,
-		"actions.actions",
-		"/actions",
-		"actions.unit.desc",
-		7,
-		perm.AccessModeOwner,
-	}
-
 	// Units contains all the units
 	Units = map[Type]Unit{
 		TypeCode:            UnitCode,
@@ -330,7 +300,6 @@ var (
 		TypeExternalWiki:    UnitExternalWiki,
 		TypeProjects:        UnitProjects,
 		TypePackages:        UnitPackages,
-		TypeActions:         UnitActions,
 	}
 )
 

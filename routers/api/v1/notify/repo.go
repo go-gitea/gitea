@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package notify
 
@@ -10,9 +11,9 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/convert"
 )
 
 func statusStringToNotificationStatus(status string) activities_model.NotificationStatus {
@@ -108,7 +109,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 	}
 	opts.RepoID = ctx.Repo.Repository.ID
 
-	totalCount, err := activities_model.CountNotifications(ctx, opts)
+	totalCount, err := activities_model.CountNotifications(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -119,7 +120,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 		ctx.InternalServerError(err)
 		return
 	}
-	err = nl.LoadAttributes(ctx)
+	err = nl.LoadAttributes()
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -216,12 +217,12 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	changed := make([]*structs.NotificationThread, 0, len(nl))
 
 	for _, n := range nl {
-		notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
+		notif, err := activities_model.SetNotificationStatus(n.ID, ctx.Doer, targetStatus)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return
 		}
-		_ = notif.LoadAttributes(ctx)
+		_ = notif.LoadAttributes()
 		changed = append(changed, convert.ToNotificationThread(notif))
 	}
 	ctx.JSON(http.StatusResetContent, changed)

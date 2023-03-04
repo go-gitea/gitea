@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	MustRegister("argon2", NewArgon2Hasher)
+	Register("argon2", NewArgon2Hasher)
 }
 
 // Argon2Hasher implements PasswordHasher
@@ -41,9 +41,6 @@ func NewArgon2Hasher(config string) *Argon2Hasher {
 	// This default configuration uses the following parameters:
 	// time=2, memory=64*1024, threads=8, keyLen=50.
 	// It will make two passes through the memory, using 64MiB in total.
-	// This matches the original configuration for `argon2` prior to storing hash parameters
-	// in the database.
-	// THESE VALUES MUST NOT BE CHANGED OR BACKWARDS COMPATIBILITY WILL BREAK
 	hasher := &Argon2Hasher{
 		time:    2,
 		memory:  1 << 16,

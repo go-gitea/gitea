@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package doctor
 
@@ -268,10 +269,13 @@ func fixBrokenRepoUnits16961(ctx context.Context, logger log.Logger, autofix boo
 
 	err := db.Iterate(
 		ctx,
+		new(RepoUnit),
 		builder.Gt{
 			"id": 0,
 		},
-		func(ctx context.Context, unit *RepoUnit) error {
+		func(idx int, bean interface{}) error {
+			unit := bean.(*RepoUnit)
+
 			bs := unit.Config
 			repoUnit := &repo_model.RepoUnit{
 				ID:          unit.ID,

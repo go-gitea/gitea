@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package setting
 
@@ -21,7 +22,7 @@ const (
 
 // Applications render manage access token page
 func Applications(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings.applications")
+	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
 
 	loadApplicationsData(ctx)
@@ -42,15 +43,9 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
-	scope, err := form.GetScope()
-	if err != nil {
-		ctx.ServerError("GetScope", err)
-		return
-	}
 	t := &auth_model.AccessToken{
-		UID:   ctx.Doer.ID,
-		Name:  form.Name,
-		Scope: scope,
+		UID:  ctx.Doer.ID,
+		Name: form.Name,
 	}
 
 	exist, err := auth_model.AccessTokenByNameExists(t)

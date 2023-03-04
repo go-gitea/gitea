@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package asymkey
 
@@ -207,7 +208,7 @@ Loop:
 			if commit.Signature == nil {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
-			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+			verification := asymkey_model.ParseCommitWithSignature(commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
@@ -260,7 +261,7 @@ Loop:
 			if commit.Signature == nil {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
-			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+			verification := asymkey_model.ParseCommitWithSignature(commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
@@ -271,7 +272,7 @@ Loop:
 
 // SignMerge determines if we should sign a PR merge commit to the base repository
 func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.User, tmpBasePath, baseCommit, headCommit string) (bool, string, *git.Signature, error) {
-	if err := pr.LoadBaseRepo(ctx); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("Unable to get Base Repo for pull request")
 		return false, "", nil, err
 	}
@@ -310,7 +311,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case approved:
-			protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, pr.BaseBranch)
+			protectedBranch, err := git_model.GetProtectedBranchBy(ctx, repo.ID, pr.BaseBranch)
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -332,7 +333,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+			verification := asymkey_model.ParseCommitWithSignature(commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{baseSigned}
 			}
@@ -348,7 +349,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+			verification := asymkey_model.ParseCommitWithSignature(commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{headSigned}
 			}
@@ -364,7 +365,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+			verification := asymkey_model.ParseCommitWithSignature(commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{commitsSigned}
 			}
@@ -378,7 +379,7 @@ Loop:
 				return false, "", nil, err
 			}
 			for _, commit := range commitList {
-				verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+				verification := asymkey_model.ParseCommitWithSignature(commit)
 				if !verification.Verified {
 					return false, "", nil, &ErrWontSign{commitsSigned}
 				}

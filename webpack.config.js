@@ -6,10 +6,10 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import {VueLoaderPlugin} from 'vue-loader';
 import EsBuildLoader from 'esbuild-loader';
-import {parse, dirname} from 'node:path';
+import {parse, dirname} from 'path';
 import webpack from 'webpack';
-import {fileURLToPath} from 'node:url';
-import {readFileSync} from 'node:fs';
+import {fileURLToPath} from 'url';
+import {readFileSync} from 'fs';
 
 const {ESBuildMinifyPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin} = webpack;
@@ -47,7 +47,6 @@ const filterCssImport = (url, ...args) => {
   return true;
 };
 
-/** @type {import("webpack").Configuration} */
 export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
@@ -58,9 +57,6 @@ export default {
       fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
       fileURLToPath(new URL('web_src/less/index.less', import.meta.url)),
-    ],
-    webcomponents: [
-      fileURLToPath(new URL('web_src/js/webcomponents/GiteaOriginUrl.js', import.meta.url)),
     ],
     swagger: [
       fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
@@ -230,11 +226,9 @@ export default {
         }).join('\n');
       },
       override: {
-        'jquery.are-you-sure@*': {licenseName: 'MIT'}, // https://github.com/codedance/jquery.AreYouSure/pull/147
-        'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
+        'jquery.are-you-sure@*': {licenseName: 'MIT'},
       },
-      emitError: true,
-      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense)',
+      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC)',
       ignore: [
         'font-awesome',
       ],

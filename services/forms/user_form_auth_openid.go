@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package forms
 
@@ -26,8 +27,11 @@ func (f *SignInOpenIDForm) Validate(req *http.Request, errs binding.Errors) bind
 
 // SignUpOpenIDForm form for signin up with OpenID
 type SignUpOpenIDForm struct {
-	UserName string `binding:"Required;Username;MaxSize(40)"`
-	Email    string `binding:"Required;Email;MaxSize(254)"`
+	UserName           string `binding:"Required;AlphaDashDot;MaxSize(40)"`
+	Email              string `binding:"Required;Email;MaxSize(254)"`
+	GRecaptchaResponse string `form:"g-recaptcha-response"`
+	HcaptchaResponse   string `form:"h-captcha-response"`
+	McaptchaResponse   string `form:"m-captcha-response"`
 }
 
 // Validate validates the fields

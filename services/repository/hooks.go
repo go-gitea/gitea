@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repository
 
@@ -24,8 +25,10 @@ func SyncRepositoryHooks(ctx context.Context) error {
 
 	if err := db.Iterate(
 		ctx,
+		new(repo_model.Repository),
 		builder.Gt{"id": 0},
-		func(ctx context.Context, repo *repo_model.Repository) error {
+		func(idx int, bean interface{}) error {
+			repo := bean.(*repo_model.Repository)
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("before sync repository hooks for %s", repo.FullName())

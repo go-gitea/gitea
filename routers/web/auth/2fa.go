@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package auth
 
@@ -68,7 +69,7 @@ func TwoFactorPost(ctx *context.Context) {
 
 	if ok && twofa.LastUsedPasscode != form.Passcode {
 		remember := ctx.Session.Get("twofaRemember").(bool)
-		u, err := user_model.GetUserByID(ctx, id)
+		u, err := user_model.GetUserByID(id)
 		if err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
@@ -146,7 +147,7 @@ func TwoFactorScratchPost(ctx *context.Context) {
 		}
 
 		remember := ctx.Session.Get("twofaRemember").(bool)
-		u, err := user_model.GetUserByID(ctx, id)
+		u, err := user_model.GetUserByID(id)
 		if err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return

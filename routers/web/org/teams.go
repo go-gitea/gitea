@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package org
 
@@ -20,11 +21,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
-	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	org_service "code.gitea.io/gitea/services/org"
 )
@@ -49,7 +50,7 @@ func Teams(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeams"] = true
 
 	for _, t := range ctx.Org.Teams {
-		if err := t.LoadMembers(ctx); err != nil {
+		if err := t.GetMembersCtx(ctx); err != nil {
 			ctx.ServerError("GetMembers", err)
 			return
 		}
@@ -346,7 +347,7 @@ func TeamMembers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamMembers"] = true
-	if err := ctx.Org.Team.LoadMembers(ctx); err != nil {
+	if err := ctx.Org.Team.GetMembersCtx(ctx); err != nil {
 		ctx.ServerError("GetMembers", err)
 		return
 	}
@@ -368,7 +369,7 @@ func TeamRepositories(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamRepos"] = true
-	if err := ctx.Org.Team.LoadRepositories(ctx); err != nil {
+	if err := ctx.Org.Team.GetRepositoriesCtx(ctx); err != nil {
 		ctx.ServerError("GetRepositories", err)
 		return
 	}
@@ -401,7 +402,7 @@ func SearchTeam(ctx *context.Context) {
 		return
 	}
 
-	apiTeams, err := convert.ToTeams(ctx, teams, false)
+	apiTeams, err := convert.ToTeams(teams, false)
 	if err != nil {
 		log.Error("convert ToTeams failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -570,7 +571,7 @@ func getTeamInviteFromContext(ctx *context.Context) (*org_model.TeamInvite, *org
 		return nil, nil, nil, nil, err
 	}
 
-	inviter, err := user_model.GetUserByID(ctx, invite.InviterID)
+	inviter, err := user_model.GetUserByIDCtx(ctx, invite.InviterID)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -580,7 +581,7 @@ func getTeamInviteFromContext(ctx *context.Context) (*org_model.TeamInvite, *org
 		return nil, nil, nil, nil, err
 	}
 
-	org, err := user_model.GetUserByID(ctx, team.OrgID)
+	org, err := user_model.GetUserByIDCtx(ctx, team.OrgID)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

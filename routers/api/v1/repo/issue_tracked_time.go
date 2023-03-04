@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
@@ -13,10 +14,10 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/convert"
 )
 
 // ListTrackedTimes list all the tracked times of an issue
@@ -71,7 +72,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if !ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
+	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.NotFound("Timetracker is disabled")
 		return
 	}
@@ -138,7 +139,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, trackedTimes))
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
 
 // AddTime add time manual to the given issue
@@ -190,7 +191,7 @@ func AddTime(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
-		if !ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
+		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 			ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 			return
 		}
@@ -223,7 +224,7 @@ func AddTime(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToTrackedTime(ctx, trackedTime))
+	ctx.JSON(http.StatusOK, convert.ToTrackedTime(trackedTime))
 }
 
 // ResetIssueTime reset time manual to the given issue
@@ -271,7 +272,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
-		if !ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
+		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 			ctx.JSON(http.StatusBadRequest, struct{ Message string }{Message: "time tracking disabled"})
 			return
 		}
@@ -342,7 +343,7 @@ func DeleteTime(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
-		if !ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
+		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 			ctx.JSON(http.StatusBadRequest, struct{ Message string }{Message: "time tracking disabled"})
 			return
 		}
@@ -410,7 +411,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if !ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
+	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 		return
 	}
@@ -447,7 +448,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, trackedTimes))
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
 
 // ListTrackedTimesByRepository lists all tracked times of the repository
@@ -498,7 +499,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if !ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
+	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 		return
 	}
@@ -557,7 +558,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, trackedTimes))
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
 
 // ListMyTrackedTimes lists all tracked times of the current user
@@ -619,5 +620,5 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, trackedTimes))
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }

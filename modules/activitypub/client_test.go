@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package activitypub
 
@@ -35,7 +36,7 @@ func TestActivityPubSignedPost(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, string(body))
-		fmt.Fprint(w, expected)
+		fmt.Fprintf(w, expected)
 	}))
 	defer srv.Close()
 

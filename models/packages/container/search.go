@@ -1,10 +1,12 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package container
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -12,12 +14,11 @@ import (
 	"code.gitea.io/gitea/models/packages"
 	user_model "code.gitea.io/gitea/models/user"
 	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
 
-var ErrContainerBlobNotExist = util.NewNotExistErrorf("container blob does not exist")
+var ErrContainerBlobNotExist = errors.New("Container blob does not exist")
 
 type BlobSearchOptions struct {
 	OwnerID    int64

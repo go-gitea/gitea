@@ -1,5 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package validation
 
@@ -89,16 +90,4 @@ func IsValidExternalTrackerURLFormat(uri string) bool {
 	}
 
 	return true
-}
-
-var (
-	validUsernamePattern   = regexp.MustCompile(`^[\da-zA-Z][-.\w]*$`)
-	invalidUsernamePattern = regexp.MustCompile(`[-._]{2,}|[-._]$`) // No consecutive or trailing non-alphanumeric chars
-)
-
-// IsValidUsername checks if username is valid
-func IsValidUsername(name string) bool {
-	// It is difficult to find a single pattern that is both readable and effective,
-	// but it's easier to use positive and negative checks.
-	return validUsernamePattern.MatchString(name) && !invalidUsernamePattern.MatchString(name)
 }

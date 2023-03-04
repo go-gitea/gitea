@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package private
 
@@ -116,11 +117,11 @@ func AddLogger(ctx *context.PrivateContext) {
 	}
 
 	if _, ok := opts.Config["level"]; !ok {
-		opts.Config["level"] = setting.Log.Level
+		opts.Config["level"] = setting.LogLevel
 	}
 
 	if _, ok := opts.Config["stacktraceLevel"]; !ok {
-		opts.Config["stacktraceLevel"] = setting.Log.StacktraceLogLevel
+		opts.Config["stacktraceLevel"] = setting.StacktraceLogLevel
 	}
 
 	if opts.Mode == "file" {
@@ -135,7 +136,7 @@ func AddLogger(ctx *context.PrivateContext) {
 		}
 	}
 
-	bufferLen := setting.Log.BufferLength
+	bufferLen := setting.Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
 	byteConfig, err := json.Marshal(opts.Config)
 	if err != nil {
 		log.Error("Failed to marshal log configuration: %v %v", opts.Config, err)

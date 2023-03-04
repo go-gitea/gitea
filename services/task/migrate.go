@@ -1,5 +1,6 @@
 // Copyright 2019 Gitea. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package task
 
@@ -50,7 +51,7 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 		if err == nil {
 			err = admin_model.FinishMigrateTask(t)
 			if err == nil {
-				notification.NotifyMigrateRepository(db.DefaultContext, t.Doer, t.Owner, t.Repo)
+				notification.NotifyMigrateRepository(t.Doer, t.Owner, t.Repo)
 				return
 			}
 

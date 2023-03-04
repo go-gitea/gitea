@@ -1,10 +1,10 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package asymkey
 
 import (
-	"context"
 	"fmt"
 	"hash"
 	"strings"
@@ -71,14 +71,14 @@ const (
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType, isOwnerMemberCollaborator func(*user_model.User) (bool, error)) []*SignCommit {
+func ParseCommitsWithSignature(oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType, isOwnerMemberCollaborator func(*user_model.User) (bool, error)) []*SignCommit {
 	newCommits := make([]*SignCommit, 0, len(oldCommits))
 	keyMap := map[string]bool{}
 
 	for _, c := range oldCommits {
 		signCommit := &SignCommit{
 			UserCommit:   c,
-			Verification: ParseCommitWithSignature(ctx, c.Commit),
+			Verification: ParseCommitWithSignature(c.Commit),
 		}
 
 		_ = CalculateTrustStatus(signCommit.Verification, repoTrustModel, isOwnerMemberCollaborator, &keyMap)
@@ -89,13 +89,13 @@ func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.Use
 }
 
 // ParseCommitWithSignature check if signature is good against keystore.
-func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *CommitVerification {
+func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	var committer *user_model.User
 	if c.Committer != nil {
 		var err error
 		// Find Committer account
-		committer, err = user_model.GetUserByEmail(ctx, c.Committer.Email) // This finds the user by primary email or activated email so commit will not be valid if email is not
-		if err != nil {                                                    // Skipping not user for committer
+		committer, err = user_model.GetUserByEmail(c.Committer.Email) // This finds the user by primary email or activated email so commit will not be valid if email is not
+		if err != nil {                                               // Skipping not user for committer
 			committer = &user_model.User{
 				Name:  c.Committer.Name,
 				Email: c.Committer.Email,
@@ -427,7 +427,7 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *use
 			Email: email,
 		}
 		if key.OwnerID != 0 {
-			owner, err := user_model.GetUserByID(db.DefaultContext, key.OwnerID)
+			owner, err := user_model.GetUserByID(key.OwnerID)
 			if err == nil {
 				signer = owner
 			} else if !user_model.IsErrUserNotExist(err) {

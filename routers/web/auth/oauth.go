@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package auth
 
@@ -17,19 +18,17 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
-	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	auth_service "code.gitea.io/gitea/services/auth"
-	source_service "code.gitea.io/gitea/services/auth/source"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
@@ -197,7 +196,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 				ErrorDescription: "cannot find application",
 			}
 		}
-		user, err := user_model.GetUserByID(ctx, grant.UserID)
+		user, err := user_model.GetUserByID(grant.UserID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				return nil, &AccessTokenError{
@@ -225,7 +224,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 			idToken.Name = user.GetDisplayName()
 			idToken.PreferredUsername = user.Name
 			idToken.Profile = user.HTMLURL()
-			idToken.Picture = user.AvatarLink(ctx)
+			idToken.Picture = user.AvatarLink()
 			idToken.Website = user.Website
 			idToken.Locale = user.Language
 			idToken.UpdatedAt = user.UpdatedUnix
@@ -286,7 +285,7 @@ func InfoOAuth(ctx *context.Context) {
 		Name:     ctx.Doer.FullName,
 		Username: ctx.Doer.Name,
 		Email:    ctx.Doer.Email,
-		Picture:  ctx.Doer.AvatarLink(ctx),
+		Picture:  ctx.Doer.AvatarLink(),
 	}
 
 	groups, err := getOAuthGroupsForUser(ctx.Doer)
@@ -388,7 +387,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 
 	var user *user_model.User
 	if app.UID != 0 {
-		user, err = user_model.GetUserByID(ctx, app.UID)
+		user, err = user_model.GetUserByID(app.UID)
 		if err != nil {
 			ctx.ServerError("GetUserByID", err)
 			return
@@ -850,11 +849,6 @@ func SignInOAuth(ctx *context.Context) {
 		return
 	}
 
-	redirectTo := ctx.FormString("redirect_to")
-	if len(redirectTo) > 0 {
-		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
-	}
-
 	// try to do a direct callback flow, so we don't authenticate the user again but use the valid accesstoken to get the user
 	user, gothUser, err := oAuth2UserLoginCallback(authSource, ctx.Req, ctx.Resp)
 	if err == nil && user != nil {
@@ -966,17 +960,10 @@ func SignInOAuthCallback(ctx *context.Context) {
 				IsActive: util.OptionalBoolOf(!setting.OAuth2Client.RegisterEmailConfirm),
 			}
 
-			source := authSource.Cfg.(*oauth2.Source)
-
-			setUserAdminAndRestrictedFromGroupClaims(source, u, &gothUser)
+			setUserGroupClaims(authSource, u, &gothUser)
 
 			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
 				// error already handled
-				return
-			}
-
-			if err := syncGroupsToTeams(ctx, source, &gothUser, u); err != nil {
-				ctx.ServerError("SyncGroupsToTeams", err)
 				return
 			}
 		} else {
@@ -989,7 +976,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	handleOAuth2SignIn(ctx, authSource, u, gothUser)
 }
 
-func claimValueToStringSet(claimValue interface{}) container.Set[string] {
+func claimValueToStringSlice(claimValue interface{}) []string {
 	var groups []string
 
 	switch rawGroup := claimValue.(type) {
@@ -1003,56 +990,53 @@ func claimValueToStringSet(claimValue interface{}) container.Set[string] {
 		str := fmt.Sprintf("%s", rawGroup)
 		groups = strings.Split(str, ",")
 	}
-	return container.SetOf(groups...)
+	return groups
 }
 
-func syncGroupsToTeams(ctx *context.Context, source *oauth2.Source, gothUser *goth.User, u *user_model.User) error {
-	if source.GroupTeamMap != "" || source.GroupTeamMapRemoval {
-		groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(source.GroupTeamMap)
-		if err != nil {
-			return err
-		}
-
-		groups := getClaimedGroups(source, gothUser)
-
-		if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, source.GroupTeamMapRemoval); err != nil {
-			return err
-		}
+func setUserGroupClaims(loginSource *auth.Source, u *user_model.User, gothUser *goth.User) bool {
+	source := loginSource.Cfg.(*oauth2.Source)
+	if source.GroupClaimName == "" || (source.AdminGroup == "" && source.RestrictedGroup == "") {
+		return false
 	}
 
-	return nil
-}
-
-func getClaimedGroups(source *oauth2.Source, gothUser *goth.User) container.Set[string] {
 	groupClaims, has := gothUser.RawData[source.GroupClaimName]
 	if !has {
-		return nil
+		return false
 	}
 
-	return claimValueToStringSet(groupClaims)
-}
-
-func setUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, u *user_model.User, gothUser *goth.User) bool {
-	groups := getClaimedGroups(source, gothUser)
+	groups := claimValueToStringSlice(groupClaims)
 
 	wasAdmin, wasRestricted := u.IsAdmin, u.IsRestricted
 
 	if source.AdminGroup != "" {
-		u.IsAdmin = groups.Contains(source.AdminGroup)
+		u.IsAdmin = false
 	}
 	if source.RestrictedGroup != "" {
-		u.IsRestricted = groups.Contains(source.RestrictedGroup)
+		u.IsRestricted = false
+	}
+
+	for _, g := range groups {
+		if source.AdminGroup != "" && g == source.AdminGroup {
+			u.IsAdmin = true
+		} else if source.RestrictedGroup != "" && g == source.RestrictedGroup {
+			u.IsRestricted = true
+		}
 	}
 
 	return wasAdmin != u.IsAdmin || wasRestricted != u.IsRestricted
 }
 
 func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
-	if err := updateSession(ctx, nil, map[string]interface{}{
-		"linkAccountGothUser": gothUser,
-	}); err != nil {
-		ctx.ServerError("updateSession", err)
+	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+		ctx.ServerError("RegenerateSession", err)
 		return
+	}
+
+	if err := ctx.Session.Set("linkAccountGothUser", gothUser); err != nil {
+		log.Error("Error setting linkAccountGothUser in session: %v", err)
+	}
+	if err := ctx.Session.Release(); err != nil {
+		log.Error("Error storing session: %v", err)
 	}
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
@@ -1088,24 +1072,22 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		needs2FA = err == nil
 	}
 
-	oauth2Source := source.Cfg.(*oauth2.Source)
-	groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(oauth2Source.GroupTeamMap)
-	if err != nil {
-		ctx.ServerError("UnmarshalGroupTeamMapping", err)
-		return
-	}
-
-	groups := getClaimedGroups(oauth2Source, &gothUser)
-
 	// If this user is enrolled in 2FA and this source doesn't override it,
 	// we can't sign the user in just yet. Instead, redirect them to the 2FA authentication page.
 	if !needs2FA {
-		if err := updateSession(ctx, nil, map[string]interface{}{
-			"uid":   u.ID,
-			"uname": u.Name,
-		}); err != nil {
-			ctx.ServerError("updateSession", err)
+		if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+			ctx.ServerError("RegenerateSession", err)
 			return
+		}
+
+		if err := ctx.Session.Set("uid", u.ID); err != nil {
+			log.Error("Error setting uid in session: %v", err)
+		}
+		if err := ctx.Session.Set("uname", u.Name); err != nil {
+			log.Error("Error setting uname in session: %v", err)
+		}
+		if err := ctx.Session.Release(); err != nil {
+			log.Error("Error storing session: %v", err)
 		}
 
 		// Clear whatever CSRF cookie has right now, force to generate a new one
@@ -1115,7 +1097,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		u.SetLastLogin()
 
 		// Update GroupClaims
-		changed := setUserAdminAndRestrictedFromGroupClaims(oauth2Source, u, &gothUser)
+		changed := setUserGroupClaims(source, u, &gothUser)
 		cols := []string{"last_login_unix"}
 		if changed {
 			cols = append(cols, "is_admin", "is_restricted")
@@ -1124,13 +1106,6 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		if err := user_model.UpdateUserCols(ctx, u, cols...); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
 			return
-		}
-
-		if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
-			if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
-				ctx.ServerError("SyncGroupsToTeams", err)
-				return
-			}
 		}
 
 		// update external user information
@@ -1155,7 +1130,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		return
 	}
 
-	changed := setUserAdminAndRestrictedFromGroupClaims(oauth2Source, u, &gothUser)
+	changed := setUserGroupClaims(source, u, &gothUser)
 	if changed {
 		if err := user_model.UpdateUserCols(ctx, u, "is_admin", "is_restricted"); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
@@ -1163,20 +1138,20 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 	}
 
-	if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
-		if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
-			ctx.ServerError("SyncGroupsToTeams", err)
-			return
-		}
+	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+		ctx.ServerError("RegenerateSession", err)
+		return
 	}
 
-	if err := updateSession(ctx, nil, map[string]interface{}{
-		// User needs to use 2FA, save data and redirect to 2FA page.
-		"twofaUid":      u.ID,
-		"twofaRemember": false,
-	}); err != nil {
-		ctx.ServerError("updateSession", err)
-		return
+	// User needs to use 2FA, save data and redirect to 2FA page.
+	if err := ctx.Session.Set("twofaUid", u.ID); err != nil {
+		log.Error("Error setting twofaUid in session: %v", err)
+	}
+	if err := ctx.Session.Set("twofaRemember", false); err != nil {
+		log.Error("Error setting twofaRemember in session: %v", err)
+	}
+	if err := ctx.Session.Release(); err != nil {
+		log.Error("Error storing session: %v", err)
 	}
 
 	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
@@ -1229,9 +1204,15 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 		}
 
 		if oauth2Source.RequiredClaimValue != "" {
-			groups := claimValueToStringSet(claimInterface)
-
-			if !groups.Contains(oauth2Source.RequiredClaimValue) {
+			groups := claimValueToStringSlice(claimInterface)
+			found := false
+			for _, group := range groups {
+				if group == oauth2Source.RequiredClaimValue {
+					found = true
+					break
+				}
+			}
+			if !found {
 				return nil, goth.User{}, user_model.ErrUserProhibitLogin{Name: gothUser.UserID}
 			}
 		}
@@ -1262,7 +1243,7 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 		return nil, goth.User{}, err
 	}
 	if hasUser {
-		user, err = user_model.GetUserByID(request.Context(), externalLoginUser.UserID)
+		user, err = user_model.GetUserByID(externalLoginUser.UserID)
 		return user, gothUser, err
 	}
 

@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package setting
 
@@ -23,7 +24,7 @@ const (
 
 // Keys render user's SSH/GPG public keys page
 func Keys(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings.ssh_gpg_keys")
+	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
@@ -159,8 +160,6 @@ func KeysPost(ctx *context.Context) {
 				ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
 			} else if asymkey_model.IsErrKeyUnableVerify(err) {
 				ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
-			} else if err == asymkey_model.ErrKeyIsPrivate {
-				ctx.Flash.Error(ctx.Tr("form.must_use_public_key"))
 			} else {
 				ctx.Flash.Error(ctx.Tr("form.invalid_ssh_key", err.Error()))
 			}

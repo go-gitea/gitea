@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package asymkey
 
@@ -23,7 +24,7 @@ import "code.gitea.io/gitea/models/db"
 // GPGKeyImport the original import of key
 type GPGKeyImport struct {
 	KeyID   string `xorm:"pk CHAR(16) NOT NULL"`
-	Content string `xorm:"MEDIUMTEXT NOT NULL"`
+	Content string `xorm:"TEXT NOT NULL"`
 }
 
 func init() {

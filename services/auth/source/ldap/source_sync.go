@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package ldap
 
@@ -13,10 +14,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
-	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
-	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -66,11 +65,6 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	userPos := 0
 	orgCache := make(map[string]*organization.Organization)
 	teamCache := make(map[string]*organization.Team)
-
-	groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(source.GroupTeamMap)
-	if err != nil {
-		return err
-	}
 
 	for _, su := range sr {
 		select {
@@ -180,9 +174,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		}
 		// Synchronize LDAP groups with organization and team memberships
 		if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
-			if err := source_service.SyncGroupsToTeamsCached(ctx, usr, su.Groups, groupTeamMapping, source.GroupTeamMapRemoval, orgCache, teamCache); err != nil {
-				log.Error("SyncGroupsToTeamsCached: %v", err)
-			}
+			source.SyncLdapGroupsToTeams(usr, su.LdapTeamAdd, su.LdapTeamRemove, orgCache, teamCache)
 		}
 	}
 

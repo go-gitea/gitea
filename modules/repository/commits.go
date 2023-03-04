@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repository
 
@@ -53,7 +54,7 @@ func (pc *PushCommits) toAPIPayloadCommit(ctx context.Context, repoPath, repoLin
 	authorUsername := ""
 	author, ok := pc.emailUsers[commit.AuthorEmail]
 	if !ok {
-		author, err = user_model.GetUserByEmail(ctx, commit.AuthorEmail)
+		author, err = user_model.GetUserByEmail(commit.AuthorEmail)
 		if err == nil {
 			authorUsername = author.Name
 			pc.emailUsers[commit.AuthorEmail] = author
@@ -65,7 +66,7 @@ func (pc *PushCommits) toAPIPayloadCommit(ctx context.Context, repoPath, repoLin
 	committerUsername := ""
 	committer, ok := pc.emailUsers[commit.CommitterEmail]
 	if !ok {
-		committer, err = user_model.GetUserByEmail(ctx, commit.CommitterEmail)
+		committer, err = user_model.GetUserByEmail(commit.CommitterEmail)
 		if err == nil {
 			// TODO: check errors other than email not found.
 			committerUsername = committer.Name
@@ -133,7 +134,7 @@ func (pc *PushCommits) ToAPIPayloadCommits(ctx context.Context, repoPath, repoLi
 
 // AvatarLink tries to match user in database with e-mail
 // in order to show custom avatar, and falls back to general avatar link.
-func (pc *PushCommits) AvatarLink(ctx context.Context, email string) string {
+func (pc *PushCommits) AvatarLink(email string) string {
 	if pc.avatars == nil {
 		pc.avatars = make(map[string]string)
 	}
@@ -147,9 +148,9 @@ func (pc *PushCommits) AvatarLink(ctx context.Context, email string) string {
 	u, ok := pc.emailUsers[email]
 	if !ok {
 		var err error
-		u, err = user_model.GetUserByEmail(ctx, email)
+		u, err = user_model.GetUserByEmail(email)
 		if err != nil {
-			pc.avatars[email] = avatars.GenerateEmailAvatarFastLink(ctx, email, size)
+			pc.avatars[email] = avatars.GenerateEmailAvatarFastLink(email, size)
 			if !user_model.IsErrUserNotExist(err) {
 				log.Error("GetUserByEmail: %v", err)
 				return ""
@@ -159,7 +160,7 @@ func (pc *PushCommits) AvatarLink(ctx context.Context, email string) string {
 		}
 	}
 	if u != nil {
-		pc.avatars[email] = u.AvatarLinkWithSize(ctx, size)
+		pc.avatars[email] = u.AvatarLinkWithSize(size)
 	}
 
 	return pc.avatars[email]

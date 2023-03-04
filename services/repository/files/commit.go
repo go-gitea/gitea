@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package files
 
@@ -38,7 +39,7 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	}
 	gitRepo.Close()
 
-	if err := git_model.NewCommitStatus(ctx, git_model.NewCommitStatusOptions{
+	if err := git_model.NewCommitStatus(git_model.NewCommitStatusOptions{
 		Repo:         repo,
 		Creator:      creator,
 		SHA:          sha,
@@ -66,9 +67,9 @@ func CountDivergingCommits(ctx context.Context, repo *repo_model.Repository, bra
 }
 
 // GetPayloadCommitVerification returns the verification information of a commit
-func GetPayloadCommitVerification(ctx context.Context, commit *git.Commit) *structs.PayloadCommitVerification {
+func GetPayloadCommitVerification(commit *git.Commit) *structs.PayloadCommitVerification {
 	verification := &structs.PayloadCommitVerification{}
-	commitVerification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+	commitVerification := asymkey_model.ParseCommitWithSignature(commit)
 	if commit.Signature != nil {
 		verification.Signature = commit.Signature.Signature
 		verification.Payload = commit.Signature.Payload

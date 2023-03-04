@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package user
 
@@ -41,7 +42,7 @@ func AvatarByUserName(ctx *context.Context) {
 		user = user_model.NewGhostUser()
 	}
 
-	cacheableRedirect(ctx, user.AvatarLinkWithSize(ctx, size))
+	cacheableRedirect(ctx, user.AvatarLinkWithSize(size))
 }
 
 // AvatarByEmailHash redirects the browser to the email avatar link
@@ -53,5 +54,5 @@ func AvatarByEmailHash(ctx *context.Context) {
 		return
 	}
 	size := ctx.FormInt("size")
-	cacheableRedirect(ctx, avatars.GenerateEmailAvatarFinalLink(ctx, email, size))
+	cacheableRedirect(ctx, avatars.GenerateEmailAvatarFinalLink(email, size))
 }

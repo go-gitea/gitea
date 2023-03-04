@@ -1,6 +1,7 @@
 // Copyright 2019 The Gitea Authors.
 // All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package pull
 
@@ -13,7 +14,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -46,7 +46,7 @@ var (
 func AddToTaskQueue(pr *issues_model.PullRequest) {
 	err := prPatchCheckerQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
 		pr.Status = issues_model.PullRequestStatusChecking
-		err := pr.UpdateColsIfNotMerged(db.DefaultContext, "status")
+		err := pr.UpdateColsIfNotMerged("status")
 		if err != nil {
 			log.Error("AddToTaskQueue(%-v).UpdateCols.(add to queue): %v", pr, err)
 		} else {
@@ -69,12 +69,12 @@ const (
 
 // CheckPullMergable check if the pull mergable based on all conditions (branch protection, merge options, ...)
 func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *access_model.Permission, pr *issues_model.PullRequest, mergeCheckType MergeCheckType, adminSkipProtectionCheck bool) error {
-	return db.WithTx(stdCtx, func(ctx context.Context) error {
+	return db.WithTx(func(ctx context.Context) error {
 		if pr.HasMerged {
 			return ErrHasMerged
 		}
 
-		if err := pr.LoadIssue(ctx); err != nil {
+		if err := pr.LoadIssueCtx(ctx); err != nil {
 			log.Error("Unable to load issue[%d] for %-v: %v", pr.IssueID, pr, err)
 			return err
 		} else if pr.Issue.IsClosed {
@@ -145,17 +145,16 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 		}
 
 		return nil
-	})
+	}, stdCtx)
 }
 
 // isSignedIfRequired check if merge will be signed if required
 func isSignedIfRequired(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) (bool, error) {
-	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
-	if err != nil {
+	if err := pr.LoadProtectedBranchCtx(ctx); err != nil {
 		return false, err
 	}
 
-	if pb == nil || !pb.RequireSignedCommits {
+	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.RequireSignedCommits {
 		return true, nil
 	}
 
@@ -166,7 +165,7 @@ func isSignedIfRequired(ctx context.Context, pr *issues_model.PullRequest, doer 
 
 // checkAndUpdateStatus checks if pull request is possible to leaving checking status,
 // and set to be either conflict or mergeable.
-func checkAndUpdateStatus(ctx context.Context, pr *issues_model.PullRequest) {
+func checkAndUpdateStatus(pr *issues_model.PullRequest) {
 	// If status has not been changed to conflict by testPatch then we are mergeable
 	if pr.Status == issues_model.PullRequestStatusChecking {
 		pr.Status = issues_model.PullRequestStatusMergeable
@@ -183,7 +182,7 @@ func checkAndUpdateStatus(ctx context.Context, pr *issues_model.PullRequest) {
 		return
 	}
 
-	if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
+	if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
 		log.Error("Update[%-v]: %v", pr, err)
 	}
 }
@@ -191,7 +190,7 @@ func checkAndUpdateStatus(ctx context.Context, pr *issues_model.PullRequest) {
 // getMergeCommit checks if a pull request has been merged
 // Returns the git.Commit of the pull request if merged
 func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Commit, error) {
-	if err := pr.LoadBaseRepo(ctx); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		return nil, fmt.Errorf("unable to load base repo for %s: %w", pr, err)
 	}
 
@@ -246,12 +245,12 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 // manuallyMerged checks if a pull request got manually merged
 // When a pull request got manually merged mark the pull request as merged
 func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
-	if err := pr.LoadBaseRepo(ctx); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("%-v LoadBaseRepo: %v", pr, err)
 		return false
 	}
 
-	if unit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests); err == nil {
+	if unit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		if !config.AutodetectManualMerge {
 			return false
@@ -275,13 +274,13 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 	pr.MergedCommitID = commit.ID.String()
 	pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
 	pr.Status = issues_model.PullRequestStatusManuallyMerged
-	merger, _ := user_model.GetUserByEmail(ctx, commit.Author.Email)
+	merger, _ := user_model.GetUserByEmail(commit.Author.Email)
 
 	// When the commit author is unknown set the BaseRepo owner as merger
 	if merger == nil {
 		if pr.BaseRepo.Owner == nil {
-			if err = pr.BaseRepo.LoadOwner(ctx); err != nil {
-				log.Error("%-v BaseRepo.LoadOwner: %v", pr, err)
+			if err = pr.BaseRepo.GetOwner(ctx); err != nil {
+				log.Error("%-v BaseRepo.GetOwner: %v", pr, err)
 				return false
 			}
 		}
@@ -297,7 +296,7 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		return false
 	}
 
-	notification.NotifyMergePullRequest(ctx, merger, pr)
+	notification.NotifyMergePullRequest(pr, merger)
 
 	log.Info("manuallyMerged[%-v]: Marked as manually merged into %s/%s by commit id: %s", pr, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
 	return true
@@ -370,11 +369,11 @@ func testPR(id int64) {
 		}
 		return
 	}
-	checkAndUpdateStatus(ctx, pr)
+	checkAndUpdateStatus(pr)
 }
 
-// CheckPRsForBaseBranch check all pulls with baseBrannch
-func CheckPRsForBaseBranch(baseRepo *repo_model.Repository, baseBranchName string) error {
+// CheckPrsForBaseBranch check all pulls with bseBrannch
+func CheckPrsForBaseBranch(baseRepo *repo_model.Repository, baseBranchName string) error {
 	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(baseRepo.ID, baseBranchName)
 	if err != nil {
 		return err

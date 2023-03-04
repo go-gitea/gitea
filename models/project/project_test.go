@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package project
 
@@ -22,7 +23,7 @@ func TestIsProjectTypeValid(t *testing.T) {
 	}{
 		{TypeIndividual, false},
 		{TypeRepository, true},
-		{TypeOrganization, true},
+		{TypeOrganization, false},
 		{UnknownType, false},
 	}
 
@@ -34,13 +35,13 @@ func TestIsProjectTypeValid(t *testing.T) {
 func TestGetProjects(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	projects, _, err := FindProjects(db.DefaultContext, SearchOptions{RepoID: 1})
+	projects, _, err := GetProjects(db.DefaultContext, SearchOptions{RepoID: 1})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
 	assert.Len(t, projects, 1)
 
-	projects, _, err = FindProjects(db.DefaultContext, SearchOptions{RepoID: 3})
+	projects, _, err = GetProjects(db.DefaultContext, SearchOptions{RepoID: 3})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
@@ -53,7 +54,6 @@ func TestProject(t *testing.T) {
 	project := &Project{
 		Type:        TypeRepository,
 		BoardType:   BoardTypeBasicKanban,
-		CardType:    CardTypeTextOnly,
 		Title:       "New Project",
 		RepoID:      1,
 		CreatedUnix: timeutil.TimeStampNow(),

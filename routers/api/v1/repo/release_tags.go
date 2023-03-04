@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
@@ -9,7 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/services/convert"
+	"code.gitea.io/gitea/modules/convert"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
 
@@ -59,11 +60,11 @@ func GetReleaseByTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err = release.LoadAttributes(ctx); err != nil {
+	if err = release.LoadAttributes(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToRelease(ctx, release))
+	ctx.JSON(http.StatusOK, convert.ToRelease(release))
 }
 
 // DeleteReleaseByTag delete a release from a repository by tag name

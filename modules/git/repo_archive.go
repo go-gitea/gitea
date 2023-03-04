@@ -1,6 +1,7 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package git
 
@@ -37,18 +38,6 @@ func (a ArchiveType) String() string {
 	return "unknown"
 }
 
-func ToArchiveType(s string) ArchiveType {
-	switch s {
-	case "zip":
-		return ZIP
-	case "tar.gz":
-		return TARGZ
-	case "bundle":
-		return BUNDLE
-	}
-	return 0
-}
-
 // CreateArchive create archive content to the target path
 func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, target io.Writer, usePrefix bool, commitID string) error {
 	if format.String() == "unknown" {
@@ -57,9 +46,9 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 
 	cmd := NewCommand(ctx, "archive")
 	if usePrefix {
-		cmd.AddOptionFormat("--prefix=%s", filepath.Base(strings.TrimSuffix(repo.Path, ".git"))+"/")
+		cmd.AddArguments(CmdArg("--prefix=" + filepath.Base(strings.TrimSuffix(repo.Path, ".git")) + "/"))
 	}
-	cmd.AddOptionFormat("--format=%s", format.String())
+	cmd.AddArguments(CmdArg("--format=" + format.String()))
 	cmd.AddDynamicArguments(commitID)
 
 	var stderr strings.Builder

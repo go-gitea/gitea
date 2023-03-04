@@ -3,51 +3,34 @@ import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {
-  initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
-  initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
-  initRepoIssueStatusButton, initRepoIssueTitleEdit, initRepoIssueWipToggle,
-  initRepoPullRequestUpdate, updateIssuesMeta, handleReply
+  initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel,
+  initRepoIssueCommentDelete,
+  initRepoIssueComments, initRepoIssueDependencyDelete,
+  initRepoIssueReferenceIssue, initRepoIssueStatusButton,
+  initRepoIssueTitleEdit,
+  initRepoIssueWipToggle, initRepoPullRequestUpdate,
+  updateIssuesMeta,
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
 import {
-  initRepoCloneLink, initRepoCommonBranchOrTagDropdown, initRepoCommonFilterSearchDropdown,
+  initRepoCloneLink,
+  initRepoCommonBranchOrTagDropdown,
+  initRepoCommonFilterSearchDropdown,
   initRepoCommonLanguageStats,
 } from './repo-common.js';
-import {initCitationFileCopyContent} from './citation.js';
 import {initCompLabelEdit} from './comp/LabelEdit.js';
 import {initRepoDiffConversationNav} from './repo-diff.js';
-import {attachTribute} from './tribute.js';
-import {createDropzone} from './dropzone.js';
+import attachTribute from './tribute.js';
+import createDropzone from './dropzone.js';
 import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
-import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
-import {hideElem, showElem} from '../utils/dom.js';
+import initRepoPullRequestMergeForm from './repo-issue-pr-form.js';
 
 const {csrfToken} = window.config;
-
-// if there are draft comments (more than 20 chars), confirm before reloading, to avoid losing comments
-function reloadConfirmDraftComment() {
-  const commentTextareas = [
-    document.querySelector('.edit-content-zone:not(.gt-hidden) textarea'),
-    document.querySelector('.edit_area'),
-  ];
-  for (const textarea of commentTextareas) {
-    // Most users won't feel too sad if they lose a comment with 10 or 20 chars, they can re-type these in seconds.
-    // But if they have typed more (like 50) chars and the comment is lost, they will be very unhappy.
-    if (textarea && textarea.value.trim().length > 20) {
-      textarea.parentElement.scrollIntoView();
-      if (!window.confirm('Page will be reloaded, but there are draft comments. Continuing to reload will discard the comments. Continue?')) {
-        return;
-      }
-      break;
-    }
-  }
-  window.location.reload();
-}
 
 export function initRepoCommentForm() {
   const $commentForm = $('.comment.form');
@@ -76,9 +59,9 @@ export function initRepoCommentForm() {
       }
     });
     $selectBranch.find('.reference.column').on('click', function () {
-      hideElem($selectBranch.find('.scrolling.reference-list-menu'));
+      $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
       $selectBranch.find('.reference .text').removeClass('black');
-      showElem($($(this).data('target')));
+      $($(this).data('target')).css('display', 'block');
       $(this).find('.text').addClass('black');
       return false;
     });
@@ -112,15 +95,12 @@ export function initRepoCommentForm() {
     let hasUpdateAction = $listMenu.data('action') === 'update';
     const items = {};
 
-    $(`.${selector}`).dropdown({
-      'action': 'nothing', // do not hide the menu if user presses Enter
-      fullTextSearch: 'exact',
-      async onHide() {
-        hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
-        if (hasUpdateAction) {
-          // TODO: Add batch functionality and make this 1 network request.
-          const itemEntries = Object.entries(items);
-          for (const [elementId, item] of itemEntries) {
+    $(`.${selector}`).dropdown('setting', 'onHide', () => {
+      hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
+      if (hasUpdateAction) {
+        // TODO: Add batch functionality and make this 1 network request.
+        (async function() {
+          for (const [elementId, item] of Object.entries(items)) {
             await updateIssuesMeta(
               item['update-url'],
               item.action,
@@ -128,11 +108,9 @@ export function initRepoCommentForm() {
               elementId,
             );
           }
-          if (itemEntries.length) {
-            reloadConfirmDraftComment();
-          }
-        }
-      },
+          window.location.reload();
+        })();
+      }
     });
 
     $listMenu.find('.item:not(.no-select)').on('click', function (e) {
@@ -142,59 +120,35 @@ export function initRepoCommentForm() {
       }
 
       hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
-
-      const clickedItem = $(this);
-      const scope = $(this).attr('data-scope');
-      const canRemoveScope = e.altKey;
-
-      $(this).parent().find('.item').each(function () {
-        if (scope) {
-          // Enable only clicked item for scoped labels
-          if ($(this).attr('data-scope') !== scope) {
-            return true;
-          }
-          if ($(this).is(clickedItem)) {
-            if (!canRemoveScope && $(this).hasClass('checked')) {
-              return true;
-            }
-          } else if (!$(this).hasClass('checked')) {
-            return true;
-          }
-        } else if (!$(this).is(clickedItem)) {
-          // Toggle for other labels
-          return true;
-        }
-
-        if ($(this).hasClass('checked')) {
-          $(this).removeClass('checked');
-          $(this).find('.octicon-check').addClass('invisible');
-          if (hasUpdateAction) {
-            if (!($(this).data('id') in items)) {
-              items[$(this).data('id')] = {
-                'update-url': $listMenu.data('update-url'),
-                action: 'detach',
-                'issue-id': $listMenu.data('issue-id'),
-              };
-            } else {
-              delete items[$(this).data('id')];
-            }
-          }
-        } else {
-          $(this).addClass('checked');
-          $(this).find('.octicon-check').removeClass('invisible');
-          if (hasUpdateAction) {
-            if (!($(this).data('id') in items)) {
-              items[$(this).data('id')] = {
-                'update-url': $listMenu.data('update-url'),
-                action: 'attach',
-                'issue-id': $listMenu.data('issue-id'),
-              };
-            } else {
-              delete items[$(this).data('id')];
-            }
+      if ($(this).hasClass('checked')) {
+        $(this).removeClass('checked');
+        $(this).find('.octicon-check').addClass('invisible');
+        if (hasUpdateAction) {
+          if (!($(this).data('id') in items)) {
+            items[$(this).data('id')] = {
+              'update-url': $listMenu.data('update-url'),
+              action: 'detach',
+              'issue-id': $listMenu.data('issue-id'),
+            };
+          } else {
+            delete items[$(this).data('id')];
           }
         }
-      });
+      } else {
+        $(this).addClass('checked');
+        $(this).find('.octicon-check').removeClass('invisible');
+        if (hasUpdateAction) {
+          if (!($(this).data('id') in items)) {
+            items[$(this).data('id')] = {
+              'update-url': $listMenu.data('update-url'),
+              action: 'attach',
+              'issue-id': $listMenu.data('issue-id'),
+            };
+          } else {
+            delete items[$(this).data('id')];
+          }
+        }
+      }
 
       // TODO: Which thing should be done for choosing review requests
       // to make chosen items be shown on time here?
@@ -206,15 +160,15 @@ export function initRepoCommentForm() {
       $(this).parent().find('.item').each(function () {
         if ($(this).hasClass('checked')) {
           listIds.push($(this).data('id'));
-          $($(this).data('id-selector')).removeClass('gt-hidden');
+          $($(this).data('id-selector')).removeClass('hide');
         } else {
-          $($(this).data('id-selector')).addClass('gt-hidden');
+          $($(this).data('id-selector')).addClass('hide');
         }
       });
       if (listIds.length === 0) {
-        $noSelect.removeClass('gt-hidden');
+        $noSelect.removeClass('hide');
       } else {
-        $noSelect.addClass('gt-hidden');
+        $noSelect.addClass('hide');
       }
       $($(this).parent().data('id')).val(listIds.join(','));
       return false;
@@ -227,7 +181,7 @@ export function initRepoCommentForm() {
           'clear',
           $listMenu.data('issue-id'),
           '',
-        ).then(reloadConfirmDraftComment);
+        ).then(() => window.location.reload());
       }
 
       $(this).parent().find('.item').each(function () {
@@ -240,9 +194,9 @@ export function initRepoCommentForm() {
       }
 
       $list.find('.item').each(function () {
-        $(this).addClass('gt-hidden');
+        $(this).addClass('hide');
       });
-      $noSelect.removeClass('gt-hidden');
+      $noSelect.removeClass('hide');
       $($(this).parent().data('id')).val('');
     });
   }
@@ -270,16 +224,16 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(reloadConfirmDraftComment);
+        ).then(() => window.location.reload());
       }
 
       let icon = '';
       if (input_id === '#milestone_id') {
-        icon = svg('octicon-milestone', 18, 'gt-mr-3');
+        icon = svg('octicon-milestone', 18, 'mr-3');
       } else if (input_id === '#project_id') {
-        icon = svg('octicon-project', 18, 'gt-mr-3');
+        icon = svg('octicon-project', 18, 'mr-3');
       } else if (input_id === '#assignee_id') {
-        icon = `<img class="ui avatar image gt-mr-3" src=${$(this).data('avatar')}>`;
+        icon = `<img class="ui avatar image mr-3" src=${$(this).data('avatar')}>`;
       }
 
       $list.find('.selected').html(`
@@ -289,7 +243,7 @@ export function initRepoCommentForm() {
         </a>
       `);
 
-      $(`.ui${select_id}.list .no-select`).addClass('gt-hidden');
+      $(`.ui${select_id}.list .no-select`).addClass('hide');
       $(input_id).val($(this).data('id'));
     });
     $menu.find('.no-select.item').on('click', function () {
@@ -303,11 +257,11 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(reloadConfirmDraftComment);
+        ).then(() => window.location.reload());
       }
 
       $list.find('.selected').html('');
-      $list.find('.no-select').removeClass('gt-hidden');
+      $list.find('.no-select').removeClass('hide');
       $(input_id).val('');
     });
   }
@@ -322,6 +276,7 @@ export function initRepoCommentForm() {
 async function onEditContent(event) {
   event.preventDefault();
 
+  $(this).closest('.dropdown').find('.menu').toggle('visible');
   const $segment = $(this).closest('.header').next();
   const $editContentZone = $segment.find('.edit-content-zone');
   const $renderContent = $segment.find('.render-content');
@@ -418,16 +373,16 @@ async function onEditContent(event) {
     });
 
     $editContentZone.find('.cancel.button').on('click', () => {
-      showElem($renderContent);
-      hideElem($editContentZone);
+      $renderContent.show();
+      $editContentZone.hide();
       if (dz) {
         dz.emit('reload');
       }
     });
 
     $saveButton.on('click', () => {
-      showElem($renderContent);
-      hideElem($editContentZone);
+      $renderContent.show();
+      $editContentZone.hide();
       const $attachments = $dropzone.find('.files').find('[name=files]').map(function () {
         return $(this).val();
       }).get();
@@ -469,8 +424,8 @@ async function onEditContent(event) {
   }
 
   // Show write/preview tab and copy raw content as needed
-  showElem($editContentZone);
-  hideElem($renderContent);
+  $editContentZone.show();
+  $renderContent.hide();
   if ($textarea.val().length === 0) {
     $textarea.val($rawContent.text());
     easyMDE.value($rawContent.text());
@@ -513,10 +468,10 @@ export function initRepository() {
     $('.enable-system-radio').on('change', function () {
       if (this.value === 'false') {
         $($(this).data('target')).addClass('disabled');
-        if ($(this).data('context') !== undefined) $($(this).data('context')).removeClass('disabled');
+        if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).removeClass('disabled');
       } else if (this.value === 'true') {
         $($(this).data('target')).removeClass('disabled');
-        if ($(this).data('context') !== undefined) $($(this).data('context')).addClass('disabled');
+        if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).addClass('disabled');
       }
     });
     const $trackerIssueStyleRadios = $('.js-tracker-issue-style');
@@ -556,7 +511,6 @@ export function initRepository() {
   }
 
   initRepoCloneLink();
-  initCitationFileCopyContent();
   initRepoCommonLanguageStats();
   initRepoSettingBranches();
 
@@ -589,10 +543,10 @@ export function initRepository() {
     // show pull request form
     $repoComparePull.find('button.show-form').on('click', function (e) {
       e.preventDefault();
-      hideElem($(this).parent());
+      $(this).parent().hide();
 
       const $form = $repoComparePull.find('.pullrequest-form');
-      showElem($form);
+      $form.show();
       $form.find('textarea.edit_area').each(function() {
         const easyMDE = getAttachedEasyMDE($(this));
         if (easyMDE) {
@@ -613,15 +567,16 @@ function initRepoIssueCommentEdit() {
   $(document).on('click', '.edit-content', onEditContent);
 
   // Quote reply
-  $(document).on('click', '.quote-reply', async function (event) {
-    event.preventDefault();
+  $(document).on('click', '.quote-reply', function (event) {
+    $(this).closest('.dropdown').find('.menu').toggle('visible');
     const target = $(this).data('target');
-    const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
+    const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
     let easyMDE;
     if ($(this).hasClass('quote-reply-diff')) {
-      const $replyBtn = $(this).closest('.comment-code-cloud').find('button.comment-form-reply');
-      easyMDE = await handleReply($replyBtn);
+      const $parent = $(this).closest('.comment-code-cloud');
+      $parent.find('button.comment-form-reply').trigger('click');
+      easyMDE = getAttachedEasyMDE($parent.find('[name="content"]'));
     } else {
       // for normal issue/comment page
       easyMDE = getAttachedEasyMDE($('#comment-form .edit_area'));
@@ -637,5 +592,6 @@ function initRepoIssueCommentEdit() {
         easyMDE.codemirror.setCursor(easyMDE.codemirror.lineCount(), 0);
       });
     }
+    event.preventDefault();
   });
 }

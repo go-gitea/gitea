@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 //go:build !gogit
 
@@ -106,6 +107,10 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id SHA1) (*Co
 		if err != nil {
 			return nil, err
 		}
+
+		commit.CommitMessage = strings.TrimSpace(tag.Message)
+		commit.Author = tag.Tagger
+		commit.Signature = tag.Signature
 
 		return commit, nil
 	case "commit":

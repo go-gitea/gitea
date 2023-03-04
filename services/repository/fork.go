@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repository
 
@@ -51,13 +52,6 @@ type ForkRepoOptions struct {
 
 // ForkRepository forks a repository
 func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts ForkRepoOptions) (*repo_model.Repository, error) {
-	// Fork is prohibited, if user has reached maximum limit of repositories
-	if !owner.CanForkRepo() {
-		return nil, repo_model.ErrReachLimitOfRepo{
-			Limit: owner.MaxRepoCreation,
-		}
-	}
-
 	forkedRepo, err := repo_model.GetUserFork(ctx, opts.BaseRepo.ID, owner.ID)
 	if err != nil {
 		return nil, err
@@ -118,8 +112,8 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		panic(panicErr)
 	}()
 
-	err = db.WithTx(ctx, func(txCtx context.Context) error {
-		if err = repo_module.CreateRepositoryByExample(txCtx, doer, owner, repo, false, true); err != nil {
+	err = db.WithTx(func(txCtx context.Context) error {
+		if err = repo_module.CreateRepositoryByExample(txCtx, doer, owner, repo, false); err != nil {
 			return err
 		}
 
@@ -183,15 +177,15 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 	}
 
-	notification.NotifyForkRepository(ctx, doer, opts.BaseRepo, repo)
+	notification.NotifyForkRepository(doer, opts.BaseRepo, repo)
 
 	return repo, nil
 }
 
 // ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
-func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Repository) error {
-	err := db.WithTx(ctx, func(ctx context.Context) error {
-		repo, err := repo_model.GetRepositoryByID(ctx, repo.ID)
+func ConvertForkToNormalRepository(repo *repo_model.Repository) error {
+	err := db.WithTx(func(ctx context.Context) error {
+		repo, err := repo_model.GetRepositoryByIDCtx(ctx, repo.ID)
 		if err != nil {
 			return err
 		}

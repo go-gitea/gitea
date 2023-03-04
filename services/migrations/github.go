@@ -1,6 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Copyright 2018 Jonas Franz. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package migrations
 
@@ -14,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/proxy"
@@ -308,14 +308,10 @@ func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 }
 
 func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease) *base.Release {
-	// GitHub allows commitish to be a reference.
-	// In this case, we need to remove the prefix, i.e. convert "refs/heads/main" to "main".
-	targetCommitish := strings.TrimPrefix(rel.GetTargetCommitish(), git.BranchPrefix)
-
 	r := &base.Release{
 		Name:            rel.GetName(),
 		TagName:         rel.GetTagName(),
-		TargetCommitish: targetCommitish,
+		TargetCommitish: rel.GetTargetCommitish(),
 		Draft:           rel.GetDraft(),
 		Prerelease:      rel.GetPrerelease(),
 		Created:         rel.GetCreatedAt().Time,

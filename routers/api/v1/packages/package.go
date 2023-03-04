@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package packages
 
@@ -8,10 +9,10 @@ import (
 
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/convert"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -40,7 +41,7 @@ func ListPackages(ctx *context.APIContext) {
 	//   in: query
 	//   description: package type filter
 	//   type: string
-	//   enum: [cargo, chef, composer, conan, conda, container, generic, helm, maven, npm, nuget, pub, pypi, rubygems, vagrant]
+	//   enum: [composer, conan, container, generic, helm, maven, npm, nuget, pub, pypi, rubygems, vagrant]
 	// - name: q
 	//   in: query
 	//   description: name filter

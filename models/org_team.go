@@ -1,11 +1,13 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2016 The Gogs Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package models
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -40,7 +42,7 @@ func AddRepository(ctx context.Context, t *organization.Team, repo *repo_model.R
 
 	// Make all team members watch this repo if enabled in global settings
 	if setting.Service.AutoWatchNewRepos {
-		if err = t.LoadMembers(ctx); err != nil {
+		if err = t.GetMembersCtx(ctx); err != nil {
 			return fmt.Errorf("getMembers: %w", err)
 		}
 		for _, u := range t.Members {
@@ -74,7 +76,7 @@ func addAllRepositories(ctx context.Context, t *organization.Team) error {
 
 // AddAllRepositories adds all repositories to the team
 func AddAllRepositories(t *organization.Team) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -93,7 +95,7 @@ func RemoveAllRepositories(t *organization.Team) (err error) {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -212,12 +214,12 @@ func RemoveRepository(t *organization.Team, repoID int64) error {
 		return nil
 	}
 
-	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, repoID)
+	repo, err := repo_model.GetRepositoryByID(repoID)
 	if err != nil {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -234,7 +236,7 @@ func RemoveRepository(t *organization.Team, repoID int64) error {
 // It's caller's responsibility to assign organization ID.
 func NewTeam(t *organization.Team) (err error) {
 	if len(t.Name) == 0 {
-		return util.NewInvalidArgumentErrorf("empty team name")
+		return errors.New("empty team name")
 	}
 
 	if err = organization.IsUsableTeamName(t.Name); err != nil {
@@ -261,7 +263,7 @@ func NewTeam(t *organization.Team) (err error) {
 		return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -299,14 +301,14 @@ func NewTeam(t *organization.Team) (err error) {
 // UpdateTeam updates information of team.
 func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err error) {
 	if len(t.Name) == 0 {
-		return util.NewInvalidArgumentErrorf("empty team name")
+		return errors.New("empty team name")
 	}
 
 	if len(t.Description) > 255 {
 		t.Description = t.Description[:255]
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -348,8 +350,8 @@ func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err 
 
 	// Update access for team members if needed.
 	if authChanged {
-		if err = t.LoadRepositories(ctx); err != nil {
-			return fmt.Errorf("LoadRepositories: %w", err)
+		if err = t.GetRepositoriesCtx(ctx); err != nil {
+			return fmt.Errorf("getRepositories: %w", err)
 		}
 
 		for _, repo := range t.Repos {
@@ -373,32 +375,52 @@ func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err 
 // DeleteTeam deletes given team.
 // It's caller's responsibility to assign organization ID.
 func DeleteTeam(t *organization.Team) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
-	if err := t.LoadRepositories(ctx); err != nil {
+	if err := t.GetRepositoriesCtx(ctx); err != nil {
 		return err
 	}
 
-	if err := t.LoadMembers(ctx); err != nil {
+	if err := t.GetMembersCtx(ctx); err != nil {
 		return err
 	}
 
 	// update branch protections
 	{
 		protections := make([]*git_model.ProtectedBranch, 0, 10)
-		err := db.GetEngine(ctx).In("repo_id",
+		err := sess.In("repo_id",
 			builder.Select("id").From("repository").Where(builder.Eq{"owner_id": t.OrgID})).
 			Find(&protections)
 		if err != nil {
 			return fmt.Errorf("findProtectedBranches: %w", err)
 		}
 		for _, p := range protections {
-			if err := git_model.RemoveTeamIDFromProtectedBranch(ctx, p, t.ID); err != nil {
-				return err
+			var matched1, matched2, matched3 bool
+			if len(p.WhitelistTeamIDs) != 0 {
+				p.WhitelistTeamIDs, matched1 = util.RemoveIDFromList(
+					p.WhitelistTeamIDs, t.ID)
+			}
+			if len(p.ApprovalsWhitelistTeamIDs) != 0 {
+				p.ApprovalsWhitelistTeamIDs, matched2 = util.RemoveIDFromList(
+					p.ApprovalsWhitelistTeamIDs, t.ID)
+			}
+			if len(p.MergeWhitelistTeamIDs) != 0 {
+				p.MergeWhitelistTeamIDs, matched3 = util.RemoveIDFromList(
+					p.MergeWhitelistTeamIDs, t.ID)
+			}
+			if matched1 || matched2 || matched3 {
+				if _, err = sess.ID(p.ID).Cols(
+					"whitelist_team_i_ds",
+					"merge_whitelist_team_i_ds",
+					"approvals_whitelist_team_i_ds",
+				).Update(p); err != nil {
+					return fmt.Errorf("updateProtectedBranches: %w", err)
+				}
 			}
 		}
 	}
@@ -419,7 +441,7 @@ func DeleteTeam(t *organization.Team) error {
 	}
 
 	// Update organization number of teams.
-	if _, err := db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
+	if _, err := sess.Exec("UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
 		return err
 	}
 
@@ -438,7 +460,7 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -495,16 +517,10 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		}
 	}
 
-	if err := committer.Commit(); err != nil {
-		return err
-	}
-	committer.Close()
-
-	// this behaviour may spend much time so run it in a goroutine
-	// FIXME: Update watch repos batchly
+	// watch could be failed, so run it in a goroutine
 	if setting.Service.AutoWatchNewRepos {
 		// Get team and its repositories.
-		if err := team.LoadRepositories(db.DefaultContext); err != nil {
+		if err := team.GetRepositoriesCtx(db.DefaultContext); err != nil {
 			log.Error("getRepositories failed: %v", err)
 		}
 		go func(repos []*repo_model.Repository) {
@@ -516,7 +532,7 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		}(team.Repos)
 	}
 
-	return nil
+	return committer.Commit()
 }
 
 func removeTeamMember(ctx context.Context, team *organization.Team, userID int64) error {
@@ -533,7 +549,7 @@ func removeTeamMember(ctx context.Context, team *organization.Team, userID int64
 
 	team.NumMembers--
 
-	if err := team.LoadRepositories(ctx); err != nil {
+	if err := team.GetRepositoriesCtx(ctx); err != nil {
 		return err
 	}
 
@@ -582,7 +598,7 @@ func removeTeamMember(ctx context.Context, team *organization.Team, userID int64
 
 // RemoveTeamMember removes member from given team of given organization.
 func RemoveTeamMember(team *organization.Team, userID int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}

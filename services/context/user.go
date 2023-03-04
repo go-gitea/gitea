@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package context
 
@@ -8,7 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 )
@@ -56,14 +56,6 @@ func userAssignment(ctx *context.Context, errCb func(int, string, interface{})) 
 				}
 			} else {
 				errCb(http.StatusInternalServerError, "GetUserByName", err)
-			}
-		} else {
-			if ctx.ContextUser.IsOrganization() {
-				if ctx.Org == nil {
-					ctx.Org = &context.Organization{}
-				}
-				ctx.Org.Organization = (*org_model.Organization)(ctx.ContextUser)
-				ctx.Data["Org"] = ctx.Org.Organization
 			}
 		}
 	}

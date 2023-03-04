@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package setting
 
@@ -15,8 +16,7 @@ import (
 
 // SessionConfig defines Session settings
 var SessionConfig = struct {
-	OriginalProvider string
-	Provider         string
+	Provider string
 	// Provider configuration, it's corresponding to provider.
 	ProviderConfig string
 	// Cookie name to save session ID. Default is "MacaronSession".
@@ -40,8 +40,8 @@ var SessionConfig = struct {
 	SameSite:    http.SameSiteLaxMode,
 }
 
-func loadSessionFrom(rootCfg ConfigProvider) {
-	sec := rootCfg.Section("session")
+func newSessionService() {
+	sec := Cfg.Section("session")
 	SessionConfig.Provider = sec.Key("PROVIDER").In("memory",
 		[]string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "db"})
 	SessionConfig.ProviderConfig = strings.Trim(sec.Key("PROVIDER_CONFIG").MustString(path.Join(AppDataPath, "sessions")), "\" ")
@@ -68,7 +68,6 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 		log.Fatal("Can't shadow session config: %v", err)
 	}
 	SessionConfig.ProviderConfig = string(shadowConfig)
-	SessionConfig.OriginalProvider = SessionConfig.Provider
 	SessionConfig.Provider = "VirtualSession"
 
 	log.Info("Session Service Enabled")

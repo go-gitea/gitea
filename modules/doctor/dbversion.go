@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package doctor
 
@@ -12,7 +13,6 @@ import (
 )
 
 func checkDBVersion(ctx context.Context, logger log.Logger, autofix bool) error {
-	logger.Info("Expected database version: %d", migrations.ExpectedVersion())
 	if err := db.InitEngineWithMigration(ctx, migrations.EnsureUpToDate); err != nil {
 		if !autofix {
 			logger.Critical("Error: %v during ensure up to date", err)

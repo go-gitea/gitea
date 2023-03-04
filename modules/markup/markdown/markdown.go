@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package markdown
 
@@ -288,4 +289,10 @@ func RenderRawString(ctx *markup.RenderContext, content string) (string, error) 
 		return "", err
 	}
 	return buf.String(), nil
+}
+
+// IsMarkdownFile reports whether name looks like a Markdown file
+// based on its extension.
+func IsMarkdownFile(name string) bool {
+	return markup.IsMarkupFile(name, MarkupName)
 }

@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package issues
 
@@ -121,7 +122,7 @@ func (issue *Issue) createCrossReferences(stdCtx context.Context, ctx *crossRefe
 			RefAction:    xref.Action,
 			RefIsPull:    ctx.OrigIssue.IsPull,
 		}
-		_, err := CreateComment(stdCtx, opts)
+		_, err := CreateCommentCtx(stdCtx, opts)
 		if err != nil {
 			return err
 		}
@@ -148,7 +149,7 @@ func (issue *Issue) getCrossReferences(stdCtx context.Context, ctx *crossReferen
 			refRepo = ctx.OrigIssue.Repo
 		} else {
 			// Issues in other repositories
-			refRepo, err = repo_model.GetRepositoryByOwnerAndName(stdCtx, ref.Owner, ref.Name)
+			refRepo, err = repo_model.GetRepositoryByOwnerAndNameCtx(stdCtx, ref.Owner, ref.Name)
 			if err != nil {
 				if repo_model.IsErrRepoNotExist(err) {
 					continue
@@ -234,7 +235,7 @@ func (c *Comment) AddCrossReferences(stdCtx context.Context, doer *user_model.Us
 	if c.Type != CommentTypeCode && c.Type != CommentTypeComment {
 		return nil
 	}
-	if err := c.LoadIssue(stdCtx); err != nil {
+	if err := c.LoadIssueCtx(stdCtx); err != nil {
 		return err
 	}
 	ctx := &crossReferencesContext{
@@ -277,26 +278,26 @@ func CommentTypeIsRef(t CommentType) bool {
 	return t == CommentTypeCommentRef || t == CommentTypePullRef || t == CommentTypeIssueRef
 }
 
-// RefCommentLink returns the relative URL for the comment that created this reference
-func (c *Comment) RefCommentLink() string {
+// RefCommentHTMLURL returns the HTML URL for the comment that created this reference
+func (c *Comment) RefCommentHTMLURL() string {
 	// Edge case for when the reference is inside the title or the description of the referring issue
 	if c.RefCommentID == 0 {
-		return c.RefIssueLink()
+		return c.RefIssueHTMLURL()
 	}
 	if err := c.LoadRefComment(); err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadRefComment(%d): %v", c.RefCommentID, err)
 		return ""
 	}
-	return c.RefComment.Link()
+	return c.RefComment.HTMLURL()
 }
 
-// RefIssueLink returns the relative URL of the issue where this reference was created
-func (c *Comment) RefIssueLink() string {
+// RefIssueHTMLURL returns the HTML URL of the issue where this reference was created
+func (c *Comment) RefIssueHTMLURL() string {
 	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
 		return ""
 	}
-	return c.RefIssue.Link()
+	return c.RefIssue.HTMLURL()
 }
 
 // RefIssueTitle returns the title of the issue where this reference was created

@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package files
 
@@ -233,9 +234,11 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 	_, _ = messageBytes.WriteString(message)
 	_, _ = messageBytes.WriteString("\n")
 
-	cmdCommitTree := git.NewCommand(t.ctx, "commit-tree").AddDynamicArguments(treeHash)
+	var args []git.CmdArg
 	if parent != "" {
-		cmdCommitTree.AddOptionValues("-p", parent)
+		args = []git.CmdArg{"commit-tree", git.CmdArgCheck(treeHash), "-p", git.CmdArgCheck(parent)}
+	} else {
+		args = []git.CmdArg{"commit-tree", git.CmdArgCheck(treeHash)}
 	}
 
 	var sign bool
@@ -247,7 +250,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 		sign, keyID, signer, _ = asymkey_service.SignInitialCommit(t.ctx, t.repo.RepoPath(), author)
 	}
 	if sign {
-		cmdCommitTree.AddOptionFormat("-S%s", keyID)
+		args = append(args, git.CmdArg("-S"+keyID))
 		if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
 				// Add trailers
@@ -262,7 +265,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 			committerSig = signer
 		}
 	} else {
-		cmdCommitTree.AddArguments("--no-gpg-sign")
+		args = append(args, "--no-gpg-sign")
 	}
 
 	if signoff {
@@ -279,7 +282,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	if err := cmdCommitTree.
+	if err := git.NewCommand(t.ctx, args...).
 		Run(&git.RunOpts{
 			Env:    env,
 			Dir:    t.basePath,
@@ -362,7 +365,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 			t.repo.FullName(), err, stderr)
 	}
 
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(t.ctx, t.basePath, git.TrustedCmdArgs{"--cached"}, "HEAD")
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(t.ctx, t.basePath, "--cached", "HEAD")
 	if err != nil {
 		return nil, err
 	}

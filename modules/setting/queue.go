@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package setting
 
@@ -39,12 +40,8 @@ var Queue = QueueSettings{}
 
 // GetQueueSettings returns the queue settings for the appropriately named queue
 func GetQueueSettings(name string) QueueSettings {
-	return getQueueSettings(CfgProvider, name)
-}
-
-func getQueueSettings(rootCfg ConfigProvider, name string) QueueSettings {
 	q := QueueSettings{}
-	sec := rootCfg.Section("queue." + name)
+	sec := Cfg.Section("queue." + name)
 	q.Name = name
 
 	// DataDir is not directly inheritable
@@ -86,14 +83,10 @@ func getQueueSettings(rootCfg ConfigProvider, name string) QueueSettings {
 	return q
 }
 
-// LoadQueueSettings sets up the default settings for Queues
+// NewQueueService sets up the default settings for Queues
 // This is exported for tests to be able to use the queue
-func LoadQueueSettings() {
-	loadQueueFrom(CfgProvider)
-}
-
-func loadQueueFrom(rootCfg ConfigProvider) {
-	sec := rootCfg.Section("queue")
+func NewQueueService() {
+	sec := Cfg.Section("queue")
 	Queue.DataDir = filepath.ToSlash(sec.Key("DATADIR").MustString("queues/"))
 	if !filepath.IsAbs(Queue.DataDir) {
 		Queue.DataDir = filepath.ToSlash(filepath.Join(AppDataPath, Queue.DataDir))
@@ -116,10 +109,10 @@ func loadQueueFrom(rootCfg ConfigProvider) {
 
 	// Now handle the old issue_indexer configuration
 	// FIXME: DEPRECATED to be removed in v1.18.0
-	section := rootCfg.Section("queue.issue_indexer")
+	section := Cfg.Section("queue.issue_indexer")
 	directlySet := toDirectlySetKeysSet(section)
 	if !directlySet.Contains("TYPE") && defaultType == "" {
-		switch typ := rootCfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(""); typ {
+		switch typ := Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(""); typ {
 		case "levelqueue":
 			_, _ = section.NewKey("TYPE", "level")
 		case "channel":
@@ -133,25 +126,25 @@ func loadQueueFrom(rootCfg ConfigProvider) {
 		}
 	}
 	if !directlySet.Contains("LENGTH") {
-		length := rootCfg.Section("indexer").Key("UPDATE_BUFFER_LEN").MustInt(0)
+		length := Cfg.Section("indexer").Key("UPDATE_BUFFER_LEN").MustInt(0)
 		if length != 0 {
 			_, _ = section.NewKey("LENGTH", strconv.Itoa(length))
 		}
 	}
 	if !directlySet.Contains("BATCH_LENGTH") {
-		fallback := rootCfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(0)
+		fallback := Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(0)
 		if fallback != 0 {
 			_, _ = section.NewKey("BATCH_LENGTH", strconv.Itoa(fallback))
 		}
 	}
 	if !directlySet.Contains("DATADIR") {
-		queueDir := filepath.ToSlash(rootCfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_DIR").MustString(""))
+		queueDir := filepath.ToSlash(Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_DIR").MustString(""))
 		if queueDir != "" {
 			_, _ = section.NewKey("DATADIR", queueDir)
 		}
 	}
 	if !directlySet.Contains("CONN_STR") {
-		connStr := rootCfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString("")
+		connStr := Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString("")
 		if connStr != "" {
 			_, _ = section.NewKey("CONN_STR", connStr)
 		}
@@ -161,31 +154,31 @@ func loadQueueFrom(rootCfg ConfigProvider) {
 	// - will need to set default for [queue.*)] LENGTH appropriately though though
 
 	// Handle the old mailer configuration
-	handleOldLengthConfiguration(rootCfg, "mailer", "mailer", "SEND_BUFFER_LEN", 100)
+	handleOldLengthConfiguration("mailer", "mailer", "SEND_BUFFER_LEN", 100)
 
 	// Handle the old test pull requests configuration
 	// Please note this will be a unique queue
-	handleOldLengthConfiguration(rootCfg, "pr_patch_checker", "repository", "PULL_REQUEST_QUEUE_LENGTH", 1000)
+	handleOldLengthConfiguration("pr_patch_checker", "repository", "PULL_REQUEST_QUEUE_LENGTH", 1000)
 
 	// Handle the old mirror queue configuration
 	// Please note this will be a unique queue
-	handleOldLengthConfiguration(rootCfg, "mirror", "repository", "MIRROR_QUEUE_LENGTH", 1000)
+	handleOldLengthConfiguration("mirror", "repository", "MIRROR_QUEUE_LENGTH", 1000)
 }
 
 // handleOldLengthConfiguration allows fallback to older configuration. `[queue.name]` `LENGTH` will override this configuration, but
 // if that is left unset then we should fallback to the older configuration. (Except where the new length woul be <=0)
-func handleOldLengthConfiguration(rootCfg ConfigProvider, queueName, oldSection, oldKey string, defaultValue int) {
-	if rootCfg.Section(oldSection).HasKey(oldKey) {
+func handleOldLengthConfiguration(queueName, oldSection, oldKey string, defaultValue int) {
+	if Cfg.Section(oldSection).HasKey(oldKey) {
 		log.Error("Deprecated fallback for %s queue length `[%s]` `%s` present. Use `[queue.%s]` `LENGTH`. This will be removed in v1.18.0", queueName, queueName, oldSection, oldKey)
 	}
-	value := rootCfg.Section(oldSection).Key(oldKey).MustInt(defaultValue)
+	value := Cfg.Section(oldSection).Key(oldKey).MustInt(defaultValue)
 
 	// Don't override with 0
 	if value <= 0 {
 		return
 	}
 
-	section := rootCfg.Section("queue." + queueName)
+	section := Cfg.Section("queue." + queueName)
 	directlySet := toDirectlySetKeysSet(section)
 	if !directlySet.Contains("LENGTH") {
 		_, _ = section.NewKey("LENGTH", strconv.Itoa(value))

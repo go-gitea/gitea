@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package integration
 
@@ -9,7 +10,6 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -20,11 +20,12 @@ func TestAPIGetWikiPage(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	username := "user2"
+	session := loginUser(t, username)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/page/Home", username, "repo1")
 
 	req := NewRequest(t, "GET", urlStr)
-	resp := MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 	var page *api.WikiPage
 	DecodeJSON(t, resp, &page)
 
@@ -65,11 +66,12 @@ func TestAPIListWikiPages(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	username := "user2"
+	session := loginUser(t, username)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/pages", username, "repo1")
 
 	req := NewRequest(t, "GET", urlStr)
-	resp := MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var meta []*api.WikiPageMetaData
 	DecodeJSON(t, resp, &meta)
@@ -180,7 +182,7 @@ func TestAPINewWikiPage(t *testing.T) {
 		defer tests.PrepareTestEnv(t)()
 		username := "user2"
 		session := loginUser(t, username)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+		token := getTokenForLoggedInUser(t, session)
 
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/new?token=%s", username, "repo1", token)
 
@@ -189,7 +191,7 @@ func TestAPINewWikiPage(t *testing.T) {
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("Wiki page content for API unit tests")),
 			Message:       "",
 		})
-		MakeRequest(t, req, http.StatusCreated)
+		session.MakeRequest(t, req, http.StatusCreated)
 	}
 }
 
@@ -197,7 +199,7 @@ func TestAPIEditWikiPage(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	username := "user2"
 	session := loginUser(t, username)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/page/Page-With-Spaced-Name?token=%s", username, "repo1", token)
 
@@ -206,17 +208,18 @@ func TestAPIEditWikiPage(t *testing.T) {
 		ContentBase64: base64.StdEncoding.EncodeToString([]byte("Edited wiki page content for API unit tests")),
 		Message:       "",
 	})
-	MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusOK)
 }
 
 func TestAPIListPageRevisions(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	username := "user2"
+	session := loginUser(t, username)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/revisions/Home", username, "repo1")
 
 	req := NewRequest(t, "GET", urlStr)
-	resp := MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var revisions *api.WikiCommitList
 	DecodeJSON(t, resp, &revisions)

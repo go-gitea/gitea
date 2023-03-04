@@ -2118,7 +2118,7 @@ $.fn.dimmer = function(parameters) {
         moduleNamespace = 'module-' + namespace,
         moduleSelector  = $allModules.selector || '',
 
-        clickEvent = "click", unstableClickEvent = ('ontouchstart' in document.documentElement)
+        clickEvent      = ('ontouchstart' in document.documentElement)
           ? 'touchstart'
           : 'click',
 
@@ -2850,7 +2850,7 @@ $.fn.dropdown = function(parameters) {
     moduleSelector = $allModules.selector || '',
 
     hasTouch       = ('ontouchstart' in document.documentElement),
-    clickEvent = "click", unstableClickEvent = hasTouch
+    clickEvent      = hasTouch
         ? 'touchstart'
         : 'click',
 

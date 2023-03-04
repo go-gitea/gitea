@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package conan
 
@@ -30,7 +31,7 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 		return nil, nil
 	}
 
-	u, err := user_model.GetUserByID(req.Context(), uid)
+	u, err := user_model.GetUserByID(uid)
 	if err != nil {
 		log.Error("GetUserByID:  %v", err)
 		return nil, err

@@ -17,14 +17,7 @@
 		const btn = isSSH ? sshBtn : httpsBtn;
 		if (!btn) return;
 
-		let link = btn.getAttribute('data-link');
-		if (link.startsWith('http://') || link.startsWith('https://')) {
-			// use current protocol/host as the clone link
-			const url = new URL(link);
-			url.protocol = window.location.protocol;
-			url.host = window.location.host;
-			link = url.toString();
-		}
+		const link = btn.getAttribute('data-link');
 		for (const el of document.getElementsByClassName('js-clone-url')) {
 			el[el.nodeName === 'INPUT' ? 'value' : 'textContent'] = link;
 		}

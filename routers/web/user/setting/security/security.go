@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package security
 
@@ -22,7 +23,7 @@ const (
 
 // Security render change user's password page and 2FA
 func Security(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings.security")
+	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
 	if ctx.FormString("openid.return_to") != "" {

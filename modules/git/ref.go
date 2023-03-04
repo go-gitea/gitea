@@ -1,5 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package git
 
@@ -55,57 +56,40 @@ func (ref *Reference) Commit() (*Commit, error) {
 
 // ShortName returns the short name of the reference
 func (ref *Reference) ShortName() string {
-	return RefName(ref.Name).ShortName()
+	if ref == nil {
+		return ""
+	}
+	if strings.HasPrefix(ref.Name, BranchPrefix) {
+		return strings.TrimPrefix(ref.Name, BranchPrefix)
+	}
+	if strings.HasPrefix(ref.Name, TagPrefix) {
+		return strings.TrimPrefix(ref.Name, TagPrefix)
+	}
+	if strings.HasPrefix(ref.Name, RemotePrefix) {
+		return strings.TrimPrefix(ref.Name, RemotePrefix)
+	}
+	if strings.HasPrefix(ref.Name, PullPrefix) && strings.IndexByte(ref.Name[pullLen:], '/') > -1 {
+		return ref.Name[pullLen : strings.IndexByte(ref.Name[pullLen:], '/')+pullLen]
+	}
+
+	return ref.Name
 }
 
 // RefGroup returns the group type of the reference
 func (ref *Reference) RefGroup() string {
-	return RefName(ref.Name).RefGroup()
-}
-
-// RefName represents a git reference name
-type RefName string
-
-func (ref RefName) IsBranch() bool {
-	return strings.HasPrefix(string(ref), BranchPrefix)
-}
-
-func (ref RefName) IsTag() bool {
-	return strings.HasPrefix(string(ref), TagPrefix)
-}
-
-// ShortName returns the short name of the reference name
-func (ref RefName) ShortName() string {
-	refName := string(ref)
-	if strings.HasPrefix(refName, BranchPrefix) {
-		return strings.TrimPrefix(refName, BranchPrefix)
+	if ref == nil {
+		return ""
 	}
-	if strings.HasPrefix(refName, TagPrefix) {
-		return strings.TrimPrefix(refName, TagPrefix)
-	}
-	if strings.HasPrefix(refName, RemotePrefix) {
-		return strings.TrimPrefix(refName, RemotePrefix)
-	}
-	if strings.HasPrefix(refName, PullPrefix) && strings.IndexByte(refName[pullLen:], '/') > -1 {
-		return refName[pullLen : strings.IndexByte(refName[pullLen:], '/')+pullLen]
-	}
-
-	return refName
-}
-
-// RefGroup returns the group type of the reference
-func (ref RefName) RefGroup() string {
-	refName := string(ref)
-	if strings.HasPrefix(refName, BranchPrefix) {
+	if strings.HasPrefix(ref.Name, BranchPrefix) {
 		return "heads"
 	}
-	if strings.HasPrefix(refName, TagPrefix) {
+	if strings.HasPrefix(ref.Name, TagPrefix) {
 		return "tags"
 	}
-	if strings.HasPrefix(refName, RemotePrefix) {
+	if strings.HasPrefix(ref.Name, RemotePrefix) {
 		return "remotes"
 	}
-	if strings.HasPrefix(refName, PullPrefix) && strings.IndexByte(refName[pullLen:], '/') > -1 {
+	if strings.HasPrefix(ref.Name, PullPrefix) && strings.IndexByte(ref.Name[pullLen:], '/') > -1 {
 		return "pull"
 	}
 	return ""

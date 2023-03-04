@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package migrations
 
@@ -12,7 +13,7 @@ import (
 
 	base "code.gitea.io/gitea/modules/migration"
 
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
 
 // RepositoryRestorer implements an Downloader from the local directory

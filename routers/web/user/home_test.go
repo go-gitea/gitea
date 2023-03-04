@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package user
 
@@ -26,7 +27,7 @@ func TestArchivedIssues(t *testing.T) {
 
 	// Assume: User 30 has access to two Repos with Issues, one of the Repos being archived.
 	repos, _, _ := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{Actor: ctx.Doer})
-	assert.Len(t, repos, 3)
+	assert.Len(t, repos, 2)
 	IsArchived := make(map[int64]bool)
 	NumIssues := make(map[int64]int)
 	for _, repo := range repos {

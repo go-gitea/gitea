@@ -1,10 +1,11 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package packages
 
 import (
-	"encoding/hex"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,10 +25,10 @@ func TestMultiHasherSums(t *testing.T) {
 
 		hashMD5, hashSHA1, hashSHA256, hashSHA512 := h.Sums()
 
-		assert.Equal(t, expectedMD5, hex.EncodeToString(hashMD5))
-		assert.Equal(t, expectedSHA1, hex.EncodeToString(hashSHA1))
-		assert.Equal(t, expectedSHA256, hex.EncodeToString(hashSHA256))
-		assert.Equal(t, expectedSHA512, hex.EncodeToString(hashSHA512))
+		assert.Equal(t, expectedMD5, fmt.Sprintf("%x", hashMD5))
+		assert.Equal(t, expectedSHA1, fmt.Sprintf("%x", hashSHA1))
+		assert.Equal(t, expectedSHA256, fmt.Sprintf("%x", hashSHA256))
+		assert.Equal(t, expectedSHA512, fmt.Sprintf("%x", hashSHA512))
 	})
 
 	t.Run("State", func(t *testing.T) {
@@ -45,9 +46,9 @@ func TestMultiHasherSums(t *testing.T) {
 
 		hashMD5, hashSHA1, hashSHA256, hashSHA512 := h2.Sums()
 
-		assert.Equal(t, expectedMD5, hex.EncodeToString(hashMD5))
-		assert.Equal(t, expectedSHA1, hex.EncodeToString(hashSHA1))
-		assert.Equal(t, expectedSHA256, hex.EncodeToString(hashSHA256))
-		assert.Equal(t, expectedSHA512, hex.EncodeToString(hashSHA512))
+		assert.Equal(t, expectedMD5, fmt.Sprintf("%x", hashMD5))
+		assert.Equal(t, expectedSHA1, fmt.Sprintf("%x", hashSHA1))
+		assert.Equal(t, expectedSHA256, fmt.Sprintf("%x", hashSHA256))
+		assert.Equal(t, expectedSHA512, fmt.Sprintf("%x", hashSHA512))
 	})
 }

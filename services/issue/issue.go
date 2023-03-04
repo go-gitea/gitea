@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package issue
 
@@ -36,12 +37,12 @@ func NewIssue(repo *repo_model.Repository, issue *issues_model.Issue, labelIDs [
 		return err
 	}
 
-	notification.NotifyNewIssue(db.DefaultContext, issue, mentions)
+	notification.NotifyNewIssue(issue, mentions)
 	if len(issue.Labels) > 0 {
-		notification.NotifyIssueChangeLabels(db.DefaultContext, issue.Poster, issue, issue.Labels, nil)
+		notification.NotifyIssueChangeLabels(issue.Poster, issue, issue.Labels, nil)
 	}
 	if issue.Milestone != nil {
-		notification.NotifyIssueChangeMilestone(db.DefaultContext, issue.Poster, issue, 0)
+		notification.NotifyIssueChangeMilestone(issue.Poster, issue, 0)
 	}
 
 	return nil
@@ -56,7 +57,7 @@ func ChangeTitle(issue *issues_model.Issue, doer *user_model.User, title string)
 		return
 	}
 
-	notification.NotifyIssueChangeTitle(db.DefaultContext, doer, issue, oldTitle)
+	notification.NotifyIssueChangeTitle(doer, issue, oldTitle)
 
 	return nil
 }
@@ -70,7 +71,7 @@ func ChangeIssueRef(issue *issues_model.Issue, doer *user_model.User, ref string
 		return err
 	}
 
-	notification.NotifyIssueChangeRef(db.DefaultContext, doer, issue, oldRef)
+	notification.NotifyIssueChangeRef(doer, issue, oldRef)
 
 	return nil
 }
@@ -133,10 +134,10 @@ func UpdateAssignees(issue *issues_model.Issue, oneAssignee string, multipleAssi
 // DeleteIssue deletes an issue
 func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue) error {
 	// load issue before deleting it
-	if err := issue.LoadAttributes(gitRepo.Ctx); err != nil {
+	if err := issue.LoadAttributes(db.DefaultContext); err != nil {
 		return err
 	}
-	if err := issue.LoadPullRequest(gitRepo.Ctx); err != nil {
+	if err := issue.LoadPullRequest(); err != nil {
 		return err
 	}
 
@@ -152,7 +153,7 @@ func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *issues_m
 		}
 	}
 
-	notification.NotifyDeleteIssue(gitRepo.Ctx, doer, issue)
+	notification.NotifyDeleteIssue(doer, issue)
 
 	return nil
 }
@@ -160,7 +161,7 @@ func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *issues_m
 // AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
 // Also checks for access of assigned user
 func AddAssigneeIfNotAssigned(issue *issues_model.Issue, doer *user_model.User, assigneeID int64) (err error) {
-	assignee, err := user_model.GetUserByID(db.DefaultContext, assigneeID)
+	assignee, err := user_model.GetUserByID(assigneeID)
 	if err != nil {
 		return err
 	}
@@ -207,7 +208,7 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 
 // deleteIssue deletes the issue
 func deleteIssue(issue *issues_model.Issue) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}

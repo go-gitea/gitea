@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package cmd
 
@@ -43,9 +44,8 @@ func TestMigratePackages(t *testing.T) {
 		PackageFileInfo: packages_service.PackageFileInfo{
 			Filename: "a.go",
 		},
-		Creator: creator,
-		Data:    buf,
-		IsLead:  true,
+		Data:   buf,
+		IsLead: true,
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, v)

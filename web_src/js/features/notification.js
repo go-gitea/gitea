@@ -29,7 +29,7 @@ async function receiveUpdateCount(event) {
     const data = JSON.parse(event.data);
 
     for (const count of document.querySelectorAll('.notification_count')) {
-      count.classList.toggle('gt-hidden', data.Count === 0);
+      count.classList.toggle('hidden', data.Count === 0);
       count.textContent = `${data.Count}`;
     }
     await updateNotificationTable();
@@ -165,9 +165,9 @@ async function updateNotificationCount() {
 
   const notificationCount = $('.notification_count');
   if (data.new === 0) {
-    notificationCount.addClass('gt-hidden');
+    notificationCount.addClass('hidden');
   } else {
-    notificationCount.removeClass('gt-hidden');
+    notificationCount.removeClass('hidden');
   }
 
   notificationCount.text(`${data.new}`);

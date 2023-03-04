@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package setting
 
@@ -20,12 +21,11 @@ MINIO_BUCKET = gitea-attachment
 STORAGE_TYPE = minio
 MINIO_ENDPOINT = my_minio:9000
 `
-	cfg, err := ini.Load([]byte(iniStr))
-	assert.NoError(t, err)
+	Cfg, _ = ini.Load([]byte(iniStr))
 
-	sec := cfg.Section("attachment")
+	sec := Cfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
-	storage := getStorage(cfg, "attachments", storageType, sec)
+	storage := getStorage("attachments", storageType, sec)
 
 	assert.EqualValues(t, "minio", storage.Type)
 	assert.EqualValues(t, "my_minio:9000", storage.Section.Key("MINIO_ENDPOINT").String())
@@ -43,12 +43,11 @@ MINIO_BUCKET = gitea-attachment
 [storage.minio]
 MINIO_BUCKET = gitea
 `
-	cfg, err := ini.Load([]byte(iniStr))
-	assert.NoError(t, err)
+	Cfg, _ = ini.Load([]byte(iniStr))
 
-	sec := cfg.Section("attachment")
+	sec := Cfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
-	storage := getStorage(cfg, "attachments", storageType, sec)
+	storage := getStorage("attachments", storageType, sec)
 
 	assert.EqualValues(t, "minio", storage.Type)
 	assert.EqualValues(t, "gitea-attachment", storage.Section.Key("MINIO_BUCKET").String())
@@ -65,12 +64,11 @@ MINIO_BUCKET = gitea-minio
 [storage]
 MINIO_BUCKET = gitea
 `
-	cfg, err := ini.Load([]byte(iniStr))
-	assert.NoError(t, err)
+	Cfg, _ = ini.Load([]byte(iniStr))
 
-	sec := cfg.Section("attachment")
+	sec := Cfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
-	storage := getStorage(cfg, "attachments", storageType, sec)
+	storage := getStorage("attachments", storageType, sec)
 
 	assert.EqualValues(t, "minio", storage.Type)
 	assert.EqualValues(t, "gitea-minio", storage.Section.Key("MINIO_BUCKET").String())
@@ -88,24 +86,22 @@ MINIO_BUCKET = gitea
 [storage]
 STORAGE_TYPE = local
 `
-	cfg, err := ini.Load([]byte(iniStr))
-	assert.NoError(t, err)
+	Cfg, _ = ini.Load([]byte(iniStr))
 
-	sec := cfg.Section("attachment")
+	sec := Cfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
-	storage := getStorage(cfg, "attachments", storageType, sec)
+	storage := getStorage("attachments", storageType, sec)
 
 	assert.EqualValues(t, "minio", storage.Type)
 	assert.EqualValues(t, "gitea-attachment", storage.Section.Key("MINIO_BUCKET").String())
 }
 
 func Test_getStorageGetDefaults(t *testing.T) {
-	cfg, err := ini.Load([]byte(""))
-	assert.NoError(t, err)
+	Cfg, _ = ini.Load([]byte(""))
 
-	sec := cfg.Section("attachment")
+	sec := Cfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
-	storage := getStorage(cfg, "attachments", storageType, sec)
+	storage := getStorage("attachments", storageType, sec)
 
 	assert.EqualValues(t, "gitea", storage.Section.Key("MINIO_BUCKET").String())
 }
@@ -121,27 +117,26 @@ MINIO_BUCKET = gitea-attachment
 [storage]
 MINIO_BUCKET = gitea-storage
 `
-	cfg, err := ini.Load([]byte(iniStr))
-	assert.NoError(t, err)
+	Cfg, _ = ini.Load([]byte(iniStr))
 
 	{
-		sec := cfg.Section("attachment")
+		sec := Cfg.Section("attachment")
 		storageType := sec.Key("STORAGE_TYPE").MustString("")
-		storage := getStorage(cfg, "attachments", storageType, sec)
+		storage := getStorage("attachments", storageType, sec)
 
 		assert.EqualValues(t, "gitea-attachment", storage.Section.Key("MINIO_BUCKET").String())
 	}
 	{
-		sec := cfg.Section("lfs")
+		sec := Cfg.Section("lfs")
 		storageType := sec.Key("STORAGE_TYPE").MustString("")
-		storage := getStorage(cfg, "lfs", storageType, sec)
+		storage := getStorage("lfs", storageType, sec)
 
 		assert.EqualValues(t, "gitea-lfs", storage.Section.Key("MINIO_BUCKET").String())
 	}
 	{
-		sec := cfg.Section("avatar")
+		sec := Cfg.Section("avatar")
 		storageType := sec.Key("STORAGE_TYPE").MustString("")
-		storage := getStorage(cfg, "avatars", storageType, sec)
+		storage := getStorage("avatars", storageType, sec)
 
 		assert.EqualValues(t, "gitea-storage", storage.Section.Key("MINIO_BUCKET").String())
 	}
@@ -155,20 +150,19 @@ STORAGE_TYPE = lfs
 [storage.lfs]
 MINIO_BUCKET = gitea-storage
 `
-	cfg, err := ini.Load([]byte(iniStr))
-	assert.NoError(t, err)
+	Cfg, _ = ini.Load([]byte(iniStr))
 
 	{
-		sec := cfg.Section("attachment")
+		sec := Cfg.Section("attachment")
 		storageType := sec.Key("STORAGE_TYPE").MustString("")
-		storage := getStorage(cfg, "attachments", storageType, sec)
+		storage := getStorage("attachments", storageType, sec)
 
 		assert.EqualValues(t, "gitea-storage", storage.Section.Key("MINIO_BUCKET").String())
 	}
 	{
-		sec := cfg.Section("lfs")
+		sec := Cfg.Section("lfs")
 		storageType := sec.Key("STORAGE_TYPE").MustString("")
-		storage := getStorage(cfg, "lfs", storageType, sec)
+		storage := getStorage("lfs", storageType, sec)
 
 		assert.EqualValues(t, "gitea-storage", storage.Section.Key("MINIO_BUCKET").String())
 	}
@@ -179,12 +173,11 @@ func Test_getStorageInheritStorageType(t *testing.T) {
 [storage]
 STORAGE_TYPE = minio
 `
-	cfg, err := ini.Load([]byte(iniStr))
-	assert.NoError(t, err)
+	Cfg, _ = ini.Load([]byte(iniStr))
 
-	sec := cfg.Section("attachment")
+	sec := Cfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
-	storage := getStorage(cfg, "attachments", storageType, sec)
+	storage := getStorage("attachments", storageType, sec)
 
 	assert.EqualValues(t, "minio", storage.Type)
 }
@@ -194,12 +187,11 @@ func Test_getStorageInheritNameSectionType(t *testing.T) {
 [storage.attachments]
 STORAGE_TYPE = minio
 `
-	cfg, err := ini.Load([]byte(iniStr))
-	assert.NoError(t, err)
+	Cfg, _ = ini.Load([]byte(iniStr))
 
-	sec := cfg.Section("attachment")
+	sec := Cfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
-	storage := getStorage(cfg, "attachments", storageType, sec)
+	storage := getStorage("attachments", storageType, sec)
 
 	assert.EqualValues(t, "minio", storage.Type)
 }

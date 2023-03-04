@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
@@ -71,7 +72,7 @@ func GetContentHistoryList(ctx *context.Context) {
 		}
 
 		src := html.EscapeString(item.UserAvatarLink)
-		class := avatars.DefaultAvatarClass + " gt-mr-3"
+		class := avatars.DefaultAvatarClass + " mr-3"
 		name := html.EscapeString(username)
 		avatarHTML := string(templates.AvatarHTML(src, 28, class, username))
 		timeSinceText := string(timeutil.TimeSinceUnix(item.EditedUnix, ctx.Locale))

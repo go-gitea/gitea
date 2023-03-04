@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package db
 
@@ -7,8 +8,9 @@ import (
 	"context"
 	"database/sql"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"xorm.io/builder"
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
@@ -72,14 +74,6 @@ type Engined interface {
 
 // GetEngine will get a db Engine from this context or return an Engine restricted to this context
 func GetEngine(ctx context.Context) Engine {
-	if e := getEngine(ctx); e != nil {
-		return e
-	}
-	return x.Context(ctx)
-}
-
-// getEngine will get a db Engine from this context or return nil
-func getEngine(ctx context.Context) Engine {
 	if engined, ok := ctx.(Engined); ok {
 		return engined.Engine()
 	}
@@ -87,7 +81,7 @@ func getEngine(ctx context.Context) Engine {
 	if enginedInterface != nil {
 		return enginedInterface.(Engined).Engine()
 	}
-	return nil
+	return x.Context(ctx)
 }
 
 // Committer represents an interface to Commit or Close the Context
@@ -96,36 +90,8 @@ type Committer interface {
 	Close() error
 }
 
-// halfCommitter is a wrapper of Committer.
-// It can be closed early, but can't be committed early, it is useful for reusing a transaction.
-type halfCommitter struct {
-	committer Committer
-	committed bool
-}
-
-func (c *halfCommitter) Commit() error {
-	c.committed = true
-	// should do nothing, and the parent committer will commit later
-	return nil
-}
-
-func (c *halfCommitter) Close() error {
-	if c.committed {
-		// it's "commit and close", should do nothing, and the parent committer will commit later
-		return nil
-	}
-
-	// it's "rollback and close", let the parent committer rollback right now
-	return c.committer.Close()
-}
-
-// TxContext represents a transaction Context,
-// it will reuse the existing transaction in the parent context or create a new one.
-func TxContext(parentCtx context.Context) (*Context, Committer, error) {
-	if sess, ok := inTransaction(parentCtx); ok {
-		return newContext(parentCtx, sess, true), &halfCommitter{committer: sess}, nil
-	}
-
+// TxContext represents a transaction Context
+func TxContext() (*Context, Committer, error) {
 	sess := x.NewSession()
 	if err := sess.Begin(); err != nil {
 		sess.Close()
@@ -135,21 +101,15 @@ func TxContext(parentCtx context.Context) (*Context, Committer, error) {
 	return newContext(DefaultContext, sess, true), sess, nil
 }
 
-// WithTx represents executing database operations on a transaction, if the transaction exist,
-// this function will reuse it otherwise will create a new one and close it when finished.
-func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error {
-	if sess, ok := inTransaction(parentCtx); ok {
-		err := f(newContext(parentCtx, sess, true))
-		if err != nil {
-			// rollback immediately, in case the caller ignores returned error and tries to commit the transaction.
-			_ = sess.Close()
-		}
-		return err
+// WithTx represents executing database operations on a transaction
+// you can optionally change the context to a parent one
+func WithTx(f func(ctx context.Context) error, stdCtx ...context.Context) error {
+	parentCtx := DefaultContext
+	if len(stdCtx) != 0 && stdCtx[0] != nil {
+		// TODO: make sure parent context has no open session
+		parentCtx = stdCtx[0]
 	}
-	return txWithNoCheck(parentCtx, f)
-}
 
-func txWithNoCheck(parentCtx context.Context, f func(ctx context.Context) error) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -161,6 +121,13 @@ func txWithNoCheck(parentCtx context.Context, f func(ctx context.Context) error)
 	}
 
 	return sess.Commit()
+}
+
+// Iterate iterates the databases and doing something
+func Iterate(ctx context.Context, tableBean interface{}, cond builder.Cond, fun func(idx int, bean interface{}) error) error {
+	return GetEngine(ctx).Where(cond).
+		BufferSize(setting.Database.IterateBufferSize).
+		Iterate(tableBean, fun)
 }
 
 // Insert inserts records into database
@@ -184,47 +151,11 @@ func DeleteByBean(ctx context.Context, bean interface{}) (int64, error) {
 	return GetEngine(ctx).Delete(bean)
 }
 
-// DeleteByID deletes the given bean with the given ID
-func DeleteByID(ctx context.Context, id int64, bean interface{}) (int64, error) {
-	return GetEngine(ctx).ID(id).NoAutoTime().Delete(bean)
-}
-
-// FindIDs finds the IDs for the given table name satisfying the given condition
-// By passing a different value than "id" for "idCol", you can query for foreign IDs, i.e. the repo IDs which satisfy the condition
-func FindIDs(ctx context.Context, tableName, idCol string, cond builder.Cond) ([]int64, error) {
-	ids := make([]int64, 0, 10)
-	if err := GetEngine(ctx).Table(tableName).
-		Cols(idCol).
-		Where(cond).
-		Find(&ids); err != nil {
-		return nil, err
-	}
-	return ids, nil
-}
-
-// DecrByIDs decreases the given column for entities of the "bean" type with one of the given ids by one
-// Timestamps of the entities won't be updated
-func DecrByIDs(ctx context.Context, ids []int64, decrCol string, bean interface{}) error {
-	_, err := GetEngine(ctx).Decr(decrCol).In("id", ids).NoAutoCondition().NoAutoTime().Update(bean)
-	return err
-}
-
-// DeleteBeans deletes all given beans, beans must contain delete conditions.
+// DeleteBeans deletes all given beans, beans should contain delete conditions.
 func DeleteBeans(ctx context.Context, beans ...interface{}) (err error) {
 	e := GetEngine(ctx)
 	for i := range beans {
 		if _, err = e.Delete(beans[i]); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// TruncateBeans deletes all given beans, beans may contain delete conditions.
-func TruncateBeans(ctx context.Context, beans ...interface{}) (err error) {
-	e := GetEngine(ctx)
-	for i := range beans {
-		if _, err = e.Truncate(beans[i]); err != nil {
 			return err
 		}
 	}
@@ -253,39 +184,11 @@ func EstimateCount(ctx context.Context, bean interface{}) (int64, error) {
 	case schemas.MYSQL:
 		_, err = e.Context(ctx).SQL("SELECT table_rows FROM information_schema.tables WHERE tables.table_name = ? AND tables.table_schema = ?;", tablename, x.Dialect().URI().DBName).Get(&rows)
 	case schemas.POSTGRES:
-		// the table can live in multiple schemas of a postgres database
-		// See https://wiki.postgresql.org/wiki/Count_estimate
-		tablename = x.TableName(bean, true)
-		_, err = e.Context(ctx).SQL("SELECT reltuples::bigint AS estimate FROM pg_class WHERE oid = ?::regclass;", tablename).Get(&rows)
+		_, err = e.Context(ctx).SQL("SELECT reltuples AS estimate FROM pg_class WHERE relname = ?;", tablename).Get(&rows)
 	case schemas.MSSQL:
 		_, err = e.Context(ctx).SQL("sp_spaceused ?;", tablename).Get(&rows)
 	default:
 		return e.Context(ctx).Count(tablename)
 	}
 	return rows, err
-}
-
-// InTransaction returns true if the engine is in a transaction otherwise return false
-func InTransaction(ctx context.Context) bool {
-	_, ok := inTransaction(ctx)
-	return ok
-}
-
-func inTransaction(ctx context.Context) (*xorm.Session, bool) {
-	e := getEngine(ctx)
-	if e == nil {
-		return nil, false
-	}
-
-	switch t := e.(type) {
-	case *xorm.Engine:
-		return nil, false
-	case *xorm.Session:
-		if t.IsInTx() {
-			return t, true
-		}
-		return nil, false
-	default:
-		return nil, false
-	}
 }

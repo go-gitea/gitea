@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package activities
 
@@ -63,7 +64,6 @@ const (
 	ActionPublishRelease                                  // 24
 	ActionPullReviewDismissed                             // 25
 	ActionPullRequestReadyForReview                       // 26
-	ActionAutoMergePullRequest                            // 27
 )
 
 // Action represents user operation type and other information to
@@ -114,12 +114,12 @@ func (a *Action) GetOpType() ActionType {
 }
 
 // LoadActUser loads a.ActUser
-func (a *Action) LoadActUser(ctx context.Context) {
+func (a *Action) LoadActUser() {
 	if a.ActUser != nil {
 		return
 	}
 	var err error
-	a.ActUser, err = user_model.GetUserByID(ctx, a.ActUserID)
+	a.ActUser, err = user_model.GetUserByID(a.ActUserID)
 	if err == nil {
 		return
 	} else if user_model.IsErrUserNotExist(err) {
@@ -129,12 +129,12 @@ func (a *Action) LoadActUser(ctx context.Context) {
 	}
 }
 
-func (a *Action) loadRepo(ctx context.Context) {
+func (a *Action) loadRepo() {
 	if a.Repo != nil {
 		return
 	}
 	var err error
-	a.Repo, err = repo_model.GetRepositoryByID(ctx, a.RepoID)
+	a.Repo, err = repo_model.GetRepositoryByID(a.RepoID)
 	if err != nil {
 		log.Error("repo_model.GetRepositoryByID(%d): %v", a.RepoID, err)
 	}
@@ -142,13 +142,13 @@ func (a *Action) loadRepo(ctx context.Context) {
 
 // GetActFullName gets the action's user full name.
 func (a *Action) GetActFullName() string {
-	a.LoadActUser(db.DefaultContext)
+	a.LoadActUser()
 	return a.ActUser.FullName
 }
 
 // GetActUserName gets the action's user name.
 func (a *Action) GetActUserName() string {
-	a.LoadActUser(db.DefaultContext)
+	a.LoadActUser()
 	return a.ActUser.Name
 }
 
@@ -179,7 +179,7 @@ func (a *Action) GetDisplayNameTitle() string {
 
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName() string {
-	a.loadRepo(db.DefaultContext)
+	a.loadRepo()
 	return a.Repo.OwnerName
 }
 
@@ -191,7 +191,7 @@ func (a *Action) ShortRepoUserName() string {
 
 // GetRepoName returns the name of the action repository.
 func (a *Action) GetRepoName() string {
-	a.loadRepo(db.DefaultContext)
+	a.loadRepo()
 	return a.Repo.Name
 }
 
@@ -223,24 +223,18 @@ func (a *Action) GetRepoAbsoluteLink() string {
 	return setting.AppURL + url.PathEscape(a.GetRepoUserName()) + "/" + url.PathEscape(a.GetRepoName())
 }
 
-// GetCommentHTMLURL returns link to action comment.
-func (a *Action) GetCommentHTMLURL() string {
-	return a.getCommentHTMLURL(db.DefaultContext)
+// GetCommentLink returns link to action comment.
+func (a *Action) GetCommentLink() string {
+	return a.getCommentLink(db.DefaultContext)
 }
 
-func (a *Action) loadComment(ctx context.Context) (err error) {
-	if a.CommentID == 0 || a.Comment != nil {
-		return nil
-	}
-	a.Comment, err = issues_model.GetCommentByID(ctx, a.CommentID)
-	return err
-}
-
-func (a *Action) getCommentHTMLURL(ctx context.Context) string {
+func (a *Action) getCommentLink(ctx context.Context) string {
 	if a == nil {
 		return "#"
 	}
-	_ = a.loadComment(ctx)
+	if a.Comment == nil && a.CommentID != 0 {
+		a.Comment, _ = issues_model.GetCommentByID(ctx, a.CommentID)
+	}
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
 	}
@@ -264,41 +258,6 @@ func (a *Action) getCommentHTMLURL(ctx context.Context) string {
 	}
 
 	return issue.HTMLURL()
-}
-
-// GetCommentLink returns link to action comment.
-func (a *Action) GetCommentLink() string {
-	return a.getCommentLink(db.DefaultContext)
-}
-
-func (a *Action) getCommentLink(ctx context.Context) string {
-	if a == nil {
-		return "#"
-	}
-	_ = a.loadComment(ctx)
-	if a.Comment != nil {
-		return a.Comment.Link()
-	}
-	if len(a.GetIssueInfos()) == 0 {
-		return "#"
-	}
-	// Return link to issue
-	issueIDString := a.GetIssueInfos()[0]
-	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
-	if err != nil {
-		return "#"
-	}
-
-	issue, err := issues_model.GetIssueByID(ctx, issueID)
-	if err != nil {
-		return "#"
-	}
-
-	if err = issue.LoadRepo(ctx); err != nil {
-		return "#"
-	}
-
-	return issue.Link()
 }
 
 // GetBranch returns the action's repository branch.
@@ -380,14 +339,14 @@ type GetFeedsOptions struct {
 }
 
 // GetFeeds returns actions according to the provided options
-func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, error) {
+func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
-		return nil, 0, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
+		return nil, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
 	}
 
 	cond, err := activityQueryCondition(opts)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	sess := db.GetEngine(ctx).Where(cond).
@@ -398,16 +357,16 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	sess = db.SetSessionPagination(sess, &opts)
 
 	actions := make([]*Action, 0, opts.PageSize)
-	count, err := sess.Desc("`action`.created_unix").FindAndCount(&actions)
-	if err != nil {
-		return nil, 0, fmt.Errorf("FindAndCount: %w", err)
+
+	if err := sess.Desc("`action`.created_unix").Find(&actions); err != nil {
+		return nil, fmt.Errorf("Find: %w", err)
 	}
 
 	if err := ActionList(actions).loadAttributes(ctx); err != nil {
-		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
+		return nil, fmt.Errorf("LoadAttributes: %w", err)
 	}
 
-	return actions, count, nil
+	return actions, nil
 }
 
 // ActivityReadable return whether doer can read activities of user
@@ -420,7 +379,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	cond := builder.NewCond()
 
 	if opts.RequestedTeam != nil && opts.RequestedUser == nil {
-		org, err := user_model.GetUserByID(db.DefaultContext, opts.RequestedTeam.OrgID)
+		org, err := user_model.GetUserByID(opts.RequestedTeam.OrgID)
 		if err != nil {
 			return nil, err
 		}
@@ -501,8 +460,7 @@ func DeleteOldActions(olderThan time.Duration) (err error) {
 	return err
 }
 
-// NotifyWatchers creates batch of actions for every watcher.
-func NotifyWatchers(ctx context.Context, actions ...*Action) error {
+func notifyWatchers(ctx context.Context, actions ...*Action) error {
 	var watchers []*repo_model.Watch
 	var repo *repo_model.Repository
 	var err error
@@ -530,11 +488,11 @@ func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 		}
 
 		if repoChanged {
-			act.loadRepo(ctx)
+			act.loadRepo()
 			repo = act.Repo
 
 			// check repo owner exist.
-			if err := act.Repo.LoadOwner(ctx); err != nil {
+			if err := act.Repo.GetOwner(ctx); err != nil {
 				return fmt.Errorf("can't get repo owner: %w", err)
 			}
 		} else if act.Repo == nil {
@@ -555,7 +513,7 @@ func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 			permIssue = make([]bool, len(watchers))
 			permPR = make([]bool, len(watchers))
 			for i, watcher := range watchers {
-				user, err := user_model.GetUserByID(ctx, watcher.UserID)
+				user, err := user_model.GetUserByIDCtx(ctx, watcher.UserID)
 				if err != nil {
 					permCode[i] = false
 					permIssue[i] = false
@@ -592,7 +550,7 @@ func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 				if !permIssue[i] {
 					continue
 				}
-			case ActionCreatePullRequest, ActionCommentPull, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest, ActionAutoMergePullRequest:
+			case ActionCreatePullRequest, ActionCommentPull, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest:
 				if !permPR[i] {
 					continue
 				}
@@ -606,15 +564,20 @@ func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 	return nil
 }
 
+// NotifyWatchers creates batch of actions for every watcher.
+func NotifyWatchers(actions ...*Action) error {
+	return notifyWatchers(db.DefaultContext, actions...)
+}
+
 // NotifyWatchersActions creates batch of actions for every watcher.
 func NotifyWatchersActions(acts []*Action) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 	for _, act := range acts {
-		if err := NotifyWatchers(ctx, act); err != nil {
+		if err := notifyWatchers(ctx, act); err != nil {
 			return err
 		}
 	}
@@ -639,17 +602,17 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
 }
 
 // CountActionCreatedUnixString count actions where created_unix is an empty string
-func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
+func CountActionCreatedUnixString() (int64, error) {
 	if setting.Database.UseSQLite3 {
-		return db.GetEngine(ctx).Where(`created_unix = ""`).Count(new(Action))
+		return db.GetEngine(db.DefaultContext).Where(`created_unix = ""`).Count(new(Action))
 	}
 	return 0, nil
 }
 
 // FixActionCreatedUnixString set created_unix to zero if it is an empty string
-func FixActionCreatedUnixString(ctx context.Context) (int64, error) {
+func FixActionCreatedUnixString() (int64, error) {
 	if setting.Database.UseSQLite3 {
-		res, err := db.GetEngine(ctx).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
+		res, err := db.GetEngine(db.DefaultContext).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
 		if err != nil {
 			return 0, err
 		}

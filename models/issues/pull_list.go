@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package issues
 
@@ -13,7 +14,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 )
@@ -78,7 +78,7 @@ func CanMaintainerWriteToBranch(p access_model.Permission, branch string, user *
 
 	for _, pr := range prs {
 		if pr.AllowMaintainerEdit {
-			err = pr.LoadBaseRepo(db.DefaultContext)
+			err = pr.LoadBaseRepo()
 			if err != nil {
 				continue
 			}
@@ -111,7 +111,6 @@ func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequ
 	return prs, db.GetEngine(db.DefaultContext).
 		Where("base_repo_id=? AND base_branch=? AND has_merged=? AND issue.is_closed=?",
 			repoID, branch, false, false).
-		OrderBy("issue.updated_unix DESC").
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
 		Find(&prs)
 }
@@ -175,20 +174,8 @@ func (prs PullRequestList) loadAttributes(ctx context.Context) error {
 	for i := range issues {
 		set[issues[i].ID] = issues[i]
 	}
-	for _, pr := range prs {
-		pr.Issue = set[pr.IssueID]
-		/*
-			Old code:
-			pr.Issue.PullRequest = pr // panic here means issueIDs and prs are not in sync
-
-			It's worth panic because it's almost impossible to happen under normal use.
-			But in integration testing, an asynchronous task could read a database that has been reset.
-			So returning an error would make more sense, let the caller has a choice to ignore it.
-		*/
-		if pr.Issue == nil {
-			return fmt.Errorf("issues and prs may be not in sync: cannot find issue %v for pr %v: %w", pr.IssueID, pr.ID, util.ErrNotExist)
-		}
-		pr.Issue.PullRequest = pr
+	for i := range prs {
+		prs[i].Issue = set[prs[i].IssueID]
 	}
 	return nil
 }

@@ -1,5 +1,4 @@
 import $ from 'jquery';
-import {hideElem} from '../utils/dom.js';
 
 function getDefaultSvgBoundsIfUndefined(svgXml, src) {
   const DefaultSize = 300;
@@ -35,7 +34,7 @@ function getDefaultSvgBoundsIfUndefined(svgXml, src) {
   return null;
 }
 
-export function initImageDiff() {
+export default function initImageDiff() {
   function createContext(image1, image2) {
     const size1 = {
       width: image1 && image1.width || 0,
@@ -105,7 +104,7 @@ export function initImageDiff() {
               if (bounds) {
                 info.$image.attr('width', bounds.width);
                 info.$image.attr('height', bounds.height);
-                hideElem(info.$boundsInfo);
+                info.$boundsInfo.hide();
               }
             }
           }
@@ -129,8 +128,8 @@ export function initImageDiff() {
         initOverlay(createContext($imageAfter[2], $imageBefore[2]));
       }
 
-      hideElem($container.find('> .loader'));
-      $container.find('> .gt-hidden').removeClass('gt-hidden');
+      $container.find('> .loader').hide();
+      $container.find('> .hide').removeClass('hide');
     }
 
     function initSideBySide(sizes) {

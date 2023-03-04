@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package issues
 
@@ -50,6 +51,7 @@ func (t *TrackedTime) loadAttributes(ctx context.Context) (err error) {
 	// Load the issue
 	if t.Issue == nil {
 		t.Issue, err = GetIssueByID(ctx, t.IssueID)
+
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return err
 		}
@@ -63,7 +65,7 @@ func (t *TrackedTime) loadAttributes(ctx context.Context) (err error) {
 	}
 	// Load the user
 	if t.User == nil {
-		t.User, err = user_model.GetUserByID(ctx, t.UserID)
+		t.User, err = user_model.GetUserByIDCtx(ctx, t.UserID)
 		if err != nil {
 			if !errors.Is(err, util.ErrNotExist) {
 				return err
@@ -157,7 +159,7 @@ func GetTrackedSeconds(ctx context.Context, opts FindTrackedTimesOptions) (track
 
 // AddTime will add the given time (in seconds) to the issue
 func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +174,7 @@ func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Tim
 		return nil, err
 	}
 
-	if _, err := CreateComment(ctx, &CreateCommentOptions{
+	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
@@ -214,7 +216,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, 
 	totalTimes := make(map[*user_model.User]string)
 	// Fetching User and making time human readable
 	for userID, total := range totalTimesByUser {
-		user, err := user_model.GetUserByID(db.DefaultContext, userID)
+		user, err := user_model.GetUserByID(userID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				continue
@@ -228,7 +230,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, 
 
 // DeleteIssueUserTimes deletes times for issue
 func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -250,7 +252,7 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
-	if _, err := CreateComment(ctx, &CreateCommentOptions{
+	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
@@ -265,7 +267,7 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 
 // DeleteTime delete a specific Time
 func DeleteTime(t *TrackedTime) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -279,7 +281,7 @@ func DeleteTime(t *TrackedTime) error {
 		return err
 	}
 
-	if _, err := CreateComment(ctx, &CreateCommentOptions{
+	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Issue:   t.Issue,
 		Repo:    t.Issue.Repo,
 		Doer:    t.User,

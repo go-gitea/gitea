@@ -1,5 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package integration
 
@@ -10,7 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -22,7 +22,7 @@ import (
 
 func TestAPIOrgCreate(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteOrg)
+		token := getUserToken(t, "user1")
 
 		org := api.CreateOrgOption{
 			UserName:    "user1_org",
@@ -80,7 +80,7 @@ func TestAPIOrgEdit(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
 
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrg)
+		token := getTokenForLoggedInUser(t, session)
 		org := api.EditOrgOption{
 			FullName:    "User3 organization new full name",
 			Description: "A new description",
@@ -89,7 +89,7 @@ func TestAPIOrgEdit(t *testing.T) {
 			Visibility:  "private",
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user3?token="+token, &org)
-		resp := MakeRequest(t, req, http.StatusOK)
+		resp := session.MakeRequest(t, req, http.StatusOK)
 
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)
@@ -107,7 +107,7 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
 
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrg)
+		token := getTokenForLoggedInUser(t, session)
 		org := api.EditOrgOption{
 			FullName:    "User3 organization new full name",
 			Description: "A new description",
@@ -116,7 +116,7 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 			Visibility:  "badvisibility",
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user3?token="+token, &org)
-		MakeRequest(t, req, http.StatusUnprocessableEntity)
+		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 }
 
@@ -127,16 +127,14 @@ func TestAPIOrgDeny(t *testing.T) {
 			setting.Service.RequireSignInView = false
 		}()
 
-		token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrg)
-
 		orgName := "user1_org"
-		req := NewRequestf(t, "GET", "/api/v1/orgs/%s?token=%s", orgName, token)
+		req := NewRequestf(t, "GET", "/api/v1/orgs/%s", orgName)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos?token=%s", orgName, token)
+		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", orgName)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/members?token=%s", orgName, token)
+		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/members", orgName)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 }
@@ -144,23 +142,20 @@ func TestAPIOrgDeny(t *testing.T) {
 func TestAPIGetAll(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrg)
-
-	req := NewRequestf(t, "GET", "/api/v1/orgs?token=%s", token)
+	req := NewRequestf(t, "GET", "/api/v1/orgs")
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiOrgList []*api.Organization
 	DecodeJSON(t, resp, &apiOrgList)
 
-	// accessing with a token will return all orgs
-	assert.Len(t, apiOrgList, 9)
-	assert.Equal(t, "org25", apiOrgList[1].FullName)
-	assert.Equal(t, "public", apiOrgList[1].Visibility)
+	assert.Len(t, apiOrgList, 7)
+	assert.Equal(t, "org25", apiOrgList[0].FullName)
+	assert.Equal(t, "public", apiOrgList[0].Visibility)
 }
 
 func TestAPIOrgSearchEmptyTeam(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		token := getUserToken(t, "user1", auth_model.AccessTokenScopeAdminOrg)
+		token := getUserToken(t, "user1")
 		orgName := "org_with_empty_team"
 
 		// create org

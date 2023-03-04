@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repository
 
@@ -23,7 +24,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -31,7 +31,7 @@ import (
 )
 
 // CreateRepositoryByExample creates a repository for the user/organization.
-func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt, isFork bool) (err error) {
+func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt bool) (err error) {
 	if err = repo_model.IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
@@ -68,12 +68,8 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 	}
 
 	// insert units for repo
-	defaultUnits := unit.DefaultRepoUnits
-	if isFork {
-		defaultUnits = unit.DefaultForkRepoUnits
-	}
-	units := make([]repo_model.RepoUnit, 0, len(defaultUnits))
-	for _, tp := range defaultUnits {
+	units := make([]repo_model.RepoUnit, 0, len(unit.DefaultRepoUnits))
+	for _, tp := range unit.DefaultRepoUnits {
 		if tp == unit.TypeIssues {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
@@ -131,10 +127,10 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 			return fmt.Errorf("IsUserRepoAdmin: %w", err)
 		} else if !isAdmin {
 			// Make creator repo admin if it wasn't assigned automatically
-			if err = AddCollaborator(ctx, repo, doer); err != nil {
-				return fmt.Errorf("AddCollaborator: %w", err)
+			if err = addCollaborator(ctx, repo, doer); err != nil {
+				return fmt.Errorf("addCollaborator: %w", err)
 			}
-			if err = repo_model.ChangeCollaborationAccessMode(ctx, repo, doer.ID, perm.AccessModeAdmin); err != nil {
+			if err = repo_model.ChangeCollaborationAccessModeCtx(ctx, repo, doer.ID, perm.AccessModeAdmin); err != nil {
 				return fmt.Errorf("ChangeCollaborationAccessModeCtx: %w", err)
 			}
 		}
@@ -190,7 +186,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 
 	// Check if label template exist
 	if len(opts.IssueLabels) > 0 {
-		if _, err := label.GetTemplateFile(opts.IssueLabels); err != nil {
+		if _, err := GetLabelTemplateFile(opts.IssueLabels); err != nil {
 			return nil, err
 		}
 	}
@@ -212,13 +208,12 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 		IsEmpty:                         !opts.AutoInit,
 		TrustModel:                      opts.TrustModel,
 		IsMirror:                        opts.IsMirror,
-		DefaultBranch:                   opts.DefaultBranch,
 	}
 
 	var rollbackRepo *repo_model.Repository
 
-	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
-		if err := CreateRepositoryByExample(ctx, doer, u, repo, false, false); err != nil {
+	if err := db.WithTx(func(ctx context.Context) error {
+		if err := CreateRepositoryByExample(ctx, doer, u, repo, false); err != nil {
 			return err
 		}
 
@@ -336,7 +331,7 @@ func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
 
 // CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
 func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error {
-	if err := repo.LoadOwner(ctx); err != nil {
+	if err := repo.GetOwner(ctx); err != nil {
 		return err
 	}
 
@@ -380,8 +375,8 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 	}
 
 	if visibilityChanged {
-		if err = repo.LoadOwner(ctx); err != nil {
-			return fmt.Errorf("LoadOwner: %w", err)
+		if err = repo.GetOwner(ctx); err != nil {
+			return fmt.Errorf("getOwner: %w", err)
 		}
 		if repo.Owner.IsOrganization() {
 			// Organization repository need to recalculate access table when visibility is changed.

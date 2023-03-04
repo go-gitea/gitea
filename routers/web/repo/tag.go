@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
@@ -54,7 +55,7 @@ func NewProtectedTagPost(ctx *context.Context) {
 		pt.AllowlistTeamIDs, _ = base.StringsToInt64s(strings.Split(form.AllowlistTeams, ","))
 	}
 
-	if err := git_model.InsertProtectedTag(ctx, pt); err != nil {
+	if err := git_model.InsertProtectedTag(pt); err != nil {
 		ctx.ServerError("InsertProtectedTag", err)
 		return
 	}
@@ -107,7 +108,7 @@ func EditProtectedTagPost(ctx *context.Context) {
 	pt.AllowlistUserIDs, _ = base.StringsToInt64s(strings.Split(form.AllowlistUsers, ","))
 	pt.AllowlistTeamIDs, _ = base.StringsToInt64s(strings.Split(form.AllowlistTeams, ","))
 
-	if err := git_model.UpdateProtectedTag(ctx, pt); err != nil {
+	if err := git_model.UpdateProtectedTag(pt); err != nil {
 		ctx.ServerError("UpdateProtectedTag", err)
 		return
 	}
@@ -123,7 +124,7 @@ func DeleteProtectedTagPost(ctx *context.Context) {
 		return
 	}
 
-	if err := git_model.DeleteProtectedTag(ctx, pt); err != nil {
+	if err := git_model.DeleteProtectedTag(pt); err != nil {
 		ctx.ServerError("DeleteProtectedTag", err)
 		return
 	}
@@ -133,10 +134,10 @@ func DeleteProtectedTagPost(ctx *context.Context) {
 }
 
 func setTagsContext(ctx *context.Context) error {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.tags")
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsTags"] = true
 
-	protectedTags, err := git_model.GetProtectedTags(ctx, ctx.Repo.Repository.ID)
+	protectedTags, err := git_model.GetProtectedTags(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetProtectedTags", err)
 		return err
@@ -168,7 +169,7 @@ func selectProtectedTagByContext(ctx *context.Context) *git_model.ProtectedTag {
 		id = ctx.ParamsInt64(":id")
 	}
 
-	tag, err := git_model.GetProtectedTagByID(ctx, id)
+	tag, err := git_model.GetProtectedTagByID(id)
 	if err != nil {
 		ctx.ServerError("GetProtectedTagByID", err)
 		return nil

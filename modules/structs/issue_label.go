@@ -1,6 +1,7 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package structs
 
@@ -9,8 +10,6 @@ package structs
 type Label struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
-	// example: false
-	Exclusive bool `json:"exclusive"`
 	// example: 00aabb
 	Color       string `json:"color"`
 	Description string `json:"description"`
@@ -21,8 +20,6 @@ type Label struct {
 type CreateLabelOption struct {
 	// required:true
 	Name string `json:"name" binding:"Required"`
-	// example: false
-	Exclusive bool `json:"exclusive"`
 	// required:true
 	// example: #00aabb
 	Color       string `json:"color" binding:"Required"`
@@ -31,10 +28,7 @@ type CreateLabelOption struct {
 
 // EditLabelOption options for editing a label
 type EditLabelOption struct {
-	Name *string `json:"name"`
-	// example: false
-	Exclusive *bool `json:"exclusive"`
-	// example: #00aabb
+	Name        *string `json:"name"`
 	Color       *string `json:"color"`
 	Description *string `json:"description"`
 }

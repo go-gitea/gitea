@@ -1,6 +1,7 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package git
 
@@ -121,9 +122,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	rc := &RunOpts{Dir: repo.Path, Stdout: stdoutWriter, Stderr: &stderr}
 
 	go func() {
-		err := NewCommand(repo.Ctx, "for-each-ref").
-			AddOptionFormat("--format=%s", forEachRefFmt.Flag()).
-			AddArguments("--sort", "-*creatordate", "refs/tags").Run(rc)
+		err := NewCommand(repo.Ctx, "for-each-ref", CmdArg("--format="+forEachRefFmt.Flag()), "--sort", "-*creatordate", "refs/tags").Run(rc)
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderr.String()))
 		} else {

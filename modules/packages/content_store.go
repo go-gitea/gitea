@@ -1,15 +1,14 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package packages
 
 import (
 	"io"
 	"path"
-	"strings"
 
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // BlobHash256Key is the key to address a blob content
@@ -52,14 +51,4 @@ func (s *ContentStore) Delete(key BlobHash256Key) error {
 // KeyToRelativePath converts the sha256 key aabb000000... to aa/bb/aabb000000...
 func KeyToRelativePath(key BlobHash256Key) string {
 	return path.Join(string(key)[0:2], string(key)[2:4], string(key))
-}
-
-// RelativePathToKey converts a relative path aa/bb/aabb000000... to the sha256 key aabb000000...
-func RelativePathToKey(relativePath string) (BlobHash256Key, error) {
-	parts := strings.SplitN(relativePath, "/", 3)
-	if len(parts) != 3 || len(parts[0]) != 2 || len(parts[1]) != 2 || len(parts[2]) < 4 || parts[0]+parts[1] != parts[2][0:4] {
-		return "", util.ErrInvalidArgument
-	}
-
-	return BlobHash256Key(parts[2]), nil
 }

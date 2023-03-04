@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package container
 
@@ -26,23 +27,19 @@ var uploadVersionMutex sync.Mutex
 
 // saveAsPackageBlob creates a package blob from an upload
 // The uploaded blob gets stored in a special upload version to link them to the package/image
-func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pci *packages_service.PackageCreationInfo) (*packages_model.PackageBlob, error) {
-	if err := packages_service.CheckSizeQuotaExceeded(db.DefaultContext, pci.Creator, pci.Owner, packages_model.TypeContainer, hsr.Size()); err != nil {
-		return nil, err
-	}
-
+func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_service.PackageInfo) (*packages_model.PackageBlob, error) {
 	pb := packages_service.NewPackageBlob(hsr)
 
 	exists := false
 
 	contentStore := packages_module.NewContentStore()
 
-	uploadVersion, err := getOrCreateUploadVersion(&pci.PackageInfo)
+	uploadVersion, err := getOrCreateUploadVersion(pi)
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	err = db.WithTx(func(ctx context.Context) error {
 		pb, exists, err = packages_model.GetOrInsertBlob(ctx, pb)
 		if err != nil {
 			log.Error("Error inserting package blob: %v", err)
@@ -85,7 +82,7 @@ func mountBlob(pi *packages_service.PackageInfo, pb *packages_model.PackageBlob)
 		return err
 	}
 
-	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	return db.WithTx(func(ctx context.Context) error {
 		return createFileForBlob(ctx, uploadVersion, pb)
 	})
 }
@@ -96,7 +93,7 @@ func getOrCreateUploadVersion(pi *packages_service.PackageInfo) (*packages_model
 	// FIXME: Replace usage of mutex with database transaction
 	// https://github.com/go-gitea/gitea/pull/21862
 	uploadVersionMutex.Lock()
-	err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	err := db.WithTx(func(ctx context.Context) error {
 		created := true
 		p := &packages_model.Package{
 			OwnerID:   pi.Owner.ID,
@@ -173,7 +170,7 @@ func createFileForBlob(ctx context.Context, pv *packages_model.PackageVersion, p
 }
 
 func deleteBlob(ownerID int64, image, digest string) error {
-	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	return db.WithTx(func(ctx context.Context) error {
 		pfds, err := container_model.GetContainerBlobs(ctx, &container_model.BlobSearchOptions{
 			OwnerID: ownerID,
 			Image:   image,

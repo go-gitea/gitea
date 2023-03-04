@@ -1,6 +1,7 @@
 import emojis from '../../../assets/emoji.json';
 
-const {assetUrlPrefix, customEmojis} = window.config;
+const {assetUrlPrefix} = window.config;
+const {customEmojis} = window.config;
 
 const tempMap = {...customEmojis};
 for (const {emoji, aliases} of emojis) {

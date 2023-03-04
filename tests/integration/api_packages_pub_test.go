@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package integration
 
@@ -27,7 +28,6 @@ import (
 
 func TestPackagePub(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	token := "Bearer " + getUserToken(t, user.Name)

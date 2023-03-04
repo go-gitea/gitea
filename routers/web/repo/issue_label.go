@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
@@ -11,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/web"
@@ -42,8 +42,8 @@ func InitializeLabels(ctx *context.Context) {
 	}
 
 	if err := repo_module.InitializeLabels(ctx, ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
-		if label.IsErrTemplateLoad(err) {
-			originalErr := err.(label.ErrTemplateLoad).OriginalError
+		if repo_module.IsErrIssueLabelTemplateLoad(err) {
+			originalErr := err.(repo_module.ErrIssueLabelTemplateLoad).OriginalError
 			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, originalErr))
 			ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 			return
@@ -75,11 +75,11 @@ func RetrieveLabels(ctx *context.Context) {
 			return
 		}
 		for _, l := range orgLabels {
-			l.CalOpenOrgIssues(ctx, ctx.Repo.Repository.ID, l.ID)
+			l.CalOpenOrgIssues(ctx.Repo.Repository.ID, l.ID)
 		}
 		ctx.Data["OrgLabels"] = orgLabels
 
-		org, err := organization.GetOrgByName(ctx, ctx.Repo.Owner.LowerName)
+		org, err := organization.GetOrgByName(ctx.Repo.Owner.LowerName)
 		if err != nil {
 			ctx.ServerError("GetOrgByName", err)
 			return
@@ -114,7 +114,6 @@ func NewLabel(ctx *context.Context) {
 	l := &issues_model.Label{
 		RepoID:      ctx.Repo.Repository.ID,
 		Name:        form.Title,
-		Exclusive:   form.Exclusive,
 		Description: form.Description,
 		Color:       form.Color,
 	}
@@ -140,7 +139,6 @@ func UpdateLabel(ctx *context.Context) {
 	}
 
 	l.Name = form.Title
-	l.Exclusive = form.Exclusive
 	l.Description = form.Description
 	l.Color = form.Color
 	if err := issues_model.UpdateLabel(l); err != nil {
@@ -178,7 +176,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 				return
 			}
 		}
-	case "attach", "detach", "toggle", "toggle-alt":
+	case "attach", "detach", "toggle":
 		label, err := issues_model.GetLabelByID(ctx, ctx.FormInt64("id"))
 		if err != nil {
 			if issues_model.IsErrRepoLabelNotExist(err) {
@@ -192,18 +190,12 @@ func UpdateIssueLabel(ctx *context.Context) {
 		if action == "toggle" {
 			// detach if any issues already have label, otherwise attach
 			action = "attach"
-			if label.ExclusiveScope() == "" {
-				for _, issue := range issues {
-					if issues_model.HasIssueLabel(ctx, issue.ID, label.ID) {
-						action = "detach"
-						break
-					}
+			for _, issue := range issues {
+				if issues_model.HasIssueLabel(ctx, issue.ID, label.ID) {
+					action = "detach"
+					break
 				}
 			}
-		} else if action == "toggle-alt" {
-			// always detach with alt key pressed, to be able to remove
-			// scoped labels
-			action = "detach"
 		}
 
 		if action == "attach" {

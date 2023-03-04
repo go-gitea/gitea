@@ -1,10 +1,12 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package integration
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -12,7 +14,6 @@ import (
 	"sync"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
@@ -23,7 +24,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
-	"github.com/minio/sha256-simd"
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,8 +32,6 @@ func TestPackageContainer(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
 
 	has := func(l packages_model.PackagePropertyList, name string) bool {
 		for _, pp := range l {
@@ -561,7 +559,7 @@ func TestPackageContainer(t *testing.T) {
 					assert.Equal(t, c.ExpectedLink, resp.Header().Get("Link"))
 				}
 
-				req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?type=container&q=%s&token=%s", user.Name, image, token))
+				req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?type=container&q=%s", user.Name, image))
 				resp := MakeRequest(t, req, http.StatusOK)
 
 				var apiPackages []*api.Package
@@ -640,7 +638,7 @@ func TestPackageContainer(t *testing.T) {
 
 		checkCatalog := func(owner string) func(t *testing.T) {
 			return func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
+				defer tests.PrepareTestEnv(t)()
 
 				req := NewRequest(t, "GET", fmt.Sprintf("%sv2/_catalog", setting.AppURL))
 				addTokenAuthHeader(req, userToken)

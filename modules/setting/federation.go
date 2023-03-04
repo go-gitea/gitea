@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package setting
 
@@ -33,8 +34,8 @@ var (
 // HttpsigAlgs is a constant slice of httpsig algorithm objects
 var HttpsigAlgs []httpsig.Algorithm
 
-func loadFederationFrom(rootCfg ConfigProvider) {
-	if err := rootCfg.Section("federation").MapTo(&Federation); err != nil {
+func newFederationService() {
+	if err := Cfg.Section("federation").MapTo(&Federation); err != nil {
 		log.Fatal("Failed to map Federation settings: %v", err)
 	} else if !httpsig.IsSupportedDigestAlgorithm(Federation.DigestAlgorithm) {
 		log.Fatal("unsupported digest algorithm: %s", Federation.DigestAlgorithm)

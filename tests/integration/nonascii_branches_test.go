@@ -1,5 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package integration
 
@@ -22,7 +23,7 @@ func testSrcRouteRedirect(t *testing.T, session *TestSession, user, repo, route,
 	resp := session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Check Location header
-	location := resp.Header().Get("Location")
+	location := resp.HeaderMap.Get("Location")
 	assert.Equal(t, path.Join(prefix, expectedLocation), location)
 
 	// Perform redirect

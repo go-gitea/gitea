@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 // Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
 package private
@@ -101,7 +102,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 				if err != nil {
 					return err
 				}
-				verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+				verification := asymkey_model.ParseCommitWithSignature(commit)
 				if !verification.Verified {
 					cancel()
 					return &errUnverifiedCommit{

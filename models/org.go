@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package models
 
@@ -43,7 +44,7 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 			return err
 		}
 		if t.NumMembers == 1 {
-			if err := t.LoadMembers(ctx); err != nil {
+			if err := t.GetMembersCtx(ctx); err != nil {
 				return err
 			}
 			if t.Members[0].ID == userID {
@@ -98,7 +99,7 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 
 // RemoveOrgUser removes user from given organization.
 func RemoveOrgUser(orgID, userID int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}

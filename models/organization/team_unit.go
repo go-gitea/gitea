@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package organization
 
@@ -31,7 +32,7 @@ func getUnitsByTeamID(ctx context.Context, teamID int64) (units []*TeamUnit, err
 
 // UpdateTeamUnits updates a teams's units
 func UpdateTeamUnits(team *Team, units []TeamUnit) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}

@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package gitdiff
 
@@ -90,8 +91,8 @@ func (hcd *highlightCodeDiff) diffWithHighlight(filename, language, codeA, codeB
 	hcd.collectUsedRunes(codeA)
 	hcd.collectUsedRunes(codeB)
 
-	highlightCodeA, _ := highlight.Code(filename, language, codeA)
-	highlightCodeB, _ := highlight.Code(filename, language, codeB)
+	highlightCodeA := highlight.Code(filename, language, codeA)
+	highlightCodeB := highlight.Code(filename, language, codeB)
 
 	highlightCodeA = hcd.convertToPlaceholders(highlightCodeA)
 	highlightCodeB = hcd.convertToPlaceholders(highlightCodeB)

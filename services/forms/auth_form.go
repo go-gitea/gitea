@@ -1,5 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package forms
 
@@ -72,15 +73,13 @@ type AuthenticationForm struct {
 	Oauth2GroupClaimName          string
 	Oauth2AdminGroup              string
 	Oauth2RestrictedGroup         string
-	Oauth2GroupTeamMap            string `binding:"ValidGroupTeamMap"`
-	Oauth2GroupTeamMapRemoval     bool
 	SkipLocalTwoFA                bool
 	SSPIAutoCreateUsers           bool
 	SSPIAutoActivateUsers         bool
 	SSPIStripDomainNames          bool
 	SSPISeparatorReplacement      string `binding:"AlphaDashDot;MaxSize(5)"`
 	SSPIDefaultLanguage           string
-	GroupTeamMap                  string `binding:"ValidGroupTeamMap"`
+	GroupTeamMap                  string
 	GroupTeamMapRemoval           bool
 }
 

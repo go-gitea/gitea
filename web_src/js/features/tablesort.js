@@ -1,4 +1,4 @@
-export function initTableSort() {
+export default function initTableSort() {
   for (const header of document.querySelectorAll('th[data-sortt-asc]') || []) {
     const sorttAsc = header.getAttribute('data-sortt-asc');
     const sorttDesc = header.getAttribute('data-sortt-desc');

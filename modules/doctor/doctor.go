@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package doctor
 
@@ -44,10 +45,10 @@ func (w *wrappedLevelLogger) Log(skip int, level log.Level, format string, v ...
 }
 
 func initDBDisableConsole(ctx context.Context, disableConsole bool) error {
-	setting.InitProviderFromExistingFile()
-	setting.LoadCommonSettings()
-	setting.LoadDBSetting()
-	setting.InitSQLLog(disableConsole)
+	setting.LoadFromExisting()
+	setting.InitDBConfig()
+
+	setting.NewXORMLogService(disableConsole)
 	if err := db.InitEngine(ctx); err != nil {
 		return fmt.Errorf("db.InitEngine: %w", err)
 	}
@@ -71,7 +72,7 @@ func RunChecks(ctx context.Context, logger log.Logger, autofix bool, checks []*C
 	for i, check := range checks {
 		if !dbIsInit && !check.SkipDatabaseInitialization {
 			// Only open database after the most basic configuration check
-			setting.Log.EnableXORMLog = false
+			setting.EnableXORMLog = false
 			if err := initDBDisableConsole(ctx, true); err != nil {
 				logger.Error("Error whilst initializing the database: %v", err)
 				logger.Error("Check if you are using the right config file. You can use a --config directive to specify one.")

@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package auth
 
@@ -8,7 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -71,12 +71,11 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		log.Trace("Basic Authorization: Attempting login with username as token")
 	}
 
-	// check oauth2 token
 	uid := CheckOAuthAccessToken(authToken)
 	if uid != 0 {
 		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
 
-		u, err := user_model.GetUserByID(req.Context(), uid)
+		u, err := user_model.GetUserByID(uid)
 		if err != nil {
 			log.Error("GetUserByID:  %v", err)
 			return nil, err
@@ -86,11 +85,10 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		return u, nil
 	}
 
-	// check personal access token
 	token, err := auth_model.GetAccessTokenBySHA(authToken)
 	if err == nil {
 		log.Trace("Basic Authorization: Valid AccessToken for user[%d]", uid)
-		u, err := user_model.GetUserByID(req.Context(), token.UID)
+		u, err := user_model.GetUserByID(token.UID)
 		if err != nil {
 			log.Error("GetUserByID:  %v", err)
 			return nil, err
@@ -105,17 +103,6 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		return u, nil
 	} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
 		log.Error("GetAccessTokenBySha: %v", err)
-	}
-
-	// check task token
-	task, err := actions_model.GetRunningTaskByToken(req.Context(), authToken)
-	if err == nil && task != nil {
-		log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
-
-		store.GetData()["IsActionsToken"] = true
-		store.GetData()["ActionsTaskID"] = task.ID
-
-		return user_model.NewActionsUser(), nil
 	}
 
 	if !setting.Service.EnableBasicAuth {

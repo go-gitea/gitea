@@ -1,6 +1,7 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package cmd
 
@@ -19,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/util"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/auth/source/smtp"
@@ -162,11 +162,6 @@ var (
 			Usage: "Use custom URLs for GitLab/GitHub OAuth endpoints",
 		},
 		cli.StringFlag{
-			Name:  "custom-tenant-id",
-			Value: "",
-			Usage: "Use custom Tenant ID for OAuth endpoints",
-		},
-		cli.StringFlag{
 			Name:  "custom-auth-url",
 			Value: "",
 			Usage: "Use a custom Authorization URL (option for GitLab/GitHub)",
@@ -224,15 +219,6 @@ var (
 			Name:  "restricted-group",
 			Value: "",
 			Usage: "Group Claim value for restricted users",
-		},
-		cli.StringFlag{
-			Name:  "group-team-map",
-			Value: "",
-			Usage: "JSON mapping between groups and org teams",
-		},
-		cli.BoolFlag{
-			Name:  "group-team-map-removal",
-			Usage: "Activate automatic team membership removal depending on groups",
 		},
 	}
 
@@ -349,7 +335,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
-		repos, count, err := repo_model.SearchRepositoryByName(ctx, &repo_model.SearchRepoOptions{
+		repos, count, err := repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     page,
@@ -401,7 +387,6 @@ func runRepoSyncReleases(_ *cli.Context) error {
 
 func getReleaseCount(id int64) (int64, error) {
 	return repo_model.GetReleaseCountByRepoID(
-		db.DefaultContext,
 		id,
 		repo_model.FindReleasesOptions{
 			IncludeTags: true,
@@ -437,7 +422,6 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 			AuthURL:    c.String("custom-auth-url"),
 			ProfileURL: c.String("custom-profile-url"),
 			EmailURL:   c.String("custom-email-url"),
-			Tenant:     c.String("custom-tenant-id"),
 		}
 	} else {
 		customURLMapping = nil
@@ -456,8 +440,6 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 		GroupClaimName:                c.String("group-claim-name"),
 		AdminGroup:                    c.String("admin-group"),
 		RestrictedGroup:               c.String("restricted-group"),
-		GroupTeamMap:                  c.String("group-team-map"),
-		GroupTeamMapRemoval:           c.Bool("group-team-map-removal"),
 	}
 }
 
@@ -540,12 +522,6 @@ func runUpdateOauth(c *cli.Context) error {
 	if c.IsSet("restricted-group") {
 		oAuth2Config.RestrictedGroup = c.String("restricted-group")
 	}
-	if c.IsSet("group-team-map") {
-		oAuth2Config.GroupTeamMap = c.String("group-team-map")
-	}
-	if c.IsSet("group-team-map-removal") {
-		oAuth2Config.GroupTeamMapRemoval = c.Bool("group-team-map-removal")
-	}
 
 	// update custom URL mapping
 	customURLMapping := &oauth2.CustomURLMapping{}
@@ -555,7 +531,6 @@ func runUpdateOauth(c *cli.Context) error {
 		customURLMapping.AuthURL = oAuth2Config.CustomURLMapping.AuthURL
 		customURLMapping.ProfileURL = oAuth2Config.CustomURLMapping.ProfileURL
 		customURLMapping.EmailURL = oAuth2Config.CustomURLMapping.EmailURL
-		customURLMapping.Tenant = oAuth2Config.CustomURLMapping.Tenant
 	}
 	if c.IsSet("use-custom-urls") && c.IsSet("custom-token-url") {
 		customURLMapping.TokenURL = c.String("custom-token-url")
@@ -573,10 +548,6 @@ func runUpdateOauth(c *cli.Context) error {
 		customURLMapping.EmailURL = c.String("custom-email-url")
 	}
 
-	if c.IsSet("use-custom-urls") && c.IsSet("custom-tenant-id") {
-		customURLMapping.Tenant = c.String("custom-tenant-id")
-	}
-
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
 
@@ -587,7 +558,7 @@ func parseSMTPConfig(c *cli.Context, conf *smtp.Source) error {
 	if c.IsSet("auth-type") {
 		conf.Auth = c.String("auth-type")
 		validAuthTypes := []string{"PLAIN", "LOGIN", "CRAM-MD5"}
-		if !util.SliceContainsString(validAuthTypes, strings.ToUpper(c.String("auth-type"))) {
+		if !contains(validAuthTypes, strings.ToUpper(c.String("auth-type"))) {
 			return errors.New("Auth must be one of PLAIN/LOGIN/CRAM-MD5")
 		}
 		conf.Auth = c.String("auth-type")

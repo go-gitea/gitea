@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package setting
 
@@ -17,7 +18,7 @@ import (
 
 // AdoptOrDeleteRepository adopts or deletes a repository
 func AdoptOrDeleteRepository(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings.adopt")
+	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsRepos"] = true
 	allowAdopt := ctx.IsUserSiteAdmin() || setting.Repository.AllowAdoptionOfUnadoptedRepositories
 	ctx.Data["allowAdopt"] = allowAdopt
@@ -45,7 +46,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	if has || !isDir {
 		// Fallthrough to failure mode
 	} else if action == "adopt" && allowAdopt {
-		if _, err := repo_service.AdoptRepository(ctx, ctxUser, ctxUser, repo_module.CreateRepoOptions{
+		if _, err := repo_service.AdoptRepository(ctxUser, ctxUser, repo_module.CreateRepoOptions{
 			Name:      dir,
 			IsPrivate: true,
 		}); err != nil {
@@ -54,7 +55,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		}
 		ctx.Flash.Success(ctx.Tr("repo.adopt_preexisting_success", dir))
 	} else if action == "delete" && allowDelete {
-		if err := repo_service.DeleteUnadoptedRepository(ctx, ctxUser, ctxUser, dir); err != nil {
+		if err := repo_service.DeleteUnadoptedRepository(ctxUser, ctxUser, dir); err != nil {
 			ctx.ServerError("repository.AdoptRepository", err)
 			return
 		}

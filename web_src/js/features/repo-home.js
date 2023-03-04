@@ -1,6 +1,5 @@
 import $ from 'jquery';
 import {stripTags} from '../utils.js';
-import {hideElem, showElem} from '../utils/dom.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -14,12 +13,12 @@ export function initRepoTopicBar() {
   const topicPrompts = getPrompts();
 
   mgrBtn.on('click', () => {
-    hideElem(viewDiv);
-    showElem(editDiv);
+    viewDiv.hide();
+    editDiv.css('display', ''); // show Semantic UI Grid
   });
 
   function getPrompts() {
-    const hidePrompt = $('#validate_prompt');
+    const hidePrompt = $('div.hide#validate_prompt');
     const prompts = {
       countPrompt: hidePrompt.children('#count_prompt').text(),
       formatPrompt: hidePrompt.children('#format_prompt').text()
@@ -48,8 +47,8 @@ export function initRepoTopicBar() {
             link.insertBefore(last);
           }
         }
-        hideElem(editDiv);
-        showElem(viewDiv);
+        editDiv.css('display', 'none');
+        viewDiv.show();
       }
     }).fail((xhr) => {
       if (xhr.status === 422) {

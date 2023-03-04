@@ -68,7 +68,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		return nil, err
 	}
 
-	if err := CommentList(comments).LoadPosters(ctx); err != nil {
+	if err := CommentList(comments).loadPosters(ctx); err != nil {
 		return nil, err
 	}
 

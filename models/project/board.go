@@ -1,5 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package project
 
@@ -19,9 +20,6 @@ type (
 	// BoardType is used to represent a project board type
 	BoardType uint8
 
-	// CardType is used to represent a project board card type
-	CardType uint8
-
 	// BoardList is a list of all project boards in a repository
 	BoardList []*Board
 )
@@ -35,14 +33,6 @@ const (
 
 	// BoardTypeBugTriage is a project board type that has predefined columns suited to hunting down bugs
 	BoardTypeBugTriage
-)
-
-const (
-	// CardTypeTextOnly is a project board card type that is text only
-	CardTypeTextOnly CardType = iota
-
-	// CardTypeImagesAndText is a project board card type that has images and text
-	CardTypeImagesAndText
 )
 
 // BoardColorPattern is a regexp witch can validate BoardColor
@@ -96,16 +86,6 @@ func IsBoardTypeValid(p BoardType) bool {
 	}
 }
 
-// IsCardTypeValid checks if the project board card type is valid
-func IsCardTypeValid(p CardType) bool {
-	switch p {
-	case CardTypeTextOnly, CardTypeImagesAndText:
-		return true
-	default:
-		return false
-	}
-}
-
 func createBoardsForProjectsType(ctx context.Context, project *Project) error {
 	var items []string
 
@@ -153,7 +133,7 @@ func NewBoard(board *Board) error {
 
 // DeleteBoardByID removes all issues references to the project board.
 func DeleteBoardByID(boardID int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}

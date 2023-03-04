@@ -1,6 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Copyright 2018 Jonas Franz. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package migrations
 
@@ -83,7 +84,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, labels, 12)
 
-	releases, err := repo_model.GetReleasesByRepoID(db.DefaultContext, repo.ID, repo_model.FindReleasesOptions{
+	releases, err := repo_model.GetReleasesByRepoID(repo.ID, repo_model.FindReleasesOptions{
 		ListOptions: db.ListOptions{
 			PageSize: 10,
 			Page:     0,
@@ -93,7 +94,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, releases, 8)
 
-	releases, err = repo_model.GetReleasesByRepoID(db.DefaultContext, repo.ID, repo_model.FindReleasesOptions{
+	releases, err = repo_model.GetReleasesByRepoID(repo.ID, repo_model.FindReleasesOptions{
 		ListOptions: db.ListOptions{
 			PageSize: 10,
 			Page:     0,
@@ -103,14 +104,14 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, releases, 1)
 
-	issues, err := issues_model.Issues(db.DefaultContext, &issues_model.IssuesOptions{
+	issues, err := issues_model.Issues(&issues_model.IssuesOptions{
 		RepoID:   repo.ID,
 		IsPull:   util.OptionalBoolFalse,
 		SortType: "oldest",
 	})
 	assert.NoError(t, err)
 	assert.Len(t, issues, 15)
-	assert.NoError(t, issues[0].LoadDiscussComments(db.DefaultContext))
+	assert.NoError(t, issues[0].LoadDiscussComments())
 	assert.Empty(t, issues[0].Comments)
 
 	pulls, _, err := issues_model.PullRequests(repo.ID, &issues_model.PullRequestsOptions{
@@ -118,8 +119,8 @@ func TestGiteaUploadRepo(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, pulls, 30)
-	assert.NoError(t, pulls[0].LoadIssue(db.DefaultContext))
-	assert.NoError(t, pulls[0].Issue.LoadDiscussComments(db.DefaultContext))
+	assert.NoError(t, pulls[0].LoadIssue())
+	assert.NoError(t, pulls[0].Issue.LoadDiscussComments())
 	assert.Len(t, pulls[0].Issue.Comments, 2)
 }
 

@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package integration
 
@@ -12,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -48,9 +48,7 @@ func TestPushDeployKeyOnEmptyRepo(t *testing.T) {
 
 func testPushDeployKeyOnEmptyRepo(t *testing.T, u *url.URL) {
 	// OK login
-	ctx := NewAPITestContext(t, "user2", "deploy-key-empty-repo-1", auth_model.AccessTokenScopeRepo)
-	ctxWithDeleteRepo := NewAPITestContext(t, "user2", "deploy-key-empty-repo-1", auth_model.AccessTokenScopeRepo, auth_model.AccessTokenScopeDeleteRepo)
-
+	ctx := NewAPITestContext(t, "user2", "deploy-key-empty-repo-1")
 	keyname := fmt.Sprintf("%s-push", ctx.Reponame)
 	u.Path = ctx.GitPath()
 
@@ -75,7 +73,7 @@ func testPushDeployKeyOnEmptyRepo(t *testing.T, u *url.URL) {
 
 		t.Run("CheckIsNotEmpty", doCheckRepositoryEmptyStatus(ctx, false))
 
-		t.Run("DeleteRepository", doAPIDeleteRepository(ctxWithDeleteRepo))
+		t.Run("DeleteRepository", doAPIDeleteRepository(ctx))
 	})
 }
 
@@ -92,13 +90,10 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 	keyname := fmt.Sprintf("%s-push", reponame)
 
 	// OK login
-	ctx := NewAPITestContext(t, username, reponame, auth_model.AccessTokenScopeRepo, auth_model.AccessTokenScopeAdminPublicKey)
-	ctxWithDeleteRepo := NewAPITestContext(t, username, reponame, auth_model.AccessTokenScopeRepo, auth_model.AccessTokenScopeAdminPublicKey, auth_model.AccessTokenScopeDeleteRepo)
+	ctx := NewAPITestContext(t, username, reponame)
 
 	otherCtx := ctx
 	otherCtx.Reponame = "ssh-key-test-repo-2"
-	otherCtxWithDeleteRepo := ctxWithDeleteRepo
-	otherCtxWithDeleteRepo.Reponame = otherCtx.Reponame
 
 	failCtx := ctx
 	failCtx.ExpectedCode = http.StatusUnprocessableEntity
@@ -166,7 +161,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 			otherSSHURL := createSSHUrl(otherCtx.GitPath(), u)
 			dstOtherPath := t.TempDir()
 
-			t.Run("DeleteRepository", doAPIDeleteRepository(ctxWithDeleteRepo))
+			t.Run("DeleteRepository", doAPIDeleteRepository(ctx))
 
 			t.Run("FailToCreateUserKeyAsStillDeploy", doAPICreateUserKey(failCtx, keyname, keyFile))
 
@@ -176,9 +171,9 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 
 			t.Run("PushToOther", doGitPushTestRepository(dstOtherPath, "origin", "master"))
 
-			t.Run("DeleteOtherRepository", doAPIDeleteRepository(otherCtxWithDeleteRepo))
+			t.Run("DeleteOtherRepository", doAPIDeleteRepository(otherCtx))
 
-			t.Run("RecreateRepository", doAPICreateRepository(ctxWithDeleteRepo, false))
+			t.Run("RecreateRepository", doAPICreateRepository(ctx, false))
 
 			t.Run("CreateUserKey", doAPICreateUserKey(ctx, keyname, keyFile, func(t *testing.T, publicKey api.PublicKey) {
 				userKeyPublicKeyID = publicKey.ID

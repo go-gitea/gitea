@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package code
 
@@ -93,9 +94,6 @@ func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, erro
 		lineNumbers[i] = startLineNum + i
 		index += len(line)
 	}
-
-	highlighted, _ := highlight.Code(result.Filename, "", formattedLinesBuffer.String())
-
 	return &Result{
 		RepoID:         result.RepoID,
 		Filename:       result.Filename,
@@ -104,7 +102,7 @@ func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, erro
 		Language:       result.Language,
 		Color:          result.Color,
 		LineNumbers:    lineNumbers,
-		FormattedLines: highlighted,
+		FormattedLines: highlight.Code(result.Filename, "", formattedLinesBuffer.String()),
 	}, nil
 }
 

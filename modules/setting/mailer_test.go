@@ -10,7 +10,7 @@ import (
 	ini "gopkg.in/ini.v1"
 )
 
-func Test_loadMailerFrom(t *testing.T) {
+func TestParseMailerConfig(t *testing.T) {
 	iniFile := ini.Empty()
 	kases := map[string]*Mailer{
 		"smtp.mydomain.com": {
@@ -34,7 +34,7 @@ func Test_loadMailerFrom(t *testing.T) {
 			sec.NewKey("HOST", host)
 
 			// Check mailer setting
-			loadMailerFrom(iniFile)
+			parseMailerConfig(iniFile)
 
 			assert.EqualValues(t, kase.SMTPAddr, MailService.SMTPAddr)
 			assert.EqualValues(t, kase.SMTPPort, MailService.SMTPPort)

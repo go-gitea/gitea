@@ -1,5 +1,6 @@
 // Copyright 2017 Gitea. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
@@ -9,10 +10,10 @@ import (
 
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/convert"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -66,7 +67,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToCommitStatus(ctx, status))
+	ctx.JSON(http.StatusCreated, convert.ToCommitStatus(status))
 }
 
 // GetCommitStatuses returns all statuses for any given commit hash
@@ -188,7 +189,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	statuses, maxResults, err := git_model.GetCommitStatuses(ctx, repo, sha, &git_model.CommitStatusOptions{
+	statuses, maxResults, err := git_model.GetCommitStatuses(repo, sha, &git_model.CommitStatusOptions{
 		ListOptions: listOptions,
 		SortType:    ctx.FormTrim("sort"),
 		State:       ctx.FormTrim("state"),
@@ -200,7 +201,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 
 	apiStatuses := make([]*api.CommitStatus, 0, len(statuses))
 	for _, status := range statuses {
-		apiStatuses = append(apiStatuses, convert.ToCommitStatus(ctx, status))
+		apiStatuses = append(apiStatuses, convert.ToCommitStatus(status))
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -264,7 +265,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 		return
 	}
 
-	combiStatus := convert.ToCombinedStatus(ctx, statuses, convert.ToRepo(ctx, repo, ctx.Repo.AccessMode))
+	combiStatus := convert.ToCombinedStatus(statuses, convert.ToRepo(repo, ctx.Repo.AccessMode))
 
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, combiStatus)

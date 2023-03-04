@@ -1,5 +1,4 @@
 import $ from 'jquery';
-import {hideElem, showElem} from '../utils/dom.js';
 
 export function initUserAuthOauth2() {
   const $oauth2LoginNav = $('#oauth2-login-navigator');
@@ -9,14 +8,14 @@ export function initUserAuthOauth2() {
     const oauthLoader = $('#oauth2-login-loader');
     const oauthNav = $('#oauth2-login-navigator');
 
-    hideElem(oauthNav);
+    oauthNav.hide();
     oauthLoader.removeClass('disabled');
 
     setTimeout(() => {
       // recover previous content to let user try again
       // usually redirection will be performed before this action
       oauthLoader.addClass('disabled');
-      showElem(oauthNav);
+      oauthNav.show();
     }, 5000);
   });
 }

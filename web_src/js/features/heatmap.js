@@ -1,8 +1,7 @@
 import {createApp} from 'vue';
 import ActivityHeatmap from '../components/ActivityHeatmap.vue';
-import {translateMonth, translateDay} from '../utils.js';
 
-export function initHeatmap() {
+export default function initHeatmap() {
   const el = document.getElementById('user-heatmap');
   if (!el) return;
 
@@ -18,14 +17,7 @@ export function initHeatmap() {
       return {date: new Date(v), count: heatmap[v]};
     });
 
-    const locale = {
-      months: new Array(12).fill().map((_, idx) => translateMonth(idx)),
-      days: new Array(7).fill().map((_, idx) => translateDay(idx)),
-      contributions: 'contributions',
-      no_contributions: 'No contributions',
-    };
-
-    const View = createApp(ActivityHeatmap, {values, locale});
+    const View = createApp(ActivityHeatmap, {values});
 
     View.mount(el);
   } catch (err) {

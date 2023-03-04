@@ -1,5 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
@@ -13,8 +14,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	setting.InitProviderAndLoadCommonSettingsForTest()
-	setting.LoadQueueSettings()
+	setting.LoadForTest()
+	setting.NewQueueService()
 	unittest.MainTest(m, &unittest.TestOptions{
 		GiteaRootPath: filepath.Join("..", "..", "..", ".."),
 		SetUp:         webhook_service.Init,

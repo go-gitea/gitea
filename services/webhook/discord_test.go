@@ -1,14 +1,15 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package webhook
 
 import (
 	"testing"
 
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -179,7 +180,7 @@ func TestDiscordPayload(t *testing.T) {
 		p.Action = api.HookIssueReviewed
 
 		d := new(DiscordPayload)
-		pl, err := d.Review(p, webhook_module.HookEventPullRequestReviewApproved)
+		pl, err := d.Review(p, webhook_model.HookEventPullRequestReviewApproved)
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 		require.IsType(t, &DiscordPayload{}, pl)

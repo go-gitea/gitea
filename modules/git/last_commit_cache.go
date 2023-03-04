@@ -1,15 +1,15 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package git
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/minio/sha256-simd"
 )
 
 // Cache represents a caching interface

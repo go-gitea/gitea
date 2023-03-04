@@ -1,5 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package common
 
@@ -8,7 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -29,7 +29,7 @@ func Middlewares() []func(http.Handler) http.Handler {
 
 				ctx, _, finished := process.GetManager().AddTypedContext(req.Context(), fmt.Sprintf("%s: %s", req.Method, req.RequestURI), process.RequestProcessType, true)
 				defer finished()
-				next.ServeHTTP(context.NewResponse(resp), req.WithContext(cache.WithCacheContext(ctx)))
+				next.ServeHTTP(context.NewResponse(resp), req.WithContext(ctx))
 			})
 		},
 	}
@@ -50,11 +50,11 @@ func Middlewares() []func(http.Handler) http.Handler {
 
 	handlers = append(handlers, middleware.StripSlashes)
 
-	if !setting.Log.DisableRouterLog {
+	if !setting.DisableRouterLog {
 		handlers = append(handlers, routing.NewLoggerHandler())
 	}
 
-	if setting.Log.EnableAccessLog {
+	if setting.EnableAccessLog {
 		handlers = append(handlers, context.AccessLogger())
 	}
 

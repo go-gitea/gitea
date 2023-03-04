@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package container
 
@@ -92,7 +93,7 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 			return err
 		}
 
-		ctx, committer, err := db.TxContext(db.DefaultContext)
+		ctx, committer, err := db.TxContext()
 		if err != nil {
 			return err
 		}
@@ -209,7 +210,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 			return err
 		}
 
-		ctx, committer, err := db.TxContext(db.DefaultContext)
+		ctx, committer, err := db.TxContext()
 		if err != nil {
 			return err
 		}
@@ -295,7 +296,7 @@ func notifyPackageCreate(doer *user_model.User, pv *packages_model.PackageVersio
 		return err
 	}
 
-	notification.NotifyPackageCreate(db.DefaultContext, doer, pd)
+	notification.NotifyPackageCreate(doer, pd)
 
 	return nil
 }
@@ -357,10 +358,6 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 			log.Error("Error inserting package: %v", err)
 			return nil, err
 		}
-	}
-
-	if err := packages_service.CheckCountQuotaExceeded(ctx, mci.Creator, mci.Owner); err != nil {
-		return nil, err
 	}
 
 	if mci.IsTagged {

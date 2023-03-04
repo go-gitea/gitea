@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package repo
 
@@ -8,9 +9,9 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/convert"
 )
 
 // ListSubscribers list a repo's subscribers (i.e. watchers)
@@ -50,7 +51,7 @@ func ListSubscribers(ctx *context.APIContext) {
 	}
 	users := make([]*api.User, len(subscribers))
 	for i, subscriber := range subscribers {
-		users[i] = convert.ToUser(ctx, subscriber, ctx.Doer)
+		users[i] = convert.ToUser(subscriber, ctx.Doer)
 	}
 
 	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumWatches))

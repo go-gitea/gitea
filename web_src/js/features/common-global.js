@@ -1,14 +1,12 @@
 import $ from 'jquery';
 import 'jquery.are-you-sure';
 import {mqBinarySearch} from '../utils.js';
-import {createDropzone} from './dropzone.js';
+import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
-import {attachCheckboxAria, attachDropdownAria} from './aria.js';
+import {attachDropdownAria} from './aria.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {initTooltip} from '../modules/tippy.js';
-import {svg} from '../svg.js';
-import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -60,9 +58,7 @@ export function initGlobalEnterQuickSubmit() {
 export function initGlobalButtonClickOnEnter() {
   $(document).on('keypress', '.ui.button', (e) => {
     if (e.keyCode === 13 || e.keyCode === 32) { // enter key or space bar
-      if (e.target.nodeName === 'BUTTON') return; // button already handles space&enter correctly
       $(e.target).trigger('click');
-      e.preventDefault();
     }
   });
 }
@@ -114,13 +110,13 @@ export function initGlobalCommon() {
   });
   attachDropdownAria($uiDropdowns);
 
-  attachCheckboxAria($('.ui.checkbox'));
+  $('.ui.checkbox').checkbox();
 
   $('.tabular.menu .item').tab();
   $('.tabable.menu .item').tab();
 
   $('.toggle.button').on('click', function () {
-    toggleElem($($(this).data('target')));
+    $($(this).data('target')).slideToggle(100);
   });
 
   // make table <tr> and <td> elements clickable like a link
@@ -171,21 +167,6 @@ export function initGlobalDropzone() {
           file.uuid = data.uuid;
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $dropzone.find('.files').append(input);
-          // Create a "Copy Link" element, to conveniently copy the image
-          // or file link as Markdown to the clipboard
-          const copyLinkElement = document.createElement('div');
-          copyLinkElement.className = 'gt-tc';
-          // The a element has a hardcoded cursor: pointer because the default is overridden by .dropzone
-          copyLinkElement.innerHTML = `<a href="#" style="cursor: pointer;">${svg('octicon-copy', 14, 'copy link')} Copy link</a>`;
-          copyLinkElement.addEventListener('click', (e) => {
-            e.preventDefault();
-            let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
-            if (file.type.startsWith('image/')) {
-              fileMarkdown = `!${fileMarkdown}`;
-            }
-            navigator.clipboard.writeText(fileMarkdown);
-          });
-          file.previewTemplate.appendChild(copyLinkElement);
         });
         this.on('removedfile', (file) => {
           $(`#${file.uuid}`).remove();
@@ -319,7 +300,7 @@ export function initGlobalLinkActions() {
 
 export function initGlobalButtons() {
   $('.show-panel.button').on('click', function () {
-    showElem($(this).data('panel'));
+    $($(this).data('panel')).show();
   });
 
   $('.hide-panel.button').on('click', function (event) {
@@ -327,12 +308,12 @@ export function initGlobalButtons() {
     event.preventDefault();
     let sel = $(this).attr('data-panel');
     if (sel) {
-      hideElem($(sel));
+      $(sel).hide();
       return;
     }
     sel = $(this).attr('data-panel-closest');
     if (sel) {
-      hideElem($(this).closest(sel));
+      $(this).closest(sel).hide();
       return;
     }
     // should never happen, otherwise there is a bug in code
@@ -384,6 +365,9 @@ export function checkAppUrl() {
   if (curUrl.startsWith(appUrl) || `${curUrl}/` === appUrl) {
     return;
   }
-  showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
-Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification.`);
+  if (document.querySelector('.page-content.install')) {
+    return; // no need to show the message on the installation page
+  }
+  showGlobalErrorMessage(`Your ROOT_URL in app.ini is ${appUrl} but you are visiting ${curUrl}
+You should set ROOT_URL correctly, otherwise the web may not work correctly.`);
 }

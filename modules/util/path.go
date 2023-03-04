@@ -1,5 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package util
 
@@ -11,7 +12,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strings"
 )
 
 // EnsureAbsolutePath ensure that a path is absolute, making it
@@ -201,42 +201,4 @@ func CommonSkip(name string) bool {
 	}
 
 	return false
-}
-
-// IsReadmeFileName reports whether name looks like a README file
-// based on its name.
-func IsReadmeFileName(name string) bool {
-	name = strings.ToLower(name)
-	if len(name) < 6 {
-		return false
-	} else if len(name) == 6 {
-		return name == "readme"
-	}
-	return name[:7] == "readme."
-}
-
-// IsReadmeFileExtension reports whether name looks like a README file
-// based on its name. It will look through the provided extensions and check if the file matches
-// one of the extensions and provide the index in the extension list.
-// If the filename is `readme.` with an unmatched extension it will match with the index equaling
-// the length of the provided extension list.
-// Note that the '.' should be provided in ext, e.g ".md"
-func IsReadmeFileExtension(name string, ext ...string) (int, bool) {
-	name = strings.ToLower(name)
-	if len(name) < 6 || name[:6] != "readme" {
-		return 0, false
-	}
-
-	for i, extension := range ext {
-		extension = strings.ToLower(extension)
-		if name[6:] == extension {
-			return i, true
-		}
-	}
-
-	if name[6] == '.' {
-		return len(ext), true
-	}
-
-	return 0, false
 }

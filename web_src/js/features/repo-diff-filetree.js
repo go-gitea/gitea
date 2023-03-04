@@ -2,7 +2,7 @@ import {createApp} from 'vue';
 import DiffFileTree from '../components/DiffFileTree.vue';
 import DiffFileList from '../components/DiffFileList.vue';
 
-export function initDiffFileTree() {
+export default function initDiffFileTree() {
   const el = document.getElementById('diff-file-tree');
   if (!el) return;
 

@@ -1,6 +1,7 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package auth
 
@@ -91,7 +92,7 @@ func (r *ReverseProxy) getUserFromAuthEmail(req *http.Request) *user_model.User 
 	}
 	log.Trace("ReverseProxy Authorization: Found email: %s", email)
 
-	user, err := user_model.GetUserByEmail(req.Context(), email)
+	user, err := user_model.GetUserByEmail(email)
 	if err != nil {
 		// Do not allow auto-registration, we don't have a username here
 		if !user_model.IsErrUserNotExist(err) {

@@ -1,5 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package issue
 
@@ -54,7 +55,7 @@ func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *is
 			OldMilestoneID: oldMilestoneID,
 			MilestoneID:    issue.MilestoneID,
 		}
-		if _, err := issues_model.CreateComment(ctx, opts); err != nil {
+		if _, err := issues_model.CreateCommentCtx(ctx, opts); err != nil {
 			return err
 		}
 	}
@@ -64,7 +65,7 @@ func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *is
 
 // ChangeMilestoneAssign changes assignment of milestone for issue.
 func ChangeMilestoneAssign(issue *issues_model.Issue, doer *user_model.User, oldMilestoneID int64) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -78,7 +79,7 @@ func ChangeMilestoneAssign(issue *issues_model.Issue, doer *user_model.User, old
 		return fmt.Errorf("Commit: %w", err)
 	}
 
-	notification.NotifyIssueChangeMilestone(db.DefaultContext, doer, issue, oldMilestoneID)
+	notification.NotifyIssueChangeMilestone(doer, issue, oldMilestoneID)
 
 	return nil
 }

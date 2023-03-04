@@ -57,11 +57,11 @@ func runDeleteUser(c *cli.Context) error {
 	var err error
 	var user *user_model.User
 	if c.IsSet("email") {
-		user, err = user_model.GetUserByEmail(ctx, c.String("email"))
+		user, err = user_model.GetUserByEmail(c.String("email"))
 	} else if c.IsSet("username") {
 		user, err = user_model.GetUserByName(ctx, c.String("username"))
 	} else {
-		user, err = user_model.GetUserByID(ctx, c.Int64("id"))
+		user, err = user_model.GetUserByID(c.Int64("id"))
 	}
 	if err != nil {
 		return err

@@ -1,15 +1,17 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package maven
 
 import (
 	"crypto/md5"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/sha512"
-	"encoding/hex"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -26,8 +28,6 @@ import (
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
-
-	"github.com/minio/sha256-simd"
 )
 
 const (
@@ -129,7 +129,7 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 			tmp := sha512.Sum512(xmlMetadataWithHeader)
 			hash = tmp[:]
 		}
-		ctx.PlainText(http.StatusOK, hex.EncodeToString(hash))
+		ctx.PlainText(http.StatusOK, fmt.Sprintf("%x", hash))
 		return
 	}
 
@@ -313,7 +313,6 @@ func UploadPackageFile(ctx *context.Context) {
 		PackageFileInfo: packages_service.PackageFileInfo{
 			Filename: params.Filename,
 		},
-		Creator:           ctx.Doer,
 		Data:              buf,
 		IsLead:            false,
 		OverwriteExisting: params.IsMeta,
@@ -360,14 +359,11 @@ func UploadPackageFile(ctx *context.Context) {
 		pfci,
 	)
 	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageFile:
+		if err == packages_model.ErrDuplicatePackageFile {
 			apiError(ctx, http.StatusBadRequest, err)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
+			return
 		}
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

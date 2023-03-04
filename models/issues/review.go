@@ -1,5 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package issues
 
@@ -153,23 +154,31 @@ func (r *Review) loadIssue(ctx context.Context) (err error) {
 	return err
 }
 
-// LoadReviewer loads reviewer
-func (r *Review) LoadReviewer(ctx context.Context) (err error) {
+func (r *Review) loadReviewer(ctx context.Context) (err error) {
 	if r.ReviewerID == 0 || r.Reviewer != nil {
 		return
 	}
-	r.Reviewer, err = user_model.GetPossibleUserByID(ctx, r.ReviewerID)
+	r.Reviewer, err = user_model.GetUserByIDCtx(ctx, r.ReviewerID)
 	return err
 }
 
-// LoadReviewerTeam loads reviewer team
-func (r *Review) LoadReviewerTeam(ctx context.Context) (err error) {
+func (r *Review) loadReviewerTeam(ctx context.Context) (err error) {
 	if r.ReviewerTeamID == 0 || r.ReviewerTeam != nil {
 		return
 	}
 
 	r.ReviewerTeam, err = organization.GetTeamByID(ctx, r.ReviewerTeamID)
 	return err
+}
+
+// LoadReviewer loads reviewer
+func (r *Review) LoadReviewer() error {
+	return r.loadReviewer(db.DefaultContext)
+}
+
+// LoadReviewerTeam loads reviewer team
+func (r *Review) LoadReviewerTeam() error {
+	return r.loadReviewerTeam(db.DefaultContext)
 }
 
 // LoadAttributes loads all attributes except CodeComments
@@ -180,10 +189,10 @@ func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 	if err = r.LoadCodeComments(ctx); err != nil {
 		return
 	}
-	if err = r.LoadReviewer(ctx); err != nil {
+	if err = r.loadReviewer(ctx); err != nil {
 		return
 	}
-	if err = r.LoadReviewerTeam(ctx); err != nil {
+	if err = r.loadReviewerTeam(ctx); err != nil {
 		return
 	}
 	return err
@@ -263,17 +272,15 @@ func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_mo
 	if err != nil {
 		return false, err
 	}
-
-	rule, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
-	if err != nil {
+	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
 		return false, err
 	}
-	if rule == nil {
+	if pr.ProtectedBranch == nil {
 		return false, nil
 	}
 
 	for _, reviewer := range reviewers {
-		official, err := git_model.IsUserOfficialReviewer(ctx, rule, reviewer)
+		official, err := git_model.IsUserOfficialReviewerCtx(ctx, pr.ProtectedBranch, reviewer)
 		if official || err != nil {
 			return official, err
 		}
@@ -288,19 +295,18 @@ func IsOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organizatio
 	if err != nil {
 		return false, err
 	}
-	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
-	if err != nil {
+	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
 		return false, err
 	}
-	if pb == nil {
+	if pr.ProtectedBranch == nil {
 		return false, nil
 	}
 
-	if !pb.EnableApprovalsWhitelist {
-		return team.UnitAccessMode(ctx, unit.TypeCode) >= perm.AccessModeWrite, nil
+	if !pr.ProtectedBranch.EnableApprovalsWhitelist {
+		return team.UnitAccessModeCtx(ctx, unit.TypeCode) >= perm.AccessModeWrite, nil
 	}
 
-	return base.Int64sContains(pb.ApprovalsWhitelistTeamIDs, team.ID), nil
+	return base.Int64sContains(pr.ProtectedBranch.ApprovalsWhitelistTeamIDs, team.ID), nil
 }
 
 // CreateReview creates a new review based on opts
@@ -368,7 +374,7 @@ func IsContentEmptyErr(err error) bool {
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool, attachmentUUIDs []string) (*Review, *Comment, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -439,7 +445,7 @@ func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, co
 		}
 	}
 
-	comm, err := CreateComment(ctx, &CreateCommentOptions{
+	comm, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:        CommentTypeReview,
 		Doer:        doer,
 		Content:     review.Content,
@@ -616,7 +622,7 @@ func DismissReview(review *Review, isDismiss bool) (err error) {
 
 // InsertReviews inserts review and review comments
 func InsertReviews(reviews []*Review) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
@@ -658,7 +664,7 @@ func InsertReviews(reviews []*Review) error {
 
 // AddReviewRequest add a review request from one reviewer
 func AddReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Comment, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err
 	}
@@ -695,7 +701,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Comment, 
 		return nil, err
 	}
 
-	comment, err := CreateComment(ctx, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -713,7 +719,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Comment, 
 
 // RemoveReviewRequest remove a review request from one reviewer
 func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Comment, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err
 	}
@@ -741,7 +747,7 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Commen
 		}
 	}
 
-	comment, err := CreateComment(ctx, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -774,7 +780,7 @@ func restoreLatestOfficialReview(ctx context.Context, issueID, reviewerID int64)
 
 // AddTeamReviewRequest add a review request from one team
 func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_model.User) (*Comment, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err
 	}
@@ -815,7 +821,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 		}
 	}
 
-	comment, err := CreateComment(ctx, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -825,7 +831,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 		ReviewID:        review.ID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("CreateComment(): %w", err)
+		return nil, fmt.Errorf("CreateCommentCtx(): %w", err)
 	}
 
 	return comment, committer.Commit()
@@ -833,7 +839,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 
 // RemoveTeamReviewRequest remove a review request from one team
 func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_model.User) (*Comment, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err
 	}
@@ -875,7 +881,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 		return nil, committer.Commit()
 	}
 
-	comment, err := CreateComment(ctx, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -884,7 +890,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
 	})
 	if err != nil {
-		return nil, fmt.Errorf("CreateComment(): %w", err)
+		return nil, fmt.Errorf("CreateCommentCtx(): %w", err)
 	}
 
 	return comment, committer.Commit()
@@ -951,7 +957,7 @@ func CanMarkConversation(issue *Issue, doer *user_model.User) (permResult bool, 
 
 // DeleteReview delete a review and it's code comments
 func DeleteReview(r *Review) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}

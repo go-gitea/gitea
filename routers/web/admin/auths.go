@@ -1,5 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
 
 package admin
 
@@ -204,8 +205,6 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		GroupClaimName:                form.Oauth2GroupClaimName,
 		RestrictedGroup:               form.Oauth2RestrictedGroup,
 		AdminGroup:                    form.Oauth2AdminGroup,
-		GroupTeamMap:                  form.Oauth2GroupTeamMap,
-		GroupTeamMapRemoval:           form.Oauth2GroupTeamMapRemoval,
 	}
 }
 

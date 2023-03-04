@@ -1,57 +1,36 @@
 .page-content.install {
   padding-top: 45px;
 
-  form.ui.form {
-    @input-padding: 30%;
+  form {
+    @input-padding: 320px !important;
 
-    .inline.field > label {
+    .inline.field label {
       text-align: right;
       width: @input-padding;
-      padding-right: 10px;
-      margin-right: 0;
-    }
-
-    .inline.field > .ui.checkbox:first-child {
-      margin-left: @input-padding;
-      padding-left: 5px;
-      label {
-        width: auto;
-      }
-    }
-
-    .title {
-      margin-left: @input-padding;
-      padding-left: 5px;
     }
 
     input {
-      width: 60%;
-    }
-
-    details.optional.field {
-      &[open] {
-        border-bottom: 1px solid var(--color-secondary);
-        padding-bottom: 10px;
-
-        summary {
-          margin-bottom: 10px;
-        }
-      }
-
-      * {
-        box-sizing: border-box;
-      }
+      width: 35% !important;
     }
 
     .field {
       text-align: left;
 
       .help {
-        margin-left: @input-padding;
-        padding-left: 5px;
-        width: 60%;
+        margin-left: @input-padding+15px;
       }
 
+      &.optional {
+        .title {
+          margin-left: 38%;
+        }
+        .checkbox {
+          margin-left: 40% !important;
+          label {
+            width: auto !important;
+          }
+        }
+      }
     }
   }
 
@@ -59,7 +38,7 @@
     .reinstall-message {
       width: 70%;
       margin: 20px auto;
-      color: var(--color-red);
+      color: red;
       text-align: left;
       font-weight: bold;
     }

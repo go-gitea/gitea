@@ -1,34 +1,34 @@
 linters:
   enable:
-    - bidichk
-    # - deadcode # deprecated - https://github.com/golangci/golangci-lint/issues/1841
-    - depguard
-    - dupl
-    - errcheck
-    - gocritic
-    # - gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
-    - gofmt
-    - gofumpt
     - gosimple
-    - govet
-    - ineffassign
-    - nakedret
-    - nolintlint
-    - revive
-    - staticcheck
-    # - structcheck # deprecated - https://github.com/golangci/golangci-lint/issues/1841
-    - stylecheck
+    - deadcode
     - typecheck
-    - unconvert
+    - govet
+    - errcheck
+    - staticcheck
     - unused
-    # - varcheck # deprecated - https://github.com/golangci/golangci-lint/issues/1841
-    # - wastedassign # disabled - https://github.com/golangci/golangci-lint/issues/2649
+    - structcheck
+    - varcheck
+    - dupl
+    #- gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
+    - gofmt
+    - gocritic
+    - bidichk
+    - ineffassign
+    - revive
+    - gofumpt
+    - depguard
+    - nakedret
+    - unconvert
+    - wastedassign
+    - nolintlint
+    - stylecheck
   enable-all: false
   disable-all: true
   fast: false
 
 run:
-  go: "1.20"
+  go: 1.19
   timeout: 10m
   skip-dirs:
     - node_modules
@@ -74,17 +74,15 @@ linters-settings:
       - name: modifies-value-receiver
   gofumpt:
     extra-rules: true
-    lang-version: "1.20"
+    lang-version: "1.19"
   depguard:
+    # TODO: use depguard to replace import checks in gitea-vet
     list-type: denylist
     # Check the list against standard lib.
     include-go-root: true
     packages-with-error-message:
       - encoding/json: "use gitea's modules/json instead of encoding/json"
       - github.com/unknwon/com: "use gitea's util and replacements"
-      - io/ioutil: "use os or io instead"
-      - golang.org/x/exp: "it's experimental and unreliable."
-      - code.gitea.io/gitea/modules/git/internal: "do not use the internal package, use AddXxx function instead"
 
 issues:
   max-issues-per-linter: 0
@@ -175,3 +173,6 @@ issues:
       linters:
         - revive
       text: "exported: type name will be used as user.UserBadge by other packages, and that stutters; consider calling this Badge"
+    - path: models/db/sql_postgres_with_schema.go
+      linters:
+        - nolintlint
