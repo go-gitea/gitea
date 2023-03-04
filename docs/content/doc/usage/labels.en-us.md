@@ -15,21 +15,27 @@ menu:
 
 # Labels
 
-Issues and pull requests can be assigned labels for organization.
+You can use labels to classify issues and pull requests and to improve your overview over them.
 
 ## Creating Labels
 
-Labels can be created for a repository by going to Issues and choosing Labels. For organizations, labels available to all repositories can be created in the organization Settings.
+Labels can be created for a repository by going to `Issues` and clicking on `Labels`. \
+For organizations, you can define organization-wide labels that are shared with all organization repositories, including both already-existing repositories as well as newly created ones. \
+Organization-wide labels can be created in the organization `Settings`.
 
-Labels have a name, color and optional description.
+Labels have a mandatory name, a mandatory color, an optional description, and must either be exclusive or not (see `Scoped labels` below).
 
-If no labels exist a [default label set](../customizing-gitea/#labels) is suggested.
+When you create a repo, you can ensure certain labels exist by using the `Issue Labels` option. \
+This option lists a number of available label sets that are [configured globally on your instance](../customizing-gitea/#labels). \
+Its contained labels will all be created as well while creating the repo.
 
 ## Scoped Labels
 
-Labels can be grouped using scopes indicated with a `/` separator in the name. When a label is named for example `scope/item`, the label display will changed to show the scope and item separately.
-
-Mutually exclusive labels can be created by enabling the Exclusive option for scoped labels. This makes it so only one label in the same scope can be assigned to an issue or pull request.
+You can decrease your error susceptibility by using scoped labels. \
+A scoped label is a label containing `/` in its name (not at either end of the name) and marking the label as `exclusive`. \
+For example, if label `A` is called `scope/item`, label `B` is called `scope/second-item`, and both are marked as `exclusive`, an issue cannot be labeled with both `A` and `B` at the same time. \
+Such an issue can have at most one of these labels, or none. \
+The scope of a label is determined based on the **last** `/`, so for example the scope of label `subscope/subscope2/item` would be `subscope/subscope2`.
 
 ## Filtering by Label
 
