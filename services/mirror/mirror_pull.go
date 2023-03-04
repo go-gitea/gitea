@@ -500,7 +500,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		}
 
 		if newCommit, err := gitRepo.GetCommit(newCommitID); err != nil {
-			log.Error("SyncMirrors [repo: %-v]: unable to get GetCommit [%s]: %v", m.Repo, newCommitID, err)
+			log.Error("SyncMirrors [repo: %-v]: unable to get commit %s: %v", m.Repo, newCommitID, err)
 			continue
 		} else {
 			theCommits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
