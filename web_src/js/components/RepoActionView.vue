@@ -2,7 +2,13 @@
   <div class="action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary">
-        {{ run.title }}
+        <SvgIcon name="octicon-check-circle-fill" size="20" class="green" v-if="run.status === 'success'"/>
+        <SvgIcon name="octicon-clock" size="20" class="ui text yellow" v-else-if="run.status === 'waiting'"/>
+        <SvgIcon name="octicon-meter" size="20" class="ui text yellow" class-name="job-status-rotate" v-else-if="run.status === 'running'"/>
+        <SvgIcon name="octicon-x-circle-fill" size="20" class="red" v-else/>
+        <div class="action-title">
+          {{ run.title }}
+        </div>
         <button class="run_approve" @click="approveRun()" v-if="run.canApprove">
           <i class="play circle outline icon"/>
         </button>
@@ -99,6 +105,7 @@ const sfc = {
       run: {
         link: '',
         title: '',
+        status: '',
         canCancel: false,
         canApprove: false,
         done: false,
@@ -327,7 +334,11 @@ export function initRepositoryActionView() {
 .action-info-summary {
   font-size: 150%;
   height: 20px;
-  padding: 0 10px;
+  display: flex;
+
+  .action-title {
+    padding: 0 5px;
+  }
 }
 
 // ================

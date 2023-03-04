@@ -622,7 +622,7 @@ type CodeCommentForm struct {
 	Side           string `binding:"Required;In(previous,proposed)"`
 	Line           int64
 	TreePath       string `form:"path" binding:"Required"`
-	IsReview       bool   `form:"is_review"`
+	SingleReview   bool   `form:"single_review"`
 	Reply          int64  `form:"reply"`
 	LatestCommitID string
 }

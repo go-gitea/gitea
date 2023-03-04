@@ -59,11 +59,6 @@ func Init(ctx goctx.Context) func(next http.Handler) http.Handler {
 	dbTypeNames := getSupportedDbTypeNames()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			if setting.InstallLock {
-				resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-				_ = rnd.HTML(resp, http.StatusOK, string(tplPostInstall), nil)
-				return
-			}
 			locale := middleware.Locale(resp, req)
 			startTime := time.Now()
 			ctx := context.Context{
@@ -93,6 +88,11 @@ func Init(ctx goctx.Context) func(next http.Handler) http.Handler {
 
 // Install render installation page
 func Install(ctx *context.Context) {
+	if setting.InstallLock {
+		InstallDone(ctx)
+		return
+	}
+
 	form := forms.InstallForm{}
 
 	// Database settings
@@ -162,7 +162,7 @@ func Install(ctx *context.Context) {
 	form.DefaultAllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
 	form.NoReplyAddress = setting.Service.NoReplyAddress
-	form.PasswordAlgorithm = setting.PasswordHashAlgo
+	form.PasswordAlgorithm = hash.ConfigHashAlgorithm(setting.PasswordHashAlgo)
 
 	middleware.AssignForm(form, ctx.Data)
 	ctx.HTML(http.StatusOK, tplInstall)
@@ -234,6 +234,11 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 
 // SubmitInstall response for submit install items
 func SubmitInstall(ctx *context.Context) {
+	if setting.InstallLock {
+		InstallDone(ctx)
+		return
+	}
+
 	var err error
 
 	form := *web.GetForm(ctx).(*forms.InstallForm)
@@ -277,7 +282,6 @@ func SubmitInstall(ctx *context.Context) {
 	setting.Database.Charset = form.Charset
 	setting.Database.Path = form.DbPath
 	setting.Database.LogSQL = !setting.IsProd
-	setting.PasswordHashAlgo = form.PasswordAlgorithm
 
 	if !checkDatabase(ctx, &form) {
 		return
@@ -499,6 +503,12 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	if len(form.PasswordAlgorithm) > 0 {
+		var algorithm *hash.PasswordHashAlgorithm
+		setting.PasswordHashAlgo, algorithm = hash.SetDefaultPasswordHashAlgorithm(form.PasswordAlgorithm)
+		if algorithm == nil {
+			ctx.RenderWithErr(ctx.Tr("install.invalid_password_algorithm"), tplInstall, &form)
+			return
+		}
 		cfg.Section("security").Key("PASSWORD_HASH_ALGO").SetValue(form.PasswordAlgorithm)
 	}
 
@@ -571,18 +581,26 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	log.Info("First-time run install finished!")
+	InstallDone(ctx)
 
-	ctx.Flash.Success(ctx.Tr("install.install_success"))
-
-	ctx.RespHeader().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-	ctx.HTML(http.StatusOK, tplPostInstall)
-
-	// Now get the http.Server from this request and shut it down
-	// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown
-	srv := ctx.Value(http.ServerContextKey).(*http.Server)
 	go func() {
+		// Sleep for a while to make sure the user's browser has loaded the post-install page and its assets (images, css, js)
+		// What if this duration is not long enough? That's impossible -- if the user can't load the simple page in time, how could they install or use Gitea in the future ....
+		time.Sleep(3 * time.Second)
+
+		// Now get the http.Server from this request and shut it down
+		// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown
+		srv := ctx.Value(http.ServerContextKey).(*http.Server)
 		if err := srv.Shutdown(graceful.GetManager().HammerContext()); err != nil {
 			log.Error("Unable to shutdown the install server! Error: %v", err)
 		}
+
+		// After the HTTP server for "install" shuts down, the `runWeb()` will continue to run the "normal" server
 	}()
+}
+
+// InstallDone shows the "post-install" page, makes it easier to develop the page.
+// The name is not called as "PostInstall" to avoid misinterpretation as a handler for "POST /install"
+func InstallDone(ctx *context.Context) { //nolint
+	ctx.HTML(http.StatusOK, tplPostInstall)
 }

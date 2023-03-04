@@ -20,11 +20,11 @@
 	{{if eq .ActionName "push"}}
 		<p>
 			{{if .Comment.IsForcePush}}
-				{{$oldCommitUrl := printf "%s/commit/%s" .Comment.Issue.PullRequest.BaseRepo.Link .Comment.OldCommit}}
+				{{$oldCommitUrl := printf "%s/commit/%s" .Comment.Issue.PullRequest.BaseRepo.HTMLURL .Comment.OldCommit}}
 				{{$oldShortSha := ShortSha .Comment.OldCommit}}
 				{{$oldCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" (Escape $oldCommitUrl) (Escape $oldShortSha)}}
 
-				{{$newCommitUrl := printf "%s/commit/%s" .Comment.Issue.PullRequest.BaseRepo.Link .Comment.NewCommit}}
+				{{$newCommitUrl := printf "%s/commit/%s" .Comment.Issue.PullRequest.BaseRepo.HTMLURL .Comment.NewCommit}}
 				{{$newShortSha := ShortSha .Comment.NewCommit}}
 				{{$newCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" (Escape $newCommitUrl) (Escape $newShortSha)}}
 
@@ -72,7 +72,7 @@
 			<ul>
 			{{range .Comment.Commits}}
 				<li>
-					<a href="{{$.Comment.Issue.PullRequest.BaseRepo.Link}}/commit/{{.ID}}">
+					<a href="{{$.Comment.Issue.PullRequest.BaseRepo.HTMLURL}}/commit/{{.ID}}">
 						{{ShortSha .ID.String}}
 					</a>  -  {{.Summary}}
 				</li>
