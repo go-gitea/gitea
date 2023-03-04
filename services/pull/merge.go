@@ -448,7 +448,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 					return "", err
 				}
 			} else if strat.Strategy == "add" {
-				log.Debug("Running ADD on file %s", strat.Path)
+				log.Info("Running ADD on file %s", strat.Path)
 				if err := git.NewCommand(ctx, "add").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
 					Dir:    tmpBasePath,
 					Stdout: &outbuf,
@@ -458,7 +458,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 					return "", err
 				}
 			} else if strat.Strategy == "delete" {
-				log.Debug("Running DELETE on file %s", strat.Path)
+				log.Info("Running DELETE on file %s", strat.Path)
 				if err := git.NewCommand(ctx, "rm").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
 					Dir:    tmpBasePath,
 					Stdout: &outbuf,
@@ -472,13 +472,13 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 				return "", errors.New("invalid strategy")
 			}
 
-			log.Debug("Done with file %s", strat.Path)
+			log.Info("Done with file %s", strat.Path)
+		}
 
-			// Commit the result
-			if err := commitAndSignNoAuthor(ctx, pr, message, signArgs, tmpBasePath, env); err != nil {
-				log.Error("Unable to make final commit: %v", err)
-				return "", err
-			}
+		// Commit the result
+		if err := commitAndSignNoAuthor(ctx, pr, message, signArgs, tmpBasePath, env); err != nil {
+			log.Error("Unable to make final commit: %v", err)
+			return "", err
 		}
 	case repo_model.MergeStyleRebase:
 		fallthrough
