@@ -32,9 +32,9 @@ Its contained labels will all be created as well while creating the repo.
 ## Scoped Labels
 
 You can decrease your error susceptibility by using scoped labels. \
-A scoped label is a label containing `/` in its name (not at either end of the name) and marking the label as `exclusive`. \
+A scoped label is a label that is marked as `exclusive` and contains `/` in its name (not at either end of the name). \
 For example, if label `A` is called `scope/item`, label `B` is called `scope/second-item`, and both are marked as `exclusive`, an issue cannot be labeled with both `A` and `B` at the same time. \
-Such an issue can have at most one of these labels, or none. \
+Issues can have at most one of these labels per scope, or none. \
 The scope of a label is determined based on the **last** `/`, so for example the scope of label `subscope/subscope2/item` would be `subscope/subscope2`.
 
 ## Filtering by Label
