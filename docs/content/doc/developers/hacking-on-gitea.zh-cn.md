@@ -7,7 +7,7 @@ toc: false
 draft: false
 menu:
   sidebar:
-    parent: "advanced"
+    parent: "developers"
     name: "加入 Gitea 开源"
     weight: 10
     identifier: "hacking-on-gitea"
