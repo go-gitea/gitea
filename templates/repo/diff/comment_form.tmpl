@@ -1,5 +1,5 @@
 {{if and $.root.SignedUserID (not $.Repository.IsArchived)}}
-	<form class="ui form {{if $.hidden}}gt-hidden comment-form comment-form-reply{{end}}" action="{{$.root.Issue.Link}}/files/reviews/comments" method="post">
+	<form class="ui form {{if $.hidden}}gt-hidden comment-form{{end}}" action="{{$.root.Issue.Link}}/files/reviews/comments" method="post">
 	{{$.root.CsrfTokenHtml}}
 		<input type="hidden" name="origin" value="{{if $.root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
 		<input type="hidden" name="latest_commit_id" value="{{$.root.AfterCommitID}}"/>
@@ -29,15 +29,10 @@
 					<input type="hidden" name="reply" value="{{$.reply}}">
 				{{else}}
 					{{if $.root.CurrentReview}}
-						{{/* if there is only one "Add comment" button, the quick-submit should submit the form with is_review=true even if the "Add comment" button is not really clicked */}}
-						<input type="hidden" name="is_review" value="true">
-						<button name="is_review" value="true" type="submit"
-								class="ui submit green tiny button btn-add-comment">{{$.root.locale.Tr "repo.diff.comment.add_review_comment"}}</button>
+						<button name="pending_review" type="submit" class="ui submit green tiny button btn-add-comment">{{$.root.locale.Tr "repo.diff.comment.add_review_comment"}}</button>
 					{{else}}
-						<button name="is_review" value="true" type="submit"
-								class="ui submit green tiny button btn-start-review">{{$.root.locale.Tr "repo.diff.comment.start_review"}}</button>
-						<button type="submit"
-								class="ui submit tiny basic button btn-add-single">{{$.root.locale.Tr "repo.diff.comment.add_single_comment"}}</button>
+						<button name="pending_review" type="submit" class="ui submit green tiny button btn-start-review">{{$.root.locale.Tr "repo.diff.comment.start_review"}}</button>
+						<button name="single_review" value="true" type="submit" class="ui submit tiny basic button btn-add-single">{{$.root.locale.Tr "repo.diff.comment.add_single_comment"}}</button>
 					{{end}}
 				{{end}}
 				{{if or (not $.HasComments) $.hidden}}
