@@ -52,7 +52,7 @@ func (s *Service) Register(
 	}
 
 	if runnerToken.IsActive {
-		return nil, errors.New("runner token has already activated")
+		return nil, errors.New("runner token has already been activated")
 	}
 
 	// create new runner

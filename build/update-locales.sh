@@ -1,13 +1,48 @@
-#!/bin/sh
+#!/bin/bash
+
+set -e
+
+SED=sed
+
+if [[ $OSTYPE == 'darwin'* ]]; then
+  # for macOS developers, use "brew install gnu-sed"
+  SED=gsed
+fi
+
+if [ ! -f ./options/locale/locale_en-US.ini ]; then
+  echo "please run this script in the root directory of the project"
+  exit 1
+fi
 
 mv ./options/locale/locale_en-US.ini ./options/
 
-# Make sure to only change lines that have the translation enclosed between quotes
-sed -i -r -e '/^[a-zA-Z0-9_.-]+[ ]*=[ ]*".*"$/ {
-	s/^([a-zA-Z0-9_.-]+)[ ]*="/\1=/
-	s/\\"/"/g
+# the "ini" library for locale has many quirks
+#  * `a="xx"` gets `xx` (no quote)
+#  * `a=x\"y` gets `x\"y` (no unescaping)
+#  * `a="x\"y"` gets `"x\"y"` (no unescaping, the quotes are still there)
+#  * `a='x\"y'` gets `x\"y` (no unescaping, no quote)
+#  * `a="foo` gets `"foo` (although the quote is not closed)
+#  * 'a=`foo`' works like single-quote
+# crowdin needs the strings to be quoted correctly and doesn't like incomplete quotes
+# crowdin always outputs quoted strings if there are quotes in the strings.
+
+# this script helps to unquote the crowdin outputs for the quirky ini library
+# * find all `key="...\"..."` lines
+# * remove the leading quote
+# * remove the trailing quote
+# * unescape the quotes
+# * eg: key="...\"..." => key=..."...
+$SED -i -r -e '/^[-.A-Za-z0-9_]+[ ]*=[ ]*".*"$/ {
+	s/^([-.A-Za-z0-9_]+)[ ]*=[ ]*"/\1=/
 	s/"$//
+	s/\\"/"/g
 	}' ./options/locale/*.ini
+
+# * if the escaped line is incomplete like `key="...` or `key=..."`, quote it with backticks
+# * eg: key="... => key=`"...`
+# * eg: key=..." => key=`..."`
+$SED -i -r -e 's/^([-.A-Za-z0-9_]+)[ ]*=[ ]*(".*[^"])$/\1=`\2`/' ./options/locale/*.ini
+$SED -i -r -e 's/^([-.A-Za-z0-9_]+)[ ]*=[ ]*([^"].*")$/\1=`\2`/' ./options/locale/*.ini
 
 # Remove translation under 25% of en_us
 baselines=$(wc -l "./options/locale_en-US.ini" | cut -d" " -f1)

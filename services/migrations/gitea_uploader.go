@@ -21,6 +21,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -217,18 +218,20 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 // CreateLabels creates labels
 func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 	lbs := make([]*issues_model.Label, 0, len(labels))
-	for _, label := range labels {
-		// We must validate color here:
-		if !issues_model.LabelColorPattern.MatchString("#" + label.Color) {
-			log.Warn("Invalid label color: #%s for label: %s in migration to %s/%s", label.Color, label.Name, g.repoOwner, g.repoName)
-			label.Color = "ffffff"
+	for _, l := range labels {
+		if color, err := label.NormalizeColor(l.Color); err != nil {
+			log.Warn("Invalid label color: #%s for label: %s in migration to %s/%s", l.Color, l.Name, g.repoOwner, g.repoName)
+			l.Color = "#ffffff"
+		} else {
+			l.Color = color
 		}
 
 		lbs = append(lbs, &issues_model.Label{
 			RepoID:      g.repo.ID,
-			Name:        label.Name,
-			Description: label.Description,
-			Color:       "#" + label.Color,
+			Name:        l.Name,
+			Exclusive:   l.Exclusive,
+			Description: l.Description,
+			Color:       l.Color,
 		})
 	}
 

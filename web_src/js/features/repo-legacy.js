@@ -6,7 +6,7 @@ import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
   initRepoIssueStatusButton, initRepoIssueTitleEdit, initRepoIssueWipToggle,
-  initRepoPullRequestUpdate, updateIssuesMeta,
+  initRepoPullRequestUpdate, updateIssuesMeta, handleReply
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
@@ -613,15 +613,15 @@ function initRepoIssueCommentEdit() {
   $(document).on('click', '.edit-content', onEditContent);
 
   // Quote reply
-  $(document).on('click', '.quote-reply', function (event) {
+  $(document).on('click', '.quote-reply', async function (event) {
+    event.preventDefault();
     const target = $(this).data('target');
     const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
     let easyMDE;
     if ($(this).hasClass('quote-reply-diff')) {
-      const $parent = $(this).closest('.comment-code-cloud');
-      $parent.find('button.comment-form-reply').trigger('click');
-      easyMDE = getAttachedEasyMDE($parent.find('[name="content"]'));
+      const $replyBtn = $(this).closest('.comment-code-cloud').find('button.comment-form-reply');
+      easyMDE = await handleReply($replyBtn);
     } else {
       // for normal issue/comment page
       easyMDE = getAttachedEasyMDE($('#comment-form .edit_area'));
@@ -637,6 +637,5 @@ function initRepoIssueCommentEdit() {
         easyMDE.codemirror.setCursor(easyMDE.codemirror.lineCount(), 0);
       });
     }
-    event.preventDefault();
   });
 }
