@@ -19,23 +19,21 @@ You can use labels to classify issues and pull requests and to improve your over
 
 ## Creating Labels
 
-Labels can be created for a repository by going to `Issues` and clicking on `Labels`. \
-For organizations, you can define organization-wide labels that are shared with all organization repositories, including both already-existing repositories as well as newly created ones. \
-Organization-wide labels can be created in the organization `Settings`.
+For repositories, labels can be created by going to `Issues` and clicking on `Labels`.
+
+For organizations, you can define organization-wide labels that are shared with all organization repositories, including both already-existing repositories as well as newly created ones. Organization-wide labels can be created in the organization `Settings`.
 
 Labels have a mandatory name, a mandatory color, an optional description, and must either be exclusive or not (see `Scoped labels` below).
 
-When you create a repo, you can ensure certain labels exist by using the `Issue Labels` option. \
-This option lists a number of available label sets that are [configured globally on your instance](../customizing-gitea/#labels). \
-Its contained labels will all be created as well while creating the repo.
+When you create a repository, you can ensure certain labels exist by using the `Issue Labels` option. This option lists a number of available label sets that are [configured globally on your instance](../customizing-gitea/#labels). Its contained labels will all be created as well while creating the repository.
 
 ## Scoped Labels
 
-You can decrease your error susceptibility by using scoped labels. \
-A scoped label is a label that is marked as `exclusive` and contains `/` in its name (not at either end of the name). \
-For example, if label `A` is called `scope/item`, label `B` is called `scope/second-item`, and both are marked as `exclusive`, an issue cannot be labeled with both `A` and `B` at the same time. \
-Issues can have at most one of these labels per scope, or none. \
-The scope of a label is determined based on the **last** `/`, so for example the scope of label `subscope/subscope2/item` would be `subscope/subscope2`.
+A scoped label is a label that contains `/` in its name (not at either end of the name). For example labels `kind/bug` and `kind/enhancement` both have scope `kind`. Such labels will display the scope with slightly darker color.
+
+The scope of a label is determined based on the **last** `/`, so for example the scope of label `scope/subscope/item` is `scope/subscope`.
+
+Scoped labels can be marked as exclusive. This ensures at most a single label with the same scope is assigned to an issue or pull request. For example, if `kind/bug` and `kind/enhancement` are marked exclusive, an issue can only be classified as a bug or an enhancement.
 
 ## Filtering by Label
 
