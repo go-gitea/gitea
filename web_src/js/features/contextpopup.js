@@ -32,7 +32,7 @@ export function initContextPopups() {
       content: el,
       interactive: true,
       onShow: () => {
-        el.firstChild.dispatchEvent(new CustomEvent('us-load-context-popup', {detail: {owner, repo, index}}));
+        el.firstChild.dispatchEvent(new CustomEvent('ce-load-context-popup', {detail: {owner, repo, index}}));
       }
     });
   });
