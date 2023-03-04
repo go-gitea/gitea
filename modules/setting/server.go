@@ -53,7 +53,8 @@ var (
 	AppSubURL string
 	// AppDataPath is the default path for storing data.
 	// It maps to ini:"APP_DATA_PATH" in [server] and defaults to AppWorkPath + "/data"
-	AppDataPath string
+	AppDataPath                    string
+	AppDataPathDependentOnWorkPath bool // This is a helper marker used to inform if the AppDataPath is dependent on a user-provided or auto-determined work path
 	// LocalURL is the url for locally running applications to contact Gitea. It always has a '/' suffix
 	// It maps to ini:"LOCAL_ROOT_URL" in [server]
 	LocalURL string
@@ -323,8 +324,14 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	}
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
-	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
+	AppDataPathDependentOnWorkPath = false
+	AppDataPath = sec.Key("APP_DATA_PATH").MustString("")
+	if AppDataPath == "" {
+		AppDataPath = path.Join(AppWorkPath, "data")
+		AppDataPathDependentOnWorkPath = appWorkPathIsNotDefault
+	}
 	if !filepath.IsAbs(AppDataPath) {
+		AppDataPathDependentOnWorkPath = appWorkPathIsNotDefault
 		log.Info("The provided APP_DATA_PATH: %s is not absolute - it will be made absolute against the work path: %s", AppDataPath, AppWorkPath)
 		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
 	}

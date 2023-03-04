@@ -39,7 +39,8 @@ var (
 	// If that is not set it is the default set here by the linker or failing that the directory of AppPath.
 	//
 	// AppWorkPath is used as the base path for several other paths.
-	AppWorkPath string
+	AppWorkPath             string
+	appWorkPathIsNotDefault bool
 
 	// Global setting objects
 	CfgProvider  ConfigProvider
@@ -82,8 +83,8 @@ func getAppPath() (string, error) {
 
 func getWorkPath(appPath string) string {
 	workPath := AppWorkPath
-
 	if giteaWorkPath, ok := os.LookupEnv("GITEA_WORK_DIR"); ok {
+		appWorkPathIsNotDefault = true
 		workPath = giteaWorkPath
 	}
 	if len(workPath) == 0 {
@@ -96,6 +97,7 @@ func getWorkPath(appPath string) string {
 	}
 	workPath = strings.ReplaceAll(workPath, "\\", "/")
 	if !filepath.IsAbs(workPath) {
+		appWorkPathIsNotDefault = true
 		log.Info("Provided work path %s is not absolute - will be made absolute against the current working directory", workPath)
 
 		absPath, err := filepath.Abs(workPath)
@@ -159,10 +161,14 @@ func createPIDFile(pidPath string) {
 
 // SetCustomPathAndConf will set CustomPath and CustomConf with reference to the
 // GITEA_CUSTOM environment variable and with provided overrides before stepping
-// back to the default
+// back to the defaultAppWorkPath =
 func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string) {
 	if len(providedWorkPath) != 0 {
-		AppWorkPath = filepath.ToSlash(providedWorkPath)
+		providedWorkPath = filepath.ToSlash(providedWorkPath)
+		if providedWorkPath != AppWorkPath {
+			appWorkPathIsNotDefault = true
+			AppWorkPath = providedWorkPath
+		}
 	}
 	if giteaCustom, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
 		CustomPath = giteaCustom

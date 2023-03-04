@@ -37,6 +37,7 @@ var SSH = struct {
 	AuthorizedKeysBackup                  bool               `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
 	AuthorizedPrincipalsBackup            bool               `ini:"SSH_AUTHORIZED_PRINCIPALS_BACKUP"`
 	AuthorizedKeysCommandTemplate         string             `ini:"SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE"`
+	AuthorizedKeysCommandWorkPathTemplate string             `ini:"-"`
 	AuthorizedKeysCommandTemplateTemplate *template.Template `ini:"-"`
 	MinimumKeySizeCheck                   bool               `ini:"-"`
 	MinimumKeySizes                       map[string]int     `ini:"-"`
@@ -51,20 +52,21 @@ var SSH = struct {
 	PerWriteTimeout                       time.Duration      `ini:"SSH_PER_WRITE_TIMEOUT"`
 	PerWritePerKbTimeout                  time.Duration      `ini:"SSH_PER_WRITE_PER_KB_TIMEOUT"`
 }{
-	Disabled:                      false,
-	StartBuiltinServer:            false,
-	Domain:                        "",
-	Port:                          22,
-	ServerCiphers:                 []string{"chacha20-poly1305@openssh.com", "aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "aes256-gcm@openssh.com"},
-	ServerKeyExchanges:            []string{"curve25519-sha256", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "diffie-hellman-group14-sha256", "diffie-hellman-group14-sha1"},
-	ServerMACs:                    []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1"},
-	KeygenPath:                    "ssh-keygen",
-	MinimumKeySizeCheck:           true,
-	MinimumKeySizes:               map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2047},
-	ServerHostKeys:                []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
-	AuthorizedKeysCommandTemplate: "{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}",
-	PerWriteTimeout:               PerWriteTimeout,
-	PerWritePerKbTimeout:          PerWritePerKbTimeout,
+	Disabled:                              false,
+	StartBuiltinServer:                    false,
+	Domain:                                "",
+	Port:                                  22,
+	ServerCiphers:                         []string{"chacha20-poly1305@openssh.com", "aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "aes256-gcm@openssh.com"},
+	ServerKeyExchanges:                    []string{"curve25519-sha256", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "diffie-hellman-group14-sha256", "diffie-hellman-group14-sha1"},
+	ServerMACs:                            []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1"},
+	KeygenPath:                            "ssh-keygen",
+	MinimumKeySizeCheck:                   true,
+	MinimumKeySizes:                       map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2047},
+	ServerHostKeys:                        []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
+	AuthorizedKeysCommandTemplate:         "{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}",
+	AuthorizedKeysCommandWorkPathTemplate: "{{.AppPath}} --config={{.CustomConf}} --work-path={{.AppWorkPath}} serv key-{{.Key.ID}}",
+	PerWriteTimeout:                       PerWriteTimeout,
+	PerWritePerKbTimeout:                  PerWritePerKbTimeout,
 }
 
 func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
@@ -184,7 +186,12 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 	}
 
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
-	SSH.AuthorizedKeysCommandTemplate = sec.Key("SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE").MustString(SSH.AuthorizedKeysCommandTemplate)
+	// Now if the AppData path is dependent on the  work path we need to set a different default Template
+	if AppDataPathDependentOnWorkPath {
+		SSH.AuthorizedKeysCommandTemplate = sec.Key("SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE").MustString(SSH.AuthorizedKeysCommandWorkPathTemplate)
+	} else {
+		SSH.AuthorizedKeysCommandTemplate = sec.Key("SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE").MustString(SSH.AuthorizedKeysCommandTemplate)
+	}
 
 	SSH.AuthorizedKeysCommandTemplateTemplate = template.Must(template.New("").Parse(SSH.AuthorizedKeysCommandTemplate))
 
