@@ -700,8 +700,8 @@
 			<!-- If PR is closed, the comments whose type is CommentTypePullRequestPush(29) after latestCloseCommentID won't be rendered. //-->
 			{{if and .Issue.IsClosed (gt .ID $.LatestCloseCommentID)}}
 				{{continue}}
-			{{end}}`
-			<div class="timeline-item event" id="{{.HashTag}}">`
+			{{end}}
+			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-repo-push"}}</span>
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
