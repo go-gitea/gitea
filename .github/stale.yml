@@ -9,8 +9,8 @@ daysUntilClose: 14
 
 # Issues or Pull Requests with these labels will never be considered stale. Set to `[]` to disable
 exemptLabels:
-  - status/blocked 
-  - kind/security 
+  - status/blocked
+  - kind/security
   - lgtm/done
   - reviewed/confirmed
   - priority/critical
