@@ -33,11 +33,11 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	// Since the payload comes from json data, we should check if it's broken, or it will cause panic
 	switch {
 	case payload.Repo == nil:
-		return fmt.Errorf("miss Repo in event payload")
+		return fmt.Errorf("repo is missing in event payload")
 	case payload.Pusher == nil:
-		return fmt.Errorf("miss Pusher in event payload")
+		return fmt.Errorf("pusher is missing in event payload")
 	case payload.HeadCommit == nil:
-		return fmt.Errorf("miss HeadCommit in event payload")
+		return fmt.Errorf("head commit is missing in event payload")
 	}
 
 	creator, err := user_model.GetUserByID(ctx, payload.Pusher.ID)
