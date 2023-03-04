@@ -51,6 +51,7 @@ type ViewResponse struct {
 		Run struct {
 			Link       string     `json:"link"`
 			Title      string     `json:"title"`
+			Status     string     `json:"status"`
 			CanCancel  bool       `json:"canCancel"`
 			CanApprove bool       `json:"canApprove"` // the run needs an approval and the doer has permission to approve
 			Done       bool       `json:"done"`
@@ -111,6 +112,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.Run.CanApprove = run.NeedApproval && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.Done = run.Status.IsDone()
 	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead fo 'null' in json
+	resp.State.Run.Status = run.Status.String()
 	for _, v := range jobs {
 		resp.State.Run.Jobs = append(resp.State.Run.Jobs, &ViewJob{
 			ID:       v.ID,
