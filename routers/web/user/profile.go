@@ -113,22 +113,21 @@ func Profile(ctx *context.Context) {
 			ctx.ServerError("SubTree", err)
 		}
 		blob, err := tree.GetBlobByPath("README.md")
-		if err != nil {
-			ctx.ServerError("GetBlobByPath", err)
+		if err == nil {
+			bytes, err := blob.GetBlobContent()
+			if err != nil {
+				ctx.ServerError("GetBlobContent", err)
+			}
+			profileContent, err := markdown.RenderString(&markup.RenderContext{
+				Ctx:     ctx,
+				GitRepo: gitRepo,
+			}, bytes)
+			if err != nil {
+				ctx.ServerError("RenderString", err)
+				return
+			}
+			ctx.Data["ProfileReadme"] = profileContent
 		}
-		bytes, err := blob.GetBlobContent()
-		if err != nil {
-			ctx.ServerError("GetBlobContent", err)
-		}
-		profileContent, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:     ctx,
-			GitRepo: gitRepo,
-		}, bytes)
-		if err != nil {
-			ctx.ServerError("RenderString", err)
-			return
-		}
-		ctx.Data["ProfileReadme"] = profileContent
 	}
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
