@@ -28,7 +28,6 @@ func TestIsSvgImage(t *testing.T) {
 	assert.True(t, DetectContentType([]byte("<svg></svg>")).IsSvgImage())
 	assert.True(t, DetectContentType([]byte("    <svg></svg>")).IsSvgImage())
 	assert.True(t, DetectContentType([]byte(`<svg width="100"></svg>`)).IsSvgImage())
-	assert.True(t, DetectContentType([]byte("<svg/>")).IsSvgImage())
 	assert.True(t, DetectContentType([]byte(`<?xml version="1.0" encoding="UTF-8"?><svg></svg>`)).IsSvgImage())
 	assert.True(t, DetectContentType([]byte(`<!-- Comment -->
 	<svg></svg>`)).IsSvgImage())

@@ -4,6 +4,7 @@
 package typesniffer
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,8 +26,8 @@ const (
 
 var (
 	svgComment       = regexp.MustCompile(`(?s)<!--.*?-->`)
-	svgTagRegex      = regexp.MustCompile(`(?si)\A\s*(?:(<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg[\s>/]`)
-	svgTagInXMLRegex = regexp.MustCompile(`(?si)\A<\?xml\b.*?\?>\s*(?:(<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg[\s>/]`)
+	svgTagRegex      = regexp.MustCompile(`(?si)\A\s*(?:(<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg\b`)
+	svgTagInXMLRegex = regexp.MustCompile(`(?si)\A<\?xml\b.*?\?>\s*(?:(<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg\b`)
 )
 
 // SniffedType contains information about a blobs type.
@@ -80,6 +81,8 @@ func (ct SniffedType) GetMimeType() string {
 	return strings.SplitN(ct.contentType, ";", 2)[0]
 }
 
+var svgCloseTag = []byte("</svg>")
+
 // DetectContentType extends http.DetectContentType with more content types. Defaults to text/unknown if input is empty.
 func DetectContentType(data []byte) SniffedType {
 	if len(data) == 0 {
@@ -94,16 +97,16 @@ func DetectContentType(data []byte) SniffedType {
 
 	// SVG is unsupported by http.DetectContentType, https://github.com/golang/go/issues/15888
 
-	if strings.Contains(ct, "text/plain") || strings.Contains(ct, "text/html") {
-		dataNoComment := svgComment.ReplaceAll(data, nil)
-		if svgTagRegex.Match(dataNoComment) {
-			ct = SvgMimeType
-		}
-	}
-	if strings.Contains(ct, "text/xml") {
-		dataNoComment := svgComment.ReplaceAll(data, nil)
-		if svgTagInXMLRegex.Match(dataNoComment) {
-			ct = SvgMimeType
+	detectByHTML := strings.Contains(ct, "text/plain") || strings.Contains(ct, "text/html")
+	detectByXML := strings.Contains(ct, "text/xml")
+	if detectByHTML || detectByXML {
+		dataProcessed := svgComment.ReplaceAll(data, nil)
+		dataProcessed = bytes.TrimSpace(dataProcessed)
+		if bytes.HasSuffix(dataProcessed, svgCloseTag) {
+			if detectByHTML && svgTagRegex.Match(dataProcessed) ||
+				detectByXML && svgTagInXMLRegex.Match(dataProcessed) {
+				ct = SvgMimeType
+			}
 		}
 	}
 
