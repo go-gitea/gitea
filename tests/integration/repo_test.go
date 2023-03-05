@@ -361,3 +361,23 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 	// missing("special-subdir-nested", "/user2/readme-test/src/branch/special-subdir-nested/") // This is currently FAILING, due to a bug introduced in https://github.com/go-gitea/gitea/pull/22177
 	missing("symlink-loop", "/user2/readme-test/src/branch/symlink-loop/")
 }
+
+func TestMarkDownImage(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	req := NewRequest(t, "GET", "/user2/repo1/src/branch/home-md-img-check")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	_, exists := htmlDoc.doc.Find(`img[src="/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg"]`).Attr("src")
+	assert.True(t, exists, "Repo home page markdown image link check failed")
+
+	req = NewRequest(t, "GET", "/user2/repo1/src/branch/home-md-img-check/README.md")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	_, exists = htmlDoc.doc.Find(`img[src="/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg"]`).Attr("src")
+	assert.True(t, exists, "Repo src page markdown image link check failed")
+}
