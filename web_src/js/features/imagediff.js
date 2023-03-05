@@ -129,8 +129,8 @@ export function initImageDiff() {
         initOverlay(createContext($imageAfter[2], $imageBefore[2]));
       }
 
-      hideElem($container.find('> .loader'));
       $container.find('> .gt-hidden').removeClass('gt-hidden');
+      hideElem($container.find('.ui.loader'));
     }
 
     function initSideBySide(sizes) {
@@ -155,7 +155,7 @@ export function initImageDiff() {
         height: sizes.size1.height * factor
       });
       sizes.image1.parent().css({
-        margin: `${sizes.ratio[1] * factor + 15}px ${sizes.ratio[0] * factor}px ${sizes.ratio[1] * factor}px`,
+        margin: `10px auto`,
         width: sizes.size1.width * factor + 2,
         height: sizes.size1.height * factor + 2
       });
@@ -164,7 +164,7 @@ export function initImageDiff() {
         height: sizes.size2.height * factor
       });
       sizes.image2.parent().css({
-        margin: `${sizes.ratio[3] * factor}px ${sizes.ratio[2] * factor}px`,
+        margin: `10px auto`,
         width: sizes.size2.width * factor + 2,
         height: sizes.size2.height * factor + 2
       });
@@ -255,13 +255,10 @@ export function initImageDiff() {
         width: sizes.size2.width * factor + 2,
         height: sizes.size2.height * factor + 2
       });
+
       sizes.image2.parent().parent().css({
         width: sizes.max.width * factor + 2,
-        height: sizes.max.height * factor + 2
-      });
-      $container.find('.onion-skin').css({
-        width: sizes.max.width * factor + 2,
-        height: sizes.max.height * factor + 4
+        height: sizes.max.height * factor + 2 + 20,
       });
 
       const $range = $container.find("input[type='range']");

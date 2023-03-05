@@ -68,6 +68,26 @@ func TestIsSvgImage(t *testing.T) {
 	assert.False(t, DetectContentType([]byte(`<?xml version="1.0" encoding="UTF-8"?>
 	<!-- <svg></svg> inside comment -->
 	<foo></foo>`)).IsSvgImage())
+
+	assert.False(t, DetectContentType([]byte(`
+<!-- comment1 -->
+<div>
+	<!-- comment2 -->
+	<svg></svg>
+</div>
+`)).IsSvgImage())
+
+	assert.False(t, DetectContentType([]byte(`
+<!-- comment1
+-->
+<div>
+	<!-- comment2
+-->
+	<svg></svg>
+</div>
+`)).IsSvgImage())
+	assert.False(t, DetectContentType([]byte(`<html><body><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg></svg></body></html>`)).IsSvgImage())
+	assert.False(t, DetectContentType([]byte(`<html><body><?xml version="1.0" encoding="UTF-8"?><svg></svg></body></html>`)).IsSvgImage())
 }
 
 func TestIsPDF(t *testing.T) {

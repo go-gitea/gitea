@@ -24,8 +24,9 @@ const (
 )
 
 var (
-	svgTagRegex      = regexp.MustCompile(`(?si)\A\s*(?:(<!--.*?-->|<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg[\s>\/]`)
-	svgTagInXMLRegex = regexp.MustCompile(`(?si)\A<\?xml\b.*?\?>\s*(?:(<!--.*?-->|<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg[\s>\/]`)
+	svgComment       = regexp.MustCompile(`(?s)<!--.*?-->`)
+	svgTagRegex      = regexp.MustCompile(`(?si)\A\s*(?:(<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg[\s>/]`)
+	svgTagInXMLRegex = regexp.MustCompile(`(?si)\A<\?xml\b.*?\?>\s*(?:(<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg[\s>/]`)
 )
 
 // SniffedType contains information about a blobs type.
@@ -91,10 +92,19 @@ func DetectContentType(data []byte) SniffedType {
 		data = data[:sniffLen]
 	}
 
-	if (strings.Contains(ct, "text/plain") || strings.Contains(ct, "text/html")) && svgTagRegex.Match(data) ||
-		strings.Contains(ct, "text/xml") && svgTagInXMLRegex.Match(data) {
-		// SVG is unsupported. https://github.com/golang/go/issues/15888
-		ct = SvgMimeType
+	// SVG is unsupported by http.DetectContentType, https://github.com/golang/go/issues/15888
+
+	if strings.Contains(ct, "text/plain") || strings.Contains(ct, "text/html") {
+		dataNoComment := svgComment.ReplaceAll(data, nil)
+		if svgTagRegex.Match(dataNoComment) {
+			ct = SvgMimeType
+		}
+	}
+	if strings.Contains(ct, "text/xml") {
+		dataNoComment := svgComment.ReplaceAll(data, nil)
+		if svgTagInXMLRegex.Match(dataNoComment) {
+			ct = SvgMimeType
+		}
 	}
 
 	return SniffedType{ct}
