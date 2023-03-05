@@ -41,12 +41,8 @@ var (
 // NewContext loads custom highlight map from local config
 func NewContext() {
 	once.Do(func() {
-		if setting.Cfg != nil {
-			keys := setting.Cfg.Section("highlight.mapping").Keys()
-			for i := range keys {
-				highlightMapping[keys[i].Name()] = keys[i].Value()
-			}
-		}
+		highlightMapping = setting.GetHighlightMapping()
+
 		// The size 512 is simply a conservative rule of thumb
 		c, err := lru.New2Q(512)
 		if err != nil {

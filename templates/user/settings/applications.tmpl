@@ -21,7 +21,14 @@
 						</div>
 						<i class="icon tooltip{{if .HasRecentActivity}} green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.token_state_desc"}}"{{end}}>{{svg "fontawesome-send" 36}}</i>
 						<div class="content">
-							<strong>{{.Name}}</strong>
+							<details><summary><strong>{{.Name}}</strong></summary>
+								<p class="gt-my-2">{{$.locale.Tr "settings.scopes_list"}}</p>
+								<ul class="gt-my-2">
+								{{range .Scope.StringSlice}}
+									<li>{{.}}</li>
+								{{end}}
+								</ul>
+							</details>
 							<div class="activity meta">
 								<i>{{$.locale.Tr "settings.add_on"}} <span><time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time></span> — {{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}><time data-format="short-date" datetime="{{.UpdatedUnix.FormatLong}}">{{.UpdatedUnix.FormatShort}}</time></span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
 							</div>

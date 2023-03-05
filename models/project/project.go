@@ -217,16 +217,8 @@ func CountProjects(ctx context.Context, opts SearchOptions) (int64, error) {
 
 // FindProjects returns a list of all projects that have been created in the repository
 func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
-	e := db.GetEngine(ctx)
+	e := db.GetEngine(ctx).Where(opts.toConds())
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
-	cond := opts.toConds()
-
-	count, err := e.Where(cond).Count(new(Project))
-	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %w", err)
-	}
-
-	e = e.Where(cond)
 
 	if opts.Page > 0 {
 		e = e.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
@@ -243,7 +235,8 @@ func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, e
 		e.Asc("created_unix")
 	}
 
-	return projects, count, e.Find(&projects)
+	count, err := e.FindAndCount(&projects)
+	return projects, count, err
 }
 
 // NewProject creates a new Project

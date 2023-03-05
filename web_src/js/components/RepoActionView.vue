@@ -2,8 +2,17 @@
   <div class="action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary">
-        {{ run.title }}
-        <button class="run_cancel" @click="cancelRun()" v-if="run.canCancel">
+        <SvgIcon name="octicon-check-circle-fill" size="20" class="green" v-if="run.status === 'success'"/>
+        <SvgIcon name="octicon-clock" size="20" class="ui text yellow" v-else-if="run.status === 'waiting'"/>
+        <SvgIcon name="octicon-meter" size="20" class="ui text yellow" class-name="job-status-rotate" v-else-if="run.status === 'running'"/>
+        <SvgIcon name="octicon-x-circle-fill" size="20" class="red" v-else/>
+        <div class="action-title">
+          {{ run.title }}
+        </div>
+        <button class="run_approve" @click="approveRun()" v-if="run.canApprove">
+          <i class="play circle outline icon"/>
+        </button>
+        <button class="run_cancel" @click="cancelRun()" v-else-if="run.canCancel">
           <i class="stop circle outline icon"/>
         </button>
       </div>
@@ -96,7 +105,9 @@ const sfc = {
       run: {
         link: '',
         title: '',
+        status: '',
         canCancel: false,
+        canApprove: false,
         done: false,
         jobs: [
           // {
@@ -172,6 +183,10 @@ const sfc = {
     // cancel a run
     cancelRun() {
       this.fetchPost(`${this.run.link}/cancel`);
+    },
+    // approve a run
+    approveRun() {
+      this.fetchPost(`${this.run.link}/approve`);
     },
 
     createLogLine(line) {
@@ -268,6 +283,11 @@ export function initRepositoryActionView() {
   const el = document.getElementById('repo-action-view');
   if (!el) return;
 
+  // TODO: the parent element's full height doesn't work well now,
+  // but we can not pollute the global style at the moment, only fix the height problem for pages with this component
+  const parentFullHeight = document.querySelector('body > div.full.height');
+  if (parentFullHeight) parentFullHeight.style.paddingBottom = '0';
+
   const view = createApp(sfc, {
     runIndex: el.getAttribute('data-run-index'),
     jobIndex: el.getAttribute('data-job-index'),
@@ -298,7 +318,15 @@ export function initRepositoryActionView() {
     cursor: pointer;
     transition:transform 0.2s;
   };
-  .run_cancel:hover{
+  .run_approve {
+    border: none;
+    color: var(--color-green);
+    background-color: transparent;
+    outline: none;
+    cursor: pointer;
+    transition:transform 0.2s;
+  };
+  .run_cancel:hover, .run_approve:hover {
     transform:scale(130%);
   };
 }
@@ -306,7 +334,11 @@ export function initRepositoryActionView() {
 .action-info-summary {
   font-size: 150%;
   height: 20px;
-  padding: 0 10px;
+  display: flex;
+
+  .action-title {
+    padding: 0 5px;
+  }
 }
 
 // ================
@@ -411,11 +443,6 @@ export function initRepositoryActionView() {
 
 <style lang="less">
 // some elements are not managed by vue, so we need to use global style
-
-// TODO: the parent element's full height doesn't work well now
-body > div.full.height {
-  padding-bottom: 0;
-}
 
 .job-status-rotate {
   animation: job-status-rotate-keyframes 1s linear infinite;

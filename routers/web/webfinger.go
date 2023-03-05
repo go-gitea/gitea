@@ -60,7 +60,7 @@ func WebfingerQuery(ctx *context.Context) {
 
 		u, err = user_model.GetUserByName(ctx, parts[0])
 	case "mailto":
-		u, err = user_model.GetUserByEmailContext(ctx, resource.Opaque)
+		u, err = user_model.GetUserByEmail(ctx, resource.Opaque)
 		if u != nil && u.KeepEmailPrivate {
 			err = user_model.ErrUserNotExist{}
 		}
@@ -99,7 +99,7 @@ func WebfingerQuery(ctx *context.Context) {
 		},
 		{
 			Rel:  "http://webfinger.net/rel/avatar",
-			Href: u.AvatarLink(),
+			Href: u.AvatarLink(ctx),
 		},
 		{
 			Rel:  "self",

@@ -12,6 +12,9 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -112,7 +115,6 @@ steps:
     image: golang:1.19 # this step is kept as the lowest version of golang that we support
     pull: always
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
@@ -124,7 +126,6 @@ steps:
   - name: build-backend-arm64
     image: golang:1.20
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
       GOOS: linux
       GOARCH: arm64
@@ -140,7 +141,6 @@ steps:
   - name: build-backend-windows
     image: golang:1.20
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
       GOOS: windows
       GOARCH: amd64
@@ -155,7 +155,6 @@ steps:
   - name: build-backend-386
     image: golang:1.20
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
       GOOS: linux
       GOARCH: 386
@@ -183,6 +182,9 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -410,6 +412,9 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -517,6 +522,9 @@ depends_on:
 trigger:
   event:
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -696,6 +704,9 @@ trigger:
     - "release/*"
   event:
     - push
+  paths:
+    exclude:
+      - docs/**
 
 depends_on:
   - testing-amd64
@@ -947,6 +958,9 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    include:
+      - docs/**
 
 steps:
   - name: build-docs
@@ -985,10 +999,16 @@ depends_on:
 
 trigger:
   ref:
-  - "refs/tags/**"
+    include:
+      - "refs/tags/**"
+    exclude:
+      - "refs/tags/**-rc*"
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 steps:
   - name: fetch-tags
@@ -1022,6 +1042,71 @@ steps:
       dockerfile: Dockerfile.rootless
       auto_tag: true
       auto_tag_suffix: linux-amd64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.io
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+---
+
+kind: pipeline
+type: docker
+name: docker-linux-amd64-release-candidate-version
+
+platform:
+  os: linux
+  arch: amd64
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+
+trigger:
+  ref:
+    - "refs/tags/**-rc*"
+  event:
+    exclude:
+    - cron
+  paths:
+    exclude:
+      - docs/**
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    pull: always
+    commands:
+      - git config --global --add safe.directory /drone/src
+      - git fetch --tags --force
+
+  - name: publish
+    image: techknowlogick/drone-docker:latest
+    pull: always
+    settings:
+      tags: ${DRONE_TAG##v}-linux-amd64
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.io
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+  - name: publish-rootless
+    image: techknowlogick/drone-docker:latest
+    settings:
+      dockerfile: Dockerfile.rootless
+      tags: ${DRONE_TAG##v}-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1176,6 +1261,9 @@ depends_on:
 trigger:
   ref:
   - "refs/pull/**"
+  paths:
+    exclude:
+      - docs/**
 
 steps:
   - name: dryrun
@@ -1209,10 +1297,16 @@ depends_on:
 
 trigger:
   ref:
-  - "refs/tags/**"
+    include:
+      - "refs/tags/**"
+    exclude:
+      - "refs/tags/**-rc*"
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 steps:
   - name: fetch-tags
@@ -1261,6 +1355,71 @@ steps:
 ---
 kind: pipeline
 type: docker
+name: docker-linux-arm64-release-candidate-version
+
+platform:
+  os: linux
+  arch: arm64
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+
+trigger:
+  ref:
+    - "refs/tags/**-rc*"
+  event:
+    exclude:
+    - cron
+  paths:
+    exclude:
+      - docs/**
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    pull: always
+    commands:
+      - git config --global --add safe.directory /drone/src
+      - git fetch --tags --force
+
+  - name: publish
+    image: techknowlogick/drone-docker:latest
+    pull: always
+    settings:
+      tags: ${DRONE_TAG##v}-linux-arm64
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.io
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+  - name: publish-rootless
+    image: techknowlogick/drone-docker:latest
+    settings:
+      dockerfile: Dockerfile.rootless
+      tags: ${DRONE_TAG##v}-linux-arm64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.io
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+---
+kind: pipeline
+type: docker
 name: docker-linux-arm64-release
 
 platform:
@@ -1277,6 +1436,9 @@ trigger:
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 steps:
   - name: fetch-tags
@@ -1424,10 +1586,15 @@ trigger:
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 depends_on:
   - docker-linux-amd64-release-version
+  - docker-linux-amd64-release-candidate-version
   - docker-linux-arm64-release-version
+  - docker-linux-arm64-release-candidate-version
 
 ---
 kind: pipeline
@@ -1470,6 +1637,9 @@ trigger:
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 depends_on:
   - docker-linux-amd64-release
@@ -1509,6 +1679,8 @@ depends_on:
   - docker-linux-arm64-release
   - docker-linux-amd64-release-version
   - docker-linux-arm64-release-version
+  - docker-linux-amd64-release-candidate-version
+  - docker-linux-arm64-release-candidate-version
   - docker-linux-amd64-release-branch
   - docker-linux-arm64-release-branch
   - docker-manifest

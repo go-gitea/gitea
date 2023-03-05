@@ -41,7 +41,7 @@ func AvatarByUserName(ctx *context.Context) {
 		user = user_model.NewGhostUser()
 	}
 
-	cacheableRedirect(ctx, user.AvatarLinkWithSize(size))
+	cacheableRedirect(ctx, user.AvatarLinkWithSize(ctx, size))
 }
 
 // AvatarByEmailHash redirects the browser to the email avatar link
@@ -53,5 +53,5 @@ func AvatarByEmailHash(ctx *context.Context) {
 		return
 	}
 	size := ctx.FormInt("size")
-	cacheableRedirect(ctx, avatars.GenerateEmailAvatarFinalLink(email, size))
+	cacheableRedirect(ctx, avatars.GenerateEmailAvatarFinalLink(ctx, email, size))
 }
