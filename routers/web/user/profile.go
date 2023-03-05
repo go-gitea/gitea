@@ -98,7 +98,7 @@ func Profile(ctx *context.Context) {
 			ctx.ServerError("OpenRepository", err)
 		}
 		defer gitRepo.Close()
-		defaultBranch := repo.DefaultBranch // TODO: get default branch from repo module
+		defaultBranch := repo.DefaultBranch
 		commitID, err := gitRepo.GetBranchCommitID(defaultBranch)
 		if err != nil {
 			ctx.ServerError("GetBranchCommitID", err)
