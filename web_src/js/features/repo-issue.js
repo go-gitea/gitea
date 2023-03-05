@@ -535,7 +535,7 @@ export function initRepoPullRequestReview() {
 
     const td = ntr.find(`.add-comment-${side}`);
     let commentCloud = td.find('.comment-code-cloud');
-    if (commentCloud.length === 0 && !ntr.find('button[name="is_review"]').length) {
+    if (commentCloud.length === 0 && !ntr.find('button[name="pending_review"]').length) {
       const data = await $.get($(this).closest('[data-new-comment-url]').data('new-comment-url'));
       td.html(data);
       commentCloud = td.find('.comment-code-cloud');
