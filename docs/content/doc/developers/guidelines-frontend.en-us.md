@@ -47,6 +47,8 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 7. Clarify variable types, prefer `elem.disabled = true` instead of `elem.setAttribute('disabled', 'anything')`, prefer `$el.prop('checked', var === 'yes')` instead of `$el.prop('checked', var)`.
 8. Use semantic elements, prefer `<button class="ui button">` instead of `<div class="ui button">`.
 9. Avoid unnecessary `!important` in CSS, add comments to explain why it's necessary if it can't be avoided.
+10. Avoid mixing different events in one event listener, prefer to use individual event listeners for every event.
+11. Custom event names are recommended to use `ce-` prefix.
 
 ### Accessibility / ARIA
 
@@ -108,6 +110,22 @@ However, there are still some special cases, so the current guideline is:
 
 * Vue components are recommended to use `v-if` and `v-show` to show/hide elements.
 * Go template code should use Gitea's `.gt-hidden` and `showElem()/hideElem()/toggleElem()`, see more details in `.gt-hidden`'s comment.
+
+### Styles and Attributes in Go HTML Template
+
+It's recommended to use:
+
+```html
+<div class="gt-name1 gt-name2 {{if .IsFoo}}gt-foo{{end}}" {{if .IsFoo}}data-foo{{end}}></div>
+```
+
+instead of:
+
+```html
+<div class="gt-name1 gt-name2{{if .IsFoo}} gt-foo{{end}}"{{if .IsFoo}} data-foo{{end}}></div>
+```
+
+to make the code more readable.
 
 ### Legacy Code
 
