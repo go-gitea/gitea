@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content install">
+<div role="main" aria-label="{{.Title}}" class="page-content install post-install">
 	<div class="ui container">
 		<div class="ui grid">
 			<div class="sixteen wide column content">
@@ -13,7 +13,7 @@
 					</div>
 					<div class="ui stackable middle very relaxed page grid">
 						<div class="sixteen wide center aligned centered column">
-							<p><a href="{{AppSubUrl}}/user/login">{{AppSubUrl}}/user/login</a></p>
+							<p><a id="goto-user-login" href="{{AppSubUrl}}/user/login">{{.locale.Tr "loading"}}</a></p>
 						</div>
 					</div>
 				</div>

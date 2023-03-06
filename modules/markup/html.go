@@ -291,9 +291,10 @@ func RenderDescriptionHTML(
 // RenderEmoji for when we want to just process emoji and shortcodes
 // in various places it isn't already run through the normal markdown processor
 func RenderEmoji(
+	ctx *RenderContext,
 	content string,
 ) (string, error) {
-	return renderProcessString(&RenderContext{}, emojiProcessors, content)
+	return renderProcessString(ctx, emojiProcessors, content)
 }
 
 var (

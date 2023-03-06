@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,8 @@ func TestRenderCSV(t *testing.T) {
 
 	for k, v := range kases {
 		var buf strings.Builder
-		err := render.Render(&markup.RenderContext{}, strings.NewReader(k), &buf)
+		err := render.Render(&markup.RenderContext{Ctx: git.DefaultContext},
+			strings.NewReader(k), &buf)
 		assert.NoError(t, err)
 		assert.EqualValues(t, v, buf.String())
 	}

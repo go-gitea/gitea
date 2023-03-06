@@ -13,6 +13,7 @@ function updateExclusiveLabelEdit(form) {
 
   if (isExclusiveScopeName(nameInput.val())) {
     exclusiveField.removeClass('muted');
+    exclusiveField.removeAttr('aria-disabled');
     if (exclusiveCheckbox.prop('checked') && exclusiveCheckbox.data('exclusive-warn')) {
       exclusiveWarning.removeClass('gt-hidden');
     } else {
@@ -20,6 +21,7 @@ function updateExclusiveLabelEdit(form) {
     }
   } else {
     exclusiveField.addClass('muted');
+    exclusiveField.attr('aria-disabled', 'true');
     exclusiveWarning.addClass('gt-hidden');
   }
 }

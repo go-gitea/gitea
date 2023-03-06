@@ -52,12 +52,14 @@ func TestRender_StandardLinks(t *testing.T) {
 
 	test := func(input, expected, expectedWiki string) {
 		buffer, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: setting.AppSubURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 
 		buffer, err = RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: setting.AppSubURL,
 			IsWiki:    true,
 		}, input)
@@ -81,6 +83,7 @@ func TestRender_Images(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: setting.AppSubURL,
 		}, input)
 		assert.NoError(t, err)
@@ -311,6 +314,7 @@ func TestTotal_RenderWiki(t *testing.T) {
 
 	for i := 0; i < len(testCases); i += 2 {
 		line, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: AppSubURL,
 			IsWiki:    true,
 		}, testCases[i])
@@ -339,6 +343,7 @@ func TestTotal_RenderString(t *testing.T) {
 
 	for i := 0; i < len(testCases); i += 2 {
 		line, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: AppSubURL,
 		}, testCases[i])
 		assert.NoError(t, err)
@@ -348,17 +353,17 @@ func TestTotal_RenderString(t *testing.T) {
 
 func TestRender_RenderParagraphs(t *testing.T) {
 	test := func(t *testing.T, str string, cnt int) {
-		res, err := RenderRawString(&markup.RenderContext{}, str)
+		res, err := RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, str)
 		assert.NoError(t, err)
 		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for unix should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
 		mac := strings.ReplaceAll(str, "\n", "\r")
-		res, err = RenderRawString(&markup.RenderContext{}, mac)
+		res, err = RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, mac)
 		assert.NoError(t, err)
 		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for mac should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
 		dos := strings.ReplaceAll(str, "\n", "\r\n")
-		res, err = RenderRawString(&markup.RenderContext{}, dos)
+		res, err = RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, dos)
 		assert.NoError(t, err)
 		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for windows should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 	}
@@ -386,7 +391,7 @@ func TestMarkdownRenderRaw(t *testing.T) {
 
 	for _, testcase := range testcases {
 		log.Info("Test markdown render error with fuzzy data: %x, the following errors can be recovered", testcase)
-		_, err := RenderRawString(&markup.RenderContext{}, string(testcase))
+		_, err := RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, string(testcase))
 		assert.NoError(t, err)
 	}
 }
@@ -398,7 +403,7 @@ func TestRenderSiblingImages_Issue12925(t *testing.T) {
 	expected := `<p><a href="/image1" target="_blank" rel="nofollow noopener"><img src="/image1" alt="image1"></a><br>
 <a href="/image2" target="_blank" rel="nofollow noopener"><img src="/image2" alt="image2"></a></p>
 `
-	res, err := RenderRawString(&markup.RenderContext{}, testcase)
+	res, err := RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, testcase)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, res)
 }
@@ -407,7 +412,7 @@ func TestRenderEmojiInLinks_Issue12331(t *testing.T) {
 	testcase := `[Link with emoji :moon: in text](https://gitea.io)`
 	expected := `<p><a href="https://gitea.io" rel="nofollow">Link with emoji <span class="emoji" aria-label="waxing gibbous moon">🌔</span> in text</a></p>
 `
-	res, err := RenderString(&markup.RenderContext{}, testcase)
+	res, err := RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, testcase)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, res)
 }
@@ -441,7 +446,7 @@ func TestColorPreview(t *testing.T) {
 	}
 
 	for _, test := range positiveTests {
-		res, err := RenderString(&markup.RenderContext{}, test.testcase)
+		res, err := RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test.testcase)
 		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
 		assert.Equal(t, test.expected, res, "Unexpected result in testcase %q", test.testcase)
 
@@ -461,7 +466,7 @@ func TestColorPreview(t *testing.T) {
 	}
 
 	for _, test := range negativeTests {
-		res, err := RenderString(&markup.RenderContext{}, test)
+		res, err := RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test)
 		assert.NoError(t, err, "Unexpected error in testcase: %q", test)
 		assert.NotContains(t, res, `<span class="color-preview" style="background-color: `, "Unexpected result in testcase %q", test)
 	}
@@ -508,7 +513,7 @@ func TestMathBlock(t *testing.T) {
 	}
 
 	for _, test := range testcases {
-		res, err := RenderString(&markup.RenderContext{}, test.testcase)
+		res, err := RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test.testcase)
 		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
 		assert.Equal(t, test.expected, res, "Unexpected result in testcase %q", test.testcase)
 

@@ -79,7 +79,7 @@
 						{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
 						<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} gt-mt-3" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
 							<h4 class="diff-file-header sticky-2nd-row ui top attached normal header gt-df gt-ac gt-sb">
-								<div class="gt-df gt-ac">
+								<div class="diff-file-name gt-df gt-ac gt-mr-3">
 									<a role="button" class="fold-file muted gt-mr-2" {{if not $isExpandable}}style="visibility: hidden"{{end}}>
 										{{if $file.ShouldBeHidden}}
 											{{svg "octicon-chevron-right" 18}}
@@ -96,7 +96,7 @@
 											{{template "repo/diff/stats" dict "file" . "root" $}}
 										{{end}}
 									</div>
-									<span class="file gt-mono"><a class="muted" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{$.locale.Tr "repo.stored_lfs"}}){{end}}</span>
+									<span class="file gt-mono"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{$.locale.Tr "repo.stored_lfs"}}){{end}}</span>
 									{{if $file.IsGenerated}}
 										<span class="ui label gt-ml-3">{{$.locale.Tr "repo.diff.generated"}}</span>
 									{{end}}

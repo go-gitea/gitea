@@ -107,7 +107,7 @@
 						{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
 					</a>
 					<a href="{{.Owner.HomeLink}}/-/projects" class="{{if eq .TabName "projects"}}active {{end}}item">
-						{{svg "octicon-project"}} {{.locale.Tr "user.projects"}}
+						{{svg "octicon-project-symlink"}} {{.locale.Tr "user.projects"}}
 					</a>
 					{{if .IsPackageEnabled}}
 					<a class='{{if eq .TabName "packages"}}active {{end}}item' href="{{.Owner.HomeLink}}/-/packages">

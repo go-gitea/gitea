@@ -11,10 +11,8 @@ export function initRepoDiffReviewButton() {
   const $reviewBox = $('#review-box');
   const $counter = $reviewBox.find('.review-comments-counter');
 
-  $(document).on('click', 'button[name="is_review"]', (e) => {
+  $(document).on('click', 'button[name="pending_review"]', (e) => {
     const $form = $(e.target).closest('form');
-    $form.append('<input type="hidden" name="is_review" value="true">');
-
     // Watch for the form's submit event.
     $form.on('submit', () => {
       const num = parseInt($counter.attr('data-pending-comment-number')) + 1 || 1;
@@ -50,7 +48,15 @@ export function initRepoDiffConversationForm() {
       return;
     }
 
-    const formDataString = String(new URLSearchParams(new FormData($form[0])));
+    const formData = new FormData($form[0]);
+
+    // if the form is submitted by a button, append the button's name and value to the form data
+    const submitter = e.originalEvent?.submitter;
+    const isSubmittedByButton = (submitter?.nodeName === 'BUTTON') || (submitter?.nodeName === 'INPUT' && submitter.type === 'submit');
+    if (isSubmittedByButton && submitter.name) {
+      formData.append(submitter.name, submitter.value);
+    }
+    const formDataString = String(new URLSearchParams(formData));
     const $newConversationHolder = $(await $.post($form.attr('action'), formDataString));
     const {path, side, idx} = $newConversationHolder.data();
 

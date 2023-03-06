@@ -91,36 +91,8 @@ export function initRepoEditor() {
     $('#commit-button').text($(this).attr('button_text'));
   });
 
-  const $editFilename = $('#file-name');
-  $editFilename.on('keyup', function (e) {
-    const $section = $('.breadcrumb span.section');
-    const $divider = $('.breadcrumb div.divider');
-    let value;
-    let parts;
-
-    if (e.keyCode === 8 && getCursorPosition($(this)) === 0 && $section.length > 0) {
-      value = $section.last().find('a').text();
-      $(this).val(value + $(this).val());
-      $(this)[0].setSelectionRange(value.length, value.length);
-      $section.last().remove();
-      $divider.last().remove();
-    }
-    if (e.keyCode === 191) {
-      parts = $(this).val().split('/');
-      for (let i = 0; i < parts.length; ++i) {
-        value = parts[i];
-        if (i < parts.length - 1) {
-          if (value.length) {
-            $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`).insertBefore($(this));
-            $('<div class="divider"> / </div>').insertBefore($(this));
-          }
-        } else {
-          $(this).val(value);
-        }
-        $(this)[0].setSelectionRange(0, 0);
-      }
-    }
-    parts = [];
+  const joinTreePath = ($fileNameEl) => {
+    const parts = [];
     $('.breadcrumb span.section').each(function () {
       const element = $(this);
       if (element.find('a').length) {
@@ -129,9 +101,47 @@ export function initRepoEditor() {
         parts.push(element.text());
       }
     });
-    if ($(this).val()) parts.push($(this).val());
+    if ($fileNameEl.val()) parts.push($fileNameEl.val());
     $('#tree_path').val(parts.join('/'));
-  }).trigger('keyup');
+  };
+
+  const $editFilename = $('#file-name');
+  $editFilename.on('input', function () {
+    const parts = $(this).val().split('/');
+
+    if (parts.length > 1) {
+      for (let i = 0; i < parts.length; ++i) {
+        const value = parts[i];
+        if (i < parts.length - 1) {
+          if (value.length) {
+            $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`).insertBefore($(this));
+            $('<div class="divider"> / </div>').insertBefore($(this));
+          }
+        } else {
+          $(this).val(value);
+        }
+        this.setSelectionRange(0, 0);
+      }
+    }
+
+    joinTreePath($(this));
+  });
+
+  $editFilename.on('keydown', function (e) {
+    const $section = $('.breadcrumb span.section');
+
+    // Jump back to last directory once the filename is empty
+    if (e.code === 'Backspace' && getCursorPosition($(this)) === 0 && $section.length > 0) {
+      e.preventDefault();
+      const $divider = $('.breadcrumb div.divider');
+      const value = $section.last().find('a').text();
+      $(this).val(value + $(this).val());
+      this.setSelectionRange(value.length, value.length);
+      $section.last().remove();
+      $divider.last().remove();
+      joinTreePath($(this));
+    }
+  });
 
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;

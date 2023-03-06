@@ -40,7 +40,7 @@
 		<div class="milestone list">
 			{{range .Projects}}
 				<li class="item">
-					{{svg "octicon-project"}} <a href="{{$.RepoLink}}/projects/{{.ID}}">{{.Title}}</a>
+					{{svg "octicon-project"}} <a href="{{.Link}}">{{.Title}}</a>
 					<div class="meta">
 						{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
 						{{if .IsClosed}}

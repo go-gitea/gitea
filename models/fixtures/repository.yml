@@ -25,7 +25,7 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 6708
+  size: 7028
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
 

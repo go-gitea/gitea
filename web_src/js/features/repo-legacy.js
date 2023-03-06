@@ -145,7 +145,6 @@ export function initRepoCommentForm() {
 
       const clickedItem = $(this);
       const scope = $(this).attr('data-scope');
-      const canRemoveScope = e.altKey;
 
       $(this).parent().find('.item').each(function () {
         if (scope) {
@@ -153,11 +152,7 @@ export function initRepoCommentForm() {
           if ($(this).attr('data-scope') !== scope) {
             return true;
           }
-          if ($(this).is(clickedItem)) {
-            if (!canRemoveScope && $(this).hasClass('checked')) {
-              return true;
-            }
-          } else if (!$(this).hasClass('checked')) {
+          if (!$(this).is(clickedItem) && !$(this).hasClass('checked')) {
             return true;
           }
         } else if (!$(this).is(clickedItem)) {

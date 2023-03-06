@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
 	context_module "code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -51,6 +52,7 @@ type ViewResponse struct {
 		Run struct {
 			Link       string     `json:"link"`
 			Title      string     `json:"title"`
+			Status     string     `json:"status"`
 			CanCancel  bool       `json:"canCancel"`
 			CanApprove bool       `json:"canApprove"` // the run needs an approval and the doer has permission to approve
 			Done       bool       `json:"done"`
@@ -111,6 +113,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.Run.CanApprove = run.NeedApproval && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.Done = run.Status.IsDone()
 	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead fo 'null' in json
+	resp.State.Run.Status = run.Status.String()
 	for _, v := range jobs {
 		resp.State.Run.Jobs = append(resp.State.Run.Jobs, &ViewJob{
 			ID:       v.ID,
@@ -212,13 +215,16 @@ func Rerun(ctx *context_module.Context) {
 	job.Stopped = 0
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if _, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped"); err != nil {
-			return err
-		}
-		return actions_service.CreateCommitStatus(ctx, job)
+		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped")
+		return err
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	if err := actions_service.CreateCommitStatus(ctx, job); err != nil {
+		log.Error("Update commit status for job %v failed: %v", job.ID, err)
+		// go on
 	}
 
 	ctx.JSON(http.StatusOK, struct{}{})
@@ -253,14 +259,18 @@ func Cancel(ctx *context_module.Context) {
 			if err := actions_model.StopTask(ctx, job.TaskID, actions_model.StatusCancelled); err != nil {
 				return err
 			}
-			if err := actions_service.CreateCommitStatus(ctx, job); err != nil {
-				return err
-			}
 		}
 		return nil
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	for _, job := range jobs {
+		if err := actions_service.CreateCommitStatus(ctx, job); err != nil {
+			log.Error("Update commit status for job %v failed: %v", job.ID, err)
+			// go on
+		}
 	}
 
 	ctx.JSON(http.StatusOK, struct{}{})

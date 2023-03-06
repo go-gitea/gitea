@@ -186,7 +186,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
-	renderReadmeFile(ctx, readmeFile, treeLink)
+	renderReadmeFile(ctx, readmeFile, fmt.Sprintf("%s/%s", treeLink, readmeFile.name))
 }
 
 // localizedExtensions prepends the provided language code with and without a

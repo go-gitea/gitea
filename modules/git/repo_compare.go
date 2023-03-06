@@ -277,11 +277,18 @@ func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 
 // GetFilesChangedBetween returns a list of all files that have been changed between the given commits
 func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only").AddDynamicArguments(base + ".." + head).RunStdString(&RunOpts{Dir: repo.Path})
+	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only", "-z").AddDynamicArguments(base + ".." + head).RunStdString(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}
-	return strings.Split(stdout, "\n"), err
+	split := strings.Split(stdout, "\000")
+
+	// Because Git will always emit filenames with a terminal NUL ignore the last entry in the split - which will always be empty.
+	if len(split) > 0 {
+		split = split[:len(split)-1]
+	}
+
+	return split, err
 }
 
 // GetDiffFromMergeBase generates and return patch data from merge base to head

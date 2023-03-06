@@ -52,7 +52,7 @@ func (s *Service) Register(
 	}
 
 	if runnerToken.IsActive {
-		return nil, errors.New("runner token has already activated")
+		return nil, errors.New("runner token has already been activated")
 	}
 
 	// create new runner
@@ -150,7 +150,7 @@ func (s *Service) UpdateTask(
 	}
 
 	if err := actions_service.CreateCommitStatus(ctx, task.Job); err != nil {
-		log.Error("Update commit status failed: %v", err)
+		log.Error("Update commit status for job %v failed: %v", task.Job.ID, err)
 		// go on
 	}
 

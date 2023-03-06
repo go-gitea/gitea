@@ -256,3 +256,23 @@ func TestViewRepoDirectory(t *testing.T) {
 	assert.Zero(t, repoTopics.Length())
 	assert.Zero(t, repoSummary.Length())
 }
+
+func TestMarkDownImage(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	req := NewRequest(t, "GET", "/user2/repo1/src/branch/home-md-img-check")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	_, exists := htmlDoc.doc.Find(`img[src="/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg"]`).Attr("src")
+	assert.True(t, exists, "Repo home page markdown image link check failed")
+
+	req = NewRequest(t, "GET", "/user2/repo1/src/branch/home-md-img-check/README.md")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	_, exists = htmlDoc.doc.Find(`img[src="/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg"]`).Attr("src")
+	assert.True(t, exists, "Repo src page markdown image link check failed")
+}

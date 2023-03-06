@@ -187,7 +187,8 @@ func notify(ctx context.Context, input *notifyInput) error {
 		} else {
 			for _, job := range jobs {
 				if err := CreateCommitStatus(ctx, job); err != nil {
-					log.Error("CreateCommitStatus: %v", err)
+					log.Error("Update commit status for job %v failed: %v", job.ID, err)
+					// go on
 				}
 			}
 		}
