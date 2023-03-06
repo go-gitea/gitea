@@ -205,10 +205,8 @@ func enableReflogs() error {
 	if err := configSet("core.logAllRefUpdates", "true"); err != nil {
 		return err
 	}
-	if err := configSet("gc.reflogExpire", fmt.Sprintf("%d", setting.Git.Reflog.Expiration)); err != nil {
-		return err
-	}
-	return nil
+	err := configSet("gc.reflogExpire", fmt.Sprintf("%d", setting.Git.Reflog.Expiration))
+	return err
 }
 
 func disableReflogs() error {
