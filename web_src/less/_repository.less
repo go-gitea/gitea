@@ -1670,17 +1670,13 @@
     align-items: center;
 
     .file {
-      // flex: 1;
-      // word-break: break-all;
-      display: inline-flex;
-      max-width: 100%;
       min-width: 0;
       .file-link {
         max-width: fit-content;
-        min-width: 1ch;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
       }
     }
 
@@ -3300,7 +3296,7 @@ td.blob-excerpt {
 
   .diff-file-name {
     flex: auto;
-    min-width: 0;
+    min-width: 100px;
   }
 }
 
