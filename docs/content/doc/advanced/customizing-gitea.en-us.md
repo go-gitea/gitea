@@ -292,7 +292,7 @@ labels:
     description: Some label # long description of label intent
  ```
 
-The legacy semi-colon delimited file format can be used that follows [label format](https://github.com/go-gitea/gitea/blob/main/options/label/Default) to `$GITEA_CUSTOM/options/label`.
+The [legacy file format](https://github.com/go-gitea/gitea/blob/main/options/label/Default) can still be used following the format below, however we strongly recommend using the newer YAML format instead.
 
 `#hex-color label name ; label description`
 
