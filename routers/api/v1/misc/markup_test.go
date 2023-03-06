@@ -49,20 +49,40 @@ func wrap(ctx *context.Context) *context.APIContext {
 	}
 }
 
-func testRenderDocument(t *testing.T, mode, path string) {
+func testRenderMarkup(t *testing.T, mode, filePath, text, responseBody string, responseCode int) {
 	setting.AppURL = AppURL
-	markup.Init(&markup.ProcessorHelper{
-		IsUsernameMentionable: func(ctx go_context.Context, username string) bool {
-			return username == "r-lyeh"
-		},
-	})
+
+	options := api.MarkupOption{
+		Mode:     mode,
+		Text:     "",
+		Context:  Repo,
+		Wiki:     true,
+		FilePath: filePath,
+	}
+	requrl, _ := url.Parse(util.URLJoin(AppURL, "api", "v1", "markup"))
+	req := &http.Request{
+		Method: "POST",
+		URL:    requrl,
+	}
+	m, resp := createContext(req)
+	ctx := wrap(m)
+
+	options.Text = text
+	web.SetForm(ctx, &options)
+	Markup(ctx)
+	assert.Equal(t, responseBody, resp.Body.String())
+	assert.Equal(t, responseCode, resp.Code)
+	resp.Body.Reset()
+}
+
+func testRenderMarkdown(t *testing.T, mode, text, responseBody string, responseCode int) {
+	setting.AppURL = AppURL
 
 	options := api.MarkdownOption{
 		Mode:    mode,
 		Text:    "",
 		Context: Repo,
 		Wiki:    true,
-		Path:    path,
 	}
 	requrl, _ := url.Parse(util.URLJoin(AppURL, "api", "v1", "markdown"))
 	req := &http.Request{
@@ -72,7 +92,22 @@ func testRenderDocument(t *testing.T, mode, path string) {
 	m, resp := createContext(req)
 	ctx := wrap(m)
 
-	testCases := []string{
+	options.Text = text
+	web.SetForm(ctx, &options)
+	Markdown(ctx)
+	assert.Equal(t, responseBody, resp.Body.String())
+	assert.Equal(t, responseCode, resp.Code)
+	resp.Body.Reset()
+}
+
+func TestAPI_RenderGFM(t *testing.T) {
+	markup.Init(&markup.ProcessorHelper{
+		IsUsernameMentionable: func(ctx go_context.Context, username string) bool {
+			return username == "r-lyeh"
+		},
+	})
+
+	testCasesCommon := []string{
 		// dear imgui wiki markdown extract: special wiki syntax
 		`Wiki! Enjoy :)
 - [[Links, Language bindings, Engine bindings|Links]]
@@ -86,6 +121,23 @@ func testRenderDocument(t *testing.T, mode, path string) {
 <li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">https://github.com/ocornut/imgui/issues/786</a></li>
 </ul>
 `,
+		// Guard wiki sidebar: special syntax
+		`[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]`,
+		// rendered
+		`<p><a href="` + AppSubURL + `wiki/Guardfile-DSL---Configuring-Guard" rel="nofollow">Guardfile-DSL / Configuring-Guard</a></p>
+`,
+		// special syntax
+		`[[Name|Link]]`,
+		// rendered
+		`<p><a href="` + AppSubURL + `wiki/Link" rel="nofollow">Name</a></p>
+`,
+		// empty
+		``,
+		// rendered
+		``,
+	}
+
+	testCasesDocument := []string{
 		// wine-staging wiki home extract: special wiki syntax, images
 		`## What is Wine Staging?
 **Wine Staging** on website [wine-staging.com](http://wine-staging.com).
@@ -104,37 +156,28 @@ Here are some links to the most important topics. You can find the full list of 
 <p><a href="` + AppSubURL + `wiki/Configuration" rel="nofollow">Configuration</a>
 <a href="` + AppSubURL + `wiki/raw/images/icon-bug.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images/icon-bug.png" title="icon-bug.png" alt="images/icon-bug.png"/></a></p>
 `,
-		// Guard wiki sidebar: special syntax
-		`[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]`,
-		// rendered
-		`<p><a href="` + AppSubURL + `wiki/Guardfile-DSL---Configuring-Guard" rel="nofollow">Guardfile-DSL / Configuring-Guard</a></p>
-`,
-		// special syntax
-		`[[Name|Link]]`,
-		// rendered
-		`<p><a href="` + AppSubURL + `wiki/Link" rel="nofollow">Name</a></p>
-`,
-		// empty
-		``,
-		// rendered
-		``,
 	}
 
-	for i := 0; i < len(testCases); i += 2 {
-		options.Text = testCases[i]
-		web.SetForm(ctx, &options)
-		Markdown(ctx)
-		assert.Equal(t, testCases[i+1], resp.Body.String())
-		resp.Body.Reset()
+	for i := 0; i < len(testCasesCommon); i += 2 {
+		text := testCasesCommon[i]
+		response := testCasesCommon[i+1]
+		testRenderMarkdown(t, "gfm", text, response, http.StatusOK)
+		testRenderMarkup(t, "gfm", "", text, response, http.StatusOK)
+		testRenderMarkdown(t, "comment", text, response, http.StatusOK)
+		testRenderMarkup(t, "comment", "", text, response, http.StatusOK)
+		testRenderMarkup(t, "file", "path/test.md", text, response, http.StatusOK)
 	}
-}
 
-func TestAPI_RenderGFM(t *testing.T) {
-	testRenderDocument(t, "gfm", "")
-}
+	for i := 0; i < len(testCasesDocument); i += 2 {
+		text := testCasesDocument[i]
+		response := testCasesDocument[i+1]
+		testRenderMarkdown(t, "gfm", text, response, http.StatusOK)
+		testRenderMarkup(t, "gfm", "", text, response, http.StatusOK)
+		testRenderMarkup(t, "file", "path/test.md", text, response, http.StatusOK)
+	}
 
-func TestAPI_RenderPreview(t *testing.T) {
-	testRenderDocument(t, "preview", "test/test.md")
+	testRenderMarkup(t, "file", "path/test.unknown", "## Test", `{"message":"Unsupported render extension: .unknown","url":""}`+"\n", http.StatusUnprocessableEntity)
+	testRenderMarkup(t, "unknown", "", "## Test", `{"message":"Unknown mode: unknown","url":""}`+"\n", http.StatusUnprocessableEntity)
 }
 
 var simpleCases = []string{

@@ -54,6 +54,8 @@ type swaggerParameterBodies struct {
 	EditLabelOption api.EditLabelOption
 
 	// in:body
+	MarkupOption api.MarkupOption
+	// in:body
 	MarkdownOption api.MarkdownOption
 
 	// in:body

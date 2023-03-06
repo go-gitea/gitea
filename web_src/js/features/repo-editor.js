@@ -25,7 +25,7 @@ function initEditPreviewTab($form) {
         mode,
         context,
         text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val(),
-        path: treePathEl.val(),
+        file_path: treePathEl.val(),
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);

@@ -283,6 +283,11 @@ type ErrUnsupportedRenderExtension struct {
 	Extension string
 }
 
+func IsErrUnsupportedRenderExtension(err error) bool {
+	_, ok := err.(ErrUnsupportedRenderExtension)
+	return ok
+}
+
 func (err ErrUnsupportedRenderExtension) Error() string {
 	return fmt.Sprintf("Unsupported render extension: %s", err.Extension)
 }

@@ -140,7 +140,7 @@ export async function createCodeEditor(textarea, filenameInput) {
 
   if (previewLink) {
     if (previewable) {
-      const newUrl = (previewLink.getAttribute('data-url') || '').replace(/(.*)\/.*/i, `$1/markdown`);
+      const newUrl = (previewLink.getAttribute('data-url') || '').replace(/(.*)\/.*/i, `$1/markup`);
       previewLink.setAttribute('data-url', newUrl);
       previewLink.style.display = '';
     } else {
