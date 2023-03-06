@@ -2,10 +2,7 @@
   <div class="action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary">
-        <SvgIcon name="octicon-check-circle-fill" size="20" class="green" v-if="run.status === 'success'"/>
-        <SvgIcon name="octicon-clock" size="20" class="ui text yellow" v-else-if="run.status === 'waiting'"/>
-        <SvgIcon name="octicon-meter" size="20" class="ui text yellow" class-name="job-status-rotate" v-else-if="run.status === 'running'"/>
-        <SvgIcon name="octicon-x-circle-fill" size="20" class="red" v-else/>
+        <ActionRunStatus :status="run.status" size="20"/>
         <div class="action-title">
           {{ run.title }}
         </div>
@@ -23,7 +20,7 @@
           <div class="job-brief-list">
             <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
-                <ActionsRunStatus :status="job.status" size="20"/>
+                <ActionRunStatus :status="job.status"/>
                 <span class="ui text">{{ job.name }}</span>
               </a>
               <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
@@ -49,7 +46,7 @@
               <SvgIcon name="octicon-chevron-down" class="gt-mr-3" v-show="currentJobStepsStates[i].expanded"/>
               <SvgIcon name="octicon-chevron-right" class="gt-mr-3" v-show="!currentJobStepsStates[i].expanded"/>
 
-              <ActionsRunStatus :status="jobStep.status" class="gt-mr-3"/>
+              <ActionRunStatus :status="jobStep.status" class="gt-mr-3"/>
 
               <span class="step-summary-msg">{{ jobStep.summary }}</span>
               <span class="step-summary-dur">{{ jobStep.duration }}</span>
@@ -66,7 +63,7 @@
 
 <script>
 import {SvgIcon} from '../svg.js';
-import ActionsRunStatus from './ActionsRunStatus.vue';
+import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
 import AnsiToHTML from 'ansi-to-html';
 
@@ -76,7 +73,7 @@ const sfc = {
   name: 'RepoActionView',
   components: {
     SvgIcon,
-    ActionsRunStatus,
+    ActionRunStatus,
   },
   props: {
     runIndex: String,

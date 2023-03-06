@@ -3,7 +3,7 @@
   <SvgIcon name="octicon-skip" class="ui text grey" :size="size" v-else-if="status === 'skipped'"/>
   <SvgIcon name="octicon-clock" class="ui text yellow" :size="size" v-else-if="status === 'waiting'"/>
   <SvgIcon name="octicon-blocked" class="ui text yellow" :size="size" v-else-if="status === 'blocked'"/>
-  <SvgIcon name="octicon-meter" class="ui text yellow" :size="size" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
+  <SvgIcon name="octicon-meter" class="ui text yellow" :size="size" class-name="job-status-rotate" v-else-if="status === 'running'"/>
   <SvgIcon name="octicon-x-circle-fill" class="red" :size="size" v-else/>
 </template>
 
