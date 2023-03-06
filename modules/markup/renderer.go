@@ -317,3 +317,15 @@ func IsMarkupFile(name, markup string) bool {
 	}
 	return false
 }
+
+func PreviewableExtensions() []string {
+	extensions := []string{}
+
+	for _, fileMode := range setting.Repository.Editor.PreviewableFileModes {
+		if renderer, ok := renderers[fileMode]; ok {
+			extensions = append(extensions, renderer.Extensions()...)
+		}
+	}
+
+	return extensions
+}

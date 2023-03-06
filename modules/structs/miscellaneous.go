@@ -33,6 +33,10 @@ type MarkdownOption struct {
 	//
 	// in: body
 	Wiki bool
+	// Path for extension detection
+	//
+	// in: body
+	Path string
 }
 
 // MarkdownRender is a rendered markdown document

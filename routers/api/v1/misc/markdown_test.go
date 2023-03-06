@@ -49,7 +49,7 @@ func wrap(ctx *context.Context) *context.APIContext {
 	}
 }
 
-func TestAPI_RenderGFM(t *testing.T) {
+func testRenderDocument(t *testing.T, mode, path string) {
 	setting.AppURL = AppURL
 	markup.Init(&markup.ProcessorHelper{
 		IsUsernameMentionable: func(ctx go_context.Context, username string) bool {
@@ -58,10 +58,11 @@ func TestAPI_RenderGFM(t *testing.T) {
 	})
 
 	options := api.MarkdownOption{
-		Mode:    "gfm",
+		Mode:    mode,
 		Text:    "",
 		Context: Repo,
 		Wiki:    true,
+		Path:    path,
 	}
 	requrl, _ := url.Parse(util.URLJoin(AppURL, "api", "v1", "markdown"))
 	req := &http.Request{
@@ -126,6 +127,14 @@ Here are some links to the most important topics. You can find the full list of 
 		assert.Equal(t, testCases[i+1], resp.Body.String())
 		resp.Body.Reset()
 	}
+}
+
+func TestAPI_RenderGFM(t *testing.T) {
+	testRenderDocument(t, "gfm", "")
+}
+
+func TestAPI_RenderPreview(t *testing.T) {
+	testRenderDocument(t, "preview", "test/test.md")
 }
 
 var simpleCases = []string{

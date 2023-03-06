@@ -54,6 +54,8 @@ func Markdown(ctx *context.Context) {
 	switch form.Mode {
 	case "comment":
 		fallthrough
+	case "preview":
+		fallthrough
 	case "gfm":
 		urlPrefix := form.Context
 		meta := map[string]string{}
@@ -65,23 +67,36 @@ func Markdown(ctx *context.Context) {
 				urlPrefix = util.URLJoin(setting.AppURL, form.Context)
 			}
 		}
+
+		// "gfm" = Github Flavored Markdown - set this to render as a markdown document
+		// "preview" = file preview - render as document based on file extension
+		// "comment" = render as markdown
 		if ctx.Repo != nil && ctx.Repo.Repository != nil {
-			// "gfm" = Github Flavored Markdown - set this to render as a document
-			if form.Mode == "gfm" {
-				meta = ctx.Repo.Repository.ComposeDocumentMetas()
-			} else {
+			if form.Mode == "comment" {
 				meta = ctx.Repo.Repository.ComposeMetas()
+			} else {
+				meta = ctx.Repo.Repository.ComposeDocumentMetas()
 			}
 		}
-		if form.Mode == "gfm" {
+		if form.Mode != "comment" {
 			meta["mode"] = "document"
 		}
 
-		if err := markdown.Render(&markup.RenderContext{
-			Ctx:       ctx,
-			URLPrefix: urlPrefix,
-			Metas:     meta,
-			IsWiki:    form.Wiki,
+		markupType := ""
+		relativePath := ""
+		if form.Mode == "preview" {
+			relativePath = form.Path
+		} else {
+			markupType = markdown.MarkupName
+		}
+
+		if err := markup.Render(&markup.RenderContext{
+			Ctx:          ctx,
+			URLPrefix:    urlPrefix,
+			Metas:        meta,
+			IsWiki:       form.Wiki,
+			Type:         markupType,
+			RelativePath: relativePath,
 		}, strings.NewReader(form.Text), ctx.Resp); err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
