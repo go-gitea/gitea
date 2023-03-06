@@ -284,7 +284,7 @@ To add custom .gitignore, add a file with existing [.gitignore rules](https://gi
 
 Starting with Gitea 1.19, you can add a file that follows the [YAML label format](https://github.com/go-gitea/gitea/blob/main/options/label/Advanced.yaml) to `$GITEA_CUSTOM/options/label`:
 
-```
+```yaml
 labels:
   - name: "foo/bar"  # name of the label that will appear in the dropdown
     exclusive: true # whether to use the exclusive namespace for scoped labels. scoped delimiter is /
