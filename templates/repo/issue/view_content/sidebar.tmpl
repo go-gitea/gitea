@@ -107,7 +107,7 @@
 		{{end}}
 
 		{{template "repo/issue/labels/labels_selector_field" .}}
-		{{template "repo/issue/labels/labels_sidebar" dict "root" $ "ctx" .}}
+		{{template "repo/issue/labels/labels_sidebar" dict "root" $}}
 
 		<div class="ui divider"></div>
 
@@ -445,8 +445,8 @@
 						{{range .BlockingDependencies}}
 							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
 								<div class="item-left gt-df gt-jc gt-fc gt-f1">
-									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}">
-										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
+									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
+										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
 									</a>
 									<div class="text small">
 										{{.Repository.OwnerName}}/{{.Repository.Name}}
@@ -472,8 +472,8 @@
 						{{range .BlockedByDependencies}}
 							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
 								<div class="item-left gt-df gt-jc gt-fc gt-f1">
-									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}">
-										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
+									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
+										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
 									</a>
 									<div class="text small">
 										{{.Repository.OwnerName}}/{{.Repository.Name}}
