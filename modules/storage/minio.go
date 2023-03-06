@@ -209,12 +209,19 @@ func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
 }
 
 // IterateObjects iterates across the objects in the miniostorage
-func (m *MinioStorage) IterateObjects(fn func(path string, obj Object) error) error {
+func (m *MinioStorage) IterateObjects(prefix string, fn func(path string, obj Object) error) error {
 	opts := minio.GetObjectOptions{}
 	lobjectCtx, cancel := context.WithCancel(m.ctx)
 	defer cancel()
+
+	basePath := m.basePath
+	prefix = strings.TrimSpace(prefix)
+	if prefix != "" {
+		basePath = strings.TrimSuffix(m.basePath, "/") + "/" + strings.TrimPrefix(prefix, "/")
+	}
+
 	for mObjInfo := range m.client.ListObjects(lobjectCtx, m.bucket, minio.ListObjectsOptions{
-		Prefix:    m.basePath,
+		Prefix:    basePath,
 		Recursive: true,
 	}) {
 		object, err := m.client.GetObject(lobjectCtx, m.bucket, mObjInfo.Key, opts)
