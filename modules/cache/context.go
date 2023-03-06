@@ -20,9 +20,6 @@ type cacheContext struct {
 	created time.Time
 }
 
-// noCacheContext is a context that should discard cache data in context
-type noCacheContext struct{}
-
 func (cc *cacheContext) Get(tp, key any) any {
 	cc.lock.RLock()
 	defer cc.lock.RUnlock()
@@ -71,7 +68,7 @@ func WithCacheContext(ctx context.Context) context.Context {
 }
 
 func WithNoCacheContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, cacheContextKey, noCacheContext{})
+	return context.WithValue(ctx, cacheContextKey, nil)
 }
 
 func GetContextData(ctx context.Context, tp, key any) any {
@@ -79,18 +76,11 @@ func GetContextData(ctx context.Context, tp, key any) any {
 		if c.Expired() {
 			// The warning means that the cache context is misused for long-life task,
 			// it can be resolved with WithNoCacheContext(ctx).
-			log.Warn("cache context is expired: %v", c)
+			log.Warn("cache context is expired, may be misused for long-life tasks: %v", c)
 			return nil
 		}
 		return c.Get(tp, key)
 	}
-	if _, ok := ctx.Value(cacheContextKey).(noCacheContext); ok {
-		return nil
-	}
-	// The warning means that an original context is treated as a cache context,
-	// it can be resolved with WithNoCacheContext(ctx) or WithCacheContext(ctx).
-	// If you are not sure which one should be picked, it's always a safe way to use WithNoCacheContext(ctx).
-	log.Warn("cannot get cache context when getting data: %v", ctx)
 	return nil
 }
 
@@ -99,36 +89,24 @@ func SetContextData(ctx context.Context, tp, key, value any) {
 		if c.Expired() {
 			// The warning means that the cache context is misused for long-life task,
 			// it can be resolved with WithNoCacheContext(ctx).
-			log.Warn("cache context is expired: %v", c)
+			log.Warn("cache context is expired, may be misused for long-life tasks: %v", c)
 			return
 		}
 		c.Put(tp, key, value)
 		return
 	}
-	if _, ok := ctx.Value(cacheContextKey).(noCacheContext); ok {
-		return
-	}
-	// The warning means that an original context is treated as a cache context,
-	// it can be resolved with WithNoCacheContext(ctx) or WithCacheContext(ctx).
-	// If you are not sure which one should be picked, it's always a safe way to use WithNoCacheContext(ctx).
-	log.Warn("cannot get cache context when setting data: %v", ctx)
 }
 
 func RemoveContextData(ctx context.Context, tp, key any) {
 	if c, ok := ctx.Value(cacheContextKey).(*cacheContext); ok {
 		if c.Expired() {
-			log.Warn("cache context is expired: %v", c)
+			// The warning means that the cache context is misused for long-life task,
+			// it can be resolved with WithNoCacheContext(ctx).
+			log.Warn("cache context is expired, may be misused for long-life tasks: %v", c)
 			return
 		}
 		c.Delete(tp, key)
 	}
-	if _, ok := ctx.Value(cacheContextKey).(noCacheContext); ok {
-		return
-	}
-	// The warning means that an original context is treated as a cache context,
-	// it can be resolved with WithNoCacheContext(ctx) or WithCacheContext(ctx).
-	// If you are not sure which one should be picked, it's always a safe way to use WithNoCacheContext(ctx).
-	log.Warn("cannot get cache context when removing data: %v", ctx)
 }
 
 // GetWithContextCache returns the cache value of the given key in the given context.
