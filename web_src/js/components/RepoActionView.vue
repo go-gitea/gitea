@@ -2,7 +2,7 @@
   <div class="action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary">
-        <ActionRunStatus :status="run.status" size="20"/>
+        <ActionRunStatus :status="run.status" :size="20"/>
         <div class="action-title">
           {{ run.title }}
         </div>
