@@ -57,7 +57,7 @@
 									<div class="ui divider"></div>
 								{{end}}
 								{{$previousExclusiveScope = $exclusiveScope}}
-								<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if .IsSelected}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel .}}</a>
+								<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if .IsSelected}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context .}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -232,7 +232,7 @@
 								{{end}}
 								{{$previousExclusiveScope = $exclusiveScope}}
 								<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-									{{if contain $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel .}}
+									{{if contain $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context .}}
 								</div>
 							{{end}}
 						</div>
