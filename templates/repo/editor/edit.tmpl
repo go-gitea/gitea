@@ -64,15 +64,15 @@
 		<div class="center content">
 			<p>{{.locale.Tr "repo.editor.commit_empty_file_text"}}</p>
 		</div>
-		<div class="actions">
-			<div class="ui red basic cancel inverted button">
+		<div class="actions">{{/* TODO: Convert to base/delete_modal_actions.tmpl*/}}
+			<button type="button" class="ui red basic cancel inverted button">
 				<i class="remove icon"></i>
 				{{.locale.Tr "repo.editor.cancel"}}
-			</div>
-			<div class="ui green basic ok inverted button">
+			</button>
+			<button class="ui green basic ok inverted button">
 				<i class="save icon"></i>
 				{{.locale.Tr "repo.editor.commit_changes"}}
-			</div>
+			</button>
 		</div>
 	</div>
 

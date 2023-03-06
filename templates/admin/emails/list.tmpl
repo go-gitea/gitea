@@ -78,7 +78,7 @@
 				{{.locale.Tr "admin.emails.change_email_header"}}
 			</div>
 			<div class="content center">
-				<p>{{.locale.Tr "admin.emails.change_email_text"}}</p>
+				<p class="center">{{.locale.Tr "admin.emails.change_email_text"}}</p>
 
 				<form class="ui form" id="email-action-form" action="{{AppSubUrl}}/admin/emails/activate" method="post">
 					{{$.CsrfTokenHtml}}
@@ -93,11 +93,9 @@
 					<input type="hidden" id="form-primary" name="primary" value="" required>
 					<input type="hidden" id="form-activate" name="activate" value="" required>
 
-					<div class="center actions">
-						<div class="ui basic cancel inverted button">{{$.locale.Tr "settings.cancel"}}</div>
-						<button class="ui basic inverted yellow button">{{$.locale.Tr "modal.yes"}}</button>
+					<div class="center">
+						{{template "base/delete_modal_actions" .}}
 					</div>
-
 				</form>
 			</div>
 		</div>

@@ -1,9 +1,7 @@
 <div class="sixteen wide column title">
 	<div class="issue-title" id="issue-title-wrapper">
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
-			<div class="edit-button">
-				<button id="edit-title" class="ui basic button secondary not-in-edit">{{.locale.Tr "repo.issues.edit"}}</button>
-			</div>
+			<button id="edit-title" class="ui basic button secondary edit-button not-in-edit">{{.locale.Tr "repo.issues.edit"}}</button>
 		{{end}}
 		<h1>
 			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink $.Repository.ComposeMetas | RenderCodeBlock}}</span>
@@ -63,16 +61,16 @@
 			{{end}}
 			<span id="pull-desc-edit" class="gt-hidden">
 				<div class="ui floating filter dropdown">
-					<div class="ui basic small button">
+					<button class="ui basic small button">
 						<span class="text">{{.locale.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
-					</div>
+					</button>
 				</div>
 				{{svg "octicon-arrow-right"}}
 				<div class="ui floating filter dropdown" data-no-results="{{.locale.Tr "repo.pulls.no_results"}}">
-					<div class="ui basic small button">
+					<button class="ui basic small button">
 						<span class="text" id="pull-target-branch" data-basename="{{$.BaseName}}" data-branch="{{$.BaseBranch}}">{{.locale.Tr "repo.pulls.compare_base"}}: {{$.BaseName}}:{{$.BaseBranch}}</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-					</div>
+					</button>
 					<div class="menu">
 						<div class="ui icon search input">
 							<i class="icon gt-df gt-ac gt-jc gt-m-0">{{svg "octicon-filter" 16}}</i>
