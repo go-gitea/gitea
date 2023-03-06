@@ -1,6 +1,6 @@
 ---
 date: "2016-12-01T16:00:00+02:00"
-title: "Hakcking on Gitea"
+title: "玩转 Gitea"
 slug: "hacking-on-gitea"
 weight: 10
 toc: false
@@ -8,14 +8,14 @@ draft: false
 menu:
   sidebar:
     parent: "developers"
-    name: "Hakcking on Gitea"
+    name: "玩转 Gitea"
     weight: 10
     identifier: "hacking-on-gitea"
 ---
 
 # Hacking on Gitea
 
-**Table of Contents**
+**目录**
 
 {{< toc >}}
 
@@ -88,10 +88,10 @@ git clone https://github.com/go-gitea/gitea
 
 （自从go modules出现后，不再需要构建 go 项目从 `$GOPATH` 中获取，因此不再推荐使用 `go get` 方法。）
 
-## 分叉 Gitea
+## 派生 Gitea
 
-如上所述下载主要的 Gitea 源代码。然后，分叉 [Gitea 存储库](https://github.com/go-gitea/gitea)，
-并为您的分叉切换 git 远程源或将您的分叉添加为另一个远程：
+如上所述下载主要的 Gitea 源代码。然后，派生 [Gitea 仓库](https://github.com/go-gitea/gitea)，
+并为您的本地仓库切换 git 远程源，或添加另一个远程源：
 
 ```bash
 # 将原来的 Gitea origin 重命名为 upstream
