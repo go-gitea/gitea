@@ -39,6 +39,7 @@
 							</div>
 						</div>
 						<div class="ui two wide column center">
+							{{if $.IsOrganizationOwner}}
 							<div class="meta">
 								{{$.locale.Tr "admin.users.2fa"}}
 							</div>
@@ -51,6 +52,7 @@
 									{{end}}
 								</strong>
 							</div>
+							{{end}}
 						</div>
 					{{end}}
 					<div class="ui three wide column">
