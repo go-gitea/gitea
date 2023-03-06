@@ -60,8 +60,8 @@
 								<div class="ui divider"></div>
 							{{end}}
 							{{$previousExclusiveScope = $exclusiveScope}}
-							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel .}}
-							{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
+							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel $.Context .}}
+							{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}</a>
 						{{end}}
 
 						<div class="ui divider"></div>
@@ -72,8 +72,8 @@
 								<div class="ui divider"></div>
 							{{end}}
 							{{$previousExclusiveScope = $exclusiveScope}}
-							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel .}}
-							{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
+							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel $.Context .}}
+							{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}</a>
 						{{end}}
 					{{else}}
 						<div class="header" style="text-transform: none;font-size:14px;">{{.locale.Tr "repo.issues.new.no_items"}}</div>
