@@ -17,7 +17,7 @@
           <div class="job-brief-list">
             <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
-                <RunStatus :status="job.status"/>
+                <ActionsRunStatus :status="job.status" size="20"/>
                 <span class="ui text">{{ job.name }}</span>
               </a>
               <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
@@ -43,7 +43,7 @@
               <SvgIcon name="octicon-chevron-down" class="gt-mr-3" v-show="currentJobStepsStates[i].expanded"/>
               <SvgIcon name="octicon-chevron-right" class="gt-mr-3" v-show="!currentJobStepsStates[i].expanded"/>
 
-              <RunStatus :status="jobStep.status" class="gt-mr-3"/>
+              <ActionsRunStatus :status="jobStep.status" class="gt-mr-3"/>
 
               <span class="step-summary-msg">{{ jobStep.summary }}</span>
               <span class="step-summary-dur">{{ jobStep.duration }}</span>
@@ -60,7 +60,7 @@
 
 <script>
 import {SvgIcon} from '../svg.js';
-import {RunStatus} from '../runstatus.js';
+import ActionsRunStatus from './ActionsRunStatus.vue';
 import {createApp} from 'vue';
 import AnsiToHTML from 'ansi-to-html';
 
@@ -70,7 +70,7 @@ const sfc = {
   name: 'RepoActionView',
   components: {
     SvgIcon,
-    RunStatus,
+    ActionsRunStatus,
   },
   props: {
     runIndex: String,
