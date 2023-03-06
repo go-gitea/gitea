@@ -50,3 +50,29 @@ func TestWithCacheContext(t *testing.T) {
 	v = GetContextData(ctx, field, "my_config1")
 	assert.Nil(t, v)
 }
+
+func TestWithNoCacheContext(t *testing.T) {
+	ctx := context.Background()
+
+	const field = "system_setting"
+
+	v := GetContextData(ctx, field, "my_config1")
+	assert.Nil(t, v)
+	SetContextData(ctx, field, "my_config1", 1)
+	v = GetContextData(ctx, field, "my_config1")
+	assert.Nil(t, v) // still no cache
+
+	ctx = WithCacheContext(ctx)
+	v = GetContextData(ctx, field, "my_config1")
+	assert.Nil(t, v)
+	SetContextData(ctx, field, "my_config1", 1)
+	v = GetContextData(ctx, field, "my_config1")
+	assert.NotNil(t, v)
+
+	ctx = WithNoCacheContext(ctx)
+	v = GetContextData(ctx, field, "my_config1")
+	assert.Nil(t, v)
+	SetContextData(ctx, field, "my_config1", 1)
+	v = GetContextData(ctx, field, "my_config1")
+	assert.Nil(t, v) // still no cache
+}
