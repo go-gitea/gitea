@@ -296,6 +296,8 @@ The legacy semi-colon delimited file format can be used that follows [label form
 
 `#hex-color label name ; label description`
 
+Please review [custom labels configuration](https://docs.gitea.io/en-us/labels/)
+
 ### Licenses
 
 To add a custom license, add a file with the license text to `$GITEA_CUSTOM/options/license`
