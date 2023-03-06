@@ -129,9 +129,12 @@ func (l *LocalStorage) URL(path, name string) (*url.URL, error) {
 // IterateObjects iterates across the objects in the local storage
 func (l *LocalStorage) IterateObjects(prefix string, fn func(path string, obj Object) error) error {
 	dir := l.dir
-	prefix = strings.TrimSpace(prefix)
 	if prefix != "" {
-		dir = filepath.Join(strings.TrimSuffix(l.dir, "/"), "/"+strings.TrimPrefix(prefix, "/"))
+		prefix_trim := filepath.Clean(prefix)
+		dir = filepath.Join(l.dir, prefix_trim)
+		if !strings.HasPrefix(dir, strings.TrimSuffix(l.dir, "/")) {
+			return ErrIllegalPath
+		}
 	}
 	return filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
