@@ -15,7 +15,6 @@ import (
 // This is useful for caching data that is expensive to calculate and is likely to be
 // used multiple times in a request.
 type cacheContext struct {
-	ctx     context.Context
 	data    map[any]map[any]any
 	lock    sync.RWMutex
 	created time.Time
@@ -63,7 +62,6 @@ var cacheContextKey = struct{}{}
 
 func WithCacheContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, cacheContextKey, &cacheContext{
-		ctx:     ctx,
 		data:    make(map[any]map[any]any),
 		created: timeNow(),
 	})
