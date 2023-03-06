@@ -69,6 +69,33 @@ func (cc *cacheContext) Expired() bool {
 
 var cacheContextKey = struct{}{}
 
+/*
+Since there are both WithCacheContext and WithNoCacheContext,
+it may be confusing when there is nesting.
+
+Some cases to explain the design:
+
+When:
+- A, B or C means a cache context.
+- A', B' or C' means a discard cache context.
+- ctx means context.Backgrand().
+- A(ctx) means a cache context with ctx as the parent context.
+- B(A(ctx)) means a cache context with A(ctx) as the parent context.
+- With is alias of WithCacheContext.
+- WithNo is alias of WithNoCacheContext.
+
+So:
+- With(ctx) -> A(ctx)
+- With(With(ctx)) -> A(ctx), not B(A(ctx)), always reuse parent cache context if possible.
+- With(With(With(ctx))) -> A(ctx), not C(B(A(ctx))), ditto.
+- WithNo(ctx) -> ctx, not A'(ctx), don't create new cache context if we don't have to.
+- WithNo(With(ctx)) -> A'(ctx)
+- WithNo(WithNo(With(ctx))) -> A'(ctx), not B'(A'(ctx)), don't create new cache context if we don't have to.
+- With(WithNo(With(ctx))) -> B(A'(ctx)), not A(ctx), never reuse a discard cache context.
+- WithNo(With(WithNo(With(ctx)))) -> B'(A'(ctx))
+- With(WithNo(With(WithNo(With(ctx))))) -> C(B'(A'(ctx))), so there's always only one not-discard cache context.
+*/
+
 func WithCacheContext(ctx context.Context) context.Context {
 	if c, ok := ctx.Value(cacheContextKey).(*cacheContext); ok {
 		if !c.discard {
