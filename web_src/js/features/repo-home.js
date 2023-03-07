@@ -2,6 +2,7 @@ import $ from 'jquery';
 import {stripTags} from '../utils.js';
 import {hideElem, showElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
+import {svg} from '../svg.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -21,16 +22,16 @@ export function initRepoTopicBar() {
   };
 
   function addLabelDeleteIconAria($el) {
-    $el.attr({
+    $el.removeAttr('aria-hidden').attr({
       'aria-label': topicPrompts.remove,
       'role': 'button',
-    }).addClass('gt-px-2'); // make it slightly larger to be easier to click on mobile
+    });
   }
 
   mgrBtn.on('click', () => {
     hideElem(topicListDiv);
     showElem(topicForm);
-    addLabelDeleteIconAria(topicDropdown.find('i.delete.icon'));
+    addLabelDeleteIconAria(topicDropdown.find('.delete.icon'));
     topicDropdownSearch.focus();
   });
 
@@ -151,9 +152,9 @@ export function initRepoTopicBar() {
     onLabelCreate(value) {
       value = value.toLowerCase().trim();
       // `this` is the default label jQuery element, it's "<a class="ui small label">"
-      // we create a new div element to replace it, to keep the same as template (repo-topic-label), because we do not want the `<a>` tag to affect aria focus.
-      const $el = $(`<div class="ui small label topic" data-value="${htmlEscape(value)}">${htmlEscape(value)}<i class="delete icon"></i></div>`);
-      addLabelDeleteIconAria($el.find('i.delete.icon'));
+      // we create a new div element to replace it, to keep the same as template (repo-topic-label), because we do not want the `<a>` tag which affects aria focus.
+      const $el = $(`<div class="ui small label topic gt-cursor-default" data-value="${htmlEscape(value)}">${htmlEscape(value)}${svg('octicon-x', 16, 'delete icon gt-ml-3 gt-mt-1')}</div>`);
+      addLabelDeleteIconAria($el.find('.delete.icon'));
       return $el;
     },
     onAdd(addedValue, _addedText, $addedChoice) {
