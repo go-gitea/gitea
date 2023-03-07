@@ -83,7 +83,7 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 }
 
 func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) bool {
-	if converFromGithubEvent(evt) != triggedEvent.Event() {
+	if convertFromGithubEvent(evt) != triggedEvent.Event() {
 		return false
 	}
 
