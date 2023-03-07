@@ -56,6 +56,12 @@ func (cc *cacheContext) Discard() {
 	cc.discard = true
 }
 
+func (cc *cacheContext) isDiscard() bool {
+	cc.lock.RLock()
+	defer cc.lock.RUnlock()
+	return cc.discard
+}
+
 // cacheContextLifetime is the max lifetime of cacheContext.
 // Since cacheContext is used to cache data in a request level context, 10s is enough.
 // If a cacheContext is used more than 10s, it's probably misuse.
@@ -98,7 +104,7 @@ So:
 
 func WithCacheContext(ctx context.Context) context.Context {
 	if c, ok := ctx.Value(cacheContextKey).(*cacheContext); ok {
-		if !c.discard {
+		if !c.isDiscard() {
 			// reuse parent context
 			return ctx
 		}
