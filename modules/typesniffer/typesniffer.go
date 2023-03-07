@@ -4,6 +4,7 @@
 package typesniffer
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -95,6 +96,15 @@ func DetectContentType(data []byte) SniffedType {
 		strings.Contains(ct, "text/xml") && svgTagInXMLRegex.Match(data) {
 		// SVG is unsupported. https://github.com/golang/go/issues/15888
 		ct = SvgMimeType
+	}
+
+	if strings.HasPrefix(ct, "audio/") && bytes.HasPrefix(data, []byte("ID3")) {
+		// the MP3 detection is quite inaccurate, any content with "ID3" prefix will result in "audio/mpeg"
+		// so remove the "ID3" prefix and detect again, if result is text, then it must be text content.
+		ct2 := http.DetectContentType(data[3:])
+		if strings.HasPrefix(ct2, "text/") {
+			ct = ct2
+		}
 	}
 
 	return SniffedType{ct}
