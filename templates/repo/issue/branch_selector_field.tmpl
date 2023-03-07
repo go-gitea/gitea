@@ -12,7 +12,7 @@
 	</div>
 	<div class="menu">
 		<div class="ui icon search input">
-			<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
+			<i class="icon gt-df gt-ac gt-jc gt-m-0">{{svg "octicon-filter" 16}}</i>
 			<input name="search" placeholder="{{.locale.Tr "repo.filter_branch_and_tag"}}...">
 		</div>
 		<div class="header">
@@ -20,12 +20,12 @@
 				<div class="two column row">
 					<a class="reference column" href="#" data-target="#branch-list">
 						<span class="text black">
-							{{svg "octicon-git-branch" 16 "mr-2"}}{{.locale.Tr "repo.branches"}}
+							{{svg "octicon-git-branch" 16 "gt-mr-2"}}{{.locale.Tr "repo.branches"}}
 						</span>
 					</a>
 					<a class="reference column" href="#" data-target="#tag-list">
 						<span class="text">
-							{{svg "octicon-tag" 16 "mr-2"}}{{.locale.Tr "repo.tags"}}
+							{{svg "octicon-tag" 16 "gt-mr-2"}}{{.locale.Tr "repo.tags"}}
 						</span>
 					</a>
 				</div>
@@ -39,7 +39,7 @@
 				<div class="item" data-id="refs/heads/{{.}}" data-name="{{.}}" data-id-selector="#ref_selector">{{.}}</div>
 			{{end}}
 		</div>
-		<div id="tag-list" class="scrolling menu reference-list-menu {{if not .Issue}}new-issue{{end}}" style="display: none">
+		<div id="tag-list" class="scrolling menu reference-list-menu {{if not .Issue}}new-issue{{end}} gt-hidden">
 			{{if .Reference}}
 				<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{.locale.Tr "repo.clear_ref"}}</a></strong></div>
 			{{end}}

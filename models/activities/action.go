@@ -99,7 +99,7 @@ func (a *Action) TableIndices() []*schemas.Index {
 	actUserIndex.AddColumn("act_user_id", "repo_id", "created_unix", "user_id", "is_deleted")
 
 	indices := []*schemas.Index{actUserIndex, repoIndex}
-	if setting.Database.UsePostgreSQL {
+	if setting.Database.Type.IsPostgreSQL() {
 		cudIndex := schemas.NewIndex("c_u_d", schemas.IndexType)
 		cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
 		indices = append(indices, cudIndex)
@@ -380,14 +380,14 @@ type GetFeedsOptions struct {
 }
 
 // GetFeeds returns actions according to the provided options
-func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
+func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, error) {
 	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
-		return nil, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
+		return nil, 0, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
 	}
 
 	cond, err := activityQueryCondition(opts)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	sess := db.GetEngine(ctx).Where(cond).
@@ -398,16 +398,16 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	sess = db.SetSessionPagination(sess, &opts)
 
 	actions := make([]*Action, 0, opts.PageSize)
-
-	if err := sess.Desc("`action`.created_unix").Find(&actions); err != nil {
-		return nil, fmt.Errorf("Find: %w", err)
+	count, err := sess.Desc("`action`.created_unix").FindAndCount(&actions)
+	if err != nil {
+		return nil, 0, fmt.Errorf("FindAndCount: %w", err)
 	}
 
 	if err := ActionList(actions).loadAttributes(ctx); err != nil {
-		return nil, fmt.Errorf("LoadAttributes: %w", err)
+		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
 	}
 
-	return actions, nil
+	return actions, count, nil
 }
 
 // ActivityReadable return whether doer can read activities of user
@@ -534,7 +534,7 @@ func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 			repo = act.Repo
 
 			// check repo owner exist.
-			if err := act.Repo.GetOwner(ctx); err != nil {
+			if err := act.Repo.LoadOwner(ctx); err != nil {
 				return fmt.Errorf("can't get repo owner: %w", err)
 			}
 		} else if act.Repo == nil {
@@ -640,7 +640,7 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
 
 // CountActionCreatedUnixString count actions where created_unix is an empty string
 func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
-	if setting.Database.UseSQLite3 {
+	if setting.Database.Type.IsSQLite3() {
 		return db.GetEngine(ctx).Where(`created_unix = ""`).Count(new(Action))
 	}
 	return 0, nil
@@ -648,7 +648,7 @@ func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
 
 // FixActionCreatedUnixString set created_unix to zero if it is an empty string
 func FixActionCreatedUnixString(ctx context.Context) (int64, error) {
-	if setting.Database.UseSQLite3 {
+	if setting.Database.Type.IsSQLite3() {
 		res, err := db.GetEngine(ctx).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
 		if err != nil {
 			return 0, err
