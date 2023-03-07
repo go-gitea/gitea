@@ -256,9 +256,11 @@ export function initImageDiff() {
         height: sizes.size2.height * factor + 2
       });
 
+      // some inner elements are `position: absolute`, so the container's height must be large enough
+      // the "css(width, height)" is somewhat hacky and not easy to understand, it could be improved in the future
       sizes.image2.parent().parent().css({
         width: sizes.max.width * factor + 2,
-        height: sizes.max.height * factor + 2 + 20,
+        height: sizes.max.height * factor + 2 + 20 /* extra height for inner "position: absolute" elements */,
       });
 
       const $range = $container.find("input[type='range']");
