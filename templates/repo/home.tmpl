@@ -37,9 +37,9 @@
 		<div class="ui form gt-hidden gt-df gt-mt-4" id="topic_edit">
 			<div class="field gt-f1 gt-mr-3">
 				<div class="ui fluid multiple search selection dropdown"
-						 data-text-count-prompt="{{.locale.Tr "repo.topic.count_prompt"}}"
-						 data-text-format-prompt="{{.locale.Tr "repo.topic.format_prompt"}}"
-						 data-text-remove="{{.locale.Tr "remove"}}"
+						data-text-count-prompt="{{.locale.Tr "repo.topic.count_prompt"}}"
+						data-text-format-prompt="{{.locale.Tr "repo.topic.format_prompt"}}"
+						data-text-remove="{{.locale.Tr "remove"}}"
 				>
 					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
 					{{range .Topics}}
