@@ -421,15 +421,15 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		// Apply the strategy
 		log.Info("Beginning to apply strategies: %v", strategy)
 		for _, strat := range strategy {
-			// TODO: This doesn't work if the file was deleted or added.
-			// Need to add more strategies. "add" and "delete"
+			log.Info("Processing strategy %v", strat)
 
 			if strat.Strategy == "ours" || strat.Strategy == "theirs" {
 				strategyFlag := fmt.Sprintf("--%s", strat.Strategy)
+				strategyArg := git.ToTrustedCmdArgs([]string{strategyFlag})[0]
 				log.Info("Running %s on file %s", strategyFlag, strat.Path)
 
 				// First checkout one or the other
-				if err := git.NewCommand(ctx, "checkout").AddDynamicArguments(strategyFlag, strat.Path).Run(&git.RunOpts{
+				if err := git.NewCommand(ctx, "checkout").AddOptionValues(strategyArg, strat.Path).Run(&git.RunOpts{
 					Dir:    tmpBasePath,
 					Stdout: &outbuf,
 					Stderr: &errbuf,
