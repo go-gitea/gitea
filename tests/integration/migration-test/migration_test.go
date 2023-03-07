@@ -94,7 +94,7 @@ func availableVersions() ([]string, error) {
 		return nil, err
 	}
 	defer migrationsDir.Close()
-	versionRE, err := regexp.Compile("gitea-v(?P<version>.+)\\." + regexp.QuoteMeta(setting.Database.Type) + "\\.sql.gz")
+	versionRE, err := regexp.Compile("gitea-v(?P<version>.+)\\." + regexp.QuoteMeta(setting.Database.Type.String()) + "\\.sql.gz")
 	if err != nil {
 		return nil, err
 	}
