@@ -23,7 +23,7 @@ export function initRepoTopicBar() {
     $el.attr({
       'aria-label': topicPrompts.remove,
       'role': 'button',
-    });
+    }).addClass('gt-px-2'); // make it slightly larger to be easier to click on mobile
   }
 
   mgrBtn.on('click', () => {
