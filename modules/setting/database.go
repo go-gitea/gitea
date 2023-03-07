@@ -61,22 +61,12 @@ func LoadDBSetting() {
 	sec := CfgProvider.Section("database")
 	Database.Type = sec.Key("DB_TYPE").String()
 	defaultCharset := "utf8"
-	Database.UseMySQL = false
-	Database.UseSQLite3 = false
-	Database.UsePostgreSQL = false
-	Database.UseMSSQL = false
 
-	switch Database.Type {
-	case "sqlite3":
-		Database.UseSQLite3 = true
-	case "mysql":
-		Database.UseMySQL = true
+	EnsureDBType()
+	if Database.UseMySQL {
 		defaultCharset = "utf8mb4"
-	case "postgres":
-		Database.UsePostgreSQL = true
-	case "mssql":
-		Database.UseMSSQL = true
 	}
+
 	Database.Host = sec.Key("HOST").String()
 	Database.Name = sec.Key("NAME").String()
 	Database.User = sec.Key("USER").String()
@@ -107,6 +97,25 @@ func LoadDBSetting() {
 	Database.DBConnectRetries = sec.Key("DB_RETRIES").MustInt(10)
 	Database.DBConnectBackoff = sec.Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
 	Database.AutoMigration = sec.Key("AUTO_MIGRATION").MustBool(true)
+}
+
+// EnsureDBType ensures Database.UseXXX has been set to the right value
+func EnsureDBType() {
+	Database.UseMySQL = false
+	Database.UseSQLite3 = false
+	Database.UsePostgreSQL = false
+	Database.UseMSSQL = false
+
+	switch Database.Type {
+	case "sqlite3":
+		Database.UseSQLite3 = true
+	case "mysql":
+		Database.UseMySQL = true
+	case "postgres":
+		Database.UsePostgreSQL = true
+	case "mssql":
+		Database.UseMSSQL = true
+	}
 }
 
 // DBConnStr returns database connection string
