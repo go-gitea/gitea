@@ -27,7 +27,7 @@
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</button>
-		<div class="data" style="display: none" data-mode="{{if or .root.IsViewTag .isTag}}tags{{else}}branches{{end}}">
+		<div class="data gt-hidden" data-mode="{{if or .root.IsViewTag .isTag}}tags{{else}}branches{{end}}">
 			{{if $showBranchesInDropdown}}
 				{{range .root.Branches}}
 					<div class="item branch {{if eq $defaultBranch .}}selected{{end}}" data-url="{{PathEscapeSegments .}}">{{.}}</div>

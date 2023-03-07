@@ -1,28 +1,4 @@
 .repository {
-  .popup.commit-statuses {
-    // we had better limit the max size of the popup, and add scroll bars if the content size is too large.
-    // otherwise some part of the popup will be hidden by viewport boundary
-    max-height: 45vh;
-    max-width: 60vw;
-
-    &.ui.right {
-      // Override `.ui.attached.header .right:not(.dropdown) height: 30px;` which would otherwise lead to
-      // the status popup box having its height fixed at 30px. See https://github.com/go-gitea/gitea/issues/18498
-      height: auto;
-    }
-
-    overflow: auto;
-    padding: 0;
-
-    .list {
-      padding: .8em; // to make the scrollbar align to the border, we move the padding from outer `.popup` to this inside `.list`
-
-      > .item {
-        line-height: 2;
-      }
-    }
-  }
-
   .repo-header {
     .ui.compact.menu {
       margin-left: 1rem;
@@ -104,10 +80,6 @@
         margin-top: .125rem;
         margin-left: 6.75px;
         margin-right: 8.75px;
-      }
-
-      .hide {
-        display: none !important;
       }
 
       .dependency {
@@ -265,6 +237,8 @@
     }
 
     #repo-files-table {
+      table-layout: fixed;
+
       thead {
         th {
           padding-top: 8px;
@@ -978,8 +952,15 @@
           margin-top: 4px;
         }
 
-        .comment-form-reply .footer {
-          padding-bottom: 1em;
+        .comparebox {
+          line-height: 32px;
+          vertical-align: middle;
+
+          .compare.label {
+            font-size: 1rem;
+            margin: 0;
+            border: 1px solid var(--color-light-border);
+          }
         }
 
         @media @mediaSm {
@@ -1689,8 +1670,14 @@
     align-items: center;
 
     .file {
-      flex: 1;
-      word-break: break-all;
+      min-width: 0;
+      .file-link {
+        max-width: fit-content;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+      }
     }
 
     .button {
@@ -2592,16 +2579,8 @@
   }
 }
 
-#issue-filters.hide {
-  display: none;
-}
-
 #issue-actions {
   margin-top: -1rem !important; // counteract padding from Semantic
-}
-
-#issue-actions.hide {
-  display: none;
 }
 
 .ui.menu .item > img:not(.ui) {
@@ -2900,11 +2879,6 @@
   margin-top: 10px;
 }
 
-.repo-button-row .dropdown > .dropdown.icon {
-  margin-left: .25rem !important;
-  margin-right: 0 !important;
-}
-
 .wiki .repo-button-row {
   margin-bottom: 0;
 }
@@ -2926,12 +2900,17 @@ tbody.commit-list {
   vertical-align: baseline;
 }
 
-.message-wrapper {
+.message-wrapper,
+.author-wrapper {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: calc(100% - 50px);
   display: inline-block;
   vertical-align: middle;
+}
+
+.author-wrapper {
+  max-width: 180px;
 }
 
 // in the commit list, messages can wrap so we can use inline
@@ -2953,6 +2932,10 @@ tbody.commit-list {
     display: block;
     max-width: calc(100vw - 70px);
   }
+
+  .author-wrapper {
+    max-width: 80px;
+  }
 }
 
 @media @mediaMd {
@@ -2961,7 +2944,7 @@ tbody.commit-list {
   }
 
   th .message-wrapper {
-    max-width: 280px;
+    max-width: 120px;
   }
 }
 
@@ -2971,7 +2954,7 @@ tbody.commit-list {
   }
 
   th .message-wrapper {
-    max-width: 490px;
+    max-width: 350px;
   }
 }
 
@@ -2981,7 +2964,7 @@ tbody.commit-list {
   }
 
   th .message-wrapper {
-    max-width: 680px;
+    max-width: 525px;
   }
 }
 
@@ -3280,8 +3263,8 @@ td.blob-excerpt {
 }
 
 .sidebar-item-link {
-  display: inline-flex;
   align-items: center;
+  word-break: break-all;
 }
 
 .diff-file-box[data-folded="true"] .diff-file-body {
@@ -3299,20 +3282,21 @@ td.blob-excerpt {
 .ui.attached.header.diff-file-header {
   &.sticky-2nd-row {
     position: sticky;
-    top: 46px;
+    top: 77px;
     z-index: 7;
-
-    @media @mediaMd {
-      top: 77px;
-    }
-
-    @media @mediaSm {
-      top: 77px;
-    }
 
     @media (max-width: 480px) {
       position: static;
     }
+  }
+
+  .diff-file-header-actions {
+    flex-shrink: 0;
+  }
+
+  .diff-file-name {
+    flex: auto;
+    min-width: 100px;
   }
 }
 

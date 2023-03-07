@@ -52,7 +52,7 @@
 			<button class="ui button ellipsis-button" aria-expanded="false">...</button>
 		{{end}}
 		{{if IsMultilineCommitMessage .Message}}
-			<pre class="commit-body" style="display: none;">{{RenderCommitBody $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) $.comment.Issue.PullRequest.BaseRepo.ComposeMetas}}</pre>
+			<pre class="commit-body gt-hidden">{{RenderCommitBody $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) $.comment.Issue.PullRequest.BaseRepo.ComposeMetas}}</pre>
 		{{end}}
 	</div>
 {{end}}

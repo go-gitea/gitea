@@ -256,7 +256,7 @@ func EditTeam(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditTeamOption)
 	team := ctx.Org.Team
-	if err := team.GetUnits(); err != nil {
+	if err := team.LoadUnits(ctx); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}

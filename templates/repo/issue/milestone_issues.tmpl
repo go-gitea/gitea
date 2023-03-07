@@ -58,7 +58,7 @@
 							<span class="info">{{.locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{range .Labels}}
-								<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if contain $.SelLabelIDs .ID}}{{svg "octicon-check"}}{{end}} {{RenderLabel .}}</a>
+								<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if contain $.SelLabelIDs .ID}}{{svg "octicon-check"}}{{end}} {{RenderLabel $.Context .}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -111,8 +111,9 @@
 								<a class="{{if eq .ViewType "all"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type=all&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.all_issues"}}</a>
 								<a class="{{if eq .ViewType "assigned"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type=assigned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
 								<a class="{{if eq .ViewType "created_by"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type=created_by&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.created_by_you"}}</a>
-								<a class="{{if eq .ViewType "mentioned"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type=mentioned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.mentioning_you"}}</a>
 								<a class="{{if eq .ViewType "review_requested"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type=review_requested&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.review_requested"}}</a>
+								<a class="{{if eq .ViewType "reviewed_by"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type=reviewed_by&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.reviewed_by_you"}}</a>
+								<a class="{{if eq .ViewType "mentioned"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type=mentioned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.mentioning_you"}}</a>
 							</div>
 						</div>
 					{{end}}
@@ -135,7 +136,7 @@
 				</div>
 			</div>
 		</div>
-		<div id="issue-actions" class="ui stackable grid hide">
+		<div id="issue-actions" class="ui stackable grid gt-hidden">
 			<div class="six wide column">
 				{{template "repo/issue/openclose" .}}
 			</div>
@@ -161,7 +162,7 @@
 						<div class="menu">
 							{{range .Labels}}
 								<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-									{{if contain $.SelLabelIDs .ID}}{{svg "octicon-check"}}{{end}} {{RenderLabel .}}
+									{{if contain $.SelLabelIDs .ID}}{{svg "octicon-check"}}{{end}} {{RenderLabel $.Context .}}
 								</div>
 							{{end}}
 						</div>
