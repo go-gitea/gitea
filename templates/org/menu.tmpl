@@ -4,7 +4,7 @@
 			{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
 		</a>
 		<a class="{{if .PageIsViewProjects}}active {{end}}item" href="{{$.Org.HomeLink}}/-/projects">
-			{{svg "octicon-project"}} {{.locale.Tr "user.projects"}}
+			{{svg "octicon-project-symlink"}} {{.locale.Tr "user.projects"}}
 		</a>
 		{{if .IsPackageEnabled}}
 		<a class="item" href="{{$.Org.HomeLink}}/-/packages">

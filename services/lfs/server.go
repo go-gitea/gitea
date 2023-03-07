@@ -5,7 +5,6 @@ package lfs
 
 import (
 	stdCtx "context"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -32,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/minio/sha256-simd"
 )
 
 // requestContext contain variables from the HTTP request.
