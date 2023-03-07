@@ -282,8 +282,21 @@ To add custom .gitignore, add a file with existing [.gitignore rules](https://gi
 
 ### Labels
 
-To add a custom label set, add a file that follows the [label format](https://github.com/go-gitea/gitea/blob/main/options/label/Default) to `$GITEA_CUSTOM/options/label`
+Starting with Gitea 1.19, you can add a file that follows the [YAML label format](https://github.com/go-gitea/gitea/blob/main/options/label/Advanced.yaml) to `$GITEA_CUSTOM/options/label`:
+
+```yaml
+labels:
+  - name: "foo/bar"  # name of the label that will appear in the dropdown
+    exclusive: true # whether to use the exclusive namespace for scoped labels. scoped delimiter is /
+    color: aabbcc # hex colour coding
+    description: Some label # long description of label intent
+ ```
+
+The [legacy file format](https://github.com/go-gitea/gitea/blob/main/options/label/Default) can still be used following the format below, however we strongly recommend using the newer YAML format instead.
+
 `#hex-color label name ; label description`
+
+For more information, see the [labels documentation]({{< relref "doc/usage/labels.en-us.md" >}}).
 
 ### Licenses
 
