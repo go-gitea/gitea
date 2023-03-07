@@ -93,10 +93,11 @@ func (ns *notificationService) NotifyNewIssue(ctx context.Context, issue *issues
 	}
 }
 
-func (ns *notificationService) NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
+func (ns *notificationService) NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
 	_ = ns.issueQueue.Push(issueNotificationOpts{
 		IssueID:              issue.ID,
 		NotificationAuthorID: doer.ID,
+		CommentID:            actionComment.ID,
 	})
 }
 
@@ -243,7 +244,7 @@ func (ns *notificationService) NotifyPullReviewRequest(ctx context.Context, doer
 }
 
 func (ns *notificationService) NotifyRepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
-	err := db.AutoTx(ctx, func(ctx context.Context) error {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
 		return activities_model.CreateRepoTransferNotification(ctx, doer, newOwner, repo)
 	})
 	if err != nil {

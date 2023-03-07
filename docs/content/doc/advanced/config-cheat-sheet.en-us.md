@@ -104,7 +104,8 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `ENABLE_PUSH_CREATE_USER`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for a user.
 - `ENABLE_PUSH_CREATE_ORG`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for an org.
 - `DISABLED_REPO_UNITS`: **_empty_**: Comma separated list of globally disabled repo units. Allowed values: \[repo.issues, repo.ext_issues, repo.pulls, repo.wiki, repo.ext_wiki, repo.projects\]
-- `DEFAULT_REPO_UNITS`: **repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects**: Comma separated list of default repo units. Allowed values: \[repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki, repo.projects\]. Note: Code and Releases can currently not be deactivated. If you specify default repo units you should still list them for future compatibility. External wiki and issue tracker can't be enabled by default as it requires additional settings. Disabled repo units will not be added to new repositories regardless if it is in the default list.
+- `DEFAULT_REPO_UNITS`: **repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects,repo.packages**: Comma separated list of default new repo units. Allowed values: \[repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki, repo.projects\]. Note: Code and Releases can currently not be deactivated. If you specify default repo units you should still list them for future compatibility. External wiki and issue tracker can't be enabled by default as it requires additional settings. Disabled repo units will not be added to new repositories regardless if it is in the default list.
+- `DEFAULT_FORK_REPO_UNITS`: **repo.code,repo.pulls**: Comma separated list of default forked repo units. The set of allowed values and rules is the same as `DEFAULT_REPO_UNITS`.
 - `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
 - `DISABLE_MIGRATIONS`: **false**: Disable migrating feature.
 - `DISABLE_STARS`: **false**: Disable stars feature.
@@ -112,6 +113,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to adopt unadopted repositories
 - `ALLOW_DELETION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to delete unadopted repositories
 - `DISABLE_DOWNLOAD_SOURCE_ARCHIVES`: **false**: Don't allow download source archive files from UI
+- `ALLOW_FORK_WITHOUT_MAXIMUM_LIMIT`: **true**: Allow fork repositories without maximum number limit
 
 ### Repository - Editor (`repository.editor`)
 
@@ -134,6 +136,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `DEFAULT_MERGE_MESSAGE_OFFICIAL_APPROVERS_ONLY`: **true**: In default merge messages only include approvers who are officially allowed to review.
 - `POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES`: **false**: In default squash-merge messages include the commit message of all commits comprising the pull request.
 - `ADD_CO_COMMITTER_TRAILERS`: **true**: Add co-authored-by and co-committed-by trailers to merge commit messages if committer does not match author.
+- `TEST_CONFLICTING_PATCHES_WITH_GIT_APPLY`: **false**: PR patches are tested using a three-way merge method to discover if there are conflicts. If this setting is set to **true**, conflicting patches will be retested using `git apply` - This was the previous behaviour in 1.18 (and earlier) but is somewhat inefficient. Please report if you find that this setting is required.
 
 ### Repository - Issue (`repository.issue`)
 
@@ -228,8 +231,6 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
 - `USE_SERVICE_WORKER`: **false**: Whether to enable a Service Worker to cache frontend assets.
-- `ONLY_SHOW_RELEVANT_REPOS`: **false** Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
-    A repo is considered irrelevant if it's a fork or if it has no metadata (no description, no icon, no topic).
 
 ### UI - Admin (`ui.admin`)
 
@@ -237,6 +238,10 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `REPO_PAGING_NUM`: **50**: Number of repos that are shown in one page.
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
+
+### UI - User (`ui.user`)
+
+- `REPO_PAGING_NUM`: **15**: Number of repos that are shown in one page.
 
 ### UI - Metadata (`ui.meta`)
 
@@ -563,7 +568,22 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 - `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
 - `INTERNAL_TOKEN`: **\<random at every install if no uri set\>**: Secret used to validate communication within Gitea binary.
 - `INTERNAL_TOKEN_URI`: **<empty>**: Instead of defining INTERNAL_TOKEN in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
-- `PASSWORD_HASH_ALGO`: **pbkdf2**: The hash algorithm to use \[argon2, pbkdf2, scrypt, bcrypt\], argon2 will spend more memory than others.
+- `PASSWORD_HASH_ALGO`: **pbkdf2**: The hash algorithm to use \[argon2, pbkdf2, pbkdf2_v1, pbkdf2_hi, scrypt, bcrypt\], argon2 and scrypt will spend significant amounts of memory.
+  - Note: The default parameters for `pbkdf2` hashing have changed - the previous settings are available as `pbkdf2_v1` but are not recommended.
+  - The hash functions may be tuned by using `$` after the algorithm:
+    - `argon2$<time>$<memory>$<threads>$<key-length>`
+    - `bcrypt$<cost>`
+    - `pbkdf2$<iterations>$<key-length>`
+    - `scrypt$<n>$<r>$<p>$<key-length>`
+  - The defaults are:
+    - `argon2`:    `argon2$2$65536$8$50`
+    - `bcrypt`:    `bcrypt$10`
+    - `pbkdf2`:    `pbkdf2$50000$50`
+    - `pbkdf2_v1`: `pbkdf2$10000$50`
+    - `pbkdf2_v2`: `pbkdf2$50000$50`
+    - `pbkdf2_hi`: `pbkdf2$320000$50`
+    - `scrypt`:    `scrypt$65536$16$2$50`
+  - Adjusting the algorithm parameters using this functionality is done at your own risk.
 - `CSRF_COOKIE_HTTP_ONLY`: **true**: Set false to allow JavaScript to read CSRF cookie.
 - `MIN_PASSWORD_LENGTH`: **6**: Minimum password length for new users.
 - `PASSWORD_COMPLEXITY`: **off**: Comma separated list of character classes required to pass minimum complexity. If left empty or no valid values are specified, checking is disabled (off):
@@ -638,7 +658,7 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 - `REQUIRE_CAPTCHA_FOR_LOGIN`: **false**: Enable this to require captcha validation for login. You also must enable `ENABLE_CAPTCHA`.
 - `REQUIRE_EXTERNAL_REGISTRATION_CAPTCHA`: **false**: Enable this to force captcha validation
    even for External Accounts (i.e. GitHub, OpenID Connect, etc). You also must enable `ENABLE_CAPTCHA`.
-- `CAPTCHA_TYPE`: **image**: \[image, recaptcha, hcaptcha, mcaptcha\]
+- `CAPTCHA_TYPE`: **image**: \[image, recaptcha, hcaptcha, mcaptcha, cfturnstile\]
 - `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha.
 - `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha.
 - `RECAPTCHA_URL`: **https://www.google.com/recaptcha/**: Set the recaptcha url - allows the use of recaptcha net.
@@ -647,6 +667,8 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 - `MCAPTCHA_SECRET`: **""**: Go to your mCaptcha instance to get a secret for mCaptcha.
 - `MCAPTCHA_SITEKEY`: **""**: Go to your mCaptcha instance to get a sitekey for mCaptcha.
 - `MCAPTCHA_URL` **https://demo.mcaptcha.org/**: Set the mCaptcha URL.
+- `CF_TURNSTILE_SECRET` **""**: Go to https://dash.cloudflare.com/?to=/:account/turnstile to get a secret for cloudflare turnstile.
+- `CF_TURNSTILE_SITEKEY` **""**: Go to https://dash.cloudflare.com/?to=/:account/turnstile to get a sitekey for cloudflare turnstile.
 - `DEFAULT_KEEP_EMAIL_PRIVATE`: **false**: By default set users to keep their email address private.
 - `DEFAULT_ALLOW_CREATE_ORGANIZATION`: **true**: Allow new users to create organizations by default.
 - `DEFAULT_USER_IS_RESTRICTED`: **false**: Give new users restricted permissions by default
@@ -744,6 +766,20 @@ and
 - `SEND_BUFFER_LEN`: **100**: Buffer length of mailing queue. **DEPRECATED** use `LENGTH` in `[queue.mailer]`
 - `SEND_AS_PLAIN_TEXT`: **false**: Send mails only in plain text, without HTML alternative.
 
+## Incoming Email (`email.incoming`)
+
+- `ENABLED`: **false**: Enable handling of incoming emails.
+- `REPLY_TO_ADDRESS`: **\<empty\>**: The email address including the `%{token}` placeholder that will be replaced per user/action. Example: `incoming+%{token}@example.com`. The placeholder must appear in the user part of the address (before the `@`).
+- `HOST`: **\<empty\>**: IMAP server host.
+- `PORT`: **\<empty\>**: IMAP server port.
+- `USERNAME`: **\<empty\>**: Username of the receiving account.
+- `PASSWORD`: **\<empty\>**: Password of the receiving account.
+- `USE_TLS`: **false**: Whether the IMAP server uses TLS.
+- `SKIP_TLS_VERIFY`: **false**: If set to `true`, completely ignores server certificate validation errors. This option is unsafe.
+- `MAILBOX`: **INBOX**: The mailbox name where incoming mail will end up.
+- `DELETE_HANDLED_MESSAGE`: **true**: Whether handled messages should be deleted from the mailbox.
+- `MAXIMUM_MESSAGE_SIZE`: **10485760**: Maximum size of a message to handle. Bigger messages are ignored. Set to 0 to allow every size.
+
 ## Cache (`cache`)
 
 - `ENABLED`: **true**: Enable the cache.
@@ -776,9 +812,9 @@ and
 
 - `GRAVATAR_SOURCE`: **gravatar**: Can be `gravatar`, `duoshuo` or anything like
    `http://cn.gravatar.com/avatar/`.
-- `DISABLE_GRAVATAR`: **false**: Enable this to use local avatars only.
+- `DISABLE_GRAVATAR`: **false**: Enable this to use local avatars only. **DEPRECATED [v1.18+]** moved to database. Use admin panel to configure.
 - `ENABLE_FEDERATED_AVATAR`: **false**: Enable support for federated avatars (see
-   [http://www.libravatar.org](http://www.libravatar.org)).
+   [http://www.libravatar.org](http://www.libravatar.org)). **DEPRECATED [v1.18+]** moved to database. Use admin panel to configure.
 
 - `AVATAR_STORAGE_TYPE`: **default**: Storage type defined in `[storage.xxx]`. Default is `default` which will read `[storage]` if no section `[storage]` will be a type `local`.
 - `AVATAR_UPLOAD_PATH`: **data/avatars**: Path to store user avatar image files.
@@ -818,6 +854,7 @@ Default templates for project boards:
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when STORAGE_TYPE is `minio`
 - `MINIO_BASE_PATH`: **attachments/**: Minio base path on the bucket only available when STORAGE_TYPE is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when STORAGE_TYPE is `minio`
+- `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 
 ## Log (`log`)
 
@@ -1019,6 +1056,16 @@ Default templates for project boards:
 - `SCHEDULE`: **@every 168h**: Cron syntax to set how often to check.
 - `OLDER_THAN`: **@every 8760h**: any system notice older than this expression will be deleted from database.
 
+#### Cron -  Garbage collect LFS pointers in repositories ('cron.gc_lfs')
+
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `SCHEDULE`: **@every 24h**: Cron syntax to set how often to check.
+- `OLDER_THAN`: **168h**: Only attempt to garbage collect LFSMetaObjects older than this (default 7 days)
+- `LAST_UPDATED_MORE_THAN_AGO`: **72h**: Only attempt to garbage collect LFSMetaObjects that have not been attempted to be garbage collected for this long (default 3 days)
+- `NUMBER_TO_CHECK_PER_REPO`: **100**: Minimum number of stale LFSMetaObjects to check per repo. Set to `0` to always check all.
+- `PROPORTION_TO_CHECK_PER_REPO`: **0.6**: Check at least this proportion of LFSMetaObjects per repo. (This may cause all stale LFSMetaObjects to be checked.)
+
 ## Git (`git`)
 
 - `PATH`: **""**: The path of Git executable. If empty, Gitea searches through the PATH environment.
@@ -1042,7 +1089,7 @@ Default templates for project boards:
 
 ## Git - Timeout settings (`git.timeout`)
 
-- `DEFAUlT`: **360**: Git operations default timeout seconds.
+- `DEFAULT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
 - `MIRROR`: **300**: Mirror external repositories timeout seconds.
 - `CLONE`: **300**: Git clone from internal repositories timeout seconds.
@@ -1144,7 +1191,7 @@ in this mapping or the filetype using heuristics.
 ## Time (`time`)
 
 - `FORMAT`: Time format to display on UI. i.e. RFC1123 or 2006-01-02 15:04:05
-- `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Shanghai/Asia
+- `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Asia/Shanghai
 
 ## Task (`task`)
 
@@ -1182,8 +1229,11 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `CHUNKED_UPLOAD_PATH`: **tmp/package-upload**: Path for chunked uploads. Defaults to `APP_DATA_PATH` + `tmp/package-upload`
 - `LIMIT_TOTAL_OWNER_COUNT`: **-1**: Maximum count of package versions a single owner can have (`-1` means no limits)
 - `LIMIT_TOTAL_OWNER_SIZE`: **-1**: Maximum size of packages a single owner can use (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CARGO`: **-1**: Maximum size of a Cargo upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CHEF`: **-1**: Maximum size of a Chef upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_COMPOSER`: **-1**: Maximum size of a Composer upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_CONAN`: **-1**: Maximum size of a Conan upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CONDA`: **-1**: Maximum size of a Conda upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_CONTAINER`: **-1**: Maximum size of a Container upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_GENERIC`: **-1**: Maximum size of a Generic upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_HELM`: **-1**: Maximum size of a Helm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
@@ -1219,6 +1269,7 @@ is `data/lfs` and the default of `MINIO_BASE_PATH` is `lfs/`.
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_BASE_PATH`: **lfs/**: Minio base path on the bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
+- `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 
 ## Storage (`storage`)
 
@@ -1231,6 +1282,7 @@ Default storage configuration for attachments, lfs, avatars and etc.
 - `MINIO_BUCKET`: **gitea**: Minio bucket to store the data only available when `STORAGE_TYPE` is `minio`
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
+- `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 
 And you can also define a customize storage like below:
 
@@ -1249,6 +1301,8 @@ MINIO_BUCKET = gitea
 MINIO_LOCATION = us-east-1
 ; Minio enabled ssl only available when STORAGE_TYPE is `minio`
 MINIO_USE_SSL = false
+; Minio skip SSL verification available when STORAGE_TYPE is `minio`
+MINIO_INSECURE_SKIP_VERIFY = false
 ```
 
 And used by `[attachment]`, `[lfs]` and etc. as `STORAGE_TYPE`.
@@ -1269,6 +1323,7 @@ is `data/repo-archive` and the default of `MINIO_BASE_PATH` is `repo-archive/`.
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_BASE_PATH`: **repo-archive/**: Minio base path on the bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
+- `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 
 ## Proxy (`proxy`)
 
@@ -1283,6 +1338,41 @@ PROXY_ENABLED = true
 PROXY_URL = socks://127.0.0.1:1080
 PROXY_HOSTS = *.github.com
 ```
+
+## Actions (`actions`)
+
+- `ENABLED`: **false**: Enable/Disable actions capabilities
+- `DEFAULT_ACTIONS_URL`: **https://gitea.com**: Default address to get action plugins, e.g. the default value means downloading from "<https://gitea.com/actions/checkout>" for "uses: actions/checkout@v3"
+
+`DEFAULT_ACTIONS_URL` indicates where should we find the relative path action plugin. i.e. when use an action in a workflow file like
+
+```yaml
+name: versions
+on:
+  push:
+    branches:
+      - main
+      - releases/*
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+```
+
+Now we need to know how to get actions/checkout, this configuration is the default git server to get it. That means we will get the repository via git clone ${DEFAULT_ACTIONS_URL}/actions/checkout and fetch tag v3.
+
+To help people who don't want to mirror these actions in their git instances, the default value is https://gitea.com
+To help people run actions totally in their network, they can change the value and copy all necessary action repositories into their git server.
+
+Of course we should support the form in future PRs like
+
+```yaml
+steps:
+  - uses: gitea.com/actions/checkout@v3
+```
+
+although Github don't support this form.
 
 ## User (`user`)
 

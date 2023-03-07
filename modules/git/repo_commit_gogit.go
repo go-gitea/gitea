@@ -7,7 +7,6 @@
 package git
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing"
@@ -41,7 +40,7 @@ func (repo *Repository) RemoveReference(name string) error {
 
 // ConvertToSHA1 returns a Hash object from a potential ID string
 func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
-	if len(commitID) == 40 {
+	if len(commitID) == SHAFullLength {
 		sha1, err := NewIDFromString(commitID)
 		if err == nil {
 			return sha1, nil
@@ -67,38 +66,6 @@ func (repo *Repository) IsCommitExist(name string) bool {
 	return err == nil
 }
 
-func convertPGPSignatureForTag(t *object.Tag) *CommitGPGSignature {
-	if t.PGPSignature == "" {
-		return nil
-	}
-
-	var w strings.Builder
-	var err error
-
-	if _, err = fmt.Fprintf(&w,
-		"object %s\ntype %s\ntag %s\ntagger ",
-		t.Target.String(), t.TargetType.Bytes(), t.Name); err != nil {
-		return nil
-	}
-
-	if err = t.Tagger.Encode(&w); err != nil {
-		return nil
-	}
-
-	if _, err = fmt.Fprintf(&w, "\n\n"); err != nil {
-		return nil
-	}
-
-	if _, err = fmt.Fprintf(&w, t.Message); err != nil {
-		return nil
-	}
-
-	return &CommitGPGSignature{
-		Signature: t.PGPSignature,
-		Payload:   strings.TrimSpace(w.String()) + "\n",
-	}
-}
-
 func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	var tagObject *object.Tag
 
@@ -121,12 +88,6 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 
 	commit := convertCommit(gogitCommit)
 	commit.repo = repo
-
-	if tagObject != nil {
-		commit.CommitMessage = strings.TrimSpace(tagObject.Message)
-		commit.Author = &tagObject.Tagger
-		commit.Signature = convertPGPSignatureForTag(tagObject)
-	}
 
 	tree, err := gogitCommit.Tree()
 	if err != nil {

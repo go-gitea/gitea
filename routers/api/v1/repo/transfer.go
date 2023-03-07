@@ -13,10 +13,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/convert"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -81,7 +81,7 @@ func Transfer(ctx *context.APIContext) {
 			return
 		}
 
-		org := convert.ToOrganization(organization.OrgFromUser(newOwner))
+		org := convert.ToOrganization(ctx, organization.OrgFromUser(newOwner))
 		for _, tID := range *opts.TeamIDs {
 			team, err := organization.GetTeamByID(ctx, tID)
 			if err != nil {

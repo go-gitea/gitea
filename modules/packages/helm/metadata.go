@@ -6,10 +6,10 @@ package helm
 import (
 	"archive/tar"
 	"compress/gzip"
-	"errors"
 	"io"
 	"strings"
 
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/hashicorp/go-version"
@@ -18,13 +18,13 @@ import (
 
 var (
 	// ErrMissingChartFile indicates a missing Chart.yaml file
-	ErrMissingChartFile = errors.New("Chart.yaml file is missing")
+	ErrMissingChartFile = util.NewInvalidArgumentErrorf("Chart.yaml file is missing")
 	// ErrInvalidName indicates an invalid package name
-	ErrInvalidName = errors.New("package name is invalid")
+	ErrInvalidName = util.NewInvalidArgumentErrorf("package name is invalid")
 	// ErrInvalidVersion indicates an invalid package version
-	ErrInvalidVersion = errors.New("package version is invalid")
+	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
 	// ErrInvalidChart indicates an invalid chart
-	ErrInvalidChart = errors.New("chart is invalid")
+	ErrInvalidChart = util.NewInvalidArgumentErrorf("chart is invalid")
 )
 
 // Metadata for a Chart file. This models the structure of a Chart.yaml file.

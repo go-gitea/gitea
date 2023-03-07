@@ -20,11 +20,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	org_service "code.gitea.io/gitea/services/org"
 )
@@ -401,7 +401,7 @@ func SearchTeam(ctx *context.Context) {
 		return
 	}
 
-	apiTeams, err := convert.ToTeams(teams, false)
+	apiTeams, err := convert.ToTeams(ctx, teams, false)
 	if err != nil {
 		log.Error("convert ToTeams failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{

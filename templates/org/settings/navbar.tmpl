@@ -12,6 +12,9 @@
 		<a class="{{if .PageIsOrgSettingsLabels}}active {{end}}item" href="{{.OrgLink}}/settings/labels">
 			{{.locale.Tr "repo.labels"}}
 		</a>
+		<a class="{{if .PageIsOrgSettingsSecrets}}active {{end}}item" href="{{.OrgLink}}/settings/secrets">
+			{{.locale.Tr "secrets.secrets"}}
+		</a>
 		{{if .EnableOAuth2}}
 		<a class="{{if .PageIsSettingsApplications}}active {{end}}item" href="{{.OrgLink}}/settings/applications">
 			{{.locale.Tr "settings.applications"}}
@@ -20,6 +23,11 @@
 		{{if .EnablePackages}}
 		<a class="{{if .PageIsSettingsPackages}}active {{end}}item" href="{{.OrgLink}}/settings/packages">
 			{{.locale.Tr "packages.title"}}
+		</a>
+		{{end}}
+		{{if .EnableActions}}
+		<a class="{{if .PageIsOrgSettingsRunners}}active {{end}}item" href="{{.OrgLink}}/settings/runners">
+			{{.locale.Tr "actions.runners"}}
 		</a>
 		{{end}}
 		<a class="{{if .PageIsSettingsDelete}}active {{end}}item" href="{{.OrgLink}}/settings/delete">

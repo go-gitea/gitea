@@ -10,11 +10,11 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // listMembers list an organization's members
@@ -39,7 +39,7 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 
 	apiMembers := make([]*api.User, len(members))
 	for i, member := range members {
-		apiMembers[i] = convert.ToUser(member, ctx.Doer)
+		apiMembers[i] = convert.ToUser(ctx, member, ctx.Doer)
 	}
 
 	ctx.SetTotalCountHeader(count)

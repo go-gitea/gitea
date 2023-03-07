@@ -8,9 +8,9 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // ListStargazers list a repository's stargazers
@@ -50,7 +50,7 @@ func ListStargazers(ctx *context.APIContext) {
 	}
 	users := make([]*api.User, len(stargazers))
 	for i, stargazer := range stargazers {
-		users[i] = convert.ToUser(stargazer, ctx.Doer)
+		users[i] = convert.ToUser(ctx, stargazer, ctx.Doer)
 	}
 
 	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumStars))

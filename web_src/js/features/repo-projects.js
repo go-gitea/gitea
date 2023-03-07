@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {useLightTextOnBackground} from '../utils.js';
 
 const {csrfToken} = window.config;
 
@@ -49,6 +50,8 @@ async function initRepoProjectSortable() {
     filter: '[data-id="0"]',
     animation: 150,
     ghostClass: 'card-ghost',
+    delayOnTouchOnly: true,
+    delay: 500,
     onSort: () => {
       boardColumns = mainBoard.getElementsByClassName('board-column');
       for (let i = 0; i < boardColumns.length; i++) {
@@ -76,11 +79,13 @@ async function initRepoProjectSortable() {
       ghostClass: 'card-ghost',
       onAdd: moveIssue,
       onUpdate: moveIssue,
+      delayOnTouchOnly: true,
+      delay: 500,
     });
   }
 }
 
-export default function initRepoProject() {
+export function initRepoProject() {
   if (!$('.repository.projects').length) {
     return;
   }
@@ -179,28 +184,15 @@ export default function initRepoProject() {
 }
 
 function setLabelColor(label, color) {
-  const red = getRelativeColor(parseInt(color.slice(1, 3), 16));
-  const green = getRelativeColor(parseInt(color.slice(3, 5), 16));
-  const blue = getRelativeColor(parseInt(color.slice(5, 7), 16));
-  const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-
-  if (luminance > 0.179) {
-    label.removeClass('light-label').addClass('dark-label');
-  } else {
+  if (useLightTextOnBackground(color)) {
     label.removeClass('dark-label').addClass('light-label');
+  } else {
+    label.removeClass('light-label').addClass('dark-label');
   }
 }
 
-/**
- * Inspired by W3C recommendation https://www.w3.org/TR/WCAG20/#relativeluminancedef
- */
-function getRelativeColor(color) {
-  color /= 255;
-  return color <= 0.03928 ? color / 12.92 : ((color + 0.055) / 1.055) ** 2.4;
-}
-
 function rgbToHex(rgb) {
-  rgb = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+  rgb = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+).*\)$/);
   return `#${hex(rgb[1])}${hex(rgb[2])}${hex(rgb[3])}`;
 }
 

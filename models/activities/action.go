@@ -223,18 +223,24 @@ func (a *Action) GetRepoAbsoluteLink() string {
 	return setting.AppURL + url.PathEscape(a.GetRepoUserName()) + "/" + url.PathEscape(a.GetRepoName())
 }
 
-// GetCommentLink returns link to action comment.
-func (a *Action) GetCommentLink() string {
-	return a.getCommentLink(db.DefaultContext)
+// GetCommentHTMLURL returns link to action comment.
+func (a *Action) GetCommentHTMLURL() string {
+	return a.getCommentHTMLURL(db.DefaultContext)
 }
 
-func (a *Action) getCommentLink(ctx context.Context) string {
+func (a *Action) loadComment(ctx context.Context) (err error) {
+	if a.CommentID == 0 || a.Comment != nil {
+		return nil
+	}
+	a.Comment, err = issues_model.GetCommentByID(ctx, a.CommentID)
+	return err
+}
+
+func (a *Action) getCommentHTMLURL(ctx context.Context) string {
 	if a == nil {
 		return "#"
 	}
-	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = issues_model.GetCommentByID(ctx, a.CommentID)
-	}
+	_ = a.loadComment(ctx)
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
 	}
@@ -260,6 +266,41 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 	return issue.HTMLURL()
 }
 
+// GetCommentLink returns link to action comment.
+func (a *Action) GetCommentLink() string {
+	return a.getCommentLink(db.DefaultContext)
+}
+
+func (a *Action) getCommentLink(ctx context.Context) string {
+	if a == nil {
+		return "#"
+	}
+	_ = a.loadComment(ctx)
+	if a.Comment != nil {
+		return a.Comment.Link()
+	}
+	if len(a.GetIssueInfos()) == 0 {
+		return "#"
+	}
+	// Return link to issue
+	issueIDString := a.GetIssueInfos()[0]
+	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
+	if err != nil {
+		return "#"
+	}
+
+	issue, err := issues_model.GetIssueByID(ctx, issueID)
+	if err != nil {
+		return "#"
+	}
+
+	if err = issue.LoadRepo(ctx); err != nil {
+		return "#"
+	}
+
+	return issue.Link()
+}
+
 // GetBranch returns the action's repository branch.
 func (a *Action) GetBranch() string {
 	return strings.TrimPrefix(a.RefName, git.BranchPrefix)
@@ -272,7 +313,7 @@ func (a *Action) GetRefLink() string {
 		return a.GetRepoLink() + "/src/branch/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.BranchPrefix))
 	case strings.HasPrefix(a.RefName, git.TagPrefix):
 		return a.GetRepoLink() + "/src/tag/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.TagPrefix))
-	case len(a.RefName) == 40 && git.IsValidSHAPattern(a.RefName):
+	case len(a.RefName) == git.SHAFullLength && git.IsValidSHAPattern(a.RefName):
 		return a.GetRepoLink() + "/src/commit/" + a.RefName
 	default:
 		// FIXME: we will just assume it's a branch - this was the old way - at some point we may want to enforce that there is always a ref here.
@@ -339,14 +380,14 @@ type GetFeedsOptions struct {
 }
 
 // GetFeeds returns actions according to the provided options
-func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
+func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, error) {
 	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
-		return nil, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
+		return nil, 0, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
 	}
 
 	cond, err := activityQueryCondition(opts)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	sess := db.GetEngine(ctx).Where(cond).
@@ -357,16 +398,16 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	sess = db.SetSessionPagination(sess, &opts)
 
 	actions := make([]*Action, 0, opts.PageSize)
-
-	if err := sess.Desc("`action`.created_unix").Find(&actions); err != nil {
-		return nil, fmt.Errorf("Find: %w", err)
+	count, err := sess.Desc("`action`.created_unix").FindAndCount(&actions)
+	if err != nil {
+		return nil, 0, fmt.Errorf("FindAndCount: %w", err)
 	}
 
 	if err := ActionList(actions).loadAttributes(ctx); err != nil {
-		return nil, fmt.Errorf("LoadAttributes: %w", err)
+		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
 	}
 
-	return actions, nil
+	return actions, count, nil
 }
 
 // ActivityReadable return whether doer can read activities of user
@@ -493,7 +534,7 @@ func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 			repo = act.Repo
 
 			// check repo owner exist.
-			if err := act.Repo.GetOwner(ctx); err != nil {
+			if err := act.Repo.LoadOwner(ctx); err != nil {
 				return fmt.Errorf("can't get repo owner: %w", err)
 			}
 		} else if act.Repo == nil {

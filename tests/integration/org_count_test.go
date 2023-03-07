@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -24,7 +25,7 @@ func testOrgCounts(t *testing.T, u *url.URL) {
 	orgOwner := "user2"
 	orgName := "testOrg"
 	orgCollaborator := "user4"
-	ctx := NewAPITestContext(t, orgOwner, "repo1")
+	ctx := NewAPITestContext(t, orgOwner, "repo1", auth_model.AccessTokenScopeAdminOrg)
 
 	var ownerCountRepos map[string]int
 	var collabCountRepos map[string]int

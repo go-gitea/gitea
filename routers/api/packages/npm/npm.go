@@ -158,7 +158,11 @@ func DownloadPackageFileByName(ctx *context.Context) {
 func UploadPackage(ctx *context.Context) {
 	npmPackage, err := npm_module.ParsePackage(ctx.Req.Body)
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -405,8 +409,9 @@ func setPackageTag(tag string, pv *packages_model.PackageVersion, deleteOnly boo
 
 func PackageSearch(ctx *context.Context) {
 	pvs, total, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
-		OwnerID: ctx.Package.Owner.ID,
-		Type:    packages_model.TypeNpm,
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages_model.TypeNpm,
+		IsInternal: util.OptionalBoolFalse,
 		Name: packages_model.SearchValue{
 			ExactMatch: false,
 			Value:      ctx.FormTrim("text"),

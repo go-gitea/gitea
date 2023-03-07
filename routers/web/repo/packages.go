@@ -61,6 +61,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
+	ctx.Data["AvailableTypes"] = packages.TypeList
 	ctx.Data["HasPackages"] = hasPackages
 	if ctx.Repo != nil {
 		ctx.Data["CanWritePackages"] = ctx.IsUserRepoWriter([]unit.Type{unit.TypePackages}) || ctx.IsUserSiteAdmin()

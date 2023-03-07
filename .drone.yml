@@ -12,6 +12,9 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -25,7 +28,7 @@ steps:
       - make deps-frontend
 
   - name: deps-backend
-    image: golang:1.19
+    image: golang:1.20
     pull: always
     commands:
       - make deps-backend
@@ -88,7 +91,7 @@ steps:
     depends_on: [deps-frontend]
 
   - name: checks-backend
-    image: golang:1.19
+    image: golang:1.20
     commands:
       - make --always-make checks-backend # ensure the 'go-licenses' make target runs
     depends_on: [deps-backend]
@@ -109,10 +112,9 @@ steps:
     depends_on: [deps-frontend]
 
   - name: build-backend-no-gcc
-    image: golang:1.18 # this step is kept as the lowest version of golang that we support
+    image: golang:1.19 # this step is kept as the lowest version of golang that we support
     pull: always
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
@@ -122,9 +124,8 @@ steps:
         path: /go
 
   - name: build-backend-arm64
-    image: golang:1.19
+    image: golang:1.20
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
       GOOS: linux
       GOARCH: arm64
@@ -138,9 +139,8 @@ steps:
         path: /go
 
   - name: build-backend-windows
-    image: golang:1.19
+    image: golang:1.20
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
       GOOS: windows
       GOARCH: amd64
@@ -153,9 +153,8 @@ steps:
         path: /go
 
   - name: build-backend-386
-    image: golang:1.19
+    image: golang:1.20
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
       GOOS: linux
       GOARCH: 386
@@ -183,6 +182,9 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -230,6 +232,10 @@ services:
       MINIO_ACCESS_KEY: 123456
       MINIO_SECRET_KEY: 12345678
 
+  - name: smtpimap
+    image: tabascoterrier/docker-imap-devel:latest
+    pull: always
+
 steps:
   - name: fetch-tags
     image: docker:git
@@ -243,7 +249,7 @@ steps:
           - pull_request
 
   - name: deps-backend
-    image: golang:1.19
+    image: golang:1.20
     pull: always
     commands:
       - make deps-backend
@@ -360,7 +366,7 @@ steps:
         path: /go
 
   - name: generate-coverage
-    image: golang:1.19
+    image: golang:1.20
     commands:
       - make coverage
     environment:
@@ -406,6 +412,9 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -436,7 +445,7 @@ steps:
           - pull_request
 
   - name: deps-backend
-    image: golang:1.19
+    image: golang:1.20
     pull: always
     commands:
       - make deps-backend
@@ -513,6 +522,9 @@ depends_on:
 trigger:
   event:
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -551,9 +563,9 @@ steps:
 
   # TODO: We should probably build all dependencies into a test image
   - name: test-e2e
-    image: mcr.microsoft.com/playwright:v1.28.0-focal
+    image: mcr.microsoft.com/playwright:v1.29.2-focal
     commands:
-      - curl -sLO https://go.dev/dl/go1.19.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.19.linux-amd64.tar.gz
+      - curl -sLO https://go.dev/dl/go1.20.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.20.linux-amd64.tar.gz
       - groupadd --gid 1001 gitea && useradd -m --gid 1001 --uid 1001 gitea
       - apt-get -qq update && apt-get -qqy install build-essential
       - export TEST_PGSQL_SCHEMA=''
@@ -652,7 +664,7 @@ trigger:
 
 steps:
   - name: download
-    image: golang:1.19
+    image: golang:1.20
     pull: always
     commands:
       - timeout -s ABRT 40m make generate-license generate-gitignore
@@ -692,6 +704,9 @@ trigger:
     - "release/*"
   event:
     - push
+  paths:
+    exclude:
+      - docs/**
 
 depends_on:
   - testing-amd64
@@ -716,7 +731,7 @@ steps:
       - make deps-frontend
 
   - name: deps-backend
-    image: golang:1.19
+    image: golang:1.20
     pull: always
     commands:
       - make deps-backend
@@ -725,7 +740,7 @@ steps:
         path: /go
 
   - name: static
-    image: techknowlogick/xgo:go-1.19.x
+    image: techknowlogick/xgo:go-1.20.x
     pull: always
     commands:
       # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
@@ -759,10 +774,16 @@ steps:
     image: woodpeckerci/plugin-s3:latest
     pull: always
     settings:
-      acl: public-read
-      bucket: gitea-artifacts
-      endpoint: https://ams3.digitaloceanspaces.com
-      path_style: true
+      acl:
+        from_secret: aws_s3_acl
+      region:
+        from_secret: aws_s3_region
+      bucket:
+        from_secret: aws_s3_bucket
+      endpoint:
+        from_secret: aws_s3_endpoint
+      path_style:
+        from_secret: aws_s3_path_style
       source: "dist/release/*"
       strip_prefix: dist/release/
       target: "/gitea/${DRONE_BRANCH##release/v}"
@@ -780,10 +801,16 @@ steps:
   - name: release-main
     image: woodpeckerci/plugin-s3:latest
     settings:
-      acl: public-read
-      bucket: gitea-artifacts
-      endpoint: https://ams3.digitaloceanspaces.com
-      path_style: true
+      acl:
+        from_secret: aws_s3_acl
+      region:
+        from_secret: aws_s3_region
+      bucket:
+        from_secret: aws_s3_bucket
+      endpoint:
+        from_secret: aws_s3_endpoint
+      path_style:
+        from_secret: aws_s3_path_style
       source: "dist/release/*"
       strip_prefix: dist/release/
       target: /gitea/main
@@ -837,7 +864,7 @@ steps:
       - make deps-frontend
 
   - name: deps-backend
-    image: golang:1.19
+    image: golang:1.20
     pull: always
     commands:
       - make deps-backend
@@ -846,7 +873,7 @@ steps:
         path: /go
 
   - name: static
-    image: techknowlogick/xgo:go-1.19.x
+    image: techknowlogick/xgo:go-1.20.x
     pull: always
     commands:
       # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
@@ -882,10 +909,16 @@ steps:
     image: woodpeckerci/plugin-s3:latest
     pull: always
     settings:
-      acl: public-read
-      bucket: gitea-artifacts
-      endpoint: https://ams3.digitaloceanspaces.com
-      path_style: true
+      acl:
+        from_secret: aws_s3_acl
+      region:
+        from_secret: aws_s3_region
+      bucket:
+        from_secret: aws_s3_bucket
+      endpoint:
+        from_secret: aws_s3_endpoint
+      path_style:
+        from_secret: aws_s3_path_style
       source: "dist/release/*"
       strip_prefix: dist/release/
       target: "/gitea/${DRONE_TAG##v}"
@@ -925,13 +958,14 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    include:
+      - docs/**
 
 steps:
   - name: build-docs
-    image: plugins/hugo:latest
-    pull: always
+    image: golang:1.20
     commands:
-      - apk add --no-cache make bash curl
       - cd docs
       - make trans-copy clean build
 
@@ -965,10 +999,16 @@ depends_on:
 
 trigger:
   ref:
-  - "refs/tags/**"
+    include:
+      - "refs/tags/**"
+    exclude:
+      - "refs/tags/**-rc*"
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 steps:
   - name: fetch-tags
@@ -1002,6 +1042,71 @@ steps:
       dockerfile: Dockerfile.rootless
       auto_tag: true
       auto_tag_suffix: linux-amd64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.io
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+---
+
+kind: pipeline
+type: docker
+name: docker-linux-amd64-release-candidate-version
+
+platform:
+  os: linux
+  arch: amd64
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+
+trigger:
+  ref:
+    - "refs/tags/**-rc*"
+  event:
+    exclude:
+    - cron
+  paths:
+    exclude:
+      - docs/**
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    pull: always
+    commands:
+      - git config --global --add safe.directory /drone/src
+      - git fetch --tags --force
+
+  - name: publish
+    image: techknowlogick/drone-docker:latest
+    pull: always
+    settings:
+      tags: ${DRONE_TAG##v}-linux-amd64
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.io
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+  - name: publish-rootless
+    image: techknowlogick/drone-docker:latest
+    settings:
+      dockerfile: Dockerfile.rootless
+      tags: ${DRONE_TAG##v}-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1156,6 +1261,9 @@ depends_on:
 trigger:
   ref:
   - "refs/pull/**"
+  paths:
+    exclude:
+      - docs/**
 
 steps:
   - name: dryrun
@@ -1189,10 +1297,16 @@ depends_on:
 
 trigger:
   ref:
-  - "refs/tags/**"
+    include:
+      - "refs/tags/**"
+    exclude:
+      - "refs/tags/**-rc*"
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 steps:
   - name: fetch-tags
@@ -1241,6 +1355,71 @@ steps:
 ---
 kind: pipeline
 type: docker
+name: docker-linux-arm64-release-candidate-version
+
+platform:
+  os: linux
+  arch: arm64
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+
+trigger:
+  ref:
+    - "refs/tags/**-rc*"
+  event:
+    exclude:
+    - cron
+  paths:
+    exclude:
+      - docs/**
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    pull: always
+    commands:
+      - git config --global --add safe.directory /drone/src
+      - git fetch --tags --force
+
+  - name: publish
+    image: techknowlogick/drone-docker:latest
+    pull: always
+    settings:
+      tags: ${DRONE_TAG##v}-linux-arm64
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.io
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+  - name: publish-rootless
+    image: techknowlogick/drone-docker:latest
+    settings:
+      dockerfile: Dockerfile.rootless
+      tags: ${DRONE_TAG##v}-linux-arm64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.io
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+---
+kind: pipeline
+type: docker
 name: docker-linux-arm64-release
 
 platform:
@@ -1257,6 +1436,9 @@ trigger:
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 steps:
   - name: fetch-tags
@@ -1404,10 +1586,15 @@ trigger:
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 depends_on:
   - docker-linux-amd64-release-version
+  - docker-linux-amd64-release-candidate-version
   - docker-linux-arm64-release-version
+  - docker-linux-arm64-release-candidate-version
 
 ---
 kind: pipeline
@@ -1450,6 +1637,9 @@ trigger:
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 depends_on:
   - docker-linux-amd64-release
@@ -1489,6 +1679,8 @@ depends_on:
   - docker-linux-arm64-release
   - docker-linux-amd64-release-version
   - docker-linux-arm64-release-version
+  - docker-linux-amd64-release-candidate-version
+  - docker-linux-arm64-release-candidate-version
   - docker-linux-amd64-release-branch
   - docker-linux-arm64-release-branch
   - docker-manifest

@@ -77,15 +77,15 @@ func (s *SSPI) Free() error {
 // If authentication is successful, returns the corresponding user object.
 // If negotiation should continue or authentication fails, immediately returns a 401 HTTP
 // response code, as required by the SPNEGO protocol.
-func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
+func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	if !s.shouldAuthenticate(req) {
-		return nil
+		return nil, nil
 	}
 
 	cfg, err := s.getConfig()
 	if err != nil {
 		log.Error("could not get SSPI config: %v", err)
-		return nil
+		return nil, err
 	}
 
 	log.Trace("SSPI Authorization: Attempting to authenticate")
@@ -108,7 +108,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 			log.Error("%v", err)
 		}
 
-		return nil
+		return nil, err
 	}
 	if outToken != "" {
 		sspiAuth.AppendAuthenticateHeader(w, outToken)
@@ -116,7 +116,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 
 	username := sanitizeUsername(userInfo.Username, cfg)
 	if len(username) == 0 {
-		return nil
+		return nil, nil
 	}
 	log.Info("Authenticated as %s\n", username)
 
@@ -124,16 +124,16 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)
-			return nil
+			return nil, err
 		}
 		if !cfg.AutoCreateUsers {
 			log.Error("User '%s' not found", username)
-			return nil
+			return nil, nil
 		}
 		user, err = s.newUser(username, cfg)
 		if err != nil {
 			log.Error("CreateUser: %v", err)
-			return nil
+			return nil, err
 		}
 	}
 
@@ -143,7 +143,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	}
 
 	log.Trace("SSPI Authorization: Logged in user %-v", user)
-	return user
+	return user, nil
 }
 
 // getConfig retrieves the SSPI configuration from login sources

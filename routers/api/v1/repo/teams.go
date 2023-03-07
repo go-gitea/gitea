@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/services/convert"
 	org_service "code.gitea.io/gitea/services/org"
 )
 
@@ -47,7 +47,7 @@ func ListTeams(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeams, err := convert.ToTeams(teams, false)
+	apiTeams, err := convert.ToTeams(ctx, teams, false)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -98,7 +98,7 @@ func IsTeam(ctx *context.APIContext) {
 	}
 
 	if models.HasRepository(team, ctx.Repo.Repository.ID) {
-		apiTeam, err := convert.ToTeam(team)
+		apiTeam, err := convert.ToTeam(ctx, team)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return

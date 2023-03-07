@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/services/forms"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
@@ -199,6 +200,30 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.HTML(http.StatusOK, tplReleases)
 }
 
+// ReleasesFeedRSS get feeds for releases in RSS format
+func ReleasesFeedRSS(ctx *context.Context) {
+	releasesOrTagsFeed(ctx, true, "rss")
+}
+
+// TagsListFeedRSS get feeds for tags in RSS format
+func TagsListFeedRSS(ctx *context.Context) {
+	releasesOrTagsFeed(ctx, false, "rss")
+}
+
+// ReleasesFeedAtom get feeds for releases in Atom format
+func ReleasesFeedAtom(ctx *context.Context) {
+	releasesOrTagsFeed(ctx, true, "atom")
+}
+
+// TagsListFeedAtom get feeds for tags in RSS format
+func TagsListFeedAtom(ctx *context.Context) {
+	releasesOrTagsFeed(ctx, false, "atom")
+}
+
+func releasesOrTagsFeed(ctx *context.Context, isReleasesOnly bool, formatType string) {
+	feed.ShowReleaseFeed(ctx, ctx.Repo.Repository, isReleasesOnly, formatType)
+}
+
 // SingleRelease renders a single release's page
 func SingleRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
@@ -270,7 +295,7 @@ func LatestRelease(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(release.HTMLURL())
+	ctx.Redirect(release.Link())
 }
 
 // NewRelease render creating or edit release page
@@ -303,6 +328,14 @@ func NewRelease(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	var err error
+	// Get assignees.
+	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetAssignees", err)
+		return
+	}
+
 	upload.AddUploadContext(ctx, "release")
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
@@ -458,6 +491,13 @@ func EditRelease(ctx *context.Context) {
 		return
 	}
 	ctx.Data["attachments"] = rel.Attachments
+
+	// Get assignees.
+	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, rel.Repo)
+	if err != nil {
+		ctx.ServerError("GetAssignees", err)
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }

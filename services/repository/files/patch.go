@@ -66,13 +66,16 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 			return err
 		}
 	} else {
-		protectedBranch, err := git_model.GetProtectedBranchBy(ctx, repo.ID, opts.OldBranch)
+		protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, opts.OldBranch)
 		if err != nil {
 			return err
 		}
-		if protectedBranch != nil && !protectedBranch.CanUserPush(doer.ID) {
-			return models.ErrUserCannotCommit{
-				UserName: doer.LowerName,
+		if protectedBranch != nil {
+			protectedBranch.Repo = repo
+			if !protectedBranch.CanUserPush(ctx, doer) {
+				return models.ErrUserCannotCommit{
+					UserName: doer.LowerName,
+				}
 			}
 		}
 		if protectedBranch != nil && protectedBranch.RequireSignedCommits {
@@ -138,14 +141,12 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	stdout := &strings.Builder{}
 	stderr := &strings.Builder{}
 
-	args := []git.CmdArg{"apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary"}
-
+	cmdApply := git.NewCommand(ctx, "apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary")
 	if git.CheckGitVersionAtLeast("2.32") == nil {
-		args = append(args, "-3")
+		cmdApply.AddArguments("-3")
 	}
 
-	cmd := git.NewCommand(ctx, args...)
-	if err := cmd.Run(&git.RunOpts{
+	if err := cmdApply.Run(&git.RunOpts{
 		Dir:    t.basePath,
 		Stdout: stdout,
 		Stderr: stderr,
@@ -182,7 +183,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	}
 
 	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
-	verification := GetPayloadCommitVerification(commit)
+	verification := GetPayloadCommitVerification(ctx, commit)
 	fileResponse := &structs.FileResponse{
 		Commit:       fileCommitResponse,
 		Verification: verification,

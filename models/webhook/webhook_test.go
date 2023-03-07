@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -46,11 +47,11 @@ func TestWebhook_History(t *testing.T) {
 func TestWebhook_UpdateEvent(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	webhook := unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 1})
-	hookEvent := &HookEvent{
+	hookEvent := &webhook_module.HookEvent{
 		PushOnly:       true,
 		SendEverything: false,
 		ChooseEvents:   false,
-		HookEvents: HookEvents{
+		HookEvents: webhook_module.HookEvents{
 			Create:      false,
 			Push:        true,
 			PullRequest: false,
@@ -59,7 +60,7 @@ func TestWebhook_UpdateEvent(t *testing.T) {
 	webhook.HookEvent = hookEvent
 	assert.NoError(t, webhook.UpdateEvent())
 	assert.NotEmpty(t, webhook.Events)
-	actualHookEvent := &HookEvent{}
+	actualHookEvent := &webhook_module.HookEvent{}
 	assert.NoError(t, json.Unmarshal([]byte(webhook.Events), actualHookEvent))
 	assert.Equal(t, *hookEvent, *actualHookEvent)
 }
@@ -74,13 +75,13 @@ func TestWebhook_EventsArray(t *testing.T) {
 		"package",
 	},
 		(&Webhook{
-			HookEvent: &HookEvent{SendEverything: true},
+			HookEvent: &webhook_module.HookEvent{SendEverything: true},
 		}).EventsArray(),
 	)
 
 	assert.Equal(t, []string{"push"},
 		(&Webhook{
-			HookEvent: &HookEvent{PushOnly: true},
+			HookEvent: &webhook_module.HookEvent{PushOnly: true},
 		}).EventsArray(),
 	)
 }

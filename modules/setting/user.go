@@ -6,28 +6,22 @@ package setting
 import (
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/container"
 )
 
 // userSetting represents user settings
 type userSetting struct {
-	SettingDisabledModules []string
+	content container.Set[string]
 }
 
 func (s *userSetting) Enabled(module string) bool {
-	for _, m := range s.SettingDisabledModules {
-		if strings.EqualFold(m, module) {
-			return false
-		}
-	}
-	return true
+	return !s.content.Contains(strings.ToLower(module))
 }
 
 var User userSetting
 
-func newUserSetting() {
-	sec := Cfg.Section("user")
-	if err := sec.MapTo(&User); err != nil {
-		log.Fatal("user setting mapping failed: %v", err)
-	}
+func loadUserFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("user")
+	values := sec.Key("SETTING_DISABLED_MODULES").Strings(",")
+	User.content = container.SetOf(values...)
 }

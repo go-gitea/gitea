@@ -7,13 +7,11 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strconv"
 	"sync"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/foreignreference"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -27,7 +25,7 @@ import (
 func TestIssue_ReplaceLabels(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	testSuccess := func(issueID int64, labelIDs []int64) {
+	testSuccess := func(issueID int64, labelIDs, expectedLabelIDs []int64) {
 		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issueID})
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
@@ -37,15 +35,20 @@ func TestIssue_ReplaceLabels(t *testing.T) {
 			labels[i] = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: labelID, RepoID: repo.ID})
 		}
 		assert.NoError(t, issues_model.ReplaceIssueLabels(issue, labels, doer))
-		unittest.AssertCount(t, &issues_model.IssueLabel{IssueID: issueID}, len(labelIDs))
-		for _, labelID := range labelIDs {
+		unittest.AssertCount(t, &issues_model.IssueLabel{IssueID: issueID}, len(expectedLabelIDs))
+		for _, labelID := range expectedLabelIDs {
 			unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issueID, LabelID: labelID})
 		}
 	}
 
-	testSuccess(1, []int64{2})
-	testSuccess(1, []int64{1, 2})
-	testSuccess(1, []int64{})
+	testSuccess(1, []int64{2}, []int64{2})
+	testSuccess(1, []int64{1, 2}, []int64{1, 2})
+	testSuccess(1, []int64{}, []int64{})
+
+	// mutually exclusive scoped labels 7 and 8
+	testSuccess(18, []int64{6, 7}, []int64{6, 7})
+	testSuccess(18, []int64{7, 8}, []int64{8})
+	testSuccess(18, []int64{6, 8, 7}, []int64{6, 7})
 }
 
 func Test_GetIssueIDsByRepoID(t *testing.T) {
@@ -501,38 +504,6 @@ func TestCorrectIssueStats(t *testing.T) {
 	assert.EqualValues(t, issueStats.OpenCount, issueAmount)
 }
 
-func TestIssueForeignReference(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4})
-	assert.NotEqualValues(t, issue.Index, issue.ID) // make sure they are different to avoid false positive
-
-	// it is fine for an issue to not have a foreign reference
-	err := issue.LoadAttributes(db.DefaultContext)
-	assert.NoError(t, err)
-	assert.Nil(t, issue.ForeignReference)
-
-	var foreignIndex int64 = 12345
-	_, err = issues_model.GetIssueByForeignIndex(context.Background(), issue.RepoID, foreignIndex)
-	assert.True(t, foreignreference.IsErrLocalIndexNotExist(err))
-
-	err = db.Insert(db.DefaultContext, &foreignreference.ForeignReference{
-		LocalIndex:   issue.Index,
-		ForeignIndex: strconv.FormatInt(foreignIndex, 10),
-		RepoID:       issue.RepoID,
-		Type:         foreignreference.TypeIssue,
-	})
-	assert.NoError(t, err)
-
-	err = issue.LoadAttributes(db.DefaultContext)
-	assert.NoError(t, err)
-
-	assert.EqualValues(t, issue.ForeignReference.ForeignIndex, strconv.FormatInt(foreignIndex, 10))
-
-	found, err := issues_model.GetIssueByForeignIndex(context.Background(), issue.RepoID, foreignIndex)
-	assert.NoError(t, err)
-	assert.EqualValues(t, found.Index, issue.Index)
-}
-
 func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	miles := issues_model.MilestoneList{
@@ -557,5 +528,5 @@ func TestCountIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	count, err := issues_model.CountIssues(db.DefaultContext, &issues_model.IssuesOptions{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 17, count)
+	assert.EqualValues(t, 18, count)
 }

@@ -141,7 +141,7 @@ func CountNotifications(ctx context.Context, opts *FindNotificationOptions) (int
 
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to
 func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
-	return db.AutoTx(ctx, func(ctx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		var notify []*Notification
 
 		if newOwner.IsOrganization() {
@@ -151,7 +151,7 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 			}
 			for i := range users {
 				notify = append(notify, &Notification{
-					UserID:    users[i].ID,
+					UserID:    i,
 					RepoID:    repo.ID,
 					Status:    NotificationStatusUnread,
 					UpdatedBy: doer.ID,
@@ -455,6 +455,22 @@ func (n *Notification) HTMLURL() string {
 		return n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
 	case NotificationSourceRepository:
 		return n.Repository.HTMLURL()
+	}
+	return ""
+}
+
+// Link formats a relative URL-string to the notification
+func (n *Notification) Link() string {
+	switch n.Source {
+	case NotificationSourceIssue, NotificationSourcePullRequest:
+		if n.Comment != nil {
+			return n.Comment.Link()
+		}
+		return n.Issue.Link()
+	case NotificationSourceCommit:
+		return n.Repository.Link() + "/commit/" + url.PathEscape(n.CommitID)
+	case NotificationSourceRepository:
+		return n.Repository.Link()
 	}
 	return ""
 }

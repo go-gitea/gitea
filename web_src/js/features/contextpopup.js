@@ -4,7 +4,7 @@ import ContextPopup from '../components/ContextPopup.vue';
 import {parseIssueHref} from '../utils.js';
 import {createTippy} from '../modules/tippy.js';
 
-export default function initContextPopups() {
+export function initContextPopups() {
   const refIssues = $('.ref-issue');
   if (!refIssues.length) return;
 
@@ -31,8 +31,9 @@ export default function initContextPopups() {
     createTippy(this, {
       content: el,
       interactive: true,
+      interactiveBorder: 5,
       onShow: () => {
-        el.firstChild.dispatchEvent(new CustomEvent('us-load-context-popup', {detail: {owner, repo, index}}));
+        el.firstChild.dispatchEvent(new CustomEvent('ce-load-context-popup', {detail: {owner, repo, index}}));
       }
     });
   });

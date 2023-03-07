@@ -64,7 +64,7 @@ func Copy(src, dest string) error {
 func CopyDir(srcPath, destPath string, filters ...func(filePath string) bool) error {
 	// Check if target directory exists.
 	if _, err := os.Stat(destPath); !errors.Is(err, os.ErrNotExist) {
-		return errors.New("file or directory already exists: " + destPath)
+		return util.NewAlreadyExistErrorf("file or directory already exists: %s", destPath)
 	}
 
 	err := os.MkdirAll(destPath, os.ModePerm)

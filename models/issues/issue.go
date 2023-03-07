@@ -9,11 +9,9 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/foreignreference"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -136,12 +134,11 @@ type Issue struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	ClosedUnix  timeutil.TimeStamp `xorm:"INDEX"`
 
-	Attachments      []*repo_model.Attachment           `xorm:"-"`
-	Comments         []*Comment                         `xorm:"-"`
-	Reactions        ReactionList                       `xorm:"-"`
-	TotalTrackedTime int64                              `xorm:"-"`
-	Assignees        []*user_model.User                 `xorm:"-"`
-	ForeignReference *foreignreference.ForeignReference `xorm:"-"`
+	Attachments      []*repo_model.Attachment `xorm:"-"`
+	Comments         []*Comment               `xorm:"-"`
+	Reactions        ReactionList             `xorm:"-"`
+	TotalTrackedTime int64                    `xorm:"-"`
+	Assignees        []*user_model.User       `xorm:"-"`
 
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
@@ -238,7 +235,7 @@ func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
 // LoadPoster loads poster
 func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
 	if issue.Poster == nil {
-		issue.Poster, err = user_model.GetUserByID(ctx, issue.PosterID)
+		issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
 		if err != nil {
 			issue.PosterID = -1
 			issue.Poster = user_model.NewGhostUser()
@@ -254,13 +251,15 @@ func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
 
 // LoadPullRequest loads pull request info
 func (issue *Issue) LoadPullRequest(ctx context.Context) (err error) {
-	if issue.IsPull && issue.PullRequest == nil {
-		issue.PullRequest, err = GetPullRequestByIssueID(ctx, issue.ID)
-		if err != nil {
-			if IsErrPullRequestNotExist(err) {
-				return err
+	if issue.IsPull {
+		if issue.PullRequest == nil {
+			issue.PullRequest, err = GetPullRequestByIssueID(ctx, issue.ID)
+			if err != nil {
+				if IsErrPullRequestNotExist(err) {
+					return err
+				}
+				return fmt.Errorf("getPullRequestByIssueID [%d]: %w", issue.ID, err)
 			}
-			return fmt.Errorf("getPullRequestByIssueID [%d]: %w", issue.ID, err)
 		}
 		issue.PullRequest.Issue = issue
 	}
@@ -321,29 +320,6 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 	return nil
 }
 
-func (issue *Issue) loadForeignReference(ctx context.Context) (err error) {
-	if issue.ForeignReference != nil {
-		return nil
-	}
-	reference := &foreignreference.ForeignReference{
-		RepoID:     issue.RepoID,
-		LocalIndex: issue.Index,
-		Type:       foreignreference.TypeIssue,
-	}
-	has, err := db.GetEngine(ctx).Get(reference)
-	if err != nil {
-		return err
-	} else if !has {
-		return foreignreference.ErrForeignIndexNotExist{
-			RepoID:     issue.RepoID,
-			LocalIndex: issue.Index,
-			Type:       foreignreference.TypeIssue,
-		}
-	}
-	issue.ForeignReference = reference
-	return nil
-}
-
 // LoadMilestone load milestone of this issue.
 func (issue *Issue) LoadMilestone(ctx context.Context) (err error) {
 	if (issue.Milestone == nil || issue.Milestone.ID != issue.MilestoneID) && issue.MilestoneID > 0 {
@@ -373,7 +349,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		return
 	}
 
-	if err = issue.loadProject(ctx); err != nil {
+	if err = issue.LoadProject(ctx); err != nil {
 		return
 	}
 
@@ -404,10 +380,6 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		if err = issue.LoadTotalTimes(ctx); err != nil {
 			return err
 		}
-	}
-
-	if err = issue.loadForeignReference(ctx); err != nil && !foreignreference.IsErrForeignIndexNotExist(err) {
-		return err
 	}
 
 	return issue.loadReactions(ctx)
@@ -449,7 +421,7 @@ func (issue *Issue) HTMLURL() string {
 	return fmt.Sprintf("%s/%s/%d", issue.Repo.HTMLURL(), path, issue.Index)
 }
 
-// Link returns the Link URL to this issue.
+// Link returns the issue's relative URL.
 func (issue *Issue) Link() string {
 	var path string
 	if issue.IsPull {
@@ -568,6 +540,31 @@ func (ts labelSorter) Swap(i, j int) {
 	[]*Label(ts)[i], []*Label(ts)[j] = []*Label(ts)[j], []*Label(ts)[i]
 }
 
+// Ensure only one label of a given scope exists, with labels at the end of the
+// array getting preference over earlier ones.
+func RemoveDuplicateExclusiveLabels(labels []*Label) []*Label {
+	validLabels := make([]*Label, 0, len(labels))
+
+	for i, label := range labels {
+		scope := label.ExclusiveScope()
+		if scope != "" {
+			foundOther := false
+			for _, otherLabel := range labels[i+1:] {
+				if otherLabel.ExclusiveScope() == scope {
+					foundOther = true
+					break
+				}
+			}
+			if foundOther {
+				continue
+			}
+		}
+		validLabels = append(validLabels, label)
+	}
+
+	return validLabels
+}
+
 // ReplaceIssueLabels removes all current labels and add new labels to the issue.
 // Triggers appropriate WebHooks, if any.
 func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err error) {
@@ -584,6 +581,8 @@ func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (e
 	if err = issue.LoadLabels(ctx); err != nil {
 		return err
 	}
+
+	labels = RemoveDuplicateExclusiveLabels(labels)
 
 	sort.Sort(labelSorter(labels))
 	sort.Sort(labelSorter(issue.Labels))
@@ -1097,26 +1096,6 @@ func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 	return issue, nil
 }
 
-// GetIssueByForeignIndex returns raw issue by foreign ID
-func GetIssueByForeignIndex(ctx context.Context, repoID, foreignIndex int64) (*Issue, error) {
-	reference := &foreignreference.ForeignReference{
-		RepoID:       repoID,
-		ForeignIndex: strconv.FormatInt(foreignIndex, 10),
-		Type:         foreignreference.TypeIssue,
-	}
-	has, err := db.GetEngine(ctx).Get(reference)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, foreignreference.ErrLocalIndexNotExist{
-			RepoID:       repoID,
-			ForeignIndex: foreignIndex,
-			Type:         foreignreference.TypeIssue,
-		}
-	}
-	return GetIssueByIndex(repoID, reference.LocalIndex)
-}
-
 // GetIssueWithAttrsByIndex returns issue by index in a repository.
 func GetIssueWithAttrsByIndex(repoID, index int64) (*Issue, error) {
 	issue, err := GetIssueByIndex(repoID, index)
@@ -1148,7 +1127,7 @@ func GetIssueWithAttrsByID(id int64) (*Issue, error) {
 }
 
 // GetIssuesByIDs return issues with the given IDs.
-func GetIssuesByIDs(ctx context.Context, issueIDs []int64) ([]*Issue, error) {
+func GetIssuesByIDs(ctx context.Context, issueIDs []int64) (IssueList, error) {
 	issues := make([]*Issue, 0, 10)
 	return issues, db.GetEngine(ctx).In("id", issueIDs).Find(&issues)
 }
@@ -1169,6 +1148,7 @@ type IssuesOptions struct { //nolint
 	PosterID           int64
 	MentionedID        int64
 	ReviewRequestedID  int64
+	ReviewedID         int64
 	SubscriberID       int64
 	MilestoneIDs       []int64
 	ProjectID          int64
@@ -1283,6 +1263,10 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 		applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
 	}
 
+	if opts.ReviewedID > 0 {
+		applyReviewedCondition(sess, opts.ReviewedID)
+	}
+
 	if opts.SubscriberID > 0 {
 		applySubscribedCondition(sess, opts.SubscriberID)
 	}
@@ -1301,6 +1285,8 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	if opts.ProjectID > 0 {
 		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
 			And("project_issue.project_id=?", opts.ProjectID)
+	} else if opts.ProjectID == db.NoneID { // show those that are in no project
+		sess.And(builder.NotIn("issue.id", builder.Select("issue_id").From("project_issue")))
 	}
 
 	if opts.ProjectBoardID != 0 {
@@ -1451,6 +1437,36 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 			reviewRequestedID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, reviewRequestedID)
 }
 
+func applyReviewedCondition(sess *xorm.Session, reviewedID int64) *xorm.Session {
+	// Query for pull requests where you are a reviewer or commenter, excluding
+	// any pull requests already returned by the the review requested filter.
+	notPoster := builder.Neq{"issue.poster_id": reviewedID}
+	reviewed := builder.In("issue.id", builder.
+		Select("issue_id").
+		From("review").
+		Where(builder.And(
+			builder.Neq{"type": ReviewTypeRequest},
+			builder.Or(
+				builder.Eq{"reviewer_id": reviewedID},
+				builder.In("reviewer_team_id", builder.
+					Select("team_id").
+					From("team_user").
+					Where(builder.Eq{"uid": reviewedID}),
+				),
+			),
+		)),
+	)
+	commented := builder.In("issue.id", builder.
+		Select("issue_id").
+		From("comment").
+		Where(builder.And(
+			builder.Eq{"poster_id": reviewedID},
+			builder.In("type", CommentTypeComment, CommentTypeCode, CommentTypeReview),
+		)),
+	)
+	return sess.And(notPoster, builder.Or(reviewed, commented))
+}
+
 func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Session {
 	return sess.And(
 		builder.
@@ -1579,7 +1595,7 @@ func IsUserParticipantsOfIssue(user *user_model.User, issue *Issue) bool {
 		log.Error(err.Error())
 		return false
 	}
-	return util.IsInt64InSlice(user.ID, userIDs)
+	return util.SliceContains(userIDs, user.ID)
 }
 
 // UpdateIssueMentions updates issue-user relations for mentioned users.
@@ -1605,6 +1621,7 @@ type IssueStats struct {
 	CreateCount            int64
 	MentionCount           int64
 	ReviewRequestedCount   int64
+	ReviewedCount          int64
 }
 
 // Filter modes.
@@ -1614,6 +1631,7 @@ const (
 	FilterModeCreate
 	FilterModeMention
 	FilterModeReviewRequested
+	FilterModeReviewed
 	FilterModeYourRepositories
 )
 
@@ -1622,10 +1640,12 @@ type IssueStatsOptions struct {
 	RepoID            int64
 	Labels            string
 	MilestoneID       int64
+	ProjectID         int64
 	AssigneeID        int64
 	MentionedID       int64
 	PosterID          int64
 	ReviewRequestedID int64
+	ReviewedID        int64
 	IsPull            util.OptionalBool
 	IssueIDs          []int64
 }
@@ -1664,6 +1684,7 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 		accum.CreateCount += stats.CreateCount
 		accum.OpenCount += stats.MentionCount
 		accum.ReviewRequestedCount += stats.ReviewRequestedCount
+		accum.ReviewedCount += stats.ReviewedCount
 		i = chunk
 	}
 	return accum, nil
@@ -1700,6 +1721,11 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 			sess.And("issue.milestone_id = ?", opts.MilestoneID)
 		}
 
+		if opts.ProjectID > 0 {
+			sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
+				And("project_issue.project_id=?", opts.ProjectID)
+		}
+
 		if opts.AssigneeID > 0 {
 			applyAssigneeCondition(sess, opts.AssigneeID)
 		}
@@ -1714,6 +1740,10 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 		if opts.ReviewRequestedID > 0 {
 			applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
+		}
+
+		if opts.ReviewedID > 0 {
+			applyReviewedCondition(sess, opts.ReviewedID)
 		}
 
 		switch opts.IsPull {
@@ -1856,6 +1886,19 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		if err != nil {
 			return nil, err
 		}
+	case FilterModeReviewed:
+		stats.OpenCount, err = applyReviewedCondition(sess(cond), opts.UserID).
+			And("issue.is_closed = ?", false).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = applyReviewedCondition(sess(cond), opts.UserID).
+			And("issue.is_closed = ?", true).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	cond = cond.And(builder.Eq{"issue.is_closed": opts.IsClosed})
@@ -1880,6 +1923,11 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	stats.ReviewRequestedCount, err = applyReviewRequestedCondition(sess(cond), opts.UserID).Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	stats.ReviewedCount, err = applyReviewedCondition(sess(cond), opts.UserID).Count(new(Issue))
 	if err != nil {
 		return nil, err
 	}
@@ -2073,7 +2121,7 @@ func (issue *Issue) GetParticipantIDsByIssue(ctx context.Context) ([]int64, erro
 		Find(&userIDs); err != nil {
 		return nil, fmt.Errorf("get poster IDs: %w", err)
 	}
-	if !util.IsInt64InSlice(issue.PosterID, userIDs) {
+	if !util.SliceContains(userIDs, issue.PosterID) {
 		return append(userIDs, issue.PosterID), nil
 	}
 	return userIDs, nil
@@ -2141,7 +2189,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 	resolved := make(map[string]bool, 10)
 	var mentionTeams []string
 
-	if err := issue.Repo.GetOwner(ctx); err != nil {
+	if err := issue.Repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 
@@ -2415,7 +2463,7 @@ func CountOrphanedIssues(ctx context.Context) (int64, error) {
 // DeleteOrphanedIssues delete issues without a repo
 func DeleteOrphanedIssues(ctx context.Context) error {
 	var attachmentPaths []string
-	err := db.AutoTx(ctx, func(ctx context.Context) error {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
 		var ids []int64
 
 		if err := db.GetEngine(ctx).Table("issue").Distinct("issue.repo_id").
@@ -2444,4 +2492,9 @@ func DeleteOrphanedIssues(ctx context.Context) error {
 		system_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
 	}
 	return nil
+}
+
+// HasOriginalAuthor returns if an issue was migrated and has an original author.
+func (issue *Issue) HasOriginalAuthor() bool {
+	return issue.OriginalAuthor != "" && issue.OriginalAuthorID != 0
 }

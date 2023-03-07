@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
@@ -38,7 +39,7 @@ func TestAPIPullUpdate(t *testing.T) {
 		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 
 		session := loginUser(t, "user2")
-		token := getTokenForLoggedInUser(t, session)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?token="+token, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index)
 		session.MakeRequest(t, req, http.StatusOK)
 
@@ -66,7 +67,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 
 		session := loginUser(t, "user2")
-		token := getTokenForLoggedInUser(t, session)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase&token="+token, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index)
 		session.MakeRequest(t, req, http.StatusOK)
 
@@ -79,7 +80,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 }
 
 func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_model.PullRequest {
-	baseRepo, err := repo_service.CreateRepository(actor, actor, repo_module.CreateRepoOptions{
+	baseRepo, err := repo_service.CreateRepository(db.DefaultContext, actor, actor, repo_module.CreateRepoOptions{
 		Name:        "repo-pr-update",
 		Description: "repo-tmp-pr-update description",
 		AutoInit:    true,

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -363,15 +364,34 @@ func (f *AddKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Er
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// AddSecretForm for adding secrets
+type AddSecretForm struct {
+	Title   string `binding:"Required;MaxSize(50)"`
+	Content string `binding:"Required"`
+}
+
+// Validate validates the fields
+func (f *AddSecretForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // NewAccessTokenForm form for creating access token
 type NewAccessTokenForm struct {
-	Name string `binding:"Required;MaxSize(255)"`
+	Name  string `binding:"Required;MaxSize(255)"`
+	Scope []string
 }
 
 // Validate validates the fields
 func (f *NewAccessTokenForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+func (f *NewAccessTokenForm) GetScope() (auth_model.AccessTokenScope, error) {
+	scope := strings.Join(f.Scope, ",")
+	s, err := auth_model.AccessTokenScope(scope).Normalize()
+	return s, err
 }
 
 // EditOAuth2ApplicationForm form for editing oauth2 applications

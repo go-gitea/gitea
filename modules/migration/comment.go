@@ -8,8 +8,7 @@ import "time"
 
 // Commentable can be commented upon
 type Commentable interface {
-	GetLocalIndex() int64
-	GetForeignIndex() int64
+	Reviewable
 	GetContext() DownloaderContext
 }
 
@@ -17,6 +16,7 @@ type Commentable interface {
 type Comment struct {
 	IssueIndex  int64 `yaml:"issue_index"`
 	Index       int64
+	CommentType string `yaml:"comment_type"` // see `commentStrings` in models/issues/comment.go
 	PosterID    int64  `yaml:"poster_id"`
 	PosterName  string `yaml:"poster_name"`
 	PosterEmail string `yaml:"poster_email"`
@@ -24,6 +24,7 @@ type Comment struct {
 	Updated     time.Time
 	Content     string
 	Reactions   []*Reaction
+	Meta        map[string]interface{} `yaml:"meta,omitempty"` // see models/issues/comment.go for fields in Comment struct
 }
 
 // GetExternalName ExternalUserMigrated interface

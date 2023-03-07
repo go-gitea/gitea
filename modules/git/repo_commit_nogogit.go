@@ -107,10 +107,6 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id SHA1) (*Co
 			return nil, err
 		}
 
-		commit.CommitMessage = strings.TrimSpace(tag.Message)
-		commit.Author = tag.Tagger
-		commit.Signature = tag.Signature
-
 		return commit, nil
 	case "commit":
 		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, size))
@@ -137,7 +133,7 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id SHA1) (*Co
 
 // ConvertToSHA1 returns a Hash object from a potential ID string
 func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
-	if len(commitID) == 40 && IsValidSHAPattern(commitID) {
+	if len(commitID) == SHAFullLength && IsValidSHAPattern(commitID) {
 		sha1, err := NewIDFromString(commitID)
 		if err == nil {
 			return sha1, nil
