@@ -272,7 +272,7 @@ func SubmitInstall(ctx *context.Context) {
 	// ---- Basic checks are passed, now test configuration.
 
 	// Test database setting.
-	setting.Database.Type = setting.ToDatabaseType(form.DbType)
+	setting.Database.Type = setting.DatabaseType(form.DbType)
 	setting.Database.Host = form.DbHost
 	setting.Database.User = form.DbUser
 	setting.Database.Passwd = form.DbPasswd

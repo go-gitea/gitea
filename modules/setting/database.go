@@ -27,7 +27,7 @@ var (
 
 	// Database holds the database settings
 	Database = struct {
-		Type              databaseType
+		Type              DatabaseType
 		Host              string
 		Name              string
 		User              string
@@ -55,7 +55,7 @@ var (
 // LoadDBSetting loads the database settings
 func LoadDBSetting() {
 	sec := CfgProvider.Section("database")
-	Database.Type = ToDatabaseType(sec.Key("DB_TYPE").String())
+	Database.Type = DatabaseType(sec.Key("DB_TYPE").String())
 	defaultCharset := "utf8"
 
 	if Database.Type.IsMySQL() {
@@ -193,28 +193,24 @@ func ParseMSSQLHostPort(info string) (string, string) {
 	return host, port
 }
 
-type databaseType string
+type DatabaseType string
 
-func ToDatabaseType(s string) databaseType {
-	return databaseType(s)
-}
-
-func (t databaseType) String() string {
+func (t DatabaseType) String() string {
 	return string(t)
 }
 
-func (t databaseType) IsSQLite3() bool {
+func (t DatabaseType) IsSQLite3() bool {
 	return t == "sqlite3"
 }
 
-func (t databaseType) IsMySQL() bool {
+func (t DatabaseType) IsMySQL() bool {
 	return t == "mysql"
 }
 
-func (t databaseType) IsMSSQL() bool {
+func (t DatabaseType) IsMSSQL() bool {
 	return t == "mssql"
 }
 
-func (t databaseType) IsPostgreSQL() bool {
+func (t DatabaseType) IsPostgreSQL() bool {
 	return t == "postgres"
 }
