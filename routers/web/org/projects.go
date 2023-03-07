@@ -142,14 +142,21 @@ func NewProjectPost(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.NewProject(&project_model.Project{
+	newProject := project_model.Project{
 		OwnerID:     ctx.ContextUser.ID,
 		Title:       form.Title,
 		Description: form.Content,
 		CreatorID:   ctx.Doer.ID,
 		BoardType:   form.BoardType,
-		Type:        project_model.TypeOrganization,
-	}); err != nil {
+	}
+
+	if ctx.ContextUser.IsOrganization() {
+		newProject.Type = project_model.TypeOrganization
+	} else {
+		newProject.Type = project_model.TypeIndividual
+	}
+
+	if err := project_model.NewProject(&newProject); err != nil {
 		ctx.ServerError("NewProject", err)
 		return
 	}
