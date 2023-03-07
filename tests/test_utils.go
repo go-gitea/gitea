@@ -74,7 +74,7 @@ func InitTest(requireGitea bool) {
 	}
 
 	switch {
-	case setting.Database.UseMySQL:
+	case setting.Database.Type.IsMySQL():
 		connType := "tcp"
 		if len(setting.Database.Host) > 0 && setting.Database.Host[0] == '/' { // looks like a unix socket
 			connType = "unix"
@@ -89,7 +89,7 @@ func InitTest(requireGitea bool) {
 		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name)); err != nil {
 			log.Fatal("db.Exec: %v", err)
 		}
-	case setting.Database.UsePostgreSQL:
+	case setting.Database.Type.IsPostgreSQL():
 		var db *sql.DB
 		var err error
 		if setting.Database.Host[0] == '/' {
@@ -146,7 +146,7 @@ func InitTest(requireGitea bool) {
 			}
 		}
 
-	case setting.Database.UseMSSQL:
+	case setting.Database.Type.IsMSSQL():
 		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
 			host, port, "master", setting.Database.User, setting.Database.Passwd))
