@@ -81,8 +81,6 @@ func (ct SniffedType) GetMimeType() string {
 	return strings.SplitN(ct.contentType, ";", 2)[0]
 }
 
-var svgCloseTag = []byte("</svg>")
-
 // DetectContentType extends http.DetectContentType with more content types. Defaults to text/unknown if input is empty.
 func DetectContentType(data []byte) SniffedType {
 	if len(data) == 0 {
@@ -102,11 +100,9 @@ func DetectContentType(data []byte) SniffedType {
 	if detectByHTML || detectByXML {
 		dataProcessed := svgComment.ReplaceAll(data, nil)
 		dataProcessed = bytes.TrimSpace(dataProcessed)
-		if bytes.HasSuffix(dataProcessed, svgCloseTag) {
-			if detectByHTML && svgTagRegex.Match(dataProcessed) ||
-				detectByXML && svgTagInXMLRegex.Match(dataProcessed) {
-				ct = SvgMimeType
-			}
+		if detectByHTML && svgTagRegex.Match(dataProcessed) ||
+			detectByXML && svgTagInXMLRegex.Match(dataProcessed) {
+			ct = SvgMimeType
 		}
 	}
 
