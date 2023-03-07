@@ -193,7 +193,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		log.Error("pr.Issue.LoadRepo %-v: %v", pr, err)
 	}
 	if err := pr.Issue.Repo.LoadOwner(hammerCtx); err != nil {
-		log.Error("LoadOwner for PR [%d]: %v", pr.ID, err)
+		log.Error("LoadOwner for %-v: %v", pr, err)
 	}
 
 	if wasAutoMerged {
