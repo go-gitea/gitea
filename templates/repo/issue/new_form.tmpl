@@ -176,8 +176,8 @@
 								{{.locale.Tr "repo.issues.new.open_projects"}}
 							</div>
 							{{range .OpenProjects}}
-								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
-									{{svg "octicon-project" 18 "gt-mr-3"}}
+								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
+									{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
 									{{.Title}}
 								</a>
 							{{end}}
@@ -188,8 +188,8 @@
 								{{.locale.Tr "repo.issues.new.closed_projects"}}
 							</div>
 							{{range .ClosedProjects}}
-								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
-									{{svg "octicon-project" 18 "gt-mr-3"}}
+								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
+									{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
 									{{.Title}}
 								</a>
 							{{end}}
@@ -201,8 +201,8 @@
 				<span class="no-select item {{if .Project}}gt-hidden{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
 				<div class="selected">
 					{{if .Project}}
-						<a class="item muted sidebar-item-link" href="{{.RepoLink}}/projects/{{.Project.ID}}">
-							{{svg "octicon-project" 18 "gt-mr-3"}}
+						<a class="item muted sidebar-item-link" href="{{.Project.Link}}">
+							{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
 							{{.Project.Title}}
 						</a>
 					{{end}}
