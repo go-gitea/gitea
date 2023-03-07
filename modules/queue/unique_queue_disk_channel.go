@@ -94,7 +94,8 @@ func NewPersistableChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interfac
 			},
 			Workers: 0,
 		},
-		DataDir: config.DataDir,
+		DataDir:   config.DataDir,
+		QueueName: config.Name + "-level",
 	}
 
 	queue.channelQueue = channelUniqueQueue.(*ChannelUniqueQueue)
@@ -209,17 +210,29 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(func())
 	atTerminate(q.Terminate)
 	_ = q.channelQueue.AddWorkers(q.channelQueue.workers, 0)
 
-	if luq, ok := q.internal.(*LevelUniqueQueue); ok && luq.ByteFIFOUniqueQueue.byteFIFO.Len(luq.shutdownCtx) != 0 {
+	if luq, ok := q.internal.(*LevelUniqueQueue); ok && !luq.IsEmpty() {
 		// Just run the level queue - we shut it down once it's flushed
-		go q.internal.Run(func(_ func()) {}, func(_ func()) {})
+		go luq.Run(func(_ func()) {}, func(_ func()) {})
 		go func() {
-			_ = q.internal.Flush(0)
-			log.Debug("LevelUniqueQueue: %s flushed so shutting down", q.internal.(*LevelUniqueQueue).Name())
-			q.internal.(*LevelUniqueQueue).Shutdown()
-			GetManager().Remove(q.internal.(*LevelUniqueQueue).qid)
+			_ = luq.Flush(0)
+			for !luq.IsEmpty() {
+				_ = luq.Flush(0)
+				select {
+				case <-time.After(100 * time.Millisecond):
+				case <-luq.shutdownCtx.Done():
+					if luq.byteFIFO.Len(luq.terminateCtx) > 0 {
+						log.Warn("LevelUniqueQueue: %s shut down before completely flushed", luq.Name())
+					}
+					return
+				}
+			}
+			log.Debug("LevelUniqueQueue: %s flushed so shutting down", luq.Name())
+			luq.Shutdown()
+			GetManager().Remove(luq.qid)
 		}()
 	} else {
 		log.Debug("PersistableChannelUniqueQueue: %s Skipping running the empty level queue", q.delayedStarter.name)
+		_ = q.internal.Flush(0)
 		q.internal.(*LevelUniqueQueue).Shutdown()
 		GetManager().Remove(q.internal.(*LevelUniqueQueue).qid)
 	}
@@ -285,8 +298,20 @@ func (q *PersistableChannelUniqueQueue) Shutdown() {
 	// Redirect all remaining data in the chan to the internal channel
 	close(q.channelQueue.dataChan)
 	log.Trace("PersistableChannelUniqueQueue: %s Redirecting remaining data", q.delayedStarter.name)
+	countOK, countLost := 0, 0
 	for data := range q.channelQueue.dataChan {
-		_ = q.internal.Push(data)
+		err := q.internal.(*LevelUniqueQueue).Push(data)
+		if err != nil {
+			log.Error("PersistableChannelUniqueQueue: %s Unable redirect %v due to: %v", q.delayedStarter.name, data, err)
+			countLost++
+		} else {
+			countOK++
+		}
+	}
+	if countLost > 0 {
+		log.Warn("PersistableChannelUniqueQueue: %s %d will be restored on restart, %d lost", q.delayedStarter.name, countOK, countLost)
+	} else if countOK > 0 {
+		log.Warn("PersistableChannelUniqueQueue: %s %d will be restored on restart", q.delayedStarter.name, countOK)
 	}
 	log.Trace("PersistableChannelUniqueQueue: %s Done Redirecting remaining data", q.delayedStarter.name)
 

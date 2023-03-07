@@ -129,7 +129,7 @@
 						<span class="ui green label">{{$.locale.Tr "repo.activity.published_release_label"}}</span>
 						{{.TagName}}
 						{{if not .IsTag}}
-							<a class="title" href="{{$.RepoLink}}/src/{{.TagName | PathEscapeSegments}}">{{.Title | RenderEmoji}}</a>
+							<a class="title" href="{{$.RepoLink}}/src/{{.TagName | PathEscapeSegments}}">{{.Title | RenderEmoji $.Context}}</a>
 						{{end}}
 						{{TimeSinceUnix .CreatedUnix $.locale}}
 					</p>
@@ -149,7 +149,7 @@
 				{{range .Activity.MergedPRs}}
 					<p class="desc">
 						<span class="ui purple label">{{$.locale.Tr "repo.activity.merged_prs_label"}}</span>
-						#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | RenderEmoji}}</a>
+						#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | RenderEmoji $.Context}}</a>
 						{{TimeSinceUnix .MergedUnix $.locale}}
 					</p>
 				{{end}}
@@ -168,7 +168,7 @@
 				{{range .Activity.OpenedPRs}}
 					<p class="desc">
 						<span class="ui green label">{{$.locale.Tr "repo.activity.opened_prs_label"}}</span>
-						#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | RenderEmoji}}</a>
+						#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | RenderEmoji $.Context}}</a>
 						{{TimeSinceUnix .Issue.CreatedUnix $.locale}}
 					</p>
 				{{end}}
@@ -187,7 +187,7 @@
 				{{range .Activity.ClosedIssues}}
 					<p class="desc">
 						<span class="ui red label">{{$.locale.Tr "repo.activity.closed_issue_label"}}</span>
-						#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji}}</a>
+						#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji $.Context}}</a>
 						{{TimeSinceUnix .ClosedUnix $.locale}}
 					</p>
 				{{end}}
@@ -206,7 +206,7 @@
 				{{range .Activity.OpenedIssues}}
 					<p class="desc">
 						<span class="ui green label">{{$.locale.Tr "repo.activity.new_issue_label"}}</span>
-						#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji}}</a>
+						#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji $.Context}}</a>
 						{{TimeSinceUnix .CreatedUnix $.locale}}
 					</p>
 				{{end}}
@@ -227,9 +227,9 @@
 						<span class="ui green label">{{$.locale.Tr "repo.activity.unresolved_conv_label"}}</span>
 						#{{.Index}}
 						{{if .IsPull}}
-						<a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Title | RenderEmoji}}</a>
+						<a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Title | RenderEmoji $.Context}}</a>
 						{{else}}
-						<a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji}}</a>
+						<a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji $.Context}}</a>
 						{{end}}
 						{{TimeSinceUnix .UpdatedUnix $.locale}}
 					</p>

@@ -177,7 +177,9 @@ func (q *ChannelUniqueQueue) Shutdown() {
 	go func() {
 		log.Trace("ChannelUniqueQueue: %s Flushing", q.name)
 		if err := q.FlushWithContext(q.terminateCtx); err != nil {
-			log.Warn("ChannelUniqueQueue: %s Terminated before completed flushing", q.name)
+			if !q.IsEmpty() {
+				log.Warn("ChannelUniqueQueue: %s Terminated before completed flushing", q.name)
+			}
 			return
 		}
 		log.Debug("ChannelUniqueQueue: %s Flushed", q.name)
