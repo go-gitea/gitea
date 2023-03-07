@@ -15,8 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// AddCacheControlToHeader adds suitable cache-control headers to response
-func AddCacheControlToHeader(h http.Header, maxAge time.Duration, additionalDirectives ...string) {
+// SetCacheControlInHeader sets suitable cache-control headers in the response
+func SetCacheControlInHeader(h http.Header, maxAge time.Duration, additionalDirectives ...string) {
 	directives := make([]string, 0, 2+len(additionalDirectives))
 
 	// "max-age=0 + must-revalidate" (aka "no-cache") is preferred instead of "no-store"
@@ -50,7 +50,7 @@ func HandleTimeCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (
 
 // HandleGenericTimeCache handles time-based caching for a HTTP request
 func HandleGenericTimeCache(req *http.Request, w http.ResponseWriter, lastModified time.Time) (handled bool) {
-	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime)
+	SetCacheControlInHeader(w.Header(), setting.StaticCacheTime)
 
 	ifModifiedSince := req.Header.Get("If-Modified-Since")
 	if ifModifiedSince != "" {
@@ -81,7 +81,7 @@ func HandleGenericETagCache(req *http.Request, w http.ResponseWriter, etag strin
 			return true
 		}
 	}
-	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime)
+	SetCacheControlInHeader(w.Header(), setting.StaticCacheTime)
 	return false
 }
 
@@ -125,6 +125,6 @@ func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag s
 			}
 		}
 	}
-	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime)
+	SetCacheControlInHeader(w.Header(), setting.StaticCacheTime)
 	return false
 }
