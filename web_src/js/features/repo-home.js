@@ -6,35 +6,38 @@ const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoTopicBar() {
   const mgrBtn = $('#manage_topic');
-  const editDiv = $('#topic_edit');
-  const viewDiv = $('#repo-topics');
+  if (!mgrBtn.length) return;
+
   const saveBtn = $('#save_topic');
+  const topicListDiv = $('#repo-topics');
   const topicDropdown = $('#topic_edit .dropdown');
   const topicDropdownSearch = topicDropdown.find('input.search');
   const topicForm = $('#topic_edit');
-  const topicPrompts = getPrompts();
+  const topicPrompts = {
+    countPrompt: topicDropdown.attr('data-text-count-prompt'),
+    formatPrompt: topicDropdown.attr('data-text-format-prompt'),
+    remove: topicDropdown.attr('data-text-remove'),
+  };
+
+  function addLabelDeleteIconAria($el) {
+    $el.attr({
+      'aria-label': topicPrompts.remove,
+      'role': 'button',
+    });
+  }
 
   mgrBtn.on('click', () => {
-    hideElem(viewDiv);
-    showElem(editDiv);
+    hideElem(topicListDiv);
+    showElem(topicForm);
+    addLabelDeleteIconAria(topicDropdown.find('i.delete.icon'));
     topicDropdownSearch.focus();
   });
 
   $('#cancel_topic_edit').on('click', () => {
-    hideElem(editDiv);
-    showElem(viewDiv);
+    hideElem(topicForm);
+    showElem(topicListDiv);
     mgrBtn.focus();
   });
-
-  function getPrompts() {
-    const hidePrompt = $('#validate_prompt');
-    const prompts = {
-      countPrompt: hidePrompt.children('#count_prompt').text(),
-      formatPrompt: hidePrompt.children('#format_prompt').text()
-    };
-    hidePrompt.remove();
-    return prompts;
-  }
 
   saveBtn.on('click', () => {
     const topics = $('input[name=topics]').val();
@@ -44,7 +47,7 @@ export function initRepoTopicBar() {
       topics
     }, (_data, _textStatus, xhr) => {
       if (xhr.responseJSON.status === 'ok') {
-        viewDiv.children('.topic').remove();
+        topicListDiv.children('.topic').remove();
         if (topics.length) {
           const topicArray = topics.split(',');
           for (let i = 0; i < topicArray.length; i++) {
@@ -54,8 +57,8 @@ export function initRepoTopicBar() {
             link.insertBefore(mgrBtn); // insert all new topics before manage button
           }
         }
-        hideElem(editDiv);
-        showElem(viewDiv);
+        hideElem(topicForm);
+        showElem(topicListDiv);
       }
     }).fail((xhr) => {
       if (xhr.status === 422) {
@@ -147,7 +150,8 @@ export function initRepoTopicBar() {
     onLabelCreate(value) {
       value = value.toLowerCase().trim();
       this.attr('data-value', value).contents().first().replaceWith(value);
-      return $(this);
+      addLabelDeleteIconAria(this.find('i.delete.icon'));
+      return this;
     },
     onAdd(addedValue, _addedText, $addedChoice) {
       addedValue = addedValue.toLowerCase().trim();

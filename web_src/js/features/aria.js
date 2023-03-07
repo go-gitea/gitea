@@ -6,14 +6,14 @@ function generateAriaId() {
   return `_aria_auto_id_${ariaIdCounter++}`;
 }
 
-// make the item has role=option, and add an id if there wasn't one yet.
+// make the item has role=menuitem/option, and add an id if there wasn't one yet.
 function prepareMenuItem($item) {
   if (!$item.attr('id')) $item.attr('id', generateAriaId());
   $item.attr({'role': 'menuitem', 'tabindex': '-1'});
   $item.find('a').attr('tabindex', '-1'); // as above, the elements inside the dropdown menu item should not be focusable, the focus should always be on the dropdown primary element.
 }
 
-// when the menu items are loaded from AJAX requests, the items are created dynamically
+// when the dropdown menu items are loaded from AJAX requests, the items are created dynamically
 const defaultCreateDynamicMenu = $.fn.dropdown.settings.templates.menu;
 $.fn.dropdown.settings.templates.menu = function(response, fields, preserveHTML, className) {
   const ret = defaultCreateDynamicMenu(response, fields, preserveHTML, className);
@@ -33,7 +33,7 @@ function attachOneDropdownAria($dropdown) {
   const $focusable = $textSearch.length ? $textSearch : $dropdown; // see comment below
   if (!$focusable.length) return;
 
-  // prepare menu list
+  // prepare dropdown menu list
   const $menu = $dropdown.find('> .menu');
   if (!$menu.attr('id')) $menu.attr('id', generateAriaId());
 
@@ -50,6 +50,7 @@ function attachOneDropdownAria($dropdown) {
   //    - otherwise, the dropdown control (low-level code) handles the Enter event, hides the dropdown menu
 
   // TODO: multiple selection is not supported yet.
+  // TODO: use combobox for dropdown with search input in the future
 
   $focusable.attr({
     'role': 'menu',
