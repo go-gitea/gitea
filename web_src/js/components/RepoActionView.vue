@@ -2,10 +2,7 @@
   <div class="action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary">
-        <SvgIcon name="octicon-check-circle-fill" size="20" class="green" v-if="run.status === 'success'"/>
-        <SvgIcon name="octicon-clock" size="20" class="ui text yellow" v-else-if="run.status === 'waiting'"/>
-        <SvgIcon name="octicon-meter" size="20" class="ui text yellow" class-name="job-status-rotate" v-else-if="run.status === 'running'"/>
-        <SvgIcon name="octicon-x-circle-fill" size="20" class="red" v-else/>
+        <ActionRunStatus :status="run.status" :size="20"/>
         <div class="action-title">
           {{ run.title }}
         </div>
@@ -23,12 +20,7 @@
           <div class="job-brief-list">
             <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
-                <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
-                <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
-                <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
-                <SvgIcon name="octicon-blocked" class="ui text yellow" v-else-if="job.status === 'blocked'"/>
-                <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
-                <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
+                <ActionRunStatus :status="job.status"/>
                 <span class="ui text">{{ job.name }}</span>
               </a>
               <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
@@ -54,12 +46,7 @@
               <SvgIcon name="octicon-chevron-down" class="gt-mr-3" v-show="currentJobStepsStates[i].expanded"/>
               <SvgIcon name="octicon-chevron-right" class="gt-mr-3" v-show="!currentJobStepsStates[i].expanded"/>
 
-              <SvgIcon name="octicon-check-circle-fill" class="green gt-mr-3" v-if="jobStep.status === 'success'"/>
-              <SvgIcon name="octicon-skip" class="ui text grey gt-mr-3" v-else-if="jobStep.status === 'skipped'"/>
-              <SvgIcon name="octicon-clock" class="ui text yellow gt-mr-3" v-else-if="jobStep.status === 'waiting'"/>
-              <SvgIcon name="octicon-blocked" class="ui text yellow gt-mr-3" v-else-if="jobStep.status === 'blocked'"/>
-              <SvgIcon name="octicon-meter" class="ui text yellow gt-mr-3" class-name="job-status-rotate" v-else-if="jobStep.status === 'running'"/>
-              <SvgIcon name="octicon-x-circle-fill" class="red gt-mr-3 " v-else/>
+              <ActionRunStatus :status="jobStep.status" class="gt-mr-3"/>
 
               <span class="step-summary-msg">{{ jobStep.summary }}</span>
               <span class="step-summary-dur">{{ jobStep.duration }}</span>
@@ -76,6 +63,7 @@
 
 <script>
 import {SvgIcon} from '../svg.js';
+import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
 import AnsiToHTML from 'ansi-to-html';
 
@@ -85,6 +73,7 @@ const sfc = {
   name: 'RepoActionView',
   components: {
     SvgIcon,
+    ActionRunStatus,
   },
   props: {
     runIndex: String,
