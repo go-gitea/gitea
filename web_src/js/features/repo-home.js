@@ -10,12 +10,20 @@ export function initRepoTopicBar() {
   const viewDiv = $('#repo-topics');
   const saveBtn = $('#save_topic');
   const topicDropdown = $('#topic_edit .dropdown');
-  const topicForm = $('#topic_edit.ui.form');
+  const topicDropdownSearch = topicDropdown.find('input.search');
+  const topicForm = $('#topic_edit');
   const topicPrompts = getPrompts();
 
   mgrBtn.on('click', () => {
     hideElem(viewDiv);
     showElem(editDiv);
+    topicDropdownSearch.focus();
+  });
+
+  $('#cancel_topic_edit').on('click', () => {
+    hideElem(editDiv);
+    showElem(viewDiv);
+    mgrBtn.focus();
   });
 
   function getPrompts() {
@@ -39,13 +47,11 @@ export function initRepoTopicBar() {
         viewDiv.children('.topic').remove();
         if (topics.length) {
           const topicArray = topics.split(',');
-
-          const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
             const link = $('<a class="ui repo-topic large label topic"></a>');
             link.attr('href', `${appSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
             link.text(topicArray[i]);
-            link.insertBefore(last);
+            link.insertBefore(mgrBtn); // insert all new topics before manage button
           }
         }
         hideElem(editDiv);
