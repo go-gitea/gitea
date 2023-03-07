@@ -5,6 +5,7 @@ package actions
 
 import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+
 	"github.com/nektos/act/pkg/jobparser"
 )
 
