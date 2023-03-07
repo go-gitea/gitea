@@ -56,6 +56,10 @@ func TestIsSvgImage(t *testing.T) {
 	<!-- Multline
 	Comment -->
 	<svg></svg>`)).IsSvgImage())
+
+	// the DetectContentType should work for incomplete data, because only beginning bytes are used for detection
+	assert.True(t, DetectContentType([]byte(`<svg>....`)).IsSvgImage())
+
 	assert.False(t, DetectContentType([]byte{}).IsSvgImage())
 	assert.False(t, DetectContentType([]byte("svg")).IsSvgImage())
 	assert.False(t, DetectContentType([]byte("<svgfoo></svgfoo>")).IsSvgImage())
