@@ -146,26 +146,6 @@ func (p *Project) Link() string {
 	return ""
 }
 
-// Name return the project's name which is combined with owner/repo/project's name
-func (p *Project) Name() string {
-	if p.OwnerID > 0 {
-		if err := p.LoadOwner(db.DefaultContext); err != nil {
-			log.Error("LoadOwner: %v", err)
-			return ""
-		}
-		return fmt.Sprintf("%s/-/%s", p.Owner.Name, p.Title)
-	}
-	if p.RepoID > 0 {
-		if err := p.LoadRepo(db.DefaultContext); err != nil {
-			log.Error("LoadRepo: %v", err)
-			return ""
-		}
-
-		return fmt.Sprintf("%s/%s/%s", p.Repo.OwnerName, p.Repo.Name, p.Title)
-	}
-	return ""
-}
-
 func (p *Project) IsUserProject() bool {
 	return p.Type == TypeUser
 }
