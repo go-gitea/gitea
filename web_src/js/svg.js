@@ -81,7 +81,7 @@ export function svg(name, size = 16, className = '') {
   if (size !== 16) svgNode.setAttribute('width', String(size));
   if (size !== 16) svgNode.setAttribute('height', String(size));
   // filter array to remove empty string
-  if (className) svgNode.classList.add(...className.split(/\s+/).filter(item => item));
+  if (className) svgNode.classList.add(...className.split(/\s+/).filter(Boolean));
   return serializer.serializeToString(svgNode);
 }
 
