@@ -14,7 +14,7 @@ import (
 )
 
 func FixPostgresIDSequences(x *xorm.Engine) error {
-	if !setting.Database.UsePostgreSQL {
+	if !setting.Database.Type.IsPostgreSQL() {
 		return nil
 	}
 
