@@ -1311,6 +1311,7 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 				})
 				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
+				m.Post("/approve", reqRepoActionsWriter, actions.Approve)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
 

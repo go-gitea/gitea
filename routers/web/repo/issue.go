@@ -138,7 +138,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	var err error
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
-	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned", "review_requested"}
+	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned", "review_requested", "reviewed_by"}
 	if !util.SliceContainsString(types, viewType, true) {
 		viewType = "all"
 	}
@@ -148,6 +148,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		posterID          = ctx.FormInt64("poster")
 		mentionedID       int64
 		reviewRequestedID int64
+		reviewedID        int64
 		forceEmpty        bool
 	)
 
@@ -161,6 +162,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			assigneeID = ctx.Doer.ID
 		case "review_requested":
 			reviewRequestedID = ctx.Doer.ID
+		case "reviewed_by":
+			reviewedID = ctx.Doer.ID
 		}
 	}
 
@@ -208,6 +211,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			MentionedID:       mentionedID,
 			PosterID:          posterID,
 			ReviewRequestedID: reviewRequestedID,
+			ReviewedID:        reviewedID,
 			IsPull:            isPullOption,
 			IssueIDs:          issueIDs,
 		})
@@ -255,6 +259,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			PosterID:          posterID,
 			MentionedID:       mentionedID,
 			ReviewRequestedID: reviewRequestedID,
+			ReviewedID:        reviewedID,
 			MilestoneIDs:      mileIDs,
 			ProjectID:         projectID,
 			IsClosed:          util.OptionalBoolOf(isShowClosed),
@@ -332,8 +337,24 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		labels = append(labels, orgLabels...)
 	}
 
+	// Get the exclusive scope for every label ID
+	labelExclusiveScopes := make([]string, 0, len(labelIDs))
+	for _, labelID := range labelIDs {
+		foundExclusiveScope := false
+		for _, label := range labels {
+			if label.ID == labelID || label.ID == -labelID {
+				labelExclusiveScopes = append(labelExclusiveScopes, label.ExclusiveScope())
+				foundExclusiveScope = true
+				break
+			}
+		}
+		if !foundExclusiveScope {
+			labelExclusiveScopes = append(labelExclusiveScopes, "")
+		}
+	}
+
 	for _, l := range labels {
-		l.LoadSelectedLabelsAfterClick(labelIDs)
+		l.LoadSelectedLabelsAfterClick(labelIDs, labelExclusiveScopes)
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)
@@ -598,7 +619,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			return
 		}
 
-		teamReviewers, err = repo_service.GetReviewerTeams(repo)
+		teamReviewers, err = repo_service.GetReviewerTeams(ctx, repo)
 		if err != nil {
 			ctx.ServerError("GetReviewerTeams", err)
 			return
@@ -1452,11 +1473,12 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	var (
-		role         issues_model.RoleDescriptor
-		ok           bool
-		marked       = make(map[int64]issues_model.RoleDescriptor)
-		comment      *issues_model.Comment
-		participants = make([]*user_model.User, 1, 10)
+		role                 issues_model.RoleDescriptor
+		ok                   bool
+		marked               = make(map[int64]issues_model.RoleDescriptor)
+		comment              *issues_model.Comment
+		participants         = make([]*user_model.User, 1, 10)
+		latestCloseCommentID int64
 	)
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if ctx.IsSigned {
@@ -1464,25 +1486,16 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["IsStopwatchRunning"] = issues_model.StopwatchExists(ctx.Doer.ID, issue.ID)
 			if !ctx.Data["IsStopwatchRunning"].(bool) {
 				var exists bool
-				var sw *issues_model.Stopwatch
-				if exists, sw, err = issues_model.HasUserStopwatch(ctx, ctx.Doer.ID); err != nil {
+				var swIssue *issues_model.Issue
+				if exists, _, swIssue, err = issues_model.HasUserStopwatch(ctx, ctx.Doer.ID); err != nil {
 					ctx.ServerError("HasUserStopwatch", err)
 					return
 				}
 				ctx.Data["HasUserStopwatch"] = exists
 				if exists {
 					// Add warning if the user has already a stopwatch
-					var otherIssue *issues_model.Issue
-					if otherIssue, err = issues_model.GetIssueByID(ctx, sw.IssueID); err != nil {
-						ctx.ServerError("GetIssueByID", err)
-						return
-					}
-					if err = otherIssue.LoadRepo(ctx); err != nil {
-						ctx.ServerError("LoadRepo", err)
-						return
-					}
 					// Add link to the issue of the already running stopwatch
-					ctx.Data["OtherStopwatchURL"] = otherIssue.Link()
+					ctx.Data["OtherStopwatchURL"] = swIssue.Link()
 				}
 			}
 			ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(issue, ctx.Doer)
@@ -1663,8 +1676,14 @@ func ViewIssue(ctx *context.Context) {
 			comment.Type == issues_model.CommentTypeStopTracking {
 			// drop error since times could be pruned from DB..
 			_ = comment.LoadTime()
+		} else if comment.Type == issues_model.CommentTypeClose {
+			// record ID of latest closed comment.
+			// if PR is closed, the comments whose type is CommentTypePullRequestPush(29) after latestCloseCommentID won't be rendered.
+			latestCloseCommentID = comment.ID
 		}
 	}
+
+	ctx.Data["LatestCloseCommentID"] = latestCloseCommentID
 
 	// Combine multiple label assignments into a single comment
 	combineLabelComments(issue)
@@ -2463,6 +2482,9 @@ func SearchIssues(ctx *context.Context) {
 		if ctx.FormBool("review_requested") {
 			issuesOpt.ReviewRequestedID = ctxUserID
 		}
+		if ctx.FormBool("reviewed") {
+			issuesOpt.ReviewedID = ctxUserID
+		}
 
 		if issues, err = issues_model.Issues(ctx, issuesOpt); err != nil {
 			ctx.Error(http.StatusInternalServerError, "Issues", err.Error())
@@ -2992,7 +3014,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 	}
 
 	html, err := ctx.RenderToString(tplReactions, map[string]interface{}{
-		"ctx":       ctx.Data,
+		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index),
 		"Reactions": issue.Reactions.GroupByType(),
 	})
@@ -3094,7 +3116,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 	}
 
 	html, err := ctx.RenderToString(tplReactions, map[string]interface{}{
-		"ctx":       ctx.Data,
+		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID),
 		"Reactions": comment.Reactions.GroupByType(),
 	})
@@ -3216,7 +3238,7 @@ func updateAttachments(ctx *context.Context, item interface{}, files []string) e
 
 func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment, content string) string {
 	attachHTML, err := ctx.RenderToString(tplAttachment, map[string]interface{}{
-		"ctx":         ctx.Data,
+		"ctxData":     ctx.Data,
 		"Attachments": attachments,
 		"Content":     content,
 	})

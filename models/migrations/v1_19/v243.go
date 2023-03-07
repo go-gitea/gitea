@@ -7,8 +7,10 @@ import (
 	"xorm.io/xorm"
 )
 
-// ChangeProjectType: set ProjectType from 3(TypeOrganization/TypeIndividual) to 1(TypeUser)
-func ChangeProjectType(x *xorm.Engine) error {
-	_, err := x.Exec("UPDATE project SET type = ? WHERE type = ?", 1, 3)
-	return err
+func AddExclusiveLabel(x *xorm.Engine) error {
+	type Label struct {
+		Exclusive bool
+	}
+
+	return x.Sync(new(Label))
 }

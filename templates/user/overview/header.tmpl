@@ -24,7 +24,7 @@
 			</a>
 			{{if or (not .ContextUser.IsOrganization) (and .ContextUser.IsOrganization .CanAccessProjects)}}
 			<a href="{{.ContextUser.HomeLink}}/-/projects" class="{{if .PageIsViewProjects}}active {{end}}item">
-				{{svg "octicon-project"}} {{.locale.Tr "user.projects"}}
+				{{svg "octicon-project-symlink"}} {{.locale.Tr "user.projects"}}
 			</a>
 			{{end}}
 			{{if and (not .UnitPackagesGlobalDisabled) (or (not .ContextUser.IsOrganization) (and .ContextUser.IsOrganization .CanAccessPackages))}}
@@ -41,7 +41,7 @@
 			{{if .ContextUser.IsOrganization}}
 				{{if .IsOrganizationMember}}
 					<a class="item" href="{{$.OrgLink}}/members">
-						{{svg "octicon-organization"}}&nbsp;{{$.locale.Tr "org.people"}}
+						{{svg "octicon-person"}}&nbsp;{{$.locale.Tr "org.members"}}
 						{{if .NumMembers}}
 							<div class="ui primary label">{{.NumMembers}}</div>
 						{{end}}
