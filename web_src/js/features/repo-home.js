@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import {stripTags} from '../utils.js';
 import {hideElem, showElem} from '../utils/dom.js';
+import {htmlEscape} from 'escape-goat';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -110,7 +111,7 @@ export function initRepoTopicBar() {
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
-        topicDropdown.find('div.label.visible.topic,a.label.visible').each((_, el) => {
+        topicDropdown.find('div.label.visible.topic').each((_, el) => {
           current_topics.push(el.getAttribute('data-value'));
         });
 
@@ -149,9 +150,10 @@ export function initRepoTopicBar() {
     },
     onLabelCreate(value) {
       value = value.toLowerCase().trim();
-      this.attr('data-value', value).contents().first().replaceWith(value);
-      addLabelDeleteIconAria(this.find('i.delete.icon'));
-      return this;
+      // keep the same as template (repo-topic-label)
+      const $el = $(`<div class="ui small label topic" data-value="${htmlEscape(value)}" >${htmlEscape(value)}<i class="delete icon"></i></div>`);
+      addLabelDeleteIconAria($el.find('i.delete.icon'));
+      return $el;
     },
     onAdd(addedValue, _addedText, $addedChoice) {
       addedValue = addedValue.toLowerCase().trim();
