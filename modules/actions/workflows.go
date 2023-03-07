@@ -44,19 +44,6 @@ func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 	return ret, nil
 }
 
-func converGithubEvent2GiteaEvent(evt *jobparser.Event) string {
-	switch evt.Name {
-	case "pull_request", "pull_request_target", "pull_request_review_comment", "pull_request_review":
-		return string(webhook_module.HookEventPullRequest)
-	case "registry_package":
-		return string(webhook_module.HookEventPackage)
-	case "create", "delete", "fork", "push", "issues", "issue_comment", "release", "pull_request_comment":
-		fallthrough
-	default:
-		return evt.Name
-	}
-}
-
 func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader) (map[string][]byte, error) {
 	entries, err := ListWorkflows(commit)
 	if err != nil {
@@ -96,7 +83,7 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 }
 
 func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) bool {
-	if converGithubEvent2GiteaEvent(evt) != triggedEvent.Event() {
+	if converFromGithubEvent(evt) != triggedEvent.Event() {
 		return false
 	}
 
