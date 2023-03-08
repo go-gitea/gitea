@@ -84,22 +84,22 @@ func WalkLocales(callback func(path, name string, d fs.DirEntry, err error) erro
 
 // Readme reads the content of a specific readme from bindata or custom path.
 func Readme(name string) ([]byte, error) {
-	return fileFromDir(path.Join("readme", name))
+	return fileFromDir(path.Join("readme", path.Clean("/"+name)))
 }
 
 // Gitignore reads the content of a gitignore locale from bindata or custom path.
 func Gitignore(name string) ([]byte, error) {
-	return fileFromDir(path.Join("gitignore", name))
+	return fileFromDir(path.Join("gitignore", path.Clean("/"+name)))
 }
 
 // License reads the content of a specific license from bindata or custom path.
 func License(name string) ([]byte, error) {
-	return fileFromDir(path.Join("license", name))
+	return fileFromDir(path.Join("license", path.Clean("/"+name)))
 }
 
 // Labels reads the content of a specific labels from static or custom path.
 func Labels(name string) ([]byte, error) {
-	return fileFromDir(path.Join("label", name))
+	return fileFromDir(path.Join("label", path.Clean("/"+name)))
 }
 
 // fileFromDir is a helper to read files from bindata or custom path.
