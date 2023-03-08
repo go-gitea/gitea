@@ -60,7 +60,11 @@ func getNote(ctx *context.APIContext, identifier string) {
 
 	commitSHA, err := ctx.Repo.GitRepo.ConvertToSHA1(identifier)
 	if err != nil {
-		ctx.NotFound(err)
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "ConvertToSHA1", err)
+		}
 		return
 	}
 
