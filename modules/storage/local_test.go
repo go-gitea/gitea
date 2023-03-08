@@ -71,11 +71,11 @@ func TestLocalStorageIterator(t *testing.T) {
 	}
 
 	expected_list := map[string][]string{
-		"a":             {"a/1.txt"},
-		"b":             {"b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
-		"":              {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
-		"/":             {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
-		"/../../../tmp": {}, // empty dir
+		"a":           {"a/1.txt"},
+		"b":           {"b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
+		"":            {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
+		"/":           {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
+		"a/b/../../a": {"a/1.txt"},
 	}
 	for dir, expected := range expected_list {
 		count := 0
@@ -93,6 +93,7 @@ func TestLocalStorageIterator(t *testing.T) {
 	illegal_dirs := []string{
 		"../a",
 		"../../etc/hosts",
+		"../a/../b",
 	}
 	for _, dir := range illegal_dirs {
 		err = l.IterateObjects(dir, func(path string, f Object) error {
