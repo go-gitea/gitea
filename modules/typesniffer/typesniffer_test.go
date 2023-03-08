@@ -109,6 +109,10 @@ func TestIsAudio(t *testing.T) {
 	mp3, _ := base64.StdEncoding.DecodeString("SUQzBAAAAAABAFRYWFgAAAASAAADbWFqb3JfYnJhbmQAbXA0MgBUWFhYAAAAEQAAA21pbm9yX3Zl")
 	assert.True(t, DetectContentType(mp3).IsAudio())
 	assert.False(t, DetectContentType([]byte("plain text")).IsAudio())
+
+	assert.True(t, DetectContentType([]byte("ID3Toy\000")).IsAudio())
+	assert.True(t, DetectContentType([]byte("ID3Toy\n====\t* hi 🌞, ...")).IsText())          // test ID3 tag for plain text
+	assert.True(t, DetectContentType([]byte("ID3Toy\n====\t* hi 🌞, ..."+"🌛"[0:2])).IsText()) // test ID3 tag with incomplete UTF8 char
 }
 
 func TestDetectContentTypeFromReader(t *testing.T) {
