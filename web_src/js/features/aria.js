@@ -44,7 +44,7 @@ function attachOneDropdownAria($dropdown) {
     $item.find('a').attr('tabindex', '-1'); // as above, the elements inside the dropdown menu item should not be focusable, the focus should always be on the dropdown primary element.
   }
 
-  const dropdownTemplates = $dropdown.dropdown('setting', 'templates');
+  const dropdownTemplates = {...$dropdown.dropdown('setting', 'templates')};
   const dropdownTemplatesMenuOld = dropdownTemplates.menu;
   dropdownTemplates.menu = function(response, fields, preserveHTML, className) {
     // when the dropdown menu items are loaded from AJAX requests, the items are created dynamically
