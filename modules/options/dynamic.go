@@ -29,11 +29,11 @@ func Dir(name string) ([]string, error) {
 		path.Join(setting.CustomPath, "options", name),     // custom dir
 		path.Join(setting.StaticRootPath, "options", name), // static dir
 	} {
-		if files, err := util.StatDir(dir, true); err != nil {
+		files, err := util.StatDir(dir, true)
+		if err != nil {
 			return nil, fmt.Errorf("unable to read directory %q. %w", dir, err)
-		} else {
-			result = append(result, files...)
 		}
+		result = append(result, files...)
 	}
 
 	return directories.AddAndGet(name, result), nil
