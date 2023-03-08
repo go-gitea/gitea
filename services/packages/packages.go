@@ -187,19 +187,33 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 }
 
 // AddFileToExistingPackage adds a file to an existing package. If the package does not exist, ErrPackageNotExist is returned
-func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
+func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, error) {
+	return addFileToPackageWrapper(func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
+		if err != nil {
+			return nil, nil, false, err
+		}
+
+		return addFileToPackageVersion(ctx, pv, pvi, pfci)
+	})
+}
+
+// AddFileToPackageVersionInternal adds a file to the package
+// This method skips quota checks and should only be used for system-managed packages.
+func AddFileToPackageVersionInternal(pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, error) {
+	return addFileToPackageWrapper(func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+		return addFileToPackageVersionUnchecked(ctx, pv, pfci)
+	})
+}
+
+func addFileToPackageWrapper(fn func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error)) (*packages_model.PackageFile, error) {
 	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer committer.Close()
 
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	pf, pb, blobCreated, err := addFileToPackageVersion(ctx, pv, pvi, pfci)
+	pf, pb, blobCreated, err := fn(ctx)
 	removeBlob := false
 	defer func() {
 		if removeBlob {
@@ -211,15 +225,15 @@ func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (
 	}()
 	if err != nil {
 		removeBlob = blobCreated
-		return nil, nil, err
+		return nil, err
 	}
 
 	if err := committer.Commit(); err != nil {
 		removeBlob = blobCreated
-		return nil, nil, err
+		return nil, err
 	}
 
-	return pv, pf, nil
+	return pf, nil
 }
 
 // NewPackageBlob creates a package blob instance
@@ -241,6 +255,12 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 	if err := CheckSizeQuotaExceeded(ctx, pfci.Creator, pvi.Owner, pvi.PackageType, pfci.Data.Size()); err != nil {
 		return nil, nil, false, err
 	}
+
+	return addFileToPackageVersionUnchecked(ctx, pv, pfci)
+}
+
+func addFileToPackageVersionUnchecked(ctx context.Context, pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+	log.Trace("Adding package file: %v, %s", pv.ID, pfci.Filename)
 
 	pb, exists, err := packages_model.GetOrInsertBlob(ctx, NewPackageBlob(pfci.Data))
 	if err != nil {
@@ -359,6 +379,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizePub
 	case packages_model.TypePyPI:
 		typeSpecificSize = setting.Packages.LimitSizePyPI
+	case packages_model.TypeRpm:
+		typeSpecificSize = setting.Packages.LimitSizeRpm
 	case packages_model.TypeRubyGems:
 		typeSpecificSize = setting.Packages.LimitSizeRubyGems
 	case packages_model.TypeVagrant:

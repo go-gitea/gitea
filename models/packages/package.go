@@ -43,6 +43,7 @@ const (
 	TypeNuGet     Type = "nuget"
 	TypePub       Type = "pub"
 	TypePyPI      Type = "pypi"
+	TypeRpm       Type = "rpm"
 	TypeRubyGems  Type = "rubygems"
 	TypeVagrant   Type = "vagrant"
 )
@@ -61,6 +62,7 @@ var TypeList = []Type{
 	TypeNuGet,
 	TypePub,
 	TypePyPI,
+	TypeRpm,
 	TypeRubyGems,
 	TypeVagrant,
 }
@@ -94,6 +96,8 @@ func (pt Type) Name() string {
 		return "Pub"
 	case TypePyPI:
 		return "PyPI"
+	case TypeRpm:
+		return "RPM"
 	case TypeRubyGems:
 		return "RubyGems"
 	case TypeVagrant:
@@ -131,6 +135,8 @@ func (pt Type) SVGName() string {
 		return "gitea-pub"
 	case TypePyPI:
 		return "gitea-python"
+	case TypeRpm:
+		return "gitea-rpm"
 	case TypeRubyGems:
 		return "gitea-rubygems"
 	case TypeVagrant:
@@ -148,6 +154,7 @@ type Package struct {
 	Name             string `xorm:"NOT NULL"`
 	LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	SemverCompatible bool   `xorm:"NOT NULL DEFAULT false"`
+	IsInternal       bool   `xorm:"INDEX NOT NULL DEFAULT false"`
 }
 
 // TryInsertPackage inserts a package. If a package exists already, ErrDuplicatePackage is returned

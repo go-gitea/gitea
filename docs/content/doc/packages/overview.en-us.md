@@ -39,6 +39,7 @@ The following package managers are currently supported:
 | [NuGet]({{< relref "doc/packages/nuget.en-us.md" >}}) | .NET | `nuget` |
 | [Pub]({{< relref "doc/packages/pub.en-us.md" >}}) | Dart | `dart`, `flutter` |
 | [PyPI]({{< relref "doc/packages/pypi.en-us.md" >}}) | Python | `pip`, `twine` |
+| [RPM]({{< relref "doc/packages/rpm.en-us.md" >}}) | - | `yum`, `dnf` |
 | [RubyGems]({{< relref "doc/packages/rubygems.en-us.md" >}}) | Ruby | `gem`, `Bundler` |
 | [Vagrant]({{< relref "doc/packages/vagrant.en-us.md" >}}) | - | `vagrant` |
 

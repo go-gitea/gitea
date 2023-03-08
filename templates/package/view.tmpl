@@ -32,6 +32,7 @@
 					{{template "package/content/nuget" .}}
 					{{template "package/content/pub" .}}
 					{{template "package/content/pypi" .}}
+					{{template "package/content/rpm" .}}
 					{{template "package/content/rubygems" .}}
 					{{template "package/content/vagrant" .}}
 				</div>
@@ -58,6 +59,7 @@
 							{{template "package/metadata/nuget" .}}
 							{{template "package/metadata/pub" .}}
 							{{template "package/metadata/pypi" .}}
+							{{template "package/metadata/rpm" .}}
 							{{template "package/metadata/rubygems" .}}
 							{{template "package/metadata/vagrant" .}}
 							<div class="item">{{svg "octicon-database" 16 "gt-mr-3"}} {{FileSize .PackageDescriptor.CalculateBlobSize}}</div>

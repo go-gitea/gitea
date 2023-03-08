@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/cache"
 	setting_module "code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -62,6 +63,10 @@ func GetSetting(uid int64, key string) (string, error) {
 		}
 		return res.SettingValue, nil
 	})
+}
+
+func (err ErrUserSettingIsNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // GetSettingNoCache returns specific setting without using the cache

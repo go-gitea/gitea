@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/packages/pub"
 	"code.gitea.io/gitea/modules/packages/pypi"
+	"code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/packages/rubygems"
 	"code.gitea.io/gitea/modules/packages/vagrant"
 
@@ -157,6 +158,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &pub.Metadata{}
 	case TypePyPI:
 		metadata = &pypi.Metadata{}
+	case TypeRpm:
+		metadata = &rpm.VersionMetadata{}
 	case TypeRubyGems:
 		metadata = &rubygems.Metadata{}
 	case TypeVagrant:

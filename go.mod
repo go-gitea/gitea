@@ -89,11 +89,13 @@ require (
 	github.com/prometheus/client_golang v1.14.0
 	github.com/quasoft/websspi v1.1.2
 	github.com/santhosh-tekuri/jsonschema/v5 v5.1.1
+	github.com/sassoftware/go-rpmutils v0.2.0
 	github.com/sergi/go-diff v1.2.0
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
+	github.com/ulikunitz/xz v0.5.11
 	github.com/unrolled/render v1.5.0
 	github.com/urfave/cli v1.22.10
 	github.com/xanzy/go-gitlab v0.78.0
@@ -123,6 +125,7 @@ require (
 	cloud.google.com/go/compute v1.7.0 // indirect
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
+	github.com/DataDog/zstd v1.4.5 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.2 // indirect
@@ -257,7 +260,6 @@ require (
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
 	github.com/toqueteos/webbrowser v1.2.0 // indirect
-	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/unknwon/com v1.0.1 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
