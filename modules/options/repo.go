@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -16,7 +15,7 @@ import (
 
 // GetRepoInitFile returns repository init files
 func GetRepoInitFile(tp, name string) ([]byte, error) {
-	cleanedName := strings.TrimLeft(path.Clean("/"+name), "/")
+	cleanedName := util.CleanPath(name)
 	relPath := path.Join("options", tp, cleanedName)
 
 	// Use custom file when available.
