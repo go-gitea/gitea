@@ -26,18 +26,15 @@ func Dir(name string) ([]string, error) {
 
 	var result []string
 
-	customDir := path.Join(setting.CustomPath, "options", name)
-	isDir, err := util.IsDir(customDir)
-	if err != nil {
-		return []string{}, fmt.Errorf("unable to check if custom directory %q is a directory. %w", customDir, err)
-	}
-	if isDir {
-		files, err := util.StatDir(customDir, true)
-		if err != nil {
-			return []string{}, fmt.Errorf("unable to read custom directory %q. %w", customDir, err)
+	for _, dir := range []string{
+		path.Join(setting.CustomPath, "options", name), // custom dir
+		// no static dir
+	} {
+		if files, err := util.StatDir(dir, true); err != nil {
+			return nil, fmt.Errorf("unable to read directory %q. %w", dir, err)
+		} else {
+			result = append(result, files...)
 		}
-
-		result = append(result, files...)
 	}
 
 	files, err := AssetDir(name)
