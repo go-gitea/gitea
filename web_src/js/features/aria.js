@@ -73,7 +73,7 @@ function attachOneDropdownAria($dropdown) {
   $menu.attr('role', listPopupRole);
 
   $focusable.attr({
-    'role': focusableRole,
+    'role': $focusable.attr('role') ?? focusableRole,
     'aria-haspopup': listPopupRole,
     'aria-controls': $menu.attr('id'),
     'aria-expanded': 'false',
