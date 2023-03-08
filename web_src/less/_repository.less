@@ -193,16 +193,42 @@
       border-right: none;
     }
 
-    #more-btn {
-      border-left: none;
+    #clone-heading {
+      font-size: 1rem;
     }
 
-    button:first-of-type {
-      border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
+    .clone-panel-content::before {
+      content: "";
+
+      left: auto;
+      right: 9px;
+      top: -16px;
+
+      border: 8px solid #0000;
+      border-bottom: 8px solid var(--color-shadow);
+
+      display: inline-block;
+      position: absolute;
     }
 
-    button:last-of-type {
-      border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
+    .clone.tabs {
+      cursor: pointer;
+
+      border-bottom: 3px solid;
+      border-color: transparent;
+
+      font-weight: 600;
+      font-size: 1rem;
+
+      padding: 0.5rem;
+    }
+
+    .clone.tabs.primary {
+      border-color: var(--color-primary);
+    }
+
+    button {
+      border-radius: var(--border-radius) !important;
     }
 
     .dropdown .menu {
