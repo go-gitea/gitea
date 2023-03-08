@@ -1,5 +1,5 @@
 <template>
-  <div class="action-view-container">
+  <!-- <div class="action-view-container"> -->
     <div class="action-view-header">
       <div class="action-info-summary">
         <ActionRunStatus :status="run.status" :size="20"/>
@@ -43,8 +43,8 @@
         <div class="job-step-container">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="toggleStepLogs(i)">
-              <SvgIcon name="octicon-chevron-down" class="gt-mr-3" v-show="currentJobStepsStates[i].expanded"/>
-              <SvgIcon name="octicon-chevron-right" class="gt-mr-3" v-show="!currentJobStepsStates[i].expanded"/>
+              <SvgIcon :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" class="gt-mr-3"/>
+              <!-- <SvgIcon :name="octicon-chevron-right" class="gt-mr-3" v-show="!currentJobStepsStates[i].expanded"/> -->
 
               <ActionRunStatus :status="jobStep.status" class="gt-mr-3"/>
 
@@ -58,7 +58,7 @@
         </div>
       </div>
     </div>
-  </div>
+  <!-- </div> -->
 </template>
 
 <script>
