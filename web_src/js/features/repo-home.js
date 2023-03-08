@@ -22,9 +22,11 @@ export function initRepoTopicBar() {
   };
 
   function addLabelDeleteIconAria($el) {
-    $el.removeAttr('aria-hidden').attr({
-      'aria-label': topicPrompts.removeTopic.replace('%s', $el.parent().attr('data-value')),
-      'role': 'button',
+    $el.removeAttr('aria-hidden').each(function() {
+      $(this).attr({
+        'aria-label': topicPrompts.removeTopic.replace('%s', $(this).parent().attr('data-value')),
+        'role': 'button',
+      });
     });
   }
 
