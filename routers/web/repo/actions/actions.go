@@ -79,6 +79,7 @@ func List(ctx *context.Context) {
 
 	workflow := ctx.FormString("workflow")
 	ctx.Data["CurWorkflow"] = workflow
+
 	opts := actions_model.FindRunOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
