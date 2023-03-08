@@ -35,18 +35,17 @@ func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldC
 		return nil, false, err
 	}
 
-	// If old commit is not an ancestor of new commits, it's a force push
-	isAncestor, err := newCommit.HasPreviousCommit(oldCommit.ID)
+	isForcePush, err = newCommit.IsForcePush(oldCommitID)
 	if err != nil {
 		return nil, false, err
 	}
 
-	if !isAncestor {
+	if isForcePush {
 		commitIDs = make([]string, 2)
 		commitIDs[0] = oldCommitID
 		commitIDs[1] = newCommitID
 
-		return commitIDs, true, err
+		return commitIDs, isForcePush, err
 	}
 
 	// Find commits between new and old commit exclusing base branch commits
