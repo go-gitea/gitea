@@ -12,7 +12,7 @@
 				</div>
 				<div class="desc issue-item-bottom-row gt-df gt-ac gt-fw gt-my-1">
 					<b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>: {{$.locale.Tr "actions.runs.commit"}}
-					<a href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{ShortSha .CommitSHA}}</a>{{$.locale.Tr "actions.runs.pushed_by"}} {{.TriggerUser.GetDisplayName | Escape}}
+					<a href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{ShortSha .CommitSHA}}</a>{{$.locale.Tr "actions.runs.pushed_by"}} {{.TriggerUser.GetDisplayName}}
 					<span class="ui label">
 						{{if .RefLink}}
 							<a href="{{.RefLink}}">{{.PrettyRef}}</a>
