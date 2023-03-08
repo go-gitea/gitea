@@ -106,6 +106,16 @@ func DetectContentType(data []byte) SniffedType {
 		}
 	}
 
+	if strings.HasPrefix(ct, "audio/") && bytes.HasPrefix(data, []byte("ID3")) {
+		// The MP3 detection is quite inaccurate, any content with "ID3" prefix will result in "audio/mpeg".
+		// So remove the "ID3" prefix and detect again, if result is text, then it must be text content.
+		// This works especially because audio files contain many unprintable/invalid characters like `0x00`
+		ct2 := http.DetectContentType(data[3:])
+		if strings.HasPrefix(ct2, "text/") {
+			ct = ct2
+		}
+	}
+
 	return SniffedType{ct}
 }
 
