@@ -142,7 +142,7 @@
 							<span class="fitted">{{svg "octicon-repo-push"}}</span> {{.locale.Tr "new_migrate"}}
 						</a>
 					{{end}}
-					{{if .SignedUser.CanCreateOrganization}}
+					{{if and (.SignedUser.CanCreateOrganization) ($.UserModules.Enabled "organizations")}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
 						<span class="fitted">{{svg "octicon-organization"}}</span> {{.locale.Tr "new_org"}}
 					</a>

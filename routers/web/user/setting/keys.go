@@ -22,7 +22,7 @@ const (
 	tplSettingsKeys base.TplName = "user/settings/keys"
 
 	UserPasswordKey    = "password"
-	UserGPGKeysKey     = "gpg keys"
+	UserGPGKeysKey     = "gpg_keys"
 	UserDeletionKey    = "deletion"
 	UserSecurityKey    = "security"
 	UserApplicationKey = "applications"
