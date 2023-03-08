@@ -51,13 +51,18 @@ func Projects(ctx *context.Context) {
 		page = 1
 	}
 
-	projects, total, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+	pso := project_model.SearchOptions{
 		OwnerID:  ctx.ContextUser.ID,
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		SortType: sortType,
-		Type:     project_model.TypeOrganization,
-	})
+	}
+	if ctx.ContextUser.IsOrganization() {
+		pso.Type = project_model.TypeOrganization
+	} else {
+		pso.Type = project_model.TypeIndividual
+	}
+	projects, total, err := project_model.FindProjects(ctx, pso)
 	if err != nil {
 		ctx.ServerError("FindProjects", err)
 		return
