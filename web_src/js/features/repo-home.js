@@ -153,7 +153,7 @@ export function initRepoTopicBar() {
     },
     onLabelCreate(value) {
       value = value.toLowerCase().trim();
-      // `this` is the default label jQuery element, it's "<a class="ui small label">"
+      // `this` is the default label (jQuery object), it's a `$('<a class="ui small label">')`
       // we create a new div element to replace it, to keep the same as template (repo-topic-label), because we do not want the `<a>` tag which affects aria focus.
       const $el = $(`<div class="ui small label topic gt-cursor-default" data-value="${htmlEscape(value)}">${htmlEscape(value)}${svg('octicon-x', 16, 'delete icon gt-ml-3 gt-mt-1')}</div>`);
       addLabelDeleteIconAria($el.find('.delete.icon'));

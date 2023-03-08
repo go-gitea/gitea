@@ -30,10 +30,9 @@ There is still a problem: Fomantic UI checkbox is not friendly to screen readers
 ## ARIA Dropdown
 
 There are different solutions:
+
 * combobox + listbox + option
 * menu + menuitem
-
-At the moment, `menu + menuitem` seems to work better with Fomantic UI Dropdown, so we only use it now.
 
 ```html
 <div>
@@ -48,6 +47,8 @@ At the moment, `menu + menuitem` seems to work better with Fomantic UI Dropdown,
 
 
 ## Fomantic UI Dropdown
+
+When the dropdown has input elements, use `role=combobox`, otherwise use `role=menu` (see `aria.js`)
 
 ```html
 <!-- read-only dropdown -->

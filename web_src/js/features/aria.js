@@ -48,12 +48,10 @@ function attachOneDropdownAria($dropdown) {
   const dropdownTemplatesMenuOld = dropdownTemplates.menu;
   dropdownTemplates.menu = function(response, fields, preserveHTML, className) {
     // when the dropdown menu items are loaded from AJAX requests, the items are created dynamically
-    const ret = dropdownTemplatesMenuOld(response, fields, preserveHTML, className);
-    const $wrapper = $('<div>').append(ret);
+    const menuItems = dropdownTemplatesMenuOld(response, fields, preserveHTML, className);
+    const $wrapper = $('<div>').append(menuItems);
     const $items = $wrapper.find('> .item');
-    $items.each((_, item) => {
-      prepareMenuItem($(item));
-    });
+    $items.each((_, item) => prepareMenuItem($(item)));
     return $wrapper.html();
   };
   $dropdown.dropdown('setting', ['templates', dropdownTemplates]);
