@@ -58,6 +58,8 @@ func Search(ctx *context.APIContext) {
 		Actor:       ctx.Doer,
 		Keyword:     ctx.FormTrim("q"),
 		UID:         ctx.FormInt64("uid"),
+		LoginName:   ctx.FormTrim("login_name"),
+		SourceID:    ctx.FormInt64("source_id"),
 		Type:        user_model.UserTypeIndividual,
 		ListOptions: listOptions,
 	})
