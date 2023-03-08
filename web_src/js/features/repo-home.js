@@ -18,12 +18,12 @@ export function initRepoTopicBar() {
   const topicPrompts = {
     countPrompt: topicDropdown.attr('data-text-count-prompt'),
     formatPrompt: topicDropdown.attr('data-text-format-prompt'),
-    remove: topicDropdown.attr('data-text-remove'),
+    removeTopic: topicDropdown.attr('data-text-remove-topic'),
   };
 
   function addLabelDeleteIconAria($el) {
     $el.removeAttr('aria-hidden').attr({
-      'aria-label': topicPrompts.remove,
+      'aria-label': topicPrompts.removeTopic.replace('%s', $el.parent().attr('data-value')),
       'role': 'button',
     });
   }

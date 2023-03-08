@@ -39,7 +39,7 @@
 				<div class="ui fluid multiple search selection dropdown"
 						data-text-count-prompt="{{.locale.Tr "repo.topic.count_prompt"}}"
 						data-text-format-prompt="{{.locale.Tr "repo.topic.format_prompt"}}"
-						data-text-remove="{{.locale.Tr "remove"}}"
+						data-text-remove-topic="{{.locale.Tr "repo.topic.remove_topic"}}"
 				>
 					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
 					{{range .Topics}}
