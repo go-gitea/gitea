@@ -38,16 +38,6 @@ func Labels(name string) ([]byte, error) {
 	return fileFromDir(path.Join("label", name))
 }
 
-// WalkLocales reads the content of a specific locale from static or custom path.
-func WalkLocales(callback func(path, name string, d fs.DirEntry, err error) error) error {
-	for _, v := range pathsForWalkLocales() {
-		if err := walkAssetDir(v, callback); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("failed to walk locales. Error: %w", err)
-		}
-	}
-	return nil
-}
-
 func walkAssetDir(root string, callback func(path, name string, d fs.DirEntry, err error) error) error {
 	if err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		// name is the path relative to the root

@@ -7,6 +7,7 @@ package options
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -59,11 +60,16 @@ func Dir(name string) ([]string, error) {
 	return directories.AddAndGet(name, result), nil
 }
 
-func pathsForWalkLocales() []string {
-	return []string{
-		filepath.Join(setting.StaticRootPath, "options", "locale"),
-		filepath.Join(setting.CustomPath, "options", "locale"),
+// WalkLocales reads the content of a specific locale from static or custom path.
+func WalkLocales(callback func(path, name string, d fs.DirEntry, err error) error) error {
+	if err := walkAssetDir(filepath.Join(setting.StaticRootPath, "options", "locale"), callback); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to walk locales. Error: %w", err)
 	}
+
+	if err := walkAssetDir(filepath.Join(setting.CustomPath, "options", "locale"), callback); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to walk locales. Error: %w", err)
+	}
+	return nil
 }
 
 // fileFromDir is a helper to read files from static or custom path.
