@@ -6,42 +6,16 @@ function generateAriaId() {
   return `_aria_auto_id_${ariaIdCounter++}`;
 }
 
-// make the item has role=menuitem/option, and add an id if there wasn't one yet.
-function prepareMenuItem($item) {
-  if (!$item.attr('id')) $item.attr('id', generateAriaId());
-  $item.attr({'role': 'menuitem', 'tabindex': '-1'});
-  $item.find('a').attr('tabindex', '-1'); // as above, the elements inside the dropdown menu item should not be focusable, the focus should always be on the dropdown primary element.
-}
-
-// when the dropdown menu items are loaded from AJAX requests, the items are created dynamically
-const defaultCreateDynamicMenu = $.fn.dropdown.settings.templates.menu;
-$.fn.dropdown.settings.templates.menu = function(response, fields, preserveHTML, className) {
-  const ret = defaultCreateDynamicMenu(response, fields, preserveHTML, className);
-  const $wrapper = $('<div>').append(ret);
-  const $items = $wrapper.find('> .item');
-  $items.each((_, item) => {
-    prepareMenuItem($(item));
-  });
-  return $wrapper.html();
-};
-
 function attachOneDropdownAria($dropdown) {
   if ($dropdown.attr('data-aria-attached')) return;
   $dropdown.attr('data-aria-attached', 1);
 
-  const $textSearch = $dropdown.find('input.search').eq(0);
-  const $focusable = $textSearch.length ? $textSearch : $dropdown; // see comment below
-  if (!$focusable.length) return;
-
-  // prepare dropdown menu list
-  const $menu = $dropdown.find('> .menu');
-  if (!$menu.attr('id')) $menu.attr('id', generateAriaId());
-
-  // dropdown has 2 different focusing behaviors
-  // * with search input: the input is focused, and it works perfectly with aria-activedescendant pointing another sibling element.
+  // Dropdown has 2 different focusing behaviors
+  // * with search input: the input is focused, and it works with aria-activedescendant pointing another sibling element.
   // * without search input (but the readonly text), the dropdown itself is focused. then the aria-activedescendant points to the element inside dropdown
+  // Some desktop screen readers may change the focus, but dropdown requires that the focus must be on its primary element, then they don't work well.
 
-  // expected user interactions for dropdown with aria support:
+  // Expected user interactions for dropdown with aria support:
   // * user can use Tab to focus in the dropdown, then the dropdown menu (list) will be shown
   // * user presses Tab on the focused dropdown to move focus to next sibling focusable element (but not the menu item)
   // * user can use arrow key Up/Down to navigate between menu items
@@ -49,22 +23,60 @@ function attachOneDropdownAria($dropdown) {
   //    - if the menu item is clickable (eg: <a>), then trigger the click event
   //    - otherwise, the dropdown control (low-level code) handles the Enter event, hides the dropdown menu
 
+  const $textSearch = $dropdown.find('input.search').eq(0);
+  const $focusable = $textSearch.length ? $textSearch : $dropdown; // the primary element for focus, see comment above
+  if (!$focusable.length) return;
+
+  // detect if the dropdown has an input, if yes, it works like a combobox, otherwise it works like a menu
+  // or use a special class to indicate it's a combobox/menu in the future
+  const isComboBox = $dropdown.find('input').length > 0;
+
+  const focusableRole = isComboBox ? 'combobox' : 'button';
+  const listPopupRole = isComboBox ? 'listbox' : 'menu';
+  const listItemRole = isComboBox ? 'option' : 'menuitem';
+
+  // make the item has role=option/menuitem, and add an id if there wasn't one yet.
+  function prepareMenuItem($item) {
+    if (!$item.attr('id')) $item.attr('id', generateAriaId());
+    $item.attr({'role': listItemRole, 'tabindex': '-1'});
+    $item.find('a').attr('tabindex', '-1'); // as above, the elements inside the dropdown menu item should not be focusable, the focus should always be on the dropdown primary element.
+  }
+
+  const dropdownTemplates = $dropdown.dropdown('setting', 'templates');
+  const dropdownTemplatesMenuOld = dropdownTemplates.menu;
+  dropdownTemplates.menu = function(response, fields, preserveHTML, className) {
+    // when the dropdown menu items are loaded from AJAX requests, the items are created dynamically
+    const ret = dropdownTemplatesMenuOld(response, fields, preserveHTML, className);
+    const $wrapper = $('<div>').append(ret);
+    const $items = $wrapper.find('> .item');
+    $items.each((_, item) => {
+      prepareMenuItem($(item));
+    });
+    return $wrapper.html();
+  };
+  $dropdown.dropdown('setting', ['templates', dropdownTemplates]);
+
+
   // TODO: multiple selection is not supported yet.
-  // TODO: use combobox for dropdown with search input in the future
 
-  $focusable.attr({
-    'role': 'menu',
-    'aria-haspopup': 'menu',
-    'aria-controls': $menu.attr('id'),
-    'aria-expanded': 'false',
-  });
-
-  if ($dropdown.attr('data-content') && !$dropdown.attr('aria-label')) {
+  // use tooltip's content as aria-label if there is no aria-label
+  if ($dropdown.hasClass('tooltip') && $dropdown.attr('data-content') && !$dropdown.attr('aria-label')) {
     $dropdown.attr('aria-label', $dropdown.attr('data-content'));
   }
 
+  // prepare dropdown menu list popup
+  const $menu = $dropdown.find('> .menu');
+  if (!$menu.attr('id')) $menu.attr('id', generateAriaId());
+  $menu.attr('role', listPopupRole);
   $menu.find('> .item').each((_, item) => {
     prepareMenuItem($(item));
+  });
+
+  $focusable.attr({
+    'role': focusableRole,
+    'aria-haspopup': listPopupRole,
+    'aria-controls': $menu.attr('id'),
+    'aria-expanded': 'false',
   });
 
   // update aria attributes according to current active/selected item
@@ -86,7 +98,7 @@ function attachOneDropdownAria($dropdown) {
       if (!$item) $item = $menu.find('> .item.selected'); // when dropdown filters items by input, there is no "value", so query the "selected" item
       // if the selected item is clickable, then trigger the click event.
       // we can not click any item without check, because Fomantic code might also handle the Enter event. that would result in double click.
-      if ($item && ($item.is('a') || $item.is('.js-aria-clickable'))) $item[0].click();
+      if ($item && ($item.is('a') || $item.hasClass('js-aria-clickable'))) $item[0].click();
     }
   });
 
