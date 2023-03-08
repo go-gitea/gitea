@@ -8,10 +8,8 @@ package options
 import (
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -67,14 +65,6 @@ func AssetDir(dirName string) ([]string, error) {
 		results = append(results, file.Name())
 	}
 	return results, nil
-}
-
-// WalkLocales reads the content of a specific locale from static or custom path.
-func WalkLocales(callback func(path, name string, d fs.DirEntry, err error) error) error {
-	if err := walkAssetDir(filepath.Join(setting.CustomPath, "options", "locale"), callback); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to walk locales. Error: %w", err)
-	}
-	return nil
 }
 
 // fileFromDir is a helper to read files from bindata or custom path.

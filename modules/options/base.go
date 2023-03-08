@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -36,6 +37,20 @@ func License(name string) ([]byte, error) {
 // Labels reads the content of a specific labels from static/bindata or custom path.
 func Labels(name string) ([]byte, error) {
 	return fileFromDir(path.Join("label", name))
+}
+
+// WalkLocales reads the content of a specific locale
+func WalkLocales(callback func(path, name string, d fs.DirEntry, err error) error) error {
+	if IsDynamic() {
+		if err := walkAssetDir(filepath.Join(setting.StaticRootPath, "options", "locale"), callback); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to walk locales. Error: %w", err)
+		}
+	}
+
+	if err := walkAssetDir(filepath.Join(setting.CustomPath, "options", "locale"), callback); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to walk locales. Error: %w", err)
+	}
+	return nil
 }
 
 func walkAssetDir(root string, callback func(path, name string, d fs.DirEntry, err error) error) error {
