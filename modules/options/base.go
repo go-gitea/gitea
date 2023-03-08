@@ -7,10 +7,36 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/util"
 )
+
+// Locale reads the content of a specific locale from static/bindata or custom path.
+func Locale(name string) ([]byte, error) {
+	return fileFromDir(path.Join("locale", name))
+}
+
+// Readme reads the content of a specific readme from static/bindata or custom path.
+func Readme(name string) ([]byte, error) {
+	return fileFromDir(path.Join("readme", name))
+}
+
+// Gitignore reads the content of a gitignore locale from static/bindata or custom path.
+func Gitignore(name string) ([]byte, error) {
+	return fileFromDir(path.Join("gitignore", name))
+}
+
+// License reads the content of a specific license from static/bindata or custom path.
+func License(name string) ([]byte, error) {
+	return fileFromDir(path.Join("license", name))
+}
+
+// Labels reads the content of a specific labels from static/bindata or custom path.
+func Labels(name string) ([]byte, error) {
+	return fileFromDir(path.Join("label", name))
+}
 
 func walkAssetDir(root string, callback func(path, name string, d fs.DirEntry, err error) error) error {
 	if err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
