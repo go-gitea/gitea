@@ -963,10 +963,6 @@
           }
         }
 
-        .comment-form-reply .footer {
-          padding-bottom: 1em;
-        }
-
         @media @mediaSm {
           .ui.segments {
             margin-left: -2rem;
@@ -1674,8 +1670,14 @@
     align-items: center;
 
     .file {
-      flex: 1;
-      word-break: break-all;
+      min-width: 0;
+      .file-link {
+        max-width: fit-content;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+      }
     }
 
     .button {
@@ -3282,10 +3284,19 @@ td.blob-excerpt {
     position: sticky;
     top: 77px;
     z-index: 7;
-    
+
     @media (max-width: 480px) {
       position: static;
     }
+  }
+
+  .diff-file-header-actions {
+    flex-shrink: 0;
+  }
+
+  .diff-file-name {
+    flex: auto;
+    min-width: 100px;
   }
 }
 
