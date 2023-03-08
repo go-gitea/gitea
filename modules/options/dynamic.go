@@ -29,9 +29,9 @@ func Dir(name string) ([]string, error) {
 		path.Join(setting.CustomPath, "options", name),     // custom dir
 		path.Join(setting.StaticRootPath, "options", name), // static dir
 	} {
-		files, err := util.StatDir(dir, true)
+		files, err := statDirIfExist(dir)
 		if err != nil {
-			return nil, fmt.Errorf("unable to read directory %q. %w", dir, err)
+			return nil, err
 		}
 		result = append(result, files...)
 	}

@@ -78,3 +78,18 @@ func walkAssetDir(root string, callback func(path, name string, d fs.DirEntry, e
 	}
 	return nil
 }
+
+func statDirIfExist(dir string) ([]string, error) {
+	isDir, err := util.IsDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("unable to check if static directory %s is a directory. %w", dir, err)
+	}
+	if !isDir {
+		return nil, nil
+	}
+	files, err := util.StatDir(dir, true)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read directory %q. %w", dir, err)
+	}
+	return files, nil
+}
