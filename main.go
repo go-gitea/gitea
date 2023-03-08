@@ -113,6 +113,8 @@ arguments - which can alternatively be run by running the subcommand web.`
 		setFlagsAndBeforeOnSubcommands(&app.Commands[i], defaultFlags, establishCustomPath)
 	}
 
+	app.EnableBashCompletion = true
+
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal("Failed to run app with %s: %v", os.Args, err)

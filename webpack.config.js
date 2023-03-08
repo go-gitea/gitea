@@ -59,6 +59,9 @@ export default {
       fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
       fileURLToPath(new URL('web_src/less/index.less', import.meta.url)),
     ],
+    webcomponents: [
+      fileURLToPath(new URL('web_src/js/webcomponents/GiteaOriginUrl.js', import.meta.url)),
+    ],
     swagger: [
       fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
       fileURLToPath(new URL('web_src/less/standalone/swagger.less', import.meta.url)),
@@ -231,7 +234,7 @@ export default {
         'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
       },
       emitError: true,
-      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense)',
+      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
       ignore: [
         'font-awesome',
       ],

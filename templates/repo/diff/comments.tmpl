@@ -5,13 +5,13 @@
 	{{if .OriginalAuthor}}
 		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 	{{else}}
-		{{template "shared/user/avatarlink" .Poster}}
+		{{template "shared/user/avatarlink" Dict "Context" $.root.Context "user" .Poster}}
 	{{end}}
 	<div class="content comment-container">
-		<div class="ui top attached header comment-header df ac sb">
-			<div class="comment-header-left df ac">
+		<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
+			<div class="comment-header-left gt-df gt-ac">
 				{{if .OriginalAuthor}}
-					<span class="text black bold mr-2">
+					<span class="text black gt-bold gt-mr-2">
 						{{svg (MigrationIcon $.root.Repository.GetOriginalURLHostname)}}
 						{{.OriginalAuthor}}
 					</span>
@@ -30,7 +30,7 @@
 					</span>
 				{{end}}
 			</div>
-			<div class="comment-header-right actions df ac">
+			<div class="comment-header-right actions gt-df gt-ac">
 				{{if and .Review}}
 					{{if eq .Review.Type 0}}
 						<div class="ui label basic small yellow pending-label tooltip" data-content="{{$.root.locale.Tr "repo.issues.review.pending.tooltip" ($.root.locale.Tr "repo.diff.review") ($.root.locale.Tr "repo.diff.review.approve") ($.root.locale.Tr "repo.diff.review.comment") ($.root.locale.Tr "repo.diff.review.reject")}}">
@@ -42,8 +42,8 @@
 						</div>
 					{{end}}
 				{{end}}
-				{{template "repo/issue/view_content/add_reaction" Dict "ctx" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID)}}
-				{{template "repo/issue/view_content/context_menu" Dict "ctx" $.root "item" . "delete" true "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
+				{{template "repo/issue/view_content/add_reaction" Dict "ctxData" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID)}}
+				{{template "repo/issue/view_content/context_menu" Dict "ctxData" $.root "item" . "delete" true "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">
@@ -54,13 +54,13 @@
 				<span class="no-content">{{$.root.locale.Tr "repo.issues.no_content"}}</span>
 			{{end}}
 			</div>
-			<div id="issuecomment-{{.ID}}-raw" class="raw-content hide">{{.Content}}</div>
-			<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}"></div>
+			<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
+			<div class="edit-content-zone gt-hidden" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}"></div>
 		</div>
 		{{$reactions := .Reactions.GroupByType}}
 		{{if $reactions}}
 			<div class="ui attached segment reactions">
-			{{template "repo/issue/view_content/reactions" Dict "ctx" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) "Reactions" $reactions}}
+			{{template "repo/issue/view_content/reactions" Dict "ctxData" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) "Reactions" $reactions}}
 			</div>
 		{{end}}
 	</div>
