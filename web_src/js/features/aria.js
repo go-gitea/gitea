@@ -23,6 +23,8 @@ function attachOneDropdownAria($dropdown) {
   //    - if the menu item is clickable (eg: <a>), then trigger the click event
   //    - otherwise, the dropdown control (low-level code) handles the Enter event, hides the dropdown menu
 
+  // TODO: multiple selection is not supported yet.
+
   const $textSearch = $dropdown.find('input.search').eq(0);
   const $focusable = $textSearch.length ? $textSearch : $dropdown; // the primary element for focus, see comment above
   if (!$focusable.length) return;
@@ -56,9 +58,6 @@ function attachOneDropdownAria($dropdown) {
   };
   $dropdown.dropdown('setting', ['templates', dropdownTemplates]);
 
-
-  // TODO: multiple selection is not supported yet.
-
   // use tooltip's content as aria-label if there is no aria-label
   if ($dropdown.hasClass('tooltip') && $dropdown.attr('data-content') && !$dropdown.attr('aria-label')) {
     $dropdown.attr('aria-label', $dropdown.attr('data-content'));
@@ -67,10 +66,11 @@ function attachOneDropdownAria($dropdown) {
   // prepare dropdown menu list popup
   const $menu = $dropdown.find('> .menu');
   if (!$menu.attr('id')) $menu.attr('id', generateAriaId());
-  $menu.attr('role', listPopupRole);
   $menu.find('> .item').each((_, item) => {
     prepareMenuItem($(item));
   });
+  // this role could only be changed after its content is ready, otherwise some browsers+readers (like Chrome+AppleVoice) crash
+  $menu.attr('role', listPopupRole);
 
   $focusable.attr({
     'role': focusableRole,
