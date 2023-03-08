@@ -34,7 +34,7 @@
 		</div>
 		{{end}}
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
-		<div class="ui repo-topic-edit grid form" id="topic_edit" style="display:none">
+		<div class="ui repo-topic-edit grid form gt-hidden" id="topic_edit">
 			<div class="fourteen wide column">
 				<div class="field">
 					<div class="ui fluid multiple search selection dropdown">
@@ -52,7 +52,7 @@
 			</div>
 		</div>
 		{{end}}
-		<div class="hide" id="validate_prompt">
+		<div class="gt-hidden" id="validate_prompt">
 			<span id="count_prompt">{{.locale.Tr "repo.topic.count_prompt"}}</span>
 			<span id="format_prompt">{{.locale.Tr "repo.topic.format_prompt"}}</span>
 		</div>
@@ -77,7 +77,7 @@
 					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{.locale.Tr "repo.find_file.go_to_file"}}</a>
 				{{end}}
 				{{if or .CanAddFile .CanUploadFile}}
-					<button class="ui basic small compact dropdown jump icon button gt-mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
+					<button class="ui basic compact dropdown jump icon button gt-mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
 						<span class="text">{{.locale.Tr "repo.editor.add_file"}}</span>
 						<div class="menu">
 							{{if .CanAddFile}}

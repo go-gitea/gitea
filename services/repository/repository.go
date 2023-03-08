@@ -24,14 +24,14 @@ import (
 )
 
 // CreateRepository creates a repository for the user/organization.
-func CreateRepository(doer, owner *user_model.User, opts repo_module.CreateRepoOptions) (*repo_model.Repository, error) {
+func CreateRepository(ctx context.Context, doer, owner *user_model.User, opts repo_module.CreateRepoOptions) (*repo_model.Repository, error) {
 	repo, err := repo_module.CreateRepository(doer, owner, opts)
 	if err != nil {
 		// No need to rollback here we should do this in CreateRepository...
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(db.DefaultContext, doer, owner, repo)
+	notification.NotifyCreateRepository(ctx, doer, owner, repo)
 
 	return repo, nil
 }
@@ -55,10 +55,10 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
-func PushCreateRepo(authUser, owner *user_model.User, repoName string) (*repo_model.Repository, error) {
+func PushCreateRepo(ctx context.Context, authUser, owner *user_model.User, repoName string) (*repo_model.Repository, error) {
 	if !authUser.IsAdmin {
 		if owner.IsOrganization() {
-			if ok, err := organization.CanCreateOrgRepo(db.DefaultContext, owner.ID, authUser.ID); err != nil {
+			if ok, err := organization.CanCreateOrgRepo(ctx, owner.ID, authUser.ID); err != nil {
 				return nil, err
 			} else if !ok {
 				return nil, fmt.Errorf("cannot push-create repository for org")
@@ -68,7 +68,7 @@ func PushCreateRepo(authUser, owner *user_model.User, repoName string) (*repo_mo
 		}
 	}
 
-	repo, err := CreateRepository(authUser, owner, repo_module.CreateRepoOptions{
+	repo, err := CreateRepository(ctx, authUser, owner, repo_module.CreateRepoOptions{
 		Name:      repoName,
 		IsPrivate: setting.Repository.DefaultPushCreatePrivate,
 	})
@@ -88,8 +88,8 @@ func Init() error {
 }
 
 // UpdateRepository updates a repository
-func UpdateRepository(repo *repo_model.Repository, visibilityChanged bool) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

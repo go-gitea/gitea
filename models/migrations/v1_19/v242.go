@@ -4,20 +4,23 @@
 package v1_19 //nolint
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 )
 
-func CreateRepoSettingsTable(x *xorm.Engine) error {
-	type RepoSetting struct {
-		ID           int64              `xorm:"pk autoincr"`
-		GroupID      int64              `xorm:"index unique(key_repoid)"`               // to load all of some group's settings
-		SettingKey   string             `xorm:"varchar(255) index unique(key_groupid)"` // ensure key is always lowercase
-		SettingValue string             `xorm:"text"`
-		Version      int                `xorm:"version"` // prevent to override
-		Created      timeutil.TimeStamp `xorm:"created"`
-		Updated      timeutil.TimeStamp `xorm:"updated"`
+// AlterPublicGPGKeyImportContentFieldToMediumText: set GPGKeyImport Content field to MEDIUMTEXT
+func AlterPublicGPGKeyImportContentFieldToMediumText(x *xorm.Engine) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
 	}
-	return x.Sync2(new(RepoSetting))
+
+	if setting.Database.Type.IsMySQL() {
+		if _, err := sess.Exec("ALTER TABLE `gpg_key_import` CHANGE `content` `content` MEDIUMTEXT"); err != nil {
+			return err
+		}
+	}
+	return sess.Commit()
 }

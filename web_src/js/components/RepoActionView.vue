@@ -2,8 +2,14 @@
   <div class="action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary">
-        {{ run.title }}
-        <button class="run_cancel" @click="cancelRun()" v-if="run.canCancel">
+        <ActionRunStatus :status="run.status" :size="20"/>
+        <div class="action-title">
+          {{ run.title }}
+        </div>
+        <button class="run_approve" @click="approveRun()" v-if="run.canApprove">
+          <i class="play circle outline icon"/>
+        </button>
+        <button class="run_cancel" @click="cancelRun()" v-else-if="run.canCancel">
           <i class="stop circle outline icon"/>
         </button>
       </div>
@@ -14,12 +20,7 @@
           <div class="job-brief-list">
             <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
-                <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
-                <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
-                <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
-                <SvgIcon name="octicon-blocked" class="ui text yellow" v-else-if="job.status === 'blocked'"/>
-                <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
-                <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
+                <ActionRunStatus :status="job.status"/>
                 <span class="ui text">{{ job.name }}</span>
               </a>
               <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
@@ -45,12 +46,7 @@
               <SvgIcon name="octicon-chevron-down" class="gt-mr-3" v-show="currentJobStepsStates[i].expanded"/>
               <SvgIcon name="octicon-chevron-right" class="gt-mr-3" v-show="!currentJobStepsStates[i].expanded"/>
 
-              <SvgIcon name="octicon-check-circle-fill" class="green gt-mr-3" v-if="jobStep.status === 'success'"/>
-              <SvgIcon name="octicon-skip" class="ui text grey gt-mr-3" v-else-if="jobStep.status === 'skipped'"/>
-              <SvgIcon name="octicon-clock" class="ui text yellow gt-mr-3" v-else-if="jobStep.status === 'waiting'"/>
-              <SvgIcon name="octicon-blocked" class="ui text yellow gt-mr-3" v-else-if="jobStep.status === 'blocked'"/>
-              <SvgIcon name="octicon-meter" class="ui text yellow gt-mr-3" class-name="job-status-rotate" v-else-if="jobStep.status === 'running'"/>
-              <SvgIcon name="octicon-x-circle-fill" class="red gt-mr-3 " v-else/>
+              <ActionRunStatus :status="jobStep.status" class="gt-mr-3"/>
 
               <span class="step-summary-msg">{{ jobStep.summary }}</span>
               <span class="step-summary-dur">{{ jobStep.duration }}</span>
@@ -67,6 +63,7 @@
 
 <script>
 import {SvgIcon} from '../svg.js';
+import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
 import AnsiToHTML from 'ansi-to-html';
 
@@ -76,6 +73,7 @@ const sfc = {
   name: 'RepoActionView',
   components: {
     SvgIcon,
+    ActionRunStatus,
   },
   props: {
     runIndex: String,
@@ -96,7 +94,9 @@ const sfc = {
       run: {
         link: '',
         title: '',
+        status: '',
         canCancel: false,
+        canApprove: false,
         done: false,
         jobs: [
           // {
@@ -172,6 +172,10 @@ const sfc = {
     // cancel a run
     cancelRun() {
       this.fetchPost(`${this.run.link}/cancel`);
+    },
+    // approve a run
+    approveRun() {
+      this.fetchPost(`${this.run.link}/approve`);
     },
 
     createLogLine(line) {
@@ -268,6 +272,11 @@ export function initRepositoryActionView() {
   const el = document.getElementById('repo-action-view');
   if (!el) return;
 
+  // TODO: the parent element's full height doesn't work well now,
+  // but we can not pollute the global style at the moment, only fix the height problem for pages with this component
+  const parentFullHeight = document.querySelector('body > div.full.height');
+  if (parentFullHeight) parentFullHeight.style.paddingBottom = '0';
+
   const view = createApp(sfc, {
     runIndex: el.getAttribute('data-run-index'),
     jobIndex: el.getAttribute('data-job-index'),
@@ -298,7 +307,15 @@ export function initRepositoryActionView() {
     cursor: pointer;
     transition:transform 0.2s;
   };
-  .run_cancel:hover{
+  .run_approve {
+    border: none;
+    color: var(--color-green);
+    background-color: transparent;
+    outline: none;
+    cursor: pointer;
+    transition:transform 0.2s;
+  };
+  .run_cancel:hover, .run_approve:hover {
     transform:scale(130%);
   };
 }
@@ -306,7 +323,11 @@ export function initRepositoryActionView() {
 .action-info-summary {
   font-size: 150%;
   height: 20px;
-  padding: 0 10px;
+  display: flex;
+
+  .action-title {
+    padding: 0 5px;
+  }
 }
 
 // ================
@@ -411,11 +432,6 @@ export function initRepositoryActionView() {
 
 <style lang="less">
 // some elements are not managed by vue, so we need to use global style
-
-// TODO: the parent element's full height doesn't work well now
-body > div.full.height {
-  padding-bottom: 0;
-}
 
 .job-status-rotate {
   animation: job-status-rotate-keyframes 1s linear infinite;

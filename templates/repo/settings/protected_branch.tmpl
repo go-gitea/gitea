@@ -49,7 +49,7 @@
 								<div class="menu">
 									{{range .Users}}
 										<div class="item" data-value="{{.ID}}">
-											{{avatar . 28 "mini"}}
+											{{avatar $.Context . 28 "mini"}}
 											{{.GetDisplayName}}
 										</div>
 									{{end}}
@@ -101,7 +101,7 @@
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
-										{{avatar . 28 "mini"}}
+										{{avatar $.Context . 28 "mini"}}
 									{{.GetDisplayName}}
 									</div>
 								{{end}}
@@ -181,7 +181,7 @@
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
-										{{avatar . 28 "mini"}}
+										{{avatar $.Context . 28 "mini"}}
 									{{.GetDisplayName}}
 									</div>
 								{{end}}
