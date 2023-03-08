@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"fmt"
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -79,7 +80,7 @@ func List(ctx *context.Context) {
 
 	workflow := ctx.FormString("workflow")
 	ctx.Data["CurWorkflow"] = workflow
-
+	fmt.Println("Pagination")
 	opts := actions_model.FindRunOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
@@ -133,6 +134,8 @@ func List(ctx *context.Context) {
 
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.AddParamString("workflow", workflow)
+	pager.AddParamString("state", ctx.FormString("state"))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplListActions)
