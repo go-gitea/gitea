@@ -365,3 +365,23 @@ gitea:
 ```
 
 This config assumes that you are handling HTTPS on the traefik side and using HTTP between Gitea and traefik.
+
+## Traefik with a sub-path
+
+In case you already have a site, and you want Gitea to share the domain name, you can setup Traefik to serve Gitea under a sub-path by adding the following to your `docker-compose.yaml` (Assuming the provider is docker) :
+
+```yaml
+gitea:
+  image: gitea/gitea
+  ...
+  labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.gitea.rule=Host(`example.com`) && PathPrefix(`/gitea`)"
+    - "traefik.http.services.gitea-websecure.loadbalancer.server.port=3000"
+    - "traefik.http.middlewares.gitea-stripprefix.stripprefix.prefixes=/gitea"
+    - "traefik.http.routers.gitea.middlewares=gitea-stripprefix"
+```
+
+This config assumes that you are handling HTTPS on the traefik side and using HTTP between Gitea and traefik.
+
+Then you **MUST** set something like `[server] ROOT_URL = http://example.com/gitea/` correctly in your configuration.

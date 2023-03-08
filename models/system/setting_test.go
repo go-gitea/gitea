@@ -40,10 +40,10 @@ func TestSettings(t *testing.T) {
 
 	value, err := system.GetSetting(db.DefaultContext, keyName)
 	assert.NoError(t, err)
-	assert.EqualValues(t, updatedSetting.SettingValue, value)
+	assert.EqualValues(t, updatedSetting.SettingValue, value.SettingValue)
 
 	// get all settings
-	settings, err = system.GetAllSettings()
+	settings, err = system.GetAllSettings(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Len(t, settings, 3)
 	assert.EqualValues(t, updatedSetting.SettingValue, settings[strings.ToLower(updatedSetting.SettingKey)].SettingValue)
@@ -51,7 +51,7 @@ func TestSettings(t *testing.T) {
 	// delete setting
 	err = system.DeleteSetting(db.DefaultContext, &system.Setting{SettingKey: strings.ToLower(keyName)})
 	assert.NoError(t, err)
-	settings, err = system.GetAllSettings()
+	settings, err = system.GetAllSettings(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Len(t, settings, 2)
 }

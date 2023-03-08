@@ -6,7 +6,6 @@ package context
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -40,6 +39,7 @@ import (
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 	chi "github.com/go-chi/chi/v5"
+	"github.com/minio/sha256-simd"
 	"github.com/unrolled/render"
 	"golang.org/x/crypto/pbkdf2"
 )
