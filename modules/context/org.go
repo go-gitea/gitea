@@ -83,12 +83,22 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 
 	var err error
 
-	// if Organization is not defined, get it from params
-	if ctx.Org.Organization == nil {
-		GetOrganizationByParams(ctx)
-		if ctx.Written() {
-			return
+	if ctx.ContextUser == nil {
+		// if Organization is not defined, get it from params
+		if ctx.Org.Organization == nil {
+			GetOrganizationByParams(ctx)
+			if ctx.Written() {
+				return
+			}
 		}
+	} else if ctx.ContextUser.IsOrganization() {
+		if ctx.Org == nil {
+			ctx.Org = &Organization{}
+		}
+		ctx.Org.Organization = (*organization.Organization)(ctx.ContextUser)
+	} else {
+		// ContextUser is an individual User
+		return
 	}
 
 	org := ctx.Org.Organization

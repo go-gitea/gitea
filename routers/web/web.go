@@ -918,7 +918,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead))
-	}, context_service.UserAssignmentWeb())
+	}, context_service.UserAssignmentWeb(), context.OrgAssignment())
 
 	// ***** Release Attachment Download without Signin
 	m.Get("/{username}/{reponame}/releases/download/{vTag}/{fileName}", ignSignIn, context.RepoAssignment, repo.MustBeNotEmpty, repo.RedirectDownload)
