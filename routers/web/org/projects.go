@@ -205,7 +205,7 @@ func DeleteProject(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/projects",
+		"redirect": ctx.ContextUser.HomeLink() + "/-/projects",
 	})
 }
 

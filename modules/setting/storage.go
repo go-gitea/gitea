@@ -41,6 +41,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, targetSec *ini.Section
 	sec.Key("MINIO_BUCKET").MustString("gitea")
 	sec.Key("MINIO_LOCATION").MustString("us-east-1")
 	sec.Key("MINIO_USE_SSL").MustBool(false)
+	sec.Key("MINIO_INSECURE_SKIP_VERIFY").MustBool(false)
 
 	if targetSec == nil {
 		targetSec, _ = rootCfg.NewSection(name)

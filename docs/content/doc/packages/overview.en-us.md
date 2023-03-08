@@ -9,7 +9,7 @@ menu:
     parent: "packages"
     name: "Overview"
     weight: 1
-    identifier: "overview"
+    identifier: "packages-overview"
 ---
 
 # Package Registry

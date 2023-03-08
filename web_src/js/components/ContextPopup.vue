@@ -87,7 +87,7 @@ export default {
     }
   },
   mounted() {
-    this.$refs.root.addEventListener('us-load-context-popup', (e) => {
+    this.$refs.root.addEventListener('ce-load-context-popup', (e) => {
       const data = e.detail;
       if (!this.loading && this.issue === null) {
         this.load(data);

@@ -59,8 +59,16 @@ func AddToTaskQueue(pr *issues_model.PullRequest) {
 	}
 }
 
+type MergeCheckType int
+
+const (
+	MergeCheckTypeGeneral  MergeCheckType = iota // general merge checks for "merge", "rebase", "squash", etc
+	MergeCheckTypeManually                       // Manually Merged button (mark a PR as merged manually)
+	MergeCheckTypeAuto                           // Auto Merge (Scheduled Merge) After Checks Succeed
+)
+
 // CheckPullMergable check if the pull mergable based on all conditions (branch protection, merge options, ...)
-func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *access_model.Permission, pr *issues_model.PullRequest, manuallMerge, force bool) error {
+func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *access_model.Permission, pr *issues_model.PullRequest, mergeCheckType MergeCheckType, adminSkipProtectionCheck bool) error {
 	return db.WithTx(stdCtx, func(ctx context.Context) error {
 		if pr.HasMerged {
 			return ErrHasMerged
@@ -80,8 +88,8 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 			return ErrUserNotAllowedToMerge
 		}
 
-		if manuallMerge {
-			// don't check rules to "auto merge", doer is going to mark this pull as merged manually
+		if mergeCheckType == MergeCheckTypeManually {
+			// if doer is doing "manually merge" (mark as merged manually), do not check anything
 			return nil
 		}
 
@@ -103,14 +111,25 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 				return err
 			}
 
-			if !force {
-				return err
+			// Now the branch protection check failed, check whether the failure could be skipped (skip by setting err = nil)
+
+			// * when doing Auto Merge (Scheduled Merge After Checks Succeed), skip the branch protection check
+			if mergeCheckType == MergeCheckTypeAuto {
+				err = nil
 			}
 
-			if isRepoAdmin, err2 := access_model.IsUserRepoAdmin(ctx, pr.BaseRepo, doer); err2 != nil {
-				log.Error("Unable to check if %-v is a repo admin in %-v: %v", doer, pr.BaseRepo, err2)
-				return err2
-			} else if !isRepoAdmin {
+			// * if the doer is admin, they could skip the branch protection check
+			if adminSkipProtectionCheck {
+				if isRepoAdmin, errCheckAdmin := access_model.IsUserRepoAdmin(ctx, pr.BaseRepo, doer); errCheckAdmin != nil {
+					log.Error("Unable to check if %-v is a repo admin in %-v: %v", doer, pr.BaseRepo, errCheckAdmin)
+					return errCheckAdmin
+				} else if isRepoAdmin {
+					err = nil // repo admin can skip the check, so clear the error
+				}
+			}
+
+			// If there is still a branch protection check error, return it
+			if err != nil {
 				return err
 			}
 		}
