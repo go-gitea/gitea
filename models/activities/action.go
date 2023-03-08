@@ -99,7 +99,7 @@ func (a *Action) TableIndices() []*schemas.Index {
 	actUserIndex.AddColumn("act_user_id", "repo_id", "created_unix", "user_id", "is_deleted")
 
 	indices := []*schemas.Index{actUserIndex, repoIndex}
-	if setting.Database.UsePostgreSQL {
+	if setting.Database.Type.IsPostgreSQL() {
 		cudIndex := schemas.NewIndex("c_u_d", schemas.IndexType)
 		cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
 		indices = append(indices, cudIndex)
@@ -640,7 +640,7 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
 
 // CountActionCreatedUnixString count actions where created_unix is an empty string
 func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
-	if setting.Database.UseSQLite3 {
+	if setting.Database.Type.IsSQLite3() {
 		return db.GetEngine(ctx).Where(`created_unix = ""`).Count(new(Action))
 	}
 	return 0, nil
@@ -648,7 +648,7 @@ func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
 
 // FixActionCreatedUnixString set created_unix to zero if it is an empty string
 func FixActionCreatedUnixString(ctx context.Context) (int64, error) {
-	if setting.Database.UseSQLite3 {
+	if setting.Database.Type.IsSQLite3() {
 		res, err := db.GetEngine(ctx).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
 		if err != nil {
 			return 0, err
