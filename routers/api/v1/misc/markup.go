@@ -4,92 +4,15 @@
 package misc
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-
-	"mvdan.cc/xurls/v2"
+	"code.gitea.io/gitea/routers/common"
 )
-
-// Render markup text in given mode
-func renderMarkup(ctx *context.APIContext, mode, text, urlPrefix, filePath string, wiki bool) {
-	markupType := ""
-	relativePath := ""
-
-	if len(text) == 0 {
-		_, _ = ctx.Write([]byte(""))
-		return
-	}
-
-	if mode == "markdown" {
-		// Raw markdown
-		if err := markdown.RenderRaw(&markup.RenderContext{
-			Ctx:       ctx,
-			URLPrefix: urlPrefix,
-		}, strings.NewReader(text), ctx.Resp); err != nil {
-			ctx.InternalServerError(err)
-		}
-		return
-	} else if mode == "comment" {
-		// Comment as markdown
-		markupType = markdown.MarkupName
-	} else if mode == "gfm" {
-		// Github Flavored Markdown as document
-		markupType = markdown.MarkupName
-	} else if mode == "file" {
-		// File as document based on file extension
-		markupType = ""
-		relativePath = filePath
-	} else {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Unknown mode: %s", mode))
-		return
-	}
-
-	if !strings.HasPrefix(setting.AppSubURL+"/", urlPrefix) {
-		// check if urlPrefix is already set to a URL
-		linkRegex, _ := xurls.StrictMatchingScheme("https?://")
-		m := linkRegex.FindStringIndex(urlPrefix)
-		if m == nil {
-			urlPrefix = util.URLJoin(setting.AppURL, urlPrefix)
-		}
-	}
-
-	meta := map[string]string{}
-	if ctx.Repo != nil && ctx.Repo.Repository != nil {
-		if mode == "comment" {
-			meta = ctx.Repo.Repository.ComposeMetas()
-		} else {
-			meta = ctx.Repo.Repository.ComposeDocumentMetas()
-		}
-	}
-	if mode != "comment" {
-		meta["mode"] = "document"
-	}
-
-	if err := markup.Render(&markup.RenderContext{
-		Ctx:          ctx,
-		URLPrefix:    urlPrefix,
-		Metas:        meta,
-		IsWiki:       wiki,
-		Type:         markupType,
-		RelativePath: relativePath,
-	}, strings.NewReader(text), ctx.Resp); err != nil {
-		if markup.IsErrUnsupportedRenderExtension(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "", err.Error())
-		} else {
-			ctx.Error(http.StatusInternalServerError, "", err.Error())
-		}
-		return
-	}
-}
 
 // Markup render markup document to HTML
 func Markup(ctx *context.APIContext) {
@@ -118,7 +41,7 @@ func Markup(ctx *context.APIContext) {
 		return
 	}
 
-	renderMarkup(ctx, form.Mode, form.Text, form.Context, form.FilePath, form.Wiki)
+	common.RenderMarkup(ctx.Context, form.Mode, form.Text, form.Context, form.FilePath, form.Wiki)
 }
 
 // Markdown render markdown document to HTML
@@ -153,7 +76,7 @@ func Markdown(ctx *context.APIContext) {
 		mode = form.Mode
 	}
 
-	renderMarkup(ctx, mode, form.Text, form.Context, "", form.Wiki)
+	common.RenderMarkup(ctx.Context, mode, form.Text, form.Context, "", form.Wiki)
 }
 
 // MarkdownRaw render raw markdown HTML
