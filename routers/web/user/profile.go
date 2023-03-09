@@ -241,7 +241,7 @@ func Profile(ctx *context.Context) {
 			OwnerID:  ctx.ContextUser.ID,
 			Page:     -1,
 			IsClosed: util.OptionalBoolFalse,
-			Type:     project_model.TypeUser,
+			Type:     project_model.TypeIndividual,
 		})
 		if err != nil {
 			ctx.ServerError("GetProjects", err)

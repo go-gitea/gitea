@@ -43,11 +43,14 @@ type (
 )
 
 const (
-	// TypeUser is a type of project board that is owned by a User (individual and organization)
-	TypeUser Type = iota + 1
+	// TypeIndividual is a type of project board that is owned by an individual
+	TypeIndividual Type = iota + 1
 
-	// TypeRepository is a project that is tied to a Repository
+	// TypeRepository is a project that is tied to a repository
 	TypeRepository
+
+	// TypeOrganization is a project that is tied to an organisation
+	TypeOrganization
 )
 
 // ErrProjectNotExist represents a "ProjectNotExist" kind of error.
@@ -146,12 +149,16 @@ func (p *Project) Link() string {
 	return ""
 }
 
-func (p *Project) IsUserProject() bool {
-	return p.Type == TypeUser
+func (p *Project) IsIndividualProject() bool {
+	return p.Type == TypeIndividual
 }
 
 func (p *Project) IsRepositoryProject() bool {
 	return p.Type == TypeRepository
+}
+
+func (p *Project) IsOrganizationProject() bool {
+	return p.Type == TypeOrganization
 }
 
 // CanRetrievedByDoer return whether project can be retrieved by a doer in a repo
@@ -230,7 +237,7 @@ func GetCardConfig() []CardConfig {
 // IsTypeValid checks if a project type is valid
 func IsTypeValid(p Type) bool {
 	switch p {
-	case TypeUser, TypeRepository:
+	case TypeIndividual, TypeRepository, TypeOrganization:
 		return true
 	default:
 		return false

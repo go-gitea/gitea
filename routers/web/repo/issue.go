@@ -516,7 +516,25 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
-		Type:     project_model.TypeUser,
+		Type:     project_model.TypeIndividual,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
+	for _, p := range openProjectsUser {
+		if canWriteByDoer, err := p.CanWriteByDoer(ctx, repo, ctx.Doer); err != nil {
+			ctx.ServerError("CanWriteByDoer", err)
+			return
+		} else if canWriteByDoer {
+			openProjects = append(openProjects, p)
+		}
+	}
+	openProjectsUser, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+		OwnerID:  repo.OwnerID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolFalse,
+		Type:     project_model.TypeOrganization,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
@@ -550,7 +568,25 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
-		Type:     project_model.TypeUser,
+		Type:     project_model.TypeIndividual,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
+	for _, p := range closedProjectsUser {
+		if canWriteByDoer, err := p.CanWriteByDoer(ctx, repo, ctx.Doer); err != nil {
+			ctx.ServerError("CanWriteByDoer", err)
+			return
+		} else if canWriteByDoer {
+			closedProjects = append(closedProjects, p)
+		}
+	}
+	closedProjectsUser, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+		OwnerID:  repo.OwnerID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolTrue,
+		Type:     project_model.TypeOrganization,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
