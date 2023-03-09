@@ -54,7 +54,7 @@ function attachOneDropdownAria($dropdown) {
     $items.each((_, item) => prepareMenuItem($(item)));
     return $wrapper.html();
   };
-  $dropdown.dropdown('setting', ['templates', dropdownTemplates]);
+  $dropdown.dropdown('setting', 'templates', dropdownTemplates);
 
   // use tooltip's content as aria-label if there is no aria-label
   if ($dropdown.hasClass('tooltip') && $dropdown.attr('data-content') && !$dropdown.attr('aria-label')) {
@@ -77,10 +77,11 @@ function attachOneDropdownAria($dropdown) {
     'aria-expanded': 'false',
   });
 
+  const isMenuVisible = () => $menu.hasClass('visible') || $menu.is('.animating.in');
+
   // update aria attributes according to current active/selected item
   const refreshAria = () => {
-    const isMenuVisible = !$menu.is('.hidden') && !$menu.is('.animating.out');
-    $focusable.attr('aria-expanded', isMenuVisible ? 'true' : 'false');
+    $focusable.attr('aria-expanded', isMenuVisible() ? 'true' : 'false');
 
     let $active = $menu.find('> .item.active');
     if (!$active.length) $active = $menu.find('> .item.selected'); // it's strange that we need this fallback at the moment
@@ -103,12 +104,52 @@ function attachOneDropdownAria($dropdown) {
   // use setTimeout to run the refreshAria in next tick (to make sure the Fomantic UI code has finished its work)
   // do not return any value, jQuery has return-value related behaviors.
   const deferredRefreshAria = () => { setTimeout(refreshAria, 0) };
-  $focusable.on('focus', deferredRefreshAria);
-  $focusable.on('mouseup', deferredRefreshAria);
-  // Fomantic may stop propagation of blur event, use capture to make sure we can still get the event
-  $focusable[0].addEventListener('blur', deferredRefreshAria, true);
-
   $dropdown.on('keyup', (e) => { if (e.key.startsWith('Arrow')) deferredRefreshAria(); });
+
+  // if the dropdown has been opened by focus, do not trigger the next click event again.
+  // otherwise the dropdown will be closed immediately, especially on Android with TalkBack
+  // * desktop event sequence: mousedown -> focus -> mouseup -> click
+  // * mobile event sequence: focus -> mousedown -> mouseup -> click
+  // Fomantic may stop propagation of blur event, use capture to make sure we can still get the event
+  // keep the debug code for developers who want to confirm&debug this code for different browsers (without attaching a remote debugger)
+  const showDebug = false;
+  const debug = (msg) => showDebug && $('.page-content').append($('<div>').text(`${$menu.attr('id')} ${msg}, menu visible=${isMenuVisible()}`));
+  let ignoreClickPreEvents = 0, ignoreClickPreVisible = 0;
+  $dropdown[0].addEventListener('mousedown', (e) => {
+    debug(e.type);
+    ignoreClickPreVisible += isMenuVisible() ? 1 : 0;
+    ignoreClickPreEvents++;
+  }, true);
+  $dropdown[0].addEventListener('focus', (e) => {
+    debug(e.type);
+    ignoreClickPreVisible += isMenuVisible() ? 1 : 0;
+    ignoreClickPreEvents++;
+    deferredRefreshAria();
+  }, true);
+  $dropdown[0].addEventListener('blur', (e) => {
+    debug(e.type);
+    ignoreClickPreVisible = ignoreClickPreEvents = 0;
+    deferredRefreshAria();
+  }, true);
+  $dropdown[0].addEventListener('mouseup', (e) => {
+    debug(e.type);
+    setTimeout(() => {
+      debug(`${e.type} (deferred)`);
+      ignoreClickPreVisible = ignoreClickPreEvents = 0;
+      deferredRefreshAria();
+    }, 0);
+  }, true);
+  $dropdown[0].addEventListener('click', (e) => {
+    debug(`${e.type}, pre-visible=${ignoreClickPreVisible}, pre-events=${ignoreClickPreEvents}`);
+    if (isMenuVisible() &&
+      ignoreClickPreVisible !== 2 && // dropdown is switch from invisible to visible
+      ignoreClickPreEvents === 2 // the click event is related to mousedown+focus
+    ) {
+      debug(`${e.type}, stop click propagation`);
+      e.stopPropagation(); // if the dropdown menu has been opened by focus, do not trigger the next click event again
+    }
+    ignoreClickPreEvents = ignoreClickPreVisible = 0;
+  }, true);
 }
 
 export function attachDropdownAria($dropdowns) {
