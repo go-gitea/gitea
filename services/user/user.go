@@ -27,6 +27,11 @@ import (
 	"code.gitea.io/gitea/services/packages"
 )
 
+// RenameUser renames a user
+func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
+	return renameUser(ctx, u, newUserName)
+}
+
 // DeleteUser completely and permanently deletes everything of a user,
 // but issues/comments/pulls will be kept and shown as someone has been deleted,
 // unless the user is younger than USER_DELETE_WITH_COMMENTS_MAX_DAYS.
