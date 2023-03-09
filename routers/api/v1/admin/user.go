@@ -491,6 +491,12 @@ func RenameUser(ctx *context.APIContext) {
 
 	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
 
+	if strings.ToLower(newName) == strings.ToLower(ctx.ContextUser.Name) {
+		// Noop as username is not changed
+		ctx.Status(http.StatusNoContent)
+		return
+	}
+
 	// Check if user name has been changed
 	if err := user_service.RenameUser(ctx.ContextUser, newName); err != nil {
 		switch {
