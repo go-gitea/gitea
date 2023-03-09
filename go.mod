@@ -96,7 +96,6 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
-	github.com/ulikunitz/xz v0.5.11
 	github.com/unrolled/render v1.5.0
 	github.com/urfave/cli v1.22.12
 	github.com/xanzy/go-gitlab v0.80.2
@@ -261,6 +260,7 @@ require (
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/toqueteos/webbrowser v1.2.0 // indirect
+	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/unknwon/com v1.0.1 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
