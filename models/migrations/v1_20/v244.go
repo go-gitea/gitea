@@ -7,17 +7,16 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddIsInternalColumnToPackage(x *xorm.Engine) error {
-	type Package struct {
-		ID               int64  `xorm:"pk autoincr"`
-		OwnerID          int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		RepoID           int64  `xorm:"INDEX"`
-		Type             string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Name             string `xorm:"NOT NULL"`
-		LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		SemverCompatible bool   `xorm:"NOT NULL DEFAULT false"`
-		IsInternal       bool   `xorm:"INDEX NOT NULL DEFAULT false"`
+func AddNeedApprovalToActionRun(x *xorm.Engine) error {
+	/*
+		New index: TriggerUserID
+		New fields: NeedApproval, ApprovedBy
+	*/
+	type ActionRun struct {
+		TriggerUserID int64 `xorm:"index"`
+		NeedApproval  bool  // may need approval if it's a fork pull request
+		ApprovedBy    int64 `xorm:"index"` // who approved
 	}
 
-	return x.Sync2(new(Package))
+	return x.Sync(new(ActionRun))
 }

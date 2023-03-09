@@ -106,7 +106,7 @@ func enableGravatar(t *testing.T) {
 	err := system_model.SetSettingNoVersion(db.DefaultContext, system_model.KeyPictureDisableGravatar, "false")
 	assert.NoError(t, err)
 	setting.GravatarSource = "https://secure.gravatar.com/avatar"
-	err = system_model.Init()
+	err = system_model.Init(db.DefaultContext)
 	assert.NoError(t, err)
 }
 
