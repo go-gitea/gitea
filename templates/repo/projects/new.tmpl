@@ -24,6 +24,7 @@
 		<form class="ui form grid" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="eleven wide column">
+				<input type="hidden" id="redirect" name="redirect" value="{{.redirect}}">
 				<div class="field {{if .Err_Title}}error{{end}}">
 					<label>{{.locale.Tr "repo.projects.title"}}</label>
 					<input name="title" placeholder="{{.locale.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
