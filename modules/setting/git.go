@@ -43,7 +43,7 @@ var Git = struct {
 	MaxGitDiffFiles:           100,
 	CommitsRangeSize:          50,
 	BranchesRangeSize:         20,
-	VerbosePush:               true,
+	VerbosePush:               false,
 	VerbosePushDelay:          5 * time.Second,
 	GCArgs:                    []string{},
 	EnableAutoGitWireProtocol: true,
