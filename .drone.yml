@@ -194,7 +194,7 @@ volumes:
 services:
   - name: pgsql
     pull: default
-    image: postgres:10
+    image: postgres:15
     environment:
       POSTGRES_DB: test
       POSTGRES_PASSWORD: postgres
