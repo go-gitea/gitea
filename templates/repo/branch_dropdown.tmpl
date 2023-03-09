@@ -38,12 +38,12 @@
 		'noResults': {{.root.locale.Tr "repo.pulls.no_results"}},
 	};
 	{{if .release}}
-	data['release'] = {
+	data.release = {
 		'tagName': {{.release.TagName}},
 	};
 	{{end}}
-	window.config.pageData['branchDropdownDataList'] = window.config.pageData['branchDropdownDataList'] || [];
-	window.config.pageData['branchDropdownDataList'].push(data);
+	window.config.pageData.branchDropdownDataList = window.config.pageData.branchDropdownDataList || [];
+	window.config.pageData.branchDropdownDataList.push(data);
 </script>
 
 <div class="fitted item choose reference">
