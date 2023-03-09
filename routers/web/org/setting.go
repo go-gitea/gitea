@@ -137,7 +137,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 		for _, repo := range repos {
 			repo.OwnerName = org.Name
-			if err := repo_service.UpdateRepository(repo, true); err != nil {
+			if err := repo_service.UpdateRepository(ctx, repo, true); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
