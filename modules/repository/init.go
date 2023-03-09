@@ -136,7 +136,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	}
 
 	// README
-	data, err := options.GetRepoInitFile("readme", opts.Readme)
+	data, err := options.Readme(opts.Readme)
 	if err != nil {
 		return fmt.Errorf("GetRepoInitFile[%s]: %w", opts.Readme, err)
 	}
@@ -164,7 +164,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 		var buf bytes.Buffer
 		names := strings.Split(opts.Gitignores, ",")
 		for _, name := range names {
-			data, err = options.GetRepoInitFile("gitignore", name)
+			data, err = options.Gitignore(name)
 			if err != nil {
 				return fmt.Errorf("GetRepoInitFile[%s]: %w", name, err)
 			}
@@ -182,7 +182,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 
 	// LICENSE
 	if len(opts.License) > 0 {
-		data, err = options.GetRepoInitFile("license", opts.License)
+		data, err = options.License(opts.License)
 		if err != nil {
 			return fmt.Errorf("GetRepoInitFile[%s]: %w", opts.License, err)
 		}
