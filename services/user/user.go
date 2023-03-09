@@ -28,8 +28,8 @@ import (
 )
 
 // RenameUser renames a user
-func RenameUser(u *user_model.User, newUserName string) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
