@@ -10,6 +10,9 @@ overrides:
   - files: ["**/chroma/*", "**/codemirror/*", "**/standalone/*", "**/console/*"]
     rules:
       scale-unlimited/declaration-strict-value: null
+  - files: ["**/chroma/*"]
+    rules:
+      block-no-empty: null
 
 rules:
   alpha-value-notation: null
