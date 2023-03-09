@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -21,6 +20,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/uri"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/pull"
 
 	"github.com/google/uuid"
@@ -217,18 +218,20 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 // CreateLabels creates labels
 func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 	lbs := make([]*issues_model.Label, 0, len(labels))
-	for _, label := range labels {
-		// We must validate color here:
-		if !issues_model.LabelColorPattern.MatchString("#" + label.Color) {
-			log.Warn("Invalid label color: #%s for label: %s in migration to %s/%s", label.Color, label.Name, g.repoOwner, g.repoName)
-			label.Color = "ffffff"
+	for _, l := range labels {
+		if color, err := label.NormalizeColor(l.Color); err != nil {
+			log.Warn("Invalid label color: #%s for label: %s in migration to %s/%s", l.Color, l.Name, g.repoOwner, g.repoName)
+			l.Color = "#ffffff"
+		} else {
+			l.Color = color
 		}
 
 		lbs = append(lbs, &issues_model.Label{
 			RepoID:      g.repo.ID,
-			Name:        label.Name,
-			Description: label.Description,
-			Color:       "#" + label.Color,
+			Name:        l.Name,
+			Exclusive:   l.Exclusive,
+			Description: l.Description,
+			Color:       l.Color,
 		})
 	}
 
@@ -863,7 +866,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}
 
 			// SECURITY: The TreePath must be cleaned!
-			comment.TreePath = path.Clean("/" + comment.TreePath)[1:]
+			comment.TreePath = util.CleanPath(comment.TreePath)
 
 			var patch string
 			reader, writer := io.Pipe()

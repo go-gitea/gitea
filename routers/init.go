@@ -141,7 +141,7 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 support is enabled")
-	} else if setting.Database.UseSQLite3 {
+	} else if setting.Database.Type.IsSQLite3() {
 		log.Fatal("SQLite3 support is disabled, but it is used for database setting. Please get or build a Gitea release with SQLite3 support.")
 	}
 
@@ -150,7 +150,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(system.Init)
 	mustInit(oauth2.Init)
 
-	mustInit(models.Init)
+	mustInitCtx(ctx, models.Init)
 	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.
