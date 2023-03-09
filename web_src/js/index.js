@@ -6,6 +6,7 @@ import {initVueEnv} from './components/VueComponentLoader.js';
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
 import {initDashboardRepoList} from './components/DashboardRepoList.js';
 
+import {initCancelButtons} from './features/aria.js';
 import {attachTribute} from './features/tribute.js';
 import {initGlobalCopyToClipboardListener} from './features/clipboard.js';
 import {initContextPopups} from './features/contextpopup.js';
@@ -198,4 +199,5 @@ $(document).ready(() => {
   initUserAuthWebAuthnRegister();
   initUserSettings();
   initViewedCheckboxListenerFor();
+  initCancelButtons();
 });

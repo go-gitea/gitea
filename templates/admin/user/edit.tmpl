@@ -151,7 +151,7 @@
 
 				<div class="field">
 					<button class="ui green button">{{.locale.Tr "admin.users.update_profile"}}</button>
-					<button type="button" class="ui red button show-modal" data-modal="#delete-user-modal">{{.locale.Tr "admin.users.delete_account"}}</button>
+					<button class="ui red button show-modal" data-modal="#delete-user-modal">{{.locale.Tr "admin.users.delete_account"}}</button>
 				</div>
 			</form>
 		</div>
@@ -189,7 +189,7 @@
 
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
-					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</a>{{/* TODO: Why is this link not focusable? */}}
+					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</a>{{/* TODO: Convert links without href to buttons for a11y */}}
 				</div>
 			</form>
 		</div>

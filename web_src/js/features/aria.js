@@ -96,6 +96,11 @@ function attachOneDropdownAria($dropdown) {
   $dropdown.on('keyup', (e) => { if (e.key.startsWith('Arrow')) deferredRefreshAria(); });
 }
 
+export function initCancelButtons(rootElement=document) {
+  // Only cancel buttons should have the 'cancel' class, and these buttons should not submit an underlying form, so set 'type="button"' for them
+  rootElement.querySelectorAll('.cancel').forEach(cancelButton => cancelButton.setAttribute('type', 'button'));
+}
+
 export function attachDropdownAria($dropdowns) {
   $dropdowns.each((_, e) => attachOneDropdownAria($(e)));
 }

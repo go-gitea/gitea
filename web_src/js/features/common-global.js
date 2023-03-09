@@ -339,7 +339,8 @@ export function initGlobalButtons() {
     alert('Nothing to hide');
   });
 
-  $('.show-modal').on('click', function () {
+  $('.show-modal').on('click', function (e) {
+    e.preventDefault();
     const modalDiv = $($(this).attr('data-modal'));
     for (const attrib of this.attributes) {
       if (!attrib.name.startsWith('data-modal-')) {
