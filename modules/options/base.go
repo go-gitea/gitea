@@ -16,27 +16,27 @@ import (
 
 // Locale reads the content of a specific locale from static/bindata or custom path.
 func Locale(name string) ([]byte, error) {
-	return fileFromDir(path.Join("locale", path.Clean("/"+name)))
+	return fileFromDir(path.Join("locale", util.CleanPath(name)))
 }
 
 // Readme reads the content of a specific readme from static/bindata or custom path.
 func Readme(name string) ([]byte, error) {
-	return fileFromDir(path.Join("readme", path.Clean("/"+name)))
+	return fileFromDir(path.Join("readme", util.CleanPath(name)))
 }
 
 // Gitignore reads the content of a gitignore locale from static/bindata or custom path.
 func Gitignore(name string) ([]byte, error) {
-	return fileFromDir(path.Join("gitignore", path.Clean("/"+name)))
+	return fileFromDir(path.Join("gitignore", util.CleanPath(name)))
 }
 
 // License reads the content of a specific license from static/bindata or custom path.
 func License(name string) ([]byte, error) {
-	return fileFromDir(path.Join("license", path.Clean("/"+name)))
+	return fileFromDir(path.Join("license", util.CleanPath(name)))
 }
 
 // Labels reads the content of a specific labels from static/bindata or custom path.
 func Labels(name string) ([]byte, error) {
-	return fileFromDir(path.Join("label", path.Clean("/"+name)))
+	return fileFromDir(path.Join("label", util.CleanPath(name)))
 }
 
 // WalkLocales reads the content of a specific locale
