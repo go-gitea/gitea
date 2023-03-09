@@ -193,7 +193,7 @@ func DeleteProject(ctx *context.Context) {
 		}
 		return
 	}
-	if p.RepoID != ctx.Repo.Repository.ID {
+	if p.OwnerID != ctx.ContextUser.ID {
 		ctx.NotFound("", nil)
 		return
 	}
@@ -226,7 +226,7 @@ func EditProject(ctx *context.Context) {
 		}
 		return
 	}
-	if p.RepoID != ctx.Repo.Repository.ID {
+	if p.OwnerID != ctx.ContextUser.ID {
 		ctx.NotFound("", nil)
 		return
 	}
@@ -261,7 +261,7 @@ func EditProjectPost(ctx *context.Context) {
 		}
 		return
 	}
-	if p.RepoID != ctx.Repo.Repository.ID {
+	if p.OwnerID != ctx.ContextUser.ID {
 		ctx.NotFound("", nil)
 		return
 	}
