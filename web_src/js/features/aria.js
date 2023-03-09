@@ -83,8 +83,9 @@ function attachOneDropdownAria($dropdown) {
     if (e.key === 'Enter') {
       let $item = $dropdown.dropdown('get item', $dropdown.dropdown('get value'));
       if (!$item) $item = $menu.find('> .item.selected'); // when dropdown filters items by input, there is no "value", so query the "selected" item
-      // if the selected item is clickable, then trigger the click event. in the future there could be a special CSS class for it.
-      if ($item && $item.is('a')) $item[0].click();
+      // if the selected item is clickable, then trigger the click event.
+      // we can not click any item without check, because Fomantic code might also handle the Enter event. that would result in double click.
+      if ($item && ($item.is('a') || $item.is('.js-aria-clickable'))) $item[0].click();
     }
   });
 
