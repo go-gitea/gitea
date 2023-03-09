@@ -8,6 +8,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -33,8 +34,9 @@ func getAuthorSignatureSquash(ctx *mergeContext) (*git.Signature, error) {
 		return nil, fmt.Errorf("Unable to get commits between: %s %s Error %v", "HEAD", trackingBranch, err)
 	}
 
+	uniqueEmails := make(container.Set[string])
 	for _, commit := range commits {
-		if commit.Author != nil {
+		if commit.Author != nil && uniqueEmails.Add(commit.Author.Email) {
 			commitUser, _ := user_model.GetUserByEmail(ctx, commit.Author.Email)
 			if commitUser != nil && commitUser.ID == ctx.pr.Issue.Poster.ID {
 				return commit.Author, nil
