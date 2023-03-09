@@ -31,15 +31,6 @@ func Search(ctx *context.APIContext) {
 	//   description: ID of the user to search for
 	//   type: integer
 	//   format: int64
-	// - name: source_id
-	//   in: query
-	//   description: ID of the user's login source to search for
-	//   type: integer
-	//   format: int64
-	// - name: login_name
-	//   in: query
-	//   description: user's login name to search for
-	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -67,8 +58,6 @@ func Search(ctx *context.APIContext) {
 		Actor:       ctx.Doer,
 		Keyword:     ctx.FormTrim("q"),
 		UID:         ctx.FormInt64("uid"),
-		LoginName:   ctx.FormTrim("login_name"),
-		SourceID:    ctx.FormInt64("source_id"),
 		Type:        user_model.UserTypeIndividual,
 		ListOptions: listOptions,
 	})
