@@ -6,8 +6,8 @@ package context
 import (
 	"bytes"
 	"context"
-	"html/template"
 	"net/http"
+	"text/template"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -27,7 +27,7 @@ var signedUserNameStringPointerKey interface{} = "signedUserNameStringPointerKey
 // AccessLogger returns a middleware to log access logger
 func AccessLogger() func(http.Handler) http.Handler {
 	logger := log.GetLogger("access")
-	logTemplate, _ := template.New("log").Parse(setting.AccessLogTemplate)
+	logTemplate, _ := template.New("log").Parse(setting.Log.AccessLogTemplate)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			start := time.Now()

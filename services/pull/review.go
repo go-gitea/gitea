@@ -71,7 +71,7 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 }
 
 // CreateCodeComment creates a comment on the code line
-func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line int64, content, treePath string, isReview bool, replyReviewID int64, latestCommitID string) (*issues_model.Comment, error) {
+func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line int64, content, treePath string, pendingReview bool, replyReviewID int64, latestCommitID string) (*issues_model.Comment, error) {
 	var (
 		existsReview bool
 		err          error
@@ -82,7 +82,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 	// - Comments that are part of a review
 	// - Comments that reply to an existing review
 
-	if !isReview && replyReviewID != 0 {
+	if !pendingReview && replyReviewID != 0 {
 		// It's not part of a review; maybe a reply to a review comment or a single comment.
 		// Check if there are reviews for that line already; if there are, this is a reply
 		if existsReview, err = issues_model.ReviewExists(issue, treePath, line); err != nil {
@@ -91,7 +91,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 	}
 
 	// Comments that are replies don't require a review header to show up in the issue view
-	if !isReview && existsReview {
+	if !pendingReview && existsReview {
 		if err = issue.LoadRepo(ctx); err != nil {
 			return nil, err
 		}
@@ -149,7 +149,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		return nil, err
 	}
 
-	if !isReview && !existsReview {
+	if !pendingReview && !existsReview {
 		// Submit the review we've just created so the comment shows up in the issue view
 		if _, _, err = SubmitReview(ctx, doer, gitRepo, issue, issues_model.ReviewTypeComment, "", latestCommitID, nil); err != nil {
 			return nil, err

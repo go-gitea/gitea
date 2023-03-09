@@ -83,17 +83,26 @@ var (
 	availableHasherFactories = map[string]func(string) PasswordSaltHasher{}
 )
 
+// MustRegister registers a PasswordSaltHasher with the availableHasherFactories
+// Caution: This is not thread safe.
+func MustRegister[T PasswordSaltHasher](name string, newFn func(config string) T) {
+	if err := Register(name, newFn); err != nil {
+		panic(err)
+	}
+}
+
 // Register registers a PasswordSaltHasher with the availableHasherFactories
 // Caution: This is not thread safe.
-func Register[T PasswordSaltHasher](name string, newFn func(config string) T) {
+func Register[T PasswordSaltHasher](name string, newFn func(config string) T) error {
 	if _, has := availableHasherFactories[name]; has {
-		panic(fmt.Errorf("duplicate registration of password salt hasher: %s", name))
+		return fmt.Errorf("duplicate registration of password salt hasher: %s", name)
 	}
 
 	availableHasherFactories[name] = func(config string) PasswordSaltHasher {
 		n := newFn(config)
 		return n
 	}
+	return nil
 }
 
 // In early versions of gitea the password hash algorithm field of a user could be
