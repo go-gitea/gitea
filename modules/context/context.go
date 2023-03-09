@@ -235,7 +235,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 		if _, ok := err.(texttemplate.ExecError); ok {
 			if groups := templateErr.FindStringSubmatch(err.Error()); len(groups) > 0 {
 				templateName, lineStr, posStr := groups[1], groups[2], groups[3]
-				target := "http"
+				target := ""
 				if len(groups) == 6 {
 					target = groups[5]
 				}
