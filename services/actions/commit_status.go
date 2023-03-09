@@ -21,15 +21,13 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	}
 
 	run := job.Run
-	if run.Event != webhook_module.HookEventPush && run.Event != webhook_module.HookEventPullRequest {
-		return nil
-	}
 	var (
 		sha       string
 		creatorID int64
 	)
 
-	if run.Event == webhook_module.HookEventPush {
+	switch run.Event {
+	case webhook_module.HookEventPush:
 		payload, err := run.GetPushEventPayload()
 		if err != nil {
 			return fmt.Errorf("GetPushEventPayload: %w", err)
@@ -47,19 +45,27 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 
 		sha = payload.HeadCommit.ID
 		creatorID = payload.Pusher.ID
-	} else {
+	case webhook_module.HookEventPullRequest:
 		payload, err := run.GetPullRequestEventPayload()
 		if err != nil {
 			return fmt.Errorf("GetPullRequestEventPayload: %w", err)
 		}
-		// TODO: check json
+
 		switch {
 		case payload.PullRequest == nil:
 			return fmt.Errorf("pull request is missing in event payload")
+		case payload.PullRequest.Head == nil:
+			return fmt.Errorf("head of pull request is missing in event payload")
+		case payload.PullRequest.Head.Repository == nil:
+			return fmt.Errorf("head repository of pull request is missing in event payload")
+		case payload.PullRequest.Head.Repository.Owner == nil:
+			return fmt.Errorf("owner of head repository of pull request is missing in evnt payload")
 		}
 
 		sha = payload.PullRequest.Head.Sha
 		creatorID = payload.PullRequest.Head.Repository.Owner.ID
+	default:
+		return nil
 	}
 
 	repo := run.Repo
