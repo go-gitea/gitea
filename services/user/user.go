@@ -28,8 +28,19 @@ import (
 )
 
 // RenameUser renames a user
-func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
-	return renameUser(ctx, u, newUserName)
+func RenameUser(u *user_model.User, newUserName string) error {
+	ctx, committer, err := db.TxContext(db.DefaultContext)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	if err := renameUser(ctx, u, newUserName); err != nil {
+		return fmt.Errorf("renameUser: %w", err)
+	}
+	if err := committer.Commit(); err != nil {
+		return err
+	}
+	return err
 }
 
 // DeleteUser completely and permanently deletes everything of a user,
