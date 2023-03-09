@@ -323,7 +323,7 @@ func (repo *Repository) CommitsBetweenLimit(last, before *Commit, limit, skip in
 	return repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
 }
 
-// CommitsBetween returns a list that contains commits between [before, last), excluding commits in baseBranch.
+// CommitsBetweenNotBase returns a list that contains commits between [before, last), excluding commits in baseBranch.
 // If before is detached (removed by reset + push) it is not included.
 func (repo *Repository) CommitsBetweenNotBase(last, before *Commit, baseBranch string) ([]*Commit, error) {
 	var stdout []byte
