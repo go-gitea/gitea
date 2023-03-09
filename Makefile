@@ -38,7 +38,7 @@ GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.5.0
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@latest
 
 DOCKER_IMAGE ?= ghcr.io/shapeci/gitea
-DOCKER_TAG ?= latest
+DOCKER_TAG ?= 1
 DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 
 ifeq ($(HAS_GO), GO)
@@ -951,6 +951,10 @@ editorconfig-checker:
 docker:
 	docker build --disable-content-trust=false --platform linux/amd64 -t $(DOCKER_REF) .
 # support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata sqlite sqlite_unlock_notify"  .
+
+.PHONY: docker-publish
+docker-publish:
+	docker push ${DOCKER_REF}
 
 .PHONY: docker-build
 docker-build:

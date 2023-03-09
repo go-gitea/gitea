@@ -408,6 +408,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	switch mergeStyle {
 	case repo_model.MergeStyleMerge:
 		// Do the merge
+		log.Info("Starting a merge")
 		cmd := git.NewCommand(ctx, "merge", "--no-ff", "--no-commit").AddDynamicArguments(trackingBranch)
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
 			// If the error was from a merge conflict, that's okay. The strategy might fix it
@@ -418,15 +419,17 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		}
 
 		// Apply the strategy
+		log.Info("Beginning to apply strategies: %v", strategy)
 		for _, strat := range strategy {
-			// TODO: This doesn't work if the file was deleted or added.
-			// Need to add more strategies. "add" and "delete"
+			log.Info("Processing strategy %v", strat)
 
 			if strat.Strategy == "ours" || strat.Strategy == "theirs" {
 				strategyFlag := fmt.Sprintf("--%s", strat.Strategy)
-				log.Debug("Running %s on file %s", strategyFlag, strat.Path)
+				strategyArg := git.ToTrustedCmdArgs([]string{strategyFlag})[0]
+				log.Info("Running %s on file %s", strategyFlag, strat.Path)
 
-				if err := git.NewCommand(ctx, "checkout").AddDynamicArguments(strategyFlag, strat.Path).Run(&git.RunOpts{
+				// First checkout one or the other
+				if err := git.NewCommand(ctx, "checkout").AddOptionValues(strategyArg, strat.Path).Run(&git.RunOpts{
 					Dir:    tmpBasePath,
 					Stdout: &outbuf,
 					Stderr: &errbuf,
@@ -434,8 +437,18 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 					log.Error("Could not checkout file: %v", err)
 					return "", err
 				}
+
+				// Then add the changes
+				if err := git.NewCommand(ctx, "add").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
+					Dir:    tmpBasePath,
+					Stdout: &outbuf,
+					Stderr: &errbuf,
+				}); err != nil {
+					log.Error("Could not add file: %v", err)
+					return "", err
+				}
 			} else if strat.Strategy == "add" {
-				log.Debug("Running ADD on file %s", strat.Path)
+				log.Info("Running ADD on file %s", strat.Path)
 				if err := git.NewCommand(ctx, "add").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
 					Dir:    tmpBasePath,
 					Stdout: &outbuf,
@@ -445,7 +458,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 					return "", err
 				}
 			} else if strat.Strategy == "delete" {
-				log.Debug("Running DELETE on file %s", strat.Path)
+				log.Info("Running DELETE on file %s", strat.Path)
 				if err := git.NewCommand(ctx, "rm").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
 					Dir:    tmpBasePath,
 					Stdout: &outbuf,
@@ -459,13 +472,13 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 				return "", errors.New("invalid strategy")
 			}
 
-			log.Debug("Done with file %s", strat.Path)
+			log.Info("Done with file %s", strat.Path)
+		}
 
-			// Commit the result
-			if err := commitAndSignNoAuthor(ctx, pr, message, signArgs, tmpBasePath, env); err != nil {
-				log.Error("Unable to make final commit: %v", err)
-				return "", err
-			}
+		// Commit the result
+		if err := commitAndSignNoAuthor(ctx, pr, message, signArgs, tmpBasePath, env); err != nil {
+			log.Error("Unable to make final commit: %v", err)
+			return "", err
 		}
 	case repo_model.MergeStyleRebase:
 		fallthrough
