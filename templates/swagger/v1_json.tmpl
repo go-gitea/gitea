@@ -18984,14 +18984,14 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "RenameUserOption": {
-      "description": "CreateKeyOption options when creating a key",
+      "description": "RenameUserOption options when renaming a user",
       "type": "object",
       "required": [
         "new_username"
       ],
       "properties": {
         "new_username": {
-          "description": "New username",
+          "description": "New username for this user. This name cannot be in use yet by any other user.",
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "NewName"

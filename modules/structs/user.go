@@ -94,9 +94,9 @@ type UserSettingsOptions struct {
 	HideActivity *bool `json:"hide_activity"`
 }
 
-// CreateKeyOption options when creating a key
+// RenameUserOption options when renaming a user
 type RenameUserOption struct {
-	// New username
+	// New username for this user. This name cannot be in use yet by any other user.
 	//
 	// required: true
 	// unique: true
