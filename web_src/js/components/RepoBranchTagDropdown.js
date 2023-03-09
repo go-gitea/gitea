@@ -28,7 +28,11 @@ export function initRepoBranchTagDropdown(selector) {
     }
     if (!data.noTag) {
       for (const tag of data.tags) {
-        data.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === data.release?.tagName});
+        if (data.release) {
+          data.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === data.release.tagName});
+        } else {
+          data.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === data.defaultBranch});
+        }
       }
     }
 
