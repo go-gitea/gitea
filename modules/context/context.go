@@ -16,8 +16,10 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
+	texttemplate "text/template"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -213,6 +215,8 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
+var templateErr = regexp.MustCompile(`^template: (.*):([1-9][0-9]*):([1-9][0-9]*): executing (?:"(.*)" at <(.*)>: )?`)
+
 // HTML calls Context.HTML and renders the template to HTTP response
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
@@ -227,6 +231,30 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 		if status == http.StatusInternalServerError && name == base.TplName("status/500") {
 			ctx.PlainText(http.StatusInternalServerError, "Unable to find status/500 template")
 			return
+		}
+		if _, ok := err.(texttemplate.ExecError); ok {
+			if groups := templateErr.FindStringSubmatch(err.Error()); len(groups) > 0 {
+				templateName, lineStr, posStr := groups[1], groups[2], groups[3]
+				target := "http"
+				if len(groups) == 6 {
+					target = groups[5]
+				}
+				line, lineErr := strconv.Atoi(lineStr)
+				if lineErr != nil {
+					line = -1
+				}
+				pos, posErr := strconv.Atoi(posStr)
+				if posErr != nil {
+					pos = -1
+				}
+				if line >= 0 {
+					filename, filenameErr := templates.GetAssetFilename("templates/" + templateName + ".tmpl")
+					if filenameErr != nil {
+						filename = "(template) " + templateName
+					}
+					err = fmt.Errorf("%w\nin template file %s:\n%s", err, filename, templates.GetLineFromTemplate(templateName, line, target, pos))
+				}
+			}
 		}
 		ctx.ServerError("Render failed", err)
 	}
