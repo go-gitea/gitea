@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"syscall"
 
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
@@ -23,6 +22,15 @@ const (
 
 	RepositoryPackage = "_rpm"
 	RepositoryVersion = "_repository"
+)
+
+const (
+	// Can't use the syscall constants because they are not available for windows build.
+	s_IFMT  = 0xf000
+	s_IFDIR = 0x4000
+	s_IXUSR = 0x40
+	s_IXGRP = 0x8
+	s_IXOTH = 0x1
 )
 
 // https://rpm-software-management.github.io/rpm/manual/spec.html
@@ -241,11 +249,11 @@ func getFiles(h *rpmutils.RpmHeader) []*File {
 		if i < len(fileFlags) && (fileFlags[i]&rpmutils.RPMFILE_GHOST) != 0 {
 			fileType = "ghost"
 		} else if i < len(fileModes) {
-			if (fileModes[i] & syscall.S_IFMT) == syscall.S_IFDIR {
+			if (fileModes[i] & s_IFMT) == s_IFDIR {
 				fileType = "dir"
 			} else {
-				mode := fileModes[i] & ^uint32(syscall.S_IFMT)
-				isExecutable = mode&syscall.S_IXUSR != 0 || mode&syscall.S_IXGRP != 0 || mode&syscall.S_IXOTH != 0
+				mode := fileModes[i] & ^uint32(s_IFMT)
+				isExecutable = (mode&s_IXUSR) != 0 || (mode&s_IXGRP) != 0 || (mode&s_IXOTH) != 0
 			}
 		}
 
