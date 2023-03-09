@@ -499,8 +499,6 @@ func RenameUser(ctx *context.APIContext) {
 			switch {
 			case user_model.IsErrUserAlreadyExist(err):
 				ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("form.username_been_taken"))
-			case user_model.IsErrEmailAlreadyUsed(err):
-				ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("form.email_been_used"))
 			case db.IsErrNameReserved(err):
 				ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_reserved", newName))
 			case db.IsErrNamePatternNotAllowed(err):
