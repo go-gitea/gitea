@@ -491,7 +491,7 @@ func RenameUser(ctx *context.APIContext) {
 
 	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
 
-	if strings.ToLower(newName) == strings.ToLower(ctx.ContextUser.Name) {
+	if strings.EqualFold(newName, ctx.ContextUser.Name) {
 		// Noop as username is not changed
 		ctx.Status(http.StatusNoContent)
 		return
