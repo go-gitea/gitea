@@ -6,6 +6,8 @@ package storage
 import (
 	"bytes"
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -54,7 +56,8 @@ func TestBuildLocalPath(t *testing.T) {
 }
 
 func TestLocalStorageIterator(t *testing.T) {
-	l, err := NewLocalStorage(context.Background(), LocalStorageConfig{Path: "testdata/"})
+	dir := filepath.Join(os.TempDir(), "TestLocalStorageIteratorTestDir")
+	l, err := NewLocalStorage(context.Background(), LocalStorageConfig{Path: dir})
 	assert.NoError(t, err)
 
 	testFiles := [][]string{
