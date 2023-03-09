@@ -57,7 +57,7 @@ func TestLocalStorageIterator(t *testing.T) {
 	l, err := NewLocalStorage(context.Background(), LocalStorageConfig{Path: "testdata/"})
 	assert.NoError(t, err)
 
-	test_files := [][]string{
+	testFiles := [][]string{
 		{"a/1.txt", "a1"},
 		{"/a/1.txt", "aa1"}, // same as above, but with leading slash that will be trim
 		{"b/1.txt", "b1"},
@@ -65,19 +65,19 @@ func TestLocalStorageIterator(t *testing.T) {
 		{"b/3.txt", "b3"},
 		{"b/x 4.txt", "bx4"},
 	}
-	for _, f := range test_files {
+	for _, f := range testFiles {
 		_, err = l.Save(f[0], bytes.NewBufferString(f[1]), -1)
 		assert.NoError(t, err)
 	}
 
-	expected_list := map[string][]string{
+	expectedList := map[string][]string{
 		"a":           {"a/1.txt"},
 		"b":           {"b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
 		"":            {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
 		"/":           {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
 		"a/b/../../a": {"a/1.txt"},
 	}
-	for dir, expected := range expected_list {
+	for dir, expected := range expectedList {
 		count := 0
 		err = l.IterateObjects(dir, func(path string, f Object) error {
 			defer f.Close()
@@ -90,12 +90,12 @@ func TestLocalStorageIterator(t *testing.T) {
 	}
 
 	// illegal dir
-	illegal_dirs := []string{
+	illegalDirs := []string{
 		"../a",
 		"../../etc/hosts",
 		"../a/../b",
 	}
-	for _, dir := range illegal_dirs {
+	for _, dir := range illegalDirs {
 		err = l.IterateObjects(dir, func(path string, f Object) error {
 			defer f.Close()
 			return nil
