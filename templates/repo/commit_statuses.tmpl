@@ -1,6 +1,14 @@
-{{if eq (len .Statuses) 1}}{{$status := index .Statuses 0}}{{if $status.TargetURL}}<a class="ui link commit-statuses-trigger gt-vm" href="{{$status.TargetURL}}">{{template "repo/commit_status" .Status}}</a>{{end}}{{end}}
-<div class="ui commit-statuses-popup commit-statuses tippy-target">
-	<div class="ui relaxed list divided">
+{{if .Statuses}}
+	{{if and (eq (len .Statuses) 1) .Status.TargetURL}}
+		<a class="gt-vm gt-tdn" data-tippy="commit-statuses" href="{{.Status.TargetURL}}">
+			{{template "repo/commit_status" .Status}}
+		</a>
+	{{else}}
+		<span class="gt-vm" data-tippy="commit-statuses" tabindex="0">
+			{{template "repo/commit_status" .Status}}
+		</span>
+	{{end}}
+	<div class="tippy-target ui relaxed list divided">
 		{{range .Statuses}}
 			<div class="ui item singular-status gt-df">
 				{{template "repo/commit_status" .}}
@@ -11,4 +19,4 @@
 			</div>
 		{{end}}
 	</div>
-</div>
+{{end}}

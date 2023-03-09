@@ -60,6 +60,7 @@ export function initGlobalEnterQuickSubmit() {
 export function initGlobalButtonClickOnEnter() {
   $(document).on('keypress', '.ui.button', (e) => {
     if (e.keyCode === 13 || e.keyCode === 32) { // enter key or space bar
+      if (e.target.nodeName === 'BUTTON') return; // button already handles space&enter correctly
       $(e.target).trigger('click');
       e.preventDefault();
     }

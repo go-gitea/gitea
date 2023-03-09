@@ -103,7 +103,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminConfig"] = true
 
-	systemSettings, err := system_model.GetAllSettings()
+	systemSettings, err := system_model.GetAllSettings(ctx)
 	if err != nil {
 		ctx.ServerError("system_model.GetAllSettings", err)
 		return

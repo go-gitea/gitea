@@ -27,7 +27,7 @@ var (
 
 	// Database holds the database settings
 	Database = struct {
-		Type              string
+		Type              DatabaseType
 		Host              string
 		Name              string
 		User              string
@@ -39,10 +39,6 @@ var (
 		Charset           string
 		Timeout           int // seconds
 		SQLiteJournalMode string
-		UseSQLite3        bool
-		UseMySQL          bool
-		UseMSSQL          bool
-		UsePostgreSQL     bool
 		DBConnectRetries  int
 		DBConnectBackoff  time.Duration
 		MaxIdleConns      int
@@ -59,24 +55,13 @@ var (
 // LoadDBSetting loads the database settings
 func LoadDBSetting() {
 	sec := CfgProvider.Section("database")
-	Database.Type = sec.Key("DB_TYPE").String()
+	Database.Type = DatabaseType(sec.Key("DB_TYPE").String())
 	defaultCharset := "utf8"
-	Database.UseMySQL = false
-	Database.UseSQLite3 = false
-	Database.UsePostgreSQL = false
-	Database.UseMSSQL = false
 
-	switch Database.Type {
-	case "sqlite3":
-		Database.UseSQLite3 = true
-	case "mysql":
-		Database.UseMySQL = true
+	if Database.Type.IsMySQL() {
 		defaultCharset = "utf8mb4"
-	case "postgres":
-		Database.UsePostgreSQL = true
-	case "mssql":
-		Database.UseMSSQL = true
 	}
+
 	Database.Host = sec.Key("HOST").String()
 	Database.Name = sec.Key("NAME").String()
 	Database.User = sec.Key("USER").String()
@@ -86,7 +71,7 @@ func LoadDBSetting() {
 	Database.Schema = sec.Key("SCHEMA").String()
 	Database.SSLMode = sec.Key("SSL_MODE").MustString("disable")
 	Database.Charset = sec.Key("CHARSET").In(defaultCharset, []string{"utf8", "utf8mb4"})
-	if Database.UseMySQL && defaultCharset != "utf8mb4" {
+	if Database.Type.IsMySQL() && defaultCharset != "utf8mb4" {
 		log.Error("Deprecated database mysql charset utf8 support, please use utf8mb4 or convert utf8 to utf8mb4.")
 	}
 
@@ -95,7 +80,7 @@ func LoadDBSetting() {
 	Database.SQLiteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString("")
 
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
-	if Database.UseMySQL {
+	if Database.Type.IsMySQL() {
 		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFETIME").MustDuration(3 * time.Second)
 	} else {
 		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFETIME").MustDuration(0)
@@ -206,4 +191,26 @@ func ParseMSSQLHostPort(info string) (string, string) {
 		port = "0"
 	}
 	return host, port
+}
+
+type DatabaseType string
+
+func (t DatabaseType) String() string {
+	return string(t)
+}
+
+func (t DatabaseType) IsSQLite3() bool {
+	return t == "sqlite3"
+}
+
+func (t DatabaseType) IsMySQL() bool {
+	return t == "mysql"
+}
+
+func (t DatabaseType) IsMSSQL() bool {
+	return t == "mssql"
+}
+
+func (t DatabaseType) IsPostgreSQL() bool {
+	return t == "postgres"
 }
