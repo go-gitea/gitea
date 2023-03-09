@@ -6,7 +6,7 @@ import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
   initRepoIssueStatusButton, initRepoIssueTitleEdit, initRepoIssueWipToggle,
-  initRepoPullRequestUpdate, updateIssuesMeta,
+  initRepoPullRequestUpdate, updateIssuesMeta, handleReply
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
@@ -28,6 +28,26 @@ import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
 import {hideElem, showElem} from '../utils/dom.js';
 
 const {csrfToken} = window.config;
+
+// if there are draft comments (more than 20 chars), confirm before reloading, to avoid losing comments
+function reloadConfirmDraftComment() {
+  const commentTextareas = [
+    document.querySelector('.edit-content-zone:not(.gt-hidden) textarea'),
+    document.querySelector('.edit_area'),
+  ];
+  for (const textarea of commentTextareas) {
+    // Most users won't feel too sad if they lose a comment with 10 or 20 chars, they can re-type these in seconds.
+    // But if they have typed more (like 50) chars and the comment is lost, they will be very unhappy.
+    if (textarea && textarea.value.trim().length > 20) {
+      textarea.parentElement.scrollIntoView();
+      if (!window.confirm('Page will be reloaded, but there are draft comments. Continuing to reload will discard the comments. Continue?')) {
+        return;
+      }
+      break;
+    }
+  }
+  window.location.reload();
+}
 
 export function initRepoCommentForm() {
   const $commentForm = $('.comment.form');
@@ -65,12 +85,18 @@ export function initRepoCommentForm() {
   }
 
   (async () => {
+    const $statusButton = $('#status-button');
     for (const textarea of $commentForm.find('textarea:not(.review-textarea, .no-easymde)')) {
       // Don't initialize EasyMDE for the dormant #edit-content-form
       if (textarea.closest('#edit-content-form')) {
         continue;
       }
-      const easyMDE = await createCommentEasyMDE(textarea);
+      const easyMDE = await createCommentEasyMDE(textarea, {
+        'onChange': () => {
+          const value = easyMDE?.value().trim();
+          $statusButton.text($statusButton.attr(value.length === 0 ? 'data-status' : 'data-status-and-comment'));
+        },
+      });
       initEasyMDEImagePaste(easyMDE, $commentForm.find('.dropzone'));
     }
   })();
@@ -86,12 +112,15 @@ export function initRepoCommentForm() {
     let hasUpdateAction = $listMenu.data('action') === 'update';
     const items = {};
 
-    $(`.${selector}`).dropdown('setting', 'onHide', () => {
-      hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
-      if (hasUpdateAction) {
-        // TODO: Add batch functionality and make this 1 network request.
-        (async function() {
-          for (const [elementId, item] of Object.entries(items)) {
+    $(`.${selector}`).dropdown({
+      'action': 'nothing', // do not hide the menu if user presses Enter
+      fullTextSearch: 'exact',
+      async onHide() {
+        hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
+        if (hasUpdateAction) {
+          // TODO: Add batch functionality and make this 1 network request.
+          const itemEntries = Object.entries(items);
+          for (const [elementId, item] of itemEntries) {
             await updateIssuesMeta(
               item['update-url'],
               item.action,
@@ -99,9 +128,11 @@ export function initRepoCommentForm() {
               elementId,
             );
           }
-          window.location.reload();
-        })();
-      }
+          if (itemEntries.length) {
+            reloadConfirmDraftComment();
+          }
+        }
+      },
     });
 
     $listMenu.find('.item:not(.no-select)').on('click', function (e) {
@@ -114,7 +145,6 @@ export function initRepoCommentForm() {
 
       const clickedItem = $(this);
       const scope = $(this).attr('data-scope');
-      const canRemoveScope = e.altKey;
 
       $(this).parent().find('.item').each(function () {
         if (scope) {
@@ -122,11 +152,7 @@ export function initRepoCommentForm() {
           if ($(this).attr('data-scope') !== scope) {
             return true;
           }
-          if ($(this).is(clickedItem)) {
-            if (!canRemoveScope && $(this).hasClass('checked')) {
-              return true;
-            }
-          } else if (!$(this).hasClass('checked')) {
+          if (!$(this).is(clickedItem) && !$(this).hasClass('checked')) {
             return true;
           }
         } else if (!$(this).is(clickedItem)) {
@@ -196,12 +222,12 @@ export function initRepoCommentForm() {
           'clear',
           $listMenu.data('issue-id'),
           '',
-        ).then(() => window.location.reload());
+        ).then(reloadConfirmDraftComment);
       }
 
       $(this).parent().find('.item').each(function () {
         $(this).removeClass('checked');
-        $(this).find('.octicon').addClass('invisible');
+        $(this).find('.octicon-check').addClass('invisible');
       });
 
       if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
@@ -239,7 +265,7 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(() => window.location.reload());
+        ).then(reloadConfirmDraftComment);
       }
 
       let icon = '';
@@ -272,7 +298,7 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(() => window.location.reload());
+        ).then(reloadConfirmDraftComment);
       }
 
       $list.find('.selected').html('');
@@ -291,7 +317,6 @@ export function initRepoCommentForm() {
 async function onEditContent(event) {
   event.preventDefault();
 
-  $(this).closest('.dropdown').find('.menu').toggle('visible'); // eslint-disable-line
   const $segment = $(this).closest('.header').next();
   const $editContentZone = $segment.find('.edit-content-zone');
   const $renderContent = $segment.find('.render-content');
@@ -583,16 +608,15 @@ function initRepoIssueCommentEdit() {
   $(document).on('click', '.edit-content', onEditContent);
 
   // Quote reply
-  $(document).on('click', '.quote-reply', function (event) {
-    $(this).closest('.dropdown').find('.menu').toggle('visible'); // eslint-disable-line
+  $(document).on('click', '.quote-reply', async function (event) {
+    event.preventDefault();
     const target = $(this).data('target');
     const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
     let easyMDE;
     if ($(this).hasClass('quote-reply-diff')) {
-      const $parent = $(this).closest('.comment-code-cloud');
-      $parent.find('button.comment-form-reply').trigger('click');
-      easyMDE = getAttachedEasyMDE($parent.find('[name="content"]'));
+      const $replyBtn = $(this).closest('.comment-code-cloud').find('button.comment-form-reply');
+      easyMDE = await handleReply($replyBtn);
     } else {
       // for normal issue/comment page
       easyMDE = getAttachedEasyMDE($('#comment-form .edit_area'));
@@ -608,6 +632,5 @@ function initRepoIssueCommentEdit() {
         easyMDE.codemirror.setCursor(easyMDE.codemirror.lineCount(), 0);
       });
     }
-    event.preventDefault();
   });
 }

@@ -168,10 +168,23 @@ var allAccessTokenScopeBits = map[AccessTokenScope]AccessTokenScopeBitmap{
 
 // Parse parses the scope string into a bitmap, thus removing possible duplicates.
 func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
-	list := strings.Split(string(s), ",")
-
 	var bitmap AccessTokenScopeBitmap
-	for _, v := range list {
+
+	// The following is the more performant equivalent of 'for _, v := range strings.Split(remainingScope, ",")' as this is hot code
+	remainingScopes := string(s)
+	for len(remainingScopes) > 0 {
+		i := strings.IndexByte(remainingScopes, ',')
+		var v string
+		if i < 0 {
+			v = remainingScopes
+			remainingScopes = ""
+		} else if i+1 >= len(remainingScopes) {
+			v = remainingScopes[:i]
+			remainingScopes = ""
+		} else {
+			v = remainingScopes[:i]
+			remainingScopes = remainingScopes[i+1:]
+		}
 		singleScope := AccessTokenScope(v)
 		if singleScope == "" {
 			continue
@@ -187,7 +200,13 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 		}
 		bitmap |= bits
 	}
+
 	return bitmap, nil
+}
+
+// StringSlice returns the AccessTokenScope as a []string
+func (s AccessTokenScope) StringSlice() []string {
+	return strings.Split(string(s), ",")
 }
 
 // Normalize returns a normalized scope string without any duplicates.

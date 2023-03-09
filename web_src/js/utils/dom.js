@@ -19,7 +19,7 @@ function assertShown(el, expectShown) {
 }
 
 function elementsCall(el, func, ...args) {
-  if (el instanceof String) {
+  if (typeof el === 'string' || el instanceof String) {
     el = document.querySelectorAll(el);
   }
   if (el instanceof Node) {
@@ -34,6 +34,10 @@ function elementsCall(el, func, ...args) {
   }
 }
 
+/**
+ * @param el string (selector), Node, NodeList, HTMLCollection, Array or jQuery
+ * @param force force=true to show or force=false to hide, undefined to toggle
+ */
 function toggleShown(el, force) {
   if (force === true) {
     el.classList.remove('gt-hidden');
