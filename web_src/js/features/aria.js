@@ -101,10 +101,13 @@ function attachOneDropdownAria($dropdown) {
   });
 
   // use setTimeout to run the refreshAria in next tick (to make sure the Fomantic UI code has finished its work)
-  const deferredRefreshAria = () => { setTimeout(refreshAria, 0) }; // do not return any value, jQuery has return-value related behaviors.
+  // do not return any value, jQuery has return-value related behaviors.
+  const deferredRefreshAria = () => { setTimeout(refreshAria, 0) };
   $focusable.on('focus', deferredRefreshAria);
   $focusable.on('mouseup', deferredRefreshAria);
-  $focusable.on('blur', deferredRefreshAria);
+  // Fomantic may stop propagation of blur event, use capture to make sure we can still get the event
+  $focusable[0].addEventListener('blur', deferredRefreshAria, true);
+
   $dropdown.on('keyup', (e) => { if (e.key.startsWith('Arrow')) deferredRefreshAria(); });
 }
 
