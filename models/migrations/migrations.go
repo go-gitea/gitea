@@ -467,8 +467,6 @@ var migrations = []Migration{
 
 	// v244 -> v245
 	NewMigration("Add NeedApproval to actions tables", v1_20.AddNeedApprovalToActionRun),
-  // v245 -> v246
-	NewMigration("Change Project Type", v1_20.ChangeProjectType),
 }
 
 // GetCurrentDBVersion returns the current db version
