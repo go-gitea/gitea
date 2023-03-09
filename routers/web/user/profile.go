@@ -96,27 +96,32 @@ func Profile(ctx *context.Context) {
 		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
+			return
 		}
 		defer gitRepo.Close()
 		defaultBranch := repo.DefaultBranch
 		commitID, err := gitRepo.GetBranchCommitID(defaultBranch)
 		if err != nil {
 			ctx.ServerError("GetBranchCommitID", err)
+			return
 		}
 		commit, err := gitRepo.GetCommit(commitID)
 		if err != nil {
 			ctx.ServerError("GetCommit", err)
+			return
 		}
 		tree, err := commit.SubTree("")
 
 		if err != nil || tree == nil {
 			ctx.ServerError("SubTree", err)
+			return
 		}
 		blob, err := tree.GetBlobByPath("README.md")
 		if err == nil {
 			bytes, err := blob.GetBlobContent()
 			if err != nil {
 				ctx.ServerError("GetBlobContent", err)
+				return
 			}
 			profileContent, err := markdown.RenderString(&markup.RenderContext{
 				Ctx:     ctx,
