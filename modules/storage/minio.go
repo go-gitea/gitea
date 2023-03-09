@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -120,7 +121,7 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
-	return strings.TrimPrefix(path.Join(m.basePath, path.Clean("/" + strings.ReplaceAll(p, "\\", "/"))[1:]), "/")
+	return strings.TrimPrefix(path.Join(m.basePath, util.CleanPath(strings.ReplaceAll(p, "\\", "/"))), "/")
 }
 
 // Open open a file
