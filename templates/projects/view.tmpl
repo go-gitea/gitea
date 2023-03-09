@@ -29,7 +29,7 @@
 							</div>
 
 							<div class="text right actions">
-								<button type="button" class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
+								<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
 								<button data-url="{{$.Link}}" class="ui primary button" id="new_board_submit">{{$.locale.Tr "repo.projects.column.new_submit"}}</button>
 							</div>
 						</form>
@@ -127,7 +127,7 @@
 											</div>
 
 											<div class="text right actions">
-												<button type="button" class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
+												<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
 												<button data-url="{{$.Link}}/{{.ID}}" class="ui primary button">{{$.locale.Tr "repo.projects.column.edit"}}</button>
 											</div>
 										</form>
@@ -144,7 +144,7 @@
 										</label>
 									</div>
 									<div class="text right actions">{{/* TODO: Convert to base/delete_modal_actions.tmpl */}}
-										<button type="button" class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
+										<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
 										<button class="ui primary button set-default-project-board" data-url="{{$.Link}}/{{.ID}}/default">{{$.locale.Tr "repo.projects.column.set_default"}}</button>
 									</div>
 								</div>
@@ -159,7 +159,7 @@
 										</label>
 									</div>
 									<div class="text right actions">{{/* TODO: convert to base/delete_modal_actions.tmpl */}}
-										<button type="button" class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
+										<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
 										<button class="ui red button delete-project-board" data-url="{{$.Link}}/{{.ID}}">{{$.locale.Tr "repo.projects.column.delete"}}</button>
 									</div>
 								</div>

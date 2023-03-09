@@ -49,20 +49,20 @@ export function initFootLanguageMenu() {
 
 
 export function initGlobalEnterQuickSubmit() {
-  $(document).on('keydown', '.js-quick-submit', (e) => {
-    if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter')) {
-      handleGlobalEnterQuickSubmit(e.target);
+  $(document).on('keydown', '.js-quick-submit', (event) => {
+    if (((event.ctrlKey && !event.altKey) || event.metaKey) && (event.key === 'Enter')) {
+      handleGlobalEnterQuickSubmit(event.target);
       return false;
     }
   });
 }
 
 export function initGlobalButtonClickOnEnter() {
-  $(document).on('keypress', '.ui.button', (e) => {
-    if (e.keyCode === 13 || e.keyCode === 32) { // enter key or space bar
-      if (e.target.nodeName === 'BUTTON') return; // button already handles space&enter correctly
-      $(e.target).trigger('click');
-      e.preventDefault();
+  $(document).on('keypress', '.ui.button', (event) => {
+    if (event.keyCode === 13 || event.keyCode === 32) { // enter key or space bar
+      if (event.target.nodeName === 'BUTTON') return; // button already handles space&enter correctly
+      $(event.target).trigger('click');
+      event.preventDefault();
     }
   });
 }
@@ -318,7 +318,8 @@ export function initGlobalLinkActions() {
 }
 
 export function initGlobalButtons() {
-  $('.show-panel.button').on('click', function () {
+  $('.show-panel.button').on('click', function (event) {
+    event.preventDefault();
     showElem($(this).data('panel'));
   });
 
@@ -339,8 +340,8 @@ export function initGlobalButtons() {
     alert('Nothing to hide');
   });
 
-  $('.show-modal').on('click', function (e) {
-    e.preventDefault();
+  $('.show-modal').on('click', function (event) {
+    event.preventDefault();
     const modalDiv = $($(this).attr('data-modal'));
     for (const attrib of this.attributes) {
       if (!attrib.name.startsWith('data-modal-')) {
@@ -361,7 +362,8 @@ export function initGlobalButtons() {
     }
   });
 
-  $('.delete-post.button').on('click', function () {
+  $('.delete-post.button').on('click', function (event) {
+    event.preventDefault();
     const $this = $(this);
     $.post($this.attr('data-request-url'), {
       _csrf: csrfToken

@@ -574,7 +574,7 @@
 						{{end}}</p>
 					</div>
 					<div class="actions">
-						<button type="button" class="ui red cancel inverted button">
+						<button class="ui red cancel inverted button">
 							{{svg "octicon-x"}}
 							{{.locale.Tr "repo.issues.dependency.cancel"}}
 						</button>
@@ -661,7 +661,7 @@
 						{{end}}
 
 						<div class="text right actions">
-							<button type="button" class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
+							<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
 							<button class="ui red button">
 								{{if .Issue.IsLocked}}
 									{{.locale.Tr "repo.issues.unlock_confirm"}}
@@ -697,7 +697,7 @@
 				<form action="{{.Issue.Link}}/delete" method="post">
 					{{.CsrfTokenHtml}}
 					<div class="center actions">
-						<button type="button" class="ui basic cancel inverted button">{{.locale.Tr "settings.cancel"}}</button>
+						<button class="ui basic cancel inverted button">{{.locale.Tr "settings.cancel"}}</button>
 						<button class="ui basic red inverted button">{{.locale.Tr "modal.yes"}}</button>
 					</div>
 				</form>
