@@ -24,7 +24,7 @@
 		<label for="oauth2_icon_url">{{.locale.Tr "admin.auths.oauth2_icon_url"}}</label>
 		<input id="oauth2_icon_url" name="oauth2_icon_url" value="{{.oauth2_icon_url}}">
 	</div>
-	<div class="open_id_connect_auto_discovery_url required field">
+	<div class="open_id_connect_auto_discovery_url required field{{if .Err_DiscoveryURL}} error{{end}}">
 		<label for="open_id_connect_auto_discovery_url">{{.locale.Tr "admin.auths.openIdConnectAutoDiscoveryURL"}}</label>
 		<input id="open_id_connect_auto_discovery_url" name="open_id_connect_auto_discovery_url" value="{{.open_id_connect_auto_discovery_url}}">
 	</div>
