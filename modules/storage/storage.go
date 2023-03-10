@@ -18,9 +18,6 @@ import (
 // ErrURLNotSupported represents url is not supported
 var ErrURLNotSupported = errors.New("url method not supported")
 
-// ErrIllegalPath represents path is illegal
-var ErrIllegalPath = errors.New("illegal path")
-
 // ErrInvalidConfiguration is called when there is invalid configuration for a storage
 type ErrInvalidConfiguration struct {
 	cfg interface{}

@@ -91,18 +91,4 @@ func TestLocalStorageIterator(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, count, len(expected))
 	}
-
-	// illegal dir
-	illegalDirs := []string{
-		"../a",
-		"../../etc/hosts",
-		"../a/../b",
-	}
-	for _, dir := range illegalDirs {
-		err = l.IterateObjects(dir, func(path string, f Object) error {
-			defer f.Close()
-			return nil
-		})
-		assert.Error(t, err, ErrIllegalPath)
-	}
 }
