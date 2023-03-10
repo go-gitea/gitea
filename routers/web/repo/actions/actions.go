@@ -83,8 +83,6 @@ func List(ctx *context.Context) {
 			_, err = actions.GetEventsFromContent(content)
 			if err != nil {
 				workflow.IsInvalid = true
-			} else {
-				workflow.IsInvalid = false
 			}
 			workflows = append(workflows, workflow)
 		}
