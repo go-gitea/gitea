@@ -2,92 +2,24 @@ import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
 import {initVueSvg, vueDelimiters} from './VueComponentLoader.js';
 import {initTooltip} from '../modules/tippy.js';
+import {SvgIcon} from '../svg.js';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
 function initVueComponents(app) {
   app.component('repo-search', {
     delimiters: vueDelimiters,
-    props: {
-      searchLimit: {
-        type: Number,
-        default: 10
-      },
-      subUrl: {
-        type: String,
-        required: true
-      },
-      uid: {
-        type: Number,
-        default: 0
-      },
-      teamId: {
-        type: Number,
-        required: false,
-        default: 0
-      },
-      organizations: {
-        type: Array,
-        default: () => [],
-      },
-      isOrganization: {
-        type: Boolean,
-        default: true
-      },
-      canCreateOrganization: {
-        type: Boolean,
-        default: false
-      },
-      organizationsTotalCount: {
-        type: Number,
-        default: 0
-      },
-      moreReposLink: {
-        type: String,
-        default: ''
-      }
-    },
-
+    components: {SvgIcon},
     data() {
       const params = new URLSearchParams(window.location.search);
-
-      let tab = params.get('repo-search-tab');
-      if (!tab) {
-        tab = 'repos';
-      }
-
-      let reposFilter = params.get('repo-search-filter');
-      if (!reposFilter) {
-        reposFilter = 'all';
-      }
-
-      let privateFilter = params.get('repo-search-private');
-      if (!privateFilter) {
-        privateFilter = 'both';
-      }
-
-      let archivedFilter = params.get('repo-search-archived');
-      if (!archivedFilter) {
-        archivedFilter = 'unarchived';
-      }
-
-      let searchQuery = params.get('repo-search-query');
-      if (!searchQuery) {
-        searchQuery = '';
-      }
-
-      let page = 1;
-      try {
-        page = parseInt(params.get('repo-search-page'));
-      } catch {
-        // noop
-      }
-      if (!page) {
-        page = 1;
-      }
+      const tab = params.get('repo-search-tab') || 'repos';
+      const reposFilter = params.get('repo-search-filter') || 'all';
+      const privateFilter = params.get('repo-search-private') || 'both';
+      const archivedFilter = params.get('repo-search-archived') || 'unarchived';
+      const searchQuery = params.get('repo-search-query') || '';
+      const page = Number(params.get('repo-search-page')) || 1;
 
       return {
-        hasMounted: false, // accessing $refs in computed() need to wait for mounted
         tab,
         repos: [],
         reposTotalCount: 0,
@@ -116,7 +48,17 @@ function initVueComponents(app) {
           collaborative: {
             searchMode: 'collaborative',
           },
-        }
+        },
+        textArchivedFilterTitles: {},
+        textPrivateFilterTitles: {},
+
+        organizations: [],
+        isOrganization: true,
+        canCreateOrganization: false,
+        organizationsTotalCount: 0,
+
+        subUrl: appSubUrl,
+        ...pageData.dashboardRepoList,
       };
     },
 
@@ -137,13 +79,13 @@ function initVueComponents(app) {
         return this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       },
       checkboxArchivedFilterTitle() {
-        return this.hasMounted && this.$refs.checkboxArchivedFilter?.getAttribute(`data-title-${this.archivedFilter}`);
+        return this.textArchivedFilterTitles[this.archivedFilter];
       },
       checkboxArchivedFilterProps() {
         return {checked: this.archivedFilter === 'archived', indeterminate: this.archivedFilter === 'both'};
       },
       checkboxPrivateFilterTitle() {
-        return this.hasMounted && this.$refs.checkboxPrivateFilter?.getAttribute(`data-title-${this.privateFilter}`);
+        return this.textPrivateFilterTitles[this.privateFilter];
       },
       checkboxPrivateFilterProps() {
         return {checked: this.privateFilter === 'private', indeterminate: this.privateFilter === 'both'};
@@ -161,7 +103,17 @@ function initVueComponents(app) {
         this.$refs.search.focus();
       });
 
-      this.hasMounted = true;
+      this.textArchivedFilterTitles = {
+        'archived': this.textShowOnlyArchived,
+        'unarchived': this.textShowOnlyUnarchived,
+        'both': this.textShowBothArchivedUnarchived,
+      };
+
+      this.textPrivateFilterTitles = {
+        'private': this.textShowOnlyPrivate,
+        'public': this.textShowOnlyPublic,
+        'both': this.textShowBothPrivatePublic,
+      };
     },
 
     methods: {
@@ -329,16 +281,7 @@ export function initDashboardRepoList() {
   const dashboardRepoListData = pageData.dashboardRepoList || null;
   if (!el || !dashboardRepoListData) return;
 
-  const app = createApp({
-    delimiters: vueDelimiters,
-    data() {
-      return {
-        searchLimit: dashboardRepoListData.searchLimit || 0,
-        subUrl: appSubUrl,
-        uid: dashboardRepoListData.uid || 0,
-      };
-    },
-  });
+  const app = createApp({delimiters: vueDelimiters});
   initVueSvg(app);
   initVueComponents(app);
   app.mount(el);
