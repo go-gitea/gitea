@@ -38,10 +38,10 @@ dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/rpm
 | ----------- | ----------- |
 | `owner`     | The owner of the package. |
 
-If the registry is private, provide credentials in the url:
+If the registry is private, provide credentials in the url. You can use a password or a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}):
 
 ```shell
-dnf config-manager --add-repo https://{username}:{password}@gitea.example.com/api/packages/{owner}/rpm.repo
+dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/rpm.repo
 ```
 
 You have to add the credentials to the urls in the `rpm.repo` file in `/etc/yum.repos.d` too.
