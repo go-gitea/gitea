@@ -86,7 +86,7 @@ const svgs = {
   'octicon-organization': octiconOrganization,
 };
 
-// TODO: use a general approach to manage SVG icons
+// TODO: use a more general approach to access SVG icons. At the moment, developers must check, pick and fill the names manually, most of the SVG icons in assets couldn't be used directly.
 
 const parser = new DOMParser();
 const serializer = new XMLSerializer();
