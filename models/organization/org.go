@@ -239,6 +239,7 @@ func (org *Organization) CustomAvatarRelativePath() string {
 	return org.Avatar
 }
 
+// UnitPermission returns unit permission
 func (org *Organization) UnitPermission(ctx context.Context, doer *user_model.User, unitType unit.Type) perm.AccessMode {
 	if doer != nil {
 		teams, err := GetUserOrgTeams(ctx, org.ID, doer.ID)

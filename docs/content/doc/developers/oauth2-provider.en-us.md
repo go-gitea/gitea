@@ -60,6 +60,7 @@ Gitea supports the following scopes for tokens:
 | &nbsp;&nbsp;&nbsp; **write:public_key** | Grant read/write access to public keys |
 | &nbsp;&nbsp;&nbsp; **read:public_key** | Grant read-only access to public keys |
 | **admin:org_hook** | Grants full access to organizational-level hooks |
+| **admin:user_hook** | Grants full access to user-level hooks |
 | **notification** | Grants full access to notifications |
 | **user** | Grants full access to user profile info |
 | &nbsp;&nbsp;&nbsp; **read:user** | Grants read access to user's profile |
