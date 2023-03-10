@@ -29,6 +29,9 @@
 										{{avatar $.Context .User 28 "gt-mr-3"}}
 										{{.User.GetDisplayName}}
 									</span>
+									<span class="text gt-hidden">
+										{{if eq .User.GetDisplayName .User.FullName}}{{.User.Name}}{{else}}{{.User.FullName}}{{end}}
+									</span>
 								</a>
 							{{end}}
 						{{end}}
@@ -302,6 +305,9 @@
 						<span class="text">
 							{{avatar $.Context . 28 "gt-mr-3"}}
 							{{.GetDisplayName}}
+						</span>
+						<span class="text gt-hidden">
+							{{if eq .GetDisplayName .FullName}}{{.Name}}{{else}}{{.FullName}}{{end}}
 						</span>
 					</a>
 				{{end}}
