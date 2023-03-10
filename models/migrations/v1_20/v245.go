@@ -4,8 +4,6 @@
 package v1_20 //nolint
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/modules/log"
 
 	"xorm.io/xorm"
@@ -31,23 +29,27 @@ func FixIncorrectProjectType(x *xorm.Engine) error {
 		Owner   *User `xorm:"extends"`
 	}
 
-	ps := make([]Project, 0, 10)
-	count, err := x.Table("project").
-		//err := x.Table("project").
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	count, err := sess.Table("project").
 		Join("INNER", "user", "user.id = project.owner_id").
 		Where("project.type = ? AND user.type = ?", TypeOrganization, UserTypeIndividual).
-		//Find(&ps)
+		// FIXME:
+		// Error: migrate: migration[245]: Fix incorrect project type failed: no such column: user.type
 		Update(&Project{
 			Type: TypeIndividual,
 		})
 
 	if err == nil {
 		log.Debug("Updated %d projects to belong to a user instead of an organization", count)
-		for _, p := range ps {
-			fmt.Println(p)
-			fmt.Println(p.Owner)
-		}
+	} else {
+		return err
 	}
 
-	return err
+	return sess.Commit()
 }
