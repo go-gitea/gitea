@@ -40,10 +40,10 @@ echo "deb https://gitea.example.com/api/packages/{owner}/debian {distribution} {
 | `distribution` | The distribution to use. |
 | `component`    | The component to use. |
 
-If the registry is private, provide credentials in the url:
+If the registry is private, provide credentials in the url. You can use a password or a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}):
 
 ```shell
-echo "deb https://{username}:{password}@gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
+echo "deb https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
 ```
 
 The Debian registry files are signed with a PGP key which must be known to apt:
