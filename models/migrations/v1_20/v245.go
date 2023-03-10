@@ -42,7 +42,7 @@ func FixIncorrectProjectType(x *xorm.Engine) error {
 		})
 
 	if err == nil {
-		log.Debug("Updated %d projects with owner IS UserTypeIndividual", count)
+		log.Debug("Updated %d projects to belong to a user instead of an organization", count)
 		for _, p := range ps {
 			fmt.Println(p)
 			fmt.Println(p.Owner)
