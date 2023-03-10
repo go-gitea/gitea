@@ -21,12 +21,14 @@ export function initRepoBranchTagDropdown(selector) {
       ...window.config.pageData.branchDropdownDataList[dropdownIndex],
     };
 
-    if (data.showBranchesInDropdown) {
+    // the "data.defaultBranch" is ambiguous, it could be "branch name" or "tag name"
+
+    if (data.showBranchesInDropdown && data.branches) {
       for (const branch of data.branches) {
         data.items.push({name: branch, url: branch, branch: true, tag: false, selected: branch === data.defaultBranch});
       }
     }
-    if (!data.noTag) {
+    if (!data.noTag && data.tags) {
       for (const tag of data.tags) {
         if (data.release) {
           data.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === data.release.tagName});
@@ -56,7 +58,7 @@ export function initRepoBranchTagDropdown(selector) {
           return this.filteredItems.length === 0 && !this.showCreateNewBranch;
         },
         showCreateNewBranch() {
-          if (!this.canCreateBranch || !this.searchTerm) {
+          if (this.disableCreateBranch || !this.searchTerm) {
             return false;
           }
 

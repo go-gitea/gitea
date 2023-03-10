@@ -16,7 +16,7 @@
 		'showBranchesInDropdown': {{$showBranchesInDropdown}},
 		'searchFieldPlaceholder': '{{if $.noTag}}{{.root.locale.Tr "repo.pulls.filter_branch"}}{{else if $showBranchesInDropdown}}{{.root.locale.Tr "repo.filter_branch_and_tag"}}{{else}}{{.root.locale.Tr "repo.find_tag"}}{{end}}...',
 		'branchForm': {{$.branchForm}},
-		'canCreateBranch': {{if .canCreateBranch}}{{.canCreateBranch}}{{else}}{{.root.CanCreateBranch}}{{end}},
+		'disableCreateBranch': {{if .disableCreateBranch}}{{.disableCreateBranch}}{{else}}{{not .root.CanCreateBranch}}{{end}},
 		'setAction': {{.setAction}},
 		'submitForm': {{.submitForm}},
 		'viewType': {{$type}},
