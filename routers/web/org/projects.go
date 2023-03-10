@@ -252,7 +252,6 @@ func EditProject(ctx *context.Context) {
 		}
 		return
 	}
-
 	if p.OwnerID != ctx.ContextUser.ID {
 		ctx.NotFound("", nil)
 		return
@@ -288,7 +287,6 @@ func EditProjectPost(ctx *context.Context) {
 		}
 		return
 	}
-
 	if p.OwnerID != ctx.ContextUser.ID {
 		ctx.NotFound("", nil)
 		return
