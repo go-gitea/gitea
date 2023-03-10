@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"path"
 	"strings"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // GetFileResponseFromCommit Constructs a FileResponse from a Commit object
@@ -129,7 +129,7 @@ func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *user_m
 // CleanUploadFileName Trims a filename and returns empty string if it is a .git directory
 func CleanUploadFileName(name string) string {
 	// Rebase the filename
-	name = strings.Trim(path.Clean("/"+name), "/")
+	name = strings.Trim(util.CleanPath(name), "/")
 	// Git disallows any filenames to have a .git directory in them.
 	for _, part := range strings.Split(name, "/") {
 		if strings.ToLower(part) == ".git" {
