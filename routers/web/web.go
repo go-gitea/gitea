@@ -711,6 +711,21 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode) func(ctx *context.Context) {
+		return func(ctx *context.Context) {
+			if ctx.ContextUser == nil {
+				ctx.NotFound(unitType.String(), nil)
+				return
+			}
+			if ctx.ContextUser.IsOrganization() {
+				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
+					ctx.NotFound(unitType.String(), nil)
+					return
+				}
+			}
+		}
+	}
+
 	// ***** START: Organization *****
 	m.Group("/org", func() {
 		m.Group("/{org}", func() {
@@ -873,8 +888,10 @@ func RegisterRoutes(m *web.Route) {
 		}
 
 		m.Group("/projects", func() {
-			m.Get("", org.Projects)
-			m.Get("/{id}", org.ViewProject)
+			m.Group("", func() {
+				m.Get("", org.Projects)
+				m.Get("/{id}", org.ViewProject)
+			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead))
 			m.Group("", func() { //nolint:dupl
 				m.Get("/new", org.NewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
@@ -894,25 +911,18 @@ func RegisterRoutes(m *web.Route) {
 						m.Post("/move", org.MoveIssues)
 					})
 				})
-			}, reqSignIn, func(ctx *context.Context) {
-				if ctx.ContextUser == nil {
-					ctx.NotFound("NewProject", nil)
-					return
-				}
-				if ctx.ContextUser.IsOrganization() {
-					if !ctx.Org.CanWriteUnit(ctx, unit.TypeProjects) {
-						ctx.NotFound("NewProject", nil)
-						return
-					}
-				} else if ctx.ContextUser.ID != ctx.Doer.ID {
+			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite), func(ctx *context.Context) {
+				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
 					ctx.NotFound("NewProject", nil)
 					return
 				}
 			})
 		}, repo.MustEnableProjects)
 
-		m.Get("/code", user.CodeSearch)
-	}, context_service.UserAssignmentWeb())
+		m.Group("", func() {
+			m.Get("/code", user.CodeSearch)
+		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead))
+	}, context_service.UserAssignmentWeb(), context.OrgAssignment())
 
 	// ***** Release Attachment Download without Signin
 	m.Get("/{username}/{reponame}/releases/download/{vTag}/{fileName}", ignSignIn, context.RepoAssignment, repo.MustBeNotEmpty, repo.RedirectDownload)
