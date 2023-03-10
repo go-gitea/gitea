@@ -36,6 +36,10 @@ func (err ErrOpenIDConnectInitialize) Error() string {
 	return fmt.Sprintf("Failed to initialize OpenID Connect Provider with name '%s' with url '%s': %v", err.ProviderName, err.OpenIDConnectAutoDiscoveryURL, err.Cause)
 }
 
+func (err ErrOpenIDConnectInitialize) Unwrap() error {
+	return err.Cause
+}
+
 // wrapOpenIDConnectInitializeError is used to wrap the error but this cannot be done in modules/auth/oauth2
 // inside oauth2: import cycle not allowed models -> modules/auth/oauth2 -> models
 func wrapOpenIDConnectInitializeError(err error, providerName string, source *Source) error {
