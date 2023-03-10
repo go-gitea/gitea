@@ -41,7 +41,7 @@ import giteaDoubleChevronRight from '../../public/img/svg/gitea-double-chevron-r
 import octiconChevronLeft from '../../public/img/svg/octicon-chevron-left.svg';
 import octiconOrganization from '../../public/img/svg/octicon-organization.svg';
 
-export const svgs = {
+const svgs = {
   'octicon-blocked': octiconBlocked,
   'octicon-check-circle-fill': octiconCheckCircleFill,
   'octicon-chevron-down': octiconChevronDown,

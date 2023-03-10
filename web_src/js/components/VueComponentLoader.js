@@ -1,5 +1,4 @@
 import {createApp} from 'vue';
-import {svgs} from '../svg.js';
 
 export const vueDelimiters = ['${', '}'];
 
@@ -12,29 +11,6 @@ export function initVueEnv() {
   // But there seem not to be a guide what to do instead.
   // const isProd = window.config.runModeIsProd;
   // Vue.config.devtools = !isProd;
-}
-
-let vueSvgInited = false;
-export function initVueSvg(app) {
-  if (vueSvgInited) return;
-  vueSvgInited = true;
-
-  // register svg icon vue components, e.g. <octicon-repo size="16"/>
-  for (const [name, htmlString] of Object.entries(svgs)) {
-    const template = htmlString
-      .replace(/height="[0-9]+"/, 'v-bind:height="size"')
-      .replace(/width="[0-9]+"/, 'v-bind:width="size"');
-
-    app.component(name, {
-      props: {
-        size: {
-          type: String,
-          default: '16',
-        },
-      },
-      template,
-    });
-  }
 }
 
 export function initVueApp(el, opts = {}) {

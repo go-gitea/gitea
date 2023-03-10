@@ -4,7 +4,7 @@ import './bootstrap.js';
 import $ from 'jquery';
 import {initVueEnv} from './components/VueComponentLoader.js';
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
-import {initDashboardRepoList} from './components/DashboardRepoList.js';
+import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
 import {attachTribute} from './features/tribute.js';
 import {initGlobalCopyToClipboardListener} from './features/clipboard.js';
