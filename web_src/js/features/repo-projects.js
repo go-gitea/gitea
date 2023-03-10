@@ -106,7 +106,7 @@ export function initRepoProject() {
     }
 
     $(this)
-      .find('.content > .form > .actions > .primary')
+      .find('.content > .form > .actions > .edit-column-button')
       .on('click', function (e) {
         e.preventDefault();
 
