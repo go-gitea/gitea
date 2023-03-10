@@ -38,13 +38,6 @@ func MustEnableProjects(ctx *context.Context) {
 	}
 }
 
-func canWriteProjects(ctx *context.Context) bool {
-	if ctx.ContextUser.IsOrganization() {
-		return ctx.Org.CanWriteUnit(ctx, unit_model.TypeProjects)
-	}
-	return ctx.Doer != nil && ctx.ContextUser.ID == ctx.Doer.ID
-}
-
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.project_board")
@@ -135,6 +128,13 @@ func Projects(ctx *context.Context) {
 	ctx.Data["NumClosedIssuesInProjects"] = numClosedIssues
 
 	ctx.HTML(http.StatusOK, tplProjects)
+}
+
+func canWriteProjects(ctx *context.Context) bool {
+	if ctx.ContextUser.IsOrganization() {
+		return ctx.Org.CanWriteUnit(ctx, unit_model.TypeProjects)
+	}
+	return ctx.Doer != nil && ctx.ContextUser.ID == ctx.Doer.ID
 }
 
 // NewProject render creating a project page
