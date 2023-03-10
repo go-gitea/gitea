@@ -25,10 +25,10 @@ async function processFile(file, {prefix, fullName} = {}) {
     if (prefix === 'octicon') name = name.replace(/-[0-9]+$/, ''); // chop of '-16' on octicons
   }
 
+  // keep the xmlns attribute to make the files could be displayed by local browsers/image-viewers
   const {data} = optimize(await readFile(file, 'utf8'), {
     plugins: [
       {name: 'preset-default'},
-      {name: 'removeXMLNS'},
       {name: 'removeDimensions'},
       {name: 'prefixIds', params: {prefix: () => name}},
       {name: 'addClassesToSVGElement', params: {classNames: ['svg', name]}},

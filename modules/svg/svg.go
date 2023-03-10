@@ -25,6 +25,12 @@ const defaultSize = 16
 // Init discovers SVGs and populates the `SVGs` variable
 func Init() {
 	SVGs = Discover()
+
+	// inline SVG rendering doesn't need `xmlns`
+	r := regexp.MustCompile(`(<svg\b[^>]*?)\s+xmlns="[^"]*"`)
+	for name, svg := range SVGs {
+		SVGs[name] = r.ReplaceAllString(svg, "$1")
+	}
 }
 
 // Render render icons - arguments icon name (string), size (int), class (string)
