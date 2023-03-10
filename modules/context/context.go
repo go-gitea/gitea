@@ -232,7 +232,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 			ctx.PlainText(http.StatusInternalServerError, "Unable to find status/500 template")
 			return
 		}
-		if _, ok := err.(texttemplate.ExecError); ok {
+		if execErr, ok := err.(texttemplate.ExecError); ok {
 			if groups := templateExecutingErr.FindStringSubmatch(err.Error()); len(groups) > 0 {
 				errorTemplateName, lineStr, posStr := groups[1], groups[2], groups[3]
 				target := ""
@@ -249,6 +249,15 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 					filename += " (subtemplate of " + string(name) + ")"
 				}
 				err = fmt.Errorf("%w\nin template file %s:\n%s", err, filename, templates.GetLineFromTemplate(errorTemplateName, line, target, pos))
+			} else {
+				filename, filenameErr := templates.GetAssetFilename("templates/" + execErr.Name + ".tmpl")
+				if filenameErr != nil {
+					filename = "(template) " + execErr.Name
+				}
+				if execErr.Name != string(name) {
+					filename += " (subtemplate of " + string(name) + ")"
+				}
+				err = fmt.Errorf("%w\nin template file %s", err, filename)
 			}
 		}
 		ctx.ServerError("Render failed", err)
