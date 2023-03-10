@@ -80,7 +80,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("PushUpdates: %s/%s", optsList[0].RepoUserName, optsList[0].RepoName))
 	defer finished()
-	ctx = cache.WithCacheContext(ctx)
 
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, optsList[0].RepoUserName, optsList[0].RepoName)
 	if err != nil {
@@ -207,12 +206,12 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 						return fmt.Errorf("newCommit.CommitsBeforeUntil: %w", err)
 					}
 
-					isForce, err := repo_module.IsForcePush(ctx, opts)
+					isForcePush, err := newCommit.IsForcePush(opts.OldCommitID)
 					if err != nil {
-						log.Error("isForcePush %s:%s failed: %v", repo.FullName(), branch, err)
+						log.Error("IsForcePush %s:%s failed: %v", repo.FullName(), branch, err)
 					}
 
-					if isForce {
+					if isForcePush {
 						log.Trace("Push %s is a force push", opts.NewCommitID)
 
 						cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))

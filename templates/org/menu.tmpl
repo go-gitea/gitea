@@ -5,7 +5,7 @@
 		</a>
 		{{if and .IsProjectEnabled .CanReadProjects}}
 		<a class="{{if .PageIsViewProjects}}active {{end}}item" href="{{$.Org.HomeLink}}/-/projects">
-			{{svg "octicon-project"}} {{.locale.Tr "user.projects"}}
+			{{svg "octicon-project-symlink"}} {{.locale.Tr "user.projects"}}
 		</a>
 		{{end}}
 		{{if and .IsPackageEnabled .CanReadPackages}}
