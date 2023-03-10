@@ -380,6 +380,7 @@ func TestMarkDownReadmeImage(t *testing.T) {
 
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	src, exists = htmlDoc.doc.Find(`.markdown img`).Attr("src")
+	assert.True(t, exists, "Image not found in markdown file")
 	assert.Equal(t, src, "/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg")
 }
 
