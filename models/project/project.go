@@ -204,7 +204,7 @@ func (p *Project) CanWriteByDoer(ctx context.Context, repo *repo_model.Repositor
 		}
 
 		if repo.Owner.IsOrganization() {
-			if (*organization.Organization)(repo.Owner).UnitPermission(ctx, doer.ID, unit.TypeProjects) < perm.AccessModeWrite {
+			if (*organization.Organization)(repo.Owner).UnitPermission(ctx, doer, unit.TypeProjects) < perm.AccessModeWrite {
 				return false, nil
 			}
 		}

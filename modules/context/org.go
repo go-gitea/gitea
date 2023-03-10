@@ -30,17 +30,11 @@ type Organization struct {
 }
 
 func (org *Organization) CanWriteUnit(ctx *Context, unitType unit.Type) bool {
-	if ctx.Doer == nil {
-		return false
-	}
-	return org.Organization.UnitPermission(ctx, ctx.Doer.ID, unitType) >= perm.AccessModeWrite
+	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeWrite
 }
 
-func (org *Organization) CanAccessUnit(ctx *Context, unitType unit.Type) bool {
-	if ctx.Doer == nil {
-		return org.Organization.Visibility.IsPublic()
-	}
-	return org.Organization.UnitPermission(ctx, ctx.Doer.ID, unitType) >= perm.AccessModeRead
+func (org *Organization) CanReadUnit(ctx *Context, unitType unit.Type) bool {
+	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeRead
 }
 
 func GetOrganizationByParams(ctx *Context) {
@@ -89,13 +83,23 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 
 	var err error
 
-	// if Organization is not defined, get it from params
-	if ctx.Org.Organization == nil {
-		GetOrganizationByParams(ctx)
+	if ctx.ContextUser == nil {
+		// if Organization is not defined, get it from params
+		if ctx.Org.Organization == nil {
+			GetOrganizationByParams(ctx)
 
-		if ctx.Written() {
-			return
+			if ctx.Written() {
+				return
+			}
 		}
+	} else if ctx.ContextUser.IsOrganization() {
+		if ctx.Org == nil {
+			ctx.Org = &Organization{}
+		}
+		ctx.Org.Organization = (*organization.Organization)(ctx.ContextUser)
+	} else {
+		// ContextUser is an individual User
+		return
 	}
 
 	org := ctx.Org.Organization
@@ -158,6 +162,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 	ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
+	ctx.Data["IsProjectEnabled"] = true
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["IsPublicMember"] = func(uid int64) bool {
@@ -234,9 +239,9 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		}
 	}
 
-	ctx.Data["CanAccessProjects"] = ctx.Org.CanAccessUnit(ctx, unit.TypeProjects)
-	ctx.Data["CanAccessPackages"] = ctx.Org.CanAccessUnit(ctx, unit.TypePackages)
-	ctx.Data["CanAccessCode"] = ctx.Org.CanAccessUnit(ctx, unit.TypeCode)
+	ctx.Data["CanReadProjects"] = ctx.Org.CanReadUnit(ctx, unit.TypeProjects)
+	ctx.Data["CanReadPackages"] = ctx.Org.CanReadUnit(ctx, unit.TypePackages)
+	ctx.Data["CanReadCode"] = ctx.Org.CanReadUnit(ctx, unit.TypeCode)
 }
 
 // OrgAssignment returns a middleware to handle organization assignment

@@ -239,9 +239,9 @@ func (org *Organization) CustomAvatarRelativePath() string {
 	return org.Avatar
 }
 
-func (org *Organization) UnitPermission(ctx context.Context, doerID int64, unitType unit.Type) perm.AccessMode {
-	if doerID > 0 {
-		teams, err := GetUserOrgTeams(ctx, org.ID, doerID)
+func (org *Organization) UnitPermission(ctx context.Context, doer *user_model.User, unitType unit.Type) perm.AccessMode {
+	if doer != nil {
+		teams, err := GetUserOrgTeams(ctx, org.ID, doer.ID)
 		if err != nil {
 			log.Error("GetUserOrgTeams: %v", err)
 			return perm.AccessModeNone
@@ -257,7 +257,7 @@ func (org *Organization) UnitPermission(ctx context.Context, doerID int64, unitT
 		}
 	}
 
-	if org.Visibility == structs.VisibleTypePublic {
+	if org.Visibility.IsPublic() {
 		return perm.AccessModeRead
 	}
 
