@@ -104,26 +104,26 @@ export function initRepoProject() {
     }
 
     $(this).find('.edit-column-button').on('click', function (e) {
-        e.preventDefault();
+      e.preventDefault();
 
-        $.ajax({
-          url: $(this).data('url'),
-          data: JSON.stringify({title: projectTitleInput.val(), color: projectColorInput.val()}),
-          headers: {
-            'X-Csrf-Token': csrfToken,
-          },
-          contentType: 'application/json',
-          method: 'PUT',
-        }).done(() => {
-          projectTitleLabel.text(projectTitleInput.val());
-          projectTitleInput.closest('form').removeClass('dirty');
-          if (projectColorInput.val()) {
-            setLabelColor(projectHeader, projectColorInput.val());
-          }
-          boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
-          $('.ui.modal').modal('hide');
-        });
+      $.ajax({
+        url: $(this).data('url'),
+        data: JSON.stringify({title: projectTitleInput.val(), color: projectColorInput.val()}),
+        headers: {
+          'X-Csrf-Token': csrfToken,
+        },
+        contentType: 'application/json',
+        method: 'PUT',
+      }).done(() => {
+        projectTitleLabel.text(projectTitleInput.val());
+        projectTitleInput.closest('form').removeClass('dirty');
+        if (projectColorInput.val()) {
+          setLabelColor(projectHeader, projectColorInput.val());
+        }
+        boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
+        $('.ui.modal').modal('hide');
       });
+    });
   });
 
   $(document).on('click', '.set-default-project-board', async function (e) {
