@@ -215,7 +215,7 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
-var templateErr = regexp.MustCompile(`^template: (.*):([1-9][0-9]*):([1-9][0-9]*): executing (?:"(.*)" at <(.*)>: )?`)
+var templateExecutingErr = regexp.MustCompile(`^template: (.*):([1-9][0-9]*):([1-9][0-9]*): executing (?:"(.*)" at <(.*)>: )?`)
 
 // HTML calls Context.HTML and renders the template to HTTP response
 func (ctx *Context) HTML(status int, name base.TplName) {
@@ -233,27 +233,22 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 			return
 		}
 		if _, ok := err.(texttemplate.ExecError); ok {
-			if groups := templateErr.FindStringSubmatch(err.Error()); len(groups) > 0 {
-				templateName, lineStr, posStr := groups[1], groups[2], groups[3]
+			if groups := templateExecutingErr.FindStringSubmatch(err.Error()); len(groups) > 0 {
+				errorTemplateName, lineStr, posStr := groups[1], groups[2], groups[3]
 				target := ""
 				if len(groups) == 6 {
 					target = groups[5]
 				}
-				line, lineErr := strconv.Atoi(lineStr)
-				if lineErr != nil {
-					line = -1
+				line, _ := strconv.Atoi(lineStr) // Cannot error out as groups[2] is [1-9][0-9]*
+				pos, _ := strconv.Atoi(posStr)   // Cannot error out as groups[3] is [1-9][0-9]*
+				filename, filenameErr := templates.GetAssetFilename("templates/" + errorTemplateName + ".tmpl")
+				if filenameErr != nil {
+					filename = "(template) " + errorTemplateName
 				}
-				pos, posErr := strconv.Atoi(posStr)
-				if posErr != nil {
-					pos = -1
+				if errorTemplateName != string(name) {
+					filename += " (subtemplate of " + string(name) + ")"
 				}
-				if line >= 0 {
-					filename, filenameErr := templates.GetAssetFilename("templates/" + templateName + ".tmpl")
-					if filenameErr != nil {
-						filename = "(template) " + templateName
-					}
-					err = fmt.Errorf("%w\nin template file %s:\n%s", err, filename, templates.GetLineFromTemplate(templateName, line, target, pos))
-				}
+				err = fmt.Errorf("%w\nin template file %s:\n%s", err, filename, templates.GetLineFromTemplate(errorTemplateName, line, target, pos))
 			}
 		}
 		ctx.ServerError("Render failed", err)
