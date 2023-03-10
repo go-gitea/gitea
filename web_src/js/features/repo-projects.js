@@ -95,19 +95,15 @@ export function initRepoProject() {
   $('.edit-project-board').each(function () {
     const projectHeader = $(this).closest('.board-column-header');
     const projectTitleLabel = projectHeader.find('.board-label');
-    const projectTitleInput = $(this).find(
-      '.content > .form > .field > .project-board-title',
-    );
-    const projectColorInput = $(this).find('.content > .form > .field  #new_board_color');
+    const projectTitleInput = $(this).find('.project-board-title');
+    const projectColorInput = $(this).find('#new_board_color');
     const boardColumn = $(this).closest('.board-column');
 
     if (boardColumn.css('backgroundColor')) {
       setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
     }
 
-    $(this)
-      .find('.content > .form > .actions > .edit-column-button')
-      .on('click', function (e) {
+    $(this).find('.edit-column-button').on('click', function (e) {
         e.preventDefault();
 
         $.ajax({
