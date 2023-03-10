@@ -44,6 +44,32 @@ func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 	return ret, nil
 }
 
+func GetContentFromEntry(entry *git.TreeEntry) ([]byte, error) {
+	f, err := entry.Blob().DataAsync()
+	if err != nil {
+		return nil, err
+	}
+	content, err := io.ReadAll(f)
+	_ = f.Close()
+	if err != nil {
+		return nil, err
+	}
+	return content, nil
+}
+
+func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
+	workflow, err := model.ReadWorkflow(bytes.NewReader(content))
+	if err != nil {
+		return nil, err
+	}
+	events, err := jobparser.ParseRawOn(&workflow.RawOn)
+	if err != nil {
+		return nil, err
+	}
+
+	return events, nil
+}
+
 func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader) (map[string][]byte, error) {
 	entries, err := ListWorkflows(commit)
 	if err != nil {
@@ -52,21 +78,11 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 
 	workflows := make(map[string][]byte, len(entries))
 	for _, entry := range entries {
-		f, err := entry.Blob().DataAsync()
+		content, err := GetContentFromEntry(entry)
 		if err != nil {
 			return nil, err
 		}
-		content, err := io.ReadAll(f)
-		_ = f.Close()
-		if err != nil {
-			return nil, err
-		}
-		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
-		if err != nil {
-			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
-			continue
-		}
-		events, err := jobparser.ParseRawOn(&workflow.RawOn)
+		events, err := GetEventsFromContent(content)
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
 			continue

@@ -23,6 +23,11 @@ const (
 	tplViewActions base.TplName = "repo/actions/view"
 )
 
+type WorkFlow struct {
+	Entry     git.TreeEntry
+	IsInvalid bool
+}
+
 // MustEnableActions check if actions are enabled in settings
 func MustEnableActions(ctx *context.Context) {
 	if !setting.Actions.Enabled {
@@ -47,7 +52,7 @@ func List(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsActions"] = true
 
-	var workflows git.Entries
+	var workflows []WorkFlow
 	if empty, err := ctx.Repo.GitRepo.IsEmpty(); err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -62,13 +67,28 @@ func List(ctx *context.Context) {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
-		workflows, err = actions.ListWorkflows(commit)
+		entries, err := actions.ListWorkflows(commit)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
+		workflows = make([]WorkFlow, 0, len(entries))
+		for _, entry := range entries {
+			workflow := WorkFlow{Entry: *entry}
+			content, err := actions.GetContentFromEntry(entry)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, err.Error())
+				return
+			}
+			_, err = actions.GetEventsFromContent(content)
+			if err != nil {
+				workflow.IsInvalid = true
+			} else {
+				workflow.IsInvalid = false
+			}
+			workflows = append(workflows, workflow)
+		}
 	}
-
 	ctx.Data["workflows"] = workflows
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
 
