@@ -106,7 +106,7 @@ export function initRepoProject() {
     }
 
     $(this)
-      .find('.content > .form > .actions > .red')
+      .find('.content > .form > .actions > .primary')
       .on('click', function (e) {
         e.preventDefault();
 
