@@ -91,9 +91,9 @@ const svgs = {
 const parser = new DOMParser();
 const serializer = new XMLSerializer();
 
-// retrieve a HTML string for given SVG icon name, size and additional classes
+// retrieve an HTML string for given SVG icon name, size and additional classes
 export function svg(name, size = 16, className = '') {
-  if (!(name in svgs)) return `<span>SVG:${name}</span>`;
+  if (!(name in svgs)) throw new Error(`Unknown SVG icon: ${name}`);
   if (size === 16 && !className) return svgs[name];
 
   const document = parser.parseFromString(svgs[name], 'image/svg+xml');
