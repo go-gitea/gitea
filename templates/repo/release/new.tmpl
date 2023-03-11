@@ -20,22 +20,27 @@
 						<b>{{.tag_name}}</b><span class="at">@</span><strong>{{.tag_target}}</strong>
 					{{else}}
 						<input id="tag-name" name="tag_name" value="{{.tag_name}}" placeholder="{{.locale.Tr "repo.release.tag_name"}}" autofocus required maxlength="255">
-						<span class="at">@</span>
-						<div class="ui selection dropdown">
-							<input type="hidden" name="tag_target" value="{{.tag_target}}"/>
-							{{svg "octicon-git-branch"}}
-							<div class="text">
-								{{.locale.Tr "repo.release.target"}} :
-								<strong id="repo-branch-current">{{.Repository.DefaultBranch}}</strong>
-							</div>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu">
-								{{range .Branches}}
-									<div class="item" data-value="{{.}}">{{.}}</div>
-								{{end}}
+						<input id="tag-name-editor" type="hidden" data-existing-tags={{Json .Tags}} data-tag-helper={{.locale.Tr "repo.release.tag_helper"}} data-tag-helper-new={{.locale.Tr "repo.release.tag_helper_new"}} data-tag-helper-existing={{.locale.Tr "repo.release.tag_helper_existing"}} />
+						<div id="tag-target-selector" class="gt-dib">
+							<span class="at">@</span>
+							<div class="ui selection dropdown">
+								<input type="hidden" name="tag_target" value="{{.tag_target}}"/>
+								{{svg "octicon-git-branch"}}
+								<div class="text">
+									{{.locale.Tr "repo.release.target"}} :
+									<strong id="repo-branch-current">{{.Repository.DefaultBranch}}</strong>
+								</div>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="menu">
+									{{range .Branches}}
+										<div class="item" data-value="{{.}}">{{.}}</div>
+									{{end}}
+								</div>
 							</div>
 						</div>
-						<span class="help">{{.locale.Tr "repo.release.tag_helper"}}</span>
+						<div>
+							<span id="tag-helper" class="help gt-mt-2">{{.locale.Tr "repo.release.tag_helper"}}</span>
+						</div>
 					{{end}}
 				</div>
 			</div>
