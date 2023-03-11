@@ -1016,7 +1016,7 @@ steps:
       - git fetch --tags --force
 
   - name: publish
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     pull: always
     settings:
       auto_tag: true
@@ -1028,13 +1028,17 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
         - pull_request
 
   - name: publish-rootless
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: true
@@ -1046,6 +1050,10 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
@@ -1080,7 +1088,7 @@ steps:
       - git fetch --tags --force
 
   - name: publish
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     pull: always
     settings:
       tags: ${DRONE_TAG##v}-linux-amd64
@@ -1091,13 +1099,17 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
         - pull_request
 
   - name: publish-rootless
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     settings:
       dockerfile: Dockerfile.rootless
       tags: ${DRONE_TAG##v}-linux-amd64-rootless
@@ -1108,6 +1120,10 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
@@ -1142,7 +1158,7 @@ steps:
       - git fetch --tags --force
 
   - name: publish
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     pull: always
     settings:
       auto_tag: false
@@ -1154,13 +1170,17 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
         - pull_request
 
   - name: publish-rootless
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
@@ -1172,6 +1192,10 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
@@ -1205,7 +1229,7 @@ steps:
       - git fetch --tags --force
 
   - name: publish
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     pull: always
     settings:
       auto_tag: false
@@ -1217,13 +1241,17 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
         - pull_request
 
   - name: publish-rootless
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
@@ -1235,6 +1263,10 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
@@ -1243,7 +1275,7 @@ steps:
 ---
 kind: pipeline
 type: docker
-name: docker-linux-arm64-dry-run
+name: docker-linux-amd64-dry-run
 
 platform:
   os: linux
@@ -1261,7 +1293,7 @@ trigger:
 
 steps:
   - name: dryrun
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     pull: always
     settings:
       dry_run: true
@@ -1272,6 +1304,7 @@ steps:
     environment:
       PLUGIN_MIRROR:
         from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         - pull_request
@@ -1308,7 +1341,7 @@ steps:
       - git fetch --tags --force
 
   - name: publish
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     pull: always
     settings:
       auto_tag: true
@@ -1320,13 +1353,17 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
         - pull_request
 
   - name: publish-rootless
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: true
@@ -1338,6 +1375,10 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
@@ -1372,7 +1413,7 @@ steps:
       - git fetch --tags --force
 
   - name: publish
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     pull: always
     settings:
       tags: ${DRONE_TAG##v}-linux-arm64
@@ -1383,13 +1424,17 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
         - pull_request
 
   - name: publish-rootless
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     settings:
       dockerfile: Dockerfile.rootless
       tags: ${DRONE_TAG##v}-linux-arm64-rootless
@@ -1400,6 +1445,10 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
@@ -1434,7 +1483,7 @@ steps:
       - git fetch --tags --force
 
   - name: publish
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     pull: always
     settings:
       auto_tag: false
@@ -1446,13 +1495,17 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
         - pull_request
 
   - name: publish-rootless
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
@@ -1464,6 +1517,10 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
@@ -1497,7 +1554,7 @@ steps:
       - git fetch --tags --force
 
   - name: publish
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     pull: always
     settings:
       auto_tag: false
@@ -1509,13 +1566,17 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
         - pull_request
 
   - name: publish-rootless
-    image: techknowlogick/drone-docker:latest
+    image: plugins/docker:latest
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
@@ -1527,6 +1588,10 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+      DOCKER_BUILDKIT: 1
     when:
       event:
         exclude:
