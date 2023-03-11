@@ -81,9 +81,9 @@
 									<td class="three wide right aligned">
 										{{if not .LatestPullRequest}}
 											{{if .IsIncluded}}
-												<a class="ui tooltip orange large label" data-content="{{$.locale.Tr "repo.branch.included_desc"}}" data-position="top right">
+												<span class="ui tooltip orange large label" data-content="{{$.locale.Tr "repo.branch.included_desc"}}" data-position="top right">
 													{{svg "octicon-git-pull-request"}} {{$.locale.Tr "repo.branch.included"}}
-												</a>
+												</span>
 											{{else if and (not .IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
 											<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranch}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{PathEscape $.Owner.Name}}:{{end}}{{PathEscapeSegments .Name}}">
 												<button id="new-pull-request" class="ui compact basic button gt-mr-0">{{if $.CanPull}}{{$.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{$.locale.Tr "action.compare_branch"}}{{end}}</button>
