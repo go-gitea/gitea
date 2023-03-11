@@ -31,6 +31,9 @@ import octiconSkip from '../../public/img/svg/octicon-skip.svg';
 import octiconMeter from '../../public/img/svg/octicon-meter.svg';
 import octiconBlocked from '../../public/img/svg/octicon-blocked.svg';
 import octiconSync from '../../public/img/svg/octicon-sync.svg';
+import octiconTag from '../../public/img/svg/octicon-tag.svg';
+import octiconGitBranch from '../../public/img/svg/octicon-git-branch.svg';
+import octiconFilter from '../../public/img/svg/octicon-filter.svg';
 
 export const svgs = {
   'octicon-blocked': octiconBlocked,
@@ -66,6 +69,9 @@ export const svgs = {
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
   'octicon-x-circle-fill': octiconXCircleFill,
+  'octicon-tag': octiconTag,
+  'octicon-git-branch': octiconGitBranch,
+  'octicon-filter': octiconFilter,
 };
 
 const parser = new DOMParser();
