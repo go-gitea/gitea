@@ -76,7 +76,7 @@ import {
 import {initViewedCheckboxListenerFor} from './features/pull-view-file.js';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.js';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
-import {initRepoRelease, initRepoReleaseEditor} from './features/repo-release.js';
+import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.js';
 import {initRepoEditor} from './features/repo-editor.js';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.js';
 import {initInstall} from './features/install.js';
@@ -179,7 +179,7 @@ $(document).ready(() => {
   initRepoPullRequestAllowMaintainerEdit();
   initRepoPullRequestReview();
   initRepoRelease();
-  initRepoReleaseEditor();
+  initRepoReleaseNew();
   initRepoSettingGitHook();
   initRepoSettingSearchTeamBox();
   initRepoSettingsCollaboration();
