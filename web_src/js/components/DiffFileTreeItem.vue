@@ -1,6 +1,7 @@
 <template>
-  <div v-show="show">
-    <div class="item" :class="item.isFile ? 'filewrapper p-1' : ''">
+  <div v-show="show" class="tooltip" :title="item.name">
+    <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
+    <div class="item" :class="item.isFile ? 'filewrapper gt-p-1' : ''">
       <!-- Files -->
       <SvgIcon
         v-if="item.isFile"
@@ -10,7 +11,7 @@
       />
       <a
         v-if="item.isFile"
-        class="file ellipsis"
+        class="file gt-ellipsis muted"
         :href="item.isFile ? '#diff-' + item.file.NameHash : ''"
       >{{ item.name }}</a>
       <SvgIcon
@@ -21,7 +22,7 @@
       />
 
       <!-- Directories -->
-      <div v-if="!item.isFile" class="directory p-1" @click.stop="handleClick(item.isFile)">
+      <div v-if="!item.isFile" class="directory gt-p-1" @click.stop="handleClick(item.isFile)">
         <SvgIcon
           class="svg-icon"
           :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"
@@ -30,7 +31,7 @@
           class="svg-icon directory"
           name="octicon-file-directory-fill"
         />
-        <span class="ellipsis">{{ item.name }}</span>
+        <span class="gt-ellipsis">{{ item.name }}</span>
       </div>
       <div v-show="!collapsed">
         <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem" class="list" />
@@ -63,7 +64,7 @@ export default {
       if (itemIsFile) {
         return;
       }
-      this.$set(this, 'collapsed', !this.collapsed);
+      this.collapsed = !this.collapsed;
     },
     getIconForDiffType(pType) {
       const diffTypes = {
@@ -83,6 +84,7 @@ export default {
 span.svg-icon.status {
   float: right;
 }
+
 span.svg-icon.file {
   color: var(--color-secondary-dark-7);
 }
@@ -122,6 +124,8 @@ span.svg-icon.octicon-diff-renamed {
 div.directory {
   display: grid;
   grid-template-columns: 18px 20px auto;
+  user-select: none;
+  cursor: pointer;
 }
 
 div.directory:hover {

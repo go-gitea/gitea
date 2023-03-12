@@ -32,10 +32,10 @@ func runConvert(ctx *cli.Context) error {
 	log.Info("AppPath: %s", setting.AppPath)
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)
-	log.Info("Log path: %s", setting.LogRootPath)
+	log.Info("Log path: %s", setting.Log.RootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
 
-	if !setting.Database.UseMySQL {
+	if !setting.Database.Type.IsMySQL() {
 		fmt.Println("This command can only be used with a MySQL database")
 		return nil
 	}
