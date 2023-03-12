@@ -149,16 +149,14 @@
 </template>
 
 <script>
-import {nextTick} from 'vue';
+import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
-import {initVueApp, vueDelimiters} from './VueComponentLoader.js';
 import {initTooltip} from '../modules/tippy.js';
 import {SvgIcon} from '../svg.js';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
 const sfc = {
-  delimiters: vueDelimiters,
   components: {SvgIcon},
   data() {
     const params = new URLSearchParams(window.location.search);
@@ -423,7 +421,10 @@ const sfc = {
 };
 
 export function initDashboardRepoList() {
-  initVueApp('#dashboard-repo-list', sfc);
+  const el = document.getElementById('dashboard-repo-list');
+  if (el) {
+    createApp(sfc).mount(el);
+  }
 }
 
 export default sfc; // activate the IDE's Vue plugin
