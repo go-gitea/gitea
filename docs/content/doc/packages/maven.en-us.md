@@ -23,7 +23,7 @@ Publish [Maven](https://maven.apache.org) packages for your user or organization
 ## Requirements
 
 To work with the Maven package registry, you can use [Maven](https://maven.apache.org/install.html) or [Gradle](https://gradle.org/install/).
-The following examples use `Maven`.
+The following examples use `Maven` and `Gradle Groovy`.
 
 ## Configuring the package registry
 
@@ -73,12 +73,52 @@ Afterwards add the following sections to your project `pom.xml` file:
 | `access_token` | Your [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}). |
 | `owner`        | The owner of the package. |
 
+### Gradle variant
+
+When you plan to add some packages from Gitea instance in your project, you should add it in repositories section:
+
+```groovy
+repositories {
+    // other repositories
+    maven { url "https://gitea.example.com/api/packages/{owner}/maven" }
+}
+```
+
+In Groovy gradle you may include next script in your publishing part:
+
+```groovy
+publishing {
+    // other settings of publication
+    repositories {
+        maven {
+            name = "Gitea"
+            url = uri("https://gitea.example.com/api/packages/{owner}/maven")
+
+            credentials(HttpHeaderCredentials) {
+                name = "Authorization"
+                value = "token {access_token}"
+            }
+
+            authentication {
+                header(HttpHeaderAuthentication)
+            }
+        }
+    }
+}
+```
+
 ## Publish a package
 
 To publish a package simply run:
 
 ```shell
 mvn deploy
+```
+
+Or call `gradle` with task `publishAllPublicationsToGiteaRepository` in case you are using gradle:
+
+```groovy
+./gradlew publishAllPublicationsToGiteaRepository
 ```
 
 If you want to publish a prebuild package to the registry, you can use [`mvn deploy:deploy-file`](https://maven.apache.org/plugins/maven-deploy-plugin/deploy-file-mojo.html):
@@ -103,6 +143,12 @@ To install a Maven package from the package registry, add a new dependency to yo
   <artifactId>test_project</artifactId>
   <version>1.0.0</version>
 </dependency>
+```
+
+And analog in gradle groovy:
+
+```groovy
+implementation "com.test.package:test_project:1.0.0"
 ```
 
 Afterwards run:

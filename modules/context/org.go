@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -31,29 +30,34 @@ type Organization struct {
 }
 
 func (org *Organization) CanWriteUnit(ctx *Context, unitType unit.Type) bool {
-	if ctx.Doer == nil {
-		return false
-	}
-	return org.UnitPermission(ctx, ctx.Doer.ID, unitType) >= perm.AccessModeWrite
+	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeWrite
 }
 
-func (org *Organization) UnitPermission(ctx *Context, doerID int64, unitType unit.Type) perm.AccessMode {
-	if doerID > 0 {
-		teams, err := organization.GetUserOrgTeams(ctx, org.Organization.ID, doerID)
-		if err != nil {
-			log.Error("GetUserOrgTeams: %v", err)
-			return perm.AccessModeNone
-		}
-		if len(teams) > 0 {
-			return teams.UnitMaxAccess(unitType)
-		}
-	}
+func (org *Organization) CanReadUnit(ctx *Context, unitType unit.Type) bool {
+	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeRead
+}
 
-	if org.Organization.Visibility == structs.VisibleTypePublic {
-		return perm.AccessModeRead
-	}
+func GetOrganizationByParams(ctx *Context) {
+	orgName := ctx.Params(":org")
 
-	return perm.AccessModeNone
+	var err error
+
+	ctx.Org.Organization, err = organization.GetOrgByName(ctx, orgName)
+	if err != nil {
+		if organization.IsErrOrgNotExist(err) {
+			redirectUserID, err := user_model.LookupUserRedirect(orgName)
+			if err == nil {
+				RedirectToUser(ctx, orgName, redirectUserID)
+			} else if user_model.IsErrUserRedirectNotExist(err) {
+				ctx.NotFound("GetUserByName", err)
+			} else {
+				ctx.ServerError("LookupUserRedirect", err)
+			}
+		} else {
+			ctx.ServerError("GetUserByName", err)
+		}
+		return
+	}
 }
 
 // HandleOrgAssignment handles organization assignment
@@ -77,25 +81,26 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		requireTeamAdmin = args[3]
 	}
 
-	orgName := ctx.Params(":org")
-
 	var err error
-	ctx.Org.Organization, err = organization.GetOrgByName(ctx, orgName)
-	if err != nil {
-		if organization.IsErrOrgNotExist(err) {
-			redirectUserID, err := user_model.LookupUserRedirect(orgName)
-			if err == nil {
-				RedirectToUser(ctx, orgName, redirectUserID)
-			} else if user_model.IsErrUserRedirectNotExist(err) {
-				ctx.NotFound("GetUserByName", err)
-			} else {
-				ctx.ServerError("LookupUserRedirect", err)
+
+	if ctx.ContextUser == nil {
+		// if Organization is not defined, get it from params
+		if ctx.Org.Organization == nil {
+			GetOrganizationByParams(ctx)
+			if ctx.Written() {
+				return
 			}
-		} else {
-			ctx.ServerError("GetUserByName", err)
 		}
+	} else if ctx.ContextUser.IsOrganization() {
+		if ctx.Org == nil {
+			ctx.Org = &Organization{}
+		}
+		ctx.Org.Organization = (*organization.Organization)(ctx.ContextUser)
+	} else {
+		// ContextUser is an individual User
 		return
 	}
+
 	org := ctx.Org.Organization
 
 	// Handle Visibility
@@ -156,6 +161,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 	ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
+	ctx.Data["IsProjectEnabled"] = true
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["IsPublicMember"] = func(uid int64) bool {
@@ -231,6 +237,10 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			return
 		}
 	}
+
+	ctx.Data["CanReadProjects"] = ctx.Org.CanReadUnit(ctx, unit.TypeProjects)
+	ctx.Data["CanReadPackages"] = ctx.Org.CanReadUnit(ctx, unit.TypePackages)
+	ctx.Data["CanReadCode"] = ctx.Org.CanReadUnit(ctx, unit.TypeCode)
 }
 
 // OrgAssignment returns a middleware to handle organization assignment
