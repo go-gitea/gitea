@@ -24,12 +24,14 @@ func TestInsertOnConflictDoNothing(t *testing.T) {
 		}
 		_ = e.Sync2(&NoUniques{})
 
+		// InsertOnConflictDoNothing does not work if there is no unique constraint
 		toInsert := &NoUniques{Data: "shouldErr"}
 		inserted, err := db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.Error(t, err)
 		assert.False(t, inserted)
 		assert.Equal(t, int64(0), toInsert.ID)
 
+		// InsertOnConflictDoNothing does not work if there is no unique constraint
 		toInsert = &NoUniques{Data: ""}
 		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.Error(t, err)
@@ -46,24 +48,28 @@ func TestInsertOnConflictDoNothing(t *testing.T) {
 		_ = e.Sync2(&OneUnique{})
 		_, _ = e.Exec("DELETE FROM one_unique")
 
+		// Cannot insert if the unique field is NULL
 		toInsert := &OneUnique{}
 		inserted, err := db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.Error(t, err)
 		assert.False(t, inserted)
 		assert.Equal(t, int64(0), toInsert.ID)
 
+		// Successfully insert test
 		toInsert = &OneUnique{Data: "test"}
 		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
 		assert.True(t, inserted)
 		assert.NotEqual(t, int64(0), toInsert.ID)
 
+		// Successfully insert test2
 		toInsert = &OneUnique{Data: "test2"}
 		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
 		assert.True(t, inserted)
 		assert.NotEqual(t, int64(0), toInsert.ID)
 
+		// Successfully not insert test
 		toInsert = &OneUnique{Data: "test"}
 		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
@@ -82,42 +88,49 @@ func TestInsertOnConflictDoNothing(t *testing.T) {
 		_ = e.Sync2(&MultiUnique{})
 		_, _ = e.Exec("DELETE FROM multi_unique")
 
+		// Cannot insert if the unique fields are null
 		toInsert := &MultiUnique{}
 		inserted, err := db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.Error(t, err)
 		assert.False(t, inserted)
 		assert.Equal(t, int64(0), toInsert.ID)
 
+		// successfully insert test, t1
 		toInsert = &MultiUnique{Data1: "test", NotUnique: "t1"}
 		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
 		assert.True(t, inserted)
 		assert.NotEqual(t, int64(0), toInsert.ID)
 
+		// successfully insert test2, t1
 		toInsert = &MultiUnique{Data1: "test2", NotUnique: "t1"}
 		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
 		assert.True(t, inserted)
 		assert.NotEqual(t, int64(0), toInsert.ID)
 
+		// successfully don't insert test2, t2
 		toInsert = &MultiUnique{Data1: "test2", NotUnique: "t2"}
 		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
 		assert.False(t, inserted)
 		assert.Equal(t, int64(0), toInsert.ID)
 
+		// successfully don't insert test, t2
 		toInsert = &MultiUnique{Data1: "test", NotUnique: "t2"}
 		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
 		assert.False(t, inserted)
 		assert.Equal(t, int64(0), toInsert.ID)
 
+		// successfully insert test/test2, t2
 		toInsert = &MultiUnique{Data1: "test", Data2: "test2", NotUnique: "t1"}
 		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
 		assert.True(t, inserted)
 		assert.NotEqual(t, int64(0), toInsert.ID)
 
+		// successfully don't insert test/test2, t2
 		toInsert = &MultiUnique{Data1: "test", Data2: "test2", NotUnique: "t2"}
 		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
