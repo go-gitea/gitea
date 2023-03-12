@@ -65,19 +65,19 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (bool, err
 	var insertArgs []any
 
 	switch {
-	case setting.Database.UseSQLite3:
+	case setting.Database.Type.IsSQLite3():
 		insertArgs = generateInsertNoConflictSQLAndArgsForSQLite(tableName, colNames, values)
-	case setting.Database.UsePostgreSQL:
+	case setting.Database.Type.IsPostgreSQL():
 		insertArgs = generateInsertNoConflictSQLAndArgsForPostgres(tableName, colNames, values, autoIncrCol)
-	case setting.Database.UseMySQL:
+	case setting.Database.Type.IsMySQL():
 		insertArgs = generateInsertNoConflictSQLAndArgsForMySQL(tableName, colNames, values)
-	case setting.Database.UseMSSQL:
+	case setting.Database.Type.IsMSSQL():
 		insertArgs = generateInsertNoConflictSQLAndArgsForMSSQL(table, tableName, colNames, values, uniqueColValMap, autoIncrCol)
 	default:
 		return false, fmt.Errorf("database type not supported")
 	}
 
-	if autoIncrCol != nil && (setting.Database.UsePostgreSQL || setting.Database.UseMSSQL) {
+	if autoIncrCol != nil && (setting.Database.Type.IsPostgreSQL() || setting.Database.Type.IsMSSQL()) {
 		// Postgres and MSSQL do not use the LastInsertID mechanism
 		// Therefore use query rather than exec and read the last provided ID back in
 
@@ -421,7 +421,7 @@ func getValueFromField(fieldVal reflect.Value, col *schemas.Column) (any, error)
 	case reflect.Bool:
 		valBool := fieldVal.Bool()
 
-		if setting.Database.UseMSSQL {
+		if setting.Database.Type.IsMSSQL() {
 			if valBool {
 				return 1, nil
 			}
