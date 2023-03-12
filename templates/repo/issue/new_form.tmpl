@@ -34,6 +34,8 @@
 	<div class="four wide column">
 		<div class="ui segment metas">
 			{{template "repo/issue/branch_selector_field" .}}
+
+			<input id="label_ids" name="label_ids" type="hidden" value="{{.label_ids}}">
 			{{template "repo/issue/labels/labels_selector_field" .}}
 			{{template "repo/issue/labels/labels_sidebar" dict "root" $}}
 
