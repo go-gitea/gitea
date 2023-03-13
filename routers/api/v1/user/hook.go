@@ -1,26 +1,23 @@
-// Copyright 2021 The Gitea Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package admin
+package user
 
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
-// ListHooks list system's webhooks
+// ListHooks list the authenticated user's webhooks
 func ListHooks(ctx *context.APIContext) {
-	// swagger:operation GET /admin/hooks admin adminListHooks
+	// swagger:operation GET /user/hooks user userListHooks
 	// ---
-	// summary: List system's webhooks
+	// summary: List the authenticated user's webhooks
 	// produces:
 	// - application/json
 	// parameters:
@@ -36,26 +33,15 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	sysHooks, err := webhook.GetSystemWebhooks(ctx, util.OptionalBoolNone)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetSystemWebhooks", err)
-		return
-	}
-	hooks := make([]*api.Hook, len(sysHooks))
-	for i, hook := range sysHooks {
-		h, err := webhook_service.ToHook(setting.AppURL+"/admin", hook)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
-			return
-		}
-		hooks[i] = h
-	}
-	ctx.JSON(http.StatusOK, hooks)
+	utils.ListOwnerHooks(
+		ctx,
+		ctx.Doer,
+	)
 }
 
-// GetHook get an organization's hook by id
+// GetHook get the authenticated user's hook by id
 func GetHook(ctx *context.APIContext) {
-	// swagger:operation GET /admin/hooks/{id} admin adminGetHook
+	// swagger:operation GET /user/hooks/{id} user userGetHook
 	// ---
 	// summary: Get a hook
 	// produces:
@@ -71,23 +57,22 @@ func GetHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	hookID := ctx.ParamsInt64(":id")
-	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
+	hook, err := utils.GetOwnerHook(ctx, ctx.Doer.ID, ctx.ParamsInt64("id"))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err)
 		return
 	}
-	h, err := webhook_service.ToHook("/admin/", hook)
+
+	apiHook, err := webhook_service.ToHook(ctx.Doer.HomeLink(), hook)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
+		ctx.InternalServerError(err)
 		return
 	}
-	ctx.JSON(http.StatusOK, h)
+	ctx.JSON(http.StatusOK, apiHook)
 }
 
-// CreateHook create a hook for an organization
+// CreateHook create a hook for the authenticated user
 func CreateHook(ctx *context.APIContext) {
-	// swagger:operation POST /admin/hooks admin adminCreateHook
+	// swagger:operation POST /user/hooks user userCreateHook
 	// ---
 	// summary: Create a hook
 	// consumes:
@@ -104,14 +89,16 @@ func CreateHook(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/Hook"
 
-	form := web.GetForm(ctx).(*api.CreateHookOption)
-
-	utils.AddSystemHook(ctx, form)
+	utils.AddOwnerHook(
+		ctx,
+		ctx.Doer,
+		web.GetForm(ctx).(*api.CreateHookOption),
+	)
 }
 
-// EditHook modify a hook of a repository
+// EditHook modify a hook of the authenticated user
 func EditHook(ctx *context.APIContext) {
-	// swagger:operation PATCH /admin/hooks/{id} admin adminEditHook
+	// swagger:operation PATCH /user/hooks/{id} user userEditHook
 	// ---
 	// summary: Update a hook
 	// consumes:
@@ -133,16 +120,17 @@ func EditHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	form := web.GetForm(ctx).(*api.EditHookOption)
-
-	// TODO in body params
-	hookID := ctx.ParamsInt64(":id")
-	utils.EditSystemHook(ctx, form, hookID)
+	utils.EditOwnerHook(
+		ctx,
+		ctx.Doer,
+		web.GetForm(ctx).(*api.EditHookOption),
+		ctx.ParamsInt64("id"),
+	)
 }
 
-// DeleteHook delete a system hook
+// DeleteHook delete a hook of the authenticated user
 func DeleteHook(ctx *context.APIContext) {
-	// swagger:operation DELETE /amdin/hooks/{id} admin adminDeleteHook
+	// swagger:operation DELETE /user/hooks/{id} user userDeleteHook
 	// ---
 	// summary: Delete a hook
 	// produces:
@@ -158,14 +146,9 @@ func DeleteHook(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	hookID := ctx.ParamsInt64(":id")
-	if err := webhook.DeleteDefaultSystemWebhook(ctx, hookID); err != nil {
-		if webhook.IsErrWebhookNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteDefaultSystemWebhook", err)
-		}
-		return
-	}
-	ctx.Status(http.StatusNoContent)
+	utils.DeleteOwnerHook(
+		ctx,
+		ctx.Doer,
+		ctx.ParamsInt64("id"),
+	)
 }
