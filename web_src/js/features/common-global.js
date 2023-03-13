@@ -104,6 +104,13 @@ export function initGlobalCommon() {
     },
     onHide() {
       this._tippy?.enable();
+
+      // hide all tippy elements of items after a while. eg: keyboard Enter to trigger the "Copy Link" in the Issue Context Menu
+      setTimeout(() => {
+        $(this).find('.menu > .item').each((_, item) => {
+          item._tippy?.hide();
+        });
+      }, 2000);
     },
   });
 
