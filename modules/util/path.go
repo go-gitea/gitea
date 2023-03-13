@@ -248,7 +248,7 @@ func SafeJoinPath(elem ...string) string {
 		elems[i] = path.Clean("/" + v)
 	}
 	if len(elem) > 0 && !strings.HasPrefix(elem[0], "/") {
-		return path.Join(elems...)[1:]
+		return strings.TrimPrefix(path.Join(elems...), "/")
 	}
 	return path.Join(elems...)
 }
@@ -261,7 +261,7 @@ func SafeJoinFilepath(elem ...string) string {
 		elems[i] = filepath.Clean(separator + v)
 	}
 	if len(elem) > 0 && !strings.HasPrefix(elem[0], separator) {
-		return filepath.Join(elems...)[1:]
+		return strings.TrimPrefix(filepath.Join(elems...), separator)
 	}
 	return filepath.Join(elems...)
 }
