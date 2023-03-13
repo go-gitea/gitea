@@ -1834,6 +1834,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
+	ctx.Data["isShowFullName"] = setting.UI.DefaultShowFullName
 
 	var hiddenCommentTypes *big.Int
 	if ctx.IsSigned {
@@ -1847,7 +1848,6 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["ShouldShowCommentType"] = func(commentType issues_model.CommentType) bool {
 		return hiddenCommentTypes == nil || hiddenCommentTypes.Bit(int(commentType)) == 0
 	}
-	ctx.Data["isShowFullName"] = setting.UI.DefaultShowFullName
 	ctx.HTML(http.StatusOK, tplIssueView)
 }
 
