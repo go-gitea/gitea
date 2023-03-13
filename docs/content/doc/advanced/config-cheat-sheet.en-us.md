@@ -881,7 +881,13 @@ Default templates for project boards:
   - `Identity`: the SignedUserName or `"-"` if not logged in.
   - `Start`: the start time of the request.
   - `ResponseWriter`: the responseWriter from the request.
+  - `RequestID`: the value matching REQUEST_ID_HEADERS（default: `-`, if not matched）.
   - You must be very careful to ensure that this template does not throw errors or panics as this template runs outside of the panic/recovery script.
+- `REQUEST_ID_HEADERS`: **\<empty\>**: You can configure multiple values that are splited by comma here. It will match in the order of configuration, and the first match will be finally printed in the access log.
+  - e.g.
+  - In the Request Header:        X-Request-ID: **test-id-123**
+  - Configuration in app.ini:     REQUEST_ID_HEADERS = X-Request-ID
+  - Print in log:                 127.0.0.1:58384 - - [14/Feb/2023:16:33:51 +0800]  "**test-id-123**" ...
 
 ### Log subsections (`log.name`, `log.name.*`)
 
@@ -1086,6 +1092,11 @@ Default templates for project boards:
 - `LARGE_OBJECT_THRESHOLD`: **1048576**: (Go-Git only), don't cache objects greater than this in memory. (Set to 0 to disable.)
 - `DISABLE_CORE_PROTECT_NTFS`: **false** Set to true to forcibly set `core.protectNTFS` to false.
 - `DISABLE_PARTIAL_CLONE`: **false** Disable the usage of using partial clones for git.
+
+## Git - Reflog settings (`git.reflog`)
+
+- `ENABLED`: **true** Set to true to enable Git to write changes to reflogs in each repo.
+- `EXPIRATION`: **90** Reflog entry lifetime, in days. Entries are removed opportunistically by Git.
 
 ## Git - Timeout settings (`git.timeout`)
 

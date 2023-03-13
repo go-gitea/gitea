@@ -201,7 +201,7 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	lfsFixtures, err := storage.NewStorage("", storage.LocalStorageConfig{Path: path.Join(filepath.Dir(setting.AppPath), "tests/gitea-lfs-meta")})
 	assert.NoError(t, err)
 	assert.NoError(t, storage.Clean(storage.LFS))
-	assert.NoError(t, lfsFixtures.IterateObjects(func(path string, _ storage.Object) error {
+	assert.NoError(t, lfsFixtures.IterateObjects("", func(path string, _ storage.Object) error {
 		_, err := storage.Copy(storage.LFS, path, lfsFixtures, path)
 		return err
 	}))
@@ -258,7 +258,7 @@ func ResetFixtures(t *testing.T) {
 	lfsFixtures, err := storage.NewStorage("", storage.LocalStorageConfig{Path: path.Join(filepath.Dir(setting.AppPath), "tests/gitea-lfs-meta")})
 	assert.NoError(t, err)
 	assert.NoError(t, storage.Clean(storage.LFS))
-	assert.NoError(t, lfsFixtures.IterateObjects(func(path string, _ storage.Object) error {
+	assert.NoError(t, lfsFixtures.IterateObjects("", func(path string, _ storage.Object) error {
 		_, err := storage.Copy(storage.LFS, path, lfsFixtures, path)
 		return err
 	}))
