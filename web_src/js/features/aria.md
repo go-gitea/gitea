@@ -48,7 +48,21 @@ There are different solutions:
 
 ## Fomantic UI Dropdown
 
-When the dropdown has input elements, use `role=combobox`, otherwise use `role=menu` (see `aria.js`) for actions.
+There are 2 possible solutions about the role: combobox or menu
+
+1. Detect if the dropdown has an input, if yes, it works like a combobox, otherwise it works like a menu
+2. Always use "combobox", never use "menu"
+
+According to the public discussion with fsologureng in chat channel, we think it's better to use "combobox" for all dropdowns.
+
+> On the old web there were many menus implemented with an auto-submit select,
+> but that didn't change the fact that they were selects for screen readers.
+> That is the case with Fomantic dropdowns as used in Gitea.
+> Implementations of auto-submit select menus fell behind in modern web design precisely because they are not usable or accessible."
+>
+> We can mark all "dropdown" as "combobox", never use "menu" in code. Do you think this solution is clear enough?
+>
+> Yes. I think it will provide better accessibility because is more coherent with the current fomantic based implementation.
 
 Reference:
 

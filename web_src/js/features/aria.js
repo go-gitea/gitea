@@ -29,9 +29,8 @@ function attachOneDropdownAria($dropdown) {
   const $focusable = $textSearch.length ? $textSearch : $dropdown; // the primary element for focus, see comment above
   if (!$focusable.length) return;
 
-  // detect if the dropdown has an input, if yes, it works like a combobox, otherwise it works like a menu
-  // or use a special class to indicate it's a combobox/menu in the future
-  const isComboBox = $dropdown.find('input').length > 0;
+  // There are 2 possible solutions about the role: combobox or menu. Always use combobox, see "aria.md" for details.
+  const isComboBox = true; // $dropdown.find('input').length > 0;
 
   const focusableRole = isComboBox ? 'combobox' : 'button';
   const listPopupRole = isComboBox ? 'listbox' : 'menu';
@@ -44,6 +43,7 @@ function attachOneDropdownAria($dropdown) {
     $item.find('a').attr('tabindex', '-1'); // as above, the elements inside the dropdown menu item should not be focusable, the focus should always be on the dropdown primary element.
   }
 
+  // delegate the dropdown's template function to add aria attributes
   const dropdownTemplates = {...$dropdown.dropdown('setting', 'templates')};
   const dropdownTemplatesMenuOld = dropdownTemplates.menu;
   dropdownTemplates.menu = function(response, fields, preserveHTML, className) {
@@ -70,6 +70,7 @@ function attachOneDropdownAria($dropdown) {
   // this role could only be changed after its content is ready, otherwise some browsers+readers (like Chrome+AppleVoice) crash
   $menu.attr('role', listPopupRole);
 
+  // make the primary element (focusable) aria-friendly
   $focusable.attr({
     'role': $focusable.attr('role') ?? focusableRole,
     'aria-haspopup': listPopupRole,
