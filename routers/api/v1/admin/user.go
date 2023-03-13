@@ -308,7 +308,7 @@ func DeleteUser(ctx *context.APIContext) {
 	// - name: purge
 	//   in: query
 	//   description: purge the user from the system completely
-	//   type: bool
+	//   type: boolean
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
