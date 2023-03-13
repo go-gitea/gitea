@@ -1847,7 +1847,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["ShouldShowCommentType"] = func(commentType issues_model.CommentType) bool {
 		return hiddenCommentTypes == nil || hiddenCommentTypes.Bit(int(commentType)) == 0
 	}
-
+	ctx.Data["isShowFullName"] = setting.UI.DefaultShowFullName
 	ctx.HTML(http.StatusOK, tplIssueView)
 }
 

@@ -30,7 +30,7 @@
 										{{.User.GetDisplayName}}
 									</span>
 									<span class="text gt-hidden">
-										{{if eq .User.GetDisplayName .User.FullName}}{{.User.Name}}{{else}}{{.User.FullName}}{{end}}
+										{{if $.isShowFullName}}{{.User.Name}}{{else}}{{.User.FullName}}{{end}}
 									</span>
 								</a>
 							{{end}}
