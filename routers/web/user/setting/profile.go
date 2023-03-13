@@ -55,7 +55,7 @@ func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName s
 		return fmt.Errorf(ctx.Tr("form.username_change_not_local_user"))
 	}
 
-	if strings.EqualFold(newName, ctx.ContextUser.Name) {
+	if strings.EqualFold(user.LowerName, newName) {
 		if err := repo_model.UpdateRepositoryOwnerNames(user.ID, newName); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return err
