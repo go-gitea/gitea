@@ -107,7 +107,7 @@
 		{{end}}
 
 		{{template "repo/issue/labels/labels_selector_field" .}}
-		{{template "repo/issue/labels/labels_sidebar" dict "root" $}}
+		{{template "repo/issue/labels/labels_sidebar" dict "root" $ "ctx" .}}
 
 		<div class="ui divider"></div>
 
