@@ -258,7 +258,11 @@ func SafeJoinFilepath(elem ...string) string {
 	separator := string(filepath.Separator)
 	elems := make([]string, len(elem))
 	for i, v := range elem {
-		elems[i] = filepath.Clean(separator + v)
+		if !strings.HasPrefix(v, separator) {
+			elems[i] = filepath.Clean(separator + v)
+		} else {
+			elems[i] = filepath.Clean(v)
+		}
 	}
 	if len(elem) > 0 && !strings.HasPrefix(elem[0], separator) {
 		return strings.TrimPrefix(filepath.Join(elems...), separator)
