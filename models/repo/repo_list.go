@@ -62,6 +62,34 @@ func RepositoryListOfMap(repoMap map[int64]*Repository) RepositoryList {
 	return RepositoryList(ValuesRepository(repoMap))
 }
 
+func (repos RepositoryList) GetOwnerIDs() []int64 {
+	ids := make(container.Set[int64], len(repos))
+	for _, repo := range repos {
+		if repo.OwnerID == 0 {
+			continue
+		}
+		ids.Add(repo.OwnerID)
+	}
+	return ids.Values()
+}
+
+func (repos RepositoryList) LoadOwners(ctx context.Context) error {
+	userIDs := repos.GetOwnerIDs()
+	users := make(map[int64]*user_model.User, len(userIDs))
+	if err := db.GetEngine(ctx).
+		Where("id > 0").
+		In("id", userIDs).
+		Find(&users); err != nil {
+		return fmt.Errorf("find users: %w", err)
+	}
+	for _, repo := range repos {
+		if repo.OwnerID > 0 && repo.Owner == nil {
+			repo.Owner = users[repo.OwnerID]
+		}
+	}
+	return nil
+}
+
 func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 	if len(repos) == 0 {
 		return nil
@@ -75,16 +103,7 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 	}
 
 	// Load owners.
-	users := make(map[int64]*user_model.User, len(set))
-	if err := db.GetEngine(ctx).
-		Where("id > 0").
-		In("id", set.Values()).
-		Find(&users); err != nil {
-		return fmt.Errorf("find users: %w", err)
-	}
-	for i := range repos {
-		repos[i].Owner = users[repos[i].OwnerID]
-	}
+	repos.LoadOwners(ctx)
 
 	// Load primary language.
 	stats := make(LanguageStatList, 0, len(repos))

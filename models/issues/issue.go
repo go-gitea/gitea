@@ -478,12 +478,26 @@ func (issue *Issue) getLabels(ctx context.Context) (err error) {
 	return nil
 }
 
-// CanRetrievedByDoer returns whether doer can retrieve the issue
-func (issue *Issue) CanRetrievedByDoer(ctx context.Context, doer *user_model.User) (bool, error) {
-	if err := issue.LoadRepo(ctx); err != nil {
-		return false, err
+func (issues IssueList) FliterVaildByDoer(ctx context.Context, doer *user_model.User) (IssueList, error) {
+	repos, err := issues.LoadRepositories(ctx)
+	if err != nil {
+		return nil, err
 	}
 
+	(repo_model.RepositoryList)(repos).LoadOwners(ctx)
+	issueList := issues[:0]
+	for _, issue := range issues {
+		if canRetrievedByDoer, err := issue.canRetrievedByDoer(ctx, doer); err != nil {
+			return nil, err
+		} else if canRetrievedByDoer {
+			issueList = append(issueList, issue)
+		}
+	}
+	return issueList, nil
+}
+
+// canRetrievedByDoer returns whether doer can retrieve the issue
+func (issue *Issue) canRetrievedByDoer(ctx context.Context, doer *user_model.User) (bool, error) {
 	if perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer); err != nil {
 		return false, err
 	} else if !perm.HasAccess() {
@@ -499,10 +513,6 @@ func (issue *Issue) CanRetrievedByDoer(ctx context.Context, doer *user_model.Use
 	// TODO: what about Mirror repo
 	if issue.Repo.IsArchived {
 		return false, nil
-	}
-
-	if err := issue.Repo.LoadOwner(ctx); err != nil {
-		return false, err
 	}
 
 	if issue.Repo.Owner.IsOrganization() && issue.Repo.IsPrivate {

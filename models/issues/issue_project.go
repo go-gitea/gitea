@@ -58,7 +58,7 @@ func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 
 // LoadIssuesFromBoard load issues assigned to this board
 func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user_model.User, isClosed util.OptionalBool) (IssueList, error) {
-	issueList := make([]*Issue, 0, 10)
+	var issueList IssueList
 
 	if b.ID != 0 {
 		issues, err := Issues(ctx, &IssuesOptions{
@@ -70,13 +70,11 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 		if err != nil {
 			return nil, err
 		}
-		for _, issue := range issues {
-			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, doer); err != nil {
-				return nil, err
-			} else if canRetrievedByDoer {
-				issueList = append(issueList, issue)
-			}
+		issues, err = IssueList(issues).FliterVaildByDoer(ctx, doer)
+		if err != nil {
+			return nil, err
 		}
+		issueList = append(issueList, issues...)
 	}
 
 	if b.Default {
@@ -89,16 +87,14 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 		if err != nil {
 			return nil, err
 		}
-		for _, issue := range issues {
-			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, doer); err != nil {
-				return nil, err
-			} else if canRetrievedByDoer {
-				issueList = append(issueList, issue)
-			}
+		issues, err = IssueList(issues).FliterVaildByDoer(ctx, doer)
+		if err != nil {
+			return nil, err
 		}
+		issueList = append(issueList, issues...)
 	}
 
-	if err := IssueList(issueList).LoadComments(ctx); err != nil {
+	if err := issueList.LoadComments(ctx); err != nil {
 		return nil, err
 	}
 
