@@ -43,6 +43,11 @@ func TestSafeJoinFilepath(t *testing.T) {
 			want: `tmp\b\c`,
 		},
 		{
+			name: "as CleanPath",
+			args: []string{`..\..\..\tmp`},
+			want: `tmp`,
+		},
+		{
 			name: "with drive",
 			args: []string{`C:\tmp`, `..\etc\passwd`, `\test1\..\b`, `test2\.\test3\..\..\c`},
 			want: `C:\tmp\etc\passwd\b\c`,

@@ -168,6 +168,11 @@ func TestSafeJoinPath(t *testing.T) {
 			args: []string{"./tmp", "/test1/../b", "test2/./test3/../../c"},
 			want: "tmp/b/c",
 		},
+		{
+			name: "as CleanPath",
+			args: []string{"../../../tmp"},
+			want: "tmp",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
