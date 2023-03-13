@@ -27,7 +27,7 @@ func renameUser(ctx context.Context, u *user_model.User, newUserName string) (er
 		return err
 	}
 
-	err = agit.UserNameChanged(u, newUserName)
+	err = agit.UserNameChanged(ctx, u, newUserName)
 	if err != nil {
 		return err
 	}
