@@ -103,7 +103,7 @@ func setWellKnownContentType(w http.ResponseWriter, file string) {
 
 func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.FileSystem, file string) bool {
 	// use clean to keep the file is a valid path with no . or ..
-	f, err := fs.Open(util.CleanPath(file))
+	f, err := fs.Open(util.SafeJoinFilepath(file))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false

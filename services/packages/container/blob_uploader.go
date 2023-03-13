@@ -8,7 +8,6 @@ import (
 	"errors"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -33,7 +32,7 @@ type BlobUploader struct {
 }
 
 func buildFilePath(id string) string {
-	return filepath.Join(setting.Packages.ChunkedUploadPath, util.CleanPath(strings.ReplaceAll(id, "\\", "/")))
+	return util.SafeJoinFilepath(setting.Packages.ChunkedUploadPath, strings.ReplaceAll(id, "\\", "/"))
 }
 
 // NewBlobUploader creates a new blob uploader for the given id
