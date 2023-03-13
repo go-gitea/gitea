@@ -48,7 +48,18 @@ There are different solutions:
 
 ## Fomantic UI Dropdown
 
-When the dropdown has input elements, use `role=combobox`, otherwise use `role=menu` (see `aria.js`)
+When the dropdown has input elements, use `role=combobox`, otherwise use `role=menu` (see `aria.js`) for actions.
+
+Reference:
+
+* Combobox:
+  * https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
+  * A combobox is an **input widget** with an associated popup that enables users to select a value for the combobox from
+    a collection of possible values. In some implementations, the popup presents allowed values, while in other implementations,
+    the popup presents suggested values, and users may either select one of the suggestions or type a value.
+* Menu:
+  * https://www.w3.org/WAI/ARIA/apg/patterns/menubar/
+  * A menu is a widget that offers a list of choices to the user, such as a set of **actions or functions**.
 
 ```html
 <!-- read-only dropdown -->
