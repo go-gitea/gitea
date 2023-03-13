@@ -64,7 +64,7 @@ func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName s
 	}
 
 	// rename user
-	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName); err != nil {
+	if err := user_service.RenameUser(ctx, user, newName); err != nil {
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
