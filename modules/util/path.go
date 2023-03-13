@@ -14,14 +14,6 @@ import (
 	"strings"
 )
 
-// CleanPath ensure to clean the path
-func CleanPath(p string) string {
-	if strings.HasPrefix(p, "/") {
-		return path.Clean(p)
-	}
-	return path.Clean("/" + p)[1:]
-}
-
 // EnsureAbsolutePath ensure that a path is absolute, making it
 // relative to absoluteBase if necessary
 func EnsureAbsolutePath(path, absoluteBase string) string {
@@ -247,4 +239,29 @@ func IsReadmeFileExtension(name string, ext ...string) (int, bool) {
 	}
 
 	return 0, false
+}
+
+// SafeJoinPath is like path.Join, but it will prevent directory escaping.
+func SafeJoinPath(elem ...string) string {
+	elems := make([]string, len(elem))
+	for i, v := range elem {
+		elems[i] = path.Clean("/" + v)
+	}
+	if len(elem) > 0 && !strings.HasPrefix(elem[0], "/") {
+		return path.Join(elems...)[1:]
+	}
+	return path.Join(elems...)
+}
+
+// SafeJoinFilepath is like filepath.Join, but it will prevent directory escaping.
+func SafeJoinFilepath(elem ...string) string {
+	separator := string(filepath.Separator)
+	elems := make([]string, len(elem))
+	for i, v := range elem {
+		elems[i] = filepath.Clean(separator + v)
+	}
+	if len(elem) > 0 && !strings.HasPrefix(elem[0], separator) {
+		return filepath.Join(elems...)[1:]
+	}
+	return filepath.Join(elems...)
 }

@@ -137,14 +137,41 @@ func TestMisc_IsReadmeFileName(t *testing.T) {
 	}
 }
 
-func TestCleanPath(t *testing.T) {
-	cases := map[string]string{
-		"../../test": "test",
-		"/test":      "/test",
-		"/../test":   "/test",
+func TestSafeJoinPath(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{
+			name: "empty elems",
+			args: []string{},
+			want: "",
+		},
+		{
+			name: "empty string",
+			args: []string{"", ""},
+			want: "",
+		},
+		{
+			name: "escape root",
+			args: []string{"/tmp", "../etc/passwd", "../../../../etc/passwd"},
+			want: "/tmp/etc/passwd/etc/passwd",
+		},
+		{
+			name: "normal upward",
+			args: []string{"/tmp", "/test1/../b", "test2/./test3/../../c"},
+			want: "/tmp/b/c",
+		},
+		{
+			name: "relative path",
+			args: []string{"./tmp", "/test1/../b", "test2/./test3/../../c"},
+			want: "tmp/b/c",
+		},
 	}
-
-	for k, v := range cases {
-		assert.Equal(t, v, CleanPath(k))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, SafeJoinPath(tt.args...), "SafeJoinPath(%v)", tt.args)
+		})
 	}
 }
