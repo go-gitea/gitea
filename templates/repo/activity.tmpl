@@ -5,11 +5,13 @@
 		<h2 class="ui header"><time data-format="date" datetime="{{.DateFrom}}">{{.DateFrom}}</time> - <time data-format="date" datetime="{{.DateUntil}}">{{.DateUntil}}</time>
 			<div class="ui right">
 				<!-- Period -->
-				<div class="ui basic compact button floating dropdown jump filter">
-					<span class="text">
-						{{.locale.Tr "repo.activity.period.filter_label"}} <strong>{{.PeriodText}}</strong>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-					</span>
+				<div class="ui floating dropdown jump filter">
+					<div class="ui basic compact button">
+						<span class="text">
+							{{.locale.Tr "repo.activity.period.filter_label"}} <strong>{{.PeriodText}}</strong>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						</span>
+					</div>
 					<div class="menu">
 						<a class="{{if eq .Period "daily"}}active {{end}}item" href="{{$.RepoLink}}/activity/daily">{{.locale.Tr "repo.activity.period.daily"}}</a>
 						<a class="{{if eq .Period "halfweekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/halfweekly">{{.locale.Tr "repo.activity.period.halfweekly"}}</a>

@@ -3,7 +3,7 @@
 	{{if .OrderedOAuth2Names}}
 		<div class="ui right">
 			<div class="ui dropdown">
-				<button class="ui primary tiny button">{{.locale.Tr "settings.link_account"}}</button>
+				<div class="ui primary tiny button">{{.locale.Tr "settings.link_account"}}</div>
 				<div class="menu">
 					{{range $key := .OrderedOAuth2Names}}
 						{{$provider := index $.OAuth2Providers $key}}

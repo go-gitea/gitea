@@ -49,20 +49,20 @@ export function initFootLanguageMenu() {
 
 
 export function initGlobalEnterQuickSubmit() {
-  $(document).on('keydown', '.js-quick-submit', (event) => {
-    if (((event.ctrlKey && !event.altKey) || event.metaKey) && (event.key === 'Enter')) {
-      handleGlobalEnterQuickSubmit(event.target);
+  $(document).on('keydown', '.js-quick-submit', (e) => {
+    if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter')) {
+      handleGlobalEnterQuickSubmit(e.target);
       return false;
     }
   });
 }
 
 export function initGlobalButtonClickOnEnter() {
-  $(document).on('keypress', '.ui.button', (event) => {
-    if (event.keyCode === 13 || event.keyCode === 32) { // enter key or space bar
-      if (event.target.nodeName === 'BUTTON') return; // button already handles space&enter correctly
-      $(event.target).trigger('click');
-      event.preventDefault();
+  $(document).on('keypress', '.ui.button', (e) => {
+    if (e.keyCode === 13 || e.keyCode === 32) { // enter key or space bar
+      if (e.target.nodeName === 'BUTTON') return; // button already handles space&enter correctly
+      $(e.target).trigger('click');
+      e.preventDefault();
     }
   });
 }
@@ -202,7 +202,8 @@ export function initGlobalDropzone() {
 }
 
 export function initGlobalLinkActions() {
-  function showDeletePopup() {
+  function showDeletePopup(e) {
+    e.preventDefault();
     const $this = $(this);
     const dataArray = $this.data();
     let filter = '';
@@ -243,10 +244,10 @@ export function initGlobalLinkActions() {
         });
       }
     }).modal('show');
-    return false;
   }
 
-  function showAddAllPopup() {
+  function showAddAllPopup(e) {
+    e.preventDefault();
     const $this = $(this);
     let filter = '';
     if ($this.attr('id')) {
@@ -272,7 +273,6 @@ export function initGlobalLinkActions() {
         });
       }
     }).modal('show');
-    return false;
   }
 
   function linkAction(e) {
@@ -318,14 +318,21 @@ export function initGlobalLinkActions() {
 }
 
 export function initGlobalButtons() {
-  $('.show-panel.button').on('click', function (event) {
-    event.preventDefault();
+  // There are many "cancel button" elements in modal dialogs, Fomantic UI expects they are button-like elements but never submit a form.
+  // However, Gitea misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
+  // There are a few cancel buttons in non-modal forms, and there are some dynamically created forms (eg: the "Edit Issue Content")
+  $(document).on('click', 'form .ui.cancel.button', (e) => {
+    e.preventDefault();
+  });
+
+  $('.show-panel.button').on('click', function (e) {
+    e.preventDefault();
     showElem($(this).data('panel'));
   });
 
-  $('.hide-panel.button').on('click', function (event) {
+  $('.hide-panel.button').on('click', function (e) {
     // a `.hide-panel.button` can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
-    event.preventDefault();
+    e.preventDefault();
     let sel = $(this).attr('data-panel');
     if (sel) {
       hideElem($(sel));
@@ -340,8 +347,8 @@ export function initGlobalButtons() {
     alert('Nothing to hide');
   });
 
-  $('.show-modal').on('click', function (event) {
-    event.preventDefault();
+  $('.show-modal').on('click', function (e) {
+    e.preventDefault();
     const modalDiv = $($(this).attr('data-modal'));
     for (const attrib of this.attributes) {
       if (!attrib.name.startsWith('data-modal-')) {
@@ -362,8 +369,8 @@ export function initGlobalButtons() {
     }
   });
 
-  $('.delete-post.button').on('click', function (event) {
-    event.preventDefault();
+  $('.delete-post.button').on('click', function (e) {
+    e.preventDefault();
     const $this = $(this);
     $.post($this.attr('data-request-url'), {
       _csrf: csrfToken
