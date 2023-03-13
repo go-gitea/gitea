@@ -1093,6 +1093,11 @@ Default templates for project boards:
 - `DISABLE_CORE_PROTECT_NTFS`: **false** Set to true to forcibly set `core.protectNTFS` to false.
 - `DISABLE_PARTIAL_CLONE`: **false** Disable the usage of using partial clones for git.
 
+## Git - Reflog settings (`git.reflog`)
+
+- `ENABLED`: **true** Set to true to enable Git to write changes to reflogs in each repo.
+- `EXPIRATION`: **90** Reflog entry lifetime, in days. Entries are removed opportunistically by Git.
+
 ## Git - Timeout settings (`git.timeout`)
 
 - `DEFAULT`: **360**: Git operations default timeout seconds.
