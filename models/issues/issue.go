@@ -484,7 +484,10 @@ func (issues IssueList) FliterVaildByDoer(ctx context.Context, doer *user_model.
 		return nil, err
 	}
 
-	(repo_model.RepositoryList)(repos).LoadOwners(ctx)
+	if err := repo_model.RepositoryList(repos).LoadOwners(ctx); err != nil {
+		return nil, err
+	}
+
 	issueList := issues[:0]
 	for _, issue := range issues {
 		if canRetrievedByDoer, err := issue.canRetrievedByDoer(ctx, doer); err != nil {
