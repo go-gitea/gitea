@@ -133,6 +133,8 @@ func List(ctx *context.Context) {
 
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.AddParamString("workflow", workflow)
+	pager.AddParamString("state", ctx.FormString("state"))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplListActions)
