@@ -467,8 +467,10 @@ var migrations = []Migration{
 
 	// v244 -> v245
 	NewMigration("Add NeedApproval to actions tables", v1_20.AddNeedApprovalToActionRun),
+	// v245 -> v246
+	NewMigration("Rename Webhook org_id to owner_id", v1_20.RenameWebhookOrgToOwner),
 	// to modify later
-	NewMigration("add size limit on repository", v1_19.AddSizeLimitOnRepo),
+	NewMigration("add size limit on repository", v1_20.AddSizeLimitOnRepo),
 }
 
 // GetCurrentDBVersion returns the current db version
