@@ -95,39 +95,35 @@ export function initRepoProject() {
   $('.edit-project-board').each(function () {
     const projectHeader = $(this).closest('.board-column-header');
     const projectTitleLabel = projectHeader.find('.board-label');
-    const projectTitleInput = $(this).find(
-      '.content > .form > .field > .project-board-title',
-    );
-    const projectColorInput = $(this).find('.content > .form > .field  #new_board_color');
+    const projectTitleInput = $(this).find('.project-board-title');
+    const projectColorInput = $(this).find('#new_board_color');
     const boardColumn = $(this).closest('.board-column');
 
     if (boardColumn.css('backgroundColor')) {
       setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
     }
 
-    $(this)
-      .find('.content > .form > .actions > .red')
-      .on('click', function (e) {
-        e.preventDefault();
+    $(this).find('.edit-column-button').on('click', function (e) {
+      e.preventDefault();
 
-        $.ajax({
-          url: $(this).data('url'),
-          data: JSON.stringify({title: projectTitleInput.val(), color: projectColorInput.val()}),
-          headers: {
-            'X-Csrf-Token': csrfToken,
-          },
-          contentType: 'application/json',
-          method: 'PUT',
-        }).done(() => {
-          projectTitleLabel.text(projectTitleInput.val());
-          projectTitleInput.closest('form').removeClass('dirty');
-          if (projectColorInput.val()) {
-            setLabelColor(projectHeader, projectColorInput.val());
-          }
-          boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
-          $('.ui.modal').modal('hide');
-        });
+      $.ajax({
+        url: $(this).data('url'),
+        data: JSON.stringify({title: projectTitleInput.val(), color: projectColorInput.val()}),
+        headers: {
+          'X-Csrf-Token': csrfToken,
+        },
+        contentType: 'application/json',
+        method: 'PUT',
+      }).done(() => {
+        projectTitleLabel.text(projectTitleInput.val());
+        projectTitleInput.closest('form').removeClass('dirty');
+        if (projectColorInput.val()) {
+          setLabelColor(projectHeader, projectColorInput.val());
+        }
+        boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
+        $('.ui.modal').modal('hide');
       });
+    });
   });
 
   $(document).on('click', '.set-default-project-board', async function (e) {
