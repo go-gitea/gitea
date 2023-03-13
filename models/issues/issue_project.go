@@ -177,7 +177,7 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 		if canWriteByDoer, err := newProject.CanWriteByDoer(ctx, issue.Repo, doer); err != nil {
 			return err
 		} else if !canWriteByDoer {
-			return fmt.Errorf("issue's repository can't be retrieved by doer")
+			return fmt.Errorf("doer have no write permission to project [id:%d]", newProjectID)
 		}
 	}
 

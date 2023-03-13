@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -161,9 +162,59 @@ func (p *Project) IsOrganizationProject() bool {
 	return p.Type == TypeOrganization
 }
 
-// CanRetrievedByDoer return whether project can be retrieved by a doer in a repo
+func (pl List) GetOwnerIDs() []int64 {
+	ids := make(container.Set[int64], len(pl))
+	for _, p := range pl {
+		if p.OwnerID == 0 {
+			continue
+		}
+		ids.Add(p.OwnerID)
+	}
+	return ids.Values()
+}
+
+func (pl List) LoadOwners(ctx context.Context) error {
+	userIDs := pl.GetOwnerIDs()
+	users := make(map[int64]*user_model.User, len(userIDs))
+	if err := db.GetEngine(ctx).
+		Where("id > 0").
+		In("id", userIDs).
+		Find(&users); err != nil {
+		return fmt.Errorf("find users: %w", err)
+	}
+	for _, p := range pl {
+		if p.OwnerID > 0 && p.Owner == nil {
+			p.Owner = users[p.OwnerID]
+		}
+	}
+	return nil
+}
+
+// CanWriteByDoer return whether doer have write permission to the project in a repo
+func (pl List) FliterWritableByDoer(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) (List, error) {
+	if err := pl.LoadOwners(ctx); err != nil {
+		return nil, err
+	}
+
+	projectList := pl[:0]
+	for _, p := range pl {
+		if canWriteByDoer, err := p.CanWriteByDoer(ctx, repo, doer); err != nil {
+			return nil, err
+		} else if canWriteByDoer {
+			projectList = append(projectList, p)
+		}
+	}
+	return projectList, nil
+}
+
+// CanWriteByDoer return whether doer have write permission to the project in a repo
 func (p *Project) CanWriteByDoer(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) (bool, error) {
 	if unit.TypeProjects.UnitGlobalDisabled() {
+		return false, nil
+	}
+
+	// non-login user have no write permission
+	if doer == nil {
 		return false, nil
 	}
 
@@ -178,7 +229,7 @@ func (p *Project) CanWriteByDoer(ctx context.Context, repo *repo_model.Repositor
 		}
 
 		if err := p.LoadRepo(ctx); err != nil {
-			return false, fmt.Errorf("LoadOwner: %w", err)
+			return false, fmt.Errorf("LoadRepo: %w", err)
 		}
 		if perm, err := access_model.GetUserRepoPermission(ctx, p.Repo, doer); err != nil {
 			return false, err
@@ -195,17 +246,23 @@ func (p *Project) CanWriteByDoer(ctx context.Context, repo *repo_model.Repositor
 			return false, nil
 		}
 
-		if doer == nil {
-			return false, nil
-		}
-
 		if repo.Owner.IsIndividual() && repo.Owner.ID != doer.ID {
 			return false, nil
 		}
 
-		if repo.Owner.IsOrganization() {
-			if (*organization.Organization)(repo.Owner).UnitPermission(ctx, doer, unit.TypeProjects) < perm.AccessModeWrite {
-				return false, nil
+		if repo.Owner.IsOrganization() && repo.IsPrivate {
+			collaboration, err := repo_model.GetCollaboration(ctx, repo.ID, doer.ID)
+			if err != nil {
+				return false, fmt.Errorf("GetCollaboration: %w", err)
+			}
+			if collaboration == nil {
+				if (*organization.Organization)(repo.Owner).UnitPermission(ctx, doer, unit.TypeIssues) < perm.AccessModeWrite {
+					return false, nil
+				}
+			} else {
+				if collaboration.Mode < perm.AccessModeWrite {
+					return false, nil
+				}
 			}
 		}
 	}

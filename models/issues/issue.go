@@ -518,7 +518,7 @@ func (issue *Issue) canRetrievedByDoer(ctx context.Context, doer *user_model.Use
 	if issue.Repo.Owner.IsOrganization() && issue.Repo.IsPrivate {
 		collaboration, err := repo_model.GetCollaboration(ctx, issue.Repo.ID, doer.ID)
 		if err != nil {
-			return false, fmt.Errorf("getCollaborators: %w", err)
+			return false, fmt.Errorf("GetCollaboration: %w", err)
 		}
 		if collaboration == nil {
 			if (*organization.Organization)(issue.Repo.Owner).UnitPermission(ctx, doer, unit.TypeIssues) < perm.AccessModeRead {

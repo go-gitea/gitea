@@ -103,7 +103,9 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 	}
 
 	// Load owners.
-	repos.LoadOwners(ctx)
+	if err := repos.LoadOwners(ctx); err != nil {
+		return err
+	}
 
 	// Load primary language.
 	stats := make(LanguageStatList, 0, len(repos))
