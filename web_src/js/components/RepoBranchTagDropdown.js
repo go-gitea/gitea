@@ -3,43 +3,41 @@ import $ from 'jquery';
 import {vueDelimiters} from './VueComponentLoader.js';
 
 export function initRepoBranchTagDropdown(selector) {
-  $(selector).each(function () {
-    const $dropdown = $(this);
-    const $data = $dropdown.find('.data');
+  $(selector).each(function (dropdownIndex, elRoot) {
     const data = {
+      csrfToken: window.config.csrfToken,
       items: [],
-      mode: $data.data('mode'),
       searchTerm: '',
-      refName: '',
-      noResults: '',
-      canCreateBranch: false,
       menuVisible: false,
       createTag: false,
+      release: null,
+
       isViewTag: false,
       isViewBranch: false,
       isViewTree: false,
-      active: 0,
-      branchForm: '',
-      branchURLPrefix: '',
-      branchURLSuffix: '',
-      tagURLPrefix: '',
-      tagURLSuffix: '',
-      setAction: false,
-      submitForm: false,
-    };
-    $data.find('.item').each(function () {
-      data.items.push({
-        name: $(this).text(),
-        url: $(this).data('url'),
-        branch: $(this).hasClass('branch'),
-        tag: $(this).hasClass('tag'),
-        selected: $(this).hasClass('selected')
-      });
-    });
-    $data.remove();
 
-    // eslint-disable-next-line unicorn/no-this-assignment
-    const elRoot = this;
+      active: 0,
+
+      ...window.config.pageData.branchDropdownDataList[dropdownIndex],
+    };
+
+    // the "data.defaultBranch" is ambiguous, it could be "branch name" or "tag name"
+
+    if (data.showBranchesInDropdown && data.branches) {
+      for (const branch of data.branches) {
+        data.items.push({name: branch, url: branch, branch: true, tag: false, selected: branch === data.defaultBranch});
+      }
+    }
+    if (!data.noTag && data.tags) {
+      for (const tag of data.tags) {
+        if (data.release) {
+          data.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === data.release.tagName});
+        } else {
+          data.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === data.defaultBranch});
+        }
+      }
+    }
+
     const view = createApp({
       delimiters: vueDelimiters,
       data() {
@@ -60,7 +58,7 @@ export function initRepoBranchTagDropdown(selector) {
           return this.filteredItems.length === 0 && !this.showCreateNewBranch;
         },
         showCreateNewBranch() {
-          if (!this.canCreateBranch || !this.searchTerm) {
+          if (this.disableCreateBranch || !this.searchTerm) {
             return false;
           }
 
@@ -77,10 +75,7 @@ export function initRepoBranchTagDropdown(selector) {
       },
 
       beforeMount() {
-        this.noResults = elRoot.getAttribute('data-no-results');
-        this.canCreateBranch = elRoot.getAttribute('data-can-create-branch') === 'true';
-        this.branchForm = elRoot.getAttribute('data-branch-form');
-        switch (elRoot.getAttribute('data-view-type')) {
+        switch (data.viewType) {
           case 'tree':
             this.isViewTree = true;
             break;
@@ -91,14 +86,6 @@ export function initRepoBranchTagDropdown(selector) {
             this.isViewBranch = true;
             break;
         }
-        this.refName = elRoot.getAttribute('data-ref-name');
-        this.branchURLPrefix = elRoot.getAttribute('data-branch-url-prefix');
-        this.branchURLSuffix = elRoot.getAttribute('data-branch-url-suffix');
-        this.tagURLPrefix = elRoot.getAttribute('data-tag-url-prefix');
-        this.tagURLSuffix = elRoot.getAttribute('data-tag-url-suffix');
-        this.setAction = elRoot.getAttribute('data-set-action') === 'true';
-        this.submitForm = elRoot.getAttribute('data-submit-form') === 'true';
-
 
         document.body.addEventListener('click', (event) => {
           if (elRoot.contains(event.target)) return;
@@ -116,7 +103,7 @@ export function initRepoBranchTagDropdown(selector) {
           }
           item.selected = true;
           const url = (item.tag) ? this.tagURLPrefix + item.url + this.tagURLSuffix : this.branchURLPrefix + item.url + this.branchURLSuffix;
-          if (this.branchForm === '') {
+          if (!this.branchForm) {
             window.location.href = url;
           } else {
             this.isViewTree = false;

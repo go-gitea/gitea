@@ -237,6 +237,8 @@
     }
 
     #repo-files-table {
+      table-layout: fixed;
+
       thead {
         th {
           padding-top: 8px;
@@ -950,8 +952,15 @@
           margin-top: 4px;
         }
 
-        .comment-form-reply .footer {
-          padding-bottom: 1em;
+        .comparebox {
+          line-height: 32px;
+          vertical-align: middle;
+
+          .compare.label {
+            font-size: 1rem;
+            margin: 0;
+            border: 1px solid var(--color-light-border);
+          }
         }
 
         @media @mediaSm {
@@ -1661,8 +1670,14 @@
     align-items: center;
 
     .file {
-      flex: 1;
-      word-break: break-all;
+      min-width: 0;
+      .file-link {
+        max-width: fit-content;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+      }
     }
 
     .button {
@@ -2823,11 +2838,11 @@
 
 .labels-list .label {
   margin: 2px 0;
-  display: inline-block !important;
+  display: inline-flex !important;
   line-height: 1.3em; // there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly
 }
 
-// Scoped labels with different colors on left and right, and slanted divider in the middle
+// Scoped labels with different colors on left and right
 .scope-parent {
   background: none !important;
   padding: 0 !important;
@@ -2836,23 +2851,12 @@
 .ui.label.scope-left {
   border-bottom-right-radius: 0;
   border-top-right-radius: 0;
-  padding-right: 0;
-  margin-right: 0;
-}
-
-.ui.label.scope-middle {
-  width: 12px;
-  border-radius: 0;
-  padding-left: 0;
-  padding-right: 0;
-  margin-left: 0;
   margin-right: 0;
 }
 
 .ui.label.scope-right {
   border-bottom-left-radius: 0;
   border-top-left-radius: 0;
-  padding-left: 0;
   margin-left: 0;
 }
 
@@ -2861,12 +2865,7 @@
 }
 
 .repo-button-row > * {
-  margin-top: 10px;
-}
-
-.repo-button-row .dropdown > .dropdown.icon {
-  margin-left: .25rem !important;
-  margin-right: 0 !important;
+  margin-top: 8px;
 }
 
 .wiki .repo-button-row {
@@ -2890,12 +2889,17 @@ tbody.commit-list {
   vertical-align: baseline;
 }
 
-.message-wrapper {
+.message-wrapper,
+.author-wrapper {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: calc(100% - 50px);
   display: inline-block;
   vertical-align: middle;
+}
+
+.author-wrapper {
+  max-width: 180px;
 }
 
 // in the commit list, messages can wrap so we can use inline
@@ -2917,6 +2921,10 @@ tbody.commit-list {
     display: block;
     max-width: calc(100vw - 70px);
   }
+
+  .author-wrapper {
+    max-width: 80px;
+  }
 }
 
 @media @mediaMd {
@@ -2925,7 +2933,7 @@ tbody.commit-list {
   }
 
   th .message-wrapper {
-    max-width: 280px;
+    max-width: 120px;
   }
 }
 
@@ -2935,7 +2943,7 @@ tbody.commit-list {
   }
 
   th .message-wrapper {
-    max-width: 490px;
+    max-width: 350px;
   }
 }
 
@@ -2945,7 +2953,7 @@ tbody.commit-list {
   }
 
   th .message-wrapper {
-    max-width: 680px;
+    max-width: 525px;
   }
 }
 
@@ -3244,8 +3252,8 @@ td.blob-excerpt {
 }
 
 .sidebar-item-link {
-  display: inline-flex;
   align-items: center;
+  word-break: break-all;
 }
 
 .diff-file-box[data-folded="true"] .diff-file-body {
@@ -3263,20 +3271,21 @@ td.blob-excerpt {
 .ui.attached.header.diff-file-header {
   &.sticky-2nd-row {
     position: sticky;
-    top: 46px;
+    top: 77px;
     z-index: 7;
-
-    @media @mediaMd {
-      top: 77px;
-    }
-
-    @media @mediaSm {
-      top: 77px;
-    }
 
     @media (max-width: 480px) {
       position: static;
     }
+  }
+
+  .diff-file-header-actions {
+    flex-shrink: 0;
+  }
+
+  .diff-file-name {
+    flex: auto;
+    min-width: 100px;
   }
 }
 

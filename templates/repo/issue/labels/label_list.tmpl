@@ -31,8 +31,8 @@
 			<li class="item">
 			<div class="ui grid middle aligned">
 				<div class="nine wide column">
-					{{RenderLabel .}}
-					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}
+					{{RenderLabel $.Context .}}
+					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 				</div>
 				<div class="four wide column">
 					{{if $.PageIsOrgSettingsLabels}}
@@ -70,8 +70,8 @@
 					<li class="item">
 					<div class="ui grid middle aligned">
 						<div class="nine wide column">
-							{{RenderLabel .}}
-							{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}
+							{{RenderLabel $.Context .}}
+							{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 						</div>
 						<div class="four wide column">
 							<a class="ui left open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.locale.Tr "repo.issues.label_open_issues" .NumOpenRepoIssues}}</a>
