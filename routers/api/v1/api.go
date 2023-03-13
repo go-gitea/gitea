@@ -835,6 +835,13 @@ func Routes(ctx gocontext.Context) *web.Route {
 			m.Get("/stopwatches", reqToken(auth_model.AccessTokenScopeRepo), repo.GetStopwatches)
 			m.Get("/subscriptions", reqToken(auth_model.AccessTokenScopeRepo), user.GetMyWatchedRepos)
 			m.Get("/teams", reqToken(auth_model.AccessTokenScopeRepo), org.ListUserTeams)
+			m.Group("/hooks", func() {
+				m.Combo("").Get(user.ListHooks).
+					Post(bind(api.CreateHookOption{}), user.CreateHook)
+				m.Combo("/{id}").Get(user.GetHook).
+					Patch(bind(api.EditHookOption{}), user.EditHook).
+					Delete(user.DeleteHook)
+			}, reqToken(auth_model.AccessTokenScopeAdminUserHook), reqWebhooksEnabled())
 		}, reqToken(""))
 
 		// Repositories
