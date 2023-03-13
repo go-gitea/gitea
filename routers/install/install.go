@@ -104,7 +104,7 @@ func Install(ctx *context.Context) {
 	form.DbSchema = setting.Database.Schema
 	form.Charset = setting.Database.Charset
 
-	curDBType := setting.Database.Type
+	curDBType := setting.Database.Type.String()
 	var isCurDBTypeSupported bool
 	for _, dbType := range setting.SupportedDatabaseTypes {
 		if dbType == curDBType {
@@ -272,7 +272,7 @@ func SubmitInstall(ctx *context.Context) {
 	// ---- Basic checks are passed, now test configuration.
 
 	// Test database setting.
-	setting.Database.Type = form.DbType
+	setting.Database.Type = setting.DatabaseType(form.DbType)
 	setting.Database.Host = form.DbHost
 	setting.Database.User = form.DbUser
 	setting.Database.Passwd = form.DbPasswd
@@ -392,7 +392,7 @@ func SubmitInstall(ctx *context.Context) {
 			log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 		}
 	}
-	cfg.Section("database").Key("DB_TYPE").SetValue(setting.Database.Type)
+	cfg.Section("database").Key("DB_TYPE").SetValue(setting.Database.Type.String())
 	cfg.Section("database").Key("HOST").SetValue(setting.Database.Host)
 	cfg.Section("database").Key("NAME").SetValue(setting.Database.Name)
 	cfg.Section("database").Key("USER").SetValue(setting.Database.User)

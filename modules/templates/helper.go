@@ -834,7 +834,7 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) string {
 		// Make scope and item background colors slightly darker and lighter respectively.
 		// More contrast needed with higher luminance, empirically tweaked.
 		luminance := (0.299*r + 0.587*g + 0.114*b) / 255
-		contrast := 0.01 + luminance*0.06
+		contrast := 0.01 + luminance*0.03
 		// Ensure we add the same amount of contrast also near 0 and 1.
 		darken := contrast + math.Max(luminance+contrast-1.0, 0.0)
 		lighten := contrast + math.Max(contrast-luminance, 0.0)
@@ -859,12 +859,10 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) string {
 
 	return fmt.Sprintf("<span class='ui label scope-parent' title='%s'>"+
 		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+
-		"<div class='ui label scope-middle' style='background: linear-gradient(-80deg, %s 48%%, %s 52%% 0%%);'>&nbsp;</div>"+
 		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important''>%s</div>"+
 		"</span>",
 		description,
 		textColor, scopeColor, scopeText,
-		itemColor, scopeColor,
 		textColor, itemColor, itemText)
 }
 
