@@ -48,9 +48,9 @@
 						{{end}}
 						<span class="issue-stats">
 							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
-							{{JsPrettyNumber $.NumOpenIssuesInProjects}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
+							{{JsPrettyNumber (index $.NumOpenIssuesInProjects .ID)}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
 							{{svg "octicon-check" 16 "gt-mr-3"}}
-							{{JsPrettyNumber $.NumClosedIssuesInProjects}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+							{{JsPrettyNumber (index $.NumClosedIssuesInProjects .ID)}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
 						</span>
 					</div>
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}

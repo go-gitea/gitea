@@ -115,17 +115,17 @@ func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, do
 }
 
 // NumIssuesInProjects returns counter of all issues assigned to a project list which doer can access
-func NumIssuesInProjects(ctx context.Context, pl project_model.List, doer *user_model.User, isClosed util.OptionalBool) (int, error) {
-	numIssuesInProjects := int(0)
+func NumIssuesInProjects(ctx context.Context, pl project_model.List, doer *user_model.User, isClosed util.OptionalBool) (map[int64]int, error) {
+	numMap := make(map[int64]int, len(pl))
 	for _, p := range pl {
-		numIssuesInProject, err := NumIssuesInProject(ctx, p, doer, isClosed)
+		num, err := NumIssuesInProject(ctx, p, doer, isClosed)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
-		numIssuesInProjects += numIssuesInProject
+		numMap[p.ID] = num
 	}
 
-	return numIssuesInProjects, nil
+	return numMap, nil
 }
 
 // NumIssuesInProject returns counter of all issues assigned to a project which doer can access
