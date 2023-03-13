@@ -207,7 +207,7 @@ func LFSLockFile(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
 		return
 	}
-	lockPath = util.CleanPath(lockPath)
+	lockPath = strings.TrimPrefix(util.CleanPath(lockPath), "/")
 	if len(lockPath) == 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.lfs_invalid_locking_path", originalPath))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
@@ -215,7 +215,7 @@ func LFSLockFile(ctx *context.Context) {
 	}
 
 	_, err := git_model.CreateLFSLock(ctx, ctx.Repo.Repository, &git_model.LFSLock{
-		Path:    strings.TrimPrefix(lockPath, "/"),
+		Path:    lockPath,
 		OwnerID: ctx.Doer.ID,
 	})
 	if err != nil {
