@@ -59,7 +59,7 @@ func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName s
 
 	// Check if user name has been changed
 	if user.LowerName != strings.ToLower(newName) {
-		if err := user_model.ChangeUserName(user, newName); err != nil {
+		if err := user_model.ChangeUserName(ctx, user, newName); err != nil {
 			switch {
 			case user_model.IsErrUserAlreadyExist(err):
 				ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
