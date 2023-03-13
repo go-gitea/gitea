@@ -332,8 +332,13 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 }
 
 func commitAndSignNoAuthor(ctx *mergeContext, message string) error {
-	if err := git.NewCommand(ctx, "commit").AddArguments(ctx.signArg...).AddOptionFormat("--message=%s", message).
-		Run(ctx.RunOpts()); err != nil {
+	cmdCommit := git.NewCommand(ctx, "commit").AddOptionFormat("--message=%s", message)
+	if ctx.signKeyID == "" {
+		cmdCommit.AddArguments("--no-gpg-sign")
+	} else {
+		cmdCommit.AddOptionFormat("-S%s", ctx.signKeyID)
+	}
+	if err := cmdCommit.Run(ctx.RunOpts()); err != nil {
 		log.Error("git commit %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 		return fmt.Errorf("git commit %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 	}
