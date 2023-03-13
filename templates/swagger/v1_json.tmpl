@@ -493,6 +493,12 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "purge the user from the system completely",
+            "name": "purge",
+            "in": "query"
           }
         ],
         "responses": {
@@ -2114,6 +2120,7 @@
               "pub",
               "pypi",
               "rubygems",
+              "swift",
               "vagrant"
             ],
             "type": "string",
