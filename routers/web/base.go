@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/services/auth"
@@ -44,7 +45,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				routing.UpdateFuncInfo(req.Context(), funcInfo)
 
 				rPath := strings.TrimPrefix(req.URL.Path, "/"+prefix+"/")
-				rPath = path.Clean("/" + strings.ReplaceAll(rPath, "\\", "/"))[1:]
+				rPath = util.CleanPath(strings.ReplaceAll(rPath, "\\", "/"))
 
 				u, err := objStore.URL(rPath, path.Base(rPath))
 				if err != nil {
@@ -80,7 +81,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 			routing.UpdateFuncInfo(req.Context(), funcInfo)
 
 			rPath := strings.TrimPrefix(req.URL.Path, "/"+prefix+"/")
-			rPath = path.Clean("/" + strings.ReplaceAll(rPath, "\\", "/"))[1:]
+			rPath = util.CleanPath(strings.ReplaceAll(rPath, "\\", "/"))
 			if rPath == "" {
 				http.Error(w, "file not found", http.StatusNotFound)
 				return
@@ -158,7 +159,7 @@ func Recovery(ctx goctx.Context) func(next http.Handler) http.Handler {
 						store["SignedUserName"] = ""
 					}
 
-					httpcache.AddCacheControlToHeader(w.Header(), 0, "no-transform")
+					httpcache.SetCacheControlInHeader(w.Header(), 0, "no-transform")
 					w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 					if !setting.IsProd {

@@ -80,7 +80,8 @@ export function svg(name, size = 16, className = '') {
   const svgNode = document.firstChild;
   if (size !== 16) svgNode.setAttribute('width', String(size));
   if (size !== 16) svgNode.setAttribute('height', String(size));
-  if (className) svgNode.classList.add(...className.split(/\s+/));
+  // filter array to remove empty string
+  if (className) svgNode.classList.add(...className.split(/\s+/).filter(Boolean));
   return serializer.serializeToString(svgNode);
 }
 
