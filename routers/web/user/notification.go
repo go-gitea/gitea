@@ -117,7 +117,7 @@ func getNotifications(ctx *context.Context) {
 		return
 	}
 	notifications = notifications.Without(failures)
-	if err := repos.LoadAttributes(); err != nil { // TODO
+	if err := repos.LoadAttributes(ctx); err != nil { // TODO
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
