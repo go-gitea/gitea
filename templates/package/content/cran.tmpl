@@ -5,7 +5,7 @@
 			<div class="field">
 				<label>{{svg "octicon-code"}} {{.locale.Tr "packages.cran.registry" | Safe}}</label>
 				<div class="markup"><pre class="code-block"><code>local({
-	r &lt;- list("gitea" = "{{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/cran")
+	r &lt;- list("gitea" = "<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/cran"></gitea-origin-url>")
 	options(repos = r)
 })</code></pre></div>
 			</div>
