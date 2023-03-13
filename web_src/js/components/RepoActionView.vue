@@ -40,9 +40,11 @@
           </div>
         </div>
         <div class="job-artifacts" v-if="artifacts.length > 0">
-          <div class="job-artifacts-title">Artifacts</div>
+          <div class="job-artifacts-title">
+            Artifacts
+          </div>
           <ul class="job-artifacts-list">
-            <li class="job-artifacts-item" v-for="artifact in artifacts">
+            <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.id">
               <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.id">
                 <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon" />
                 {{ artifact.name }}

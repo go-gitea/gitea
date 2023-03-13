@@ -9,8 +9,6 @@ package actions
 import (
 	"context"
 	"fmt"
-	"log"
-	"net"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -24,28 +22,14 @@ const (
 	ArtifactUploadStatusConfirmed = 1
 )
 
-// https://stackoverflow.com/a/37382208
-// Get preferred outbound ip of this machine
-func GetOutboundIP() net.IP {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-
-	return localAddr.IP
-}
-
 func init() {
 	db.RegisterModel(new(ActionArtifact))
 }
 
 // ActionArtifact is a file that is stored in the artifact storage.
 type ActionArtifact struct {
-	ID               int64
-	JobID            int64
+	ID               int64              `xorm:"pk autoincr"`
+	JobID            int64              `xorm:"index"`
 	RunnerID         int64              `xorm:"index"`
 	RepoID           int64              `xorm:"index"`
 	OwnerID          int64              `xorm:"index"`

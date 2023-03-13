@@ -27,8 +27,10 @@ import (
 	"code.gitea.io/gitea/modules/web"
 )
 
-const artifactXTfsFileLengthHeader = "x-tfs-filelength"
-const artifactXActionsResultsMD5Header = "x-actions-results-md5"
+const (
+	artifactXTfsFileLengthHeader     = "x-tfs-filelength"
+	artifactXActionsResultsMD5Header = "x-actions-results-md5"
+)
 
 // const artifactXActionsResultsCRC64Header = "x-actions-results-crc64"
 
@@ -66,6 +68,21 @@ func withContexter(ctx gocontext.Context) func(next http.Handler) http.Handler {
 			}
 			defer ctx.Close()
 
+			// action task call server api with Bearer ACTIONS_RUNTIME_TOKEN
+			// we should verify the ACTIONS_RUNTIME_TOKEN
+			authHeader := req.Header.Get("Authorization")
+			if len(authHeader) == 0 || !strings.HasPrefix(authHeader, "Bearer ") {
+				ctx.Error(http.StatusUnauthorized, "Bad authorization header")
+				return
+			}
+			authToken := strings.TrimPrefix(authHeader, "Bearer ")
+			task, err := actions.GetRunningTaskByToken(req.Context(), authToken)
+			if err != nil {
+				log.Error("Error runner api getting task: %v", err)
+				ctx.Error(http.StatusInternalServerError, "Error runner api getting task")
+			}
+			ctx.Data["task"] = task
+
 			ctx.Req = context.WithContext(req, &ctx)
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
@@ -78,7 +95,7 @@ type artifactRoutes struct {
 	fs     storage.ObjectStorage
 }
 
-func (ar artifactRoutes) buildArtifactUrl(taskID int64, artifactID int64, suffix string) (string, error) {
+func (ar artifactRoutes) buildArtifactURL(taskID, artifactID int64, suffix string) (string, error) {
 	uploadURL := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ar.prefix, "/") +
 		strings.ReplaceAll(artifactRouteBase, "{taskID}", strconv.FormatInt(taskID, 10)) +
 		"/" + strconv.FormatInt(artifactID, 10) + "/" + suffix
@@ -106,7 +123,7 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	url, err := ar.buildArtifactUrl(taskID, artifact.ID, "upload")
+	url, err := ar.buildArtifactURL(taskID, artifact.ID, "upload")
 	if err != nil {
 		log.Error("Error parsing upload URL: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -133,7 +150,8 @@ func (ar artifactRoutes) getUploadFileSize(ctx *context.Context) (int64, int64, 
 
 func (ar artifactRoutes) saveUploadChunk(ctx *context.Context,
 	artifact *actions.ActionArtifact,
-	contentSize int64, taskID int64) (int64, error) {
+	contentSize, taskID int64,
+) (int64, error) {
 	// read chunk data to calc md5
 	chunkData, err := io.ReadAll(ctx.Req.Body)
 	if err != nil {
@@ -259,12 +277,8 @@ type chunkItem struct {
 func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, taskID int64) error {
 	storageDir := fmt.Sprintf("tmp%d", taskID)
 	var chunks []*chunkItem
-	if err := ar.fs.IterateObjects(func(path string, obj storage.Object) error {
+	if err := ar.fs.IterateObjects(storageDir, func(path string, obj storage.Object) error {
 		defer obj.Close()
-		if !strings.HasPrefix(path, storageDir) {
-			return nil
-		}
-
 		item := chunkItem{Path: path}
 		if _, err := fmt.Sscanf(path, storageDir+"/%d-%d-%d.chunk", &item.ArtifactID, &item.Start, &item.End); err != nil {
 			return fmt.Errorf("parse content range error: %v", err)
@@ -280,7 +294,7 @@ func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, taskID int64)
 		chunksMap[c.ArtifactID] = append(chunksMap[c.ArtifactID], c)
 	}
 
-	for artifact_id, cs := range chunksMap {
+	for artifactID, cs := range chunksMap {
 		// get artifact to handle merged chunks
 		artifact, err := actions.GetArtifactByID(ctx, cs[0].ArtifactID)
 		if err != nil {
@@ -306,7 +320,7 @@ func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, taskID int64)
 
 		// if the last chunk.End + 1 is not equal to chunk.ChunkLength, means chunks are not uploaded completely
 		if startAt+1 != artifact.FileGzipSize {
-			log.Debug("[artifact] chunks are not uploaded completely, artifact_id: %d", artifact_id)
+			log.Debug("[artifact] chunks are not uploaded completely, artifact_id: %d", artifactID)
 			break
 		}
 
@@ -331,7 +345,7 @@ func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, taskID int64)
 		}
 
 		// save merged file
-		storagePath := fmt.Sprintf("%d/%d/%d.chunk", (taskID+artifact_id)%255, artifact.FileSize%255, time.Now().UnixNano())
+		storagePath := fmt.Sprintf("%d/%d/%d.chunk", (taskID+artifactID)%255, artifact.FileSize%255, time.Now().UnixNano())
 		written, err := ar.fs.Save(storagePath, mergedReader, -1)
 		if err != nil {
 			return fmt.Errorf("save merged file error: %v", err)
@@ -382,7 +396,7 @@ func (ar artifactRoutes) listArtifacts(ctx *context.Context) {
 
 	artficatsData := make([]map[string]interface{}, 0, len(artficats))
 	for _, a := range artficats {
-		url, err := ar.buildArtifactUrl(taskID, a.ID, "path")
+		url, err := ar.buildArtifactURL(taskID, a.ID, "path")
 		if err != nil {
 			log.Error("Error parsing artifact URL: %v", err)
 			ctx.Error(http.StatusInternalServerError, err.Error())
@@ -409,7 +423,7 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *context.Context) {
 		return
 	}
 	taskID := ctx.ParamsInt64("taskID")
-	url, err := ar.buildArtifactUrl(taskID, artifact.ID, "download")
+	url, err := ar.buildArtifactURL(taskID, artifact.ID, "download")
 	if err != nil {
 		log.Error("Error parsing download URL: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
