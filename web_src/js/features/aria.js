@@ -78,7 +78,9 @@ function attachOneDropdownAria($dropdown) {
     'aria-expanded': 'false',
   });
 
-  const isMenuVisible = () => $menu.hasClass('visible') && !$menu.hasClass('out'); // when hiding, it has class: ".animating.out"
+  // when showing, it has class: ".animating.in"
+  // when hiding, it has class: ".visible.animating.out"
+  const isMenuVisible = () => ($menu.hasClass('visible') && !$menu.hasClass('out')) || $menu.hasClass('in');
 
   // update aria attributes according to current active/selected item
   const refreshAria = () => {
