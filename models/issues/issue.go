@@ -505,9 +505,20 @@ func (issue *Issue) CanRetrievedByDoer(ctx context.Context, doer *user_model.Use
 		return false, err
 	}
 
-	if issue.Repo.Owner.IsOrganization() && issue.Repo.IsPrivate &&
-		(*organization.Organization)(issue.Repo.Owner).UnitPermission(ctx, doer, unit.TypeIssues) < perm.AccessModeRead {
-		return false, nil
+	if issue.Repo.Owner.IsOrganization() && issue.Repo.IsPrivate {
+		collaboration, err := repo_model.GetCollaboration(ctx, issue.Repo.ID, doer.ID)
+		if err != nil {
+			return false, fmt.Errorf("getCollaborators: %w", err)
+		}
+		if collaboration == nil {
+			if (*organization.Organization)(issue.Repo.Owner).UnitPermission(ctx, doer, unit.TypeIssues) < perm.AccessModeRead {
+				return false, nil
+			}
+		} else {
+			if collaboration.Mode < perm.AccessModeRead {
+				return false, nil
+			}
+		}
 	}
 
 	return true, nil
