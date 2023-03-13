@@ -479,7 +479,7 @@ func (issue *Issue) getLabels(ctx context.Context) (err error) {
 }
 
 // CanRetrievedByDoer returns whether doer can retrieve the issue
-func (issue *Issue) CanRetrievedByDoer(ctx context.Context, p *project_model.Project, doer *user_model.User) (bool, error) {
+func (issue *Issue) CanRetrievedByDoer(ctx context.Context, doer *user_model.User) (bool, error) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return false, err
 	}
@@ -508,18 +508,6 @@ func (issue *Issue) CanRetrievedByDoer(ctx context.Context, p *project_model.Pro
 	if issue.Repo.Owner.IsOrganization() && issue.Repo.IsPrivate &&
 		(*organization.Organization)(issue.Repo.Owner).UnitPermission(ctx, doer, unit.TypeIssues) < perm.AccessModeRead {
 		return false, nil
-	}
-
-	if p.RepoID > 0 {
-		// repo project
-		if p.RepoID != issue.RepoID {
-			return false, nil
-		}
-	} else {
-		// individual/org's project
-		if p.OwnerID != issue.Repo.OwnerID {
-			return false, nil
-		}
 	}
 
 	return true, nil

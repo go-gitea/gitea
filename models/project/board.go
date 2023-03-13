@@ -70,45 +70,6 @@ func (Board) TableName() string {
 	return "project_board"
 }
 
-// LoadProject loads project
-func (b *Board) LoadProject(ctx context.Context) error {
-	if b.Project != nil {
-		return nil
-	}
-
-	var project Project
-	has, err := db.GetEngine(ctx).ID(b.ProjectID).Get(&project)
-	if err != nil {
-		return err
-	} else if !has {
-		return ErrProjectNotExist{
-			ID: b.ProjectID,
-		}
-	}
-	b.Project = &project
-	return nil
-}
-
-// SetProject set an exist project object to the board
-func (b *Board) SetProject(p *Project) error {
-	if b.ProjectID != p.ID {
-		return fmt.Errorf("board[id:%d] doesn't belong to project[id:%d]", b.ID, p.ID)
-	}
-
-	b.Project = p
-	return nil
-}
-
-// SetProject set an exist project object to the board
-func (bl BoardList) SetProject(p *Project) error {
-	for _, b := range bl {
-		if err := b.SetProject(p); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // NumIssues return counter of all issues assigned to the board
 func (b *Board) NumIssues() int {
 	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").

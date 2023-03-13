@@ -60,10 +60,6 @@ func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user_model.User, isClosed util.OptionalBool) (IssueList, error) {
 	issueList := make([]*Issue, 0, 10)
 
-	if err := b.LoadProject(ctx); err != nil {
-		return nil, err
-	}
-
 	if b.ID != 0 {
 		issues, err := Issues(ctx, &IssuesOptions{
 			ProjectBoardID: b.ID,
@@ -75,7 +71,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 			return nil, err
 		}
 		for _, issue := range issues {
-			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, b.Project, doer); err != nil {
+			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, doer); err != nil {
 				return nil, err
 			} else if canRetrievedByDoer {
 				issueList = append(issueList, issue)
@@ -94,7 +90,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 			return nil, err
 		}
 		for _, issue := range issues {
-			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, b.Project, doer); err != nil {
+			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, doer); err != nil {
 				return nil, err
 			} else if canRetrievedByDoer {
 				issueList = append(issueList, issue)

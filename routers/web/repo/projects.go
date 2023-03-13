@@ -322,9 +322,6 @@ func ViewProject(ctx *context.Context) {
 		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
 	}
 
-	// avild multiple loading of project in LoadIssuesFromBoardList
-	boards.SetProject(project)
-
 	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards, ctx.Doer, util.OptionalBoolNone)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
