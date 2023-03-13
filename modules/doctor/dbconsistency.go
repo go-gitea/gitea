@@ -155,7 +155,7 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 
 	// TODO: function to recalc all counters
 
-	if setting.Database.UsePostgreSQL {
+	if setting.Database.Type.IsPostgreSQL() {
 		consistencyChecks = append(consistencyChecks, consistencyCheck{
 			Name:         "Sequence values",
 			Counter:      db.CountBadSequences,

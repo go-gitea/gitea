@@ -17,13 +17,13 @@ import (
 
 func SetDefaultPasswordToArgon2(x *xorm.Engine) error {
 	switch {
-	case setting.Database.UseMySQL:
+	case setting.Database.Type.IsMySQL():
 		_, err := x.Exec("ALTER TABLE `user` ALTER passwd_hash_algo SET DEFAULT 'argon2';")
 		return err
-	case setting.Database.UsePostgreSQL:
+	case setting.Database.Type.IsPostgreSQL():
 		_, err := x.Exec("ALTER TABLE `user` ALTER COLUMN passwd_hash_algo SET DEFAULT 'argon2';")
 		return err
-	case setting.Database.UseMSSQL:
+	case setting.Database.Type.IsMSSQL():
 		// need to find the constraint and drop it, then recreate it.
 		sess := x.NewSession()
 		defer sess.Close()
@@ -53,7 +53,7 @@ func SetDefaultPasswordToArgon2(x *xorm.Engine) error {
 		}
 		return sess.Commit()
 
-	case setting.Database.UseSQLite3:
+	case setting.Database.Type.IsSQLite3():
 		// drop through
 	default:
 		log.Fatal("Unrecognized DB")
