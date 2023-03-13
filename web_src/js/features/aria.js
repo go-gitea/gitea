@@ -29,10 +29,14 @@ function attachOneDropdownAria($dropdown) {
   const $focusable = $textSearch.length ? $textSearch : $dropdown; // the primary element for focus, see comment above
   if (!$focusable.length) return;
 
-  // There are 2 possible solutions about the role: combobox or menu. Always use combobox in the future, see "aria.md" for details.
-  const focusableRole = 'button';
-  const listPopupRole = 'menu';
-  const listItemRole = 'menuitem';
+  // There are 2 possible solutions about the role: combobox or menu.
+  // The idea is that if there is an input, then it's a combobox, otherwise it's a menu.
+  // Since #19861 we have prepared the "combobox" solution, but didn't get enough time to put it into practice and test before.
+  const isComboBox = $dropdown.find('input').length > 0;
+
+  const focusableRole = isComboBox ? 'combobox' : 'button';
+  const listPopupRole = isComboBox ? 'listbox' : 'menu';
+  const listItemRole = isComboBox ? 'option' : 'menuitem';
 
   // make the item has role=option/menuitem, and add an id if there wasn't one yet.
   function prepareMenuItem($item) {
