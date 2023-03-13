@@ -1,12 +1,18 @@
 plugins:
   - stylelint-declaration-strict-value
 
+ignoreFiles:
+  - "**/*.go"
+
 overrides:
   - files: ["**/*.less"]
     customSyntax: postcss-less
   - files: ["**/chroma/*", "**/codemirror/*", "**/standalone/*", "**/console/*"]
     rules:
       scale-unlimited/declaration-strict-value: null
+  - files: ["**/chroma/*", "**/codemirror/*"]
+    rules:
+      block-no-empty: null
 
 rules:
   alpha-value-notation: null

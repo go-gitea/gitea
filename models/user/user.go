@@ -393,6 +393,11 @@ func (u *User) IsOrganization() bool {
 	return u.Type == UserTypeOrganization
 }
 
+// IsIndividual returns true if user is actually a individual user.
+func (u *User) IsIndividual() bool {
+	return u.Type == UserTypeIndividual
+}
+
 // DisplayName returns full name if it's not empty,
 // returns username otherwise.
 func (u *User) DisplayName() string {
