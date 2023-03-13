@@ -53,15 +53,15 @@
 							{{JsPrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
 						</span>
 					</div>
-					{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
+					{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
 					<div class="ui right operate">
-						<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Title}}>{{svg "octicon-pencil"}} {{$.locale.Tr "repo.issues.label_edit"}}</a>
+						<a href="{{.Link}}/edit" data-id={{.ID}} data-title={{.Title}}>{{svg "octicon-pencil"}} {{$.locale.Tr "repo.issues.label_edit"}}</a>
 						{{if .IsClosed}}
-							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check"}} {{$.locale.Tr "repo.projects.open"}}</a>
+							<a class="link-action" href data-url="{{.Link}}/open">{{svg "octicon-check"}} {{$.locale.Tr "repo.projects.open"}}</a>
 						{{else}}
-							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-skip"}} {{$.locale.Tr "repo.projects.close"}}</a>
+							<a class="link-action" href data-url="{{.Link}}/close">{{svg "octicon-skip"}} {{$.locale.Tr "repo.projects.close"}}</a>
 						{{end}}
-						<a class="delete-button" href="#" data-url="{{$.RepoLink}}/projects/{{.ID}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.locale.Tr "repo.issues.label_delete"}}</a>
+						<a class="delete-button" href="#" data-url="{{.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.locale.Tr "repo.issues.label_delete"}}</a>
 					</div>
 					{{end}}
 					{{if .Description}}
@@ -77,7 +77,7 @@
 	</div>
 </div>
 
-{{if or .CanWriteIssues .CanWritePulls}}
+{{if .CanWriteProjects}}
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
