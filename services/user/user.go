@@ -35,7 +35,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 	}
 	defer committer.Close()
 	if err := renameUser(ctx, u, newUserName); err != nil {
-		return fmt.Errorf("renameUser: %w", err)
+		return err
 	}
 	if err := committer.Commit(); err != nil {
 		return err
