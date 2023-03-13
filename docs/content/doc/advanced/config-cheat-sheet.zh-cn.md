@@ -262,7 +262,22 @@ test01.xls: application/vnd.ms-excel; charset=binary
 
 - `ROOT_PATH`: 日志文件根目录。
 - `MODE`: 日志记录模式，默认是为 `console`。如果要写到多个通道，用逗号分隔
-- `LEVEL`: 日志级别，默认为`Trace`。
+- `LEVEL`: 日志级别，默认为 `Trace`。
+- `DISABLE_ROUTER_LOG`: 关闭日志中的路由日志。
+- `ENABLE_ACCESS_LOG`: 是否开启 Access Log, 默认为 false。
+- `ACCESS_LOG_TEMPLATE`: `access.log` 输出内容的模板，默认模板：**`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`**
+  模板支持以下参数:
+  - `Ctx`: 请求上下文。
+  - `Identity`: 登录用户名，默认: “`-`”。
+  - `Start`: 请求开始时间。
+  - `ResponseWriter`:
+  - `RequestID`: 从请求头中解析得到的与 `REQUEST_ID_HEADERS` 匹配的值，默认: “`-`”。
+  - 一定要谨慎配置该模板，否则可能会引起panic.
+- `REQUEST_ID_HEADERS`: 从 Request Header 中匹配指定 Key，并将匹配到的值输出到 `access.log` 中(需要在 `ACCESS_LOG_TEMPLATE` 中指定输出位置)。如果在该参数中配置多个 Key， 请用逗号分割，程序将按照配置的顺序进行匹配。
+  - 示例：
+  - 请求头：       X-Request-ID: **test-id-123**
+  - 配置文件：     REQUEST_ID_HEADERS = X-Request-ID
+  - 日志输出：     127.0.0.1:58384 - - [14/Feb/2023:16:33:51 +0800]  "**test-id-123**" ...
 
 ## Cron (`cron`)
 
