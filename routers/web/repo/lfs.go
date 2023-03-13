@@ -215,7 +215,7 @@ func LFSLockFile(ctx *context.Context) {
 	}
 
 	_, err := git_model.CreateLFSLock(ctx, ctx.Repo.Repository, &git_model.LFSLock{
-		Path:    lockPath,
+		Path:    strings.TrimPrefix(lockPath, "/"),
 		OwnerID: ctx.Doer.ID,
 	})
 	if err != nil {

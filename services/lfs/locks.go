@@ -95,7 +95,7 @@ func GetListLockHandler(ctx *context.Context) {
 		return
 	}
 
-	path := ctx.FormString("path")
+	path := strings.TrimPrefix(ctx.FormString("path"), "/")
 	if path != "" { // Case where we request a specific id
 		lock, err := git_model.GetLFSLock(ctx, repository, path)
 		if err != nil && !git_model.IsErrLFSLockNotExist(err) {
@@ -143,7 +143,14 @@ func PostLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	repository.MustOwner(ctx)
+	if err := repository.LoadOwner(ctx); err != nil {
+		log.Error("Unable to LoadOwner: %s/%s Error: %v", userName, repoName, err)
+		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
+		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
+			Message: "Something error with server",
+		})
+		return
+	}
 
 	authenticated := authenticate(ctx, repository, authorization, true, true)
 	if !authenticated {
@@ -168,7 +175,7 @@ func PostLockHandler(ctx *context.Context) {
 	}
 
 	lock, err := git_model.CreateLFSLock(ctx, repository, &git_model.LFSLock{
-		Path:    req.Path,
+		Path:    strings.TrimPrefix(req.Path, "/"),
 		OwnerID: ctx.Doer.ID,
 	})
 	if err != nil {
