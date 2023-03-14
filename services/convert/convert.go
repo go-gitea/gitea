@@ -38,6 +38,17 @@ func ToEmail(email *user_model.EmailAddress) *api.Email {
 	}
 }
 
+// ToEmail convert models.EmailAddress to api.Email
+func ToEmailSearch(email *user_model.SearchEmailResult) *api.Email {
+	return &api.Email{
+		Email:    email.Email,
+		Verified: email.IsActivated,
+		Primary:  email.IsPrimary,
+		UserID:   email.UID,
+		UserName: email.Name,
+	}
+}
+
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
 func ToBranch(ctx context.Context, repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *git_model.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
