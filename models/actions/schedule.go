@@ -45,7 +45,7 @@ func GetSchedulesMapByIDs(ids []int64) (map[int64]*ActionSchedule, error) {
 
 // CreateScheduleTask creates new schedule task.
 func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
 }
 
 func DeleteScheduleTaskByRepo(ctx context.Context, id int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
