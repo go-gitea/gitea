@@ -19,7 +19,7 @@ type Pagination struct {
 }
 
 // NewPagination creates a new instance of the Pagination struct.
-// "pagingNum" is "page size / limit", "current" is "page"
+// "pagingNum" is "page size" or "limit", "current" is "page"
 func NewPagination(total, pagingNum, current, numPages int) *Pagination {
 	p := &Pagination{}
 	p.Paginater = paginator.New(total, pagingNum, current, numPages)
