@@ -30,10 +30,10 @@ import octiconXCircleFill from '../../public/img/svg/octicon-x-circle-fill.svg';
 import octiconSkip from '../../public/img/svg/octicon-skip.svg';
 import octiconMeter from '../../public/img/svg/octicon-meter.svg';
 import octiconBlocked from '../../public/img/svg/octicon-blocked.svg';
+import octiconFilter from '../../public/img/svg/octicon-filter.svg';
 import octiconSync from '../../public/img/svg/octicon-sync.svg';
 import octiconPlus from '../../public/img/svg/octicon-plus.svg';
 import octiconSearch from '../../public/img/svg/octicon-search.svg';
-import octiconFilter from '../../public/img/svg/octicon-filter.svg';
 import octiconArchive from '../../public/img/svg/octicon-archive.svg';
 import octiconStar from '../../public/img/svg/octicon-star.svg';
 import giteaDoubleChevronLeft from '../../public/img/svg/gitea-double-chevron-left.svg';
@@ -75,9 +75,9 @@ const svgs = {
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
   'octicon-x-circle-fill': octiconXCircleFill,
+  'octicon-filter': octiconFilter,
   'octicon-plus': octiconPlus,
   'octicon-search': octiconSearch,
-  'octicon-filter': octiconFilter,
   'octicon-archive': octiconArchive,
   'octicon-star': octiconStar,
   'gitea-double-chevron-left': giteaDoubleChevronLeft,
