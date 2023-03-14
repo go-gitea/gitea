@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -31,6 +32,7 @@ import (
 const (
 	tplReleases   base.TplName = "repo/release/list"
 	tplReleaseNew base.TplName = "repo/release/new"
+	tplTagsList   base.TplName = "repo/tag/list"
 )
 
 // calReleaseNumCommitsBehind calculates given release has how many commits behind release target.
@@ -68,7 +70,11 @@ func Releases(ctx *context.Context) {
 
 // TagsList render tags list page
 func TagsList(ctx *context.Context) {
-	releasesOrTags(ctx, true)
+	if ctx.Repo.CanAccess(perm.AccessModeRead, unit.TypeReleases) {
+		releasesOrTags(ctx, true)
+	} else {
+		tags(ctx)
+	}
 }
 
 func releasesOrTags(ctx *context.Context, isTagList bool) {
@@ -198,6 +204,51 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplReleases)
+}
+
+// tags render the tags list if repo's release is disabled.
+func tags(ctx *context.Context) {
+	ctx.Data["PageIsTagList"] = true
+	ctx.Data["Title"] = ctx.Tr("repo.release.tags")
+
+	listOptions := db.ListOptions{
+		Page:     ctx.FormInt("page"),
+		PageSize: ctx.FormInt("limit"),
+	}
+	if listOptions.PageSize == 0 {
+		listOptions.PageSize = setting.Repository.Release.DefaultPagingNum
+	}
+	if listOptions.PageSize > setting.API.MaxResponseItems {
+		listOptions.PageSize = setting.API.MaxResponseItems
+	}
+
+	opts := repo_model.FindReleasesOptions{
+		ListOptions:   listOptions,
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		HasSha1:       util.OptionalBoolTrue,
+	}
+
+	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
+	if err != nil {
+		ctx.ServerError("GetReleasesByRepoID", err)
+		return
+	}
+
+	count, err := repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, opts)
+	if err != nil {
+		ctx.ServerError("GetReleaseCountByRepoID", err)
+		return
+	}
+
+	ctx.Data["Releases"] = releases
+	ctx.Data["ReleasesNum"] = len(releases)
+
+	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
+
+	ctx.HTML(http.StatusOK, tplTagsList)
 }
 
 // ReleasesFeedRSS get feeds for releases in RSS format

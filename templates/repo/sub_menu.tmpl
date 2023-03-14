@@ -10,7 +10,7 @@
 					<a href="{{.RepoLink}}/branches">{{svg "octicon-git-branch"}} <b>{{.BranchesCount}}</b> {{.locale.TrN .BranchesCount "repo.branch" "repo.branches"}}</a>
 				</div>
 				{{if $.Permission.CanRead $.UnitTypeCode}}
-					<div class="item">
+					<div class="item{{if .PageIsTagList}} active{{end}}">
 						<a href="{{.RepoLink}}/tags">{{svg "octicon-tag"}} <b>{{.NumTags}}</b> {{.locale.TrN .NumTags "repo.tag" "repo.tags"}}</a>
 					</div>
 				{{end}}

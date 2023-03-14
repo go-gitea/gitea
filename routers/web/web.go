@@ -1168,7 +1168,7 @@ func RegisterRoutes(m *web.Route) {
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
 
-	// Releases
+	// Tags
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/tags", func() {
 			m.Get("", repo.TagsList)
@@ -1177,6 +1177,10 @@ func RegisterRoutes(m *web.Route) {
 		}, func(ctx *context.Context) {
 			ctx.Data["EnableFeed"] = setting.EnableFeed
 		}, repo.MustBeNotEmpty, reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag, true))
+	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
+
+	// Releases
+	m.Group("/{username}/{reponame}", func() {
 		m.Group("/releases", func() {
 			m.Get("/", repo.Releases)
 			m.Get("/tag/*", repo.SingleRelease)
