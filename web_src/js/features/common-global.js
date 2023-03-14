@@ -93,8 +93,9 @@ export function initGlobalCommon() {
   // do not init "custom" dropdowns, "custom" dropdowns are managed by their own code.
   $uiDropdowns.filter(':not(.custom)').dropdown({fullTextSearch: 'exact'});
 
-  // The "jump" means this dropdown is mainly used for "menu" purpose, clicking an item will jump to somewhere else
-  // or trigger an action/function. When a dropdown is used for non-refresh actions with tippy,
+  // The "jump" means this dropdown is mainly used for "menu" purpose,
+  // clicking an item will jump to somewhere else or trigger an action/function.
+  // When a dropdown is used for non-refresh actions with tippy,
   // it must have this "jump" class to hide the tippy when dropdown is closed.
   $uiDropdowns.filter('.jump').dropdown({
     action: 'hide',
