@@ -28,7 +28,15 @@ func AddActionScheduleTable(x *xorm.Engine) error {
 		Updated       timeutil.TimeStamp `xorm:"updated"`
 	}
 
+	type ActionScheduleSpec struct {
+		ID         int64
+		RepoID     int64
+		ScheduleID int64
+		Spec       string
+	}
+
 	return x.Sync(
 		new(ActionSchedule),
+		new(ActionScheduleSpec),
 	)
 }

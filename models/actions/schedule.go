@@ -38,6 +38,12 @@ func init() {
 	db.RegisterModel(new(ActionSchedule))
 }
 
+// GetSchedulesMapByIDs returns the schedules by given id slice.
+func GetSchedulesMapByIDs(ids []int64) (map[int64]*ActionSchedule, error) {
+	schedules := make(map[int64]*ActionSchedule, len(ids))
+	return schedules, db.GetEngine(db.DefaultContext).In("id", ids).Find(&schedules)
+}
+
 // CreateScheduleTask creates new schedule task.
 func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
 	ctx, committer, err := db.TxContext(db.DefaultContext)
@@ -47,8 +53,22 @@ func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
 	defer committer.Close()
 
 	if len(rows) > 0 {
-		if err = db.Insert(ctx, rows); err != nil {
-			return err
+		for _, row := range rows {
+			// create new schedule
+			if err = db.Insert(ctx, row); err != nil {
+				return err
+			}
+
+			// create new schedule spec
+			for _, spec := range row.Specs {
+				if err = db.Insert(ctx, &ActionScheduleSpec{
+					RepoID:     row.RepoID,
+					ScheduleID: row.ID,
+					Spec:       spec,
+				}); err != nil {
+					return err
+				}
+			}
 		}
 	}
 
@@ -56,18 +76,19 @@ func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
 }
 
 func DeleteScheduleTaskByRepo(ctx context.Context, id int64) error {
+	ctx, committer, err := db.TxContext(db.DefaultContext)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
 	if _, err := db.GetEngine(ctx).Delete(&ActionSchedule{RepoID: id}); err != nil {
 		return err
 	}
-	return nil
-}
 
-func UpdateSchedule(ctx context.Context, schedule *ActionSchedule, cols ...string) error {
-	sess := db.GetEngine(ctx).ID(schedule.ID)
-	if len(cols) > 0 {
-		sess.Cols(cols...)
+	if _, err := db.GetEngine(ctx).Delete(&ActionScheduleSpec{RepoID: id}); err != nil {
+		return err
 	}
-	_, err := sess.Update(schedule)
 
-	return err
+	return committer.Commit()
 }
