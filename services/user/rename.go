@@ -19,10 +19,6 @@ func renameUser(ctx context.Context, u *user_model.User, newUserName string) (er
 		return fmt.Errorf("cannot rename organization")
 	}
 
-	if u.LowerName == strings.ToLower(newUserName) {
-		return fmt.Errorf("new username is the same as the old one")
-	}
-
 	if err := user_model.ChangeUserName(ctx, u, newUserName); err != nil {
 		return err
 	}
