@@ -42,8 +42,7 @@
         <div class="job-step-container">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="toggleStepLogs(i)">
-              <SvgIcon name="octicon-chevron-down" class="gt-mr-3" v-show="currentJobStepsStates[i].expanded"/>
-              <SvgIcon name="octicon-chevron-right" class="gt-mr-3" v-show="!currentJobStepsStates[i].expanded"/>
+              <SvgIcon :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" class="gt-mr-3"/>
 
               <SvgIcon name="octicon-check-circle-fill" class="green gt-mr-3" v-if="jobStep.status === 'success'"/>
               <SvgIcon name="octicon-skip" class="ui text grey gt-mr-3" v-else-if="jobStep.status === 'skipped'"/>

@@ -43,7 +43,7 @@ steps:
     depends_on: [deps-frontend]
 
   - name: lint-backend
-    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-1.19-amd64  # https://gitea.com/gitea/test-env
     pull: always
     commands:
       - make lint-backend
@@ -57,7 +57,7 @@ steps:
         path: /go
 
   - name: lint-backend-windows
-    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-1.19-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make golangci-lint-windows vet
     environment:
@@ -72,7 +72,7 @@ steps:
         path: /go
 
   - name: lint-backend-gogit
-    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-1.19-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make lint-backend
     environment:
@@ -264,13 +264,13 @@ steps:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
   - name: prepare-test-env
-    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-1.19-amd64  # https://gitea.com/gitea/test-env
     pull: always
     commands:
       - ./build/test-env-prepare.sh
 
   - name: build
-    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-1.19-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
       - ./build/test-env-check.sh
@@ -285,7 +285,7 @@ steps:
         path: /go
 
   - name: unit-test
-    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-1.19-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
       - make unit-test-coverage test-check
@@ -301,7 +301,7 @@ steps:
         path: /go
 
   - name: unit-test-gogit
-    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-1.19-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
       - make unit-test-coverage test-check
@@ -317,7 +317,7 @@ steps:
         path: /go
 
   - name: test-mysql
-    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-1.19-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
       - make test-mysql-migration integration-test-coverage
@@ -334,7 +334,7 @@ steps:
         path: /go
 
   - name: test-mysql8
-    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-1.19-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
       - timeout -s ABRT 50m make test-mysql8-migration test-mysql8
@@ -350,7 +350,7 @@ steps:
         path: /go
 
   - name: test-mssql
-    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-1.19-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
       - make test-mssql-migration test-mssql
@@ -454,13 +454,13 @@ steps:
         path: /go
 
   - name: prepare-test-env
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-1.19-arm64  # https://gitea.com/gitea/test-env
     pull: always
     commands:
       - ./build/test-env-prepare.sh
 
   - name: build
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-1.19-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
       - ./build/test-env-check.sh
@@ -475,7 +475,7 @@ steps:
         path: /go
 
   - name: test-sqlite
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-1.19-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
       - timeout -s ABRT 50m make test-sqlite-migration test-sqlite
@@ -491,7 +491,7 @@ steps:
         path: /go
 
   - name: test-pgsql
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-1.19-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
       - timeout -s ABRT 50m make test-pgsql-migration test-pgsql
