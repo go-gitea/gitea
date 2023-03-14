@@ -144,7 +144,7 @@ func (p *Project) Link() string {
 	return ""
 }
 
-func (p *Project) Icon() string {
+func (p *Project) IconName() string {
 	if p.IsRepositoryProject() {
 		return "octicon-project"
 	}

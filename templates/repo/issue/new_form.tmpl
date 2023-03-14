@@ -177,7 +177,7 @@
 							</div>
 							{{range .OpenProjects}}
 								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-									{{svg .Icon 18 "gt-mr-3"}}
+									{{svg .IconName 18 "gt-mr-3"}}
 									{{.Title}}
 								</a>
 							{{end}}
@@ -189,7 +189,7 @@
 							</div>
 							{{range .ClosedProjects}}
 								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-									{{svg .Icon 18 "gt-mr-3"}}
+									{{svg .IconName 18 "gt-mr-3"}}
 									{{.Title}}
 								</a>
 							{{end}}
@@ -202,7 +202,7 @@
 				<div class="selected">
 					{{if .Project}}
 						<a class="item muted sidebar-item-link" href="{{.Project.Link}}">
-							{{svg .Project.Icon 18 "gt-mr-3"}}
+							{{svg .Project.IconName 18 "gt-mr-3"}}
 							{{.Project.Title}}
 						</a>
 					{{end}}
