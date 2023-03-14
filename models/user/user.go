@@ -423,7 +423,10 @@ func (u *User) GetDisplayName() string {
 
 func (u *User) GetSearchNameHTML() template.HTML {
 	if setting.UI.DefaultShowFullName {
-		return template.HTML(fmt.Sprintf(`%s<span class="text search-fullname"> %s</span>`, u.Name, strings.TrimSpace(u.FullName)))
+		trimmed := strings.TrimSpace(u.FullName)
+		if len(trimmed) > 0 {
+			return template.HTML(fmt.Sprintf(`%s<span class="text search-fullname"> %s</span>`, u.Name, trimmed))
+		}
 	}
 	return template.HTML(u.Name)
 }
