@@ -15,6 +15,10 @@ trigger:
   paths:
     exclude:
       - docs/**
+  branch:
+    exclude:
+      - main
+      - release/*
 
 volumes:
   - name: deps
