@@ -40,6 +40,7 @@ func ProtectedBranchRules(ctx *context.Context) {
 		return
 	}
 	ctx.Data["ProtectedBranches"] = rules
+	ctx.Data["isShowFullName"] = setting.UI.DefaultShowFullName
 
 	ctx.HTML(http.StatusOK, tplBranches)
 }

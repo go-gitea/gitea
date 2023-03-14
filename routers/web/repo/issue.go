@@ -455,6 +455,7 @@ func Issues(ctx *context.Context) {
 	}
 
 	ctx.Data["CanWriteIssuesOrPulls"] = ctx.Repo.CanWriteIssuesOrPulls(isPullList)
+	ctx.Data["isShowFullName"] = setting.UI.DefaultShowFullName
 
 	ctx.HTML(http.StatusOK, tplIssues)
 }
@@ -906,6 +907,7 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypeIssues)
+	ctx.Data["isShowFullName"] = setting.UI.DefaultShowFullName
 
 	ctx.HTML(http.StatusOK, tplIssueNew)
 }
