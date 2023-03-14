@@ -7,7 +7,7 @@ function generateAriaId() {
 }
 
 function attachOneDropdownAria($dropdown) {
-  if ($dropdown.attr('data-aria-attached')) return;
+  if ($dropdown.attr('data-aria-attached') || $dropdown.hasClass('custom')) return;
   $dropdown.attr('data-aria-attached', 1);
 
   // Dropdown has 2 different focusing behaviors
