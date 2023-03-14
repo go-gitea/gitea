@@ -3,9 +3,9 @@
 		{{.locale.Tr "settings.manage_ssh_principals"}}
 		<div class="ui right">
 		{{if not .DisableSSH}}
-			<div class="ui primary tiny show-panel button" data-panel="#add-ssh-principal-panel">{{.locale.Tr "settings.add_new_principal"}}</div>
+			<button class="ui primary tiny show-panel button" data-panel="#add-ssh-principal-panel">{{.locale.Tr "settings.add_new_principal"}}</button>
 		{{else}}
-			<div class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</div>
+			<button class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</button>
 		{{end}}
 		</div>
 	</h4>

@@ -1093,6 +1093,11 @@ Default templates for project boards:
 - `DISABLE_CORE_PROTECT_NTFS`: **false** Set to true to forcibly set `core.protectNTFS` to false.
 - `DISABLE_PARTIAL_CLONE`: **false** Disable the usage of using partial clones for git.
 
+## Git - Reflog settings (`git.reflog`)
+
+- `ENABLED`: **true** Set to true to enable Git to write changes to reflogs in each repo.
+- `EXPIRATION`: **90** Reflog entry lifetime, in days. Entries are removed opportunistically by Git.
+
 ## Git - Timeout settings (`git.timeout`)
 
 - `DEFAULT`: **360**: Git operations default timeout seconds.
@@ -1249,6 +1254,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `LIMIT_SIZE_PUB`: **-1**: Maximum size of a Pub upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_PYPI`: **-1**: Maximum size of a PyPI upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_RUBYGEMS`: **-1**: Maximum size of a RubyGems upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_SWIFT`: **-1**: Maximum size of a Swift upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_VAGRANT`: **-1**: Maximum size of a Vagrant upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 
 ## Mirror (`mirror`)

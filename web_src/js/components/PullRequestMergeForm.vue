@@ -10,8 +10,8 @@
       -d '{"context": "test/context", "description": "description", "state": "${state}", "target_url": "http://localhost"}'
   -->
   <div>
-    <!-- eslint-disable -->
-    <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message"></div>
+    <!-- eslint-disable-next-line vue/no-v-html -->
+    <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message"/>
 
     <div class="ui form" v-if="showActionForm">
       <form :action="mergeForm.baseLink+'/merge'" method="post">
@@ -30,7 +30,8 @@
               <button @click.prevent="clearMergeMessage" class="ui tertiary button">
                 {{ mergeForm.textClearMergeMessage }}
               </button>
-              <div class="ui label"><!-- TODO: Convert to tooltip once we can use tooltips in Vue templates -->
+              <div class="ui label">
+                <!-- TODO: Convert to tooltip once we can use tooltips in Vue templates -->
                 {{ mergeForm.textClearMergeMessageHint }}
               </div>
             </template>
