@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/packages/pub"
 	"code.gitea.io/gitea/modules/packages/pypi"
 	"code.gitea.io/gitea/modules/packages/rubygems"
+	"code.gitea.io/gitea/modules/packages/swift"
 	"code.gitea.io/gitea/modules/packages/vagrant"
 
 	"github.com/hashicorp/go-version"
@@ -159,6 +160,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &pypi.Metadata{}
 	case TypeRubyGems:
 		metadata = &rubygems.Metadata{}
+	case TypeSwift:
+		metadata = &swift.Metadata{}
 	case TypeVagrant:
 		metadata = &vagrant.Metadata{}
 	default:

@@ -31,7 +31,7 @@ func commonCheckStorage(ctx context.Context, logger log.Logger, autofix bool, op
 	totalSize, orphanedSize := int64(0), int64(0)
 
 	var pathsToDelete []string
-	if err := opts.storer.IterateObjects(func(p string, obj storage.Object) error {
+	if err := opts.storer.IterateObjects("", func(p string, obj storage.Object) error {
 		defer obj.Close()
 
 		totalCount++
