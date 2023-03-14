@@ -1,3 +1,4 @@
+import {h} from 'vue';
 import octiconChevronDown from '../../public/img/svg/octicon-chevron-down.svg';
 import octiconChevronRight from '../../public/img/svg/octicon-chevron-right.svg';
 import octiconClock from '../../public/img/svg/octicon-clock.svg';
@@ -90,7 +91,9 @@ const svgs = {
   'octicon-git-branch': octiconGitBranch,
 };
 
-// TODO: use a more general approach to access SVG icons. At the moment, developers must check, pick and fill the names manually, most of the SVG icons in assets couldn't be used directly.
+// TODO: use a more general approach to access SVG icons.
+//  At the moment, developers must check, pick and fill the names manually,
+//  most of the SVG icons in assets couldn't be used directly.
 
 const parser = new DOMParser();
 const serializer = new XMLSerializer();
@@ -116,12 +119,7 @@ export const SvgIcon = {
     size: {type: Number, default: 16},
     className: {type: String, default: ''},
   },
-
-  computed: {
-    svg() {
-      return svg(this.name, this.size, this.className);
-    },
+  render() {
+    return h('span', {innerHTML: svg(this.name, this.size, this.className)});
   },
-
-  template: `<span v-html="svg" />`
 };
