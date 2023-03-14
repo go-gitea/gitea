@@ -248,22 +248,24 @@ func handleWorkflows(
 			EventPayload:      string(p),
 			Status:            actions_model.StatusWaiting,
 		}
-		jobs, err := jobparser.Parse(content)
+		workflows, err := jobparser.Parse(content)
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue
 		}
-		if err := actions_model.InsertRun(ctx, &run, jobs); err != nil {
+		if err := actions_model.InsertRun(ctx, &run, workflows); err != nil {
 			log.Error("InsertRun: %v", err)
 			continue
 		}
-		if jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID}); err != nil {
+
+		jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+		if err != nil {
 			log.Error("FindRunJobs: %v", err)
-		} else {
-			for _, job := range jobs {
-				if err := CreateCommitStatus(ctx, job); err != nil {
-					log.Error("CreateCommitStatus: %v", err)
-				}
+			continue
+		}
+		for _, job := range jobs {
+			if err := CreateCommitStatus(ctx, job); err != nil {
+				log.Error("CreateCommitStatus: %v", err)
 			}
 		}
 	}
