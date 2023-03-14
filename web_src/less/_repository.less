@@ -2838,11 +2838,11 @@
 
 .labels-list .label {
   margin: 2px 0;
-  display: inline-block !important;
+  display: inline-flex !important;
   line-height: 1.3em; // there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly
 }
 
-// Scoped labels with different colors on left and right, and slanted divider in the middle
+// Scoped labels with different colors on left and right
 .scope-parent {
   background: none !important;
   padding: 0 !important;
@@ -2851,23 +2851,12 @@
 .ui.label.scope-left {
   border-bottom-right-radius: 0;
   border-top-right-radius: 0;
-  padding-right: 0;
-  margin-right: 0;
-}
-
-.ui.label.scope-middle {
-  width: 12px;
-  border-radius: 0;
-  padding-left: 0;
-  padding-right: 0;
-  margin-left: 0;
   margin-right: 0;
 }
 
 .ui.label.scope-right {
   border-bottom-left-radius: 0;
   border-top-left-radius: 0;
-  padding-left: 0;
   margin-left: 0;
 }
 
