@@ -77,7 +77,7 @@
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
 							{{range .Posters}}
 								<a class="{{if eq $.PosterID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{.ID}}">
-									{{avatar $.Context .}} {{.Name}} {{if $.IsShowFullName}}<span style="color: var(--color-text-light-2);">{{.FullName}}</span>{{end}}
+									{{avatar $.Context .}} {{.Name}} {{if $.IsShowFullName}}<span class="search-fullname">{{.FullName}}</span>{{end}}
 								</a>
 							{{end}}
 						</div>
@@ -99,7 +99,7 @@
 								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{.ID}}&poster={{$.PosterID}}">
 									{{avatar $.Context . 28 "gt-mr-2"}}
 									{{.Name}}
-									{{if $.IsShowFullName}}<span style="color: var(--color-text-light-2);">{{.FullName}}</span>{{end}}
+									{{if $.IsShowFullName}}<span class="search-fullname">{{.FullName}}</span>{{end}}
 								</a>
 							{{end}}
 						</div>
