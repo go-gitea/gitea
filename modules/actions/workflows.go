@@ -103,11 +103,6 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		return false
 	}
 
-	// with no special filter parameters
-	if len(evt.Acts) == 0 {
-		return true
-	}
-
 	switch triggedEvent {
 	case webhook_module.HookEventCreate,
 		webhook_module.HookEventDelete,
@@ -126,6 +121,9 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		webhook_module.HookEventRepository,
 		webhook_module.HookEventRelease,
 		webhook_module.HookEventPackage:
+		if len(evt.Acts) != 0 {
+			log.Warn("Ignore unsupported %s event arguments %q", triggedEvent, evt.Acts)
+		}
 		// no special filter parameters for these events, just return true if name matched
 		return true
 
@@ -142,12 +140,17 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		return matchIssueCommentEvent(commit, payload.(*api.IssueCommentPayload), evt)
 
 	default:
-		log.Warn("unsupported event %q", triggedEvent.Event())
+		log.Warn("unsupported event %q", triggedEvent)
 		return false
 	}
 }
 
 func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobparser.Event) bool {
+	// with no special filter parameters
+	if len(evt.Acts) == 0 {
+		return true
+	}
+
 	matchTimes := 0
 	// all acts conditions should be satisfied
 	for cond, vals := range evt.Acts {
@@ -180,13 +183,18 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				}
 			}
 		default:
-			log.Warn("unsupported condition %q", cond)
+			log.Warn("push event unsupported condition %q", cond)
 		}
 	}
 	return matchTimes == len(evt.Acts)
 }
 
 func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *jobparser.Event) bool {
+	// with no special filter parameters
+	if len(evt.Acts) == 0 {
+		return true
+	}
+
 	matchTimes := 0
 	// all acts conditions should be satisfied
 	for cond, vals := range evt.Acts {
@@ -199,13 +207,19 @@ func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *j
 				}
 			}
 		default:
-			log.Warn("unsupported condition %q", cond)
+			log.Warn("issue event unsupported condition %q", cond)
 		}
 	}
 	return matchTimes == len(evt.Acts)
 }
 
 func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
+	// with no special filter parameters
+	if len(evt.Acts) == 0 {
+		// defautly, only pull request opened and synchronized will not trigger workflow
+		return prPayload.Action == api.HookIssueSynchronized || prPayload.Action == api.HookIssueOpened
+	}
+
 	matchTimes := 0
 	// all acts conditions should be satisfied
 	for cond, vals := range evt.Acts {
@@ -250,13 +264,18 @@ func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload
 				}
 			}
 		default:
-			log.Warn("unsupported condition %q", cond)
+			log.Warn("pull request event unsupported condition %q", cond)
 		}
 	}
 	return matchTimes == len(evt.Acts)
 }
 
 func matchIssueCommentEvent(commit *git.Commit, issueCommentPayload *api.IssueCommentPayload, evt *jobparser.Event) bool {
+	// with no special filter parameters
+	if len(evt.Acts) == 0 {
+		return true
+	}
+
 	matchTimes := 0
 	// all acts conditions should be satisfied
 	for cond, vals := range evt.Acts {
@@ -269,7 +288,7 @@ func matchIssueCommentEvent(commit *git.Commit, issueCommentPayload *api.IssueCo
 				}
 			}
 		default:
-			log.Warn("unsupported condition %q", cond)
+			log.Warn("issue comment unsupported condition %q", cond)
 		}
 	}
 	return matchTimes == len(evt.Acts)
