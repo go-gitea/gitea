@@ -979,6 +979,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 				ctx.ServerError("SyncGroupsToTeams", err)
 				return
 			}
+
 		} else {
 			// no existing user is found, request attach or new account
 			showLinkingLogin(ctx, gothUser)
@@ -1135,11 +1136,13 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 		// update external user information
 		if err := externalaccount.UpdateExternalUser(u, gothUser); err != nil {
-			if !errors.Is(err, util.ErrNotExist) {
+			if errors.Is(err, util.ErrNotExist) {
+				err = externalaccount.LinkAccountToUser(u, gothUser) // FIXME: should be upsert
+			}
+			if !errors.Is(err, util.ErrAlreadyExist) {
 				log.Error("UpdateExternalUser failed: %v", err)
 			}
 		}
-
 		if err := resetLocale(ctx, u); err != nil {
 			ctx.ServerError("resetLocale", err)
 			return
