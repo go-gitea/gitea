@@ -23,7 +23,7 @@ const (
 	tplViewActions base.TplName = "repo/actions/view"
 )
 
-type WorkFlow struct {
+type Workflow struct {
 	Entry     git.TreeEntry
 	IsInvalid bool
 	ErrMsg    string
@@ -53,7 +53,7 @@ func List(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsActions"] = true
 
-	var workflows []WorkFlow
+	var workflows []Workflow
 	if empty, err := ctx.Repo.GitRepo.IsEmpty(); err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -73,9 +73,9 @@ func List(ctx *context.Context) {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
-		workflows = make([]WorkFlow, 0, len(entries))
+		workflows = make([]Workflow, 0, len(entries))
 		for _, entry := range entries {
-			workflow := WorkFlow{Entry: *entry}
+			workflow := Workflow{Entry: *entry}
 			content, err := actions.GetContentFromEntry(entry)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, err.Error())
