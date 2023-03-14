@@ -1257,6 +1257,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Get("/orgs", org.ListUserOrgs)
 					m.Post("/orgs", bind(api.CreateOrgOption{}), admin.CreateOrg)
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
+					m.Post("/rename", bind(api.RenameUserOption{}), admin.RenameUser)
 				}, context_service.UserAssignmentAPI())
 			})
 			m.Group("/unadopted", func() {
