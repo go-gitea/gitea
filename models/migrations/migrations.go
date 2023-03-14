@@ -467,7 +467,7 @@ var migrations = []Migration{
 
 	// v244 -> v245
 	NewMigration("Add NeedApproval to actions tables", v1_20.AddNeedApprovalToActionRun),
-	// v245 -> v246
+	// v246 -> v247
 	NewMigration("Fix incorrect project type", v1_20.FixIncorrectProjectType),
 }
 

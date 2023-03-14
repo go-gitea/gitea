@@ -37,10 +37,7 @@ func FixIncorrectProjectType(x *xorm.Engine) error {
 	}
 
 	count, err := sess.Table("project").
-		Join("INNER", "user", "user.id = project.owner_id").
-		Where("project.type = ? AND user.type = ?", TypeOrganization, UserTypeIndividual).
-		// FIXME:
-		// Error: migrate: migration[245]: Fix incorrect project type failed: no such column: user.type
+		Where("type = ? AND owner_id = (SELECT id FROM user WHERE type = ?)", TypeOrganization, UserTypeIndividual).
 		Update(&Project{
 			Type: TypeIndividual,
 		})
