@@ -2,9 +2,8 @@
 import './bootstrap.js';
 
 import $ from 'jquery';
-import {initVueEnv} from './components/VueComponentLoader.js';
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
-import {initDashboardRepoList} from './components/DashboardRepoList.js';
+import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
 import {attachTribute} from './features/tribute.js';
 import {initGlobalCopyToClipboardListener} from './features/clipboard.js';
@@ -100,7 +99,6 @@ $.fn.tab.settings.silent = true;
 // Disable the behavior of fomantic to toggle the checkbox when you press enter on a checkbox element.
 $.fn.checkbox.settings.enableEnterKey = false;
 
-initVueEnv();
 $(document).ready(() => {
   initGlobalCommon();
 
