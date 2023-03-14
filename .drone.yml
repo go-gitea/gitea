@@ -186,6 +186,10 @@ trigger:
   paths:
     exclude:
       - docs/**
+  branch:
+    exclude:
+      - main
+      - release/*
 
 volumes:
   - name: deps
@@ -291,6 +295,10 @@ trigger:
   paths:
     exclude:
       - docs/**
+  branch:
+    exclude:
+      - main
+      - release/*
 
 volumes:
   - name: deps
@@ -455,6 +463,10 @@ trigger:
   paths:
     exclude:
       - docs/**
+  branch:
+    exclude:
+      - main
+      - release/*
 
 volumes:
   - name: deps
@@ -544,6 +556,10 @@ trigger:
   paths:
     exclude:
       - docs/**
+  branch:
+    exclude:
+      - main
+      - release/*
 
 volumes:
   - name: deps
@@ -633,6 +649,10 @@ trigger:
   paths:
     exclude:
       - docs/**
+  branch:
+    exclude:
+      - main
+      - release/*
 
 volumes:
   - name: deps
@@ -714,6 +734,10 @@ trigger:
   paths:
     exclude:
       - docs/**
+  branch:
+    exclude:
+      - main
+      - release/*
 
 volumes:
   - name: deps
