@@ -31,8 +31,17 @@ import octiconSkip from '../../public/img/svg/octicon-skip.svg';
 import octiconMeter from '../../public/img/svg/octicon-meter.svg';
 import octiconBlocked from '../../public/img/svg/octicon-blocked.svg';
 import octiconSync from '../../public/img/svg/octicon-sync.svg';
+import octiconFilter from '../../public/img/svg/octicon-filter.svg';
+import octiconPlus from '../../public/img/svg/octicon-plus.svg';
+import octiconSearch from '../../public/img/svg/octicon-search.svg';
+import octiconArchive from '../../public/img/svg/octicon-archive.svg';
+import octiconStar from '../../public/img/svg/octicon-star.svg';
+import giteaDoubleChevronLeft from '../../public/img/svg/gitea-double-chevron-left.svg';
+import giteaDoubleChevronRight from '../../public/img/svg/gitea-double-chevron-right.svg';
+import octiconChevronLeft from '../../public/img/svg/octicon-chevron-left.svg';
+import octiconOrganization from '../../public/img/svg/octicon-organization.svg';
 
-export const svgs = {
+const svgs = {
   'octicon-blocked': octiconBlocked,
   'octicon-check-circle-fill': octiconCheckCircleFill,
   'octicon-chevron-down': octiconChevronDown,
@@ -66,14 +75,25 @@ export const svgs = {
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
   'octicon-x-circle-fill': octiconXCircleFill,
+  'octicon-filter': octiconFilter,
+  'octicon-plus': octiconPlus,
+  'octicon-search': octiconSearch,
+  'octicon-archive': octiconArchive,
+  'octicon-star': octiconStar,
+  'gitea-double-chevron-left': giteaDoubleChevronLeft,
+  'gitea-double-chevron-right': giteaDoubleChevronRight,
+  'octicon-chevron-left': octiconChevronLeft,
+  'octicon-organization': octiconOrganization,
 };
+
+// TODO: use a more general approach to access SVG icons. At the moment, developers must check, pick and fill the names manually, most of the SVG icons in assets couldn't be used directly.
 
 const parser = new DOMParser();
 const serializer = new XMLSerializer();
 
-// retrieve a HTML string for given SVG icon name, size and additional classes
+// retrieve an HTML string for given SVG icon name, size and additional classes
 export function svg(name, size = 16, className = '') {
-  if (!(name in svgs)) return '';
+  if (!(name in svgs)) throw new Error(`Unknown SVG icon: ${name}`);
   if (size === 16 && !className) return svgs[name];
 
   const document = parser.parseFromString(svgs[name], 'image/svg+xml');
