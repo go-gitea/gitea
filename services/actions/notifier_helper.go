@@ -118,20 +118,20 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule,
 		EventPayload:  cron.EventPayload,
 		Status:        actions_model.StatusWaiting,
 	}
-	jobs, err := jobparser.Parse(cron.Content)
+	workflows, err := jobparser.Parse(cron.Content)
 	if err != nil {
 		return err
 	}
-	if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
+	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
 		return err
 	}
-	if jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID}); err != nil {
+	jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+	if err != nil {
 		return err
-	} else {
-		for _, job := range jobs {
-			if err := CreateCommitStatus(ctx, job); err != nil {
-				return err
-			}
+	}
+	for _, job := range jobs {
+		if err := CreateCommitStatus(ctx, job); err != nil {
+			return err
 		}
 	}
 	return nil
