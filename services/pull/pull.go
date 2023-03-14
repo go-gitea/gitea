@@ -276,7 +276,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 
 			AddToTaskQueue(pr)
 			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
-			if err == nil && comment != nil {
+			if err == nil && comment != nil && !pr.Issue.IsClosed {
 				notification.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
 			}
 		}
