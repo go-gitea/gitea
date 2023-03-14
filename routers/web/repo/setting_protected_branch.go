@@ -152,7 +152,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	c.Data["Rule"] = rule
-	c.Data["isShowFullName"] = setting.UI.DefaultShowFullName
+	c.Data["IsShowFullName"] = setting.UI.DefaultShowFullName
 	c.HTML(http.StatusOK, tplProtectedBranch)
 }
 
