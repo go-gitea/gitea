@@ -243,7 +243,7 @@ func TestGetFeedsCorrupted(t *testing.T) {
 }
 
 func TestConsistencyUpdateAction(t *testing.T) {
-	if !setting.Database.UseSQLite3 {
+	if !setting.Database.Type.IsSQLite3() {
 		t.Skip("Test is only for SQLite database.")
 	}
 	assert.NoError(t, unittest.PrepareTestDatabase())
