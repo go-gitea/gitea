@@ -6,16 +6,7 @@
 	<div class="content">
 		<p>{{.locale.Tr "repo.issues.label_deletion_desc"}}</p>
 	</div>
-	<div class="actions">
-		<div class="ui red basic inverted cancel button">
-			<i class="remove icon"></i>
-			{{.locale.Tr "modal.no"}}
-		</div>
-		<div class="ui green basic inverted ok button">
-			<i class="checkmark icon"></i>
-			{{.locale.Tr "modal.yes"}}
-		</div>
-	</div>
+	{{template "base/delete_modal_actions" .}}
 </div>
 
 <div class="ui small edit-label modal">
@@ -61,11 +52,13 @@
 		</form>
 	</div>
 	<div class="actions">
-		<div class="ui secondary small basic cancel button">
+		<button class="ui secondary small basic cancel button">
+			{{svg "octicon-x"}}
 			{{.locale.Tr "cancel"}}
-		</div>
-		<div class="ui primary small approve button">
+		</button>
+		<button class="ui primary small approve button">
+			<i class="save icon"></i>
 			{{.locale.Tr "save"}}
-		</div>
+		</button>
 	</div>
 </div>
