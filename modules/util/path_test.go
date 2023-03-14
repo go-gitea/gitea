@@ -136,3 +136,15 @@ func TestMisc_IsReadmeFileName(t *testing.T) {
 		assert.Equal(t, testCase.idx, idx)
 	}
 }
+
+func TestCleanPath(t *testing.T) {
+	cases := map[string]string{
+		"../../test": "test",
+		"/test":      "/test",
+		"/../test":   "/test",
+	}
+
+	for k, v := range cases {
+		assert.Equal(t, v, CleanPath(k))
+	}
+}
