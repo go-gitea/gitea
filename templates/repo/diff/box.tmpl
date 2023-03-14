@@ -107,8 +107,8 @@
 								<div class="diff-file-header-actions gt-df gt-ac">
 									{{if $showFileViewToggle}}
 										<div class="ui compact icon buttons">
-											<span class="ui tiny basic button tooltip file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-content="{{$.locale.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code"}}</span>
-											<span class="ui tiny basic button tooltip file-view-toggle active" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-content="{{$.locale.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file"}}</span>
+											<button class="ui tiny basic button tooltip file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-content="{{$.locale.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code"}}</button>
+											<button class="ui tiny basic button tooltip file-view-toggle active" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-content="{{$.locale.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file"}}</button>
 										</div>
 									{{end}}
 									{{if $file.IsProtected}}
@@ -200,8 +200,8 @@
 					{{$.locale.Tr "loading"}}
 					</div>
 					<div class="text right edit buttons">
-						<div class="ui basic primary cancel button" tabindex="3">{{.locale.Tr "repo.issues.cancel"}}</div>
-						<div class="ui green save button" tabindex="2">{{.locale.Tr "repo.issues.save"}}</div>
+						<button class="ui basic primary cancel button" tabindex="3">{{.locale.Tr "repo.issues.cancel"}}</button>
+						<button class="ui green save button" tabindex="2">{{.locale.Tr "repo.issues.save"}}</button>
 					</div>
 				</div>
 			</div>

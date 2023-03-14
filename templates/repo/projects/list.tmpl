@@ -86,16 +86,7 @@
 	<div class="content">
 		<p>{{.locale.Tr "repo.projects.deletion_desc"}}</p>
 	</div>
-	<div class="actions">
-		<div class="ui red basic inverted cancel button">
-			<i class="remove icon"></i>
-			{{.locale.Tr "modal.no"}}
-		</div>
-		<div class="ui green basic inverted ok button">
-			<i class="checkmark icon"></i>
-			{{.locale.Tr "modal.yes"}}
-		</div>
-	</div>
+	{{template "base/delete_modal_actions" .}}
 </div>
 {{end}}
 {{template "base/footer" .}}
