@@ -1262,9 +1262,6 @@ func Routes(ctx gocontext.Context) *web.Route {
 			m.Group("/emails", func() {
 				m.Get("", admin.GetAllEmails)
 				m.Get("/search", admin.SearchEmail)
-				m.Group("/{email}", func() {
-					m.Get("", admin.GetEmail)
-				})
 			})
 			m.Group("/unadopted", func() {
 				m.Get("", admin.ListUnadoptedRepositories)
