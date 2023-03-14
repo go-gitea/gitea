@@ -41,9 +41,8 @@ func FixIncorrectProjectType(x *xorm.Engine) error {
 		Update(&Project{
 			Type: TypeIndividual,
 		})
-
 	if err != nil {
-	  return err
+		return err
 	}
 	log.Debug("Updated %d projects to belong to a user instead of an organization", count)
 
