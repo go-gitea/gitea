@@ -37,7 +37,7 @@ func FixIncorrectProjectType(x *xorm.Engine) error {
 	}
 
 	count, err := sess.Table("project").
-		Where("type = ? AND owner_id = (SELECT id FROM user WHERE type = ?)", TypeOrganization, UserTypeIndividual).
+		Where("type = ? AND owner_id IN (SELECT id FROM user WHERE type = ?)", TypeOrganization, UserTypeIndividual).
 		Update(&Project{
 			Type: TypeIndividual,
 		})
