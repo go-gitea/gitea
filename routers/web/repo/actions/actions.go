@@ -26,6 +26,7 @@ const (
 type WorkFlow struct {
 	Entry     git.TreeEntry
 	IsInvalid bool
+	ErrMsg    string
 }
 
 // MustEnableActions check if actions are enabled in settings
@@ -83,6 +84,7 @@ func List(ctx *context.Context) {
 			_, err = actions.GetEventsFromContent(content)
 			if err != nil {
 				workflow.IsInvalid = true
+				workflow.ErrMsg = err.Error()
 			}
 			workflows = append(workflows, workflow)
 		}
