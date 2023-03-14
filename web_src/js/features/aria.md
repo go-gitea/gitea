@@ -57,12 +57,15 @@ According to the public discussion with fsologureng in chat channel:
 
 > 2023-03-13 14:52:00 UTC
 >
-> fsologureng: On the old web there were many menus implemented with an auto-submit select,
+> wxiaoguang: Yup, the "language dropdown" is arguable (menu or combobox). It's the only one we need to mark it as combobox if you strongly prefer.
+> But for others (Create Repo / Profile / Reaction Menu / Issue Context Menu), I think they are not suitable to be combobox.
+>
+> fsologureng: I repeat an argument stated in my first comment: "On the old web there were many menus implemented with an auto-submit select,
 > but that didn't change the fact that they were selects for screen readers.
 > That is the case with Fomantic dropdowns as used in Gitea.
 > Implementations of auto-submit select menus fell behind in modern web design precisely because they are not usable or accessible."
 >
-> wxiaoguang: We can mark all "dropdown" as "combobox", never use "menu" in code. Do you think this solution is clear enough?
+> wxiaoguang: If you strongly prefer, we can mark all "dropdown" as "combobox", never use "menu" in code. Do you think this solution is clear enough?
 >
 > fsologureng: Yes. I think it will provide better accessibility because is more coherent with the current fomantic based implementation.
 
