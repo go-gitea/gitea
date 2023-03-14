@@ -412,7 +412,8 @@ async function onEditContent(event) {
       $saveButton.trigger('click');
     });
 
-    $editContentZone.find('.cancel.button').on('click', () => {
+    $editContentZone.find('.cancel.button').on('click', (e) => {
+      e.preventDefault();
       showElem($renderContent);
       hideElem($editContentZone);
       if (dz) {

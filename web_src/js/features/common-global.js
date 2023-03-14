@@ -213,7 +213,8 @@ export function initGlobalDropzone() {
 }
 
 export function initGlobalLinkActions() {
-  function showDeletePopup() {
+  function showDeletePopup(e) {
+    e.preventDefault();
     const $this = $(this);
     const dataArray = $this.data();
     let filter = '';
@@ -254,10 +255,10 @@ export function initGlobalLinkActions() {
         });
       }
     }).modal('show');
-    return false;
   }
 
-  function showAddAllPopup() {
+  function showAddAllPopup(e) {
+    e.preventDefault();
     const $this = $(this);
     let filter = '';
     if ($this.attr('id')) {
@@ -283,7 +284,6 @@ export function initGlobalLinkActions() {
         });
       }
     }).modal('show');
-    return false;
   }
 
   function linkAction(e) {
@@ -329,13 +329,21 @@ export function initGlobalLinkActions() {
 }
 
 export function initGlobalButtons() {
-  $('.show-panel.button').on('click', function () {
+  // There are many "cancel button" elements in modal dialogs, Fomantic UI expects they are button-like elements but never submit a form.
+  // However, Gitea misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
+  // There are a few cancel buttons in non-modal forms, and there are some dynamically created forms (eg: the "Edit Issue Content")
+  $(document).on('click', 'form .ui.cancel.button', (e) => {
+    e.preventDefault();
+  });
+
+  $('.show-panel.button').on('click', function (e) {
+    e.preventDefault();
     showElem($(this).data('panel'));
   });
 
-  $('.hide-panel.button').on('click', function (event) {
+  $('.hide-panel.button').on('click', function (e) {
     // a `.hide-panel.button` can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
-    event.preventDefault();
+    e.preventDefault();
     let sel = $(this).attr('data-panel');
     if (sel) {
       hideElem($(sel));
@@ -350,7 +358,8 @@ export function initGlobalButtons() {
     alert('Nothing to hide');
   });
 
-  $('.show-modal').on('click', function () {
+  $('.show-modal').on('click', function (e) {
+    e.preventDefault();
     const modalDiv = $($(this).attr('data-modal'));
     for (const attrib of this.attributes) {
       if (!attrib.name.startsWith('data-modal-')) {
@@ -371,7 +380,8 @@ export function initGlobalButtons() {
     }
   });
 
-  $('.delete-post.button').on('click', function () {
+  $('.delete-post.button').on('click', function (e) {
+    e.preventDefault();
     const $this = $(this);
     $.post($this.attr('data-request-url'), {
       _csrf: csrfToken

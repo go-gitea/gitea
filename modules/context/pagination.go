@@ -18,10 +18,11 @@ type Pagination struct {
 	urlParams []string
 }
 
-// NewPagination creates a new instance of the Pagination struct
-func NewPagination(total, page, issueNum, numPages int) *Pagination {
+// NewPagination creates a new instance of the Pagination struct.
+// "pagingNum" is "page size" or "limit", "current" is "page"
+func NewPagination(total, pagingNum, current, numPages int) *Pagination {
 	p := &Pagination{}
-	p.Paginater = paginator.New(total, page, issueNum, numPages)
+	p.Paginater = paginator.New(total, pagingNum, current, numPages)
 	return p
 }
 
