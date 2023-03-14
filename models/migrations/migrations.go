@@ -468,7 +468,7 @@ var migrations = []Migration{
 	// v244 -> v245
 	NewMigration("Add NeedApproval to actions tables", v1_20.AddNeedApprovalToActionRun),
 
-	// 245 -> 246
+	// 246 -> 247
 	NewMigration("Add action schedule table", v1_20.AddActionScheduleTable),
 }
 
