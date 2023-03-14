@@ -216,7 +216,7 @@ func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *j
 func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
 	if len(evt.Acts) == 0 {
-		// defautly, only pull request opened and synchronized will not trigger workflow
+		// defaultly, only pull request opened and synchronized will trigger workflow
 		return prPayload.Action == api.HookIssueSynchronized || prPayload.Action == api.HookIssueOpened
 	}
 
