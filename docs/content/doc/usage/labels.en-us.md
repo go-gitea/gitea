@@ -23,17 +23,15 @@ For repositories, labels can be created by going to `Issues` and clicking on `La
 
 For organizations, you can define organization-wide labels that are shared with all organization repositories, including both already-existing repositories as well as newly created ones. Organization-wide labels can be created in the organization `Settings`.
 
-Labels have a mandatory name, a mandatory color, an optional description, and must either be exclusive or not (see `Scoped labels` below).
+Labels have a mandatory name, a mandatory color, an optional description, and must either be exclusive or not (see `Scoped Labels` below).
 
 When you create a repository, you can ensure certain labels exist by using the `Issue Labels` option. This option lists a number of available label sets that are [configured globally on your instance](../customizing-gitea/#labels). Its contained labels will all be created as well while creating the repository.
 
 ## Scoped Labels
 
-A scoped label is a label that contains `/` in its name (not at either end of the name). For example labels `kind/bug` and `kind/enhancement` both have scope `kind`. Such labels will display the scope with slightly darker color.
+Scoped labels are used to ensure at most a single label with the same scope is assigned to an issue or pull request. For example, if labels `kind/bug` and `kind/enhancement` have the Exclusive option set, an issue can only be classified as a bug or an enhancement.
 
-The scope of a label is determined based on the **last** `/`, so for example the scope of label `scope/subscope/item` is `scope/subscope`.
-
-Scoped labels can be marked as exclusive. This ensures at most a single label with the same scope is assigned to an issue or pull request. For example, if `kind/bug` and `kind/enhancement` are marked exclusive, an issue can only be classified as a bug or an enhancement.
+A scoped label must contain `/` in its name (not at either end of the name). The scope of a label is determined based on the **last** `/`, so for example the scope of label `scope/subscope/item` is `scope/subscope`.
 
 ## Filtering by Label
 

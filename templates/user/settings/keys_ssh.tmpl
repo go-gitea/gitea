@@ -2,11 +2,11 @@
 	{{.locale.Tr "settings.manage_ssh_keys"}}
 	<div class="ui right">
 		{{if not .DisableSSH}}
-			<div id="add-ssh-button" class="ui primary tiny show-panel button" data-panel="#add-ssh-key-panel">
+			<button id="add-ssh-button" class="ui primary tiny show-panel button" data-panel="#add-ssh-key-panel">
 				{{.locale.Tr "settings.add_key"}}
-			</div>
+			</button>
 		{{else}}
-			<div class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</div>
+			<button class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</button>
 		{{end}}
 	</div>
 </h4>

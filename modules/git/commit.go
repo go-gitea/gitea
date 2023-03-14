@@ -218,6 +218,19 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 	return false, err
 }
 
+// IsForcePush returns true if a push from oldCommitHash to this is a force push
+func (c *Commit) IsForcePush(oldCommitID string) (bool, error) {
+	if oldCommitID == EmptySHA {
+		return false, nil
+	}
+	oldCommit, err := c.repo.GetCommit(oldCommitID)
+	if err != nil {
+		return false, err
+	}
+	hasPreviousCommit, err := c.HasPreviousCommit(oldCommit.ID)
+	return !hasPreviousCommit, err
+}
+
 // CommitsBeforeLimit returns num commits before current revision
 func (c *Commit) CommitsBeforeLimit(num int) ([]*Commit, error) {
 	return c.repo.getCommitsBeforeLimit(c.ID, num)
