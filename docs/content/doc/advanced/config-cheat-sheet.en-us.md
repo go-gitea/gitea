@@ -458,7 +458,6 @@ relation to port exhaustion.
 
 - `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently supported: `bleve`, `db`, `elasticsearch` or `meilisearch`.
 - `ISSUE_INDEXER_CONN_STR`: ****: Issue indexer connection string, available when ISSUE_INDEXER_TYPE is elasticsearch, or meilisearch. i.e. http://elastic:changeme@localhost:9200
-- `ISSUE_INDEXER_CONN_AUTH`: ****: Issue indexer Authentication token, available when ISSUE_INDEXER_TYPE is meilisearch
 - `ISSUE_INDEXER_NAME`: **gitea_issues**: Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search; available when ISSUE_INDEXER_TYPE is bleve and elasticsearch. Relative paths will be made absolute against _`AppWorkPath`_.
 - The next 4 configuration values are deprecated and should be set in `queue.issue_indexer` however are kept for backwards compatibility:

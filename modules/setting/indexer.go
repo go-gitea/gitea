@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -55,7 +56,16 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 		Indexer.IssuePath = filepath.ToSlash(filepath.Join(AppWorkPath, Indexer.IssuePath))
 	}
 	Indexer.IssueConnStr = sec.Key("ISSUE_INDEXER_CONN_STR").MustString(Indexer.IssueConnStr)
-	Indexer.IssueConnAuth = sec.Key("ISSUE_INDEXER_CONN_AUTH").MustString(Indexer.IssueConnAuth)
+
+	if Indexer.IssueType == "meilisearch" {
+		u, err := url.Parse(Indexer.IssueConnStr)
+		if err != nil {
+			log.Warn("Failed to parse ISSUE_INDEXER_CONN_STR: %v", err)
+			u = &url.URL{}
+		}
+		Indexer.IssueConnAuth, _ = u.User.Password()
+	}
+
 	Indexer.IssueIndexerName = sec.Key("ISSUE_INDEXER_NAME").MustString(Indexer.IssueIndexerName)
 
 	// The following settings are deprecated and can be overridden by settings in [queue] or [queue.issue_indexer]
