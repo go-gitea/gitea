@@ -346,8 +346,8 @@
 									</form>
 								</div>
 								<div class="actions">
-									<div class="ui green approve button">{{.locale.Tr "repo.issues.add_time_short"}}</div>
-									<div class="ui red cancel button">{{.locale.Tr "repo.issues.add_time_cancel"}}</div>
+									<button class="ui green approve button">{{.locale.Tr "repo.issues.add_time_short"}}</button>
+									<button class="ui red cancel button">{{.locale.Tr "repo.issues.add_time_cancel"}}</button>
 								</div>
 							</div>
 							<button class="ui fluid button green tooltip issue-add-time gt-mt-3" data-content='{{.locale.Tr "repo.issues.add_time"}}' data-position="top center">{{.locale.Tr "repo.issues.add_time_short"}}</button>
@@ -532,14 +532,14 @@
 						{{end}}</p>
 					</div>
 					<div class="actions">
-						<div class="ui red cancel inverted button">
+						<button class="ui red cancel inverted button">
 							{{svg "octicon-x"}}
 							{{.locale.Tr "repo.issues.dependency.cancel"}}
-						</div>
-						<div class="ui green ok inverted button">
+						</button>
+						<button class="ui green ok inverted button">
 							{{svg "octicon-check"}}
 							{{.locale.Tr "repo.issues.dependency.remove"}}
-						</div>
+						</button>
 					</div>
 				</div>
 			{{end}}
@@ -619,7 +619,7 @@
 						{{end}}
 
 						<div class="text right actions">
-							<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
+							<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
 							<button class="ui red button">
 								{{if .Issue.IsLocked}}
 									{{.locale.Tr "repo.issues.unlock_confirm"}}
@@ -655,7 +655,7 @@
 				<form action="{{.Issue.Link}}/delete" method="post">
 					{{.CsrfTokenHtml}}
 					<div class="center actions">
-						<div class="ui basic cancel inverted button">{{.locale.Tr "settings.cancel"}}</div>
+						<button class="ui basic cancel inverted button">{{.locale.Tr "settings.cancel"}}</button>
 						<button class="ui basic red inverted button">{{.locale.Tr "modal.yes"}}</button>
 					</div>
 				</form>

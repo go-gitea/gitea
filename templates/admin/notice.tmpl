@@ -23,7 +23,7 @@
 						<tr>
 							<td class="collapsing">
 								<div class="ui fitted checkbox" data-id="{{.ID}}">
-									<input type="checkbox"> <label></label>
+									<input type="checkbox">
 								</div>
 							</td>
 							<td>{{.ID}}</td>
@@ -39,13 +39,11 @@
 							<tr>
 								<th></th>
 								<th colspan="5">
-									<div class="ui right">
-										<form method="post" action="{{AppSubUrl}}/admin/notices/empty">
-											{{.CsrfTokenHtml}}
-											<button type="submit" class="ui red small button">{{.locale.Tr "admin.notices.delete_all"}}</button>
-										</form>
-									</div>
-									<div class="ui floating upward dropdown small button">
+									<form class="ui right" method="post" action="{{AppSubUrl}}/admin/notices/empty">
+										{{.CsrfTokenHtml}}
+										<button type="submit" class="ui red small button">{{.locale.Tr "admin.notices.delete_all"}}</button>
+									</form>
+									<div class="ui floating upward dropdown small button">{{/* TODO: Make this dropdown accessible */}}
 										<span class="text">{{.locale.Tr "admin.notices.operations"}}</span>
 										<div class="menu">
 											<div class="item select action" data-action="select-all">
@@ -59,9 +57,9 @@
 											</div>
 										</div>
 									</div>
-									<div class="ui small teal button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="{{.Link}}?page={{.Page.Paginater.Current}}">
+									<button class="ui small teal button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="{{.Link}}?page={{.Page.Paginater.Current}}">
 										{{.locale.Tr "admin.notices.delete_selected"}}
-									</div>
+									</button>
 								</th>
 							</tr>
 					</tfoot>

@@ -1,9 +1,7 @@
 <div class="sixteen wide column title">
 	<div class="issue-title" id="issue-title-wrapper">
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
-			<div class="edit-button">
-				<button id="edit-title" class="ui basic button secondary not-in-edit">{{.locale.Tr "repo.issues.edit"}}</button>
-			</div>
+			<button id="edit-title" class="ui basic button secondary edit-button not-in-edit">{{.locale.Tr "repo.issues.edit"}}</button>
 		{{end}}
 		<h1>
 			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink $.Repository.ComposeMetas | RenderCodeBlock}}</span>
