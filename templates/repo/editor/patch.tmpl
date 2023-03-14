@@ -45,14 +45,14 @@
 			<p>{{.locale.Tr "repo.editor.commit_empty_file_text"}}</p>
 		</div>
 		<div class="actions">
-			<div class="ui red basic cancel inverted button">
-				<i class="remove icon"></i>
+			<button class="ui red basic inverted cancel button">
+				{{svg "octicon-x"}}
 				{{.locale.Tr "repo.editor.cancel"}}
-			</div>
-			<div class="ui green basic ok inverted button">
-				<i class="save icon"></i>
+			</button>
+			<button class="ui green basic inverted ok button">
+				{{svg "fontawesome-save"}}
 				{{.locale.Tr "repo.editor.commit_changes"}}
-			</div>
+			</button>
 		</div>
 	</div>
 </div>

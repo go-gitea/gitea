@@ -753,6 +753,9 @@
           "201": {
             "$ref": "#/responses/Repository"
           },
+          "400": {
+            "$ref": "#/responses/error"
+          },
           "403": {
             "$ref": "#/responses/forbidden"
           },
@@ -1966,6 +1969,9 @@
           "201": {
             "$ref": "#/responses/Repository"
           },
+          "400": {
+            "$ref": "#/responses/error"
+          },
           "403": {
             "$ref": "#/responses/forbidden"
           },
@@ -2160,6 +2166,7 @@
               "pub",
               "pypi",
               "rubygems",
+              "swift",
               "vagrant"
             ],
             "type": "string",
@@ -13420,6 +13427,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Repository"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "409": {
             "description": "The repository with the same name already exists."
