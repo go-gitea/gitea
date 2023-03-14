@@ -105,39 +105,36 @@ func (input *notifyInput) Notify(ctx context.Context) {
 	}
 }
 
-func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule, spec string) (int, error) {
-	return schedule.AddFunc(spec, func() {
-		run := &actions_model.ActionRun{
-			Title:         cron.Title,
-			RepoID:        cron.RepoID,
-			OwnerID:       cron.OwnerID,
-			WorkflowID:    cron.WorkflowID,
-			TriggerUserID: cron.TriggerUserID,
-			Ref:           cron.Ref,
-			CommitSHA:     cron.CommitSHA,
-			Event:         cron.Event,
-			EventPayload:  cron.EventPayload,
-			Status:        actions_model.StatusWaiting,
-		}
-		jobs, err := jobparser.Parse(cron.Content)
-		if err != nil {
-			log.Error("jobparser.Parse: %v", err)
-			return
-		}
-		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
-			log.Error("InsertRun: %v", err)
-			return
-		}
-		if jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID}); err != nil {
-			log.Error("FindRunJobs: %v", err)
-		} else {
-			for _, job := range jobs {
-				if err := CreateCommitStatus(ctx, job); err != nil {
-					log.Error("CreateCommitStatus: %v", err)
-				}
+func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule, spec string) error {
+	run := &actions_model.ActionRun{
+		Title:         cron.Title,
+		RepoID:        cron.RepoID,
+		OwnerID:       cron.OwnerID,
+		WorkflowID:    cron.WorkflowID,
+		TriggerUserID: cron.TriggerUserID,
+		Ref:           cron.Ref,
+		CommitSHA:     cron.CommitSHA,
+		Event:         cron.Event,
+		EventPayload:  cron.EventPayload,
+		Status:        actions_model.StatusWaiting,
+	}
+	jobs, err := jobparser.Parse(cron.Content)
+	if err != nil {
+		return err
+	}
+	if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
+		return err
+	}
+	if jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID}); err != nil {
+		return err
+	} else {
+		for _, job := range jobs {
+			if err := CreateCommitStatus(ctx, job); err != nil {
+				return err
 			}
 		}
-	})
+	}
+	return nil
 }
 
 func handleSchedules(
@@ -154,10 +151,6 @@ func handleSchedules(
 	rows, _, err := actions_model.FindSchedules(ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID})
 	if err != nil {
 		log.Error("FindCrons: %v", err)
-	}
-
-	for _, row := range rows {
-		schedule.Remove(row.EntryIDs)
 	}
 
 	if len(rows) > 0 {
@@ -209,15 +202,12 @@ func handleSchedules(
 
 	if len(crons) > 0 {
 		for _, cron := range crons {
-			entryIDs := []int{}
 			for _, spec := range cron.Specs {
-				id, err := CreateScheduleTask(ctx, cron, spec)
+				err := CreateScheduleTask(ctx, cron, spec)
 				if err != nil {
 					continue
 				}
-				entryIDs = append(entryIDs, id)
 			}
-			cron.EntryIDs = entryIDs
 		}
 
 		if err := actions_model.CreateScheduleTask(ctx, crons); err != nil {
