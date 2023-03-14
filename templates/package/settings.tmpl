@@ -57,10 +57,7 @@
 						<form class="ui form" action="{{.Link}}" method="post">
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="action" value="delete">
-							<div class="text right actions">
-								<div class="ui cancel button">{{.locale.Tr "cancel"}}</div>
-								<button class="ui red button">{{.locale.Tr "ok"}}</button>
-							</div>
+							{{template "base/delete_modal_actions" .}}
 						</form>
 					</div>
 				</div>

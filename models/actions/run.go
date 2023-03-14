@@ -128,6 +128,17 @@ func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
 	return nil, fmt.Errorf("event %s is not a push event", run.Event)
 }
 
+func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, error) {
+	if run.Event == webhook_module.HookEventPullRequest {
+		var payload api.PullRequestPayload
+		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
+			return nil, err
+		}
+		return &payload, nil
+	}
+	return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
+}
+
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
 	_, err := db.GetEngine(ctx).ID(repo.ID).
 		SetExpr("num_action_runs",
@@ -192,6 +203,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		if len(needs) > 0 || run.NeedApproval {
 			status = StatusBlocked
 		}
+		job.Name, _ = util.SplitStringAtByteN(job.Name, 255)
 		runJobs = append(runJobs, &ActionRunJob{
 			RunID:             run.ID,
 			RepoID:            run.RepoID,

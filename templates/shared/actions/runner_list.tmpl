@@ -20,9 +20,9 @@
 					</div>
 					<div class="ui input">
 						<input type="text" value="{{.RegistrationToken}}">
-						<div class="ui basic label button" data-clipboard-text="{{.RegistrationToken}}">
+						<button class="ui basic label button" aria-label="{{.locale.Tr "copy"}}" data-clipboard-text="{{.RegistrationToken}}">
 							{{svg "octicon-copy" 14}}
-						</div>
+						</button>
 					</div>
 					<div class="divider"></div>
 					<div class="item">
