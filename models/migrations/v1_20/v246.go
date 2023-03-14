@@ -42,11 +42,10 @@ func FixIncorrectProjectType(x *xorm.Engine) error {
 			Type: TypeIndividual,
 		})
 
-	if err == nil {
-		log.Debug("Updated %d projects to belong to a user instead of an organization", count)
-	} else {
-		return err
+	if err != nil {
+	  return err
 	}
+	log.Debug("Updated %d projects to belong to a user instead of an organization", count)
 
 	return sess.Commit()
 }
