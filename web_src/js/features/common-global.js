@@ -93,8 +93,9 @@ export function initGlobalCommon() {
   // do not init "custom" dropdowns, "custom" dropdowns are managed by their own code.
   $uiDropdowns.filter(':not(.custom)').dropdown({fullTextSearch: 'exact'});
 
-  // "jump" means this dropdown is mainly used for "menu" purpose, clicking an item will jump to somewhere else or trigger an action/function.
-  // when a dropdown is used for non-refresh actions with tippy, it must have this "jump" class to hide the tippy when dropdown is closed.
+  // The "jump" means this dropdown is mainly used for "menu" purpose, clicking an item will jump to somewhere else
+  // or trigger an action/function. When a dropdown is used for non-refresh actions with tippy,
+  // it must have this "jump" class to hide the tippy when dropdown is closed.
   $uiDropdowns.filter('.jump').dropdown({
     action: 'hide',
     onShow() {
@@ -105,11 +106,14 @@ export function initGlobalCommon() {
     onHide() {
       this._tippy?.enable();
 
-      // hide all tippy elements of items after a while. eg: keyboard Enter to trigger the "Copy Link" in the Issue Context Menu
+      // hide all tippy elements of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
       setTimeout(() => {
-        $(this).find('.menu > .item').each((_, item) => {
-          item._tippy?.hide();
-        });
+        const $dropdown = $(this);
+        if ($dropdown.dropdown('is hidden')) {
+          $(this).find('.menu > .item').each((_, item) => {
+            item._tippy?.hide();
+          });
+        }
       }, 2000);
     },
   });
