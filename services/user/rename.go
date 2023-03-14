@@ -14,7 +14,7 @@ import (
 	container_service "code.gitea.io/gitea/services/packages/container"
 )
 
-func renameUser(ctx context.Context, u *user_model.User, newUserName string) (err error) {
+func renameUser(ctx context.Context, u *user_model.User, newUserName string) error {
 	if u.IsOrganization() {
 		return fmt.Errorf("cannot rename organization")
 	}
@@ -23,11 +23,10 @@ func renameUser(ctx context.Context, u *user_model.User, newUserName string) (er
 		return err
 	}
 
-	err = agit.UserNameChanged(ctx, u, newUserName)
-	if err != nil {
+	if err := agit.UserNameChanged(ctx, u, newUserName); err != nil {
 		return err
 	}
-	if err = container_service.UpdateRepositoryNames(ctx, u, newUserName); err != nil {
+	if err := container_service.UpdateRepositoryNames(ctx, u, newUserName); err != nil {
 		return err
 	}
 
