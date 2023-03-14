@@ -37,7 +37,7 @@
 											{{range .Users}}
 												<div class="item" data-value="{{.ID}}">
 													{{avatar $.Context . 28 "mini"}}
-													{{.Name}} {{if $.isShowFullName}}<span style="color: var(--color-text-light-2);">{{.FullName}}</span>{{end}}
+													{{.Name}} {{if $.IsShowFullName}}<span style="color: var(--color-text-light-2);">{{.FullName}}</span>{{end}}
 												</div>
 											{{end}}
 										</div>

@@ -29,7 +29,7 @@
 										{{avatar $.Context .User 28 "gt-mr-3"}}
 										{{.User.Name}}
 									</span>
-									{{if $.isShowFullName}}<span class="text" style="color: var(--color-text-light-2);">{{.User.FullName}}</span>{{end}}
+									{{if $.IsShowFullName}}<span class="text" style="color: var(--color-text-light-2);">{{.User.FullName}}</span>{{end}}
 								</a>
 							{{end}}
 						{{end}}
@@ -262,7 +262,7 @@
 							{{avatar $.Context . 28 "gt-mr-3"}}
 							{{.Name}}
 						</span>
-						{{if $.isShowFullName}}<span class="text" style="color: var(--color-text-light-2);">{{.FullName}}</span>{{end}}
+						{{if $.IsShowFullName}}<span class="text" style="color: var(--color-text-light-2);">{{.FullName}}</span>{{end}}
 					</a>
 				{{end}}
 			</div>
