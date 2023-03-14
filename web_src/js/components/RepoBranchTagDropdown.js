@@ -1,6 +1,5 @@
 import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
-import {vueDelimiters} from './VueComponentLoader.js';
 
 export function initRepoBranchTagDropdown(selector) {
   $(selector).each(function (dropdownIndex, elRoot) {
@@ -39,7 +38,7 @@ export function initRepoBranchTagDropdown(selector) {
     }
 
     const view = createApp({
-      delimiters: vueDelimiters,
+      delimiters: ['${', '}'],
       data() {
         return data;
       },
