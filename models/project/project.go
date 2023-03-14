@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -45,6 +46,18 @@ const (
 	// TypeOrganization is a project that is tied to an organisation
 	TypeOrganization
 )
+
+func (p Type) DisplayName(locale translation.Locale) string {
+	switch p {
+	case TypeIndividual:
+		return locale.Tr("projects.type.individual.displayname")
+	case TypeRepository:
+		return locale.Tr("projects.type.repository.displayname")
+	case TypeOrganization:
+		return locale.Tr("projects.type.organization.displayname")
+	}
+	return fmt.Sprintf("Unknown Type %d", p)
+}
 
 // ErrProjectNotExist represents a "ProjectNotExist" kind of error.
 type ErrProjectNotExist struct {
