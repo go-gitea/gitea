@@ -25,7 +25,7 @@ const (
 	githubEventPullRequestComment       = "pull_request_comment"
 )
 
-func converFromGithubEvent(evt *jobparser.Event) string {
+func convertFromGithubEvent(evt *jobparser.Event) string {
 	switch evt.Name {
 	case githubEventPullRequest, githubEventPullRequestTarget, githubEventPullRequestReview,
 		githubEventPullRequestReviewComment:
