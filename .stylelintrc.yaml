@@ -5,8 +5,6 @@ ignoreFiles:
   - "**/*.go"
 
 overrides:
-  - files: ["**/*.less"]
-    customSyntax: postcss-less
   - files: ["**/chroma/*", "**/codemirror/*", "**/standalone/*", "**/console/*"]
     rules:
       scale-unlimited/declaration-strict-value: null

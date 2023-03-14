@@ -354,7 +354,7 @@ To make a custom theme available to all users:
 
 Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gitea/awesome-gitea#themes).
 
-The `arc-green` theme source can be found [here](https://github.com/go-gitea/gitea/blob/main/web_src/less/themes/theme-arc-green.less).
+The `arc-green` theme source can be found [here](https://github.com/go-gitea/gitea/blob/main/web_src/css/themes/theme-arc-green.css).
 
 If your custom theme is considered a dark theme, set the global css variable `--is-dark-theme` to `true`.
 This allows Gitea to adjust the Monaco code editor's theme accordingly.
