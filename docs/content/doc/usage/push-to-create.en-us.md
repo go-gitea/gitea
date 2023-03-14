@@ -18,6 +18,7 @@ menu:
 Push to create is a feature that allows you to push to a repository that does not exist yet in Gitea. This is useful for automation and for allowing users to create repositories without having to go through the web interface. This feature is disabled by default.
 
 ## Enabling Push To Create
+
 In the `app.ini` file, set `ENABLE_PUSH_CREATE_USER` to `true` and `ENABLE_PUSH_CREATE_ORG` to `true` if you want to allow users to create repositories in their own user account and in organizations they are a member of respectively. Restart Gitea for the changes to take effect. You can read more about these two options in the [Configuration Cheat Sheet]({{< relref "doc/advanced/config-cheat-sheet.en-us.md#repository-repository" >}}).
 
 ## Using Push To Create
