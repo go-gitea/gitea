@@ -190,6 +190,7 @@ help:
 	@echo " - deps                             install dependencies"
 	@echo " - deps-frontend                    install frontend dependencies"
 	@echo " - deps-backend                     install backend dependencies"
+	@echo " - deps-tools                       install tool dependencies"
 	@echo " - lint                             lint everything"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-backend                     lint backend files"
@@ -821,7 +822,7 @@ docs:
 	cd docs; make trans-copy clean build-offline;
 
 .PHONY: deps
-deps: deps-frontend deps-backend
+deps: deps-frontend deps-backend deps-tools
 
 .PHONY: deps-frontend
 deps-frontend: node_modules
@@ -829,6 +830,9 @@ deps-frontend: node_modules
 .PHONY: deps-backend
 deps-backend:
 	$(GO) mod download
+
+.PHONY: deps-tools
+deps-tools:
 	$(GO) install $(AIR_PACKAGE)
 	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE)
 	$(GO) install $(ERRCHECK_PACKAGE)
