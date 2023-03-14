@@ -181,7 +181,6 @@ depends_on:
 trigger:
   event:
     - push
-    - tag
     - pull_request
   paths:
     exclude:
@@ -290,7 +289,6 @@ depends_on:
 trigger:
   event:
     - push
-    - tag
     - pull_request
   paths:
     exclude:
@@ -457,8 +455,7 @@ depends_on:
 
 trigger:
   event:
-    - push
-    - tag
+    - push  
     - pull_request
   paths:
     exclude:
@@ -551,7 +548,6 @@ depends_on:
 trigger:
   event:
     - push
-    - tag
     - pull_request
   paths:
     exclude:
@@ -644,7 +640,6 @@ depends_on:
 trigger:
   event:
     - push
-    - tag
     - pull_request
   paths:
     exclude:
