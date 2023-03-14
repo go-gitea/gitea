@@ -230,7 +230,8 @@ export function initRepoIssueStatusButton() {
     const value = easyMDE?.value() || $(this).val();
     $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
   });
-  $statusButton.on('click', () => {
+  $statusButton.on('click', (e) => {
+    e.preventDefault();
     $('#status').val($statusButton.data('status-val'));
     $('#comment-form').trigger('submit');
   });

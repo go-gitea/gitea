@@ -32,6 +32,8 @@ const (
 
 	AccessTokenScopeAdminOrgHook AccessTokenScope = "admin:org_hook"
 
+	AccessTokenScopeAdminUserHook AccessTokenScope = "admin:user_hook"
+
 	AccessTokenScopeNotification AccessTokenScope = "notification"
 
 	AccessTokenScopeUser       AccessTokenScope = "user"
@@ -64,7 +66,7 @@ type AccessTokenScopeBitmap uint64
 const (
 	// AccessTokenScopeAllBits is the bitmap of all access token scopes, except `sudo`.
 	AccessTokenScopeAllBits AccessTokenScopeBitmap = AccessTokenScopeRepoBits |
-		AccessTokenScopeAdminOrgBits | AccessTokenScopeAdminPublicKeyBits | AccessTokenScopeAdminOrgHookBits |
+		AccessTokenScopeAdminOrgBits | AccessTokenScopeAdminPublicKeyBits | AccessTokenScopeAdminOrgHookBits | AccessTokenScopeAdminUserHookBits |
 		AccessTokenScopeNotificationBits | AccessTokenScopeUserBits | AccessTokenScopeDeleteRepoBits |
 		AccessTokenScopePackageBits | AccessTokenScopeAdminGPGKeyBits | AccessTokenScopeAdminApplicationBits
 
@@ -85,6 +87,8 @@ const (
 	AccessTokenScopeReadRepoHookBits  AccessTokenScopeBitmap = 1 << iota
 
 	AccessTokenScopeAdminOrgHookBits AccessTokenScopeBitmap = 1 << iota
+
+	AccessTokenScopeAdminUserHookBits AccessTokenScopeBitmap = 1 << iota
 
 	AccessTokenScopeNotificationBits AccessTokenScopeBitmap = 1 << iota
 
@@ -123,6 +127,7 @@ var allAccessTokenScopes = []AccessTokenScope{
 	AccessTokenScopeAdminPublicKey, AccessTokenScopeWritePublicKey, AccessTokenScopeReadPublicKey,
 	AccessTokenScopeAdminRepoHook, AccessTokenScopeWriteRepoHook, AccessTokenScopeReadRepoHook,
 	AccessTokenScopeAdminOrgHook,
+	AccessTokenScopeAdminUserHook,
 	AccessTokenScopeNotification,
 	AccessTokenScopeUser, AccessTokenScopeReadUser, AccessTokenScopeUserEmail, AccessTokenScopeUserFollow,
 	AccessTokenScopeDeleteRepo,
@@ -147,6 +152,7 @@ var allAccessTokenScopeBits = map[AccessTokenScope]AccessTokenScopeBitmap{
 	AccessTokenScopeWriteRepoHook:    AccessTokenScopeWriteRepoHookBits,
 	AccessTokenScopeReadRepoHook:     AccessTokenScopeReadRepoHookBits,
 	AccessTokenScopeAdminOrgHook:     AccessTokenScopeAdminOrgHookBits,
+	AccessTokenScopeAdminUserHook:    AccessTokenScopeAdminUserHookBits,
 	AccessTokenScopeNotification:     AccessTokenScopeNotificationBits,
 	AccessTokenScopeUser:             AccessTokenScopeUserBits,
 	AccessTokenScopeReadUser:         AccessTokenScopeReadUserBits,
@@ -263,7 +269,7 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 	scope := AccessTokenScope(strings.Join(scopes, ","))
 	scope = AccessTokenScope(strings.ReplaceAll(
 		string(scope),
-		"repo,admin:org,admin:public_key,admin:org_hook,notification,user,delete_repo,package,admin:gpg_key,admin:application",
+		"repo,admin:org,admin:public_key,admin:org_hook,admin:user_hook,notification,user,delete_repo,package,admin:gpg_key,admin:application",
 		"all",
 	))
 	return scope
