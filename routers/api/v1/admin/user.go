@@ -461,3 +461,61 @@ func GetAllUsers(ctx *context.APIContext) {
 	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, &results)
 }
+
+// RenameUser api for renaming a user
+func RenameUser(ctx *context.APIContext) {
+	// swagger:operation POST /admin/users/{username}/rename admin adminRenameUser
+	// ---
+	// summary: Rename a user
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: existing username of user
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/RenameUserOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	if ctx.ContextUser.IsOrganization() {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organization not a user", ctx.ContextUser.Name))
+		return
+	}
+
+	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
+
+	if strings.EqualFold(newName, ctx.ContextUser.Name) {
+		// Noop as username is not changed
+		ctx.Status(http.StatusNoContent)
+		return
+	}
+
+	// Check if user name has been changed
+	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName); err != nil {
+		switch {
+		case user_model.IsErrUserAlreadyExist(err):
+			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("form.username_been_taken"))
+		case db.IsErrNameReserved(err):
+			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_reserved", newName))
+		case db.IsErrNamePatternNotAllowed(err):
+			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_pattern_not_allowed", newName))
+		case db.IsErrNameCharsNotAllowed(err):
+			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_chars_not_allowed", newName))
+		default:
+			ctx.ServerError("ChangeUserName", err)
+		}
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+}
