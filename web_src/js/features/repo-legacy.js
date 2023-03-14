@@ -11,7 +11,7 @@ import {
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
-import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
+import {initRepoBranchTagSelector} from '../components/RepoBranchTagSelector.vue';
 import {
   initRepoCloneLink, initRepoCommonBranchOrTagDropdown, initRepoCommonFilterSearchDropdown,
   initRepoCommonLanguageStats,
@@ -486,7 +486,7 @@ export function initRepository() {
   // File list and commits
   if ($('.repository.file.list').length > 0 || $('.branch-dropdown').length > 0 ||
     $('.repository.commits').length > 0 || $('.repository.release').length > 0) {
-    initRepoBranchTagDropdown('.choose.reference .ui.dropdown');
+    initRepoBranchTagSelector('.js-branch-tag-selector');
   }
 
   // Wiki
