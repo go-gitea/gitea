@@ -88,9 +88,7 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 			continue
 		}
 		for _, evt := range events {
-			if evt.Name != triggedEvent.Event() {
-				continue
-			}
+			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggedEvent)
 			if detectMatched(commit, triggedEvent, payload, evt) {
 				workflows[entry.Name()] = content
 			}
@@ -101,138 +99,197 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 }
 
 func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) bool {
+	if convertFromGithubEvent(evt) != string(triggedEvent) {
+		return false
+	}
+
+	switch triggedEvent {
+	case webhook_module.HookEventCreate,
+		webhook_module.HookEventDelete,
+		webhook_module.HookEventFork,
+		webhook_module.HookEventIssueAssign,
+		webhook_module.HookEventIssueLabel,
+		webhook_module.HookEventIssueMilestone,
+		webhook_module.HookEventPullRequestAssign,
+		webhook_module.HookEventPullRequestLabel,
+		webhook_module.HookEventPullRequestMilestone,
+		webhook_module.HookEventPullRequestComment,
+		webhook_module.HookEventPullRequestReviewApproved,
+		webhook_module.HookEventPullRequestReviewRejected,
+		webhook_module.HookEventPullRequestReviewComment,
+		webhook_module.HookEventWiki,
+		webhook_module.HookEventRepository,
+		webhook_module.HookEventRelease,
+		webhook_module.HookEventPackage:
+		if len(evt.Acts) != 0 {
+			log.Warn("Ignore unsupported %s event arguments %q", triggedEvent, evt.Acts)
+		}
+		// no special filter parameters for these events, just return true if name matched
+		return true
+
+	case webhook_module.HookEventPush:
+		return matchPushEvent(commit, payload.(*api.PushPayload), evt)
+
+	case webhook_module.HookEventIssues:
+		return matchIssuesEvent(commit, payload.(*api.IssuePayload), evt)
+
+	case webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestSync:
+		return matchPullRequestEvent(commit, payload.(*api.PullRequestPayload), evt)
+
+	case webhook_module.HookEventIssueComment:
+		return matchIssueCommentEvent(commit, payload.(*api.IssueCommentPayload), evt)
+
+	default:
+		log.Warn("unsupported event %q", triggedEvent)
+		return false
+	}
+}
+
+func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobparser.Event) bool {
+	// with no special filter parameters
 	if len(evt.Acts) == 0 {
 		return true
 	}
 
-	switch triggedEvent {
-	case webhook_module.HookEventCreate:
-		fallthrough
-	case webhook_module.HookEventDelete:
-		fallthrough
-	case webhook_module.HookEventFork:
-		log.Warn("unsupported event %q", triggedEvent.Event())
-		return false
-	case webhook_module.HookEventPush:
-		pushPayload := payload.(*api.PushPayload)
-		matchTimes := 0
-		// all acts conditions should be satisfied
-		for cond, vals := range evt.Acts {
-			switch cond {
-			case "branches", "tags":
-				refShortName := git.RefName(pushPayload.Ref).ShortName()
-				for _, val := range vals {
-					if glob.MustCompile(val, '/').Match(refShortName) {
-						matchTimes++
-						break
-					}
+	matchTimes := 0
+	// all acts conditions should be satisfied
+	for cond, vals := range evt.Acts {
+		switch cond {
+		case "branches", "tags":
+			refShortName := git.RefName(pushPayload.Ref).ShortName()
+			for _, val := range vals {
+				if glob.MustCompile(val, '/').Match(refShortName) {
+					matchTimes++
+					break
 				}
-			case "paths":
-				filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
-				if err != nil {
-					log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
-				} else {
-					for _, val := range vals {
-						matched := false
-						for _, file := range filesChanged {
-							if glob.MustCompile(val, '/').Match(file) {
-								matched = true
-								break
-							}
-						}
-						if matched {
-							matchTimes++
+			}
+		case "paths":
+			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
+			if err != nil {
+				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+			} else {
+				for _, val := range vals {
+					matched := false
+					for _, file := range filesChanged {
+						if glob.MustCompile(val, '/').Match(file) {
+							matched = true
 							break
 						}
 					}
-				}
-			default:
-				log.Warn("unsupported condition %q", cond)
-			}
-		}
-		return matchTimes == len(evt.Acts)
-
-	case webhook_module.HookEventIssues:
-		fallthrough
-	case webhook_module.HookEventIssueAssign:
-		fallthrough
-	case webhook_module.HookEventIssueLabel:
-		fallthrough
-	case webhook_module.HookEventIssueMilestone:
-		fallthrough
-	case webhook_module.HookEventIssueComment:
-		fallthrough
-	case webhook_module.HookEventPullRequest:
-		prPayload := payload.(*api.PullRequestPayload)
-		matchTimes := 0
-		// all acts conditions should be satisfied
-		for cond, vals := range evt.Acts {
-			switch cond {
-			case "types":
-				for _, val := range vals {
-					if glob.MustCompile(val, '/').Match(string(prPayload.Action)) {
+					if matched {
 						matchTimes++
 						break
 					}
 				}
-			case "branches":
-				refShortName := git.RefName(prPayload.PullRequest.Base.Ref).ShortName()
-				for _, val := range vals {
-					if glob.MustCompile(val, '/').Match(refShortName) {
-						matchTimes++
-						break
-					}
-				}
-			case "paths":
-				filesChanged, err := commit.GetFilesChangedSinceCommit(prPayload.PullRequest.Base.Ref)
-				if err != nil {
-					log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
-				} else {
-					for _, val := range vals {
-						matched := false
-						for _, file := range filesChanged {
-							if glob.MustCompile(val, '/').Match(file) {
-								matched = true
-								break
-							}
-						}
-						if matched {
-							matchTimes++
-							break
-						}
-					}
-				}
-			default:
-				log.Warn("unsupported condition %q", cond)
 			}
+		default:
+			log.Warn("push event unsupported condition %q", cond)
 		}
-		return matchTimes == len(evt.Acts)
-	case webhook_module.HookEventPullRequestAssign:
-		fallthrough
-	case webhook_module.HookEventPullRequestLabel:
-		fallthrough
-	case webhook_module.HookEventPullRequestMilestone:
-		fallthrough
-	case webhook_module.HookEventPullRequestComment:
-		fallthrough
-	case webhook_module.HookEventPullRequestReviewApproved:
-		fallthrough
-	case webhook_module.HookEventPullRequestReviewRejected:
-		fallthrough
-	case webhook_module.HookEventPullRequestReviewComment:
-		fallthrough
-	case webhook_module.HookEventPullRequestSync:
-		fallthrough
-	case webhook_module.HookEventWiki:
-		fallthrough
-	case webhook_module.HookEventRepository:
-		fallthrough
-	case webhook_module.HookEventRelease:
-		fallthrough
-	case webhook_module.HookEventPackage:
-		fallthrough
-	default:
-		log.Warn("unsupported event %q", triggedEvent.Event())
 	}
-	return false
+	return matchTimes == len(evt.Acts)
+}
+
+func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *jobparser.Event) bool {
+	// with no special filter parameters
+	if len(evt.Acts) == 0 {
+		return true
+	}
+
+	matchTimes := 0
+	// all acts conditions should be satisfied
+	for cond, vals := range evt.Acts {
+		switch cond {
+		case "types":
+			for _, val := range vals {
+				if glob.MustCompile(val, '/').Match(string(issuePayload.Action)) {
+					matchTimes++
+					break
+				}
+			}
+		default:
+			log.Warn("issue event unsupported condition %q", cond)
+		}
+	}
+	return matchTimes == len(evt.Acts)
+}
+
+func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
+	// with no special filter parameters
+	if len(evt.Acts) == 0 {
+		// defaultly, only pull request opened and synchronized will trigger workflow
+		return prPayload.Action == api.HookIssueSynchronized || prPayload.Action == api.HookIssueOpened
+	}
+
+	matchTimes := 0
+	// all acts conditions should be satisfied
+	for cond, vals := range evt.Acts {
+		switch cond {
+		case "types":
+			action := prPayload.Action
+			if prPayload.Action == api.HookIssueSynchronized {
+				action = "synchronize"
+			}
+			log.Trace("matching pull_request %s with %v", action, vals)
+			for _, val := range vals {
+				if glob.MustCompile(val, '/').Match(string(action)) {
+					matchTimes++
+					break
+				}
+			}
+		case "branches":
+			refShortName := git.RefName(prPayload.PullRequest.Base.Ref).ShortName()
+			for _, val := range vals {
+				if glob.MustCompile(val, '/').Match(refShortName) {
+					matchTimes++
+					break
+				}
+			}
+		case "paths":
+			filesChanged, err := commit.GetFilesChangedSinceCommit(prPayload.PullRequest.Base.Ref)
+			if err != nil {
+				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+			} else {
+				for _, val := range vals {
+					matched := false
+					for _, file := range filesChanged {
+						if glob.MustCompile(val, '/').Match(file) {
+							matched = true
+							break
+						}
+					}
+					if matched {
+						matchTimes++
+						break
+					}
+				}
+			}
+		default:
+			log.Warn("pull request event unsupported condition %q", cond)
+		}
+	}
+	return matchTimes == len(evt.Acts)
+}
+
+func matchIssueCommentEvent(commit *git.Commit, issueCommentPayload *api.IssueCommentPayload, evt *jobparser.Event) bool {
+	// with no special filter parameters
+	if len(evt.Acts) == 0 {
+		return true
+	}
+
+	matchTimes := 0
+	// all acts conditions should be satisfied
+	for cond, vals := range evt.Acts {
+		switch cond {
+		case "types":
+			for _, val := range vals {
+				if glob.MustCompile(val, '/').Match(string(issueCommentPayload.Action)) {
+					matchTimes++
+					break
+				}
+			}
+		default:
+			log.Warn("issue comment unsupported condition %q", cond)
+		}
+	}
+	return matchTimes == len(evt.Acts)
 }
