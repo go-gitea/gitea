@@ -226,8 +226,8 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 }
 
 // UserNameChanged handle user name change for agit flow pull
-func UserNameChanged(user *user_model.User, newName string) error {
-	pulls, err := issues_model.GetAllUnmergedAgitPullRequestByPoster(user.ID)
+func UserNameChanged(ctx context.Context, user *user_model.User, newName string) error {
+	pulls, err := issues_model.GetAllUnmergedAgitPullRequestByPoster(ctx, user.ID)
 	if err != nil {
 		return err
 	}

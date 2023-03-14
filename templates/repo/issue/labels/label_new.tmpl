@@ -36,12 +36,15 @@
 			</div>
 		</form>
 	</div>
+
 	<div class="actions">
-		<div class="ui secondary small basic cancel button">
+		<button class="ui red basic inverted cancel button">
+			{{svg "octicon-x"}}
 			{{.locale.Tr "cancel"}}
-		</div>
-		<div class="ui primary small approve button">
+		</button>
+		<button class="ui green basic inverted ok button">
+			{{svg "octicon-check"}}
 			{{.locale.Tr "repo.issues.create_label"}}
-		</div>
+		</button>
 	</div>
 </div>

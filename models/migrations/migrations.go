@@ -467,8 +467,9 @@ var migrations = []Migration{
 
 	// v244 -> v245
 	NewMigration("Add NeedApproval to actions tables", v1_20.AddNeedApprovalToActionRun),
-
-	// 246 -> 247
+	// v245 -> v246
+	NewMigration("Rename Webhook org_id to owner_id", v1_20.RenameWebhookOrgToOwner),
+  // 246 -> 247
 	NewMigration("Add action schedule table", v1_20.AddActionScheduleTable),
 }
 
