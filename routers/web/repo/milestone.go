@@ -294,7 +294,5 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWriteIssuesOrPulls(false)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWriteIssuesOrPulls(true)
 
-	ctx.Data["IsShowFullName"] = setting.UI.DefaultShowFullName
-
 	ctx.HTML(http.StatusOK, tplMilestoneIssues)
 }
