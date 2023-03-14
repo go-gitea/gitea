@@ -18,7 +18,6 @@ type ActionSchedule struct {
 	ID            int64
 	Title         string
 	Specs         []string
-	EntryIDs      []int                  `xorm:"entry_ids"`
 	RepoID        int64                  `xorm:"index"`
 	Repo          *repo_model.Repository `xorm:"-"`
 	OwnerID       int64                  `xorm:"index"`

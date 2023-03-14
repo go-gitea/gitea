@@ -14,7 +14,6 @@ func AddActionScheduleTable(x *xorm.Engine) error {
 		ID            int64
 		Title         string
 		Specs         []string
-		EntryIDs      []int  `xorm:"entry_ids"`
 		RepoID        int64  `xorm:"index"`
 		OwnerID       int64  `xorm:"index"`
 		WorkflowID    string `xorm:"index"` // the name of workflow file
