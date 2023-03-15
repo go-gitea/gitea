@@ -34,6 +34,7 @@ export function initCommonIssue() {
   });
 
   $('.issue-action').on('click', async function (e) {
+    e.preventDefault();
     let action = this.getAttribute('data-action');
     let elementId = this.getAttribute('data-element-id');
     const url = this.getAttribute('data-url');

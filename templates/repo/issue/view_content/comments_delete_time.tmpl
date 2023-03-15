@@ -7,10 +7,7 @@
 						{{.ctxData.CsrfTokenHtml}}
 					</form>
 					<div class="header">{{.ctxData.locale.Tr "repo.issues.del_time"}}</div>
-					<div class="actions">
-						<div class="ui red approve button">{{.ctxData.locale.Tr "repo.issues.context.delete"}}</div>
-						<div class="ui cancel button">{{.ctxData.locale.Tr "repo.issues.add_time_cancel"}}</div>
-					</div>
+					{{template "base/delete_modal_actions" .}}
 				</div>
 				<button class="ui icon button compact mini issue-delete-time tooltip" data-id="{{.comment.Time.ID}}" data-content="{{.ctxData.locale.Tr "repo.issues.del_time"}}" data-position="top right">
 					{{svg "octicon-trash"}}
