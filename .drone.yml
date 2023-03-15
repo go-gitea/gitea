@@ -376,7 +376,6 @@ steps:
       RACE_ENABLED: true
       USE_REPO_TEST_DIR: 1
       TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
-    depends_on: [build]
     volumes:
       - name: deps
         path: /go
@@ -478,7 +477,6 @@ steps:
       GOPROXY: https://goproxy.io
       TAGS: bindata
       USE_REPO_TEST_DIR: 1
-    depends_on: [build]
     volumes:
       - name: deps
         path: /go
@@ -550,7 +548,6 @@ steps:
       GOPROXY: https://goproxy.io
       TAGS: bindata
       USE_REPO_TEST_DIR: 1
-    depends_on: [build]
     volumes:
       - name: deps
         path: /go
