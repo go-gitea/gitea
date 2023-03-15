@@ -90,7 +90,8 @@ func (repos RepositoryList) LoadOwners(ctx context.Context) error {
 	return nil
 }
 
-func (repos RepositoryList) loadAttributes(ctx context.Context) error {
+// LoadAttributes loads the attributes for the given RepositoryList
+func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 	if len(repos) == 0 {
 		return nil
 	}
@@ -126,11 +127,6 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// LoadAttributes loads the attributes for the given RepositoryList
-func (repos RepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(db.DefaultContext)
 }
 
 // SearchRepoOptions holds the search options
