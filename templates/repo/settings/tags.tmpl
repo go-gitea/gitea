@@ -36,7 +36,7 @@
 										<div class="menu">
 											{{range .Users}}
 												<div class="item" data-value="{{.ID}}">
-													{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" Dict "Name" .Name "FullName" .FullName "IsShowFullName" $.IsShowFullName}}
+													{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" Dict "Name" .Name "FullName" .FullName}}
 												</div>
 											{{end}}
 										</div>

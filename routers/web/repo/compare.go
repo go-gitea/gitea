@@ -826,8 +826,6 @@ func CompareDiff(ctx *context.Context) {
 		ctx.Data["AllowMaintainerEdit"] = false
 	}
 
-	ctx.Data["IsShowFullName"] = setting.UI.DefaultShowFullName
-
 	ctx.HTML(http.StatusOK, tplCompare)
 }
 
