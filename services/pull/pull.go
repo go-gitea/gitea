@@ -274,9 +274,12 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 				continue
 			}
 
+			// If the PR is closed, someone still push some commits to the PR,
+			// 1. We will insert comments of commits, but hidden until the PR is reopened.
+			// 2. We won't send any notification.
 			AddToTaskQueue(pr)
 			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
-			if err == nil && comment != nil {
+			if err == nil && comment != nil && !pr.Issue.IsClosed {
 				notification.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
 			}
 		}
