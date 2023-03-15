@@ -32,7 +32,7 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 	//   in: query
 	//   description: the date of the activities to be found, format is YYYY-MM-DD
 	//   type: string
-	//   format: date-time
+	//   format: date
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
