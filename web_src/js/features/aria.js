@@ -86,13 +86,21 @@ function attachOneDropdownAria($dropdown) {
 
   // update aria attributes according to current active/selected item
   const refreshAria = () => {
-    $focusable.attr('aria-expanded', isMenuVisible() ? 'true' : 'false');
+    const menuVisible = isMenuVisible();
+    $focusable.attr('aria-expanded', menuVisible ? 'true' : 'false');
 
-    let $active = $menu.find('> .item.active');
-    if (!$active.length) $active = $menu.find('> .item.selected'); // it's strange that we need this fallback at the moment
+    // if there is an active item, use it (the user is navigating between items)
+    // otherwise use the "selected" for combobox (for the last selected item)
+    let $active = $menu.find('> .item.active, > .item.selected');
 
-    // if there is an active item, use its id. if no active item, then the empty string is set
-    $focusable.attr('aria-activedescendant', $active.attr('id'));
+    // if there is an active item, use its id. if no active item or the dropdown is used as menu and is hidden, empty the active item
+    const activeId = $active.attr('id');
+    if (menuVisible && activeId) {
+      $focusable.attr('aria-activedescendant', $active.attr('id'));
+    } else if (!isComboBox && !menuVisible) {
+      $focusable.removeAttr('aria-activedescendant');
+      $active.removeClass('active').removeClass('selected');
+    }
   };
 
   $dropdown.on('keydown', (e) => {
