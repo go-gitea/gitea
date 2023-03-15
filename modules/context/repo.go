@@ -666,8 +666,6 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		return
 	}
 	ctx.Data["Tags"] = tags
-	fmt.Println(tags)
-	fmt.Println("RepoAssignmentRepoAssignment")
 	brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 0)
 	if err != nil {
 		ctx.ServerError("GetBranches", err)

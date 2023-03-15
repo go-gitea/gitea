@@ -253,7 +253,7 @@ func GetReleasesByRepoID(ctx context.Context, repoID int64, opts FindReleasesOpt
 	return rels, sess.Find(&rels)
 }
 
-// GetTagNamesByRepoID returns a list of tag names of repository.
+// GetTagNamesByRepoID returns a list of release tag names of repository.
 func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
 	listOptions := db.ListOptions{
 		ListAll: true,
@@ -268,10 +268,6 @@ func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
 		Desc("created_unix", "id").
 		Where(opts.toConds(repoID)).
 		Cols("tag_name")
-
-	schema, _ := db.TableInfo(new(Release))
-
-	fmt.Println(schema)
 
 	return tags, sess.Find(&tags)
 }
