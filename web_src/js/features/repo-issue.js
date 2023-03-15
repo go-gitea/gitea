@@ -498,17 +498,12 @@ export function initRepoPullRequestReview() {
 
   const tippy = createTippy($reviewBtn[0], {
     content: $panel[0],
-    placement: 'bottom-end',
+    placement: 'bottom',
     trigger: 'click',
     role: 'menu',
     maxWidth: 'none',
     interactive: true,
     hideOnClick: true,
-    popperOptions: {
-      modifiers: [
-        {name: 'flip', enabled: false},
-      ],
-    }
   });
 
   $closeBtn.on('click', (e) => {
