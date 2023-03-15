@@ -754,7 +754,6 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Group("/activities", func() {
 					m.Get("/feeds", activity.ListUserActivityFeeds)
 				})
-
 			}, context_service.UserAssignmentAPI())
 		})
 
