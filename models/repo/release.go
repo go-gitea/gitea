@@ -253,6 +253,28 @@ func GetReleasesByRepoID(ctx context.Context, repoID int64, opts FindReleasesOpt
 	return rels, sess.Find(&rels)
 }
 
+func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
+	listOptions := db.ListOptions{
+		ListAll: true,
+	}
+	opts := FindReleasesOptions{
+		ListOptions: listOptions,
+	}
+
+	tags := make([]string, 0)
+	sess := db.GetEngine(ctx).
+		Table("release").
+		Desc("created_unix", "id").
+		Where(opts.toConds(repoID)).
+		Cols("tag_name")
+
+	schema, _ := db.TableInfo(new(Release))
+
+	fmt.Println(schema)
+
+	return tags, sess.Find(&tags)
+}
+
 // CountReleasesByRepoID returns a number of releases matching FindReleaseOptions and RepoID.
 func CountReleasesByRepoID(repoID int64, opts FindReleasesOptions) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Where(opts.toConds(repoID)).Count(new(Release))
