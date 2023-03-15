@@ -38,14 +38,16 @@ function attachOneDropdownAria($dropdown) {
   const listPopupRole = isComboBox ? 'listbox' : 'menu';
   const listItemRole = isComboBox ? 'option' : 'menuitem';
 
-  // make the item has role=option/menuitem, and add an id if there wasn't one yet.
+  // make the item has role=option/menuitem, add an id if there wasn't one yet, make items as non-focusable
+  // the elements inside the dropdown menu item should not be focusable, the focus should always be on the dropdown primary element.
   function prepareMenuItem($item) {
     if (!$item.attr('id')) $item.attr('id', generateAriaId());
     $item.attr({'role': listItemRole, 'tabindex': '-1'});
-    $item.find('a').attr('tabindex', '-1'); // as above, the elements inside the dropdown menu item should not be focusable, the focus should always be on the dropdown primary element.
+    $item.find('a').attr('tabindex', '-1');
   }
 
-  // delegate the dropdown's template function to add aria attributes
+  // delegate the dropdown's template function to add aria attributes.
+  // the "template" functions are used for dynamic creation (eg: AJAX)
   const dropdownTemplates = {...$dropdown.dropdown('setting', 'templates')};
   const dropdownTemplatesMenuOld = dropdownTemplates.menu;
   dropdownTemplates.menu = function(response, fields, preserveHTML, className) {
@@ -92,12 +94,11 @@ function attachOneDropdownAria($dropdown) {
     // if there is an active item, use it (the user is navigating between items)
     // otherwise use the "selected" for combobox (for the last selected item)
     const $active = $menu.find('> .item.active, > .item.selected');
-
-    // if there is an active item, use its id. if no active item or the dropdown is used as menu and is hidden, empty the active item
-    const activeId = $active.attr('id');
-    if (menuVisible && activeId) {
+    // if the popup is visible and has an active/selected item, use its id as aria-activedescendant
+    if (menuVisible) {
       $focusable.attr('aria-activedescendant', $active.attr('id'));
-    } else if (!isComboBox && !menuVisible) {
+    } else if (!isComboBox) {
+      // for menu, when the popup is hidden, no need to keep the aria-activedescendant, and clear the active/selected item
       $focusable.removeAttr('aria-activedescendant');
       $active.removeClass('active').removeClass('selected');
     }
@@ -116,7 +117,9 @@ function attachOneDropdownAria($dropdown) {
 
   // use setTimeout to run the refreshAria in next tick (to make sure the Fomantic UI code has finished its work)
   // do not return any value, jQuery has return-value related behaviors.
-  const deferredRefreshAria = () => { setTimeout(refreshAria, 0) };
+  // when the popup is hiding, it's better to have a small "delay", because there is a Fomantic UI animation
+  // without the delay for hiding, the UI will be somewhat laggy and sometimes may get stuck in the animation.
+  const deferredRefreshAria = (delay = 0) => { setTimeout(refreshAria, delay) };
   $dropdown.on('keyup', (e) => { if (e.key.startsWith('Arrow')) deferredRefreshAria(); });
 
   // if the dropdown has been opened by focus, do not trigger the next click event again.
@@ -142,14 +145,14 @@ function attachOneDropdownAria($dropdown) {
   $dropdown[0].addEventListener('blur', (e) => {
     debug(e.type);
     ignoreClickPreVisible = ignoreClickPreEvents = 0;
-    deferredRefreshAria();
+    deferredRefreshAria(100);
   }, true);
   $dropdown[0].addEventListener('mouseup', (e) => {
     debug(e.type);
     setTimeout(() => {
       debug(`${e.type} (deferred)`);
       ignoreClickPreVisible = ignoreClickPreEvents = 0;
-      deferredRefreshAria();
+      deferredRefreshAria(100);
     }, 0);
   }, true);
   $dropdown[0].addEventListener('click', (e) => {
