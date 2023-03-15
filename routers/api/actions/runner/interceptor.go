@@ -24,6 +24,8 @@ const (
 	uuidHeaderKey    = "x-runner-uuid"
 	tokenHeaderKey   = "x-runner-token"
 	versionHeaderKey = "x-runner-version"
+
+	versionUnknown = "Unknown"
 )
 
 var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unaryFunc connect.UnaryFunc) connect.UnaryFunc {
@@ -35,6 +37,9 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		uuid := request.Header().Get(uuidHeaderKey)
 		token := request.Header().Get(tokenHeaderKey)
 		version := request.Header().Get(versionHeaderKey)
+		if util.IsEmptyString(version) {
+			version = versionUnknown
+		}
 		runner, err := actions_model.GetRunnerByUUID(ctx, uuid)
 		if err != nil {
 			if errors.Is(err, util.ErrNotExist) {
