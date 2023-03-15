@@ -26,7 +26,7 @@ const defaultSize = 16
 func Init() {
 	SVGs = Discover()
 
-	// inline SVG rendering doesn't need `xmlns`
+	// Remove `xmlns` because inline SVG does not need it
 	r := regexp.MustCompile(`(<svg\b[^>]*?)\s+xmlns="[^"]*"`)
 	for name, svg := range SVGs {
 		SVGs[name] = r.ReplaceAllString(svg, "$1")
