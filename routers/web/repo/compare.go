@@ -717,8 +717,7 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	baseGitRepo := ctx.Repo.GitRepo
-	baseTags, err := baseGitRepo.GetTags(0, 0)
+	baseTags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetTags", err)
 		return
@@ -738,7 +737,7 @@ func CompareDiff(ctx *context.Context) {
 	}
 	ctx.Data["HeadBranches"] = headBranches
 
-	headTags, err := ci.HeadGitRepo.GetTags(0, 0)
+	headTags, err := repo_model.GetTagNamesByRepoID(ctx, ci.HeadRepo.ID)
 	if err != nil {
 		ctx.ServerError("GetTags", err)
 		return
