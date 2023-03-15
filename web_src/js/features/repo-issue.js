@@ -230,7 +230,8 @@ export function initRepoIssueStatusButton() {
     const value = easyMDE?.value() || $(this).val();
     $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
   });
-  $statusButton.on('click', () => {
+  $statusButton.on('click', (e) => {
+    e.preventDefault();
     $('#status').val($statusButton.data('status-val'));
     $('#comment-form').trigger('submit');
   });
@@ -418,6 +419,22 @@ function assignMenuAttributes(menu) {
   return id;
 }
 
+export async function handleReply($el) {
+  hideElem($el);
+  const form = $el.closest('.comment-code-cloud').find('.comment-form');
+  form.removeClass('gt-hidden');
+  const $textarea = form.find('textarea');
+  let easyMDE = getAttachedEasyMDE($textarea);
+  if (!easyMDE) {
+    await attachTribute($textarea.get(), {mentions: true, emoji: true});
+    easyMDE = await createCommentEasyMDE($textarea);
+  }
+  $textarea.focus();
+  easyMDE.codemirror.focus();
+  assignMenuAttributes(form.find('.menu'));
+  return easyMDE;
+}
+
 export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
     const commentDiv = $(window.location.hash);
@@ -455,22 +472,10 @@ export function initRepoPullRequestReview() {
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {
     e.preventDefault();
-
-    hideElem($(this));
-    const form = $(this).closest('.comment-code-cloud').find('.comment-form');
-    form.removeClass('gt-hidden');
-    const $textarea = form.find('textarea');
-    let easyMDE = getAttachedEasyMDE($textarea);
-    if (!easyMDE) {
-      await attachTribute($textarea.get(), {mentions: true, emoji: true});
-      easyMDE = await createCommentEasyMDE($textarea);
-    }
-    $textarea.focus();
-    easyMDE.codemirror.focus();
-    assignMenuAttributes(form.find('.menu'));
+    await handleReply($(this));
   });
 
-  const $reviewBox = $('.review-box');
+  const $reviewBox = $('.review-box-panel');
   if ($reviewBox.length === 1) {
     (async () => {
       // the editor's height is too large in some cases, and the panel cannot be scrolled with page now because there is `.repository .diff-detail-box.sticky { position: sticky; }`
@@ -487,12 +492,12 @@ export function initRepoPullRequestReview() {
     return;
   }
 
-  $('.btn-review').on('click', function (e) {
+  $('.js-btn-review').on('click', function (e) {
     e.preventDefault();
-    $(this).closest('.dropdown').find('.menu').toggle('visible'); // eslint-disable-line
-  }).closest('.dropdown').find('.close').on('click', function (e) {
+    toggleElem($(this).parent().find('.review-box-panel'));
+  }).parent().find('.review-box-panel .close').on('click', function (e) {
     e.preventDefault();
-    $(this).closest('.menu').toggle('visible'); // eslint-disable-line
+    hideElem($(this).closest('.review-box-panel'));
   });
 
   $(document).on('click', 'a.add-code-comment', async function (e) {
@@ -531,7 +536,7 @@ export function initRepoPullRequestReview() {
 
     const td = ntr.find(`.add-comment-${side}`);
     let commentCloud = td.find('.comment-code-cloud');
-    if (commentCloud.length === 0 && !ntr.find('button[name="is_review"]').length) {
+    if (commentCloud.length === 0 && !ntr.find('button[name="pending_review"]').length) {
       const data = await $.get($(this).closest('[data-new-comment-url]').data('new-comment-url'));
       td.html(data);
       commentCloud = td.find('.comment-code-cloud');
@@ -552,8 +557,6 @@ export function initRepoIssueReferenceIssue() {
   // Reference issue
   $(document).on('click', '.reference-issue', function (event) {
     const $this = $(this);
-    $this.closest('.dropdown').find('.menu').toggle('visible');  // eslint-disable-line
-
     const content = $(`#${$this.data('target')}`).text();
     const poster = $this.data('poster-username');
     const reference = $this.data('reference');

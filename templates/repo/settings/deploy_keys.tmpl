@@ -8,9 +8,9 @@
 			{{.locale.Tr "repo.settings.deploy_keys"}}
 			<div class="ui right">
 			{{if not .DisableSSH}}
-				<div class="ui primary tiny show-panel button" data-panel="#add-deploy-key-panel">{{.locale.Tr "repo.settings.add_deploy_key"}}</div>
+				<button class="ui primary tiny show-panel button" data-panel="#add-deploy-key-panel">{{.locale.Tr "repo.settings.add_deploy_key"}}</button>
 			{{else}}
-				<div class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</div>
+				<button class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</button>
 			{{end}}
 			</div>
 		</h4>
@@ -85,15 +85,6 @@
 	<div class="content">
 		<p>{{.locale.Tr "repo.settings.deploy_key_deletion_desc"}}</p>
 	</div>
-	<div class="actions">
-		<div class="ui red basic inverted cancel button">
-			<i class="remove icon"></i>
-			{{.locale.Tr "modal.no"}}
-		</div>
-		<div class="ui green basic inverted ok button">
-			<i class="checkmark icon"></i>
-			{{.locale.Tr "modal.yes"}}
-		</div>
-	</div>
+	{{template "base/delete_modal_actions" .}}
 </div>
 {{template "base/footer" .}}
