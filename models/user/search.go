@@ -22,8 +22,8 @@ type SearchUserOptions struct {
 	Keyword       string
 	Type          UserType
 	UID           int64
-	LoginName     string
-	SourceID      int64
+	LoginName     string // this option should be used only for admin user
+	SourceID      int64  // this option should be used only for admin user
 	OrderBy       db.SearchOrderBy
 	Visible       []structs.VisibleType
 	Actor         *User // The user doing the search
