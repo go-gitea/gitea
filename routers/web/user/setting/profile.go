@@ -104,8 +104,9 @@ func ProfilePost(ctx *context.Context) {
 	ctx.Doer.Location = form.Location
 	ctx.Doer.Description = form.Description
 	ctx.Doer.KeepActivityPrivate = form.KeepActivityPrivate
+	visibilityChanged := ctx.Doer.Visibility != form.Visibility
 	ctx.Doer.Visibility = form.Visibility
-	if err := user_model.UpdateUserSetting(ctx.Doer); err != nil {
+	if err := user_model.UpdateUserSetting(ctx.Doer, visibilityChanged); err != nil {
 		if _, ok := err.(user_model.ErrEmailAlreadyUsed); ok {
 			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
@@ -396,7 +397,7 @@ func UpdateUserLang(ctx *context.Context) {
 		ctx.Doer.Language = form.Language
 	}
 
-	if err := user_model.UpdateUserSetting(ctx.Doer); err != nil {
+	if err := user_model.UpdateUserSetting(ctx.Doer, false); err != nil {
 		ctx.ServerError("UpdateUserSetting", err)
 		return
 	}

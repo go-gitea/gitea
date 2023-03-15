@@ -166,7 +166,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				}
 				usr.IsActive = true
 
-				err = user_model.UpdateUser(ctx, usr, emailChanged, "full_name", "email", "is_admin", "is_restricted", "is_active")
+				err = user_model.UpdateUser(ctx, usr, emailChanged, false, "full_name", "email", "is_admin", "is_restricted", "is_active")
 				if err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.authSource.Name, usr.Name, err)
 				}

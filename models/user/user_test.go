@@ -346,25 +346,26 @@ func TestUpdateUser(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	user.KeepActivityPrivate = true
-	assert.NoError(t, user_model.UpdateUser(db.DefaultContext, user, false))
+	assert.NoError(t, user_model.UpdateUser(db.DefaultContext, user, false, false))
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.True(t, user.KeepActivityPrivate)
 
 	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, false, false}
 	user.KeepActivityPrivate = false
+	visibilityChanged := user.Visibility != structs.VisibleTypePrivate
 	user.Visibility = structs.VisibleTypePrivate
-	assert.Error(t, user_model.UpdateUser(db.DefaultContext, user, false))
+	assert.Error(t, user_model.UpdateUser(db.DefaultContext, user, false, visibilityChanged))
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.True(t, user.KeepActivityPrivate)
 
 	newEmail := "new_" + user.Email
 	user.Email = newEmail
-	assert.NoError(t, user_model.UpdateUser(db.DefaultContext, user, true))
+	assert.NoError(t, user_model.UpdateUser(db.DefaultContext, user, true, false))
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.Equal(t, newEmail, user.Email)
 
 	user.Email = "no mail@mail.org"
-	assert.Error(t, user_model.UpdateUser(db.DefaultContext, user, true))
+	assert.Error(t, user_model.UpdateUser(db.DefaultContext, user, true, false))
 }
 
 func TestUpdateUserEmailAlreadyUsed(t *testing.T) {
@@ -373,7 +374,7 @@ func TestUpdateUserEmailAlreadyUsed(t *testing.T) {
 	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 
 	user2.Email = user3.Email
-	err := user_model.UpdateUser(db.DefaultContext, user2, true)
+	err := user_model.UpdateUser(db.DefaultContext, user2, true, false)
 	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
 }
 

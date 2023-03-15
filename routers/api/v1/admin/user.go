@@ -252,7 +252,9 @@ func EditUser(ctx *context.APIContext) {
 	if form.Active != nil {
 		ctx.ContextUser.IsActive = *form.Active
 	}
+	visibilityChanged := false
 	if len(form.Visibility) != 0 {
+		visibilityChanged = ctx.ContextUser.Visibility != api.VisibilityModes[form.Visibility]
 		ctx.ContextUser.Visibility = api.VisibilityModes[form.Visibility]
 	}
 	if form.Admin != nil {
@@ -277,7 +279,7 @@ func EditUser(ctx *context.APIContext) {
 		ctx.ContextUser.IsRestricted = *form.Restricted
 	}
 
-	if err := user_model.UpdateUser(ctx, ctx.ContextUser, emailChanged); err != nil {
+	if err := user_model.UpdateUser(ctx, ctx.ContextUser, emailChanged, visibilityChanged); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) ||
 			user_model.IsErrEmailCharIsNotSupported(err) ||
 			user_model.IsErrEmailInvalid(err) {

@@ -613,7 +613,7 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	}
 
 	// validate data
-	if err := validateUser(u); err != nil {
+	if err := validateUser(u, true); err != nil {
 		return err
 	}
 
@@ -804,8 +804,8 @@ func checkDupEmail(ctx context.Context, u *User) error {
 }
 
 // validateUser check if user is valid to insert / update into database
-func validateUser(u *User) error {
-	if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) && !u.IsOrganization() {
+func validateUser(u *User, checkVisibility bool) error {
+	if checkVisibility && !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) && !u.IsOrganization() {
 		return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
 	}
 
@@ -814,8 +814,8 @@ func validateUser(u *User) error {
 }
 
 // UpdateUser updates user's information.
-func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...string) error {
-	err := validateUser(u)
+func UpdateUser(ctx context.Context, u *User, changePrimaryEmail, visibilityChanged bool, cols ...string) error {
+	err := validateUser(u, visibilityChanged)
 	if err != nil {
 		return err
 	}
@@ -881,7 +881,8 @@ func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 
 // UpdateUserCols update user according special columns
 func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
-	if err := validateUser(u); err != nil {
+	checkVisibility := util.SliceContainsString(cols, "visibility", true)
+	if err := validateUser(u, checkVisibility); err != nil {
 		return err
 	}
 
@@ -890,7 +891,7 @@ func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 }
 
 // UpdateUserSetting updates user's settings.
-func UpdateUserSetting(u *User) (err error) {
+func UpdateUserSetting(u *User, visibilityChanged bool) (err error) {
 	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
@@ -902,7 +903,7 @@ func UpdateUserSetting(u *User) (err error) {
 			return err
 		}
 	}
-	if err = UpdateUser(ctx, u, false); err != nil {
+	if err = UpdateUser(ctx, u, false, visibilityChanged); err != nil {
 		return err
 	}
 	return committer.Commit()

@@ -32,7 +32,7 @@ func renameUser(ctx context.Context, u *user_model.User, newUserName string) err
 
 	u.Name = newUserName
 	u.LowerName = strings.ToLower(newUserName)
-	if err := user_model.UpdateUser(ctx, u, false); err != nil {
+	if err := user_model.UpdateUser(ctx, u, false, false); err != nil {
 		return err
 	}
 

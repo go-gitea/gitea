@@ -383,6 +383,7 @@ func EditUserPost(ctx *context.Context) {
 	u.AllowImportLocal = form.AllowImportLocal
 	u.AllowCreateOrganization = form.AllowCreateOrganization
 
+	visibilityChanged := u.Visibility != form.Visibility
 	u.Visibility = form.Visibility
 
 	// skip self Prohibit Login
@@ -392,7 +393,7 @@ func EditUserPost(ctx *context.Context) {
 		u.ProhibitLogin = form.ProhibitLogin
 	}
 
-	if err := user_model.UpdateUser(ctx, u, emailChanged); err != nil {
+	if err := user_model.UpdateUser(ctx, u, emailChanged, visibilityChanged); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)

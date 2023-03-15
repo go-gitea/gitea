@@ -73,7 +73,13 @@ func UpdateUserSettings(ctx *context.APIContext) {
 		ctx.Doer.KeepActivityPrivate = *form.HideActivity
 	}
 
-	if err := user_model.UpdateUser(ctx, ctx.Doer, false); err != nil {
+	visibilityChanged := false
+	if len(form.Visibility) != 0 {
+		visibilityChanged = ctx.ContextUser.Visibility != api.VisibilityModes[form.Visibility]
+		ctx.ContextUser.Visibility = api.VisibilityModes[form.Visibility]
+	}
+
+	if err := user_model.UpdateUser(ctx, ctx.Doer, false, visibilityChanged); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
