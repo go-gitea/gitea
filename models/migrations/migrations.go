@@ -469,7 +469,7 @@ var migrations = []Migration{
 	NewMigration("Add NeedApproval to actions tables", v1_20.AddNeedApprovalToActionRun),
 	// v245 -> v246
 	NewMigration("Rename Webhook org_id to owner_id", v1_20.RenameWebhookOrgToOwner),
-	// v246 -> v247
+	// v247 -> v248
 	NewMigration("Fix incorrect project type", v1_20.FixIncorrectProjectType),
 }
 
