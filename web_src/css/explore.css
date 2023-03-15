@@ -41,10 +41,6 @@
   margin-bottom: 0.5rem;
 }
 
-.ui.repository.branches {
-  /* fix alignment of PR popup in branches table */
-}
-
 .ui.repository.branches .info {
   font-size: 12px;
   color: var(--color-text-light);
@@ -62,6 +58,7 @@
   overflow: visible;
 }
 
+/* fix alignment of PR popup in branches table */
 .ui.repository.branches table .ui.popup {
   text-align: left;
 }

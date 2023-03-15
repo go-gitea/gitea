@@ -80,8 +80,7 @@
 
 .dashboard .dashboard-repos,
 .dashboard .dashboard-orgs {
-  margin: 0 1px;
-  /* Accommodate for Semantic's 1px hacks on .attached elements */
+  margin: 0 1px; /* Accommodate for Semantic's 1px hacks on .attached elements */
 }
 
 .dashboard .dashboard-navbar {

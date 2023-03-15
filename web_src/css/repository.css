@@ -790,7 +790,6 @@
 .repository.view.issue .comment-list .timeline-item {
   margin-left: 16px;
   position: relative;
-  /* Don't show the mobile oriented avatar ".inline-timeline-avatar" on desktop. Desktop uses the avatar with class ".timeline-avatar" */
 }
 
 .repository.view.issue .comment-list .timeline-item .timeline-avatar {
@@ -803,6 +802,7 @@
   height: 40px !important;
 }
 
+/* Don't show the mobile oriented avatar ".inline-timeline-avatar" on desktop. Desktop uses the avatar with class ".timeline-avatar" */
 .repository.view.issue .comment-list .timeline-item .inline-timeline-avatar {
   display: none;
 }
@@ -3017,11 +3017,13 @@ tbody.commit-list {
   line-height: initial;
 }
 
-.repository:not(.diff) .commit-body { /* commit history list */
+/* commit history list */
+.repository:not(.diff) .commit-body {
   margin: 0;
 }
 
-.repository:not(.diff) .timeline-item .commit-body { /* PR-comment */
+/* PR-comment */
+.repository:not(.diff) .timeline-item .commit-body {
   margin-left: 40px;
 }
 
@@ -3474,10 +3476,6 @@ td.blob-excerpt {
   .repository.view.issue .comment-list .timeline-item {
     margin-left: 0;
   }
-  .repository.view.issue .comment-list .timeline {
-    /* Don't show the general avatar, we show the inline avatar on mobile.
-       * And don't show the role labels, there's no place for that. */
-  }
   .repository.view.issue .comment-list .timeline::before {
     left: 14px;
   }
@@ -3496,6 +3494,8 @@ td.blob-excerpt {
   .repository.view.issue .comment-list .timeline .comment-header::after {
     content: unset;
   }
+  /* Don't show the general avatar, we show the inline avatar on mobile.
+   * And don't show the role labels, there's no place for that. */
   .repository.view.issue .comment-list .timeline .timeline-avatar,
   .repository.view.issue .comment-list .timeline .comment-header-right .role-label {
     display: none;

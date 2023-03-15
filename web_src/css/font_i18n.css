@@ -23,7 +23,6 @@
 }
 
 :root {
-  /* Special handling for Firefox on Windows/Linux */
   --fonts-default-override-ja: system-ui-ja, var(--fonts-proportional);
   --fonts-default-override-zh-cn: system-ui-zh-cn, var(--fonts-proportional);
   --fonts-default-override-zh-tw: system-ui-zh-tw, var(--fonts-proportional);
@@ -31,6 +30,7 @@
   --fonts-default-override-ko: system-ui-ko, var(--fonts-proportional);
 }
 
+/* Special handling for Firefox on Windows/Linux */
 @supports (-moz-appearance: none) {
   :root {
     --fonts-default-override-ja: var(--fonts-proportional), system-ui-ja;
