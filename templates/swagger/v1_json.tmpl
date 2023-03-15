@@ -12645,6 +12645,53 @@
         }
       }
     },
+    "/teams/{id}/activities/feeds": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization",
+          ""
+        ],
+        "summary": "List a team's activity feeds",
+        "operationId": "orgListTeamActivityFeeds",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the team",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "date",
+            "description": "the date of the activities to be found, format is YYYY-MM-DD",
+            "name": "date",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActivityFeedsList"
+          }
+        }
+      }
+    },
     "/teams/{id}/members": {
       "get": {
         "produces": [
