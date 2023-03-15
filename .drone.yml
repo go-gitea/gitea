@@ -333,21 +333,6 @@ steps:
     commands:
       - ./build/test-env-prepare.sh
 
-  - name: build
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    user: gitea
-    commands:
-      - ./build/test-env-check.sh
-      - make backend
-    environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata
-    depends_on: [deps-backend, prepare-test-env]
-    volumes:
-      - name: deps
-        path: /go
-
   - name: unit-test
     image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
     user: gitea
@@ -484,21 +469,6 @@ steps:
     commands:
       - ./build/test-env-prepare.sh
 
-  - name: build
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    user: gitea
-    commands:
-      - ./build/test-env-check.sh
-      - make backend
-    environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata
-    depends_on: [deps-backend, prepare-test-env]
-    volumes:
-      - name: deps
-        path: /go
-
   - name: test-mysql8
     image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
     user: gitea
@@ -570,21 +540,6 @@ steps:
     pull: always
     commands:
       - ./build/test-env-prepare.sh
-
-  - name: build
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    user: gitea
-    commands:
-      - ./build/test-env-check.sh
-      - make backend
-    environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata
-    depends_on: [deps-backend, prepare-test-env]
-    volumes:
-      - name: deps
-        path: /go
 
   - name: test-mssql
     image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
