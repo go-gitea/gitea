@@ -564,7 +564,7 @@ func SearchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 	}
 
 	if loadAttributes {
-		if err := repos.loadAttributes(ctx); err != nil {
+		if err := repos.LoadAttributes(ctx); err != nil {
 			return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
 		}
 	}
