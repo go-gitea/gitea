@@ -6,12 +6,12 @@ import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
   initRepoIssueStatusButton, initRepoIssueTitleEdit, initRepoIssueWipToggle,
-  initRepoPullRequestUpdate, updateIssuesMeta,
+  initRepoPullRequestUpdate, updateIssuesMeta, handleReply
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
-import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
+import {initRepoBranchTagSelector} from '../components/RepoBranchTagSelector.vue';
 import {
   initRepoCloneLink, initRepoCommonBranchOrTagDropdown, initRepoCommonFilterSearchDropdown,
   initRepoCommonLanguageStats,
@@ -25,8 +25,29 @@ import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
 import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
+import {hideElem, showElem} from '../utils/dom.js';
 
 const {csrfToken} = window.config;
+
+// if there are draft comments (more than 20 chars), confirm before reloading, to avoid losing comments
+function reloadConfirmDraftComment() {
+  const commentTextareas = [
+    document.querySelector('.edit-content-zone:not(.gt-hidden) textarea'),
+    document.querySelector('.edit_area'),
+  ];
+  for (const textarea of commentTextareas) {
+    // Most users won't feel too sad if they lose a comment with 10 or 20 chars, they can re-type these in seconds.
+    // But if they have typed more (like 50) chars and the comment is lost, they will be very unhappy.
+    if (textarea && textarea.value.trim().length > 20) {
+      textarea.parentElement.scrollIntoView();
+      if (!window.confirm('Page will be reloaded, but there are draft comments. Continuing to reload will discard the comments. Continue?')) {
+        return;
+      }
+      break;
+    }
+  }
+  window.location.reload();
+}
 
 export function initRepoCommentForm() {
   const $commentForm = $('.comment.form');
@@ -55,21 +76,27 @@ export function initRepoCommentForm() {
       }
     });
     $selectBranch.find('.reference.column').on('click', function () {
-      $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
+      hideElem($selectBranch.find('.scrolling.reference-list-menu'));
       $selectBranch.find('.reference .text').removeClass('black');
-      $($(this).data('target')).css('display', 'block');
+      showElem($($(this).data('target')));
       $(this).find('.text').addClass('black');
       return false;
     });
   }
 
   (async () => {
+    const $statusButton = $('#status-button');
     for (const textarea of $commentForm.find('textarea:not(.review-textarea, .no-easymde)')) {
       // Don't initialize EasyMDE for the dormant #edit-content-form
       if (textarea.closest('#edit-content-form')) {
         continue;
       }
-      const easyMDE = await createCommentEasyMDE(textarea);
+      const easyMDE = await createCommentEasyMDE(textarea, {
+        'onChange': () => {
+          const value = easyMDE?.value().trim();
+          $statusButton.text($statusButton.attr(value.length === 0 ? 'data-status' : 'data-status-and-comment'));
+        },
+      });
       initEasyMDEImagePaste(easyMDE, $commentForm.find('.dropzone'));
     }
   })();
@@ -85,12 +112,15 @@ export function initRepoCommentForm() {
     let hasUpdateAction = $listMenu.data('action') === 'update';
     const items = {};
 
-    $(`.${selector}`).dropdown('setting', 'onHide', () => {
-      hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
-      if (hasUpdateAction) {
-        // TODO: Add batch functionality and make this 1 network request.
-        (async function() {
-          for (const [elementId, item] of Object.entries(items)) {
+    $(`.${selector}`).dropdown({
+      'action': 'nothing', // do not hide the menu if user presses Enter
+      fullTextSearch: 'exact',
+      async onHide() {
+        hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
+        if (hasUpdateAction) {
+          // TODO: Add batch functionality and make this 1 network request.
+          const itemEntries = Object.entries(items);
+          for (const [elementId, item] of itemEntries) {
             await updateIssuesMeta(
               item['update-url'],
               item.action,
@@ -98,9 +128,11 @@ export function initRepoCommentForm() {
               elementId,
             );
           }
-          window.location.reload();
-        })();
-      }
+          if (itemEntries.length) {
+            reloadConfirmDraftComment();
+          }
+        }
+      },
     });
 
     $listMenu.find('.item:not(.no-select)').on('click', function (e) {
@@ -110,35 +142,54 @@ export function initRepoCommentForm() {
       }
 
       hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
-      if ($(this).hasClass('checked')) {
-        $(this).removeClass('checked');
-        $(this).find('.octicon-check').addClass('invisible');
-        if (hasUpdateAction) {
-          if (!($(this).data('id') in items)) {
-            items[$(this).data('id')] = {
-              'update-url': $listMenu.data('update-url'),
-              action: 'detach',
-              'issue-id': $listMenu.data('issue-id'),
-            };
-          } else {
-            delete items[$(this).data('id')];
+
+      const clickedItem = $(this);
+      const scope = $(this).attr('data-scope');
+
+      $(this).parent().find('.item').each(function () {
+        if (scope) {
+          // Enable only clicked item for scoped labels
+          if ($(this).attr('data-scope') !== scope) {
+            return true;
+          }
+          if (!$(this).is(clickedItem) && !$(this).hasClass('checked')) {
+            return true;
+          }
+        } else if (!$(this).is(clickedItem)) {
+          // Toggle for other labels
+          return true;
+        }
+
+        if ($(this).hasClass('checked')) {
+          $(this).removeClass('checked');
+          $(this).find('.octicon-check').addClass('invisible');
+          if (hasUpdateAction) {
+            if (!($(this).data('id') in items)) {
+              items[$(this).data('id')] = {
+                'update-url': $listMenu.data('update-url'),
+                action: 'detach',
+                'issue-id': $listMenu.data('issue-id'),
+              };
+            } else {
+              delete items[$(this).data('id')];
+            }
+          }
+        } else {
+          $(this).addClass('checked');
+          $(this).find('.octicon-check').removeClass('invisible');
+          if (hasUpdateAction) {
+            if (!($(this).data('id') in items)) {
+              items[$(this).data('id')] = {
+                'update-url': $listMenu.data('update-url'),
+                action: 'attach',
+                'issue-id': $listMenu.data('issue-id'),
+              };
+            } else {
+              delete items[$(this).data('id')];
+            }
           }
         }
-      } else {
-        $(this).addClass('checked');
-        $(this).find('.octicon-check').removeClass('invisible');
-        if (hasUpdateAction) {
-          if (!($(this).data('id') in items)) {
-            items[$(this).data('id')] = {
-              'update-url': $listMenu.data('update-url'),
-              action: 'attach',
-              'issue-id': $listMenu.data('issue-id'),
-            };
-          } else {
-            delete items[$(this).data('id')];
-          }
-        }
-      }
+      });
 
       // TODO: Which thing should be done for choosing review requests
       // to make chosen items be shown on time here?
@@ -150,15 +201,15 @@ export function initRepoCommentForm() {
       $(this).parent().find('.item').each(function () {
         if ($(this).hasClass('checked')) {
           listIds.push($(this).data('id'));
-          $($(this).data('id-selector')).removeClass('hide');
+          $($(this).data('id-selector')).removeClass('gt-hidden');
         } else {
-          $($(this).data('id-selector')).addClass('hide');
+          $($(this).data('id-selector')).addClass('gt-hidden');
         }
       });
       if (listIds.length === 0) {
-        $noSelect.removeClass('hide');
+        $noSelect.removeClass('gt-hidden');
       } else {
-        $noSelect.addClass('hide');
+        $noSelect.addClass('gt-hidden');
       }
       $($(this).parent().data('id')).val(listIds.join(','));
       return false;
@@ -171,12 +222,12 @@ export function initRepoCommentForm() {
           'clear',
           $listMenu.data('issue-id'),
           '',
-        ).then(() => window.location.reload());
+        ).then(reloadConfirmDraftComment);
       }
 
       $(this).parent().find('.item').each(function () {
         $(this).removeClass('checked');
-        $(this).find('.octicon').addClass('invisible');
+        $(this).find('.octicon-check').addClass('invisible');
       });
 
       if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
@@ -184,9 +235,9 @@ export function initRepoCommentForm() {
       }
 
       $list.find('.item').each(function () {
-        $(this).addClass('hide');
+        $(this).addClass('gt-hidden');
       });
-      $noSelect.removeClass('hide');
+      $noSelect.removeClass('gt-hidden');
       $($(this).parent().data('id')).val('');
     });
   }
@@ -214,16 +265,16 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(() => window.location.reload());
+        ).then(reloadConfirmDraftComment);
       }
 
       let icon = '';
       if (input_id === '#milestone_id') {
-        icon = svg('octicon-milestone', 18, 'mr-3');
+        icon = svg('octicon-milestone', 18, 'gt-mr-3');
       } else if (input_id === '#project_id') {
-        icon = svg('octicon-project', 18, 'mr-3');
+        icon = svg('octicon-project', 18, 'gt-mr-3');
       } else if (input_id === '#assignee_id') {
-        icon = `<img class="ui avatar image mr-3" src=${$(this).data('avatar')}>`;
+        icon = `<img class="ui avatar image gt-mr-3" src=${$(this).data('avatar')}>`;
       }
 
       $list.find('.selected').html(`
@@ -233,7 +284,7 @@ export function initRepoCommentForm() {
         </a>
       `);
 
-      $(`.ui${select_id}.list .no-select`).addClass('hide');
+      $(`.ui${select_id}.list .no-select`).addClass('gt-hidden');
       $(input_id).val($(this).data('id'));
     });
     $menu.find('.no-select.item').on('click', function () {
@@ -247,11 +298,11 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(() => window.location.reload());
+        ).then(reloadConfirmDraftComment);
       }
 
       $list.find('.selected').html('');
-      $list.find('.no-select').removeClass('hide');
+      $list.find('.no-select').removeClass('gt-hidden');
       $(input_id).val('');
     });
   }
@@ -266,7 +317,6 @@ export function initRepoCommentForm() {
 async function onEditContent(event) {
   event.preventDefault();
 
-  $(this).closest('.dropdown').find('.menu').toggle('visible');
   const $segment = $(this).closest('.header').next();
   const $editContentZone = $segment.find('.edit-content-zone');
   const $renderContent = $segment.find('.render-content');
@@ -362,17 +412,18 @@ async function onEditContent(event) {
       $saveButton.trigger('click');
     });
 
-    $editContentZone.find('.cancel.button').on('click', () => {
-      $renderContent.show();
-      $editContentZone.hide();
+    $editContentZone.find('.cancel.button').on('click', (e) => {
+      e.preventDefault();
+      showElem($renderContent);
+      hideElem($editContentZone);
       if (dz) {
         dz.emit('reload');
       }
     });
 
     $saveButton.on('click', () => {
-      $renderContent.show();
-      $editContentZone.hide();
+      showElem($renderContent);
+      hideElem($editContentZone);
       const $attachments = $dropzone.find('.files').find('[name=files]').map(function () {
         return $(this).val();
       }).get();
@@ -414,8 +465,8 @@ async function onEditContent(event) {
   }
 
   // Show write/preview tab and copy raw content as needed
-  $editContentZone.show();
-  $renderContent.hide();
+  showElem($editContentZone);
+  hideElem($renderContent);
   if ($textarea.val().length === 0) {
     $textarea.val($rawContent.text());
     easyMDE.value($rawContent.text());
@@ -435,7 +486,7 @@ export function initRepository() {
   // File list and commits
   if ($('.repository.file.list').length > 0 || $('.branch-dropdown').length > 0 ||
     $('.repository.commits').length > 0 || $('.repository.release').length > 0) {
-    initRepoBranchTagDropdown('.choose.reference .dropdown');
+    initRepoBranchTagSelector('.js-branch-tag-selector');
   }
 
   // Wiki
@@ -534,10 +585,10 @@ export function initRepository() {
     // show pull request form
     $repoComparePull.find('button.show-form').on('click', function (e) {
       e.preventDefault();
-      $(this).parent().hide();
+      hideElem($(this).parent());
 
       const $form = $repoComparePull.find('.pullrequest-form');
-      $form.show();
+      showElem($form);
       $form.find('textarea.edit_area').each(function() {
         const easyMDE = getAttachedEasyMDE($(this));
         if (easyMDE) {
@@ -558,16 +609,15 @@ function initRepoIssueCommentEdit() {
   $(document).on('click', '.edit-content', onEditContent);
 
   // Quote reply
-  $(document).on('click', '.quote-reply', function (event) {
-    $(this).closest('.dropdown').find('.menu').toggle('visible');
+  $(document).on('click', '.quote-reply', async function (event) {
+    event.preventDefault();
     const target = $(this).data('target');
     const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
     let easyMDE;
     if ($(this).hasClass('quote-reply-diff')) {
-      const $parent = $(this).closest('.comment-code-cloud');
-      $parent.find('button.comment-form-reply').trigger('click');
-      easyMDE = getAttachedEasyMDE($parent.find('[name="content"]'));
+      const $replyBtn = $(this).closest('.comment-code-cloud').find('button.comment-form-reply');
+      easyMDE = await handleReply($replyBtn);
     } else {
       // for normal issue/comment page
       easyMDE = getAttachedEasyMDE($('#comment-form .edit_area'));
@@ -583,6 +633,5 @@ function initRepoIssueCommentEdit() {
         easyMDE.codemirror.setCursor(easyMDE.codemirror.lineCount(), 0);
       });
     }
-    event.preventDefault();
   });
 }

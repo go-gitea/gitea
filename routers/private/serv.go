@@ -368,7 +368,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			return
 		}
 
-		repo, err = repo_service.PushCreateRepo(user, owner, results.RepoName)
+		repo, err = repo_service.PushCreateRepo(ctx, user, owner, results.RepoName)
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
 			ctx.JSON(http.StatusNotFound, private.ErrServCommand{

@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {useLightTextOnBackground} from '../utils.js';
 
 const {csrfToken} = window.config;
 
@@ -94,39 +95,35 @@ export function initRepoProject() {
   $('.edit-project-board').each(function () {
     const projectHeader = $(this).closest('.board-column-header');
     const projectTitleLabel = projectHeader.find('.board-label');
-    const projectTitleInput = $(this).find(
-      '.content > .form > .field > .project-board-title',
-    );
-    const projectColorInput = $(this).find('.content > .form > .field  #new_board_color');
+    const projectTitleInput = $(this).find('.project-board-title');
+    const projectColorInput = $(this).find('#new_board_color');
     const boardColumn = $(this).closest('.board-column');
 
     if (boardColumn.css('backgroundColor')) {
       setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
     }
 
-    $(this)
-      .find('.content > .form > .actions > .red')
-      .on('click', function (e) {
-        e.preventDefault();
+    $(this).find('.edit-column-button').on('click', function (e) {
+      e.preventDefault();
 
-        $.ajax({
-          url: $(this).data('url'),
-          data: JSON.stringify({title: projectTitleInput.val(), color: projectColorInput.val()}),
-          headers: {
-            'X-Csrf-Token': csrfToken,
-          },
-          contentType: 'application/json',
-          method: 'PUT',
-        }).done(() => {
-          projectTitleLabel.text(projectTitleInput.val());
-          projectTitleInput.closest('form').removeClass('dirty');
-          if (projectColorInput.val()) {
-            setLabelColor(projectHeader, projectColorInput.val());
-          }
-          boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
-          $('.ui.modal').modal('hide');
-        });
+      $.ajax({
+        url: $(this).data('url'),
+        data: JSON.stringify({title: projectTitleInput.val(), color: projectColorInput.val()}),
+        headers: {
+          'X-Csrf-Token': csrfToken,
+        },
+        contentType: 'application/json',
+        method: 'PUT',
+      }).done(() => {
+        projectTitleLabel.text(projectTitleInput.val());
+        projectTitleInput.closest('form').removeClass('dirty');
+        if (projectColorInput.val()) {
+          setLabelColor(projectHeader, projectColorInput.val());
+        }
+        boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
+        $('.ui.modal').modal('hide');
       });
+    });
   });
 
   $(document).on('click', '.set-default-project-board', async function (e) {
@@ -183,24 +180,11 @@ export function initRepoProject() {
 }
 
 function setLabelColor(label, color) {
-  const red = getRelativeColor(parseInt(color.slice(1, 3), 16));
-  const green = getRelativeColor(parseInt(color.slice(3, 5), 16));
-  const blue = getRelativeColor(parseInt(color.slice(5, 7), 16));
-  const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-
-  if (luminance > 0.179) {
-    label.removeClass('light-label').addClass('dark-label');
-  } else {
+  if (useLightTextOnBackground(color)) {
     label.removeClass('dark-label').addClass('light-label');
+  } else {
+    label.removeClass('light-label').addClass('dark-label');
   }
-}
-
-/**
- * Inspired by W3C recommendation https://www.w3.org/TR/WCAG20/#relativeluminancedef
- */
-function getRelativeColor(color) {
-  color /= 255;
-  return color <= 0.03928 ? color / 12.92 : ((color + 0.055) / 1.055) ** 2.4;
 }
 
 function rgbToHex(rgb) {

@@ -2,9 +2,8 @@
 import './bootstrap.js';
 
 import $ from 'jquery';
-import {initVueEnv} from './components/VueComponentLoader.js';
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
-import {initDashboardRepoList} from './components/DashboardRepoList.js';
+import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
 import {attachTribute} from './features/tribute.js';
 import {initGlobalCopyToClipboardListener} from './features/clipboard.js';
@@ -48,7 +47,6 @@ import {
   initCommitStatuses,
 } from './features/repo-commit.js';
 import {
-  checkAppUrl,
   initFootLanguageMenu,
   initGlobalButtonClickOnEnter,
   initGlobalButtons,
@@ -77,7 +75,7 @@ import {
 import {initViewedCheckboxListenerFor} from './features/pull-view-file.js';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.js';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
-import {initRepoRelease, initRepoReleaseEditor} from './features/repo-release.js';
+import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.js';
 import {initRepoEditor} from './features/repo-editor.js';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.js';
 import {initInstall} from './features/install.js';
@@ -101,7 +99,6 @@ $.fn.tab.settings.silent = true;
 // Disable the behavior of fomantic to toggle the checkbox when you press enter on a checkbox element.
 $.fn.checkbox.settings.enableEnterKey = false;
 
-initVueEnv();
 $(document).ready(() => {
   initGlobalCommon();
 
@@ -180,7 +177,7 @@ $(document).ready(() => {
   initRepoPullRequestAllowMaintainerEdit();
   initRepoPullRequestReview();
   initRepoRelease();
-  initRepoReleaseEditor();
+  initRepoReleaseNew();
   initRepoSettingGitHook();
   initRepoSettingSearchTeamBox();
   initRepoSettingsCollaboration();
@@ -199,5 +196,4 @@ $(document).ready(() => {
   initUserAuthWebAuthnRegister();
   initUserSettings();
   initViewedCheckboxListenerFor();
-  checkAppUrl();
 });

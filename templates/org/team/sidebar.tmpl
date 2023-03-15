@@ -58,7 +58,7 @@
 						</thead>
 						<tbody>
 							{{range $t, $unit := $.Units}}
-								{{if and (lt $unit.MaxPerm 2) (not $unit.Type.UnitGlobalDisabled)}}
+								{{if (not $unit.Type.UnitGlobalDisabled)}}
 									<tr>
 										<td><strong>{{$.locale.Tr $unit.NameKey}}</strong></td>
 										<td>{{if eq ($.Team.UnitAccessMode $.Context $unit.Type) 0 -}}
