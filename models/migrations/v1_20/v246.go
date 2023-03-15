@@ -4,10 +4,8 @@
 package v1_20 //nolint
 
 import (
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 
-	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
@@ -26,7 +24,6 @@ func FixIncorrectProjectType(x *xorm.Engine) error {
 	)
 
 	type Project struct {
-		ID      int64 `xorm:"pk autoincr"`
 		OwnerID int64 `xorm:"INDEX"`
 		Type    uint8
 		Owner   *User `xorm:"extends"`
@@ -39,30 +36,8 @@ func FixIncorrectProjectType(x *xorm.Engine) error {
 		return err
 	}
 
-	var ps []Project
-	err := sess.Table("project").
-		Join("INNER", "user", "user.id = project.owner_id").
-		Where("project.type = ? AND user.type = ?", TypeOrganization, UserTypeIndividual).
-		Find(&ps)
-	if err != nil {
-		return err
-	}
-
-	pids := make(container.Set[int64], len(ps))
-	for _, p := range ps {
-		if p.ID == 0 {
-			continue
-		}
-		pids.Add(p.ID)
-	}
-
-	sql, args, err := builder.ToSQL(builder.Eq{"id": pids.Values()})
-	if err != nil {
-		return err
-	}
-
 	count, err := sess.Table("project").
-		Where(sql, args...).
+		Where("type = ? AND owner_id IN (SELECT id FROM user WHERE type = ?)", TypeOrganization, UserTypeIndividual).
 		Update(&Project{
 			Type: TypeIndividual,
 		})
