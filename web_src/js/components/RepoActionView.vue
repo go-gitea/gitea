@@ -286,51 +286,54 @@ export function initRepositoryActionView() {
 
 </script>
 
-<style scoped lang="less">
-
+<style scoped>
 .action-view-body {
   display: flex;
-  height: calc(100vh - 266px); // fine tune this value to make the main view has full height
+  height: calc(100vh - 266px); /* fine tune this value to make the main view has full height */
 }
 
-// ================
-// action view header
+/* ================ */
+/* action view header */
 
 .action-view-header {
   margin: 0 20px 20px 20px;
-  .run_cancel {
-    border: none;
-    color: var(--color-red);
-    background-color: transparent;
-    outline: none;
-    cursor: pointer;
-    transition:transform 0.2s;
-  };
-  .run_approve {
-    border: none;
-    color: var(--color-green);
-    background-color: transparent;
-    outline: none;
-    cursor: pointer;
-    transition:transform 0.2s;
-  };
-  .run_cancel:hover, .run_approve:hover {
-    transform:scale(130%);
-  };
+}
+
+.action-view-header .run_cancel {
+  border: none;
+  color: var(--color-red);
+  background-color: transparent;
+  outline: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.action-view-header .run_approve {
+  border: none;
+  color: var(--color-green);
+  background-color: transparent;
+  outline: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.action-view-header .run_cancel:hover,
+.action-view-header .run_approve:hover {
+  transform: scale(130%);
 }
 
 .action-info-summary {
   font-size: 150%;
   height: 20px;
   display: flex;
-
-  .action-title {
-    padding: 0 5px;
-  }
 }
 
-// ================
-// action view left
+.action-info-summary .action-title {
+  padding: 0 5px;
+}
+
+/* ================ */
+/* action view left */
 
 .action-view-left {
   width: 30%;
@@ -339,51 +342,52 @@ export function initRepositoryActionView() {
   margin-left: 10px;
 }
 
-.job-group-section {
-  .job-group-summary {
-    margin: 5px 0;
-    padding: 10px;
-  }
-
-  .job-brief-list {
-    .job-brief-item {
-      margin: 5px 0;
-      padding: 10px;
-      background: var(--color-info-bg);
-      border-radius: 5px;
-      text-decoration: none;
-      display: flex;
-      justify-items: center;
-      flex-wrap: nowrap;
-      .job-brief-rerun {
-        float: right;
-        border: none;
-        background-color: transparent;
-        outline: none;
-        cursor: pointer;
-        transition:transform 0.2s;
-      };
-      .job-brief-rerun:hover{
-        transform:scale(130%);
-      };
-      .job-brief-link {
-        flex-grow: 1;
-        display: flex;
-        span {
-          margin-right: 8px;
-          display: flex;
-          align-items: center;
-        }
-      }
-    }
-    .job-brief-item:hover {
-      background-color: var(--color-secondary);
-    }
-  }
+.job-group-section .job-group-summary {
+  margin: 5px 0;
+  padding: 10px;
 }
 
-// ================
-// action view right
+.job-group-section .job-brief-list .job-brief-item {
+  margin: 5px 0;
+  padding: 10px;
+  background: var(--color-info-bg);
+  border-radius: 5px;
+  text-decoration: none;
+  display: flex;
+  justify-items: center;
+  flex-wrap: nowrap;
+}
+
+.job-group-section .job-brief-list .job-brief-item .job-brief-rerun {
+  float: right;
+  border: none;
+  background-color: transparent;
+  outline: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.job-group-section .job-brief-list .job-brief-item .job-brief-rerun:hover {
+  transform: scale(130%);
+}
+
+.job-group-section .job-brief-list .job-brief-item .job-brief-link {
+  flex-grow: 1;
+  display: flex;
+}
+
+.job-group-section .job-brief-list .job-brief-item .job-brief-link span {
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.job-group-section .job-brief-list .job-brief-item:hover {
+  background-color: var(--color-secondary);
+}
+
+/* ================ */
+/* action view right */
 
 .action-view-right {
   flex: 1;
@@ -391,50 +395,50 @@ export function initRepositoryActionView() {
   color: var(--color-console-fg);
   max-height: 100%;
   margin-right: 10px;
-
   display: flex;
   flex-direction: column;
 }
 
-.job-info-header {
-  .job-info-header-title {
-    font-size: 150%;
-    padding: 10px;
-  }
-  .job-info-header-detail {
-    padding: 0 10px 10px;
-    border-bottom: 1px solid var(--color-grey);
-  }
+.job-info-header .job-info-header-title {
+  font-size: 150%;
+  padding: 10px;
+}
+
+.job-info-header .job-info-header-detail {
+  padding: 0 10px 10px;
+  border-bottom: 1px solid var(--color-grey);
 }
 
 .job-step-container {
   max-height: 100%;
   overflow: auto;
+}
 
-  .job-step-summary {
-    cursor: pointer;
-    padding: 5px 10px;
-    display: flex;
+.job-step-container .job-step-summary {
+  cursor: pointer;
+  padding: 5px 10px;
+  display: flex;
+}
 
-    .step-summary-msg {
-      flex: 1;
-    }
-    .step-summary-dur {
-      margin-left: 16px;
-    }
-  }
-  .job-step-summary:hover {
-    background-color: var(--color-black-light);
-  }
+.job-step-container .job-step-summary .step-summary-msg {
+  flex: 1;
+}
+
+.job-step-container .job-step-summary .step-summary-dur {
+  margin-left: 16px;
+}
+
+.job-step-container .job-step-summary:hover {
+  background-color: var(--color-black-light);
 }
 </style>
 
-<style lang="less">
-// some elements are not managed by vue, so we need to use global style
-
+<style>
+/* some elements are not managed by vue, so we need to use global style */
 .job-status-rotate {
   animation: job-status-rotate-keyframes 1s linear infinite;
 }
+
 @keyframes job-status-rotate-keyframes {
   100% {
     transform: rotate(360deg);
@@ -443,37 +447,44 @@ export function initRepositoryActionView() {
 
 .job-step-section {
   margin: 10px;
-  .job-step-logs {
-    font-family: monospace, monospace;
-    .job-log-line {
-      display: flex;
-      .line-num {
-        width: 48px;
-        color: var(--color-grey-light);
-        text-align: right;
-      }
-      .log-time {
-        color: var(--color-grey-light);
-        margin-left: 10px;
-        white-space: nowrap;
-      }
-      .log-msg {
-        flex: 1;
-        word-break: break-all;
-        white-space: break-spaces;
-        margin-left: 10px;
-      }
-    }
+}
 
-    // TODO: group support
-    .job-log-group {
-    }
+.job-step-section .job-step-logs {
+  font-family: monospace, monospace;
+}
 
-    .job-log-group-summary {
-    }
+.job-step-section .job-step-logs .job-log-line {
+  display: flex;
+}
 
-    .job-log-list {
-    }
-  }
+.job-step-section .job-step-logs .job-log-line .line-num {
+  width: 48px;
+  color: var(--color-grey-light);
+  text-align: right;
+}
+
+.job-step-section .job-step-logs .job-log-line .log-time {
+  color: var(--color-grey-light);
+  margin-left: 10px;
+  white-space: nowrap;
+}
+
+.job-step-section .job-step-logs .job-log-line .log-msg {
+  flex: 1;
+  word-break: break-all;
+  white-space: break-spaces;
+  margin-left: 10px;
+}
+
+/* TODO: group support */
+
+.job-log-group {
+
+}
+.job-log-group-summary {
+
+}
+.job-log-list {
+
 }
 </style>
