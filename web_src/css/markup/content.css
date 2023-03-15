@@ -526,6 +526,7 @@
 
 .file-revisions-btn i {
   -webkit-touch-callout: none;
+  -webkit-user-select: none;
   user-select: none;
 }
 

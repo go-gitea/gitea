@@ -3,6 +3,7 @@
 .repository .diff-file-box .code-diff tbody tr .lines-type-marker,
 .repository .repository-summary .segment.language-stats {
   -webkit-touch-callout: none;
+  -webkit-user-select: none;
   user-select: none;
 }
 
