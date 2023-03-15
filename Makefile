@@ -29,7 +29,7 @@ AIR_PACKAGE ?= github.com/cosmtrek/air@v1.40.4
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.6.0
 ERRCHECK_PACKAGE ?= github.com/kisielk/errcheck@v1.6.2
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.4.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.2
 GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.4
@@ -190,6 +190,7 @@ help:
 	@echo " - deps                             install dependencies"
 	@echo " - deps-frontend                    install frontend dependencies"
 	@echo " - deps-backend                     install backend dependencies"
+	@echo " - deps-tools                       install tool dependencies"
 	@echo " - lint                             lint everything"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-backend                     lint backend files"
@@ -821,7 +822,7 @@ docs:
 	cd docs; make trans-copy clean build-offline;
 
 .PHONY: deps
-deps: deps-frontend deps-backend
+deps: deps-frontend deps-backend deps-tools
 
 .PHONY: deps-frontend
 deps-frontend: node_modules
@@ -829,6 +830,9 @@ deps-frontend: node_modules
 .PHONY: deps-backend
 deps-backend:
 	$(GO) mod download
+
+.PHONY: deps-tools
+deps-tools:
 	$(GO) install $(AIR_PACKAGE)
 	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE)
 	$(GO) install $(ERRCHECK_PACKAGE)

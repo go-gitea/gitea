@@ -7,24 +7,62 @@ import (
 	"fmt"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// doMergeStyleSquash gets a commit author signature for squash commits
+func getAuthorSignatureSquash(ctx *mergeContext) (*git.Signature, error) {
+	if err := ctx.pr.Issue.LoadPoster(ctx); err != nil {
+		log.Error("%-v Issue[%d].LoadPoster: %v", ctx.pr, ctx.pr.Issue.ID, err)
+		return nil, err
+	}
+
+	// Try to get an signature from the same user in one of the commits, as the
+	// poster email might be private or commits might have a different signature
+	// than the primary email address of the poster.
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, ctx.tmpBasePath)
+	if err != nil {
+		log.Error("%-v Unable to open base repository: %v", ctx.pr, err)
+		return nil, err
+	}
+	defer closer.Close()
+
+	commits, err := gitRepo.CommitsBetweenIDs(trackingBranch, "HEAD")
+	if err != nil {
+		log.Error("%-v Unable to get commits between: %s %s: %v", ctx.pr, "HEAD", trackingBranch, err)
+		return nil, err
+	}
+
+	uniqueEmails := make(container.Set[string])
+	for _, commit := range commits {
+		if commit.Author != nil && uniqueEmails.Add(commit.Author.Email) {
+			commitUser, _ := user_model.GetUserByEmail(ctx, commit.Author.Email)
+			if commitUser != nil && commitUser.ID == ctx.pr.Issue.Poster.ID {
+				return commit.Author, nil
+			}
+		}
+	}
+
+	return ctx.pr.Issue.Poster.NewGitSig(), nil
+}
+
 // doMergeStyleSquash squashes the tracking branch on the current HEAD (=base)
 func doMergeStyleSquash(ctx *mergeContext, message string) error {
+	sig, err := getAuthorSignatureSquash(ctx)
+	if err != nil {
+		return fmt.Errorf("getAuthorSignatureSquash: %w", err)
+	}
+
 	cmdMerge := git.NewCommand(ctx, "merge", "--squash").AddDynamicArguments(trackingBranch)
 	if err := runMergeCommand(ctx, repo_model.MergeStyleSquash, cmdMerge); err != nil {
 		log.Error("%-v Unable to merge --squash tracking into base: %v", ctx.pr, err)
 		return err
 	}
 
-	if err := ctx.pr.Issue.LoadPoster(ctx); err != nil {
-		log.Error("%-v Issue[%d].LoadPoster: %v", ctx.pr, ctx.pr.Issue.ID, err)
-		return fmt.Errorf("LoadPoster: %w", err)
-	}
-	sig := ctx.pr.Issue.Poster.NewGitSig()
 	if setting.Repository.PullRequest.AddCoCommitterTrailers && ctx.committer.String() != sig.String() {
 		// add trailer
 		message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
