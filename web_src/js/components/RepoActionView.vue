@@ -463,4 +463,14 @@ export function initRepositoryActionView() {
   white-space: break-spaces;
   margin-left: 10px;
 }
+
+.job-log-group {
+  /* TODO: group support */
+}
+.job-log-group-summary {
+  /* TODO: group support */
+}
+.job-log-list {
+  /* TODO: group support */
+}
 </style>

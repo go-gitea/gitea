@@ -511,11 +511,7 @@
   margin-top: 0;
 }
 
-.repository.wiki.revisions
-  .ui.container
-  > .ui.stackable.grid
-  > .header
-  .sub.header {
+.repository.wiki.revisions .ui.container > .ui.stackable.grid > .header .sub.header {
   padding-left: 52px;
   word-break: break-word;
 }
