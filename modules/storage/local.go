@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -58,7 +57,7 @@ func NewLocalStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (l *LocalStorage) buildLocalPath(p string) string {
-	return filepath.Join(l.dir, util.CleanPath(strings.ReplaceAll(p, "\\", "/")))
+	return util.SafeFilePathAbs(l.dir, p)
 }
 
 // Open a file
@@ -128,10 +127,7 @@ func (l *LocalStorage) URL(path, name string) (*url.URL, error) {
 
 // IterateObjects iterates across the objects in the local storage
 func (l *LocalStorage) IterateObjects(prefix string, fn func(path string, obj Object) error) error {
-	dir := l.dir
-	if prefix != "" {
-		dir = filepath.Join(l.dir, util.CleanPath(prefix))
-	}
+	dir := l.buildLocalPath(prefix)
 	return filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err

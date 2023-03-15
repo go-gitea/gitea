@@ -138,13 +138,63 @@ func TestMisc_IsReadmeFileName(t *testing.T) {
 }
 
 func TestCleanPath(t *testing.T) {
-	cases := map[string]string{
-		"../../test": "test",
-		"/test":      "/test",
-		"/../test":   "/test",
+	cases := []struct {
+		elems    []string
+		expected string
+	}{
+		{[]string{}, ``},
+		{[]string{``}, ``},
+		{[]string{`..`}, `.`},
+		{[]string{`a`}, `a`},
+		{[]string{`/a/`}, `a`},
+		{[]string{`../a/`, `../b`, `c/..`, `d`}, `a/b/d`},
+		{[]string{`a\..\b`}, `a\..\b`},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.expected, SafePathRel(c.elems...), "case: %v", c.elems)
 	}
 
-	for k, v := range cases {
-		assert.Equal(t, v, CleanPath(k))
+	cases = []struct {
+		elems    []string
+		expected string
+	}{
+		{[]string{}, ``},
+		{[]string{``}, ``},
+		{[]string{`..`}, `.`},
+		{[]string{`a`}, `a`},
+		{[]string{`/a/`}, `a`},
+		{[]string{`../a/`, `../b`, `c/..`, `d`}, `a/b/d`},
+		{[]string{`a\..\b`}, `b`},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.expected, SafePathRelX(c.elems...), "case: %v", c.elems)
+	}
+
+	// for POSIX only, but the result is similar on Windows, because the first element must be an absolute path
+	if isOSWindows() {
+		cases = []struct {
+			elems    []string
+			expected string
+		}{
+			{[]string{`C:\..`}, `C:\`},
+			{[]string{`C:\a`}, `C:\a`},
+			{[]string{`C:\a/`}, `C:\a`},
+			{[]string{`C:\..\a\`, `../b`, `c\..`, `d`}, `C:\a\b\d`},
+			{[]string{`C:\a/..\b`}, `C:\b`},
+		}
+	} else {
+		cases = []struct {
+			elems    []string
+			expected string
+		}{
+			{[]string{`/..`}, `/`},
+			{[]string{`/a`}, `/a`},
+			{[]string{`/a/`}, `/a`},
+			{[]string{`/../a/`, `../b`, `c/..`, `d`}, `/a/b/d`},
+			{[]string{`/a\..\b`}, `/b`},
+		}
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.expected, SafeFilePathAbs(c.elems...), "case: %v", c.elems)
 	}
 }

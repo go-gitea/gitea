@@ -34,7 +34,7 @@ func init() {
 
 // BeforeInsert is invoked from XORM before inserting an object of this type.
 func (l *LFSLock) BeforeInsert() {
-	l.Path = util.CleanPath(l.Path)
+	l.Path = util.SafePathRel(l.Path)
 }
 
 // CreateLFSLock creates a new lock.
@@ -49,7 +49,7 @@ func CreateLFSLock(ctx context.Context, repo *repo_model.Repository, lock *LFSLo
 		return nil, err
 	}
 
-	lock.Path = util.CleanPath(lock.Path)
+	lock.Path = util.SafePathRel(lock.Path)
 	lock.RepoID = repo.ID
 
 	l, err := GetLFSLock(dbCtx, repo, lock.Path)
@@ -69,7 +69,7 @@ func CreateLFSLock(ctx context.Context, repo *repo_model.Repository, lock *LFSLo
 
 // GetLFSLock returns release by given path.
 func GetLFSLock(ctx context.Context, repo *repo_model.Repository, path string) (*LFSLock, error) {
-	path = util.CleanPath(path)
+	path = util.SafePathRel(path)
 	rel := &LFSLock{RepoID: repo.ID}
 	has, err := db.GetEngine(ctx).Where("lower(path) = ?", strings.ToLower(path)).Get(rel)
 	if err != nil {
