@@ -91,6 +91,8 @@ export function initGlobalCommon() {
   const $uiDropdowns = $('.ui.dropdown');
 
   // do not init "custom" dropdowns, "custom" dropdowns are managed by their own code.
+  // NOTICE: some old Android Chrome browsers has a crash bug, this line triggers the bug,
+  //   the browser crashes when users click the Issue Reaction Menu button ("return" before this line, no crash. after, crash)
   $uiDropdowns.filter(':not(.custom)').dropdown({fullTextSearch: 'exact'});
 
   // The "jump" means this dropdown is mainly used for "menu" purpose,

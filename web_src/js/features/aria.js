@@ -91,7 +91,7 @@ function attachOneDropdownAria($dropdown) {
 
     // if there is an active item, use it (the user is navigating between items)
     // otherwise use the "selected" for combobox (for the last selected item)
-    let $active = $menu.find('> .item.active, > .item.selected');
+    const $active = $menu.find('> .item.active, > .item.selected');
 
     // if there is an active item, use its id. if no active item or the dropdown is used as menu and is hidden, empty the active item
     const activeId = $active.attr('id');
