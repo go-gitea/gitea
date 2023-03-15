@@ -233,7 +233,6 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 					matchTimes++
 				}
 			}
-		}
 		default:
 			log.Warn("push event unsupported condition %q", cond)
 		}
