@@ -9,8 +9,6 @@ platform:
 
 trigger:
   event:
-    - push
-    - tag
     - pull_request
   paths:
     exclude:
@@ -180,8 +178,6 @@ depends_on:
 
 trigger:
   event:
-    - push
-    - tag
     - pull_request
   paths:
     exclude:
@@ -285,8 +281,6 @@ depends_on:
 
 trigger:
   event:
-    - push
-    - tag
     - pull_request
   paths:
     exclude:
@@ -449,8 +443,6 @@ depends_on:
 
 trigger:
   event:
-    - push
-    - tag
     - pull_request
   paths:
     exclude:
@@ -538,8 +530,6 @@ depends_on:
 
 trigger:
   event:
-    - push
-    - tag
     - pull_request
   paths:
     exclude:
@@ -627,8 +617,6 @@ depends_on:
 
 trigger:
   event:
-    - push
-    - tag
     - pull_request
   paths:
     exclude:
@@ -1477,7 +1465,7 @@ steps:
 ---
 kind: pipeline
 type: docker
-name: docker-linux-amd64-dry-run
+name: docker-linux-arm64-dry-run
 
 platform:
   os: linux
@@ -1487,8 +1475,8 @@ depends_on:
   - compliance
 
 trigger:
-  ref:
-  - "refs/pull/**"
+  event:
+    - pull_request
   paths:
     exclude:
       - docs/**
