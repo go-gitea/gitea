@@ -82,6 +82,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/activity"
 	"code.gitea.io/gitea/routers/api/v1/activitypub"
 	"code.gitea.io/gitea/routers/api/v1/admin"
 	"code.gitea.io/gitea/routers/api/v1/misc"
@@ -749,6 +750,11 @@ func Routes(ctx gocontext.Context) *web.Route {
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
 					m.Combo("/{id}").Delete(user.DeleteAccessToken)
 				}, reqBasicAuth())
+
+				m.Group("/activities", func() {
+					m.Get("/feeds", activity.ListUserActivityFeeds)
+				})
+
 			}, context_service.UserAssignmentAPI())
 		})
 

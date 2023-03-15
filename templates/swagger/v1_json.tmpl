@@ -14304,6 +14304,57 @@
         }
       }
     },
+    "/users/{username}/activities/feeds": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "List a user's activity feeds",
+        "operationId": "userListActivityFeeds",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user to get",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "if true, only show actions performed by the requested user",
+            "name": "only-performed-by",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "the date of the activities to be found, format is YYYY-MM-DD",
+            "name": "date",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActivityFeedsList"
+          }
+        }
+      }
+    },
     "/users/{username}/followers": {
       "get": {
         "produces": [
@@ -14890,6 +14941,63 @@
         "token_last_eight": {
           "type": "string",
           "x-go-name": "TokenLastEight"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "Activity": {
+      "type": "object",
+      "properties": {
+        "act_user": {
+          "$ref": "#/definitions/User"
+        },
+        "act_user_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ActUserID"
+        },
+        "comment": {
+          "$ref": "#/definitions/Comment"
+        },
+        "comment_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CommentID"
+        },
+        "content": {
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "is_private": {
+          "type": "boolean",
+          "x-go-name": "IsPrivate"
+        },
+        "ref_name": {
+          "type": "string",
+          "x-go-name": "RefName"
+        },
+        "repo": {
+          "$ref": "#/definitions/Repository"
+        },
+        "repo_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepoID"
+        },
+        "user_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "UserID"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -20939,6 +21047,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/AccessToken"
+        }
+      }
+    },
+    "ActivityFeedsList": {
+      "description": "ActivityFeedsList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Activity"
         }
       }
     },
