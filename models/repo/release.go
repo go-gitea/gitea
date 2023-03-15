@@ -262,6 +262,7 @@ func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
 		ListOptions:   listOptions,
 		IncludeDrafts: true,
 		IncludeTags:   true,
+		HasSha1:       util.OptionalBoolTrue,
 	}
 
 	tags := make([]string, 0)
