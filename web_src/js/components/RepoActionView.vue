@@ -289,11 +289,14 @@ export function initRepositoryActionView() {
 <style scoped>
 .action-view-body {
   display: flex;
-  height: calc(-166vh);
+  height: calc(100vh - 266px); /* fine tune this value to make the main view has full height */
 }
 
+/* ================ */
+/* action view header */
+
 .action-view-header {
-  margin: 0 20px 20px;
+  margin: 0 20px 20px 20px;
 }
 
 .action-view-header .run_cancel {
@@ -328,6 +331,9 @@ export function initRepositoryActionView() {
 .action-info-summary .action-title {
   padding: 0 5px;
 }
+
+/* ================ */
+/* action view left */
 
 .action-view-left {
   width: 30%;
@@ -380,6 +386,9 @@ export function initRepositoryActionView() {
   background-color: var(--color-secondary);
 }
 
+/* ================ */
+/* action view right */
+
 .action-view-right {
   flex: 1;
   background-color: var(--color-console-bg);
@@ -422,7 +431,10 @@ export function initRepositoryActionView() {
 .job-step-container .job-step-summary:hover {
   background-color: var(--color-black-light);
 }
+</style>
 
+<style>
+/* some elements are not managed by vue, so we need to use global style */
 .job-status-rotate {
   animation: job-status-rotate-keyframes 1s linear infinite;
 }
@@ -438,7 +450,7 @@ export function initRepositoryActionView() {
 }
 
 .job-step-section .job-step-logs {
-  font-family: monospace;
+  font-family: monospace, monospace;
 }
 
 .job-step-section .job-step-logs .job-log-line {
@@ -464,13 +476,15 @@ export function initRepositoryActionView() {
   margin-left: 10px;
 }
 
+/* TODO: group support */
+
 .job-log-group {
-  /* TODO: group support */
+
 }
 .job-log-group-summary {
-  /* TODO: group support */
+
 }
 .job-log-list {
-  /* TODO: group support */
+
 }
 </style>
