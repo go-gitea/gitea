@@ -105,7 +105,7 @@ GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/m
 
 FOMANTIC_WORK_DIR := web_src/fomantic
 
-WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
+WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
 WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/js/index.js public/css/index.css
 WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack public/serviceworker.js
@@ -131,7 +131,7 @@ TEST_TAGS ?= sqlite sqlite_unlock_notify
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
 GO_DIRS := cmd tests models modules routers build services tools
-WEB_DIRS := web_src/js web_src/less
+WEB_DIRS := web_src/js web_src/css
 
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
@@ -342,7 +342,7 @@ lint: lint-frontend lint-backend
 .PHONY: lint-frontend
 lint-frontend: node_modules
 	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
-	npx stylelint --color --max-warnings=0 web_src/less
+	npx stylelint --color --max-warnings=0 web_src/css
 	npx spectral lint -q -F hint $(SWAGGER_SPEC)
 	npx markdownlint docs *.md
 
