@@ -1,1 +1,2 @@
+/* This import requires postcss-import to transpile to the correct sytnax */
 @import "./theme-arc-green.css" (prefers-color-scheme: dark);
