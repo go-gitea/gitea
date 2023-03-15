@@ -21,7 +21,7 @@ const glob = (pattern) => fastGlob.sync(pattern, {
 });
 
 const themes = {};
-for (const path of glob('web_src/less/themes/*.less')) {
+for (const path of glob('web_src/css/themes/*.css')) {
   themes[parse(path).name] = [path];
 }
 
@@ -57,14 +57,14 @@ export default {
       fileURLToPath(new URL('web_src/js/index.js', import.meta.url)),
       fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
-      fileURLToPath(new URL('web_src/less/index.less', import.meta.url)),
+      fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
     ],
     webcomponents: [
       fileURLToPath(new URL('web_src/js/webcomponents/GiteaOriginUrl.js', import.meta.url)),
     ],
     swagger: [
       fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
-      fileURLToPath(new URL('web_src/less/standalone/swagger.less', import.meta.url)),
+      fileURLToPath(new URL('web_src/css/standalone/swagger.css', import.meta.url)),
     ],
     serviceworker: [
       fileURLToPath(new URL('web_src/js/serviceworker.js', import.meta.url)),
@@ -136,7 +136,7 @@ export default {
         ],
       },
       {
-        test: /.css$/i,
+        test: /\.css$/i,
         use: [
           {
             loader: MiniCssExtractPlugin.loader,
@@ -147,29 +147,6 @@ export default {
               sourceMap: true,
               url: {filter: filterCssImport},
               import: {filter: filterCssImport},
-            },
-          },
-        ],
-      },
-      {
-        test: /.less$/i,
-        use: [
-          {
-            loader: MiniCssExtractPlugin.loader,
-          },
-          {
-            loader: 'css-loader',
-            options: {
-              sourceMap: true,
-              importLoaders: 1,
-              url: {filter: filterCssImport},
-              import: {filter: filterCssImport},
-            },
-          },
-          {
-            loader: 'less-loader',
-            options: {
-              sourceMap: true,
             },
           },
         ],
