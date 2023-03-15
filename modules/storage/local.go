@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -58,7 +59,7 @@ func NewLocalStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (l *LocalStorage) buildLocalPath(p string) string {
-	return filepath.Join(l.dir, util.CleanPath(strings.ReplaceAll(p, "\\", "/")))
+	return filepath.Join(l.dir, path.Clean("/" + strings.ReplaceAll(p, "\\", "/"))[1:])
 }
 
 // Open a file

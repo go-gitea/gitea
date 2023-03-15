@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -29,7 +30,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/uri"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/pull"
 
 	"github.com/google/uuid"
@@ -866,7 +866,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}
 
 			// SECURITY: The TreePath must be cleaned!
-			comment.TreePath = util.CleanPath(comment.TreePath)
+			comment.TreePath = path.Clean("/" + comment.TreePath)[1:]
 
 			var patch string
 			reader, writer := io.Pipe()

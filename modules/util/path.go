@@ -14,14 +14,6 @@ import (
 	"strings"
 )
 
-// CleanPath ensure to clean the path
-func CleanPath(p string) string {
-	if strings.HasPrefix(p, "/") {
-		return path.Clean(p)
-	}
-	return path.Clean("/" + p)[1:]
-}
-
 // EnsureAbsolutePath ensure that a path is absolute, making it
 // relative to absoluteBase if necessary
 func EnsureAbsolutePath(path, absoluteBase string) string {
