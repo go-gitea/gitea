@@ -82,7 +82,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/activity"
 	"code.gitea.io/gitea/routers/api/v1/activitypub"
 	"code.gitea.io/gitea/routers/api/v1/admin"
 	"code.gitea.io/gitea/routers/api/v1/misc"
@@ -752,7 +751,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				}, reqBasicAuth())
 
 				m.Group("/activities", func() {
-					m.Get("/feeds", activity.ListUserActivityFeeds)
+					m.Get("/feeds", user.ListUserActivityFeeds)
 				})
 			}, context_service.UserAssignmentAPI())
 		})
@@ -1252,6 +1251,9 @@ func Routes(ctx gocontext.Context) *web.Route {
 					Put(reqToken(auth_model.AccessTokenScopeWriteOrg), org.AddTeamRepository).
 					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), org.RemoveTeamRepository).
 					Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeamRepo)
+			})
+			m.Group("/activities", func() {
+				m.Get("/feeds", org.ListTeamActivityFeeds)
 			})
 		}, orgAssignment(false, true), reqToken(""), reqTeamMembership())
 
