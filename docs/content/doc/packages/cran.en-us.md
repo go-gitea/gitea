@@ -26,13 +26,10 @@ To work with the CRAN package registry, you need to install [the R toolset](http
 
 ## Configuring the package registry
 
-To register the package registry you need to add it in your `Rprofile.site` file:
+To register the package registry you need to add it to `Rprofile.site`, either on the system-level, user-level (`~/.Rprofile`) or project-level:
 
 ```
-local({
-	r <- list("gitea" = "https://gitea.example.com/api/packages/{owner}/cran")
-	options(repos = r)
-})
+options("repos" = c(getOption("repos"), c(gitea="https://gitea.example.com/api/packages/{owner}/cran")))
 ```
 
 | Parameter | Description |
