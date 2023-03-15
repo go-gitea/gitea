@@ -504,6 +504,11 @@ export function initRepoPullRequestReview() {
     maxWidth: 'none',
     interactive: true,
     hideOnClick: true,
+    popperOptions: {
+      modifiers: [
+        {name: 'flip', enabled: false},
+      ],
+    }
   });
 
   $closeBtn.on('click', (e) => {
