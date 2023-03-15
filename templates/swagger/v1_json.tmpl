@@ -138,6 +138,80 @@
         }
       }
     },
+    "/admin/emails": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all emails",
+        "operationId": "adminGetAllEmails",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/EmailList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/admin/emails/search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Search all emails",
+        "operationId": "adminSearchEmails",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "keyword",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/EmailList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/admin/hooks": {
       "get": {
         "produces": [
@@ -414,9 +488,22 @@
         "tags": [
           "admin"
         ],
-        "summary": "List all users",
-        "operationId": "adminGetAllUsers",
+        "summary": "Search users according filter conditions",
+        "operationId": "adminSearchUsers",
         "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the user's login source to search for",
+            "name": "source_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "user's login name to search for",
+            "name": "login_name",
+            "in": "query"
+          },
           {
             "type": "integer",
             "description": "page number of results to return (1-based)",
@@ -669,6 +756,46 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Organization"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/admin/users/{username}/rename": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Rename a user",
+        "operationId": "adminRenameUser",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "existing username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RenameUserOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -16959,6 +17086,15 @@
           "type": "boolean",
           "x-go-name": "Primary"
         },
+        "user_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "UserID"
+        },
+        "username": {
+          "type": "string",
+          "x-go-name": "UserName"
+        },
         "verified": {
           "type": "boolean",
           "x-go-name": "Verified"
@@ -19101,6 +19237,22 @@
         "zipball_url": {
           "type": "string",
           "x-go-name": "ZipURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "RenameUserOption": {
+      "description": "RenameUserOption options when renaming a user",
+      "type": "object",
+      "required": [
+        "new_username"
+      ],
+      "properties": {
+        "new_username": {
+          "description": "New username for this user. This name cannot be in use yet by any other user.",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "NewName"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
