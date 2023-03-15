@@ -6,6 +6,7 @@ import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initTooltip, showTemporaryTooltip} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
+import {setFileFolding} from './file-fold.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -438,15 +439,20 @@ export async function handleReply($el) {
 export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
     const commentDiv = $(window.location.hash);
+    console.log(commentDiv[0])
     if (commentDiv) {
       // get the name of the parent id
       const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
+      const ancestorDiffHeader = commentDiv.closest('.diff-file-box').children('.diff-file-header').eq(0)[0];
+      console.log(ancestorDiffHeader)
+      setFileFolding(ancestorDiffHeader.closest('.file-content'), ancestorDiffHeader.querySelector('.fold-file'), false);
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
         $(`#show-outdated-${id}`).addClass('gt-hidden');
         $(`#code-comments-${id}`).removeClass('gt-hidden');
         $(`#code-preview-${id}`).removeClass('gt-hidden');
         $(`#hide-outdated-${id}`).removeClass('gt-hidden');
+        console.log('scrollIntoView')
         commentDiv[0].scrollIntoView();
       }
     }
