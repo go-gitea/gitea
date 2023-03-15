@@ -26,7 +26,7 @@ steps:
       - make deps-frontend
 
   - name: deps-backend
-    image: golang:1.20
+    image: gitea/test_env:linux-1.20-amd64
     pull: always
     commands:
       - make deps-backend
@@ -90,7 +90,7 @@ steps:
     depends_on: [deps-frontend]
 
   - name: checks-backend
-    image: golang:1.20
+    image: gitea/test_env:linux-1.20-amd64
     commands:
       - make --always-make checks-backend # ensure the 'go-licenses' make target runs
     depends_on: [deps-backend]
@@ -111,7 +111,7 @@ steps:
     depends_on: [deps-frontend]
 
   - name: build-backend-no-gcc
-    image: golang:1.19 # this step is kept as the lowest version of golang that we support
+    image: gitea/test_env:linux-1.19-amd64 # this step is kept as the lowest version of golang that we support
     pull: always
     environment:
       GOPROXY: https://goproxy.io
@@ -123,7 +123,7 @@ steps:
         path: /go
 
   - name: build-backend-arm64
-    image: golang:1.20
+    image: gitea/test_env:linux-1.20-amd64
     environment:
       GOPROXY: https://goproxy.io
       GOOS: linux
@@ -138,7 +138,7 @@ steps:
         path: /go
 
   - name: build-backend-windows
-    image: golang:1.20
+    image: gitea/test_env:linux-1.20-amd64
     environment:
       GOPROXY: https://goproxy.io
       GOOS: windows
@@ -152,7 +152,7 @@ steps:
         path: /go
 
   - name: build-backend-386
-    image: golang:1.20
+    image: gitea/test_env:linux-1.20-amd64
     environment:
       GOPROXY: https://goproxy.io
       GOOS: linux
@@ -213,7 +213,6 @@ steps:
     image: docker:git
     pull: always
     commands:
-      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
     when:
       event:
@@ -221,7 +220,7 @@ steps:
           - pull_request
 
   - name: deps-backend
-    image: golang:1.20
+    image: gitea/test_env:linux-1.20-amd64
     pull: always
     commands:
       - make deps-backend
@@ -313,7 +312,6 @@ steps:
     image: docker:git
     pull: always
     commands:
-      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
     when:
       event:
@@ -321,7 +319,7 @@ steps:
           - pull_request
 
   - name: deps-backend
-    image: golang:1.20
+    image: gitea/test_env:linux-1.20-amd64
     pull: always
     commands:
       - make deps-backend
@@ -399,7 +397,7 @@ steps:
         path: /go
 
   - name: generate-coverage
-    image: golang:1.20
+    image: gitea/test_env:linux-1.20-amd64
     commands:
       - make coverage
     environment:
@@ -465,7 +463,6 @@ steps:
     image: docker:git
     pull: always
     commands:
-      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
     when:
       event:
@@ -473,7 +470,7 @@ steps:
           - pull_request
 
   - name: deps-backend
-    image: golang:1.20
+    image: gitea/test_env:linux-1.20-amd64
     pull: always
     commands:
       - make deps-backend
@@ -553,7 +550,6 @@ steps:
     image: docker:git
     pull: always
     commands:
-      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
     when:
       event:
@@ -561,7 +557,7 @@ steps:
           - pull_request
 
   - name: deps-backend
-    image: golang:1.20
+    image: gitea/test_env:linux-1.20-amd64
     pull: always
     commands:
       - make deps-backend
@@ -631,7 +627,6 @@ steps:
     image: docker:git
     pull: always
     commands:
-      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
     when:
       event:
@@ -639,7 +634,7 @@ steps:
           - pull_request
 
   - name: deps-backend
-    image: golang:1.20
+    image: gitea/test_env:linux-1.20-arm64
     pull: always
     commands:
       - make deps-backend
@@ -721,7 +716,7 @@ steps:
     depends_on: [deps-frontend]
 
   - name: deps-backend
-    image: golang:1.18
+    image: gitea/test_env:linux-1.20-amd64
     pull: always
     commands:
       - make deps-backend
@@ -830,7 +825,7 @@ trigger:
 
 steps:
   - name: download
-    image: golang:1.20
+    image: gitea/test_env:linux-1.20-amd64
     pull: always
     commands:
       - timeout -s ABRT 40m make generate-license generate-gitignore
@@ -890,7 +885,6 @@ steps:
     image: docker:git
     pull: always
     commands:
-      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: deps-frontend
@@ -900,7 +894,7 @@ steps:
       - make deps-frontend
 
   - name: deps-backend
-    image: golang:1.20
+    image: gitea/test_env:linux-1.20-amd64
     pull: always
     commands:
       - make deps-backend
@@ -1026,7 +1020,6 @@ steps:
     image: docker:git
     pull: always
     commands:
-      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: deps-frontend
@@ -1036,7 +1029,7 @@ steps:
       - make deps-frontend
 
   - name: deps-backend
-    image: golang:1.20
+    image: gitea/test_env:linux-1.20-amd64
     pull: always
     commands:
       - make deps-backend
@@ -1136,7 +1129,7 @@ trigger:
 
 steps:
   - name: build-docs
-    image: golang:1.20
+    image: gitea/test_env:linux-1.20-amd64
     commands:
       - cd docs
       - make trans-copy clean build
@@ -1190,7 +1183,6 @@ steps:
     image: docker:git
     pull: always
     commands:
-      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: publish
@@ -1268,7 +1260,6 @@ steps:
     image: docker:git
     pull: always
     commands:
-      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: publish
@@ -1341,7 +1332,6 @@ steps:
     image: docker:git
     pull: always
     commands:
-      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: publish
@@ -1415,7 +1405,6 @@ steps:
     image: docker:git
     pull: always
     commands:
-      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: publish
@@ -1533,7 +1522,6 @@ steps:
     image: docker:git
     pull: always
     commands:
-      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: publish
@@ -1611,7 +1599,6 @@ steps:
     image: docker:git
     pull: always
     commands:
-      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: publish
@@ -1687,7 +1674,6 @@ steps:
     image: docker:git
     pull: always
     commands:
-      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: publish
@@ -1761,7 +1747,6 @@ steps:
     image: docker:git
     pull: always
     commands:
-      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: publish
