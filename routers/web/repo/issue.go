@@ -455,6 +455,7 @@ func Issues(ctx *context.Context) {
 	}
 
 	ctx.Data["CanWriteIssuesOrPulls"] = ctx.Repo.CanWriteIssuesOrPulls(isPullList)
+	ctx.Data["IsShowFullName"] = setting.UI.DefaultShowFullName
 
 	ctx.HTML(http.StatusOK, tplIssues)
 }
@@ -906,6 +907,7 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypeIssues)
+	ctx.Data["IsShowFullName"] = setting.UI.DefaultShowFullName
 
 	ctx.HTML(http.StatusOK, tplIssueNew)
 }
@@ -1834,6 +1836,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
+	ctx.Data["IsShowFullName"] = setting.UI.DefaultShowFullName
 
 	var hiddenCommentTypes *big.Int
 	if ctx.IsSigned {

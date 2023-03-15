@@ -24,6 +24,7 @@ func Tags(ctx *context.Context) {
 	if setTagsContext(ctx) != nil {
 		return
 	}
+	ctx.Data["IsShowFullName"] = setting.UI.DefaultShowFullName
 
 	ctx.HTML(http.StatusOK, tplTags)
 }

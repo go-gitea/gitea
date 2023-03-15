@@ -8,8 +8,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"html"
-	"html/template"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -420,16 +418,6 @@ func (u *User) GetDisplayName() string {
 		}
 	}
 	return u.Name
-}
-
-func (u *User) GetSearchNameHTML() template.HTML {
-	if setting.UI.DefaultShowFullName {
-		trimmed := strings.TrimSpace(u.FullName)
-		if len(trimmed) > 0 {
-			return template.HTML(fmt.Sprintf(`%s<span class="text search-fullname"> %s</span>`, html.EscapeString(u.Name), html.EscapeString(trimmed)))
-		}
-	}
-	return template.HTML(html.EscapeString(u.Name))
 }
 
 func gitSafeName(name string) string {
