@@ -30,9 +30,10 @@ There is still a problem: Fomantic UI checkbox is not friendly to screen readers
 ## ARIA Dropdown
 
 There are different solutions:
-
 * combobox + listbox + option
 * menu + menuitem
+
+At the moment, `menu + menuitem` seems to work better with Fomantic UI Dropdown, so we only use it now.
 
 ```html
 <div>
@@ -47,33 +48,6 @@ There are different solutions:
 
 
 ## Fomantic UI Dropdown
-
-There are 2 possible solutions about the role: combobox or menu
-
-1. Detect if the dropdown has an input, if yes, it works like a combobox, otherwise it works like a menu
-2. Always use "combobox", never use "menu"
-
-According to the public discussion with fsologureng in chat channel, we think it's better to use "combobox" for all dropdowns.
-
-> On the old web there were many menus implemented with an auto-submit select,
-> but that didn't change the fact that they were selects for screen readers.
-> That is the case with Fomantic dropdowns as used in Gitea.
-> Implementations of auto-submit select menus fell behind in modern web design precisely because they are not usable or accessible."
->
-> We can mark all "dropdown" as "combobox", never use "menu" in code. Do you think this solution is clear enough?
->
-> Yes. I think it will provide better accessibility because is more coherent with the current fomantic based implementation.
-
-Reference:
-
-* Combobox:
-  * https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
-  * A combobox is an **input widget** with an associated popup that enables users to select a value for the combobox from
-    a collection of possible values. In some implementations, the popup presents allowed values, while in other implementations,
-    the popup presents suggested values, and users may either select one of the suggestions or type a value.
-* Menu:
-  * https://www.w3.org/WAI/ARIA/apg/patterns/menubar/
-  * A menu is a widget that offers a list of choices to the user, such as a set of **actions or functions**.
 
 ```html
 <!-- read-only dropdown -->

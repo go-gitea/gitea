@@ -601,6 +601,9 @@ export function initRepository() {
 }
 
 function initRepoIssueCommentEdit() {
+  // Issue/PR Context Menus
+  $('.comment-header-right .context-dropdown').dropdown({action: 'hide'});
+
   // Edit issue or comment content
   $(document).on('click', '.edit-content', onEditContent);
 
