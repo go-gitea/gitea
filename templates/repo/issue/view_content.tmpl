@@ -112,13 +112,13 @@
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 										{{if .Issue.IsClosed}}
-											<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
+											<button id="status-button" class="ui green basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
 												{{.locale.Tr "repo.issues.reopen_issue"}}
-											</div>
+											</button>
 										{{else}}
-											<div id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+											<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
 												{{.locale.Tr "repo.issues.close_issue"}}
-											</div>
+											</button>
 										{{end}}
 									{{end}}
 									<button class="ui green button loading-button" tabindex="5">
@@ -163,13 +163,13 @@
 									<div class="text right">
 										{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 											{{if .Issue.IsClosed}}
-												<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
+												<button id="status-button" class="ui green basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
 													{{.locale.Tr "repo.issues.reopen_issue"}}
-												</div>
+												</button>
 											{{else}}
-												<div id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+												<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
 													{{.locale.Tr "repo.issues.close_issue"}}
-												</div>
+												</button>
 											{{end}}
 										{{end}}
 										<button class="ui green button loading-button" tabindex="5">
@@ -215,8 +215,8 @@
 		{{end}}
 		<div class="field footer">
 			<div class="text right edit">
-				<div class="ui basic secondary cancel button" tabindex="3">{{.locale.Tr "repo.issues.cancel"}}</div>
-				<div class="ui primary save button" tabindex="2">{{.locale.Tr "repo.issues.save"}}</div>
+				<button class="ui basic secondary cancel button" tabindex="3">{{.locale.Tr "repo.issues.cancel"}}</button>
+				<button class="ui primary save button" tabindex="2">{{.locale.Tr "repo.issues.save"}}</button>
 			</div>
 		</div>
 	</div>
