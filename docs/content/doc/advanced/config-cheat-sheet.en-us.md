@@ -46,7 +46,7 @@ reported as part of the default configuration when running `gitea --help` or on 
   - The environment variable `$GITEA_WORK_DIR`
   - A built-in value set at build time (see building from source)
   - Otherwise it defaults to the directory of the _`AppPath`_
-  - If any of the above are relative paths then they are made absolute against the
+  - If any of the above are relative paths then they are made absolute against
 the directory of the _`AppPath`_
 - _`CustomPath`_: This is the base directory for custom templates and other options.
 It is determined by using the first set thing in the following hierarchy:
@@ -1254,6 +1254,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `LIMIT_SIZE_PUB`: **-1**: Maximum size of a Pub upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_PYPI`: **-1**: Maximum size of a PyPI upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_RUBYGEMS`: **-1**: Maximum size of a RubyGems upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_SWIFT`: **-1**: Maximum size of a Swift upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_VAGRANT`: **-1**: Maximum size of a Vagrant upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 
 ## Mirror (`mirror`)
