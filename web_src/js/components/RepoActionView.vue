@@ -293,19 +293,6 @@ export function initRepositoryActionView() {
 
 .action-view-header {
   margin: 0 20px 20px 20px;
-<<<<<<< HEAD
-  .run_cancel {
-    border: none;
-    color: var(--color-red);
-    background-color: transparent;
-    outline: none;
-    cursor: pointer;
-    transition:transform 0.2s;
-  };
-  .run_cancel:hover{
-    transform:scale(130%);
-  };
-=======
 }
 
 .action-view-header .run_cancel {
@@ -315,6 +302,10 @@ export function initRepositoryActionView() {
   outline: none;
   cursor: pointer;
   transition: transform 0.2s;
+}
+
+.action-view-header .run_cancel:hover {
+  transform:scale(130%);
 }
 
 .action-view-header .run_approve {
