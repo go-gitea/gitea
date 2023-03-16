@@ -400,6 +400,8 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ActivityFeedsList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	includePrivate := false
 	if ctx.IsSigned {
