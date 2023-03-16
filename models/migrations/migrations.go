@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
 	"code.gitea.io/gitea/models/migrations/v1_9"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -38,16 +39,23 @@ const minDBVersion = 70 // Gitea 1.5.3
 type Migration interface {
 	Description() string
 	Migrate(*xorm.Engine) error
+	BackportVersion() int64
 }
 
 type migration struct {
-	description string
-	migrate     func(*xorm.Engine) error
+	description     string
+	migrate         func(*xorm.Engine) error
+	backportVersion int64
 }
 
 // NewMigration creates a new migration
 func NewMigration(desc string, fn func(*xorm.Engine) error) Migration {
-	return &migration{desc, fn}
+	return &migration{desc, fn, 0}
+}
+
+// NewBackportMigration creates a new backport migration
+func NewBackportMigration(desc string, fn func(*xorm.Engine) error, version int64) Migration {
+	return &migration{desc, fn, version}
 }
 
 // Description returns the migration's description
@@ -60,8 +68,19 @@ func (m *migration) Migrate(x *xorm.Engine) error {
 	return m.migrate(x)
 }
 
+// IsBackport returns whether the migration is a backport migration
+func (m *migration) BackportVersion() int64 {
+	return m.backportVersion
+}
+
 // Version describes the version table. Should have only one row with id==1
 type Version struct {
+	ID      int64 `xorm:"pk autoincr"`
+	Version int64
+}
+
+// BackportVersion describes the backport version table.
+type BackportVersion struct {
 	ID      int64 `xorm:"pk autoincr"`
 	Version int64
 }
@@ -471,7 +490,13 @@ var migrations = []Migration{
 	NewMigration("Rename Webhook org_id to owner_id", v1_20.RenameWebhookOrgToOwner),
 	// v246 -> v247
 	NewMigration("Add missed column owner_id for project table", v1_20.AddNewColumnForProject),
+	// v247 -> v248
+	NewMigration("Add BackportVersion table", v1_20.AddBackportVersion),
 }
+
+// This is a sequence of backport migrations. Add new backport migrations to the bottom of the list.
+// Only in old version branch can insert backport migrations.
+var backportMigrations = []Migration{}
 
 // GetCurrentDBVersion returns the current db version
 func GetCurrentDBVersion(x *xorm.Engine) (int64, error) {
@@ -526,6 +551,9 @@ func Migrate(x *xorm.Engine) error {
 	if err := x.Sync(new(Version)); err != nil {
 		return fmt.Errorf("sync: %w", err)
 	}
+	if err := x.Sync(new(BackportVersion)); err != nil {
+		return fmt.Errorf("sync: %w", err)
+	}
 
 	currentVersion := &Version{ID: 1}
 	has, err := x.Get(currentVersion)
@@ -568,8 +596,29 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		}
 	}
 
+	// Get Migrated Backport Versions
+	var bvs []*BackportVersion
+	if err = x.Find(&bvs); err != nil {
+		return err
+	}
+	migratedBackportVersions := make(container.Set[int64], len(bvs))
+	for _, bv := range bvs {
+		if bv.Version >= minDBVersion {
+			migratedBackportVersions.Add(bv.Version)
+		}
+	}
+
 	// Migrate
 	for i, m := range migrations[v-minDBVersion:] {
+		// Skip migrated backport migration
+		if migratedBackportVersions.Contains(v + int64(i)) {
+			log.Info("Skip Migration[%d]: %s, as it is migrated in backport.", v+int64(i), m.Description())
+			// remove db record
+			if _, err = x.Delete(&BackportVersion{Version: v + int64(i)}); err != nil {
+				return err
+			}
+			continue
+		}
 		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
 		// Reset the mapper between each migration - migrations are not supposed to depend on each other
 		x.SetMapper(names.GonicMapper{})
@@ -578,6 +627,24 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		}
 		currentVersion.Version = v + int64(i) + 1
 		if _, err = x.ID(1).Update(currentVersion); err != nil {
+			return err
+		}
+	}
+
+	// Migrate Backport
+	for _, m := range backportMigrations {
+		// Skip migrated backport migration
+		if migratedBackportVersions.Contains(m.BackportVersion()) {
+			log.Info("Skip Backport Migration[%d]: %s, as it is migrated.", m.BackportVersion(), m.Description())
+			continue
+		}
+		log.Info("Backport Migration[%d]: %s", m.BackportVersion(), m.Description())
+		// Reset the mapper between each migration - migrations are not supposed to depend on each other
+		x.SetMapper(names.GonicMapper{})
+		if err = m.Migrate(x); err != nil {
+			return fmt.Errorf("backport migration[%d]: %s failed: %w", m.BackportVersion(), m.Description(), err)
+		}
+		if _, err := x.Insert(&BackportVersion{Version: m.BackportVersion()}); err != nil {
 			return err
 		}
 	}
