@@ -448,7 +448,15 @@ export function initRepoPullRequestReview() {
       const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
-        const ancestorDiffBox = commentDiv.closest('.diff-file-box');
+        const ancestorDiffBox = commentDiv.closest('.diff-file-box'); 
+        // on pages like conversation, there is no diff header
+        const diffHeader = ancestorDiffBox[0]?.querySelector?.('.diff-file-header');
+        // offset is for scrolling
+        let offset = 30;
+        if (diffHeader) {
+          offset += 71 + diffHeader.offsetHeight;
+        }
+        console.log('ancestorDiffBox', ancestorDiffBox)
         $(`#show-outdated-${id}`).addClass('gt-hidden');
         $(`#code-comments-${id}`).removeClass('gt-hidden');
         $(`#code-preview-${id}`).removeClass('gt-hidden');
@@ -457,11 +465,7 @@ export function initRepoPullRequestReview() {
         if (ancestorDiffBox.attr('data-folded') && ancestorDiffBox.attr('data-folded') === 'true') {
           setFileFolding(ancestorDiffBox[0], ancestorDiffBox[0].querySelector('.fold-file'), false);
         }
-        commentDiv[0].scrollIntoView({
-          behavior: 'auto',
-          block: 'center',
-          inline: 'center'
-        });
+        $('html, body').animate({scrollTop: commentDiv.offset().top - offset}, 0);
       }
     }
   }
