@@ -3337,10 +3337,6 @@ td.blob-excerpt {
   min-width: 100px;
 }
 
-.diff-file-body {
-  overflow-x: scroll;
-}
-
 .diff-stats-bar {
   display: inline-block;
   background-color: var(--color-red);
