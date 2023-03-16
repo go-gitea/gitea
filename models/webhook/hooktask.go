@@ -5,13 +5,13 @@ package webhook
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
@@ -31,6 +31,7 @@ type HookRequest struct {
 	URL        string            `json:"url"`
 	HTTPMethod string            `json:"http_method"`
 	Headers    map[string]string `json:"headers"`
+	Body       string            `json:"body"`
 }
 
 // HookResponse represents hook task response information.
@@ -45,7 +46,6 @@ type HookTask struct {
 	ID             int64  `xorm:"pk autoincr"`
 	HookID         int64  `xorm:"index"`
 	UUID           string `xorm:"unique"`
-	api.Payloader  `xorm:"-"`
 	PayloadContent string `xorm:"LONGTEXT"`
 	EventType      webhook_module.HookEventType
 	IsDelivered    bool
@@ -57,6 +57,11 @@ type HookTask struct {
 	RequestInfo     *HookRequest  `xorm:"-"`
 	ResponseContent string        `xorm:"LONGTEXT"`
 	ResponseInfo    *HookResponse `xorm:"-"`
+
+	// Version number to allow for smooth version upgrades:
+	//  - Version 1: PayloadContent contains the JSON as send to the URL
+	//  - Version 2: PayloadContent contains the original event
+	Version int
 }
 
 func init() {
@@ -115,15 +120,11 @@ func HookTasks(ctx context.Context, hookID int64, page int) ([]*HookTask, error)
 // it handles conversion from Payload to PayloadContent.
 func CreateHookTask(ctx context.Context, t *HookTask) (*HookTask, error) {
 	t.UUID = gouuid.New().String()
-	if t.Payloader != nil {
-		data, err := t.Payloader.JSONPayload()
-		if err != nil {
-			return nil, err
-		}
-		t.PayloadContent = string(data)
-	}
 	if t.Delivered == 0 {
 		t.Delivered = timeutil.TimeStampNanoNow()
+	}
+	if t.Version == 0 {
+		return nil, errors.New("missing HookTask.Version")
 	}
 	return t, db.Insert(ctx, t)
 }
@@ -165,6 +166,7 @@ func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, 
 		HookID:         task.HookID,
 		PayloadContent: task.PayloadContent,
 		EventType:      task.EventType,
+		Version:        task.Version,
 	})
 }
 
