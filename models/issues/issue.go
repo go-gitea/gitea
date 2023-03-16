@@ -2498,3 +2498,16 @@ func DeleteOrphanedIssues(ctx context.Context) error {
 func (issue *Issue) HasOriginalAuthor() bool {
 	return issue.OriginalAuthor != "" && issue.OriginalAuthorID != 0
 }
+
+type IssueCloseState int
+
+const (
+	// IssueCloseStateCommon
+	IssueCloseStateCommon IssueCloseState = iota
+	// IssueCloseStateArchived
+	IssueCloseStateArchived
+	// IssueCloseStateResolved
+	IssueCloseStateResolved
+	// IssueCLoseStateMerged
+	IssueCLoseStateMerged
+)
