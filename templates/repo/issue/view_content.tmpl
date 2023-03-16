@@ -116,7 +116,7 @@
 												{{.locale.Tr "repo.issues.reopen_issue"}}
 											</button>
 										{{else}}
-											{{$closeTranslationKey := "repo.issues.close_issue"}}
+											{{$closeTranslationKey := "repo.issues.close"}}
 											{{if .Issue.IsPull}}
 												{{$closeTranslationKey = "repo.pulls.close"}}
 											{{end}}
@@ -171,7 +171,7 @@
 													{{.locale.Tr "repo.issues.reopen_issue"}}
 												</button>
 											{{else}}
-											{{$closeTranslationKey := "repo.issues.close_issue"}}
+											{{$closeTranslationKey := "repo.issues.close"}}
 											{{if .Issue.IsPull}}
 												{{$closeTranslationKey = "repo.pulls.close"}}
 											{{end}}
