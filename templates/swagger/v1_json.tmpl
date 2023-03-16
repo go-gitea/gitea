@@ -138,6 +138,80 @@
         }
       }
     },
+    "/admin/emails": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all emails",
+        "operationId": "adminGetAllEmails",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/EmailList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/admin/emails/search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Search all emails",
+        "operationId": "adminSearchEmails",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "keyword",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/EmailList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/admin/hooks": {
       "get": {
         "produces": [
@@ -414,9 +488,22 @@
         "tags": [
           "admin"
         ],
-        "summary": "List all users",
-        "operationId": "adminGetAllUsers",
+        "summary": "Search users according filter conditions",
+        "operationId": "adminSearchUsers",
         "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the user's login source to search for",
+            "name": "source_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "user's login name to search for",
+            "name": "login_name",
+            "in": "query"
+          },
           {
             "type": "integer",
             "description": "page number of results to return (1-based)",
@@ -493,6 +580,12 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "purge the user from the system completely",
+            "name": "purge",
+            "in": "query"
           }
         ],
         "responses": {
@@ -673,6 +766,46 @@
         }
       }
     },
+    "/admin/users/{username}/rename": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Rename a user",
+        "operationId": "adminRenameUser",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "existing username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RenameUserOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/admin/users/{username}/repos": {
       "post": {
         "consumes": [
@@ -706,6 +839,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Repository"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -1920,6 +2056,9 @@
           "201": {
             "$ref": "#/responses/Repository"
           },
+          "400": {
+            "$ref": "#/responses/error"
+          },
           "403": {
             "$ref": "#/responses/forbidden"
           },
@@ -2114,6 +2253,7 @@
               "pub",
               "pypi",
               "rubygems",
+              "swift",
               "vagrant"
             ],
             "type": "string",
@@ -13014,6 +13154,152 @@
         }
       }
     },
+    "/user/hooks": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "List the authenticated user's webhooks",
+        "operationId": "userListHooks",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/HookList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Create a hook",
+        "operationId": "userCreateHook",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateHookOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Hook"
+          }
+        }
+      }
+    },
+    "/user/hooks/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get a hook",
+        "operationId": "userGetHook",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the hook to get",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Hook"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Delete a hook",
+        "operationId": "userDeleteHook",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the hook to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Update a hook",
+        "operationId": "userEditHook",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the hook to update",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditHookOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Hook"
+          }
+        }
+      }
+    },
     "/user/keys": {
       "get": {
         "produces": [
@@ -13228,6 +13514,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Repository"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "409": {
             "description": "The repository with the same name already exists."
@@ -16797,6 +17086,15 @@
           "type": "boolean",
           "x-go-name": "Primary"
         },
+        "user_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "UserID"
+        },
+        "username": {
+          "type": "string",
+          "x-go-name": "UserName"
+        },
         "verified": {
           "type": "boolean",
           "x-go-name": "Verified"
@@ -18939,6 +19237,22 @@
         "zipball_url": {
           "type": "string",
           "x-go-name": "ZipURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "RenameUserOption": {
+      "description": "RenameUserOption options when renaming a user",
+      "type": "object",
+      "required": [
+        "new_username"
+      ],
+      "properties": {
+        "new_username": {
+          "description": "New username for this user. This name cannot be in use yet by any other user.",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "NewName"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

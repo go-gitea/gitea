@@ -33,7 +33,7 @@
 							</div>
 
 							<div class="text right actions">
-								<div class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</div>
+								<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
 								<button data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}" class="ui primary button" id="new_board_submit">{{$.locale.Tr "repo.projects.column.new_submit"}}</button>
 							</div>
 						</form>
@@ -131,7 +131,7 @@
 											</div>
 
 											<div class="text right actions">
-												<div class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</div>
+												<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
 												<button data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" class="ui primary button">{{$.locale.Tr "repo.projects.column.edit"}}</button>
 											</div>
 										</form>
@@ -148,7 +148,7 @@
 										</label>
 									</div>
 									<div class="text right actions">
-										<div class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</div>
+										<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
 										<button class="ui primary button set-default-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}/default">{{$.locale.Tr "repo.projects.column.set_default"}}</button>
 									</div>
 								</div>
@@ -162,8 +162,8 @@
 											{{$.locale.Tr "repo.projects.column.deletion_desc"}}
 										</label>
 									</div>
-									<div class="text right actions">
-										<div class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</div>
+									<div class="text right actions">{{/* TODO: Convert to base/delete_modal_actions.tmpl? */}}
+										<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
 										<button class="ui red button delete-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">{{$.locale.Tr "repo.projects.column.delete"}}</button>
 									</div>
 								</div>
@@ -276,16 +276,7 @@
 		<div class="content">
 			<p>{{.locale.Tr "repo.projects.deletion_desc"}}</p>
 		</div>
-		<div class="actions">
-			<div class="ui red basic inverted cancel button">
-				<i class="remove icon"></i>
-				{{.locale.Tr "modal.no"}}
-			</div>
-			<div class="ui green basic inverted ok button">
-				<i class="checkmark icon"></i>
-				{{.locale.Tr "modal.yes"}}
-			</div>
-		</div>
+		{{template "base/delete_modal_actions" .}}
 	</div>
 {{end}}
 
