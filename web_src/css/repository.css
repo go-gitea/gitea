@@ -3627,3 +3627,7 @@ td.blob-excerpt {
 .pr-status .status-details > span {
   padding-right: 0.5em; /* To match the alignment with the "required" label */
 }
+
+.search-fullname {
+  color: var(--color-text-light-2);
+}
