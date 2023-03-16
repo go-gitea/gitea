@@ -149,6 +149,8 @@ func TestCleanPath(t *testing.T) {
 		{[]string{`/a/`}, `a`},
 		{[]string{`../a/`, `../b`, `c/..`, `d`}, `a/b/d`},
 		{[]string{`a\..\b`}, `a\..\b`},
+		{[]string{`a`, ``, `b`}, `a/b`},
+		{[]string{`a`, `..`, `b`}, `a/b`},
 	}
 	for _, c := range cases {
 		assert.Equal(t, c.expected, SafePathRel(c.elems...), "case: %v", c.elems)
@@ -165,6 +167,8 @@ func TestCleanPath(t *testing.T) {
 		{[]string{`/a/`}, `a`},
 		{[]string{`../a/`, `../b`, `c/..`, `d`}, `a/b/d`},
 		{[]string{`a\..\b`}, `b`},
+		{[]string{`a`, ``, `b`}, `a/b`},
+		{[]string{`a`, `..`, `b`}, `a/b`},
 	}
 	for _, c := range cases {
 		assert.Equal(t, c.expected, SafePathRelX(c.elems...), "case: %v", c.elems)
@@ -181,6 +185,8 @@ func TestCleanPath(t *testing.T) {
 			{[]string{`C:\a/`}, `C:\a`},
 			{[]string{`C:\..\a\`, `../b`, `c\..`, `d`}, `C:\a\b\d`},
 			{[]string{`C:\a/..\b`}, `C:\b`},
+			{[]string{`C:\a`, ``, `b`}, `C:\a\b`},
+			{[]string{`C:\a`, `..`, `b`}, `C:\a\b`},
 		}
 	} else {
 		cases = []struct {
@@ -192,6 +198,8 @@ func TestCleanPath(t *testing.T) {
 			{[]string{`/a/`}, `/a`},
 			{[]string{`/../a/`, `../b`, `c/..`, `d`}, `/a/b/d`},
 			{[]string{`/a\..\b`}, `/b`},
+			{[]string{`/a`, ``, `b`}, `/a/b`},
+			{[]string{`/a`, `..`, `b`}, `/a/b`},
 		}
 	}
 	for _, c := range cases {
