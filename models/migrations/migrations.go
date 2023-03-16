@@ -610,20 +610,19 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 
 	// Migrate
 	for i, m := range migrations[v-minDBVersion:] {
-		// Skip migrated backport migration
 		if migratedBackportVersions.Contains(v + int64(i)) {
 			log.Info("Skip Migration[%d]: %s, as it is migrated in backport.", v+int64(i), m.Description())
 			// remove db record
 			if _, err = x.Delete(&BackportVersion{Version: v + int64(i)}); err != nil {
 				return err
 			}
-			continue
-		}
-		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
-		// Reset the mapper between each migration - migrations are not supposed to depend on each other
-		x.SetMapper(names.GonicMapper{})
-		if err = m.Migrate(x); err != nil {
-			return fmt.Errorf("migration[%d]: %s failed: %w", v+int64(i), m.Description(), err)
+		} else {
+			log.Info("Migration[%d]: %s", v+int64(i), m.Description())
+			// Reset the mapper between each migration - migrations are not supposed to depend on each other
+			x.SetMapper(names.GonicMapper{})
+			if err = m.Migrate(x); err != nil {
+				return fmt.Errorf("migration[%d]: %s failed: %w", v+int64(i), m.Description(), err)
+			}
 		}
 		currentVersion.Version = v + int64(i) + 1
 		if _, err = x.ID(1).Update(currentVersion); err != nil {
