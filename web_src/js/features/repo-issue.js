@@ -445,12 +445,15 @@ export function initRepoPullRequestReview() {
       const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
-        const ancestorDiffHeader = commentDiv.closest('.diff-file-box').children('.diff-file-header').eq(0)[0];
+        const ancestorDiffBox = commentDiv.closest('.diff-file-box');
+        const ancestorDiffHeader = ancestorDiffBox.find('.diff-file-header')[0];
         $(`#show-outdated-${id}`).addClass('gt-hidden');
         $(`#code-comments-${id}`).removeClass('gt-hidden');
         $(`#code-preview-${id}`).removeClass('gt-hidden');
         $(`#hide-outdated-${id}`).removeClass('gt-hidden');
-        setFileFolding(ancestorDiffHeader.closest('.file-content'), ancestorDiffHeader.querySelector('.fold-file'), false);
+        if (ancestorDiffBox.attr('data-folded') && ancestorDiffBox.attr('data-folded') === "true") {
+          setFileFolding(ancestorDiffBox[0], ancestorDiffHeader.querySelector('.fold-file'), false);
+        }
         commentDiv[0].scrollIntoView({
           behavior: 'auto',
           block: 'center',
