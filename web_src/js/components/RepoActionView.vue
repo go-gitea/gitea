@@ -2,7 +2,10 @@
   <div class="action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary">
-        {{ run.title }}
+        <ActionRunStatus :status="run.status" :size="20"/>
+        <div class="action-title">
+          {{ run.title }}
+        </div>
         <button class="run_approve" @click="approveRun()" v-if="run.canApprove">
           <i class="play circle outline icon"/>
         </button>
@@ -26,12 +29,7 @@
           <div class="job-brief-list">
             <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
-                <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
-                <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
-                <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
-                <SvgIcon name="octicon-blocked" class="ui text yellow" v-else-if="job.status === 'blocked'"/>
-                <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
-                <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
+                <ActionRunStatus :status="job.status"/>
                 <span class="ui text">{{ job.name }}</span>
               </a>
               <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
@@ -54,15 +52,9 @@
         <div class="job-step-container">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="toggleStepLogs(i)">
-              <SvgIcon name="octicon-chevron-down" class="gt-mr-3" v-show="currentJobStepsStates[i].expanded"/>
-              <SvgIcon name="octicon-chevron-right" class="gt-mr-3" v-show="!currentJobStepsStates[i].expanded"/>
+              <SvgIcon :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" class="gt-mr-3"/>
 
-              <SvgIcon name="octicon-check-circle-fill" class="green gt-mr-3" v-if="jobStep.status === 'success'"/>
-              <SvgIcon name="octicon-skip" class="ui text grey gt-mr-3" v-else-if="jobStep.status === 'skipped'"/>
-              <SvgIcon name="octicon-clock" class="ui text yellow gt-mr-3" v-else-if="jobStep.status === 'waiting'"/>
-              <SvgIcon name="octicon-blocked" class="ui text yellow gt-mr-3" v-else-if="jobStep.status === 'blocked'"/>
-              <SvgIcon name="octicon-meter" class="ui text yellow gt-mr-3" class-name="job-status-rotate" v-else-if="jobStep.status === 'running'"/>
-              <SvgIcon name="octicon-x-circle-fill" class="red gt-mr-3 " v-else/>
+              <ActionRunStatus :status="jobStep.status" class="gt-mr-3"/>
 
               <span class="step-summary-msg">{{ jobStep.summary }}</span>
               <span class="step-summary-dur">{{ jobStep.duration }}</span>
@@ -79,6 +71,7 @@
 
 <script>
 import {SvgIcon} from '../svg.js';
+import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
 import AnsiToHTML from 'ansi-to-html';
 
@@ -88,6 +81,7 @@ const sfc = {
   name: 'RepoActionView',
   components: {
     SvgIcon,
+    ActionRunStatus,
   },
   props: {
     runIndex: String,
@@ -108,6 +102,7 @@ const sfc = {
       run: {
         link: '',
         title: '',
+        status: '',
         canCancel: false,
         canApprove: false,
         done: false,
@@ -314,51 +309,58 @@ export function initRepositoryActionView() {
 
 </script>
 
-<style scoped lang="less">
-
+<style scoped>
 .action-view-body {
   display: flex;
-  height: calc(100vh - 266px); // fine tune this value to make the main view has full height
+  height: calc(100vh - 266px); /* fine tune this value to make the main view has full height */
 }
 
-// ================
-// action view header
+/* ================ */
+/* action view header */
 
 .action-view-header {
   margin: 0 20px 20px 20px;
-  .run_cancel {
-    border: none;
-    color: var(--color-red);
-    background-color: transparent;
-    outline: none;
-    cursor: pointer;
-    transition:transform 0.2s;
-  };
-  .run_approve {
-    border: none;
-    color: var(--color-green);
-    background-color: transparent;
-    outline: none;
-    cursor: pointer;
-    transition:transform 0.2s;
-  };
-  .run_cancel:hover, .run_approve:hover {
-    transform:scale(130%);
-  };
+}
+
+.action-view-header .run_cancel {
+  border: none;
+  color: var(--color-red);
+  background-color: transparent;
+  outline: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.action-view-header .run_approve {
+  border: none;
+  color: var(--color-green);
+  background-color: transparent;
+  outline: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.action-view-header .run_cancel:hover,
+.action-view-header .run_approve:hover {
+  transform: scale(130%);
 }
 
 .action-info-summary {
   font-size: 150%;
   height: 20px;
-  padding: 0 10px;
+  display: flex;
+}
+
+.action-info-summary .action-title {
+  padding: 0 5px;
 }
 
 .action-commit-summary {
   padding: 10px 10px;
 }
 
-// ================
-// action view left
+/* ================ */
+/* action view left */
 
 .action-view-left {
   width: 30%;
@@ -367,51 +369,52 @@ export function initRepositoryActionView() {
   margin-left: 10px;
 }
 
-.job-group-section {
-  .job-group-summary {
-    margin: 5px 0;
-    padding: 10px;
-  }
-
-  .job-brief-list {
-    .job-brief-item {
-      margin: 5px 0;
-      padding: 10px;
-      background: var(--color-info-bg);
-      border-radius: 5px;
-      text-decoration: none;
-      display: flex;
-      justify-items: center;
-      flex-wrap: nowrap;
-      .job-brief-rerun {
-        float: right;
-        border: none;
-        background-color: transparent;
-        outline: none;
-        cursor: pointer;
-        transition:transform 0.2s;
-      };
-      .job-brief-rerun:hover{
-        transform:scale(130%);
-      };
-      .job-brief-link {
-        flex-grow: 1;
-        display: flex;
-        span {
-          margin-right: 8px;
-          display: flex;
-          align-items: center;
-        }
-      }
-    }
-    .job-brief-item:hover {
-      background-color: var(--color-secondary);
-    }
-  }
+.job-group-section .job-group-summary {
+  margin: 5px 0;
+  padding: 10px;
 }
 
-// ================
-// action view right
+.job-group-section .job-brief-list .job-brief-item {
+  margin: 5px 0;
+  padding: 10px;
+  background: var(--color-info-bg);
+  border-radius: 5px;
+  text-decoration: none;
+  display: flex;
+  justify-items: center;
+  flex-wrap: nowrap;
+}
+
+.job-group-section .job-brief-list .job-brief-item .job-brief-rerun {
+  float: right;
+  border: none;
+  background-color: transparent;
+  outline: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.job-group-section .job-brief-list .job-brief-item .job-brief-rerun:hover {
+  transform: scale(130%);
+}
+
+.job-group-section .job-brief-list .job-brief-item .job-brief-link {
+  flex-grow: 1;
+  display: flex;
+}
+
+.job-group-section .job-brief-list .job-brief-item .job-brief-link span {
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.job-group-section .job-brief-list .job-brief-item:hover {
+  background-color: var(--color-secondary);
+}
+
+/* ================ */
+/* action view right */
 
 .action-view-right {
   flex: 1;
@@ -419,50 +422,50 @@ export function initRepositoryActionView() {
   color: var(--color-console-fg);
   max-height: 100%;
   margin-right: 10px;
-
   display: flex;
   flex-direction: column;
 }
 
-.job-info-header {
-  .job-info-header-title {
-    font-size: 150%;
-    padding: 10px;
-  }
-  .job-info-header-detail {
-    padding: 0 10px 10px;
-    border-bottom: 1px solid var(--color-grey);
-  }
+.job-info-header .job-info-header-title {
+  font-size: 150%;
+  padding: 10px;
+}
+
+.job-info-header .job-info-header-detail {
+  padding: 0 10px 10px;
+  border-bottom: 1px solid var(--color-grey);
 }
 
 .job-step-container {
   max-height: 100%;
   overflow: auto;
+}
 
-  .job-step-summary {
-    cursor: pointer;
-    padding: 5px 10px;
-    display: flex;
+.job-step-container .job-step-summary {
+  cursor: pointer;
+  padding: 5px 10px;
+  display: flex;
+}
 
-    .step-summary-msg {
-      flex: 1;
-    }
-    .step-summary-dur {
-      margin-left: 16px;
-    }
-  }
-  .job-step-summary:hover {
-    background-color: var(--color-black-light);
-  }
+.job-step-container .job-step-summary .step-summary-msg {
+  flex: 1;
+}
+
+.job-step-container .job-step-summary .step-summary-dur {
+  margin-left: 16px;
+}
+
+.job-step-container .job-step-summary:hover {
+  background-color: var(--color-black-light);
 }
 </style>
 
-<style lang="less">
-// some elements are not managed by vue, so we need to use global style
-
+<style>
+/* some elements are not managed by vue, so we need to use global style */
 .job-status-rotate {
   animation: job-status-rotate-keyframes 1s linear infinite;
 }
+
 @keyframes job-status-rotate-keyframes {
   100% {
     transform: rotate(360deg);
@@ -471,37 +474,44 @@ export function initRepositoryActionView() {
 
 .job-step-section {
   margin: 10px;
-  .job-step-logs {
-    font-family: monospace, monospace;
-    .job-log-line {
-      display: flex;
-      .line-num {
-        width: 48px;
-        color: var(--color-grey-light);
-        text-align: right;
-      }
-      .log-time {
-        color: var(--color-grey-light);
-        margin-left: 10px;
-        white-space: nowrap;
-      }
-      .log-msg {
-        flex: 1;
-        word-break: break-all;
-        white-space: break-spaces;
-        margin-left: 10px;
-      }
-    }
+}
 
-    // TODO: group support
-    .job-log-group {
-    }
+.job-step-section .job-step-logs {
+  font-family: monospace, monospace;
+}
 
-    .job-log-group-summary {
-    }
+.job-step-section .job-step-logs .job-log-line {
+  display: flex;
+}
 
-    .job-log-list {
-    }
-  }
+.job-step-section .job-step-logs .job-log-line .line-num {
+  width: 48px;
+  color: var(--color-grey-light);
+  text-align: right;
+}
+
+.job-step-section .job-step-logs .job-log-line .log-time {
+  color: var(--color-grey-light);
+  margin-left: 10px;
+  white-space: nowrap;
+}
+
+.job-step-section .job-step-logs .job-log-line .log-msg {
+  flex: 1;
+  word-break: break-all;
+  white-space: break-spaces;
+  margin-left: 10px;
+}
+
+/* TODO: group support */
+
+.job-log-group {
+
+}
+.job-log-group-summary {
+
+}
+.job-log-list {
+
 }
 </style>
