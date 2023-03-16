@@ -450,7 +450,7 @@ export function initRepoPullRequestReview() {
         const id = groupID.slice(14);
         const ancestorDiffBox = commentDiv.closest('.diff-file-box');
         // on pages like conversation, there is no diff header
-        const diffHeader = ancestorDiffBox[0]?.querySelector?.('.diff-file-header');
+        const diffHeader = ancestorDiffBox.find('.diff-file-header')[0];
         // offset is for scrolling
         let offset = 30;
         if (diffHeader) {
@@ -462,7 +462,7 @@ export function initRepoPullRequestReview() {
         $(`#hide-outdated-${id}`).removeClass('gt-hidden');
         // if the comment box is folded, expand it
         if (ancestorDiffBox.attr('data-folded') && ancestorDiffBox.attr('data-folded') === 'true') {
-          setFileFolding(ancestorDiffBox[0], ancestorDiffBox[0].querySelector('.fold-file'), false);
+          setFileFolding(ancestorDiffBox[0], ancestorDiffBox.find('.fold-file')[0], false);
         }
         $('html, body').scrollTop(commentDiv.offset().top - offset);
       }
