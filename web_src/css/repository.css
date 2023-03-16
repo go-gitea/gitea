@@ -329,7 +329,7 @@
   margin-right: 3px;
 }
 
-.repository.file.list #repo-files-table td > * {
+.repository.file.list #repo-files-table td>* {
   vertical-align: middle;
 }
 
@@ -393,7 +393,7 @@
   padding: 5px;
 }
 
-.repository.file.list .non-diff-file-content .view-raw > * {
+.repository.file.list .non-diff-file-content .view-raw>* {
   max-width: 100%;
   border: 1px solid var(--color-secondary);
 }
@@ -614,22 +614,27 @@
   .repository.view.issue .title .issue-title.edit-active {
     flex-direction: column;
   }
+
   .repository.view.issue .title .issue-title.edit-active h1 {
     margin-right: 0;
     margin-bottom: 1rem;
     padding-right: 0;
   }
+
   .repository.view.issue .title .issue-title.edit-active h1 .ui.input input {
     width: calc(100% - 2rem);
   }
+
   .repository.view.issue .title .issue-title.edit-active .edit-buttons {
     padding-bottom: 1rem;
     width: 100%;
   }
+
   .repository.view.issue .title .issue-title.edit-active .edit-buttons .button {
     width: 100%;
     margin-right: 0.5rem;
   }
+
   .repository.view.issue .title .issue-title.edit-active .edit-buttons .button:last-child {
     margin-right: 0;
   }
@@ -763,7 +768,8 @@
   padding-left: 16px;
 }
 
-.repository.view.issue .comment-list .timeline::before { /* ciara */
+.repository.view.issue .comment-list .timeline::before {
+  /* ciara */
   display: block;
   content: "";
   position: absolute;
@@ -851,11 +857,11 @@
   margin-top: 2px;
 }
 
-.repository.view.issue .comment-list .timeline-item.comment > .content {
+.repository.view.issue .comment-list .timeline-item.comment>.content {
   margin-left: -16px;
 }
 
-.repository.view.issue .comment-list .timeline-item.event > .text {
+.repository.view.issue .comment-list .timeline-item.event>.text {
   line-height: 32px;
   vertical-align: middle;
 }
@@ -866,12 +872,14 @@
 }
 
 .repository.view.issue .comment-list .timeline-item.commits-list .singular-commit {
-  line-height: 34px; /* this must be same as .badge height, to avoid overflow */
-  clear: both; /* reset the "float right shabox", in the future, use flexbox instead */
+  line-height: 34px;
+  /* this must be same as .badge height, to avoid overflow */
+  clear: both;
+  /* reset the "float right shabox", in the future, use flexbox instead */
 }
 
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit > img.avatar,
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit > .avatar img {
+.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit>img.avatar,
+.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit>.avatar img {
   position: relative;
   top: -2px;
 }
@@ -937,7 +945,7 @@
   background: var(--color-orange-badge-hover-bg) !important;
 }
 
-.repository.view.issue .comment-list .timeline-item.event > .commit-status-link {
+.repository.view.issue .comment-list .timeline-item.event>.commit-status-link {
   float: right;
   margin-right: 8px;
   margin-top: 4px;
@@ -968,12 +976,12 @@
   margin-right: 0.5rem;
 }
 
-.repository.view.issue .comment-list .comment > .content > div:first-child {
+.repository.view.issue .comment-list .comment>.content>div:first-child {
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
 }
 
-.repository.view.issue .comment-list .comment > .content > div:last-child {
+.repository.view.issue .comment-list .comment>.content>div:last-child {
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 4px;
 }
@@ -988,6 +996,7 @@
     width: 100%;
     margin: 0;
   }
+
   .repository.view.issue .comment-list .comment .content .form .button:not(:last-child) {
     margin-bottom: 1rem;
   }
@@ -1056,7 +1065,19 @@
 }
 
 .repository.view.issue .comment-list .comment .ui.form .field.footer {
-  overflow: hidden;
+  overflow: visible;
+}
+
+.repository.view.issue .comment-list .comment .ui.form .field.footer .ui.dropdown {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--color-text-light);
+  background-color: var(--color-light);
+  border: 1px solid var(--color-light-border);
+  border-left: none;
+  border-top-right-radius: 0.28571429rem;
+  border-bottom-right-radius: 0.28571429rem;
 }
 
 .repository.view.issue .comment-list .comment .ui.form .field .tab.markup {
@@ -1145,7 +1166,8 @@
 
 @media (max-width: 767px) {
   .repository.view.issue .comment-list {
-    padding: 1rem 0 !important; /* Important is required here to override existing fomantic styles. */
+    padding: 1rem 0 !important;
+    /* Important is required here to override existing fomantic styles. */
   }
 }
 
@@ -1200,46 +1222,46 @@
   padding-top: 15px;
 }
 
-.repository .milestone.list > .item {
+.repository .milestone.list>.item {
   padding-top: 10px;
   padding-bottom: 10px;
   border-bottom: 1px dashed var(--color-secondary);
 }
 
-.repository .milestone.list > .item progress {
+.repository .milestone.list>.item progress {
   width: 200px;
   height: 16px;
 }
 
-.repository .milestone.list > .item .meta {
+.repository .milestone.list>.item .meta {
   color: var(--color-text-light-2);
   padding-top: 5px;
 }
 
-.repository .milestone.list > .item .meta .issue-stats .svg {
+.repository .milestone.list>.item .meta .issue-stats .svg {
   padding-left: 5px;
 }
 
-.repository .milestone.list > .item .meta .overdue {
+.repository .milestone.list>.item .meta .overdue {
   color: var(--color-red);
 }
 
-.repository .milestone.list > .item .operate {
+.repository .milestone.list>.item .operate {
   margin-top: -15px;
 }
 
-.repository .milestone.list > .item .operate > a {
+.repository .milestone.list>.item .operate>a {
   font-size: 15px;
   padding-top: 5px;
   padding-right: 10px;
   color: var(--color-text-light-2);
 }
 
-.repository .milestone.list > .item .operate > a:hover {
+.repository .milestone.list>.item .operate>a:hover {
   color: var(--color-text);
 }
 
-.repository .milestone.list > .item .content {
+.repository .milestone.list>.item .content {
   padding-top: 10px;
 }
 
@@ -1411,10 +1433,10 @@
   margin: 0 0.25em 0 0;
 }
 
-.repository #commits-table td.sha .sha.label .detail.icon > div,
-.repository #repo-files-table .sha.label .detail.icon > div,
-.repository #rev-list .sha.label .detail.icon > div,
-.repository .timeline-item.commits-list .singular-commit .sha.label .detail.icon > div {
+.repository #commits-table td.sha .sha.label .detail.icon>div,
+.repository #repo-files-table .sha.label .detail.icon>div,
+.repository #rev-list .sha.label .detail.icon>div,
+.repository .timeline-item.commits-list .singular-commit .sha.label .detail.icon>div {
   display: flex;
   align-items: center;
 }
@@ -1637,7 +1659,7 @@
   margin-right: -1px;
 }
 
-.repository .diff-detail-box > div::after {
+.repository .diff-detail-box>div::after {
   clear: both;
   content: "";
   display: block;
@@ -1667,16 +1689,17 @@
     font-size: 0;
     line-height: 1.6rem;
   }
+
   .repository .diff-detail-box .diff-detail-stats strong {
     font-size: 1rem;
   }
 }
 
-.repository .diff-detail-box .diff-detail-actions > * {
+.repository .diff-detail-box .diff-detail-actions>* {
   margin-right: 0;
 }
 
-.repository .diff-detail-box .diff-detail-actions > * + * {
+.repository .diff-detail-box .diff-detail-actions>*+* {
   margin-left: 0.25rem;
 }
 
@@ -1684,6 +1707,7 @@
   .repository .diff-detail-box .diff-detail-actions {
     padding-top: 0.25rem;
   }
+
   .repository .diff-detail-box .diff-detail-actions .ui.button:not(.btn-submit) {
     padding-left: 0.5rem;
     padding-right: 0.5rem;
@@ -1795,7 +1819,8 @@
 }
 
 .repository .diff-file-box .code-diff tbody tr td.halfwidth {
-  width: 49%; /* halfwidth is used in split view - and in that case, 1% of each */
+  width: 49%;
+  /* halfwidth is used in split view - and in that case, 1% of each */
 }
 
 .repository .diff-file-box .code-diff tbody tr td.center {
@@ -1861,7 +1886,7 @@
   padding-left: 6px;
 }
 
-.repository .diff-stats li + li {
+.repository .diff-stats li+li {
   border-top: 1px solid var(--color-secondary);
 }
 
@@ -1911,56 +1936,56 @@
   margin-bottom: 0;
 }
 
-.repository.release #release-list > li {
+.repository.release #release-list>li {
   list-style: none;
 }
 
-.repository.release #release-list > li .meta,
-.repository.release #release-list > li .detail {
+.repository.release #release-list>li .meta,
+.repository.release #release-list>li .detail {
   padding-top: 30px;
   padding-bottom: 40px;
 }
 
-.repository.release #release-list > li .meta {
+.repository.release #release-list>li .meta {
   text-align: right;
   position: relative;
 }
 
-.repository.release #release-list > li .meta .label {
+.repository.release #release-list>li .meta .label {
   margin-right: 0;
 }
 
-.repository.release #release-list > li .meta .commit {
+.repository.release #release-list>li .meta .commit {
   display: block;
   margin-top: 10px;
 }
 
-.repository.release #release-list > li .meta .choose {
+.repository.release #release-list>li .meta .choose {
   margin-top: 15px;
 }
 
-.repository.release #release-list > li .meta .choose .button {
+.repository.release #release-list>li .meta .choose .button {
   margin-right: 0;
 }
 
-.repository.release #release-list > li .detail {
+.repository.release #release-list>li .detail {
   border-left: 2px solid var(--color-secondary);
 }
 
-.repository.release #release-list > li .detail .author img {
+.repository.release #release-list>li .detail .author img {
   margin-bottom: 3px;
 }
 
-.repository.release #release-list > li .detail .download > a .svg {
+.repository.release #release-list>li .detail .download>a .svg {
   margin-left: 5px;
   margin-right: 5px;
 }
 
-.repository.release #release-list > li .detail .download .list {
+.repository.release #release-list>li .detail .download .list {
   padding-left: 0;
 }
 
-.repository.release #release-list > li .detail .download .list li {
+.repository.release #release-list>li .detail .download .list li {
   list-style: none;
   display: block;
   padding: 8px;
@@ -1968,23 +1993,23 @@
   background: var(--color-light);
 }
 
-.repository.release #release-list > li .detail .download .list li a > .text.right {
+.repository.release #release-list>li .detail .download .list li a>.text.right {
   margin-right: 5px;
 }
 
-.repository.release #release-list > li .detail .download .list li + li {
+.repository.release #release-list>li .detail .download .list li+li {
   border-top: 0;
 }
 
-.repository.release #release-list > li .detail .download .list li:first-of-type {
+.repository.release #release-list>li .detail .download .list li:first-of-type {
   border-radius: var(--border-radius) 0 0 var(--border-radius);
 }
 
-.repository.release #release-list > li .detail .download .list li:last-of-type {
+.repository.release #release-list>li .detail .download .list li:last-of-type {
   border-radius: 0 var(--border-radius) var(--border-radius) 0;
 }
 
-.repository.release #release-list > li .detail .dot {
+.repository.release #release-list>li .detail .dot {
   width: 10px;
   height: 10px;
   background-color: var(--color-secondary-dark-3);
@@ -2029,6 +2054,7 @@
 }
 
 @media (max-width: 438px) {
+
   .repository.new.release .field button,
   .repository.new.release .field input {
     width: 100%;
@@ -2094,16 +2120,16 @@
   margin-bottom: 15px;
 }
 
-.repository.wiki.view > .markup {
+.repository.wiki.view>.markup {
   padding: 15px 30px;
 }
 
-.repository.wiki.view > .markup h1:first-of-type,
-.repository.wiki.view > .markup h2:first-of-type,
-.repository.wiki.view > .markup h3:first-of-type,
-.repository.wiki.view > .markup h4:first-of-type,
-.repository.wiki.view > .markup h5:first-of-type,
-.repository.wiki.view > .markup h6:first-of-type {
+.repository.wiki.view>.markup h1:first-of-type,
+.repository.wiki.view>.markup h2:first-of-type,
+.repository.wiki.view>.markup h3:first-of-type,
+.repository.wiki.view>.markup h4:first-of-type,
+.repository.wiki.view>.markup h5:first-of-type,
+.repository.wiki.view>.markup h6:first-of-type {
   margin-top: 0;
 }
 
@@ -2128,12 +2154,12 @@
   padding: 0;
 }
 
-.repository.settings.collaboration .collaborator.list > .item {
+.repository.settings.collaboration .collaborator.list>.item {
   margin: 0;
   line-height: 2em;
 }
 
-.repository.settings.collaboration .collaborator.list > .item:not(:last-child) {
+.repository.settings.collaboration .collaborator.list>.item:not(:last-child) {
   border-bottom: 1px solid var(--color-secondary);
 }
 
@@ -2327,13 +2353,13 @@
   min-width: 15em;
 }
 
-.repository .segment.reactions.dropdown .menu > .header,
-.repository .select-reaction.dropdown .menu > .header {
+.repository .segment.reactions.dropdown .menu>.header,
+.repository .select-reaction.dropdown .menu>.header {
   margin: 0.75rem 0 0.5rem;
 }
 
-.repository .segment.reactions.dropdown .menu > .item,
-.repository .select-reaction.dropdown .menu > .item {
+.repository .segment.reactions.dropdown .menu>.item,
+.repository .select-reaction.dropdown .menu>.item {
   float: left;
   padding: 0.25rem !important;
   margin: 0.25rem;
@@ -2346,13 +2372,13 @@
   align-items: center;
 }
 
-.repository .segment.reactions.dropdown .menu > .item img.emoji,
-.repository .select-reaction.dropdown .menu > .item img.emoji {
+.repository .segment.reactions.dropdown .menu>.item img.emoji,
+.repository .select-reaction.dropdown .menu>.item img.emoji {
   margin-right: 0;
 }
 
-.repository .segment.reactions.dropdown .menu > .item:hover,
-.repository .select-reaction.dropdown .menu > .item:hover {
+.repository .segment.reactions.dropdown .menu>.item:hover,
+.repository .select-reaction.dropdown .menu>.item:hover {
   background: var(--color-primary);
 }
 
@@ -2501,11 +2527,11 @@
   border-left: none;
 }
 
-#cite-repo-modal #citation-panel > :first-child {
+#cite-repo-modal #citation-panel> :first-child {
   border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
 }
 
-#cite-repo-modal #citation-panel > :last-child {
+#cite-repo-modal #citation-panel> :last-child {
   border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
 }
 
@@ -2563,10 +2589,11 @@
 }
 
 #issue-actions {
-  margin-top: -1rem !important; /* counteract padding from Semantic */
+  margin-top: -1rem !important;
+  /* counteract padding from Semantic */
 }
 
-.ui.menu .item > img:not(.ui) {
+.ui.menu .item>img:not(.ui) {
   width: auto;
 }
 
@@ -2580,39 +2607,39 @@
   padding-bottom: 0 !important;
 }
 
-.settings .content > .header,
+.settings .content>.header,
 .settings .content .segment {
   box-shadow: 0 1px 2px 0 var(--color-box-header);
 }
 
-.settings.webhooks .list > .item:not(:first-child),
-.settings.githooks .list > .item:not(:first-child),
-.settings.runners .list > .item:not(:first-child) {
+.settings.webhooks .list>.item:not(:first-child),
+.settings.githooks .list>.item:not(:first-child),
+.settings.runners .list>.item:not(:first-child) {
   padding: 0.25rem 1rem;
   margin: 12px -1rem -1rem;
 }
 
-.settings .list > .item:not(:first-child) {
+.settings .list>.item:not(:first-child) {
   border-top: 1px solid var(--color-secondary);
   padding: 1rem;
   margin: 16px -1rem -1rem;
 }
 
-.settings .list > .item > .svg {
+.settings .list>.item>.svg {
   display: table-cell;
 }
 
-.settings .list > .item > .svg + .content {
+.settings .list>.item>.svg+.content {
   display: table-cell;
   padding: 0 0 0 0.5em;
   vertical-align: top;
 }
 
-.settings .list > .item .info {
+.settings .list>.item .info {
   margin-top: 10px;
 }
 
-.settings .list > .item .info .tab.segment {
+.settings .list>.item .info .tab.segment {
   border: 0;
   padding: 10px 0 0;
 }
@@ -2622,11 +2649,11 @@
   color: var(--color-text-light-2);
 }
 
-.settings .list.email > .item:not(:first-child) {
+.settings .list.email>.item:not(:first-child) {
   min-height: 60px;
 }
 
-.settings .list.collaborator > .item {
+.settings .list.collaborator>.item {
   padding: 0;
 }
 
@@ -2723,8 +2750,8 @@
   padding: 0.5rem !important;
 }
 
-.comment-header-left > * + *,
-.comment-header-right > * + * {
+.comment-header-left>*+*,
+.comment-header-right>*+* {
   margin-left: 0.25rem;
 }
 
@@ -2894,7 +2921,8 @@
 .labels-list .label {
   margin: 2px 0;
   display: inline-flex !important;
-  line-height: 1.3em; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
+  line-height: 1.3em;
+  /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
 }
 
 /* Scoped labels with different colors on left and right */
@@ -2919,7 +2947,7 @@
   margin-bottom: 10px;
 }
 
-.repo-button-row > * {
+.repo-button-row>* {
   margin-top: 8px;
 }
 
@@ -2927,7 +2955,7 @@
   margin-bottom: 0;
 }
 
-.wiki .repo-button-row > * {
+.wiki .repo-button-row>* {
   margin-top: 0;
 }
 
@@ -2971,10 +2999,12 @@ tbody.commit-list {
   tr.commit-list {
     width: 100%;
   }
+
   th .message-wrapper {
     display: block;
     max-width: calc(100vw - 70px);
   }
+
   .author-wrapper {
     max-width: 80px;
   }
@@ -2984,6 +3014,7 @@ tbody.commit-list {
   tr.commit-list {
     width: 723px;
   }
+
   th .message-wrapper {
     max-width: 120px;
   }
@@ -2993,6 +3024,7 @@ tbody.commit-list {
   tr.commit-list {
     width: 933px;
   }
+
   th .message-wrapper {
     max-width: 350px;
   }
@@ -3002,6 +3034,7 @@ tbody.commit-list {
   tr.commit-list {
     width: 1127px;
   }
+
   th .message-wrapper {
     max-width: 525px;
   }
@@ -3083,7 +3116,7 @@ tbody.commit-list {
   font-size: 12px;
 }
 
-.label + #manage_topic {
+.label+#manage_topic {
   margin-left: 5px;
 }
 
@@ -3100,7 +3133,7 @@ tbody.commit-list {
 }
 
 @media (max-width: 767px) {
-  .repo-header + .container {
+  .repo-header+.container {
     margin-top: 7px;
   }
 }
@@ -3119,18 +3152,18 @@ tbody.commit-list {
   }
 }
 
-.repo-buttons .ui.labeled.button > .label:hover {
+.repo-buttons .ui.labeled.button>.label:hover {
   color: var(--color-primary-light-2);
   background: var(--color-light);
 }
 
-.repo-buttons button[disabled] ~ .label {
+.repo-buttons button[disabled]~.label {
   opacity: var(--opacity-disabled);
   color: var(--color-text-dark);
   background: var(--color-light-mimic-enabled) !important;
 }
 
-.repo-buttons button[disabled] ~ .label:hover {
+.repo-buttons button[disabled]~.label:hover {
   color: var(--color-primary-dark-1);
 }
 
@@ -3138,7 +3171,7 @@ tbody.commit-list {
   cursor: initial;
 }
 
-.repo-buttons .ui.labeled.button > .label {
+.repo-buttons .ui.labeled.button>.label {
   border-left: 0 !important;
   margin: 0 !important;
 }
@@ -3147,16 +3180,16 @@ tbody.commit-list {
   pointer-events: inherit !important;
 }
 
-.repo-buttons .ui.labeled.button.disabled > .label {
+.repo-buttons .ui.labeled.button.disabled>.label {
   color: var(--color-text-dark);
   background: var(--color-light-mimic-enabled) !important;
 }
 
-.repo-buttons .ui.labeled.button.disabled > .label:hover {
+.repo-buttons .ui.labeled.button.disabled>.label:hover {
   color: var(--color-primary-dark-1);
 }
 
-.repo-buttons .ui.labeled.button.disabled > .button {
+.repo-buttons .ui.labeled.button.disabled>.button {
   pointer-events: none !important;
 }
 
@@ -3184,7 +3217,7 @@ tbody.commit-list {
   margin: 4px !important;
 }
 
-.resolved-placeholder + .comment-code-cloud {
+.resolved-placeholder+.comment-code-cloud {
   padding-top: 0 !important;
 }
 
@@ -3220,7 +3253,7 @@ td.blob-excerpt {
   width: max-content;
 }
 
-.file-info-entry + .file-info-entry {
+.file-info-entry+.file-info-entry {
   border-left: 1px solid currentcolor;
   margin-left: 8px;
   padding-left: 8px;
@@ -3251,6 +3284,7 @@ td.blob-excerpt {
   #diff-file-tree {
     display: none !important;
   }
+
   .diff-toggle-file-tree-button {
     display: none !important;
   }
@@ -3268,7 +3302,7 @@ td.blob-excerpt {
   display: none;
 }
 
-.wiki-content-toc > ul > li {
+.wiki-content-toc>ul>li {
   margin-bottom: 4px;
 }
 
@@ -3312,7 +3346,7 @@ td.blob-excerpt {
   border-radius: var(--border-radius) !important;
 }
 
-.diff-file-header-actions > * + * {
+.diff-file-header-actions>*+* {
   margin-left: 0.5rem !important;
 }
 
@@ -3441,6 +3475,7 @@ td.blob-excerpt {
 }
 
 @media (max-width: 767px) {
+
   .repository.file.list #repo-files-table .entry,
   .repository.file.list #repo-files-table .commit-list {
     align-items: center;
@@ -3448,124 +3483,155 @@ td.blob-excerpt {
     padding-top: 4px;
     padding-bottom: 4px;
   }
+
   .repository.file.list #repo-files-table .entry td.age,
   .repository.file.list #repo-files-table .commit-list td.age,
   .repository.file.list #repo-files-table .entry th.age,
   .repository.file.list #repo-files-table .commit-list th.age {
     margin-left: auto;
   }
+
   .repository.file.list #repo-files-table .entry td.message,
   .repository.file.list #repo-files-table .commit-list td.message,
   .repository.file.list #repo-files-table .entry span.commit-summary,
   .repository.file.list #repo-files-table .commit-list span.commit-summary {
     display: none !important;
   }
-  .issue-list-headers.ui[class].grid > div:nth-child(1) {
+
+  .issue-list-headers.ui[class].grid>div:nth-child(1) {
     order: 1;
     width: 50%;
   }
-  .issue-list-headers.ui[class].grid > div:nth-child(2) {
+
+  .issue-list-headers.ui[class].grid>div:nth-child(2) {
     order: 3;
     width: 100%;
   }
-  .issue-list-headers.ui[class].grid > div.column:not(.row):nth-child(3) {
+
+  .issue-list-headers.ui[class].grid>div.column:not(.row):nth-child(3) {
     order: 2;
     width: 50%;
   }
+
   .repository.view.issue .comment-list .timeline,
   .repository.view.issue .comment-list .timeline-item {
     margin-left: 0;
   }
+
   .repository.view.issue .comment-list .timeline::before {
     left: 14px;
   }
+
   .repository.view.issue .comment-list .timeline .inline-timeline-avatar {
     display: flex;
     margin-bottom: auto;
   }
+
   .repository.view.issue .comment-list .timeline .inline-timeline-avatar img.avatar {
     height: 24px;
     width: 24px;
   }
+
   .repository.view.issue .comment-list .timeline .comment-header {
     padding-left: 4px;
   }
+
   .repository.view.issue .comment-list .timeline .comment-header::before,
   .repository.view.issue .comment-list .timeline .comment-header::after {
     content: unset;
   }
+
   /* Don't show the general avatar, we show the inline avatar on mobile.
    * And don't show the role labels, there's no place for that. */
   .repository.view.issue .comment-list .timeline .timeline-avatar,
   .repository.view.issue .comment-list .timeline .comment-header-right .role-label {
     display: none;
   }
+
   .commit-header-row .ui.horizontal.list {
     width: 100%;
     overflow-x: auto;
     margin-top: 2px;
   }
+
   .commit-header-row .ui.horizontal.list .item {
     align-items: center;
     display: flex;
   }
+
   .commit-header-row .author {
     padding: 3px 0;
   }
+
   .commit-header h3 {
     flex-basis: auto !important;
     margin-bottom: 0.5rem !important;
   }
+
   .commits-table {
     flex-direction: column;
   }
+
   .commits-table .commits-table-left {
     align-items: initial !important;
     margin-bottom: 6px;
   }
+
   .commits-table .commits-table-right form {
     display: flex;
     flex-wrap: wrap;
   }
-  .commits-table .commits-table-right form > div:nth-child(1) {
+
+  .commits-table .commits-table-right form>div:nth-child(1) {
     order: 1;
   }
-  .commits-table .commits-table-right form > div:nth-child(2) {
+
+  .commits-table .commits-table-right form>div:nth-child(2) {
     order: 3;
     margin-left: 0.5rem;
     margin-top: 0.5rem;
   }
-  .commits-table .commits-table-right form > button:nth-child(3) {
+
+  .commits-table .commits-table-right form>button:nth-child(3) {
     order: 2;
     margin-left: 0.25rem;
   }
+
   .commit-table {
     overflow-x: auto;
   }
+
   .commit-table td.sha,
   .commit-table th.sha {
     display: none !important;
   }
+
   .commit-table .commit-list span.message-wrapper {
     max-width: none;
   }
+
   .commit-table .commit-list tr td:last-child {
     display: block;
     width: max-content;
   }
+
   .commit-table .commit-list td.author {
     display: block;
     width: calc(100% + 0.5rem);
   }
+
   .commit-table .commit-list .copy-commit-sha {
     display: none !important;
   }
+
   .comment-header {
     flex-wrap: wrap;
   }
+
   .comment-header .comment-header-left {
     flex-wrap: wrap;
   }
+
   .comment-header .comment-header-right {
     margin-left: auto;
   }
@@ -3589,7 +3655,8 @@ td.blob-excerpt {
 }
 
 .pr-status {
-  padding: 0 !important; /* To clear fomantic's padding on .ui.segment elements */
+  padding: 0 !important;
+  /* To clear fomantic's padding on .ui.segment elements */
   display: flex;
   align-items: center;
 }
@@ -3605,7 +3672,7 @@ td.blob-excerpt {
   width: 100%;
 }
 
-.pr-status .status-context > span {
+.pr-status .status-context>span {
   padding: 1em 0;
 }
 
@@ -3624,6 +3691,7 @@ td.blob-excerpt {
   }
 }
 
-.pr-status .status-details > span {
-  padding-right: 0.5em; /* To match the alignment with the "required" label */
+.pr-status .status-details>span {
+  padding-right: 0.5em;
+  /* To match the alignment with the "required" label */
 }

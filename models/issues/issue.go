@@ -2502,12 +2502,16 @@ func (issue *Issue) HasOriginalAuthor() bool {
 type IssueCloseState int
 
 const (
+	// IssueStateOpen
+	IssueStateOpen IssueCloseState = iota
+	// IssueStateLocked
+	IssueStateLocked
 	// IssueCloseStateCommon
-	IssueCloseStateCommon IssueCloseState = iota
+	IssueStateClosed
 	// IssueCloseStateArchived
-	IssueCloseStateArchived
+	IssueStateArchived
 	// IssueCloseStateResolved
-	IssueCloseStateResolved
+	IssueStateResolved
 	// IssueCLoseStateMerged
-	IssueCLoseStateMerged
+	IssueStateMerged
 )

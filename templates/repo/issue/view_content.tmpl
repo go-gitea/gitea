@@ -123,28 +123,30 @@
 												{{svg "octicon-circle-slash" 15}} {{.locale.Tr "repo.issues.close_issue"}}
 											</button>
 										{{end}}
+
+										<div class="ui dropdown jump item tooltip gt-px-3" tabindex="-1" data-content="">
+											<span class="text">
+												<span class="fitted">{{svg "octicon-chevron-down"}}</span>
+											</span>
+											<div class="menu user-menu" tabindex="-1">
+												<a class="item" href="">
+													<!-- <span class="fitted">{{svg "octicon-plus"}}</span> {{.locale.Tr "new_repo"}} -->
+													{{svg "octicon-circle-slash" 13}} Close
+												</a>
+												<a class="item" href="">
+													{{svg "octicon-circle-slash" 13}} Close as archived
+												</a>
+												<a class="item" href="">
+													{{svg "octicon-circle-slash" 13}} Close as resolved
+												</a>
+												<a class="item" href="">
+													{{svg "octicon-circle-slash" 13}} Close as merged
+												</a>
+											</div><!-- end content create new menu -->
+										</div><!-- end dropdown menu create new -->
 									</div>
 
-									<div class="ui dropdown jump item tooltip gt-mx-0" tabindex="-1" data-content="">
-										<span class="text">
-											<span class="fitted">{{svg "octicon-chevron-down"}}</span>
-										</span>
-										<div class="menu user-menu" tabindex="-1">
-											<a class="item" href="">
-												<!-- <span class="fitted">{{svg "octicon-plus"}}</span> {{.locale.Tr "new_repo"}} -->
-												{{svg "octicon-circle-slash" 13}} Close
-											</a>
-											<a class="item" href="">
-												{{svg "octicon-circle-slash" 13}} Close as archived
-											</a>
-											<a class="item" href="">
-												{{svg "octicon-circle-slash" 13}} Close as resolved
-											</a>
-											<a class="item" href="">
-												{{svg "octicon-circle-slash" 13}} Close as merged
-											</a>
-										</div><!-- end content create new menu -->
-									</div><!-- end dropdown menu create new -->
+									
 									<!-- WIP -->
 										{{if .Issue.IsClosed}}
 											<button id="status-button" class="ui green basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
