@@ -8,6 +8,7 @@ import {attachCheckboxAria, attachDropdownAria} from './aria.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {initTooltip} from '../modules/tippy.js';
 import {svg} from '../svg.js';
+import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -59,6 +60,7 @@ export function initGlobalEnterQuickSubmit() {
 export function initGlobalButtonClickOnEnter() {
   $(document).on('keypress', '.ui.button', (e) => {
     if (e.keyCode === 13 || e.keyCode === 32) { // enter key or space bar
+      if (e.target.nodeName === 'BUTTON') return; // button already handles space&enter correctly
       $(e.target).trigger('click');
       e.preventDefault();
     }
@@ -118,7 +120,7 @@ export function initGlobalCommon() {
   $('.tabable.menu .item').tab();
 
   $('.toggle.button').on('click', function () {
-    $($(this).data('target')).slideToggle(100);
+    toggleElem($($(this).data('target')));
   });
 
   // make table <tr> and <td> elements clickable like a link
@@ -200,7 +202,8 @@ export function initGlobalDropzone() {
 }
 
 export function initGlobalLinkActions() {
-  function showDeletePopup() {
+  function showDeletePopup(e) {
+    e.preventDefault();
     const $this = $(this);
     const dataArray = $this.data();
     let filter = '';
@@ -241,10 +244,10 @@ export function initGlobalLinkActions() {
         });
       }
     }).modal('show');
-    return false;
   }
 
-  function showAddAllPopup() {
+  function showAddAllPopup(e) {
+    e.preventDefault();
     const $this = $(this);
     let filter = '';
     if ($this.attr('id')) {
@@ -270,7 +273,6 @@ export function initGlobalLinkActions() {
         });
       }
     }).modal('show');
-    return false;
   }
 
   function linkAction(e) {
@@ -316,28 +318,37 @@ export function initGlobalLinkActions() {
 }
 
 export function initGlobalButtons() {
-  $('.show-panel.button').on('click', function () {
-    $($(this).data('panel')).show();
+  // There are many "cancel button" elements in modal dialogs, Fomantic UI expects they are button-like elements but never submit a form.
+  // However, Gitea misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
+  // There are a few cancel buttons in non-modal forms, and there are some dynamically created forms (eg: the "Edit Issue Content")
+  $(document).on('click', 'form .ui.cancel.button', (e) => {
+    e.preventDefault();
   });
 
-  $('.hide-panel.button').on('click', function (event) {
+  $('.show-panel.button').on('click', function (e) {
+    e.preventDefault();
+    showElem($(this).data('panel'));
+  });
+
+  $('.hide-panel.button').on('click', function (e) {
     // a `.hide-panel.button` can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
-    event.preventDefault();
+    e.preventDefault();
     let sel = $(this).attr('data-panel');
     if (sel) {
-      $(sel).hide();
+      hideElem($(sel));
       return;
     }
     sel = $(this).attr('data-panel-closest');
     if (sel) {
-      $(this).closest(sel).hide();
+      hideElem($(this).closest(sel));
       return;
     }
     // should never happen, otherwise there is a bug in code
     alert('Nothing to hide');
   });
 
-  $('.show-modal').on('click', function () {
+  $('.show-modal').on('click', function (e) {
+    e.preventDefault();
     const modalDiv = $($(this).attr('data-modal'));
     for (const attrib of this.attributes) {
       if (!attrib.name.startsWith('data-modal-')) {
@@ -358,7 +369,8 @@ export function initGlobalButtons() {
     }
   });
 
-  $('.delete-post.button').on('click', function () {
+  $('.delete-post.button').on('click', function (e) {
+    e.preventDefault();
     const $this = $(this);
     $.post($this.attr('data-request-url'), {
       _csrf: csrfToken

@@ -21,7 +21,7 @@ const glob = (pattern) => fastGlob.sync(pattern, {
 });
 
 const themes = {};
-for (const path of glob('web_src/less/themes/*.less')) {
+for (const path of glob('web_src/css/themes/*.css')) {
   themes[parse(path).name] = [path];
 }
 
@@ -57,11 +57,14 @@ export default {
       fileURLToPath(new URL('web_src/js/index.js', import.meta.url)),
       fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
-      fileURLToPath(new URL('web_src/less/index.less', import.meta.url)),
+      fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
+    ],
+    webcomponents: [
+      fileURLToPath(new URL('web_src/js/webcomponents/GiteaOriginUrl.js', import.meta.url)),
     ],
     swagger: [
       fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
-      fileURLToPath(new URL('web_src/less/standalone/swagger.less', import.meta.url)),
+      fileURLToPath(new URL('web_src/css/standalone/swagger.css', import.meta.url)),
     ],
     serviceworker: [
       fileURLToPath(new URL('web_src/js/serviceworker.js', import.meta.url)),
@@ -133,23 +136,7 @@ export default {
         ],
       },
       {
-        test: /.css$/i,
-        use: [
-          {
-            loader: MiniCssExtractPlugin.loader,
-          },
-          {
-            loader: 'css-loader',
-            options: {
-              sourceMap: true,
-              url: {filter: filterCssImport},
-              import: {filter: filterCssImport},
-            },
-          },
-        ],
-      },
-      {
-        test: /.less$/i,
+        test: /\.css$/i,
         use: [
           {
             loader: MiniCssExtractPlugin.loader,
@@ -164,9 +151,15 @@ export default {
             },
           },
           {
-            loader: 'less-loader',
+            loader: 'postcss-loader', /* for conditional import in theme-auto.css */
             options: {
               sourceMap: true,
+              postcssOptions: {
+                plugins: [
+                  'postcss-import',
+                  'postcss-url',
+                ],
+              },
             },
           },
         ],
@@ -193,6 +186,10 @@ export default {
     ],
   },
   plugins: [
+    new webpack.DefinePlugin({
+      __VUE_OPTIONS_API__: true, // at the moment, many Vue components still use the Vue Options API
+      __VUE_PROD_DEVTOOLS__: false, // do not enable devtools support in production
+    }),
     new VueLoaderPlugin(),
     new MiniCssExtractPlugin({
       filename: 'css/[name].css',
@@ -231,7 +228,7 @@ export default {
         'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
       },
       emitError: true,
-      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense)',
+      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
       ignore: [
         'font-awesome',
       ],

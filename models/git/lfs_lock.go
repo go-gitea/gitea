@@ -6,7 +6,6 @@ package git
 import (
 	"context"
 	"fmt"
-	"path"
 	"strings"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // LFSLock represents a git lfs lock of repository.
@@ -34,11 +34,7 @@ func init() {
 
 // BeforeInsert is invoked from XORM before inserting an object of this type.
 func (l *LFSLock) BeforeInsert() {
-	l.Path = cleanPath(l.Path)
-}
-
-func cleanPath(p string) string {
-	return path.Clean("/" + p)[1:]
+	l.Path = util.CleanPath(l.Path)
 }
 
 // CreateLFSLock creates a new lock.
@@ -53,7 +49,7 @@ func CreateLFSLock(ctx context.Context, repo *repo_model.Repository, lock *LFSLo
 		return nil, err
 	}
 
-	lock.Path = cleanPath(lock.Path)
+	lock.Path = util.CleanPath(lock.Path)
 	lock.RepoID = repo.ID
 
 	l, err := GetLFSLock(dbCtx, repo, lock.Path)
@@ -73,7 +69,7 @@ func CreateLFSLock(ctx context.Context, repo *repo_model.Repository, lock *LFSLo
 
 // GetLFSLock returns release by given path.
 func GetLFSLock(ctx context.Context, repo *repo_model.Repository, path string) (*LFSLock, error) {
-	path = cleanPath(path)
+	path = util.CleanPath(path)
 	rel := &LFSLock{RepoID: repo.ID}
 	has, err := db.GetEngine(ctx).Where("lower(path) = ?", strings.ToLower(path)).Get(rel)
 	if err != nil {

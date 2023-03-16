@@ -1,6 +1,6 @@
 THEME := themes/gitea
 PUBLIC := public
-ARCHIVE := https://dl.gitea.io/theme/master.tar.gz
+ARCHIVE := https://dl.gitea.com/theme/main.tar.gz
 
 HUGO_PACKAGE := github.com/gohugoio/hugo@v0.82.0
 

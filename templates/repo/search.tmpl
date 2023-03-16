@@ -39,9 +39,9 @@
 				<div class="repository search">
 					{{range $result := .SearchResults}}
 						<div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
-							<h4 class="ui top attached normal header">
-								<span class="file">{{.Filename}}</span>
-								<a class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/src/commit/{{PathEscape $result.CommitID}}/{{PathEscapeSegments .Filename}}">{{$.locale.Tr "repo.diff.view_file"}}</a>
+							<h4 class="ui top attached normal header gt-df gt-fw">
+								<span class="file gt-f1">{{.Filename}}</span>
+								<a role="button" class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/src/commit/{{PathEscape $result.CommitID}}/{{PathEscapeSegments .Filename}}">{{$.locale.Tr "repo.diff.view_file"}}</a>
 							</h4>
 							<div class="ui attached table segment">
 								<div class="file-body file-code code-view">

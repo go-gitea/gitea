@@ -474,7 +474,7 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader, ski
 	sb := strings.Builder{}
 
 	// OK let's set a reasonable buffer size.
-	// This should be let's say at least the size of maxLineCharacters or 4096 whichever is larger.
+	// This should be at least the size of maxLineCharacters or 4096 whichever is larger.
 	readerSize := maxLineCharacters
 	if readerSize < 4096 {
 		readerSize = 4096
