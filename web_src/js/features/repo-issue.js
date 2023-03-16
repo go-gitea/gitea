@@ -454,7 +454,7 @@ export function initRepoPullRequestReview() {
         // offset is for scrolling
         let offset = 30;
         if (diffHeader) {
-          offset += 71 + diffHeader.offsetHeight;
+          offset += $('.diff-detail-box')[0].offsetHeight + diffHeader.offsetHeight;
         }
         $(`#show-outdated-${id}`).addClass('gt-hidden');
         $(`#code-comments-${id}`).removeClass('gt-hidden');
