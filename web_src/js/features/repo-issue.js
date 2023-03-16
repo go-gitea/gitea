@@ -438,6 +438,10 @@ export async function handleReply($el) {
 
 export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
+    // set scrollRestoration to 'manual' when there is a hash in url, so that the scroll position will not be remembered after refreshing
+    if (window.history.scrollRestoration !== 'manual') {
+      window.history.scrollRestoration = 'manual';
+    }
     const commentDiv = $(window.location.hash);
     if (commentDiv) {
       // get the name of the parent id
