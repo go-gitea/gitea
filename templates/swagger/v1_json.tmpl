@@ -488,9 +488,22 @@
         "tags": [
           "admin"
         ],
-        "summary": "List all users",
-        "operationId": "adminGetAllUsers",
+        "summary": "Search users according filter conditions",
+        "operationId": "adminSearchUsers",
         "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the user's login source to search for",
+            "name": "source_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "user's login name to search for",
+            "name": "login_name",
+            "in": "query"
+          },
           {
             "type": "integer",
             "description": "page number of results to return (1-based)",
