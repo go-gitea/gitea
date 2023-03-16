@@ -369,7 +369,7 @@ steps:
     image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - make test-mysql-migration integration-test-coverage
+      - make generate test-mysql-migration integration-test-coverage
     environment:
       GOPROXY: https://goproxy.io
       TAGS: bindata
@@ -472,7 +472,7 @@ steps:
     image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - timeout -s ABRT 50m make test-mysql8-migration test-mysql8
+      - timeout -s ABRT 50m make generate test-mysql8-migration test-mysql8
     environment:
       GOPROXY: https://goproxy.io
       TAGS: bindata
@@ -543,7 +543,7 @@ steps:
     image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - make test-mssql-migration test-mssql
+      - make generate test-mssql-migration test-mssql
     environment:
       GOPROXY: https://goproxy.io
       TAGS: bindata
