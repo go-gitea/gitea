@@ -2854,6 +2854,58 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/activities/feeds": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a repo's activity feeds",
+        "operationId": "repoListActivityFeeds",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "date",
+            "description": "the date of the activities to be found, format is YYYY-MM-DD",
+            "name": "date",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActivityFeedsList"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/archive/{archive}": {
       "get": {
         "produces": [

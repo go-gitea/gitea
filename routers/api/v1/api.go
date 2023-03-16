@@ -1176,6 +1176,9 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Get("/issue_config", context.ReferencesGitRepo(), repo.GetIssueConfig)
 				m.Get("/issue_config/validate", context.ReferencesGitRepo(), repo.ValidateIssueConfig)
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
+				m.Group("/activities", func() {
+					m.Get("/feeds", repo.ListRepoActivityFeeds)
+				})
 			}, repoAssignment())
 		})
 
