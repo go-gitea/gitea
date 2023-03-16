@@ -87,6 +87,7 @@ function initVueComponents(app) {
       }
 
       return {
+        hasMounted: false, // accessing $refs in computed() need to wait for mounted
         tab,
         repos: [],
         reposTotalCount: 0,
@@ -134,7 +135,19 @@ function initVueComponents(app) {
       },
       repoTypeCount() {
         return this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
-      }
+      },
+      checkboxArchivedFilterTitle() {
+        return this.hasMounted && this.$refs.checkboxArchivedFilter?.getAttribute(`data-title-${this.archivedFilter}`);
+      },
+      checkboxArchivedFilterProps() {
+        return {checked: this.archivedFilter === 'archived', indeterminate: this.archivedFilter === 'both'};
+      },
+      checkboxPrivateFilterTitle() {
+        return this.hasMounted && this.$refs.checkboxPrivateFilter?.getAttribute(`data-title-${this.privateFilter}`);
+      },
+      checkboxPrivateFilterProps() {
+        return {checked: this.privateFilter === 'private', indeterminate: this.privateFilter === 'both'};
+      },
     },
 
     mounted() {
@@ -144,49 +157,17 @@ function initVueComponents(app) {
         initTooltip(elTooltip);
       }
       $(el).find('.dropdown').dropdown();
-      this.setCheckboxes();
       nextTick(() => {
         this.$refs.search.focus();
       });
+
+      this.hasMounted = true;
     },
 
     methods: {
       changeTab(t) {
         this.tab = t;
         this.updateHistory();
-      },
-
-      setCheckboxes() {
-        switch (this.archivedFilter) {
-          case 'unarchived':
-            $('#archivedFilterCheckbox').checkbox('set unchecked');
-            break;
-          case 'archived':
-            $('#archivedFilterCheckbox').checkbox('set checked');
-            break;
-          case 'both':
-            $('#archivedFilterCheckbox').checkbox('set indeterminate');
-            break;
-          default:
-            this.archivedFilter = 'unarchived';
-            $('#archivedFilterCheckbox').checkbox('set unchecked');
-            break;
-        }
-        switch (this.privateFilter) {
-          case 'public':
-            $('#privateFilterCheckbox').checkbox('set unchecked');
-            break;
-          case 'private':
-            $('#privateFilterCheckbox').checkbox('set checked');
-            break;
-          case 'both':
-            $('#privateFilterCheckbox').checkbox('set indeterminate');
-            break;
-          default:
-            this.privateFilter = 'both';
-            $('#privateFilterCheckbox').checkbox('set indeterminate');
-            break;
-        }
       },
 
       changeReposFilter(filter) {
@@ -245,45 +226,29 @@ function initVueComponents(app) {
       },
 
       toggleArchivedFilter() {
-        switch (this.archivedFilter) {
-          case 'both':
-            this.archivedFilter = 'unarchived';
-            break;
-          case 'unarchived':
-            this.archivedFilter = 'archived';
-            break;
-          case 'archived':
-            this.archivedFilter = 'both';
-            break;
-          default:
-            this.archivedFilter = 'unarchived';
-            break;
+        if (this.archivedFilter === 'unarchived') {
+          this.archivedFilter = 'archived';
+        } else if (this.archivedFilter === 'archived') {
+          this.archivedFilter = 'both';
+        } else { // including both
+          this.archivedFilter = 'unarchived';
         }
         this.page = 1;
         this.repos = [];
-        this.setCheckboxes();
         this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
         this.searchRepos();
       },
 
       togglePrivateFilter() {
-        switch (this.privateFilter) {
-          case 'both':
-            this.privateFilter = 'public';
-            break;
-          case 'public':
-            this.privateFilter = 'private';
-            break;
-          case 'private':
-            this.privateFilter = 'both';
-            break;
-          default:
-            this.privateFilter = 'both';
-            break;
+        if (this.privateFilter === 'both') {
+          this.privateFilter = 'public';
+        } else if (this.privateFilter === 'public') {
+          this.privateFilter = 'private';
+        } else { // including private
+          this.privateFilter = 'both';
         }
         this.page = 1;
         this.repos = [];
-        this.setCheckboxes();
         this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
         this.searchRepos();
       },
