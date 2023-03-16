@@ -1129,7 +1129,7 @@ trigger:
 
 steps:
   - name: build-docs
-    image: gitea/test_env:linux-1.20-amd64
+    image: gitea/test_env:linux-1.20-arm64
     commands:
       - cd docs
       - make trans-copy clean build
