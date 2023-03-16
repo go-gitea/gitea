@@ -8,7 +8,6 @@ import (
 	"io"
 	"strings"
 
-	"code.gitea.io/gitea/modules/actions/workflowpattern"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -17,6 +16,7 @@ import (
 	"github.com/gobwas/glob"
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
+	"github.com/nektos/act/pkg/workflowpattern"
 )
 
 func ListWorkflows(commit *git.Commit) (git.Entries, error) {
