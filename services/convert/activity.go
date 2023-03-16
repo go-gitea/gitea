@@ -7,7 +7,7 @@ import (
 	"context"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/perm"
+	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -18,7 +18,7 @@ func ToActivity(ctx context.Context, ac *activities_model.Action, doer *user_mod
 	p, err := access_model.GetUserRepoPermission(ctx, ac.Repo, doer)
 	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", ac.RepoID, err)
-		p.AccessMode = perm.AccessModeNone
+		p.AccessMode = perm_model.AccessModeNone
 	}
 
 	result := &api.Activity{

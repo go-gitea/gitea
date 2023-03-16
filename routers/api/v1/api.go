@@ -1237,6 +1237,9 @@ func Routes(ctx gocontext.Context) *web.Route {
 					Patch(bind(api.EditHookOption{}), org.EditHook).
 					Delete(org.DeleteHook)
 			}, reqToken(auth_model.AccessTokenScopeAdminOrgHook), reqOrgOwnership(), reqWebhooksEnabled())
+			m.Group("/activities", func() {
+				m.Get("/feeds", org.ListOrgActivityFeeds)
+			})
 		}, orgAssignment(true))
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeam).

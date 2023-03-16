@@ -1411,6 +1411,51 @@
         }
       }
     },
+    "/orgs/{org}/activities/feeds": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List an organization's activity feeds",
+        "operationId": "orgListActivityFeeds",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the org",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "date",
+            "description": "the date of the activities to be found, format is YYYY-MM-DD",
+            "name": "date",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActivityFeedsList"
+          }
+        }
+      }
+    },
     "/orgs/{org}/hooks": {
       "get": {
         "produces": [
