@@ -438,6 +438,7 @@ export async function handleReply($el) {
 
 export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
+    // set scrollRestoration to 'manual' when there is a hash in url, so that position will not be remembered after refreshing
     (history.scrollRestoration != 'manual') && (history.scrollRestoration = 'manual');
     const commentDiv = $(window.location.hash);
     if (commentDiv) {
@@ -446,13 +447,13 @@ export function initRepoPullRequestReview() {
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
         const ancestorDiffBox = commentDiv.closest('.diff-file-box');
-        const ancestorDiffHeader = ancestorDiffBox.find('.diff-file-header')[0];
         $(`#show-outdated-${id}`).addClass('gt-hidden');
         $(`#code-comments-${id}`).removeClass('gt-hidden');
         $(`#code-preview-${id}`).removeClass('gt-hidden');
         $(`#hide-outdated-${id}`).removeClass('gt-hidden');
+        // if the comment box is folded, expand it 
         if (ancestorDiffBox.attr('data-folded') && ancestorDiffBox.attr('data-folded') === "true") {
-          setFileFolding(ancestorDiffBox[0], ancestorDiffHeader.querySelector('.fold-file'), false);
+          setFileFolding(ancestorDiffBox[0], ancestorDiffBox[0].querySelector('.fold-file'), false);
         }
         commentDiv[0].scrollIntoView({
           behavior: 'auto',
