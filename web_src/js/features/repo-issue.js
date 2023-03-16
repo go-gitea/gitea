@@ -237,6 +237,19 @@ export function initRepoIssueStatusButton() {
   });
 }
 
+export function initRepoIssueStateDropdown() {
+  const $stateDropdown = $('#state-dropdown');
+  const stateMenu = $stateDropdown.find('> .menu');
+  stateMenu.find('> .item').each((_, item) => {
+    console.log('menu item', item);
+    item.bind('click', (e) => {
+      e.preventDefault();
+      $('#status-button').text(item.data('content'));
+    })
+  });
+  console.log('1', $stateDropdown.attr('id'), stateMenu)
+}
+
 export function initRepoPullRequestUpdate() {
   // Pull Request update button
   const $pullUpdateButton = $('.update-button > button');

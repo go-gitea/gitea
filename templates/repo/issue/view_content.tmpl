@@ -108,55 +108,46 @@
 							{{template "repo/issue/comment_tab" .}}
 							{{.CsrfTokenHtml}}
 							<input id="status" name="status" type="hidden">
-							<input id="closeState" name="closeState" type="hidden" >
+							<input id="state" name="state" type="hidden" >
 							<div class="field footer">
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 									<!-- WIP: Use a combination of button and dropdown to implement the "close as & reopen" -->
 									<div class="ui labeled button">
 										{{if .Issue.IsClosed}}
-											<button type="submit" class="ui basic button">
-												{{svg "octicon-dot-fill" 15}} {{.locale.Tr "repo.issues.reopen_issue"}}
-											</button>
-										{{else}}
-											<button type="submit" class="ui basic button">
-												{{svg "octicon-circle-slash" 15}} {{.locale.Tr "repo.issues.close_issue"}}
-											</button>
-										{{end}}
-
-										<div class="ui dropdown jump item tooltip gt-px-3" tabindex="-1" data-content="">
-											<span class="text">
-												<span class="fitted">{{svg "octicon-chevron-down"}}</span>
-											</span>
-											<div class="menu user-menu" tabindex="-1">
-												<a class="item" href="">
-													<!-- <span class="fitted">{{svg "octicon-plus"}}</span> {{.locale.Tr "new_repo"}} -->
-													{{svg "octicon-circle-slash" 13}} Close
-												</a>
-												<a class="item" href="">
-													{{svg "octicon-circle-slash" 13}} Close as archived
-												</a>
-												<a class="item" href="">
-													{{svg "octicon-circle-slash" 13}} Close as resolved
-												</a>
-												<a class="item" href="">
-													{{svg "octicon-circle-slash" 13}} Close as merged
-												</a>
-											</div><!-- end content create new menu -->
-										</div><!-- end dropdown menu create new -->
-									</div>
-
-									
-									<!-- WIP -->
-										{{if .Issue.IsClosed}}
-											<button id="status-button" class="ui green basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
+											<button id="status-button" type="submit" class="ui basic button" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
 												{{.locale.Tr "repo.issues.reopen_issue"}}
 											</button>
 										{{else}}
-											<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+											<button id="status-button" type="submit" class="ui basic button" data-status="{{.locale.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
 												{{.locale.Tr "repo.issues.close_issue"}}
 											</button>
 										{{end}}
+
+										<div id="state-dropdown" class="ui dropdown jump item tooltip gt-px-3" tabindex="-1" data-content="">
+											<span class="text">
+												<span class="fitted">{{svg "octicon-chevron-down"}}</span>
+											</span>
+											<div class="menu" tabindex="-1">
+												<span class="item" data-value="2" data-content="Close">
+													<!-- <span class="fitted">{{svg "octicon-plus"}}</span> {{.locale.Tr "new_repo"}} -->
+													Close
+												</span>
+												<span class="item" data-value="3" data-content="Close as archived">
+													Close as archived
+												</span>
+												<span class="item" data-value="4" data-content="Close as resolved">
+													Close as resolved
+												</span>
+												<span class="item" data-value="5" data-content="Close as merged">
+													Close as merged
+												</span>
+											</div><!-- end dropdown menu -->
+										</div><!-- end dropdown -->
+									</div>
+
+									<!-- WIP -->
+
 									{{end}}
 									<button class="ui green button loading-button" tabindex="5">
 										{{.locale.Tr "repo.issues.create_comment"}}
