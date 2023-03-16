@@ -809,7 +809,7 @@ func ListTeamActivityFeeds(ctx *context.APIContext) {
 	//   required: true
 	// - name: date
 	//   in: query
-	//   description: the date of the activities to be found, format is YYYY-MM-DD
+	//   description: the date of the activities to be found
 	//   type: string
 	//   format: date
 	// - name: page

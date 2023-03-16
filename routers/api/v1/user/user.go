@@ -155,7 +155,7 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user to get
+	//   description: username of user
 	//   type: string
 	//   required: true
 	// - name: only-performed-by
@@ -164,7 +164,7 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 	//   type: boolean
 	// - name: date
 	//   in: query
-	//   description: the date of the activities to be found, format is YYYY-MM-DD
+	//   description: the date of the activities to be found
 	//   type: string
 	//   format: date
 	// - name: page

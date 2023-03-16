@@ -386,7 +386,7 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 	//   required: true
 	// - name: date
 	//   in: query
-	//   description: the date of the activities to be found, format is YYYY-MM-DD
+	//   description: the date of the activities to be found
 	//   type: string
 	//   format: date
 	// - name: page
@@ -401,14 +401,21 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityFeedsList"
 
-	org := organization.OrgFromUser(ctx.ContextUser)
-	isMember, err := org.IsOrgMember(ctx.Doer.ID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
-		return
+	includePrivate := false
+	if ctx.IsSigned {
+		if ctx.Doer.IsAdmin {
+			includePrivate = true
+		} else {
+			org := organization.OrgFromUser(ctx.ContextUser)
+			isMember, err := org.IsOrgMember(ctx.Doer.ID)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
+				return
+			}
+			includePrivate = isMember
+		}
 	}
 
-	includePrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || isMember)
 	listOptions := utils.GetListOptions(ctx)
 
 	opts := activities_model.GetFeedsOptions{
