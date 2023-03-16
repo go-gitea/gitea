@@ -660,20 +660,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		return
 	}
 
-	tags, err := ctx.Repo.GitRepo.GetTags(0, 0)
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		if strings.Contains(err.Error(), "fatal: not a git repository ") {
-			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
-			ctx.Repo.Repository.Status = repo_model.RepositoryBroken
-			ctx.Repo.Repository.IsEmpty = true
-			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
-			// Only allow access to base of repo or settings
-			if !isHomeOrSettings {
-				ctx.Redirect(ctx.Repo.RepoLink)
-			}
-			return
-		}
-		ctx.ServerError("GetTags", err)
+		ctx.ServerError("GetTagNamesByRepoID", err)
 		return
 	}
 	ctx.Data["Tags"] = tags

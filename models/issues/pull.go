@@ -660,10 +660,10 @@ func GetPullRequestByIssueID(ctx context.Context, issueID int64) (*PullRequest, 
 
 // GetAllUnmergedAgitPullRequestByPoster get all unmerged agit flow pull request
 // By poster id.
-func GetAllUnmergedAgitPullRequestByPoster(uid int64) ([]*PullRequest, error) {
+func GetAllUnmergedAgitPullRequestByPoster(ctx context.Context, uid int64) ([]*PullRequest, error) {
 	pulls := make([]*PullRequest, 0, 10)
 
-	err := db.GetEngine(db.DefaultContext).
+	err := db.GetEngine(ctx).
 		Where("has_merged=? AND flow = ? AND issue.is_closed=? AND issue.poster_id=?",
 			false, PullRequestFlowAGit, false, uid).
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").

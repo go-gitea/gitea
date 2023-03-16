@@ -393,6 +393,11 @@ func (u *User) IsOrganization() bool {
 	return u.Type == UserTypeOrganization
 }
 
+// IsIndividual returns true if user is actually a individual user.
+func (u *User) IsIndividual() bool {
+	return u.Type == UserTypeIndividual
+}
+
 // DisplayName returns full name if it's not empty,
 // returns username otherwise.
 func (u *User) DisplayName() string {
@@ -737,13 +742,13 @@ func VerifyUserActiveCode(code string) (user *User) {
 }
 
 // ChangeUserName changes all corresponding setting from old user name to new one.
-func ChangeUserName(u *User, newUserName string) (err error) {
+func ChangeUserName(ctx context.Context, u *User, newUserName string) (err error) {
 	oldUserName := u.Name
 	if err = IsUsableUsername(newUserName); err != nil {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

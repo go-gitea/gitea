@@ -70,6 +70,8 @@ export default {
         params.set('date', clickedDate);
       }
 
+      params.delete('page');
+
       const newSearch = params.toString();
       window.location.search = newSearch.length ? `?${newSearch}` : '';
     }

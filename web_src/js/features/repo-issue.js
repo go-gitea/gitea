@@ -230,7 +230,8 @@ export function initRepoIssueStatusButton() {
     const value = easyMDE?.value() || $(this).val();
     $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
   });
-  $statusButton.on('click', () => {
+  $statusButton.on('click', (e) => {
+    e.preventDefault();
     $('#status').val($statusButton.data('status-val'));
     $('#comment-form').trigger('submit');
   });
@@ -418,6 +419,22 @@ function assignMenuAttributes(menu) {
   return id;
 }
 
+export async function handleReply($el) {
+  hideElem($el);
+  const form = $el.closest('.comment-code-cloud').find('.comment-form');
+  form.removeClass('gt-hidden');
+  const $textarea = form.find('textarea');
+  let easyMDE = getAttachedEasyMDE($textarea);
+  if (!easyMDE) {
+    await attachTribute($textarea.get(), {mentions: true, emoji: true});
+    easyMDE = await createCommentEasyMDE($textarea);
+  }
+  $textarea.focus();
+  easyMDE.codemirror.focus();
+  assignMenuAttributes(form.find('.menu'));
+  return easyMDE;
+}
+
 export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
     const commentDiv = $(window.location.hash);
@@ -455,19 +472,7 @@ export function initRepoPullRequestReview() {
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {
     e.preventDefault();
-
-    hideElem($(this));
-    const form = $(this).closest('.comment-code-cloud').find('.comment-form');
-    form.removeClass('gt-hidden');
-    const $textarea = form.find('textarea');
-    let easyMDE = getAttachedEasyMDE($textarea);
-    if (!easyMDE) {
-      await attachTribute($textarea.get(), {mentions: true, emoji: true});
-      easyMDE = await createCommentEasyMDE($textarea);
-    }
-    $textarea.focus();
-    easyMDE.codemirror.focus();
-    assignMenuAttributes(form.find('.menu'));
+    await handleReply($(this));
   });
 
   const $reviewBox = $('.review-box-panel');
@@ -531,7 +536,7 @@ export function initRepoPullRequestReview() {
 
     const td = ntr.find(`.add-comment-${side}`);
     let commentCloud = td.find('.comment-code-cloud');
-    if (commentCloud.length === 0 && !ntr.find('button[name="is_review"]').length) {
+    if (commentCloud.length === 0 && !ntr.find('button[name="pending_review"]').length) {
       const data = await $.get($(this).closest('[data-new-comment-url]').data('new-comment-url'));
       td.html(data);
       commentCloud = td.find('.comment-code-cloud');

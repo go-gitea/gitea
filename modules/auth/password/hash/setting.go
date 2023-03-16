@@ -41,9 +41,8 @@ var RecommendedHashAlgorithms = []string{
 	"pbkdf2_hi",
 }
 
-// SetDefaultPasswordHashAlgorithm will take a provided algorithmName and dealias it to
-// a complete algorithm specification.
-func SetDefaultPasswordHashAlgorithm(algorithmName string) (string, *PasswordHashAlgorithm) {
+// hashAlgorithmToSpec converts an algorithm name or a specification to a full algorithm specification
+func hashAlgorithmToSpec(algorithmName string) string {
 	if algorithmName == "" {
 		algorithmName = DefaultHashAlgorithmName
 	}
@@ -52,10 +51,26 @@ func SetDefaultPasswordHashAlgorithm(algorithmName string) (string, *PasswordHas
 		algorithmName = alias
 		alias, has = aliasAlgorithmNames[algorithmName]
 	}
+	return algorithmName
+}
 
-	// algorithmName should now be a full algorithm specification
-	// e.g. pbkdf2$50000$50 rather than pbdkf2
-	DefaultHashAlgorithm = Parse(algorithmName)
+// SetDefaultPasswordHashAlgorithm will take a provided algorithmName and de-alias it to
+// a complete algorithm specification.
+func SetDefaultPasswordHashAlgorithm(algorithmName string) (string, *PasswordHashAlgorithm) {
+	algoSpec := hashAlgorithmToSpec(algorithmName)
+	// now we get a full specification, e.g. pbkdf2$50000$50 rather than pbdkf2
+	DefaultHashAlgorithm = Parse(algoSpec)
+	return algoSpec, DefaultHashAlgorithm
+}
 
-	return algorithmName, DefaultHashAlgorithm
+// ConfigHashAlgorithm will try to find a "recommended algorithm name" defined by RecommendedHashAlgorithms for config
+// This function is not fast and is only used for the installation page
+func ConfigHashAlgorithm(algorithm string) string {
+	algorithm = hashAlgorithmToSpec(algorithm)
+	for _, recommAlgo := range RecommendedHashAlgorithms {
+		if algorithm == hashAlgorithmToSpec(recommAlgo) {
+			return recommAlgo
+		}
+	}
+	return algorithm
 }

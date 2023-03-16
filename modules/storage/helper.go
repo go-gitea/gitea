@@ -90,6 +90,6 @@ func (s discardStorage) URL(_, _ string) (*url.URL, error) {
 	return nil, fmt.Errorf("%s", s)
 }
 
-func (s discardStorage) IterateObjects(_ func(string, Object) error) error {
+func (s discardStorage) IterateObjects(_ string, _ func(string, Object) error) error {
 	return fmt.Errorf("%s", s)
 }
