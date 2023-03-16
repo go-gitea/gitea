@@ -795,7 +795,7 @@ func SearchTeam(ctx *context.APIContext) {
 }
 
 func ListTeamActivityFeeds(ctx *context.APIContext) {
-	// swagger:operation GET /teams/{id}/activities/feeds organization  orgListTeamActivityFeeds
+	// swagger:operation GET /teams/{id}/activities/feeds organization orgListTeamActivityFeeds
 	// ---
 	// summary: List a team's activity feeds
 	// produces:
