@@ -417,14 +417,23 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// GetAllUsers API for getting information of all the users
-func GetAllUsers(ctx *context.APIContext) {
-	// swagger:operation GET /admin/users admin adminGetAllUsers
+// SearchUsers API for getting information of the users according the filter conditions
+func SearchUsers(ctx *context.APIContext) {
+	// swagger:operation GET /admin/users admin adminSearchUsers
 	// ---
-	// summary: List all users
+	// summary: Search users according filter conditions
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: source_id
+	//   in: query
+	//   description: ID of the user's login source to search for
+	//   type: integer
+	//   format: int64
+	// - name: login_name
+	//   in: query
+	//   description: user's login name to search for
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -444,11 +453,13 @@ func GetAllUsers(ctx *context.APIContext) {
 	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeIndividual,
+		LoginName:   ctx.FormTrim("login_name"),
+		SourceID:    ctx.FormInt64("source_id"),
 		OrderBy:     db.SearchOrderByAlphabetically,
 		ListOptions: listOptions,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetAllUsers", err)
+		ctx.Error(http.StatusInternalServerError, "SearchUsers", err)
 		return
 	}
 
