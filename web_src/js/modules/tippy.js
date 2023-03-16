@@ -33,6 +33,7 @@ export function initTooltip(el, props = {}) {
     content,
     delay: 100,
     role: 'tooltip',
+    ...(el.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true} : {}),
     ...props,
   });
 }
