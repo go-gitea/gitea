@@ -12,7 +12,6 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
@@ -42,15 +41,13 @@ var (
 	AppWorkPath string
 
 	// Global setting objects
-	CfgProvider  ConfigProvider
-	CustomPath   string // Custom directory path
-	CustomConf   string
-	PIDFile      = "/run/gitea.pid"
-	WritePIDFile bool
-	RunMode      string
-	RunUser      string
-	IsProd       bool
-	IsWindows    bool
+	CfgProvider ConfigProvider
+	CustomPath  string // Custom directory path
+	CustomConf  string
+	RunMode     string
+	RunUser     string
+	IsProd      bool
+	IsWindows   bool
 )
 
 func getAppPath() (string, error) {
@@ -141,22 +138,6 @@ func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
 	return currentUser, runUser == currentUser
 }
 
-func createPIDFile(pidPath string) {
-	currentPid := os.Getpid()
-	if err := os.MkdirAll(filepath.Dir(pidPath), os.ModePerm); err != nil {
-		log.Fatal("Failed to create PID folder: %v", err)
-	}
-
-	file, err := os.Create(pidPath)
-	if err != nil {
-		log.Fatal("Failed to create PID file: %v", err)
-	}
-	defer file.Close()
-	if _, err := file.WriteString(strconv.FormatInt(int64(currentPid), 10)); err != nil {
-		log.Fatal("Failed to write PID information: %v", err)
-	}
-}
-
 // SetCustomPathAndConf will set CustomPath and CustomConf with reference to the
 // GITEA_CUSTOM environment variable and with provided overrides before stepping
 // back to the default
@@ -218,17 +199,17 @@ func PrepareAppDataPath() error {
 
 // InitProviderFromExistingFile initializes config provider from an existing config file (app.ini)
 func InitProviderFromExistingFile() {
-	CfgProvider = newFileProviderFromConf(CustomConf, WritePIDFile, false, PIDFile, "")
+	CfgProvider = newFileProviderFromConf(CustomConf, false, "")
 }
 
 // InitProviderAllowEmpty initializes config provider from file, it's also fine that if the config file (app.ini) doesn't exist
 func InitProviderAllowEmpty() {
-	CfgProvider = newFileProviderFromConf(CustomConf, WritePIDFile, true, PIDFile, "")
+	CfgProvider = newFileProviderFromConf(CustomConf, true, "")
 }
 
 // InitProviderAndLoadCommonSettingsForTest initializes config provider and load common setttings for tests
 func InitProviderAndLoadCommonSettingsForTest(extraConfigs ...string) {
-	CfgProvider = newFileProviderFromConf(CustomConf, WritePIDFile, true, PIDFile, strings.Join(extraConfigs, "\n"))
+	CfgProvider = newFileProviderFromConf(CustomConf, true, strings.Join(extraConfigs, "\n"))
 	loadCommonSettingsFrom(CfgProvider)
 	if err := PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
@@ -241,12 +222,8 @@ func InitProviderAndLoadCommonSettingsForTest(extraConfigs ...string) {
 
 // newFileProviderFromConf initializes configuration context.
 // NOTE: do not print any log except error.
-func newFileProviderFromConf(customConf string, writePIDFile, allowEmpty bool, pidFile, extraConfig string) *ini.File {
+func newFileProviderFromConf(customConf string, allowEmpty bool, extraConfig string) *ini.File {
 	cfg := ini.Empty()
-
-	if writePIDFile && len(pidFile) > 0 {
-		createPIDFile(pidFile)
-	}
 
 	isFile, err := util.IsFile(customConf)
 	if err != nil {
@@ -380,7 +357,7 @@ func CreateOrAppendToCustomConf(purpose string, callback func(cfg *ini.File)) {
 
 // LoadSettings initializes the settings for normal start up
 func LoadSettings() {
-	LoadDBSetting()
+	loadDBSetting(CfgProvider)
 	loadServiceFrom(CfgProvider)
 	loadOAuth2ClientFrom(CfgProvider)
 	InitLogs(false)
@@ -401,7 +378,7 @@ func LoadSettings() {
 
 // LoadSettingsForInstall initializes the settings for install
 func LoadSettingsForInstall() {
-	LoadDBSetting()
+	loadDBSetting(CfgProvider)
 	loadServiceFrom(CfgProvider)
 	loadMailerFrom(CfgProvider)
 }
