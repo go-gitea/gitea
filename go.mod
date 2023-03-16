@@ -78,7 +78,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.49
 	github.com/minio/sha256-simd v1.0.0
 	github.com/msteinert/pam v1.1.0
-	github.com/nektos/act v0.999.999
+	github.com/nektos/act v0.2.43
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/niklasfasching/go-org v1.6.5
 	github.com/oliamb/cutter v0.2.2
