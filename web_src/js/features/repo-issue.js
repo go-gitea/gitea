@@ -438,22 +438,24 @@ export async function handleReply($el) {
 
 export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
+    (history.scrollRestoration != 'manual') && (history.scrollRestoration = 'manual');
     const commentDiv = $(window.location.hash);
-    console.log(commentDiv[0])
     if (commentDiv) {
       // get the name of the parent id
       const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
-      const ancestorDiffHeader = commentDiv.closest('.diff-file-box').children('.diff-file-header').eq(0)[0];
-      console.log(ancestorDiffHeader)
-      setFileFolding(ancestorDiffHeader.closest('.file-content'), ancestorDiffHeader.querySelector('.fold-file'), false);
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
+        const ancestorDiffHeader = commentDiv.closest('.diff-file-box').children('.diff-file-header').eq(0)[0];
         $(`#show-outdated-${id}`).addClass('gt-hidden');
         $(`#code-comments-${id}`).removeClass('gt-hidden');
         $(`#code-preview-${id}`).removeClass('gt-hidden');
         $(`#hide-outdated-${id}`).removeClass('gt-hidden');
-        console.log('scrollIntoView')
-        commentDiv[0].scrollIntoView();
+        setFileFolding(ancestorDiffHeader.closest('.file-content'), ancestorDiffHeader.querySelector('.fold-file'), false);
+        commentDiv[0].scrollIntoView({
+          behavior: 'auto',
+          block: 'center',
+          inline: 'center'
+        });
       }
     }
   }
