@@ -8,6 +8,7 @@ import "time"
 type Activity struct {
 	ID        int64       `json:"id"`
 	UserID    int64       `json:"user_id"` // Receiver user
+	OpType    string      `json:"op_type"`
 	ActUserID int64       `json:"act_user_id"`
 	ActUser   *User       `json:"act_user"`
 	RepoID    int64       `json:"repo_id"`

@@ -24,6 +24,7 @@ func ToActivity(ctx context.Context, ac *activities_model.Action, doer *user_mod
 	result := &api.Activity{
 		ID:        ac.ID,
 		UserID:    ac.UserID,
+		OpType:    ac.OpType.String(),
 		ActUserID: ac.ActUserID,
 		ActUser:   ToUser(ctx, ac.ActUser, doer),
 		RepoID:    ac.RepoID,
