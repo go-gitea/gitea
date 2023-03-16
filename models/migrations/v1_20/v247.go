@@ -6,7 +6,6 @@ package v1_20 //nolint
 import (
 	"code.gitea.io/gitea/modules/log"
 
-	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
@@ -37,18 +36,8 @@ func FixIncorrectProjectType(x *xorm.Engine) error {
 		return err
 	}
 
-	sql, args, err := builder.ToSQL(
-		builder.And(
-			builder.Eq{"type": TypeOrganization},
-			builder.And(builder.Eq{"owner_id": builder.Select("id").From("user").Where(builder.Eq{"type": UserTypeIndividual})}),
-		),
-	)
-	if err != nil {
-		return err
-	}
-
 	count, err := sess.Table("project").
-		Where(sql, args...).
+		Where("type = ? AND owner_id IN (SELECT id FROM user WHERE type = ?)", TypeOrganization, UserTypeIndividual).
 		Update(&Project{
 			Type: TypeIndividual,
 		})
