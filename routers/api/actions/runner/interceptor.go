@@ -39,6 +39,8 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		version := request.Header().Get(versionHeaderKey)
 		if util.IsEmptyString(version) {
 			version = versionUnknown
+		} else if len(version) > 63 {
+			version, _ = util.SplitStringAtByteN(version, 63)
 		}
 		runner, err := actions_model.GetRunnerByUUID(ctx, uuid)
 		if err != nil {
@@ -51,8 +53,11 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 			return nil, status.Error(codes.Unauthenticated, "unregistered runner")
 		}
 
-		cols := []string{"version", "last_online"}
-		runner.Version = version
+		cols := []string{"last_online"}
+		if runner.Version != version {
+			runner.Version = version
+			cols = append(cols, "verison")
+		}
 		runner.LastOnline = timeutil.TimeStampNow()
 		if methodName == "UpdateTask" || methodName == "UpdateLog" {
 			runner.LastActive = timeutil.TimeStampNow()
