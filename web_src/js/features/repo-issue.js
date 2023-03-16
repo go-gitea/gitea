@@ -241,10 +241,10 @@ export function initRepoIssueStateDropdown() {
   const $stateDropdown = $('#state-dropdown');
   const stateMenu = $stateDropdown.find('> .menu');
   stateMenu.find('> .item').each((_, item) => {
-    console.log('menu item', item);
-    item.bind('click', (e) => {
-      e.preventDefault();
-      $('#status-button').text(item.data('content'));
+    console.log('menu item', item, $(item));
+    $(item).on('click', (e) => {
+      $('#status-button').text($(item).data('content'));
+      $('#state').val($(item).data('value'))
     })
   });
   console.log('1', $stateDropdown.attr('id'), stateMenu)
