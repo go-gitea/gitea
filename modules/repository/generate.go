@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -174,12 +173,12 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		// Avoid walking tree if there are no globs
 		if len(gt.Globs()) > 0 {
 			tmpDirSlash := strings.TrimSuffix(filepath.ToSlash(tmpDir), "/") + "/"
-			if err := filepath.Walk(tmpDirSlash, func(path string, info os.FileInfo, walkErr error) error {
+			if err := filepath.WalkDir(tmpDirSlash, func(path string, d os.DirEntry, walkErr error) error {
 				if walkErr != nil {
 					return walkErr
 				}
 
-				if info.IsDir() {
+				if d.IsDir() {
 					return nil
 				}
 
@@ -244,7 +243,7 @@ func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *r
 	}
 
 	// re-fetch repo
-	if repo, err = repo_model.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
+	if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
 		return fmt.Errorf("getRepositoryByID: %w", err)
 	}
 
@@ -320,7 +319,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		TrustModel:    templateRepo.TrustModel,
 	}
 
-	if err = CreateRepositoryByExample(ctx, doer, owner, generateRepo, false); err != nil {
+	if err = CreateRepositoryByExample(ctx, doer, owner, generateRepo, false, false); err != nil {
 		return nil, err
 	}
 

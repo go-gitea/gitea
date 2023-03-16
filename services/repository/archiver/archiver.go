@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package archiver
 
@@ -227,7 +226,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 		rd.Close()
 	}()
 	done := make(chan error, 1) // Ensure that there is some capacity which will ensure that the goroutine below can always finish
-	repo, err := repo_model.GetRepositoryByID(archiver.RepoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, archiver.RepoID)
 	if err != nil {
 		return nil, fmt.Errorf("archiver.LoadRepo failed: %w", err)
 	}

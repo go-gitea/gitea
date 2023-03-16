@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content user settings repos">
+<div role="main" aria-label="{{.Title}}" class="page-content user settings repos">
 	{{template "user/settings/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -50,16 +50,7 @@
 														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="adopt">
-														<div class="actions">
-															<div class="ui red basic inverted cancel button">
-																<i class="remove icon"></i>
-																{{$.locale.Tr "modal.no"}}
-															</div>
-															<button class="ui green basic inverted ok button">
-																<i class="checkmark icon"></i>
-																{{$.locale.Tr "modal.yes"}}
-															</button>
-														</div>
+														{{template "base/delete_modal_actions" .}}
 													</form>
 												</div>
 											{{end}}
@@ -77,16 +68,7 @@
 														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="delete">
-														<div class="actions">
-															<div class="ui red basic inverted cancel button">
-																<i class="remove icon"></i>
-																{{$.locale.Tr "modal.no"}}
-															</div>
-															<button class="ui green basic inverted ok button">
-																<i class="checkmark icon"></i>
-																{{$.locale.Tr "modal.yes"}}
-															</button>
-														</div>
+														{{template "base/delete_modal_actions" .}}
 													</form>
 												</div>
 											{{end}}
@@ -109,15 +91,15 @@
 							<div class="item">
 								<div class="content">
 									{{if .IsPrivate}}
-										{{svg "octicon-lock" 16 "mr-2 iconFloat text gold"}}
+										{{svg "octicon-lock" 16 "gt-mr-2 iconFloat text gold"}}
 									{{else if .IsFork}}
-										{{svg "octicon-repo-forked" 16 "mr-2 iconFloat"}}
+										{{svg "octicon-repo-forked" 16 "gt-mr-2 iconFloat"}}
 									{{else if .IsMirror}}
-										{{svg "octicon-mirror" 16 "mr-2 iconFloat"}}
+										{{svg "octicon-mirror" 16 "gt-mr-2 iconFloat"}}
 									{{else if .IsTemplate}}
-										{{svg "octicon-repo-template" 16 "mr-2 iconFloat"}}
+										{{svg "octicon-repo-template" 16 "gt-mr-2 iconFloat"}}
 									{{else}}
-										{{svg "octicon-repo" 16 "mr-2 iconFloat"}}
+										{{svg "octicon-repo" 16 "gt-mr-2 iconFloat"}}
 									{{end}}
 									<a class="name" href="{{.Link}}">{{.OwnerName}}/{{.Name}}</a>
 									<span>{{FileSize .Size}}</span>

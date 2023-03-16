@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package highlight
 
@@ -18,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/formatters/html"
@@ -36,17 +36,15 @@ var (
 	once sync.Once
 
 	cache *lru.TwoQueueCache
+
+	githubStyles = styles.Get("github")
 )
 
 // NewContext loads custom highlight map from local config
 func NewContext() {
 	once.Do(func() {
-		if setting.Cfg != nil {
-			keys := setting.Cfg.Section("highlight.mapping").Keys()
-			for i := range keys {
-				highlightMapping[keys[i].Name()] = keys[i].Value()
-			}
-		}
+		highlightMapping = setting.GetHighlightMapping()
+
 		// The size 512 is simply a conservative rule of thumb
 		c, err := lru.New2Q(512)
 		if err != nil {
@@ -56,18 +54,18 @@ func NewContext() {
 	})
 }
 
-// Code returns a HTML version of code string with chroma syntax highlighting classes
-func Code(fileName, language, code string) string {
+// Code returns a HTML version of code string with chroma syntax highlighting classes and the matched lexer name
+func Code(fileName, language, code string) (string, string) {
 	NewContext()
 
 	// diff view newline will be passed as empty, change to literal '\n' so it can be copied
 	// preserve literal newline in blame view
 	if code == "" || code == "\n" {
-		return "\n"
+		return "\n", ""
 	}
 
 	if len(code) > sizeLimit {
-		return code
+		return code, ""
 	}
 
 	var lexer chroma.Lexer
@@ -103,7 +101,10 @@ func Code(fileName, language, code string) string {
 		}
 		cache.Add(fileName, lexer)
 	}
-	return CodeFromLexer(lexer, code)
+
+	lexerName := formatLexerName(lexer.Config().Name)
+
+	return CodeFromLexer(lexer, code), lexerName
 }
 
 // CodeFromLexer returns a HTML version of code string with chroma syntax highlighting classes
@@ -122,7 +123,7 @@ func CodeFromLexer(lexer chroma.Lexer, code string) string {
 		return code
 	}
 	// style not used for live site but need to pass something
-	err = formatter.Format(htmlw, styles.GitHub, iterator)
+	err = formatter.Format(htmlw, githubStyles, iterator)
 	if err != nil {
 		log.Error("Can't format code: %v", err)
 		return code
@@ -134,12 +135,12 @@ func CodeFromLexer(lexer chroma.Lexer, code string) string {
 	return strings.TrimSuffix(htmlbuf.String(), "\n")
 }
 
-// File returns a slice of chroma syntax highlighted HTML lines of code
-func File(fileName, language string, code []byte) ([]string, error) {
+// File returns a slice of chroma syntax highlighted HTML lines of code and the matched lexer name
+func File(fileName, language string, code []byte) ([]string, string, error) {
 	NewContext()
 
 	if len(code) > sizeLimit {
-		return PlainText(code), nil
+		return PlainText(code), "", nil
 	}
 
 	formatter := html.New(html.WithClasses(true),
@@ -172,9 +173,11 @@ func File(fileName, language string, code []byte) ([]string, error) {
 		}
 	}
 
+	lexerName := formatLexerName(lexer.Config().Name)
+
 	iterator, err := lexer.Tokenise(nil, string(code))
 	if err != nil {
-		return nil, fmt.Errorf("can't tokenize code: %w", err)
+		return nil, "", fmt.Errorf("can't tokenize code: %w", err)
 	}
 
 	tokensLines := chroma.SplitTokensIntoLines(iterator.Tokens())
@@ -183,15 +186,15 @@ func File(fileName, language string, code []byte) ([]string, error) {
 	lines := make([]string, 0, len(tokensLines))
 	for _, tokens := range tokensLines {
 		iterator = chroma.Literator(tokens...)
-		err = formatter.Format(htmlBuf, styles.GitHub, iterator)
+		err = formatter.Format(htmlBuf, githubStyles, iterator)
 		if err != nil {
-			return nil, fmt.Errorf("can't format code: %w", err)
+			return nil, "", fmt.Errorf("can't format code: %w", err)
 		}
 		lines = append(lines, htmlBuf.String())
 		htmlBuf.Reset()
 	}
 
-	return lines, nil
+	return lines, lexerName, nil
 }
 
 // PlainText returns non-highlighted HTML for code
@@ -211,4 +214,12 @@ func PlainText(code []byte) []string {
 		m = append(m, s)
 	}
 	return m
+}
+
+func formatLexerName(name string) string {
+	if name == "fallback" {
+		return "Plaintext"
+	}
+
+	return util.ToTitleCaseNoLower(name)
 }

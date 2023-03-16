@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_12 //nolint
 
@@ -14,9 +13,9 @@ func PrependRefsHeadsToIssueRefs(x *xorm.Engine) error {
 	var query string
 
 	switch {
-	case setting.Database.UseMSSQL:
+	case setting.Database.Type.IsMSSQL():
 		query = "UPDATE `issue` SET `ref` = 'refs/heads/' + `ref` WHERE `ref` IS NOT NULL AND `ref` <> '' AND `ref` NOT LIKE 'refs/%'"
-	case setting.Database.UseMySQL:
+	case setting.Database.Type.IsMySQL():
 		query = "UPDATE `issue` SET `ref` = CONCAT('refs/heads/', `ref`) WHERE `ref` IS NOT NULL AND `ref` <> '' AND `ref` NOT LIKE 'refs/%';"
 	default:
 		query = "UPDATE `issue` SET `ref` = 'refs/heads/' || `ref` WHERE `ref` IS NOT NULL AND `ref` <> '' AND `ref` NOT LIKE 'refs/%'"

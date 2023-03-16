@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -144,7 +143,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 		return err
 	}
 
-	if err := repo.GetOwner(db.DefaultContext); err != nil {
+	if err := repo.LoadOwner(db.DefaultContext); err != nil {
 		return err
 	}
 
@@ -185,7 +184,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 	return committer.Commit()
 }
 
-// UpdateRepoSize updates the repository size, calculating it using util.GetDirectorySize
+// UpdateRepoSize updates the repository size, calculating it using getDirectorySize
 func UpdateRepoSize(ctx context.Context, repoID, size int64) error {
 	_, err := db.GetEngine(ctx).ID(repoID).Cols("size").NoAutoTime().Update(&Repository{
 		Size: size,

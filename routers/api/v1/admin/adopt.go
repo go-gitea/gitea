@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package admin
 
@@ -46,7 +45,7 @@ func ListUnadoptedRepositories(ctx *context.APIContext) {
 	if listOptions.Page == 0 {
 		listOptions.Page = 1
 	}
-	repoNames, count, err := repo_service.ListUnadoptedRepositories(ctx.FormString("query"), &listOptions)
+	repoNames, count, err := repo_service.ListUnadoptedRepositories(ctx, ctx.FormString("query"), &listOptions)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -110,7 +109,7 @@ func AdoptRepository(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	if _, err := repo_service.AdoptRepository(ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
+	if _, err := repo_service.AdoptRepository(ctx, ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
 		Name:      repoName,
 		IsPrivate: true,
 	}); err != nil {
@@ -173,7 +172,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_service.DeleteUnadoptedRepository(ctx.Doer, ctxUser, repoName); err != nil {
+	if err := repo_service.DeleteUnadoptedRepository(ctx, ctx.Doer, ctxUser, repoName); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}

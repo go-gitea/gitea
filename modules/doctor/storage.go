@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package doctor
 
@@ -32,7 +31,7 @@ func commonCheckStorage(ctx context.Context, logger log.Logger, autofix bool, op
 	totalSize, orphanedSize := int64(0), int64(0)
 
 	var pathsToDelete []string
-	if err := opts.storer.IterateObjects(func(p string, obj storage.Object) error {
+	if err := opts.storer.IterateObjects("", func(p string, obj storage.Object) error {
 		defer obj.Close()
 
 		totalCount++

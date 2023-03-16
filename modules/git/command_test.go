@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -41,4 +40,15 @@ func TestRunWithContextStd(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, stderr)
 	assert.Contains(t, stdout, "git version")
+}
+
+func TestGitArgument(t *testing.T) {
+	assert.True(t, isValidArgumentOption("-x"))
+	assert.True(t, isValidArgumentOption("--xx"))
+	assert.False(t, isValidArgumentOption(""))
+	assert.False(t, isValidArgumentOption("x"))
+
+	assert.True(t, isSafeArgumentValue(""))
+	assert.True(t, isSafeArgumentValue("x"))
+	assert.False(t, isSafeArgumentValue("-x"))
 }

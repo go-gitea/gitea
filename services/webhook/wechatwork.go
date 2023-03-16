@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
@@ -8,10 +7,10 @@ import (
 	"fmt"
 	"strings"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 type (
@@ -136,10 +135,10 @@ func (f *WechatworkPayload) PullRequest(p *api.PullRequestPayload) (api.Payloade
 }
 
 // Review implements PayloadConvertor Review method
-func (f *WechatworkPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
+func (f *WechatworkPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
 	var text, title string
 	switch p.Action {
-	case api.HookIssueSynchronized:
+	case api.HookIssueReviewed:
 		action, err := parseHookPullRequestEventType(event)
 		if err != nil {
 			return nil, err
@@ -181,6 +180,6 @@ func (f *WechatworkPayload) Release(p *api.ReleasePayload) (api.Payloader, error
 }
 
 // GetWechatworkPayload GetWechatworkPayload converts a ding talk webhook into a WechatworkPayload
-func GetWechatworkPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetWechatworkPayload(p api.Payloader, event webhook_module.HookEventType, _ string) (api.Payloader, error) {
 	return convertPayloader(new(WechatworkPayload), p, event)
 }

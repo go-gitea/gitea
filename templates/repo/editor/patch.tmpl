@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository file editor edit">
+<div role="main" aria-label="{{.Title}}" class="page-content repository file editor edit">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -22,10 +22,10 @@
 			</div>
 			<div class="field">
 				<div class="ui top attached tabular menu" data-write="write">
-					<a class="active item" data-tab="write">{{svg "octicon-code" 16 "mr-2"}}{{.locale.Tr "repo.editor.new_patch"}}</a>
+					<a class="active item" data-tab="write">{{svg "octicon-code" 16 "gt-mr-2"}}{{.locale.Tr "repo.editor.new_patch"}}</a>
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
-					<textarea id="edit_area" name="content" class="hide" data-id="repo-{{.Repository.Name}}-patch"
+					<textarea id="edit_area" name="content" class="gt-hidden" data-id="repo-{{.Repository.Name}}-patch"
 						data-context="{{.RepoLink}}"
 						data-line-wrap-extensions="{{.LineWrapExtensions}}">
 {{.FileContent}}</textarea>
@@ -45,14 +45,14 @@
 			<p>{{.locale.Tr "repo.editor.commit_empty_file_text"}}</p>
 		</div>
 		<div class="actions">
-			<div class="ui red basic cancel inverted button">
-				<i class="remove icon"></i>
+			<button class="ui red basic inverted cancel button">
+				{{svg "octicon-x"}}
 				{{.locale.Tr "repo.editor.cancel"}}
-			</div>
-			<div class="ui green basic ok inverted button">
-				<i class="save icon"></i>
+			</button>
+			<button class="ui green basic inverted ok button">
+				{{svg "fontawesome-save"}}
 				{{.locale.Tr "repo.editor.commit_changes"}}
-			</div>
+			</button>
 		</div>
 	</div>
 </div>

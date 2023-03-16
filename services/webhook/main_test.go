@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
@@ -16,8 +15,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	setting.LoadForTest()
-	setting.NewQueueService()
+	setting.InitProviderAndLoadCommonSettingsForTest()
+	setting.LoadQueueSettings()
 
 	// for tests, allow only loopback IPs
 	setting.Webhook.AllowedHostList = hostmatcher.MatchBuiltinLoopback

@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package release
 
@@ -107,11 +106,13 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
+	testPlayload := "testtest"
+
 	attach, err := attachment.NewAttachment(&repo_model.Attachment{
 		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
-	}, strings.NewReader("testtest"))
+	}, strings.NewReader(testPlayload), int64(len([]byte(testPlayload))))
 	assert.NoError(t, err)
 
 	release := repo_model.Release{
@@ -240,11 +241,12 @@ func TestRelease_Update(t *testing.T) {
 	assert.Equal(t, tagName, release.TagName)
 
 	// Add new attachments
+	samplePayload := "testtest"
 	attach, err := attachment.NewAttachment(&repo_model.Attachment{
 		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
-	}, strings.NewReader("testtest"))
+	}, strings.NewReader(samplePayload), int64(len([]byte(samplePayload))))
 	assert.NoError(t, err)
 
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, []string{attach.UUID}, nil, nil))
@@ -297,13 +299,13 @@ func TestRelease_createTag(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}
-	_, err = createTag(gitRepo, release, "")
+	_, err = createTag(db.DefaultContext, gitRepo, release, "")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, release.CreatedUnix)
 	releaseCreatedUnix := release.CreatedUnix
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Note = "Changed note"
-	_, err = createTag(gitRepo, release, "")
+	_, err = createTag(db.DefaultContext, gitRepo, release, "")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
@@ -321,12 +323,12 @@ func TestRelease_createTag(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}
-	_, err = createTag(gitRepo, release, "")
+	_, err = createTag(db.DefaultContext, gitRepo, release, "")
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Title = "Changed title"
-	_, err = createTag(gitRepo, release, "")
+	_, err = createTag(db.DefaultContext, gitRepo, release, "")
 	assert.NoError(t, err)
 	assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
@@ -344,13 +346,13 @@ func TestRelease_createTag(t *testing.T) {
 		IsPrerelease: true,
 		IsTag:        false,
 	}
-	_, err = createTag(gitRepo, release, "")
+	_, err = createTag(db.DefaultContext, gitRepo, release, "")
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Title = "Changed title"
 	release.Note = "Changed note"
-	_, err = createTag(gitRepo, release, "")
+	_, err = createTag(db.DefaultContext, gitRepo, release, "")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 }

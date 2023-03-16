@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -16,12 +15,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 	org_service "code.gitea.io/gitea/services/org"
 )
 
@@ -59,7 +58,7 @@ func ListTeams(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeams, err := convert.ToTeams(teams, false)
+	apiTeams, err := convert.ToTeams(ctx, teams, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ConvertToTeams", err)
 		return
@@ -98,7 +97,7 @@ func ListUserTeams(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeams, err := convert.ToTeams(teams, true)
+	apiTeams, err := convert.ToTeams(ctx, teams, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ConvertToTeams", err)
 		return
@@ -126,7 +125,7 @@ func GetTeam(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Team"
 
-	apiTeam, err := convert.ToTeam(ctx.Org.Team)
+	apiTeam, err := convert.ToTeam(ctx, ctx.Org.Team)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -224,7 +223,7 @@ func CreateTeam(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeam, err := convert.ToTeam(team)
+	apiTeam, err := convert.ToTeam(ctx, team)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -257,7 +256,7 @@ func EditTeam(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditTeamOption)
 	team := ctx.Org.Team
-	if err := team.GetUnits(); err != nil {
+	if err := team.LoadUnits(ctx); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
@@ -307,7 +306,7 @@ func EditTeam(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeam, err := convert.ToTeam(team)
+	apiTeam, err := convert.ToTeam(ctx, team)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -384,7 +383,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 
 	members := make([]*api.User, len(teamMembers))
 	for i, member := range teamMembers {
-		members[i] = convert.ToUser(member, ctx.Doer)
+		members[i] = convert.ToUser(ctx, member, ctx.Doer)
 	}
 
 	ctx.SetTotalCountHeader(int64(ctx.Org.Team.NumMembers))
@@ -429,7 +428,7 @@ func GetTeamMember(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.Doer))
+	ctx.JSON(http.StatusOK, convert.ToUser(ctx, u, ctx.Doer))
 }
 
 // AddTeamMember api for add a member to a team
@@ -542,12 +541,12 @@ func GetTeamRepos(ctx *context.APIContext) {
 	}
 	repos := make([]*api.Repository, len(teamRepos))
 	for i, repo := range teamRepos {
-		access, err := access_model.AccessLevel(ctx.Doer, repo)
+		access, err := access_model.AccessLevel(ctx, ctx.Doer, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 			return
 		}
-		repos[i] = convert.ToRepo(repo, access)
+		repos[i] = convert.ToRepo(ctx, repo, access)
 	}
 	ctx.SetTotalCountHeader(int64(team.NumRepos))
 	ctx.JSON(http.StatusOK, repos)
@@ -593,13 +592,13 @@ func GetTeamRepo(ctx *context.APIContext) {
 		return
 	}
 
-	access, err := access_model.AccessLevel(ctx.Doer, repo)
+	access, err := access_model.AccessLevel(ctx, ctx.Doer, repo)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(repo, access))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, access))
 }
 
 // getRepositoryByParams get repository by a team's organization ID and repo name
@@ -650,7 +649,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if access, err := access_model.AccessLevel(ctx.Doer, repo); err != nil {
+	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
 	} else if access < perm.AccessModeAdmin {
@@ -700,7 +699,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if access, err := access_model.AccessLevel(ctx.Doer, repo); err != nil {
+	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
 	} else if access < perm.AccessModeAdmin {
@@ -780,7 +779,7 @@ func SearchTeam(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeams, err := convert.ToTeams(teams, false)
+	apiTeams, err := convert.ToTeams(ctx, teams, false)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

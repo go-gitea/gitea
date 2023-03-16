@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -18,7 +17,8 @@ func runSendMail(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setting.LoadFromExisting()
+	setting.InitProviderFromExistingFile()
+	setting.LoadCommonSettings()
 
 	if err := argsSet(c, "title"); err != nil {
 		return err

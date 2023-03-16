@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package access
 
@@ -176,7 +175,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		}
 	}
 
-	if err = repo.GetOwner(ctx); err != nil {
+	if err = repo.LoadOwner(ctx); err != nil {
 		return
 	}
 
@@ -211,7 +210,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		return
 	}
 
-	if err = repo.GetOwner(ctx); err != nil {
+	if err = repo.LoadOwner(ctx); err != nil {
 		return
 	}
 	if !repo.Owner.IsOrganization() {
@@ -245,7 +244,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	for _, u := range repo.Units {
 		var found bool
 		for _, team := range teams {
-			teamMode := team.UnitAccessModeCtx(ctx, u.Type)
+			teamMode := team.UnitAccessMode(ctx, u.Type)
 			if teamMode > perm_model.AccessModeNone {
 				m := perm.UnitsMode[u.Type]
 				if m < teamMode {
@@ -282,7 +281,7 @@ func IsUserRealRepoAdmin(repo *repo_model.Repository, user *user_model.User) (bo
 		return true, nil
 	}
 
-	if err := repo.GetOwner(db.DefaultContext); err != nil {
+	if err := repo.LoadOwner(db.DefaultContext); err != nil {
 		return false, err
 	}
 
@@ -326,17 +325,13 @@ func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *use
 
 // AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
 // user does not have access.
-func AccessLevel(user *user_model.User, repo *repo_model.Repository) (perm_model.AccessMode, error) { //nolint
-	return AccessLevelUnit(user, repo, unit.TypeCode)
+func AccessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Repository) (perm_model.AccessMode, error) { //nolint
+	return AccessLevelUnit(ctx, user, repo, unit.TypeCode)
 }
 
 // AccessLevelUnit returns the Access a user has to a repository's. Will return NoneAccess if the
 // user does not have access.
-func AccessLevelUnit(user *user_model.User, repo *repo_model.Repository, unitType unit.Type) (perm_model.AccessMode, error) { //nolint
-	return accessLevelUnit(db.DefaultContext, user, repo, unitType)
-}
-
-func accessLevelUnit(ctx context.Context, user *user_model.User, repo *repo_model.Repository, unitType unit.Type) (perm_model.AccessMode, error) {
+func AccessLevelUnit(ctx context.Context, user *user_model.User, repo *repo_model.Repository, unitType unit.Type) (perm_model.AccessMode, error) { //nolint
 	perm, err := GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
 		return perm_model.AccessModeNone, err
@@ -346,7 +341,7 @@ func accessLevelUnit(ctx context.Context, user *user_model.User, repo *repo_mode
 
 // HasAccessUnit returns true if user has testMode to the unit of the repository
 func HasAccessUnit(ctx context.Context, user *user_model.User, repo *repo_model.Repository, unitType unit.Type, testMode perm_model.AccessMode) (bool, error) {
-	mode, err := accessLevelUnit(ctx, user, repo, unitType)
+	mode, err := AccessLevelUnit(ctx, user, repo, unitType)
 	return testMode <= mode, err
 }
 
@@ -369,7 +364,7 @@ func HasAccess(ctx context.Context, userID int64, repo *repo_model.Repository) (
 	var user *user_model.User
 	var err error
 	if userID > 0 {
-		user, err = user_model.GetUserByIDCtx(ctx, userID)
+		user, err = user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			return false, err
 		}
@@ -383,7 +378,7 @@ func HasAccess(ctx context.Context, userID int64, repo *repo_model.Repository) (
 
 // getUsersWithAccessMode returns users that have at least given access mode to the repository.
 func getUsersWithAccessMode(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode) (_ []*user_model.User, err error) {
-	if err = repo.GetOwner(ctx); err != nil {
+	if err = repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 

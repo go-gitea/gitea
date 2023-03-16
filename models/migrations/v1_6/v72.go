@@ -1,8 +1,7 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
-package v1_6 // nolint
+package v1_6 //nolint
 
 import (
 	"fmt"

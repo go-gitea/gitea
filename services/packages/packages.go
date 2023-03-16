@@ -1,16 +1,15 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -22,7 +21,6 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	container_service "code.gitea.io/gitea/services/packages/container"
 )
 
 var (
@@ -108,12 +106,12 @@ func createPackageAndAddFile(pvci *PackageCreationInfo, pfci *PackageFileCreatio
 	}
 
 	if created {
-		pd, err := packages_model.GetPackageDescriptor(ctx, pv)
+		pd, err := packages_model.GetPackageDescriptor(db.DefaultContext, pv)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		notification.NotifyPackageCreate(pvci.Creator, pd)
+		notification.NotifyPackageCreate(db.DefaultContext, pvci.Creator, pd)
 	}
 
 	return pv, pf, nil
@@ -173,7 +171,7 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 	}
 
 	if versionCreated {
-		if err := checkCountQuotaExceeded(ctx, pvci.Creator, pvci.Owner); err != nil {
+		if err := CheckCountQuotaExceeded(ctx, pvci.Creator, pvci.Owner); err != nil {
 			return nil, false, err
 		}
 
@@ -230,17 +228,17 @@ func NewPackageBlob(hsr packages_module.HashedSizeReader) *packages_model.Packag
 
 	return &packages_model.PackageBlob{
 		Size:       hsr.Size(),
-		HashMD5:    fmt.Sprintf("%x", hashMD5),
-		HashSHA1:   fmt.Sprintf("%x", hashSHA1),
-		HashSHA256: fmt.Sprintf("%x", hashSHA256),
-		HashSHA512: fmt.Sprintf("%x", hashSHA512),
+		HashMD5:    hex.EncodeToString(hashMD5),
+		HashSHA1:   hex.EncodeToString(hashSHA1),
+		HashSHA256: hex.EncodeToString(hashSHA256),
+		HashSHA512: hex.EncodeToString(hashSHA512),
 	}
 }
 
 func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
 	log.Trace("Adding package file: %v, %s", pv.ID, pfci.Filename)
 
-	if err := checkSizeQuotaExceeded(ctx, pfci.Creator, pvi.Owner, pvi.PackageType, pfci.Data.Size()); err != nil {
+	if err := CheckSizeQuotaExceeded(ctx, pfci.Creator, pvi.Owner, pvi.PackageType, pfci.Data.Size()); err != nil {
 		return nil, nil, false, err
 	}
 
@@ -302,7 +300,9 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 	return pf, pb, !exists, nil
 }
 
-func checkCountQuotaExceeded(ctx context.Context, doer, owner *user_model.User) error {
+// CheckCountQuotaExceeded checks if the owner has more than the allowed packages
+// The check is skipped if the doer is an admin.
+func CheckCountQuotaExceeded(ctx context.Context, doer, owner *user_model.User) error {
 	if doer.IsAdmin {
 		return nil
 	}
@@ -324,17 +324,25 @@ func checkCountQuotaExceeded(ctx context.Context, doer, owner *user_model.User) 
 	return nil
 }
 
-func checkSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, packageType packages_model.Type, uploadSize int64) error {
+// CheckSizeQuotaExceeded checks if the upload size is bigger than the allowed size
+// The check is skipped if the doer is an admin.
+func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, packageType packages_model.Type, uploadSize int64) error {
 	if doer.IsAdmin {
 		return nil
 	}
 
 	var typeSpecificSize int64
 	switch packageType {
+	case packages_model.TypeCargo:
+		typeSpecificSize = setting.Packages.LimitSizeCargo
+	case packages_model.TypeChef:
+		typeSpecificSize = setting.Packages.LimitSizeChef
 	case packages_model.TypeComposer:
 		typeSpecificSize = setting.Packages.LimitSizeComposer
 	case packages_model.TypeConan:
 		typeSpecificSize = setting.Packages.LimitSizeConan
+	case packages_model.TypeConda:
+		typeSpecificSize = setting.Packages.LimitSizeConda
 	case packages_model.TypeContainer:
 		typeSpecificSize = setting.Packages.LimitSizeContainer
 	case packages_model.TypeGeneric:
@@ -353,6 +361,8 @@ func checkSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizePyPI
 	case packages_model.TypeRubyGems:
 		typeSpecificSize = setting.Packages.LimitSizeRubyGems
+	case packages_model.TypeSwift:
+		typeSpecificSize = setting.Packages.LimitSizeSwift
 	case packages_model.TypeVagrant:
 		typeSpecificSize = setting.Packages.LimitSizeVagrant
 	}
@@ -361,11 +371,11 @@ func checkSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 	}
 
 	if setting.Packages.LimitTotalOwnerSize > -1 {
-		totalSize, err := packages_model.CalculateBlobSize(ctx, &packages_model.PackageFileSearchOptions{
+		totalSize, err := packages_model.CalculateFileSize(ctx, &packages_model.PackageFileSearchOptions{
 			OwnerID: owner.ID,
 		})
 		if err != nil {
-			log.Error("CalculateBlobSize failed: %v", err)
+			log.Error("CalculateFileSize failed: %v", err)
 			return err
 		}
 		if totalSize+uploadSize > setting.Packages.LimitTotalOwnerSize {
@@ -409,7 +419,7 @@ func RemovePackageVersion(doer *user_model.User, pv *packages_model.PackageVersi
 		return err
 	}
 
-	notification.NotifyPackageDelete(doer, pd)
+	notification.NotifyPackageDelete(db.DefaultContext, doer, pd)
 
 	return nil
 }
@@ -440,56 +450,6 @@ func DeletePackageFile(ctx context.Context, pf *packages_model.PackageFile) erro
 		return err
 	}
 	return packages_model.DeleteFileByID(ctx, pf.ID)
-}
-
-// Cleanup removes expired package data
-func Cleanup(unused context.Context, olderThan time.Duration) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := container_service.Cleanup(ctx, olderThan); err != nil {
-		return err
-	}
-
-	ps, err := packages_model.FindUnreferencedPackages(ctx)
-	if err != nil {
-		return err
-	}
-	for _, p := range ps {
-		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypePackage, p.ID); err != nil {
-			return err
-		}
-		if err := packages_model.DeletePackageByID(ctx, p.ID); err != nil {
-			return err
-		}
-	}
-
-	pbs, err := packages_model.FindExpiredUnreferencedBlobs(ctx, olderThan)
-	if err != nil {
-		return err
-	}
-
-	for _, pb := range pbs {
-		if err := packages_model.DeleteBlobByID(ctx, pb.ID); err != nil {
-			return err
-		}
-	}
-
-	if err := committer.Commit(); err != nil {
-		return err
-	}
-
-	contentStore := packages_module.NewContentStore()
-	for _, pb := range pbs {
-		if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
-			log.Error("Error deleting package blob [%v]: %v", pb.ID, err)
-		}
-	}
-
-	return nil
 }
 
 // GetFileStreamByPackageNameAndVersion returns the content of the specific package file

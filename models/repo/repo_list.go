@@ -1,12 +1,10 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -15,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -63,7 +62,8 @@ func RepositoryListOfMap(repoMap map[int64]*Repository) RepositoryList {
 	return RepositoryList(ValuesRepository(repoMap))
 }
 
-func (repos RepositoryList) loadAttributes(ctx context.Context) error {
+// LoadAttributes loads the attributes for the given RepositoryList
+func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 	if len(repos) == 0 {
 		return nil
 	}
@@ -106,11 +106,6 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// LoadAttributes loads the attributes for the given RepositoryList
-func (repos RepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(db.DefaultContext)
 }
 
 // SearchRepoOptions holds the search options
@@ -495,19 +490,23 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	}
 
 	if opts.OnlyShowRelevant {
-		// Only show a repo that either has a topic or description.
+		// Only show a repo that has at least a topic, an icon, or a description
 		subQueryCond := builder.NewCond()
 
-		// Topic checking. Topics is non-null.
-		subQueryCond = subQueryCond.Or(builder.And(builder.Neq{"topics": "null"}, builder.Neq{"topics": "[]"}))
+		// Topic checking. Topics are present.
+		if setting.Database.Type.IsPostgreSQL() { // postgres stores the topics as json and not as text
+			subQueryCond = subQueryCond.Or(builder.And(builder.NotNull{"topics"}, builder.Neq{"(topics)::text": "[]"}))
+		} else {
+			subQueryCond = subQueryCond.Or(builder.And(builder.Neq{"topics": "null"}, builder.Neq{"topics": "[]"}))
+		}
 
-		// Description checking. Description not empty.
+		// Description checking. Description not empty
 		subQueryCond = subQueryCond.Or(builder.Neq{"description": ""})
 
-		// Repo has a avatar.
+		// Repo has a avatar
 		subQueryCond = subQueryCond.Or(builder.Neq{"avatar": ""})
 
-		// Always hide repo's that are empty.
+		// Always hide repo's that are empty
 		subQueryCond = subQueryCond.And(builder.Eq{"is_empty": false})
 
 		cond = cond.And(subQueryCond)
@@ -518,14 +517,13 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 
 // SearchRepository returns repositories based on search options,
 // it returns results in given range and number of total results.
-func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
+func SearchRepository(ctx context.Context, opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	cond := SearchRepositoryCondition(opts)
-	return SearchRepositoryByCondition(opts, cond, true)
+	return SearchRepositoryByCondition(ctx, opts, cond, true)
 }
 
 // SearchRepositoryByCondition search repositories by condition
-func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
-	ctx := db.DefaultContext
+func SearchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
 	sess, count, err := searchRepositoryByCondition(ctx, opts, cond)
 	if err != nil {
 		return nil, 0, err
@@ -545,7 +543,7 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 	}
 
 	if loadAttributes {
-		if err := repos.loadAttributes(ctx); err != nil {
+		if err := repos.LoadAttributes(ctx); err != nil {
 			return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
 		}
 	}
@@ -652,9 +650,9 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
-func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, error) {
+func SearchRepositoryByName(ctx context.Context, opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	opts.IncludeDescription = false
-	return SearchRepository(opts)
+	return SearchRepository(ctx, opts)
 }
 
 // SearchRepositoryIDs takes keyword and part of repository name to search,
@@ -710,7 +708,7 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 
 	cond := builder.NewCond()
 	if opts.Actor == nil {
-		return nil, 0, errors.New("GetUserRepositories: Actor is needed but not given")
+		return nil, 0, util.NewInvalidArgumentErrorf("GetUserRepositories: Actor is needed but not given")
 	}
 	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {

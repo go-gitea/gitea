@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package base
 
@@ -150,13 +149,13 @@ func MainTest(m *testing.M) {
 	setting.AppDataPath = tmpDataPath
 
 	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadForTest()
+	setting.InitProviderAndLoadCommonSettingsForTest()
 	if err = git.InitFull(context.Background()); err != nil {
 		fmt.Printf("Unable to InitFull: %v\n", err)
 		os.Exit(1)
 	}
-	setting.InitDBConfig()
-	setting.NewLogServices(true)
+	setting.LoadDBSetting()
+	setting.InitLogs(true)
 
 	exitStatus := m.Run()
 

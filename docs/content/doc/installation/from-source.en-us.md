@@ -94,7 +94,7 @@ are provided to keep the build process as simple as possible.
 
 Depending on requirements, the following build tags can be included.
 
-- `bindata`: Build a single monolithic binary, with all assets included.
+- `bindata`: Build a single monolithic binary, with all assets included. Required for production build.
 - `sqlite sqlite_unlock_notify`: Enable support for a
   [SQLite3](https://sqlite.org/) database. Suggested only for tiny
   installations.
@@ -103,11 +103,10 @@ Depending on requirements, the following build tags can be included.
   available to PAM.
 - `gogit`: (EXPERIMENTAL) Use go-git variants of Git commands.
 
-Bundling assets into the binary using the `bindata` build tag is recommended for
-production deployments. It is possible to serve the static assets directly via a reverse proxy,
-but in most cases it is not necessary, and assets should still be bundled in the binary.
-You may want to exclude bindata while developing/testing Gitea.
-To include assets, add the `bindata` tag:
+Bundling all assets (JS/CSS/templates, etc) into the binary. Using the `bindata` build tag is required for
+production deployments. You could exclude `bindata` when you are developing/testing Gitea or able to separate the assets correctly.
+
+To include all assets, use the `bindata` tag:
 
 ```bash
 TAGS="bindata" make build
@@ -146,7 +145,7 @@ launched manually from command line, it can be killed by pressing `Ctrl + C`.
 
 Gitea will search for a number of things from the _`CustomPath`_. By default this is
 the `custom/` directory in the current working directory when running Gitea. It will also
-look for its configuration file _`CustomConf`_ in _`CustomPath`_/conf/app.ini`, and will use the
+look for its configuration file _`CustomConf`_ in `$(CustomPath)/conf/app.ini`, and will use the
 current working directory as the relative base path _`AppWorkPath`_ for a number configurable
 values. Finally the static files will be served from _`StaticRootPath`_ which defaults to the _`AppWorkPath`_.
 
@@ -160,7 +159,7 @@ using the `LDFLAGS` environment variable for `make`. The appropriate settings ar
 - For _`CustomConf`_ you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
 - For _`AppWorkPath`_ you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
 - For _`StaticRootPath`_ you should use `-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
-- To change the default PID file location use `-X \"code.gitea.io/gitea/modules/setting.PIDFile=/run/gitea.pid\"`
+- To change the default PID file location use `-X \"code.gitea.io/gitea/cmd.PIDFile=/run/gitea.pid\"`
 
 Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
 with the appropriate `TAGS` as above.
@@ -194,3 +193,13 @@ LDFLAGS="-linkmode external -extldflags '-static' $LDFLAGS" TAGS="netgo osusergo
 ```
 
 This can be combined with `CC`, `GOOS`, and `GOARCH` as above.
+
+### Adding bash/zsh autocompletion (from 1.19)
+
+A script to enable bash-completion can be found at [`contrib/autocompletion/bash_autocomplete`](https://raw.githubusercontent.com/go-gitea/gitea/main/contrib/autocompletion/bash_autocomplete). This should be altered as appropriate and can be `source` in your `.bashrc`
+or copied as `/usr/share/bash-completion/completions/gitea`.
+
+Similary a script for zsh-completion can be found at [`contrib/autocompletion/zsh_autocomplete`](https://raw.githubusercontent.com/go-gitea/gitea/main/contrib/autocompletion/zsh_autocomplete). This can be copied to `/usr/share/zsh/_gitea` or sourced within your
+`.zshrc`.
+
+YMMV and these scripts may need further improvement.

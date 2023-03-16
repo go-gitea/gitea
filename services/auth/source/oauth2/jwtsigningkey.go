@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package oauth2
 
@@ -10,7 +9,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -26,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/minio/sha256-simd"
 	ini "gopkg.in/ini.v1"
 )
 

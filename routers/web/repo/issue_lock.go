@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -22,13 +21,13 @@ func LockIssue(ctx *context.Context) {
 
 	if issue.IsLocked {
 		ctx.Flash.Error(ctx.Tr("repo.issues.lock_duplicate"))
-		ctx.Redirect(issue.HTMLURL())
+		ctx.Redirect(issue.Link())
 		return
 	}
 
 	if !form.HasValidReason() {
 		ctx.Flash.Error(ctx.Tr("repo.issues.lock.unknown_reason"))
-		ctx.Redirect(issue.HTMLURL())
+		ctx.Redirect(issue.Link())
 		return
 	}
 
@@ -41,7 +40,7 @@ func LockIssue(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(issue.HTMLURL())
+	ctx.Redirect(issue.Link())
 }
 
 // UnlockIssue unlocks a previously locked issue.
@@ -53,7 +52,7 @@ func UnlockIssue(ctx *context.Context) {
 
 	if !issue.IsLocked {
 		ctx.Flash.Error(ctx.Tr("repo.issues.unlock_error"))
-		ctx.Redirect(issue.HTMLURL())
+		ctx.Redirect(issue.Link())
 		return
 	}
 
@@ -65,5 +64,5 @@ func UnlockIssue(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(issue.HTMLURL())
+	ctx.Redirect(issue.Link())
 }

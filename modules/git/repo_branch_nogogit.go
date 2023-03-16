@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build !gogit
 
@@ -53,17 +52,17 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 
 // IsBranchExist returns true if given branch exists in current repository.
 func (repo *Repository) IsBranchExist(name string) bool {
-	if name == "" {
+	if repo == nil || name == "" {
 		return false
 	}
 
 	return repo.IsReferenceExist(BranchPrefix + name)
 }
 
-// GetBranchNames returns branches from the repository, skipping skip initial branches and
-// returning at most limit branches, or all branches if limit is 0.
+// GetBranchNames returns branches from the repository, skipping "skip" initial branches and
+// returning at most "limit" branches, or all branches if "limit" is 0.
 func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
-	return callShowRef(repo.Ctx, repo.Path, BranchPrefix, []CmdArg{BranchPrefix, "--sort=-committerdate"}, skip, limit)
+	return callShowRef(repo.Ctx, repo.Path, BranchPrefix, TrustedCmdArgs{BranchPrefix, "--sort=-committerdate"}, skip, limit)
 }
 
 // WalkReferences walks all the references from the repository
@@ -74,19 +73,19 @@ func WalkReferences(ctx context.Context, repoPath string, walkfn func(sha1, refn
 // WalkReferences walks all the references from the repository
 // refType should be empty, ObjectTag or ObjectBranch. All other values are equivalent to empty.
 func (repo *Repository) WalkReferences(refType ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
-	var args []CmdArg
+	var args TrustedCmdArgs
 	switch refType {
 	case ObjectTag:
-		args = []CmdArg{TagPrefix, "--sort=-taggerdate"}
+		args = TrustedCmdArgs{TagPrefix, "--sort=-taggerdate"}
 	case ObjectBranch:
-		args = []CmdArg{BranchPrefix, "--sort=-committerdate"}
+		args = TrustedCmdArgs{BranchPrefix, "--sort=-committerdate"}
 	}
 
 	return walkShowRef(repo.Ctx, repo.Path, args, skip, limit, walkfn)
 }
 
 // callShowRef return refs, if limit = 0 it will not limit
-func callShowRef(ctx context.Context, repoPath, trimPrefix string, extraArgs []CmdArg, skip, limit int) (branchNames []string, countAll int, err error) {
+func callShowRef(ctx context.Context, repoPath, trimPrefix string, extraArgs TrustedCmdArgs, skip, limit int) (branchNames []string, countAll int, err error) {
 	countAll, err = walkShowRef(ctx, repoPath, extraArgs, skip, limit, func(_, branchName string) error {
 		branchName = strings.TrimPrefix(branchName, trimPrefix)
 		branchNames = append(branchNames, branchName)
@@ -96,7 +95,7 @@ func callShowRef(ctx context.Context, repoPath, trimPrefix string, extraArgs []C
 	return branchNames, countAll, err
 }
 
-func walkShowRef(ctx context.Context, repoPath string, extraArgs []CmdArg, skip, limit int, walkfn func(sha1, refname string) error) (countAll int, err error) {
+func walkShowRef(ctx context.Context, repoPath string, extraArgs TrustedCmdArgs, skip, limit int, walkfn func(sha1, refname string) error) (countAll int, err error) {
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
 		_ = stdoutReader.Close()
@@ -105,7 +104,7 @@ func walkShowRef(ctx context.Context, repoPath string, extraArgs []CmdArg, skip,
 
 	go func() {
 		stderrBuilder := &strings.Builder{}
-		args := []CmdArg{"for-each-ref", "--format=%(objectname) %(refname)"}
+		args := TrustedCmdArgs{"for-each-ref", "--format=%(objectname) %(refname)"}
 		args = append(args, extraArgs...)
 		err := NewCommand(ctx, args...).Run(&RunOpts{
 			Dir:    repoPath,

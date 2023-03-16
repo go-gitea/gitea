@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package web
 
@@ -61,7 +60,7 @@ func WebfingerQuery(ctx *context.Context) {
 
 		u, err = user_model.GetUserByName(ctx, parts[0])
 	case "mailto":
-		u, err = user_model.GetUserByEmailContext(ctx, resource.Opaque)
+		u, err = user_model.GetUserByEmail(ctx, resource.Opaque)
 		if u != nil && u.KeepEmailPrivate {
 			err = user_model.ErrUserNotExist{}
 		}
@@ -100,7 +99,7 @@ func WebfingerQuery(ctx *context.Context) {
 		},
 		{
 			Rel:  "http://webfinger.net/rel/avatar",
-			Href: u.AvatarLink(),
+			Href: u.AvatarLink(ctx),
 		},
 		{
 			Rel:  "self",

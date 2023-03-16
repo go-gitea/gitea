@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content admin edit authentication">
+<div role="main" aria-label="{{.Title}}" class="page-content admin edit authentication">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -45,7 +45,7 @@
 						<label for="port">{{.locale.Tr "admin.auths.port"}}</label>
 						<input id="port" name="port" value="{{$cfg.Port}}"  placeholder="e.g. 636" required>
 					</div>
-					<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
+					<div class="has-tls inline field {{if not .HasTLS}}gt-hidden{{end}}">
 						<div class="ui checkbox">
 							<label><strong>{{.locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
 							<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>
@@ -117,7 +117,7 @@
 							<input type="checkbox" name="groups_enabled" class="js-ldap-group-toggle" {{if $cfg.GroupsEnabled}}checked{{end}}>
 						</div>
 					</div>
-					<div id="ldap-group-options" class="ui segment secondary" {{if not $cfg.GroupsEnabled}}hidden{{end}}>
+					<div id="ldap-group-options" class="ui segment secondary {{if not $cfg.GroupsEnabled}}gt-hidden{{end}}">
 						<div class="field">
 							<label>{{.locale.Tr "admin.auths.group_search_base"}}</label>
 							<input name="group_dn" value="{{$cfg.GroupDN}}" placeholder="e.g. ou=group,dc=mydomain,dc=com">
@@ -152,7 +152,7 @@
 								<input id="use_paged_search" name="use_paged_search" type="checkbox" {{if $cfg.UsePagedSearch}}checked{{end}}>
 							</div>
 						</div>
-						<div class="field required search-page-size{{if not $cfg.UsePagedSearch}} hide{{end}}">
+						<div class="field required search-page-size{{if not $cfg.UsePagedSearch}} gt-hidden{{end}}">
 							<label for="search_page_size">{{.locale.Tr "admin.auths.search_page_size"}}</label>
 							<input id="search_page_size" name="search_page_size" value="{{if $cfg.UsePagedSearch}}{{$cfg.SearchPageSize}}{{end}}">
 						</div>
@@ -209,7 +209,7 @@
 						</div>
 						<p class="help">{{.locale.Tr "admin.auths.force_smtps_helper"}}</p>
 					</div>
-					<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
+					<div class="has-tls inline field {{if not .HasTLS}}gt-hidden{{end}}">
 						<div class="ui checkbox">
 							<label><strong>{{.locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
 							<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>
@@ -361,6 +361,14 @@
 						<label for="oauth2_restricted_group">{{.locale.Tr "admin.auths.oauth2_restricted_group"}}</label>
 						<input id="oauth2_restricted_group" name="oauth2_restricted_group" value="{{$cfg.RestrictedGroup}}">
 					</div>
+					<div class="field">
+						<label>{{.locale.Tr "admin.auths.oauth2_map_group_to_team"}}</label>
+						<input name="oauth2_group_team_map" value="{{$cfg.GroupTeamMap}}" placeholder='e.g. {"Developer": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>
+					</div>
+					<div class="ui checkbox">
+						<label>{{.locale.Tr "admin.auths.oauth2_map_group_to_team_removal"}}</label>
+						<input name="oauth2_group_team_map_removal" type="checkbox" {{if $cfg.GroupTeamMapRemoval}}checked{{end}}>
+					</div>
 				{{end}}
 
 				<!-- SSPI -->
@@ -425,7 +433,7 @@
 
 				<div class="field">
 					<button class="ui green button">{{.locale.Tr "admin.auths.update"}}</button>
-					<div class="ui red button delete-button" data-url="{{$.Link}}/delete" data-id="{{.Source.ID}}">{{.locale.Tr "admin.auths.delete"}}</div>
+					<button class="ui red button delete-button" data-url="{{$.Link}}/delete" data-id="{{.Source.ID}}">{{.locale.Tr "admin.auths.delete"}}</button>
 				</div>
 			</form>
 		</div>

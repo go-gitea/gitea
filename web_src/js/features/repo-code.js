@@ -1,10 +1,10 @@
 import $ from 'jquery';
 import {svg} from '../svg.js';
 import {invertFileFolding} from './file-fold.js';
-import {createTippy, showTemporaryTooltip} from '../modules/tippy.js';
+import {createTippy} from '../modules/tippy.js';
 import {copyToClipboard} from './clipboard.js';
+import {toAbsoluteUrl} from '../utils.js';
 
-const {i18n} = window.config;
 export const singleAnchorRegex = /^#(L|n)([1-9][0-9]*)$/;
 export const rangeAnchorRegex = /^#(L[1-9][0-9]*)-(L[1-9][0-9]*)$/;
 
@@ -20,17 +20,18 @@ function selectRange($list, $select, $from) {
   $list.removeClass('active');
 
   // add hashchange to permalink
-  const $issue = $('a.ref-in-new-issue');
+  const $refInNewIssue = $('a.ref-in-new-issue');
   const $copyPermalink = $('a.copy-line-permalink');
   const $viewGitBlame = $('a.view_git_blame');
 
   const updateIssueHref = function (anchor) {
-    if ($issue.length === 0) {
+    if ($refInNewIssue.length === 0) {
       return;
     }
-    let href = $issue.attr('href');
-    href = `${href.replace(/%23L\d+$|%23L\d+-L\d+$/, '')}%23${anchor}`;
-    $issue.attr('href', href);
+    const urlIssueNew = $refInNewIssue.attr('data-url-issue-new');
+    const urlParamBodyLink = $refInNewIssue.attr('data-url-param-body-link');
+    const issueContent = `${toAbsoluteUrl(urlParamBodyLink)}#${anchor}`; // the default content for issue body
+    $refInNewIssue.attr('href', `${urlIssueNew}?body=${encodeURIComponent(issueContent)}`);
   };
 
   const updateViewGitBlameFragment = function (anchor) {
@@ -114,18 +115,6 @@ function showLineButton() {
   });
 }
 
-function initCopyFileContent() {
-  // get raw text for copy content button, at the moment, only one button (and one related file content) is supported.
-  const copyFileContent = document.querySelector('#copy-file-content');
-  if (!copyFileContent) return;
-
-  copyFileContent.addEventListener('click', async () => {
-    const text = Array.from(document.querySelectorAll('.file-view .lines-code')).map((el) => el.textContent).join('');
-    const success = await copyToClipboard(text);
-    showTemporaryTooltip(copyFileContent, success ? i18n.copy_success : i18n.copy_error);
-  });
-}
-
 export function initRepoCodeView() {
   if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
@@ -201,9 +190,8 @@ export function initRepoCodeView() {
     currentTarget.closest('tr').outerHTML = blob;
   });
   $(document).on('click', '.copy-line-permalink', async (e) => {
-    const success = await copyToClipboard(e.currentTarget.getAttribute('data-url'));
+    const success = await copyToClipboard(toAbsoluteUrl(e.currentTarget.getAttribute('data-url')));
     if (!success) return;
     document.querySelector('.code-line-button')?._tippy?.hide();
   });
-  initCopyFileContent();
 }

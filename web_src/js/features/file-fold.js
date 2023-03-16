@@ -1,6 +1,5 @@
 import {svg} from '../svg.js';
 
-
 // Hides the file if newFold is true, and shows it otherwise. The actual hiding is performed using CSS.
 //
 // The fold arrow is the icon displayed on the upper left of the file box, especially intended for components having the 'fold-file' class.

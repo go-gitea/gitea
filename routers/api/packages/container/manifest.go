@@ -1,13 +1,14 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package container
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -16,15 +17,31 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/packages/container/oci"
+	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
+
+	digest "github.com/opencontainers/go-digest"
+	oci "github.com/opencontainers/image-spec/specs-go/v1"
 )
+
+func isValidMediaType(mt string) bool {
+	return strings.HasPrefix(mt, "application/vnd.docker.") || strings.HasPrefix(mt, "application/vnd.oci.")
+}
+
+func isImageManifestMediaType(mt string) bool {
+	return strings.EqualFold(mt, oci.MediaTypeImageManifest) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.v2+json")
+}
+
+func isImageIndexMediaType(mt string) bool {
+	return strings.EqualFold(mt, oci.MediaTypeImageIndex) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.list.v2+json")
+}
 
 // manifestCreationInfo describes a manifest to create
 type manifestCreationInfo struct {
-	MediaType  oci.MediaType
+	MediaType  string
 	Owner      *user_model.User
 	Creator    *user_model.User
 	Image      string
@@ -34,12 +51,12 @@ type manifestCreationInfo struct {
 }
 
 func processManifest(mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
-	var schema oci.SchemaMediaBase
-	if err := json.NewDecoder(buf).Decode(&schema); err != nil {
+	var index oci.Index
+	if err := json.NewDecoder(buf).Decode(&index); err != nil {
 		return "", err
 	}
 
-	if schema.SchemaVersion != 2 {
+	if index.SchemaVersion != 2 {
 		return "", errUnsupported.WithMessage("Schema version is not supported")
 	}
 
@@ -47,19 +64,17 @@ func processManifest(mci *manifestCreationInfo, buf *packages_module.HashedBuffe
 		return "", err
 	}
 
-	if !mci.MediaType.IsValid() {
-		mci.MediaType = schema.MediaType
-		if !mci.MediaType.IsValid() {
+	if !isValidMediaType(mci.MediaType) {
+		mci.MediaType = index.MediaType
+		if !isValidMediaType(mci.MediaType) {
 			return "", errManifestInvalid.WithMessage("MediaType not recognized")
 		}
 	}
 
-	if mci.MediaType.IsImageManifest() {
-		d, err := processImageManifest(mci, buf)
-		return d, err
-	} else if mci.MediaType.IsImageIndex() {
-		d, err := processImageManifestIndex(mci, buf)
-		return d, err
+	if isImageManifestMediaType(mci.MediaType) {
+		return processImageManifest(mci, buf)
+	} else if isImageIndexMediaType(mci.MediaType) {
+		return processImageManifestIndex(mci, buf)
 	}
 	return "", errManifestInvalid
 }
@@ -166,6 +181,10 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 			return err
 		}
 
+		if err := notifyPackageCreate(mci.Creator, pv); err != nil {
+			return err
+		}
+
 		manifestDigest = digest
 
 		return nil
@@ -202,7 +221,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 		}
 
 		for _, manifest := range index.Manifests {
-			if !manifest.MediaType.IsImageManifest() {
+			if !isImageManifestMediaType(manifest.MediaType) {
 				return errManifestInvalid
 			}
 
@@ -255,6 +274,10 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 			return err
 		}
 
+		if err := notifyPackageCreate(mci.Creator, pv); err != nil {
+			return err
+		}
+
 		manifestDigest = digest
 
 		return nil
@@ -264,6 +287,17 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 	}
 
 	return manifestDigest, nil
+}
+
+func notifyPackageCreate(doer *user_model.User, pv *packages_model.PackageVersion) error {
+	pd, err := packages_model.GetPackageDescriptor(db.DefaultContext, pv)
+	if err != nil {
+		return err
+	}
+
+	notification.NotifyPackageCreate(db.DefaultContext, doer, pd)
+
+	return nil
 }
 
 func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, metadata *container_module.Metadata) (*packages_model.PackageVersion, error) {
@@ -325,6 +359,10 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 		}
 	}
 
+	if err := packages_service.CheckCountQuotaExceeded(ctx, mci.Creator, mci.Owner); err != nil {
+		return nil, err
+	}
+
 	if mci.IsTagged {
 		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestTagged, ""); err != nil {
 			log.Error("Error setting package version property: %v", err)
@@ -342,8 +380,8 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 }
 
 type blobReference struct {
-	Digest       oci.Digest
-	MediaType    oci.MediaType
+	Digest       digest.Digest
+	MediaType    string
 	Name         string
 	File         *packages_model.PackageFileDescriptor
 	ExpectedSize int64
@@ -377,7 +415,7 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 	}
 
 	props := map[string]string{
-		container_module.PropertyMediaType: string(ref.MediaType),
+		container_module.PropertyMediaType: ref.MediaType,
 		container_module.PropertyDigest:    string(ref.Digest),
 	}
 	for name, value := range props {
@@ -403,6 +441,15 @@ func createManifestBlob(ctx context.Context, mci *manifestCreationInfo, pv *pack
 		log.Error("Error inserting package blob: %v", err)
 		return nil, false, "", err
 	}
+	// FIXME: Workaround to be removed in v1.20
+	// https://github.com/go-gitea/gitea/issues/19586
+	if exists {
+		err = packages_module.NewContentStore().Has(packages_module.BlobHash256Key(pb.HashSHA256))
+		if err != nil && (errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist)) {
+			log.Debug("Package registry inconsistent: blob %s does not exist on file system", pb.HashSHA256)
+			exists = false
+		}
+	}
 	if !exists {
 		contentStore := packages_module.NewContentStore()
 		if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), buf, buf.Size()); err != nil {
@@ -413,7 +460,7 @@ func createManifestBlob(ctx context.Context, mci *manifestCreationInfo, pv *pack
 
 	manifestDigest := digestFromHashSummer(buf)
 	err = createFileFromBlobReference(ctx, pv, nil, &blobReference{
-		Digest:       oci.Digest(manifestDigest),
+		Digest:       digest.Digest(manifestDigest),
 		MediaType:    mci.MediaType,
 		Name:         container_model.ManifestFilename,
 		File:         &packages_model.PackageFileDescriptor{Blob: pb},

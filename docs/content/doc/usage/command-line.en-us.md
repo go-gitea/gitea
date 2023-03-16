@@ -99,6 +99,13 @@ Admin operations:
         - `--password value`, `-p value`: New password. Required.
       - Examples:
         - `gitea admin user change-password --username myname --password asecurepassword`
+    - `must-change-password`:
+      - Args:
+        - `[username...]`: Users that must change their passwords
+      - Options:
+        - `--all`, `-A`: Force a password change for all users
+        - `--exclude username`, `-e username`: Exclude the given user. Can be set multiple times.
+        - `--unset`: Revoke forced password change for the given users
   - `regenerate`
     - Options:
       - `hooks`: Regenerate Git Hooks for all repositories
@@ -124,6 +131,7 @@ Admin operations:
         - `--secret`: Client Secret.
         - `--auto-discover-url`: OpenID Connect Auto Discovery URL (only required when using OpenID Connect as provider).
         - `--use-custom-urls`: Use custom URLs for GitLab/GitHub OAuth endpoints.
+        - `--custom-tenant-id`: Use custom Tenant ID for OAuth endpoints.
         - `--custom-auth-url`: Use a custom Authorization URL (option for GitLab/GitHub).
         - `--custom-token-url`: Use a custom Token URL (option for GitLab/GitHub).
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
@@ -136,6 +144,8 @@ Admin operations:
         - `--group-claim-name`: Claim name providing group names for this source. (Optional)
         - `--admin-group`: Group Claim value for administrator users. (Optional)
         - `--restricted-group`: Group Claim value for restricted users. (Optional)
+        - `--group-team-map`: JSON mapping between groups and org teams. (Optional)
+        - `--group-team-map-removal`: Activate automatic team membership removal depending on groups. (Optional)
       - Examples:
         - `gitea admin auth add-oauth --name external-github --provider github --key OBTAIN_FROM_SOURCE --secret OBTAIN_FROM_SOURCE`
     - `update-oauth`:
@@ -147,6 +157,7 @@ Admin operations:
         - `--secret`: Client Secret.
         - `--auto-discover-url`: OpenID Connect Auto Discovery URL (only required when using OpenID Connect as provider).
         - `--use-custom-urls`: Use custom URLs for GitLab/GitHub OAuth endpoints.
+        - `--custom-tenant-id`: Use custom Tenant ID for OAuth endpoints.
         - `--custom-auth-url`: Use a custom Authorization URL (option for GitLab/GitHub).
         - `--custom-token-url`: Use a custom Token URL (option for GitLab/GitHub).
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
@@ -382,7 +393,7 @@ Currently there are a check list below:
   Sometimes if you moved or renamed your Gitea binary when upgrade and you haven't run `Update the '.ssh/authorized_keys' file with Gitea SSH keys. (Not needed for the built-in SSH server.)` on your Admin Panel. Then all pull/push via SSH will not be work.
   This check will help you to check if it works well.
 
-For contributors, if you want to add more checks, you can wrie ad new function like `func(ctx *cli.Context) ([]string, error)` and
+For contributors, if you want to add more checks, you can write a new function like `func(ctx *cli.Context) ([]string, error)` and
 append it to `doctor.go`.
 
 ```go

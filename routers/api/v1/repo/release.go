@@ -1,6 +1,5 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -12,10 +11,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 	release_service "code.gitea.io/gitea/services/release"
 )
 
@@ -61,11 +60,52 @@ func GetRelease(ctx *context.APIContext) {
 		return
 	}
 
-	if err := release.LoadAttributes(); err != nil {
+	if err := release.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToRelease(release))
+	ctx.JSON(http.StatusOK, convert.ToRelease(ctx, release))
+}
+
+// GetLatestRelease gets the most recent non-prerelease, non-draft release of a repository, sorted by created_at
+func GetLatestRelease(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/releases/latest repository repoGetLatestRelease
+	// ---
+	// summary: Gets the most recent non-prerelease, non-draft release of a repository, sorted by created_at
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Release"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	release, err := repo_model.GetLatestReleaseByRepoID(ctx.Repo.Repository.ID)
+	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
+		ctx.Error(http.StatusInternalServerError, "GetLatestRelease", err)
+		return
+	}
+	if err != nil && repo_model.IsErrReleaseNotExist(err) ||
+		release.IsTag || release.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound()
+		return
+	}
+
+	if err := release.LoadAttributes(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToRelease(ctx, release))
 }
 
 // ListReleases list a repository's releases
@@ -123,18 +163,18 @@ func ListReleases(ctx *context.APIContext) {
 		IsPreRelease:  ctx.FormOptionalBool("pre-release"),
 	}
 
-	releases, err := repo_model.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
+	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetReleasesByRepoID", err)
 		return
 	}
 	rels := make([]*api.Release, len(releases))
 	for i, release := range releases {
-		if err := release.LoadAttributes(); err != nil {
+		if err := release.LoadAttributes(ctx); err != nil {
 			ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 			return
 		}
-		rels[i] = convert.ToRelease(release)
+		rels[i] = convert.ToRelease(ctx, release)
 	}
 
 	filteredCount, err := repo_model.CountReleasesByRepoID(ctx.Repo.Repository.ID, opts)
@@ -232,7 +272,7 @@ func CreateRelease(ctx *context.APIContext) {
 			return
 		}
 	}
-	ctx.JSON(http.StatusCreated, convert.ToRelease(rel))
+	ctx.JSON(http.StatusCreated, convert.ToRelease(ctx, rel))
 }
 
 // EditRelease edit a release
@@ -313,11 +353,11 @@ func EditRelease(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
 		return
 	}
-	if err := rel.LoadAttributes(); err != nil {
+	if err := rel.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToRelease(rel))
+	ctx.JSON(http.StatusOK, convert.ToRelease(ctx, rel))
 }
 
 // DeleteRelease delete a release from a repository

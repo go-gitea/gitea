@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package asymkey
 
@@ -410,14 +409,14 @@ func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys [
 		sshKeySplit := strings.Split(v, " ")
 		if len(sshKeySplit) > 1 {
 			key := strings.Join(sshKeySplit[:2], " ")
-			if !util.ExistsInSlice(key, providedKeys) {
+			if !util.SliceContainsString(providedKeys, key) {
 				providedKeys = append(providedKeys, key)
 			}
 		}
 	}
 
 	// Check if Public Key sync is needed
-	if util.IsEqualSlice(giteaKeys, providedKeys) {
+	if util.SliceSortedEqual(giteaKeys, providedKeys) {
 		log.Trace("synchronizePublicKeys[%s]: Public Keys are already in sync for %s (Source:%v/DB:%v)", s.Name, usr.Name, len(providedKeys), len(giteaKeys))
 		return false
 	}
@@ -426,7 +425,7 @@ func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys [
 	// Add new Public SSH Keys that doesn't already exist in DB
 	var newKeys []string
 	for _, key := range providedKeys {
-		if !util.ExistsInSlice(key, giteaKeys) {
+		if !util.SliceContainsString(giteaKeys, key) {
 			newKeys = append(newKeys, key)
 		}
 	}
@@ -437,7 +436,7 @@ func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys [
 	// Mark keys from DB that no longer exist in the source for deletion
 	var giteaKeysToDelete []string
 	for _, giteaKey := range giteaKeys {
-		if !util.ExistsInSlice(giteaKey, providedKeys) {
+		if !util.SliceContainsString(providedKeys, giteaKey) {
 			log.Trace("synchronizePublicKeys[%s]: Marking Public SSH Key for deletion for user %s: %v", s.Name, usr.Name, giteaKey)
 			giteaKeysToDelete = append(giteaKeysToDelete, giteaKey)
 		}

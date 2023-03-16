@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -13,11 +12,11 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/org"
 )
 
@@ -43,7 +42,7 @@ func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 
 	apiOrgs := make([]*api.Organization, len(orgs))
 	for i := range orgs {
-		apiOrgs[i] = convert.ToOrganization(orgs[i])
+		apiOrgs[i] = convert.ToOrganization(ctx, orgs[i])
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -212,7 +211,7 @@ func GetAll(ctx *context.APIContext) {
 	}
 	orgs := make([]*api.Organization, len(publicOrgs))
 	for i := range publicOrgs {
-		orgs[i] = convert.ToOrganization(organization.OrgFromUser(publicOrgs[i]))
+		orgs[i] = convert.ToOrganization(ctx, organization.OrgFromUser(publicOrgs[i]))
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -275,7 +274,7 @@ func Create(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToOrganization(org))
+	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }
 
 // Get get an organization
@@ -299,7 +298,7 @@ func Get(ctx *context.APIContext) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx.Org.Organization))
+	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, ctx.Org.Organization))
 }
 
 // Edit change an organization's information
@@ -345,7 +344,7 @@ func Edit(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToOrganization(org))
+	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, org))
 }
 
 // Delete an organization

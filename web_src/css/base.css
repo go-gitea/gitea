@@ -1,0 +1,2762 @@
+:root {
+  /* fonts */
+  --fonts-proportional: -apple-system, "Segoe UI", system-ui, "Roboto", "Helvetica Neue", "Arial";
+  --fonts-monospace: "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
+  --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
+  /* backgrounds */
+  --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
+  --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
+  /* non-color variables */
+  --border-radius: 0.28571429rem;
+  --opacity-disabled: 0.55;
+  --height-loading: 12rem;
+  /* base colors */
+  --color-primary: #4183c4;
+  --color-primary-contrast: #ffffff;
+  --color-primary-dark-1: #3876b3;
+  --color-primary-dark-2: #31699f;
+  --color-primary-dark-3: #2b5c8b;
+  --color-primary-dark-4: #254f77;
+  --color-primary-dark-5: #193450;
+  --color-primary-dark-6: #0c1a28;
+  --color-primary-dark-7: #04080c;
+  --color-primary-light-1: #548fca;
+  --color-primary-light-2: #679cd0;
+  --color-primary-light-3: #7aa8d6;
+  --color-primary-light-4: #8db5dc;
+  --color-primary-light-5: #b3cde7;
+  --color-primary-light-6: #d9e6f3;
+  --color-primary-light-7: #f4f8fb;
+  --color-primary-alpha-10: #4183c419;
+  --color-primary-alpha-20: #4183c433;
+  --color-primary-alpha-30: #4183c44b;
+  --color-primary-alpha-40: #4183c466;
+  --color-primary-alpha-50: #4183c480;
+  --color-primary-alpha-60: #4183c499;
+  --color-primary-alpha-70: #4183c4b3;
+  --color-primary-alpha-80: #4183c4cc;
+  --color-primary-alpha-90: #4183c4e1;
+  --color-secondary: #dedede;
+  --color-secondary-dark-1: #cecece;
+  --color-secondary-dark-2: #bfbfbf;
+  --color-secondary-dark-3: #a0a0a0;
+  --color-secondary-dark-4: #909090;
+  --color-secondary-dark-5: #818181;
+  --color-secondary-dark-6: #717171;
+  --color-secondary-dark-7: #626262;
+  --color-secondary-dark-8: #525252;
+  --color-secondary-dark-9: #434343;
+  --color-secondary-dark-10: #333333;
+  --color-secondary-dark-11: #242424;
+  --color-secondary-dark-12: #141414;
+  --color-secondary-dark-13: #040404;
+  --color-secondary-light-1: #e5e5e5;
+  --color-secondary-light-2: #ebebeb;
+  --color-secondary-light-3: #f2f2f2;
+  --color-secondary-light-4: #f8f8f8;
+  --color-secondary-alpha-10: #dedede19;
+  --color-secondary-alpha-20: #dedede33;
+  --color-secondary-alpha-30: #dedede4b;
+  --color-secondary-alpha-40: #dedede66;
+  --color-secondary-alpha-50: #dedede80;
+  --color-secondary-alpha-60: #dedede99;
+  --color-secondary-alpha-70: #dededeb3;
+  --color-secondary-alpha-80: #dededecc;
+  --color-secondary-alpha-90: #dededee1;
+  /* console colors */
+  --color-console-fg: #ffffff;
+  --color-console-bg: #171717;
+  /* named colors */
+  --color-red: #db2828;
+  --color-orange: #f2711c;
+  --color-yellow: #fbbd08;
+  --color-olive: #b5cc18;
+  --color-green: #21ba45;
+  --color-teal: #00b5ad;
+  --color-blue: #2185d0;
+  --color-violet: #6435c9;
+  --color-purple: #a333c8;
+  --color-pink: #e03997;
+  --color-brown: #a5673f;
+  --color-grey: #888888;
+  --color-black: #1b1c1d;
+  /* light variants - produced via Sass scale-color(color, $lightness: +25%) */
+  --color-red-light: #e45e5e;
+  --color-orange-light: #f59555;
+  --color-yellow-light: #fcce46;
+  --color-olive-light: #d3e942;
+  --color-green-light: #46de6a;
+  --color-teal-light: #08fff4;
+  --color-blue-light: #51a5e3;
+  --color-violet-light: #8b67d7;
+  --color-purple-light: #bb64d8;
+  --color-pink-light: #e86bb1;
+  --color-brown-light: #c58b66;
+  --color-grey-light: #a6a6a6;
+  --color-black-light: #525558;
+  /* other colors */
+  --color-gold: #a1882b;
+  --color-white: #ffffff;
+  --color-diff-removed-word-bg: #fdb8c0;
+  --color-diff-added-word-bg: #acf2bd;
+  --color-diff-removed-row-bg: #ffeef0;
+  --color-diff-moved-row-bg: #f1f8d1;
+  --color-diff-added-row-bg: #e6ffed;
+  --color-diff-removed-row-border: #f1c0c0;
+  --color-diff-moved-row-border: #d0e27f;
+  --color-diff-added-row-border: #e6ffed;
+  --color-diff-inactive: #f2f2f2;
+  --color-error-border: #e0b4b4;
+  --color-error-bg: #fff6f6;
+  --color-error-bg-active: #fbb;
+  --color-error-bg-hover: #fdd;
+  --color-error-text: #9f3a38;
+  --color-success-border: #a3c293;
+  --color-success-bg: #fcfff5;
+  --color-success-text: #2c662d;
+  --color-warning-border: #c9ba9b;
+  --color-warning-bg: #fffaf3;
+  --color-warning-text: #573a08;
+  --color-info-border: #a9d5de;
+  --color-info-bg: #f8ffff;
+  --color-info-text: #276f86;
+  --color-red-badge: #db2828;
+  --color-red-badge-bg: #db28281a;
+  --color-red-badge-hover-bg: #db28284d;
+  --color-green-badge: #21ba45;
+  --color-green-badge-bg: #21ba451a;
+  --color-green-badge-hover-bg: #21ba454d;
+  --color-yellow-badge: #fbbd08;
+  --color-yellow-badge-bg: #fbbd081a;
+  --color-yellow-badge-hover-bg: #fbbd084d;
+  --color-orange-badge: #f2711c;
+  --color-orange-badge-bg: #f2711c1a;
+  --color-orange-badge-hover-bg: #f2711c4d;
+  --color-git: #f05133;
+  /* target-based colors */
+  --color-body: #ffffff;
+  --color-text-dark: #080808;
+  --color-text: #212121;
+  --color-text-light: #555555;
+  --color-text-light-1: #6a6a6a;
+  --color-text-light-2: #808080;
+  --color-text-light-3: #a0a0a0;
+  --color-box-header: #f7f7f7;
+  --color-box-body: #ffffff;
+  --color-box-body-highlight: #f8f8f8;
+  --color-footer: #ffffff;
+  --color-timeline: #ececec;
+  --color-input-text: #212121;
+  --color-input-background: #ffffff;
+  --color-input-toggle-background: #dedede;
+  --color-input-border: #dedede;
+  --color-input-border-hover: #cecece;
+  --color-navbar: #f8f8f8;
+  --color-navbar-transparent: #f8f8f800;
+  --color-light: #00000006;
+  --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
+  --color-light-border: #0000001d;
+  --color-hover: #0000000c;
+  --color-active: #00000014;
+  --color-menu: #ffffff;
+  --color-card: #ffffff;
+  --color-markup-table-row: #00000008;
+  --color-markup-code-block: #00000010;
+  --color-button: #ffffff;
+  --color-code-bg: #ffffff;
+  --color-code-sidebar-bg: #f5f5f5;
+  --color-shadow: #00000030;
+  --color-secondary-bg: #f4f4f4;
+  --color-expand-button: #d8efff;
+  --color-placeholder-text: #aaa;
+  --color-editor-line-highlight: var(--color-primary-light-6);
+  --color-project-board-bg: var(--color-secondary-light-4);
+  --color-project-board-dark-label: #555555;
+  --color-project-board-light-label: #a6aab5;
+  --color-caret: var(--color-text-dark);
+  --color-reaction-bg: #0000000a;
+  --color-reaction-active-bg: var(--color-primary-alpha-20);
+  --color-tooltip-bg: #000000f0;
+  --color-tooltip-text: #ffffff;
+  --color-header-bar: #ffffff;
+  --color-label-active-bg: #d0d0d0;
+  --color-accent: var(--color-primary-light-1);
+  --color-small-accent: var(--color-primary-light-6);
+  --color-active-line: #fffbdd;
+  accent-color: var(--color-accent);
+  color-scheme: light;
+}
+
+:root * {
+  --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", sans-serif, var(--fonts-emoji);
+}
+
+textarea {
+  font-family: var(--fonts-regular);
+}
+
+pre,
+code,
+kbd,
+samp {
+  font-size: 0.9em; /* compensate for monospace fonts being usually slightly larger */
+  font-family: var(--fonts-monospace);
+}
+
+b,
+strong,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+}
+
+body {
+  color: var(--color-text);
+  background-color: var(--color-body);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: break-word;
+}
+
+@supports (overflow: overlay) {
+  body {
+    overflow: overlay; /* stylelint-disable-line */
+    scrollbar-gutter: stable;
+  }
+}
+
+img {
+  border-radius: 3px;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+details summary {
+  cursor: pointer;
+}
+
+details summary > * {
+  display: inline;
+}
+
+progress {
+  background: var(--color-secondary-dark-1);
+  border-radius: 6px;
+  border: none;
+  overflow: hidden;
+}
+
+progress::-webkit-progress-bar {
+  background: var(--color-secondary-dark-1);
+}
+
+progress::-webkit-progress-value {
+  background-color: var(--color-accent);
+}
+
+progress::-moz-progress-bar {
+  background-color: var(--color-accent);
+}
+
+* {
+  scrollbar-color: var(--color-primary) transparent;
+  caret-color: var(--color-caret);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  box-shadow: inset 0 0 0 6px var(--color-primary);
+  border: 2px solid transparent;
+  border-radius: 5px !important;
+}
+
+::-webkit-scrollbar-thumb:window-inactive {
+  box-shadow: inset 0 0 0 6px var(--color-primary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  box-shadow: inset 0 0 0 6px var(--color-primary-dark-2);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::file-selector-button {
+  border: 1px solid var(--color-light-border);
+  color: var(--color-text-light);
+  background: var(--color-light);
+  border-radius: var(--border-radius);
+}
+
+::file-selector-button:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
+::selection {
+  background: var(--color-primary-light-1) !important;
+  color: var(--color-white) !important;
+}
+
+::placeholder,
+.ui.dropdown:not(.button) > .default.text,
+.ui.default.dropdown:not(.button) > .text {
+  color: var(--color-placeholder-text) !important;
+  opacity: 1 !important;
+}
+
+.unselectable,
+.button,
+.lines-num,
+.lines-commit,
+.lines-commit .blame-info,
+.ellipsis-button {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+a,
+.ui.breadcrumb a {
+  color: var(--color-primary);
+  cursor: pointer;
+  text-decoration-skip-ink: all;
+}
+
+a.muted,
+.muted-links a {
+  color: inherit;
+}
+
+a:hover,
+a.muted:hover,
+a.muted:hover [class*="color-text"],
+.muted-links a:hover,
+.ui.breadcrumb a:hover {
+  color: var(--color-primary);
+}
+
+.delete-button,
+.delete-button:hover {
+  color: var(--color-red);
+}
+
+a.label,
+.repository-menu a,
+.ui.search .results a,
+.ui .menu a,
+.ui.cards a.card,
+.issue-keyword a {
+  text-decoration: none !important;
+}
+
+.ui.red.labels .label,
+.ui.ui.ui.red.label,
+.ui.red.button,
+.ui.red.buttons .button {
+  background: var(--color-red);
+}
+
+.ui.red.button:hover,
+.ui.red.buttons .button:hover {
+  background: var(--color-red-light);
+}
+
+.ui.basic.red.buttons .button,
+.ui.basic.red.button {
+  color: var(--color-red);
+  border-color: var(--color-red);
+}
+
+.ui.basic.red.buttons .button:hover,
+.ui.basic.red.button:hover {
+  color: var(--color-red-light);
+  border-color: var(--color-red-light);
+}
+
+.ui.orange.labels .label,
+.ui.ui.ui.orange.label,
+.ui.orange.button,
+.ui.orange.buttons .button {
+  background: var(--color-orange);
+}
+
+.ui.orange.button:hover,
+.ui.orange.buttons .button:hover {
+  background: var(--color-orange-light);
+}
+
+.ui.basic.orange.buttons .button,
+.ui.basic.orange.button {
+  color: var(--color-orange);
+  border-color: var(--color-orange);
+}
+
+.ui.basic.orange.buttons .button:hover,
+.ui.basic.orange.button:hover {
+  color: var(--color-orange-light);
+  border-color: var(--color-orange-light);
+}
+
+.ui.yellow.labels .label,
+.ui.ui.ui.yellow.label,
+.ui.yellow.button,
+.ui.yellow.buttons .button {
+  background: var(--color-yellow);
+}
+
+.ui.yellow.button:hover,
+.ui.yellow.buttons .button:hover {
+  background: var(--color-yellow-light);
+}
+
+.ui.basic.yellow.buttons .button,
+.ui.basic.yellow.button {
+  color: var(--color-yellow);
+  border-color: var(--color-yellow);
+}
+
+.ui.basic.yellow.buttons .button:hover,
+.ui.basic.yellow.button:hover {
+  color: var(--color-yellow-light);
+  border-color: var(--color-yellow-light);
+}
+
+.ui.olive.labels .label,
+.ui.ui.ui.olive.label,
+.ui.olive.button,
+.ui.olive.buttons .button {
+  background: var(--color-olive);
+}
+
+.ui.olive.button:hover,
+.ui.olive.buttons .button:hover {
+  background: var(--color-olive-light);
+}
+
+.ui.basic.olive.buttons .button,
+.ui.basic.olive.button {
+  color: var(--color-olive);
+  border-color: var(--color-olive);
+}
+
+.ui.basic.olive.buttons .button:hover,
+.ui.basic.olive.button:hover {
+  color: var(--color-olive-light);
+  border-color: var(--color-olive-light);
+}
+
+.ui.green.labels .label,
+.ui.ui.ui.green.label,
+.ui.green.button,
+.ui.green.buttons .button {
+  background: var(--color-green);
+}
+
+.ui.green.button:hover,
+.ui.green.buttons .button:hover {
+  background: var(--color-green-light);
+}
+
+.ui.basic.green.buttons .button,
+.ui.basic.green.button {
+  color: var(--color-green);
+  border-color: var(--color-green);
+}
+
+.ui.basic.green.buttons .button:hover,
+.ui.basic.green.button:hover {
+  color: var(--color-green-light);
+  border-color: var(--color-green-light);
+}
+
+.ui.teal.labels .label,
+.ui.ui.ui.teal.label,
+.ui.teal.button,
+.ui.teal.buttons .button {
+  background: var(--color-teal);
+}
+
+.ui.teal.button:hover,
+.ui.teal.buttons .button:hover {
+  background: var(--color-teal-light);
+}
+
+.ui.basic.teal.buttons .button,
+.ui.basic.teal.button {
+  color: var(--color-teal);
+  border-color: var(--color-teal);
+}
+
+.ui.basic.teal.buttons .button:hover,
+.ui.basic.teal.button:hover {
+  color: var(--color-teal-light);
+  border-color: var(--color-teal-light);
+}
+
+.ui.blue.labels .label,
+.ui.ui.ui.blue.label,
+.ui.blue.button,
+.ui.blue.buttons .button {
+  background: var(--color-blue);
+}
+
+.ui.blue.button:hover,
+.ui.blue.buttons .button:hover {
+  background: var(--color-blue-light);
+}
+
+.ui.basic.blue.buttons .button,
+.ui.basic.blue.button {
+  color: var(--color-blue);
+  border-color: var(--color-blue);
+}
+
+.ui.basic.blue.buttons .button:hover,
+.ui.basic.blue.button:hover {
+  color: var(--color-blue-light);
+  border-color: var(--color-blue-light);
+}
+
+.ui.violet.labels .label,
+.ui.ui.ui.violet.label,
+.ui.violet.button,
+.ui.violet.buttons .button {
+  background: var(--color-violet);
+}
+
+.ui.violet.button:hover,
+.ui.violet.buttons .button:hover {
+  background: var(--color-violet-light);
+}
+
+.ui.basic.violet.buttons .button,
+.ui.basic.violet.button {
+  color: var(--color-violet);
+  border-color: var(--color-violet);
+}
+
+.ui.basic.violet.buttons .button:hover,
+.ui.basic.violet.button:hover {
+  color: var(--color-violet-light);
+  border-color: var(--color-violet-light);
+}
+
+.ui.purple.labels .label,
+.ui.ui.ui.purple.label,
+.ui.purple.button,
+.ui.purple.buttons .button {
+  background: var(--color-purple);
+}
+
+.ui.purple.button:hover,
+.ui.purple.buttons .button:hover {
+  background: var(--color-purple-light);
+}
+
+.ui.basic.purple.buttons .button,
+.ui.basic.purple.button {
+  color: var(--color-purple);
+  border-color: var(--color-purple);
+}
+
+.ui.basic.purple.buttons .button:hover,
+.ui.basic.purple.button:hover {
+  color: var(--color-purple-light);
+  border-color: var(--color-purple-light);
+}
+
+.ui.pink.labels .label,
+.ui.ui.ui.pink.label,
+.ui.pink.button,
+.ui.pink.buttons .button {
+  background: var(--color-pink);
+}
+
+.ui.pink.button:hover,
+.ui.pink.buttons .button:hover {
+  background: var(--color-pink-light);
+}
+
+.ui.basic.pink.buttons .button,
+.ui.basic.pink.button {
+  color: var(--color-pink);
+  border-color: var(--color-pink);
+}
+
+.ui.basic.pink.buttons .button:hover,
+.ui.basic.pink.button:hover {
+  color: var(--color-pink-light);
+  border-color: var(--color-pink-light);
+}
+
+.ui.brown.labels .label,
+.ui.ui.ui.brown.label,
+.ui.brown.button,
+.ui.brown.buttons .button {
+  background: var(--color-brown);
+}
+
+.ui.brown.button:hover,
+.ui.brown.buttons .button:hover {
+  background: var(--color-brown-light);
+}
+
+.ui.basic.brown.buttons .button,
+.ui.basic.brown.button {
+  color: var(--color-brown);
+  border-color: var(--color-brown);
+}
+
+.ui.basic.brown.buttons .button:hover,
+.ui.basic.brown.button:hover {
+  color: var(--color-brown-light);
+  border-color: var(--color-brown-light);
+}
+
+.ui.grey.labels .label,
+.ui.ui.ui.grey.label,
+.ui.grey.button,
+.ui.grey.buttons .button {
+  background: var(--color-grey);
+}
+
+.ui.grey.button:hover,
+.ui.grey.buttons .button:hover {
+  background: var(--color-grey-light);
+}
+
+.ui.basic.grey.buttons .button,
+.ui.basic.grey.button {
+  color: var(--color-grey);
+  border-color: var(--color-grey);
+}
+
+.ui.basic.grey.buttons .button:hover,
+.ui.basic.grey.button:hover {
+  color: var(--color-grey-light);
+  border-color: var(--color-grey-light);
+}
+
+.ui.black.labels .label,
+.ui.ui.ui.black.label,
+.ui.black.button,
+.ui.black.buttons .button {
+  background: var(--color-black);
+}
+
+.ui.black.button:hover,
+.ui.black.buttons .button:hover {
+  background: var(--color-black-light);
+}
+
+.ui.basic.black.buttons .button,
+.ui.basic.black.button {
+  color: var(--color-black);
+  border-color: var(--color-black);
+}
+
+.ui.basic.black.buttons .button:hover,
+.ui.basic.black.button:hover {
+  color: var(--color-black-light);
+  border-color: var(--color-black-light);
+}
+
+.ui.negative.buttons .button,
+.ui.negative.button {
+  background: var(--color-red);
+}
+
+.ui.negative.buttons .button:hover,
+.ui.negative.button:hover {
+  background: var(--color-red-light);
+}
+
+.ui.positive.buttons .button,
+.ui.positive.button {
+  background: var(--color-green);
+}
+
+.ui.positive.buttons .button:hover,
+.ui.positive.button:hover {
+  background: var(--color-green-light);
+}
+
+.ui.search > .results {
+  background: var(--color-body);
+  border-color: var(--color-secondary);
+}
+
+.ui.search > .results .result {
+  background: var(--color-body);
+}
+
+.ui.search > .results .result .title {
+  color: var(--color-text-dark);
+}
+
+.ui.search > .results .result .description {
+  color: var(--color-text-light-2);
+}
+
+.ui.search > .results .result .image {
+  width: auto;
+  height: auto;
+}
+
+.ui.search > .results .result:hover,
+.ui.category.search > .results .category .result:hover {
+  background: var(--color-hover);
+}
+
+.issue-title code {
+  padding: 2px 4px;
+  border-radius: 6px;
+  background-color: var(--color-markup-code-block);
+}
+
+/* try to match button with no icons in height */
+.icon-button {
+  padding-top: 7.42px !important;
+  padding-bottom: 7.42px !important;
+}
+
+.ui.breadcrumb a:hover {
+  text-decoration: underline !important;
+}
+
+.ui.breadcrumb .divider {
+  color: var(--color-text-light-2);
+}
+
+.ui.divider:not(.vertical,.horizontal) {
+  border-top-color: var(--color-secondary) !important;
+  border-bottom: none !important;
+}
+
+.ui.dividing.header {
+  border-bottom-color: var(--color-secondary);
+}
+
+.page-content {
+  margin-top: 15px;
+}
+
+.page-content .header-wrapper,
+.page-content .new-menu {
+  margin-top: -15px !important;
+  padding-top: 15px !important;
+}
+
+.ui.input.focus > input,
+.ui.input > input:focus {
+  border-color: var(--color-primary);
+}
+
+/* currently used for search bar dropdowns in repo search and explore code */
+.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
+  min-width: 10em;
+}
+
+.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(:focus,:hover) {
+  border-right-color: transparent;
+}
+
+.ui.action.input:not([class*="left action"]) > input:focus {
+  border-right-color: var(--color-primary);
+}
+
+.ui.menu,
+.ui.vertical.menu {
+  background: var(--color-menu);
+  border-color: var(--color-secondary);
+}
+
+.ui.menu .item {
+  color: var(--color-text);
+  user-select: auto;
+}
+
+.ui.menu .item > .svg {
+  margin-right: 0.35em;
+}
+
+.ui.menu .item > .label {
+  background: var(--color-grey);
+}
+
+.ui.active.label {
+  background: var(--color-label-active-bg);
+  border-color: var(--color-label-active-bg);
+  color: var(--color-text-dark);
+}
+
+.ui.link.menu .item:hover,
+.ui.menu .dropdown.item:hover,
+.ui.menu .link.item:hover,
+.ui.menu a.item:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
+.ui.menu .active.item,
+.ui.menu .active.item:hover,
+.ui.vertical.menu .active.item,
+.ui.vertical.menu .active.item:hover {
+  color: var(--color-text);
+  background: var(--color-active);
+}
+
+.ui.link.menu .item:active,
+.ui.menu .link.item:active,
+.ui.menu a.item:active {
+  color: var(--color-text);
+  background: none;
+}
+
+.ui.ui.menu .item.disabled {
+  color: var(--color-text-light-3);
+}
+
+/* slightly more contrast for filters on issue list */
+.ui.ui.menu .dropdown.item.disabled {
+  color: var(--color-text-light-2);
+}
+
+.ui.dropdown .menu {
+  background: var(--color-menu);
+  border-color: var(--color-secondary);
+}
+
+.ui.dropdown .menu > .header:not(.ui) {
+  color: var(--color-text);
+}
+
+.ui.dropdown .menu > .item {
+  color: var(--color-text);
+}
+
+.ui.dropdown .menu > .item:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
+.ui.dropdown .menu .active.item {
+  color: var(--color-text);
+  background: var(--color-active);
+  font-weight: normal;
+}
+
+/* fix misaligned images in webhook dropdown */
+.ui.dropdown .menu > .item > img {
+  margin-top: -0.25rem;
+  margin-bottom: -0.25rem;
+}
+
+.ui.dropdown .menu > .item > svg.img {
+  margin-right: 0.78571429rem;
+}
+
+.ui.selection.dropdown .menu > .item {
+  border-color: var(--color-secondary);
+}
+
+.ui.selection.visible.dropdown > .text:not(.default) {
+  color: var(--color-text);
+}
+
+.ui.dropdown.selected,
+.ui.dropdown .menu .selected.item {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
+.ui.menu .ui.dropdown .menu > .selected.item {
+  color: var(--color-text) !important;
+  background: var(--color-hover) !important;
+}
+
+.ui.dropdown .menu > .message:not(.ui) {
+  color: var(--color-text-light-2);
+}
+
+.ui.list .list > .item .header,
+.ui.list > .item .header {
+  color: var(--color-text-dark);
+}
+
+.ui.list .list > .item > .content,
+.ui.list > .item > .content {
+  color: var(--color-text);
+}
+
+.ui.list .list > .item .description,
+.ui.list > .item .description {
+  color: var(--color-text);
+}
+
+.ui.secondary.menu .dropdown.item:hover,
+.ui.secondary.menu .link.item:hover,
+.ui.secondary.menu a.item:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
+.ui.secondary.menu .active.item,
+.ui.secondary.menu .active.item:hover {
+  color: var(--color-text);
+  background: var(--color-active);
+}
+
+.ui.secondary.menu.tight .item {
+  padding-left: 0.85714286em;
+  padding-right: 0.85714286em;
+}
+
+.ui.menu .dropdown.item .menu {
+  background: var(--color-menu);
+}
+
+.ui.menu .ui.dropdown .menu > .item {
+  color: var(--color-text) !important;
+}
+
+.ui.menu .ui.dropdown .menu > .item:hover {
+  color: var(--color-text) !important;
+  background: var(--color-hover) !important;
+}
+
+.ui.menu .ui.dropdown .menu > .active.item {
+  color: var(--color-text) !important;
+  background: var(--color-active) !important;
+}
+
+.ui.message {
+  background: var(--color-box-body);
+  color: var(--color-text);
+  box-shadow: none !important;
+  border: 1px solid var(--color-secondary);
+}
+
+.ui.info.message,
+.ui.attached.info.message,
+.ui.blue.message,
+.ui.attached.blue.message {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  border-color: var(--color-info-border);
+}
+
+.ui.success.message,
+.ui.attached.success.message,
+.ui.positive.message,
+.ui.attached.positive.message {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  border-color: var(--color-success-border);
+}
+
+.ui.error.message,
+.ui.attached.error.message,
+.ui.red.message,
+.ui.attached.red.message,
+.ui.negative.message,
+.ui.attached.negative.message {
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  border-color: var(--color-error-border);
+}
+
+.ui.warning.message,
+.ui.attached.warning.message,
+.ui.yellow.message,
+.ui.attached.yellow.message {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  border-color: var(--color-warning-border);
+}
+
+.ui.error.header {
+  background: var(--color-error-bg) !important;
+  color: var(--color-error-text) !important;
+  border-color: var(--color-error-border) !important;
+}
+
+.ui.error.segment {
+  border-color: var(--color-error-border) !important;
+}
+
+.ui.warning.header {
+  background: var(--color-warning-bg) !important;
+  color: var(--color-warning-text) !important;
+  border-color: var(--color-warning-border) !important;
+}
+
+.ui.warning.segment {
+  border-color: var(--color-warning-border) !important;
+}
+
+.ui.selection.active.dropdown,
+.ui.selection.active.dropdown:hover,
+.ui.selection.active.dropdown .menu,
+.ui.selection.active.dropdown:hover .menu {
+  border-color: var(--color-primary-light-2);
+}
+
+.ui.selection.dropdown .menu {
+  margin: 0 -1.25px;
+}
+
+.ui.pointing.dropdown > .menu:not(.hidden)::after {
+  background: var(--color-box-body);
+  box-shadow: -1px -1px 0 0 var(--color-secondary);
+}
+
+.ui.cards > .card,
+.ui.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-secondary);
+  box-shadow: none;
+}
+
+.ui.cards > .card > .content,
+.ui.card > .content {
+  border-color: var(--color-secondary);
+}
+
+.ui.cards > .card > .extra,
+.ui.card > .extra,
+.ui.cards > .card > .extra a:not(.ui),
+.ui.card > .extra a:not(.ui) {
+  color: var(--color-text);
+}
+
+.ui.cards > .card > .extra a:not(.ui):hover,
+.ui.card > .extra a:not(.ui):hover {
+  color: var(--color-primary);
+}
+
+.ui.cards > .card > .content > .header,
+.ui.card > .content > .header {
+  color: var(--color-text);
+}
+
+.ui.cards > .card > .content > .description,
+.ui.card > .content > .description {
+  color: var(--color-text);
+}
+
+.ui.cards > .card .meta > a:not(.ui),
+.ui.card .meta > a:not(.ui) {
+  color: var(--color-text-light-2);
+}
+
+.ui.cards > .card .meta > a:not(.ui):hover,
+.ui.card .meta > a:not(.ui):hover {
+  color: var(--color-text);
+}
+
+.ui.cards a.card:hover,
+.ui.link.cards .card:not(.icon):hover,
+a.ui.card:hover,
+.ui.link.card:hover {
+  border: 1px solid var(--color-secondary);
+  background: var(--color-card);
+}
+
+.ui.cards > .card > .extra,
+.ui.card > .extra {
+  color: var(--color-text);
+  border-top-color: var(--color-secondary-light-1) !important;
+}
+
+.ui.comments .comment .text {
+  margin: 0;
+}
+
+.ui.comments .comment .text,
+.ui.comments .comment .author {
+  color: var(--color-text);
+}
+
+.ui.comments .comment a.author:hover {
+  color: var(--color-primary);
+}
+
+.ui.comments .comment .metadata {
+  color: var(--color-text-light-2);
+}
+
+.ui.comments .comment .actions a {
+  color: var(--color-text-light);
+}
+
+.ui.comments .comment .actions a.active,
+.ui.comments .comment .actions a:hover {
+  color: var(--color-primary);
+}
+
+.ui.attached.table {
+  border-color: var(--color-secondary);
+}
+
+.ui.table {
+  color: var(--color-text);
+  background: var(--color-box-body);
+  border-color: var(--color-secondary);
+}
+
+.ui.table th,
+.ui.table td {
+  transition: none;
+}
+
+.ui.table > tr > td,
+.ui.table > tbody > tr > td {
+  border-top-color: var(--color-secondary-alpha-50);
+}
+
+.ui.ui.ui.ui.table tr.active,
+.ui.ui.table td.active {
+  color: var(--color-text);
+  background: var(--color-active);
+}
+
+.ui.ui.selectable.table > tbody > tr:hover,
+.ui.table tbody tr td.selectable:hover {
+  color: var(--color-text);
+  background-color: var(--color-secondary-alpha-40);
+}
+
+.ui.ui.ui.ui.table tr.grey:not(.marked),
+.ui.ui.table td.grey:not(.marked) {
+  background: var(--color-body);
+  color: var(--color-text);
+}
+
+.ui.table > thead > tr > th {
+  background: var(--color-box-header);
+  color: var(--color-text);
+}
+
+.ui.modal {
+  background: var(--color-body);
+}
+
+.ui.modal > .header {
+  color: var(--color-text-dark);
+  background: var(--color-secondary-bg);
+  border-color: var(--color-secondary);
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+}
+
+.ui.modal > .content {
+  background: var(--color-body);
+  text-align: left !important;
+}
+
+.ui.modal > .actions {
+  background: var(--color-secondary-bg);
+  border-color: var(--color-secondary);
+}
+
+.ui.modal > .close.inside,
+.ui.fullscreen.modal > .close {
+  top: 11px; /* align modal close icon, for example admin notices */
+  color: var(--body-color);
+}
+
+.ui.basic.table > tbody > tr {
+  border-color: var(--color-secondary);
+}
+
+.ui.avatar img,
+.ui.avatar svg,
+.ui.avatar.img,
+.ui.cards > .card img.avatar,
+.ui.cards > .card .avatar img,
+.ui.card img.avatar,
+.ui.card .avatar img {
+  border-radius: var(--border-radius);
+}
+
+.ui.divided.list > .item {
+  border-color: var(--color-secondary);
+}
+
+.ui.link.list .item,
+.ui.link.list a.item,
+.ui.link.list .item a:not(.ui) {
+  color: var(--color-text);
+}
+
+.ui.link.list.list a.item:hover,
+.ui.link.list.list .item a:not(.ui):hover,
+.ui.link.list.list a.item:active,
+.ui.link.list.list .item a:not(.ui):active {
+  color: var(--color-text-dark);
+}
+
+.ui.error.message .header,
+.ui.warning.message .header {
+  color: inherit;
+  filter: saturate(2);
+}
+
+.dont-break-out {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-all;
+  hyphens: auto;
+}
+
+.full.height {
+  flex-grow: 1;
+  padding-bottom: 80px;
+}
+
+/* enable fluid page widths for medium size viewports */
+@media (min-width: 768px) and (max-width: 1200px) {
+  .ui.ui.ui.container:not(.fluid) {
+    width: calc(100vw - 3em);
+  }
+}
+
+.following.bar {
+  z-index: 900;
+  left: 0;
+  margin: 0 !important;
+}
+
+.following.bar.light {
+  background: var(--color-header-bar);
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.following.bar .column .menu {
+  margin-top: 0;
+}
+
+.following.bar .top.menu a.item.brand {
+  padding-left: 0;
+}
+
+.following.bar .top.menu a.item:hover,
+.following.bar .top.menu .dropdown.item:hover,
+.following.bar .top.menu .dropdown.item.active {
+  background-color: transparent;
+}
+
+.following.bar .top.menu a.item:hover {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.following.bar .top.menu .menu {
+  z-index: 900;
+}
+
+.following.bar .fitted .svg {
+  margin-right: 0;
+  vertical-align: middle;
+}
+
+.following.bar .searchbox {
+  background-color: var(--color-input-background) !important;
+}
+
+.following.bar .text .svg {
+  width: 16px;
+  text-align: center;
+}
+
+.following.bar #navbar {
+  width: 100vw;
+  min-height: 52px;
+  padding: 0 0.5rem;
+}
+
+.following.bar #navbar .brand {
+  margin: 0;
+}
+
+.following.bar #navbar .dropdown .avatar {
+  margin-right: 0 !important;
+}
+
+@media (max-width: 767px) {
+  .following.bar #navbar:not(.shown) > *:not(:first-child) {
+    display: none;
+  }
+}
+
+.right.stackable.menu {
+  /* responsive fix: this makes sure that the right menu when the page */
+  /* is on mobile view will have elements stacked on top of each other. */
+  /* no, stackable won't work on right menus. */
+  margin-left: auto;
+  display: flex;
+  align-items: inherit;
+  flex-direction: inherit;
+}
+
+.ui.pagination.menu .active.item {
+  color: var(--color-text);
+  background: var(--color-active);
+}
+
+.ui.form .field > .selection.dropdown > .dropdown.icon {
+  height: auto;
+}
+
+.ui.loading.segment::before,
+.ui.loading.form::before {
+  background: none;
+}
+
+.ui.loading.form > *,
+.ui.loading.segment > * {
+  opacity: 0.35;
+}
+
+.ui.form .fields.error .field textarea,
+.ui.form .fields.error .field select,
+.ui.form .fields.error .field input:not([type]),
+.ui.form .fields.error .field input[type="date"],
+.ui.form .fields.error .field input[type="datetime-local"],
+.ui.form .fields.error .field input[type="email"],
+.ui.form .fields.error .field input[type="number"],
+.ui.form .fields.error .field input[type="password"],
+.ui.form .fields.error .field input[type="search"],
+.ui.form .fields.error .field input[type="tel"],
+.ui.form .fields.error .field input[type="time"],
+.ui.form .fields.error .field input[type="text"],
+.ui.form .fields.error .field input[type="file"],
+.ui.form .fields.error .field input[type="url"],
+.ui.form .fields.error .field .ui.dropdown,
+.ui.form .fields.error .field .ui.dropdown .item,
+.ui.form .field.error .ui.dropdown,
+.ui.form .field.error .ui.dropdown .text,
+.ui.form .field.error .ui.dropdown .item,
+.ui.form .field.error textarea,
+.ui.form .field.error select,
+.ui.form .field.error input:not([type]),
+.ui.form .field.error input[type="date"],
+.ui.form .field.error input[type="datetime-local"],
+.ui.form .field.error input[type="email"],
+.ui.form .field.error input[type="number"],
+.ui.form .field.error input[type="password"],
+.ui.form .field.error input[type="search"],
+.ui.form .field.error input[type="tel"],
+.ui.form .field.error input[type="time"],
+.ui.form .field.error input[type="text"],
+.ui.form .field.error input[type="file"],
+.ui.form .field.error input[type="url"],
+.ui.form .field.error select:focus,
+.ui.form .field.error input:not([type]):focus,
+.ui.form .field.error input[type="date"]:focus,
+.ui.form .field.error input[type="datetime-local"]:focus,
+.ui.form .field.error input[type="email"]:focus,
+.ui.form .field.error input[type="number"]:focus,
+.ui.form .field.error input[type="password"]:focus,
+.ui.form .field.error input[type="search"]:focus,
+.ui.form .field.error input[type="tel"]:focus,
+.ui.form .field.error input[type="time"]:focus,
+.ui.form .field.error input[type="text"]:focus,
+.ui.form .field.error input[type="file"]:focus,
+.ui.form .field.error input[type="url"]:focus {
+  background-color: var(--color-error-bg);
+  border-color: var(--color-error-border);
+  color: var(--color-error-text);
+}
+
+.ui.form .fields.error .field .ui.dropdown,
+.ui.form .field.error .ui.dropdown,
+.ui.form .fields.error .field .ui.dropdown:hover,
+.ui.form .field.error .ui.dropdown:hover {
+  border-color: var(--color-error-border) !important;
+}
+
+.ui.form .fields.error .field .ui.dropdown .menu .item:hover,
+.ui.form .field.error .ui.dropdown .menu .item:hover {
+  background-color: var(--color-error-bg-hover);
+}
+
+.ui.form .fields.error .field .ui.dropdown .menu .active.item,
+.ui.form .field.error .ui.dropdown .menu .active.item {
+  background-color: var(--color-error-bg-active) !important;
+}
+
+.ui.form .fields.error .dropdown .menu,
+.ui.form .field.error .dropdown .menu {
+  border-color: var(--color-error-border) !important;
+}
+
+/* A fix for text visibility issue in Chrome autofill in dark mode. */
+/* It's a problem from Formatic UI, and this rule overrides it. */
+.ui.form .field.field input:-webkit-autofill {
+  -webkit-text-fill-color: var(--color-black) !important;
+}
+
+.ui.form .field.muted {
+  opacity: var(--opacity-disabled);
+}
+
+.ui.loading.loading.input > i.icon svg {
+  visibility: hidden;
+}
+
+.text.primary {
+  color: var(--color-primary) !important;
+}
+
+.text.red {
+  color: var(--color-red) !important;
+}
+
+.text.orange {
+  color: var(--color-orange) !important;
+}
+
+.text.yellow {
+  color: var(--color-yellow) !important;
+}
+
+.text.olive {
+  color: var(--color-olive) !important;
+}
+
+.text.green {
+  color: var(--color-green) !important;
+}
+
+.text.teal {
+  color: var(--color-teal) !important;
+}
+
+.text.blue {
+  color: var(--color-blue) !important;
+}
+
+.text.violet {
+  color: var(--color-violet) !important;
+}
+
+.text.purple {
+  color: var(--color-purple) !important;
+}
+
+.text.pink {
+  color: var(--color-pink) !important;
+}
+
+.text.brown {
+  color: var(--color-brown) !important;
+}
+
+.text.black {
+  color: var(--color-text) !important;
+}
+
+.text.grey {
+  color: var(--color-text-light) !important;
+}
+
+.text.light.grey {
+  color: var(--color-grey-light) !important;
+}
+
+.text.gold {
+  color: var(--color-gold) !important;
+}
+
+.ui.left:not(.action) {
+  float: left;
+}
+
+.ui.right:not(.action) {
+  float: right;
+}
+
+.ui.container.fluid.padded {
+  padding: 0 10px;
+}
+
+.ui.form .ui.button {
+  font-weight: normal;
+}
+
+.ui.floating.label {
+  z-index: 10;
+}
+
+.ui.transparent.label {
+  background-color: transparent;
+}
+
+.ui.menu,
+.ui.vertical.menu,
+.ui.segment {
+  box-shadow: none;
+}
+
+/* Override semantic selector '.ui.menu:not(.vertical) .item > .button' */
+/* This fixes the commit graph button on the commits page */
+/* modal svg icons, copied from fomantic except width and height */
+/* center text in fomantic modal dialogs */
+.ui .menu:not(.vertical) .item > .button.compact {
+  padding: 0.58928571em 1.125em;
+}
+
+.ui .menu:not(.vertical) .item > .button.small {
+  font-size: 0.92857143rem;
+}
+
+.ui.menu .ui.dropdown.item .menu .item {
+  width: 100%;
+}
+
+.ui.dropdown .menu > .item > .floating.label {
+  z-index: 11;
+}
+
+.ui.dropdown .menu .menu > .item > .floating.label {
+  z-index: 21;
+}
+
+.ui.dropdown .menu > .header {
+  font-size: 0.8em;
+}
+
+.ui .text.left {
+  text-align: left !important;
+}
+
+.ui .text.right {
+  text-align: right !important;
+}
+
+.ui .text.small {
+  font-size: 0.75em;
+}
+
+.ui .text.normal {
+  font-weight: normal;
+}
+
+.ui .text.italic {
+  font-style: italic;
+}
+
+.ui .text.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.ui .text.thin {
+  font-weight: normal;
+}
+
+.ui .text.middle {
+  vertical-align: middle;
+}
+
+.ui .message {
+  text-align: center;
+}
+
+.ui .message > ul {
+  margin-left: auto;
+  margin-right: auto;
+  display: table;
+  text-align: left;
+}
+
+.ui .header > i + .content {
+  padding-left: 0.75rem;
+  vertical-align: middle;
+}
+
+.ui .info.segment.top h3,
+.ui .info.segment.top h4 {
+  margin-top: 0;
+}
+
+.ui .info.segment.top h3:last-child {
+  margin-top: 4px;
+}
+
+.ui .info.segment.top > :last-child {
+  margin-bottom: 0;
+}
+
+.ui .normal.header {
+  font-weight: normal;
+}
+
+.ui .form .autofill-dummy {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: -10000;
+}
+
+.ui .form .sub.field {
+  margin-left: 25px;
+}
+
+.ui .sha.label {
+  font-family: var(--fonts-monospace);
+  font-size: 13px;
+  padding: 6px 10px 4px;
+  font-weight: normal;
+  margin: 0 6px;
+}
+
+.ui .button.copy-commit-sha {
+  border: 1px solid var(--color-light-border);
+  margin-right: 3px;
+  padding: 6px 6px 4px;
+  background: var(--color-light);
+}
+
+.ui .button.truncate {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+  white-space: nowrap;
+  margin-right: 6px;
+}
+
+.ui.status.buttons .svg {
+  margin-right: 4px;
+}
+
+.ui.inline.delete-button {
+  padding: 8px 15px;
+  font-weight: normal;
+}
+
+.ui .background.red {
+  background-color: var(--color-red) !important;
+}
+
+.ui .background.blue {
+  background-color: var(--color-blue) !important;
+}
+
+.ui .background.black {
+  background-color: var(--color-black) !important;
+}
+
+.ui .background.grey {
+  background-color: var(--color-grey) !important;
+}
+
+.ui .background.light.grey {
+  background-color: var(--color-grey) !important;
+}
+
+.ui .background.green {
+  background-color: var(--color-green) !important;
+}
+
+.ui .background.purple {
+  background-color: var(--color-purple) !important;
+}
+
+.ui .background.yellow {
+  background-color: var(--color-yellow) !important;
+}
+
+.ui .background.orange {
+  background-color: var(--color-orange) !important;
+}
+
+.ui .background.gold {
+  background-color: var(--color-gold) !important;
+}
+
+.ui .migrate {
+  color: var(--color-text-light-2) !important;
+}
+
+.ui .migrate a {
+  color: var(--color-text-light) !important;
+}
+
+.ui .migrate a:hover {
+  color: var(--color-text) !important;
+}
+
+.ui .border {
+  border: 1px solid;
+}
+
+.ui .border.red {
+  border-color: var(--color-red) !important;
+}
+
+.ui .border.blue {
+  border-color: var(--color-blue) !important;
+}
+
+.ui .border.black {
+  border-color: var(--color-black) !important;
+}
+
+.ui .border.grey {
+  border-color: var(--color-grey) !important;
+}
+
+.ui .border.light.grey {
+  border-color: var(--color-grey) !important;
+}
+
+.ui .border.green {
+  border-color: var(--color-green) !important;
+}
+
+.ui .border.purple {
+  border-color: var(--color-purple) !important;
+}
+
+.ui .border.yellow {
+  border-color: var(--color-yellow) !important;
+}
+
+.ui .border.orange {
+  border-color: var(--color-orange) !important;
+}
+
+.ui .border.gold {
+  border-color: var(--color-gold) !important;
+}
+
+.ui .branch-tag-choice {
+  line-height: 20px;
+}
+
+@media (max-width: 767px) {
+  .ui.pagination.menu .item:not(.active,.navigation),
+  .ui.pagination.menu .item.navigation span.navigation_label {
+    display: none;
+  }
+}
+
+.ui.pagination.menu.narrow .item {
+  padding-left: 8px;
+  padding-right: 8px;
+  min-width: 1em;
+  text-align: center;
+}
+
+.ui.pagination.menu.narrow .item .icon {
+  margin-right: 0;
+}
+
+.ui.icon.header svg {
+  width: 3em;
+  height: 3em;
+  float: none;
+  display: block;
+  line-height: 1;
+  padding: 0;
+  margin: 0 auto 0.5rem;
+  opacity: 1;
+}
+
+.ui.floating.dropdown .overflow.menu .scrolling.menu.items {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.user-menu > .item {
+  width: 100%;
+  border-radius: 0 !important;
+}
+
+.scrolling.menu .item.selected {
+  font-weight: 600 !important;
+}
+
+.ui.dropdown .scrolling.menu {
+  border-color: var(--color-secondary);
+}
+
+.color-preview {
+  display: inline-block;
+  margin-left: 0.4em;
+  height: 0.67em;
+  width: 0.67em;
+  border-radius: 0.15em;
+}
+
+.attention-icon {
+  vertical-align: text-top;
+}
+
+.attention-note {
+  font-weight: unset;
+  color: var(--color-info-text);
+}
+
+.attention-warning {
+  font-weight: unset;
+  color: var(--color-warning-text);
+}
+
+footer {
+  background-color: var(--color-footer);
+  border-top: 1px solid var(--color-secondary);
+  width: 100%;
+  flex-basis: 40px;
+  color: var(--color-text-light);
+}
+
+footer .container {
+  width: 100vw !important;
+  padding: 0 0.5rem;
+  max-width: calc(100vw - 1rem) !important;
+}
+
+footer .container .links > * {
+  border-left: 1px solid var(--color-secondary-dark-1);
+  padding-left: 8px;
+  margin-left: 5px;
+}
+
+footer .container .links > *:first-child {
+  border-left: 0;
+}
+
+footer .ui.language .menu {
+  max-height: 500px;
+  overflow-y: auto;
+  margin-bottom: 7px;
+}
+
+footer .ui.language .svg {
+  margin-right: 0.15em;
+  vertical-align: top;
+  margin-top: calc(2em - 16px);
+}
+
+footer .ui.left,
+footer .ui.right {
+  line-height: 39px; /* there  is a border-top on the footer, so make the line-height 1px less */
+}
+
+.center:not(.popup) {
+  text-align: center;
+}
+
+/* Conditional display */
+@media (min-width: 768px) {
+  .mobile-only,
+  .ui.button.mobile-only {
+    display: none !important;
+  }
+
+  /* has the same behaviour of sr-only, hiding the content for */
+  /* non-screenreaders, but is shown on mobile devices. */
+  .sr-mobile-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .not-mobile {
+    display: none !important;
+  }
+}
+
+/* Accessibility for screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.sr-only-focusable:active,
+.sr-only-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  .ui.container {
+    width: 95%;
+  }
+}
+
+.ui.menu.new-menu {
+  margin-bottom: 15px;
+  background: var(--color-navbar);
+  border-bottom: 1px solid var(--color-secondary) !important;
+  overflow: auto;
+}
+
+.ui.menu.new-menu .new-menu-inner {
+  display: flex;
+  margin-left: auto;
+  margin-right: auto;
+  overflow-x: auto;
+}
+
+.ui.menu.new-menu::after {
+  position: absolute;
+  display: block;
+  background: linear-gradient(to right, var(--color-navbar-transparent), var(--color-navbar) 100%);
+  content: '';
+  right: 0;
+  height: 39px;
+  width: 60px;
+  visibility: visible;
+  pointer-events: none;
+}
+
+.ui.menu.new-menu.shadow-body::after {
+  background: linear-gradient(to right, transparent, var(--color-body) 100%);
+}
+
+.ui.menu.new-menu .item {
+  margin: 0 !important;
+}
+
+@media (max-width: 767px) {
+  .ui.menu.new-menu .item {
+    width: auto !important;
+  }
+}
+
+.ui.menu.new-menu .item:last-child {
+  padding-right: 30px !important;
+}
+
+.ui.menu.new-menu::-webkit-scrollbar {
+  height: 6px;
+  display: none;
+}
+
+.ui.menu.new-menu::-webkit-scrollbar-track {
+  background: none !important;
+}
+
+.ui.menu.new-menu::-webkit-scrollbar-thumb {
+  box-shadow: none !important;
+}
+
+.ui.menu.new-menu:hover::-webkit-scrollbar {
+  display: block;
+}
+
+.repos-search {
+  padding-bottom: 0 !important;
+}
+
+.repos-filter {
+  margin-top: 0 !important;
+  border-bottom-width: 0 !important;
+  margin-bottom: 2px !important;
+  justify-content: space-evenly;
+}
+
+.ui.secondary.pointing.menu.repos-filter .item {
+  padding-left: 4.5px;
+  padding-right: 4.5px;
+}
+
+.repo-title {
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  word-break: break-all;
+  color: var(--color-text-light);
+}
+
+.repo-title .avatar {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.repo-title .labels {
+  margin-left: 0.5rem;
+}
+
+.repo-title .labels > * + * {
+  margin-left: 0.5rem;
+}
+
+.repo-icon {
+  display: inline-block;
+}
+
+.activity-bar-graph {
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.activity-bar-graph-alt {
+  color: var(--color-primary-contrast);
+}
+
+.archived-icon {
+  color: var(--color-secondary-dark-2) !important;
+}
+
+.oauth2-authorize-application-box {
+  margin-top: 3em !important;
+}
+
+/* multiple radio or checkboxes as inline element */
+.inline-grouped-list {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.inline-grouped-list > .ui {
+  display: block;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+.inline-grouped-list > .ui:first-child {
+  margin-top: 1px;
+}
+
+i.icons .icon:first-child {
+  margin-right: 0;
+}
+
+i.icon.centerlock {
+  top: 1em;
+}
+
+.ui.label {
+  padding: 0.3em 0.5em;
+  background: var(--color-light);
+  color: var(--color-text-light);
+}
+
+.ui.labels a.label:hover,
+a.ui.label:hover {
+  background: var(--color-hover);
+  border-color: var(--color-hover);
+  color: var(--color-text);
+}
+
+.ui.label > .detail .icons {
+  margin-right: 0.25em;
+}
+
+.ui.label > .detail .icons .icon {
+  margin-right: 0;
+}
+
+.lines-blame-btn {
+  padding-left: 10px;
+  padding-right: 10px;
+  text-align: right !important;
+  background-color: var(--color-code-sidebar-bg);
+  width: 2%;
+}
+
+.lines-num {
+  padding-left: 10px;
+  padding-right: 10px;
+  text-align: right !important;
+  color: var(--color-text-light-1);
+  width: 1%;
+  font-family: var(--fonts-monospace);
+}
+
+.lines-num span.bottom-line::after {
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.lines-num span::after {
+  content: attr(data-line-number);
+  line-height: 20px !important;
+  padding: 0 10px;
+  cursor: pointer;
+  display: block;
+}
+
+.lines-type-marker {
+  vertical-align: top;
+}
+
+.lines-num,
+.lines-code {
+  font-size: 12px;
+  font-family: var(--fonts-monospace);
+  line-height: 20px;
+  padding-top: 0;
+  padding-bottom: 0;
+  vertical-align: top;
+}
+
+.lines-num pre,
+.lines-code pre,
+.lines-num ol,
+.lines-code ol {
+  background-color: inherit;
+  margin: 0;
+  padding: 0 !important;
+}
+
+.lines-num pre li,
+.lines-code pre li,
+.lines-num ol li,
+.lines-code ol li {
+  display: block;
+  width: calc(100% - 1ch);
+  padding-left: 1ch;
+}
+
+.lines-escape {
+  width: 0;
+}
+
+.lines-code {
+  background-color: var(--color-code-bg);
+  padding-left: 5px;
+}
+
+.lines-code.active,
+.lines-code .active {
+  background: var(--color-active-line) !important;
+}
+
+.blame .lines-num {
+  padding: 0 !important;
+  background-color: var(--color-code-sidebar-bg);
+}
+
+.blame .lines-code {
+  padding: 0 !important;
+}
+
+.code-inner {
+  font: 12px var(--fonts-monospace);
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.blame .code-inner {
+  white-space: pre;
+  word-break: normal;
+  word-wrap: normal; /* not using overflow-wrap because safari does not treat is an an alias */
+}
+
+.lines-commit {
+  vertical-align: top;
+  color: var(--color-grey);
+  padding: 0 !important;
+  background: var(--color-code-sidebar-bg);
+  width: 1%;
+}
+
+.lines-commit .blame-info {
+  width: 350px;
+  max-width: 350px;
+  display: block;
+  padding: 0 0 0 10px;
+  line-height: 20px;
+  box-sizing: content-box;
+}
+
+.lines-commit .blame-info .blame-data {
+  display: flex;
+  font-family: var(--fonts-regular);
+}
+
+.lines-commit .blame-info .blame-data .blame-message {
+  flex-grow: 2;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lines-commit .blame-info .blame-data .blame-time,
+.lines-commit .blame-info .blame-data .blame-avatar {
+  flex-shrink: 0;
+}
+
+.lines-commit .ui.avatar {
+  height: 18px;
+  width: 18px;
+  display: block;
+  margin-top: 1px;
+}
+
+.top-line-blame {
+  border-top: 1px solid var(--color-secondary);
+}
+
+.lines-code .bottom-line,
+.lines-commit .bottom-line {
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.code-view table {
+  width: 100%;
+}
+
+.octicon-tiny {
+  font-size: 0.85714286rem;
+}
+
+.ui.button {
+  background: var(--color-button);
+  border: 1px solid var(--color-light-border);
+  color: var(--color-text);
+}
+
+.page-content .ui.button {
+  box-shadow: none !important;
+}
+
+.ui.button:focus,
+.ui.button:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.ui.active.button,
+.ui.button:active,
+.ui.active.button:active,
+.ui.active.button:hover {
+  background: var(--color-active);
+  color: var(--color-text);
+}
+
+.ui.button.no-text .icon {
+  margin: 0 !important;
+}
+
+.ui.buttons .button:first-child {
+  border-left: 1px solid var(--color-light-border);
+}
+
+.ui.buttons .button + .button {
+  border-left: none;
+}
+
+.two-toggle-buttons .button:not(.active):first-of-type {
+  border-right: none;
+}
+
+.two-toggle-buttons .button.active:last-of-type {
+  border-left: 1px solid var(--color-light-border);
+}
+
+.ui.labeled.button.disabled > .button,
+.ui.basic.buttons .button,
+.ui.basic.button {
+  color: var(--color-text-light);
+  background: var(--color-light);
+}
+
+.ui.basic.buttons .button:hover,
+.ui.basic.button:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
+.ui.basic.buttons .button:focus,
+.ui.basic.button:focus,
+.ui.basic.buttons .button:active,
+.ui.basic.button:active,
+.ui.basic.buttons .active.button,
+.ui.basic.active.button,
+.ui.basic.buttons .active.button:hover,
+.ui.basic.active.button:hover {
+  color: var(--color-text);
+  background: var(--color-active);
+}
+
+.ui.labeled.button > .label {
+  border-color: var(--color-light-border);
+}
+
+.ui.labeled.icon.buttons > .button > .icon,
+.ui.labeled.icon.button > .icon {
+  background: var(--color-hover);
+}
+
+.ui.primary.button,
+.ui.primary.buttons .button {
+  background-color: var(--color-primary) !important;
+  color: var(--color-primary-contrast) !important;
+}
+
+.ui.primary.button:hover,
+.ui.primary.buttons .button:hover {
+  background-color: var(--color-primary-dark-2) !important;
+}
+
+.ui.primary.button:focus,
+.ui.primary.buttons .button:focus {
+  background-color: var(--color-primary-dark-3) !important;
+}
+
+.ui.basic.primary.button,
+.ui.basic.primary.buttons .button {
+  box-shadow: inset 0 0 0 1px var(--color-primary) !important;
+  color: var(--color-primary-contrast) !important;
+}
+
+.ui.basic.primary.button:hover,
+.ui.basic.primary.buttons .button:hover {
+  box-shadow: inset 0 0 0 1px var(--color-primary-dark-2) !important;
+}
+
+.ui.basic.primary.button:focus,
+.ui.basic.primary.buttons .button:focus {
+  box-shadow: inset 0 0 0 1px var(--color-primary-dark-3) !important;
+}
+
+.ui.basic.secondary.buttons .button,
+.ui.basic.secondary.button {
+  color: var(--color-secondary-dark-6) !important;
+}
+
+.ui.basic.secondary.buttons .button:hover,
+.ui.basic.secondary.button:hover,
+.ui.basic.secondary.buttons .button:active,
+.ui.basic.secondary.button:active {
+  color: var(--color-secondary-dark-8) !important;
+  border-color: var(--color-secondary-dark-1) !important;
+}
+
+.ui.basic.secondary.button:focus,
+.ui.basic.secondary.buttons .button:focus {
+  color: var(--color-secondary-dark-8) !important;
+  border-color: var(--color-secondary-dark-3) !important;
+}
+
+.ui.tertiary.button {
+  color: var(--color-text-light);
+  border: none;
+}
+
+.ui.tertiary.button:hover {
+  color: var(--color-text);
+}
+
+.ui.primary.label,
+.ui.primary.labels .label {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary-dark-2) !important;
+}
+
+.ui.basic.labels .primary.label,
+.ui.ui.ui.basic.primary.label {
+  background: transparent !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+}
+
+.ui.basic.labels .label,
+.ui.basic.label {
+  background: var(--color-light);
+  border-color: var(--color-light-border);
+  color: var(--color-text-light);
+}
+
+.ui.basic.labels a.label:hover,
+a.ui.basic.label:hover {
+  color: var(--color-text);
+  border-color: var(--color-light-border);
+  background: var(--color-hover);
+}
+
+.ui.label > img {
+  width: auto !important;
+  vertical-align: middle;
+  height: 2.1666em !important;
+}
+
+span.green .svg {
+  color: var(--color-green);
+}
+
+span.red .svg {
+  color: var(--color-red);
+}
+
+span.purple .svg {
+  color: var(--color-purple);
+}
+
+.migrate .svg.gitea-git {
+  color: var(--color-git);
+}
+
+.color-icon {
+  display: inline-block;
+  border-radius: 100%;
+  height: 14px;
+  width: 14px;
+}
+
+.ui.label > .color-icon {
+  margin-left: 0;
+}
+
+.invisible {
+  visibility: hidden;
+}
+
+.ui.segment,
+.ui.segments,
+.ui.attached.segment {
+  background: var(--color-box-body);
+  color: var(--color-text);
+  border-color: var(--color-secondary);
+}
+
+.ui.segments > .segment {
+  border-color: var(--color-secondary);
+}
+
+.ui.secondary.segment {
+  background: var(--color-secondary-bg);
+  color: var(--color-text-light);
+}
+
+.ui.attached.header {
+  position: relative;
+  background: var(--color-box-header);
+  border-color: var(--color-secondary);
+}
+
+.ui.attached.header .right .button {
+  padding: 8px 10px;
+  font-weight: normal;
+}
+
+/* fix misaligned right buttons on box headers */
+.ui.attached.header .right:not(.dropdown) {
+  position: absolute;
+  right: 0.78571429rem;
+  top: 0;
+  bottom: 0;
+  height: 30px;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+/* https://github.com/go-gitea/gitea/issues/10210 */
+.ui.attached.segment ~ .ui.top.attached.header {
+  margin-top: 1rem;
+}
+
+.header-stopwatch-dot {
+  position: absolute;
+  left: 8px;
+  top: -8px;
+  width: 13px;
+  height: 13px;
+  background: var(--color-primary);
+  border: 2px solid var(--color-header-bar);
+  border-radius: 100%;
+}
+
+.notification_count {
+  position: absolute;
+  left: 5px;
+  top: -8px;
+  min-width: 1.5em;
+  text-align: center;
+  background: var(--color-primary);
+  border: 2px solid var(--color-header-bar);
+  color: var(--color-header-bar);
+  padding: 2px;
+  border-radius: 1em;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 0.7;
+}
+
+table th[data-sortt-asc]:hover,
+table th[data-sortt-desc]:hover {
+  background: rgba(0, 0, 0, 0.1) !important;
+  cursor: pointer !important;
+}
+
+table th[data-sortt-asc] .svg,
+table th[data-sortt-desc] .svg {
+  margin-left: 0.25rem;
+}
+
+.ui.dropdown .svg.dropdown.icon,
+.svg.dropdown.icon {
+  margin-top: 0 !important; /* reset the "ui.selection.dropdown > .dropdown.icon {margin-top}", for the Issue Dependencies dropdown */
+  margin-right: -0.5rem !important; /* fix up SVG dropdown triangles because Fomantic thinks they are icon fonts */
+  height: auto; /* reset the ".ui.dropdown > .dropdown.icon {height}", otherwise the icon would be too small */
+}
+
+.ui.selection.dropdown > .search.icon,
+.ui.selection.dropdown > .delete.icon,
+.ui.selection.dropdown > .dropdown.icon {
+  top: 0 !important;
+}
+
+.ui.dropdown.no-text > .dropdown.icon {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.ui.dropdown .menu .item {
+  border-radius: 0;
+}
+
+.ui.dropdown .menu .item:first-of-type {
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.ui.dropdown .menu .item:last-of-type {
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.text-label {
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.emoji,
+.reaction {
+  font-size: 1.25em;
+  line-height: 1;
+  font-style: normal !important;
+  font-weight: normal !important;
+  vertical-align: -0.075em;
+}
+
+@supports (-webkit-hyphens:none) {
+  body:not(.safari-above125) .emoji,
+  body:not(.safari-above125) .reaction {
+    font-size: inherit;
+    vertical-align: inherit;
+  }
+  body:not(.safari-above125) .emoji img,
+  body:not(.safari-above125) .reaction img {
+    font-size: 1.25em;
+    vertical-align: -0.225em !important;
+  }
+}
+
+.emoji img,
+.reaction img {
+  border-width: 0 !important;
+  margin: 0 !important;
+  width: 1em !important;
+  height: 1em !important;
+  vertical-align: -0.15em;
+}
+
+.minicolors-panel {
+  background: var(--color-secondary-dark-1) !important;
+}
+
+.labelspage {
+  list-style: none;
+  padding-top: 0;
+}
+
+.labelspage .item {
+  margin-top: 0;
+  margin-right: -14px;
+  margin-left: -14px;
+  padding: 10px;
+  border-bottom: 1px solid var(--color-secondary);
+  border-top: none;
+}
+
+.labelspage .item a {
+  font-size: 12px;
+  padding-right: 10px;
+  color: var(--color-text-light);
+}
+
+.labelspage .item a:hover {
+  color: var(--color-primary-light-2);
+}
+
+.labelspage .item a.open-issues {
+  margin-right: 30px;
+}
+
+.labelspage .item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.labelspage .orglabel {
+  opacity: 0.7;
+}
+
+/* https://github.com/go-gitea/gitea/pull/11486 */
+.ui.sub.header {
+  text-transform: none;
+}
+
+.ui.tabular.menu {
+  border-color: var(--color-secondary);
+}
+
+.ui.tabular.menu .item {
+  padding: 11px 12px;
+  color: var(--color-text-light-2);
+}
+
+.ui.tabular.menu .item:hover {
+  color: var(--color-text);
+}
+
+.ui.tabular.menu .active.item,
+.ui.tabular.menu .active.item:hover {
+  background: var(--color-body);
+  border-color: var(--color-secondary);
+  color: var(--color-text);
+  margin-top: 1px; /* offset fomantic's margin-bottom: -1px */
+}
+
+.ui.segment .ui.tabular.menu .active.item,
+.ui.segment .ui.tabular.menu .active.item:hover {
+  background: var(--color-box-body);
+}
+
+.ui.secondary.pointing.menu {
+  border-color: var(--color-secondary);
+}
+
+.ui.secondary.pointing.menu .item {
+  color: var(--color-text-light-2);
+}
+
+.ui.secondary.pointing.menu .active.item,
+.ui.secondary.pointing.menu .active.item:hover,
+.ui.secondary.pointing.menu .dropdown.item:hover,
+.ui.secondary.pointing.menu .link.item:hover,
+.ui.secondary.pointing.menu a.item:hover {
+  color: var(--color-text-dark);
+}
+
+.ui.header {
+  color: var(--color-text);
+}
+
+.ui.header .ui.label {
+  margin-left: 0.25rem;
+}
+
+.ui.header > .ui.label.compact {
+  margin-top: inherit;
+}
+
+.ui.header .sub.header {
+  color: var(--color-text-light-1);
+}
+
+.flash-error details code,
+.flash-warning details code {
+  display: block;
+  text-align: left;
+}
+
+.truncated-item-container {
+  display: flex !important;
+  align-items: center;
+}
+
+.ellipsis-button {
+  padding: 0 5px 8px !important;
+  display: inline-block !important;
+  font-weight: 600 !important;
+  line-height: 6px !important;
+  vertical-align: middle !important;
+}
+
+.truncated-item-name {
+  line-height: 2em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: -0.5em;
+  margin-bottom: -0.5em;
+}
+
+.precolors {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin: 3px 10px auto !important;
+  width: 120px !important;
+}
+
+.precolors .color {
+  float: left;
+  width: 15px;
+  height: 15px;
+}
+
+@media (max-width: 767px) {
+  .ui.stackable.menu:not(.no-vertical-tabs) {
+    overflow-y: hidden;
+    overflow-x: auto;
+    flex-direction: row;
+    flex-wrap: nowrap !important;
+  }
+  .ui.stackable.menu:not(.no-vertical-tabs) .item {
+    width: initial !important;
+  }
+  .ui.stackable.menu:not(.no-vertical-tabs) > .dropdown.item {
+    position: initial;
+  }
+  .ui.stackable.menu:not(.no-vertical-tabs) .menu {
+    flex-direction: row;
+  }
+}
+
+.color-text-light-2 {
+  color: var(--color-text-light-2);
+}

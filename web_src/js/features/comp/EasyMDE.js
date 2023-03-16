@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import attachTribute from '../tribute.js';
+import {attachTribute} from '../tribute.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 
 /**
@@ -77,6 +77,9 @@ export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
 
   const inputField = easyMDE.codemirror.getInputField();
 
+  easyMDE.codemirror.on('change', (...args) => {
+    easyMDEOptions?.onChange?.(...args);
+  });
   easyMDE.codemirror.setOption('extraKeys', {
     'Cmd-Enter': codeMirrorQuickSubmit,
     'Ctrl-Enter': codeMirrorQuickSubmit,
