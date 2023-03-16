@@ -450,11 +450,11 @@ export function initRepoPullRequestReview() {
         const id = groupID.slice(14);
         const ancestorDiffBox = commentDiv.closest('.diff-file-box');
         // on pages like conversation, there is no diff header
-        const diffHeader = ancestorDiffBox.find('.diff-file-header')[0];
+        const diffHeader = ancestorDiffBox.find('.diff-file-header');
         // offset is for scrolling
         let offset = 30;
-        if (diffHeader) {
-          offset += $('.diff-detail-box')[0].offsetHeight + diffHeader.offsetHeight;
+        if (diffHeader[0]) {
+          offset += $('.diff-detail-box').outerHeight() + diffHeader.outerHeight();
         }
         $(`#show-outdated-${id}`).addClass('gt-hidden');
         $(`#code-comments-${id}`).removeClass('gt-hidden');
