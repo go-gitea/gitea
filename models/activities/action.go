@@ -66,6 +66,67 @@ const (
 	ActionAutoMergePullRequest                            // 27
 )
 
+func (at ActionType) String() string {
+	switch at {
+	case ActionCreateRepo:
+		return "CREATE_REPO"
+	case ActionRenameRepo:
+		return "RENAME_REPO"
+	case ActionStarRepo:
+		return "STAR_REPO"
+	case ActionWatchRepo:
+		return "WATCH_REPO"
+	case ActionCommitRepo:
+		return "COMMIT_REPO"
+	case ActionCreateIssue:
+		return "CREATE_ISSUE"
+	case ActionCreatePullRequest:
+		return "CREATE_PULL_REQUEST"
+	case ActionTransferRepo:
+		return "TRANSFER_REPO"
+	case ActionPushTag:
+		return "PUSH_TAG"
+	case ActionCommentIssue:
+		return "COMMENT_ISSUE"
+	case ActionMergePullRequest:
+		return "MERGE_PULL_REQUEST"
+	case ActionCloseIssue:
+		return "CLOSE_ISSUE"
+	case ActionReopenIssue:
+		return "REOPEN_ISSUE"
+	case ActionClosePullRequest:
+		return "CLOSE_PULL_REQUEST"
+	case ActionReopenPullRequest:
+		return "REOPEN_PULL_REQUEST"
+	case ActionDeleteTag:
+		return "DELETE_TAG"
+	case ActionDeleteBranch:
+		return "DELETE_BRANCH"
+	case ActionMirrorSyncPush:
+		return "MIRROR_SYNC_PUSH"
+	case ActionMirrorSyncCreate:
+		return "MIRROR_SYNC_CREATE"
+	case ActionMirrorSyncDelete:
+		return "MIRROR_SYNC_DELETE"
+	case ActionApprovePullRequest:
+		return "APPROVE_PULL_REQUEST"
+	case ActionRejectPullRequest:
+		return "REJECT_PULL_REQUEST"
+	case ActionCommentPull:
+		return "COMMENT_PULL"
+	case ActionPublishRelease:
+		return "PUBLISH_RELEASE"
+	case ActionPullReviewDismissed:
+		return "PULL_REVIEW_DISMISSED"
+	case ActionPullRequestReadyForReview:
+		return "PULL_REQUEST_READY_FOR_REVIEW"
+	case ActionAutoMergePullRequest:
+		return "AUTO_MERGE_PULL_REQUEST"
+	default:
+		return strconv.Itoa(int(at))
+	}
+}
+
 // Action represents user operation type and other information to
 // repository. It implemented interface base.Actioner so that can be
 // used in template render.

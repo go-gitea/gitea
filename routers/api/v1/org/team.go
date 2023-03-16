@@ -827,9 +827,8 @@ func ListTeamActivityFeeds(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	opts := activities_model.GetFeedsOptions{
-		RequestedTeam: ctx.Org.Team,
-		Actor:         ctx.Doer,
-		// Team membership has been checked by reqTeamMembership middleware, so IncludePrivate should be true here.
+		RequestedTeam:  ctx.Org.Team,
+		Actor:          ctx.Doer,
 		IncludePrivate: true,
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
