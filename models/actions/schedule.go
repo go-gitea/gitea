@@ -51,22 +51,24 @@ func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
 	}
 	defer committer.Close()
 
-	if len(rows) > 0 {
-		for _, row := range rows {
-			// create new schedule
-			if err = db.Insert(ctx, row); err != nil {
-				return err
-			}
+	if len(rows) == 0 {
+		return nil
+	}
 
-			// create new schedule spec
-			for _, spec := range row.Specs {
-				if err = db.Insert(ctx, &ActionScheduleSpec{
-					RepoID:     row.RepoID,
-					ScheduleID: row.ID,
-					Spec:       spec,
-				}); err != nil {
-					return err
-				}
+	for _, row := range rows {
+		// create new schedule
+		if err = db.Insert(ctx, row); err != nil {
+			return err
+		}
+
+		// create new schedule spec
+		for _, spec := range row.Specs {
+			if err = db.Insert(ctx, &ActionScheduleSpec{
+				RepoID:     row.RepoID,
+				ScheduleID: row.ID,
+				Spec:       spec,
+			}); err != nil {
+				return err
 			}
 		}
 	}
