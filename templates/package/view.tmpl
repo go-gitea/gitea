@@ -33,6 +33,7 @@
 					{{template "package/content/pub" .}}
 					{{template "package/content/pypi" .}}
 					{{template "package/content/rubygems" .}}
+					{{template "package/content/swift" .}}
 					{{template "package/content/vagrant" .}}
 				</div>
 				<div class="four wide column">
@@ -59,6 +60,7 @@
 							{{template "package/metadata/pub" .}}
 							{{template "package/metadata/pypi" .}}
 							{{template "package/metadata/rubygems" .}}
+							{{template "package/metadata/swift" .}}
 							{{template "package/metadata/vagrant" .}}
 							<div class="item">{{svg "octicon-database" 16 "gt-mr-3"}} {{FileSize .PackageDescriptor.CalculateBlobSize}}</div>
 						</div>

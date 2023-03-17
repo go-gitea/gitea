@@ -109,13 +109,13 @@ func TestGetWebhookByRepoID(t *testing.T) {
 	assert.True(t, IsErrWebhookNotExist(err))
 }
 
-func TestGetWebhookByOrgID(t *testing.T) {
+func TestGetWebhookByOwnerID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hook, err := GetWebhookByOrgID(3, 3)
+	hook, err := GetWebhookByOwnerID(3, 3)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), hook.ID)
 
-	_, err = GetWebhookByOrgID(unittest.NonexistentID, unittest.NonexistentID)
+	_, err = GetWebhookByOwnerID(unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
 	assert.True(t, IsErrWebhookNotExist(err))
 }
@@ -140,9 +140,9 @@ func TestGetWebhooksByRepoID(t *testing.T) {
 	}
 }
 
-func TestGetActiveWebhooksByOrgID(t *testing.T) {
+func TestGetActiveWebhooksByOwnerID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{OrgID: 3, IsActive: util.OptionalBoolTrue})
+	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{OwnerID: 3, IsActive: util.OptionalBoolTrue})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(3), hooks[0].ID)
@@ -150,9 +150,9 @@ func TestGetActiveWebhooksByOrgID(t *testing.T) {
 	}
 }
 
-func TestGetWebhooksByOrgID(t *testing.T) {
+func TestGetWebhooksByOwnerID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{OrgID: 3})
+	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{OwnerID: 3})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(3), hooks[0].ID)
@@ -181,13 +181,13 @@ func TestDeleteWebhookByRepoID(t *testing.T) {
 	assert.True(t, IsErrWebhookNotExist(err))
 }
 
-func TestDeleteWebhookByOrgID(t *testing.T) {
+func TestDeleteWebhookByOwnerID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 3, OrgID: 3})
-	assert.NoError(t, DeleteWebhookByOrgID(3, 3))
-	unittest.AssertNotExistsBean(t, &Webhook{ID: 3, OrgID: 3})
+	unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 3, OwnerID: 3})
+	assert.NoError(t, DeleteWebhookByOwnerID(3, 3))
+	unittest.AssertNotExistsBean(t, &Webhook{ID: 3, OwnerID: 3})
 
-	err := DeleteWebhookByOrgID(unittest.NonexistentID, unittest.NonexistentID)
+	err := DeleteWebhookByOwnerID(unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
 	assert.True(t, IsErrWebhookNotExist(err))
 }

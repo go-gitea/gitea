@@ -50,11 +50,11 @@ export function initAdminCommon() {
 
   function onUsePagedSearchChange() {
     if ($('#use_paged_search').prop('checked')) {
-      showElem($('.search-page-size'))
-        .find('input').attr('required', 'required');
+      showElem('.search-page-size');
+      $('.search-page-size').find('input').attr('required', 'required');
     } else {
-      hideElem($('.search-page-size'))
-        .find('input').removeAttr('required');
+      hideElem('.search-page-size');
+      $('.search-page-size').find('input').removeAttr('required');
     }
   }
 
@@ -198,7 +198,8 @@ export function initAdminCommon() {
           break;
       }
     });
-    $('#delete-selection').on('click', function () {
+    $('#delete-selection').on('click', function (e) {
+      e.preventDefault();
       const $this = $(this);
       $this.addClass('loading disabled');
       const ids = [];

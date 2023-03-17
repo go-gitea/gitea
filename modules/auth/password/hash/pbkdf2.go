@@ -4,17 +4,17 @@
 package hash
 
 import (
-	"crypto/sha256"
 	"encoding/hex"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 
+	"github.com/minio/sha256-simd"
 	"golang.org/x/crypto/pbkdf2"
 )
 
 func init() {
-	Register("pbkdf2", NewPBKDF2Hasher)
+	MustRegister("pbkdf2", NewPBKDF2Hasher)
 }
 
 // PBKDF2Hasher implements PasswordHasher

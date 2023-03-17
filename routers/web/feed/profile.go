@@ -26,7 +26,7 @@ func ShowUserFeedAtom(ctx *context.Context) {
 func showUserFeed(ctx *context.Context, formatType string) {
 	includePrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 
-	actions, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
+	actions, _, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctx.ContextUser,
 		Actor:           ctx.Doer,
 		IncludePrivate:  includePrivate,
