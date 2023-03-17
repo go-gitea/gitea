@@ -68,6 +68,7 @@
 }
 
 .user.profile .ui.repository.list .repo-title .labels {
+  word-break: normal;
   flex-shrink: 0;
 }
 
