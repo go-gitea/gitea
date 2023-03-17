@@ -498,43 +498,41 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		return
 	}
 
+	searchOptions := project_model.SearchOptions{
+		RepoID:   repo.ID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolFalse,
+		Type:     project_model.TypeRepository,
+	}
+
 	// retrieve this repo's projects
 	if ctx.Repo.CanRead(unit.TypeProjects) {
-		openProjects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
-			RepoID:   repo.ID,
-			Page:     -1,
-			IsClosed: util.OptionalBoolFalse,
-			Type:     project_model.TypeRepository,
-		})
+		openProjects, _, err = project_model.FindProjects(ctx, searchOptions)
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
+
+		searchOptions.IsClosed = util.OptionalBoolTrue
+		closedProjects, _, err = project_model.FindProjects(ctx, searchOptions)
 		if err != nil {
 			ctx.ServerError("GetProjects", err)
 			return
 		}
 	}
-	// individual projects
-	openProjectsUser, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+
+	searchOptions = project_model.SearchOptions{
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
-		Type:     project_model.TypeIndividual,
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
-		return
 	}
-	openProjectsUser, err = openProjectsUser.FilterWritableByDoer(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.ServerError("FilterWritableByDoer", err)
-		return
+	if repo.Owner.IsOrganization() {
+		searchOptions.Type = project_model.TypeOrganization
+	} else {
+		searchOptions.Type = project_model.TypeIndividual
 	}
-	openProjects = append(openProjects, openProjectsUser...)
-	// org projects
-	openProjectsUser, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
-		OwnerID:  repo.OwnerID,
-		Page:     -1,
-		IsClosed: util.OptionalBoolFalse,
-		Type:     project_model.TypeOrganization,
-	})
+	// individual/org projects
+	openProjectsUser, _, err := project_model.FindProjects(ctx, searchOptions)
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
 		return
@@ -546,42 +544,8 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	}
 	ctx.Data["OpenProjects"] = append(openProjects, openProjectsUser...)
 
-	// retrieve this repo's projects
-	if ctx.Repo.CanRead(unit.TypeProjects) {
-		closedProjects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
-			RepoID:   repo.ID,
-			Page:     -1,
-			IsClosed: util.OptionalBoolTrue,
-			Type:     project_model.TypeRepository,
-		})
-		if err != nil {
-			ctx.ServerError("GetProjects", err)
-			return
-		}
-	}
-	// individual project
-	closedProjectsUser, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
-		OwnerID:  repo.OwnerID,
-		Page:     -1,
-		IsClosed: util.OptionalBoolTrue,
-		Type:     project_model.TypeIndividual,
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
-		return
-	}
-	closedProjectsUser, err = closedProjectsUser.FilterWritableByDoer(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.ServerError("FilterWritableByDoer", err)
-		return
-	}
-	closedProjects = append(closedProjects, closedProjectsUser...)
-	closedProjectsUser, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
-		OwnerID:  repo.OwnerID,
-		Page:     -1,
-		IsClosed: util.OptionalBoolTrue,
-		Type:     project_model.TypeOrganization,
-	})
+	searchOptions.IsClosed = util.OptionalBoolTrue
+	closedProjectsUser, _, err := project_model.FindProjects(ctx, searchOptions)
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
 		return
