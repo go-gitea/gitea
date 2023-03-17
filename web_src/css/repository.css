@@ -3322,7 +3322,6 @@ td.blob-excerpt {
   position: sticky;
   top: 47px; /* match .repository .diff-detail-box */
   z-index: 7;
-  box-shadow: 0 -1px 0 1px var(--color-body); /* hide gap behind border-radius */
 }
 
 @media (max-width: 991px) {
