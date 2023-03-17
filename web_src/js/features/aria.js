@@ -128,20 +128,20 @@ function attachOneDropdownAria($dropdown) {
   // * mobile event sequence: focus -> mousedown -> mouseup -> click
   // Fomantic may stop propagation of blur event, use capture to make sure we can still get the event
   let ignoreClickPreEvents = 0, ignoreClickPreVisible = 0;
-  $dropdown[0].addEventListener('mousedown', (e) => {
+  $dropdown[0].addEventListener('mousedown', () => {
     ignoreClickPreVisible += isMenuVisible() ? 1 : 0;
     ignoreClickPreEvents++;
   }, true);
-  $dropdown[0].addEventListener('focus', (e) => {
+  $dropdown[0].addEventListener('focus', () => {
     ignoreClickPreVisible += isMenuVisible() ? 1 : 0;
     ignoreClickPreEvents++;
     deferredRefreshAria();
   }, true);
-  $dropdown[0].addEventListener('blur', (e) => {
+  $dropdown[0].addEventListener('blur', () => {
     ignoreClickPreVisible = ignoreClickPreEvents = 0;
     deferredRefreshAria(100);
   }, true);
-  $dropdown[0].addEventListener('mouseup', (e) => {
+  $dropdown[0].addEventListener('mouseup', () => {
     setTimeout(() => {
       ignoreClickPreVisible = ignoreClickPreEvents = 0;
       deferredRefreshAria(100);
