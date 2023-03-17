@@ -79,10 +79,6 @@
                   <svg-icon name="octicon-archive" :size="16" class-name="gt-ml-2"/>
                 </span>
               </div>
-              <div class="text light grey gt-df gt-ac" v-if="isStarsEnabled">
-                {{ repo.stars_count }}
-                <svg-icon name="octicon-star" :size="16" class-name="gt-ml-2"/>
-              </div>
             </a>
           </li>
         </ul>
