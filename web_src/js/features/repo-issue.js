@@ -226,13 +226,13 @@ export function initRepoIssueStatusButton() {
   // Change status
   const $statusButton = $('#status-button');
   // init value
-  $('#state').val($statusButton.data('value'))
-  $('#status').val($statusButton.data('status-val'))
+  $('#state').val($statusButton.data('value'));
+  $('#status').val($statusButton.data('status-val'));
   $('#comment-form textarea').on('keyup', function () {
     const easyMDE = getAttachedEasyMDE(this);
     const value = easyMDE?.value() || $(this).val();
     // find selected item of dropdown menu
-    const $selected = $('#status-dropdown').find('> .selected')
+    const $selected = $('#status-dropdown').find('> .selected');
     $statusButton.text($selected.data(value.length === 0 ? 'status' : 'status-and-comment'));
   });
   $statusButton.on('click', (e) => {
@@ -257,8 +257,8 @@ export function initRepoIssueStatusDropdown() {
       $('#status-button').text($(item).data(value.length === 0 ? 'status' : 'status-and-comment'));
       // set hidden input value
       $('#state').val($(item).data('value'));
-      $('#status').val($(item).data('status-val'))
-    })
+      $('#status').val($(item).data('status-val'));
+    });
   });
 }
 
