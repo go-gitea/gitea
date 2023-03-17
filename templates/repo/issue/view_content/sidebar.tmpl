@@ -26,8 +26,7 @@
 								<a class="{{if not .CanChange}}ui tooltip{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 									<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 									<span class="text">
-										{{avatar $.Context .User 28 "gt-mr-3"}}
-										{{.User.GetDisplayName}}
+										{{avatar $.Context .User 28 "gt-mr-3"}}{{template "repo/search_name" .User}}
 									</span>
 								</a>
 							{{end}}
@@ -258,8 +257,7 @@
 						{{end}}
 						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 						<span class="text">
-							{{avatar $.Context . 28 "gt-mr-3"}}
-							{{.GetDisplayName}}
+							{{avatar $.Context . 28 "gt-mr-3"}}{{template "repo/search_name" .}}
 						</span>
 					</a>
 				{{end}}

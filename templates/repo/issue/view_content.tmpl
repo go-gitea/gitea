@@ -116,8 +116,12 @@
 												{{.locale.Tr "repo.issues.reopen_issue"}}
 											</button>
 										{{else}}
-											<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
-												{{.locale.Tr "repo.issues.close_issue"}}
+											{{$closeTranslationKey := "repo.issues.close"}}
+											{{if .Issue.IsPull}}
+												{{$closeTranslationKey = "repo.pulls.close"}}
+											{{end}}
+											<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr $closeTranslationKey}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+												{{.locale.Tr $closeTranslationKey}}
 											</button>
 										{{end}}
 									{{end}}
@@ -167,9 +171,13 @@
 													{{.locale.Tr "repo.issues.reopen_issue"}}
 												</button>
 											{{else}}
-												<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
-													{{.locale.Tr "repo.issues.close_issue"}}
-												</button>
+											{{$closeTranslationKey := "repo.issues.close"}}
+											{{if .Issue.IsPull}}
+												{{$closeTranslationKey = "repo.pulls.close"}}
+											{{end}}
+											<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr $closeTranslationKey}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+												{{.locale.Tr $closeTranslationKey}}
+											</button>
 											{{end}}
 										{{end}}
 										<button class="ui green button loading-button" tabindex="5">
