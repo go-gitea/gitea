@@ -892,7 +892,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
 			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead))
-			m.Group("", func() { //nolint:dupl
+			m.Group("", func() {
 				m.Get("/new", org.NewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
