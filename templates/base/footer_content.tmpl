@@ -21,7 +21,7 @@
 			{{end}}
 			<div class="ui language bottom floating slide up dropdown link item">
 				{{svg "octicon-globe"}}
-				<div class="text">{{.locale.LangName}}</div>
+				<span>{{.locale.LangName}}</span>
 				<div class="menu language-menu">
 					{{range .AllLangs}}
 						<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq $.locale.Lang .Lang}}active selected{{end}}">{{.Name}}</a>
