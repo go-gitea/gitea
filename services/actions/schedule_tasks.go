@@ -23,12 +23,9 @@ func StartScheduleTasks(ctx context.Context) error {
 }
 
 func startTasks(ctx context.Context, opts actions_model.FindSpecOptions) error {
-	specs, count, err := actions_model.FindSpecs(ctx, opts)
+	specs, _, err := actions_model.FindSpecs(ctx, opts)
 	if err != nil {
 		return fmt.Errorf("find specs: %w", err)
-	}
-	if count == 0 {
-		return nil
 	}
 
 	now := time.Now()
