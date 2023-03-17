@@ -246,7 +246,7 @@ export function initRepoIssueStatusDropdown() {
   const $statusMenu = $statusDropdown.find('> .menu');
   $statusMenu.find('> .item').each((_, item) => {
     $(item).on('click', (e) => {
-      // e.preventDefault();
+      e.preventDefault();
       // rerender "check" icon
       $statusMenu.find('> .item').removeClass('active');
       $(item).addClass('active');

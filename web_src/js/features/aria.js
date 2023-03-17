@@ -38,6 +38,8 @@ function attachOneDropdownAria($dropdown) {
   const listPopupRole = isComboBox ? 'listbox' : 'menu';
   const listItemRole = isComboBox ? 'option' : 'menuitem';
 
+  const needKeepAtive = $dropdown.hasClass('keep-active');
+
   // make the item has role=option/menuitem, add an id if there wasn't one yet, make items as non-focusable
   // the elements inside the dropdown menu item should not be focusable, the focus should always be on the dropdown primary element.
   function prepareMenuItem($item) {
@@ -97,8 +99,9 @@ function attachOneDropdownAria($dropdown) {
     // if the popup is visible and has an active/selected item, use its id as aria-activedescendant
     if (menuVisible) {
       $focusable.attr('aria-activedescendant', $active.attr('id'));
-    } else if (!isComboBox) {
-      // for menu, when the popup is hidden, no need to keep the aria-activedescendant, and clear the active/selected item
+    } else if (!isComboBox && !needKeepAtive) {
+      // for menu in most cases, when the popup is hidden, no need to keep the aria-activedescendant, and clear the active/selected item
+      // if you really need to keep the aria-activedescendant, plz add a className 'keep-active' to the dropdown
       $focusable.removeAttr('aria-activedescendant');
       $active.removeClass('active').removeClass('selected');
     }
