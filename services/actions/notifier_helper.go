@@ -235,7 +235,7 @@ func handleWorkflows(
 	}
 
 	for id, content := range workflows {
-		run := actions_model.ActionRun{
+		run := &actions_model.ActionRun{
 			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
 			RepoID:            input.Repo.ID,
 			OwnerID:           input.Repo.OwnerID,
@@ -248,12 +248,19 @@ func handleWorkflows(
 			EventPayload:      string(p),
 			Status:            actions_model.StatusWaiting,
 		}
+		need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
+		if err != nil {
+			log.Error("check if need approval for repo %d with user %d: %v", input.Repo.ID, input.Doer.ID, err)
+			continue
+		}
+		run.NeedApproval = need
+
 		workflows, err := jobparser.Parse(content)
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue
 		}
-		if err := actions_model.InsertRun(ctx, &run, workflows); err != nil {
+		if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
 			log.Error("InsertRun: %v", err)
 			continue
 		}
@@ -371,4 +378,41 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 			Sender:  convert.ToUser(ctx, sender, nil),
 		}).
 		Notify(ctx)
+}
+
+func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *repo_model.Repository, user *user_model.User) (bool, error) {
+	// don't need approval if it's not a fork PR
+	if !run.IsForkPullRequest {
+		return false, nil
+	}
+
+	// always need approval if the user is restricted
+	if user.IsRestricted {
+		log.Trace("need approval because user %d is restricted", user.ID)
+		return true, nil
+	}
+
+	// don't need approval if the user can write
+	if perm, err := access_model.GetUserRepoPermission(ctx, repo, user); err != nil {
+		return false, fmt.Errorf("GetUserRepoPermission: %w", err)
+	} else if perm.CanWrite(unit_model.TypeActions) {
+		log.Trace("do not need approval because user %d can write", user.ID)
+		return false, nil
+	}
+
+	// don't need approval if the user has been approved before
+	if count, err := actions_model.CountRuns(ctx, actions_model.FindRunOptions{
+		RepoID:        repo.ID,
+		TriggerUserID: user.ID,
+		Approved:      true,
+	}); err != nil {
+		return false, fmt.Errorf("CountRuns: %w", err)
+	} else if count > 0 {
+		log.Trace("do not need approval because user %d has been approved before", user.ID)
+		return false, nil
+	}
+
+	// otherwise, need approval
+	log.Trace("need approval because it's the first time user %d triggered actions", user.ID)
+	return true, nil
 }
