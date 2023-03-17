@@ -6,6 +6,7 @@ import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initTooltip, showTemporaryTooltip} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
+import {setFileFolding} from './file-fold.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -437,17 +438,36 @@ export async function handleReply($el) {
 
 export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
+    // set scrollRestoration to 'manual' when there is a hash in url, so that the scroll position will not be remembered after refreshing
+    if (window.history.scrollRestoration !== 'manual') {
+      window.history.scrollRestoration = 'manual';
+    }
     const commentDiv = $(window.location.hash);
     if (commentDiv) {
       // get the name of the parent id
       const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
+        const ancestorDiffBox = commentDiv.closest('.diff-file-box');
+        // on pages like conversation, there is no diff header
+        const diffHeader = ancestorDiffBox.find('.diff-file-header');
+        // offset is for scrolling
+        let offset = 30;
+        if (diffHeader[0]) {
+          offset += $('.diff-detail-box').outerHeight() + diffHeader.outerHeight();
+        }
         $(`#show-outdated-${id}`).addClass('gt-hidden');
         $(`#code-comments-${id}`).removeClass('gt-hidden');
         $(`#code-preview-${id}`).removeClass('gt-hidden');
         $(`#hide-outdated-${id}`).removeClass('gt-hidden');
-        commentDiv[0].scrollIntoView();
+        // if the comment box is folded, expand it
+        if (ancestorDiffBox.attr('data-folded') && ancestorDiffBox.attr('data-folded') === 'true') {
+          setFileFolding(ancestorDiffBox[0], ancestorDiffBox.find('.fold-file')[0], false);
+        }
+        window.scrollTo({
+          top: commentDiv.offset().top - offset,
+          behavior: 'instant'
+        });
       }
     }
   }
