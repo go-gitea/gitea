@@ -489,8 +489,8 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 }
 
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
-	var openProjects project_model.List
-	var closedProjects project_model.List
+	var openProjects project_model.ProjectList
+	var closedProjects project_model.ProjectList
 	var err error
 
 	if err := repo.LoadOwner(ctx); err != nil {
@@ -511,7 +511,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 			return
 		}
 	}
-	// individual/org's project
+	// individual projects
 	openProjectsUser, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
@@ -522,14 +522,13 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
-	for _, p := range openProjectsUser {
-		if canWriteByDoer, err := p.CanWriteByDoer(ctx, repo, ctx.Doer); err != nil {
-			ctx.ServerError("CanWriteByDoer", err)
-			return
-		} else if canWriteByDoer {
-			openProjects = append(openProjects, p)
-		}
+	openProjectsUser, err = openProjectsUser.FilterWritableByDoer(ctx, repo, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("FilterWritableByDoer", err)
+		return
 	}
+	openProjects = append(openProjects, openProjectsUser...)
+	// org projects
 	openProjectsUser, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
@@ -540,15 +539,12 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
-	for _, p := range openProjectsUser {
-		if canWriteByDoer, err := p.CanWriteByDoer(ctx, repo, ctx.Doer); err != nil {
-			ctx.ServerError("CanWriteByDoer", err)
-			return
-		} else if canWriteByDoer {
-			openProjects = append(openProjects, p)
-		}
+	openProjectsUser, err = openProjectsUser.FilterWritableByDoer(ctx, repo, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("FilterWritableByDoer", err)
+		return
 	}
-	ctx.Data["OpenProjects"] = openProjects
+	ctx.Data["OpenProjects"] = append(openProjects, openProjectsUser...)
 
 	// retrieve this repo's projects
 	if ctx.Repo.CanRead(unit.TypeProjects) {
@@ -563,7 +559,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 			return
 		}
 	}
-	// individual/org's project
+	// individual project
 	closedProjectsUser, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
@@ -574,14 +570,12 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
-	for _, p := range closedProjectsUser {
-		if canWriteByDoer, err := p.CanWriteByDoer(ctx, repo, ctx.Doer); err != nil {
-			ctx.ServerError("CanWriteByDoer", err)
-			return
-		} else if canWriteByDoer {
-			closedProjects = append(closedProjects, p)
-		}
+	closedProjectsUser, err = closedProjectsUser.FilterWritableByDoer(ctx, repo, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("FilterWritableByDoer", err)
+		return
 	}
+	closedProjects = append(closedProjects, closedProjectsUser...)
 	closedProjectsUser, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
@@ -592,15 +586,12 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
-	for _, p := range closedProjectsUser {
-		if canWriteByDoer, err := p.CanWriteByDoer(ctx, repo, ctx.Doer); err != nil {
-			ctx.ServerError("CanWriteByDoer", err)
-			return
-		} else if canWriteByDoer {
-			closedProjects = append(closedProjects, p)
-		}
+	closedProjectsUser, err = closedProjectsUser.FilterWritableByDoer(ctx, repo, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("FilterWritableByDoer", err)
+		return
 	}
-	ctx.Data["ClosedProjects"] = closedProjects
+	ctx.Data["ClosedProjects"] = append(closedProjects, closedProjectsUser...)
 }
 
 // repoReviewerSelection items to bee shown

@@ -40,7 +40,7 @@ type (
 	Type uint8
 
 	// List is used to identify a list of projects
-	List []*Project
+	ProjectList []*Project
 )
 
 const (
@@ -162,7 +162,7 @@ func (p *Project) IsOrganizationProject() bool {
 	return p.Type == TypeOrganization
 }
 
-func (pl List) GetOwnerIDs() []int64 {
+func (pl ProjectList) GetOwnerIDs() []int64 {
 	ids := make(container.Set[int64], len(pl))
 	for _, p := range pl {
 		if p.OwnerID == 0 {
@@ -173,7 +173,7 @@ func (pl List) GetOwnerIDs() []int64 {
 	return ids.Values()
 }
 
-func (pl List) LoadOwners(ctx context.Context) error {
+func (pl ProjectList) LoadOwners(ctx context.Context) error {
 	userIDs := pl.GetOwnerIDs()
 	users := make(map[int64]*user_model.User, len(userIDs))
 	if err := db.GetEngine(ctx).
@@ -190,8 +190,7 @@ func (pl List) LoadOwners(ctx context.Context) error {
 	return nil
 }
 
-// CanWriteByDoer return whether doer have write permission to the project in a repo
-func (pl List) FliterWritableByDoer(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) (List, error) {
+func (pl ProjectList) FilterWritableByDoer(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) (ProjectList, error) {
 	if err := pl.LoadOwners(ctx); err != nil {
 		return nil, err
 	}
@@ -338,9 +337,9 @@ func CountProjects(ctx context.Context, opts SearchOptions) (int64, error) {
 }
 
 // FindProjects returns a list of all projects that have been created in the repository
-func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
+func FindProjects(ctx context.Context, opts SearchOptions) (ProjectList, int64, error) {
 	e := db.GetEngine(ctx).Where(opts.toConds())
-	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
+	projects := make(ProjectList, 0, setting.UI.IssuePagingNum)
 
 	if opts.Page > 0 {
 		e = e.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)

@@ -478,7 +478,7 @@ func (issue *Issue) getLabels(ctx context.Context) (err error) {
 	return nil
 }
 
-func (issues IssueList) FliterVaildByDoer(ctx context.Context, doer *user_model.User) (IssueList, error) {
+func (issues IssueList) FilterVaildByDoer(ctx context.Context, doer *user_model.User) (IssueList, error) {
 	repos, err := issues.LoadRepositories(ctx)
 	if err != nil {
 		return nil, err

@@ -70,7 +70,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 		if err != nil {
 			return nil, err
 		}
-		issues, err = IssueList(issues).FliterVaildByDoer(ctx, doer)
+		issues, err = IssueList(issues).FilterVaildByDoer(ctx, doer)
 		if err != nil {
 			return nil, err
 		}
@@ -87,7 +87,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 		if err != nil {
 			return nil, err
 		}
-		issues, err = IssueList(issues).FliterVaildByDoer(ctx, doer)
+		issues, err = IssueList(issues).FilterVaildByDoer(ctx, doer)
 		if err != nil {
 			return nil, err
 		}
@@ -115,7 +115,7 @@ func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, do
 }
 
 // NumIssuesInProjects returns counter of all issues assigned to a project list which doer can access
-func NumIssuesInProjects(ctx context.Context, pl project_model.List, doer *user_model.User, isClosed util.OptionalBool) (map[int64]int, error) {
+func NumIssuesInProjects(ctx context.Context, pl project_model.ProjectList, doer *user_model.User, isClosed util.OptionalBool) (map[int64]int, error) {
 	numMap := make(map[int64]int, len(pl))
 	for _, p := range pl {
 		num, err := NumIssuesInProject(ctx, p, doer, isClosed)
