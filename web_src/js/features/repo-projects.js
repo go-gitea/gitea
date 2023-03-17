@@ -141,6 +141,21 @@ export function initRepoProject() {
     window.location.reload();
   });
 
+  $(document).on('click', '.unset-default-project-board', async function (e) {
+    e.preventDefault();
+
+    await $.ajax({
+      method: 'POST',
+      url: $(this).data('url'),
+      headers: {
+        'X-Csrf-Token': csrfToken,
+      },
+      contentType: 'application/json',
+    });
+
+    window.location.reload();
+  });
+
   $('.delete-project-board').each(function () {
     $(this).click(function (e) {
       e.preventDefault();
