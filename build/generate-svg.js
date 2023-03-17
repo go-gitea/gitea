@@ -25,7 +25,7 @@ async function processFile(file, {prefix, fullName} = {}) {
     if (prefix === 'octicon') name = name.replace(/-[0-9]+$/, ''); // chop of '-16' on octicons
   }
 
-  // keep the `xmlns` attribute so that the files are displayble in standalone documents
+  // Set the `xmlns` attribute so that the files are displayable in standalone documents
   // The svg backend module will strip the attribute during startup for inline display
   const {data} = optimize(await readFile(file, 'utf8'), {
     plugins: [
@@ -33,7 +33,14 @@ async function processFile(file, {prefix, fullName} = {}) {
       {name: 'removeDimensions'},
       {name: 'prefixIds', params: {prefix: () => name}},
       {name: 'addClassesToSVGElement', params: {classNames: ['svg', name]}},
-      {name: 'addAttributesToSVGElement', params: {attributes: [{'width': '16'}, {'height': '16'}, {'aria-hidden': 'true'}]}},
+      {
+        name: 'addAttributesToSVGElement', params: {
+          attributes: [
+            {'xmlns': 'http://www.w3.org/2000/svg'},
+            {'width': '16'}, {'height': '16'}, {'aria-hidden': 'true'},
+          ]
+        }
+      },
     ],
   });
 
