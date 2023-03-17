@@ -118,8 +118,12 @@
 											{{.locale.Tr "repo.issues.reopen_issue"}}
 										</div>
 										{{else}}
+										{{$closeTranslationKey := "repo.issues.close"}}
+										{{if .Issue.IsPull}}
+											{{$closeTranslationKey = "repo.pulls.close"}}
+										{{end}}
 										<div id="status-button" class="ui button status-button" data-status-val="close" data-value="1">
-											{{.locale.Tr "repo.issues.close_issue"}}
+											{{.locale.Tr $closeTranslationKey}}
 										</div>
 										{{end}}
 										{{if not .Issue.IsPull}}
@@ -127,7 +131,7 @@
 											<i class="dropdown icon"></i>
 											<div class="menu" tabindex="-1">
 												{{if not (eq .Issue.Status 1)}}
-												<div class="item{{if not .Issue.IsClosed}} selected{{end}}" data-value="1" data-status-val="close" data-status="Close" data-status-and-comment="Comment and Close">
+												<div class="item{{if not .Issue.IsClosed}} active{{end}}" data-value="1" data-status-val="close" data-status="Close" data-status-and-comment="Comment and Close">
 													<i class="check icon"></i> Close
 												</div>
 												{{end}}
@@ -147,7 +151,7 @@
 												</div>
 												{{end}}
 												{{if .Issue.IsClosed}}
-												<div class="item{{if .Issue.IsClosed}} selected{{end}}" data-status-val="reopen" data-value="0" data-status="Reopen" data-status-and-comment="Comment and Reopen">
+												<div class="item{{if .Issue.IsClosed}} active{{end}}" data-status-val="reopen" data-value="0" data-status="Reopen" data-status-and-comment="Comment and Reopen">
 													<i class="check icon"></i> Reopen
 												</div>
 												{{end}}
@@ -202,9 +206,13 @@
 													{{.locale.Tr "repo.issues.reopen_issue"}}
 												</button>
 											{{else}}
-												<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
-													{{.locale.Tr "repo.issues.close_issue"}}
-												</button>
+											{{$closeTranslationKey := "repo.issues.close"}}
+											{{if .Issue.IsPull}}
+												{{$closeTranslationKey = "repo.pulls.close"}}
+											{{end}}
+											<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr $closeTranslationKey}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+												{{.locale.Tr $closeTranslationKey}}
+											</button>
 											{{end}}
 										{{end}}
 										<button class="ui green button loading-button" tabindex="5">

@@ -50,12 +50,6 @@ const (
 	tplMigrating    base.TplName = "repo/migrate/migrating"
 )
 
-type namedBlob struct {
-	name      string
-	isSymlink bool
-	blob      *git.Blob
-}
-
 // locate a README for a tree in one of the supported paths.
 //
 // entries is passed to reduce calls to ListEntries(), so
@@ -64,14 +58,14 @@ type namedBlob struct {
 //	entries == ctx.Repo.Commit.SubTree(ctx.Repo.TreePath).ListEntries()
 //
 // FIXME: There has to be a more efficient way of doing this
-func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry) (*namedBlob, error) {
+func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry) (string, *git.TreeEntry, error) {
 	// Create a list of extensions in priority order
 	// 1. Markdown files - with and without localisation - e.g. README.en-us.md or README.md
 	// 2. Txt files - e.g. README.txt
 	// 3. No extension - e.g. README
 	exts := append(localizedExtensions(".md", ctx.Language()), ".txt", "") // sorted by priority
 	extCount := len(exts)
-	readmeFiles := make([]*namedBlob, extCount+1)
+	readmeFiles := make([]*git.TreeEntry, extCount+1)
 
 	docsEntries := make([]*git.TreeEntry, 3) // (one of docs/, .gitea/ or .github/)
 	for _, entry := range entries {
@@ -98,28 +92,21 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry) (*n
 		}
 		if i, ok := util.IsReadmeFileExtension(entry.Name(), exts...); ok {
 			log.Debug("Potential readme file: %s", entry.Name())
-			if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].name, entry.Blob().Name()) {
-				name := entry.Name()
-				isSymlink := entry.IsLink()
-				target := entry
-				if isSymlink {
-					var err error
-					target, err = entry.FollowLinks()
+			if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].Name(), entry.Blob().Name()) {
+				if entry.IsLink() {
+					target, err := entry.FollowLinks()
 					if err != nil && !git.IsErrBadLink(err) {
-						return nil, err
+						return "", nil, err
+					} else if target != nil && (target.IsExecutable() || target.IsRegular()) {
+						readmeFiles[i] = entry
 					}
-				}
-				if target != nil && (target.IsExecutable() || target.IsRegular()) {
-					readmeFiles[i] = &namedBlob{
-						name,
-						isSymlink,
-						target.Blob(),
-					}
+				} else {
+					readmeFiles[i] = entry
 				}
 			}
 		}
 	}
-	var readmeFile *namedBlob
+	var readmeFile *git.TreeEntry
 	for _, f := range readmeFiles {
 		if f != nil {
 			readmeFile = f
@@ -140,20 +127,20 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry) (*n
 			var err error
 			childEntries, err := subTree.ListEntries()
 			if err != nil {
-				return nil, err
+				return "", nil, err
 			}
-			readmeFile, err = findReadmeFileInEntries(ctx, childEntries)
+
+			subfolder, readmeFile, err := findReadmeFileInEntries(ctx, childEntries)
 			if err != nil && !git.IsErrNotExist(err) {
-				return nil, err
+				return "", nil, err
 			}
 			if readmeFile != nil {
-				readmeFile.name = subTreeEntry.Name() + "/" + readmeFile.name
-				break
+				return path.Join(subTreeEntry.Name(), subfolder), readmeFile, nil
 			}
 		}
 	}
 
-	return readmeFile, nil
+	return "", readmeFile, nil
 }
 
 func renderDirectory(ctx *context.Context, treeLink string) {
@@ -177,16 +164,13 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
-	readmeFile, err := findReadmeFileInEntries(ctx, entries)
+	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, entries)
 	if err != nil {
 		ctx.ServerError("findReadmeFileInEntries", err)
 		return
 	}
-	if readmeFile == nil {
-		return
-	}
 
-	renderReadmeFile(ctx, readmeFile, fmt.Sprintf("%s/%s", treeLink, readmeFile.name))
+	renderReadmeFile(ctx, subfolder, readmeFile, treeLink)
 }
 
 // localizedExtensions prepends the provided language code with and without a
@@ -270,13 +254,23 @@ func getFileReader(repoID int64, blob *git.Blob) ([]byte, io.ReadCloser, *fileIn
 	return buf, dataRc, &fileInfo{st.IsText(), true, meta.Size, &meta.Pointer, st}, nil
 }
 
-func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelink string) {
+func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.TreeEntry, readmeTreelink string) {
+	target := readmeFile
+	if readmeFile != nil && readmeFile.IsLink() {
+		target, _ = readmeFile.FollowLinks()
+	}
+	if target == nil {
+		// if findReadmeFile() failed and/or gave us a broken symlink (which it shouldn't)
+		// simply skip rendering the README
+		return
+	}
+
 	ctx.Data["RawFileLink"] = ""
 	ctx.Data["ReadmeInList"] = true
 	ctx.Data["ReadmeExist"] = true
-	ctx.Data["FileIsSymlink"] = readmeFile.isSymlink
+	ctx.Data["FileIsSymlink"] = readmeFile.IsLink()
 
-	buf, dataRc, fInfo, err := getFileReader(ctx.Repo.Repository.ID, readmeFile.blob)
+	buf, dataRc, fInfo, err := getFileReader(ctx.Repo.Repository.ID, target.Blob())
 	if err != nil {
 		ctx.ServerError("getFileReader", err)
 		return
@@ -284,11 +278,11 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 	defer dataRc.Close()
 
 	ctx.Data["FileIsText"] = fInfo.isTextFile
-	ctx.Data["FileName"] = readmeFile.name
+	ctx.Data["FileName"] = path.Join(subfolder, readmeFile.Name())
 	ctx.Data["IsLFSFile"] = fInfo.isLFSFile
 
 	if fInfo.isLFSFile {
-		filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.name))
+		filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.Name()))
 		ctx.Data["RawFileLink"] = fmt.Sprintf("%s.git/info/lfs/objects/%s/%s", ctx.Repo.Repository.Link(), url.PathEscape(fInfo.lfsMeta.Oid), url.PathEscape(filenameBase64))
 	}
 
@@ -306,19 +300,19 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 
 	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
-	if markupType := markup.Type(readmeFile.name); markupType != "" {
+	if markupType := markup.Type(readmeFile.Name()); markupType != "" {
 		ctx.Data["IsMarkup"] = true
 		ctx.Data["MarkupType"] = markupType
 
 		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 			Ctx:          ctx,
-			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.name), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
-			URLPrefix:    path.Dir(readmeTreelink),
+			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.Name()), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
+			URLPrefix:    path.Join(readmeTreelink, subfolder),
 			Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
 			GitRepo:      ctx.Repo.GitRepo,
 		}, rd)
 		if err != nil {
-			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.name, ctx.Repo.Repository, err)
+			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.Name(), ctx.Repo.Repository, err)
 			buf := &bytes.Buffer{}
 			ctx.Data["EscapeStatus"], _ = charset.EscapeControlStringReader(rd, buf, ctx.Locale)
 			ctx.Data["FileContent"] = buf.String()

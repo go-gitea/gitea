@@ -1081,7 +1081,7 @@
   margin-left: 0;
 }
 
-.repository.view.issue .comment-list .comment .ui.form .field.footer .ui.dropdown .menu .item:not(.selected) i {
+.repository.view.issue .comment-list .comment .ui.form .field.footer .ui.dropdown .menu .item:not(.active) i {
   visibility: hidden;
 }
 
@@ -3376,10 +3376,6 @@ td.blob-excerpt {
   min-width: 100px;
 }
 
-.diff-file-body {
-  overflow-x: scroll;
-}
-
 .diff-stats-bar {
   display: inline-block;
   background-color: var(--color-red);
@@ -3699,4 +3695,8 @@ td.blob-excerpt {
 .pr-status .status-details>span {
   padding-right: 0.5em;
   /* To match the alignment with the "required" label */
+}
+
+.search-fullname {
+  color: var(--color-text-light-2);
 }

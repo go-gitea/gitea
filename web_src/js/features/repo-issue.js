@@ -231,9 +231,9 @@ export function initRepoIssueStatusButton() {
   $('#comment-form textarea').on('keyup', function () {
     const easyMDE = getAttachedEasyMDE(this);
     const value = easyMDE?.value() || $(this).val();
-    // find selected item of dropdown menu
-    const $selected = $('#status-dropdown').find('> .selected');
-    $statusButton.text($selected.data(value.length === 0 ? 'status' : 'status-and-comment'));
+    // find active item of dropdown menu
+    const $active = $('#status-dropdown').find('> .active');
+    $statusButton.text($active.data(value.length === 0 ? 'status' : 'status-and-comment'));
   });
   $statusButton.on('click', (e) => {
     e.preventDefault();
@@ -246,10 +246,10 @@ export function initRepoIssueStatusDropdown() {
   const $statusMenu = $statusDropdown.find('> .menu');
   $statusMenu.find('> .item').each((_, item) => {
     $(item).on('click', (e) => {
-      e.preventDefault();
+      // e.preventDefault();
       // rerender "check" icon
-      $statusMenu.find('> .item').removeClass('selected');
-      $(item).addClass('selected');
+      $statusMenu.find('> .item').removeClass('active');
+      $(item).addClass('active');
       // reset the text of status button
       const textarea = $('#comment-form textarea');
       const easyMDE = getAttachedEasyMDE(textarea);
