@@ -11,8 +11,8 @@ import webpack from 'webpack';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 
-const {ESBuildMinifyPlugin} = EsBuildLoader;
-const {SourceMapDevToolPlugin} = webpack;
+const {EsbuildPlugin} = EsBuildLoader;
+const {SourceMapDevToolPlugin, DefinePlugin} = webpack;
 const formatLicenseText = (licenseText) => wrapAnsi(licenseText || '', 80).trim();
 
 const glob = (pattern) => fastGlob.sync(pattern, {
@@ -90,7 +90,7 @@ export default {
   optimization: {
     minimize: isProduction,
     minimizer: [
-      new ESBuildMinifyPlugin({
+      new EsbuildPlugin({
         target: 'es2015',
         minify: true,
         css: true,
@@ -130,7 +130,8 @@ export default {
           {
             loader: 'esbuild-loader',
             options: {
-              target: 'es2015'
+              loader: 'js',
+              target: 'es2015',
             },
           },
         ],
@@ -173,7 +174,7 @@ export default {
     ],
   },
   plugins: [
-    new webpack.DefinePlugin({
+    new DefinePlugin({
       __VUE_OPTIONS_API__: true, // at the moment, many Vue components still use the Vue Options API
       __VUE_PROD_DEVTOOLS__: false, // do not enable devtools support in production
     }),
