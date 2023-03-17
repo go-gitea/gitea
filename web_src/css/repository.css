@@ -1068,16 +1068,17 @@
   overflow: visible;
 }
 
-.repository.view.issue .comment-list .comment .ui.form .field.footer .ui.dropdown {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.repository.view.issue .comment-list .comment .ui.form .field.footer .ui.button.state-button {
   color: var(--color-text-light);
   background-color: var(--color-light);
   border: 1px solid var(--color-light-border);
+}
+
+.repository.view.issue .comment-list .comment .ui.form .field.footer .ui.dropdown {
+  color: var(--color-text-light);
+  background-color: var(--color-light);
   border-left: none;
-  border-top-right-radius: 0.28571429rem;
-  border-bottom-right-radius: 0.28571429rem;
+  margin-left: 0;
 }
 
 .repository.view.issue .comment-list .comment .ui.form .field .tab.markup {

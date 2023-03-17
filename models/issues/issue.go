@@ -2504,8 +2504,6 @@ type IssueCloseState int
 const (
 	// IssueStateOpen
 	IssueStateOpen IssueCloseState = iota
-	// IssueStateLocked
-	IssueStateLocked
 	// IssueCloseStateCommon
 	IssueStateClosed
 	// IssueCloseStateArchived

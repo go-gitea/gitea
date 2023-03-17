@@ -112,49 +112,37 @@
 							<div class="field footer">
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
+
 									<!-- WIP: Use a combination of button and dropdown to implement the "close as & reopen" -->
-									<div class="ui labeled button">
+
+									<div class="ui teal buttons">
 										{{if .Issue.IsClosed}}
-											<button id="status-button" type="submit" class="ui basic button" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
-												{{.locale.Tr "repo.issues.reopen_issue"}}
-											</button>
+										<div id="status-button" class="ui button state-button" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
+											{{.locale.Tr "repo.issues.reopen_issue"}}
+										</div>
 										{{else}}
-											<button id="status-button" type="submit" class="ui basic button" data-status="{{.locale.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
-												{{.locale.Tr "repo.issues.close_issue"}}
-											</button>
+										<div id="status-button" class="ui button state-button" data-status="{{.locale.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+											{{.locale.Tr "repo.issues.close_issue"}}
+										</div>
 										{{end}}
-
-										<div id="state-dropdown" class="ui dropdown jump item tooltip gt-px-3" tabindex="-1" data-content="">
-											<span class="text">
-												<span class="fitted">{{svg "octicon-chevron-down"}}</span>
-											</span>
+										<div id="state-dropdown" class="ui floating dropdown icon button">
+											<i class="dropdown icon"></i>
 											<div class="menu" tabindex="-1">
-												<span class="item" data-value="2" data-content="Close">
-													<span class="octicon-check">{{svg "octicon-check"}}</span>
-													Close
-												</span>
-												<span class="item" data-value="3" data-content="Close as archived">
-													<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
-													Close as archived
-												</span>
-												<span class="item" data-value="4" data-content="Close as resolved">
-													<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
-													Close as resolved
-												</span>
-												<span class="item" data-value="5" data-content="Close as merged">
-													<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
-													Close as merged
-												</span>
-												<span class="item" data-value="0" data-content="Reopen">
-													<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
-													Reopen
-												</span>
-											</div><!-- end dropdown menu -->
-										</div><!-- end dropdown -->
+												<div class="item" data-value="1" data-content="Close">
+													<i class="check icon"></i> Close
+												</div>
+												<div class="item" data-value="2" data-content="Close as archived">
+													<i class="check icon invisible"></i> Close as archived
+												</div>
+												<div class="item" data-value="3" data-content="Close as resolved">
+													<i class="check icon invisible"></i> Close as resolved
+												</div>
+												<div class="item" data-value="4" data-content="Close as merged">
+													<i class="check icon invisible"></i> Close as merged
+												</div>
+											</div>
+										</div>
 									</div>
-
-									<!-- WIP -->
-
 									{{end}}
 									<button class="ui green button loading-button" tabindex="5">
 										{{.locale.Tr "repo.issues.create_comment"}}
