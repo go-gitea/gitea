@@ -40,7 +40,7 @@ type (
 	Type uint8
 
 	// List is used to identify a list of projects
-	ProjectList []*Project
+	ProjectList []*Project //nolint
 )
 
 const (
