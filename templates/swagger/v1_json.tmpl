@@ -16861,10 +16861,20 @@
         "external_wiki": {
           "$ref": "#/definitions/ExternalWiki"
         },
+        "has_actions": {
+          "description": "either `true` to enable actions unit, or `false` to disable them.",
+          "type": "boolean",
+          "x-go-name": "HasActions"
+        },
         "has_issues": {
           "description": "either `true` to enable issues for this repository or `false` to disable them.",
           "type": "boolean",
           "x-go-name": "HasIssues"
+        },
+        "has_packages": {
+          "description": "either `true` to enable packages unit, or `false` to disable them.",
+          "type": "boolean",
+          "x-go-name": "HasPackages"
         },
         "has_projects": {
           "description": "either `true` to enable project unit, or `false` to disable them.",
@@ -16875,6 +16885,11 @@
           "description": "either `true` to allow pull requests, or `false` to prevent pull request.",
           "type": "boolean",
           "x-go-name": "HasPullRequests"
+        },
+        "has_releases": {
+          "description": "either `true` to enable releases unit, or `false` to disable them.",
+          "type": "boolean",
+          "x-go-name": "HasReleases"
         },
         "has_wiki": {
           "description": "either `true` to enable the wiki for this repository or `false` to disable it.",
@@ -19421,9 +19436,17 @@
           "type": "string",
           "x-go-name": "FullName"
         },
+        "has_actions": {
+          "type": "boolean",
+          "x-go-name": "HasActions"
+        },
         "has_issues": {
           "type": "boolean",
           "x-go-name": "HasIssues"
+        },
+        "has_packages": {
+          "type": "boolean",
+          "x-go-name": "HasPackages"
         },
         "has_projects": {
           "type": "boolean",
@@ -19432,6 +19455,10 @@
         "has_pull_requests": {
           "type": "boolean",
           "x-go-name": "HasPullRequests"
+        },
+        "has_releases": {
+          "type": "boolean",
+          "x-go-name": "HasReleases"
         },
         "has_wiki": {
           "type": "boolean",

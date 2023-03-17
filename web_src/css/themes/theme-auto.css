@@ -1,2 +1,1 @@
-/* This import requires postcss-import so the media query is preserved in the output */
 @import "./theme-arc-green.css" (prefers-color-scheme: dark);
