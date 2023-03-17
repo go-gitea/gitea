@@ -1068,7 +1068,7 @@
   overflow: visible;
 }
 
-.repository.view.issue .comment-list .comment .ui.form .field.footer .ui.button.state-button {
+.repository.view.issue .comment-list .comment .ui.form .field.footer .ui.button.status-button {
   color: var(--color-text-light);
   background-color: var(--color-light);
   border: 1px solid var(--color-light-border);
@@ -1079,6 +1079,10 @@
   background-color: var(--color-light);
   border-left: none;
   margin-left: 0;
+}
+
+.repository.view.issue .comment-list .comment .ui.form .field.footer .ui.dropdown .menu .item:not(.selected) i {
+  visibility: hidden;
 }
 
 .repository.view.issue .comment-list .comment .ui.form .field .tab.markup {

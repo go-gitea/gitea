@@ -6,7 +6,7 @@ import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
   initRepoIssueStatusButton, initRepoIssueTitleEdit, initRepoIssueWipToggle,
-  initRepoPullRequestUpdate, updateIssuesMeta, handleReply, initRepoIssueStateDropdown
+  initRepoPullRequestUpdate, updateIssuesMeta, handleReply, initRepoIssueStatusDropdown
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
@@ -573,7 +573,7 @@ export function initRepository() {
     initRepoIssueDependencyDelete();
     initRepoIssueCodeCommentCancel();
     initRepoIssueStatusButton();
-    initRepoIssueStateDropdown();
+    initRepoIssueStatusDropdown();
     initRepoPullRequestUpdate();
     initCompReactionSelector();
 

@@ -112,37 +112,49 @@
 							<div class="field footer">
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
-
-									<!-- WIP: Use a combination of button and dropdown to implement the "close as & reopen" -->
-
+									<!-- WIP START  -->
 									<div class="ui teal buttons">
 										{{if .Issue.IsClosed}}
-										<div id="status-button" class="ui button state-button" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
+										<div id="status-button" class="ui button status-button" data-status-val="reopen" data-value="0">
 											{{.locale.Tr "repo.issues.reopen_issue"}}
 										</div>
 										{{else}}
-										<div id="status-button" class="ui button state-button" data-status="{{.locale.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+										<div id="status-button" class="ui button status-button" data-status-val="close" data-value="1">
 											{{.locale.Tr "repo.issues.close_issue"}}
 										</div>
 										{{end}}
-										<div id="state-dropdown" class="ui floating dropdown icon button">
+										<div id="status-dropdown" class="ui floating dropdown icon button">
 											<i class="dropdown icon"></i>
 											<div class="menu" tabindex="-1">
-												<div class="item" data-value="1" data-content="Close">
+												{{if not (eq .Issue.Status 1)}}
+												<div class="item{{if not .Issue.IsClosed}} selected{{end}}" data-value="1" data-status-val="close" data-status="Close" data-status-and-comment="Comment and Close">
 													<i class="check icon"></i> Close
 												</div>
-												<div class="item" data-value="2" data-content="Close as archived">
-													<i class="check icon invisible"></i> Close as archived
+												{{end}}
+												{{if not (eq .Issue.Status 2)}}
+												<div class="item" data-value="2" data-status="Close as archived" data-status-val="close" data-status-and-comment="Comment and Close as archived">
+													<i class="check icon"></i> Close as archived
 												</div>
-												<div class="item" data-value="3" data-content="Close as resolved">
-													<i class="check icon invisible"></i> Close as resolved
+												{{end}}
+												{{if not (eq .Issue.Status 3)}}
+												<div class="item" data-value="3" data-status="Close as resolved" data-status-val="close" data-status-and-comment="Comment and Close as resolved">
+													<i class="check icon"></i> Close as resolved
 												</div>
-												<div class="item" data-value="4" data-content="Close as merged">
-													<i class="check icon invisible"></i> Close as merged
+												{{end}}
+												{{if not (eq .Issue.Status 4)}}
+												<div class="item" data-value="4" data-status="Close as merged" data-status-val="close" data-status-and-comment="Comment and Close as merged">
+													<i class="check icon"></i> Close as merged
 												</div>
+												{{end}}
+												{{if .Issue.IsClosed}}
+												<div class="item{{if .Issue.IsClosed}} selected{{end}}" data-status-val="reopen" data-value="0" data-status="Reopen" data-status-and-comment="Comment and Reopen">
+													<i class="check icon"></i> Reopen
+												</div>
+												{{end}}
 											</div>
 										</div>
 									</div>
+									<!-- WIP END -->
 									{{end}}
 									<button class="ui green button loading-button" tabindex="5">
 										{{.locale.Tr "repo.issues.create_comment"}}

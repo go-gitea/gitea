@@ -125,6 +125,7 @@ type Issue struct {
 	IsRead           bool             `xorm:"-"`
 	IsPull           bool             `xorm:"INDEX"` // Indicates whether is a pull request or not.
 	PullRequest      *PullRequest     `xorm:"-"`
+	Status           int64
 	NumComments      int
 	Ref              string
 
@@ -2499,17 +2500,17 @@ func (issue *Issue) HasOriginalAuthor() bool {
 	return issue.OriginalAuthor != "" && issue.OriginalAuthorID != 0
 }
 
-type IssueCloseState int
+type IssueStatus int
 
 const (
-	// IssueStateOpen
-	IssueStateOpen IssueCloseState = iota
-	// IssueCloseStateCommon
-	IssueStateClosed
-	// IssueCloseStateArchived
-	IssueStateArchived
+	// IssueStatusOpen
+	IssueStatusOpen IssueStatus = iota
+	// IssueStatusClosed
+	IssueStatusClosed
+	// IssueStatuseArchived
+	IssueStatusArchived
 	// IssueCloseStateResolved
-	IssueStateResolved
-	// IssueCLoseStateMerged
-	IssueStateMerged
+	IssueStatusResolved
+	// IssueStatusMerged
+	IssueStatusMerged
 )

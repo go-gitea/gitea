@@ -225,29 +225,41 @@ export function initRepoIssueCodeCommentCancel() {
 export function initRepoIssueStatusButton() {
   // Change status
   const $statusButton = $('#status-button');
+  // init value
+  $('#state').val($statusButton.data('value'))
+  $('#status').val($statusButton.data('status-val'))
   $('#comment-form textarea').on('keyup', function () {
     const easyMDE = getAttachedEasyMDE(this);
     const value = easyMDE?.value() || $(this).val();
-    $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
+    // find selected item of dropdown menu
+    const $selected = $('#status-dropdown').find('> .selected')
+    $statusButton.text($selected.data(value.length === 0 ? 'status' : 'status-and-comment'));
   });
   $statusButton.on('click', (e) => {
     e.preventDefault();
-    $('#status').val($statusButton.data('status-val'));
     $('#comment-form').trigger('submit');
   });
 }
 
-export function initRepoIssueStateDropdown() {
-  const $stateDropdown = $('#state-dropdown');
-  const stateMenu = $stateDropdown.find('> .menu');
-  stateMenu.find('> .item').each((_, item) => {
-    console.log('menu item', item, $(item));
+export function initRepoIssueStatusDropdown() {
+  const $statusDropdown = $('#status-dropdown');
+  const $statusMenu = $statusDropdown.find('> .menu');
+  $statusMenu.find('> .item').each((_, item) => {
     $(item).on('click', (e) => {
-      $('#status-button').text($(item).data('content'));
-      $('#state').val($(item).data('value'))
+      e.preventDefault();
+      // rerender "check" icon
+      $statusMenu.find('> .item').removeClass('selected');
+      $(item).addClass('selected');
+      // reset the text of status button
+      const textarea = $('#comment-form textarea');
+      const easyMDE = getAttachedEasyMDE(textarea);
+      const value = easyMDE?.value() || $(textarea).val();
+      $('#status-button').text($(item).data(value.length === 0 ? 'status' : 'status-and-comment'));
+      // set hidden input value
+      $('#state').val($(item).data('value'));
+      $('#status').val($(item).data('status-val'))
     })
   });
-  console.log('1', $stateDropdown.attr('id'), stateMenu)
 }
 
 export function initRepoPullRequestUpdate() {
