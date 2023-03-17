@@ -28,7 +28,7 @@ func startTasks(ctx context.Context, opts actions_model.FindSpecOptions) error {
 		return fmt.Errorf("find specs: %w", err)
 	}
 
-	now := time.Now()
+	now := time.Now().Truncate(time.Minute)
 	for _, row := range specs {
 		schedule, err := cron.Parse(row.Spec)
 		if err != nil {
@@ -36,8 +36,7 @@ func startTasks(ctx context.Context, opts actions_model.FindSpecOptions) error {
 			continue
 		}
 
-		next := schedule.Next(now)
-		if next.Sub(now) <= 60 {
+		if schedule.Next(now.Add(-1)).Equal(now) {
 			if err := CreateScheduleTask(ctx, row.Schedule, row.Spec); err != nil {
 				log.Error("CreateScheduleTask: %v", err)
 			}
