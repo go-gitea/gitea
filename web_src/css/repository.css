@@ -1852,6 +1852,24 @@
   padding-bottom: 5px;
 }
 
+.diff-file-box {
+  border: 1px solid transparent;
+  border-radius: 0.285rem; /* Just like ui.top.attached.header */
+}
+
+.diff-file-box .ui.attached.header,
+.diff-file-box .ui.attached.table {
+  margin: 0; /* remove fomantic negative margins */;
+  width: initial; /* remove fomantic over 100% width */;
+  max-width: initial; /* remove fomantic over 100% width */;
+}
+
+.diff-file-box:target {
+  border-color: var(--color-primary) !important;
+  border-radius: var(--border-radius) !important;
+  box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
+}
+
 .repository .diff-stats {
   clear: both;
   margin-bottom: 5px;
