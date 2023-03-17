@@ -145,21 +145,8 @@ export default {
             loader: 'css-loader',
             options: {
               sourceMap: true,
-              importLoaders: 1,
               url: {filter: filterCssImport},
               import: {filter: filterCssImport},
-            },
-          },
-          {
-            loader: 'postcss-loader', /* for conditional import in theme-auto.css */
-            options: {
-              sourceMap: true,
-              postcssOptions: {
-                plugins: [
-                  'postcss-import',
-                  'postcss-url',
-                ],
-              },
             },
           },
         ],
