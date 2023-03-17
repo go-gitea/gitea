@@ -4,7 +4,7 @@ import {attachTribute} from './tribute.js';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
-import {initTooltip, showTemporaryTooltip} from '../modules/tippy.js';
+import {initTooltip, showTemporaryTooltip, createTippy} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
 
@@ -512,12 +512,23 @@ export function initRepoPullRequestReview() {
     return;
   }
 
-  $('.js-btn-review').on('click', function (e) {
+  const $reviewBtn = $('.js-btn-review');
+  const $panel = $reviewBtn.parent().find('.review-box-panel');
+  const $closeBtn = $panel.find('.close');
+
+  const tippy = createTippy($reviewBtn[0], {
+    content: $panel[0],
+    placement: 'bottom',
+    trigger: 'click',
+    role: 'menu',
+    maxWidth: 'none',
+    interactive: true,
+    hideOnClick: true,
+  });
+
+  $closeBtn.on('click', (e) => {
     e.preventDefault();
-    toggleElem($(this).parent().find('.review-box-panel'));
-  }).parent().find('.review-box-panel .close').on('click', function (e) {
-    e.preventDefault();
-    hideElem($(this).closest('.review-box-panel'));
+    tippy.hide();
   });
 
   $(document).on('click', 'a.add-code-comment', async function (e) {
