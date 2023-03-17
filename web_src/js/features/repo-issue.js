@@ -464,7 +464,10 @@ export function initRepoPullRequestReview() {
         if (ancestorDiffBox.attr('data-folded') && ancestorDiffBox.attr('data-folded') === 'true') {
           setFileFolding(ancestorDiffBox[0], ancestorDiffBox.find('.fold-file')[0], false);
         }
-        $('html, body').scrollTop(commentDiv.offset().top - offset);
+        window.scrollTo({
+          top: commentDiv.offset().top - offset,
+          behavior: 'instant'
+        });
       }
     }
   }
