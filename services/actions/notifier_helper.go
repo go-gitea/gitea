@@ -186,67 +186,6 @@ func handleSchedules(
 	return nil
 }
 
-func handleWorkflows(
-	ctx context.Context,
-	workflows map[string][]byte,
-	commit *git.Commit,
-	input *notifyInput,
-) error {
-	if len(workflows) == 0 {
-		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
-		return nil
-	}
-
-	p, err := json.Marshal(input.Payload)
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
-	}
-
-	for id, content := range workflows {
-		run := &actions_model.ActionRun{
-			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
-			RepoID:            input.Repo.ID,
-			OwnerID:           input.Repo.OwnerID,
-			WorkflowID:        id,
-			TriggerUserID:     input.Doer.ID,
-			Ref:               input.Ref,
-			CommitSHA:         commit.ID.String(),
-			IsForkPullRequest: input.PullRequest != nil && input.PullRequest.IsFromFork(),
-			Event:             input.Event,
-			EventPayload:      string(p),
-			Status:            actions_model.StatusWaiting,
-		}
-		need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
-		if err != nil {
-			log.Error("check if need approval for repo %d with user %d: %v", input.Repo.ID, input.Doer.ID, err)
-			continue
-		}
-		run.NeedApproval = need
-
-		workflows, err := jobparser.Parse(content)
-		if err != nil {
-			log.Error("jobparser.Parse: %v", err)
-			continue
-		}
-		if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
-			log.Error("InsertRun: %v", err)
-			continue
-		}
-
-		jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
-		if err != nil {
-			log.Error("FindRunJobs: %v", err)
-			continue
-		}
-		for _, job := range jobs {
-			if err := CreateCommitStatus(ctx, job); err != nil {
-				log.Error("CreateCommitStatus: %v", err)
-			}
-		}
-	}
-	return nil
-}
-
 func notify(ctx context.Context, input *notifyInput) error {
 	if input.Doer.IsActions() {
 		// avoiding triggering cyclically, for example:
@@ -383,4 +322,65 @@ func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *rep
 	// otherwise, need approval
 	log.Trace("need approval because it's the first time user %d triggered actions", user.ID)
 	return true, nil
+}
+
+func handleWorkflows(
+	ctx context.Context,
+	workflows map[string][]byte,
+	commit *git.Commit,
+	input *notifyInput,
+) error {
+	if len(workflows) == 0 {
+		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
+		return nil
+	}
+
+	p, err := json.Marshal(input.Payload)
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+
+	for id, content := range workflows {
+		run := &actions_model.ActionRun{
+			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
+			RepoID:            input.Repo.ID,
+			OwnerID:           input.Repo.OwnerID,
+			WorkflowID:        id,
+			TriggerUserID:     input.Doer.ID,
+			Ref:               input.Ref,
+			CommitSHA:         commit.ID.String(),
+			IsForkPullRequest: input.PullRequest != nil && input.PullRequest.IsFromFork(),
+			Event:             input.Event,
+			EventPayload:      string(p),
+			Status:            actions_model.StatusWaiting,
+		}
+		need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
+		if err != nil {
+			log.Error("check if need approval for repo %d with user %d: %v", input.Repo.ID, input.Doer.ID, err)
+			continue
+		}
+		run.NeedApproval = need
+
+		workflows, err := jobparser.Parse(content)
+		if err != nil {
+			log.Error("jobparser.Parse: %v", err)
+			continue
+		}
+		if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
+			log.Error("InsertRun: %v", err)
+			continue
+		}
+
+		jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+		if err != nil {
+			log.Error("FindRunJobs: %v", err)
+			continue
+		}
+		for _, job := range jobs {
+			if err := CreateCommitStatus(ctx, job); err != nil {
+				log.Error("CreateCommitStatus: %v", err)
+			}
+		}
+	}
+	return nil
 }
