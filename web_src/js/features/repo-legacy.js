@@ -11,7 +11,7 @@ import {
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
-import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
+import {initRepoBranchTagSelector} from '../components/RepoBranchTagSelector.vue';
 import {
   initRepoCloneLink, initRepoCommonBranchOrTagDropdown, initRepoCommonFilterSearchDropdown,
   initRepoCommonLanguageStats,
@@ -145,7 +145,6 @@ export function initRepoCommentForm() {
 
       const clickedItem = $(this);
       const scope = $(this).attr('data-scope');
-      const canRemoveScope = e.altKey;
 
       $(this).parent().find('.item').each(function () {
         if (scope) {
@@ -153,11 +152,7 @@ export function initRepoCommentForm() {
           if ($(this).attr('data-scope') !== scope) {
             return true;
           }
-          if ($(this).is(clickedItem)) {
-            if (!canRemoveScope && $(this).hasClass('checked')) {
-              return true;
-            }
-          } else if (!$(this).hasClass('checked')) {
+          if (!$(this).is(clickedItem) && !$(this).hasClass('checked')) {
             return true;
           }
         } else if (!$(this).is(clickedItem)) {
@@ -417,7 +412,8 @@ async function onEditContent(event) {
       $saveButton.trigger('click');
     });
 
-    $editContentZone.find('.cancel.button').on('click', () => {
+    $editContentZone.find('.cancel.button').on('click', (e) => {
+      e.preventDefault();
       showElem($renderContent);
       hideElem($editContentZone);
       if (dz) {
@@ -490,7 +486,7 @@ export function initRepository() {
   // File list and commits
   if ($('.repository.file.list').length > 0 || $('.branch-dropdown').length > 0 ||
     $('.repository.commits').length > 0 || $('.repository.release').length > 0) {
-    initRepoBranchTagDropdown('.choose.reference .dropdown');
+    initRepoBranchTagSelector('.js-branch-tag-selector');
   }
 
   // Wiki
@@ -606,9 +602,6 @@ export function initRepository() {
 }
 
 function initRepoIssueCommentEdit() {
-  // Issue/PR Context Menus
-  $('.comment-header-right .context-dropdown').dropdown({action: 'hide'});
-
   // Edit issue or comment content
   $(document).on('click', '.edit-content', onEditContent);
 

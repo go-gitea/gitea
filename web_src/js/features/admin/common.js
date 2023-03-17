@@ -198,7 +198,8 @@ export function initAdminCommon() {
           break;
       }
     });
-    $('#delete-selection').on('click', function () {
+    $('#delete-selection').on('click', function (e) {
+      e.preventDefault();
       const $this = $(this);
       $this.addClass('loading disabled');
       const ids = [];
