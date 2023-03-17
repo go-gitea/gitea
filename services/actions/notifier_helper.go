@@ -105,38 +105,6 @@ func (input *notifyInput) Notify(ctx context.Context) {
 	}
 }
 
-func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule, spec string) error {
-	run := &actions_model.ActionRun{
-		Title:         cron.Title,
-		RepoID:        cron.RepoID,
-		OwnerID:       cron.OwnerID,
-		WorkflowID:    cron.WorkflowID,
-		TriggerUserID: cron.TriggerUserID,
-		Ref:           cron.Ref,
-		CommitSHA:     cron.CommitSHA,
-		Event:         cron.Event,
-		EventPayload:  cron.EventPayload,
-		Status:        actions_model.StatusWaiting,
-	}
-	workflows, err := jobparser.Parse(cron.Content)
-	if err != nil {
-		return err
-	}
-	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
-		return err
-	}
-	jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
-	if err != nil {
-		return err
-	}
-	for _, job := range jobs {
-		if err := CreateCommitStatus(ctx, job); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func handleSchedules(
 	ctx context.Context,
 	schedules map[string][]byte,
