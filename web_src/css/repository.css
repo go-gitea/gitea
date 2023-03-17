@@ -1635,6 +1635,13 @@
   padding-right: 2px;
   margin-left: -1px;
   margin-right: -1px;
+  height: 47px; /* match .ui.attached.header.diff-file-header.sticky-2nd-row */
+}
+
+@media (max-width: 991px) {
+  .repository .diff-detail-box.sticky {
+    height: 77px; /* match .ui.attached.header.diff-file-header.sticky-2nd-row */
+  }
 }
 
 .repository .diff-detail-box > div::after {
@@ -3318,14 +3325,14 @@ td.blob-excerpt {
 
 .ui.attached.header.diff-file-header.sticky-2nd-row {
   position: sticky;
-  top: 46.5px;
+  top: 47px; /* match .repository .diff-detail-box.sticky */
   z-index: 7;
-  box-shadow: 0 -1px 0 1px var(--color-body); /* hide sub-pixel gap on top */
+  box-shadow: 0 -1px 0 1px var(--color-body); /* hide gap behind border-radius */
 }
 
 @media (max-width: 991px) {
   .ui.attached.header.diff-file-header.sticky-2nd-row {
-    top: 76.5px;
+    top: 77px; /* match .repository .diff-detail-box.sticky */
   }
 }
 
