@@ -11,10 +11,10 @@ import (
 // ActionScheduleSpec represents a schedule spec of a workflow file
 type ActionScheduleSpec struct {
 	ID         int64
-	RepoID     int64
+	RepoID     int64                  `xorm:"index"`
 	Repo       *repo_model.Repository `xorm:"-"`
-	ScheduleID int64
-	Schedule   *ActionSchedule `xorm:"-"`
+	ScheduleID int64                  `xorm:"index"`
+	Schedule   *ActionSchedule        `xorm:"-"`
 
 	Spec string
 }
