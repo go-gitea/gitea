@@ -130,6 +130,12 @@ const (
 	CommentTypePRScheduledToAutoMerge
 	// 35 pr was un scheduled to auto merge when checks succeed
 	CommentTypePRUnScheduledToAutoMerge
+	// 36
+	CommentTypeCloseAsArchived
+	// 37
+	CommentTypeCloseAsResolved
+	// 38
+	CommentTypeCloseAsMerged
 )
 
 var commentStrings = []string{
@@ -169,6 +175,9 @@ var commentStrings = []string{
 	"change_issue_ref",
 	"pull_scheduled_merge",
 	"pull_cancel_scheduled_merge",
+	"close_as_archived",
+	"close_as_resolved",
+	"close_as_merged",
 }
 
 func (t CommentType) String() string {

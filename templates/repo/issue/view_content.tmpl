@@ -112,7 +112,6 @@
 							<div class="field footer">
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
-									<!-- WIP START  -->
 									<div class="ui teal buttons">
 										{{if .Issue.IsClosed}}
 										<div id="status-button" class="ui button status-button" data-status-val="reopen" data-value="0">
@@ -123,6 +122,7 @@
 											{{.locale.Tr "repo.issues.close_issue"}}
 										</div>
 										{{end}}
+										{{if not .Issue.IsPull}}
 										<div id="status-dropdown" class="ui floating dropdown icon button">
 											<i class="dropdown icon"></i>
 											<div class="menu" tabindex="-1">
@@ -153,8 +153,8 @@
 												{{end}}
 											</div>
 										</div>
+										{{end}}
 									</div>
-									<!-- WIP END -->
 									{{end}}
 									<button class="ui green button loading-button" tabindex="5">
 										{{.locale.Tr "repo.issues.create_comment"}}

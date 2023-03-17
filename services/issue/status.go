@@ -14,14 +14,14 @@ import (
 )
 
 // ChangeStatus changes issue status to open or closed.
-func ChangeStatus(issue *issues_model.Issue, doer *user_model.User, commitID string, closed bool) error {
-	return changeStatusCtx(db.DefaultContext, issue, doer, commitID, closed)
+func ChangeStatus(issue *issues_model.Issue, doer *user_model.User, commitID string, closed bool, status issues_model.IssueStatus) error {
+	return changeStatusCtx(db.DefaultContext, issue, doer, commitID, closed, status)
 }
 
 // changeStatusCtx changes issue status to open or closed.
 // TODO: if context is not db.DefaultContext we get a deadlock!!!
-func changeStatusCtx(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string, closed bool) error {
-	comment, err := issues_model.ChangeIssueStatus(ctx, issue, doer, closed)
+func changeStatusCtx(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string, closed bool, status issues_model.IssueStatus) error {
+	comment, err := issues_model.ChangeIssueStatus(ctx, issue, doer, closed, status)
 	if err != nil {
 		if issues_model.IsErrDependenciesLeft(err) && closed {
 			if err := issues_model.FinishIssueStopwatchIfPossible(ctx, doer, issue); err != nil {

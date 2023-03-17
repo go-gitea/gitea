@@ -125,7 +125,7 @@ type Issue struct {
 	IsRead           bool             `xorm:"-"`
 	IsPull           bool             `xorm:"INDEX"` // Indicates whether is a pull request or not.
 	PullRequest      *PullRequest     `xorm:"-"`
-	Status           int64
+	Status           IssueStatus
 	NumComments      int
 	Ref              string
 
@@ -644,7 +644,7 @@ func UpdateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
 	return nil
 }
 
-func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed, isMergePull bool) (*Comment, error) {
+func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed, isMergePull bool, status IssueStatus) (*Comment, error) {
 	// Reload the issue
 	currentIssue, err := GetIssueByID(ctx, issue.ID)
 	if err != nil {
@@ -652,7 +652,7 @@ func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 	}
 
 	// Nothing should be performed if current status is same as target status
-	if currentIssue.IsClosed == isClosed {
+	if currentIssue.IsClosed == isClosed && currentIssue.Status == status {
 		if !issue.IsPull {
 			return nil, ErrIssueWasClosed{
 				ID: issue.ID,
@@ -664,6 +664,7 @@ func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 	}
 
 	issue.IsClosed = isClosed
+	issue.Status = status
 	return doChangeIssueStatus(ctx, issue, doer, isMergePull)
 }
 
@@ -687,7 +688,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 		issue.ClosedUnix = 0
 	}
 
-	if err := UpdateIssueCols(ctx, issue, "is_closed", "closed_unix"); err != nil {
+	if err := UpdateIssueCols(ctx, issue, "is_closed", "status", "closed_unix"); err != nil {
 		return nil, err
 	}
 
@@ -714,11 +715,22 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 	}
 
 	// New action comment
-	cmtType := CommentTypeClose
-	if !issue.IsClosed {
-		cmtType = CommentTypeReopen
-	} else if isMergePull {
+	cmtType := CommentTypeUnknown
+	if isMergePull {
 		cmtType = CommentTypeMergePull
+	} else if !issue.IsClosed {
+		cmtType = CommentTypeReopen
+	} else {
+		switch issue.Status {
+		case IssueStatusClosed:
+			cmtType = CommentTypeClose
+		case IssueStatusArchived:
+			cmtType = CommentTypeCloseAsArchived
+		case IssueStatusResolved:
+			cmtType = CommentTypeCloseAsResolved
+		case IssueStatusMerged:
+			cmtType = CommentTypeCloseAsMerged
+		}
 	}
 
 	return CreateComment(ctx, &CreateCommentOptions{
@@ -730,7 +742,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 }
 
 // ChangeIssueStatus changes issue status to open or closed.
-func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed bool) (*Comment, error) {
+func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed bool, status IssueStatus) (*Comment, error) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
@@ -738,7 +750,7 @@ func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 		return nil, err
 	}
 
-	return changeIssueStatus(ctx, issue, doer, isClosed, false)
+	return changeIssueStatus(ctx, issue, doer, isClosed, false, status)
 }
 
 // ChangeIssueTitle changes the title of this issue, as the given user.
@@ -2052,6 +2064,10 @@ func UpdateIssueByAPI(issue *Issue, doer *user_model.User) (statusChangeComment 
 	}
 
 	if currentIssue.IsClosed != issue.IsClosed {
+		issue.Status = IssueStatusOpen
+		if issue.IsClosed {
+			issue.Status = IssueStatusClosed
+		}
 		statusChangeComment, err = doChangeIssueStatus(ctx, issue, doer, false)
 		if err != nil {
 			return nil, false, err
@@ -2500,7 +2516,7 @@ func (issue *Issue) HasOriginalAuthor() bool {
 	return issue.OriginalAuthor != "" && issue.OriginalAuthorID != 0
 }
 
-type IssueStatus int
+type IssueStatus int64
 
 const (
 	// IssueStatusOpen

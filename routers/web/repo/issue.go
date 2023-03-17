@@ -2619,11 +2619,14 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 
 	var isClosed bool
+	var status issues_model.IssueStatus
 	switch action := ctx.FormString("action"); action {
 	case "open":
 		isClosed = false
+		status = issues_model.IssueStatusOpen
 	case "close":
 		isClosed = true
+		status = issues_model.IssueStatusClosed
 	default:
 		log.Warn("Unrecognized action: %s", action)
 	}
@@ -2634,7 +2637,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 	for _, issue := range issues {
 		if issue.IsClosed != isClosed {
-			if err := issue_service.ChangeStatus(issue, ctx.Doer, "", isClosed); err != nil {
+			if err := issue_service.ChangeStatus(issue, ctx.Doer, "", isClosed, status); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
 					ctx.JSON(http.StatusPreconditionFailed, map[string]interface{}{
 						"error": "cannot close this issue because it still has open dependencies",
@@ -2731,7 +2734,7 @@ func NewComment(ctx *context.Context) {
 				ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 			} else {
 				isClosed := form.Status == "close"
-				if err := issue_service.ChangeStatus(issue, ctx.Doer, "", isClosed); err != nil {
+				if err := issue_service.ChangeStatus(issue, ctx.Doer, "", isClosed, form.State); err != nil {
 					log.Error("ChangeStatus: %v", err)
 
 					if issues_model.IsErrDependenciesLeft(err) {

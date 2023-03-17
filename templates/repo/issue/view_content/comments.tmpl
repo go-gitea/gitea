@@ -11,7 +11,8 @@
 		26 = DELETE_TIME_MANUAL, 27 = REVIEW_REQUEST, 28 = MERGE_PULL_REQUEST,
 		29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED
 		32 = DISMISSED_REVIEW, 33 = COMMENT_TYPE_CHANGE_ISSUE_REF, 34 = PR_SCHEDULE_TO_AUTO_MERGE,
-		35 = CANCEL_SCHEDULED_AUTO_MERGE_PR -->
+		35 = CANCEL_SCHEDULED_AUTO_MERGE_PR,
+		36 = CLOSE_AS_ARCHIVED, 37 = CLOSE_AS_RESOLVED, 38 = CLOSE_AS_MERGED -->
 		{{if eq .Type 0}}
 			<div class="timeline-item comment" id="{{.HashTag}}">
 			{{if .OriginalAuthor}}
@@ -115,6 +116,33 @@
 					{{else}}
 						{{$.locale.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}
 					{{end}}
+				</span>
+			</div>
+		{{else if eq .Type 36}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge gt-bg-red gt-text-white">{{svg "octicon-circle-slash"}}</span>
+				{{template "shared/user/avatarlink" Dict "Context" $.Context "user" .Poster}}
+				<span class="text grey muted-links">
+					{{template "shared/user/authorlink" .Poster}}
+					{{$.locale.Tr "repo.issues.closed_as_archived_at" .EventTag $createdStr | Safe}}
+				</span>
+			</div>
+		{{else if eq .Type 37}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge gt-bg-red gt-text-white">{{svg "octicon-circle-slash"}}</span>
+				{{template "shared/user/avatarlink" Dict "Context" $.Context "user" .Poster}}
+				<span class="text grey muted-links">
+					{{template "shared/user/authorlink" .Poster}}
+					{{$.locale.Tr "repo.issues.closed_as_resolved_at" .EventTag $createdStr | Safe}}
+				</span>
+			</div>
+		{{else if eq .Type 38}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge gt-bg-red gt-text-white">{{svg "octicon-circle-slash"}}</span>
+				{{template "shared/user/avatarlink" Dict "Context" $.Context "user" .Poster}}
+				<span class="text grey muted-links">
+					{{template "shared/user/authorlink" .Poster}}
+					{{$.locale.Tr "repo.issues.closed_as_merged_at" .EventTag $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 28}}
