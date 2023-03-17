@@ -220,7 +220,7 @@
 				<div class="selected">
 					{{if .Issue.ProjectID}}
 						<a class="item muted sidebar-item-link" href="{{.Issue.Project.Link}}">
-							{{if not .IsRepositoryProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
+							{{if not .Issue.Project.IsRepositoryProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
 							{{.Issue.Project.Title}}
 						</a>
 					{{end}}
