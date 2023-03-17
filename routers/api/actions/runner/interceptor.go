@@ -56,7 +56,7 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		cols := []string{"last_online"}
 		if runner.Version != version {
 			runner.Version = version
-			cols = append(cols, "verison")
+			cols = append(cols, "version")
 		}
 		runner.LastOnline = timeutil.TimeStampNow()
 		if methodName == "UpdateTask" || methodName == "UpdateLog" {
