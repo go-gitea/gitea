@@ -144,6 +144,13 @@ func (p *Project) Link() string {
 	return ""
 }
 
+func (p *Project) IconName() string {
+	if p.IsRepositoryProject() {
+		return "octicon-project"
+	}
+	return "octicon-project-symlink"
+}
+
 func (p *Project) IsOrganizationProject() bool {
 	return p.Type == TypeOrganization
 }
