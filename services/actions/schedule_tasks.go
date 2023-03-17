@@ -41,7 +41,6 @@ func startTasks(ctx context.Context, opts actions_model.FindSpecOptions) error {
 				log.Error("CreateScheduleTask: %v", err)
 			}
 		}
-
 	}
 
 	return nil

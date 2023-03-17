@@ -137,7 +137,7 @@ func handleSchedules(
 		return fmt.Errorf("json.Marshal: %w", err)
 	}
 
-	crons := make([]*actions_model.ActionSchedule, 0)
+	crons := make([]*actions_model.ActionSchedule, 0, len(schedules))
 	for id, content := range schedules {
 		log.Debug("workflow: %s, content: %v", id, string(content))
 		// Check cron job condition. Only working in default branch
