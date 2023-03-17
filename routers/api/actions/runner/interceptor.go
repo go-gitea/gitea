@@ -39,9 +39,9 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		version := request.Header().Get(versionHeaderKey)
 		if util.IsEmptyString(version) {
 			version = versionUnknown
-		} else if len(version) > 63 {
-			version, _ = util.SplitStringAtByteN(version, 63)
 		}
+		version, _ = util.SplitStringAtByteN(version, 64)
+
 		runner, err := actions_model.GetRunnerByUUID(ctx, uuid)
 		if err != nil {
 			if errors.Is(err, util.ErrNotExist) {
