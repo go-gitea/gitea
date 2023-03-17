@@ -1231,7 +1231,7 @@ a.ui.card:hover,
 /* enable fluid page widths for medium size viewports */
 @media (min-width: 768px) and (max-width: 1200px) {
   .ui.ui.ui.container:not(.fluid) {
-    width: calc(100vw - 3em);
+    width: calc(100vw - 64px);
   }
 }
 
@@ -1285,7 +1285,14 @@ a.ui.card:hover,
 .following.bar #navbar {
   width: 100vw;
   min-height: 52px;
-  padding: 0 0.5rem;
+  padding: 0 16px;
+}
+
+@media (max-width: 767px) {
+  .following.bar #navbar {
+    padding-left: 4px;
+    padding-right: 0;
+  }
 }
 
 .following.bar #navbar .brand {
@@ -1491,7 +1498,7 @@ a.ui.card:hover,
 }
 
 .ui.container.fluid.padded {
-  padding: 0 10px;
+  padding: 0 32px;
 }
 
 .ui.form .ui.button {
