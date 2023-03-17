@@ -24,7 +24,7 @@ func initActionsTasks() {
 func registerScheduleTasks() {
 	RegisterTaskFatal("start_schedule_tasks", &BaseConfig{
 		Enabled:    true,
-		RunAtStart: true,
+		RunAtStart: false,
 		Schedule:   "@every 1m",
 	}, func(ctx context.Context, _ *user_model.User, cfg Config) error {
 		return actions_service.StartScheduleTasks(ctx)
