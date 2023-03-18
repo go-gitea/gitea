@@ -216,7 +216,7 @@
 				<div class="gt-df gt-ac">
 					{{if .Verification.Verified}}
 						{{if ne .Verification.SigningUser.ID 0}}
-							{{svg "octicon-shield-check" 16 "gt-mr-3"}}
+							{{svg "octicon-verified" 16 "gt-mr-3"}}
 							{{if .Verification.SigningSSHKey}}
 								<span class="ui text gt-mr-3">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 								{{.Verification.SigningSSHKey.Fingerprint}}
@@ -225,7 +225,7 @@
 								{{.Verification.SigningKey.PaddedKeyID}}
 							{{end}}
 						{{else}}
-							{{svg "octicon-shield-lock" 16 "gt-mr-3"}}
+							{{svg "octicon-unverified" 16 "gt-mr-3"}}
 							{{if .Verification.SigningSSHKey}}
 								<span class="ui text gt-mr-3 tooltip" data-content="{{.locale.Tr "gpg.default_key"}}">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 								{{.Verification.SigningSSHKey.Fingerprint}}
@@ -235,7 +235,7 @@
 							{{end}}
 						{{end}}
 					{{else if .Verification.Warning}}
-						{{svg "octicon-shield" 16 "gt-mr-3"}}
+						{{svg "octicon-unverified" 16 "gt-mr-3"}}
 						{{if .Verification.SigningSSHKey}}
 							<span class="ui text gt-mr-3">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 							{{.Verification.SigningSSHKey.Fingerprint}}
@@ -246,14 +246,14 @@
 					{{else}}
 						{{if .Verification.SigningKey}}
 							{{if ne .Verification.SigningKey.KeyID ""}}
-								{{svg "octicon-shield" 16 "gt-mr-3"}}
+								{{svg "octicon-verified" 16 "gt-mr-3"}}
 								<span class="ui text gt-mr-3">{{.locale.Tr "repo.commits.gpg_key_id"}}:</span>
 								{{.Verification.SigningKey.PaddedKeyID}}
 							{{end}}
 						{{end}}
 						{{if .Verification.SigningSSHKey}}
 							{{if ne .Verification.SigningSSHKey.Fingerprint ""}}
-								{{svg "octicon-shield" 16 "gt-mr-3"}}
+								{{svg "octicon-verified" 16 "gt-mr-3"}}
 								<span class="ui text gt-mr-3">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 								{{.Verification.SigningSSHKey.Fingerprint}}
 							{{end}}
