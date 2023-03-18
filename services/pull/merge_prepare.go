@@ -28,7 +28,7 @@ type mergeContext struct {
 	doer      *user_model.User
 	sig       *git.Signature
 	committer *git.Signature
-	signArg   git.TrustedCmdArgs
+	signKeyID string // empty for no-sign, non-empty to sign
 	env       []string
 }
 
@@ -85,12 +85,10 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	// Determine if we should sign
 	sign, keyID, signer, _ := asymkey_service.SignMerge(ctx, mergeCtx.pr, mergeCtx.doer, mergeCtx.tmpBasePath, "HEAD", trackingBranch)
 	if sign {
-		mergeCtx.signArg = git.ToTrustedCmdArgs([]string{"-S" + keyID})
+		mergeCtx.signKeyID = keyID
 		if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			mergeCtx.committer = signer
 		}
-	} else {
-		mergeCtx.signArg = git.ToTrustedCmdArgs([]string{"--no-gpg-sign"})
 	}
 
 	commitTimeStr := time.Now().Format(time.RFC3339)
@@ -136,18 +134,11 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 		return fmt.Errorf("Unable to close .git/info/sparse-checkout file in tmpBasePath: %w", err)
 	}
 
-	gitConfigCommand := func() *git.Command {
-		return git.NewCommand(ctx, "config", "--local")
-	}
-
 	setConfig := func(key, value string) error {
-		if err := gitConfigCommand().AddArguments(git.ToTrustedCmdArgs([]string{key, value})...).
+		if err := git.NewCommand(ctx, "config", "--local").AddDynamicArguments(key, value).
 			Run(ctx.RunOpts()); err != nil {
-			if value == "" {
-				value = "<>"
-			}
-			log.Error("git config [%s -> %s ]: %v\n%s\n%s", key, value, err, ctx.outbuf.String(), ctx.errbuf.String())
-			return fmt.Errorf("git config [%s -> %s ]: %w\n%s\n%s", key, value, err, ctx.outbuf.String(), ctx.errbuf.String())
+			log.Error("git config [%s -> %q]: %v\n%s\n%s", key, value, err, ctx.outbuf.String(), ctx.errbuf.String())
+			return fmt.Errorf("git config [%s -> %q]: %w\n%s\n%s", key, value, err, ctx.outbuf.String(), ctx.errbuf.String())
 		}
 		ctx.outbuf.Reset()
 		ctx.errbuf.Reset()
