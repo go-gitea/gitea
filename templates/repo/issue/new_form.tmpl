@@ -16,7 +16,29 @@
 							<div class="title_wip_desc" data-wip-prefixes="{{Json .PullRequestWorkInProgressPrefixes}}">{{.locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
 						{{end}}
 					</div>
-					{{template "repo/issue/comment_tab" .}}
+					{{if .Fields}}
+						<input type="hidden" name="template-file" value="{{.TemplateFile}}">
+						{{range .Fields}}
+							{{if eq .Type "input"}}
+								{{template "repo/issue/fields/input" Dict "Context" $.Context "item" .}}
+							{{else if eq .Type "markdown"}}
+								{{template "repo/issue/fields/markdown" Dict "Context" $.Context "item" .}}
+							{{else if eq .Type "textarea"}}
+								{{template "repo/issue/fields/textarea" Dict "Context" $.Context "item" .}}
+							{{else if eq .Type "dropdown"}}
+								{{template "repo/issue/fields/dropdown" Dict "Context" $.Context "item" .}}
+							{{else if eq .Type "checkboxes"}}
+								{{template "repo/issue/fields/checkboxes" Dict "Context" $.Context "item" .}}
+							{{end}}
+						{{end}}
+						{{if .IsAttachmentEnabled}}
+						<div class="field">
+							{{template "repo/upload" .}}
+						</div>
+						{{end}}
+					{{else}}
+						{{template "repo/issue/comment_tab" .}}
+					{{end}}
 					<div class="text right">
 						<button class="ui green button loading-button" tabindex="6">
 							{{if .PageIsComparePull}}
