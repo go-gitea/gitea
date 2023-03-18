@@ -186,7 +186,7 @@
 							<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
 								<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
 								<span class="text">
-									{{avatar $.Context . 28 "gt-mr-3"}}{{.GetDisplayName}}
+									{{avatar $.Context . 28 "gt-mr-3"}}{{template "repo/search_name" .}}
 								</span>
 							</a>
 						{{end}}
