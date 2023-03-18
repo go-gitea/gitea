@@ -139,7 +139,6 @@ func handleSchedules(
 
 	crons := make([]*actions_model.ActionSchedule, 0, len(schedules))
 	for id, content := range schedules {
-		log.Debug("workflow: %s, content: %v", id, string(content))
 		// Check cron job condition. Only working in default branch
 		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
 		if err != nil {
@@ -168,22 +167,20 @@ func handleSchedules(
 		})
 	}
 
-	if len(crons) > 0 {
-		for _, cron := range crons {
-			for _, spec := range cron.Specs {
-				err := CreateScheduleTask(ctx, cron, spec)
-				if err != nil {
-					continue
-				}
-			}
-		}
+	if len(crons) == 0 {
+		return nil
+	}
 
-		if err := actions_model.CreateScheduleTask(ctx, crons); err != nil {
-			log.Error("CreateScheduleTask: %v", err)
+	for _, cron := range crons {
+		for _, spec := range cron.Specs {
+			err := CreateScheduleTask(ctx, cron, spec)
+			if err != nil {
+				continue
+			}
 		}
 	}
 
-	return nil
+	return actions_model.CreateScheduleTask(ctx, crons)
 }
 
 func notify(ctx context.Context, input *notifyInput) error {
