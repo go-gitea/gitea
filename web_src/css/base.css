@@ -1173,10 +1173,8 @@ a.ui.card:hover,
   border-color: var(--color-secondary);
 }
 
-.ui.modal > .close.inside,
-.ui.fullscreen.modal > .close {
-  top: 11px; /* align modal close icon, for example admin notices */
-  color: var(--body-color);
+.ui.modal > .close.inside {
+  color: var(--color-text);
 }
 
 .ui.basic.table > tbody > tr {
