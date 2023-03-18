@@ -45,15 +45,15 @@ func GetSchedulesMapByIDs(ids []int64) (map[int64]*ActionSchedule, error) {
 
 // CreateScheduleTask creates new schedule task.
 func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
+	if len(rows) == 0 {
+		return nil
+	}
+
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
-
-	if len(rows) == 0 {
-		return nil
-	}
 
 	for _, row := range rows {
 		// create new schedule
