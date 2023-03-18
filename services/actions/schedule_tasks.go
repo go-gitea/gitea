@@ -17,13 +17,11 @@ import (
 
 // StartScheduleTasks start the task
 func StartScheduleTasks(ctx context.Context) error {
-	return startTasks(ctx, actions_model.FindSpecOptions{
-		GetAll: true,
-	})
+	return startTasks(ctx, actions_model.FindSpecOptions{})
 }
 
 func startTasks(ctx context.Context, opts actions_model.FindSpecOptions) error {
-	specs, _, err := actions_model.FindSpecs(ctx, opts)
+	specs, err := actions_model.FinAllSpecs(ctx, opts)
 	if err != nil {
 		return fmt.Errorf("find specs: %w", err)
 	}
