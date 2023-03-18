@@ -10,7 +10,7 @@
 					<a class="name" href="{{.Link}}">
 						{{if or $.PageIsExplore $.PageIsProfileStarList}}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
 					</a>
-					<div class="labels gt-df gt-ac gt-fw">
+					<div class="labels gt-df gt-ac gt-fw gt-mr-3">
 						{{if .IsArchived}}
 							<span class="ui basic label">{{$.locale.Tr "repo.desc.archived"}}</span>
 						{{end}}
