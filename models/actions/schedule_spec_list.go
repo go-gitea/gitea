@@ -69,45 +69,6 @@ func (opts FindSpecOptions) toConds() builder.Cond {
 	return cond
 }
 
-// FinAllSpecs retrieves all specs that match the given options.
-// It retrieves the specs in pages of size 50 and appends them to a list until all specs have been retrieved.
-// It also loads the schedules for each spec.
-func FinAllSpecs(ctx context.Context, opts FindSpecOptions) (SpecList, error) {
-	// Set the page size and initialize the list of all specs
-	pageSize := 50
-	var allSpecs SpecList
-
-	// Retrieve specs in pages until all specs have been retrieved
-	for page := 1; ; page++ {
-		// Create a new query engine and apply the given conditions
-		e := db.GetEngine(ctx).Where(opts.toConds())
-
-		// Limit the results to the current page
-		e.Limit(pageSize, (page-1)*pageSize)
-
-		// Retrieve the specs for the current page and add them to the list of all specs
-		var specs SpecList
-		total, err := e.Desc("id").FindAndCount(&specs)
-		if err != nil {
-			break
-		}
-		allSpecs = append(allSpecs, specs...)
-
-		// Stop if all specs have been retrieved
-		if int(total) < pageSize {
-			break
-		}
-	}
-
-	// Load the schedules for each spec
-	if err := allSpecs.LoadSchedules(); err != nil {
-		return nil, err
-	}
-
-	// Return the list of all specs
-	return allSpecs, nil
-}
-
 func FindSpecs(ctx context.Context, opts FindSpecOptions) (SpecList, int64, error) {
 	e := db.GetEngine(ctx).Where(opts.toConds())
 	if opts.PageSize > 0 && opts.Page >= 1 {

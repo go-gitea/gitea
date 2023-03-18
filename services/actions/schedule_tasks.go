@@ -9,6 +9,7 @@ import (
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/gogs/cron"
@@ -20,27 +21,48 @@ func StartScheduleTasks(ctx context.Context) error {
 	return startTasks(ctx, actions_model.FindSpecOptions{})
 }
 
+// startTasks retrieves all specs in pages of size 50 and creates a schedule task for each spec
+// whose schedule is due at the current minute.
 func startTasks(ctx context.Context, opts actions_model.FindSpecOptions) error {
-	specs, err := actions_model.FinAllSpecs(ctx, opts)
-	if err != nil {
-		return fmt.Errorf("find specs: %w", err)
-	}
+	// Set the page size
+	pageSize := 50
 
-	now := time.Now().Truncate(time.Minute)
-	for _, row := range specs {
-		schedule, err := cron.Parse(row.Spec)
+	// Retrieve specs in pages until all specs have been retrieved
+	for page := 1; ; page++ {
+		// Retrieve the specs for the current page
+		specs, total, err := actions_model.FindSpecs(ctx, actions_model.FindSpecOptions{
+			ListOptions: db.ListOptions{
+				Page:     page,
+				PageSize: pageSize,
+			},
+		})
 		if err != nil {
-			log.Error("ParseSpec: %v", err)
-			continue
+			return fmt.Errorf("find specs: %w", err)
 		}
 
-		if schedule.Next(now.Add(-1)).Equal(now) {
-			if err := CreateScheduleTask(ctx, row.Schedule, row.Spec); err != nil {
-				log.Error("CreateScheduleTask: %v", err)
+		// Check if the schedule for each spec is due at the current minute
+		now := time.Now().Truncate(time.Minute)
+		for _, row := range specs {
+			schedule, err := cron.Parse(row.Spec)
+			if err != nil {
+				// Skip specs with invalid schedules
+				log.Error("ParseSpec: %v", err)
+				continue
+			}
+
+			// Create a schedule task for specs whose schedule is due at the current minute
+			if schedule.Next(now.Add(-1)).Equal(now) {
+				if err := CreateScheduleTask(ctx, row.Schedule, row.Spec); err != nil {
+					log.Error("CreateScheduleTask: %v", err)
+				}
 			}
 		}
-	}
 
+		// Stop if all specs have been retrieved
+		if int(total) < pageSize {
+			break
+		}
+	}
 	return nil
 }
 
