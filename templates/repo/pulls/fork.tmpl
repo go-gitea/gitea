@@ -37,7 +37,7 @@
 
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.fork_from"}}</label>
-						<a href="{{.ForkRepo.Link}}">{{.ForkRepo.FullName}}</a>
+						<a href="{{.ForkRepo.Link}}" class="gt-dib">{{.ForkRepo.FullName}}</a>
 					</div>
 					<div class="inline required field {{if .Err_RepoName}}error{{end}}">
 						<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
