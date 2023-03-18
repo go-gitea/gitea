@@ -1,4 +1,27 @@
-**This document is used as aria/a11y reference for future developers**
+# Background
+
+This document is used as aria/accessibility(a11y) reference for future developers.
+
+There are a lot of a11y problems in the Fomantic UI library. This `aria.js` is used
+as a workaround to make the UI more accessible.
+
+The `aria.js` is designed to avoid touching the official Fomantic UI library,
+and to be as independent as possible, so it can be easily modified/removed in the future.
+
+To test the aria/accessibility with screen readers, developers can use the following steps:
+
+* On macOS, you can use VoiceOver.
+  * Press `Command + F5` to turn on VoiceOver.
+  * Try to operate the UI with keyboard-only.
+  * Use Tab/Shift+Tab to switch focus between elements.
+  * Arrow keys to navigate between menu/combobox items (only aria-active, not really focused).
+  * Press Enter to trigger the aria-active element.
+* On Android, you can use TalkBack.
+  * Go to Settings -> Accessibility -> TalkBack, turn it on.
+  * Long-press or press+swipe to switch the aria-active element (not really focused).
+  * Double-tap means old single-tap on the aria-active element.
+  * Double-finger swipe means old single-finger swipe.
+* TODO: on Windows, on Linux, on iOS
 
 # Checkbox
 
@@ -10,7 +33,8 @@ The ideal checkboxes should be:
 <label><input type="checkbox"> ... </label>
 ```
 
-However, related styles aren't supported (not implemented) yet, so at the moment, almost all the checkboxes are still using Fomantic UI checkbox.
+However, related CSS styles aren't supported (not implemented) yet, so at the moment,
+almost all the checkboxes are still using Fomantic UI checkbox.
 
 ## Fomantic UI Checkbox
 
@@ -21,33 +45,52 @@ However, related styles aren't supported (not implemented) yet, so at the moment
 </div>
 ```
 
-Then the JS `$.checkbox()` should be called to make it work with keyboard and label-clicking, then it works like the ideal checkboxes.
+Then the JS `$.checkbox()` should be called to make it work with keyboard and label-clicking,
+then it works like the ideal checkboxes.
 
-There is still a problem: Fomantic UI checkbox is not friendly to screen readers, so we add IDs to all the Fomantic UI checkboxes automatically by JS.
+There is still a problem: Fomantic UI checkbox is not friendly to screen readers,
+so we add IDs to all the Fomantic UI checkboxes automatically by JS.
+If the `label` part is empty, then the checkbox needs to get the `aria-label` attribute manually.
 
 # Dropdown
 
-## ARIA Dropdown
+## Fomantic UI Dropdown
+
+Fomantic Dropdown is designed to be used for many purposes:
+
+* Menu (the profile menu in navbar, the language menu in footer)
+* Popup (the branch/tag panel, the review box)
+* Simple `<select>` , used in many forms
+* Searchable option-list with static items (used in many forms)
+* Searchable option-list with dynamic items (ajax)
+* Searchable multiple selection option-list with dynamic items: the repo topic setting
+* More complex usages, like the Issue Label selector
+
+Fomantic Dropdown requires that the focus must be on its primary element.
+If the focus changes, it hides or panics.
+
+At the moment, `aria.js` only tries to partially resolve the a11y problems for dropdowns with items.
 
 There are different solutions:
-* combobox + listbox + option
-* menu + menuitem
 
-At the moment, `menu + menuitem` seems to work better with Fomantic UI Dropdown, so we only use it now.
+* combobox + listbox + option:
+  * https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
+  * A combobox is an input widget with an associated popup that enables users to select a value for the combobox from
+    a collection of possible values. In some implementations, the popup presents allowed values, while in other implementations,
+    the popup presents suggested values, and users may either select one of the suggestions or type a value.
+* menu + menuitem:
+  * https://www.w3.org/WAI/ARIA/apg/patterns/menubar/
+  * A menu is a widget that offers a list of choices to the user, such as a set of actions or functions.
 
-```html
-<div>
-  <input role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="the-menu-listbox" aria-activedescendant="item-id-123456">
-  <ul id="the-menu-listbox" role="listbox">
-    <li role="option" id="item-id-123456" aria-selected="true">
-      <a tabindex="-1" href="....">....</a>
-    </li>
-  </ul>
-</div>
-```
+The current approach is: detect if the dropdown has an input,
+if yes, it works like a combobox, otherwise it works like a menu.
+Multiple selection dropdown is not well-supported yet, it needs more work.
 
+Some important pages for dropdown testing:
 
-## Fomantic UI Dropdown
+* Home(dashboard) page, the "Create Repo" / "Profile" / "Language" menu.
+* Create New Repo page, a lot of dropdowns as combobox.
+* Collaborators page, the "permission" dropdown (the old behavior was not quite good, it just works).
 
 ```html
 <!-- read-only dropdown -->
