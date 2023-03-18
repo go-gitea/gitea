@@ -214,6 +214,10 @@
   font-size: 1.2em;
 }
 
+.repository.file.list .repo-path {
+  word-break: break-word;
+}
+
 .repository.file.list .repo-path .section,
 .repository.file.list .repo-path .divider {
   display: inline;
