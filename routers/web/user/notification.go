@@ -344,6 +344,9 @@ func NotificationWatching(ctx *context.Context) {
 		page = 1
 	}
 
+	keyword := ctx.FormTrim("q")
+	ctx.Data["Keyword"] = keyword
+
 	var orderBy db.SearchOrderBy
 	ctx.Data["SortType"] = ctx.FormString("sort")
 	switch ctx.FormString("sort") {
