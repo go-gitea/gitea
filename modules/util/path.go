@@ -82,7 +82,7 @@ func SafeFilePathAbs(elem ...string) string {
 	}
 	if !filepath.IsAbs(elems[0]) {
 		// This shouldn't happen. If there is really necessary to pass in relative path, return the full path with filepath.Abs() instead
-		panic("FilePathJoinAbs: result is not absolute, do not guess a relative path based on current working directory")
+		panic("SafeFilePathAbs: result is not absolute, do not guess a relative path based on current working directory")
 	}
 
 	for i := 1; i < len(elem); i++ {
