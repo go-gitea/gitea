@@ -1459,6 +1459,12 @@ func removeIssueDependency(ctx *context.APIContext, t issues_model.DependencyTyp
 		return
 	}
 
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+		return
+	}
+
 	dep, err := issues_model.GetIssueWithAttrsByIndex(repo.ID, form.Index)
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
@@ -1469,11 +1475,6 @@ func removeIssueDependency(ctx *context.APIContext, t issues_model.DependencyTyp
 		return
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
-		return
-	}
 	if issue.IsPull {
 		if !perm.CanRead(unit.TypePullRequests) {
 			ctx.NotFound("IsErrRepoNotExist", err)
