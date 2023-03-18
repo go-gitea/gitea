@@ -172,7 +172,7 @@ func GetCardConfig() []CardConfig {
 // IsTypeValid checks if a project type is valid
 func IsTypeValid(p Type) bool {
 	switch p {
-	case TypeRepository, TypeOrganization:
+	case TypeIndividual, TypeRepository, TypeOrganization:
 		return true
 	default:
 		return false

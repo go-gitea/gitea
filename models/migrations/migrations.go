@@ -470,7 +470,11 @@ var migrations = []Migration{
 	// v245 -> v246
 	NewMigration("Rename Webhook org_id to owner_id", v1_20.RenameWebhookOrgToOwner),
 	// v246 -> v247
-	NewMigration("Add action schedule table", v1_20.AddActionScheduleTable),
+	NewMigration("Add missed column owner_id for project table", v1_20.AddNewColumnForProject),
+	// v247 -> v248
+	NewMigration("Fix incorrect project type", v1_20.FixIncorrectProjectType),
+ 	// v248 -> v249
+  NewMigration("Add action schedule table", v1_20.AddActionScheduleTable),
 }
 
 // GetCurrentDBVersion returns the current db version
