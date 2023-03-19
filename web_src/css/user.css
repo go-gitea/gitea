@@ -154,4 +154,13 @@
 
 #notification_div .tab.segment {
   overflow-x: auto;
+  padding: 0;
+}
+
+#notification_div .menu .active.item {
+  background: var(--color-box-body);
+}
+
+#notification_table {
+  border: none !important;
 }
