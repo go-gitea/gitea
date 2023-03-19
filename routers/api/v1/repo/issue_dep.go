@@ -432,6 +432,7 @@ func getFormRepoPermission(ctx *context.APIContext, formIssue *issues_model.Issu
 	}
 	return &formRepoPerm
 }
+
 func createIssueDependency(ctx *context.APIContext, dependencyType issues_model.DependencyType) {
 	issue := getParamsIssue(ctx)
 	if ctx.Written() {
