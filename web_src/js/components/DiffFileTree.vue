@@ -16,7 +16,7 @@
 <script>
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import {doLoadMoreFiles} from '../features/repo-diff.js';
-import {hideElem, showElem} from '../utils/dom.js';
+import {toggleElem} from '../utils/dom.js';
 
 const {pageData} = window.config;
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
@@ -115,15 +115,9 @@ export default {
     updateState(visible) {
       const [toShow, toHide] = document.querySelectorAll('.diff-toggle-file-tree-button .icon');
       const tree = document.getElementById('diff-file-tree');
-      if (visible) {
-        showElem(tree);
-        hideElem(toShow);
-        showElem(toHide);
-      } else {
-        hideElem(tree);
-        hideElem(toHide);
-        showElem(toShow);
-      }
+      toggleElem(tree, visible);
+      toggleElem(toShow, !visible);
+      toggleElem(toHide, visible);
     },
     loadMoreData() {
       this.isLoadingNewData = true;
