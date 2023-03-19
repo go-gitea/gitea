@@ -11,7 +11,7 @@ draft: false
 # What is Gitea?
 
 Gitea is a painless self-hosted Git service. It is similar to GitHub, Bitbucket, and GitLab.
-Gitea is a fork of [Gogs](http://gogs.io). See the [Gitea Announcement](https://blog.gitea.io/2016/12/welcome-to-gitea/)
+Gitea is a fork of repository named [Gogs](http://gogs.io). Kindly check out the [Gitea Announcement](https://blog.gitea.io/2016/12/welcome-to-gitea/)
 blog post to read about the justification for a fork.
 
 ## Purpose
@@ -19,14 +19,13 @@ blog post to read about the justification for a fork.
 The goal of this project is to provide the easiest, fastest, and most painless way of setting
 up a self-hosted Git service.
 
-With Go, this can be done platform-independently across
-**all platforms** which Go supports, including Linux, macOS, and Windows,
+This is possible with Go, it is platform-independent and supports **all platforms**, including Linux, macOS, and Windows,
 on x86, amd64, ARM and PowerPC architectures.
 You can try it out using [the online demo](https://try.gitea.io/).
 
 ## Features
 
-- User Dashboard
+> <b>User Dashboard</b>
   - Context switcher (organization or current user)
   - Activity timeline
     - Commits
@@ -36,7 +35,7 @@ You can try it out using [the online demo](https://try.gitea.io/).
   - Searchable repository list
   - List of organizations
   - A list of mirror repositories
-- Issues dashboard
+> <b>Issues dashboard</b>
   - Context switcher (organization or current user)
   - Filter by
     - Open
@@ -49,28 +48,28 @@ You can try it out using [the online demo](https://try.gitea.io/).
     - Oldest
     - Last updated
     - Number of comments
-- Pull request dashboard
+> <b>Pull request dashboard</b>
   - Same as issue dashboard
-- Repository types
+> <b>Repository types</b>
   - Mirror
   - Normal
   - Migrated
-- Notifications (email and web)
+> <b>Notifications (email and web)</b>
   - Read
   - Unread
   - Pin
-- Explore page
+> <b>Explore page</b>
   - Users
   - Repos
   - Organizations
   - Search
-- Custom templates
-- Override public files (logo, css, etc)
-- CSRF and XSS protection
-- HTTPS support
-- Set allowed upload sizes and types
-- Logging
-- Configuration
+> <b>Custom templates</b>
+> <b>Override public files (logo, css, etc)</b>
+> <b>CSRF and XSS protection</b>
+> <b>HTTPS support</b>
+> <b>Set allowed upload sizes and types</b>
+> <b>Logging</b>
+> <b>Configuration</b>
   - Databases
     - MySQL (>=5.7)
     - PostgreSQL (>=10)
@@ -130,16 +129,16 @@ You can try it out using [the online demo](https://try.gitea.io/).
         - Clean up old archives
   - Environment variables
   - Command line options
-- Multi-language support ([21 languages](https://github.com/go-gitea/gitea/tree/main/options/locale))
-- [Mermaid](https://mermaidjs.github.io/) diagrams in Markdown
-- Math syntax in Markdown
-- Mail service
+- <b>Multi-language support ([21 languages](https://github.com/go-gitea/gitea/tree/main/options/locale))</b>
+- <b>[Mermaid](https://mermaidjs.github.io/) diagrams in Markdown</b>
+- <b>Math syntax in Markdown</b>
+- <b>Mail service</b>
   - Notifications
   - Registration confirmation
   - Password reset
-- Reverse proxy support
+> <b>Reverse proxy support</b>
   - Includes subpaths
-- Users
+> <b>Users</b>
   - Profile
     - Name
     - Username
@@ -165,7 +164,7 @@ You can try it out using [the online demo](https://try.gitea.io/).
     - Two factor authentication
     - Linked OAuth2 sources
     - Delete account
-- Repositories
+> <b>Repositories</b>
   - Clone with SSH/HTTP/HTTPS
   - Git LFS
   - Watch, Star, Fork
@@ -253,7 +252,7 @@ You can try it out using [the online demo](https://try.gitea.io/).
     - Webhooks
     - Git Hooks
     - Deploy keys
-- Package Registries
+> <b>Package Registries</b>
   - Composer
   - Conan
   - Container
