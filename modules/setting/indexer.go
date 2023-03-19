@@ -63,9 +63,9 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 			log.Warn("Failed to parse ISSUE_INDEXER_CONN_STR: %v", err)
 			u = &url.URL{}
 		}
-                Indexer.IssueConnAuth, _ = u.User.Password()
-                u.User = nil
-                Indexer.IssueConnStr = u.String()
+		Indexer.IssueConnAuth, _ = u.User.Password()
+		u.User = nil
+		Indexer.IssueConnStr = u.String()
 	}
 
 	Indexer.IssueIndexerName = sec.Key("ISSUE_INDEXER_NAME").MustString(Indexer.IssueIndexerName)
