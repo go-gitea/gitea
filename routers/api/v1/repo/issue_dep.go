@@ -246,16 +246,9 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPull {
-		if !ctx.Repo.CanRead(unit.TypePullRequests) {
-			ctx.NotFound()
-			return
-		}
-	} else {
-		if !ctx.Repo.CanRead(unit.TypeIssues) {
-			ctx.NotFound()
-			return
-		}
+	if ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
+		return
 	}
 
 	page := ctx.FormInt("page")
@@ -276,25 +269,30 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		return
 	}
 
+	// FIXME: I'm not sure that this is correct
+	// - if we can write to issue we can remove dependencies so we need to be able to know that they're there
+	// - however if we can't read the issue that is a dependency then we shouldn't fully display it.
+
+	permMap := map[int64]access_model.Permission{}
+	permMap[ctx.Repo.Repository.ID] = ctx.Repo.Permission
 	var issues []*issues_model.Issue
 	for i, depMeta := range deps {
 		if i < skip || i >= max {
 			continue
 		}
 
-		perm, err := access_model.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
-			return
+		perm, has := permMap[depMeta.Repository.ID]
+		if !has {
+			perm, err = access_model.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+				return
+			}
+			permMap[depMeta.Repository.ID] = perm
 		}
-		if depMeta.Issue.IsPull {
-			if !perm.CanRead(unit.TypePullRequests) {
-				continue
-			}
-		} else {
-			if !perm.CanRead(unit.TypeIssues) {
-				continue
-			}
+
+		if !perm.CanReadIssuesOrPulls(depMeta.Issue.IsPull) {
+			continue
 		}
 
 		depMeta.Issue.Repo = &depMeta.Repository
@@ -374,112 +372,7 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 	removeIssueDependency(ctx, issues_model.DependencyTypeBlocking)
 }
 
-func createIssueDependency(ctx *context.APIContext, t issues_model.DependencyType) {
-	if !ctx.Repo.Repository.IsDependenciesEnabled(ctx) {
-		ctx.NotFound()
-		return
-	}
-
-	dep, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
-	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound("IsErrIssueNotExist", err)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
-		}
-		return
-	}
-
-	if dep.IsPull {
-		if !ctx.Repo.CanWrite(unit.TypePullRequests) {
-			ctx.NotFound()
-			return
-		}
-	} else {
-		if !ctx.Repo.CanWrite(unit.TypeIssues) {
-			ctx.NotFound()
-			return
-		}
-	}
-
-	form := web.GetForm(ctx).(*api.IssueMeta)
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, form.Owner, form.Name)
-	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
-			ctx.NotFound("IsErrRepoNotExist", err)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetRepositoryByOwnerAndName", err)
-		}
-		return
-	}
-
-	issue, err := issues_model.GetIssueByIndex(repo.ID, form.Index)
-	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound("IsErrIssueNotExist", err)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
-		}
-		return
-	}
-
-	if t == issues_model.DependencyTypeBlockedBy {
-		perm, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, ctx.Doer)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
-			return
-		}
-		if issue.IsPull {
-			if !perm.CanRead(unit.TypePullRequests) {
-				ctx.NotFound()
-				return
-			}
-		} else {
-			if !perm.CanRead(unit.TypeIssues) {
-				ctx.NotFound()
-				return
-			}
-		}
-
-		err = issues_model.CreateIssueDependency(ctx.Doer, issue, dep)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
-			return
-		}
-	} else {
-		perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
-			return
-		}
-		if issue.IsPull {
-			if !perm.CanRead(unit.TypePullRequests) {
-				ctx.NotFound()
-				return
-			}
-		} else {
-			if !perm.CanRead(unit.TypeIssues) {
-				ctx.NotFound()
-				return
-			}
-		}
-
-		err = issues_model.CreateIssueDependency(ctx.Doer, dep, issue)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
-			return
-		}
-	}
-
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, dep))
-}
-
-func removeIssueDependency(ctx *context.APIContext, t issues_model.DependencyType) {
-	if !ctx.Repo.Repository.IsDependenciesEnabled(ctx) {
-		ctx.NotFound()
-		return
-	}
-
+func getParamsIssue(ctx *context.APIContext) *issues_model.Issue {
 	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
@@ -487,65 +380,139 @@ func removeIssueDependency(ctx *context.APIContext, t issues_model.DependencyTyp
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
-		return
 	}
+	return issue
+}
 
-	if issue.IsPull {
-		if !ctx.Repo.CanWrite(unit.TypePullRequests) {
-			ctx.NotFound()
-			return
+func getFormIssue(ctx *context.APIContext) *issues_model.Issue {
+	form := web.GetForm(ctx).(*api.IssueMeta)
+	var formRepo *repo_model.Repository
+	if form.Owner != ctx.Repo.Repository.OwnerName || form.Name != ctx.Repo.Repository.Name {
+		if !setting.Service.AllowCrossRepositoryDependencies {
+			ctx.JSON(http.StatusBadRequest, "CrossRepositoryDependencies not enabled")
+			return nil
+		}
+		var err error
+		formRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, form.Owner, form.Name)
+		if err != nil {
+			if repo_model.IsErrRepoNotExist(err) {
+				ctx.NotFound("IsErrRepoNotExist", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetRepositoryByOwnerAndName", err)
+			}
+			return nil
 		}
 	} else {
-		if !ctx.Repo.CanWrite(unit.TypeIssues) {
-			ctx.NotFound()
-			return
-		}
+		formRepo = ctx.Repo.Repository
 	}
 
-	form := web.GetForm(ctx).(*api.IssueMeta)
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, form.Owner, form.Name)
-	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
-			ctx.NotFound("IsErrRepoNotExist", err)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetRepositoryByOwnerAndName", err)
-		}
-		return
-	}
-
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
-		return
-	}
-
-	dep, err := issues_model.GetIssueWithAttrsByIndex(repo.ID, form.Index)
+	formIssue, err := issues_model.GetIssueByIndex(formRepo.ID, form.Index)
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
+		return nil
+	}
+	formIssue.Repo = formRepo
+	return formIssue
+}
+
+func getFormRepoPermission(ctx *context.APIContext, formIssue *issues_model.Issue) *access_model.Permission {
+	formRepoPerm := ctx.Repo.Permission
+	if formIssue.Repo != ctx.Repo.Repository {
+		var err error
+		// Can ctx.Doer read issues in the form repo?
+		formRepoPerm, err = access_model.GetUserRepoPermission(ctx, formIssue.Repo, ctx.Doer)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+			return nil
+		}
+	}
+	return &formRepoPerm
+}
+func createIssueDependency(ctx *context.APIContext, dependencyType issues_model.DependencyType) {
+	issue := getParamsIssue(ctx)
+	if ctx.Written() {
 		return
 	}
 
-	if issue.IsPull {
-		if !perm.CanRead(unit.TypePullRequests) {
-			ctx.NotFound("IsErrRepoNotExist", err)
-			return
-		}
-	} else {
-		if !perm.CanRead(unit.TypeIssues) {
-			ctx.NotFound("IsErrRepoNotExist", err)
+	formIssue := getFormIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	formRepoPerm := getFormRepoPermission(ctx, formIssue)
+	if ctx.Written() {
+		return
+	}
+
+	// When creating issue dependencies we need to be able to read both issues
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) || !formRepoPerm.CanReadIssuesOrPulls(formIssue.IsPull) {
+		ctx.NotFound()
+		return
+	}
+	// BUT we also need to check if we can write to the issue/pull that is the target and ensure its repo has dependencies are enabled
+
+	// Let's assume the issue indicated by the :index parameter is the target issue and the other one is the dependency
+	targetIssue, depIssue := issue, formIssue
+	targetPerm := ctx.Repo.Permission
+
+	// OK it's the other way around
+	if dependencyType == issues_model.DependencyTypeBlockedBy {
+		depIssue, targetIssue = issue, formIssue
+		targetPerm = *formRepoPerm
+	}
+
+	// Check the permissions
+	if !targetIssue.Repo.IsDependenciesEnabled(ctx) || !targetPerm.CanWriteIssuesOrPulls(targetIssue.IsPull) {
+		ctx.NotFound()
+		return
+	}
+
+	//
+	err := issues_model.CreateIssueDependency(ctx.Doer, targetIssue, depIssue)
+	if err != nil {
+		// FIXME: Handle ErrDependencyExists and ErrCircularDependency
+		ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
+		return
+	}
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, issue))
+}
+
+func removeIssueDependency(ctx *context.APIContext, dependencyType issues_model.DependencyType) {
+	issue := getParamsIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+	formIssue := getFormIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	targetIssue := issue
+	targetPerm := ctx.Repo.Permission
+	if dependencyType == issues_model.DependencyTypeBlockedBy {
+		targetIssue = formIssue
+		targetPerm = *getFormRepoPermission(ctx, formIssue)
+		if ctx.Written() {
 			return
 		}
 	}
 
-	err = issues_model.RemoveIssueDependency(ctx.Doer, issue, dep, t)
+	// For removing dependencies we need to be able to write to issues/pulls in that repo
+	if !targetIssue.Repo.IsDependenciesEnabled(ctx) || !targetPerm.CanWriteIssuesOrPulls(targetIssue.IsPull) {
+		ctx.NotFound()
+		return
+	}
+
+	// We keep this this way to ensure that the comment is made correctly
+	err := issues_model.RemoveIssueDependency(ctx.Doer, issue, formIssue, dependencyType)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, dep))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, issue))
 }
