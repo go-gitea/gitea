@@ -324,7 +324,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add Contributed backport command (#22643)
   * Remove deprecated packages & staticcheck fixes (#22012)
   * Update to Alpine 3.17 (#21904)
-  * Update JS dependencies (#21881)
   * Fix webpack license warning (#21815)
 * DOCS
   * Update documentation for the new YAML label file format  (#23020) (#23341)
