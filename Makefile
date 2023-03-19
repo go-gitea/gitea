@@ -344,7 +344,7 @@ lint-frontend: node_modules
 	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
 	npx stylelint --color --max-warnings=0 web_src/css
 	npx spectral lint -q -F hint $(SWAGGER_SPEC)
-	npx markdownlint docs *.md
+	npx markdownlint --ignore CHANGELOG.md docs *.md
 
 .PHONY: lint-backend
 lint-backend: golangci-lint vet editorconfig-checker

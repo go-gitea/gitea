@@ -10,7 +10,7 @@ no-duplicate-header: {allow_different_nesting: true}
 no-emphasis-as-header: false
 no-empty-links: false
 no-hard-tabs: {code_blocks: false}
-no-inline-html: false
+no-inline-html: {allowed_elements: [a, img, p, h1, h2, h3, h4, h5, h6]}
 no-space-in-code: false
 no-space-in-emphasis: false
 no-trailing-punctuation: false
