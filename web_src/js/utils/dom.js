@@ -1,23 +1,3 @@
-function getComputedStyleProperty(el, prop) {
-  const cs = el ? window.getComputedStyle(el) : null;
-  return cs ? cs[prop] : null;
-}
-
-function isShown(el) {
-  return getComputedStyleProperty(el, 'display') !== 'none';
-}
-
-function assertShown(el, expectShown) {
-  if (window.config.runModeIsProd) return;
-
-  // to help developers to catch display bugs, this assertion can be removed after next release cycle or if it has been proved that there is no bug.
-  if (expectShown && !isShown(el)) {
-    throw new Error('element is hidden but should be shown');
-  } else if (!expectShown && isShown(el)) {
-    throw new Error('element is shown but should be hidden');
-  }
-}
-
 function elementsCall(el, func, ...args) {
   if (typeof el === 'string' || el instanceof String) {
     el = document.querySelectorAll(el);
@@ -41,16 +21,10 @@ function elementsCall(el, func, ...args) {
 function toggleShown(el, force) {
   if (force === true) {
     el.classList.remove('gt-hidden');
-    assertShown(el, true);
   } else if (force === false) {
     el.classList.add('gt-hidden');
-    assertShown(el, false);
   } else if (force === undefined) {
-    const wasShown = window.config.runModeIsProd ? undefined : isShown(el);
     el.classList.toggle('gt-hidden');
-    if (wasShown !== undefined) {
-      assertShown(el, !wasShown);
-    }
   } else {
     throw new Error('invalid force argument');
   }
