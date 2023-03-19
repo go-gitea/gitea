@@ -1245,7 +1245,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			})
 			m.Get("/orgs", admin.GetAllOrgs)
 			m.Group("/users", func() {
-				m.Get("", admin.GetAllUsers)
+				m.Get("", admin.SearchUsers)
 				m.Post("", bind(api.CreateUserOption{}), admin.CreateUser)
 				m.Group("/{username}", func() {
 					m.Combo("").Patch(bind(api.EditUserOption{}), admin.EditUser).
