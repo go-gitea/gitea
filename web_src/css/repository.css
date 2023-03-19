@@ -1864,12 +1864,6 @@
   max-width: initial; /* remove fomantic over 100% width */;
 }
 
-.diff-file-box:target {
-  border-color: var(--color-primary) !important;
-  border-radius: var(--border-radius) !important;
-  box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
-}
-
 .repository .diff-stats {
   clear: both;
   margin-bottom: 5px;
@@ -2669,7 +2663,8 @@
   filter: drop-shadow(-3px 0 0 var(--color-primary-alpha-30)) !important;
 }
 
-.code-comment:target {
+.code-comment:target,
+.diff-file-box:target {
   border-color: var(--color-primary) !important;
   border-radius: var(--border-radius) !important;
   box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
