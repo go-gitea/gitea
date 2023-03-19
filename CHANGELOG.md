@@ -237,7 +237,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix diff detail buttons wrapping, use tippy for review box (#23271) (#23546)
   * Handle missing `README` in create repos API (#23387) (#23510)
   * Disable sending email after push a commit to a closed PR (#23462) (#23492)
-  *  Fix aria.js bugs: incorrect role element problem, mobile focus problem, tippy problem (#23450) (#23486)
+  * Fix aria.js bugs: incorrect role element problem, mobile focus problem, tippy problem (#23450) (#23486)
   * Fix due date being wrong on issue list (#23475) (#23477)
   * Remove wrongly added column on migration test fixtures (#23456) (#23470)
   * Make branches list page operations remember current page (#23420) (#23460)
