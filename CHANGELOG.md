@@ -343,7 +343,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add some documentation to packages (#21648)
 * MISC
   * Use `<nav>` instead of `<div>` in the global navbar (#23125) (#23533)
-  * Bump webpack from 5.75.0 to 5.76.0 (#23484) (#23487)
   * Do not create commit graph for temporary repos (#23219) (#23229)
   * Update button is shown when a Pull Request is marked WIP - Issue #21740 (#22683)
   * Add main landmark to templates and adjust titles (#22670)
