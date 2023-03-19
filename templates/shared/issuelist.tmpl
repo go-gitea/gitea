@@ -88,7 +88,7 @@
 					{{end}}
 					{{if .Project}}
 						<a class="project" href="{{.Project.Link}}">
-							{{if .Project.IsOrganizationProject}}{{svg "octicon-project-symlink" 14 "gt-mr-2"}}{{else}}{{svg "octicon-project" 14 "gt-mr-2"}}{{end}}{{.Project.Title}}
+							{{svg .Project.IconName 14 "gt-mr-2"}}{{.Project.Title}}
 						</a>
 					{{end}}
 					{{if .Ref}}
