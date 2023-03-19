@@ -134,8 +134,7 @@
 							</div>
 							{{range .OpenProjects}}
 								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-									{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-									{{.Title}}
+									{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 								</a>
 							{{end}}
 						{{end}}
@@ -146,8 +145,7 @@
 							</div>
 							{{range .ClosedProjects}}
 								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-									{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-									{{.Title}}
+									{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 								</a>
 							{{end}}
 						{{end}}
@@ -159,8 +157,7 @@
 				<div class="selected">
 					{{if .Project}}
 						<a class="item muted sidebar-item-link" href="{{.Project.Link}}">
-							{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-							{{.Project.Title}}
+							{{svg .Project.IconName 18 "gt-mr-3"}}{{.Project.Title}}
 						</a>
 					{{end}}
 				</div>

@@ -100,8 +100,7 @@
 								</div>
 								{{range .OpenProjects}}
 									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
-										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-										{{.Title}}
+										{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 									</a>
 								{{end}}
 							{{end}}
@@ -112,8 +111,7 @@
 								</div>
 								{{range .ClosedProjects}}
 									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
-										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-										{{.Title}}
+										{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 									</a>
 								{{end}}
 							{{end}}
@@ -273,8 +271,7 @@
 								</div>
 								{{range .OpenProjects}}
 									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
-										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-										{{.Title}}
+										{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 									</div>
 								{{end}}
 							{{end}}
@@ -285,8 +282,7 @@
 								</div>
 								{{range .ClosedProjects}}
 									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
-										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-										{{.Title}}
+										{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 									</div>
 								{{end}}
 							{{end}}

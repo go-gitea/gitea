@@ -2540,10 +2540,10 @@ table th[data-sortt-desc] .svg {
   height: auto; /* reset the ".ui.dropdown > .dropdown.icon {height}", otherwise the icon would be too small */
 }
 
-.ui.selection.dropdown > .search.icon,
-.ui.selection.dropdown > .delete.icon,
-.ui.selection.dropdown > .dropdown.icon {
-  top: 0 !important;
+.ui.selection.dropdown > .svg.search.icon,
+.ui.selection.dropdown > .svg.delete.icon,
+.ui.selection.dropdown > .svg.dropdown.icon {
+  top: 0 !important; /* reset the ".ui.selection.dropdown > .xxx.icon {top}" if the icon is svg instead of the fomantic icon */
 }
 
 .ui.dropdown.no-text > .dropdown.icon {
