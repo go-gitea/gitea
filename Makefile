@@ -273,7 +273,7 @@ fmt:
 
 .PHONY: fmt-check
 fmt-check: fmt
-	@diff=$$(git diff $(GO_SOURCES) templates $(WEB_DIRS)); \
+	@diff=$$(git diff --color=always $(GO_SOURCES) templates $(WEB_DIRS)); \
 	if [ -n "$$diff" ]; then \
 	  echo "Please run 'make fmt' and commit the result:"; \
 	  echo "$${diff}"; \
@@ -309,7 +309,7 @@ $(SWAGGER_SPEC): $(GO_SOURCES_NO_BINDATA)
 
 .PHONY: swagger-check
 swagger-check: generate-swagger
-	@diff=$$(git diff '$(SWAGGER_SPEC)'); \
+	@diff=$$(git diff --color=always '$(SWAGGER_SPEC)'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make generate-swagger' and commit the result:"; \
 		echo "$${diff}"; \
@@ -414,7 +414,7 @@ vendor: go.mod go.sum
 
 .PHONY: tidy-check
 tidy-check: tidy
-	@diff=$$(git diff go.mod go.sum $(GO_LICENSE_FILE)); \
+	@diff=$$(git diff --color=always go.mod go.sum $(GO_LICENSE_FILE)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make tidy' and commit the result:"; \
 		echo "$${diff}"; \
@@ -885,7 +885,7 @@ svg: node-check | node_modules
 .PHONY: svg-check
 svg-check: svg
 	@git add $(SVG_DEST_DIR)
-	@diff=$$(git diff --cached $(SVG_DEST_DIR)); \
+	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIR)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
 		echo "$${diff}"; \
@@ -895,7 +895,7 @@ svg-check: svg
 .PHONY: lockfile-check
 lockfile-check:
 	npm install --package-lock-only
-	@diff=$$(git diff package-lock.json); \
+	@diff=$$(git diff --color=always package-lock.json); \
 	if [ -n "$$diff" ]; then \
 		echo "package-lock.json is inconsistent with package.json"; \
 		echo "Please run 'npm install --package-lock-only' and commit the result:"; \
