@@ -1857,6 +1857,7 @@
   border-radius: 0.285rem; /* Just like ui.top.attached.header */
 }
 
+/* TODO: this can potentially be made "global" by removing the class prefix */
 .diff-file-box .ui.attached.header,
 .diff-file-box .ui.attached.table {
   margin: 0; /* remove fomantic negative margins */;
