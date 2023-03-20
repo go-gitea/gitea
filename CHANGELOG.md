@@ -11,7 +11,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Make issue and code search support camel case for Bleve (#22829)
   * Repositories: by default disable all units except code and pulls on forks (#22541)
   * Support template for merge message description (#22248)
-  * Fix wrong default value for update checker on app.example.ini (#22084)
   * Remove ONLY_SHOW_RELEVANT_REPOS setting (#21962)
   * Implement actions (#21937)
   * Remove deprecated DSA host key from Docker Container (#21522)
