@@ -114,49 +114,41 @@
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 									<div class="ui teal buttons">
 										{{if .Issue.IsClosed}}
-										<div id="status-button" class="ui button status-button" data-status-val="reopen" data-value="0">
-											{{.locale.Tr "repo.issues.reopen_issue"}}
-										</div>
-										{{else}}
-										{{$closeTranslationKey := "repo.issues.close"}}
-										{{if .Issue.IsPull}}
-											{{$closeTranslationKey = "repo.pulls.close"}}
-										{{end}}
-										<div id="status-button" class="ui button status-button" data-status-val="close" data-value="1">
-											{{.locale.Tr $closeTranslationKey}}
-										</div>
-										{{end}}
-										{{if not .Issue.IsPull}}
-										<div id="status-dropdown" class="ui floating dropdown icon button js-aria-comobox">
-											{{svg "octicon-chevron-down" "dropdown icon"}}
-											<div class="menu" tabindex="-1">
-												{{if not (eq .Issue.Status 1)}}
-												<div class="item{{if not .Issue.IsClosed}} selected{{end}}" data-value="1" data-status-val="close" data-status="Close Issue" data-status-and-comment="Comment and Close">
-													{{svg "octicon-check"}} Close Issue
-												</div>
-												{{end}}
-												{{if not (eq .Issue.Status 2)}}
-												<div class="item" data-value="2" data-status="Close as archived" data-status-val="close" data-status-and-comment="Comment and Close as archived">
-													{{svg "octicon-check"}} Close as archived
-												</div>
-												{{end}}
-												{{if not (eq .Issue.Status 3)}}
-												<div class="item" data-value="3" data-status="Close as resolved" data-status-val="close" data-status-and-comment="Comment and Close as resolved">
-													{{svg "octicon-check"}} Close as resolved
-												</div>
-												{{end}}
-												{{if not (eq .Issue.Status 4)}}
-												<div class="item" data-value="4" data-status="Close as merged" data-status-val="close" data-status-and-comment="Comment and Close as merged">
-													{{svg "octicon-check"}} Close as merged
-												</div>
-												{{end}}
-												{{if .Issue.IsClosed}}
-												<div class="item{{if .Issue.IsClosed}} selected{{end}}" data-status-val="reopen" data-value="0" data-status="Reopen" data-status-and-comment="Comment and Reopen">
-													{{svg "octicon-check"}} Reopen
-												</div>
-												{{end}}
+											<div id="status-button" class="ui button status-button" data-status-val="reopen" data-value="0">
+												{{.locale.Tr "repo.issues.reopen_issue"}}
 											</div>
-										</div>
+										{{else}}
+											{{$closeTranslationKey := "repo.issues.close"}}
+											{{if .Issue.IsPull}}
+												{{$closeTranslationKey = "repo.pulls.close"}}
+											{{end}}
+											<div id="status-button" class="ui button status-button" data-status-val="close" data-value="1">
+												{{.locale.Tr $closeTranslationKey}}
+											</div>
+										{{end}}
+
+										{{if not .Issue.IsPull}}
+											<div id="status-dropdown" class="ui floating dropdown icon button">
+												<input type="hidden" name="status-dropdown" value="{{.Issue.Status}}">
+												{{svg "octicon-chevron-down" "dropdown icon"}}
+												<div class="menu">
+													<div class="item" data-value="1" data-status-val="close" data-status="Close Issue" data-status-and-comment="Comment and Close">
+														{{svg "octicon-check"}} Close Issue
+													</div>
+													<div class="item" data-value="2" data-status-val="close" data-status="Close as archived" data-status-and-comment="Comment and Close as archived">
+														{{svg "octicon-check"}} Close as archived
+													</div>
+													<div class="item" data-value="3" data-status-val="close" data-status="Close as resolved" data-status-and-comment="Comment and Close as resolved">
+														{{svg "octicon-check"}} Close as resolved
+													</div>
+													<div class="item" data-value="4" data-status-val="close" data-status="Close as merged" data-status-and-comment="Comment and Close as merged">
+														{{svg "octicon-check"}} Close as merged
+													</div>
+													<div class="item" data-value="0" data-status-val="reopen" data-status="Reopen" data-status-and-comment="Comment and Reopen">
+														{{svg "octicon-check"}} Reopen
+													</div>
+												</div>
+											</div>
 										{{end}}
 									</div>
 									{{end}}

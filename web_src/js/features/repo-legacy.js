@@ -573,7 +573,6 @@ export function initRepository() {
     initRepoIssueDependencyDelete();
     initRepoIssueCodeCommentCancel();
     initRepoIssueStatusButton();
-    initRepoIssueStatusDropdown();
     initRepoPullRequestUpdate();
     initCompReactionSelector();
 
