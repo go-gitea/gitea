@@ -230,11 +230,12 @@ export function initRepoIssueStatusButton() {
   $('#state').val($statusButton.data('value'));
   $('#status').val($statusButton.data('status-val'));
   $('#comment-form textarea').on('keyup', function () {
+    console.log('easyMDE keyup')
     const easyMDE = getAttachedEasyMDE(this);
     const value = easyMDE?.value() || $(this).val();
     // find active item of dropdown menu
-    const $active = $('#status-dropdown').find('> .active');
-    $statusButton.text($active.data(value.length === 0 ? 'status' : 'status-and-comment'));
+    const $selected = $('#status-dropdown').find('> .selected');
+    $statusButton.text($selected.data(value.length === 0 ? 'status' : 'status-and-comment'));
   });
   $statusButton.on('click', (e) => {
     e.preventDefault();
