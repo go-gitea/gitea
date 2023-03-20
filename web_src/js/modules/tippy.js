@@ -24,26 +24,19 @@ export function createTippy(target, opts = {}) {
   return instance;
 }
 
-function getTippyTooltipContent(target) {
-  // prefer to always use the "[data-tooltip-content]" attribute
-  // for backward compatibility, we also support the ".tooltip[data-content]" attribute
-  let content = target.getAttribute('data-tooltip-content');
-  if (!content && target.classList.contains('tooltip')) {
-    content = target.getAttribute('data-content');
-  }
-  return content;
-}
-
 /**
- * Attach a tippy tooltip to the given target element.
- * If the target element already has a tippy tooltip attached, the tooltip will be updated with the new content.
+ * Attach a tooltip tippy to the given target element.
+ * If the target element already has a tooltip tippy attached, the tooltip will be updated with the new content.
  * If the target element has no content, then no tooltip will be attached, and it returns null.
+ *
+ * Note: "tooltip" doesn't equal to "tippy". "tooltip" means a auto-popup content, it just uses tippy as the implementation.
+ *
  * @param target {HTMLElement}
  * @param content {null|string}
  * @returns {null|tippy}
  */
-function attachTippyTooltip(target, content = null) {
-  content = content ?? getTippyTooltipContent(target);
+function attachTooltip(target, content = null) {
+  content = content ?? getTooltipContent(target);
   if (!content) return null;
 
   const props = {
@@ -63,27 +56,38 @@ function attachTippyTooltip(target, content = null) {
 }
 
 /**
- * creating tippy instance is expensive, so we only create it when the user hovers over the element
+ * creating tooltip tippy instance is expensive, so we only create it when the user hovers over the element
  * @param e {Event}
  */
-function lazyTippyOnMouseEnter(e) {
-  e.target.removeEventListener('mouseenter', lazyTippyOnMouseEnter, true);
-  attachTippyTooltip(this);
+function lazyTooltipOnMouseEnter(e) {
+  e.target.removeEventListener('mouseenter', lazyTooltipOnMouseEnter, true);
+  attachTooltip(this);
+}
+
+function getTooltipContent(target) {
+  // prefer to always use the "[data-tooltip-content]" attribute
+  // for backward compatibility, we also support the ".tooltip[data-content]" attribute
+  // in next PR, refactor all the ".tooltip[data-content]" to "[data-tooltip-content]"
+  let content = target.getAttribute('data-tooltip-content');
+  if (!content && target.classList.contains('tooltip')) {
+    content = target.getAttribute('data-content');
+  }
+  return content;
 }
 
 /**
- * Activate the tippy tooltip for all children elements
+ * Activate the tooltip for all children elements
  * And if the element has no aria-label, use the tooltip content as aria-label
  * @param target {HTMLElement}
  */
-function attachChildrenLazyTippyTooltip(target) {
+function attachChildrenLazyTooltip(target) {
   // the selector must match the logic in getTippyTooltipContent
   for (const el of target.querySelectorAll('[data-tooltip-content], .tooltip[data-content]')) {
-    el.addEventListener('mouseenter', lazyTippyOnMouseEnter, true);
+    el.addEventListener('mouseenter', lazyTooltipOnMouseEnter, true);
 
     // meanwhile, if the element has no aria-label, use the tooltip content as aria-label
     if (!el.hasAttribute('aria-label')) {
-      const content = getTippyTooltipContent(el);
+      const content = getTooltipContent(el);
       if (content) {
         el.setAttribute('aria-label', content);
       }
@@ -97,14 +101,14 @@ export function initGlobalTooltips() {
     for (const mutation of mutationList) {
       if (mutation.type === 'childList') {
         for (const el of mutation.addedNodes) {
-          // handle all "tooltip" elements in newly added nodes, skip non-related nodes (eg: "#text")
+          // handle all "tooltip" elements in added nodes which have 'querySelectorAll' method, skip non-related nodes (eg: "#text")
           if (el.querySelectorAll) {
-            attachChildrenLazyTippyTooltip(el);
+            attachChildrenLazyTooltip(el);
           }
         }
       } else if (mutation.type === 'attributes') {
         // sync the tooltip content if the attributes change
-        attachTippyTooltip(mutation.target);
+        attachTooltip(mutation.target);
       }
     }
   });
@@ -114,17 +118,17 @@ export function initGlobalTooltips() {
     attributeFilter: ['data-tooltip-content', 'data-content'],
   });
 
-  attachChildrenLazyTippyTooltip(document.documentElement);
+  attachChildrenLazyTooltip(document.documentElement);
 }
 
 export function showTemporaryTooltip(target, content) {
-  const tippy = target._tippy ?? attachTippyTooltip(target, content);
+  const tippy = target._tippy ?? attachTooltip(target, content);
   tippy.setContent(content);
   if (!tippy.state.isShown) tippy.show();
   tippy.setProps({
     onHidden: (tippy) => {
       // reset the default tooltip content, if no default, then this temporary tooltip could be destroyed
-      if (!attachTippyTooltip(target)) {
+      if (!attachTooltip(target)) {
         tippy.destroy();
       }
     },
