@@ -381,7 +381,7 @@ func NotificationWatching(ctx *context.Context) {
 			Page:     page,
 		},
 		Actor:              ctx.Doer,
-		Keyword:            ctx.FormTrim("q"),
+		Keyword:            keyword,
 		OrderBy:            orderBy,
 		Private:            ctx.IsSigned,
 		WatchedByID:        ctx.Doer.ID,
