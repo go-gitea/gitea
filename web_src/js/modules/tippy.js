@@ -103,9 +103,10 @@ export function initGlobalTooltips() {
   const observer = new MutationObserver((mutationList) => {
     for (const mutation of mutationList) {
       if (mutation.type === 'childList') {
+        // mainly for Vue components and AJAX rendered elements
         for (const el of mutation.addedNodes) {
           // handle all "tooltip" elements in added nodes which have 'querySelectorAll' method, skip non-related nodes (eg: "#text")
-          if (el.querySelectorAll) {
+          if ('querySelectorAll' in el) {
             attachChildrenLazyTooltip(el);
           }
         }
