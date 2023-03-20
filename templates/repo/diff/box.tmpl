@@ -17,8 +17,8 @@
 			<div class="gt-df gt-ac gt-fw">
 				<a class="diff-toggle-file-tree-button muted gt-df gt-ac">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
-					{{svg "octicon-sidebar-collapse" 20 "icon gt-hidden"}}
-					{{svg "octicon-sidebar-expand" 20 "icon"}}
+					{{svg "octicon-sidebar-collapse" 20 "icon"}}
+					{{svg "octicon-sidebar-expand" 20 "icon gt-hidden"}}
 				</a>
 				<div class="diff-detail-stats gt-df gt-ac gt-ml-3">
 					{{svg "octicon-diff" 16 "gt-mr-2"}}{{.locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
