@@ -15,9 +15,13 @@ export function invertFileFolding(fileContentBox, foldArrow, isFromViewed=false)
   const diffFileHeader = fileContentBox.querySelector('.diff-file-header');
   const isFolded = fileContentBox.getAttribute('data-folded');
   setFileFolding(fileContentBox, foldArrow, isFolded !== 'true');
+  // scroll position needs to be adjusted only when folding the file
+  // and scrollY is greater than current file header's offsetTop
   if (isFolded === 'false' && window.scrollY > diffFileHeader.offsetTop) {
+    // if the file is folded by clicking the "fold file" icon, scroll to current file header
     let scrollTargetoffsetTop = fileContentBox.offsetTop;
     if (isFromViewed) {
+      // if the file is folded by clicking viewed, scroll to next file header
       const nextDiffBox = fileContentBox.nextElementSibling;
       scrollTargetoffsetTop = nextDiffBox.offsetTop
     }
