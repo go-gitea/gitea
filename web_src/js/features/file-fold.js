@@ -11,18 +11,19 @@ export function setFileFolding(fileContentBox, foldArrow, newFold) {
 }
 
 // Like `setFileFolding`, except that it automatically inverts the current file folding state.
-export function invertFileFolding(fileContentBox, foldArrow) {
+export function invertFileFolding(fileContentBox, foldArrow, isFromViewed=false) {
   const diffFileHeader = fileContentBox.querySelector('.diff-file-header');
   const isFolded = fileContentBox.getAttribute('data-folded');
   setFileFolding(fileContentBox, foldArrow, isFolded !== 'true');
   if (isFolded === 'false' && window.scrollY > diffFileHeader.offsetTop) {
-    const nextDiffBox = fileContentBox.nextElementSibling;
-    if (nextDiffBox) {
-      window.scrollTo({
-        top: nextDiffBox.offsetTop - document.querySelector('.diff-detail-box').offsetHeight,
-        behavior: 'instant'
-      });
+    let scrollTargetoffsetTop = fileContentBox.offsetTop;
+    if (isFromViewed) {
+      const nextDiffBox = fileContentBox.nextElementSibling;
+      scrollTargetoffsetTop = nextDiffBox.offsetTop
     }
+    window.scrollTo({
+      top: scrollTargetoffsetTop - document.querySelector('.diff-detail-box').offsetHeight,
+      behavior: 'instant'
+    });
   }
 }
-
