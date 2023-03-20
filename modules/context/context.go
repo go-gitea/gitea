@@ -6,7 +6,6 @@ package context
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -40,6 +39,7 @@ import (
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 	chi "github.com/go-chi/chi/v5"
+	"github.com/minio/sha256-simd"
 	"github.com/unrolled/render"
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -388,7 +388,7 @@ func (ctx *Context) SetServeHeaders(opts *ServeHeaderOptions) {
 	if duration == 0 {
 		duration = 5 * time.Minute
 	}
-	httpcache.AddCacheControlToHeader(header, duration)
+	httpcache.SetCacheControlInHeader(header, duration)
 
 	if !opts.LastModified.IsZero() {
 		header.Set("Last-Modified", opts.LastModified.UTC().Format(http.TimeFormat))
@@ -753,7 +753,7 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 				}
 			}
 
-			httpcache.AddCacheControlToHeader(ctx.Resp.Header(), 0, "no-transform")
+			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 0, "no-transform")
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["CsrfToken"] = ctx.csrf.GetToken()

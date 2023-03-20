@@ -92,7 +92,7 @@ func NewFuncMap() []template.FuncMap {
 			return setting.AssetVersion
 		},
 		"DisableGravatar": func(ctx context.Context) bool {
-			return system_model.GetSettingBool(ctx, system_model.KeyPictureDisableGravatar)
+			return system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
 		},
 		"DefaultShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName
@@ -108,6 +108,9 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
+		},
+		"IsShowFullName": func() bool {
+			return setting.UI.DefaultShowFullName
 		},
 		"Safe":           Safe,
 		"SafeJS":         SafeJS,
@@ -174,8 +177,9 @@ func NewFuncMap() []template.FuncMap {
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
 		"ReactionToEmoji":                ReactionToEmoji,
 		"RenderNote":                     RenderNote,
-		"RenderMarkdownToHtml": func(input string) template.HTML {
+		"RenderMarkdownToHtml": func(ctx context.Context, input string) template.HTML {
 			output, err := markdown.RenderString(&markup.RenderContext{
+				Ctx:       ctx,
 				URLPrefix: setting.AppSubURL,
 			}, input)
 			if err != nil {
@@ -384,10 +388,10 @@ func NewFuncMap() []template.FuncMap {
 			// the table is NOT sorted with this header
 			return ""
 		},
-		"RenderLabel": func(label *issues_model.Label) template.HTML {
-			return template.HTML(RenderLabel(label))
+		"RenderLabel": func(ctx context.Context, label *issues_model.Label) template.HTML {
+			return template.HTML(RenderLabel(ctx, label))
 		},
-		"RenderLabels": func(labels []*issues_model.Label, repoLink string) template.HTML {
+		"RenderLabels": func(ctx context.Context, labels []*issues_model.Label, repoLink string) template.HTML {
 			htmlCode := `<span class="labels-list">`
 			for _, label := range labels {
 				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
@@ -395,7 +399,7 @@ func NewFuncMap() []template.FuncMap {
 					continue
 				}
 				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
-					repoLink, label.ID, RenderLabel(label))
+					repoLink, label.ID, RenderLabel(ctx, label))
 			}
 			htmlCode += "</span>"
 			return template.HTML(htmlCode)
@@ -807,7 +811,7 @@ func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[str
 }
 
 // RenderLabel renders a label
-func RenderLabel(label *issues_model.Label) string {
+func RenderLabel(ctx context.Context, label *issues_model.Label) string {
 	labelScope := label.ExclusiveScope()
 
 	textColor := "#111"
@@ -820,12 +824,12 @@ func RenderLabel(label *issues_model.Label) string {
 	if labelScope == "" {
 		// Regular label
 		return fmt.Sprintf("<div class='ui label' style='color: %s !important; background-color: %s !important' title='%s'>%s</div>",
-			textColor, label.Color, description, RenderEmoji(label.Name))
+			textColor, label.Color, description, RenderEmoji(ctx, label.Name))
 	}
 
 	// Scoped label
-	scopeText := RenderEmoji(labelScope)
-	itemText := RenderEmoji(label.Name[len(labelScope)+1:])
+	scopeText := RenderEmoji(ctx, labelScope)
+	itemText := RenderEmoji(ctx, label.Name[len(labelScope)+1:])
 
 	itemColor := label.Color
 	scopeColor := label.Color
@@ -833,7 +837,7 @@ func RenderLabel(label *issues_model.Label) string {
 		// Make scope and item background colors slightly darker and lighter respectively.
 		// More contrast needed with higher luminance, empirically tweaked.
 		luminance := (0.299*r + 0.587*g + 0.114*b) / 255
-		contrast := 0.01 + luminance*0.06
+		contrast := 0.01 + luminance*0.03
 		// Ensure we add the same amount of contrast also near 0 and 1.
 		darken := contrast + math.Max(luminance+contrast-1.0, 0.0)
 		lighten := contrast + math.Max(contrast-luminance, 0.0)
@@ -858,18 +862,17 @@ func RenderLabel(label *issues_model.Label) string {
 
 	return fmt.Sprintf("<span class='ui label scope-parent' title='%s'>"+
 		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+
-		"<div class='ui label scope-middle' style='background: linear-gradient(-80deg, %s 48%%, %s 52%% 0%%);'>&nbsp;</div>"+
 		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important''>%s</div>"+
 		"</span>",
 		description,
 		textColor, scopeColor, scopeText,
-		itemColor, scopeColor,
 		textColor, itemColor, itemText)
 }
 
 // RenderEmoji renders html text with emoji post processors
-func RenderEmoji(text string) template.HTML {
-	renderedText, err := markup.RenderEmoji(template.HTMLEscapeString(text))
+func RenderEmoji(ctx context.Context, text string) template.HTML {
+	renderedText, err := markup.RenderEmoji(&markup.RenderContext{Ctx: ctx},
+		template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("RenderEmoji: %v", err)
 		return template.HTML("")

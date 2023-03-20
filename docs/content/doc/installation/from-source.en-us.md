@@ -159,7 +159,7 @@ using the `LDFLAGS` environment variable for `make`. The appropriate settings ar
 - For _`CustomConf`_ you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
 - For _`AppWorkPath`_ you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
 - For _`StaticRootPath`_ you should use `-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
-- To change the default PID file location use `-X \"code.gitea.io/gitea/modules/setting.PIDFile=/run/gitea.pid\"`
+- To change the default PID file location use `-X \"code.gitea.io/gitea/cmd.PIDFile=/run/gitea.pid\"`
 
 Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
 with the appropriate `TAGS` as above.
@@ -193,3 +193,13 @@ LDFLAGS="-linkmode external -extldflags '-static' $LDFLAGS" TAGS="netgo osusergo
 ```
 
 This can be combined with `CC`, `GOOS`, and `GOARCH` as above.
+
+### Adding bash/zsh autocompletion (from 1.19)
+
+A script to enable bash-completion can be found at [`contrib/autocompletion/bash_autocomplete`](https://raw.githubusercontent.com/go-gitea/gitea/main/contrib/autocompletion/bash_autocomplete). This should be altered as appropriate and can be `source` in your `.bashrc`
+or copied as `/usr/share/bash-completion/completions/gitea`.
+
+Similary a script for zsh-completion can be found at [`contrib/autocompletion/zsh_autocomplete`](https://raw.githubusercontent.com/go-gitea/gitea/main/contrib/autocompletion/zsh_autocomplete). This can be copied to `/usr/share/zsh/_gitea` or sourced within your
+`.zshrc`.
+
+YMMV and these scripts may need further improvement.
