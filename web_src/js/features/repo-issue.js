@@ -240,6 +240,12 @@ export function initRepoIssueStatusButton() {
     e.preventDefault();
     $('#comment-form').trigger('submit');
   });
+  $('#comment-button').on('click', (e) => {
+    e.preventDefault();
+    $('#state').val('');
+    $('#status').val('');
+    $('#comment-form').trigger('submit');
+  })
 }
 
 export function initRepoIssueStatusDropdown() {
@@ -248,9 +254,7 @@ export function initRepoIssueStatusDropdown() {
   $statusMenu.find('> .item').each((_, item) => {
     $(item).on('click', (e) => {
       e.preventDefault();
-      // rerender "check" icon
-      $statusMenu.find('> .item').removeClass('active');
-      $(item).addClass('active');
+      // fomantic-ui builtin mechisam will help us add 'acticve' 'selected' classname
       // reset the text of status button
       const textarea = $('#comment-form textarea');
       const easyMDE = getAttachedEasyMDE(textarea);
