@@ -5,16 +5,12 @@ import {svg} from '../svg.js';
 // The fold arrow is the icon displayed on the upper left of the file box, especially intended for components having the 'fold-file' class.
 // The file content box is the box that should be hidden or shown, especially intended for components having the 'file-content' class.
 //
-export function setFileFolding(fileContentBox, foldArrow, newFold) {
-  foldArrow.innerHTML = svg(`octicon-chevron-${newFold ? 'right' : 'down'}`, 18);
-  fileContentBox.setAttribute('data-folded', newFold);
-}
-
-// Like `setFileFolding`, except that it automatically inverts the current file folding state.
-export function invertFileFolding(fileContentBox, foldArrow, isFromViewed = false) {
+export function setFileFolding(fileContentBox, foldArrow, newFold, isFromViewed = false) {
   const diffFileHeader = fileContentBox.querySelector('.diff-file-header');
   const isFolded = fileContentBox.getAttribute('data-folded');
-  setFileFolding(fileContentBox, foldArrow, isFolded !== 'true');
+  console.log('newFold', newFold)
+  foldArrow.innerHTML = svg(`octicon-chevron-${newFold ? 'right' : 'down'}`, 18);
+  fileContentBox.setAttribute('data-folded', newFold);
   // scroll position needs to be adjusted only when folding the file
   // and scrollY is greater than current file header's offsetTop
   if (isFolded === 'false' && window.scrollY > diffFileHeader.offsetTop) {
@@ -30,4 +26,9 @@ export function invertFileFolding(fileContentBox, foldArrow, isFromViewed = fals
       behavior: 'instant'
     });
   }
+}
+
+// Like `setFileFolding`, except that it automatically inverts the current file folding state.
+export function invertFileFolding(fileContentBox, foldArrow) {  
+  setFileFolding(fileContentBox, foldArrow, fileContentBox.getAttribute('data-folded') !== 'true');
 }
