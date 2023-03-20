@@ -58,7 +58,7 @@
 
 	<div class="ui small basic modal" id="edit-empty-content-modal">
 		<div class="ui icon header">
-			<i class="file icon"></i>
+			{{svg "octicon-file"}}
 			{{.locale.Tr "repo.editor.commit_empty_file_header"}}
 		</div>
 		<div class="center content">
@@ -66,11 +66,11 @@
 		</div>
 		<div class="actions">
 			<button class="ui red basic cancel inverted button">
-				<i class="remove icon"></i>
+				{{svg "octicon-x"}}
 				{{.locale.Tr "repo.editor.cancel"}}
 			</button>
 			<button class="ui green basic ok inverted button">
-				<i class="save icon"></i>
+				{{svg "fontawesome-save"}}
 				{{.locale.Tr "repo.editor.commit_changes"}}
 			</button>
 		</div>
