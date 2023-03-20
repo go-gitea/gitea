@@ -1173,10 +1173,8 @@ a.ui.card:hover,
   border-color: var(--color-secondary);
 }
 
-.ui.modal > .close.inside,
-.ui.fullscreen.modal > .close {
-  top: 11px; /* align modal close icon, for example admin notices */
-  color: var(--body-color);
+.ui.modal > .close.inside {
+  color: var(--color-text);
 }
 
 .ui.basic.table > tbody > tr {
@@ -1231,7 +1229,7 @@ a.ui.card:hover,
 /* enable fluid page widths for medium size viewports */
 @media (min-width: 768px) and (max-width: 1200px) {
   .ui.ui.ui.container:not(.fluid) {
-    width: calc(100vw - 3em);
+    width: calc(100vw - 64px);
   }
 }
 
@@ -1285,7 +1283,14 @@ a.ui.card:hover,
 .following.bar #navbar {
   width: 100vw;
   min-height: 52px;
-  padding: 0 0.5rem;
+  padding: 0 16px;
+}
+
+@media (max-width: 767px) {
+  .following.bar #navbar {
+    padding-left: 4px;
+    padding-right: 0;
+  }
 }
 
 .following.bar #navbar .brand {
@@ -1491,7 +1496,7 @@ a.ui.card:hover,
 }
 
 .ui.container.fluid.padded {
-  padding: 0 10px;
+  padding: 0 32px;
 }
 
 .ui.form .ui.button {
@@ -2535,10 +2540,10 @@ table th[data-sortt-desc] .svg {
   height: auto; /* reset the ".ui.dropdown > .dropdown.icon {height}", otherwise the icon would be too small */
 }
 
-.ui.selection.dropdown > .search.icon,
-.ui.selection.dropdown > .delete.icon,
-.ui.selection.dropdown > .dropdown.icon {
-  top: 0 !important;
+.ui.selection.dropdown > .svg.search.icon,
+.ui.selection.dropdown > .svg.delete.icon,
+.ui.selection.dropdown > .svg.dropdown.icon {
+  top: 0 !important; /* reset the ".ui.selection.dropdown > .xxx.icon {top}" if the icon is svg instead of the fomantic icon */
 }
 
 .ui.dropdown.no-text > .dropdown.icon {
