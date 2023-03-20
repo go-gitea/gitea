@@ -17,9 +17,9 @@ import (
 
 const (
 	// ArtifactUploadStatusPending is the status of an artifact upload that is pending
-	ArtifactUploadStatusPending = -1
+	ArtifactUploadStatusPending = 1
 	// ArtifactUploadStatusConfirmed is the status of an artifact upload that is confirmed
-	ArtifactUploadStatusConfirmed = 1
+	ArtifactUploadStatusConfirmed = 2
 )
 
 func init() {
@@ -28,12 +28,12 @@ func init() {
 
 // ActionArtifact is a file that is stored in the artifact storage.
 type ActionArtifact struct {
-	ID               int64              `xorm:"pk autoincr"`
-	JobID            int64              `xorm:"index"`
-	RunnerID         int64              `xorm:"index"`
-	RepoID           int64              `xorm:"index"`
-	OwnerID          int64              `xorm:"index"`
-	CommitSHA        string             `xorm:"index"`
+	ID               int64 `xorm:"pk autoincr"`
+	JobID            int64 `xorm:"index"`
+	RunnerID         int64
+	RepoID           int64 `xorm:"index"`
+	OwnerID          int64
+	CommitSHA        string
 	StoragePath      string             // The path to the artifact in the storage
 	FileSize         int64              // The size of the artifact in bytes
 	FileGzipSize     int64              // The size of the artifact in bytes after gzip compression
@@ -55,14 +55,16 @@ func CreateArtifact(ctx context.Context, t *ActionTask) (*ActionArtifact, error)
 		CommitSHA:    t.CommitSHA,
 		UploadStatus: ArtifactUploadStatusPending,
 	}
-	_, err := db.GetEngine(ctx).Insert(artifact)
-	return artifact, err
+	if _, err := db.GetEngine(ctx).Insert(artifact); err != nil {
+		return nil, err
+	}
+	return artifact, nil
 }
 
 // GetArtifactByID returns an artifact by id
 func GetArtifactByID(ctx context.Context, id int64) (*ActionArtifact, error) {
 	var art ActionArtifact
-	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&art)
+	has, err := db.GetEngine(ctx).ID(id).Get(&art)
 	if err != nil {
 		return nil, err
 	} else if !has {
