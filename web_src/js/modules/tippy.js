@@ -56,11 +56,14 @@ function attachTooltip(target, content = null) {
 }
 
 /**
- * creating tooltip tippy instance is expensive, so we only create it when the user hovers over the element
+ * Creating tooltip tippy instance is expensive, so we only create it when the user hovers over the element
+ * According to https://www.w3.org/TR/DOM-Level-3-Events/#events-mouseevent-event-order , mouseover event is fired before mouseenter event
+ * Some old browsers like Pale Moon doesn't support "mouseenter(capture)"
+ * The tippy by default uses "mouseenter" event to show, so we use "mouseover" event to switch to tippy
  * @param e {Event}
  */
-function lazyTooltipOnMouseEnter(e) {
-  e.target.removeEventListener('mouseenter', lazyTooltipOnMouseEnter, true);
+function lazyTooltipOnMouseHover(e) {
+  e.target.removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
   attachTooltip(this);
 }
 
@@ -83,7 +86,7 @@ function getTooltipContent(target) {
 function attachChildrenLazyTooltip(target) {
   // the selector must match the logic in getTippyTooltipContent
   for (const el of target.querySelectorAll('[data-tooltip-content], .tooltip[data-content]')) {
-    el.addEventListener('mouseenter', lazyTooltipOnMouseEnter, true);
+    el.addEventListener('mouseover', lazyTooltipOnMouseHover, true);
 
     // meanwhile, if the element has no aria-label, use the tooltip content as aria-label
     if (!el.hasAttribute('aria-label')) {
