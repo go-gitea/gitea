@@ -22,7 +22,8 @@
 					</div>
 				{{end}}
 				<div class="ui divider"></div>
-				{{if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID)}}
+				{{$showSelfTooltip := (and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID))}}
+				{{if $showSelfTooltip}}
 					<span class="ui tooltip" data-content="{{$.locale.Tr "repo.diff.review.self_approve"}}">
 						<button type="submit" name="type" value="approve" disabled class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
 					</span>
@@ -30,8 +31,8 @@
 					<button type="submit" name="type" value="approve" class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
 				{{end}}
 				<button type="submit" name="type" value="comment" class="ui submit tiny basic button btn-submit">{{$.locale.Tr "repo.diff.review.comment"}}</button>
-				{{if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID)}}
-					<span class="ui tooltip" data-content="{{$.locale.Tr "repo.diff.review.self_approve"}}">
+				{{if $showSelfTooltip}}
+					<span class="ui tooltip" data-content="{{$.locale.Tr "repo.diff.review.self_reject"}}">
 						<button type="submit" name="type" value="reject" disabled class="ui submit red tiny button btn-submit">{{$.locale.Tr "repo.diff.review.reject"}}</button>
 					</span>
 				{{else}}
