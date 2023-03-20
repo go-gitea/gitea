@@ -249,7 +249,7 @@ export function initRepoIssueStatusButton() {
   });
 
   const $statusDropdown = $('#status-dropdown');
-  const selectedVal= $statusDropdown.find('input[type=hidden]').val();
+  const selectedVal = $statusDropdown.find('input[type=hidden]').val();
   const onCloseStatusChange = (val) => {
     $statusButton.attr('data-action', val);
     $statusButton.text($statusDropdown.dropdown('get item').attr(easyMDEHasContent($('#comment-form textarea')) ? 'data-status' : 'data-status-and-comment'));
@@ -259,7 +259,7 @@ export function initRepoIssueStatusButton() {
   onCloseStatusChange(selectedVal);
   // hide unrelated item
   $statusDropdown.find('> .menu').find('> .item').each((_, item) => {
-    if ($(item).data('value') == parseInt(selectedVal)) {
+    if ($(item).data('value') === parseInt(selectedVal)) {
       $(item).addClass('gt-hidden');
     }
   });
