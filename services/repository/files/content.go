@@ -214,7 +214,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		if err != nil {
 			return nil, err
 		}
-		if submodule != nil {
+		if submodule != nil && submodule.URL != "" {
 			contentsResponse.SubmoduleGitURL = &submodule.URL
 		}
 	}
