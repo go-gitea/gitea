@@ -15,6 +15,7 @@
     "@mcaptcha/vanilla-glue": "0.1.0-alpha-3",
     "@primer/octicons": "18.2.0",
     "@vue/compiler-sfc": "3.2.47",
+    "@webcomponents/custom-elements": "1.5.1",
     "add-asset-webpack-plugin": "2.0.1",
     "ansi-to-html": "0.7.2",
     "asciinema-player": "3.2.0",
