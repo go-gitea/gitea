@@ -229,14 +229,9 @@ export function initRepoIssueStatusButton() {
   if (!$statusButton.length) return;
 
   const easyMDEHasContent = (e) => {
-    const easyMDE = getAttachedEasyMDE(e);
-    const value = easyMDE?.value() || $(e).val();
-    return value.length === 0;
+    
   };
 
-  $('#comment-form textarea').on('keyup', function () {
-    $statusButton.text($statusButton.data(easyMDEHasContent(this) ? 'status' : 'status-and-comment'));
-  });
   $statusButton.on('click', (e) => {
     e.preventDefault();
     $('#status').val(parseInt($statusButton.data('action')) === 0 ? 'reopen' : 'close');
@@ -252,7 +247,10 @@ export function initRepoIssueStatusButton() {
   const selectedVal = $statusDropdown.find('input[type=hidden]').val();
   const onCloseStatusChange = (val) => {
     $statusButton.attr('data-action', val);
-    $statusButton.text($statusDropdown.dropdown('get item').attr(easyMDEHasContent($('#comment-form textarea')) ? 'data-status' : 'data-status-and-comment'));
+    const $textarea = $('#comment-form textarea');
+    const easyMDE = getAttachedEasyMDE($('#comment-form textarea'));
+    const value = easyMDE?.value() || $textarea.val();
+    $statusButton.text($statusDropdown.dropdown('get item').attr(value.length === 0 ? 'data-status' : 'data-status-and-comment'));
   };
   $statusDropdown.dropdown('setting', {selectOnKeydown: false, onChange: onCloseStatusChange});
   $statusDropdown.dropdown('set selected', selectedVal);

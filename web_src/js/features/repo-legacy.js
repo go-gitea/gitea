@@ -86,6 +86,7 @@ export function initRepoCommentForm() {
 
   (async () => {
     const $statusButton = $('#status-button');
+    const $statusDropdown = $('#status-dropdown');
     for (const textarea of $commentForm.find('textarea:not(.review-textarea, .no-easymde)')) {
       // Don't initialize EasyMDE for the dormant #edit-content-form
       if (textarea.closest('#edit-content-form')) {
@@ -94,7 +95,8 @@ export function initRepoCommentForm() {
       const easyMDE = await createCommentEasyMDE(textarea, {
         'onChange': () => {
           const value = easyMDE?.value().trim();
-          $statusButton.text($statusButton.attr(value.length === 0 ? 'data-status' : 'data-status-and-comment'));
+          const $source = $statusDropdown.length > 0 ? $statusDropdown.dropdown('get item') : $statusButton
+          $statusButton.text($source.attr(value.length === 0 ? 'data-status' : 'data-status-and-comment'))
         },
       });
       initEasyMDEImagePaste(easyMDE, $commentForm.find('.dropzone'));
