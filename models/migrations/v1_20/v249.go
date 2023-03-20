@@ -4,11 +4,20 @@
 package v1_20 //nolint
 
 import (
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
-type Action struct{}
+type Action struct {
+	UserID      int64 // Receiver user id.
+	ActUserID   int64 // Action user id.
+	RepoID      int64
+	IsDeleted   bool               `xorm:"NOT NULL DEFAULT false"`
+	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+}
 
 // TableName sets the name of this table
 func (a *Action) TableName() string {
