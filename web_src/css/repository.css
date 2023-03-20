@@ -1615,14 +1615,12 @@
   padding: 7px 0;
   background: var(--color-body);
   line-height: 30px;
-  height: 47px; /* match .ui.attached.header.diff-file-header.sticky-2nd-row */
 }
 
 @media (max-width: 991px) {
   .repository .diff-detail-box {
     flex-direction: column;
     align-items: flex-start;
-    height: 77px; /* match .ui.attached.header.diff-file-header.sticky-2nd-row */
   }
 }
 
@@ -1676,6 +1674,13 @@
   .repository .diff-detail-box .diff-detail-stats strong {
     font-size: 1rem;
   }
+}
+
+.diff-detail-actions {
+  /* prevent font-size from increasing element height so that .diff-detail-box comes
+     out with height of 47px (one line) and 77px (two lines), which is important for
+     position: sticky */
+  height: 33px;
 }
 
 .repository .diff-detail-box .diff-detail-actions > * {
@@ -3263,6 +3268,7 @@ td.blob-excerpt {
   position: sticky;
   padding-top: 0;
   top: 47px;
+  height: 100%;
   max-height: calc(100vh - 47px);
   overflow-y: auto;
 }
