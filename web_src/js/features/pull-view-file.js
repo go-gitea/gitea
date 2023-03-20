@@ -65,6 +65,7 @@ export function initViewedCheckboxListenerFor() {
 
       // Fold the file accordingly
       const parentBox = form.closest('.diff-file-header');
+      // Click on "viewed" inverted the file folding status
       invertFileFolding(parentBox.closest('.file-content'), parentBox.querySelector('.fold-file'), true);
     });
   }
