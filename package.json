@@ -47,7 +47,6 @@
     "webpack-cli": "5.0.1",
     "workbox-routing": "6.5.4",
     "workbox-strategies": "6.5.4",
-    "worker-loader": "3.0.8",
     "wrap-ansi": "8.1.0"
   },
   "devDependencies": {
