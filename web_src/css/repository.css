@@ -3240,7 +3240,6 @@ td.blob-excerpt {
 #diff-file-boxes {
   flex: 1;
   max-width: 100%;
-  width: 80%;
 }
 
 #diff-file-tree {
