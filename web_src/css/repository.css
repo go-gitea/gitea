@@ -1855,7 +1855,8 @@
 .repository .diff-stats {
   clear: both;
   margin-bottom: 5px;
-  max-height: 400px;
+  max-height: 200px;
+  height: fit-content;
   overflow: auto;
   padding-left: 0;
 }
@@ -3249,7 +3250,6 @@ td.blob-excerpt {
   padding-top: 0;
   top: 47px;
   max-height: calc(100vh - 50px);
-  height: 100%;
   overflow-y: auto;
 }
 
