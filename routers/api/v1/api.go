@@ -1031,8 +1031,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 							Delete(reqToken(auth_model.AccessTokenScopeRepo), bind(api.IssueMeta{}), repo.RemoveIssueDependency)
 						m.Combo("/blocks").
 							Get(repo.GetIssueBlocks).
-							Post(bind(api.IssueMeta{}), repo.CreateIssueBlocking).
-							Delete(bind(api.IssueMeta{}), repo.RemoveIssueBlocking)
+							Post(reqToken(auth_model.AccessTokenScopeRepo), bind(api.IssueMeta{}), repo.CreateIssueBlocking).
+							Delete(reqToken(auth_model.AccessTokenScopeRepo), bind(api.IssueMeta{}), repo.RemoveIssueBlocking)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
