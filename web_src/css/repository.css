@@ -1868,7 +1868,8 @@
 .repository .diff-stats {
   clear: both;
   margin-bottom: 5px;
-  max-height: 400px;
+  max-height: 200px;
+  height: fit-content;
   overflow: auto;
   padding-left: 0;
 }
