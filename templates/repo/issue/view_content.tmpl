@@ -113,7 +113,7 @@
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 									<div class="ui teal buttons">
 										{{if .Issue.IsClosed}}
-											<div id="status-button" class="ui button status-button" data-status-val="reopen" data-value="0">
+											<div id="status-button" class="ui button status-button" data-action="0">
 												{{.locale.Tr "repo.issues.reopen_issue"}}
 											</div>
 										{{else}}
@@ -121,7 +121,7 @@
 											{{if .Issue.IsPull}}
 												{{$closeTranslationKey = "repo.pulls.close"}}
 											{{end}}
-											<div id="status-button" class="ui button status-button" data-status-val="close" data-value="1">
+											<div id="status-button" class="ui button status-button" data-action="1">
 												{{.locale.Tr $closeTranslationKey}}
 											</div>
 										{{end}}

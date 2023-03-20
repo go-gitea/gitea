@@ -652,7 +652,7 @@ func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 	}
 
 	// Nothing should be performed if current status is same as target status
-	if currentIssue.IsClosed == isClosed && currentIssue.Status == status {
+	if currentIssue.IsClosed == isClosed && (!issue.IsPull && issue.Status == status) {
 		if !issue.IsPull {
 			return nil, ErrIssueWasClosed{
 				ID: issue.ID,
@@ -664,7 +664,9 @@ func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 	}
 
 	issue.IsClosed = isClosed
-	issue.Status = status
+	if !issue.IsPull {
+		issue.Status = status
+	}
 	return doChangeIssueStatus(ctx, issue, doer, isMergePull)
 }
 
@@ -720,6 +722,8 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 		cmtType = CommentTypeMergePull
 	} else if !issue.IsClosed {
 		cmtType = CommentTypeReopen
+	} else if issue.IsPull {
+		cmtType = CommentTypeClose
 	} else {
 		switch issue.Status {
 		case IssueStatusClosed:

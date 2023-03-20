@@ -239,21 +239,19 @@ export function initRepoIssueStatusButton() {
   });
   $statusButton.on('click', (e) => {
     e.preventDefault();
-    $('#status').val($statusButton.data('status-val') === 0 ? 'reopen' : 'close');
+    $('#status').val(parseInt($statusButton.data('action')) === 0 ? 'reopen' : 'close');
     $('#comment-form').trigger('submit');
   });
   $('#comment-button').on('click', (e) => {
     e.preventDefault();
-    $('#state').val('');
-    $('#status').val();
+    $('#status').val('');
     $('#comment-form').trigger('submit');
   });
 
   const $statusDropdown = $('#status-dropdown');
-  const $selected = $statusDropdown.find('input[type=hidden]');
-  const selectedVal = $selected.val();
+  const selectedVal= $statusDropdown.find('input[type=hidden]').val();
   const onCloseStatusChange = (val) => {
-    $statusButton.attr('data-status-val', val);
+    $statusButton.attr('data-action', val);
     $statusButton.text($statusDropdown.dropdown('get item').attr(easyMDEHasContent($('#comment-form textarea')) ? 'data-status' : 'data-status-and-comment'));
   };
   $statusDropdown.dropdown('setting', {selectOnKeydown: false, onChange: onCloseStatusChange});
@@ -265,7 +263,7 @@ export function initRepoIssueStatusButton() {
       $(item).addClass('gt-hidden');
     }
   });
-  if (selectedVal === 0) $statusDropdown.dropdown('set selected', 1); // issue initial status is open.
+  if (parseInt(selectedVal) === 0) $statusDropdown.dropdown('set selected', 1); // issue initial status is open.
   else $statusDropdown.dropdown('set selected', 0);
 }
 
