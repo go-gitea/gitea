@@ -27,7 +27,7 @@
 						<button type="submit" name="type" value="approve" disabled class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
 					</span>
 				{{else}}
-					<button type="submit" name="type" value="approve" {{if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID)}} disabled {{end}} class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
+					<button type="submit" name="type" value="approve" class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
 				{{end}}
 				<button type="submit" name="type" value="comment" class="ui submit tiny basic button btn-submit">{{$.locale.Tr "repo.diff.review.comment"}}</button>
 				{{if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID)}}
