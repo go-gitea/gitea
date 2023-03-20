@@ -7,12 +7,11 @@ import {svg} from '../svg.js';
 //
 export function setFileFolding(fileContentBox, foldArrow, newFold, isFromViewed = false) {
   const diffFileHeader = fileContentBox.querySelector('.diff-file-header');
-  console.log('newFold:', newFold)
   foldArrow.innerHTML = svg(`octicon-chevron-${newFold ? 'right' : 'down'}`, 18);
   fileContentBox.setAttribute('data-folded', newFold);
   // scroll position needs to be adjusted only when folding the file
   // and scrollY is greater than current file header's offsetTop
-  if (newFold === 'true' && window.scrollY > diffFileHeader.offsetTop) {
+  if (newFold && window.scrollY > diffFileHeader.offsetTop) {
     // if the file is folded by clicking the "fold file" icon, scroll to current file header
     let scrollTargetoffsetTop = fileContentBox.offsetTop;
     if (isFromViewed) {
