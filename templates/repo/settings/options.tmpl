@@ -825,7 +825,7 @@
 					</div>
 
 					<div class="text right actions">
-						<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
+						<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
 						<button class="ui red button">{{.locale.Tr "repo.settings.convert_confirm"}}</button>
 					</div>
 				</form>
@@ -856,7 +856,7 @@
 					</div>
 
 					<div class="text right actions">
-						<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
+						<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
 						<button class="ui red button">{{.locale.Tr "repo.settings.convert_fork_confirm"}}</button>
 					</div>
 				</form>
@@ -892,7 +892,7 @@
 				</div>
 
 				<div class="text right actions">
-					<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
+					<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
 					<button class="ui red button">{{.locale.Tr "repo.settings.transfer_perform"}}</button>
 				</div>
 			</form>
@@ -926,7 +926,7 @@
 				</div>
 
 				<div class="text right actions">
-					<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
+					<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
 					<button class="ui red button">{{.locale.Tr "repo.settings.confirm_delete"}}</button>
 				</div>
 			</form>
@@ -958,7 +958,7 @@
 				</div>
 
 				<div class="text right actions">
-					<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
+					<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
 					<button class="ui red button">{{.locale.Tr "repo.settings.confirm_wiki_delete"}}</button>
 				</div>
 			</form>
@@ -988,10 +988,7 @@
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="{{if .Repository.IsArchived}}unarchive{{else}}archive{{end}}">
 				<input type="hidden" name="repo_id" value="{{.Repository.ID}}">
-				<div class="center actions">
-					<div class="ui basic cancel inverted button">{{.locale.Tr "settings.cancel"}}</div>
-					<button class="ui basic inverted yellow button">{{.locale.Tr "modal.yes"}}</button>
-				</div>
+				{{template "base/delete_modal_actions" .}}
 			</form>
 		</div>
 	{{end}}

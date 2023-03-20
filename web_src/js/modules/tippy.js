@@ -33,6 +33,7 @@ export function initTooltip(el, props = {}) {
     content,
     delay: 100,
     role: 'tooltip',
+    ...(el.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true} : {}),
     ...props,
   });
 }
@@ -52,10 +53,11 @@ export function showTemporaryTooltip(target, content) {
     onHidden: (tippy) => {
       if (oldContent) {
         tippy.setContent(oldContent);
+        tippy.setProps({onHidden: undefined});
       } else {
         tippy.destroy();
+        // after destroy, the `_tippy` is detached, it can't do "setProps (etc...)" anymore
       }
-      tippy.setProps({onHidden: undefined});
     },
   });
 }

@@ -138,6 +138,80 @@
         }
       }
     },
+    "/admin/emails": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all emails",
+        "operationId": "adminGetAllEmails",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/EmailList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/admin/emails/search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Search all emails",
+        "operationId": "adminSearchEmails",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "keyword",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/EmailList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/admin/hooks": {
       "get": {
         "produces": [
@@ -414,9 +488,22 @@
         "tags": [
           "admin"
         ],
-        "summary": "List all users",
-        "operationId": "adminGetAllUsers",
+        "summary": "Search users according filter conditions",
+        "operationId": "adminSearchUsers",
         "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the user's login source to search for",
+            "name": "source_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "user's login name to search for",
+            "name": "login_name",
+            "in": "query"
+          },
           {
             "type": "integer",
             "description": "page number of results to return (1-based)",
@@ -493,6 +580,12 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "purge the user from the system completely",
+            "name": "purge",
+            "in": "query"
           }
         ],
         "responses": {
@@ -673,6 +766,46 @@
         }
       }
     },
+    "/admin/users/{username}/rename": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Rename a user",
+        "operationId": "adminRenameUser",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "existing username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RenameUserOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/admin/users/{username}/repos": {
       "post": {
         "consumes": [
@@ -706,6 +839,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Repository"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -1920,6 +2056,9 @@
           "201": {
             "$ref": "#/responses/Repository"
           },
+          "400": {
+            "$ref": "#/responses/error"
+          },
           "403": {
             "$ref": "#/responses/forbidden"
           },
@@ -2114,6 +2253,7 @@
               "pub",
               "pypi",
               "rubygems",
+              "swift",
               "vagrant"
             ],
             "type": "string",
@@ -13375,6 +13515,9 @@
           "201": {
             "$ref": "#/responses/Repository"
           },
+          "400": {
+            "$ref": "#/responses/error"
+          },
           "409": {
             "description": "The repository with the same name already exists."
           },
@@ -16718,10 +16861,20 @@
         "external_wiki": {
           "$ref": "#/definitions/ExternalWiki"
         },
+        "has_actions": {
+          "description": "either `true` to enable actions unit, or `false` to disable them.",
+          "type": "boolean",
+          "x-go-name": "HasActions"
+        },
         "has_issues": {
           "description": "either `true` to enable issues for this repository or `false` to disable them.",
           "type": "boolean",
           "x-go-name": "HasIssues"
+        },
+        "has_packages": {
+          "description": "either `true` to enable packages unit, or `false` to disable them.",
+          "type": "boolean",
+          "x-go-name": "HasPackages"
         },
         "has_projects": {
           "description": "either `true` to enable project unit, or `false` to disable them.",
@@ -16732,6 +16885,11 @@
           "description": "either `true` to allow pull requests, or `false` to prevent pull request.",
           "type": "boolean",
           "x-go-name": "HasPullRequests"
+        },
+        "has_releases": {
+          "description": "either `true` to enable releases unit, or `false` to disable them.",
+          "type": "boolean",
+          "x-go-name": "HasReleases"
         },
         "has_wiki": {
           "description": "either `true` to enable the wiki for this repository or `false` to disable it.",
@@ -16942,6 +17100,15 @@
         "primary": {
           "type": "boolean",
           "x-go-name": "Primary"
+        },
+        "user_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "UserID"
+        },
+        "username": {
+          "type": "string",
+          "x-go-name": "UserName"
         },
         "verified": {
           "type": "boolean",
@@ -19089,6 +19256,22 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "RenameUserOption": {
+      "description": "RenameUserOption options when renaming a user",
+      "type": "object",
+      "required": [
+        "new_username"
+      ],
+      "properties": {
+        "new_username": {
+          "description": "New username for this user. This name cannot be in use yet by any other user.",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "NewName"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "RepoCollaboratorPermission": {
       "description": "RepoCollaboratorPermission to get repository permission for a collaborator",
       "type": "object",
@@ -19253,9 +19436,17 @@
           "type": "string",
           "x-go-name": "FullName"
         },
+        "has_actions": {
+          "type": "boolean",
+          "x-go-name": "HasActions"
+        },
         "has_issues": {
           "type": "boolean",
           "x-go-name": "HasIssues"
+        },
+        "has_packages": {
+          "type": "boolean",
+          "x-go-name": "HasPackages"
         },
         "has_projects": {
           "type": "boolean",
@@ -19264,6 +19455,10 @@
         "has_pull_requests": {
           "type": "boolean",
           "x-go-name": "HasPullRequests"
+        },
+        "has_releases": {
+          "type": "boolean",
+          "x-go-name": "HasReleases"
         },
         "has_wiki": {
           "type": "boolean",
