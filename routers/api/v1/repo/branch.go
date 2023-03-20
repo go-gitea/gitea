@@ -189,6 +189,9 @@ func CreateBranch(ctx *context.APIContext) {
 				ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
 				return
 			}
+		} else {
+			ctx.Error(http.StatusNotFound, "", "The old branch does not exist")
+			return
 		}
 	} else {
 		oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
