@@ -228,10 +228,6 @@ export function initRepoIssueStatusButton() {
   const $statusButton = $('#status-button');
   if (!$statusButton.length) return;
 
-  const easyMDEHasContent = (e) => {
-    
-  };
-
   $statusButton.on('click', (e) => {
     e.preventDefault();
     $('#status').val(parseInt($statusButton.data('action')) === 0 ? 'reopen' : 'close');

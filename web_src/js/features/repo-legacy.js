@@ -95,8 +95,8 @@ export function initRepoCommentForm() {
       const easyMDE = await createCommentEasyMDE(textarea, {
         'onChange': () => {
           const value = easyMDE?.value().trim();
-          const $source = $statusDropdown.length > 0 ? $statusDropdown.dropdown('get item') : $statusButton
-          $statusButton.text($source.attr(value.length === 0 ? 'data-status' : 'data-status-and-comment'))
+          const $source = $statusDropdown.length > 0 ? $statusDropdown.dropdown('get item') : $statusButton;
+          $statusButton.text($source.attr(value.length === 0 ? 'data-status' : 'data-status-and-comment'));
         },
       });
       initEasyMDEImagePaste(easyMDE, $commentForm.find('.dropzone'));
