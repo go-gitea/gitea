@@ -1085,7 +1085,7 @@
   margin-left: 0;
 }
 
-.repository.view.issue .comment-list .comment .ui.form .field.footer .ui.dropdown .menu .item:not(.active) i {
+.repository.view.issue .comment-list .comment .ui.form .field.footer .ui.dropdown .menu .item:not(.active) svg {
   visibility: hidden;
 }
 

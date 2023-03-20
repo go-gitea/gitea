@@ -128,31 +128,31 @@
 										{{end}}
 										{{if not .Issue.IsPull}}
 										<div id="status-dropdown" class="ui floating dropdown icon button js-aria-comobox">
-											<i class="dropdown icon"></i>
+											{{svg "octicon-chevron-down" "dropdown icon"}}
 											<div class="menu" tabindex="-1">
 												{{if not (eq .Issue.Status 1)}}
 												<div class="item{{if not .Issue.IsClosed}} active{{end}}" data-value="1" data-status-val="close" data-status="Close" data-status-and-comment="Comment and Close">
-													<i class="check icon"></i> Close
+													{{svg "octicon-check"}} Close
 												</div>
 												{{end}}
 												{{if not (eq .Issue.Status 2)}}
 												<div class="item" data-value="2" data-status="Close as archived" data-status-val="close" data-status-and-comment="Comment and Close as archived">
-													<i class="check icon"></i> Close as archived
+													{{svg "octicon-check"}} Close as archived
 												</div>
 												{{end}}
 												{{if not (eq .Issue.Status 3)}}
 												<div class="item" data-value="3" data-status="Close as resolved" data-status-val="close" data-status-and-comment="Comment and Close as resolved">
-													<i class="check icon"></i> Close as resolved
+													{{svg "octicon-check"}} Close as resolved
 												</div>
 												{{end}}
 												{{if not (eq .Issue.Status 4)}}
 												<div class="item" data-value="4" data-status="Close as merged" data-status-val="close" data-status-and-comment="Comment and Close as merged">
-													<i class="check icon"></i> Close as merged
+													{{svg "octicon-check"}}Close as merged
 												</div>
 												{{end}}
 												{{if .Issue.IsClosed}}
 												<div class="item{{if .Issue.IsClosed}} active{{end}}" data-status-val="reopen" data-value="0" data-status="Reopen" data-status-and-comment="Comment and Reopen">
-													<i class="check icon"></i> Reopen
+													{{svg "octicon-check"}} Reopen
 												</div>
 												{{end}}
 											</div>
