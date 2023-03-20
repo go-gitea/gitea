@@ -1,6 +1,7 @@
 import $ from 'jquery';
-import {ariaPatchKey, generateAriaId} from './aria-base.js';
+import {generateAriaId} from './aria-base.js';
 
+const ariaPatchKey = '_giteaAriaPatchDropdown';
 const fomanticDropdownFn = $.fn.dropdown;
 
 // use our own `$().dropdown` function to patch Fomantic's dropdown module

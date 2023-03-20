@@ -1,5 +1,3 @@
-export const ariaPatchKey = '_giteaAriaPatch';
-
 let ariaIdCounter = 0;
 
 export function generateAriaId() {

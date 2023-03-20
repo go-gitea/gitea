@@ -1,6 +1,7 @@
 import $ from 'jquery';
-import {ariaPatchKey, generateAriaId} from './aria-base.js';
+import {generateAriaId} from './aria-base.js';
 
+const ariaPatchKey = '_giteaAriaPatchCheckbox';
 const fomanticCheckboxFn = $.fn.checkbox;
 
 // use our own `$.fn.checkbox` to patch Fomantic's checkbox module
