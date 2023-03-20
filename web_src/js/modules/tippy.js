@@ -3,7 +3,6 @@ import tippy from 'tippy.js';
 export function createTippy(target, opts = {}) {
   const instance = tippy(target, {
     appendTo: document.body,
-    placement: 'top-start',
     animation: false,
     allowHTML: false,
     hideOnClick: false,
