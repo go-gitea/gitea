@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {generateAriaId} from './aria-base.js';
+import {generateAriaId} from './base.js';
 
 const ariaPatchKey = '_giteaAriaPatchDropdown';
 const fomanticDropdownFn = $.fn.dropdown;
