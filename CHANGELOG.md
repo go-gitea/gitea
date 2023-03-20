@@ -233,6 +233,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add index for hook_task table (#21545)
   * Allow disable code tab (#20805)
 * BUGFIXES
+  * Fix dropdown icon misalignment when using fomantic icon (#23558) (#23577)
   * Fix diff detail buttons wrapping, use tippy for review box (#23271) (#23546)
   * Handle missing `README` in create repos API (#23387) (#23510)
   * Disable sending email after push a commit to a closed PR (#23462) (#23492)
