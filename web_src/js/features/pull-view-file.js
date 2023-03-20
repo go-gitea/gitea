@@ -1,4 +1,4 @@
-import {setFileFolding} from './file-fold.js';
+import {invertFileFolding} from './file-fold.js';
 
 const {csrfToken, pageData} = window.config;
 const prReview = pageData.prReview || {};
@@ -65,7 +65,7 @@ export function initViewedCheckboxListenerFor() {
 
       // Fold the file accordingly
       const parentBox = form.closest('.diff-file-header');
-      setFileFolding(parentBox.closest('.file-content'), parentBox.querySelector('.fold-file'), this.checked);
+      invertFileFolding(parentBox.closest('.file-content'), parentBox.querySelector('.fold-file'));
     });
   }
 }
