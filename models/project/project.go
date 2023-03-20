@@ -144,8 +144,19 @@ func (p *Project) Link() string {
 	return ""
 }
 
+func (p *Project) IconName() string {
+	if p.IsRepositoryProject() {
+		return "octicon-project"
+	}
+	return "octicon-project-symlink"
+}
+
 func (p *Project) IsOrganizationProject() bool {
 	return p.Type == TypeOrganization
+}
+
+func (p *Project) IsRepositoryProject() bool {
+	return p.Type == TypeRepository
 }
 
 func init() {
@@ -172,7 +183,7 @@ func GetCardConfig() []CardConfig {
 // IsTypeValid checks if a project type is valid
 func IsTypeValid(p Type) bool {
 	switch p {
-	case TypeRepository, TypeOrganization:
+	case TypeIndividual, TypeRepository, TypeOrganization:
 		return true
 	default:
 		return false
