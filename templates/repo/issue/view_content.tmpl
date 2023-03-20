@@ -108,7 +108,6 @@
 							{{template "repo/issue/comment_tab" .}}
 							{{.CsrfTokenHtml}}
 							<input id="status" name="status" type="hidden">
-							<input id="state" name="state" type="hidden" >
 							<div class="field footer">
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
@@ -129,22 +128,22 @@
 
 										{{if not .Issue.IsPull}}
 											<div id="status-dropdown" class="ui floating dropdown icon button">
-												<input type="hidden" name="status-dropdown" value="{{.Issue.Status}}">
+												<input type="hidden" name="closed_status" value="{{.Issue.Status}}">
 												{{svg "octicon-chevron-down" "dropdown icon"}}
 												<div class="menu">
-													<div class="item" data-value="1" data-status-val="close" data-status="Close Issue" data-status-and-comment="Comment and Close">
+													<div class="item" data-value="1" data-status="{{.locale.Tr "repo.issues.close_as.common"}}" data-status-and-comment="{{.locale.Tr "repo.issues.comment_and_close_as.common"}}">
 														{{svg "octicon-check"}} Close Issue
 													</div>
-													<div class="item" data-value="2" data-status-val="close" data-status="Close as archived" data-status-and-comment="Comment and Close as archived">
+													<div class="item" data-value="2" data-status="{{.locale.Tr "repo.issues.close_as.archived"}}" data-status-and-comment="{{.locale.Tr "repo.issues.comment_and_close_as.archived"}}">
 														{{svg "octicon-check"}} Close as archived
 													</div>
-													<div class="item" data-value="3" data-status-val="close" data-status="Close as resolved" data-status-and-comment="Comment and Close as resolved">
+													<div class="item" data-value="3" data-status="{{.locale.Tr "repo.issues.close_as.resolved"}}" data-status-and-comment="{{.locale.Tr "repo.issues.comment_and_close_as.resolved"}}">
 														{{svg "octicon-check"}} Close as resolved
 													</div>
-													<div class="item" data-value="4" data-status-val="close" data-status="Close as merged" data-status-and-comment="Comment and Close as merged">
+													<div class="item" data-value="4" data-status="{{.locale.Tr "repo.issues.close_as.merged"}}" data-status-and-comment="{{.locale.Tr "repo.issues.comment_and_close_as.merged"}}">
 														{{svg "octicon-check"}} Close as merged
 													</div>
-													<div class="item" data-value="0" data-status-val="reopen" data-status="Reopen" data-status-and-comment="Comment and Reopen">
+													<div class="item" data-value="0" data-status="{{.locale.Tr "repo.issues.close_as.reopen"}}" data-status-and-comment="{{.locale.Tr "repo.issues.comment_and_close_as.reopen"}}">
 														{{svg "octicon-check"}} Reopen
 													</div>
 												</div>

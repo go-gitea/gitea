@@ -228,70 +228,45 @@ export function initRepoIssueStatusButton() {
   const $statusButton = $('#status-button');
   if (!$statusButton.length) return;
 
+  const easyMDEHasContent = (e) => {
+    const easyMDE = getAttachedEasyMDE(e);
+    const value = easyMDE?.value() || $(e).val();
+    return value.length === 0;
+  };
+
   $('#comment-form textarea').on('keyup', function () {
-    const easyMDE = getAttachedEasyMDE(this);
-    const value = easyMDE?.value() || $(this).val();
-    $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
+    $statusButton.text($statusButton.data(easyMDEHasContent(this) ? 'status' : 'status-and-comment'));
   });
   $statusButton.on('click', (e) => {
     e.preventDefault();
-    $('#status').val($statusButton.data('status-val'));
-    $('#comment-form').trigger('submit');
-  });
-
-
-  /*
-  // init value
-  $('#state').val($statusButton.data('value'));
-  $('#status').val($statusButton.data('status-val'));
-  $('#comment-form textarea').on('keyup', function () {
-    console.log('easyMDE keyup')
-    const easyMDE = getAttachedEasyMDE(this);
-    const value = easyMDE?.value() || $(this).val();
-    // find active item of dropdown menu
-    const $selected = $('#status-dropdown').find('> .selected');
-    $statusButton.text($selected.data(value.length === 0 ? 'status' : 'status-and-comment'));
-  });
-  $statusButton.on('click', (e) => {
-    e.preventDefault();
+    $('#status').val($statusButton.data('status-val') === 0 ? 'reopen' : 'close');
     $('#comment-form').trigger('submit');
   });
   $('#comment-button').on('click', (e) => {
     e.preventDefault();
     $('#state').val('');
-    $('#status').val('');
+    $('#status').val();
     $('#comment-form').trigger('submit');
-  })
-
-  const $statusDropdown = $('#status-dropdown');
-  const $statusMenu = $statusDropdown.find('> .menu');
-  $statusMenu.find('> .item').each((_, item) => {
-    $(item).on('click', (e) => {
-      e.preventDefault();
-      // fomantic-ui builtin mechisam will help us add 'acticve' 'selected' classname
-      // reset the text of status button
-      const textarea = $('#comment-form textarea');
-      const easyMDE = getAttachedEasyMDE(textarea);
-      const value = easyMDE?.value() || $(textarea).val();
-      $('#status-button').text($(item).data(value.length === 0 ? 'status' : 'status-and-comment'));
-      // set hidden input value
-      $('#state').val($(item).data('value'));
-      $('#status').val($(item).data('status-val'));
-    });
   });
 
-  */
-
   const $statusDropdown = $('#status-dropdown');
-  const selectedVal = $statusDropdown.find('input[type=hidden]').val();
+  const $selected = $statusDropdown.find('input[type=hidden]');
+  const selectedVal = $selected.val();
   const onCloseStatusChange = (val) => {
     $statusButton.attr('data-status-val', val);
-    $statusButton.text($statusDropdown.dropdown('get item').attr('data-status'));
+    $statusButton.text($statusDropdown.dropdown('get item').attr(easyMDEHasContent($('#comment-form textarea')) ? 'data-status' : 'data-status-and-comment'));
   };
   $statusDropdown.dropdown('setting', {selectOnKeydown: false, onChange: onCloseStatusChange});
   $statusDropdown.dropdown('set selected', selectedVal);
   onCloseStatusChange(selectedVal);
-  // TODO: hide unrelated items
+  // hide unrelated item
+  $statusDropdown.find('> .menu').find('> .item').each((_, item) => {
+    if ($(item).data('value') == parseInt(selectedVal)) {
+      $(item).addClass('gt-hidden');
+    }
+  });
+  if (selectedVal === 0) $statusDropdown.dropdown('set selected', 1); // issue initial status is open.
+  else $statusDropdown.dropdown('set selected', 0);
 }
 
 export function initRepoPullRequestUpdate() {
