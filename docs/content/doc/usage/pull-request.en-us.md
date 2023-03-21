@@ -53,7 +53,7 @@ To close a PR, go to the open PR and click the "Close Pull Request" button. This
 
 Marking a pull request as being a work in progress will prevent that pull request from being accidentally merged.
 To mark a pull request as being a work in progress, you must prefix its title by `WIP:` or `[WIP]` (case insensitive).
-Those values are configurable in your `app.ini` file :
+Those values are configurable in your `app.ini` file:
 
 ```ini
 [repository.pull-request]
