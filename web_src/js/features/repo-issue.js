@@ -516,20 +516,22 @@ export function initRepoPullRequestReview() {
   const $panel = $reviewBtn.parent().find('.review-box-panel');
   const $closeBtn = $panel.find('.close');
 
-  const tippy = createTippy($reviewBtn[0], {
-    content: $panel[0],
-    placement: 'bottom',
-    trigger: 'click',
-    role: 'menu',
-    maxWidth: 'none',
-    interactive: true,
-    hideOnClick: true,
-  });
+  if ($reviewBtn.length && $panel.length) {
+    const tippy = createTippy($reviewBtn[0], {
+      content: $panel[0],
+      placement: 'bottom',
+      trigger: 'click',
+      role: 'menu',
+      maxWidth: 'none',
+      interactive: true,
+      hideOnClick: true,
+    });
 
-  $closeBtn.on('click', (e) => {
-    e.preventDefault();
-    tippy.hide();
-  });
+    $closeBtn.on('click', (e) => {
+      e.preventDefault();
+      tippy.hide();
+    });
+  }
 
   $(document).on('click', 'a.add-code-comment', async function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
