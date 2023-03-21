@@ -25,11 +25,11 @@ func SetSetting(s *Setting) error {
 }
 
 func GetSettings(repoID int64, keys []string) (map[string]*Setting, error) {
-	settings := make(map[string]*Setting)
 	resourceSettings, err := db.GetSettings(db.DefaultContext, repoSettingTableName, repoID, keys)
 	if err != nil {
 		return nil, err
 	}
+	settings := make(map[string]*Setting, len(resourceSettings))
 	for key, setting := range resourceSettings {
 		settings[key] = (*Setting)(setting)
 	}
@@ -45,11 +45,11 @@ func DeleteSetting(repoID int64, key string) error {
 }
 
 func GetAllSettings(repoID int64) (map[string]*Setting, error) {
-	settings := make(map[string]*Setting)
 	resourceSettings, err := db.GetAllSettings(db.DefaultContext, repoSettingTableName, repoID)
 	if err != nil {
 		return nil, err
 	}
+	settings := make(map[string]*Setting, len(resourceSettings))
 	for key, setting := range resourceSettings {
 		settings[key] = (*Setting)(setting)
 	}

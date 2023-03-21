@@ -20,7 +20,7 @@ import (
 
 type ResourceSetting struct {
 	ID           int64              `xorm:"pk autoincr"`
-	GroupID      int64              `xorm:"index unique(key_repoid)"`               // to load all of some group's settings
+	GroupID      int64              `xorm:"index unique(key_groupid)"`              // to load all of some group's settings
 	SettingKey   string             `xorm:"varchar(255) index unique(key_groupid)"` // ensure key is always lowercase
 	SettingValue string             `xorm:"text"`
 	Version      int                `xorm:"version"` // prevent to override
@@ -39,7 +39,7 @@ func (s *ResourceSetting) AsBool() bool {
 
 // GetSettings returns specific settings
 func GetSettings(ctx context.Context, tableName string, groupID int64, keys []string) (map[string]*ResourceSetting, error) {
-	for i := 0; i < len(keys); i++ {
+	for i := range keys {
 		keys[i] = strings.ToLower(keys[i])
 	}
 	settings := make([]*ResourceSetting, 0, len(keys))
@@ -50,7 +50,7 @@ func GetSettings(ctx context.Context, tableName string, groupID int64, keys []st
 		Find(&settings); err != nil {
 		return nil, err
 	}
-	settingsMap := make(map[string]*ResourceSetting)
+	settingsMap := make(map[string]*ResourceSetting, len(settings))
 	for _, s := range settings {
 		settingsMap[s.SettingKey] = s
 	}
@@ -79,7 +79,7 @@ func GetSettingNoCache(ctx context.Context, tableName string, groupID int64, key
 		return nil, err
 	}
 	if len(v) == 0 {
-		return nil, fmt.Errorf("%s[%d] setting[%s]: %w", tableName, groupID, key, util.ErrNotExist)
+		return nil, fmt.Errorf("%s[%d][%s]: %w", tableName, groupID, key, util.ErrNotExist)
 	}
 	return v[strings.ToLower(key)], nil
 }
@@ -115,7 +115,7 @@ func (settings AllSettings) Get(key string) ResourceSetting {
 	return ResourceSetting{}
 }
 
-func (settings AllSettings) GetBool(key string) bool {
+func (settings AllSettings) AsBool(key string) bool {
 	b, _ := strconv.ParseBool(settings.Get(key).SettingValue)
 	return b
 }
@@ -133,7 +133,7 @@ func GetAllSettings(ctx context.Context, tableName string, groupID int64) (AllSe
 		Find(&settings); err != nil {
 		return nil, err
 	}
-	settingsMap := make(map[string]*ResourceSetting)
+	settingsMap := make(map[string]*ResourceSetting, len(settings))
 	for _, s := range settings {
 		settingsMap[s.SettingKey] = s
 	}
@@ -219,4 +219,23 @@ func upsertSettingValue(ctx context.Context, tableName string, groupID int64, ke
 		_, err = e.Table(tableName).Insert(&ResourceSetting{GroupID: groupID, SettingKey: key, SettingValue: value})
 		return err
 	})
+}
+
+type ResourceSettingKey struct {
+	ID      int64
+	KeyName string `xorm:"unique"`
+}
+
+// GetResourceSettingKeyID get key id by key name
+func GetResourceSettingKeyID(ctx context.Context, keyname string) (int64, error) {
+	key := &ResourceSettingKey{KeyName: keyname}
+	has, err := GetEngine(ctx).Get(key)
+	if err != nil {
+		return 0, err
+	} else if !has {
+		if err := Insert(ctx, key); err != nil {
+			return 0, err
+		}
+	}
+	return key.ID, nil
 }
