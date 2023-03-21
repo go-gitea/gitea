@@ -1855,7 +1855,7 @@
 
 .diff-file-box {
   border: 1px solid transparent;
-  border-radius: 0.285rem; /* Just like ui.top.attached.header */
+  border-radius: var(--border-radius);
 }
 
 /* TODO: this can potentially be made "global" by removing the class prefix */
