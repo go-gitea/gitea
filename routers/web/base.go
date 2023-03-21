@@ -45,7 +45,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				routing.UpdateFuncInfo(req.Context(), funcInfo)
 
 				rPath := strings.TrimPrefix(req.URL.Path, "/"+prefix+"/")
-				rPath = util.CleanPath(strings.ReplaceAll(rPath, "\\", "/"))
+				rPath = util.PathJoinRelX(rPath)
 
 				u, err := objStore.URL(rPath, path.Base(rPath))
 				if err != nil {
@@ -81,8 +81,8 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 			routing.UpdateFuncInfo(req.Context(), funcInfo)
 
 			rPath := strings.TrimPrefix(req.URL.Path, "/"+prefix+"/")
-			rPath = util.CleanPath(strings.ReplaceAll(rPath, "\\", "/"))
-			if rPath == "" {
+			rPath = util.PathJoinRelX(rPath)
+			if rPath == "" || rPath == "." {
 				http.Error(w, "file not found", http.StatusNotFound)
 				return
 			}
