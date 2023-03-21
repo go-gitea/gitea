@@ -8,17 +8,13 @@ package options
 import (
 	"fmt"
 	"io"
-	"os"
-	"path"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 var directories = make(directorySet)
 
-// Dir returns all files from bindata or custom directory.
+// Dir returns all files from custom directory or bindata.
 func Dir(name string) ([]string, error) {
 	if directories.Filled(name) {
 		return directories.Get(name), nil
@@ -27,7 +23,7 @@ func Dir(name string) ([]string, error) {
 	var result []string
 
 	for _, dir := range []string{
-		path.Join(setting.CustomPath, "options", name), // custom dir
+		filepath.Join(setting.CustomPath, "options", name), // custom dir
 		// no static dir
 	} {
 		files, err := statDirIfExist(dir)
@@ -64,16 +60,10 @@ func AssetDir(dirName string) ([]string, error) {
 	return results, nil
 }
 
-// fileFromDir is a helper to read files from bindata or custom path.
-func fileFromDir(name string) ([]byte, error) {
-	customPath := path.Join(setting.CustomPath, "options", name)
-
-	isFile, err := util.IsFile(customPath)
-	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
-	}
-	if isFile {
-		return os.ReadFile(customPath)
+// fileFromOptionsDir is a helper to read files from custom path or bindata.
+func fileFromOptionsDir(elems ...string) ([]byte, error) {
+	if data, err := readFileFromLocal([]string{setting.CustomPath}, "options", elems...); err == nil {
+		return data, nil
 	}
 
 	f, err := Assets.Open(name)
@@ -81,7 +71,6 @@ func fileFromDir(name string) ([]byte, error) {
 		return nil, err
 	}
 	defer f.Close()
-
 	return io.ReadAll(f)
 }
 

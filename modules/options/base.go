@@ -7,36 +7,36 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
 // Locale reads the content of a specific locale from static/bindata or custom path.
 func Locale(name string) ([]byte, error) {
-	return fileFromDir(path.Join("locale", util.SafePathRel(name)))
+	return fileFromOptionsDir("locale", name)
 }
 
 // Readme reads the content of a specific readme from static/bindata or custom path.
 func Readme(name string) ([]byte, error) {
-	return fileFromDir(path.Join("readme", util.SafePathRel(name)))
+	return fileFromOptionsDir("readme", name)
 }
 
 // Gitignore reads the content of a gitignore locale from static/bindata or custom path.
 func Gitignore(name string) ([]byte, error) {
-	return fileFromDir(path.Join("gitignore", util.SafePathRel(name)))
+	return fileFromOptionsDir("gitignore", name)
 }
 
 // License reads the content of a specific license from static/bindata or custom path.
 func License(name string) ([]byte, error) {
-	return fileFromDir(path.Join("license", util.SafePathRel(name)))
+	return fileFromOptionsDir("license", name)
 }
 
 // Labels reads the content of a specific labels from static/bindata or custom path.
 func Labels(name string) ([]byte, error) {
-	return fileFromDir(path.Join("label", util.SafePathRel(name)))
+	return fileFromOptionsDir("label", name)
 }
 
 // WalkLocales reads the content of a specific locale
@@ -92,4 +92,22 @@ func statDirIfExist(dir string) ([]string, error) {
 		return nil, fmt.Errorf("unable to read directory %q. %w", dir, err)
 	}
 	return files, nil
+}
+
+func readFileFromLocal(base []string, sub string, elems ...string) ([]byte, error) {
+	localPathElems := make([]string, len(elems)+2) // path[0] will be used for the custom path prefix
+	localPathElems[1] = sub
+	copy(localPathElems[2:], elems)
+
+	for _, dir := range base {
+		localPathElems[0] = dir
+		localPath := util.SafeFilePathAbs(localPathElems...)
+		isFile, err := util.IsFile(localPath)
+		if err != nil {
+			log.Error("Unable to check if %s is a file. Error: %v", localPath, err)
+		} else if isFile {
+			return os.ReadFile(localPath)
+		}
+	}
+	return nil, fmt.Errorf("asset file does not exist: %v", elems)
 }

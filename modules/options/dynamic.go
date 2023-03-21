@@ -6,11 +6,6 @@
 package options
 
 import (
-	"fmt"
-	"os"
-	"path"
-
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -26,8 +21,8 @@ func Dir(name string) ([]string, error) {
 	var result []string
 
 	for _, dir := range []string{
-		path.Join(setting.CustomPath, "options", name),     // custom dir
-		path.Join(setting.StaticRootPath, "options", name), // static dir
+		util.SafeFilePathAbs(setting.CustomPath, "options", name),     // custom dir
+		util.SafeFilePathAbs(setting.StaticRootPath, "options", name), // static dir
 	} {
 		files, err := statDirIfExist(dir)
 		if err != nil {
@@ -39,29 +34,9 @@ func Dir(name string) ([]string, error) {
 	return directories.AddAndGet(name, result), nil
 }
 
-// fileFromDir is a helper to read files from static or custom path.
-func fileFromDir(name string) ([]byte, error) {
-	customPath := path.Join(setting.CustomPath, "options", name)
-
-	isFile, err := util.IsFile(customPath)
-	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
-	}
-	if isFile {
-		return os.ReadFile(customPath)
-	}
-
-	staticPath := path.Join(setting.StaticRootPath, "options", name)
-
-	isFile, err = util.IsFile(staticPath)
-	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", staticPath, err)
-	}
-	if isFile {
-		return os.ReadFile(staticPath)
-	}
-
-	return []byte{}, fmt.Errorf("Asset file does not exist: %s", name)
+// fileFromOptionsDir is a helper to read files from static or custom path.
+func fileFromOptionsDir(elems ...string) ([]byte, error) {
+	return readFileFromLocal([]string{setting.CustomPath, setting.StaticRootPath}, "options", elems...)
 }
 
 // IsDynamic will return false when using embedded data (-tags bindata)
