@@ -113,8 +113,12 @@ export default {
       this.updateState(this.fileTreeIsVisible);
     },
     updateState(visible) {
-      const [toShow, toHide] = document.querySelectorAll('.diff-toggle-file-tree-button .icon');
+      const btn = document.querySelector('.diff-toggle-file-tree-button');
+      const [toShow, toHide] = btn.querySelectorAll('.icon');
       const tree = document.getElementById('diff-file-tree');
+      const newTooltip = btn.getAttribute(`data-content-${visible ? 'hide' : 'show'}`);
+      btn.setAttribute('data-content', newTooltip);
+      btn._tippy.setContent(newTooltip);
       toggleElem(tree, visible);
       toggleElem(toShow, !visible);
       toggleElem(toHide, visible);
