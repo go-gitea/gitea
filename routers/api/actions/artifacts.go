@@ -199,7 +199,9 @@ func (ar artifactRoutes) saveUploadChunk(ctx *context.Context,
 
 	// check md5
 	if !r.Match(ctx.Req.Header.Get(artifactXActionsResultsMD5Header)) {
-		ar.fs.Delete(storagePath)
+		if err := ar.fs.Delete(storagePath); err != nil {
+			log.Error("Error deleting chunk: %s, %v", storagePath, err)
+		}
 		return -1, fmt.Errorf("md5 not match")
 	}
 

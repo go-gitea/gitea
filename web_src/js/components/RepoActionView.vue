@@ -41,7 +41,7 @@
         </div>
         <div class="job-artifacts" v-if="artifacts.length > 0">
           <div class="job-artifacts-title">
-            Artifacts
+            {{ artifactsTitle }}
           </div>
           <ul class="job-artifacts-list">
             <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.id">
@@ -103,10 +103,14 @@ const sfc = {
     runIndex: String,
     jobIndex: String,
     actionsURL: String,
+    artifactsTitle: String,
   },
 
   data() {
     return {
+      ansiToHTML: new AnsiToHTML({escapeXML: true}),
+      artifactsTitle: this.artifactsTitle,
+
       // internal state
       loading: false,
       intervalID: null,
@@ -328,6 +332,7 @@ export function initRepositoryActionView() {
     runIndex: el.getAttribute('data-run-index'),
     jobIndex: el.getAttribute('data-job-index'),
     actionsURL: el.getAttribute('data-actions-url'),
+    artifactsTitle: el.getAttribute('data-artifacts-title'),
   });
   view.mount(el);
 }
@@ -440,27 +445,26 @@ export function ansiLogToHTML(line) {
   margin: 5px 0;
   padding: 10px;
 }
-.job-artifacts {
-  .job-artifacts-title {
-    font-size: 110%;
-    margin-top: 16px;
-    padding: 16px 10px 0px 20px;
-    border-top: 1px dashed var(--color-secondary);
-  }
 
-  .job-artifacts-item {
-    margin: 5px 0;
-    padding: 6px;
-  }
+.job-artifacts-title {
+  font-size: 110%;
+  margin-top: 16px;
+  padding: 16px 10px 0px 20px;
+  border-top: 1px dashed var(--color-secondary);
+}
 
-  .job-artifacts-list {
-    padding-left: 12px;
-    list-style: none;
-  }
+.job-artifacts-item {
+  margin: 5px 0;
+  padding: 6px;
+}
 
-  .job-artifacts-icon {
-    padding-right: 3px;
-  }
+.job-artifacts-list {
+  padding-left: 12px;
+  list-style: none;
+}
+
+.job-artifacts-icon {
+  padding-right: 3px;
 }
 
 .job-group-section .job-brief-list .job-brief-item {
