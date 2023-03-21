@@ -8,8 +8,10 @@ package options
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var directories = make(directorySet)
@@ -62,11 +64,12 @@ func AssetDir(dirName string) ([]string, error) {
 
 // fileFromOptionsDir is a helper to read files from custom path or bindata.
 func fileFromOptionsDir(elems ...string) ([]byte, error) {
+	// only try custom dir, no static dir
 	if data, err := readFileFromLocal([]string{setting.CustomPath}, "options", elems...); err == nil {
 		return data, nil
 	}
 
-	f, err := Assets.Open(name)
+	f, err := Assets.Open(util.SafePathRelX(elems...))
 	if err != nil {
 		return nil, err
 	}

@@ -102,12 +102,12 @@ func readFileFromLocal(base []string, sub string, elems ...string) ([]byte, erro
 	for _, dir := range base {
 		localPathElems[0] = dir
 		localPath := util.SafeFilePathAbs(localPathElems...)
-		isFile, err := util.IsFile(localPath)
-		if err != nil {
-			log.Error("Unable to check if %s is a file. Error: %v", localPath, err)
-		} else if isFile {
-			return os.ReadFile(localPath)
+		data, err := os.ReadFile(localPath)
+		if err == nil {
+			return data, nil
+		} else if !os.IsNotExist(err) {
+			log.Error("Unable to read file %q. Error: %v", localPath, err)
 		}
 	}
-	return nil, fmt.Errorf("asset file does not exist: %v", elems)
+	return nil, fmt.Errorf("local file does not exist: %v", elems)
 }

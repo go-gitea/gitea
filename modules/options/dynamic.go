@@ -34,7 +34,7 @@ func Dir(name string) ([]string, error) {
 	return directories.AddAndGet(name, result), nil
 }
 
-// fileFromOptionsDir is a helper to read files from static or custom path.
+// fileFromOptionsDir is a helper to read files from custom or static path.
 func fileFromOptionsDir(elems ...string) ([]byte, error) {
 	return readFileFromLocal([]string{setting.CustomPath, setting.StaticRootPath}, "options", elems...)
 }
