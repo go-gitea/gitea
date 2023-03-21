@@ -74,72 +74,12 @@ func canGithubEventMatch(evt *jobparser.Event, triggedEvent webhook_module.HookE
 	case githubEventRelease:
 		return triggedEvent == webhook_module.HookEventRelease
 
-	case githubEventIssues:
-		// https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#issues
-		if isEventActsTypesEmpty(evt.Acts) {
-			return util.SliceContains([]webhook_module.HookEventType{
-				webhook_module.HookEventIssues,
-				webhook_module.HookEventIssueAssign,
-				webhook_module.HookEventIssueLabel,
-				webhook_module.HookEventIssueMilestone,
-			}, triggedEvent)
-		}
-		switch triggedEvent {
-		case webhook_module.HookEventIssues:
-			return matchByActivityTypes(evt.Acts, githubActivityTypeEdited, githubActivityTypeOpened, githubActivityTypeClosed, githubActivityTypeReopened)
-		case webhook_module.HookEventIssueAssign:
-			return matchByActivityTypes(evt.Acts, githubActivityTypeAssigned, githubActivityTypeUnassigned)
-		case webhook_module.HookEventIssueLabel:
-			return matchByActivityTypes(evt.Acts, githubActivityTypeLabeled, githubActivityTypeUnlabeled)
-		case webhook_module.HookEventIssueMilestone:
-			return matchByActivityTypes(evt.Acts, githubActivityTypeMilestoned, githubActivityTypeDemilestoned)
-		}
-		return false
-
-	case githubEventIssueComment:
-		return triggedEvent == webhook_module.HookEventIssueComment
-
-	case githubEventPullRequest:
-		// https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
-		if isEventActsTypesEmpty(evt.Acts) {
-			return util.SliceContains([]webhook_module.HookEventType{
-				webhook_module.HookEventPullRequest,
-				webhook_module.HookEventPullRequestSync,
-			}, triggedEvent)
-		}
-		switch triggedEvent {
-		case webhook_module.HookEventPullRequest:
-			return matchByActivityTypes(evt.Acts, githubActivityTypeEdited, githubActivityTypeOpened, githubActivityTypeClosed, githubActivityTypeReopened)
-		case webhook_module.HookEventPullRequestAssign:
-			return matchByActivityTypes(evt.Acts, githubActivityTypeAssigned, githubActivityTypeUnassigned)
-		case webhook_module.HookEventPullRequestLabel:
-			return matchByActivityTypes(evt.Acts, githubActivityTypeLabeled, githubActivityTypeUnlabeled)
-		case webhook_module.HookEventPullRequestSync:
-			return matchByActivityTypes(evt.Acts, githubActivityTypeSynchronize)
-		}
-		return false
-
-	case githubEventPullRequestComment:
-		return triggedEvent == webhook_module.HookEventPullRequestComment
-
-	case githubEventPullRequestReview:
-		return util.SliceContains([]webhook_module.HookEventType{
-			webhook_module.HookEventPullRequestReviewApproved,
-			webhook_module.HookEventPullRequestReviewComment,
-			webhook_module.HookEventPullRequestReviewRejected,
-		}, triggedEvent)
-
-	case githubEventPullRequestReviewComment:
-		// TODO
-
-	case githubEventPullRequestTarget:
-		// TODO
+		// TODO: handle rest events
 
 	default:
 		return false
 	}
 
-	return false
 }
 
 func isEventActsTypesEmpty(evtActs map[string][]string) bool {
