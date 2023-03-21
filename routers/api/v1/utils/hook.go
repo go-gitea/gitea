@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
@@ -18,15 +19,46 @@ import (
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
-// GetOrgHook get an organization's webhook. If there is an error, write to
-// `ctx` accordingly and return the error
-func GetOrgHook(ctx *context.APIContext, orgID, hookID int64) (*webhook.Webhook, error) {
-	w, err := webhook.GetWebhookByOrgID(orgID, hookID)
+// ListOwnerHooks lists the webhooks of the provided owner
+func ListOwnerHooks(ctx *context.APIContext, owner *user_model.User) {
+	opts := &webhook.ListWebhookOptions{
+		ListOptions: GetListOptions(ctx),
+		OwnerID:     owner.ID,
+	}
+
+	count, err := webhook.CountWebhooksByOpts(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	hooks, err := webhook.ListWebhooksByOpts(ctx, opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	apiHooks := make([]*api.Hook, len(hooks))
+	for i, hook := range hooks {
+		apiHooks[i], err = webhook_service.ToHook(owner.HomeLink(), hook)
+		if err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+	}
+
+	ctx.SetTotalCountHeader(count)
+	ctx.JSON(http.StatusOK, apiHooks)
+}
+
+// GetOwnerHook gets an user or organization webhook. Errors are written to ctx.
+func GetOwnerHook(ctx *context.APIContext, ownerID, hookID int64) (*webhook.Webhook, error) {
+	w, err := webhook.GetWebhookByOwnerID(ownerID, hookID)
 	if err != nil {
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetWebhookByOrgID", err)
+			ctx.Error(http.StatusInternalServerError, "GetWebhookByOwnerID", err)
 		}
 		return nil, err
 	}
@@ -48,9 +80,9 @@ func GetRepoHook(ctx *context.APIContext, repoID, hookID int64) (*webhook.Webhoo
 	return w, nil
 }
 
-// CheckCreateHookOption check if a CreateHookOption form is valid. If invalid,
+// checkCreateHookOption check if a CreateHookOption form is valid. If invalid,
 // write the appropriate error to `ctx`. Return whether the form is valid
-func CheckCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) bool {
+func checkCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) bool {
 	if !webhook_service.IsValidHookTaskType(form.Type) {
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Invalid hook type: %s", form.Type))
 		return false
@@ -81,14 +113,13 @@ func AddSystemHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	}
 }
 
-// AddOrgHook add a hook to an organization. Writes to `ctx` accordingly
-func AddOrgHook(ctx *context.APIContext, form *api.CreateHookOption) {
-	org := ctx.Org.Organization
-	hook, ok := addHook(ctx, form, org.ID, 0)
+// AddOwnerHook adds a hook to an user or organization
+func AddOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.CreateHookOption) {
+	hook, ok := addHook(ctx, form, owner.ID, 0)
 	if !ok {
 		return
 	}
-	apiHook, ok := toAPIHook(ctx, org.AsUser().HomeLink(), hook)
+	apiHook, ok := toAPIHook(ctx, owner.HomeLink(), hook)
 	if !ok {
 		return
 	}
@@ -128,14 +159,18 @@ func pullHook(events []string, event string) bool {
 	return util.SliceContainsString(events, event, true) || util.SliceContainsString(events, string(webhook_module.HookEventPullRequest), true)
 }
 
-// addHook add the hook specified by `form`, `orgID` and `repoID`. If there is
+// addHook add the hook specified by `form`, `ownerID` and `repoID`. If there is
 // an error, write to `ctx` accordingly. Return (webhook, ok)
-func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID int64) (*webhook.Webhook, bool) {
+func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoID int64) (*webhook.Webhook, bool) {
+	if !checkCreateHookOption(ctx, form) {
+		return nil, false
+	}
+
 	if len(form.Events) == 0 {
 		form.Events = []string{"push"}
 	}
 	w := &webhook.Webhook{
-		OrgID:       orgID,
+		OwnerID:     ownerID,
 		RepoID:      repoID,
 		URL:         form.Config["url"],
 		ContentType: webhook.ToHookContentType(form.Config["content_type"]),
@@ -234,21 +269,20 @@ func EditSystemHook(ctx *context.APIContext, form *api.EditHookOption, hookID in
 	ctx.JSON(http.StatusOK, h)
 }
 
-// EditOrgHook edit webhook `w` according to `form`. Writes to `ctx` accordingly
-func EditOrgHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64) {
-	org := ctx.Org.Organization
-	hook, err := GetOrgHook(ctx, org.ID, hookID)
+// EditOwnerHook updates a webhook of an user or organization
+func EditOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.EditHookOption, hookID int64) {
+	hook, err := GetOwnerHook(ctx, owner.ID, hookID)
 	if err != nil {
 		return
 	}
 	if !editHook(ctx, form, hook) {
 		return
 	}
-	updated, err := GetOrgHook(ctx, org.ID, hookID)
+	updated, err := GetOwnerHook(ctx, owner.ID, hookID)
 	if err != nil {
 		return
 	}
-	apiHook, ok := toAPIHook(ctx, org.AsUser().HomeLink(), updated)
+	apiHook, ok := toAPIHook(ctx, owner.HomeLink(), updated)
 	if !ok {
 		return
 	}
@@ -361,4 +395,17 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 		return false
 	}
 	return true
+}
+
+// DeleteOwnerHook deletes the hook owned by the owner.
+func DeleteOwnerHook(ctx *context.APIContext, owner *user_model.User, hookID int64) {
+	if err := webhook.DeleteWebhookByOwnerID(owner.ID, hookID); err != nil {
+		if webhook.IsErrWebhookNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "DeleteWebhookByOwnerID", err)
+		}
+		return
+	}
+	ctx.Status(http.StatusNoContent)
 }

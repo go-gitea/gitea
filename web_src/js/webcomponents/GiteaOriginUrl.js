@@ -1,3 +1,5 @@
+import '@webcomponents/custom-elements'; // automatically adds custom elements for older browsers that don't support it
+
 // this is a Gitea's private HTML component, it converts an absolute or relative URL to an absolute URL with the current origin
 window.customElements.define('gitea-origin-url', class extends HTMLElement {
   connectedCallback() {

@@ -7,10 +7,8 @@ package options
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -27,74 +25,18 @@ func Dir(name string) ([]string, error) {
 
 	var result []string
 
-	customDir := path.Join(setting.CustomPath, "options", name)
-
-	isDir, err := util.IsDir(customDir)
-	if err != nil {
-		return []string{}, fmt.Errorf("Unabe to check if custom directory %s is a directory. %w", customDir, err)
-	}
-	if isDir {
-		files, err := util.StatDir(customDir, true)
+	for _, dir := range []string{
+		path.Join(setting.CustomPath, "options", name),     // custom dir
+		path.Join(setting.StaticRootPath, "options", name), // static dir
+	} {
+		files, err := statDirIfExist(dir)
 		if err != nil {
-			return []string{}, fmt.Errorf("Failed to read custom directory. %w", err)
+			return nil, err
 		}
-
-		result = append(result, files...)
-	}
-
-	staticDir := path.Join(setting.StaticRootPath, "options", name)
-
-	isDir, err = util.IsDir(staticDir)
-	if err != nil {
-		return []string{}, fmt.Errorf("unable to check if static directory %s is a directory. %w", staticDir, err)
-	}
-	if isDir {
-		files, err := util.StatDir(staticDir, true)
-		if err != nil {
-			return []string{}, fmt.Errorf("Failed to read static directory. %w", err)
-		}
-
 		result = append(result, files...)
 	}
 
 	return directories.AddAndGet(name, result), nil
-}
-
-// Locale reads the content of a specific locale from static or custom path.
-func Locale(name string) ([]byte, error) {
-	return fileFromDir(path.Join("locale", name))
-}
-
-// WalkLocales reads the content of a specific locale from static or custom path.
-func WalkLocales(callback func(path, name string, d fs.DirEntry, err error) error) error {
-	if err := walkAssetDir(filepath.Join(setting.StaticRootPath, "options", "locale"), callback); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to walk locales. Error: %w", err)
-	}
-
-	if err := walkAssetDir(filepath.Join(setting.CustomPath, "options", "locale"), callback); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to walk locales. Error: %w", err)
-	}
-	return nil
-}
-
-// Readme reads the content of a specific readme from static or custom path.
-func Readme(name string) ([]byte, error) {
-	return fileFromDir(path.Join("readme", path.Clean("/"+name)))
-}
-
-// Gitignore reads the content of a specific gitignore from static or custom path.
-func Gitignore(name string) ([]byte, error) {
-	return fileFromDir(path.Join("gitignore", path.Clean("/"+name)))
-}
-
-// License reads the content of a specific license from static or custom path.
-func License(name string) ([]byte, error) {
-	return fileFromDir(path.Join("license", path.Clean("/"+name)))
-}
-
-// Labels reads the content of a specific labels from static or custom path.
-func Labels(name string) ([]byte, error) {
-	return fileFromDir(path.Join("label", path.Clean("/"+name)))
 }
 
 // fileFromDir is a helper to read files from static or custom path.
