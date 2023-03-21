@@ -58,7 +58,7 @@ func fileFromOptionsDir(elems ...string) ([]byte, error) {
 		return data, nil
 	}
 
-	f, err := Assets.Open(util.SafePathRelX(elems...))
+	f, err := Assets.Open(util.PathJoinRelX(elems...))
 	if err != nil {
 		return nil, err
 	}

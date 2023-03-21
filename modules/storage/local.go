@@ -64,7 +64,7 @@ func NewLocalStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (l *LocalStorage) buildLocalPath(p string) string {
-	return util.SafeFilePathAbs(l.dir, p)
+	return util.FilePathJoinAbs(l.dir, p)
 }
 
 // Open a file

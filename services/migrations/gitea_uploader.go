@@ -866,7 +866,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}
 
 			// SECURITY: The TreePath must be cleaned! use relative path
-			comment.TreePath = util.SafePathRel(comment.TreePath)
+			comment.TreePath = util.PathJoinRel(comment.TreePath)
 
 			var patch string
 			reader, writer := io.Pipe()

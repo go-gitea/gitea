@@ -98,7 +98,7 @@ func joinLocalPaths(baseDirs []string, subDir string, elems ...string) (paths []
 	copy(abs[2:], elems)
 	for _, baseDir := range baseDirs {
 		abs[0] = mustLocalPathAbs(baseDir)
-		paths = append(paths, util.SafeFilePathAbs(abs...))
+		paths = append(paths, util.FilePathJoinAbs(abs...))
 	}
 	return paths
 }

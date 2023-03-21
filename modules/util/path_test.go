@@ -151,9 +151,10 @@ func TestCleanPath(t *testing.T) {
 		{[]string{`a\..\b`}, `a\..\b`},
 		{[]string{`a`, ``, `b`}, `a/b`},
 		{[]string{`a`, `..`, `b`}, `a/b`},
+		{[]string{`lfs`, `repo/..`, `user/../path`}, `lfs/path`},
 	}
 	for _, c := range cases {
-		assert.Equal(t, c.expected, SafePathRel(c.elems...), "case: %v", c.elems)
+		assert.Equal(t, c.expected, PathJoinRel(c.elems...), "case: %v", c.elems)
 	}
 
 	cases = []struct {
@@ -169,9 +170,10 @@ func TestCleanPath(t *testing.T) {
 		{[]string{`a\..\b`}, `b`},
 		{[]string{`a`, ``, `b`}, `a/b`},
 		{[]string{`a`, `..`, `b`}, `a/b`},
+		{[]string{`lfs`, `repo/..`, `user/../path`}, `lfs/path`},
 	}
 	for _, c := range cases {
-		assert.Equal(t, c.expected, SafePathRelX(c.elems...), "case: %v", c.elems)
+		assert.Equal(t, c.expected, PathJoinRelX(c.elems...), "case: %v", c.elems)
 	}
 
 	// for POSIX only, but the result is similar on Windows, because the first element must be an absolute path
@@ -187,6 +189,7 @@ func TestCleanPath(t *testing.T) {
 			{[]string{`C:\a/..\b`}, `C:\b`},
 			{[]string{`C:\a`, ``, `b`}, `C:\a\b`},
 			{[]string{`C:\a`, `..`, `b`}, `C:\a\b`},
+			{[]string{`C:\lfs`, `repo/..`, `user/../path`}, `C:\lfs\path`},
 		}
 	} else {
 		cases = []struct {
@@ -200,9 +203,10 @@ func TestCleanPath(t *testing.T) {
 			{[]string{`/a\..\b`}, `/b`},
 			{[]string{`/a`, ``, `b`}, `/a/b`},
 			{[]string{`/a`, `..`, `b`}, `/a/b`},
+			{[]string{`/lfs`, `repo/..`, `user/../path`}, `/lfs/path`},
 		}
 	}
 	for _, c := range cases {
-		assert.Equal(t, c.expected, SafeFilePathAbs(c.elems...), "case: %v", c.elems)
+		assert.Equal(t, c.expected, FilePathJoinAbs(c.elems...), "case: %v", c.elems)
 	}
 }

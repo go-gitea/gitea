@@ -121,7 +121,7 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
-	return util.SafePathRelX(m.basePath, p)
+	return util.PathJoinRelX(m.basePath, p)
 }
 
 // Open open a file

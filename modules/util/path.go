@@ -15,8 +15,9 @@ import (
 	"strings"
 )
 
-// SafePathRel joins the path elements into a single path, each element is cleaned by path.Clean separately.
+// PathJoinRel joins the path elements into a single path, each element is cleaned by path.Clean separately.
 // It only returns the following values (like path.Join), any redundant part (empty, relative dots, slashes) is removed.
+// It's caller's duty to make every element not bypass its own directly level, to avoid security issues.
 //
 //	empty => ``
 //	`` => ``
@@ -26,7 +27,7 @@ import (
 //	`foo\..\bar` => `foo\..\bar`
 //	{`foo`, ``, `bar`} => `foo/bar`
 //	{`foo`, `..`, `bar`} => `foo/bar`
-func SafePathRel(elem ...string) string {
+func PathJoinRel(elem ...string) string {
 	elems := make([]string, len(elem))
 	for i, e := range elem {
 		if e == "" {
@@ -44,14 +45,15 @@ func SafePathRel(elem ...string) string {
 	}
 }
 
-// SafePathRelX joins the path elements into a single path like SafePathRel,
+// PathJoinRelX joins the path elements into a single path like PathJoinRel,
 // and covert all backslashes to slashes. (X means "extended", also means the combination of `\` and `/`).
-// It returns similar results as SafePathRel except:
+// It's caller's duty to make every element not bypass its own directly level, to avoid security issues.
+// It returns similar results as PathJoinRel except:
 //
 //	`foo\..\bar` => `bar`  (because it's processed as `foo/../bar`)
 //
 // All backslashes are handled as slashes, the result only contains slashes.
-func SafePathRelX(elem ...string) string {
+func PathJoinRelX(elem ...string) string {
 	elems := make([]string, len(elem))
 	for i, e := range elem {
 		if e == "" {
@@ -59,19 +61,20 @@ func SafePathRelX(elem ...string) string {
 		}
 		elems[i] = path.Clean("/" + strings.ReplaceAll(e, "\\", "/"))
 	}
-	return SafePathRel(elems...)
+	return PathJoinRel(elems...)
 }
 
 const pathSeparator = string(os.PathSeparator)
 
-// SafeFilePathAbs joins the path elements into a single file path, each element is cleaned by filepath.Clean separately.
+// FilePathJoinAbs joins the path elements into a single file path, each element is cleaned by filepath.Clean separately.
 // All slashes/backslashes are converted to path separators before cleaning, the result only contains path separators.
 // The first element must be an absolute path, caller should prepare the base path.
-// Like SafePathRel, any redundant part (empty, relative dots, slashes) is removed.
+// It's caller's duty to make every element not bypass its own directly level, to avoid security issues.
+// Like PathJoinRel, any redundant part (empty, relative dots, slashes) is removed.
 //
 //	{`/foo`, ``, `bar`} => `/foo/bar`
 //	{`/foo`, `..`, `bar`} => `/foo/bar`
-func SafeFilePathAbs(elem ...string) string {
+func FilePathJoinAbs(elem ...string) string {
 	elems := make([]string, len(elem))
 
 	// POISX filesystem can have `\` in file names. Windows: `\` and `/` are both used for path separators
