@@ -455,7 +455,7 @@ func (f *CreateIssueForm) Validate(req *http.Request, errs binding.Errors) bindi
 type CreateCommentForm struct {
 	Content      string
 	Status       string `binding:"OmitEmpty;In(reopen,close)"`
-	ClosedStatus issues_model.IssueStatus
+	ClosedStatus issues_model.IssueClosedStatus
 	Files        []string
 }
 

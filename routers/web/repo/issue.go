@@ -2619,14 +2619,14 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 
 	var isClosed bool
-	var status issues_model.IssueStatus
+	var status issues_model.IssueClosedStatus
 	switch action := ctx.FormString("action"); action {
 	case "open":
 		isClosed = false
-		status = issues_model.IssueStatusOpen
+		status = issues_model.IssueClosedStatusOpen
 	case "close":
 		isClosed = true
-		status = issues_model.IssueStatusClosed
+		status = issues_model.IssueClosedStatusCommonClosed
 	default:
 		log.Warn("Unrecognized action: %s", action)
 	}

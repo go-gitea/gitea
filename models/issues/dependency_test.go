@@ -49,7 +49,7 @@ func TestCreateIssueDependency(t *testing.T) {
 	assert.False(t, left)
 
 	// Close #2 and check again
-	_, err = issues_model.ChangeIssueStatus(db.DefaultContext, issue2, user1, true, issues_model.IssueStatusClosed)
+	_, err = issues_model.ChangeIssueStatus(db.DefaultContext, issue2, user1, true, issues_model.IssueClosedStatusCommonClosed)
 	assert.NoError(t, err)
 
 	left, err = issues_model.IssueNoDependenciesLeft(db.DefaultContext, issue1)
