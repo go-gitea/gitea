@@ -65,7 +65,7 @@ export function initViewedCheckboxListenerFor() {
 
       // Fold the file accordingly
       const parentBox = form.closest('.diff-file-header');
-      setFileFolding(parentBox.closest('.file-content'), parentBox.querySelector('.fold-file'), this.checked, true);
+      setFileFolding(parentBox.closest('.file-content'), parentBox.querySelector('.fold-file'), this.checked);
     });
   }
 }
