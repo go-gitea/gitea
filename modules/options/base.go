@@ -14,6 +14,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+var directories = make(directorySet)
+
 // Locale reads the content of a specific locale from static/bindata or custom path.
 func Locale(name string) ([]byte, error) {
 	return fileFromOptionsDir("locale", name)
@@ -79,37 +81,47 @@ func walkAssetDir(root string, callback func(path, name string, d fs.DirEntry, e
 	return nil
 }
 
-func statDirIfExist(dir string) ([]string, error) {
-	isDir, err := util.IsDir(dir)
+// mustLocalPathAbs coverts a path to absolute path
+// FIXME: the old behavior (StaticRootPath might not be absolute), not ideal, just keep the same as before
+func mustLocalPathAbs(s string) string {
+	abs, err := filepath.Abs(s)
 	if err != nil {
-		return nil, fmt.Errorf("unable to check if static directory %s is a directory. %w", dir, err)
+		log.Fatal("Unable to get absolute path for %q: %v", s, err)
 	}
-	if !isDir {
-		return nil, nil
+	return abs
+}
+
+func joinLocalPaths(baseDirs []string, subDir string, elems ...string) (paths []string) {
+	abs := make([]string, len(elems)+2)
+	abs[1] = subDir
+	copy(abs[2:], elems)
+	for _, baseDir := range baseDirs {
+		abs[0] = mustLocalPathAbs(baseDir)
+		paths = append(paths, util.SafeFilePathAbs(abs...))
 	}
-	files, err := util.StatDir(dir, true)
-	if err != nil {
-		return nil, fmt.Errorf("unable to read directory %q. %w", dir, err)
+	return paths
+}
+
+func listLocalDirIfExist(baseDirs []string, subDir string, elems ...string) (files []string, err error) {
+	for _, localPath := range joinLocalPaths(baseDirs, subDir, elems...) {
+		isDir, err := util.IsDir(localPath)
+		if err != nil {
+			return nil, fmt.Errorf("unable to check if static directory %s is a directory. %w", localPath, err)
+		} else if !isDir {
+			continue
+		}
+
+		dirFiles, err := util.StatDir(localPath, true)
+		if err != nil {
+			return nil, fmt.Errorf("unable to read directory %q. %w", localPath, err)
+		}
+		files = append(files, dirFiles...)
 	}
 	return files, nil
 }
 
-func readFileFromLocal(base []string, sub string, elems ...string) ([]byte, error) {
-	localPathElems := make([]string, len(elems)+2) // path[0] will be used for the custom path prefix
-	localPathElems[1] = sub
-	copy(localPathElems[2:], elems)
-
-	for _, dir := range base {
-		if !filepath.IsAbs(dir) {
-			// FIXME: the old behavior (CustomPath or StaticRootPath might not be absolute), not ideal, just keep the same as before
-			var err error
-			dir, err = filepath.Abs(dir)
-			if err != nil {
-				return nil, fmt.Errorf("unable to get absolute path for %q. %w", dir, err)
-			}
-		}
-		localPathElems[0] = dir
-		localPath := util.SafeFilePathAbs(localPathElems...)
+func readLocalFile(baseDirs []string, subDir string, elems ...string) ([]byte, error) {
+	for _, localPath := range joinLocalPaths(baseDirs, subDir, elems...) {
 		data, err := os.ReadFile(localPath)
 		if err == nil {
 			return data, nil

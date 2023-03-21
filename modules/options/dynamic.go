@@ -7,10 +7,7 @@ package options
 
 import (
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
-
-var directories = make(directorySet)
 
 // Dir returns all files from static or custom directory.
 func Dir(name string) ([]string, error) {
@@ -18,17 +15,9 @@ func Dir(name string) ([]string, error) {
 		return directories.Get(name), nil
 	}
 
-	var result []string
-
-	for _, dir := range []string{
-		util.SafeFilePathAbs(setting.CustomPath, "options", name),     // custom dir
-		util.SafeFilePathAbs(setting.StaticRootPath, "options", name), // static dir
-	} {
-		files, err := statDirIfExist(dir)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, files...)
+	result, err := listLocalDirIfExist([]string{setting.CustomPath, setting.StaticRootPath}, "options", name)
+	if err != nil {
+		return nil, err
 	}
 
 	return directories.AddAndGet(name, result), nil
@@ -36,7 +25,7 @@ func Dir(name string) ([]string, error) {
 
 // fileFromOptionsDir is a helper to read files from custom or static path.
 func fileFromOptionsDir(elems ...string) ([]byte, error) {
-	return readFileFromLocal([]string{setting.CustomPath, setting.StaticRootPath}, "options", elems...)
+	return readLocalFile([]string{setting.CustomPath, setting.StaticRootPath}, "options", elems...)
 }
 
 // IsDynamic will return false when using embedded data (-tags bindata)

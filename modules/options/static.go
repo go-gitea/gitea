@@ -8,13 +8,10 @@ package options
 import (
 	"fmt"
 	"io"
-	"path/filepath"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
-
-var directories = make(directorySet)
 
 // Dir returns all files from custom directory or bindata.
 func Dir(name string) ([]string, error) {
@@ -22,17 +19,9 @@ func Dir(name string) ([]string, error) {
 		return directories.Get(name), nil
 	}
 
-	var result []string
-
-	for _, dir := range []string{
-		filepath.Join(setting.CustomPath, "options", name), // custom dir
-		// no static dir
-	} {
-		files, err := statDirIfExist(dir)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, files...)
+	result, err := listLocalDirIfExist([]string{setting.CustomPath}, "options", name)
+	if err != nil {
+		return nil, err
 	}
 
 	files, err := AssetDir(name)
@@ -65,7 +54,7 @@ func AssetDir(dirName string) ([]string, error) {
 // fileFromOptionsDir is a helper to read files from custom path or bindata.
 func fileFromOptionsDir(elems ...string) ([]byte, error) {
 	// only try custom dir, no static dir
-	if data, err := readFileFromLocal([]string{setting.CustomPath}, "options", elems...); err == nil {
+	if data, err := readLocalFile([]string{setting.CustomPath}, "options", elems...); err == nil {
 		return data, nil
 	}
 
