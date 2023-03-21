@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"sort"
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -61,6 +62,11 @@ func PackageMetadata(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+
+	// sort package descriptors by version to mimic PyPI format
+	sort.Slice(pds, func(i, j int) bool {
+		return strings.Compare(pds[i].Version.Version, pds[j].Version.Version) < 0
+	})
 
 	ctx.Data["RegistryURL"] = setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/pypi"
 	ctx.Data["PackageDescriptor"] = pds[0]

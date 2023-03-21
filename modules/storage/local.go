@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -59,7 +58,7 @@ func NewLocalStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (l *LocalStorage) buildLocalPath(p string) string {
-	return filepath.Join(l.dir, path.Clean("/" + strings.ReplaceAll(p, "\\", "/"))[1:])
+	return filepath.Join(l.dir, util.CleanPath(strings.ReplaceAll(p, "\\", "/")))
 }
 
 // Open a file
@@ -128,8 +127,12 @@ func (l *LocalStorage) URL(path, name string) (*url.URL, error) {
 }
 
 // IterateObjects iterates across the objects in the local storage
-func (l *LocalStorage) IterateObjects(fn func(path string, obj Object) error) error {
-	return filepath.WalkDir(l.dir, func(path string, d os.DirEntry, err error) error {
+func (l *LocalStorage) IterateObjects(prefix string, fn func(path string, obj Object) error) error {
+	dir := l.dir
+	if prefix != "" {
+		dir = filepath.Join(l.dir, util.CleanPath(prefix))
+	}
+	return filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
