@@ -94,7 +94,7 @@ export default {
   },
   mounted() {
     // ensure correct buttons when we are mounted to the dom
-    this.updateState(this.fileTreeIsVisible);
+    this.updateState(this.fileTreeIsVisible, false);
     // replace the pageData.diffFileInfo.files with our watched data so we get updates
     pageData.diffFileInfo.files = this.files;
 
@@ -110,15 +110,17 @@ export default {
     updateVisibility(visible) {
       this.fileTreeIsVisible = visible;
       localStorage.setItem(LOCAL_STORAGE_KEY, this.fileTreeIsVisible);
-      this.updateState(this.fileTreeIsVisible);
+      this.updateState(this.fileTreeIsVisible, true);
     },
-    updateState(visible) {
+    updateState(visible, updateTooltip) {
       const btn = document.querySelector('.diff-toggle-file-tree-button');
       const [toShow, toHide] = btn.querySelectorAll('.icon');
       const tree = document.getElementById('diff-file-tree');
-      const newTooltip = btn.getAttribute(`data-content-${visible ? 'hide' : 'show'}`);
-      btn.setAttribute('data-content', newTooltip);
-      btn._tippy.setContent(newTooltip);
+      if (updateTooltip) {
+        const newTooltip = btn.getAttribute(`data-content-${visible ? 'hide' : 'show'}`);
+        btn.setAttribute('data-content', newTooltip);
+        btn._tippy?.setContent(newTooltip);
+      }
       toggleElem(tree, visible);
       toggleElem(toShow, !visible);
       toggleElem(toHide, visible);
