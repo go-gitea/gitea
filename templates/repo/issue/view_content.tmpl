@@ -128,7 +128,7 @@
 
 										{{if not .Issue.IsPull}}
 											<div id="status-dropdown" class="ui floating dropdown icon button">
-												<input type="hidden" name="closed_status" value="{{.Issue.Status}}">
+												<input type="hidden" name="closed_status" value="{{.Issue.ClosedStatus}}">
 												{{svg "octicon-chevron-down" "dropdown icon"}}
 												<div class="menu">
 													<div class="item" data-value="1" data-status="{{.locale.Tr "repo.issues.close_as.common"}}" data-status-and-comment="{{.locale.Tr "repo.issues.comment_and_close_as.common"}}">
