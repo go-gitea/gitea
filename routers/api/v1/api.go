@@ -1044,10 +1044,10 @@ func Routes(ctx gocontext.Context) *web.Route {
 						Delete(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
 					m.Group("/labels", func() {
 						m.Combo("").Get(repo.ListMilestoneLabels).
-							Post(reqToken(), bind(api.MilestoneLabelsOption{}), repo.AddMilestoneLabels).
-							Put(reqToken(), bind(api.MilestoneLabelsOption{}), repo.ReplaceMilestoneLabels).
-							Delete(reqToken(), repo.ClearMilestoneLabels)
-						m.Delete("/{labelId}", reqToken(), repo.DeleteMilestoneLabel)
+							Post(reqToken(auth_model.AccessTokenScopeRepo), bind(api.MilestoneLabelsOption{}), repo.AddMilestoneLabels).
+							Put(reqToken(auth_model.AccessTokenScopeRepo), bind(api.MilestoneLabelsOption{}), repo.ReplaceMilestoneLabels).
+							Delete(reqToken(auth_model.AccessTokenScopeRepo), repo.ClearMilestoneLabels)
+						m.Delete("/{labelId}", reqToken(auth_model.AccessTokenScopeRepo), repo.DeleteMilestoneLabel)
 					})
 				})
 				m.Get("/stargazers", repo.ListStargazers)

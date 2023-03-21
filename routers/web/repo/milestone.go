@@ -122,20 +122,35 @@ func NewMilestone(ctx *context.Context) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
 	var labelIDs []int64
+	var labelExclusiveScopes []string
 	var err error
 	selectLabels := ctx.FormString("labels")
+	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{})
+	if err != nil {
+		ctx.ServerError("GetLabelsByRepoID", err)
+		return
+	}
 	if len(selectLabels) > 0 && selectLabels != "0" {
 		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
 		if err != nil {
 			ctx.ServerError("StringsToInt64s", err)
 			return
 		}
-	}
-
-	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{})
-	if err != nil {
-		ctx.ServerError("GetLabelsByRepoID", err)
-		return
+		// Get the exclusive scope for every label ID
+		labelExclusiveScopes = make([]string, 0, len(labelIDs))
+		for _, labelID := range labelIDs {
+			foundExclusiveScope := false
+			for _, label := range labels {
+				if label.ID == labelID || label.ID == -labelID {
+					labelExclusiveScopes = append(labelExclusiveScopes, label.ExclusiveScope())
+					foundExclusiveScope = true
+					break
+				}
+			}
+			if !foundExclusiveScope {
+				labelExclusiveScopes = append(labelExclusiveScopes, "")
+			}
+		}
 	}
 
 	if ctx.Repo.Owner.IsOrganization() {
@@ -150,7 +165,7 @@ func NewMilestone(ctx *context.Context) {
 	}
 
 	for _, l := range labels {
-		l.LoadSelectedLabelsAfterClick(labelIDs)
+		l.LoadSelectedLabelsAfterClick(labelIDs, labelExclusiveScopes)
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)
@@ -253,21 +268,36 @@ func EditMilestone(ctx *context.Context) {
 	ctx.Data["content"] = m.Content
 
 	var selectLabelIDs []int64
+	var labelExclusiveScopes []string
 	selectLabels := ctx.FormString("labels")
+	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{})
+	if err != nil {
+		ctx.ServerError("GetLabelsByRepoID", err)
+		return
+	}
 	if len(selectLabels) > 0 && selectLabels != "0" {
 		selectLabelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
 		if err != nil {
 			ctx.ServerError("StringsToInt64s", err)
 			return
 		}
+		// Get the exclusive scope for every label ID
+		labelExclusiveScopes = make([]string, 0, len(selectLabelIDs))
+		for _, labelID := range selectLabelIDs {
+			foundExclusiveScope := false
+			for _, label := range labels {
+				if label.ID == labelID || label.ID == -labelID {
+					labelExclusiveScopes = append(labelExclusiveScopes, label.ExclusiveScope())
+					foundExclusiveScope = true
+					break
+				}
+			}
+			if !foundExclusiveScope {
+				labelExclusiveScopes = append(labelExclusiveScopes, "")
+			}
+		}
 	}
 	hasSelected := len(selectLabelIDs) > 0
-
-	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{})
-	if err != nil {
-		ctx.ServerError("GetLabelsByRepoID", err)
-		return
-	}
 
 	if ctx.Repo.Owner.IsOrganization() {
 		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
@@ -299,7 +329,7 @@ func EditMilestone(ctx *context.Context) {
 	}
 
 	for _, l := range labels {
-		l.LoadSelectedLabelsAfterClick(selectLabelIDs)
+		l.LoadSelectedLabelsAfterClick(selectLabelIDs, labelExclusiveScopes)
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)

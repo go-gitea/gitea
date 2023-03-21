@@ -173,10 +173,10 @@
 									<a
 										class="ui label item"
 										id="label_{{.ID}}"
-										style="color: {{.ForegroundColor}}; background-color: {{.Color}}"
+										style="color: white; background-color: {{.Color}}"
 										title="{{.Description | RenderEmojiPlain}}"
 									>
-										{{.Name | RenderEmoji}}
+										{{.Name | RenderEmoji $.Context}}
 									</a>
 								{{end}}
 							</span>

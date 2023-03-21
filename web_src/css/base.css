@@ -2765,3 +2765,11 @@ table th[data-sortt-desc] .svg {
 .color-text-light-2 {
   color: var(--color-text-light-2);
 }
+
+.milestone-label-color {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  border-radius: 3px;
+  margin: 0 10px;
+}
