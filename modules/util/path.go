@@ -5,6 +5,7 @@ package util
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"os"
 	"path"
@@ -82,7 +83,7 @@ func SafeFilePathAbs(elem ...string) string {
 	}
 	if !filepath.IsAbs(elems[0]) {
 		// This shouldn't happen. If there is really necessary to pass in relative path, return the full path with filepath.Abs() instead
-		panic("SafeFilePathAbs: result is not absolute, do not guess a relative path based on current working directory")
+		panic(fmt.Sprintf("SafeFilePathAbs: %q (for path %v) is not absolute, do not guess a relative path based on current working directory", elems[0], elems))
 	}
 
 	for i := 1; i < len(elem); i++ {

@@ -86,6 +86,7 @@ func walkAssetDir(root string, callback func(path, name string, d fs.DirEntry, e
 func mustLocalPathAbs(s string) string {
 	abs, err := filepath.Abs(s)
 	if err != nil {
+		// This should never happen in a real system. If it happens, the user must have already been in trouble: the system is not able to resolve its own paths.
 		log.Fatal("Unable to get absolute path for %q: %v", s, err)
 	}
 	return abs
@@ -106,7 +107,7 @@ func listLocalDirIfExist(baseDirs []string, subDir string, elems ...string) (fil
 	for _, localPath := range joinLocalPaths(baseDirs, subDir, elems...) {
 		isDir, err := util.IsDir(localPath)
 		if err != nil {
-			return nil, fmt.Errorf("unable to check if static directory %s is a directory. %w", localPath, err)
+			return nil, fmt.Errorf("unable to check if path %q is a directory. %w", localPath, err)
 		} else if !isDir {
 			continue
 		}
