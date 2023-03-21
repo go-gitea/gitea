@@ -49,6 +49,7 @@
 					<th data-sortt-asc="online" data-sortt-desc="offline">{{.locale.Tr "actions.runners.status"}}</th>
 					<th data-sortt-asc="alphabetically">{{.locale.Tr "actions.runners.id"}}</th>
 					<th>{{.locale.Tr "actions.runners.name"}}</th>
+					<th>{{.locale.Tr "actions.runners.version"}}</th>
 					<th>{{.locale.Tr "actions.runners.owner_type"}}</th>
 					<th>{{.locale.Tr "actions.runners.labels"}}</th>
 					<th>{{.locale.Tr "actions.runners.last_online"}}</th>
@@ -64,6 +65,7 @@
 						</td>
 						<td>{{.ID}}</td>
 						<td><p class="tooltip" data-content="{{.Description}}">{{.Name}}</p></td>
+						<td>{{.Version}}</td>
 						<td>{{.OwnType}}</td>
 						<td class="runner-tags">
 							{{range .AllLabels}}<span class="ui label">{{.}}</span>{{end}}

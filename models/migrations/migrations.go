@@ -473,6 +473,8 @@ var migrations = []Migration{
 	NewMigration("Add missed column owner_id for project table", v1_20.AddNewColumnForProject),
 	// v247 -> v248
 	NewMigration("Fix incorrect project type", v1_20.FixIncorrectProjectType),
+	// v248 -> v249
+	NewMigration("Add version column to action_runner table", v1_20.AddVersionToActionRunner),
 }
 
 // GetCurrentDBVersion returns the current db version
