@@ -4,16 +4,16 @@
 package actions
 
 import (
-	"bytes"
 	"compress/gzip"
 	gocontext "context"
 	"crypto/md5"
 	"encoding/base64"
 	"fmt"
+	"hash"
 	"io"
 	"net/http"
 	"net/url"
-	"path/filepath"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -80,6 +80,7 @@ func withContexter(ctx gocontext.Context) func(next http.Handler) http.Handler {
 			if err != nil {
 				log.Error("Error runner api getting task: %v", err)
 				ctx.Error(http.StatusInternalServerError, "Error runner api getting task")
+				return
 			}
 			ctx.Data["task"] = task
 
@@ -108,12 +109,16 @@ func (ar artifactRoutes) buildArtifactURL(taskID, artifactID int64, suffix strin
 
 // getUploadArtifactURL generates a URL for uploading an artifact
 func (ar artifactRoutes) getUploadArtifactURL(ctx *context.Context) {
-	// get task
+	task, ok := ctx.Data["task"].(*actions.ActionTask)
+	if !ok {
+		log.Error("Error getting task in context")
+		ctx.Error(http.StatusInternalServerError, "Error getting task in context")
+		return
+	}
 	taskID := ctx.ParamsInt64("taskID")
-	task, err := actions.GetTaskByID(ctx, taskID)
-	if err != nil {
-		log.Error("Error getting task: %v", err)
-		ctx.Error(http.StatusInternalServerError, err.Error())
+	if task.ID != taskID {
+		log.Error("Error task id not match")
+		ctx.Error(http.StatusInternalServerError, "Error task id not match")
 		return
 	}
 
@@ -148,23 +153,29 @@ func (ar artifactRoutes) getUploadFileSize(ctx *context.Context) (int64, int64, 
 	return contentLength, contentLength, nil
 }
 
+type hashReader struct {
+	Reader io.Reader
+	Hasher hash.Hash
+}
+
+func (hr *hashReader) Read(p []byte) (n int, err error) {
+	n, err = hr.Reader.Read(p)
+	if err == nil {
+		hr.Hasher.Write(p[:n])
+	}
+	return n, err
+}
+
+func (hr *hashReader) Match(md5Str string) bool {
+	md5Hash := hr.Hasher.Sum(nil)
+	md5String := base64.StdEncoding.EncodeToString(md5Hash)
+	return md5Str == md5String
+}
+
 func (ar artifactRoutes) saveUploadChunk(ctx *context.Context,
 	artifact *actions.ActionArtifact,
 	contentSize, taskID int64,
 ) (int64, error) {
-	// read chunk data to calc md5
-	chunkData, err := io.ReadAll(ctx.Req.Body)
-	if err != nil {
-		return -1, err
-	}
-
-	// check md5
-	md5Hash := md5.Sum(chunkData)
-	md5String := base64.StdEncoding.EncodeToString(md5Hash[:])
-	if md5String != ctx.Req.Header.Get(artifactXActionsResultsMD5Header) {
-		return -1, fmt.Errorf("md5 not match")
-	}
-
 	contentRange := ctx.Req.Header.Get("Content-Range")
 	start, end, length := int64(0), int64(0), int64(0)
 	if _, err := fmt.Sscanf(contentRange, "bytes %d-%d/%d", &start, &end, &length); err != nil {
@@ -173,9 +184,23 @@ func (ar artifactRoutes) saveUploadChunk(ctx *context.Context,
 
 	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d.chunk", taskID, artifact.ID, start, end)
 
+	// use hashReader to avoid reading all body to md5 sum.
+	// it writes data to hasher after reading end
+	// if hash is not matched, delete the read-end result
+	r := &hashReader{
+		Reader: ctx.Req.Body,
+		Hasher: md5.New(),
+	}
+
 	// save chunk to storage
-	if _, err := ar.fs.Save(storagePath, bytes.NewBuffer(chunkData), -1); err != nil {
+	if _, err := ar.fs.Save(storagePath, r, -1); err != nil {
 		return -1, fmt.Errorf("save chunk to storage error: %v", err)
+	}
+
+	// check md5
+	if !r.Match(ctx.Req.Header.Get(artifactXActionsResultsMD5Header)) {
+		ar.fs.Delete(storagePath)
+		return -1, fmt.Errorf("md5 not match")
 	}
 
 	log.Debug("[artifact] save chunk %s, size: %d, artifact id: %d, start: %d, end: %d",
@@ -208,6 +233,8 @@ func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
 		return
 	}
 
+	// itemPath is generated from upload-artifact action
+	// it's formatted as {artifact_name}/{artfict_path_in_runner}
 	itemPath := ctx.Req.URL.Query().Get("itemPath")
 	taskID := ctx.ParamsInt64("taskID")
 	artifactName := strings.Split(itemPath, "/")[0]
@@ -378,12 +405,16 @@ func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, taskID int64)
 }
 
 func (ar artifactRoutes) listArtifacts(ctx *context.Context) {
-	// get task
+	task, ok := ctx.Data["task"].(*actions.ActionTask)
+	if !ok {
+		log.Error("Error getting task in context")
+		ctx.Error(http.StatusInternalServerError, "Error getting task in context")
+		return
+	}
 	taskID := ctx.ParamsInt64("taskID")
-	task, err := actions.GetTaskByID(ctx, taskID)
-	if err != nil {
-		log.Error("Error getting task: %v", err)
-		ctx.Error(http.StatusInternalServerError, err.Error())
+	if task.ID != taskID {
+		log.Error("Error task id not match")
+		ctx.Error(http.StatusInternalServerError, "Error task id not match")
 		return
 	}
 
@@ -431,7 +462,7 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *context.Context) {
 	}
 	itemPath := ctx.Req.URL.Query().Get("itemPath")
 	artifactData := map[string]string{
-		"path":            filepath.Join(itemPath, artifact.ArtifactPath),
+		"path":            path.Join(itemPath, artifact.ArtifactPath),
 		"itemType":        "file",
 		"contentLocation": url,
 	}
