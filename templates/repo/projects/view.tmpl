@@ -235,7 +235,7 @@
 							{{- range index $.LinkedPRs .ID}}
 							<div class="meta gt-my-2">
 								<a href="{{$.RepoLink}}/pulls/{{.Index}}">
-									<span class="gt-m-0 {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "gt-mr-2 gt-vm"}}</span>
+									<span class="gt-m-0 text {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "gt-mr-2 gt-vm"}}</span>
 									<span class="gt-vm">{{.Title}} <span class="text light grey">#{{.Index}}</span></span>
 								</a>
 							</div>
