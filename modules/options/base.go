@@ -100,6 +100,14 @@ func readFileFromLocal(base []string, sub string, elems ...string) ([]byte, erro
 	copy(localPathElems[2:], elems)
 
 	for _, dir := range base {
+		if !filepath.IsAbs(dir) {
+			// FIXME: the old behavior (CustomPath or StaticRootPath might not be absolute), not ideal, just keep the same as before
+			var err error
+			dir, err = filepath.Abs(dir)
+			if err != nil {
+				return nil, fmt.Errorf("unable to get absolute path for %q. %w", dir, err)
+			}
+		}
 		localPathElems[0] = dir
 		localPath := util.SafeFilePathAbs(localPathElems...)
 		data, err := os.ReadFile(localPath)
@@ -109,5 +117,5 @@ func readFileFromLocal(base []string, sub string, elems ...string) ([]byte, erro
 			log.Error("Unable to read file %q. Error: %v", localPath, err)
 		}
 	}
-	return nil, fmt.Errorf("local file does not exist: %v", elems)
+	return nil, os.ErrNotExist
 }
