@@ -690,7 +690,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 		issue.ClosedUnix = 0
 	}
 
-	if err := UpdateIssueCols(ctx, issue, "is_closed", "status", "closed_unix"); err != nil {
+	if err := UpdateIssueCols(ctx, issue, "is_closed", "closed_status", "closed_unix"); err != nil {
 		return nil, err
 	}
 

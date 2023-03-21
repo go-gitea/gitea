@@ -487,6 +487,22 @@ func NewFuncMap() []template.FuncMap {
 		"RefShortName": func(ref string) string {
 			return git.RefName(ref).ShortName()
 		},
+		"ParseIssueClosedStatus2TranslateStr": func(cs issues_model.IssueClosedStatus) string {
+			switch cs {
+			case issues_model.IssueClosedStatusOpen:
+				return ""
+			case issues_model.IssueClosedStatusCommonClosed:
+				return "repo.issues.close_as.common"
+			case issues_model.IssueClosedStatusArchived:
+				return "repo.issues.close_as.archived"
+			case issues_model.IssueClosedStatusResolved:
+				return "repo.issues.close_as.resolved"
+			case issues_model.IssueClosedStatusMerged:
+				return "repo.issues.close_as.merged"
+			default:
+				return ""
+			}
+		},
 	}}
 }
 

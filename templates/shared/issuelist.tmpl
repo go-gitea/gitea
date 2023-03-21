@@ -25,7 +25,9 @@
 						{{end}}
 					{{else}}
 						{{if .IsClosed}}
-							{{svg "octicon-issue-closed" 16 "text red"}}
+							<div class="tooltip" data-content="{{$.locale.Tr (ParseIssueClosedStatus2TranslateStr .ClosedStatus)}}" >
+								{{svg "octicon-issue-closed" 16 "text red"}}
+							</div>
 						{{else}}
 							{{svg "octicon-issue-opened" 16 "text green"}}
 						{{end}}
