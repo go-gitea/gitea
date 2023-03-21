@@ -15,11 +15,11 @@
 	<div>
 		<div class="diff-detail-box diff-box sticky gt-df gt-sb gt-ac gt-fw">
 			<div class="gt-df gt-ac gt-fw">
-				<a class="diff-toggle-file-tree-button muted gt-df gt-ac">
+				<button class="diff-toggle-file-tree-button gt-df gt-ac">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
 					{{svg "octicon-sidebar-collapse" 20 "icon gt-hidden"}}
 					{{svg "octicon-sidebar-expand" 20 "icon gt-hidden"}}
-				</a>
+				</button>
 				<script>
 					const treeVisible = localStorage?.getItem('diff_file_tree_visible') === 'true';
 					const btn = document.querySelector('.diff-toggle-file-tree-button');

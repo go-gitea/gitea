@@ -238,6 +238,11 @@ table {
   border-collapse: collapse;
 }
 
+button {
+  cursor: pointer;
+  color: var(--color-text);
+}
+
 details summary {
   cursor: pointer;
 }

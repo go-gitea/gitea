@@ -3258,11 +3258,10 @@ td.blob-excerpt {
 
 #diff-file-boxes {
   flex: 1;
-  max-width: 100%;
 }
 
 #diff-file-tree {
-  width: 20%;
+  flex: 0 0 20%;
   max-width: 380px;
   line-height: inherit;
   position: sticky;
@@ -3271,6 +3270,16 @@ td.blob-excerpt {
   max-height: calc(100vh - 47px);
   height: 100%;
   overflow-y: auto;
+}
+
+.diff-toggle-file-tree-button {
+  background: none;
+  border: none;
+  user-select: none;
+}
+
+.diff-toggle-file-tree-button:hover {
+  color: var(--color-primary);
 }
 
 @media (max-width: 991px) {
