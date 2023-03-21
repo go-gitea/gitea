@@ -21,11 +21,11 @@
 					{{svg "octicon-sidebar-expand" 20 "icon gt-hidden"}}
 				</button>
 				<script>
-					const treeVisible = localStorage?.getItem('diff_file_tree_visible') === 'true';
-					const btn = document.querySelector('.diff-toggle-file-tree-button');
-					const icon = `.octicon-sidebar-${treeVisible ? 'expand' : 'collapse'}`;
-					btn.querySelector(icon).classList.remove('gt-hidden');
-					btn.setAttribute('data-content', btn.getAttribute(`data-content-${treeVisible ? 'hide' : 'show'}`));
+					const diffTreeVisible = localStorage?.getItem('diff_file_tree_visible') === 'true';
+					const diffTreeBtn = document.querySelector('.diff-toggle-file-tree-button');
+					const diffTreeIcon = `.octicon-sidebar-${diffTreeVisible ? 'expand' : 'collapse'}`;
+					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('gt-hidden');
+					diffTreeBtn.setAttribute('data-content', diffTreeBtn.getAttribute(`data-content-${diffTreeVisible ? 'hide' : 'show'}`));
 				</script>
 				<div class="diff-detail-stats gt-df gt-ac gt-ml-3">
 					{{svg "octicon-diff" 16 "gt-mr-2"}}{{.locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
@@ -76,7 +76,7 @@
 		<div id="diff-container">
 				<div id="diff-file-tree" class="gt-hidden"></div>
 				<script>
-					if (treeVisible) document.getElementById('diff-file-tree').classList.remove('gt-hidden');
+					if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('gt-hidden');
 				</script>
 				<div id="diff-file-boxes" class="sixteen wide column">
 					{{range $i, $file := .Diff.Files}}

@@ -240,7 +240,6 @@ table {
 
 button {
   cursor: pointer;
-  color: var(--color-text);
 }
 
 details summary {

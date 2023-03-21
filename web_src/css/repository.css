@@ -3276,6 +3276,7 @@ td.blob-excerpt {
   background: none;
   border: none;
   user-select: none;
+  color: inherit;
 }
 
 .diff-toggle-file-tree-button:hover {
