@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package templates
 
@@ -76,8 +75,15 @@ func HTMLRenderer(ctx context.Context) (context.Context, *render.Render) {
 	compilingTemplates = false
 	if !setting.IsProd {
 		watcher.CreateWatcher(ctx, "HTML Templates", &watcher.CreateWatcherOpts{
-			PathsCallback:   walkTemplateFiles,
-			BetweenCallback: renderer.CompileTemplates,
+			PathsCallback: walkTemplateFiles,
+			BetweenCallback: func() {
+				defer func() {
+					if err := recover(); err != nil {
+						log.Error("PANIC: %v\n%s", err, log.Stack(2))
+					}
+				}()
+				renderer.CompileTemplates()
+			},
 		})
 	}
 	return context.WithValue(ctx, rendererKey, renderer), renderer
@@ -112,7 +118,7 @@ func handleGenericTemplateError(err error) (string, []interface{}) {
 
 	lineNumber, _ := strconv.Atoi(lineNumberStr)
 
-	line := getLineFromAsset(templateName, lineNumber, "")
+	line := GetLineFromTemplate(templateName, lineNumber, "", -1)
 
 	return "PANIC: Unable to compile templates!\n%s in template file %s at line %d:\n\n%s\nStacktrace:\n\n%s", []interface{}{message, filename, lineNumber, log.NewColoredValue(line, log.Reset), log.Stack(2)}
 }
@@ -134,7 +140,7 @@ func handleNotDefinedPanicError(err error) (string, []interface{}) {
 
 	lineNumber, _ := strconv.Atoi(lineNumberStr)
 
-	line := getLineFromAsset(templateName, lineNumber, functionName)
+	line := GetLineFromTemplate(templateName, lineNumber, functionName, -1)
 
 	return "PANIC: Unable to compile templates!\nUndefined function %q in template file %s at line %d:\n\n%s", []interface{}{functionName, filename, lineNumber, log.NewColoredValue(line, log.Reset)}
 }
@@ -155,7 +161,7 @@ func handleUnexpected(err error) (string, []interface{}) {
 
 	lineNumber, _ := strconv.Atoi(lineNumberStr)
 
-	line := getLineFromAsset(templateName, lineNumber, unexpected)
+	line := GetLineFromTemplate(templateName, lineNumber, unexpected, -1)
 
 	return "PANIC: Unable to compile templates!\nUnexpected %q in template file %s at line %d:\n\n%s", []interface{}{unexpected, filename, lineNumber, log.NewColoredValue(line, log.Reset)}
 }
@@ -175,14 +181,15 @@ func handleExpectedEnd(err error) (string, []interface{}) {
 
 	lineNumber, _ := strconv.Atoi(lineNumberStr)
 
-	line := getLineFromAsset(templateName, lineNumber, unexpected)
+	line := GetLineFromTemplate(templateName, lineNumber, unexpected, -1)
 
 	return "PANIC: Unable to compile templates!\nMissing end with unexpected %q in template file %s at line %d:\n\n%s", []interface{}{unexpected, filename, lineNumber, log.NewColoredValue(line, log.Reset)}
 }
 
 const dashSeparator = "----------------------------------------------------------------------\n"
 
-func getLineFromAsset(templateName string, targetLineNum int, target string) string {
+// GetLineFromTemplate returns a line from a template with some context
+func GetLineFromTemplate(templateName string, targetLineNum int, target string, position int) string {
 	bs, err := GetAsset("templates/" + templateName + ".tmpl")
 	if err != nil {
 		return fmt.Sprintf("(unable to read template file: %v)", err)
@@ -223,23 +230,29 @@ func getLineFromAsset(templateName string, targetLineNum int, target string) str
 	// If there is a provided target to look for in the line add a pointer to it
 	// e.g.                                                        ^^^^^^^
 	if target != "" {
-		idx := bytes.Index(lineBs, []byte(target))
-
-		if idx >= 0 {
-			// take the current line and replace preceding text with whitespace (except for tab)
-			for i := range lineBs[:idx] {
-				if lineBs[i] != '\t' {
-					lineBs[i] = ' '
-				}
-			}
-
-			// write the preceding "space"
-			_, _ = sb.Write(lineBs[:idx])
-
-			// Now write the ^^ pointer
-			_, _ = sb.WriteString(strings.Repeat("^", len(target)))
-			_ = sb.WriteByte('\n')
+		targetPos := bytes.Index(lineBs, []byte(target))
+		if targetPos >= 0 {
+			position = targetPos
 		}
+	}
+	if position >= 0 {
+		// take the current line and replace preceding text with whitespace (except for tab)
+		for i := range lineBs[:position] {
+			if lineBs[i] != '\t' {
+				lineBs[i] = ' '
+			}
+		}
+
+		// write the preceding "space"
+		_, _ = sb.Write(lineBs[:position])
+
+		// Now write the ^^ pointer
+		targetLen := len(target)
+		if targetLen == 0 {
+			targetLen = 1
+		}
+		_, _ = sb.WriteString(strings.Repeat("^", targetLen))
+		_ = sb.WriteByte('\n')
 	}
 
 	// Finally write the footer

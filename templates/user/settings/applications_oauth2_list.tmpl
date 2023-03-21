@@ -7,12 +7,12 @@
 			<div class="item">
 				<div class="right floated content">
 					<a href="{{$.Link}}/oauth2/{{$app.ID}}" class="ui primary tiny button">
-						{{svg "octicon-pencil" 16 "mr-2"}}
+						{{svg "octicon-pencil" 16 "gt-mr-2"}}
 						{{$.locale.Tr "settings.oauth2_application_edit"}}
 					</a>
 					<button class="ui red tiny button delete-button" data-modal-id="remove-gitea-oauth2-application"
 							data-url="{{$.Link}}/oauth2/{{$app.ID}}/delete">
-						{{svg "octicon-trash" 16 "mr-2"}}
+						{{svg "octicon-trash" 16 "gt-mr-2"}}
 						{{$.locale.Tr "settings.delete_key"}}
 					</button>
 				</div>
@@ -36,6 +36,10 @@
 		<div class="field {{if .Err_RedirectURI}}error{{end}}">
 			<label for="redirect-uri">{{.locale.Tr "settings.oauth2_redirect_uri"}}</label>
 			<input type="url" name="redirect_uri" id="redirect-uri">
+		</div>
+		<div class="field ui checkbox {{if .Err_ConfidentialClient}}error{{end}}">
+			<label>{{.locale.Tr "settings.oauth2_confidential_client"}}</label>
+			<input type="checkbox" name="confidential_client" checked>
 		</div>
 		<button class="ui green button">
 			{{.locale.Tr "settings.create_oauth2_application_button"}}

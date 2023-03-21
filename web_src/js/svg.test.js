@@ -1,3 +1,4 @@
+import {expect, test} from 'vitest';
 import {svg} from './svg.js';
 
 test('svg', () => {

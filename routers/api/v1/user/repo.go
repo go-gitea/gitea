@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -12,9 +11,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // listUserRepos - List the repositories owned by the given user.
@@ -32,20 +31,20 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 		return
 	}
 
-	if err := repos.LoadAttributes(); err != nil {
+	if err := repos.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "RepositoryList.LoadAttributes", err)
 		return
 	}
 
 	apiRepos := make([]*api.Repository, 0, len(repos))
 	for i := range repos {
-		access, err := access_model.AccessLevel(ctx.Doer, repos[i])
+		access, err := access_model.AccessLevel(ctx, ctx.Doer, repos[i])
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
 		}
 		if ctx.IsSigned && ctx.Doer.IsAdmin || access >= perm.AccessModeRead {
-			apiRepos = append(apiRepos, convert.ToRepo(repos[i], access))
+			apiRepos = append(apiRepos, convert.ToRepo(ctx, repos[i], access))
 		}
 	}
 
@@ -112,7 +111,7 @@ func ListMyRepos(ctx *context.APIContext) {
 	}
 
 	var err error
-	repos, count, err := repo_model.SearchRepository(opts)
+	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchRepository", err)
 		return
@@ -120,15 +119,15 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
-		if err = repo.GetOwner(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetOwner", err)
+		if err = repo.LoadOwner(ctx); err != nil {
+			ctx.Error(http.StatusInternalServerError, "LoadOwner", err)
 			return
 		}
-		accessMode, err := access_model.AccessLevel(ctx.Doer, repo)
+		accessMode, err := access_model.AccessLevel(ctx, ctx.Doer, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		}
-		results[i] = convert.ToRepo(repo, accessMode)
+		results[i] = convert.ToRepo(ctx, repo, accessMode)
 	}
 
 	ctx.SetLinkHeader(int(count), opts.ListOptions.PageSize)

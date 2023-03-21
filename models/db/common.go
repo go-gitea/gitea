@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package db
 
@@ -16,7 +15,7 @@ import (
 // BuildCaseInsensitiveLike returns a condition to check if the given value is like the given key case-insensitively.
 // Handles especially SQLite correctly as UPPER there only transforms ASCII letters.
 func BuildCaseInsensitiveLike(key, value string) builder.Cond {
-	if setting.Database.UseSQLite3 {
+	if setting.Database.Type.IsSQLite3() {
 		return builder.Like{"UPPER(" + key + ")", util.ToUpperASCII(value)}
 	}
 	return builder.Like{"UPPER(" + key + ")", strings.ToUpper(value)}

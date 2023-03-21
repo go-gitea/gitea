@@ -1,6 +1,8 @@
+import {expect, test} from 'vitest';
 import {
   basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref,
-  prettyNumber, parseUrl,
+  prettyNumber, parseUrl, translateMonth, translateDay, blobToDataURI,
+  toAbsoluteUrl,
 } from './utils.js';
 
 test('basename', () => {
@@ -107,4 +109,41 @@ test('parseUrl', () => {
   expect(parseUrl('https://localhost/path?search').pathname).toEqual('/path');
   expect(parseUrl('https://localhost/path?search').search).toEqual('?search');
   expect(parseUrl('https://localhost/path?search#hash').hash).toEqual('#hash');
+});
+
+test('translateMonth', () => {
+  const originalLang = document.documentElement.lang;
+  document.documentElement.lang = 'en-US';
+  expect(translateMonth(0)).toEqual('Jan');
+  expect(translateMonth(4)).toEqual('May');
+  document.documentElement.lang = 'es-ES';
+  expect(translateMonth(5)).toEqual('jun');
+  expect(translateMonth(6)).toEqual('jul');
+  document.documentElement.lang = originalLang;
+});
+
+test('translateDay', () => {
+  const originalLang = document.documentElement.lang;
+  document.documentElement.lang = 'fr-FR';
+  expect(translateDay(1)).toEqual('lun.');
+  expect(translateDay(5)).toEqual('ven.');
+  document.documentElement.lang = 'pl-PL';
+  expect(translateDay(1)).toEqual('pon.');
+  expect(translateDay(5)).toEqual('pt.');
+  document.documentElement.lang = originalLang;
+});
+
+test('blobToDataURI', async () => {
+  const blob = new Blob([JSON.stringify({test: true})], {type: 'application/json'});
+  expect(await blobToDataURI(blob)).toEqual('data:application/json;base64,eyJ0ZXN0Ijp0cnVlfQ==');
+});
+
+test('toAbsoluteUrl', () => {
+  expect(toAbsoluteUrl('//host/dir')).toEqual('http://host/dir');
+  expect(toAbsoluteUrl('https://host/dir')).toEqual('https://host/dir');
+
+  expect(toAbsoluteUrl('')).toEqual('http://localhost:3000');
+  expect(toAbsoluteUrl('/user/repo')).toEqual('http://localhost:3000/user/repo');
+
+  expect(() => toAbsoluteUrl('path')).toThrowError('unsupported');
 });

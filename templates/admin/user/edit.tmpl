@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content admin edit user">
+<div role="main" aria-label="{{.Title}}" class="page-content admin edit user">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -56,7 +56,7 @@
 					</div>
 				</div>
 
-				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}hide{{end}}">
+				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}gt-hidden{{end}}">
 					<label for="login_name">{{.locale.Tr "admin.users.auth_login_name"}}</label>
 					<input id="login_name" name="login_name" value="{{.User.LoginName}}" autofocus>
 				</div>
@@ -68,7 +68,7 @@
 					<label for="email">{{.locale.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.User.Email}}" autofocus required>
 				</div>
-				<div class="local field {{if .Err_Password}}error{{end}} {{if not (or (.User.IsLocal) (.User.IsOAuth2))}}hide{{end}}">
+				<div class="local field {{if .Err_Password}}error{{end}} {{if not (or (.User.IsLocal) (.User.IsOAuth2))}}gt-hidden{{end}}">
 					<label for="password">{{.locale.Tr "password"}}</label>
 					<input id="password" name="password" type="password" autocomplete="new-password">
 					<p class="help">{{.locale.Tr "admin.users.password_helper"}}</p>
@@ -116,13 +116,13 @@
 						<input name="restricted" type="checkbox" {{if .User.IsRestricted}}checked{{end}}>
 					</div>
 				</div>
-				<div class="inline field"{{if DisableGitHooks}} hidden{{end}}>
+				<div class="inline field {{if DisableGitHooks}}gt-hidden{{end}}">
 					<div class="ui checkbox tooltip" data-content="{{.locale.Tr "admin.users.allow_git_hook_tooltip"}}">
 						<label><strong>{{.locale.Tr "admin.users.allow_git_hook"}}</strong></label>
 						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
 					</div>
 				</div>
-				<div class="inline field" {{if or (DisableImportLocal) (.DisableMigrations)}}hidden{{end}}>
+				<div class="inline field {{if or (DisableImportLocal) (.DisableMigrations)}}gt-hidden{{end}}">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.users.allow_import_local"}}</strong></label>
 						<input name="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}} {{if DisableImportLocal}}disabled{{end}}>
@@ -151,7 +151,7 @@
 
 				<div class="field">
 					<button class="ui green button">{{.locale.Tr "admin.users.update_profile"}}</button>
-					<div class="ui red button show-modal" data-modal="#delete-user-modal">{{.locale.Tr "admin.users.delete_account"}}</div>
+					<button class="ui red button show-modal" data-modal="#delete-user-modal">{{.locale.Tr "admin.users.delete_account"}}</button>
 				</div>
 			</form>
 		</div>
@@ -162,7 +162,7 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 				{{.CsrfTokenHtml}}
-				{{if not DisableGravatar}}
+				{{if not (DisableGravatar $.Context)}}
 				<div class="inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="lookup" type="radio" {{if not .User.UseCustomAvatar}}checked{{end}}>
@@ -189,7 +189,7 @@
 
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
-					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</a>
+					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</a>{{/* TODO: Convert links without href to buttons for a11y */}}
 				</div>
 			</form>
 		</div>
@@ -213,16 +213,7 @@
 			</div>
 			<p class="help">{{.locale.Tr "admin.users.purge_help"}}</p>
 		</div>
-		<div class="actions">
-			<div class="ui red basic inverted cancel button">
-				{{svg "octicon-x"}}
-				{{.locale.Tr "modal.no"}}
-			</div>
-			<button class="ui green basic inverted ok button">
-				{{svg "octicon-check"}}
-				{{.locale.Tr "modal.yes"}}
-			</button>
-		</div>
+		{{template "base/delete_modal_actions" .}}
 	</form>
 </div>
 {{template "base/footer" .}}

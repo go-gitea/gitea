@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository new fork">
+<div role="main" aria-label="{{.Title}}" class="page-content repository new fork">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
 			<form class="ui form" action="{{.Link}}" method="post">
@@ -14,20 +14,20 @@
 						<div class="ui selection owner dropdown">
 							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
 							<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
-								{{avatar .ContextUser 28 "mini"}}
+								{{avatar $.Context .ContextUser 28 "mini"}}
 								<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
 							</span>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								{{if .CanForkToUser}}
 									<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
-										{{avatar .SignedUser 28 "mini"}}
+										{{avatar $.Context .SignedUser 28 "mini"}}
 										<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
 									</div>
 								{{end}}
 								{{range .Orgs}}
 									<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
-										{{avatar . 28 "mini"}}
+										{{avatar $.Context . 28 "mini"}}
 										<span class="truncated-item-name">{{.ShortName 40}}</span>
 									</div>
 								{{end}}
@@ -37,7 +37,7 @@
 
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.fork_from"}}</label>
-						<a href="{{.ForkRepo.Link}}">{{.ForkRepo.FullName}}</a>
+						<a href="{{.ForkRepo.Link}}" class="gt-dib">{{.ForkRepo.FullName}}</a>
 					</div>
 					<div class="inline required field {{if .Err_RepoName}}error{{end}}">
 						<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
@@ -58,10 +58,9 @@
 
 					<div class="inline field">
 						<label></label>
-						<button class="ui green button">
+						<button class="ui green button{{if not .CanForkRepo}} disabled{{end}}">
 							{{.locale.Tr "repo.fork_repo"}}
 						</button>
-						<a class="ui button" href="{{.ForkRepo.Link}}">{{.locale.Tr "cancel"}}</a>
 					</div>
 				</div>
 			</form>

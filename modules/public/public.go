@@ -1,13 +1,11 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package public
 
 import (
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -15,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Options represents the available options to configure the handler.
@@ -104,7 +103,7 @@ func setWellKnownContentType(w http.ResponseWriter, file string) {
 
 func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.FileSystem, file string) bool {
 	// use clean to keep the file is a valid path with no . or ..
-	f, err := fs.Open(path.Clean(file))
+	f, err := fs.Open(util.CleanPath(file))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false

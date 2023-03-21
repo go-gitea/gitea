@@ -1,17 +1,18 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package templates
 
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"html"
 	"html/template"
+	"math"
 	"mime"
 	"net/url"
 	"path/filepath"
@@ -35,6 +36,7 @@ import (
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	giturl "code.gitea.io/gitea/modules/git/url"
+	gitea_html "code.gitea.io/gitea/modules/html"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -42,7 +44,6 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
-	system_module "code.gitea.io/gitea/modules/system"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -72,6 +73,10 @@ func NewFuncMap() []template.FuncMap {
 			return setting.StaticURLPrefix + "/assets"
 		},
 		"AppUrl": func() string {
+			// The usage of AppUrl should be avoided as much as possible,
+			// because the AppURL(ROOT_URL) may not match user's visiting site and the ROOT_URL in app.ini may be incorrect.
+			// And it's difficult for Gitea to guess absolute URL correctly with zero configuration,
+			// because Gitea doesn't know whether the scheme is HTTP or HTTPS unless the reverse proxy could tell Gitea.
 			return setting.AppURL
 		},
 		"AppVer": func() string {
@@ -86,8 +91,8 @@ func NewFuncMap() []template.FuncMap {
 		"AssetVersion": func() string {
 			return setting.AssetVersion
 		},
-		"DisableGravatar": func() bool {
-			return system_module.GetSettingBool(system_model.KeyPictureDisableGravatar)
+		"DisableGravatar": func(ctx context.Context) bool {
+			return system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
 		},
 		"DefaultShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName
@@ -103,6 +108,9 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
+		},
+		"IsShowFullName": func() bool {
+			return setting.UI.DefaultShowFullName
 		},
 		"Safe":           Safe,
 		"SafeJS":         SafeJS,
@@ -169,8 +177,9 @@ func NewFuncMap() []template.FuncMap {
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
 		"ReactionToEmoji":                ReactionToEmoji,
 		"RenderNote":                     RenderNote,
-		"RenderMarkdownToHtml": func(input string) template.HTML {
+		"RenderMarkdownToHtml": func(ctx context.Context, input string) template.HTML {
 			output, err := markdown.RenderString(&markup.RenderContext{
+				Ctx:       ctx,
 				URLPrefix: setting.AppSubURL,
 			}, input)
 			if err != nil {
@@ -348,7 +357,7 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"svg":            SVG,
+		"svg":            svg.RenderHTML,
 		"avatar":         Avatar,
 		"avatarHTML":     AvatarHTML,
 		"avatarByAction": AvatarByAction,
@@ -363,31 +372,34 @@ func NewFuncMap() []template.FuncMap {
 			if len(urlSort) == 0 && isDefault {
 				// if sort is sorted as default add arrow tho this table header
 				if isDefault {
-					return SVG("octicon-triangle-down", 16)
+					return svg.RenderHTML("octicon-triangle-down", 16)
 				}
 			} else {
 				// if sort arg is in url test if it correlates with column header sort arguments
 				// the direction of the arrow should indicate the "current sort order", up means ASC(normal), down means DESC(rev)
 				if urlSort == normSort {
 					// the table is sorted with this header normal
-					return SVG("octicon-triangle-up", 16)
+					return svg.RenderHTML("octicon-triangle-up", 16)
 				} else if urlSort == revSort {
 					// the table is sorted with this header reverse
-					return SVG("octicon-triangle-down", 16)
+					return svg.RenderHTML("octicon-triangle-down", 16)
 				}
 			}
 			// the table is NOT sorted with this header
 			return ""
 		},
-		"RenderLabels": func(labels []*issues_model.Label, repoLink string) template.HTML {
+		"RenderLabel": func(ctx context.Context, label *issues_model.Label) template.HTML {
+			return template.HTML(RenderLabel(ctx, label))
+		},
+		"RenderLabels": func(ctx context.Context, labels []*issues_model.Label, repoLink string) template.HTML {
 			htmlCode := `<span class="labels-list">`
 			for _, label := range labels {
 				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
 				if label == nil {
 					continue
 				}
-				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d' class='ui label' style='color: %s !important; background-color: %s !important' title='%s'>%s</a> ",
-					repoLink, label.ID, label.ForegroundColor(), label.Color, html.EscapeString(label.Description), RenderEmoji(label.Name))
+				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
+					repoLink, label.ID, RenderLabel(ctx, label))
 			}
 			htmlCode += "</span>"
 			return template.HTML(htmlCode)
@@ -459,6 +471,22 @@ func NewFuncMap() []template.FuncMap {
 			return items
 		},
 		"HasPrefix": strings.HasPrefix,
+		"CompareLink": func(baseRepo, repo *repo_model.Repository, branchName string) string {
+			var curBranch string
+			if repo.ID != baseRepo.ID {
+				curBranch += fmt.Sprintf("%s/%s:", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name))
+			}
+			curBranch += util.PathEscapeSegments(branchName)
+
+			return fmt.Sprintf("%s/compare/%s...%s",
+				baseRepo.Link(),
+				util.PathEscapeSegments(baseRepo.DefaultBranch),
+				curBranch,
+			)
+		},
+		"RefShortName": func(ref string) string {
+			return git.RefName(ref).ShortName()
+		},
 	}}
 }
 
@@ -581,29 +609,6 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 	}}
 }
 
-var (
-	widthRe  = regexp.MustCompile(`width="[0-9]+?"`)
-	heightRe = regexp.MustCompile(`height="[0-9]+?"`)
-)
-
-func parseOthers(defaultSize int, defaultClass string, others ...interface{}) (int, string) {
-	size := defaultSize
-	if len(others) > 0 && others[0].(int) != 0 {
-		size = others[0].(int)
-	}
-
-	class := defaultClass
-	if len(others) > 1 && others[1].(string) != "" {
-		if defaultClass == "" {
-			class = others[1].(string)
-		} else {
-			class = defaultClass + " " + others[1].(string)
-		}
-	}
-
-	return size, class
-}
-
 // AvatarHTML creates the HTML for an avatar
 func AvatarHTML(src string, size int, class, name string) template.HTML {
 	sizeStr := fmt.Sprintf(`%d`, size)
@@ -615,40 +620,23 @@ func AvatarHTML(src string, size int, class, name string) template.HTML {
 	return template.HTML(`<img class="` + class + `" src="` + src + `" title="` + html.EscapeString(name) + `" width="` + sizeStr + `" height="` + sizeStr + `"/>`)
 }
 
-// SVG render icons - arguments icon name (string), size (int), class (string)
-func SVG(icon string, others ...interface{}) template.HTML {
-	size, class := parseOthers(16, "", others...)
-
-	if svgStr, ok := svg.SVGs[icon]; ok {
-		if size != 16 {
-			svgStr = widthRe.ReplaceAllString(svgStr, fmt.Sprintf(`width="%d"`, size))
-			svgStr = heightRe.ReplaceAllString(svgStr, fmt.Sprintf(`height="%d"`, size))
-		}
-		if class != "" {
-			svgStr = strings.Replace(svgStr, `class="`, fmt.Sprintf(`class="%s `, class), 1)
-		}
-		return template.HTML(svgStr)
-	}
-	return template.HTML("")
-}
-
 // Avatar renders user avatars. args: user, size (int), class (string)
-func Avatar(item interface{}, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar vm", others...)
+func Avatar(ctx context.Context, item interface{}, others ...interface{}) template.HTML {
+	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 
 	switch t := item.(type) {
 	case *user_model.User:
-		src := t.AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
+		src := t.AvatarLinkWithSize(ctx, size*setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())
 		}
 	case *repo_model.Collaborator:
-		src := t.AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
+		src := t.AvatarLinkWithSize(ctx, size*setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())
 		}
 	case *organization.Organization:
-		src := t.AsUser().AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
+		src := t.AsUser().AvatarLinkWithSize(ctx, size*setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.AsUser().DisplayName())
 		}
@@ -658,14 +646,14 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 }
 
 // AvatarByAction renders user avatars from action. args: action, size (int), class (string)
-func AvatarByAction(action *activities_model.Action, others ...interface{}) template.HTML {
-	action.LoadActUser()
-	return Avatar(action.ActUser, others...)
+func AvatarByAction(ctx context.Context, action *activities_model.Action, others ...interface{}) template.HTML {
+	action.LoadActUser(ctx)
+	return Avatar(ctx, action.ActUser, others...)
 }
 
 // RepoAvatar renders repo avatars. args: repo, size(int), class (string)
 func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar", others...)
+	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 
 	src := repo.RelAvatarLink()
 	if src != "" {
@@ -675,9 +663,9 @@ func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTM
 }
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
-func AvatarByEmail(email, name string, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar", others...)
-	src := avatars.GenerateEmailAvatarFastLink(email, size*setting.Avatar.RenderedSizeFactor)
+func AvatarByEmail(ctx context.Context, email, name string, others ...interface{}) template.HTML {
+	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
+	src := avatars.GenerateEmailAvatarFastLink(ctx, email, size*setting.Avatar.RenderedSizeFactor)
 
 	if src != "" {
 		return AvatarHTML(src, size, class, name)
@@ -822,9 +810,69 @@ func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[str
 	return template.HTML(renderedText)
 }
 
+// RenderLabel renders a label
+func RenderLabel(ctx context.Context, label *issues_model.Label) string {
+	labelScope := label.ExclusiveScope()
+
+	textColor := "#111"
+	if label.UseLightTextColor() {
+		textColor = "#eee"
+	}
+
+	description := emoji.ReplaceAliases(template.HTMLEscapeString(label.Description))
+
+	if labelScope == "" {
+		// Regular label
+		return fmt.Sprintf("<div class='ui label' style='color: %s !important; background-color: %s !important' title='%s'>%s</div>",
+			textColor, label.Color, description, RenderEmoji(ctx, label.Name))
+	}
+
+	// Scoped label
+	scopeText := RenderEmoji(ctx, labelScope)
+	itemText := RenderEmoji(ctx, label.Name[len(labelScope)+1:])
+
+	itemColor := label.Color
+	scopeColor := label.Color
+	if r, g, b, err := label.ColorRGB(); err == nil {
+		// Make scope and item background colors slightly darker and lighter respectively.
+		// More contrast needed with higher luminance, empirically tweaked.
+		luminance := (0.299*r + 0.587*g + 0.114*b) / 255
+		contrast := 0.01 + luminance*0.03
+		// Ensure we add the same amount of contrast also near 0 and 1.
+		darken := contrast + math.Max(luminance+contrast-1.0, 0.0)
+		lighten := contrast + math.Max(contrast-luminance, 0.0)
+		// Compute factor to keep RGB values proportional.
+		darkenFactor := math.Max(luminance-darken, 0.0) / math.Max(luminance, 1.0/255.0)
+		lightenFactor := math.Min(luminance+lighten, 1.0) / math.Max(luminance, 1.0/255.0)
+
+		scopeBytes := []byte{
+			uint8(math.Min(math.Round(r*darkenFactor), 255)),
+			uint8(math.Min(math.Round(g*darkenFactor), 255)),
+			uint8(math.Min(math.Round(b*darkenFactor), 255)),
+		}
+		itemBytes := []byte{
+			uint8(math.Min(math.Round(r*lightenFactor), 255)),
+			uint8(math.Min(math.Round(g*lightenFactor), 255)),
+			uint8(math.Min(math.Round(b*lightenFactor), 255)),
+		}
+
+		itemColor = "#" + hex.EncodeToString(itemBytes)
+		scopeColor = "#" + hex.EncodeToString(scopeBytes)
+	}
+
+	return fmt.Sprintf("<span class='ui label scope-parent' title='%s'>"+
+		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+
+		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important''>%s</div>"+
+		"</span>",
+		description,
+		textColor, scopeColor, scopeText,
+		textColor, itemColor, itemText)
+}
+
 // RenderEmoji renders html text with emoji post processors
-func RenderEmoji(text string) template.HTML {
-	renderedText, err := markup.RenderEmoji(template.HTMLEscapeString(text))
+func RenderEmoji(ctx context.Context, text string) template.HTML {
+	renderedText, err := markup.RenderEmoji(&markup.RenderContext{Ctx: ctx},
+		template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("RenderEmoji: %v", err)
 		return template.HTML("")
@@ -892,7 +940,7 @@ func ActionIcon(opType activities_model.ActionType) string {
 		return "git-pull-request"
 	case activities_model.ActionCommentIssue, activities_model.ActionCommentPull:
 		return "comment-discussion"
-	case activities_model.ActionMergePullRequest:
+	case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 		return "git-merge"
 	case activities_model.ActionCloseIssue, activities_model.ActionClosePullRequest:
 		return "issue-closed"

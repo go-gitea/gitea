@@ -7,7 +7,7 @@ toc: false
 menu:
   sidebar:
     parent: "packages"
-    name: "vagrant"
+    name: "Vagrant"
     weight: 120
     identifier: "vagrant"
 ---

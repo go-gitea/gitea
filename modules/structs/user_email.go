@@ -1,6 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// Copyright 2023 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
 
 package structs
 
@@ -10,6 +10,8 @@ type Email struct {
 	Email    string `json:"email"`
 	Verified bool   `json:"verified"`
 	Primary  bool   `json:"primary"`
+	UserID   int64  `json:"user_id"`
+	UserName string `json:"username"`
 }
 
 // CreateEmailOption options when creating email addresses

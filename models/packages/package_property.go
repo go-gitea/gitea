@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
@@ -57,6 +56,12 @@ func GetProperties(ctx context.Context, refType PropertyType, refID int64) ([]*P
 func GetPropertiesByName(ctx context.Context, refType PropertyType, refID int64, name string) ([]*PackageProperty, error) {
 	pps := make([]*PackageProperty, 0, 10)
 	return pps, db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ? AND name = ?", refType, refID, name).Find(&pps)
+}
+
+// UpdateProperty updates a property
+func UpdateProperty(ctx context.Context, pp *PackageProperty) error {
+	_, err := db.GetEngine(ctx).ID(pp.ID).Update(pp)
+	return err
 }
 
 // DeleteAllProperties deletes all properties of a ref

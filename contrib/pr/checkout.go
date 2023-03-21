@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package main
 
@@ -33,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
+	markup_service "code.gitea.io/gitea/services/markup"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -49,7 +49,8 @@ func runPR() {
 		log.Fatal(err)
 	}
 	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadAllowEmpty()
+	setting.InitProviderAllowEmpty()
+	setting.LoadCommonSettings()
 
 	setting.RepoRootPath, err = os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
@@ -82,7 +83,7 @@ func runPR() {
 		setting.Database.Path = ":memory:"
 		setting.Database.Timeout = 500
 	*/
-	dbCfg := setting.Cfg.Section("database")
+	dbCfg := setting.CfgProvider.Section("database")
 	dbCfg.NewKey("DB_TYPE", "sqlite3")
 	dbCfg.NewKey("PATH", ":memory:")
 
@@ -112,7 +113,7 @@ func runPR() {
 	log.Printf("[PR] Setting up router\n")
 	// routers.GlobalInit()
 	external.RegisterRenderers()
-	markup.Init()
+	markup.Init(markup_service.ProcessorHelper())
 	c := routers.NormalRoutes(graceful.GetManager().HammerContext())
 
 	log.Printf("[PR] Ready for testing !\n")

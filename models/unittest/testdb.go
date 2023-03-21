@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package unittest
 
@@ -77,7 +76,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	setting.SSH.BuiltinServerUser = "builtinuser"
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
-	setting.Database.UseSQLite3 = true
+	setting.Database.Type = "sqlite3"
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	repoRootPath, err := os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
@@ -105,12 +104,16 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	setting.Packages.Storage.Path = filepath.Join(setting.AppDataPath, "packages")
 
+	setting.Actions.Storage.Path = filepath.Join(setting.AppDataPath, "actions_log")
+
 	setting.Git.HomePath = filepath.Join(setting.AppDataPath, "home")
+
+	setting.IncomingEmail.ReplyToAddress = "incoming+%{token}@localhost"
 
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}
-	if err = system_model.Init(); err != nil {
+	if err = system_model.Init(db.DefaultContext); err != nil {
 		fatalTestError("models.Init: %v\n", err)
 	}
 

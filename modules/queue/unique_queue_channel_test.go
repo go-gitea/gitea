@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package queue
 
@@ -9,10 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestChannelUniqueQueue(t *testing.T) {
+	_ = log.NewLogger(1000, "console", "console", `{"level":"warn","stacktracelevel":"NONE","stderr":true}`)
 	handleChan := make(chan *testData)
 	handle := func(data ...Data) []Data {
 		for _, datum := range data {
@@ -53,6 +55,8 @@ func TestChannelUniqueQueue(t *testing.T) {
 }
 
 func TestChannelUniqueQueue_Batch(t *testing.T) {
+	_ = log.NewLogger(1000, "console", "console", `{"level":"warn","stacktracelevel":"NONE","stderr":true}`)
+
 	handleChan := make(chan *testData)
 	handle := func(data ...Data) []Data {
 		for _, datum := range data {
@@ -99,6 +103,8 @@ func TestChannelUniqueQueue_Batch(t *testing.T) {
 }
 
 func TestChannelUniqueQueue_Pause(t *testing.T) {
+	_ = log.NewLogger(1000, "console", "console", `{"level":"warn","stacktracelevel":"NONE","stderr":true}`)
+
 	lock := sync.Mutex{}
 	var queue Queue
 	var err error

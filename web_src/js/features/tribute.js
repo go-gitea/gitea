@@ -21,7 +21,7 @@ function makeCollections({mentions, emoji}) {
       },
       lookup: (item) => item,
       selectTemplate: (item) => {
-        if (typeof item === 'undefined') return null;
+        if (item === undefined) return null;
         return emojiString(item.original);
       },
       menuItemTemplate: (item) => {
@@ -49,7 +49,7 @@ function makeCollections({mentions, emoji}) {
   return collections;
 }
 
-export default async function attachTribute(elementOrNodeList, {mentions, emoji} = {}) {
+export async function attachTribute(elementOrNodeList, {mentions, emoji} = {}) {
   if (!window.config.requireTribute || !elementOrNodeList) return;
   const nodes = Array.from('length' in elementOrNodeList ? elementOrNodeList : [elementOrNodeList]);
   if (!nodes.length) return;

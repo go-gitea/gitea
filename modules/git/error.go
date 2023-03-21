@@ -1,6 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -116,7 +115,7 @@ func (err *ErrPushOutOfDate) Error() string {
 
 // Unwrap unwraps the underlying error
 func (err *ErrPushOutOfDate) Unwrap() error {
-	return fmt.Errorf("%v - %s", err.Err, err.StdErr)
+	return fmt.Errorf("%w - %s", err.Err, err.StdErr)
 }
 
 // ErrPushRejected represents an error if merging fails due to rejection from a hook
@@ -139,7 +138,7 @@ func (err *ErrPushRejected) Error() string {
 
 // Unwrap unwraps the underlying error
 func (err *ErrPushRejected) Unwrap() error {
-	return fmt.Errorf("%v - %s", err.Err, err.StdErr)
+	return fmt.Errorf("%w - %s", err.Err, err.StdErr)
 }
 
 // GenerateMessage generates the remote message from the stderr

@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -73,12 +72,23 @@ func Dashboard(ctx *context.Context) {
 		return
 	}
 
+	var (
+		date = ctx.FormString("date")
+		page = ctx.FormInt("page")
+	)
+
+	// Make sure page number is at least 1. Will be posted to ctx.Data.
+	if page <= 1 {
+		page = 1
+	}
+
 	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Tr("dashboard")
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
 	cnt, _ := organization.GetOrganizationCount(ctx, ctxUser)
 	ctx.Data["UserOrgsCount"] = cnt
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
+	ctx.Data["Date"] = date
 
 	var uid int64
 	if ctxUser != nil {
@@ -99,8 +109,7 @@ func Dashboard(ctx *context.Context) {
 		ctx.Data["HeatmapData"] = data
 	}
 
-	var err error
-	ctx.Data["Feeds"], err = activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
+	feeds, count, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
 		Actor:           ctx.Doer,
@@ -108,12 +117,21 @@ func Dashboard(ctx *context.Context) {
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
-		ListOptions:     db.ListOptions{PageSize: setting.UI.FeedPagingNum},
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.FeedPagingNum,
+		},
 	})
 	if err != nil {
 		ctx.ServerError("GetFeeds", err)
 		return
 	}
+
+	ctx.Data["Feeds"] = feeds
+
+	pager := context.NewPagination(int(count), setting.UI.FeedPagingNum, page, 5)
+	pager.AddParam(ctx, "date", "Date")
+	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
@@ -202,7 +220,7 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	showRepos, _, err := repo_model.SearchRepositoryByCondition(&repoOpts, userRepoCond, false)
+	showRepos, _, err := repo_model.SearchRepositoryByCondition(ctx, &repoOpts, userRepoCond, false)
 	if err != nil {
 		ctx.ServerError("SearchRepositoryByCondition", err)
 		return
@@ -232,7 +250,7 @@ func Milestones(ctx *context.Context) {
 			return
 		}
 
-		if milestones[i].Repo.IsTimetrackerEnabled() {
+		if milestones[i].Repo.IsTimetrackerEnabled(ctx) {
 			err := milestones[i].LoadTotalTrackedTime()
 			if err != nil {
 				ctx.ServerError("LoadTotalTrackedTime", err)
@@ -339,6 +357,11 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		filterMode int
 	)
 
+	// Default to recently updated, unlike repository issues list
+	if sortType == "" {
+		sortType = "recentupdate"
+	}
+
 	// --------------------------------------------------------------------------------
 	// Distinguish User from Organization.
 	// Org:
@@ -362,6 +385,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		filterMode = issues_model.FilterModeMention
 	case "review_requested":
 		filterMode = issues_model.FilterModeReviewRequested
+	case "reviewed_by":
+		filterMode = issues_model.FilterModeReviewed
 	case "your_repositories":
 		fallthrough
 	default:
@@ -430,6 +455,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		opts.MentionedID = ctx.Doer.ID
 	case issues_model.FilterModeReviewRequested:
 		opts.ReviewRequestedID = ctx.Doer.ID
+	case issues_model.FilterModeReviewed:
+		opts.ReviewedID = ctx.Doer.ID
 	}
 
 	// keyword holds the search term entered into the search field.
@@ -461,7 +488,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// USING NON-FINAL STATE OF opts FOR A QUERY.
 	var issueCountByRepo map[int64]int64
 	if !forceEmpty {
-		issueCountByRepo, err = issues_model.CountIssuesByRepo(opts)
+		issueCountByRepo, err = issues_model.CountIssuesByRepo(ctx, opts)
 		if err != nil {
 			ctx.ServerError("CountIssuesByRepo", err)
 			return
@@ -504,7 +531,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// USING FINAL STATE OF opts FOR A QUERY.
 	var issues []*issues_model.Issue
 	if !forceEmpty {
-		issues, err = issues_model.Issues(opts)
+		issues, err = issues_model.Issues(ctx, opts)
 		if err != nil {
 			ctx.ServerError("Issues", err)
 			return
@@ -697,11 +724,11 @@ func issueIDsFromSearch(ctx *context.Context, ctxUser *user_model.User, keyword 
 
 	searchRepoIDs, err := issues_model.GetRepoIDsForIssuesOptions(opts, ctxUser)
 	if err != nil {
-		return nil, fmt.Errorf("GetRepoIDsForIssuesOptions: %v", err)
+		return nil, fmt.Errorf("GetRepoIDsForIssuesOptions: %w", err)
 	}
 	issueIDsFromSearch, err := issue_indexer.SearchIssuesByKeyword(ctx, searchRepoIDs, keyword)
 	if err != nil {
-		return nil, fmt.Errorf("SearchIssuesByKeyword: %v", err)
+		return nil, fmt.Errorf("SearchIssuesByKeyword: %w", err)
 	}
 
 	return issueIDsFromSearch, nil

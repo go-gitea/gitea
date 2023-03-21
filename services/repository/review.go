@@ -1,24 +1,24 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
 import (
-	"code.gitea.io/gitea/models/db"
+	"context"
+
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 )
 
 // GetReviewerTeams get all teams can be requested to review
-func GetReviewerTeams(repo *repo_model.Repository) ([]*organization.Team, error) {
-	if err := repo.GetOwner(db.DefaultContext); err != nil {
+func GetReviewerTeams(ctx context.Context, repo *repo_model.Repository) ([]*organization.Team, error) {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 	if !repo.Owner.IsOrganization() {
 		return nil, nil
 	}
 
-	return organization.GetTeamsWithAccessToRepo(db.DefaultContext, repo.OwnerID, repo.ID, perm.AccessModeRead)
+	return organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead)
 }

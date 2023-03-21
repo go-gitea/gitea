@@ -1,6 +1,5 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package gitgraph
 
@@ -8,7 +7,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
@@ -34,19 +32,15 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 		graphCmd.AddArguments("--all")
 	}
 
-	graphCmd.AddArguments(
-		"-C",
-		"-M",
-		fmt.Sprintf("-n %d", setting.UI.GraphMaxCommitNum*page),
-		"--date=iso",
-		fmt.Sprintf("--pretty=format:%s", format))
+	graphCmd.AddArguments("-C", "-M", "--date=iso").
+		AddOptionFormat("-n %d", setting.UI.GraphMaxCommitNum*page).
+		AddOptionFormat("--pretty=format:%s", format)
 
 	if len(branches) > 0 {
 		graphCmd.AddDynamicArguments(branches...)
 	}
 	if len(files) > 0 {
-		graphCmd.AddArguments("--")
-		graphCmd.AddArguments(files...)
+		graphCmd.AddDashesAndList(files...)
 	}
 	graph := NewGraph()
 

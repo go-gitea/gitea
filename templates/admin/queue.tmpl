@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content admin monitor">
+<div role="main" aria-label="{{.Title}}" class="page-content admin monitor">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -161,7 +161,7 @@
 						<td>{{DateFmtLong .Start}}</td>
 						<td>{{if .HasTimeout}}{{DateFmtLong .Timeout}}{{else}}-{{end}}</td>
 						<td>
-							<a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Workers}}"><span class="text red" title="{{$.locale.Tr "remove"}}">{{svg "octicon-trash"}}</span></a>
+							<a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Workers}}" title="{{$.locale.Tr "remove"}}">{{svg "octicon-trash"}}</a>
 						</td>
 					</tr>
 					{{else}}

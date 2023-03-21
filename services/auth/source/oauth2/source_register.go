@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package oauth2
 
@@ -35,6 +34,10 @@ func IsErrOpenIDConnectInitialize(err error) bool {
 
 func (err ErrOpenIDConnectInitialize) Error() string {
 	return fmt.Sprintf("Failed to initialize OpenID Connect Provider with name '%s' with url '%s': %v", err.ProviderName, err.OpenIDConnectAutoDiscoveryURL, err.Cause)
+}
+
+func (err ErrOpenIDConnectInitialize) Unwrap() error {
+	return err.Cause
 }
 
 // wrapOpenIDConnectInitializeError is used to wrap the error but this cannot be done in modules/auth/oauth2

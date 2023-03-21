@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository new release">
+<div role="main" aria-label="{{.Title}}" class="page-content repository new release">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<h2 class="ui dividing header">
@@ -20,22 +20,27 @@
 						<b>{{.tag_name}}</b><span class="at">@</span><strong>{{.tag_target}}</strong>
 					{{else}}
 						<input id="tag-name" name="tag_name" value="{{.tag_name}}" placeholder="{{.locale.Tr "repo.release.tag_name"}}" autofocus required maxlength="255">
-						<span class="at">@</span>
-						<div class="ui selection dropdown">
-							<input type="hidden" name="tag_target" value="{{.tag_target}}"/>
-							{{svg "octicon-git-branch"}}
-							<div class="text">
-								{{.locale.Tr "repo.release.target"}} :
-								<strong id="repo-branch-current">{{.Repository.DefaultBranch}}</strong>
-							</div>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu">
-								{{range .Branches}}
-									<div class="item" data-value="{{.}}">{{.}}</div>
-								{{end}}
+						<input id="tag-name-editor" type="hidden" data-existing-tags={{Json .Tags}} data-tag-helper={{.locale.Tr "repo.release.tag_helper"}} data-tag-helper-new={{.locale.Tr "repo.release.tag_helper_new"}} data-tag-helper-existing={{.locale.Tr "repo.release.tag_helper_existing"}} />
+						<div id="tag-target-selector" class="gt-dib">
+							<span class="at">@</span>
+							<div class="ui selection dropdown">
+								<input type="hidden" name="tag_target" value="{{.tag_target}}"/>
+								{{svg "octicon-git-branch"}}
+								<div class="text">
+									{{.locale.Tr "repo.release.target"}} :
+									<strong id="repo-branch-current">{{.Repository.DefaultBranch}}</strong>
+								</div>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="menu">
+									{{range .Branches}}
+										<div class="item" data-value="{{.}}">{{.}}</div>
+									{{end}}
+								</div>
 							</div>
 						</div>
-						<span class="help">{{.locale.Tr "repo.release.tag_helper"}}</span>
+						<div>
+							<span id="tag-helper" class="help gt-mt-2">{{.locale.Tr "repo.release.tag_helper"}}</span>
+						</div>
 					{{end}}
 				</div>
 			</div>
@@ -48,7 +53,7 @@
 					<label>{{.locale.Tr "repo.release.content"}}</label>
 					<div class="ui top tabular menu" data-write="write" data-preview="preview">
 						<a class="active write item" data-tab="write">{{$.locale.Tr "write"}}</a>
-						<a class="preview item" data-tab="preview" data-url="{{$.Repository.HTMLURL}}/markdown" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
+						<a class="preview item" data-tab="preview" data-url="{{$.Repository.Link}}/markdown" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
 					</div>
 					<div class="ui bottom active tab" data-tab="write">
 						<textarea name="content">{{.content}}</textarea>
@@ -59,15 +64,15 @@
 				</div>
 				{{range .attachments}}
 					<div class="field" id="attachment-{{.ID}}">
-						<div class="ui right df ac wrap_remove">
+						<div class="ui right gt-df gt-ac wrap_remove">
 							<a class="ui mini compact red button remove-rel-attach" data-id="{{.ID}}" data-uuid="{{.UUID}}">
 								{{$.locale.Tr "remove"}}
 							</a>
 						</div>
-						<div class="df ac">
-							<input name="attachment-edit-{{.UUID}}" class="mr-3 attachment_edit" required value="{{.Name}}"/>
+						<div class="gt-df gt-ac">
+							<input name="attachment-edit-{{.UUID}}" class="gt-mr-3 attachment_edit" required value="{{.Name}}"/>
 							<input name="attachment-del-{{.UUID}}" type="hidden" value="false"/>
-							<span class="ui text grey mr-3">{{.Size | FileSize}}</span>
+							<span class="ui text grey gt-mr-3">{{.Size | FileSize}}</span>
 							<span class="tooltip" data-content="{{$.locale.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
 								{{svg "octicon-info"}}
 							</span>
@@ -109,7 +114,7 @@
 								{{$.locale.Tr "repo.release.delete_release"}}
 							</a>
 							{{if .IsDraft}}
-								<input class="ui button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}"/>
+								<button class="ui button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}">{{.locale.Tr "repo.release.save_draft"}}</button>
 								<button class="ui primary button">
 									{{.locale.Tr "repo.release.publish"}}
 								</button>
@@ -120,9 +125,9 @@
 							{{end}}
 						{{else}}
 							{{if not .tag_name}}
-								<input class="ui grey button" type="submit" name="tag_only" value="{{.locale.Tr "repo.release.add_tag"}}"/>
+								<button class="ui grey button" type="submit" name="tag_only" value="{{.locale.Tr "repo.release.add_tag"}}">{{.locale.Tr "repo.release.add_tag"}}</button>
 							{{end}}
-							<input class="ui button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}"/>
+							<button class="ui button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}">{{.locale.Tr "repo.release.save_draft"}}</button>
 							<button class="ui primary button">
 								{{.locale.Tr "repo.release.publish"}}
 							</button>

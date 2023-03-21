@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package explore
 
@@ -18,19 +17,22 @@ import (
 
 const (
 	// tplExploreRepos explore repositories page template
-	tplExploreRepos base.TplName = "explore/repos"
+	tplExploreRepos        base.TplName = "explore/repos"
+	relevantReposOnlyParam string       = "no_filter"
 )
 
 // RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
-	OwnerID    int64
-	Private    bool
-	Restricted bool
-	PageSize   int
-	TplName    base.TplName
+	OwnerID          int64
+	Private          bool
+	Restricted       bool
+	PageSize         int
+	OnlyShowRelevant bool
+	TplName          base.TplName
 }
 
 // RenderRepoSearch render repositories search page
+// This function is also used to render the Admin Repository Management page.
 func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	// Sitemap index for sitemap paths
 	page := int(ctx.ParamsInt64("idx"))
@@ -48,11 +50,10 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	}
 
 	var (
-		repos            []*repo_model.Repository
-		count            int64
-		err              error
-		orderBy          db.SearchOrderBy
-		onlyShowRelevant bool
+		repos   []*repo_model.Repository
+		count   int64
+		err     error
+		orderBy db.SearchOrderBy
 	)
 
 	ctx.Data["SortType"] = ctx.FormString("sort")
@@ -82,15 +83,11 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	default:
 		ctx.Data["SortType"] = "recentupdate"
 		orderBy = db.SearchOrderByRecentUpdated
-		onlyShowRelevant = setting.UI.OnlyShowRelevantRepos && !ctx.FormBool("no_filter")
 	}
 
 	keyword := ctx.FormTrim("q")
-	if keyword != "" {
-		onlyShowRelevant = false
-	}
 
-	ctx.Data["OnlyShowRelevant"] = onlyShowRelevant
+	ctx.Data["OnlyShowRelevant"] = opts.OnlyShowRelevant
 
 	topicOnly := ctx.FormBool("topic")
 	ctx.Data["TopicOnly"] = topicOnly
@@ -98,7 +95,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	language := ctx.FormTrim("language")
 	ctx.Data["Language"] = language
 
-	repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
+	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: opts.PageSize,
@@ -113,7 +110,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		TopicOnly:          topicOnly,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
-		OnlyShowRelevant:   onlyShowRelevant,
+		OnlyShowRelevant:   opts.OnlyShowRelevant,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
@@ -140,7 +137,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "topic", "TopicOnly")
 	pager.AddParam(ctx, "language", "Language")
-	pager.AddParamString("no_filter", ctx.FormString("no_filter"))
+	pager.AddParamString(relevantReposOnlyParam, ctx.FormString(relevantReposOnlyParam))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, opts.TplName)
@@ -160,9 +157,10 @@ func Repos(ctx *context.Context) {
 	}
 
 	RenderRepoSearch(ctx, &RepoSearchOptions{
-		PageSize: setting.UI.ExplorePagingNum,
-		OwnerID:  ownerID,
-		Private:  ctx.Doer != nil,
-		TplName:  tplExploreRepos,
+		PageSize:         setting.UI.ExplorePagingNum,
+		OwnerID:          ownerID,
+		Private:          ctx.Doer != nil,
+		TplName:          tplExploreRepos,
+		OnlyShowRelevant: !ctx.FormBool(relevantReposOnlyParam),
 	})
 }

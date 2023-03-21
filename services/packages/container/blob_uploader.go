@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package container
 
@@ -9,13 +8,13 @@ import (
 	"errors"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -34,7 +33,7 @@ type BlobUploader struct {
 }
 
 func buildFilePath(id string) string {
-	return filepath.Join(setting.Packages.ChunkedUploadPath, path.Clean("/" + strings.ReplaceAll(id, "\\", "/"))[1:])
+	return filepath.Join(setting.Packages.ChunkedUploadPath, util.CleanPath(strings.ReplaceAll(id, "\\", "/")))
 }
 
 // NewBlobUploader creates a new blob uploader for the given id

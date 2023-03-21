@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -35,7 +34,7 @@ func AddDependency(ctx *context.Context) {
 	}
 
 	// Redirect
-	defer ctx.Redirect(issue.HTMLURL())
+	defer ctx.Redirect(issue.Link())
 
 	// Dependency
 	dep, err := issues_model.GetIssueByID(ctx, depID)
@@ -125,5 +124,5 @@ func RemoveDependency(ctx *context.Context) {
 	}
 
 	// Redirect
-	ctx.Redirect(issue.HTMLURL())
+	ctx.Redirect(issue.Link())
 }
