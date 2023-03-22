@@ -154,7 +154,7 @@ export async function createCodeEditor(textarea, filenameInput) {
     ...getEditorConfigOptions(editorConfig),
   });
 
-  filenameInput.addEventListener('keyup', () => {
+  filenameInput.addEventListener('input', () => {
     const filename = filenameInput.value;
     const isMarkdown = markdownExts.includes(extname(filename));
     togglePreviewDisplay(isMarkdown, previewFileModes);
