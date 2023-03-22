@@ -89,6 +89,8 @@ import {initFormattingReplacements} from './features/formatting.js';
 import {initCopyContent} from './features/copycontent.js';
 import {initCaptcha} from './features/captcha.js';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
+import {initAriaCheckboxPatch} from './modules/aria/checkbox.js';
+import {initAriaDropdownPatch} from './modules/aria/dropdown.js';
 
 // Run time-critical code as soon as possible. This is safe to do because this
 // script appears at the end of <body> and rendered HTML is accessible at that point.
@@ -98,6 +100,9 @@ initFormattingReplacements();
 $.fn.tab.settings.silent = true;
 // Disable the behavior of fomantic to toggle the checkbox when you press enter on a checkbox element.
 $.fn.checkbox.settings.enableEnterKey = false;
+// Use the patches to improve accessibility, these patches are designed to be as independent as possible, make it easy to modify or remove in the future.
+initAriaCheckboxPatch();
+initAriaDropdownPatch();
 
 $(document).ready(() => {
   initGlobalCommon();
