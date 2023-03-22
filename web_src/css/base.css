@@ -1854,15 +1854,15 @@ footer .container .links > *:first-child {
 }
 
 footer .ui.language .menu {
-  max-height: 500px;
+  height: 500px;
+  max-height: calc(100vh - 60px);
   overflow-y: auto;
   margin-bottom: 7px;
 }
 
 footer .ui.language .svg {
   margin-right: 0.15em;
-  vertical-align: top;
-  margin-top: calc(2em - 16px);
+  margin-top: 1px;
 }
 
 footer .ui.left,
@@ -2385,6 +2385,10 @@ a.ui.label:hover {
 
 .ui.tertiary.button:hover {
   color: var(--color-text);
+}
+
+.ui.tertiary.button:focus {
+  color: var(--color-text-dark);
 }
 
 .ui.primary.label,
