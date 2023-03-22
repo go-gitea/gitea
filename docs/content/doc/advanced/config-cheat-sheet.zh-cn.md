@@ -147,6 +147,17 @@ menu:
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: 允许通过反向认证做自动注册。
 - `ENABLE_CAPTCHA`: **false**: 注册时使用图片验证码。
 - `REQUIRE_CAPTCHA_FOR_LOGIN`: **false**: 登录时需要图片验证码。需要同时开启 `ENABLE_CAPTCHA`。
+- `CAPTCHA_TYPE`: **image**: \[image, recaptcha, hcaptcha, mcaptcha, cfturnstile\]，人机验证类型，分别表示图片认证、 recaptcha 、 hcaptcha 、mcaptcha 、和 cloudlfare 的 turnstile。
+- `RECAPTCHA_SECRET`: **""**: recaptcha 服务的密钥，可在 https://www.google.com/recaptcha/admin 获取。
+- `RECAPTCHA_SITEKEY`: **""**: recaptcha 服务的网站密钥 ，可在 https://www.google.com/recaptcha/admin 获取。
+- `RECAPTCHA_URL`: **https://www.google.com/recaptcha/**: 设置 recaptcha 的 url 。
+- `HCAPTCHA_SECRET`: **""**: hcaptcha 服务的密钥，可在 https://www.hcaptcha.com/ 获取。
+- `HCAPTCHA_SITEKEY`: **""**: hcaptcha 服务的网站密钥，可在 https://www.hcaptcha.com/ 获取。
+- `MCAPTCHA_SECRET`: **""**: mCaptcha 服务的密钥。
+- `MCAPTCHA_SITEKEY`: **""**: mCaptcha 服务的网站密钥。
+- `MCAPTCHA_URL` **https://demo.mcaptcha.org/**: 设置 remCaptchacaptcha 的 url 。
+- `CF_TURNSTILE_SECRET` **""**: cloudlfare turnstile 服务的密钥，可在 https://dash.cloudflare.com/?to=/:account/turnstile 获取。
+- `CF_TURNSTILE_SITEKEY` **""**: cloudlfare turnstile 服务的网站密钥 ，可在 https://www.google.com/recaptcha/admin 获取。
 
 ### Service - Expore (`service.explore`)
 
@@ -251,7 +262,22 @@ test01.xls: application/vnd.ms-excel; charset=binary
 
 - `ROOT_PATH`: 日志文件根目录。
 - `MODE`: 日志记录模式，默认是为 `console`。如果要写到多个通道，用逗号分隔
-- `LEVEL`: 日志级别，默认为`Trace`。
+- `LEVEL`: 日志级别，默认为 `Trace`。
+- `DISABLE_ROUTER_LOG`: 关闭日志中的路由日志。
+- `ENABLE_ACCESS_LOG`: 是否开启 Access Log, 默认为 false。
+- `ACCESS_LOG_TEMPLATE`: `access.log` 输出内容的模板，默认模板：**`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`**
+  模板支持以下参数:
+  - `Ctx`: 请求上下文。
+  - `Identity`: 登录用户名，默认: “`-`”。
+  - `Start`: 请求开始时间。
+  - `ResponseWriter`:
+  - `RequestID`: 从请求头中解析得到的与 `REQUEST_ID_HEADERS` 匹配的值，默认: “`-`”。
+  - 一定要谨慎配置该模板，否则可能会引起panic.
+- `REQUEST_ID_HEADERS`: 从 Request Header 中匹配指定 Key，并将匹配到的值输出到 `access.log` 中(需要在 `ACCESS_LOG_TEMPLATE` 中指定输出位置)。如果在该参数中配置多个 Key， 请用逗号分割，程序将按照配置的顺序进行匹配。
+  - 示例：
+  - 请求头：       X-Request-ID: **test-id-123**
+  - 配置文件：     REQUEST_ID_HEADERS = X-Request-ID
+  - 日志输出：     127.0.0.1:58384 - - [14/Feb/2023:16:33:51 +0800]  "**test-id-123**" ...
 
 ## Cron (`cron`)
 
@@ -420,6 +446,8 @@ MINIO_BUCKET = gitea
 MINIO_LOCATION = us-east-1
 ; Minio enabled ssl only available when STORAGE_TYPE is `minio`
 MINIO_USE_SSL = false
+; Minio skip SSL verification available when STORAGE_TYPE is `minio`
+MINIO_INSECURE_SKIP_VERIFY = false
 ```
 
 然后你在 `[attachment]`, `[lfs]` 等中可以把这个名字用作 `STORAGE_TYPE` 的值。

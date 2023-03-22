@@ -204,6 +204,8 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		GroupClaimName:                form.Oauth2GroupClaimName,
 		RestrictedGroup:               form.Oauth2RestrictedGroup,
 		AdminGroup:                    form.Oauth2AdminGroup,
+		GroupTeamMap:                  form.Oauth2GroupTeamMap,
+		GroupTeamMapRemoval:           form.Oauth2GroupTeamMapRemoval,
 	}
 }
 
@@ -269,6 +271,15 @@ func NewAuthSourcePost(ctx *context.Context) {
 		}
 	case auth.OAuth2:
 		config = parseOAuth2Config(form)
+		oauth2Config := config.(*oauth2.Source)
+		if oauth2Config.Provider == "openidConnect" {
+			discoveryURL, err := url.Parse(oauth2Config.OpenIDConnectAutoDiscoveryURL)
+			if err != nil || (discoveryURL.Scheme != "http" && discoveryURL.Scheme != "https") {
+				ctx.Data["Err_DiscoveryURL"] = true
+				ctx.RenderWithErr(ctx.Tr("admin.auths.invalid_openIdConnectAutoDiscoveryURL"), tplAuthNew, form)
+				return
+			}
+		}
 	case auth.SSPI:
 		var err error
 		config, err = parseSSPIConfig(ctx, form)
@@ -303,6 +314,10 @@ func NewAuthSourcePost(ctx *context.Context) {
 		if auth.IsErrSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthNew, form)
+		} else if oauth2.IsErrOpenIDConnectInitialize(err) {
+			ctx.Data["Err_DiscoveryURL"] = true
+			unwrapped := err.(oauth2.ErrOpenIDConnectInitialize).Unwrap()
+			ctx.RenderWithErr(ctx.Tr("admin.auths.unable_to_initialize_openid", unwrapped), tplAuthNew, form)
 		} else {
 			ctx.ServerError("auth.CreateSource", err)
 		}
@@ -387,6 +402,15 @@ func EditAuthSourcePost(ctx *context.Context) {
 		}
 	case auth.OAuth2:
 		config = parseOAuth2Config(form)
+		oauth2Config := config.(*oauth2.Source)
+		if oauth2Config.Provider == "openidConnect" {
+			discoveryURL, err := url.Parse(oauth2Config.OpenIDConnectAutoDiscoveryURL)
+			if err != nil || (discoveryURL.Scheme != "http" && discoveryURL.Scheme != "https") {
+				ctx.Data["Err_DiscoveryURL"] = true
+				ctx.RenderWithErr(ctx.Tr("admin.auths.invalid_openIdConnectAutoDiscoveryURL"), tplAuthEdit, form)
+				return
+			}
+		}
 	case auth.SSPI:
 		config, err = parseSSPIConfig(ctx, form)
 		if err != nil {
@@ -406,6 +430,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	if err := auth.UpdateSource(source); err != nil {
 		if oauth2.IsErrOpenIDConnectInitialize(err) {
 			ctx.Flash.Error(err.Error(), true)
+			ctx.Data["Err_DiscoveryURL"] = true
 			ctx.HTML(http.StatusOK, tplAuthEdit)
 		} else {
 			ctx.ServerError("UpdateSource", err)

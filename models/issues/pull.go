@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -132,6 +133,27 @@ const (
 	PullRequestStatusAncestor
 )
 
+func (status PullRequestStatus) String() string {
+	switch status {
+	case PullRequestStatusConflict:
+		return "CONFLICT"
+	case PullRequestStatusChecking:
+		return "CHECKING"
+	case PullRequestStatusMergeable:
+		return "MERGEABLE"
+	case PullRequestStatusManuallyMerged:
+		return "MANUALLY_MERGED"
+	case PullRequestStatusError:
+		return "ERROR"
+	case PullRequestStatusEmpty:
+		return "EMPTY"
+	case PullRequestStatusAncestor:
+		return "ANCESTOR"
+	default:
+		return strconv.Itoa(int(status))
+	}
+}
+
 // PullRequestFlow the flow of pull request
 type PullRequestFlow int
 
@@ -202,6 +224,42 @@ func DeletePullsByBaseRepoID(ctx context.Context, repoID int64) error {
 	return err
 }
 
+// ColorFormat writes a colored string to identify this struct
+func (pr *PullRequest) ColorFormat(s fmt.State) {
+	if pr == nil {
+		log.ColorFprintf(s, "PR[%d]%s#%d[%s...%s:%s]",
+			log.NewColoredIDValue(0),
+			log.NewColoredValue("<nil>/<nil>"),
+			log.NewColoredIDValue(0),
+			log.NewColoredValue("<nil>"),
+			log.NewColoredValue("<nil>/<nil>"),
+			log.NewColoredValue("<nil>"),
+		)
+		return
+	}
+
+	log.ColorFprintf(s, "PR[%d]", log.NewColoredIDValue(pr.ID))
+	if pr.BaseRepo != nil {
+		log.ColorFprintf(s, "%s#%d[%s...", log.NewColoredValue(pr.BaseRepo.FullName()),
+			log.NewColoredIDValue(pr.Index), log.NewColoredValue(pr.BaseBranch))
+	} else {
+		log.ColorFprintf(s, "Repo[%d]#%d[%s...", log.NewColoredIDValue(pr.BaseRepoID),
+			log.NewColoredIDValue(pr.Index), log.NewColoredValue(pr.BaseBranch))
+	}
+	if pr.HeadRepoID == pr.BaseRepoID {
+		log.ColorFprintf(s, "%s]", log.NewColoredValue(pr.HeadBranch))
+	} else if pr.HeadRepo != nil {
+		log.ColorFprintf(s, "%s:%s]", log.NewColoredValue(pr.HeadRepo.FullName()), log.NewColoredValue(pr.HeadBranch))
+	} else {
+		log.ColorFprintf(s, "Repo[%d]:%s]", log.NewColoredIDValue(pr.HeadRepoID), log.NewColoredValue(pr.HeadBranch))
+	}
+}
+
+// String represents the pr as a simple string
+func (pr *PullRequest) String() string {
+	return log.ColorFormatAsString(pr)
+}
+
 // MustHeadUserName returns the HeadRepo's username if failed return blank
 func (pr *PullRequest) MustHeadUserName(ctx context.Context) string {
 	if err := pr.LoadHeadRepo(ctx); err != nil {
@@ -234,7 +292,8 @@ func (pr *PullRequest) LoadAttributes(ctx context.Context) (err error) {
 	return nil
 }
 
-// LoadHeadRepo loads the head repository
+// LoadHeadRepo loads the head repository, pr.HeadRepo will remain nil if it does not exist
+// and thus ErrRepoNotExist will never be returned
 func (pr *PullRequest) LoadHeadRepo(ctx context.Context) (err error) {
 	if !pr.isHeadRepoLoaded && pr.HeadRepo == nil && pr.HeadRepoID > 0 {
 		if pr.HeadRepoID == pr.BaseRepoID {
@@ -249,14 +308,14 @@ func (pr *PullRequest) LoadHeadRepo(ctx context.Context) (err error) {
 
 		pr.HeadRepo, err = repo_model.GetRepositoryByID(ctx, pr.HeadRepoID)
 		if err != nil && !repo_model.IsErrRepoNotExist(err) { // Head repo maybe deleted, but it should still work
-			return fmt.Errorf("GetRepositoryByID(head): %w", err)
+			return fmt.Errorf("pr[%d].LoadHeadRepo[%d]: %w", pr.ID, pr.HeadRepoID, err)
 		}
 		pr.isHeadRepoLoaded = true
 	}
 	return nil
 }
 
-// LoadBaseRepo loads the target repository
+// LoadBaseRepo loads the target repository. ErrRepoNotExist may be returned.
 func (pr *PullRequest) LoadBaseRepo(ctx context.Context) (err error) {
 	if pr.BaseRepo != nil {
 		return nil
@@ -274,7 +333,7 @@ func (pr *PullRequest) LoadBaseRepo(ctx context.Context) (err error) {
 
 	pr.BaseRepo, err = repo_model.GetRepositoryByID(ctx, pr.BaseRepoID)
 	if err != nil {
-		return fmt.Errorf("repo_model.GetRepositoryByID(base): %w", err)
+		return fmt.Errorf("pr[%d].LoadBaseRepo[%d]: %w", pr.ID, pr.BaseRepoID, err)
 	}
 	return nil
 }
@@ -394,6 +453,11 @@ func (pr *PullRequest) IsAncestor() bool {
 	return pr.Status == PullRequestStatusAncestor
 }
 
+// IsFromFork return true if this PR is from a fork.
+func (pr *PullRequest) IsFromFork() bool {
+	return pr.HeadRepoID != pr.BaseRepoID
+}
+
 // SetMerged sets a pull request to merged and closes the corresponding issue
 func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 	if pr.HasMerged {
@@ -434,7 +498,7 @@ func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	if err := pr.Issue.Repo.GetOwner(ctx); err != nil {
+	if err := pr.Issue.Repo.LoadOwner(ctx); err != nil {
 		return false, err
 	}
 
@@ -596,10 +660,10 @@ func GetPullRequestByIssueID(ctx context.Context, issueID int64) (*PullRequest, 
 
 // GetAllUnmergedAgitPullRequestByPoster get all unmerged agit flow pull request
 // By poster id.
-func GetAllUnmergedAgitPullRequestByPoster(uid int64) ([]*PullRequest, error) {
+func GetAllUnmergedAgitPullRequestByPoster(ctx context.Context, uid int64) ([]*PullRequest, error) {
 	pulls := make([]*PullRequest, 0, 10)
 
-	err := db.GetEngine(db.DefaultContext).
+	err := db.GetEngine(ctx).
 		Where("has_merged=? AND flow = ? AND issue.is_closed=? AND issue.poster_id=?",
 			false, PullRequestFlowAGit, false, uid).
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
@@ -695,8 +759,8 @@ func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRep
 	return prs, nil
 }
 
-// GetBaseBranchHTMLURL returns the HTML URL of the base branch
-func (pr *PullRequest) GetBaseBranchHTMLURL() string {
+// GetBaseBranchLink returns the relative URL of the base branch
+func (pr *PullRequest) GetBaseBranchLink() string {
 	if err := pr.LoadBaseRepo(db.DefaultContext); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
 		return ""
@@ -704,11 +768,11 @@ func (pr *PullRequest) GetBaseBranchHTMLURL() string {
 	if pr.BaseRepo == nil {
 		return ""
 	}
-	return pr.BaseRepo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(pr.BaseBranch)
+	return pr.BaseRepo.Link() + "/src/branch/" + util.PathEscapeSegments(pr.BaseBranch)
 }
 
-// GetHeadBranchHTMLURL returns the HTML URL of the head branch
-func (pr *PullRequest) GetHeadBranchHTMLURL() string {
+// GetHeadBranchLink returns the relative URL of the head branch
+func (pr *PullRequest) GetHeadBranchLink() string {
 	if pr.Flow == PullRequestFlowAGit {
 		return ""
 	}
@@ -720,7 +784,7 @@ func (pr *PullRequest) GetHeadBranchHTMLURL() string {
 	if pr.HeadRepo == nil {
 		return ""
 	}
-	return pr.HeadRepo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(pr.HeadBranch)
+	return pr.HeadRepo.Link() + "/src/branch/" + util.PathEscapeSegments(pr.HeadBranch)
 }
 
 // UpdateAllowEdits update if PR can be edited from maintainers

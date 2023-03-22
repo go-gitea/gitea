@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content admin config">
+<div role="main" aria-label="{{.Title}}" class="page-content admin config">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -303,14 +303,14 @@
 				<dt>{{.locale.Tr "admin.config.disable_gravatar"}}</dt>
 				<dd>
 					<div class="ui toggle checkbox">
-						<input type="checkbox" name="picture.disable_gravatar" version="{{.SystemSettings.GetVersion "picture.disable_gravatar"}}"{{if .SystemSettings.GetBool "picture.disable_gravatar"}} checked{{end}}>
+						<input type="checkbox" name="picture.disable_gravatar" version="{{.SystemSettings.GetVersion "picture.disable_gravatar"}}"{{if .SystemSettings.GetBool "picture.disable_gravatar"}} checked{{end}} title="{{.locale.Tr "admin.config.disable_gravatar"}}">
 					</div>
 				</dd>
 				<div class="ui divider"></div>
 				<dt>{{.locale.Tr "admin.config.enable_federated_avatar"}}</dt>
 				<dd>
 					<div class="ui toggle checkbox">
-						<input type="checkbox" name="picture.enable_federated_avatar" version="{{.SystemSettings.GetVersion "picture.enable_federated_avatar"}}"{{if .SystemSettings.GetBool "picture.enable_federated_avatar"}} checked{{end}}>
+						<input type="checkbox" name="picture.enable_federated_avatar" version="{{.SystemSettings.GetVersion "picture.enable_federated_avatar"}}"{{if .SystemSettings.GetBool "picture.enable_federated_avatar"}} checked{{end}} title="{{.locale.Tr "admin.config.enable_federated_avatar"}}">
 					</div>
 				</dd>
 			</dl>
@@ -331,7 +331,19 @@
 				<dd>{{.Git.MaxGitDiffFiles}}</dd>
 				<dt>{{.locale.Tr "admin.config.git_gc_args"}}</dt>
 				<dd><code>{{.Git.GCArgs}}</code></dd>
+
 				<div class="ui divider"></div>
+
+				<dt>{{.locale.Tr "admin.config.git_enable_reflogs"}}</dt>
+				<dd>{{if .Git.Reflog.Enabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
+
+				{{if .Git.Reflog.Enabled}}
+					<dt>{{.locale.Tr "admin.config.git_reflog_expiry_time"}}</dt>
+					<dd>{{.locale.Tr "tool.days" .Git.Reflog.Expiration}}</dd>
+				{{end}}
+
+				<div class="ui divider"></div>
+
 				<dt>{{.locale.Tr "admin.config.git_migrate_timeout"}}</dt>
 				<dd>{{.Git.Timeout.Migrate}} {{.locale.Tr "tool.raw_seconds"}}</dd>
 				<dt>{{.locale.Tr "admin.config.git_mirror_timeout"}}</dt>

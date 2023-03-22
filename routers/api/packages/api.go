@@ -14,8 +14,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/packages/cargo"
+	"code.gitea.io/gitea/routers/api/packages/chef"
 	"code.gitea.io/gitea/routers/api/packages/composer"
 	"code.gitea.io/gitea/routers/api/packages/conan"
+	"code.gitea.io/gitea/routers/api/packages/conda"
 	"code.gitea.io/gitea/routers/api/packages/container"
 	"code.gitea.io/gitea/routers/api/packages/generic"
 	"code.gitea.io/gitea/routers/api/packages/helm"
@@ -25,6 +28,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/pub"
 	"code.gitea.io/gitea/routers/api/packages/pypi"
 	"code.gitea.io/gitea/routers/api/packages/rubygems"
+	"code.gitea.io/gitea/routers/api/packages/swift"
 	"code.gitea.io/gitea/routers/api/packages/vagrant"
 	"code.gitea.io/gitea/services/auth"
 	context_service "code.gitea.io/gitea/services/context"
@@ -52,6 +56,7 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 		&auth.Basic{},
 		&nuget.Auth{},
 		&conan.Auth{},
+		&chef.Auth{},
 	}
 	if setting.Service.EnableReverseProxyAuth {
 		authMethods = append(authMethods, &auth.ReverseProxy{})
@@ -70,6 +75,39 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 	})
 
 	r.Group("/{username}", func() {
+		r.Group("/cargo", func() {
+			r.Group("/api/v1/crates", func() {
+				r.Get("", cargo.SearchPackages)
+				r.Put("/new", reqPackageAccess(perm.AccessModeWrite), cargo.UploadPackage)
+				r.Group("/{package}", func() {
+					r.Group("/{version}", func() {
+						r.Get("/download", cargo.DownloadPackageFile)
+						r.Delete("/yank", reqPackageAccess(perm.AccessModeWrite), cargo.YankPackage)
+						r.Put("/unyank", reqPackageAccess(perm.AccessModeWrite), cargo.UnyankPackage)
+					})
+					r.Get("/owners", cargo.ListOwners)
+				})
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/chef", func() {
+			r.Group("/api/v1", func() {
+				r.Get("/universe", chef.PackagesUniverse)
+				r.Get("/search", chef.EnumeratePackages)
+				r.Group("/cookbooks", func() {
+					r.Get("", chef.EnumeratePackages)
+					r.Post("", reqPackageAccess(perm.AccessModeWrite), chef.UploadPackage)
+					r.Group("/{name}", func() {
+						r.Get("", chef.PackageMetadata)
+						r.Group("/versions/{version}", func() {
+							r.Get("", chef.PackageVersionMetadata)
+							r.Delete("", reqPackageAccess(perm.AccessModeWrite), chef.DeletePackageVersion)
+							r.Get("/download", chef.DownloadPackage)
+						})
+						r.Delete("", reqPackageAccess(perm.AccessModeWrite), chef.DeletePackage)
+					})
+				})
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/composer", func() {
 			r.Get("/packages.json", composer.ServiceIndex)
 			r.Get("/search.json", composer.SearchPackages)
@@ -167,6 +205,43 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				})
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/conda", func() {
+			var (
+				downloadPattern = regexp.MustCompile(`\A(.+/)?(.+)/((?:[^/]+(?:\.tar\.bz2|\.conda))|(?:current_)?repodata\.json(?:\.bz2)?)\z`)
+				uploadPattern   = regexp.MustCompile(`\A(.+/)?([^/]+(?:\.tar\.bz2|\.conda))\z`)
+			)
+
+			r.Get("/*", func(ctx *context.Context) {
+				m := downloadPattern.FindStringSubmatch(ctx.Params("*"))
+				if len(m) == 0 {
+					ctx.Status(http.StatusNotFound)
+					return
+				}
+
+				ctx.SetParams("channel", strings.TrimSuffix(m[1], "/"))
+				ctx.SetParams("architecture", m[2])
+				ctx.SetParams("filename", m[3])
+
+				switch m[3] {
+				case "repodata.json", "repodata.json.bz2", "current_repodata.json", "current_repodata.json.bz2":
+					conda.EnumeratePackages(ctx)
+				default:
+					conda.DownloadPackageFile(ctx)
+				}
+			})
+			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), func(ctx *context.Context) {
+				m := uploadPattern.FindStringSubmatch(ctx.Params("*"))
+				if len(m) == 0 {
+					ctx.Status(http.StatusNotFound)
+					return
+				}
+
+				ctx.SetParams("channel", strings.TrimSuffix(m[1], "/"))
+				ctx.SetParams("filename", m[2])
+
+				conda.UploadPackageFile(ctx)
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
 			r.Group("/{packagename}/{packageversion}", func() {
 				r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
@@ -212,9 +287,18 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				}, reqPackageAccess(perm.AccessModeWrite))
 				r.Get("/symbols/{filename}/{guid:[0-9a-fA-F]{32}[fF]{8}}/{filename2}", nuget.DownloadSymbolFile)
 				r.Get("/Packages(Id='{id:[^']+}',Version='{version:[^']+}')", nuget.RegistrationLeafV2)
-				r.Get("/Packages()", nuget.SearchServiceV2)
-				r.Get("/FindPackagesById()", nuget.EnumeratePackageVersionsV2)
-				r.Get("/Search()", nuget.SearchServiceV2)
+				r.Group("/Packages()", func() {
+					r.Get("", nuget.SearchServiceV2)
+					r.Get("/$count", nuget.SearchServiceV2Count)
+				})
+				r.Group("/FindPackagesById()", func() {
+					r.Get("", nuget.EnumeratePackageVersionsV2)
+					r.Get("/$count", nuget.EnumeratePackageVersionsV2Count)
+				})
+				r.Group("/Search()", func() {
+					r.Get("", nuget.SearchServiceV2)
+					r.Get("/$count", nuget.SearchServiceV2Count)
+				})
 			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {
@@ -291,6 +375,41 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				r.Post("/", rubygems.UploadPackageFile)
 				r.Delete("/yank", rubygems.DeletePackage)
 			}, reqPackageAccess(perm.AccessModeWrite))
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/swift", func() {
+			r.Group("/{scope}/{name}", func() {
+				r.Group("", func() {
+					r.Get("", swift.EnumeratePackageVersions)
+					r.Get(".json", swift.EnumeratePackageVersions)
+				}, swift.CheckAcceptMediaType(swift.AcceptJSON))
+				r.Group("/{version}", func() {
+					r.Get("/Package.swift", swift.CheckAcceptMediaType(swift.AcceptSwift), swift.DownloadManifest)
+					r.Put("", reqPackageAccess(perm.AccessModeWrite), swift.CheckAcceptMediaType(swift.AcceptJSON), swift.UploadPackageFile)
+					r.Get("", func(ctx *context.Context) {
+						// Can't use normal routes here: https://github.com/go-chi/chi/issues/781
+
+						version := ctx.Params("version")
+						if strings.HasSuffix(version, ".zip") {
+							swift.CheckAcceptMediaType(swift.AcceptZip)(ctx)
+							if ctx.Written() {
+								return
+							}
+							ctx.SetParams("version", version[:len(version)-4])
+							swift.DownloadPackageFile(ctx)
+						} else {
+							swift.CheckAcceptMediaType(swift.AcceptJSON)(ctx)
+							if ctx.Written() {
+								return
+							}
+							if strings.HasSuffix(version, ".json") {
+								ctx.SetParams("version", version[:len(version)-5])
+							}
+							swift.PackageVersionMetadata(ctx)
+						}
+					})
+				})
+			})
+			r.Get("/identifiers", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.LookupPackageIdentifiers)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/vagrant", func() {
 			r.Group("/authenticate", func() {

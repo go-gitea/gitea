@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository settings branches">
+<div role="main" aria-label="{{.Title}}" class="page-content repository settings branches">
 	{{template "repo/header" .}}
 	{{template "repo/settings/navbar" .}}
 	<div class="ui container">
@@ -49,8 +49,7 @@
 								<div class="menu">
 									{{range .Users}}
 										<div class="item" data-value="{{.ID}}">
-											{{avatar . 28 "mini"}}
-											{{.GetDisplayName}}
+											{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
 										</div>
 									{{end}}
 								</div>
@@ -101,8 +100,7 @@
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
-										{{avatar . 28 "mini"}}
-									{{.GetDisplayName}}
+										{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
 									</div>
 								{{end}}
 								</div>
@@ -181,8 +179,7 @@
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
-										{{avatar . 28 "mini"}}
-									{{.GetDisplayName}}
+										{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
 									</div>
 								{{end}}
 								</div>

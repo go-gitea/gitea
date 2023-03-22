@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository settings">
+<div role="main" aria-label="{{.Title}}" class="page-content repository settings">
 	{{template "repo/header" .}}
 	{{template "repo/settings/navbar" .}}
 	<div class="ui container">
@@ -8,14 +8,14 @@
 			{{.locale.Tr "repo.settings.deploy_keys"}}
 			<div class="ui right">
 			{{if not .DisableSSH}}
-				<div class="ui primary tiny show-panel button" data-panel="#add-deploy-key-panel">{{.locale.Tr "repo.settings.add_deploy_key"}}</div>
+				<button class="ui primary tiny show-panel button" data-panel="#add-deploy-key-panel">{{.locale.Tr "repo.settings.add_deploy_key"}}</button>
 			{{else}}
-				<div class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</div>
+				<button class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</button>
 			{{end}}
 			</div>
 		</h4>
 		<div class="ui attached segment">
-			<div class="{{if not .HasError}}hide{{end}} mb-4" id="add-deploy-key-panel">
+			<div class="{{if not .HasError}}gt-hidden{{end}} gt-mb-4" id="add-deploy-key-panel">
 				<form class="ui form" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
 					<div class="field">
@@ -31,7 +31,7 @@
 					</div>
 					<div class="field">
 						<div class="ui checkbox {{if .Err_IsWritable}}error{{end}}">
-							<input id="ssh-key-is-writable" name="is_writable" class="hidden" type="checkbox" value="1">
+							<input id="ssh-key-is-writable" name="is_writable" type="checkbox" value="1">
 							<label for="is_writable">
 								{{.locale.Tr "repo.settings.is_writable"}}
 							</label>
@@ -51,7 +51,7 @@
 					{{range .Deploykeys}}
 						<div class="item">
 							<div class="right floated content">
-								<button class="ui red tiny button delete-button" data-modal-id="delete-deploy_keys-modal" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+								<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
 									{{$.locale.Tr "settings.delete_key"}}
 								</button>
 							</div>
@@ -75,11 +75,9 @@
 			{{end}}
 		</div>
 	</div>
-	<br/>
-	{{template "repo/settings/secrets" .}}
 </div>
 
-<div class="ui small basic delete modal" id="delete-deploy_keys-modal">
+<div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "repo.settings.deploy_key_deletion"}}
@@ -87,15 +85,6 @@
 	<div class="content">
 		<p>{{.locale.Tr "repo.settings.deploy_key_deletion_desc"}}</p>
 	</div>
-	<div class="actions">
-		<div class="ui red basic inverted cancel button">
-			<i class="remove icon"></i>
-			{{.locale.Tr "modal.no"}}
-		</div>
-		<div class="ui green basic inverted ok button">
-			<i class="checkmark icon"></i>
-			{{.locale.Tr "modal.yes"}}
-		</div>
-	</div>
+	{{template "base/delete_modal_actions" .}}
 </div>
 {{template "base/footer" .}}

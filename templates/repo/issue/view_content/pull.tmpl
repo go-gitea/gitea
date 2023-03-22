@@ -10,10 +10,10 @@
 						<div class="review-item-left">
 							{{if .User}}
 								<a href="{{.User.HomeLink}}">
-									{{avatar .User}}
+									{{avatar $.Context .User}}
 								</a>
 							{{end}}
-							<span>
+							<span class="gt-ml-2">
 								{{if .User}}
 									<a href="{{.User.HomeLink}}">{{.User.GetDisplayName}}</a>
 								{{else if .Team}}
@@ -58,7 +58,7 @@
 												<input id="message" name="message">
 											</div>
 											<div class="text right actions">
-												<div class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</div>
+												<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
 												<button class="ui red button" type="submit">{{$.locale.Tr "ok"}}</button>
 											</div>
 										</form>
@@ -129,11 +129,12 @@
 	<div class="content">
 		{{template "repo/pulls/status" .}}
 		{{$canAutoMerge := false}}
+		{{$showGeneralMergeForm := false}}
 		<div class="ui attached merge-section segment {{if not $.LatestCommitStatus}}no-header{{end}}">
 			{{if .Issue.PullRequest.HasMerged}}
 				<div class="item text">
 					{{if .Issue.PullRequest.MergedCommitID}}
-						{{$link := printf "%s/commit/%s" $.Repository.HTMLURL (.Issue.PullRequest.MergedCommitID|PathEscape)}}
+						{{$link := printf "%s/commit/%s" $.Repository.Link (.Issue.PullRequest.MergedCommitID|PathEscape)}}
 						{{if eq $.Issue.PullRequest.Status 3}}
 							{{$.locale.Tr "repo.pulls.manually_merged_as" ($link|Escape) (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
 						{{else}}
@@ -167,9 +168,11 @@
 				<div class="item text">
 					{{svg "octicon-x"}}
 					{{$.locale.Tr "repo.pulls.files_conflicted"}}
-					{{range .ConflictedFiles}}
-						<div>{{.}}</div>
-					{{end}}
+					<ul>
+						{{range .ConflictedFiles}}
+							<li>{{.}}</li>
+						{{end}}
+					</ul>
 				</div>
 			{{else if .IsPullRequestBroken}}
 				<div class="item">
@@ -177,7 +180,7 @@
 					{{$.locale.Tr "repo.pulls.data_broken"}}
 				</div>
 			{{else if .IsPullWorkInProgress}}
-				<div class="item toggle-wip df ac sb" data-title="{{.Issue.Title}}" data-wip-prefix="{{(.WorkInProgressPrefix|Escape)}}" data-update-url="{{.Issue.Link}}/title">
+				<div class="item toggle-wip gt-df gt-ac gt-sb" data-title="{{.Issue.Title}}" data-wip-prefix="{{(.WorkInProgressPrefix|Escape)}}" data-update-url="{{.Issue.Link}}/title">
 					<div>
 						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 						{{$.locale.Tr "repo.pulls.cannot_merge_work_in_progress"}}
@@ -190,6 +193,7 @@
 						{{end}}
 					</div>
 				</div>
+				{{template "repo/issue/view_content/update_branch_by_merge" (dict "locale" .locale "Issue" .Issue  "UpdateAllowed" .UpdateAllowed "UpdateByRebaseAllowed" .UpdateByRebaseAllowed "Link" .Link)}}
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item">
 					<i class="icon icon-octicon">{{svg "octicon-sync"}}</i>
@@ -225,11 +229,11 @@
 					<div class="item">
 						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
 						{{$.locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
-						<div class="ui ordered list">
+						<ul>
 							{{range .ChangedProtectedFiles}}
-								<div data-value="-" class="item">{{.}}</div>
+								<li>{{.}}</li>
 							{{end}}
-						</div>
+						</ul>
 					</div>
 				{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsError .RequiredStatusCheckState.IsFailure)}}
 					<div class="item">
@@ -282,44 +286,7 @@
 						</div>
 					{{end}}
 				{{end}}
-				{{if and (gt .Issue.PullRequest.CommitsBehind 0) (not  .Issue.IsClosed) (not .Issue.PullRequest.IsChecking) (not .IsPullFilesConflicted) (not .IsPullRequestBroken) (not $canAutoMerge)}}
-					<div class="ui divider"></div>
-					<div class="item item-section">
-						<div class="item-section-left">
-							<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
-							{{$.locale.Tr "repo.pulls.outdated_with_base_branch"}}
-						</div>
-						<div class="item-section-right">
-							{{if and .UpdateAllowed .UpdateByRebaseAllowed}}
-								<div class="dib">
-									<div class="ui buttons update-button">
-										<button class="ui button" data-do="{{.Link}}/update" data-redirect="{{.Link}}">
-											<span class="button-text">
-												{{$.locale.Tr "repo.pulls.update_branch"}}
-											</span>
-										</button>
-
-										<div class="ui dropdown icon button no-text">
-											{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-											<div class="menu">
-												<div class="item active selected" data-do="{{.Link}}/update">{{$.locale.Tr "repo.pulls.update_branch"}}</div>
-												<div class="item" data-do="{{.Link}}/update?style=rebase">{{$.locale.Tr "repo.pulls.update_branch_rebase"}}</div>
-											</div>
-										</div>
-									</div>
-								</div>
-							{{end}}
-							{{if and .UpdateAllowed (not .UpdateByRebaseAllowed)}}
-								<form action="{{.Link}}/update" method="post" class="ui update-branch-form">
-									{{.CsrfTokenHtml}}
-									<button class="ui compact button" data-do="update">
-										<span class="ui text">{{$.locale.Tr "repo.pulls.update_branch"}}</span>
-									</button>
-								</form>
-							{{end}}
-						</div>
-					</div>
-				{{end}}
+				{{template "repo/issue/view_content/update_branch_by_merge" (dict "locale" .locale "Issue" .Issue  "UpdateAllowed" .UpdateAllowed "UpdateByRebaseAllowed" .UpdateByRebaseAllowed "Link" .Link)}}
 				{{if .Issue.PullRequest.IsEmpty}}
 					<div class="ui divider"></div>
 
@@ -339,86 +306,83 @@
 							{{$hasPendingPullRequestMergeTip = $.locale.Tr "repo.pulls.auto_merge_has_pending_schedule" .PendingPullRequestMerge.Doer.Name $createdPRMergeStr}}
 						{{end}}
 						<div class="ui divider"></div>
-						<script>
-							(() => {
-								const defaultMergeTitle = {{.DefaultMergeMessage}};
-								const defaultSquashMergeTitle = {{.DefaultSquashMergeMessage}};
-								const defaultMergeMessage = {{if .DefaultMergeBody}}{{.DefaultMergeBody}}{{else}}'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}}{{end}};
-								const defaultSquashMergeMessage = {{if .DefaultSquashMergeBody}}{{.DefaultSquashMergeBody}}{{else}}'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}}{{end}};
-								const mergeForm = {
-									'baseLink': {{.Link}},
-									'textCancel': {{$.locale.Tr "cancel"}},
-									'textDeleteBranch': {{$.locale.Tr "repo.branch.delete" .HeadTarget}},
-									'textAutoMergeButtonWhenSucceed': {{$.locale.Tr "repo.pulls.auto_merge_button_when_succeed"}},
-									'textAutoMergeWhenSucceed': {{$.locale.Tr "repo.pulls.auto_merge_when_succeed"}},
-									'textAutoMergeCancelSchedule': {{$.locale.Tr "repo.pulls.auto_merge_cancel_schedule"}},
-									'textClearMergeMessage': {{$.locale.Tr "repo.pulls.clear_merge_message"}},
-									'textClearMergeMessageHint': {{$.locale.Tr "repo.pulls.clear_merge_message_hint"}},
+						<script type="module">
+							const issueUrl = window.location.origin + {{$.Issue.Link}};
+							const defaultMergeTitle = {{.DefaultMergeMessage}};
+							const defaultSquashMergeTitle = {{.DefaultSquashMergeMessage}};
+							const defaultMergeMessage = {{if .DefaultMergeBody}}{{.DefaultMergeBody}}{{else}}`Reviewed-on: ${issueUrl}\n` + {{$approvers}}{{end}};
+							const defaultSquashMergeMessage = {{if .DefaultSquashMergeBody}}{{.DefaultSquashMergeBody}}{{else}}`Reviewed-on: ${issueUrl}\n` + {{$approvers}}{{end}};
+							const mergeForm = {
+								'baseLink': {{.Link}},
+								'textCancel': {{$.locale.Tr "cancel"}},
+								'textDeleteBranch': {{$.locale.Tr "repo.branch.delete" .HeadTarget}},
+								'textAutoMergeButtonWhenSucceed': {{$.locale.Tr "repo.pulls.auto_merge_button_when_succeed"}},
+								'textAutoMergeWhenSucceed': {{$.locale.Tr "repo.pulls.auto_merge_when_succeed"}},
+								'textAutoMergeCancelSchedule': {{$.locale.Tr "repo.pulls.auto_merge_cancel_schedule"}},
+								'textClearMergeMessage': {{$.locale.Tr "repo.pulls.clear_merge_message"}},
+								'textClearMergeMessageHint': {{$.locale.Tr "repo.pulls.clear_merge_message_hint"}},
+								'textMergeCommitId': {{$.locale.Tr "repo.pulls.merge_commit_id"}},
 
-									'canMergeNow': {{$canMergeNow}},
-									'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
-									'emptyCommit': {{.Issue.PullRequest.IsEmpty}},
-									'pullHeadCommitID': {{.PullHeadCommitID}},
-									'isPullBranchDeletable': {{.IsPullBranchDeletable}},
-									'defaultMergeStyle': {{.MergeStyle}},
-									'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
-									'mergeMessageFieldPlaceHolder': {{$.locale.Tr "repo.editor.commit_message_desc"}},
-									'defaultMergeMessage': defaultMergeMessage,
+								'canMergeNow': {{$canMergeNow}},
+								'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
+								'emptyCommit': {{.Issue.PullRequest.IsEmpty}},
+								'pullHeadCommitID': {{.PullHeadCommitID}},
+								'isPullBranchDeletable': {{.IsPullBranchDeletable}},
+								'defaultMergeStyle': {{.MergeStyle}},
+								'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
+								'mergeMessageFieldPlaceHolder': {{$.locale.Tr "repo.editor.commit_message_desc"}},
+								'defaultMergeMessage': defaultMergeMessage,
 
-									'hasPendingPullRequestMerge': {{.HasPendingPullRequestMerge}},
-									'hasPendingPullRequestMergeTip': {{$hasPendingPullRequestMergeTip}},
-								};
+								'hasPendingPullRequestMerge': {{.HasPendingPullRequestMerge}},
+								'hasPendingPullRequestMergeTip': {{$hasPendingPullRequestMergeTip}},
+							};
 
-								const generalHideAutoMerge = mergeForm.canMergeNow && mergeForm.allOverridableChecksOk; // if this PR can be merged now, then hide the auto merge
-								mergeForm['mergeStyles'] = [
-									{
-										'name': 'merge',
-										'allowed': {{$prUnit.PullRequestsConfig.AllowMerge}},
-										'textDoMerge': {{$.locale.Tr "repo.pulls.merge_pull_request"}},
-										'mergeTitleFieldText': defaultMergeTitle,
-										'mergeMessageFieldText': defaultMergeMessage,
-										'hideAutoMerge': generalHideAutoMerge,
-									},
-									{
-										'name': 'rebase',
-										'allowed': {{$prUnit.PullRequestsConfig.AllowRebase}},
-										'textDoMerge': {{$.locale.Tr "repo.pulls.rebase_merge_pull_request"}},
-										'hideMergeMessageTexts': true,
-										'hideAutoMerge': generalHideAutoMerge,
-									},
-									{
-										'name': 'rebase-merge',
-										'allowed': {{$prUnit.PullRequestsConfig.AllowRebaseMerge}},
-										'textDoMerge': {{$.locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}},
-										'mergeTitleFieldText': defaultMergeTitle,
-										'mergeMessageFieldText': defaultMergeMessage,
-										'hideAutoMerge': generalHideAutoMerge,
-									},
-									{
-										'name': 'squash',
-										'allowed': {{$prUnit.PullRequestsConfig.AllowSquash}},
-										'textDoMerge': {{$.locale.Tr "repo.pulls.squash_merge_pull_request"}},
-										'mergeTitleFieldText': defaultSquashMergeTitle,
-										'mergeMessageFieldText': {{.GetCommitMessages}} + defaultSquashMergeMessage,
-										'hideAutoMerge': generalHideAutoMerge,
-									},
-									{
-										'name': 'manually-merged',
-										'allowed': {{and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}},
-										'textDoMerge': {{$.locale.Tr "repo.pulls.merge_manually"}},
-										'hideMergeMessageTexts': true,
-										'hideAutoMerge': true,
-									}
-								];
-								window.config.pageData.pullRequestMergeForm = mergeForm;
-							})();
+							const generalHideAutoMerge = mergeForm.canMergeNow && mergeForm.allOverridableChecksOk; // if this pr can be merged now, then hide the auto merge
+							mergeForm['mergeStyles'] = [
+								{
+									'name': 'merge',
+									'allowed': {{$prUnit.PullRequestsConfig.AllowMerge}},
+									'textDoMerge': {{$.locale.Tr "repo.pulls.merge_pull_request"}},
+									'mergeTitleFieldText': defaultMergeTitle,
+									'mergeMessageFieldText': defaultMergeMessage,
+									'hideAutoMerge': generalHideAutoMerge,
+								},
+								{
+									'name': 'rebase',
+									'allowed': {{$prUnit.PullRequestsConfig.AllowRebase}},
+									'textDoMerge': {{$.locale.Tr "repo.pulls.rebase_merge_pull_request"}},
+									'hideMergeMessageTexts': true,
+									'hideAutoMerge': generalHideAutoMerge,
+								},
+								{
+									'name': 'rebase-merge',
+									'allowed': {{$prUnit.PullRequestsConfig.AllowRebaseMerge}},
+									'textDoMerge': {{$.locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}},
+									'mergeTitleFieldText': defaultMergeTitle,
+									'mergeMessageFieldText': defaultMergeMessage,
+									'hideAutoMerge': generalHideAutoMerge,
+								},
+								{
+									'name': 'squash',
+									'allowed': {{$prUnit.PullRequestsConfig.AllowSquash}},
+									'textDoMerge': {{$.locale.Tr "repo.pulls.squash_merge_pull_request"}},
+									'mergeTitleFieldText': defaultSquashMergeTitle,
+									'mergeMessageFieldText': {{.GetCommitMessages}} + defaultSquashMergeMessage,
+									'hideAutoMerge': generalHideAutoMerge,
+								},
+								{
+									'name': 'manually-merged',
+									'allowed': {{and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}},
+									'textDoMerge': {{$.locale.Tr "repo.pulls.merge_manually"}},
+									'hideMergeMessageTexts': true,
+									'hideAutoMerge': true,
+								}
+							];
+							window.config.pageData.pullRequestMergeForm = mergeForm;
 						</script>
 
+						{{$showGeneralMergeForm = true}}
 						<div id="pull-request-merge-form"></div>
-
-						{{if .ShowMergeInstructions}}
-							{{template "repo/issue/view_content/pull_merge_instruction" (dict "locale" .locale "Issue" .Issue)}}
-						{{end}}
 					{{else}}
 						{{/* no merge style was set in repo setting: not or ($prUnit.PullRequestsConfig.AllowMerge ...) */}}
 						<div class="ui divider"></div>
@@ -465,11 +429,11 @@
 					<div class="item text red">
 						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
 						{{$.locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
-						<div class="ui ordered list">
+						<ul>
 							{{range .ChangedProtectedFiles}}
-								<div data-value="-" class="item">{{.}}</div>
+								<li>{{.}}</li>
 							{{end}}
-						</div>
+						</ul>
 					</div>
 				{{else if and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess)}}
 					<div class="item text red">
@@ -491,30 +455,25 @@
 						{{$.locale.Tr "repo.pulls.cannot_auto_merge_helper"}}
 					</div>
 				{{end}}
-			{{end}}
+			{{end}}{{/* end if: pull request status */}}
 
-			{{if $.StillCanManualMerge}}
+			{{if and $.StillCanManualMerge (not $showGeneralMergeForm)}}
 				<div class="ui divider"></div>
-				<div class="ui form manually-merged-fields" style="display: none">
+				<div class="ui form">
 					<form action="{{.Link}}/merge" method="post">
 						{{.CsrfTokenHtml}}
 						<div class="field">
-							<input type="text" name="merge_commit_id"  placeholder="{{$.locale.Tr "repo.pulls.merge_commit_id"}}">
+							<input type="text" name="merge_commit_id" placeholder="{{$.locale.Tr "repo.pulls.merge_commit_id"}}">
 						</div>
 						<button class="ui red button" type="submit" name="do" value="manually-merged">
 							{{$.locale.Tr "repo.pulls.merge_manually"}}
 						</button>
-						<button class="ui button merge-cancel">
-							{{$.locale.Tr "cancel"}}
-						</button>
 					</form>
 				</div>
+			{{end}}
 
-				<div class="ui red buttons merge-button">
-					<button class="ui button" data-do="manually-merged">
-						{{$.locale.Tr "repo.pulls.merge_manually"}}
-					</button>
-				</div>
+			{{if and .ShowMergeInstructions .Issue.PullRequest.HeadRepo}}
+				{{template "repo/issue/view_content/pull_merge_instruction" (dict "locale" .locale "Issue" .Issue)}}
 			{{end}}
 		</div>
 	</div>

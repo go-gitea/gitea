@@ -6,7 +6,9 @@ package storage
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -14,6 +16,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -43,15 +46,17 @@ const MinioStorageType Type = "minio"
 
 // MinioStorageConfig represents the configuration for a minio storage
 type MinioStorageConfig struct {
-	Endpoint         string `ini:"MINIO_ENDPOINT"`
-	AccessKeyID      string `ini:"MINIO_ACCESS_KEY_ID"`
-	SecretAccessKey  string `ini:"MINIO_SECRET_ACCESS_KEY"`
-	Bucket           string `ini:"MINIO_BUCKET"`
-	Location         string `ini:"MINIO_LOCATION"`
-	BasePath         string `ini:"MINIO_BASE_PATH"`
-	UseSSL           bool   `ini:"MINIO_USE_SSL"`
-	DisableSignature bool   `ini:"MINIO_DISABLE_SIGNATURE"`
-	DisableMultipart bool   `ini:"MINIO_DISABLE_MULTIPART"`
+
+	Endpoint           string `ini:"MINIO_ENDPOINT"`
+	AccessKeyID        string `ini:"MINIO_ACCESS_KEY_ID"`
+	SecretAccessKey    string `ini:"MINIO_SECRET_ACCESS_KEY"`
+	Bucket             string `ini:"MINIO_BUCKET"`
+	Location           string `ini:"MINIO_LOCATION"`
+	BasePath           string `ini:"MINIO_BASE_PATH"`
+	UseSSL             bool   `ini:"MINIO_USE_SSL"`
+  InsecureSkipVerify bool   `ini:"MINIO_INSECURE_SKIP_VERIFY"`
+	DisableSignature   bool   `ini:"MINIO_DISABLE_SIGNATURE"`
+	DisableMultipart   bool   `ini:"MINIO_DISABLE_MULTIPART"`
 }
 
 // MinioStorage returns a minio bucket storage
@@ -94,8 +99,9 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 	log.Info("Creating Minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 
 	minioClient, err := minio.New(config.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
-		Secure: config.UseSSL,
+		Creds:     credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
+		Secure:    config.UseSSL,
+		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
 	})
 	if err != nil {
 		return nil, convertMinioErr(err)
@@ -121,7 +127,7 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
-	return strings.TrimPrefix(path.Join(m.basePath, path.Clean("/" + strings.ReplaceAll(p, "\\", "/"))[1:]), "/")
+	return util.PathJoinRelX(m.basePath, p)
 }
 
 // Open open a file
@@ -231,12 +237,18 @@ func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
 }
 
 // IterateObjects iterates across the objects in the miniostorage
-func (m *MinioStorage) IterateObjects(fn func(path string, obj Object) error) error {
+func (m *MinioStorage) IterateObjects(prefix string, fn func(path string, obj Object) error) error {
 	opts := minio.GetObjectOptions{}
 	lobjectCtx, cancel := context.WithCancel(m.ctx)
 	defer cancel()
+
+	basePath := m.basePath
+	if prefix != "" {
+		basePath = m.buildMinioPath(prefix)
+	}
+
 	for mObjInfo := range m.client.ListObjects(lobjectCtx, m.bucket, minio.ListObjectsOptions{
-		Prefix:    m.basePath,
+		Prefix:    basePath,
 		Recursive: true,
 	}) {
 		object, err := m.client.GetObject(lobjectCtx, m.bucket, mObjInfo.Key, opts)
@@ -245,7 +257,7 @@ func (m *MinioStorage) IterateObjects(fn func(path string, obj Object) error) er
 		}
 		if err := func(object *minio.Object, fn func(path string, obj Object) error) error {
 			defer object.Close()
-			return fn(strings.TrimPrefix(mObjInfo.Key, m.basePath), &minioObject{object})
+			return fn(strings.TrimPrefix(mObjInfo.Key, basePath), &minioObject{object})
 		}(object, fn); err != nil {
 			return convertMinioErr(err)
 		}

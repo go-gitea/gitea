@@ -1,3 +1,4 @@
+import {h} from 'vue';
 import octiconChevronDown from '../../public/img/svg/octicon-chevron-down.svg';
 import octiconChevronRight from '../../public/img/svg/octicon-chevron-right.svg';
 import octiconClock from '../../public/img/svg/octicon-clock.svg';
@@ -25,8 +26,27 @@ import octiconSidebarCollapse from '../../public/img/svg/octicon-sidebar-collaps
 import octiconSidebarExpand from '../../public/img/svg/octicon-sidebar-expand.svg';
 import octiconTriangleDown from '../../public/img/svg/octicon-triangle-down.svg';
 import octiconX from '../../public/img/svg/octicon-x.svg';
+import octiconCheckCircleFill from '../../public/img/svg/octicon-check-circle-fill.svg';
+import octiconXCircleFill from '../../public/img/svg/octicon-x-circle-fill.svg';
+import octiconSkip from '../../public/img/svg/octicon-skip.svg';
+import octiconMeter from '../../public/img/svg/octicon-meter.svg';
+import octiconBlocked from '../../public/img/svg/octicon-blocked.svg';
+import octiconSync from '../../public/img/svg/octicon-sync.svg';
+import octiconFilter from '../../public/img/svg/octicon-filter.svg';
+import octiconPlus from '../../public/img/svg/octicon-plus.svg';
+import octiconSearch from '../../public/img/svg/octicon-search.svg';
+import octiconArchive from '../../public/img/svg/octicon-archive.svg';
+import octiconStar from '../../public/img/svg/octicon-star.svg';
+import giteaDoubleChevronLeft from '../../public/img/svg/gitea-double-chevron-left.svg';
+import giteaDoubleChevronRight from '../../public/img/svg/gitea-double-chevron-right.svg';
+import octiconChevronLeft from '../../public/img/svg/octicon-chevron-left.svg';
+import octiconOrganization from '../../public/img/svg/octicon-organization.svg';
+import octiconTag from '../../public/img/svg/octicon-tag.svg';
+import octiconGitBranch from '../../public/img/svg/octicon-git-branch.svg';
 
-export const svgs = {
+const svgs = {
+  'octicon-blocked': octiconBlocked,
+  'octicon-check-circle-fill': octiconCheckCircleFill,
   'octicon-chevron-down': octiconChevronDown,
   'octicon-chevron-right': octiconChevronRight,
   'octicon-clock': octiconClock,
@@ -44,6 +64,7 @@ export const svgs = {
   'octicon-kebab-horizontal': octiconKebabHorizontal,
   'octicon-link': octiconLink,
   'octicon-lock': octiconLock,
+  'octicon-meter': octiconMeter,
   'octicon-milestone': octiconMilestone,
   'octicon-mirror': octiconMirror,
   'octicon-project': octiconProject,
@@ -52,23 +73,42 @@ export const svgs = {
   'octicon-repo-template': octiconRepoTemplate,
   'octicon-sidebar-collapse': octiconSidebarCollapse,
   'octicon-sidebar-expand': octiconSidebarExpand,
+  'octicon-skip': octiconSkip,
+  'octicon-sync': octiconSync,
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
+  'octicon-x-circle-fill': octiconXCircleFill,
+  'octicon-filter': octiconFilter,
+  'octicon-plus': octiconPlus,
+  'octicon-search': octiconSearch,
+  'octicon-archive': octiconArchive,
+  'octicon-star': octiconStar,
+  'gitea-double-chevron-left': giteaDoubleChevronLeft,
+  'gitea-double-chevron-right': giteaDoubleChevronRight,
+  'octicon-chevron-left': octiconChevronLeft,
+  'octicon-organization': octiconOrganization,
+  'octicon-tag': octiconTag,
+  'octicon-git-branch': octiconGitBranch,
 };
+
+// TODO: use a more general approach to access SVG icons.
+//  At the moment, developers must check, pick and fill the names manually,
+//  most of the SVG icons in assets couldn't be used directly.
 
 const parser = new DOMParser();
 const serializer = new XMLSerializer();
 
-// retrieve a HTML string for given SVG icon name, size and additional classes
+// retrieve an HTML string for given SVG icon name, size and additional classes
 export function svg(name, size = 16, className = '') {
-  if (!(name in svgs)) return '';
+  if (!(name in svgs)) throw new Error(`Unknown SVG icon: ${name}`);
   if (size === 16 && !className) return svgs[name];
 
   const document = parser.parseFromString(svgs[name], 'image/svg+xml');
   const svgNode = document.firstChild;
   if (size !== 16) svgNode.setAttribute('width', String(size));
   if (size !== 16) svgNode.setAttribute('height', String(size));
-  if (className) svgNode.classList.add(...className.split(/\s+/));
+  // filter array to remove empty string
+  if (className) svgNode.classList.add(...className.split(/\s+/).filter(Boolean));
   return serializer.serializeToString(svgNode);
 }
 
@@ -79,12 +119,7 @@ export const SvgIcon = {
     size: {type: Number, default: 16},
     className: {type: String, default: ''},
   },
-
-  computed: {
-    svg() {
-      return svg(this.name, this.size, this.className);
-    },
+  render() {
+    return h('span', {innerHTML: svg(this.name, this.size, this.className)});
   },
-
-  template: `<span v-html="svg" />`
 };
