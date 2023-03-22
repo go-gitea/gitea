@@ -7,6 +7,7 @@ package repo
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -74,37 +75,36 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		return
 	}
 
-	canWrite := ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
-
-	// 2. Get everything `issue` depends on, i.e. All `<#b>`: `<issue> <- <#b>`
-	blockersInfo, err := issue.BlockedByDependencies(ctx)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "BlockedByDependencies", err)
-		return
-	}
-
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
 	limit := ctx.FormInt("limit")
-	if limit <= 1 {
+	if limit == 0 {
 		limit = setting.API.DefaultPagingNum
+	} else if limit > setting.API.MaxResponseItems {
+		limit = setting.API.MaxResponseItems
 	}
 
-	skip := (page - 1) * limit
-	max := page * limit
+	canWrite := ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
 
-	var blockerIssues []*issues_model.Issue
+	blockerIssues := make([]*issues_model.Issue, 0, limit)
 
 	perms := map[int64]access_model.Permission{}
 	perms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
-	// FIXME: the i here should be the number of issues displayed to the user!
-	for i, blocker := range blockersInfo {
-		if i < skip || i >= max {
-			continue
-		}
 
+	// 2. Get the issues this issue depends on, i.e. the `<#b>`: `<issue> <- <#b>`
+	blockersInfo, err := issue.BlockedByDependencies(ctx, db.ListOptions{
+		Page:     page,
+		PageSize: limit,
+	})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "BlockedByDependencies", err)
+		return
+	}
+	for _, blocker := range blockersInfo {
+
+		// Get the permissions for this repository
 		perm, has := perms[blocker.Repository.ID]
 		if !has {
 			perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
@@ -114,16 +114,34 @@ func GetIssueDependencies(ctx *context.APIContext) {
 			}
 		}
 
+		// check permission
 		if !perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
 			if !canWrite {
-				// We can't read this issue/pull so we shouldn't know about it
-				// FIXME: the UI is broken here!
-				continue
+				hiddenBlocker := &issues_model.DependencyInfo{
+					Issue: issues_model.Issue{
+						Title: "HIDDEN",
+					},
+				}
+				blocker = hiddenBlocker
+			} else {
+				confidentialBlocker := &issues_model.DependencyInfo{
+					Issue: issues_model.Issue{
+						RepoID:   blocker.Issue.RepoID,
+						Index:    blocker.Index,
+						Title:    blocker.Title,
+						IsClosed: blocker.IsClosed,
+						IsPull:   blocker.IsPull,
+					},
+					Repository: repo_model.Repository{
+						ID:        blocker.Issue.Repo.ID,
+						Name:      blocker.Issue.Repo.Name,
+						OwnerName: blocker.Issue.Repo.OwnerName,
+					},
+				}
+				confidentialBlocker.Issue.Repo = &confidentialBlocker.Repository
+				blocker = confidentialBlocker
 			}
-			// FIXME: We shouldn't display the whole issue here
 		}
-
-		blocker.Issue.Repo = &blocker.Repository
 		blockerIssues = append(blockerIssues, &blocker.Issue)
 	}
 

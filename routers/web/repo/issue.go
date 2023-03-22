@@ -1812,7 +1812,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	// Get Dependencies
-	ctx.Data["BlockedByDependencies"], err = issue.BlockedByDependencies(ctx)
+	ctx.Data["BlockedByDependencies"], err = issue.BlockedByDependencies(ctx, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("BlockedByDependencies", err)
 		return

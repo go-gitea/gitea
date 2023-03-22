@@ -32,9 +32,6 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return &api.Issue{}
 	}
-	if err := issue.Repo.LoadOwner(ctx); err != nil {
-		return &api.Issue{}
-	}
 
 	apiIssue := &api.Issue{
 		ID:          issue.ID,
@@ -46,7 +43,6 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 		Body:        issue.Content,
 		Attachments: ToAttachments(issue.Attachments),
 		Ref:         issue.Ref,
-		Labels:      ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner),
 		State:       issue.State(),
 		IsLocked:    issue.IsLocked,
 		Comments:    issue.NumComments,
@@ -54,11 +50,17 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 		Updated:     issue.UpdatedUnix.AsTime(),
 	}
 
-	apiIssue.Repo = &api.RepositoryMeta{
-		ID:       issue.Repo.ID,
-		Name:     issue.Repo.Name,
-		Owner:    issue.Repo.OwnerName,
-		FullName: issue.Repo.FullName(),
+	if issue.Repo != nil {
+		if err := issue.Repo.LoadOwner(ctx); err != nil {
+			return &api.Issue{}
+		}
+		apiIssue.Labels = ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner)
+		apiIssue.Repo = &api.RepositoryMeta{
+			ID:       issue.Repo.ID,
+			Name:     issue.Repo.Name,
+			Owner:    issue.Repo.OwnerName,
+			FullName: issue.Repo.FullName(),
+		}
 	}
 
 	if issue.ClosedUnix != 0 {
@@ -85,11 +87,13 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 		if err := issue.LoadPullRequest(ctx); err != nil {
 			return &api.Issue{}
 		}
-		apiIssue.PullRequest = &api.PullRequestMeta{
-			HasMerged: issue.PullRequest.HasMerged,
-		}
-		if issue.PullRequest.HasMerged {
-			apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
+		if issue.PullRequest != nil {
+			apiIssue.PullRequest = &api.PullRequestMeta{
+				HasMerged: issue.PullRequest.HasMerged,
+			}
+			if issue.PullRequest.HasMerged {
+				apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
+			}
 		}
 	}
 	if issue.DeadlineUnix != 0 {
