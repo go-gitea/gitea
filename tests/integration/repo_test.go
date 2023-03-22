@@ -362,7 +362,7 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 	missing("symlink-loop", "/user2/readme-test/src/branch/symlink-loop/")
 }
 
-func TestMarkDownImage(t *testing.T) {
+func TestMarkDownReadmeImage(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
@@ -371,13 +371,38 @@ func TestMarkDownImage(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	_, exists := htmlDoc.doc.Find(`img[src="/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg"]`).Attr("src")
-	assert.True(t, exists, "Repo home page markdown image link check failed")
+	src, exists := htmlDoc.doc.Find(`.markdown img`).Attr("src")
+	assert.True(t, exists, "Image not found in README")
+	assert.Equal(t, src, "/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg")
 
 	req = NewRequest(t, "GET", "/user2/repo1/src/branch/home-md-img-check/README.md")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	_, exists = htmlDoc.doc.Find(`img[src="/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg"]`).Attr("src")
-	assert.True(t, exists, "Repo src page markdown image link check failed")
+	src, exists = htmlDoc.doc.Find(`.markdown img`).Attr("src")
+	assert.True(t, exists, "Image not found in markdown file")
+	assert.Equal(t, src, "/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg")
+}
+
+func TestMarkDownReadmeImageSubfolder(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	// this branch has the README in the special docs/README.md location
+	req := NewRequest(t, "GET", "/user2/repo1/src/branch/sub-home-md-img-check")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	src, exists := htmlDoc.doc.Find(`.markdown img`).Attr("src")
+	assert.True(t, exists, "Image not found in README")
+	assert.Equal(t, src, "/user2/repo1/media/branch/sub-home-md-img-check/docs/test-fake-img.jpg")
+
+	req = NewRequest(t, "GET", "/user2/repo1/src/branch/sub-home-md-img-check/docs/README.md")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	src, exists = htmlDoc.doc.Find(`.markdown img`).Attr("src")
+	assert.True(t, exists, "Image not found in markdown file")
+	assert.Equal(t, src, "/user2/repo1/media/branch/sub-home-md-img-check/docs/test-fake-img.jpg")
 }
