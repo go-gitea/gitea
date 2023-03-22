@@ -742,13 +742,13 @@ func VerifyUserActiveCode(code string) (user *User) {
 }
 
 // ChangeUserName changes all corresponding setting from old user name to new one.
-func ChangeUserName(u *User, newUserName string) (err error) {
+func ChangeUserName(ctx context.Context, u *User, newUserName string) (err error) {
 	oldUserName := u.Name
 	if err = IsUsableUsername(newUserName); err != nil {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

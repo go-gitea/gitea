@@ -1,181 +1,54 @@
-<div id="dashboard-repo-list" class="six wide column">
-	<repo-search
-	:search-limit="searchLimit"
-	:sub-url="subUrl"
-	:uid="uid"
-	{{if .Team}}
-	:team-id="{{.Team.ID}}"
-	{{end}}
-	:more-repos-link="'{{.ContextUser.HomeLink}}'"
-	{{if not .ContextUser.IsOrganization}}
-	:organizations="[
-	{{range .Orgs}}
-	{name: '{{.Name}}', num_repos: '{{.NumRepos}}'},
-	{{end}}
-	]"
-	:is-organization="false"
-	:organizations-total-count="{{.UserOrgsCount}}"
-	:can-create-organization="{{.SignedUser.CanCreateOrganization}}"
-	{{end}}
-	inline-template
-	v-cloak
-	></repo-search>
-</div>
+<script type="module">
+const data = {
+	...window.config.pageData.dashboardRepoList, // it only contains searchLimit and uid
 
-<template id="dashboard-repo-list-template">
-	<div>
-		<div v-if="!isOrganization" class="ui two item tabable menu">
-			<a :class="{item: true, active: tab === 'repos'}" @click="changeTab('repos')">{{.locale.Tr "repository"}}</a>
-			<a :class="{item: true, active: tab === 'organizations'}" @click="changeTab('organizations')">{{.locale.Tr "organization"}}</a>
-		</div>
-		<div v-show="tab === 'repos'" class="ui tab active list dashboard-repos">
-			<h4 class="ui top attached header gt-df gt-ac">
-				<div class="gt-f1 gt-df gt-ac">
-					{{.locale.Tr "home.my_repos"}}
-					<span class="ui grey label gt-ml-3">${reposTotalCount}</span>
-				</div>
-				<a class="tooltip" :href="subUrl + '/repo/create'" data-content="{{.locale.Tr "new_repo"}}" data-position="left center">
-					{{svg "octicon-plus"}}
-					<span class="sr-only">{{.locale.Tr "new_repo"}}</span>
-				</a>
-			</h4>
-			<div class="ui attached segment repos-search">
-				<div class="ui fluid right action left icon input" :class="{loading: isLoading}">
-					<input @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" placeholder="{{.locale.Tr "home.search_repos"}}">
-					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-					<div class="ui dropdown icon button" title="{{.locale.Tr "home.filter"}}">
-						<i class="icon gt-df gt-ac gt-jc gt-m-0">{{svg "octicon-filter" 16}}</i>
-						<div class="menu">
-							<a class="item" @click="toggleArchivedFilter()">
-								<div class="ui checkbox"
-											ref="checkboxArchivedFilter"
-											data-title-both="{{.locale.Tr "home.show_both_archived_unarchived"}}"
-											data-title-unarchived="{{.locale.Tr "home.show_only_unarchived"}}"
-											data-title-archived="{{.locale.Tr "home.show_only_archived"}}"
-											:title="checkboxArchivedFilterTitle"
-								>
-									<!--the "hidden" is necessary to make the checkbox work without Fomantic UI js,
-											otherwise if the "input" handles click event for intermediate status, it breaks the internal state-->
-									<input type="checkbox" class="hidden" v-bind.prop="checkboxArchivedFilterProps">
-									<label>
-										{{svg "octicon-archive" 16 "gt-mr-2"}}
-										{{.locale.Tr "home.show_archived"}}
-									</label>
-								</div>
-							</a>
-							<a class="item" @click="togglePrivateFilter()">
-								<div class="ui checkbox"
-											ref="checkboxPrivateFilter"
-											data-title-both="{{.locale.Tr "home.show_both_private_public"}}"
-											data-title-public="{{.locale.Tr "home.show_only_public"}}"
-											data-title-private="{{.locale.Tr "home.show_only_private"}}"
-											:title="checkboxPrivateFilterTitle"
-								>
-									<input type="checkbox" class="hidden" v-bind.prop="checkboxPrivateFilterProps">
-									<label>
-										{{svg "octicon-lock" 16 "gt-mr-2"}}
-										{{.locale.Tr "home.show_private"}}
-									</label>
-								</div>
-							</a>
-						</div>
-					</div>
-				</div>
-				<div class="ui secondary tiny pointing borderless menu center grid repos-filter">
-					<a class="item" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
-						{{.locale.Tr "all"}}
-						<div v-show="reposFilter === 'all'" class="ui circular mini grey label">${repoTypeCount}</div>
-					</a>
-					<a class="item" :class="{active: reposFilter === 'sources'}" @click="changeReposFilter('sources')">
-						{{.locale.Tr "sources"}}
-						<div v-show="reposFilter === 'sources'" class="ui circular mini grey label">${repoTypeCount}</div>
-					</a>
-					<a class="item" :class="{active: reposFilter === 'forks'}" @click="changeReposFilter('forks')">
-						{{.locale.Tr "forks"}}
-						<div v-show="reposFilter === 'forks'" class="ui circular mini grey label">${repoTypeCount}</div>
-					</a>
-					{{if .MirrorsEnabled}}
-					<a class="item" :class="{active: reposFilter === 'mirrors'}" @click="changeReposFilter('mirrors')">
-						{{.locale.Tr "mirrors"}}
-						<div v-show="reposFilter === 'mirrors'" class="ui circular mini grey label">${repoTypeCount}</div>
-					</a>
-					{{end}}
-					<a class="item" :class="{active: reposFilter === 'collaborative'}" @click="changeReposFilter('collaborative')">
-						{{.locale.Tr "collaborative"}}
-						<div v-show="reposFilter === 'collaborative'" class="ui circular mini grey label">${repoTypeCount}</div>
-					</a>
-				</div>
-			</div>
-			<div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
-				<ul class="repo-owner-name-list">
-					<li v-for="repo in repos" :class="{'private': repo.private || repo.internal}">
-						<a class="repo-list-link gt-df gt-ac gt-sb" :href="repo.link">
-							<div class="item-name gt-df gt-ac gt-f1 gt-mr-2">
-								<component v-bind:is="repoIcon(repo)" size="16" class="gt-mr-2"></component>
-								<div class="text gt-bold truncate gt-ml-1">${repo.full_name}</div>
-								<span v-if="repo.archived">
-									{{svg "octicon-archive" 16 "gt-ml-2"}}
-								</span>
-							</div>
-							{{if not .DisableStars}}
-								<div class="text light grey gt-df gt-ac">
-									${repo.stars_count}
-									{{svg "octicon-star" 16 "gt-ml-2"}}
-								</div>
-							{{end}}
-						</a>
-					</li>
-				</ul>
-				<div v-if="showMoreReposLink" class="center gt-py-3 gt-border-secondary-top">
-					<div class="ui borderless pagination menu narrow">
-						<a class="item navigation gt-py-2" :class="{'disabled': page === 1}"
-							@click="changePage(1)" title="{{$.locale.Tr "admin.first_page"}}">
-							{{svg "gitea-double-chevron-left" 16 "gt-mr-2"}}
-						</a>
-						<a class="item navigation gt-py-2" :class="{'disabled': page === 1}"
-							@click="changePage(page - 1)" title="{{$.locale.Tr "repo.issues.previous"}}">
-							{{svg "octicon-chevron-left" 16 "gt-mr-2"}}
-						</a>
-						<a class="active item gt-py-2">${page}</a>
-						<a class="item navigation" :class="{'disabled': page === finalPage}"
-							@click="changePage(page + 1)" title="{{$.locale.Tr "repo.issues.next"}}">
-							{{svg "octicon-chevron-right" 16 "gt-ml-2"}}
-						</a>
-						<a class="item navigation gt-py-2" :class="{'disabled': page === finalPage}"
-							@click="changePage(finalPage)" title="{{$.locale.Tr "admin.last_page"}}">
-							{{svg "gitea-double-chevron-right" 16 "gt-ml-2"}}
-						</a>
-					</div>
-				</div>
-			</div>
-		</div>
-		<div v-if="!isOrganization" v-show="tab === 'organizations'" class="ui tab active list dashboard-orgs">
-			<h4 class="ui top attached header gt-df gt-ac">
-				<div class="gt-f1 gt-df gt-ac">
-					{{.locale.Tr "home.my_orgs"}}
-					<span class="ui grey label gt-ml-3">${organizationsTotalCount}</span>
-				</div>
-				<a v-if="canCreateOrganization" class="tooltip" :href="subUrl + '/org/create'" data-content="{{.locale.Tr "new_org"}}" data-position="left center">
-					{{svg "octicon-plus"}}
-					<span class="sr-only">{{.locale.Tr "new_org"}}</span>
-				</a>
-			</h4>
-			<div v-if="organizations.length" class="ui attached table segment gt-rounded-bottom">
-				<ul class="repo-owner-name-list">
-					<li v-for="org in organizations">
-						<a class="repo-list-link gt-df gt-ac gt-sb" :href="subUrl + '/' + encodeURIComponent(org.name)">
-							<div class="text truncate item-name gt-f1">
-								{{svg "octicon-organization" 16 "gt-mr-2"}}
-								<strong>${org.name}</strong>
-							</div>
-							<div class="text light grey gt-df gt-ac">
-								${org.num_repos}
-								{{svg "octicon-repo" 16 "gt-ml-2 gt-mt-1"}}
-							</div>
-						</a>
-					</li>
-				</ul>
-			</div>
-		</div>
-	</div>
-</template>
+	isMirrorsEnabled: {{.IsMirrorsEnabled}},
+	isStarsEnabled: {{not .IsDisableStars}},
+
+	textRepository: {{.locale.Tr "repository"}},
+	textOrganization: {{.locale.Tr "organization"}},
+	textMyRepos: {{.locale.Tr "home.my_repos"}},
+	textNewRepo: {{.locale.Tr "new_repo"}},
+	textSearchRepos: {{.locale.Tr "home.search_repos"}},
+	textFilter: {{.locale.Tr "home.filter"}},
+	textShowArchived: {{.locale.Tr "home.show_archived"}},
+	textShowPrivate: {{.locale.Tr "home.show_private"}},
+
+	textShowBothArchivedUnarchived: {{.locale.Tr "home.show_both_archived_unarchived"}},
+	textShowOnlyUnarchived: {{.locale.Tr "home.show_only_unarchived"}},
+	textShowOnlyArchived: {{.locale.Tr "home.show_only_archived"}},
+
+	textShowBothPrivatePublic: {{.locale.Tr "home.show_both_private_public"}},
+	textShowOnlyPublic: {{.locale.Tr "home.show_only_public"}},
+	textShowOnlyPrivate: {{.locale.Tr "home.show_only_private"}},
+
+	textAll: {{.locale.Tr "all"}},
+	textSources: {{.locale.Tr "sources"}},
+	textForks: {{.locale.Tr "forks"}},
+	textMirrors: {{.locale.Tr "mirrors"}},
+	textCollaborative: {{.locale.Tr "collaborative"}},
+
+	textFirstPage: {{.locale.Tr "admin.first_page"}},
+	textPreviousPage: {{.locale.Tr "repo.issues.previous"}},
+	textNextPage: {{.locale.Tr "repo.issues.next"}},
+	textLastPage: {{.locale.Tr "admin.last_page"}},
+
+	textMyOrgs: {{.locale.Tr "home.my_orgs"}},
+	textNewOrg: {{.locale.Tr "new_org"}},
+};
+
+{{if .Team}}
+data.teamId = {{.Team.ID}};
+{{end}}
+
+{{if not .ContextUser.IsOrganization}}
+data.organizations = [{{range .Orgs}}{'name': {{.Name}}, 'num_repos': {{.NumRepos}}},{{end}}];
+data.isOrganization = false;
+data.organizationsTotalCount = {{.UserOrgsCount}}
+data.canCreateOrganization = {{.SignedUser.CanCreateOrganization}}
+{{end}}
+
+window.config.pageData.dashboardRepoList = data;
+</script>
+
+<div id="dashboard-repo-list" class="six wide column"></div>
