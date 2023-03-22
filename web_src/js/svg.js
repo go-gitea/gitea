@@ -105,8 +105,10 @@ export function svg(name, size = 16, className = '') {
 
   const document = parser.parseFromString(svgs[name], 'image/svg+xml');
   const svgNode = document.firstChild;
-  if (size !== 16) svgNode.setAttribute('width', String(size));
-  if (size !== 16) svgNode.setAttribute('height', String(size));
+  if (size !== 16) {
+    svgNode.setAttribute('width', String(size));
+    svgNode.setAttribute('height', String(size));
+  }
   if (className) svgNode.classList.add(...className.split(/\s+/).filter(Boolean));
   return serializer.serializeToString(svgNode);
 }
