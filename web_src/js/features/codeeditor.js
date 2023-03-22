@@ -156,8 +156,8 @@ export async function createCodeEditor(textarea, filenameInput) {
 
   filenameInput.addEventListener('keyup', () => {
     const filename = filenameInput.value;
-    const _isMarkdown = markdownExts.includes(extname(filename));
-    togglePreviewDisplay(_isMarkdown, previewFileModes);
+    const isNewFilenameMarkdown = markdownExts.includes(extname(filename));
+    togglePreviewDisplay(isNewFilenameMarkdown, previewFileModes);
     updateEditor(monaco, editor, filename, lineWrapExts);
   });
 
