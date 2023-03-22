@@ -4,7 +4,6 @@
 package actions
 
 import (
-	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/nektos/act/pkg/jobparser"
@@ -29,52 +28,45 @@ const (
 // canGithubEventMatch check if the input Github event can match any Gitea event.
 func canGithubEventMatch(evt *jobparser.Event, triggedEvent webhook_module.HookEventType) bool {
 	switch evt.Name {
-	case githubEventCreate:
-		return triggedEvent == webhook_module.HookEventCreate
-	case githubEventDelete:
-		return triggedEvent == webhook_module.HookEventDelete
-	case githubEventFork:
-		return triggedEvent == webhook_module.HookEventFork
-	case githubEventPush:
-		return triggedEvent == webhook_module.HookEventPush
 	case githubEventRegistryPackage:
 		return triggedEvent == webhook_module.HookEventPackage
-	case githubEventRelease:
-		return triggedEvent == webhook_module.HookEventRelease
 
 	case githubEventIssues:
-		return util.SliceContains([]webhook_module.HookEventType{
-			webhook_module.HookEventIssues,
+		switch triggedEvent {
+		case webhook_module.HookEventIssues,
 			webhook_module.HookEventIssueAssign,
 			webhook_module.HookEventIssueLabel,
-			webhook_module.HookEventIssueMilestone,
-		}, triggedEvent)
+			webhook_module.HookEventIssueMilestone:
+			return true
 
-	case githubEventIssueComment:
-		return triggedEvent == webhook_module.HookEventIssueComment
+		default:
+			return false
+		}
 
 	case githubEventPullRequest, githubEventPullRequestTarget:
-		return util.SliceContains([]webhook_module.HookEventType{
-			webhook_module.HookEventPullRequest,
+		switch triggedEvent {
+		case webhook_module.HookEventPullRequest,
 			webhook_module.HookEventPullRequestSync,
 			webhook_module.HookEventPullRequestAssign,
-			webhook_module.HookEventPullRequestLabel,
-		}, triggedEvent)
+			webhook_module.HookEventPullRequestLabel:
+			return true
 
-	case githubEventPullRequestComment:
-		return triggedEvent == webhook_module.HookEventPullRequestComment
+		default:
+			return false
+		}
 
 	case githubEventPullRequestReview:
-		return util.SliceContains([]webhook_module.HookEventType{
-			webhook_module.HookEventPullRequestReviewApproved,
-			webhook_module.HookEventPullRequestComment,
-			webhook_module.HookEventPullRequestReviewRejected,
-		}, triggedEvent)
+		switch triggedEvent {
+		case webhook_module.HookEventPullRequestReviewApproved,
+			webhook_module.HookEventPullRequestReviewComment,
+			webhook_module.HookEventPullRequestReviewRejected:
+			return true
 
-	case githubEventPullRequestReviewComment:
-		return triggedEvent == webhook_module.HookEventPullRequestComment
+		default:
+			return false
+		}
 
 	default:
-		return false
+		return evt.Name == string(triggedEvent)
 	}
 }
