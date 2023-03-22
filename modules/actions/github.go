@@ -26,40 +26,6 @@ const (
 	githubEventPullRequestComment       = "pull_request_comment"
 )
 
-const (
-	githubActivityTypeOpened       = "opened"
-	githubActivityTypeClosed       = "closed"
-	githubActivityTypeReopened     = "reopened"
-	githubActivityTypeEdited       = "edited"
-	githubActivityTypeAssigned     = "assigned"
-	githubActivityTypeUnassigned   = "unassigned"
-	githubActivityTypeLabeled      = "labeled"
-	githubActivityTypeUnlabeled    = "unlabeled"
-	githubActivityTypeMilestoned   = "milestoned"
-	githubActivityTypeDemilestoned = "demilestoned"
-
-	githubActivityTypeSynchronize = "synchronize"
-
-	githubActivityTypePublished = "published"
-	githubActivityTypeCreated   = "created"
-	githubActivityTypeDeleted   = "deleted"
-)
-
-func convertFromGithubEvent(evt *jobparser.Event) string {
-	switch evt.Name {
-	case githubEventPullRequest, githubEventPullRequestTarget, githubEventPullRequestReview,
-		githubEventPullRequestReviewComment:
-		return string(webhook_module.HookEventPullRequest)
-	case githubEventRegistryPackage:
-		return string(webhook_module.HookEventPackage)
-	case githubEventCreate, githubEventDelete, githubEventFork, githubEventPush,
-		githubEventIssues, githubEventIssueComment, githubEventRelease, githubEventPullRequestComment:
-		fallthrough
-	default:
-		return evt.Name
-	}
-}
-
 // canGithubEventMatch check if the input Github event can match any Gitea event.
 func canGithubEventMatch(evt *jobparser.Event, triggedEvent webhook_module.HookEventType) bool {
 	switch evt.Name {
@@ -71,35 +37,44 @@ func canGithubEventMatch(evt *jobparser.Event, triggedEvent webhook_module.HookE
 		return triggedEvent == webhook_module.HookEventFork
 	case githubEventPush:
 		return triggedEvent == webhook_module.HookEventPush
+	case githubEventRegistryPackage:
+		return triggedEvent == webhook_module.HookEventPackage
 	case githubEventRelease:
 		return triggedEvent == webhook_module.HookEventRelease
 
-		// TODO: handle rest events
+	case githubEventIssues:
+		return util.SliceContains([]webhook_module.HookEventType{
+			webhook_module.HookEventIssues,
+			webhook_module.HookEventIssueAssign,
+			webhook_module.HookEventIssueLabel,
+			webhook_module.HookEventIssueMilestone,
+		}, triggedEvent)
+
+	case githubEventIssueComment:
+		return triggedEvent == webhook_module.HookEventIssueComment
+
+	case githubEventPullRequest, githubEventPullRequestTarget:
+		return util.SliceContains([]webhook_module.HookEventType{
+			webhook_module.HookEventPullRequest,
+			webhook_module.HookEventPullRequestSync,
+			webhook_module.HookEventPullRequestAssign,
+			webhook_module.HookEventPullRequestLabel,
+		}, triggedEvent)
+
+	case githubEventPullRequestComment:
+		return triggedEvent == webhook_module.HookEventPullRequestComment
+
+	case githubEventPullRequestReview:
+		return util.SliceContains([]webhook_module.HookEventType{
+			webhook_module.HookEventPullRequestReviewApproved,
+			webhook_module.HookEventPullRequestComment,
+			webhook_module.HookEventPullRequestReviewRejected,
+		}, triggedEvent)
+
+	case githubEventPullRequestReviewComment:
+		return triggedEvent == webhook_module.HookEventPullRequestComment
 
 	default:
 		return false
 	}
-
-}
-
-func isEventActsTypesEmpty(evtActs map[string][]string) bool {
-	if len(evtActs) == 0 || len(evtActs["types"]) == 0 {
-		return true
-	}
-	return false
-}
-
-func matchByActivityTypes(evtActs map[string][]string, actTypes ...string) bool {
-	if isEventActsTypesEmpty(evtActs) {
-		return false
-	}
-
-	evtActTypes := evtActs["types"]
-	for _, actType := range actTypes {
-		if util.SliceContainsString(evtActTypes, actType) {
-			return true
-		}
-	}
-
-	return false
 }
