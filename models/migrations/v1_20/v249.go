@@ -4,7 +4,6 @@
 package v1_20 //nolint
 
 import (
-	issues_model "code.gitea.io/gitea/models/issues"
 	"xorm.io/xorm"
 )
 
@@ -17,11 +16,11 @@ func AddClosedStatusToIssue(x *xorm.Engine) error {
 		return err
 	}
 
-	// TODO: TBD Whether to use IssueClosedStatusUndefined
-	if _, err := x.Exec("UPDATE issue SET closed_status = ? WHERE closed_status IS NULL and is_pull = false AND is_closed = true", issues_model.IssueClosedStatusCommonClosed); err != nil {
+	// TODO: TBD Whether to use issues_model.IssueClosedStatusUndefined (-1)
+	if _, err := x.Exec("UPDATE issue SET closed_status = ? WHERE closed_status IS NULL and is_pull = false AND is_closed = true", 1); err != nil {
 		return err
 	}
 
-	_, err := x.Exec("UPDATE issue SET closed_status = ? WHERE closed_status IS NULL and is_pull = false AND is_closed = false", issues_model.IssueClosedStatusOpen)
+	_, err := x.Exec("UPDATE issue SET closed_status = ? WHERE closed_status IS NULL and is_pull = false AND is_closed = false", 0)
 	return err
 }
