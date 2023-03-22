@@ -5,7 +5,7 @@
 		{{if .Issue.IsPull}}
 
 			<input id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
-			<div class="ui {{if or (not .Reviewers) (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
+			<div class="ui {{if or (not .Reviewers) (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown" aria-label="{{.locale.Tr "repo.issues.review.reviewers"}}">
 				<a class="text gt-df gt-ac muted">
 					<strong>{{.locale.Tr "repo.issues.review.reviewers"}}</strong>
 					{{if and .CanChooseReviewer (not .Repository.IsArchived)}}
@@ -17,7 +17,7 @@
 					{{if .Reviewers}}
 						<div class="ui icon search input">
 							<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-							<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_reviewers"}}">
+							<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_reviewers"}}" aria-label="{{.locale.Tr "repo.issues.filter_reviewers"}}">
 						</div>
 					{{end}}
 					{{if .Reviewers}}
@@ -110,7 +110,7 @@
 
 		<div class="ui divider"></div>
 
-		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
+		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown" aria-label="{{.locale.Tr "repo.issues.new.milestone"}}">
 			<a class="text gt-df gt-ac muted">
 				<strong>{{.locale.Tr "repo.issues.new.milestone"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
@@ -122,7 +122,7 @@
 				{{if or .OpenMilestones .ClosedMilestones}}
 				<div class="ui icon search input">
 					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-					<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestones"}}">
+					<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestones"}}" aria-label="{{.locale.Tr "repo.issues.filter_milestones"}}">
 				</div>
 				{{end}}
 				<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_milestone"}}</div>
@@ -173,7 +173,7 @@
 		{{if .IsProjectsEnabled}}
 			<div class="ui divider"></div>
 
-			<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
+			<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown" aria-label="{{.locale.Tr "repo.issues.new.projects"}}">
 				<a class="text gt-df gt-ac muted">
 					<strong>{{.locale.Tr "repo.issues.new.projects"}}</strong>
 					{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
@@ -185,7 +185,7 @@
 					{{if or .OpenProjects .ClosedProjects}}
 					<div class="ui icon search input">
 						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}">
+						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}" aria-label="{{.locale.Tr "repo.issues.filter_projects"}}">
 					</div>
 					{{end}}
 					<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_projects"}}</div>
@@ -231,7 +231,7 @@
 		<div class="ui divider"></div>
 
 		<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
-		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
+		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown" aria-label="{{.locale.Tr "repo.issues.new.assignees"}}">
 			<a class="text gt-df gt-ac muted">
 				<strong>{{.locale.Tr "repo.issues.new.assignees"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
@@ -242,7 +242,7 @@
 				<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_assignees_title"}}</div>
 				<div class="ui icon search input">
 					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-					<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignees"}}">
+					<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignees"}}" aria-label="{{.locale.Tr "repo.issues.filter_assignees"}}">
 				</div>
 				<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_assignees"}}</div>
 				{{range .Assignees}}
@@ -407,7 +407,7 @@
 					<form class="ui fluid action input issue-due-form" action="{{AppSubUrl}}/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}/deadline" method="post" id="update-issue-deadline-form">
 						{{$.CsrfTokenHtml}}
 						<input required placeholder="{{.locale.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
-						<button class="ui green icon button">
+						<button class="ui green icon button" aria-label="{{if ne .Issue.DeadlineUnix 0}}{{$.locale.Tr "repo.issues.due_date_form_edit"}}{{else}}{{$.locale.Tr "repo.issues.due_date_form_add"}}{{end}}">
 							{{if ne .Issue.DeadlineUnix 0}}
 								{{svg "octicon-pencil"}}
 							{{else}}
@@ -479,9 +479,9 @@
 								</div>
 								<div class="item-right gt-df gt-ac">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
-										<a class="delete-dependency-button tooltip ci muted" data-id="{{.Issue.ID}}" data-type="blockedBy" data-content="{{$.locale.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
+										<button class="delete-dependency-button tooltip ci" data-id="{{.Issue.ID}}" data-type="blockedBy" data-content="{{$.locale.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
 											{{svg "octicon-trash" 16}}
-										</a>
+										</button>
 									{{end}}
 								</div>
 							</div>
@@ -494,13 +494,13 @@
 						<form method="POST" action="{{.Issue.Link}}/dependency/add" id="addDependencyForm">
 							{{$.CsrfTokenHtml}}
 							<div class="ui fluid action input">
-								<div class="ui search selection dropdown" id="new-dependency-drop-list" data-issue-id="{{.Issue.ID}}">
+								<div class="ui search selection dropdown" id="new-dependency-drop-list" data-issue-id="{{.Issue.ID}}" aria-label="{{.locale.Tr "repo.issues.dependency.add"}}">
 									<input name="newDependency" type="hidden">
 									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-									<input type="text" class="search">
+									<input type="text" class="search" aria-label="{{.locale.Tr "repo.issues.dependency.add"}}">
 									<div class="default text">{{.locale.Tr "repo.issues.dependency.add"}}</div>
 								</div>
-								<button class="ui green icon button">
+								<button class="ui green icon button" aria-label="{{$.locale.Tr "repo.issues.dependency.add"}}">
 									{{svg "octicon-plus"}}
 								</button>
 							</div>
@@ -548,7 +548,7 @@
 			{{$issueReferenceLink := printf "%s#%d" .Issue.Repo.FullName .Issue.Index}}
 			<div class="row gt-ac tooltip" data-content="{{$issueReferenceLink}}">
 				<span class="text column truncate">{{.locale.Tr "repo.issues.reference_link" $issueReferenceLink}}</span>
-				<button class="ui two wide button column gt-p-3" data-clipboard-text="{{$issueReferenceLink}}">{{svg "octicon-copy" 14}}</button>
+				<button class="ui two wide button column gt-p-3" data-clipboard-text="{{$issueReferenceLink}}" title="{{.locale.Tr "repo.issues.reference_button"}}">{{svg "octicon-copy" 14}}</button>
 			</div>
 		</div>
 

@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {svg} from '../svg.js';
+import {attachDropdownAria} from './aria.js';
 
 const {appSubUrl, csrfToken} = window.config;
 let i18nTextEdited;
@@ -76,7 +77,7 @@ function showContentHistoryMenu(issueBaseUrl, $item, commentId) {
   const $headerLeft = $item.find('.comment-header-left');
   const menuHtml = `
   <div class="ui pointing dropdown top left content-history-menu" data-comment-id="${commentId}">
-    &bull; <a>${i18nTextEdited}${svg('octicon-triangle-down', 14, 'dropdown icon gt-ml-1 gt-mt-1')}</a>
+    &bull; <a>${i18nTextEdited}${svg('octicon-triangle-down', 14, 'icon gt-ml-1 gt-mt-1')}</a>
     <div class="menu">
     </div>
   </div>`;
@@ -99,6 +100,7 @@ function showContentHistoryMenu(issueBaseUrl, $item, commentId) {
       }
     },
   });
+  attachDropdownAria($headerLeft.find('.dropdown'));
 }
 
 export function initRepoIssueContentHistory() {

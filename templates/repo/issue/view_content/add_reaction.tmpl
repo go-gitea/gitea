@@ -1,13 +1,13 @@
 {{if .ctxData.IsSigned}}
-<div class="item action ui dropdown jump pointing top right select-reaction" data-action-url="{{.ActionURL}}">
+<div class="item action ui dropdown jump pointing top right select-reaction" data-action-url="{{.ActionURL}}" aria-label="{{.ctxData.locale.Tr "repo.reactions"}}">
 	<a class="add-reaction">
 		{{svg "octicon-smiley"}}
 	</a>
-	<div class="menu">
+	<div class="menu" aria-label="{{.ctxData.locale.Tr "repo.pick_reaction"}}">
 		<div class="header">{{.ctxData.locale.Tr "repo.pick_reaction"}}</div>
 		<div class="divider"></div>
 		{{range $value := AllowedReactions}}
-			<a class="item reaction tooltip" data-content="{{$value}}">{{ReactionToEmoji $value}}</a>
+			<a class="item reaction tooltip" data-content="{{$value}}" aria-label="{{$value}}">{{ReactionToEmoji $value}}</a>
 		{{end}}
 	</div>
 </div>

@@ -1,4 +1,4 @@
-<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
+<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown" aria-label="{{.locale.Tr "repo.issues.new.labels"}}">
 	<a class="text gt-df gt-ac muted">
 		<strong>{{.locale.Tr "repo.issues.new.labels"}}</strong>
 		{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
@@ -10,7 +10,7 @@
 		{{if or .Labels .OrgLabels}}
 			<div class="ui icon search input">
 				<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-				<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_labels"}}">
+				<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_labels"}}" aria-label="{{.locale.Tr "repo.issues.filter_labels"}}">
 			</div>
 		{{end}}
 		<a class="no-select item" href="#">{{.locale.Tr "repo.issues.new.clear_labels"}}</a>

@@ -133,7 +133,7 @@
 					<span class="sr-mobile-only">{{.locale.Tr "create_new"}}</span>
 					<span class="fitted not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
-				<div class="menu">
+				<div class="menu" aria-label="{{.locale.tr "create_new_select"}}">
 					<a class="item" href="{{AppSubUrl}}/repo/create">
 						<span class="fitted">{{svg "octicon-plus"}}</span> {{.locale.Tr "new_repo"}}
 					</a>
@@ -151,13 +151,12 @@
 			</div><!-- end dropdown menu create new -->
 
 			<div class="ui dropdown jump item tooltip gt-mx-0" data-content="{{.locale.Tr "user_profile_and_more"}}">
-				<span class="text">
+				<span class="text" aria-label="{{.locale.Tr "signed_in_as"}} «{{.SignedUser.Name}}»">
 					{{avatar $.Context .SignedUser 24 "tiny"}}
-					<span class="sr-only">{{.locale.Tr "user_profile_and_more"}}</span>
 					<span class="mobile-only">{{.SignedUser.Name}}</span>
-					<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-triangle-down"}}</span>
+					<span class="fitted not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
-				<div class="menu user-menu" tabindex="-1">
+				<div class="menu user-menu" aria-label="{{.locale.tr "user_action_select"}}">
 					<div class="ui header">
 						{{.locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
