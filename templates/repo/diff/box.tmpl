@@ -30,6 +30,12 @@
 					<label for="viewed-files-summary" id="viewed-files-summary-label" class="gt-mr-3 gt-f1" data-text-changed-template="{{.locale.Tr "repo.pulls.viewed_files_label"}}">
 						{{.locale.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
 					</label>
+					<button id="view-all-btn" class="ui button tiny tooltip basic{{if eq .Diff.NumViewedFiles .Diff.NumFiles}} gt-hidden{{end}}" data-content="View All">
+						{{svg "octicon-eye"}}
+					</button>
+					<button id="unview-all-btn" class="ui button tiny tooltip basic{{if eq .Diff.NumViewedFiles 0}} gt-hidden{{end}}" data-content="Unview All">
+						{{svg "octicon-eye-closed"}}
+					</button>
 				{{end}}
 				{{template "repo/diff/whitespace_dropdown" .}}
 				{{template "repo/diff/options_dropdown" .}}
