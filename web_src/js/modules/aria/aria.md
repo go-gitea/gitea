@@ -23,6 +23,14 @@ To test the aria/accessibility with screen readers, developers can use the follo
   * Double-finger swipe means old single-finger swipe.
 * TODO: on Windows, on Linux, on iOS
 
+# Known Problems
+
+* Tested with Apple VoiceOver: If a dropdown menu/combobox is opened by mouse click, then arrow keys don't work.
+  But if the dropdown is opened by keyboard Tab, then arrow keys work, and from then on, the keys almost work with mouse click too.
+  The clue: when the dropdown is only opened by mouse click, VoiceOver doesn't send 'keydown' events of arrow keys to the DOM,
+  VoiceOver expects to use arrow keys to navigate between some elements, but it couldn't.
+  Users could use Option+ArrowKeys to navigate between menu/combobox items or selection labels if the menu/combobox is opened by mouse click.
+
 # Checkbox
 
 ## Accessibility-friendly Checkbox
@@ -52,9 +60,7 @@ There is still a problem: Fomantic UI checkbox is not friendly to screen readers
 so we add IDs to all the Fomantic UI checkboxes automatically by JS.
 If the `label` part is empty, then the checkbox needs to get the `aria-label` attribute manually.
 
-# Dropdown
-
-## Fomantic UI Dropdown
+# Fomantic Dropdown
 
 Fomantic Dropdown is designed to be used for many purposes:
 
