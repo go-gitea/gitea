@@ -5,10 +5,10 @@ slug: "administer"
 weight: 30
 toc: false
 draft: false
-collapse: true
 menu:
   sidebar:
     name: "Administer"
     weight: 20
+    collapse: true
     identifier: "administer"
 ---

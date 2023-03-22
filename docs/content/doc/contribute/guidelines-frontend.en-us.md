@@ -7,7 +7,7 @@ toc: false
 draft: false
 menu:
   sidebar:
-    parent: "develop"
+    parent: "contribute"
     name: "Guidelines for Frontend"
     weight: 20
     identifier: "guidelines-frontend"
