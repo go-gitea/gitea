@@ -140,7 +140,7 @@ function attachInit($dropdown) {
   // There are 2 possible solutions about the role: combobox or menu.
   // The idea is that if there is an input, then it's a combobox, otherwise it's a menu.
   // Since #19861 we have prepared the "combobox" solution, but didn't get enough time to put it into practice and test before.
-  const isComboBox = $dropdown.find('input').length > 0 || $dropdown.hasClass('js-aria-comobox');
+  const isComboBox = $dropdown.find('input').length > 0;
 
   dropdown[ariaPatchKey].focusableRole = isComboBox ? 'combobox' : 'button';
   dropdown[ariaPatchKey].listPopupRole = isComboBox ? 'listbox' : 'menu';
