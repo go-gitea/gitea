@@ -73,18 +73,18 @@ export function initViewedCheckboxListenerFor() {
 }
 
 export function initExpandFilesButton() {
-  $(expandFilesBtnSelector).on('click', function() {
+  document.querySelector(expandFilesBtnSelector)?.addEventListener('click', () => {
     for (const box of document.querySelectorAll('.file-content[data-folded="true"]')) {
       setFileFolding(box, box.querySelector('.fold-file'), false);
     }
-  })
+  });
 }
 
 export function initCollapseFilesButton() {
-  $(collapseFilesBtnSelector).on('click', function() {
+  document.querySelector(collapseFilesBtnSelector)?.addEventListener('click', () => {
     for (const box of document.querySelectorAll('.file-content:not([data-folded="true"])')) {
       if (box.getAttribute('id') === 'diff-incomplete') continue;
       setFileFolding(box, box.querySelector('.fold-file'), true);
     }
-  })
+  });
 }
