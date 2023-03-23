@@ -60,7 +60,7 @@ curl --user your_username:your_password_or_token \
      https://gitea.example.com/api/packages/testuser/composer?version=1.0.3
 ```
 
-If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/develop/api-usage.en-us.md#authentication" >}}) instead of the password.
+If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) instead of the password.
 
 The server responds with the following HTTP Status codes.
 

@@ -34,7 +34,7 @@ To push an image or if the image is in a private registry, you have to authentic
 docker login gitea.example.com
 ```
 
-If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/develop/api-usage.en-us.md#authentication" >}}) instead of the password.
+If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) instead of the password.
 
 ## Image naming convention
 

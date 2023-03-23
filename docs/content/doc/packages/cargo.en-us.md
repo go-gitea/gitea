@@ -73,7 +73,7 @@ token = "Bearer {token}"
 
 | Parameter | Description |
 | --------- | ----------- |
-| `token`   | Your [personal access token]({{< relref "doc/develop/api-usage.en-us.md#authentication" >}}) |
+| `token`   | Your [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) |
 
 ## Publish a package
 

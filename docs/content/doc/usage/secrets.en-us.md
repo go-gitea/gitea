@@ -1,15 +1,15 @@
 ---
 date: "2022-12-19T21:26:00+08:00"
 title: "Secrets"
-slug: "usage/secrets/overview"
+slug: "usage/secrets"
 draft: false
 toc: false
 menu:
   sidebar:
     parent: "usage"
-    name: "Overview"
+    name: "Secrets"
     weight: 1
-    identifier: "usage-secrets-overview"
+    identifier: "usage-secrets"
 ---
 
 # Secrets

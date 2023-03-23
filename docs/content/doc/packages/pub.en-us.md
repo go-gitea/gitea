@@ -38,7 +38,7 @@ dart pub token add https://gitea.example.com/api/packages/{owner}/pub
 | ------------ | ----------- |
 | `owner`      | The owner of the package. |
 
-You need to provide your [personal access token]({{< relref "doc/develop/api-usage.en-us.md#authentication" >}}).
+You need to provide your [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}).
 
 ## Publish a package
 

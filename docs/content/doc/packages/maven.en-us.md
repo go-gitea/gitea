@@ -70,7 +70,7 @@ Afterwards add the following sections to your project `pom.xml` file:
 
 | Parameter      | Description |
 | -------------- | ----------- |
-| `access_token` | Your [personal access token]({{< relref "doc/develop/api-usage.en-us.md#authentication" >}}). |
+| `access_token` | Your [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}). |
 | `owner`        | The owner of the package. |
 
 ### Gradle variant
