@@ -162,7 +162,3 @@ export function useLightTextOnBackground(backgroundColor) {
   return brightness < 0.35;
 }
 
-// return whether an array has an element
-export function containsEle(arr, element) {
-  return new Set(arr).has(element);
-}
