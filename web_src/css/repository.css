@@ -2740,6 +2740,12 @@
   width: 100% !important;
   max-width: 100% !important;
   margin: 0 !important;
+  padding: 0 !important;
+}
+
+.comment-body .markup {
+  padding: 1em;
+  border-radius: 0 0 var(--border-radius) var(--border-radius); /* don't render outside box */
 }
 
 .edit-label.modal .form .column,
