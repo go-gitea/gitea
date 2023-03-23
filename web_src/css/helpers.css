@@ -197,6 +197,8 @@
 
 .gt-content-center { align-content: center !important; }
 
+.gt-shrink-0 { flex-shrink: 0 !important; }
+
 @media (max-width: 767px) {
   .gt-db-small { display: block !important; }
   .gt-w-100-small { width: 100% !important; }
