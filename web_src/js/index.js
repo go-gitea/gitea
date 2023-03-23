@@ -56,7 +56,6 @@ import {
   initGlobalFormDirtyLeaveConfirm,
   initGlobalLinkActions,
   initHeadNavbarContentToggle,
-  initGlobalTooltips,
 } from './features/common-global.js';
 import {initRepoTopicBar} from './features/repo-home.js';
 import {initAdminEmails} from './features/admin/emails.js';

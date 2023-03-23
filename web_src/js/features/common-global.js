@@ -5,7 +5,6 @@ import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
-import {initTooltip} from '../modules/tippy.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
@@ -64,12 +63,6 @@ export function initGlobalButtonClickOnEnter() {
       e.preventDefault();
     }
   });
-}
-
-export function initGlobalTooltips() {
-  for (const el of document.getElementsByClassName('tooltip')) {
-    initTooltip(el);
-  }
 }
 
 export function initGlobalCommon() {

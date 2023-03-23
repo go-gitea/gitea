@@ -21,7 +21,6 @@
 </template>
 
 <script>
-import {initTooltip} from '../modules/tippy.js';
 import {doLoadMoreFiles} from '../features/repo-diff.js';
 
 const {pageData} = window.config;
@@ -29,17 +28,6 @@ const {pageData} = window.config;
 export default {
   data: () => {
     return pageData.diffFileInfo;
-  },
-  watch: {
-    fileListIsVisible(newValue) {
-      if (newValue === true) {
-        this.$nextTick(() => {
-          for (const el of this.$refs.root.querySelectorAll('.tooltip')) {
-            initTooltip(el);
-          }
-        });
-      }
-    }
   },
   mounted() {
     document.getElementById('show-file-list-btn').addEventListener('click', this.toggleFileList);
