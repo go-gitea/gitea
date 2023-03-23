@@ -8,7 +8,7 @@ draft: false
 menu:
   sidebar:
     parent: "usage"
-    name: "Gitea Profile README's"
+    name: "Gitea Profile READMEs"
     weight: 12
     identifier: "profile-readme"
 ---
