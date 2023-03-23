@@ -4,9 +4,7 @@ import {mqBinarySearch} from '../utils.js';
 import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
-import {attachCheckboxAria, attachDropdownAria} from './aria.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
-import {initTooltip} from '../modules/tippy.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
@@ -67,12 +65,6 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
-export function initGlobalTooltips() {
-  for (const el of document.getElementsByClassName('tooltip')) {
-    initTooltip(el);
-  }
-}
-
 export function initGlobalCommon() {
   // Undo Safari emoji glitch fix at high enough zoom levels
   if (navigator.userAgent.match('Safari')) {
@@ -123,9 +115,7 @@ export function initGlobalCommon() {
   $uiDropdowns.filter('.slide.up').dropdown({transition: 'slide up'});
   $uiDropdowns.filter('.upward').dropdown({direction: 'upward'});
 
-  attachDropdownAria($uiDropdowns);
-
-  attachCheckboxAria($('.ui.checkbox'));
+  $('.ui.checkbox').checkbox();
 
   $('.tabular.menu .item').tab();
   $('.tabable.menu .item').tab();
