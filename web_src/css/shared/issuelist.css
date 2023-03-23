@@ -84,16 +84,13 @@
 
 .issue.list > .item .desc a {
   color: inherit;
+  word-break: break-word;
 }
 
 .issue.list > .item .desc .time-since,
 .issue.list > .item .desc a {
   margin-left: 0.25rem;
   margin-right: 0.25rem;
-}
-
-.issue.list > .item .desc a {
-  word-break: break-word;
 }
 
 .issue.list > .item .desc .waiting,
