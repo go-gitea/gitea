@@ -36,7 +36,7 @@ export function createTippy(target, opts = {}) {
  * @returns {null|tippy}
  */
 function attachTooltip(target, content = null) {
-  content = content ?? getTooltipContent(target);
+  content = content ?? target.getAttribute('data-tooltip-content');
   if (!content) return null;
 
   const props = {
@@ -67,30 +67,18 @@ function lazyTooltipOnMouseHover(e) {
   attachTooltip(this);
 }
 
-function getTooltipContent(target) {
-  // prefer to always use the "[data-tooltip-content]" attribute
-  // for backward compatibility, we also support the ".tooltip[data-content]" attribute
-  // in next PR, refactor all the ".tooltip[data-content]" to "[data-tooltip-content]"
-  let content = target.getAttribute('data-tooltip-content');
-  if (!content && target.classList.contains('tooltip')) {
-    content = target.getAttribute('data-content');
-  }
-  return content;
-}
-
 /**
  * Activate the tooltip for all children elements
  * And if the element has no aria-label, use the tooltip content as aria-label
  * @param target {HTMLElement}
  */
 function attachChildrenLazyTooltip(target) {
-  // the selector must match the logic in getTippyTooltipContent
-  for (const el of target.querySelectorAll('[data-tooltip-content], .tooltip[data-content]')) {
+  for (const el of target.querySelectorAll('[data-tooltip-content]')) {
     el.addEventListener('mouseover', lazyTooltipOnMouseHover, true);
 
     // meanwhile, if the element has no aria-label, use the tooltip content as aria-label
     if (!el.hasAttribute('aria-label')) {
-      const content = getTooltipContent(el);
+      const content = target.getAttribute('data-tooltip-content');
       if (content) {
         el.setAttribute('aria-label', content);
       }
@@ -119,7 +107,7 @@ export function initGlobalTooltips() {
   observer.observe(document, {
     subtree: true,
     childList: true,
-    attributeFilter: ['data-tooltip-content', 'data-content'],
+    attributeFilter: ['data-tooltip-content'],
   });
 
   attachChildrenLazyTooltip(document.documentElement);

@@ -26,7 +26,7 @@ export function initCompReactionSelector(parent) {
       url,
       data: {
         _csrf: csrfToken,
-        content: $(this).attr('data-reaction-content')
+        content: $(this).attr('data-reaction-content'),
       }
     }).done((resp) => {
       if (resp && (resp.html || resp.empty)) {
