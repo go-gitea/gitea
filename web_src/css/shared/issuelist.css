@@ -92,7 +92,7 @@
   margin-right: 0.25rem;
 }
 
-.issue.list > .item .desc a:not(.index) {
+.issue.list > .item .desc a {
   word-break: break-all;
 }
 
