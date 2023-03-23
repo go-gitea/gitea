@@ -197,7 +197,7 @@
 
 .gt-content-center { align-content: center !important; }
 
-.gt-whitespace-nowrap { white-space: nowrap !important;}
+.gt-whitespace-nowrap { white-space: nowrap !important; }
 
 @media (max-width: 767px) {
   .gt-db-small { display: block !important; }
