@@ -5,7 +5,9 @@
 		{{template "base/alert" .}}
 		{{template "user/settings/keys_ssh" .}}
 		{{template "user/settings/keys_principal" .}}
-		{{template "user/settings/keys_gpg" .}}
+		{{if $.UserModules.Enabled "gpg keys"}}
+			{{template "user/settings/keys_gpg" .}}
+		{{end}}
 	</div>
 </div>
 

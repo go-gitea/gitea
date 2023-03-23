@@ -1386,6 +1386,16 @@ steps:
 
 although Github don't support this form.
 
+## User (`user`)
+
+- `USER_SETTING_DISABLED_MODULES`:**** Disabled modules from user settings, could be a copmosite of `password`, `deletion`, `security`, `applications`, `gpg keys`, `organizations` with a comma.
+  - `password`: User cannot change his password from the website.
+  - `deletion`: User cannot remove himself from the website.
+  - `security`: User cannot update his security settings from the website.
+  - `applications`: User cannot create application himself.
+  - `gpg_keys`: User cannot manage gpg keys himself.
+  - `organizations`: User cannot manage his organizations himself.
+
 ## Other (`other`)
 
 - `SHOW_FOOTER_BRANDING`: **false**: Show Gitea branding in the footer.

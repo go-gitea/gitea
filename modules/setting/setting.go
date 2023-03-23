@@ -278,6 +278,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
 	loadOtherFrom(cfg)
+	loadUserFrom(cfg)
 }
 
 func loadRunModeFrom(rootCfg ConfigProvider) {
