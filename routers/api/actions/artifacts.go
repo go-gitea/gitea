@@ -13,7 +13,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -24,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 )
 
@@ -237,7 +237,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
 
 	// itemPath is generated from upload-artifact action
 	// it's formatted as {artifact_name}/{artfict_path_in_runner}
-	itemPath := ctx.Req.URL.Query().Get("itemPath")
+	itemPath := util.PathJoinRel(ctx.Req.URL.Query().Get("itemPath"))
 	taskID := ctx.ParamsInt64("taskID")
 	artifactName := strings.Split(itemPath, "/")[0]
 	if err = checkArtifactName(artifactName); err != nil {
@@ -462,9 +462,9 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	itemPath := ctx.Req.URL.Query().Get("itemPath")
+	itemPath := util.PathJoinRel(ctx.Req.URL.Query().Get("itemPath"))
 	artifactData := map[string]string{
-		"path":            path.Join(itemPath, artifact.ArtifactPath),
+		"path":            util.PathJoinRel(itemPath, artifact.ArtifactPath),
 		"itemType":        "file",
 		"contentLocation": url,
 	}
