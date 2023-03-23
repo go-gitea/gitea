@@ -54,7 +54,7 @@
 					{{end}}
 				</div>
 				<div class="left floated content">
-					<span class="{{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}">{{svg "octicon-key" 32}}</span>
+					<span class="text {{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}">{{svg "octicon-key" 32}}</span>
 				</div>
 				<div class="content">
 					{{if .Verified}}

@@ -118,12 +118,15 @@ _Symbols used in table:_
 | Rebase merging                                  | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Pull/Merge request inline comments              | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Pull/Merge request approval                     | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Pull/Merge require approval                     | ✓                                                  | ✘    | ✓         | ✘         | ✓         | ✓         | ✓            |
+| Pull/Merge multiple reviewers                   | ✓                                                  | ✓    | ✓         | ✘         | ✓         | ✓         | ✓            |
 | Merge conflict resolution                       | [✘](https://github.com/go-gitea/gitea/issues/9014) | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
 | Restrict push and merge access to certain users | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Revert specific commits                         | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
 | Pull/Merge requests templates                   | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✘         | ✘            |
 | Cherry-picking changes                          | ✓                                                  | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
 | Download Patch                                  | ✓                                                  | ✘    | ✓         | ✓         | ✓         | /         | ✘            |
+| Merge queues                                    | ✘                                                  | ✘    | ✓         | ✘         | ✓         | ✘         | ✘            |
 
 ## 3rd-party integrations
 
