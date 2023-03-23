@@ -491,19 +491,3 @@ func (repo *Repository) AddLastCommitCache(cacheKey, fullName, sha string) error
 	}
 	return nil
 }
-
-// git diff-tree --no-commit-id --name-only -r 4122dc99f61ae52d04bb501ddbf633d07c065967
-func (repo *Repository) GetChangedFilesIn(commitID string) ([]string, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "diff-tree", "--no-commit-id", "--name-only", "-r").AddDynamicArguments(commitID).RunStdString(&RunOpts{Dir: repo.Path})
-	if err != nil {
-		return nil, err
-	}
-	split := strings.Split(stdout, "\000")
-
-	// Because Git will always emit filenames with a terminal NUL ignore the last entry in the split - which will always be empty.
-	if len(split) > 0 {
-		split = split[:len(split)-1]
-	}
-
-	return split, err
-}

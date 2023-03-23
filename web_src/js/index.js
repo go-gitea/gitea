@@ -72,7 +72,7 @@ import {
   initRepoSettingsCollaboration,
   initRepoSettingSearchTeamBox,
 } from './features/repo-settings.js';
-import {initViewedCheckboxListenerFor} from './features/pull-view-file.js';
+import {initViewedCheckboxListenerFor, initExpandFilesButton, initCollapseFilesButton} from './features/pull-view-file.js';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.js';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
 import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.js';
@@ -201,4 +201,6 @@ $(document).ready(() => {
   initUserAuthWebAuthnRegister();
   initUserSettings();
   initViewedCheckboxListenerFor();
+  initExpandFilesButton();
+  initCollapseFilesButton();
 });

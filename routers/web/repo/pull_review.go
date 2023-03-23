@@ -12,7 +12,6 @@ import (
 	pull_model "code.gitea.io/gitea/models/pull"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -293,58 +292,4 @@ func UpdateViewedFiles(ctx *context.Context) {
 	if err := pull_model.UpdateReviewState(ctx, ctx.Doer.ID, pull.ID, data.HeadCommitSHA, updatedFiles); err != nil {
 		ctx.ServerError("UpdateReview", err)
 	}
-}
-
-type viewOrUnviewAllFilesForm struct {
-	HeadCommitSHA string `json:"headCommitSHA"`
-	ViewAll       bool   `json:"viewAll"`
-}
-
-func ViewOrUnviewAllFiles(ctx *context.Context) {
-	// Find corresponding PR
-	issue := checkPullInfo(ctx)
-	if ctx.Written() {
-		return
-	}
-	pull := issue.PullRequest
-
-	var data *viewOrUnviewAllFilesForm
-	err := json.NewDecoder(ctx.Req.Body).Decode(&data)
-	if err != nil {
-		log.Warn("Attempted to view/unview all but could not parse request body: %v", err)
-		ctx.Resp.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	// Expect the review to have been now if no head commit was supplied
-	if data.HeadCommitSHA == "" {
-		data.HeadCommitSHA = pull.HeadCommitID
-	}
-
-	gitRepo, err := git.OpenRepository(ctx, pull.HeadRepo.RepoPath())
-	if err != nil {
-		log.Error("unable to open repository: %s Error: %v", pull.HeadRepo.RepoPath(), err)
-		ctx.Resp.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	// get the list of changed files in the commit
-	files, err := gitRepo.GetChangedFilesIn(data.HeadCommitSHA)
-	if err != nil {
-		log.Error("unable to get the list of changed files, commitID: %s Error: %v", data.HeadCommitSHA, err)
-		ctx.Resp.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	updatedFiles := make(map[string]pull_model.ViewedState, len(files))
-	state := pull_model.Unviewed
-	if data.ViewAll {
-		state = pull_model.Viewed
-	}
-	for _, f := range files {
-		updatedFiles[f] = state
-	}
-	if err := pull_model.UpdateReviewState(ctx, ctx.Doer.ID, pull.ID, data.HeadCommitSHA, updatedFiles); err != nil {
-		ctx.ServerError("UpdateReview", err)
-	}
-	// todo redirect
 }

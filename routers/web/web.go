@@ -1070,7 +1070,6 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/watch", repo.IssueWatch)
 				m.Post("/ref", repo.UpdateIssueRef)
 				m.Post("/viewed-files", repo.UpdateViewedFiles)
-				m.Post("/view-or-unview-all-files", repo.ViewOrUnviewAllFiles)
 				m.Group("/dependency", func() {
 					m.Post("/add", repo.AddDependency)
 					m.Post("/delete", repo.RemoveDependency)

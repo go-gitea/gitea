@@ -4,8 +4,8 @@ const {csrfToken, pageData} = window.config;
 const prReview = pageData.prReview || {};
 const viewedStyleClass = 'viewed-file-checked-form';
 const viewedCheckboxSelector = '.viewed-file-form'; // Selector under which all "Viewed" checkbox forms can be found
-const viewAllBtnSelector = '#view-all-btn';
-const unviewAllBtnSelector = '#unview-all-btn';
+const expandFilesBtnSelector = '#expand-files-btn';
+const collapseFilesBtnSelector = '#collapse-files-btn';
 
 
 // Refreshes the summary of viewed files if present
@@ -19,20 +19,12 @@ function refreshViewedFilesSummary() {
     .replace('%[2]d', prReview.numberOfFiles);
 }
 
-function refreshViewedAndUnviewedButton() {
-  $(viewAllBtnSelector).removeClass('gt-hidden');
-  $(unviewAllBtnSelector).removeClass('gt-hidden');
-  if (prReview.numberOfViewedFiles === prReview.numberOfFiles) $(viewAllBtnSelector).addClass('gt-hidden');
-  else if (prReview.numberOfViewedFiles === 0) $(unviewAllBtnSelector).addClass('gt-hidden');
-}
-
 // Explicitly recounts how many files the user has currently reviewed by counting the number of checked "viewed" checkboxes
 // Additionally, the viewed files summary will be updated if it exists
 export function countAndUpdateViewedFiles() {
   // The number of files is constant, but the number of viewed files can change because files can be loaded dynamically
   prReview.numberOfViewedFiles = document.querySelectorAll(`${viewedCheckboxSelector} > input[type=checkbox][checked]`).length;
   refreshViewedFilesSummary();
-  refreshViewedAndUnviewedButton();
 }
 
 // Initializes a listener for all children of the given html element
@@ -58,7 +50,6 @@ export function initViewedCheckboxListenerFor() {
 
       // Update viewed-files summary and remove "has changed" label if present
       refreshViewedFilesSummary();
-      refreshViewedAndUnviewedButton();
       const hasChangedLabel = form.parentNode.querySelector('.changed-since-last-review');
       hasChangedLabel?.parentNode.removeChild(hasChangedLabel);
 
@@ -81,6 +72,19 @@ export function initViewedCheckboxListenerFor() {
   }
 }
 
-export function initViewAndUnviewAllButton() {
+export function initExpandFilesButton() {
+  $(expandFilesBtnSelector).on('click', function() {
+    for (const box of document.querySelectorAll('.file-content[data-folded="true"]')) {
+      setFileFolding(box, box.querySelector('.fold-file'), false);
+    }
+  })
+}
 
+export function initCollapseFilesButton() {
+  $(collapseFilesBtnSelector).on('click', function() {
+    for (const box of document.querySelectorAll('.file-content:not([data-folded="true"])')) {
+      if (box.getAttribute('id') === 'diff-incomplete') continue;
+      setFileFolding(box, box.querySelector('.fold-file'), true);
+    }
+  })
 }
