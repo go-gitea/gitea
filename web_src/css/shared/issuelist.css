@@ -92,6 +92,10 @@
   margin-right: 0.25rem;
 }
 
+.issue.list > .item .desc a:not(.index) {
+  word-break: break-all;
+}
+
 .issue.list > .item .desc .waiting,
 .issue.list > .item .desc .approvals,
 .issue.list > .item .desc .rejects {
@@ -130,10 +134,6 @@
 .issue.list > .item .desc a.milestone,
 .issue.list > .item .desc a.project {
   margin-left: 5px;
-}
-
-.issue.list > .item .desc a.project {
-  word-break: break-all;
 }
 
 .issue.list > .item .desc a.ref {
