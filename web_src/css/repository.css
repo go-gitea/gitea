@@ -2469,6 +2469,11 @@
   padding-bottom: 9px !important;
 }
 
+.repository .project-name {
+  max-width: 200px;
+  display: inline-block;
+}
+
 #cite-repo-modal #citation-panel {
   width: 500px;
 }

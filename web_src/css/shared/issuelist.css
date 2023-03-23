@@ -132,6 +132,10 @@
   margin-left: 5px;
 }
 
+.issue.list > .item .desc a.project {
+  word-break: break-all;
+}
+
 .issue.list > .item .desc a.ref {
   margin-left: 8px;
 }
