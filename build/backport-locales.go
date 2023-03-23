@@ -74,9 +74,10 @@ func main() {
 				if secNew.HasKey(keyEnUs.Name()) {
 					oldStr := secOld.Key(keyEnUs.Name()).String()
 					newStr := secNew.Key(keyEnUs.Name()).String()
-					// a bug: new translations with ";" are all broken
+					// A bug: many of new translations with ";" are broken in Crowdin (due to last messy restoring)
+					// As the broken strings are gradually fixed, this workaround check could be removed (in a few months?)
 					if strings.Contains(oldStr, ";") && !strings.Contains(newStr, ";") {
-						println("skipping", path, secEnUS.Name(), keyEnUs.Name())
+						println("skip potential broken string", path, secEnUS.Name(), keyEnUs.Name())
 						continue
 					}
 					secOld.Key(keyEnUs.Name()).SetValue(newStr)
