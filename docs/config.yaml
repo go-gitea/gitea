@@ -26,6 +26,11 @@ params:
   repo: "https://github.com/go-gitea/gitea"
   docContentPath: "docs/content"
 
+markup:
+  tableOfContents:
+    startLevel: 1
+    endLevel: 9
+
 outputs:
   home:
     - HTML
