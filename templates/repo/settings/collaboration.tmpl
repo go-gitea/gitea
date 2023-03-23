@@ -66,7 +66,7 @@
 							{{.Name}}
 						</a>
 					</div>
-					<div class="ui eight wide column tooltip" data-content="{{$.locale.Tr "repo.settings.change_team_permission_tip"}}">
+					<div class="ui eight wide column" data-tooltip-content="{{$.locale.Tr "repo.settings.change_team_permission_tip"}}">
 						{{svg "octicon-shield-lock"}}
 						<div class="ui inline dropdown">
 							<div class="text">{{if eq .AccessMode 1}}{{$.locale.Tr "repo.settings.collaboration.read"}}{{else if eq .AccessMode 2}}{{$.locale.Tr "repo.settings.collaboration.write"}}{{else if eq .AccessMode 3}}{{$.locale.Tr "repo.settings.collaboration.admin"}}{{else if eq .AccessMode 4}}{{$.locale.Tr "repo.settings.collaboration.owner"}}{{else}}{{$.locale.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
@@ -79,7 +79,7 @@
 						{{end}}
 					</div>
 					{{if $allowedToChangeTeams}}
-						<div class="ui two wide column {{if .IncludesAllRepositories}}tooltip{{end}}" {{if .IncludesAllRepositories}} data-content="{{$.locale.Tr "repo.settings.delete_team_tip"}}"{{end}}>
+						<div class="ui two wide column" {{if .IncludesAllRepositories}} data-tooltip-content="{{$.locale.Tr "repo.settings.delete_team_tip"}}"{{end}}>
 							<button class="ui red tiny button inline text-thin delete-button {{if .IncludesAllRepositories}}disabled{{end}}" data-url="{{$.Link}}/team/delete" data-id="{{.ID}}">
 									{{$.locale.Tr "repo.settings.delete_collaborator"}}
 							</button>
