@@ -5,8 +5,6 @@ package actions
 
 import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
-
-	"github.com/nektos/act/pkg/jobparser"
 )
 
 const (
@@ -26,8 +24,8 @@ const (
 )
 
 // canGithubEventMatch check if the input Github event can match any Gitea event.
-func canGithubEventMatch(evt *jobparser.Event, triggedEvent webhook_module.HookEventType) bool {
-	switch evt.Name {
+func canGithubEventMatch(eventName string, triggedEvent webhook_module.HookEventType) bool {
+	switch eventName {
 	case githubEventRegistryPackage:
 		return triggedEvent == webhook_module.HookEventPackage
 
@@ -67,6 +65,6 @@ func canGithubEventMatch(evt *jobparser.Event, triggedEvent webhook_module.HookE
 		}
 
 	default:
-		return evt.Name == string(triggedEvent)
+		return eventName == string(triggedEvent)
 	}
 }
