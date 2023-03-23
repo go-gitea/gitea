@@ -9,7 +9,7 @@ menu:
   sidebar:
     parent: "installation"
     name: "Database preparation"
-    weight: 20
+    weight: 5
     identifier: "database-prep"
 ---
 
