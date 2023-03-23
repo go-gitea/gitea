@@ -114,7 +114,7 @@
 								{{$.locale.Tr "repo.release.delete_release"}}
 							</a>
 							{{if .IsDraft}}
-								<input class="ui button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}"/>
+								<button class="ui button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}">{{.locale.Tr "repo.release.save_draft"}}</button>
 								<button class="ui primary button">
 									{{.locale.Tr "repo.release.publish"}}
 								</button>
@@ -125,9 +125,9 @@
 							{{end}}
 						{{else}}
 							{{if not .tag_name}}
-								<input class="ui grey button" type="submit" name="tag_only" value="{{.locale.Tr "repo.release.add_tag"}}"/>
+								<button class="ui grey button" type="submit" name="tag_only" value="{{.locale.Tr "repo.release.add_tag"}}">{{.locale.Tr "repo.release.add_tag"}}</button>
 							{{end}}
-							<input class="ui button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}"/>
+							<button class="ui button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}">{{.locale.Tr "repo.release.save_draft"}}</button>
 							<button class="ui primary button">
 								{{.locale.Tr "repo.release.publish"}}
 							</button>

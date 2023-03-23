@@ -1,6 +1,20 @@
-{{$release := .release}}
-{{$defaultBranch := $.root.BranchName}}{{if and .root.IsViewTag (not .noTag)}}{{$defaultBranch = .root.TagName}}{{end}}{{if eq $defaultBranch ""}}{{$defaultBranch = $.root.Repository.DefaultBranch}}{{end}}
-{{$type := ""}}{{if and .root.IsViewTag (not .noTag)}}{{$type = "tag"}}{{else if .root.IsViewBranch}}{{$type = "branch"}}{{else}}{{$type = "tree"}}{{end}}
+{{$defaultBranch := $.root.BranchName}}
+{{if and .root.IsViewTag (not .noTag)}}
+	{{$defaultBranch = .root.TagName}}
+{{end}}
+{{if eq $defaultBranch ""}}
+	{{$defaultBranch = $.root.Repository.DefaultBranch}}
+{{end}}
+
+{{$type := ""}}
+{{if and .root.IsViewTag (not .noTag)}}
+	{{$type = "tag"}}
+{{else if .root.IsViewBranch}}
+	{{$type = "branch"}}
+{{else}}
+	{{$type = "tree"}}
+{{end}}
+
 {{$showBranchesInDropdown := not .root.HideBranchesInDropdown}}
 
 <script type="module">
@@ -30,8 +44,8 @@
 		'defaultBranch': {{$defaultBranch}},
 		'branchURLPrefix': '{{if .branchURLPrefix}}{{.branchURLPrefix}}{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/branch/{{end}}',
 		'branchURLSuffix': '{{if .branchURLSuffix}}{{.branchURLSuffix}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}',
-		'tagURLPrefix': '{{if .tagURLPrefix}}{{.tagURLPrefix}}{{else if $release}}{{$.root.RepoLink}}/compare/{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{end}}',
-		'tagURLSuffix': '{{if .tagURLSuffix}}{{.tagURLSuffix}}{{else if $release}}...{{if $release.IsDraft}}{{PathEscapeSegments $release.Target}}{{else}}{{if $release.TagName}}{{PathEscapeSegments $release.TagName}}{{else}}{{PathEscapeSegments $release.Sha1}}{{end}}{{end}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}',
+		'tagURLPrefix': '{{if .tagURLPrefix}}{{.tagURLPrefix}}{{else if .release}}{{$.root.RepoLink}}/compare/{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{end}}',
+		'tagURLSuffix': '{{if .tagURLSuffix}}{{.tagURLSuffix}}{{else if .release}}...{{if .release.IsDraft}}{{PathEscapeSegments .release.Target}}{{else}}{{if .release.TagName}}{{PathEscapeSegments .release.TagName}}{{else}}{{PathEscapeSegments .release.Sha1}}{{end}}{{end}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}',
 		'repoLink': {{.root.RepoLink}},
 		'treePath': {{.root.TreePath}},
 		'branchNameSubURL': {{.root.BranchNameSubURL}},
@@ -46,71 +60,23 @@
 	window.config.pageData.branchDropdownDataList.push(data);
 </script>
 
-<div class="fitted item choose reference">
+<div class="fitted item js-branch-tag-selector">
+	{{/* show dummy elements before Vue componment is mounted, this code must match the code in BranchTagSelector.vue */}}
 	<div class="ui floating filter dropdown custom">
-		<button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+		<button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df">
 			<span class="text gt-df gt-ac gt-mr-2">
-				{{/* v-cloak is used to hide unnecessary elements before Vue componment is mounted */}}
-				<span v-cloak v-if="release">${ textReleaseCompare }</span>
-				<span :class="{visible: isViewTag}" v-if="isViewTag" {{if not (eq $type "tag")}}v-cloak{{end}}>{{svg "octicon-tag"}}</span>
-				<span :class="{visible: isViewBranch}" v-if="isViewBranch" {{if not (eq $type "branch")}}v-cloak{{end}}>{{svg "octicon-git-branch"}}</span>
-				<span :class="{visible: isViewTree}" v-if="isViewTree" {{if not (eq $type "tree")}}v-cloak{{end}}>{{svg "octicon-git-branch"}}</span>
-				<strong ref="dropdownRefName" class="gt-ml-3">{{if and .root.IsViewTag (not .noTag)}}{{.root.TagName}}{{else if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.CommitID}}{{end}}</strong>
+				{{if .release}}
+					{{.root.locale.Tr "repo.release.compare"}}
+				{{else}}
+					{{if eq $type "tag"}}
+						{{svg "octicon-tag"}}
+					{{else}}
+						{{svg "octicon-git-branch"}}
+					{{end}}
+					<strong ref="dropdownRefName" class="gt-ml-3">{{if and .root.IsViewTag (not .noTag)}}{{.root.TagName}}{{else if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.CommitID}}{{end}}</strong>
+				{{end}}
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</button>
-		<div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
-			<div class="ui icon search input">
-				<i class="icon gt-df gt-ac gt-jc gt-m-0">{{svg "octicon-filter" 16}}</i>
-				<input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
-			</div>
-			<template v-if="showBranchesInDropdown">
-				<div class="header branch-tag-choice">
-					<div class="ui grid">
-						<div class="two column row">
-							<a class="reference column" href="#" @click="createTag = false; mode = 'branches'; focusSearchField()">
-								<span class="text" :class="{black: mode === 'branches'}">
-									{{svg "octicon-git-branch" 16 "gt-mr-2"}}${ textBranches }
-								</span>
-							</a>
-							<template v-if="!noTag">
-								<a class="reference column" href="#" @click="createTag = true; mode = 'tags'; focusSearchField()">
-									<span class="text" :class="{black: mode === 'tags'}">
-										{{svg "octicon-tag" 16 "gt-mr-2"}}${ textTags }
-									</span>
-								</a>
-							</template>
-						</div>
-					</div>
-				</div>
-			</template>
-			<div class="scrolling menu" ref="scrollContainer">
-				<div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active === index}" @click="selectItem(item)" :ref="'listItem' + index">${ item.name }</div>
-				<div class="item" v-if="showCreateNewBranch" :class="{active: active === filteredItems.length}" :ref="'listItem' + filteredItems.length">
-					<a href="#" @click="createNewBranch()">
-						<div v-show="createTag">
-							<i class="reference tags icon"></i>
-							<span v-html="textCreateTag.replace('%s', searchTerm)"></span>
-						</div>
-						<div v-show="!createTag">
-							{{svg "octicon-git-branch"}}
-							<span v-html="textCreateBranch.replace('%s', searchTerm)"></span>
-						</div>
-						<div class="text small">
-							<span v-if="isViewBranch || release">${ textCreateBranchFrom.replace('%s', branchName) }</span>
-							<span v-else-if="isViewTag">${ textCreateBranchFrom.replace('%s', tagName) }</span>
-							<span v-else>${ textCreateBranchFrom.replace('%s', commitIdShort) }</span>
-						</div>
-					</a>
-					<form ref="newBranchForm" action="{{.root.RepoLink}}/branches/_new/{{.root.BranchNameSubURL}}" method="post">
-						<input type="hidden" name="_csrf" :value="csrfToken">
-						<input type="hidden" name="new_branch_name" v-model="searchTerm">
-						<input type="hidden" name="create_tag" v-model="createTag">
-						<input type="hidden" name="current_path" v-model="treePath" v-if="treePath">
-					</form>
-				</div>
-			</div>
-			<div class="message" v-if="showNoResults">${ noResults }</div>
-		</div>
 	</div>
 </div>

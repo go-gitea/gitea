@@ -26,8 +26,7 @@
 								<a class="{{if not .CanChange}}ui tooltip{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 									<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 									<span class="text">
-										{{avatar $.Context .User 28 "gt-mr-3"}}
-										{{.User.GetDisplayName}}
+										{{avatar $.Context .User 28 "gt-mr-3"}}{{template "repo/search_name" .User}}
 									</span>
 								</a>
 							{{end}}
@@ -197,8 +196,7 @@
 						</div>
 						{{range .OpenProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-								{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-								{{.Title}}
+								{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 							</a>
 						{{end}}
 					{{end}}
@@ -209,8 +207,7 @@
 						</div>
 						{{range .ClosedProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-								{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-								{{.Title}}
+								{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 							</a>
 						{{end}}
 					{{end}}
@@ -221,8 +218,7 @@
 				<div class="selected">
 					{{if .Issue.ProjectID}}
 						<a class="item muted sidebar-item-link" href="{{.Issue.Project.Link}}">
-							{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-							{{.Issue.Project.Title}}
+							{{svg .Issue.Project.IconName 18 "gt-mr-3"}}{{.Issue.Project.Title}}
 						</a>
 					{{end}}
 				</div>
@@ -258,8 +254,7 @@
 						{{end}}
 						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 						<span class="text">
-							{{avatar $.Context . 28 "gt-mr-3"}}
-							{{.GetDisplayName}}
+							{{avatar $.Context . 28 "gt-mr-3"}}{{template "repo/search_name" .}}
 						</span>
 					</a>
 				{{end}}
@@ -346,8 +341,8 @@
 									</form>
 								</div>
 								<div class="actions">
-									<div class="ui green approve button">{{.locale.Tr "repo.issues.add_time_short"}}</div>
-									<div class="ui red cancel button">{{.locale.Tr "repo.issues.add_time_cancel"}}</div>
+									<button class="ui green approve button">{{.locale.Tr "repo.issues.add_time_short"}}</button>
+									<button class="ui red cancel button">{{.locale.Tr "repo.issues.add_time_cancel"}}</button>
 								</div>
 							</div>
 							<button class="ui fluid button green tooltip issue-add-time gt-mt-3" data-content='{{.locale.Tr "repo.issues.add_time"}}' data-position="top center">{{.locale.Tr "repo.issues.add_time_short"}}</button>
@@ -532,14 +527,14 @@
 						{{end}}</p>
 					</div>
 					<div class="actions">
-						<div class="ui red cancel inverted button">
+						<button class="ui red cancel inverted button">
 							{{svg "octicon-x"}}
 							{{.locale.Tr "repo.issues.dependency.cancel"}}
-						</div>
-						<div class="ui green ok inverted button">
+						</button>
+						<button class="ui green ok inverted button">
 							{{svg "octicon-check"}}
 							{{.locale.Tr "repo.issues.dependency.remove"}}
-						</div>
+						</button>
 					</div>
 				</div>
 			{{end}}
@@ -619,7 +614,7 @@
 						{{end}}
 
 						<div class="text right actions">
-							<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
+							<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
 							<button class="ui red button">
 								{{if .Issue.IsLocked}}
 									{{.locale.Tr "repo.issues.unlock_confirm"}}
@@ -655,7 +650,7 @@
 				<form action="{{.Issue.Link}}/delete" method="post">
 					{{.CsrfTokenHtml}}
 					<div class="center actions">
-						<div class="ui basic cancel inverted button">{{.locale.Tr "settings.cancel"}}</div>
+						<button class="ui basic cancel inverted button">{{.locale.Tr "settings.cancel"}}</button>
 						<button class="ui basic red inverted button">{{.locale.Tr "modal.yes"}}</button>
 					</div>
 				</form>
@@ -666,9 +661,9 @@
 			{{if and (not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)) .CanWriteToHeadRepo}}
 				<div class="ui divider"></div>
 				<div class="inline field">
-					<div class="ui checkbox" id="allow-edits-from-maintainers"
+					<div class="ui checkbox tooltip" id="allow-edits-from-maintainers"
 							data-url="{{.Issue.Link}}"
-							data-prompt-tip="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"
+							data-tooltip-content="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"
 							data-prompt-error="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_err"}}"
 						>
 						<label><strong>{{.locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>

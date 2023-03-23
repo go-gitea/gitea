@@ -1247,7 +1247,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			})
 			m.Get("/orgs", admin.GetAllOrgs)
 			m.Group("/users", func() {
-				m.Get("", admin.GetAllUsers)
+				m.Get("", admin.SearchUsers)
 				m.Post("", bind(api.CreateUserOption{}), admin.CreateUser)
 				m.Group("/{username}", func() {
 					m.Combo("").Patch(bind(api.EditUserOption{}), admin.EditUser).
@@ -1259,7 +1259,12 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Get("/orgs", org.ListUserOrgs)
 					m.Post("/orgs", bind(api.CreateOrgOption{}), admin.CreateOrg)
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
+					m.Post("/rename", bind(api.RenameUserOption{}), admin.RenameUser)
 				}, context_service.UserAssignmentAPI())
+			})
+			m.Group("/emails", func() {
+				m.Get("", admin.GetAllEmails)
+				m.Get("/search", admin.SearchEmail)
 			})
 			m.Group("/unadopted", func() {
 				m.Get("", admin.ListUnadoptedRepositories)
