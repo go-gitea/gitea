@@ -1,6 +1,6 @@
 ---
 date: "2023-03-02T21:00:00+05:00"
-title: "Usage: Gitea Profile README's"
+title: "Usage: Gitea Profile READMEs"
 slug: "profile-readme"
 weight: 12
 toc: false
