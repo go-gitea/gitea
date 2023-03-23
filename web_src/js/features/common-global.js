@@ -4,9 +4,7 @@ import {mqBinarySearch} from '../utils.js';
 import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
-import {attachCheckboxAria, attachDropdownAria} from './aria.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
-import {initTooltip} from '../modules/tippy.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
@@ -67,12 +65,6 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
-export function initGlobalTooltips() {
-  for (const el of document.getElementsByClassName('tooltip')) {
-    initTooltip(el);
-  }
-}
-
 export function initGlobalCommon() {
   // Undo Safari emoji glitch fix at high enough zoom levels
   if (navigator.userAgent.match('Safari')) {
@@ -89,9 +81,14 @@ export function initGlobalCommon() {
 
   // Semantic UI modules.
   const $uiDropdowns = $('.ui.dropdown');
-  $uiDropdowns.filter(':not(.custom)').dropdown({
-    fullTextSearch: 'exact'
-  });
+
+  // do not init "custom" dropdowns, "custom" dropdowns are managed by their own code.
+  $uiDropdowns.filter(':not(.custom)').dropdown({fullTextSearch: 'exact'});
+
+  // The "jump" means this dropdown is mainly used for "menu" purpose,
+  // clicking an item will jump to somewhere else or trigger an action/function.
+  // When a dropdown is used for non-refresh actions with tippy,
+  // it must have this "jump" class to hide the tippy when dropdown is closed.
   $uiDropdowns.filter('.jump').dropdown({
     action: 'hide',
     onShow() {
@@ -101,20 +98,24 @@ export function initGlobalCommon() {
     },
     onHide() {
       this._tippy?.enable();
-    },
-    fullTextSearch: 'exact'
-  });
-  $uiDropdowns.filter('.slide.up').dropdown({
-    transition: 'slide up',
-    fullTextSearch: 'exact'
-  });
-  $uiDropdowns.filter('.upward').dropdown({
-    direction: 'upward',
-    fullTextSearch: 'exact'
-  });
-  attachDropdownAria($uiDropdowns);
 
-  attachCheckboxAria($('.ui.checkbox'));
+      // hide all tippy elements of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
+      setTimeout(() => {
+        const $dropdown = $(this);
+        if ($dropdown.dropdown('is hidden')) {
+          $(this).find('.menu > .item').each((_, item) => {
+            item._tippy?.hide();
+          });
+        }
+      }, 2000);
+    },
+  });
+
+  // special animations/popup-directions
+  $uiDropdowns.filter('.slide.up').dropdown({transition: 'slide up'});
+  $uiDropdowns.filter('.upward').dropdown({direction: 'upward'});
+
+  $('.ui.checkbox').checkbox();
 
   $('.tabular.menu .item').tab();
   $('.tabable.menu .item').tab();
@@ -202,7 +203,8 @@ export function initGlobalDropzone() {
 }
 
 export function initGlobalLinkActions() {
-  function showDeletePopup() {
+  function showDeletePopup(e) {
+    e.preventDefault();
     const $this = $(this);
     const dataArray = $this.data();
     let filter = '';
@@ -243,10 +245,10 @@ export function initGlobalLinkActions() {
         });
       }
     }).modal('show');
-    return false;
   }
 
-  function showAddAllPopup() {
+  function showAddAllPopup(e) {
+    e.preventDefault();
     const $this = $(this);
     let filter = '';
     if ($this.attr('id')) {
@@ -272,7 +274,6 @@ export function initGlobalLinkActions() {
         });
       }
     }).modal('show');
-    return false;
   }
 
   function linkAction(e) {
@@ -318,13 +319,21 @@ export function initGlobalLinkActions() {
 }
 
 export function initGlobalButtons() {
-  $('.show-panel.button').on('click', function () {
+  // There are many "cancel button" elements in modal dialogs, Fomantic UI expects they are button-like elements but never submit a form.
+  // However, Gitea misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
+  // There are a few cancel buttons in non-modal forms, and there are some dynamically created forms (eg: the "Edit Issue Content")
+  $(document).on('click', 'form .ui.cancel.button', (e) => {
+    e.preventDefault();
+  });
+
+  $('.show-panel.button').on('click', function (e) {
+    e.preventDefault();
     showElem($(this).data('panel'));
   });
 
-  $('.hide-panel.button').on('click', function (event) {
+  $('.hide-panel.button').on('click', function (e) {
     // a `.hide-panel.button` can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
-    event.preventDefault();
+    e.preventDefault();
     let sel = $(this).attr('data-panel');
     if (sel) {
       hideElem($(sel));
@@ -339,7 +348,8 @@ export function initGlobalButtons() {
     alert('Nothing to hide');
   });
 
-  $('.show-modal').on('click', function () {
+  $('.show-modal').on('click', function (e) {
+    e.preventDefault();
     const modalDiv = $($(this).attr('data-modal'));
     for (const attrib of this.attributes) {
       if (!attrib.name.startsWith('data-modal-')) {
@@ -360,7 +370,8 @@ export function initGlobalButtons() {
     }
   });
 
-  $('.delete-post.button').on('click', function () {
+  $('.delete-post.button').on('click', function (e) {
+    e.preventDefault();
     const $this = $(this);
     $.post($this.attr('data-request-url'), {
       _csrf: csrfToken

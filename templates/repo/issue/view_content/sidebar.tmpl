@@ -26,8 +26,7 @@
 								<a class="{{if not .CanChange}}ui tooltip{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 									<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 									<span class="text">
-										{{avatar $.Context .User 28 "gt-mr-3"}}
-										{{.User.GetDisplayName}}
+										{{avatar $.Context .User 28 "gt-mr-3"}}{{template "repo/search_name" .User}}
 									</span>
 								</a>
 							{{end}}
@@ -106,49 +105,7 @@
 			<div class="ui divider"></div>
 		{{end}}
 
-		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
-			<a class="text gt-df gt-ac muted">
-				<strong>{{.locale.Tr "repo.issues.new.labels"}}</strong>
-				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-					{{svg "octicon-gear" 16 "gt-ml-2"}}
-				{{end}}
-			</a>
-			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels">
-				<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_labels_title"}}</div>
-				{{if or .Labels .OrgLabels}}
-					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_labels"}}">
-					</div>
-				{{end}}
-				<a class="no-select item" href="#">{{.locale.Tr "repo.issues.new.clear_labels"}}</a>
-				{{if or .Labels .OrgLabels}}
-					{{$previousExclusiveScope := "_no_scope"}}
-					{{range .Labels}}
-						{{$exclusiveScope := .ExclusiveScope}}
-						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-							<div class="ui divider"></div>
-						{{end}}
-						{{$previousExclusiveScope = $exclusiveScope}}
-						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel .}}
-						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
-					{{end}}
-					<div class="ui divider"></div>
-					{{$previousExclusiveScope := "_no_scope"}}
-					{{range .OrgLabels}}
-						{{$exclusiveScope := .ExclusiveScope}}
-						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-							<div class="ui divider"></div>
-						{{end}}
-						{{$previousExclusiveScope = $exclusiveScope}}
-						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel .}}
-						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
-					{{end}}
-				{{else}}
-					<div class="header" style="text-transform: none;font-size:14px;">{{.locale.Tr "repo.issues.new.no_items"}}</div>
-				{{end}}
-			</div>
-		</div>
+		{{template "repo/issue/labels/labels_selector_field" .}}
 		{{template "repo/issue/labels/labels_sidebar" dict "root" $}}
 
 		<div class="ui divider"></div>
@@ -239,8 +196,7 @@
 						</div>
 						{{range .OpenProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-								{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-								{{.Title}}
+								{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 							</a>
 						{{end}}
 					{{end}}
@@ -251,8 +207,7 @@
 						</div>
 						{{range .ClosedProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-								{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-								{{.Title}}
+								{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 							</a>
 						{{end}}
 					{{end}}
@@ -263,8 +218,7 @@
 				<div class="selected">
 					{{if .Issue.ProjectID}}
 						<a class="item muted sidebar-item-link" href="{{.Issue.Project.Link}}">
-							{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-							{{.Issue.Project.Title}}
+							{{svg .Issue.Project.IconName 18 "gt-mr-3"}}{{.Issue.Project.Title}}
 						</a>
 					{{end}}
 				</div>
@@ -300,8 +254,7 @@
 						{{end}}
 						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 						<span class="text">
-							{{avatar $.Context . 28 "gt-mr-3"}}
-							{{.GetDisplayName}}
+							{{avatar $.Context . 28 "gt-mr-3"}}{{template "repo/search_name" .}}
 						</span>
 					</a>
 				{{end}}
@@ -388,8 +341,8 @@
 									</form>
 								</div>
 								<div class="actions">
-									<div class="ui green approve button">{{.locale.Tr "repo.issues.add_time_short"}}</div>
-									<div class="ui red cancel button">{{.locale.Tr "repo.issues.add_time_cancel"}}</div>
+									<button class="ui green approve button">{{.locale.Tr "repo.issues.add_time_short"}}</button>
+									<button class="ui red cancel button">{{.locale.Tr "repo.issues.add_time_cancel"}}</button>
 								</div>
 							</div>
 							<button class="ui fluid button green tooltip issue-add-time gt-mt-3" data-content='{{.locale.Tr "repo.issues.add_time"}}' data-position="top center">{{.locale.Tr "repo.issues.add_time_short"}}</button>
@@ -487,8 +440,8 @@
 						{{range .BlockingDependencies}}
 							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
 								<div class="item-left gt-df gt-jc gt-fc gt-f1">
-									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}">
-										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
+									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
+										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
 									</a>
 									<div class="text small">
 										{{.Repository.OwnerName}}/{{.Repository.Name}}
@@ -514,8 +467,8 @@
 						{{range .BlockedByDependencies}}
 							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
 								<div class="item-left gt-df gt-jc gt-fc gt-f1">
-									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}">
-										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
+									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
+										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
 									</a>
 									<div class="text small">
 										{{.Repository.OwnerName}}/{{.Repository.Name}}
@@ -574,14 +527,14 @@
 						{{end}}</p>
 					</div>
 					<div class="actions">
-						<div class="ui red cancel inverted button">
+						<button class="ui red cancel inverted button">
 							{{svg "octicon-x"}}
 							{{.locale.Tr "repo.issues.dependency.cancel"}}
-						</div>
-						<div class="ui green ok inverted button">
+						</button>
+						<button class="ui green ok inverted button">
 							{{svg "octicon-check"}}
 							{{.locale.Tr "repo.issues.dependency.remove"}}
-						</div>
+						</button>
 					</div>
 				</div>
 			{{end}}
@@ -661,7 +614,7 @@
 						{{end}}
 
 						<div class="text right actions">
-							<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
+							<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
 							<button class="ui red button">
 								{{if .Issue.IsLocked}}
 									{{.locale.Tr "repo.issues.unlock_confirm"}}
@@ -697,7 +650,7 @@
 				<form action="{{.Issue.Link}}/delete" method="post">
 					{{.CsrfTokenHtml}}
 					<div class="center actions">
-						<div class="ui basic cancel inverted button">{{.locale.Tr "settings.cancel"}}</div>
+						<button class="ui basic cancel inverted button">{{.locale.Tr "settings.cancel"}}</button>
 						<button class="ui basic red inverted button">{{.locale.Tr "modal.yes"}}</button>
 					</div>
 				</form>
@@ -708,9 +661,9 @@
 			{{if and (not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)) .CanWriteToHeadRepo}}
 				<div class="ui divider"></div>
 				<div class="inline field">
-					<div class="ui checkbox" id="allow-edits-from-maintainers"
+					<div class="ui checkbox tooltip" id="allow-edits-from-maintainers"
 							data-url="{{.Issue.Link}}"
-							data-prompt-tip="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"
+							data-tooltip-content="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"
 							data-prompt-error="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_err"}}"
 						>
 						<label><strong>{{.locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>

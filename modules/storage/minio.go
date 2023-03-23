@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -120,7 +121,7 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
-	return strings.TrimPrefix(path.Join(m.basePath, path.Clean("/" + strings.ReplaceAll(p, "\\", "/"))[1:]), "/")
+	return util.PathJoinRelX(m.basePath, p)
 }
 
 // Open open a file
@@ -208,12 +209,18 @@ func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
 }
 
 // IterateObjects iterates across the objects in the miniostorage
-func (m *MinioStorage) IterateObjects(fn func(path string, obj Object) error) error {
+func (m *MinioStorage) IterateObjects(prefix string, fn func(path string, obj Object) error) error {
 	opts := minio.GetObjectOptions{}
 	lobjectCtx, cancel := context.WithCancel(m.ctx)
 	defer cancel()
+
+	basePath := m.basePath
+	if prefix != "" {
+		basePath = m.buildMinioPath(prefix)
+	}
+
 	for mObjInfo := range m.client.ListObjects(lobjectCtx, m.bucket, minio.ListObjectsOptions{
-		Prefix:    m.basePath,
+		Prefix:    basePath,
 		Recursive: true,
 	}) {
 		object, err := m.client.GetObject(lobjectCtx, m.bucket, mObjInfo.Key, opts)
@@ -222,7 +229,7 @@ func (m *MinioStorage) IterateObjects(fn func(path string, obj Object) error) er
 		}
 		if err := func(object *minio.Object, fn func(path string, obj Object) error) error {
 			defer object.Close()
-			return fn(strings.TrimPrefix(mObjInfo.Key, m.basePath), &minioObject{object})
+			return fn(strings.TrimPrefix(mObjInfo.Key, basePath), &minioObject{object})
 		}(object, fn); err != nil {
 			return convertMinioErr(err)
 		}
