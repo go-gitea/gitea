@@ -147,7 +147,6 @@
 <script>
 import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
-import {initTooltip} from '../modules/tippy.js';
 import {SvgIcon} from '../svg.js';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
@@ -238,9 +237,6 @@ const sfc = {
   mounted() {
     const el = document.getElementById('dashboard-repo-list');
     this.changeReposFilter(this.reposFilter);
-    for (const elTooltip of el.querySelectorAll('.tooltip')) {
-      initTooltip(elTooltip);
-    }
     $(el).find('.dropdown').dropdown();
     nextTick(() => {
       this.$refs.search.focus();

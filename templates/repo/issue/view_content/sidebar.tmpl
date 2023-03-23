@@ -661,9 +661,9 @@
 			{{if and (not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)) .CanWriteToHeadRepo}}
 				<div class="ui divider"></div>
 				<div class="inline field">
-					<div class="ui checkbox" id="allow-edits-from-maintainers"
+					<div class="ui checkbox tooltip" id="allow-edits-from-maintainers"
 							data-url="{{.Issue.Link}}"
-							data-prompt-tip="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"
+							data-tooltip-content="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"
 							data-prompt-error="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_err"}}"
 						>
 						<label><strong>{{.locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
