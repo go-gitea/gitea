@@ -1,4 +1,5 @@
-import {basename, extname, isObject, isDarkTheme} from '../utils.js';
+import {basename, extname, isObject, isDarkTheme, containsEle} from '../utils.js';
+import {debounce} from 'throttle-debounce';
 
 const languagesByFilename = {};
 const languagesByExt = {};
@@ -154,12 +155,14 @@ export async function createCodeEditor(textarea, filenameInput) {
     ...getEditorConfigOptions(editorConfig),
   });
 
-  filenameInput.addEventListener('input', () => {
+  const debounceInputHandler = debounce(500, () => {
     const filename = filenameInput.value;
-    const isMarkdown = markdownExts.includes(extname(filename));
+    const isMarkdown = containsEle(markdownExts, extname(filename));
     togglePreviewDisplay(isMarkdown, previewFileModes);
     updateEditor(monaco, editor, filename, lineWrapExts);
   });
+
+  filenameInput.addEventListener('input', debounceInputHandler);
 
   return editor;
 }
