@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
-	secret_model "code.gitea.io/gitea/models/secret"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -61,7 +60,7 @@ const (
 // SettingsCtxData is a middleware that sets all the general context data for the
 // settings template.
 func SettingsCtxData(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["Title"] = ctx.Tr("repo.settings.options")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
@@ -135,7 +134,7 @@ func SettingsPost(ctx *context.Context) {
 				ctx.Repo.GitRepo.Close()
 				ctx.Repo.GitRepo = nil
 			}
-			if err := repo_service.ChangeRepositoryName(ctx.Doer, repo, newRepoName); err != nil {
+			if err := repo_service.ChangeRepositoryName(ctx, ctx.Doer, repo, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
 				case repo_model.IsErrRepoAlreadyExist(err):
@@ -184,7 +183,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		repo.IsPrivate = form.Private
-		if err := repo_service.UpdateRepository(repo, visibilityChanged); err != nil {
+		if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -488,6 +487,15 @@ func SettingsPost(ctx *context.Context) {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
 		}
 
+		if form.EnableReleases && !unit_model.TypeReleases.UnitGlobalDisabled() {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeReleases,
+			})
+		} else if !unit_model.TypeReleases.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeReleases)
+		}
+
 		if form.EnablePackages && !unit_model.TypePackages.UnitGlobalDisabled() {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
@@ -521,6 +529,7 @@ func SettingsPost(ctx *context.Context) {
 					AllowRebaseUpdate:             form.PullsAllowRebaseUpdate,
 					DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 					DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
+					DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
 				},
 			})
 		} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
@@ -532,7 +541,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 		if repoChanged {
-			if err := repo_service.UpdateRepository(repo, false); err != nil {
+			if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
@@ -551,7 +560,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if changed {
-			if err := repo_service.UpdateRepository(repo, false); err != nil {
+			if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
@@ -571,7 +580,7 @@ func SettingsPost(ctx *context.Context) {
 			repo.IsFsckEnabled = form.EnableHealthCheck
 		}
 
-		if err := repo_service.UpdateRepository(repo, false); err != nil {
+		if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -641,7 +650,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		if err := repo.GetOwner(ctx); err != nil {
+		if err := repo.LoadOwner(ctx); err != nil {
 			ctx.ServerError("Convert Fork", err)
 			return
 		}
@@ -663,7 +672,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_service.ConvertForkToNormalRepository(repo); err != nil {
+		if err := repo_service.ConvertForkToNormalRepository(ctx, repo); err != nil {
 			log.Error("Unable to convert repository %-v from fork. Error: %v", repo, err)
 			ctx.ServerError("Convert Fork", err)
 			return
@@ -871,7 +880,7 @@ func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.R
 
 // Collaboration render a repository's collaboration page
 func Collaboration(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["Title"] = ctx.Tr("repo.settings.collaboration")
 	ctx.Data["PageIsSettingsCollaboration"] = true
 
 	users, err := repo_model.GetCollaborators(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
@@ -998,7 +1007,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	team, err := organization.OrgFromUser(ctx.Repo.Owner).GetTeam(name)
+	team, err := organization.OrgFromUser(ctx.Repo.Owner).GetTeam(ctx, name)
 	if err != nil {
 		if organization.IsErrTeamNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("form.team_not_exist"))
@@ -1111,7 +1120,7 @@ func GitHooksEditPost(ctx *context.Context) {
 
 // DeployKeys render the deploy keys list of a repository page
 func DeployKeys(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
+	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys") + " / " + ctx.Tr("secrets.secrets")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
@@ -1122,31 +1131,7 @@ func DeployKeys(ctx *context.Context) {
 	}
 	ctx.Data["Deploykeys"] = keys
 
-	secrets, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{RepoID: ctx.Repo.Repository.ID})
-	if err != nil {
-		ctx.ServerError("FindSecrets", err)
-		return
-	}
-	ctx.Data["Secrets"] = secrets
-
 	ctx.HTML(http.StatusOK, tplDeployKeys)
-}
-
-// SecretsPost response for creating a new secret
-func SecretsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AddSecretForm)
-
-	_, err := secret_model.InsertEncryptedSecret(ctx, 0, ctx.Repo.Repository.ID, form.Title, form.Content)
-	if err != nil {
-		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
-		log.Error("validate secret: %v", err)
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
-		return
-	}
-
-	log.Trace("Secret added: %d", ctx.Repo.Repository.ID)
-	ctx.Flash.Success(ctx.Tr("secrets.creation.success", form.Title))
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 
 // DeployKeysPost response for adding a deploy key of a repository
@@ -1174,6 +1159,10 @@ func DeployKeysPost(ctx *context.Context) {
 			ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
 		} else if asymkey_model.IsErrKeyUnableVerify(err) {
 			ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
+		} else if err == asymkey_model.ErrKeyIsPrivate {
+			ctx.Data["HasError"] = true
+			ctx.Data["Err_Content"] = true
+			ctx.Flash.Error(ctx.Tr("form.must_use_public_key"))
 		} else {
 			ctx.Data["HasError"] = true
 			ctx.Data["Err_Content"] = true
@@ -1208,20 +1197,6 @@ func DeployKeysPost(ctx *context.Context) {
 	log.Trace("Deploy key added: %d", ctx.Repo.Repository.ID)
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_key_success", key.Name))
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
-}
-
-func DeleteSecret(ctx *context.Context) {
-	id := ctx.FormInt64("id")
-	if _, err := db.DeleteByBean(ctx, &secret_model.Secret{ID: id}); err != nil {
-		ctx.Flash.Error(ctx.Tr("secrets.deletion.failed"))
-		log.Error("delete secret %d: %v", id, err)
-	} else {
-		ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
-	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/settings/keys",
-	})
 }
 
 // DeleteDeployKey response for deleting a deploy key
@@ -1269,7 +1244,7 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 	if !(st.IsImage() && !st.IsSvgImage()) {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 	}
-	if err = repo_service.UploadAvatar(ctxRepo, data); err != nil {
+	if err = repo_service.UploadAvatar(ctx, ctxRepo, data); err != nil {
 		return fmt.Errorf("UploadAvatar: %w", err)
 	}
 	return nil
@@ -1289,7 +1264,7 @@ func SettingsAvatar(ctx *context.Context) {
 
 // SettingsDeleteAvatar delete repository avatar
 func SettingsDeleteAvatar(ctx *context.Context) {
-	if err := repo_service.DeleteAvatar(ctx.Repo.Repository); err != nil {
+	if err := repo_service.DeleteAvatar(ctx, ctx.Repo.Repository); err != nil {
 		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")

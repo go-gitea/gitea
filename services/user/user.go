@@ -27,6 +27,22 @@ import (
 	"code.gitea.io/gitea/services/packages"
 )
 
+// RenameUser renames a user
+func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	if err := renameUser(ctx, u, newUserName); err != nil {
+		return err
+	}
+	if err := committer.Commit(); err != nil {
+		return err
+	}
+	return err
+}
+
 // DeleteUser completely and permanently deletes everything of a user,
 // but issues/comments/pulls will be kept and shown as someone has been deleted,
 // unless the user is younger than USER_DELETE_WITH_COMMENTS_MAX_DAYS.
@@ -163,7 +179,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		return models.ErrUserOwnPackages{UID: u.ID}
 	}
 
-	if err := models.DeleteUser(ctx, u, purge); err != nil {
+	if err := deleteUser(ctx, u, purge); err != nil {
 		return fmt.Errorf("DeleteUser: %w", err)
 	}
 

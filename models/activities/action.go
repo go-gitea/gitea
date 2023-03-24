@@ -99,7 +99,7 @@ func (a *Action) TableIndices() []*schemas.Index {
 	actUserIndex.AddColumn("act_user_id", "repo_id", "created_unix", "user_id", "is_deleted")
 
 	indices := []*schemas.Index{actUserIndex, repoIndex}
-	if setting.Database.UsePostgreSQL {
+	if setting.Database.Type.IsPostgreSQL() {
 		cudIndex := schemas.NewIndex("c_u_d", schemas.IndexType)
 		cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
 		indices = append(indices, cudIndex)
@@ -223,18 +223,24 @@ func (a *Action) GetRepoAbsoluteLink() string {
 	return setting.AppURL + url.PathEscape(a.GetRepoUserName()) + "/" + url.PathEscape(a.GetRepoName())
 }
 
-// GetCommentLink returns link to action comment.
-func (a *Action) GetCommentLink() string {
-	return a.getCommentLink(db.DefaultContext)
+// GetCommentHTMLURL returns link to action comment.
+func (a *Action) GetCommentHTMLURL() string {
+	return a.getCommentHTMLURL(db.DefaultContext)
 }
 
-func (a *Action) getCommentLink(ctx context.Context) string {
+func (a *Action) loadComment(ctx context.Context) (err error) {
+	if a.CommentID == 0 || a.Comment != nil {
+		return nil
+	}
+	a.Comment, err = issues_model.GetCommentByID(ctx, a.CommentID)
+	return err
+}
+
+func (a *Action) getCommentHTMLURL(ctx context.Context) string {
 	if a == nil {
 		return "#"
 	}
-	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = issues_model.GetCommentByID(ctx, a.CommentID)
-	}
+	_ = a.loadComment(ctx)
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
 	}
@@ -258,6 +264,41 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 	}
 
 	return issue.HTMLURL()
+}
+
+// GetCommentLink returns link to action comment.
+func (a *Action) GetCommentLink() string {
+	return a.getCommentLink(db.DefaultContext)
+}
+
+func (a *Action) getCommentLink(ctx context.Context) string {
+	if a == nil {
+		return "#"
+	}
+	_ = a.loadComment(ctx)
+	if a.Comment != nil {
+		return a.Comment.Link()
+	}
+	if len(a.GetIssueInfos()) == 0 {
+		return "#"
+	}
+	// Return link to issue
+	issueIDString := a.GetIssueInfos()[0]
+	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
+	if err != nil {
+		return "#"
+	}
+
+	issue, err := issues_model.GetIssueByID(ctx, issueID)
+	if err != nil {
+		return "#"
+	}
+
+	if err = issue.LoadRepo(ctx); err != nil {
+		return "#"
+	}
+
+	return issue.Link()
 }
 
 // GetBranch returns the action's repository branch.
@@ -339,14 +380,14 @@ type GetFeedsOptions struct {
 }
 
 // GetFeeds returns actions according to the provided options
-func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
+func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, error) {
 	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
-		return nil, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
+		return nil, 0, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
 	}
 
 	cond, err := activityQueryCondition(opts)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	sess := db.GetEngine(ctx).Where(cond).
@@ -357,16 +398,16 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	sess = db.SetSessionPagination(sess, &opts)
 
 	actions := make([]*Action, 0, opts.PageSize)
-
-	if err := sess.Desc("`action`.created_unix").Find(&actions); err != nil {
-		return nil, fmt.Errorf("Find: %w", err)
+	count, err := sess.Desc("`action`.created_unix").FindAndCount(&actions)
+	if err != nil {
+		return nil, 0, fmt.Errorf("FindAndCount: %w", err)
 	}
 
 	if err := ActionList(actions).loadAttributes(ctx); err != nil {
-		return nil, fmt.Errorf("LoadAttributes: %w", err)
+		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
 	}
 
-	return actions, nil
+	return actions, count, nil
 }
 
 // ActivityReadable return whether doer can read activities of user
@@ -493,7 +534,7 @@ func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 			repo = act.Repo
 
 			// check repo owner exist.
-			if err := act.Repo.GetOwner(ctx); err != nil {
+			if err := act.Repo.LoadOwner(ctx); err != nil {
 				return fmt.Errorf("can't get repo owner: %w", err)
 			}
 		} else if act.Repo == nil {
@@ -599,7 +640,7 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
 
 // CountActionCreatedUnixString count actions where created_unix is an empty string
 func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
-	if setting.Database.UseSQLite3 {
+	if setting.Database.Type.IsSQLite3() {
 		return db.GetEngine(ctx).Where(`created_unix = ""`).Count(new(Action))
 	}
 	return 0, nil
@@ -607,7 +648,7 @@ func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
 
 // FixActionCreatedUnixString set created_unix to zero if it is an empty string
 func FixActionCreatedUnixString(ctx context.Context) (int64, error) {
-	if setting.Database.UseSQLite3 {
+	if setting.Database.Type.IsSQLite3() {
 		res, err := db.GetEngine(ctx).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
 		if err != nil {
 			return 0, err

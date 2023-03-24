@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content admin user">
+<div role="main" aria-label="{{.Title}}" class="page-content admin user">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -44,12 +44,12 @@
 												<input type="hidden" name="q" value="{{$.Keyword}}">
 												<input type="hidden" name="page" value="{{$.CurrentPage}}">
 												<div class="actions">
-													<div class="ui red basic inverted cancel button">
-														{{svg "octicon-trash" 16 "mr-2"}}
+													<button class="ui red basic inverted cancel button">
+														{{svg "octicon-trash" 16 "gt-mr-2"}}
 														{{$.locale.Tr "modal.no"}}
-													</div>
+													</button>
 													<button class="ui green basic inverted ok button">
-														{{svg "octicon-check" 16 "mr-2"}}
+														{{svg "octicon-check" 16 "gt-mr-2"}}
 														{{$.locale.Tr "modal.yes"}}
 													</button>
 												</div>
@@ -71,12 +71,12 @@
 												<input type="hidden" name="q" value="{{$.Keyword}}">
 												<input type="hidden" name="page" value="{{$.CurrentPage}}">
 												<div class="actions">
-													<div class="ui red basic inverted cancel button">
-														{{svg "octicon-trash" 16 "mr-2"}}
+													<button class="ui red basic inverted cancel button">
+														{{svg "octicon-trash" 16 "gt-mr-2"}}
 														{{$.locale.Tr "modal.no"}}
-													</div>
+													</button>
 													<button class="ui green basic inverted ok button">
-														{{svg "octicon-check" 16 "mr-2"}}
+														{{svg "octicon-check" 16 "gt-mr-2"}}
 														{{$.locale.Tr "modal.yes"}}
 													</button>
 												</div>
