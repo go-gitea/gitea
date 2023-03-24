@@ -7,7 +7,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -16,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
@@ -94,18 +94,44 @@ var (
 	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
 
-func fail(ctx context.Context, userMessage, logMessage string, args ...interface{}) error {
+// fail prints message to stdout, it's mainly used for git serv and git hook commands.
+// The output will be passed to git client and shown to user.
+func fail(ctx context.Context, userMessage, logMsgFmt string, args ...interface{}) error {
 	// There appears to be a chance to cause a zombie process and failure to read the Exit status
 	// if nothing is outputted on stdout.
-	_, _ = fmt.Fprintf(os.Stdout, "\nGitea: %s\n\n", userMessage)
+	if userMessage == "" {
+		userMessage = "Internal Server Error (no user message)"
+	}
+	_, _ = fmt.Fprintf(os.Stdout, "\nGitea: %s\n", userMessage)
 
-	if logMessage != "" {
+	if logMsgFmt != "" {
+		logMsg := fmt.Sprintf(logMsgFmt, args...)
 		if !setting.IsProd {
-			_, _ = fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
+			_, _ = fmt.Fprintln(os.Stderr, logMsg)
 		}
-		_ = private.SSHLog(ctx, true, fmt.Sprintf(logMessage+": ", args...))
+		if userMessage != "" {
+			if unicode.IsPunct(rune(userMessage[len(userMessage)-1])) {
+				logMsg = userMessage + " " + logMsg
+			} else {
+				logMsg = userMessage + ". " + logMsg
+			}
+		}
+		_ = private.SSHLog(ctx, true, logMsg)
 	}
 	return cli.NewExitError("", 1)
+}
+
+// handleCliResponseExtra handles the extra response from the cli sub-commands
+// If there is a user message it will be printed to stdout
+// If the command failed it will return an error (the error will be printed by cli framework)
+func handleCliResponseExtra(extra private.ResponseExtra) error {
+	if extra.UserMsg != "" {
+		_, _ = fmt.Fprintln(os.Stdout, extra.UserMsg)
+	}
+	if extra.HasError() {
+		return cli.NewExitError(extra.Error, 1)
+	}
+	return nil
 }
 
 func runServ(c *cli.Context) error {
@@ -133,14 +159,14 @@ func runServ(c *cli.Context) error {
 	}
 	keyID, err := strconv.ParseInt(keys[1], 10, 64)
 	if err != nil {
-		return fail(ctx, "Key ID format error", "Invalid key argument: %s", c.Args()[1])
+		return fail(ctx, "Key ID parsing error", "Invalid key argument: %s", c.Args()[1])
 	}
 
 	cmd := os.Getenv("SSH_ORIGINAL_COMMAND")
 	if len(cmd) == 0 {
 		key, user, err := private.ServNoCommand(ctx, keyID)
 		if err != nil {
-			return fail(ctx, "Internal error", "Failed to check provided key: %v", err)
+			return fail(ctx, "Key check failed", "Failed to check provided key: %v", err)
 		}
 		switch key.Type {
 		case asymkey_model.KeyTypeDeploy:
@@ -211,13 +237,13 @@ func runServ(c *cli.Context) error {
 
 		stopCPUProfiler, err := pprof.DumpCPUProfileForUsername(setting.PprofDataPath, username)
 		if err != nil {
-			return fail(ctx, "Internal Server Error", "Unable to start CPU profile: %v", err)
+			return fail(ctx, "Unable to start CPU profiler", "Unable to start CPU profile: %v", err)
 		}
 		defer func() {
 			stopCPUProfiler()
 			err := pprof.DumpMemProfileForUsername(setting.PprofDataPath, username)
 			if err != nil {
-				_ = fail(ctx, "Internal Server Error", "Unable to dump Mem Profile: %v", err)
+				_ = fail(ctx, "Unable to dump Mem profile", "Unable to dump Mem Profile: %v", err)
 			}
 		}()
 	}
@@ -237,16 +263,9 @@ func runServ(c *cli.Context) error {
 		}
 	}
 
-	results, err := private.ServCommand(ctx, keyID, username, reponame, requestedMode, verb, lfsVerb)
-	if err != nil {
-		if private.IsErrServCommand(err) {
-			errServCommand := err.(private.ErrServCommand)
-			if errServCommand.StatusCode != http.StatusInternalServerError {
-				return fail(ctx, "Unauthorized", "%s", errServCommand.Error())
-			}
-			return fail(ctx, "Internal Server Error", "%s", errServCommand.Error())
-		}
-		return fail(ctx, "Internal Server Error", "%s", err.Error())
+	results, extra := private.ServCommand(ctx, keyID, username, reponame, requestedMode, verb, lfsVerb)
+	if extra.HasError() {
+		return fail(ctx, extra.UserMsg, "ServCommand failed: %s", extra.Error)
 	}
 
 	// LFS token authentication
@@ -268,7 +287,7 @@ func runServ(c *cli.Context) error {
 		// Sign and get the complete encoded token as a string using the secret
 		tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
 		if err != nil {
-			return fail(ctx, "Internal error", "Failed to sign JWT token: %v", err)
+			return fail(ctx, "Failed to sign JWT Token", "Failed to sign JWT token: %v", err)
 		}
 
 		tokenAuthentication := &git_model.LFSTokenResponse{
@@ -280,7 +299,7 @@ func runServ(c *cli.Context) error {
 		enc := json.NewEncoder(os.Stdout)
 		err = enc.Encode(tokenAuthentication)
 		if err != nil {
-			return fail(ctx, "Internal error", "Failed to encode LFS json response: %v", err)
+			return fail(ctx, "Failed to encode LFS json response", "Failed to encode LFS json response: %v", err)
 		}
 		return nil
 	}
@@ -326,13 +345,13 @@ func runServ(c *cli.Context) error {
 	gitcmd.Env = append(gitcmd.Env, git.CommonCmdServEnvs()...)
 
 	if err = gitcmd.Run(); err != nil {
-		return fail(ctx, "Internal error", "Failed to execute git command: %v", err)
+		return fail(ctx, "Failed to execute git command", "Failed to execute git command: %v", err)
 	}
 
 	// Update user key activity.
 	if results.KeyID > 0 {
 		if err = private.UpdatePublicKeyInRepo(ctx, results.KeyID, results.RepoID); err != nil {
-			return fail(ctx, "Internal error", "UpdatePublicKeyInRepo: %v", err)
+			return fail(ctx, "Failed to update public key", "UpdatePublicKeyInRepo: %v", err)
 		}
 	}
 

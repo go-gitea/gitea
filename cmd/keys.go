@@ -66,9 +66,10 @@ func runKeys(c *cli.Context) error {
 
 	setup(ctx, false)
 
-	authorizedString, err := private.AuthorizedPublicKeyByContent(ctx, content)
-	if err != nil {
-		return err
+	authorizedString, extra := private.AuthorizedPublicKeyByContent(ctx, content)
+	// do not use handleCliResponseExtra or cli.NewExitError, if it exists immediately, it breaks some tests like Test_CmdKeys
+	if extra.Error != nil {
+		return extra.Error
 	}
 	fmt.Println(strings.TrimSpace(authorizedString))
 	return nil

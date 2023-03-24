@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
@@ -201,14 +200,8 @@ func runRemoveLogger(c *cli.Context) error {
 	}
 	name := c.Args().First()
 
-	statusCode, msg := private.RemoveLogger(ctx, group, name)
-	switch statusCode {
-	case http.StatusInternalServerError:
-		return fail(ctx, "InternalServerError", msg)
-	}
-
-	fmt.Fprintln(os.Stdout, msg)
-	return nil
+	extra := private.RemoveLogger(ctx, group, name)
+	return handleCliResponseExtra(extra)
 }
 
 func runAddSMTPLogger(c *cli.Context) error {
@@ -351,14 +344,8 @@ func commonAddLogger(c *cli.Context, mode string, vals map[string]interface{}) e
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	statusCode, msg := private.AddLogger(ctx, group, name, mode, vals)
-	switch statusCode {
-	case http.StatusInternalServerError:
-		return fail(ctx, "InternalServerError", msg)
-	}
-
-	fmt.Fprintln(os.Stdout, msg)
-	return nil
+	extra := private.AddLogger(ctx, group, name, mode, vals)
+	return handleCliResponseExtra(extra)
 }
 
 func runPauseLogging(c *cli.Context) error {
@@ -366,13 +353,8 @@ func runPauseLogging(c *cli.Context) error {
 	defer cancel()
 
 	setup(ctx, c.Bool("debug"))
-	statusCode, msg := private.PauseLogging(ctx)
-	switch statusCode {
-	case http.StatusInternalServerError:
-		return fail(ctx, "InternalServerError", msg)
-	}
-
-	fmt.Fprintln(os.Stdout, msg)
+	userMsg := private.PauseLogging(ctx)
+	_, _ = fmt.Fprintln(os.Stdout, userMsg)
 	return nil
 }
 
@@ -381,13 +363,8 @@ func runResumeLogging(c *cli.Context) error {
 	defer cancel()
 
 	setup(ctx, c.Bool("debug"))
-	statusCode, msg := private.ResumeLogging(ctx)
-	switch statusCode {
-	case http.StatusInternalServerError:
-		return fail(ctx, "InternalServerError", msg)
-	}
-
-	fmt.Fprintln(os.Stdout, msg)
+	userMsg := private.ResumeLogging(ctx)
+	_, _ = fmt.Fprintln(os.Stdout, userMsg)
 	return nil
 }
 
@@ -396,13 +373,8 @@ func runReleaseReopenLogging(c *cli.Context) error {
 	defer cancel()
 
 	setup(ctx, c.Bool("debug"))
-	statusCode, msg := private.ReleaseReopenLogging(ctx)
-	switch statusCode {
-	case http.StatusInternalServerError:
-		return fail(ctx, "InternalServerError", msg)
-	}
-
-	fmt.Fprintln(os.Stdout, msg)
+	userMsg := private.ReleaseReopenLogging(ctx)
+	_, _ = fmt.Fprintln(os.Stdout, userMsg)
 	return nil
 }
 
@@ -411,12 +383,6 @@ func runSetLogSQL(c *cli.Context) error {
 	defer cancel()
 	setup(ctx, c.Bool("debug"))
 
-	statusCode, msg := private.SetLogSQL(ctx, !c.Bool("off"))
-	switch statusCode {
-	case http.StatusInternalServerError:
-		return fail(ctx, "InternalServerError", msg)
-	}
-
-	fmt.Fprintln(os.Stdout, msg)
-	return nil
+	extra := private.SetLogSQL(ctx, !c.Bool("off"))
+	return handleCliResponseExtra(extra)
 }

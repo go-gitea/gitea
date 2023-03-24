@@ -46,7 +46,7 @@ func runPR() {
 	log.Printf("[PR] Starting gitea ...\n")
 	curDir, err := os.Getwd()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Getwd err: %v", err)
 	}
 	setting.SetCustomPathAndConf("", "", "")
 	setting.InitProviderAllowEmpty()
@@ -72,7 +72,7 @@ func runPR() {
 	setting.InternalToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTI3OTU5ODN9.OQkH5UmzID2XBdwQ9TAI6Jj2t1X-wElVTjbE7aoN4I8"
 	curUser, err := user.Current()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Current user err: %v", err)
 	}
 	setting.RunUser = curUser.Username
 
