@@ -129,7 +129,7 @@ func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
 }
 
 func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, error) {
-	if run.Event == webhook_module.HookEventPullRequest {
+	if run.Event == webhook_module.HookEventPullRequest || run.Event == webhook_module.HookEventPullRequestSync {
 		var payload api.PullRequestPayload
 		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 			return nil, err
@@ -137,6 +137,11 @@ func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, err
 		return &payload, nil
 	}
 	return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
+}
+
+func (run *ActionRun) GetPullRequestSyncEventPayload() error {
+
+	return nil
 }
 
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
