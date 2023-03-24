@@ -51,12 +51,12 @@
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="adopt">
 														<div class="actions">
-															<div class="ui red basic inverted cancel button">
-																<i class="remove icon"></i>
+															<button class="ui red basic inverted cancel button">
+																{{svg "octicon-x"}}
 																{{$.locale.Tr "modal.no"}}
-															</div>
+															</button>
 															<button class="ui green basic inverted ok button">
-																<i class="checkmark icon"></i>
+																{{svg "octicon-check"}}
 																{{$.locale.Tr "modal.yes"}}
 															</button>
 														</div>
@@ -77,16 +77,7 @@
 														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="delete">
-														<div class="actions">
-															<div class="ui red basic inverted cancel button">
-																<i class="remove icon"></i>
-																{{$.locale.Tr "modal.no"}}
-															</div>
-															<button class="ui green basic inverted ok button">
-																<i class="checkmark icon"></i>
-																{{$.locale.Tr "modal.yes"}}
-															</button>
-														</div>
+														{{template "base/delete_modal_actions" $}}
 													</form>
 												</div>
 											{{end}}
