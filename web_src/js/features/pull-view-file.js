@@ -72,15 +72,14 @@ export function initViewedCheckboxListenerFor() {
   }
 }
 
-export function initExpandFilesButton() {
+export function initExpandAndCollapseFilesButton() {
+  // expand btn
   document.querySelector(expandFilesBtnSelector)?.addEventListener('click', () => {
     for (const box of document.querySelectorAll('.file-content[data-folded="true"]')) {
       setFileFolding(box, box.querySelector('.fold-file'), false);
     }
   });
-}
-
-export function initCollapseFilesButton() {
+  // collapse btn, need to exclude the div of “show more”
   document.querySelector(collapseFilesBtnSelector)?.addEventListener('click', () => {
     for (const box of document.querySelectorAll('.file-content:not([data-folded="true"])')) {
       if (box.getAttribute('id') === 'diff-incomplete') continue;
