@@ -823,7 +823,7 @@ docs: deps-docs
 .PHONY: deps-docs
 deps-docs:
 	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		curl -sL https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_$(HUGO_VERSION)_Linux-64bit.tar.gz | tar zxf - -C /tmp && mv /tmp/hugo ~/go/bin/hugo && chmod +x ~/go/bin/hugo; \
+		curl -sL https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_$(HUGO_VERSION)_Linux-64bit.tar.gz | tar zxf - -C /tmp && mkdir -p ~/go/bin && mv /tmp/hugo ~/go/bin/hugo && chmod +x ~/go/bin/hugo; \
 	fi
 
 .PHONY: deps
