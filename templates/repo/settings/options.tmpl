@@ -171,7 +171,7 @@
 							{{$address := MirrorRemoteAddress $.Context $.Repository .GetRemoteName true}}
 							<td>{{$address.Address}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
-							<td>{{if .LastUpdateUnix}}<time data-format="date-time" datetime="{{.LastUpdateUnix.FormatLong}}">{{.LastUpdateUnix.AsTime}}</time>{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label tooltip" data-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
+							<td>{{if .LastUpdateUnix}}<time data-format="date-time" datetime="{{.LastUpdateUnix.FormatLong}}">{{.LastUpdateUnix.AsTime}}</time>{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
 								<form method="post" style="display: inline-block">
 									{{$.CsrfTokenHtml}}
@@ -253,7 +253,7 @@
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.code"}}</label>
 					{{if .UnitTypeCode.UnitGlobalDisabled}}
-					<div class="ui checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
+					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
 					{{else}}
 					<div class="ui checkbox">
 					{{end}}
@@ -266,7 +266,7 @@
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.wiki"}}</label>
 					{{if and (.UnitTypeWiki.UnitGlobalDisabled) (.UnitTypeExternalWiki.UnitGlobalDisabled)}}
-					<div class="ui checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
+					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
 					{{else}}
 					<div class="ui checkbox">
 					{{end}}
@@ -277,7 +277,7 @@
 				<div class="field {{if not $isWikiEnabled}}disabled{{end}}" id="wiki_box">
 					<div class="field">
 						{{if .UnitTypeWiki.UnitGlobalDisabled}}
-						<div class="ui radio checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
+						<div class="ui radio checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
 						{{else}}
 						<div class="ui radio checkbox">
 						{{end}}
@@ -287,7 +287,7 @@
 					</div>
 					<div class="field">
 						{{if .UnitTypeExternalWiki.UnitGlobalDisabled}}
-						<div class="ui radio checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
+						<div class="ui radio checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
 						{{else}}
 						<div class="ui radio checkbox">
 						{{end}}
@@ -308,7 +308,7 @@
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.issues"}}</label>
 					{{if and (.UnitTypeIssues.UnitGlobalDisabled) (.UnitTypeExternalTracker.UnitGlobalDisabled)}}
-					<div class="ui checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
+					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
 					{{else}}
 					<div class="ui checkbox">
 					{{end}}
@@ -319,7 +319,7 @@
 				<div class="field {{if not $isIssuesEnabled}}disabled{{end}}" id="issue_box">
 					<div class="field">
 						{{if .UnitTypeIssues.UnitGlobalDisabled}}
-						<div class="ui radio checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
+						<div class="ui radio checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
 						{{else}}
 						<div class="ui radio checkbox">
 						{{end}}
@@ -355,7 +355,7 @@
 					</div>
 					<div class="field">
 						{{if .UnitTypeExternalTracker.UnitGlobalDisabled}}
-						<div class="ui radio checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
+						<div class="ui radio checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
 						{{else}}
 						<div class="ui radio checkbox">
 						{{end}}
@@ -411,7 +411,7 @@
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.project_board"}}</label>
 					{{if .UnitTypeProjects.UnitGlobalDisabled}}
-					<div class="ui checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
+					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
 					{{else}}
 					<div class="ui checkbox">
 					{{end}}
@@ -424,7 +424,7 @@
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.releases"}}</label>
 					{{if .UnitTypeReleases.UnitGlobalDisabled}}
-					<div class="ui checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
+					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
 					{{else}}
 					<div class="ui checkbox">
 					{{end}}
@@ -437,7 +437,7 @@
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.packages"}}</label>
 					{{if .UnitTypePackages.UnitGlobalDisabled}}
-					<div class="ui checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
+					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
 					{{else}}
 					<div class="ui checkbox">
 					{{end}}
@@ -451,7 +451,7 @@
 					<div class="inline field">
 						<label>{{.locale.Tr "actions.actions"}}</label>
 						{{if .UnitTypeActions.UnitGlobalDisabled}}
-							<div class="ui checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
+							<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
 						{{else}}
 							<div class="ui checkbox">
 						{{end}}
@@ -468,7 +468,7 @@
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.pulls"}}</label>
 						{{if .UnitTypePullRequests.UnitGlobalDisabled}}
-						<div class="ui checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
+						<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
 						{{else}}
 						<div class="ui checkbox">
 						{{end}}
