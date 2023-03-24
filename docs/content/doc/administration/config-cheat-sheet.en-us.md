@@ -994,7 +994,7 @@ Default templates for project boards:
 
 ### Extended cron tasks (not enabled by default)
 
-#### Cron - Garbage collect all repositories ('cron.git_gc_repos')
+#### Cron - Garbage collect all repositories (`cron.git_gc_repos`)
 
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
@@ -1003,42 +1003,42 @@ Default templates for project boards:
 - `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
 - `ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. The default value is same with [git] -> GC_ARGS
 
-#### Cron - Update the '.ssh/authorized_keys' file with Gitea SSH keys ('cron.resync_all_sshkeys')
+#### Cron - Update the '.ssh/authorized_keys' file with Gitea SSH keys (`cron.resync_all_sshkeys`)
 
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
 - `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 
-#### Cron - Resynchronize pre-receive, update and post-receive hooks of all repositories ('cron.resync_all_hooks')
+#### Cron - Resynchronize pre-receive, update and post-receive hooks of all repositories (`cron.resync_all_hooks`)
 
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
 - `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 
-#### Cron - Reinitialize all missing Git repositories for which records exist ('cron.reinit_missing_repos')
+#### Cron - Reinitialize all missing Git repositories for which records exist (`cron.reinit_missing_repos`)
 
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
 - `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 
-#### Cron - Delete all repositories missing their Git files ('cron.delete_missing_repos')
+#### Cron - Delete all repositories missing their Git files (`cron.delete_missing_repos`)
 
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
 - `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 
-#### Cron -  Delete generated repository avatars ('cron.delete_generated_repository_avatars')
+#### Cron -  Delete generated repository avatars (`cron.delete_generated_repository_avatars`)
 
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
 - `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 
-#### Cron -  Delete all old actions from database ('cron.delete_old_actions')
+#### Cron -  Delete all old actions from database (`cron.delete_old_actions`)
 
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
@@ -1046,7 +1046,7 @@ Default templates for project boards:
 - `SCHEDULE`: **@every 168h**: Cron syntax to set how often to check.
 - `OLDER_THAN`: **@every 8760h**: any action older than this expression will be deleted from database, suggest using `8760h` (1 year) because that's the max length of heatmap.
 
-#### Cron -  Check for new Gitea versions ('cron.update_checker')
+#### Cron -  Check for new Gitea versions (`cron.update_checker`)
 
 - `ENABLED`: **true**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
@@ -1054,7 +1054,7 @@ Default templates for project boards:
 - `SCHEDULE`: **@every 168h**: Cron syntax for scheduling a work, e.g. `@every 168h`.
 - `HTTP_ENDPOINT`: **https://dl.gitea.io/gitea/version.json**: the endpoint that Gitea will check for newer versions
 
-#### Cron -  Delete all old system notices from database ('cron.delete_old_system_notices')
+#### Cron -  Delete all old system notices from database (`cron.delete_old_system_notices`)
 
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
@@ -1062,7 +1062,7 @@ Default templates for project boards:
 - `SCHEDULE`: **@every 168h**: Cron syntax to set how often to check.
 - `OLDER_THAN`: **@every 8760h**: any system notice older than this expression will be deleted from database.
 
-#### Cron -  Garbage collect LFS pointers in repositories ('cron.gc_lfs')
+#### Cron -  Garbage collect LFS pointers in repositories (`cron.gc_lfs`)
 
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
