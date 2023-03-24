@@ -84,6 +84,7 @@
 
 .issue.list > .item .desc a {
   color: inherit;
+  word-break: break-word;
 }
 
 .issue.list > .item .desc .time-since,
