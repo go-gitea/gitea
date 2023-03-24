@@ -5,7 +5,6 @@
       <!-- Files -->
       <SvgIcon
         v-if="item.isFile"
-        data-position="right center"
         name="octicon-file"
         class="svg-icon file"
       />
@@ -16,7 +15,6 @@
       >{{ item.name }}</a>
       <SvgIcon
         v-if="item.isFile"
-        data-position="right center"
         :name="getIconForDiffType(item.file.Type)"
         :class="['svg-icon', getIconForDiffType(item.file.Type), 'status']"
       />

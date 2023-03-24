@@ -10,7 +10,7 @@
           {{ textMyRepos }}
           <span class="ui grey label gt-ml-3">{{ reposTotalCount }}</span>
         </div>
-        <a class="tooltip" :href="subUrl + '/repo/create'" :data-content="textNewRepo" data-position="left center">
+        <a :href="subUrl + '/repo/create'" :data-tooltip-content="textNewRepo">
           <svg-icon name="octicon-plus"/>
           <span class="sr-only">{{ textNewRepo }}</span>
         </a>
@@ -119,7 +119,7 @@
           {{ textMyOrgs }}
           <span class="ui grey label gt-ml-3">{{ organizationsTotalCount }}</span>
         </div>
-        <a v-if="canCreateOrganization" class="tooltip" :href="subUrl + '/org/create'" :data-content="textNewOrg" data-position="left center">
+        <a v-if="canCreateOrganization" :href="subUrl + '/org/create'" :data-tooltip-content="textNewOrg">
           <svg-icon name="octicon-plus"/>
           <span class="sr-only">{{ textNewOrg }}</span>
         </a>
