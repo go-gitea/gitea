@@ -4,18 +4,18 @@
 		<div class="ui two horizontal center link list">
 			{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo)}}
 				<div class="item{{if .PageIsCommits}} active{{end}}">
-					<a class="ui" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}">{{svg "octicon-history"}} <b>{{JsPrettyNumber .CommitsCount}}</b> {{.locale.TrN .CommitsCount "repo.commit" "repo.commits"}}</a>
+					<a href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}">{{svg "octicon-history"}} <b>{{JsPrettyNumber .CommitsCount}}</b> {{.locale.TrN .CommitsCount "repo.commit" "repo.commits"}}</a>
 				</div>
 				<div class="item{{if .PageIsBranches}} active{{end}}">
-					<a class="ui" href="{{.RepoLink}}/branches">{{svg "octicon-git-branch"}} <b>{{.BranchesCount}}</b> {{.locale.TrN .BranchesCount "repo.branch" "repo.branches"}}</a>
+					<a href="{{.RepoLink}}/branches">{{svg "octicon-git-branch"}} <b>{{.BranchesCount}}</b> {{.locale.TrN .BranchesCount "repo.branch" "repo.branches"}}</a>
 				</div>
 				{{if $.Permission.CanRead $.UnitTypeCode}}
 					<div class="item">
-						<a class="ui" href="{{.RepoLink}}/tags">{{svg "octicon-tag"}} <b>{{.NumTags}}</b> {{.locale.TrN .NumTags "repo.tag" "repo.tags"}}</a>
+						<a href="{{.RepoLink}}/tags">{{svg "octicon-tag"}} <b>{{.NumTags}}</b> {{.locale.TrN .NumTags "repo.tag" "repo.tags"}}</a>
 					</div>
 				{{end}}
 				<div class="item">
-					<span class="ui">{{svg "octicon-database"}} <b>{{FileSize .Repository.Size}}</b></span>
+					<span>{{svg "octicon-database"}} <b>{{FileSize .Repository.Size}}</b></span>
 				</div>
 			{{end}}
 		</div>
@@ -40,7 +40,7 @@
 	</div>
 	<a class="ui segment language-stats">
 		{{range .LanguageStats}}
-		<div class="bar tooltip" style="width: {{.Percentage}}%; background-color: {{.Color}}" data-tooltip-placement="top" data-tooltip-content={{.Language}}>&nbsp;</div>
+		<div class="bar" style="width: {{.Percentage}}%; background-color: {{.Color}}" data-tooltip-placement="top" data-tooltip-content={{.Language}}>&nbsp;</div>
 		{{end}}
 	</a>
 	{{end}}
