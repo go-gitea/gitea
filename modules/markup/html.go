@@ -837,10 +837,18 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 		matchRepo := linkParts[len(linkParts)-3]
 
 		if matchOrg == ctx.Metas["user"] && matchRepo == ctx.Metas["repo"] {
-			replaceContent(node, m[0], m[1], createLink(link, id, "ref-issue"))
+			if link == node.Data {
+				replaceContent(node, m[0], m[1], createLink(link, id, "ref-issue"))
+			} else {
+				replaceContent(node, m[0], len(node.Data), createLink(link, id, "ref-issue"))
+			}
 		} else {
 			orgRepoID := matchOrg + "/" + matchRepo + id
-			replaceContent(node, m[0], m[1], createLink(link, orgRepoID, "ref-issue"))
+			if link == node.Data {
+				replaceContent(node, m[0], m[1], createLink(link, orgRepoID, "ref-issue"))
+			} else {
+				replaceContent(node, m[0], len(node.Data), createLink(link, orgRepoID, "ref-issue"))
+			}
 		}
 		node = node.NextSibling.NextSibling
 	}
