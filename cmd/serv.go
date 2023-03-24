@@ -55,7 +55,7 @@ var CmdServ = cli.Command{
 	},
 }
 
-func setup(logPath string, debug bool) {
+func setup(ctx context.Context, debug bool) {
 	_ = log.DelLogger("console")
 	if debug {
 		_ = log.NewLogger(1000, "console", "console", `{"level":"trace","stacktracelevel":"NONE","stderr":true}`)
@@ -72,15 +72,15 @@ func setup(logPath string, debug bool) {
 	// `[repository]` `ROOT` is a relative path and $GITEA_WORK_DIR isn't passed to the SSH connection.
 	if _, err := os.Stat(setting.RepoRootPath); err != nil {
 		if os.IsNotExist(err) {
-			_ = fail("Incorrect configuration, no repository directory.", "Directory `[repository].ROOT` %q was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value.", setting.RepoRootPath)
+			_ = fail(ctx, "Incorrect configuration, no repository directory.", "Directory `[repository].ROOT` %q was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value.", setting.RepoRootPath)
 		} else {
-			_ = fail("Incorrect configuration, repository directory is inaccessible", "Directory `[repository].ROOT` %q is inaccessible. err: %v", setting.RepoRootPath, err)
+			_ = fail(ctx, "Incorrect configuration, repository directory is inaccessible", "Directory `[repository].ROOT` %q is inaccessible. err: %v", setting.RepoRootPath, err)
 		}
 		return
 	}
 
 	if err := git.InitSimple(context.Background()); err != nil {
-		_ = fail("Failed to init git", "Failed to init git, err: %v", err)
+		_ = fail(ctx, "Failed to init git", "Failed to init git, err: %v", err)
 	}
 }
 
@@ -94,21 +94,15 @@ var (
 	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
 
-func fail(userMessage, logMessage string, args ...interface{}) error {
+func fail(ctx context.Context, userMessage, logMessage string, args ...interface{}) error {
 	// There appears to be a chance to cause a zombie process and failure to read the Exit status
 	// if nothing is outputted on stdout.
-	_, _ = fmt.Fprintln(os.Stdout, "")
-	_, _ = fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
+	_, _ = fmt.Fprintf(os.Stdout, "\nGitea: %s\n\n", userMessage)
 
-	if len(logMessage) > 0 {
+	if logMessage != "" {
 		if !setting.IsProd {
 			_, _ = fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
 		}
-	}
-	ctx, cancel := installSignals()
-	defer cancel()
-
-	if len(logMessage) > 0 {
 		_ = private.SSHLog(ctx, true, fmt.Sprintf(logMessage+": ", args...))
 	}
 	return cli.NewExitError("", 1)
@@ -119,7 +113,7 @@ func runServ(c *cli.Context) error {
 	defer cancel()
 
 	// FIXME: This needs to internationalised
-	setup("serv.log", c.Bool("debug"))
+	setup(ctx, c.Bool("debug"))
 
 	if setting.SSH.Disabled {
 		println("Gitea: SSH has been disabled")
@@ -135,18 +129,18 @@ func runServ(c *cli.Context) error {
 
 	keys := strings.Split(c.Args()[0], "-")
 	if len(keys) != 2 || keys[0] != "key" {
-		return fail("Key ID format error", "Invalid key argument: %s", c.Args()[0])
+		return fail(ctx, "Key ID format error", "Invalid key argument: %s", c.Args()[0])
 	}
 	keyID, err := strconv.ParseInt(keys[1], 10, 64)
 	if err != nil {
-		return fail("Key ID format error", "Invalid key argument: %s", c.Args()[1])
+		return fail(ctx, "Key ID format error", "Invalid key argument: %s", c.Args()[1])
 	}
 
 	cmd := os.Getenv("SSH_ORIGINAL_COMMAND")
 	if len(cmd) == 0 {
 		key, user, err := private.ServNoCommand(ctx, keyID)
 		if err != nil {
-			return fail("Internal error", "Failed to check provided key: %v", err)
+			return fail(ctx, "Internal error", "Failed to check provided key: %v", err)
 		}
 		switch key.Type {
 		case asymkey_model.KeyTypeDeploy:
@@ -164,7 +158,7 @@ func runServ(c *cli.Context) error {
 
 	words, err := shellquote.Split(cmd)
 	if err != nil {
-		return fail("Error parsing arguments", "Failed to parse arguments: %v", err)
+		return fail(ctx, "Error parsing arguments", "Failed to parse arguments: %v", err)
 	}
 
 	if len(words) < 2 {
@@ -175,7 +169,7 @@ func runServ(c *cli.Context) error {
 				return nil
 			}
 		}
-		return fail("Too few arguments", "Too few arguments in cmd: %s", cmd)
+		return fail(ctx, "Too few arguments", "Too few arguments in cmd: %s", cmd)
 	}
 
 	verb := words[0]
@@ -187,7 +181,7 @@ func runServ(c *cli.Context) error {
 	var lfsVerb string
 	if verb == lfsAuthenticateVerb {
 		if !setting.LFS.StartServer {
-			return fail("Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
+			return fail(ctx, "Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
 		}
 
 		if len(words) > 2 {
@@ -200,37 +194,37 @@ func runServ(c *cli.Context) error {
 
 	rr := strings.SplitN(repoPath, "/", 2)
 	if len(rr) != 2 {
-		return fail("Invalid repository path", "Invalid repository path: %v", repoPath)
+		return fail(ctx, "Invalid repository path", "Invalid repository path: %v", repoPath)
 	}
 
 	username := strings.ToLower(rr[0])
 	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
 
 	if alphaDashDotPattern.MatchString(reponame) {
-		return fail("Invalid repo name", "Invalid repo name: %s", reponame)
+		return fail(ctx, "Invalid repo name", "Invalid repo name: %s", reponame)
 	}
 
 	if c.Bool("enable-pprof") {
 		if err := os.MkdirAll(setting.PprofDataPath, os.ModePerm); err != nil {
-			return fail("Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
+			return fail(ctx, "Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
 		}
 
 		stopCPUProfiler, err := pprof.DumpCPUProfileForUsername(setting.PprofDataPath, username)
 		if err != nil {
-			return fail("Internal Server Error", "Unable to start CPU profile: %v", err)
+			return fail(ctx, "Internal Server Error", "Unable to start CPU profile: %v", err)
 		}
 		defer func() {
 			stopCPUProfiler()
 			err := pprof.DumpMemProfileForUsername(setting.PprofDataPath, username)
 			if err != nil {
-				_ = fail("Internal Server Error", "Unable to dump Mem Profile: %v", err)
+				_ = fail(ctx, "Internal Server Error", "Unable to dump Mem Profile: %v", err)
 			}
 		}()
 	}
 
 	requestedMode, has := allowedCommands[verb]
 	if !has {
-		return fail("Unknown git command", "Unknown git command %s", verb)
+		return fail(ctx, "Unknown git command", "Unknown git command %s", verb)
 	}
 
 	if verb == lfsAuthenticateVerb {
@@ -239,7 +233,7 @@ func runServ(c *cli.Context) error {
 		} else if lfsVerb == "download" {
 			requestedMode = perm.AccessModeRead
 		} else {
-			return fail("Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
+			return fail(ctx, "Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
 		}
 	}
 
@@ -248,11 +242,11 @@ func runServ(c *cli.Context) error {
 		if private.IsErrServCommand(err) {
 			errServCommand := err.(private.ErrServCommand)
 			if errServCommand.StatusCode != http.StatusInternalServerError {
-				return fail("Unauthorized", "%s", errServCommand.Error())
+				return fail(ctx, "Unauthorized", "%s", errServCommand.Error())
 			}
-			return fail("Internal Server Error", "%s", errServCommand.Error())
+			return fail(ctx, "Internal Server Error", "%s", errServCommand.Error())
 		}
-		return fail("Internal Server Error", "%s", err.Error())
+		return fail(ctx, "Internal Server Error", "%s", err.Error())
 	}
 
 	// LFS token authentication
@@ -274,7 +268,7 @@ func runServ(c *cli.Context) error {
 		// Sign and get the complete encoded token as a string using the secret
 		tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
 		if err != nil {
-			return fail("Internal error", "Failed to sign JWT token: %v", err)
+			return fail(ctx, "Internal error", "Failed to sign JWT token: %v", err)
 		}
 
 		tokenAuthentication := &git_model.LFSTokenResponse{
@@ -286,7 +280,7 @@ func runServ(c *cli.Context) error {
 		enc := json.NewEncoder(os.Stdout)
 		err = enc.Encode(tokenAuthentication)
 		if err != nil {
-			return fail("Internal error", "Failed to encode LFS json response: %v", err)
+			return fail(ctx, "Internal error", "Failed to encode LFS json response: %v", err)
 		}
 		return nil
 	}
@@ -332,13 +326,13 @@ func runServ(c *cli.Context) error {
 	gitcmd.Env = append(gitcmd.Env, git.CommonCmdServEnvs()...)
 
 	if err = gitcmd.Run(); err != nil {
-		return fail("Internal error", "Failed to execute git command: %v", err)
+		return fail(ctx, "Internal error", "Failed to execute git command: %v", err)
 	}
 
 	// Update user key activity.
 	if results.KeyID > 0 {
 		if err = private.UpdatePublicKeyInRepo(ctx, results.KeyID, results.RepoID); err != nil {
-			return fail("Internal error", "UpdatePublicKeyInRepo: %v", err)
+			return fail(ctx, "Internal error", "UpdatePublicKeyInRepo: %v", err)
 		}
 	}
 

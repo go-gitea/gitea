@@ -99,11 +99,11 @@ type HookProcReceiveRefResult struct {
 }
 
 // HookPreReceive check whether the provided commits are allowed
-func HookPreReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (int, string) {
+func HookPreReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (statusCode int, userMsg, logMsg string) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s",
 		url.PathEscape(ownerName),
 		url.PathEscape(repoName),
-	)
+		)
 	req := newInternalRequest(ctx, reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
 	jsonBytes, _ := json.Marshal(opts)
@@ -111,12 +111,14 @@ func HookPreReceive(ctx context.Context, ownerName, repoName string, opts HookOp
 	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
 	resp, err := req.Response()
 	if err != nil {
-		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
+		return http.StatusInternalServerError,
+		"Internal Server Connection Error",
+		fmt.Sprintf("Unable to contact gitea: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return resp.StatusCode, decodeJSONError(resp).Err
+		return resp.StatusCode, fmt.Sprintf("Internal Server Failure: %s", decodeJSONError(resp).Err),
 	}
 
 	return http.StatusOK, ""

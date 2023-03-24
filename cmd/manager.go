@@ -103,11 +103,11 @@ func runShutdown(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
+	setup(ctx, c.Bool("debug"))
 	statusCode, msg := private.Shutdown(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
+		return fail(ctx, "InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
@@ -118,11 +118,11 @@ func runRestart(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
+	setup(ctx, c.Bool("debug"))
 	statusCode, msg := private.Restart(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
+		return fail(ctx, "InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
@@ -133,11 +133,11 @@ func runFlushQueues(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
+	setup(ctx, c.Bool("debug"))
 	statusCode, msg := private.FlushQueues(ctx, c.Duration("timeout"), c.Bool("non-blocking"))
 	switch statusCode {
 	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
+		return fail(ctx, "InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
@@ -148,11 +148,11 @@ func runProcesses(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
+	setup(ctx, c.Bool("debug"))
 	statusCode, msg := private.Processes(ctx, os.Stdout, c.Bool("flat"), c.Bool("no-system"), c.Bool("stacktraces"), c.Bool("json"), c.String("cancel"))
 	switch statusCode {
 	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
+		return fail(ctx, "InternalServerError", msg)
 	}
 
 	return nil

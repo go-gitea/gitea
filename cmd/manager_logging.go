@@ -191,19 +191,20 @@ var (
 )
 
 func runRemoveLogger(c *cli.Context) error {
-	setup("manager", c.Bool("debug"))
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	setup(ctx, c.Bool("debug"))
 	group := c.String("group")
 	if len(group) == 0 {
 		group = log.DEFAULT
 	}
 	name := c.Args().First()
-	ctx, cancel := installSignals()
-	defer cancel()
 
 	statusCode, msg := private.RemoveLogger(ctx, group, name)
 	switch statusCode {
 	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
+		return fail(ctx, "InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
@@ -211,7 +212,10 @@ func runRemoveLogger(c *cli.Context) error {
 }
 
 func runAddSMTPLogger(c *cli.Context) error {
-	setup("manager", c.Bool("debug"))
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	setup(ctx, c.Bool("debug"))
 	vals := map[string]interface{}{}
 	mode := "smtp"
 	if c.IsSet("host") {
@@ -242,7 +246,10 @@ func runAddSMTPLogger(c *cli.Context) error {
 }
 
 func runAddConnLogger(c *cli.Context) error {
-	setup("manager", c.Bool("debug"))
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	setup(ctx, c.Bool("debug"))
 	vals := map[string]interface{}{}
 	mode := "conn"
 	vals["net"] = "tcp"
@@ -269,7 +276,10 @@ func runAddConnLogger(c *cli.Context) error {
 }
 
 func runAddFileLogger(c *cli.Context) error {
-	setup("manager", c.Bool("debug"))
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	setup(ctx, c.Bool("debug"))
 	vals := map[string]interface{}{}
 	mode := "file"
 	if c.IsSet("filename") {
@@ -299,7 +309,10 @@ func runAddFileLogger(c *cli.Context) error {
 }
 
 func runAddConsoleLogger(c *cli.Context) error {
-	setup("manager", c.Bool("debug"))
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	setup(ctx, c.Bool("debug"))
 	vals := map[string]interface{}{}
 	mode := "console"
 	if c.IsSet("stderr") && c.Bool("stderr") {
@@ -341,7 +354,7 @@ func commonAddLogger(c *cli.Context, mode string, vals map[string]interface{}) e
 	statusCode, msg := private.AddLogger(ctx, group, name, mode, vals)
 	switch statusCode {
 	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
+		return fail(ctx, "InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
@@ -352,11 +365,11 @@ func runPauseLogging(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
+	setup(ctx, c.Bool("debug"))
 	statusCode, msg := private.PauseLogging(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
+		return fail(ctx, "InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
@@ -367,11 +380,11 @@ func runResumeLogging(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
+	setup(ctx, c.Bool("debug"))
 	statusCode, msg := private.ResumeLogging(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
+		return fail(ctx, "InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
@@ -382,11 +395,11 @@ func runReleaseReopenLogging(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
+	setup(ctx, c.Bool("debug"))
 	statusCode, msg := private.ReleaseReopenLogging(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
+		return fail(ctx, "InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
@@ -396,12 +409,12 @@ func runReleaseReopenLogging(c *cli.Context) error {
 func runSetLogSQL(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
-	setup("manager", c.Bool("debug"))
+	setup(ctx, c.Bool("debug"))
 
 	statusCode, msg := private.SetLogSQL(ctx, !c.Bool("off"))
 	switch statusCode {
 	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
+		return fail(ctx, "InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
