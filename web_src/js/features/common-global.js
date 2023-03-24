@@ -117,7 +117,6 @@ export function initGlobalCommon() {
   $('.ui.checkbox').checkbox();
 
   $('.tabular.menu .item').tab();
-  $('.tabable.menu .item').tab();
 
   $('.toggle.button').on('click', function () {
     toggleElem($($(this).data('target')));
