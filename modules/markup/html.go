@@ -97,12 +97,26 @@ var issueFullPattern *regexp.Regexp
 // Once for to prevent races
 var issueFullPatternOnce sync.Once
 
+// regexp for full links to hash comment in pull request
+var filesChangedFullPattern *regexp.Regexp
+
+// Once for to prevent races
+var filesChangedFullPatternOnce sync.Once
+
 func getIssueFullPattern() *regexp.Regexp {
 	issueFullPatternOnce.Do(func() {
 		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
 			`[\w_.-]+/[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
 	})
 	return issueFullPattern
+}
+
+func getFilesChangedFullPattern() *regexp.Regexp {
+	filesChangedFullPatternOnce.Do(func() {
+		filesChangedFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
+			`[\w_.-]+/[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
+	})
+	return filesChangedFullPattern
 }
 
 // CustomLinkURLSchemes allows for additional schemes to be detected when parsing links within text
@@ -797,13 +811,17 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
 		m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
+		filesChangedm := getFilesChangedFullPattern().FindStringSubmatchIndex(node.Data)
 		if m == nil {
+			return
+		}
+		if filesChangedm != nil {
 			return
 		}
 		link := node.Data[m[0]:m[1]]
 		id := "#" + node.Data[m[2]:m[3]]
 
-		// if m[4]:m[5] is not nil, then link is to a comment
+		// if m[4] m[5] is not -1, then link is to a comment
 		// indicate that in the text by appending (comment)
 		if m[4] != -1 && m[5] != -1 {
 			id += " (comment)"
