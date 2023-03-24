@@ -139,11 +139,6 @@ func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, err
 	return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
 }
 
-func (run *ActionRun) GetPullRequestSyncEventPayload() error {
-
-	return nil
-}
-
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
 	_, err := db.GetEngine(ctx).ID(repo.ID).
 		SetExpr("num_action_runs",
