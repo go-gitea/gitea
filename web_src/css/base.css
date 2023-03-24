@@ -2420,18 +2420,6 @@ a.ui.basic.label:hover {
   height: 2.1666em !important;
 }
 
-span.green .svg {
-  color: var(--color-green);
-}
-
-span.red .svg {
-  color: var(--color-red);
-}
-
-span.purple .svg {
-  color: var(--color-purple);
-}
-
 .migrate .svg.gitea-git {
   color: var(--color-git);
 }

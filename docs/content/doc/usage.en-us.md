@@ -8,6 +8,6 @@ draft: false
 menu:
   sidebar:
     name: "Usage"
-    weight: 35
+    weight: 30
     identifier: "usage"
 ---

@@ -1,7 +1,7 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "Generic Packages Repository"
-slug: "packages/generic"
+slug: "usage/packages/generic"
 draft: false
 toc: false
 menu:
@@ -22,7 +22,7 @@ Publish generic files, like release binaries or other output, for your user or o
 
 ## Authenticate to the package registry
 
-To authenticate to the Package Registry, you need to provide [custom HTTP headers or use HTTP Basic authentication]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}).
+To authenticate to the Package Registry, you need to provide [custom HTTP headers or use HTTP Basic authentication]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}).
 
 ## Publish a package
 
@@ -48,7 +48,7 @@ curl --user your_username:your_password_or_token \
      https://gitea.example.com/api/packages/testuser/generic/test_package/1.0.0/file.bin
 ```
 
-If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}) instead of the password.
+If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) instead of the password.
 
 The server reponds with the following HTTP Status codes.
 
