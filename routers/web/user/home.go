@@ -444,21 +444,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		repoOpts.TeamID = team.ID
 	}
 
-	switch filterMode {
-	case issues_model.FilterModeAll:
-	case issues_model.FilterModeYourRepositories:
-	case issues_model.FilterModeAssign:
-		opts.AssigneeID = ctx.Doer.ID
-	case issues_model.FilterModeCreate:
-		opts.PosterID = ctx.Doer.ID
-	case issues_model.FilterModeMention:
-		opts.MentionedID = ctx.Doer.ID
-	case issues_model.FilterModeReviewRequested:
-		opts.ReviewRequestedID = ctx.Doer.ID
-	case issues_model.FilterModeReviewed:
-		opts.ReviewedID = ctx.Doer.ID
-	}
-
 	// keyword holds the search term entered into the search field.
 	keyword := strings.Trim(ctx.FormString("q"), " ")
 	ctx.Data["Keyword"] = keyword
@@ -493,6 +478,23 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			ctx.ServerError("CountIssuesByRepo", err)
 			return
 		}
+	}
+
+	// In order to display all issues count in repo filter,
+	// we need to check filterMode after CountIssuesByRepo
+	switch filterMode {
+	case issues_model.FilterModeAll:
+	case issues_model.FilterModeYourRepositories:
+	case issues_model.FilterModeAssign:
+		opts.AssigneeID = ctx.Doer.ID
+	case issues_model.FilterModeCreate:
+		opts.PosterID = ctx.Doer.ID
+	case issues_model.FilterModeMention:
+		opts.MentionedID = ctx.Doer.ID
+	case issues_model.FilterModeReviewRequested:
+		opts.ReviewRequestedID = ctx.Doer.ID
+	case issues_model.FilterModeReviewed:
+		opts.ReviewedID = ctx.Doer.ID
 	}
 
 	// Make sure page number is at least 1. Will be posted to ctx.Data.
