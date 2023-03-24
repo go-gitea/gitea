@@ -21,7 +21,7 @@
 			<div class="gt-df gt-mb-4 gt-fw">
 				<h3 class="gt-mb-0 gt-f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
 				{{if not $.PageIsWiki}}
-					<div class="ui">
+					<div>
 						<a class="ui primary tiny button" href="{{.SourcePath}}">
 							{{.locale.Tr "repo.diff.browse_source"}}
 						</a>
@@ -32,14 +32,14 @@
 									<div class="ui header">{{.locale.Tr "repo.commit.operations"}}</div>
 									<div class="divider"></div>
 									<div class="item show-create-branch-modal"
-										data-content="{{$.locale.Tr "repo.branch.new_branch_from" (.CommitID)}}"
+										data-content="{{$.locale.Tr "repo.branch.new_branch_from" (.CommitID)}}" {{/* used by the form */}}
 										data-branch-from="{{ShortSha .CommitID}}"
 										data-branch-from-urlcomponent="{{.CommitID}}"
 										data-modal="#create-branch-modal">
 										{{.locale.Tr "repo.branch.create_branch_operation"}}
 									</div>
 									<div class="item show-create-branch-modal"
-										data-content="{{$.locale.Tr "repo.branch.new_branch_from" (.CommitID)}}"
+										data-content="{{$.locale.Tr "repo.branch.new_branch_from" (.CommitID)}}" {{/* used by the form */}}
 										data-branch-from="{{ShortSha .CommitID}}"
 										data-branch-from-urlcomponent="{{.CommitID}}"
 										data-modal="#create-tag-modal"
@@ -227,10 +227,10 @@
 						{{else}}
 							{{svg "octicon-unverified" 16 "gt-mr-3"}}
 							{{if .Verification.SigningSSHKey}}
-								<span class="ui text gt-mr-3 tooltip" data-content="{{.locale.Tr "gpg.default_key"}}">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
+								<span class="ui text gt-mr-3" data-tooltip-content="{{.locale.Tr "gpg.default_key"}}">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 								{{.Verification.SigningSSHKey.Fingerprint}}
 							{{else}}
-								<span class="ui text gt-mr-3 tooltip" data-content="{{.locale.Tr "gpg.default_key"}}">{{.locale.Tr "repo.commits.gpg_key_id"}}:</span>
+								<span class="ui text gt-mr-3" data-tooltip-content="{{.locale.Tr "gpg.default_key"}}">{{.locale.Tr "repo.commits.gpg_key_id"}}:</span>
 								{{.Verification.SigningKey.PaddedKeyID}}
 							{{end}}
 						{{end}}

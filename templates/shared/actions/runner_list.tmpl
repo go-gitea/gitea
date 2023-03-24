@@ -64,7 +64,7 @@
 							<span class="runner-status-{{if .IsOnline}}online{{else}}offline{{end}}">{{.StatusLocaleName $.locale}}</span>
 						</td>
 						<td>{{.ID}}</td>
-						<td><p class="tooltip" data-content="{{.Description}}">{{.Name}}</p></td>
+						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
 						<td>{{.Version}}</td>
 						<td>{{.OwnType}}</td>
 						<td class="runner-tags">
