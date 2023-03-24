@@ -820,14 +820,14 @@ release-docs: | $(DIST_DIRS) docs
 docs: deps-docs
 	cd docs; make trans-copy clean build-offline;
 
-.PHONY: deps-docs # TODO: find a way to install hugo without needing sudo permissions and add deps-docs to deps (the next block)
+.PHONY: deps-docs
 deps-docs:
 	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		curl -sL https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_$(HUGO_VERSION)_Linux-64bit.tar.gz | tar zxf - -C /tmp && mv /tmp/hugo /usr/bin/hugo && chmod +x /usr/bin/hugo; \
+		curl -sL https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_$(HUGO_VERSION)_Linux-64bit.tar.gz | tar zxf - -C /tmp && mv /tmp/hugo ~/go/bin/hugo && chmod +x ~/go/bin/hugo; \
 	fi
 
 .PHONY: deps
-deps: deps-frontend deps-backend deps-tools
+deps: deps-frontend deps-backend deps-tools deps-docs
 
 .PHONY: deps-frontend
 deps-frontend: node_modules
