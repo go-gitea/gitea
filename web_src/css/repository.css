@@ -143,7 +143,8 @@
 
 .repository .filter.menu .menu {
   max-height: 500px;
-  overflow-x: auto;
+  max-width: 300px;
+  overflow-x: hidden;
   right: 0 !important;
   left: auto !important;
 }

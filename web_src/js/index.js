@@ -56,7 +56,6 @@ import {
   initGlobalFormDirtyLeaveConfirm,
   initGlobalLinkActions,
   initHeadNavbarContentToggle,
-  initGlobalTooltips,
 } from './features/common-global.js';
 import {initRepoTopicBar} from './features/repo-home.js';
 import {initAdminEmails} from './features/admin/emails.js';
@@ -91,6 +90,7 @@ import {initCaptcha} from './features/captcha.js';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
 import {initAriaCheckboxPatch} from './modules/aria/checkbox.js';
 import {initAriaDropdownPatch} from './modules/aria/dropdown.js';
+import {initGlobalTooltips} from './modules/tippy.js';
 
 // Run time-critical code as soon as possible. This is safe to do because this
 // script appears at the end of <body> and rendered HTML is accessible at that point.
