@@ -951,6 +951,38 @@
         }
       }
     },
+    "/markup": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Render a markup document as HTML",
+        "operationId": "renderMarkup",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/MarkupOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/MarkupRender"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/nodeinfo": {
       "get": {
         "produces": [
@@ -17991,11 +18023,38 @@
           "type": "string"
         },
         "Mode": {
-          "description": "Mode to render\n\nin: body",
+          "description": "Mode to render (comment, gfm, markdown)\n\nin: body",
           "type": "string"
         },
         "Text": {
           "description": "Text markdown to render\n\nin: body",
+          "type": "string"
+        },
+        "Wiki": {
+          "description": "Is it a wiki page ?\n\nin: body",
+          "type": "boolean"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "MarkupOption": {
+      "description": "MarkupOption markup options",
+      "type": "object",
+      "properties": {
+        "Context": {
+          "description": "Context to render\n\nin: body",
+          "type": "string"
+        },
+        "FilePath": {
+          "description": "File path for detecting extension in file mode\n\nin: body",
+          "type": "string"
+        },
+        "Mode": {
+          "description": "Mode to render (comment, gfm, markdown, file)\n\nin: body",
+          "type": "string"
+        },
+        "Text": {
+          "description": "Text markup to render\n\nin: body",
           "type": "string"
         },
         "Wiki": {
@@ -20831,6 +20890,12 @@
     },
     "MarkdownRender": {
       "description": "MarkdownRender is a rendered markdown document",
+      "schema": {
+        "type": "string"
+      }
+    },
+    "MarkupRender": {
+      "description": "MarkupRender is a rendered markup document",
       "schema": {
         "type": "string"
       }

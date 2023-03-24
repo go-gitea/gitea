@@ -33,7 +33,7 @@ executable path, you will have to manage this yourself.
 
 **Note 2**: Go version {{< min-go-version >}} or higher is required. However, it is recommended to
 obtain the same version as our continuous integration, see the advice given in
-<a href='{{< relref "doc/developers/hacking-on-gitea.en-us.md" >}}'>Hacking on
+<a href='{{< relref "doc/development/hacking-on-gitea.en-us.md" >}}'>Hacking on
 Gitea</a>
 
 **Table of Contents**
@@ -87,7 +87,7 @@ To build from source, the following programs must be present on the system:
 
 - `go` {{< min-go-version >}} or higher, see [here](https://golang.org/dl/)
 - `node` {{< min-node-version >}} or higher with `npm`, see [here](https://nodejs.org/en/download/)
-- `make`, see [here]({{< relref "doc/developers/hacking-on-gitea.en-us.md" >}}#installing-make)
+- `make`, see [here]({{< relref "doc/development/hacking-on-gitea.en-us.md" >}}#installing-make)
 
 Various [make tasks](https://github.com/go-gitea/gitea/blob/main/Makefile)
 are provided to keep the build process as simple as possible.

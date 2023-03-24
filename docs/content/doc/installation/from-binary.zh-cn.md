@@ -59,7 +59,7 @@ gpg --verify gitea-{{< version >}}-linux-amd64.asc gitea-{{< version >}}-linux-a
 
 ## 服务器设置
 
-**提示：** `GITEA_WORK_DIR` 表示 Gitea 工作的路径。以下路径可以通过 [环境变量]({{< relref "doc/advanced/environment-variables.zh-cn.md" >}}) 初始化。
+**提示：** `GITEA_WORK_DIR` 表示 Gitea 工作的路径。以下路径可以通过 [环境变量]({{< relref "doc/administration/environment-variables.zh-cn.md" >}}) 初始化。
 
 ### 准备环境
 
@@ -141,7 +141,7 @@ GITEA_WORK_DIR=/var/lib/gitea/ /usr/local/bin/gitea web -c /etc/gitea/app.ini
 
 您可以通过停止程序，替换 `/usr/local/bin/gitea` 并重启来更新到新版本。直接替换可执行程序时不要更改或使用新的文件名称，以避免数据出错。
 
-建议您在更新之前进行[备份]({{< relref "doc/usage/backup-and-restore.zh-cn.md" >}})。
+建议您在更新之前进行[备份]({{< relref "doc/administration/backup-and-restore.zh-cn.md" >}})。
 
 ### 1. 使用 systemd 重新启动 Gitea（推荐）
 
