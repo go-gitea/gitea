@@ -307,7 +307,6 @@ func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, taskID int64)
 	storageDir := fmt.Sprintf("tmp%d", taskID)
 	var chunks []*chunkItem
 	if err := ar.fs.IterateObjects(storageDir, func(path string, obj storage.Object) error {
-		defer obj.Close()
 		item := chunkItem{Path: path}
 		if _, err := fmt.Sscanf(path, storageDir+"/%d-%d-%d.chunk", &item.ArtifactID, &item.Start, &item.End); err != nil {
 			return fmt.Errorf("parse content range error: %v", err)
