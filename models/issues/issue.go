@@ -1374,6 +1374,8 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 							"`team_unit`.org_id": orgID,
 						}.And(
 							builder.In("`team_unit`.type", units),
+						).And(
+							builder.Gt{"`team_unit`.access_mode": int(perm.AccessModeNone)},
 						),
 					),
 				),
@@ -1402,15 +1404,62 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 	} else {
 		cond = cond.And(
 			builder.Or(
-				repo_model.UserOwnedRepoCond(userID),                          // owned repos
-				repo_model.UserAccessRepoCond(repoIDstr, userID),              // user can access repo in a unit independent way
-				repo_model.UserAssignedRepoCond(repoIDstr, userID),            // user has been assigned accessible public repos
-				repo_model.UserMentionedRepoCond(repoIDstr, userID),           // user has been mentioned accessible public repos
-				repo_model.UserCreateIssueRepoCond(repoIDstr, userID, isPull), // user has created issue/pr accessible public repos
+				repo_model.UserOwnedRepoCond(userID),                           // owned repos
+				repo_model.UserUnitAccessRepoCond(repoIDstr, userID, unitType), // user can access repo in a unit independent way
+				UserAssignedIssueCond(userID),                                  // user has been assigned accessible public repos
+				UserMentionedIssueCond(userID),                                 // user has been mentioned accessible public repos
+				UserCreateIssueCond(userID, isPull),                            // user has created issue/pr accessible public repos
 			),
 		)
 	}
 	return cond
+}
+
+// UserAssignedIssueCond return user as assignee issues list
+func UserAssignedIssueCond(userID int64) builder.Cond {
+	return builder.And(
+		builder.Eq{
+			"repository.is_private": false,
+		},
+		builder.In("issue.id",
+			builder.Select("issue_assignees.issue_id").From("issue_assignees").
+				Where(builder.Eq{
+					"issue_assignees.assignee_id": userID,
+				}),
+		),
+	)
+}
+
+// UserMentionedIssueCond return user metinoed issues list
+func UserMentionedIssueCond(userID int64) builder.Cond {
+	return builder.And(
+		builder.Eq{
+			"repository.is_private": false,
+		},
+		builder.In("issue.id",
+			builder.Select("issue_user.issue_id").From("issue_user").
+				Where(builder.Eq{
+					"issue_user.is_mentioned": true,
+					"issue_user.uid":          userID,
+				}),
+		),
+	)
+}
+
+// UserCreateIssueCond return user created issues list
+func UserCreateIssueCond(userID int64, isPull bool) builder.Cond {
+	return builder.And(
+		builder.Eq{
+			"repository.is_private": false,
+		},
+		builder.In("issue.id",
+			builder.Select("issue.id").From("issue").
+				Where(builder.Eq{
+					"issue.poster_id": userID,
+					"issue.is_pull":   isPull,
+				}),
+		),
+	)
 }
 
 func applyAssigneeCondition(sess *xorm.Session, assigneeID int64) *xorm.Session {
