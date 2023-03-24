@@ -131,23 +131,35 @@ function getFileBasedOptions(filename, lineWrapExts) {
   };
 }
 
-export async function createCodeEditor(textarea, filenameInput) {
-  const filename = basename(filenameInput.value);
-  const previewLink = document.querySelector('a[data-tab=preview]');
-  const previewableExts = (textarea.getAttribute('data-previewable-extensions') || '').split(',');
-  const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
-  const previewable = previewableExts.includes(extname(filename));
-  const editorConfig = getEditorconfig(filenameInput);
-
-  if (previewLink) {
-    if (previewable) {
-      const newUrl = (previewLink.getAttribute('data-url') || '').replace(/(.*)\/.*/i, `$1/markup`);
-      previewLink.setAttribute('data-url', newUrl);
-      previewLink.style.display = '';
-    } else {
-      previewLink.style.display = 'none';
+function togglePreviewDisplay(previewable) {
+  const previewTab = document.querySelector('a[data-tab=preview]');
+  if (!previewTab) {
+    return;
+  }
+  if (previewable) {
+    const newUrl = (previewTab.getAttribute('data-url') || '').replace(/(.*)\/.*/i, `$1/markup`);
+    previewTab.setAttribute('data-url', newUrl);
+    previewTab.style.display = '';
+  } else {
+    previewTab.style.display = 'none';
+    // If the "preview" tab was active, user changes the filename to a non-previewable one,
+    // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
+    if (previewTab.classList.contains('active')) {
+      const writeTab = document.querySelector('a[data-tab=write]');
+      writeTab.click();
     }
   }
+}
+
+export async function createCodeEditor(textarea, filenameInput) {
+  const filename = basename(filenameInput.value);
+  const previewableExts = (textarea.getAttribute('data-previewable-extensions') || '').split(',');
+  const previewableExtsSet = new Set(previewableExts);
+  const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
+  const previewable = previewableExtsSet.has(extname(filename));
+  const editorConfig = getEditorconfig(filenameInput);
+
+  togglePreviewDisplay(previewable);
 
   const {monaco, editor} = await createMonaco(textarea, filename, {
     ...baseOptions,
@@ -157,8 +169,8 @@ export async function createCodeEditor(textarea, filenameInput) {
 
   const debounceInputHandler = debounce(500, () => {
     const filename = filenameInput.value;
-    const isMarkdown = markdownExtsSet.has(extname(filename));
-    togglePreviewDisplay(isMarkdown, hasMarkdown);
+    const previewable = previewableExtsSet.has(extname(filename));
+    togglePreviewDisplay(previewable);
     updateEditor(monaco, editor, filename, lineWrapExts);
   });
 
