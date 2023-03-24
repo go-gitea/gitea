@@ -120,10 +120,6 @@ export function initGlobalCommon() {
   $('.tabular.menu .item').tab();
   $('.tabable.menu .item').tab();
 
-  $('.toggle.button').on('click', function () {
-    toggleElem($($(this).data('target')));
-  });
-
   // make table <tr> and <td> elements clickable like a link
   $('tr[data-href], td[data-href]').on('click', function (e) {
     const href = $(this).data('href');
@@ -327,8 +323,15 @@ export function initGlobalButtons() {
   });
 
   $('.show-panel.button').on('click', function (e) {
+    // a '.show-panel.button' can show a panel, by `data-panel="selector"`
+    // if the button is a "toggle" button, it toggles the panel
     e.preventDefault();
-    showElem($(this).data('panel'));
+    const sel = $(this).attr('data-panel');
+    if (this.classList.contains('toggle')) {
+      toggleElem(sel);
+    } else {
+      showElem(sel);
+    }
   });
 
   $('.hide-panel.button').on('click', function (e) {
