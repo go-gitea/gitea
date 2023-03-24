@@ -1,12 +1,13 @@
 ---
-date: "2021-07-20T00:00:00+00:00"
-title: "Package Registry"
+date: "2016-12-27T16:00:00+02:00"
+title: "Packages"
 slug: "packages"
+weight: 35
 toc: false
 draft: false
 menu:
   sidebar:
-    name: "Package Registry"
-    weight: 45
+    name: "Usage - Packages"
+    weight: 30
     identifier: "packages"
 ---
