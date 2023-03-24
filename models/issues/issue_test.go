@@ -218,7 +218,7 @@ func TestGetUserIssueStats(t *testing.T) {
 				AssignCount:           1, // 6
 				CreateCount:           1, // 6
 				OpenCount:             1, // 6
-				ClosedCount:           1, // 1
+				ClosedCount:           0, // issue(id:5) is posted by user2 and user1 is not owner or collaborator of repo(id:1)
 			},
 		},
 		{
@@ -229,11 +229,11 @@ func TestGetUserIssueStats(t *testing.T) {
 				IsClosed:   true,
 			},
 			issues_model.IssueStats{
-				YourRepositoriesCount: 1, // 6
+				YourRepositoriesCount: 0, // 6
 				AssignCount:           0,
 				CreateCount:           0,
 				OpenCount:             1, // 6
-				ClosedCount:           1, // 1
+				ClosedCount:           0, // issue(id:5) is posted by user2 and user1 is not owner or collaborator of repo(id:1)
 			},
 		},
 		{
