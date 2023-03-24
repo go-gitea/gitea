@@ -97,7 +97,7 @@ var issueFullPattern *regexp.Regexp
 // Once for to prevent races
 var issueFullPatternOnce sync.Once
 
-// regexp for full links to hash comment in pull request
+// regexp for full links to hash comment in pull request files changed tab
 var filesChangedFullPattern *regexp.Regexp
 
 // Once for to prevent races
@@ -815,9 +815,12 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 		if m == nil {
 			return
 		}
+
+		// if the link is from files changed tab in pull requests, leave it as it is
 		if filesChangedm != nil {
 			return
 		}
+
 		link := node.Data[m[0]:m[1]]
 		id := "#" + node.Data[m[2]:m[3]]
 
