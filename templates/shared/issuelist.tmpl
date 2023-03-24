@@ -143,13 +143,15 @@
 					{{end}}
 				</div>
 			</div>
+			{{if or .TotalTrackedTime .Assignees .NumComments}}
 			<div class="issue-item-icons-right gt-df gt-p-2">
+				{{if .TotalTrackedTime}}
 				<div class="issue-item-icon-right text grey">
-					{{if .TotalTrackedTime}}
 						{{svg "octicon-clock" 16 "gt-mr-2"}}
 						{{.TotalTrackedTime | Sec2Time}}
-					{{end}}
 				</div>
+				{{end}}
+				{{if .Assignees}}
 				<div class="issue-item-icon-right text grey">
 					{{range .Assignees}}
 						<a class="ui assignee tooltip gt-tdn" href="{{.HomeLink}}" data-content="{{.GetDisplayName}}" data-position="left center">
@@ -157,14 +159,16 @@
 						</a>
 					{{end}}
 				</div>
+				{{end}}
+				{{if .NumComments}}
 				<div class="issue-item-icon-right text grey">
-					{{if .NumComments}}
-						<a class="gt-tdn muted" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
-							{{svg "octicon-comment" 16 "gt-mr-2"}}{{.NumComments}}
-						</a>
-					{{end}}
+					<a class="gt-tdn muted" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+						{{svg "octicon-comment" 16 "gt-mr-2"}}{{.NumComments}}
+					</a>
 				</div>
+				{{end}}
 			</div>
+			{{end}}
 		</li>
 	{{end}}
 	{{if .IssueIndexerUnavailable}}
