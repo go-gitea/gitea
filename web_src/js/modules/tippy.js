@@ -44,7 +44,7 @@ function attachTooltip(target, content = null) {
     delay: 100,
     role: 'tooltip',
     placement: target.getAttribute('data-tooltip-placement') || 'top-start',
-    ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true} : {}),
+    ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true, aria: {content: 'describedby', expanded: false}} : {}),
   };
 
   if (!target._tippy) {
