@@ -48,7 +48,7 @@
 				<div class="ui divider"></div>
 				<div class="ui left">
 					{{if .PageIsEditProjects}}
-					<a class="ui primary basic button" href="{{.RepoLink}}/projects">
+					<a class="ui primary basic button" href="{{$.HomeLink}}/-/projects{{if eq .redirect "project"}}/{{.projectID}}{{end}}">
 						{{.locale.Tr "repo.milestones.cancel"}}
 					</a>
 					<button class="ui green button">

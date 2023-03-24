@@ -314,7 +314,15 @@ export function initGlobalLinkActions() {
 }
 
 export function initGlobalButtons() {
-  $('.show-panel.button').on('click', function () {
+  // There are many "cancel button" elements in modal dialogs, Fomantic UI expects they are button-like elements but never submit a form.
+  // However, Gitea misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
+  // There are a few cancel buttons in non-modal forms, and there are some dynamically created forms (eg: the "Edit Issue Content")
+  $(document).on('click', 'form button.ui.cancel.button', (e) => {
+    e.preventDefault();
+  });
+
+  $('.show-panel.button').on('click', function (e) {
+    e.preventDefault();
     showElem($(this).data('panel'));
   });
 
