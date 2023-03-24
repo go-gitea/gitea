@@ -85,7 +85,7 @@
 						{{.Title}}
 					</div>
 					{{if and $.CanWriteProjects (ne .ID 0)}}
-						<div class="ui dropdown jump item tooltip">
+						<div class="ui dropdown jump item">
 							<div class="not-mobile gt-px-3" tabindex="-1">
 								{{svg "octicon-kebab-horizontal"}}
 							</div>
@@ -238,7 +238,7 @@
 							{{end}}
 							<div class="right floated">
 								{{range .Assignees}}
-									<a class="tooltip" target="_blank" href="{{.HomeLink}}" data-content="{{$.locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{avatar $.Context . 28 "mini gt-mr-3"}}</a>
+									<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{$.locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{avatar $.Context . 28 "mini gt-mr-3"}}</a>
 								{{end}}
 							</div>
 						</div>
