@@ -440,6 +440,8 @@ async function onEditContent(event) {
         } else {
           $renderContent.html(data.content);
           $rawContent.text($textarea.val());
+          // check if the content contains ref-issue
+          // if there are ref issues, attach the tippy
           const refIssues = $renderContent.find('p .ref-issue');
           if (refIssues) {
             attachTippyToRefIssues(refIssues);

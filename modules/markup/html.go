@@ -824,7 +824,7 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 		link := node.Data[m[0]:m[1]]
 		id := "#" + node.Data[m[2]:m[3]]
 
-		// if m[4] m[5] is not -1, then link is to a comment
+		// if m[4] and m[5] is not -1, then link is to a comment
 		// indicate that in the text by appending (comment)
 		if m[4] != -1 && m[5] != -1 {
 			id += " (comment)"
