@@ -30,6 +30,7 @@ type Type string
 
 // List of supported packages
 const (
+	TypeAlpine    Type = "alpine"
 	TypeCargo     Type = "cargo"
 	TypeChef      Type = "chef"
 	TypeComposer  Type = "composer"
@@ -49,6 +50,7 @@ const (
 )
 
 var TypeList = []Type{
+	TypeAlpine,
 	TypeCargo,
 	TypeChef,
 	TypeComposer,
@@ -70,6 +72,8 @@ var TypeList = []Type{
 // Name gets the name of the package type
 func (pt Type) Name() string {
 	switch pt {
+	case TypeAlpine:
+		return "Alpine"
 	case TypeCargo:
 		return "Cargo"
 	case TypeChef:
@@ -109,6 +113,8 @@ func (pt Type) Name() string {
 // SVGName gets the name of the package type svg image
 func (pt Type) SVGName() string {
 	switch pt {
+	case TypeAlpine:
+		return "gitea-alpine"
 	case TypeCargo:
 		return "gitea-cargo"
 	case TypeChef:
@@ -154,6 +160,7 @@ type Package struct {
 	Name             string `xorm:"NOT NULL"`
 	LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	SemverCompatible bool   `xorm:"NOT NULL DEFAULT false"`
+	IsInternal       bool   `xorm:"INDEX NOT NULL DEFAULT false"`
 }
 
 // TryInsertPackage inserts a package. If a package exists already, ErrDuplicatePackage is returned

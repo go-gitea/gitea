@@ -187,19 +187,34 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 }
 
 // AddFileToExistingPackage adds a file to an existing package. If the package does not exist, ErrPackageNotExist is returned
-func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
+func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, error) {
+	return addFileToPackageWrapper(func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
+		if err != nil {
+			return nil, nil, false, err
+		}
+
+		return addFileToPackageVersion(ctx, pv, pvi, pfci)
+	})
+}
+
+// AddFileToPackageVersionInternal adds a file to the package
+// This method skips quota checks and should only be used for system-managed packages.
+func AddFileToPackageVersionInternal(pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, error) {
+	return addFileToPackageWrapper(func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+		return addFileToPackageVersionUnchecked(ctx, pv, pfci)
+	})
+}
+
+func addFileToPackageWrapper(fn func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error)) (*packages_model.PackageFile, error) {
 	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer committer.Close()
 
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
-	if err != nil {
-		return nil, nil, err
-	}
+	pf, pb, blobCreated, err := fn(ctx)
 
-	pf, pb, blobCreated, err := addFileToPackageVersion(ctx, pv, pvi, pfci)
 	removeBlob := false
 	defer func() {
 		if removeBlob {
@@ -211,15 +226,15 @@ func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (
 	}()
 	if err != nil {
 		removeBlob = blobCreated
-		return nil, nil, err
+		return nil, err
 	}
 
 	if err := committer.Commit(); err != nil {
 		removeBlob = blobCreated
-		return nil, nil, err
+		return nil, err
 	}
 
-	return pv, pf, nil
+	return pf, nil
 }
 
 // NewPackageBlob creates a package blob instance
@@ -241,6 +256,12 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 	if err := CheckSizeQuotaExceeded(ctx, pfci.Creator, pvi.Owner, pvi.PackageType, pfci.Data.Size()); err != nil {
 		return nil, nil, false, err
 	}
+
+	return addFileToPackageVersionUnchecked(ctx, pv, pfci)
+}
+
+func addFileToPackageVersionUnchecked(ctx context.Context, pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+	log.Trace("Adding package file: %v, %s", pv.ID, pfci.Filename)
 
 	pb, exists, err := packages_model.GetOrInsertBlob(ctx, NewPackageBlob(pfci.Data))
 	if err != nil {
@@ -333,6 +354,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 
 	var typeSpecificSize int64
 	switch packageType {
+	case packages_model.TypeAlpine:
+		typeSpecificSize = setting.Packages.LimitSizeAlpine
 	case packages_model.TypeCargo:
 		typeSpecificSize = setting.Packages.LimitSizeCargo
 	case packages_model.TypeChef:
@@ -420,6 +443,47 @@ func RemovePackageVersion(doer *user_model.User, pv *packages_model.PackageVersi
 	}
 
 	notification.NotifyPackageDelete(db.DefaultContext, doer, pd)
+
+	return nil
+}
+
+// RemovePackageFileAndVersionIfUnreferenced deletes the package file and the version if there are no referenced files afterwards
+func RemovePackageFileAndVersionIfUnreferenced(doer *user_model.User, pf *packages_model.PackageFile) error {
+	var pd *packages_model.PackageDescriptor
+
+	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		if err := DeletePackageFile(ctx, pf); err != nil {
+			return err
+		}
+
+		has, err := packages_model.HasVersionFileReferences(ctx, pf.VersionID)
+		if err != nil {
+			return err
+		}
+		if !has {
+			pv, err := packages_model.GetVersionByID(ctx, pf.VersionID)
+			if err != nil {
+				return err
+			}
+
+			pd, err = packages_model.GetPackageDescriptor(ctx, pv)
+			if err != nil {
+				return err
+			}
+
+			if err := DeletePackageVersionAndReferences(ctx, pv); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	if pd != nil {
+		notification.NotifyPackageDelete(db.DefaultContext, doer, pd)
+	}
 
 	return nil
 }
