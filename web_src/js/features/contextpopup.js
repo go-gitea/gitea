@@ -7,7 +7,10 @@ import {createTippy} from '../modules/tippy.js';
 export function initContextPopups() {
   const refIssues = $('.ref-issue');
   if (!refIssues.length) return;
+  attachTippyToRefIssues(refIssues);
+}
 
+export function attachTippyToRefIssues(refIssues) {
   refIssues.each(function () {
     if ($(this).hasClass('ref-external-issue')) {
       return;

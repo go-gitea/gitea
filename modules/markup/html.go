@@ -803,6 +803,12 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 		link := node.Data[m[0]:m[1]]
 		id := "#" + node.Data[m[2]:m[3]]
 
+		// if m[4]:m[5] is not nil, then link is to a comment
+		// indicate that in the text by appending (comment)
+		if m[4] != -1 && m[5] != -1 {
+			id += " (comment)"
+		}
+
 		// extract repo and org name from matched link like
 		// http://localhost:3000/gituser/myrepo/issues/1
 		linkParts := strings.Split(link, "/")
@@ -810,8 +816,6 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 		matchRepo := linkParts[len(linkParts)-3]
 
 		if matchOrg == ctx.Metas["user"] && matchRepo == ctx.Metas["repo"] {
-			// TODO if m[4]:m[5] is not nil, then link is to a comment,
-			// and we should indicate that in the text somehow
 			replaceContent(node, m[0], m[1], createLink(link, id, "ref-issue"))
 		} else {
 			orgRepoID := matchOrg + "/" + matchRepo + id
