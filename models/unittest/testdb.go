@@ -122,7 +122,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	if err = util.RemoveAll(repoRootPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
-	if err = CopyDir(filepath.Join(testOpts.GiteaRootPath, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
+	if err = util.CopyDir(filepath.Join(testOpts.GiteaRootPath, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
 		fatalTestError("util.CopyDir: %v\n", err)
 	}
 
@@ -204,9 +204,9 @@ func PrepareTestDatabase() error {
 // by tests that use the above MainTest(..) function.
 func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
-	assert.NoError(t, storage.GetStorage().RemoveAll())
+	assert.NoError(t, storage.GetStorage().RemoveAllRepos())
 	metaPath := filepath.Join(giteaRoot, "tests", "gitea-repositories-meta")
-	assert.NoError(t, CopyDir(metaPath, setting.RepoRootPath))
+	assert.NoError(t, storage.GetStorage().CopyDir(metaPath, ""))
 	ownerDirs, err := storage.GetStorage().ReadDir("")
 	assert.NoError(t, err)
 	for _, ownerDir := range ownerDirs {

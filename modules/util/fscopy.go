@@ -1,7 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package unittest
+package util
 
 import (
 	"errors"
@@ -9,12 +9,10 @@ import (
 	"os"
 	"path"
 	"strings"
-
-	"code.gitea.io/gitea/modules/util"
 )
 
-// Copy copies file from source to target path.
-func Copy(src, dest string) error {
+// CopyFile copies file from source to target path.
+func CopyFile(src, dest string) error {
 	// Gather file information to set back later.
 	si, err := os.Lstat(src)
 	if err != nil {
@@ -48,7 +46,6 @@ func Copy(src, dest string) error {
 		return err
 	}
 
-	// Set back file information.
 	if err = os.Chtimes(dest, si.ModTime(), si.ModTime()); err != nil {
 		return err
 	}
@@ -64,7 +61,7 @@ func Copy(src, dest string) error {
 func CopyDir(srcPath, destPath string, filters ...func(filePath string) bool) error {
 	// Check if target directory exists.
 	if _, err := os.Stat(destPath); !errors.Is(err, os.ErrNotExist) {
-		return util.NewAlreadyExistErrorf("file or directory already exists: %s", destPath)
+		return NewAlreadyExistErrorf("file or directory already exists: %s", destPath)
 	}
 
 	err := os.MkdirAll(destPath, os.ModePerm)
@@ -73,7 +70,7 @@ func CopyDir(srcPath, destPath string, filters ...func(filePath string) bool) er
 	}
 
 	// Gather directory info.
-	infos, err := util.StatDir(srcPath, true)
+	infos, err := StatDir(srcPath, true)
 	if err != nil {
 		return err
 	}
@@ -92,7 +89,7 @@ func CopyDir(srcPath, destPath string, filters ...func(filePath string) bool) er
 		if strings.HasSuffix(info, "/") {
 			err = os.MkdirAll(curPath, os.ModePerm)
 		} else {
-			err = Copy(path.Join(srcPath, info), curPath)
+			err = CopyFile(path.Join(srcPath, info), curPath)
 		}
 		if err != nil {
 			return err
