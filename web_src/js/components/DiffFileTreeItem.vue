@@ -10,7 +10,7 @@
       />
       <a
         v-if="item.isFile"
-        class="file gt-ellipsis muted"
+        class="file gt-ellipsis"
         :href="item.isFile ? '#diff-' + item.file.NameHash : ''"
       >{{ item.name }}</a>
       <SvgIcon
@@ -139,9 +139,11 @@ div.list {
 
 a {
   text-decoration: none;
+  color: var(--color-text);
 }
 
 a:hover {
   text-decoration: none;
+  color: var(--color-text);
 }
 </style>
