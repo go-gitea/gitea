@@ -106,7 +106,7 @@ You can try it out using [the online demo](https://try.gitea.io/).
       - Permission to create organizations
       - Permission to import repositories
     - Organization management
-      - People
+      - Members
       - Teams
       - Avatar
       - Hooks

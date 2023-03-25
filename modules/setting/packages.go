@@ -25,8 +25,11 @@ var (
 
 		LimitTotalOwnerCount int64
 		LimitTotalOwnerSize  int64
+		LimitSizeCargo       int64
+		LimitSizeChef        int64
 		LimitSizeComposer    int64
 		LimitSizeConan       int64
+		LimitSizeConda       int64
 		LimitSizeContainer   int64
 		LimitSizeGeneric     int64
 		LimitSizeHelm        int64
@@ -36,6 +39,7 @@ var (
 		LimitSizePub         int64
 		LimitSizePyPI        int64
 		LimitSizeRubyGems    int64
+		LimitSizeSwift       int64
 		LimitSizeVagrant     int64
 	}{
 		Enabled:              true,
@@ -43,13 +47,13 @@ var (
 	}
 )
 
-func newPackages() {
-	sec := Cfg.Section("packages")
+func loadPackagesFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("packages")
 	if err := sec.MapTo(&Packages); err != nil {
 		log.Fatal("Failed to map Packages settings: %v", err)
 	}
 
-	Packages.Storage = getStorage("packages", "", nil)
+	Packages.Storage = getStorage(rootCfg, "packages", "", nil)
 
 	appURL, _ := url.Parse(AppURL)
 	Packages.RegistryHost = appURL.Host
@@ -64,8 +68,11 @@ func newPackages() {
 	}
 
 	Packages.LimitTotalOwnerSize = mustBytes(sec, "LIMIT_TOTAL_OWNER_SIZE")
+	Packages.LimitSizeCargo = mustBytes(sec, "LIMIT_SIZE_CARGO")
+	Packages.LimitSizeChef = mustBytes(sec, "LIMIT_SIZE_CHEF")
 	Packages.LimitSizeComposer = mustBytes(sec, "LIMIT_SIZE_COMPOSER")
 	Packages.LimitSizeConan = mustBytes(sec, "LIMIT_SIZE_CONAN")
+	Packages.LimitSizeConda = mustBytes(sec, "LIMIT_SIZE_CONDA")
 	Packages.LimitSizeContainer = mustBytes(sec, "LIMIT_SIZE_CONTAINER")
 	Packages.LimitSizeGeneric = mustBytes(sec, "LIMIT_SIZE_GENERIC")
 	Packages.LimitSizeHelm = mustBytes(sec, "LIMIT_SIZE_HELM")
@@ -75,6 +82,7 @@ func newPackages() {
 	Packages.LimitSizePub = mustBytes(sec, "LIMIT_SIZE_PUB")
 	Packages.LimitSizePyPI = mustBytes(sec, "LIMIT_SIZE_PYPI")
 	Packages.LimitSizeRubyGems = mustBytes(sec, "LIMIT_SIZE_RUBYGEMS")
+	Packages.LimitSizeSwift = mustBytes(sec, "LIMIT_SIZE_SWIFT")
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")
 }
 

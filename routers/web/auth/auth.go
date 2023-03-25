@@ -13,11 +13,11 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -633,7 +633,7 @@ func Activate(ctx *context.Context) {
 	user := user_model.VerifyUserActiveCode(code)
 	// if code is wrong
 	if user == nil {
-		ctx.Data["IsActivateFailed"] = true
+		ctx.Data["IsCodeInvalid"] = true
 		ctx.HTML(http.StatusOK, TplActivate)
 		return
 	}
@@ -660,7 +660,7 @@ func ActivatePost(ctx *context.Context) {
 	user := user_model.VerifyUserActiveCode(code)
 	// if code is wrong
 	if user == nil {
-		ctx.Data["IsActivateFailed"] = true
+		ctx.Data["IsCodeInvalid"] = true
 		ctx.HTML(http.StatusOK, TplActivate)
 		return
 	}
@@ -675,7 +675,7 @@ func ActivatePost(ctx *context.Context) {
 			return
 		}
 		if !user.ValidatePassword(password) {
-			ctx.Data["IsActivateFailed"] = true
+			ctx.Data["IsPasswordInvalid"] = true
 			ctx.HTML(http.StatusOK, TplActivate)
 			return
 		}

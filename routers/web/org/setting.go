@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	secret_model "code.gitea.io/gitea/models/secret"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
@@ -38,8 +37,10 @@ const (
 	tplSettingsHooks base.TplName = "org/settings/hooks"
 	// tplSettingsLabels template path for render labels settings
 	tplSettingsLabels base.TplName = "org/settings/labels"
-	// tplSettingsSecrets template path for render secrets settings
-	tplSettingsSecrets base.TplName = "org/settings/secrets"
+	// tplSettingsRunners template path for render runners settings
+	tplSettingsRunners base.TplName = "org/settings/runners"
+	// tplSettingsRunnersEdit template path for render runners edit settings
+	tplSettingsRunnersEdit base.TplName = "org/settings/runners_edit"
 )
 
 // Settings render the main settings page
@@ -78,7 +79,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Data["OrgName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
 			return
-		} else if err = user_model.ChangeUserName(org.AsUser(), form.Name); err != nil {
+		} else if err = user_model.ChangeUserName(ctx, org.AsUser(), form.Name); err != nil {
 			switch {
 			case db.IsErrNameReserved(err):
 				ctx.Data["OrgName"] = true
@@ -136,7 +137,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 		for _, repo := range repos {
 			repo.OwnerName = org.Name
-			if err := repo_service.UpdateRepository(repo, true); err != nil {
+			if err := repo_service.UpdateRepository(ctx, repo, true); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
@@ -217,9 +218,9 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLinkNew"] = ctx.Org.OrgLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("org.settings.hooks_desc")
 
-	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{OrgID: ctx.Org.Organization.ID})
+	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{OwnerID: ctx.Org.Organization.ID})
 	if err != nil {
-		ctx.ServerError("GetWebhooksByOrgId", err)
+		ctx.ServerError("ListWebhooksByOpts", err)
 		return
 	}
 
@@ -229,8 +230,8 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByOrgID(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
-		ctx.Flash.Error("DeleteWebhookByOrgID: " + err.Error())
+	if err := webhook.DeleteWebhookByOwnerID(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
+		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
@@ -248,52 +249,4 @@ func Labels(ctx *context.Context) {
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
 	ctx.HTML(http.StatusOK, tplSettingsLabels)
-}
-
-// Secrets render organization secrets page
-func Secrets(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.secrets")
-	ctx.Data["PageIsOrgSettings"] = true
-	ctx.Data["PageIsOrgSettingsSecrets"] = true
-
-	secrets, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{OwnerID: ctx.Org.Organization.ID})
-	if err != nil {
-		ctx.ServerError("FindSecrets", err)
-		return
-	}
-	ctx.Data["Secrets"] = secrets
-
-	ctx.HTML(http.StatusOK, tplSettingsSecrets)
-}
-
-// SecretsPost add secrets
-func SecretsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AddSecretForm)
-
-	_, err := secret_model.InsertEncryptedSecret(ctx, ctx.Org.Organization.ID, 0, form.Title, form.Content)
-	if err != nil {
-		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
-		log.Error("validate secret: %v", err)
-		ctx.Redirect(ctx.Org.OrgLink + "/settings/secrets")
-		return
-	}
-
-	log.Trace("Org %d: secret added", ctx.Org.Organization.ID)
-	ctx.Flash.Success(ctx.Tr("secrets.creation.success", form.Title))
-	ctx.Redirect(ctx.Org.OrgLink + "/settings/secrets")
-}
-
-// SecretsDelete delete secrets
-func SecretsDelete(ctx *context.Context) {
-	id := ctx.FormInt64("id")
-	if _, err := db.DeleteByBean(ctx, &secret_model.Secret{ID: id}); err != nil {
-		ctx.Flash.Error(ctx.Tr("secrets.deletion.failed"))
-		log.Error("delete secret %d: %v", id, err)
-	} else {
-		ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
-	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Org.OrgLink + "/settings/secrets",
-	})
 }

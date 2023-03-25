@@ -20,9 +20,9 @@ func TestIsProjectTypeValid(t *testing.T) {
 		typ   Type
 		valid bool
 	}{
-		{TypeIndividual, false},
+		{TypeIndividual, true},
 		{TypeRepository, true},
-		{TypeOrganization, false},
+		{TypeOrganization, true},
 		{UnknownType, false},
 	}
 
@@ -34,13 +34,13 @@ func TestIsProjectTypeValid(t *testing.T) {
 func TestGetProjects(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	projects, _, err := GetProjects(db.DefaultContext, SearchOptions{RepoID: 1})
+	projects, _, err := FindProjects(db.DefaultContext, SearchOptions{RepoID: 1})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
 	assert.Len(t, projects, 1)
 
-	projects, _, err = GetProjects(db.DefaultContext, SearchOptions{RepoID: 3})
+	projects, _, err = FindProjects(db.DefaultContext, SearchOptions{RepoID: 3})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
@@ -53,6 +53,7 @@ func TestProject(t *testing.T) {
 	project := &Project{
 		Type:        TypeRepository,
 		BoardType:   BoardTypeBasicKanban,
+		CardType:    CardTypeTextOnly,
 		Title:       "New Project",
 		RepoID:      1,
 		CreatedUnix: timeutil.TimeStampNow(),

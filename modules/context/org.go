@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -26,6 +27,37 @@ type Organization struct {
 
 	Team  *organization.Team
 	Teams []*organization.Team
+}
+
+func (org *Organization) CanWriteUnit(ctx *Context, unitType unit.Type) bool {
+	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeWrite
+}
+
+func (org *Organization) CanReadUnit(ctx *Context, unitType unit.Type) bool {
+	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeRead
+}
+
+func GetOrganizationByParams(ctx *Context) {
+	orgName := ctx.Params(":org")
+
+	var err error
+
+	ctx.Org.Organization, err = organization.GetOrgByName(ctx, orgName)
+	if err != nil {
+		if organization.IsErrOrgNotExist(err) {
+			redirectUserID, err := user_model.LookupUserRedirect(orgName)
+			if err == nil {
+				RedirectToUser(ctx, orgName, redirectUserID)
+			} else if user_model.IsErrUserRedirectNotExist(err) {
+				ctx.NotFound("GetUserByName", err)
+			} else {
+				ctx.ServerError("LookupUserRedirect", err)
+			}
+		} else {
+			ctx.ServerError("GetUserByName", err)
+		}
+		return
+	}
 }
 
 // HandleOrgAssignment handles organization assignment
@@ -49,25 +81,26 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		requireTeamAdmin = args[3]
 	}
 
-	orgName := ctx.Params(":org")
-
 	var err error
-	ctx.Org.Organization, err = organization.GetOrgByName(orgName)
-	if err != nil {
-		if organization.IsErrOrgNotExist(err) {
-			redirectUserID, err := user_model.LookupUserRedirect(orgName)
-			if err == nil {
-				RedirectToUser(ctx, orgName, redirectUserID)
-			} else if user_model.IsErrUserRedirectNotExist(err) {
-				ctx.NotFound("GetUserByName", err)
-			} else {
-				ctx.ServerError("LookupUserRedirect", err)
+
+	if ctx.ContextUser == nil {
+		// if Organization is not defined, get it from params
+		if ctx.Org.Organization == nil {
+			GetOrganizationByParams(ctx)
+			if ctx.Written() {
+				return
 			}
-		} else {
-			ctx.ServerError("GetUserByName", err)
 		}
+	} else if ctx.ContextUser.IsOrganization() {
+		if ctx.Org == nil {
+			ctx.Org = &Organization{}
+		}
+		ctx.Org.Organization = (*organization.Organization)(ctx.ContextUser)
+	} else {
+		// ContextUser is an individual User
 		return
 	}
+
 	org := ctx.Org.Organization
 
 	// Handle Visibility
@@ -128,6 +161,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 	ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
+	ctx.Data["IsProjectEnabled"] = true
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["IsPublicMember"] = func(uid int64) bool {
@@ -203,6 +237,10 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			return
 		}
 	}
+
+	ctx.Data["CanReadProjects"] = ctx.Org.CanReadUnit(ctx, unit.TypeProjects)
+	ctx.Data["CanReadPackages"] = ctx.Org.CanReadUnit(ctx, unit.TypePackages)
+	ctx.Data["CanReadCode"] = ctx.Org.CanReadUnit(ctx, unit.TypeCode)
 }
 
 // OrgAssignment returns a middleware to handle organization assignment

@@ -16,8 +16,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/builder"
 )
 
 // ___________
@@ -96,59 +94,6 @@ func init() {
 	db.RegisterModel(new(TeamInvite))
 }
 
-// SearchTeamOptions holds the search options
-type SearchTeamOptions struct {
-	db.ListOptions
-	UserID      int64
-	Keyword     string
-	OrgID       int64
-	IncludeDesc bool
-}
-
-func (opts *SearchTeamOptions) toCond() builder.Cond {
-	cond := builder.NewCond()
-
-	if len(opts.Keyword) > 0 {
-		lowerKeyword := strings.ToLower(opts.Keyword)
-		var keywordCond builder.Cond = builder.Like{"lower_name", lowerKeyword}
-		if opts.IncludeDesc {
-			keywordCond = keywordCond.Or(builder.Like{"LOWER(description)", lowerKeyword})
-		}
-		cond = cond.And(keywordCond)
-	}
-
-	if opts.OrgID > 0 {
-		cond = cond.And(builder.Eq{"`team`.org_id": opts.OrgID})
-	}
-
-	if opts.UserID > 0 {
-		cond = cond.And(builder.Eq{"team_user.uid": opts.UserID})
-	}
-
-	return cond
-}
-
-// SearchTeam search for teams. Caller is responsible to check permissions.
-func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
-	sess := db.GetEngine(db.DefaultContext)
-
-	opts.SetDefaultValues()
-	cond := opts.toCond()
-
-	if opts.UserID > 0 {
-		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
-	}
-	sess = db.SetSessionPagination(sess, opts)
-
-	teams := make([]*Team, 0, opts.PageSize)
-	count, err := sess.Where(cond).OrderBy("lower_name").FindAndCount(&teams)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return teams, count, nil
-}
-
 // ColorFormat provides a basic color format for a Team
 func (t *Team) ColorFormat(s fmt.State) {
 	if t == nil {
@@ -166,12 +111,8 @@ func (t *Team) ColorFormat(s fmt.State) {
 		t.AccessMode)
 }
 
-// GetUnits return a list of available units for a team
-func (t *Team) GetUnits() error {
-	return t.getUnits(db.DefaultContext)
-}
-
-func (t *Team) getUnits(ctx context.Context) (err error) {
+// LoadUnits load a list of available units for a team
+func (t *Team) LoadUnits(ctx context.Context) (err error) {
 	if t.Units != nil {
 		return nil
 	}
@@ -248,7 +189,7 @@ func (t *Team) UnitEnabled(ctx context.Context, tp unit.Type) bool {
 
 // UnitAccessMode returns if the team has the given unit type enabled
 func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode {
-	if err := t.getUnits(ctx); err != nil {
+	if err := t.LoadUnits(ctx); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
 
@@ -333,16 +274,6 @@ func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
 		Find(&teamNames)
 
 	return teamNames, err
-}
-
-// GetRepoTeams gets the list of teams that has access to the repository
-func GetRepoTeams(ctx context.Context, repo *repo_model.Repository) (teams []*Team, err error) {
-	return teams, db.GetEngine(ctx).
-		Join("INNER", "team_repo", "team_repo.team_id = team.id").
-		Where("team.org_id = ?", repo.OwnerID).
-		And("team_repo.repo_id=?", repo.ID).
-		OrderBy("CASE WHEN name LIKE '" + OwnerTeamName + "' THEN '' ELSE name END").
-		Find(&teams)
 }
 
 // IncrTeamRepoNum increases the number of repos for the given team by 1

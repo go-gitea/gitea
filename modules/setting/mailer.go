@@ -49,36 +49,47 @@ type Mailer struct {
 // MailService the global mailer
 var MailService *Mailer
 
-func newMailService() {
-	sec := Cfg.Section("mailer")
+func loadMailsFrom(rootCfg ConfigProvider) {
+	loadMailerFrom(rootCfg)
+	loadRegisterMailFrom(rootCfg)
+	loadNotifyMailFrom(rootCfg)
+	loadIncomingEmailFrom(rootCfg)
+}
+
+func loadMailerFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("mailer")
 	// Check mailer setting.
 	if !sec.Key("ENABLED").MustBool() {
 		return
 	}
 
 	// Handle Deprecations and map on to new configuration
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "MAILER_TYPE", "mailer", "PROTOCOL")
+	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
+	// if these are removed, the warning will not be shown
+	deprecatedSetting(rootCfg, "mailer", "MAILER_TYPE", "mailer", "PROTOCOL", "v1.19.0")
 	if sec.HasKey("MAILER_TYPE") && !sec.HasKey("PROTOCOL") {
 		if sec.Key("MAILER_TYPE").String() == "sendmail" {
 			sec.Key("PROTOCOL").MustString("sendmail")
 		}
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "HOST", "mailer", "SMTP_ADDR")
+	deprecatedSetting(rootCfg, "mailer", "HOST", "mailer", "SMTP_ADDR", "v1.19.0")
 	if sec.HasKey("HOST") && !sec.HasKey("SMTP_ADDR") {
 		givenHost := sec.Key("HOST").String()
 		addr, port, err := net.SplitHostPort(givenHost)
-		if err != nil {
+		if err != nil && strings.Contains(err.Error(), "missing port in address") {
+			addr = givenHost
+		} else if err != nil {
 			log.Fatal("Invalid mailer.HOST (%s): %v", givenHost, err)
+		}
+		if addr == "" {
+			addr = "127.0.0.1"
 		}
 		sec.Key("SMTP_ADDR").MustString(addr)
 		sec.Key("SMTP_PORT").MustString(port)
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "IS_TLS_ENABLED", "mailer", "PROTOCOL")
+	deprecatedSetting(rootCfg, "mailer", "IS_TLS_ENABLED", "mailer", "PROTOCOL", "v1.19.0")
 	if sec.HasKey("IS_TLS_ENABLED") && !sec.HasKey("PROTOCOL") {
 		if sec.Key("IS_TLS_ENABLED").MustBool() {
 			sec.Key("PROTOCOL").MustString("smtps")
@@ -87,38 +98,32 @@ func newMailService() {
 		}
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "DISABLE_HELO", "mailer", "ENABLE_HELO")
+	deprecatedSetting(rootCfg, "mailer", "DISABLE_HELO", "mailer", "ENABLE_HELO", "v1.19.0")
 	if sec.HasKey("DISABLE_HELO") && !sec.HasKey("ENABLE_HELO") {
 		sec.Key("ENABLE_HELO").MustBool(!sec.Key("DISABLE_HELO").MustBool())
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "SKIP_VERIFY", "mailer", "FORCE_TRUST_SERVER_CERT")
+	deprecatedSetting(rootCfg, "mailer", "SKIP_VERIFY", "mailer", "FORCE_TRUST_SERVER_CERT", "v1.19.0")
 	if sec.HasKey("SKIP_VERIFY") && !sec.HasKey("FORCE_TRUST_SERVER_CERT") {
 		sec.Key("FORCE_TRUST_SERVER_CERT").MustBool(sec.Key("SKIP_VERIFY").MustBool())
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "USE_CERTIFICATE", "mailer", "USE_CLIENT_CERT")
+	deprecatedSetting(rootCfg, "mailer", "USE_CERTIFICATE", "mailer", "USE_CLIENT_CERT", "v1.19.0")
 	if sec.HasKey("USE_CERTIFICATE") && !sec.HasKey("USE_CLIENT_CERT") {
 		sec.Key("USE_CLIENT_CERT").MustBool(sec.Key("USE_CERTIFICATE").MustBool())
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "CERT_FILE", "mailer", "CLIENT_CERT_FILE")
+	deprecatedSetting(rootCfg, "mailer", "CERT_FILE", "mailer", "CLIENT_CERT_FILE", "v1.19.0")
 	if sec.HasKey("CERT_FILE") && !sec.HasKey("CLIENT_CERT_FILE") {
 		sec.Key("CERT_FILE").MustString(sec.Key("CERT_FILE").String())
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "KEY_FILE", "mailer", "CLIENT_KEY_FILE")
+	deprecatedSetting(rootCfg, "mailer", "KEY_FILE", "mailer", "CLIENT_KEY_FILE", "v1.19.0")
 	if sec.HasKey("KEY_FILE") && !sec.HasKey("CLIENT_KEY_FILE") {
 		sec.Key("KEY_FILE").MustString(sec.Key("KEY_FILE").String())
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT")
+	deprecatedSetting(rootCfg, "mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT", "v1.19.0")
 	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") && !sec.HasKey("SEND_AS_PLAIN_TEXT") {
 		sec.Key("SEND_AS_PLAIN_TEXT").MustBool(!sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false))
 	}
@@ -172,20 +177,34 @@ func newMailService() {
 			default:
 				log.Error("unable to infer unspecified mailer.PROTOCOL from mailer.SMTP_PORT = %q, assume using smtps", MailService.SMTPPort)
 				MailService.Protocol = "smtps"
+				if MailService.SMTPPort == "" {
+					MailService.SMTPPort = "465"
+				}
 			}
 		}
 	}
 
 	// we want to warn if users use SMTP on a non-local IP;
 	// we might as well take the opportunity to check that it has an IP at all
-	ips := tryResolveAddr(MailService.SMTPAddr)
-	if MailService.Protocol == "smtp" {
-		for _, ip := range ips {
-			if !ip.IsLoopback() {
-				log.Warn("connecting over insecure SMTP protocol to non-local address is not recommended")
-				break
+	// This check is not needed for sendmail
+	switch MailService.Protocol {
+	case "sendmail":
+		var err error
+		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
+		if err != nil {
+			log.Error("Failed to parse Sendmail args: '%s' with error %v", sec.Key("SENDMAIL_ARGS").String(), err)
+		}
+	case "smtp", "smtps", "smtp+starttls", "smtp+unix":
+		ips := tryResolveAddr(MailService.SMTPAddr)
+		if MailService.Protocol == "smtp" {
+			for _, ip := range ips {
+				if !ip.IsLoopback() {
+					log.Warn("connecting over insecure SMTP protocol to non-local address is not recommended")
+					break
+				}
 			}
 		}
+	case "dummy": // just mention and do nothing
 	}
 
 	if MailService.From != "" {
@@ -214,19 +233,11 @@ func newMailService() {
 		MailService.EnvelopeFrom = parsed.Address
 	}
 
-	if MailService.Protocol == "sendmail" {
-		var err error
-		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
-		if err != nil {
-			log.Error("Failed to parse Sendmail args: %s with error %v", CustomConf, err)
-		}
-	}
-
 	log.Info("Mail Service Enabled")
 }
 
-func newRegisterMailService() {
-	if !Cfg.Section("service").Key("REGISTER_EMAIL_CONFIRM").MustBool() {
+func loadRegisterMailFrom(rootCfg ConfigProvider) {
+	if !rootCfg.Section("service").Key("REGISTER_EMAIL_CONFIRM").MustBool() {
 		return
 	} else if MailService == nil {
 		log.Warn("Register Mail Service: Mail Service is not enabled")
@@ -236,8 +247,8 @@ func newRegisterMailService() {
 	log.Info("Register Mail Service Enabled")
 }
 
-func newNotifyMailService() {
-	if !Cfg.Section("service").Key("ENABLE_NOTIFY_MAIL").MustBool() {
+func loadNotifyMailFrom(rootCfg ConfigProvider) {
+	if !rootCfg.Section("service").Key("ENABLE_NOTIFY_MAIL").MustBool() {
 		return
 	} else if MailService == nil {
 		log.Warn("Notify Mail Service: Mail Service is not enabled")

@@ -55,7 +55,7 @@ type (
 		Wait      bool           `json:"wait"`
 		Content   string         `json:"content"`
 		Username  string         `json:"username"`
-		AvatarURL string         `json:"avatar_url"`
+		AvatarURL string         `json:"avatar_url,omitempty"`
 		TTS       bool           `json:"tts"`
 		Embeds    []DiscordEmbed `json:"embeds"`
 	}
@@ -209,7 +209,7 @@ func (d *DiscordPayload) Review(p *api.PullRequestPayload, event webhook_module.
 			color = greenColor
 		case webhook_module.HookEventPullRequestReviewRejected:
 			color = redColor
-		case webhook_module.HookEventPullRequestComment:
+		case webhook_module.HookEventPullRequestReviewComment:
 			color = greyColor
 		default:
 			color = yellowColor
@@ -277,7 +277,7 @@ func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, 
 		return "approved", nil
 	case webhook_module.HookEventPullRequestReviewRejected:
 		return "rejected", nil
-	case webhook_module.HookEventPullRequestComment:
+	case webhook_module.HookEventPullRequestReviewComment:
 		return "comment", nil
 
 	default:

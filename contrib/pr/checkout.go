@@ -52,7 +52,8 @@ func runPR() {
 		log.Fatal(err)
 	}
 	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadAllowEmpty()
+	setting.InitProviderAllowEmpty()
+	setting.LoadCommonSettings()
 
 	setting.RepoRootPath, err = os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
@@ -85,7 +86,7 @@ func runPR() {
 		setting.Database.Path = ":memory:"
 		setting.Database.Timeout = 500
 	*/
-	dbCfg := setting.Cfg.Section("database")
+	dbCfg := setting.CfgProvider.Section("database")
 	dbCfg.NewKey("DB_TYPE", "sqlite3")
 	dbCfg.NewKey("PATH", ":memory:")
 

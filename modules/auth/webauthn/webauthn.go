@@ -6,14 +6,14 @@ package webauthn
 import (
 	"encoding/binary"
 	"encoding/gob"
-	"net/url"
 
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/duo-labs/webauthn/protocol"
-	"github.com/duo-labs/webauthn/webauthn"
+	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/webauthn"
 )
 
 // WebAuthn represents the global WebAuthn instance
@@ -23,13 +23,13 @@ var WebAuthn *webauthn.WebAuthn
 func Init() {
 	gob.Register(&webauthn.SessionData{})
 
-	appURL, _ := url.Parse(setting.AppURL)
+	appURL, _ := protocol.FullyQualifiedOrigin(setting.AppURL)
 
 	WebAuthn = &webauthn.WebAuthn{
 		Config: &webauthn.Config{
 			RPDisplayName: setting.AppName,
 			RPID:          setting.Domain,
-			RPOrigin:      protocol.FullyQualifiedOrigin(appURL),
+			RPOrigins:     []string{appURL},
 			AuthenticatorSelection: protocol.AuthenticatorSelection{
 				UserVerification: "discouraged",
 			},
@@ -63,7 +63,7 @@ func (u *User) WebAuthnDisplayName() string {
 
 // WebAuthnIcon implements the webauthn.User interface
 func (u *User) WebAuthnIcon() string {
-	return (*user_model.User)(u).AvatarLink()
+	return (*user_model.User)(u).AvatarLink(db.DefaultContext)
 }
 
 // WebAuthnCredentials implementns the webauthn.User interface

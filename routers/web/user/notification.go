@@ -117,7 +117,7 @@ func getNotifications(ctx *context.Context) {
 		return
 	}
 	notifications = notifications.Without(failures)
-	if err := repos.LoadAttributes(); err != nil { // TODO
+	if err := repos.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
@@ -214,7 +214,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 	ctx.Data["SortType"] = sortType
 
 	state := ctx.FormString("state")
-	if !util.IsStringInSlice(state, []string{"all", "open", "closed"}, true) {
+	if !util.SliceContainsString([]string{"all", "open", "closed"}, state, true) {
 		state = "all"
 	}
 	ctx.Data["State"] = state
@@ -344,6 +344,9 @@ func NotificationWatching(ctx *context.Context) {
 		page = 1
 	}
 
+	keyword := ctx.FormTrim("q")
+	ctx.Data["Keyword"] = keyword
+
 	var orderBy db.SearchOrderBy
 	ctx.Data["SortType"] = ctx.FormString("sort")
 	switch ctx.FormString("sort") {
@@ -378,7 +381,7 @@ func NotificationWatching(ctx *context.Context) {
 			Page:     page,
 		},
 		Actor:              ctx.Doer,
-		Keyword:            ctx.FormTrim("q"),
+		Keyword:            keyword,
 		OrderBy:            orderBy,
 		Private:            ctx.IsSigned,
 		WatchedByID:        ctx.Doer.ID,

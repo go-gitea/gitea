@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 
+	"xorm.io/builder"
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
@@ -98,19 +99,31 @@ type Committer interface {
 // halfCommitter is a wrapper of Committer.
 // It can be closed early, but can't be committed early, it is useful for reusing a transaction.
 type halfCommitter struct {
-	Committer
+	committer Committer
+	committed bool
 }
 
-func (*halfCommitter) Commit() error {
-	// do nothing
+func (c *halfCommitter) Commit() error {
+	c.committed = true
+	// should do nothing, and the parent committer will commit later
 	return nil
+}
+
+func (c *halfCommitter) Close() error {
+	if c.committed {
+		// it's "commit and close", should do nothing, and the parent committer will commit later
+		return nil
+	}
+
+	// it's "rollback and close", let the parent committer rollback right now
+	return c.committer.Close()
 }
 
 // TxContext represents a transaction Context,
 // it will reuse the existing transaction in the parent context or create a new one.
 func TxContext(parentCtx context.Context) (*Context, Committer, error) {
 	if sess, ok := inTransaction(parentCtx); ok {
-		return newContext(parentCtx, sess, true), &halfCommitter{Committer: sess}, nil
+		return newContext(parentCtx, sess, true), &halfCommitter{committer: sess}, nil
 	}
 
 	sess := x.NewSession()
@@ -126,7 +139,12 @@ func TxContext(parentCtx context.Context) (*Context, Committer, error) {
 // this function will reuse it otherwise will create a new one and close it when finished.
 func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error {
 	if sess, ok := inTransaction(parentCtx); ok {
-		return f(newContext(parentCtx, sess, true))
+		err := f(newContext(parentCtx, sess, true))
+		if err != nil {
+			// rollback immediately, in case the caller ignores returned error and tries to commit the transaction.
+			_ = sess.Close()
+		}
+		return err
 	}
 	return txWithNoCheck(parentCtx, f)
 }
@@ -166,11 +184,47 @@ func DeleteByBean(ctx context.Context, bean interface{}) (int64, error) {
 	return GetEngine(ctx).Delete(bean)
 }
 
-// DeleteBeans deletes all given beans, beans should contain delete conditions.
+// DeleteByID deletes the given bean with the given ID
+func DeleteByID(ctx context.Context, id int64, bean interface{}) (int64, error) {
+	return GetEngine(ctx).ID(id).NoAutoTime().Delete(bean)
+}
+
+// FindIDs finds the IDs for the given table name satisfying the given condition
+// By passing a different value than "id" for "idCol", you can query for foreign IDs, i.e. the repo IDs which satisfy the condition
+func FindIDs(ctx context.Context, tableName, idCol string, cond builder.Cond) ([]int64, error) {
+	ids := make([]int64, 0, 10)
+	if err := GetEngine(ctx).Table(tableName).
+		Cols(idCol).
+		Where(cond).
+		Find(&ids); err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
+// DecrByIDs decreases the given column for entities of the "bean" type with one of the given ids by one
+// Timestamps of the entities won't be updated
+func DecrByIDs(ctx context.Context, ids []int64, decrCol string, bean interface{}) error {
+	_, err := GetEngine(ctx).Decr(decrCol).In("id", ids).NoAutoCondition().NoAutoTime().Update(bean)
+	return err
+}
+
+// DeleteBeans deletes all given beans, beans must contain delete conditions.
 func DeleteBeans(ctx context.Context, beans ...interface{}) (err error) {
 	e := GetEngine(ctx)
 	for i := range beans {
 		if _, err = e.Delete(beans[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// TruncateBeans deletes all given beans, beans may contain delete conditions.
+func TruncateBeans(ctx context.Context, beans ...interface{}) (err error) {
+	e := GetEngine(ctx)
+	for i := range beans {
+		if _, err = e.Truncate(beans[i]); err != nil {
 			return err
 		}
 	}

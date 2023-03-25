@@ -182,13 +182,15 @@ func runDump(ctx *cli.Context) error {
 		}
 		fileName += "." + outType
 	}
-	setting.LoadFromExisting()
+	setting.InitProviderFromExistingFile()
+	setting.LoadCommonSettings()
 
 	// make sure we are logging to the console no matter what the configuration tells us do to
-	if _, err := setting.Cfg.Section("log").NewKey("MODE", "console"); err != nil {
+	// FIXME: don't use CfgProvider directly
+	if _, err := setting.CfgProvider.Section("log").NewKey("MODE", "console"); err != nil {
 		fatal("Setting logging mode to console failed: %v", err)
 	}
-	if _, err := setting.Cfg.Section("log.console").NewKey("STDERR", "true"); err != nil {
+	if _, err := setting.CfgProvider.Section("log.console").NewKey("STDERR", "true"); err != nil {
 		fatal("Setting console logger to stderr failed: %v", err)
 	}
 	if !setting.InstallLock {
@@ -199,7 +201,7 @@ func runDump(ctx *cli.Context) error {
 	stdCtx, cancel := installSignals()
 	defer cancel()
 
-	initiator.RegisterService(setting.ServiceConfig)
+	initiator.RegisterService(setting.ServiceConfig) // cannot access session settings otherwise
 	initiator.RegisterService(db.ServiceConfig)
 	initiator.RegisterService(storage.ServiceConfig)
 	err := initiator.Init(stdCtx)
@@ -247,7 +249,9 @@ func runDump(ctx *cli.Context) error {
 
 		if ctx.IsSet("skip-lfs-data") && ctx.Bool("skip-lfs-data") {
 			log.Info("Skip dumping LFS data")
-		} else if err := storage.LFS.IterateObjects(func(objPath string, object storage.Object) error {
+		} else if !setting.LFS.StartServer {
+			log.Info("LFS isn't enabled. Skip dumping LFS data")
+		} else if err := storage.LFS.IterateObjects("", func(objPath string, object storage.Object) error {
 			info, err := object.Stat()
 			if err != nil {
 				return err
@@ -269,13 +273,14 @@ func runDump(ctx *cli.Context) error {
 		fatal("Failed to create tmp file: %v", err)
 	}
 	defer func() {
+		_ = dbDump.Close()
 		if err := util.Remove(dbDump.Name()); err != nil {
 			log.Warn("Unable to remove temporary file: %s: Error: %v", dbDump.Name(), err)
 		}
 	}()
 
 	targetDBType := ctx.String("database")
-	if len(targetDBType) > 0 && targetDBType != setting.Database.Type {
+	if len(targetDBType) > 0 && targetDBType != setting.Database.Type.String() {
 		log.Info("Dumping database %s => %s...", setting.Database.Type, targetDBType)
 	} else {
 		log.Info("Dumping database...")
@@ -321,7 +326,7 @@ func runDump(ctx *cli.Context) error {
 		log.Info("Packing data directory...%s", setting.AppDataPath)
 
 		var excludes []string
-		if setting.Cfg.Section("session").Key("PROVIDER").Value() == "file" {
+		if setting.SessionConfig.OriginalProvider == "file" {
 			var opts session.Options
 			if err = json.Unmarshal([]byte(setting.SessionConfig.ProviderConfig), &opts); err != nil {
 				return err
@@ -338,7 +343,7 @@ func runDump(ctx *cli.Context) error {
 		excludes = append(excludes, setting.LFS.Path)
 		excludes = append(excludes, setting.Attachment.Path)
 		excludes = append(excludes, setting.Packages.Path)
-		excludes = append(excludes, setting.LogRootPath)
+		excludes = append(excludes, setting.Log.RootPath)
 		excludes = append(excludes, absFileName)
 		if err := addRecursiveExclude(w, "data", setting.AppDataPath, excludes, verbose); err != nil {
 			fatal("Failed to include data directory: %v", err)
@@ -347,7 +352,7 @@ func runDump(ctx *cli.Context) error {
 
 	if ctx.IsSet("skip-attachment-data") && ctx.Bool("skip-attachment-data") {
 		log.Info("Skip dumping attachment data")
-	} else if err := storage.Attachments.IterateObjects(func(objPath string, object storage.Object) error {
+	} else if err := storage.Attachments.IterateObjects("", func(objPath string, object storage.Object) error {
 		info, err := object.Stat()
 		if err != nil {
 			return err
@@ -360,7 +365,9 @@ func runDump(ctx *cli.Context) error {
 
 	if ctx.IsSet("skip-package-data") && ctx.Bool("skip-package-data") {
 		log.Info("Skip dumping package data")
-	} else if err := storage.Packages.IterateObjects(func(objPath string, object storage.Object) error {
+	} else if !setting.Packages.Enabled {
+		log.Info("Packages isn't enabled. Skip dumping package data")
+	} else if err := storage.Packages.IterateObjects("", func(objPath string, object storage.Object) error {
 		info, err := object.Stat()
 		if err != nil {
 			return err
@@ -377,12 +384,12 @@ func runDump(ctx *cli.Context) error {
 	if ctx.IsSet("skip-log") && ctx.Bool("skip-log") {
 		log.Info("Skip dumping log files")
 	} else {
-		isExist, err := util.IsExist(setting.LogRootPath)
+		isExist, err := util.IsExist(setting.Log.RootPath)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", setting.LogRootPath, err)
+			log.Error("Unable to check if %s exists. Error: %v", setting.Log.RootPath, err)
 		}
 		if isExist {
-			if err := addRecursiveExclude(w, "log", setting.LogRootPath, []string{absFileName}, verbose); err != nil {
+			if err := addRecursiveExclude(w, "log", setting.Log.RootPath, []string{absFileName}, verbose); err != nil {
 				fatal("Failed to include log: %v", err)
 			}
 		}
@@ -408,15 +415,6 @@ func runDump(ctx *cli.Context) error {
 	return nil
 }
 
-func contains(slice []string, s string) bool {
-	for _, v := range slice {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
 // addRecursiveExclude zips absPath to specified insidePath inside writer excluding excludeAbsPath
 func addRecursiveExclude(w archiver.Writer, insidePath, absPath string, excludeAbsPath []string, verbose bool) error {
 	absPath, err := filepath.Abs(absPath)
@@ -437,7 +435,7 @@ func addRecursiveExclude(w archiver.Writer, insidePath, absPath string, excludeA
 		currentAbsPath := path.Join(absPath, file.Name())
 		currentInsidePath := path.Join(insidePath, file.Name())
 		if file.IsDir() {
-			if !contains(excludeAbsPath, currentAbsPath) {
+			if !util.SliceContainsString(excludeAbsPath, currentAbsPath) {
 				if err := addFile(w, currentInsidePath, currentAbsPath, false); err != nil {
 					return err
 				}
