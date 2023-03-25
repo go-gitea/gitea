@@ -1,7 +1,7 @@
 <template>
   <div v-show="show" :title="item.name">
     <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
-    <div class="item" :class="item.isFile ? 'filewrapper gt-p-1' : ''">
+    <div class="item" :class="item.isFile ? 'filewrapper gt-p-1 gt-ac' : ''">
       <!-- Files -->
       <SvgIcon
         v-if="item.isFile"
@@ -20,7 +20,7 @@
       />
 
       <!-- Directories -->
-      <div v-if="!item.isFile" class="directory gt-p-1" @click.stop="handleClick(item.isFile)">
+      <div v-if="!item.isFile" class="directory gt-p-1 gt-ac" @click.stop="handleClick(item.isFile)">
         <SvgIcon
           class="svg-icon"
           :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"
