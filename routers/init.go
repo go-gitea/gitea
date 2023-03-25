@@ -17,11 +17,11 @@ import (
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
+	"code.gitea.io/gitea/modules/initiator"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
@@ -118,10 +118,10 @@ func GlobalInitInstalled(ctx context.Context) {
 	// Setup i18n
 	translation.InitLocales(ctx)
 
-	services.Register(setting.ServiceConfig)
-	services.Register(storage.ServiceConfig)
-	services.Register(repo_service.ServiceConfig)
-	mustInitCtx(ctx, services.Init)
+	initiator.RegisterService(setting.ServiceConfig)
+	initiator.RegisterService(storage.ServiceConfig)
+	initiator.RegisterService(repo_service.ServiceConfig)
+	mustInitCtx(ctx, initiator.Init)
 
 	mailer.NewContext(ctx)
 	mustInit(cache.NewContext)

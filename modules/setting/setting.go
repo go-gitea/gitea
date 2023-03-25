@@ -23,9 +23,9 @@ import (
 
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/initiator"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
@@ -1333,7 +1333,7 @@ func CreateOrAppendToCustomConf(purpose string, callback func(cfg *ini.File)) {
 	}
 }
 
-var ServiceConfig = &services.Config{
+var ServiceConfig = &initiator.ServiceConfig{
 	Name: "setting",
 	Init: newServices,
 }

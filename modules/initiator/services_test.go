@@ -1,7 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package services
+package initiator
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-var serviceA = &Config{
+var serviceA = &ServiceConfig{
 	Name: "serviceA",
 	Init: func(ctx context.Context) error {
 		fmt.Println("serviceA init")
@@ -21,7 +21,7 @@ var serviceA = &Config{
 	},
 }
 
-var serviceB = &Config{
+var serviceB = &ServiceConfig{
 	Name: "serviceB",
 	Init: func(ctx context.Context) error {
 		fmt.Println("serviceB init")
@@ -35,12 +35,12 @@ var serviceB = &Config{
 }
 
 func TestServices(t *testing.T) {
-	Register(serviceA)
-	Register(serviceB)
+	RegisterService(serviceA)
+	RegisterService(serviceB)
 	if err := Init(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if err := Shutdown(context.Background()); err != nil {
+	if err := ShutdownService(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 }

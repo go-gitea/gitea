@@ -1,7 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package services
+package initiator
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-type Config struct {
+type ServiceConfig struct {
 	Name         string
 	Init         func(ctx context.Context) error
 	Shutdown     func(ctx context.Context) error
@@ -19,13 +19,13 @@ type Config struct {
 
 type service struct {
 	initialized bool
-	cfg         *Config
+	cfg         *ServiceConfig
 	dependents  []string
 }
 
 var services = make(map[string]*service)
 
-func Register(serviceCfg *Config) {
+func RegisterService(serviceCfg *ServiceConfig) {
 	if serviceCfg.Name == "" {
 		log.Fatal("Service configuration %#v has no name", serviceCfg)
 	}
@@ -96,7 +96,7 @@ func shutdownService(ctx context.Context, service *service) error {
 	return nil
 }
 
-func Shutdown(ctx context.Context) error {
+func ShutdownService(ctx context.Context) error {
 	for _, service := range services {
 		if err := shutdownService(ctx, service); err != nil {
 			return err

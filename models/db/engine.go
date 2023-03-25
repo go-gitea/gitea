@@ -12,7 +12,7 @@ import (
 	"reflect"
 	"strings"
 
-	"code.gitea.io/gitea/modules/services"
+	"code.gitea.io/gitea/modules/initiator"
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
@@ -126,7 +126,7 @@ func SyncAllTables() error {
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
-var ServiceConfig = &services.Config{
+var ServiceConfig = &initiator.ServiceConfig{
 	Name: "db",
 	Init: InitEngine,
 	Shutdown: func(ctx context.Context) error {

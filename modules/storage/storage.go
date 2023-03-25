@@ -11,8 +11,8 @@ import (
 	"net/url"
 	"os"
 
+	"code.gitea.io/gitea/modules/initiator"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -128,7 +128,7 @@ var (
 	Packages ObjectStorage = uninitializedStorage
 )
 
-var ServiceConfig = &services.Config{
+var ServiceConfig = &initiator.ServiceConfig{
 	Name: "storage",
 	Init: func(ctx context.Context) error {
 		return Init()

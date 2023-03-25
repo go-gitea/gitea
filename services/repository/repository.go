@@ -16,15 +16,15 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/initiator"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
-var ServiceConfig = &services.Config{
+var ServiceConfig = &initiator.ServiceConfig{
 	Name: "repository",
 	Init: func(ctx context.Context) error {
 		repo_module.LoadRepoConfig()

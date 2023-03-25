@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/initiator"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -199,10 +199,10 @@ func runDump(ctx *cli.Context) error {
 	stdCtx, cancel := installSignals()
 	defer cancel()
 
-	services.Register(setting.ServiceConfig)
-	services.Register(db.ServiceConfig)
-	services.Register(storage.ServiceConfig)
-	err := services.Init(stdCtx)
+	initiator.RegisterService(setting.ServiceConfig)
+	initiator.RegisterService(db.ServiceConfig)
+	initiator.RegisterService(storage.ServiceConfig)
+	err := initiator.Init(stdCtx)
 	if err != nil {
 		return err
 	}
