@@ -153,10 +153,9 @@ function togglePreviewDisplay(previewable) {
 
 export async function createCodeEditor(textarea, filenameInput) {
   const filename = basename(filenameInput.value);
-  const previewableExts = (textarea.getAttribute('data-previewable-extensions') || '').split(',');
-  const previewableExtsSet = new Set(previewableExts);
+  const previewableExts = new Set((textarea.getAttribute('data-previewable-extensions') || '').split(','));
   const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
-  const previewable = previewableExtsSet.has(extname(filename));
+  const previewable = previewableExts.has(extname(filename));
   const editorConfig = getEditorconfig(filenameInput);
 
   togglePreviewDisplay(previewable);
@@ -169,7 +168,7 @@ export async function createCodeEditor(textarea, filenameInput) {
 
   const debounceInputHandler = debounce(500, () => {
     const filename = filenameInput.value;
-    const previewable = previewableExtsSet.has(extname(filename));
+    const previewable = previewableExts.has(extname(filename));
     togglePreviewDisplay(previewable);
     updateEditor(monaco, editor, filename, lineWrapExts);
   });
