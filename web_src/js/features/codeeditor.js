@@ -130,17 +130,17 @@ function getFileBasedOptions(filename, lineWrapExts) {
   };
 }
 
-export async function createCodeEditor(textarea, filenameInput, previewFileModes) {
+export async function createCodeEditor(textarea, filenameInput) {
   const filename = basename(filenameInput.value);
   const previewLink = document.querySelector('a[data-tab=preview]');
-  const markdownExts = (textarea.getAttribute('data-markdown-file-exts') || '').split(',');
+  const previewableExts = (textarea.getAttribute('data-previewable-extensions') || '').split(',');
   const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
-  const isMarkdown = markdownExts.includes(extname(filename));
+  const previewable = previewableExts.includes(extname(filename));
   const editorConfig = getEditorconfig(filenameInput);
 
   if (previewLink) {
-    if (isMarkdown && (previewFileModes || []).includes('markdown')) {
-      const newUrl = (previewLink.getAttribute('data-url') || '').replace(/(.*)\/.*/i, `$1/markdown`);
+    if (previewable) {
+      const newUrl = (previewLink.getAttribute('data-url') || '').replace(/(.*)\/.*/i, `$1/markup`);
       previewLink.setAttribute('data-url', newUrl);
       previewLink.style.display = '';
     } else {
