@@ -14,7 +14,7 @@
 				<div class="ui repo-search">
 					<form class="ui form ignore-dirty" action="{{.RepoLink}}/search" method="get">
 						<div class="field">
-							<div class="ui action input{{if .CodeIndexerUnavailable}} disabled left icon tooltip{{end}}"{{if .CodeIndexerUnavailable}} data-content="{{.locale.Tr "repo.search.code_search_unavailable"}}"{{end}}>
+							<div class="ui action input{{if .CodeIndexerUnavailable}} disabled left icon{{end}}"{{if .CodeIndexerUnavailable}} data-tooltip-content="{{.locale.Tr "repo.search.code_search_unavailable"}}"{{end}}>
 								<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{.locale.Tr "repo.search.search_repo"}}">
 								{{if .CodeIndexerUnavailable}}
 									<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-alert"}}</i>
@@ -71,7 +71,7 @@
 				{{if eq $n 0}}
 					{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 						<a href="{{CompareLink .BaseRepo .Repository .BranchName}}">
-							<button id="new-pull-request" class="ui compact basic button tooltip" data-content="{{if .PullRequestCtx.Allowed}}{{.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{.locale.Tr "action.compare_branch"}}{{end}}"><span class="text">{{svg "octicon-git-pull-request"}}</span></button>
+							<button id="new-pull-request" class="ui compact basic button" data-tooltip-content="{{if .PullRequestCtx.Allowed}}{{.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{.locale.Tr "action.compare_branch"}}{{end}}"><span class="text">{{svg "octicon-git-pull-request"}}</span></button>
 						</a>
 					{{end}}
 					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{.locale.Tr "repo.find_file.go_to_file"}}</a>
@@ -113,7 +113,7 @@
 				{{if eq $n 0}}
 					<div class="ui action tiny input" id="clone-panel">
 						{{template "repo/clone_buttons" .}}
-						<button id="more-btn" class="ui basic small compact jump dropdown icon button tooltip" data-content="{{.locale.Tr "repo.more_operations"}}" data-position="top right">
+						<button id="more-btn" class="ui basic small compact jump dropdown icon button" data-tooltip-content="{{.locale.Tr "repo.more_operations"}}">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
 								{{if not $.DisableDownloadSourceArchives}}
