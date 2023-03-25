@@ -119,7 +119,6 @@ export default {
       if (updateTooltip) {
         const newTooltip = btn.getAttribute(`data-${visible ? 'hide' : 'show'}-text`);
         btn.setAttribute('data-tooltip-content', newTooltip);
-        // btn._tippy?.setContent(newTooltip);
       }
       toggleElem(tree, visible);
       toggleElem(toShow, !visible);
