@@ -15,7 +15,7 @@
 	<div>
 		<div class="diff-detail-box diff-box sticky gt-df gt-sb gt-ac gt-fw">
 			<div class="gt-df gt-ac gt-fw">
-				<button class="diff-toggle-file-tree-button tooltip gt-df gt-ac" data-content-show="{{.locale.Tr "repo.diff.show_file_tree"}}" data-content-hide="{{.locale.Tr "repo.diff.hide_file_tree"}}">
+				<button class="diff-toggle-file-tree-button tooltip gt-df gt-ac" data-show-text="{{.locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{.locale.Tr "repo.diff.hide_file_tree"}}">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
 					{{svg "octicon-sidebar-collapse" 20 "icon gt-hidden"}}
 					{{svg "octicon-sidebar-expand" 20 "icon gt-hidden"}}
@@ -25,7 +25,7 @@
 					const diffTreeBtn = document.querySelector('.diff-toggle-file-tree-button');
 					const diffTreeIcon = `.octicon-sidebar-${diffTreeVisible ? 'expand' : 'collapse'}`;
 					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('gt-hidden');
-					diffTreeBtn.setAttribute('data-content', diffTreeBtn.getAttribute(`data-content-${diffTreeVisible ? 'hide' : 'show'}`));
+					diffTreeBtn.setAttribute('data-tooltip-content', diffTreeBtn.getAttribute(`data-${diffTreeVisible ? 'hide' : 'show'}-text`));
 				</script>
 				<div class="diff-detail-stats gt-df gt-ac gt-ml-3">
 					{{svg "octicon-diff" 16 "gt-mr-2"}}{{.locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
