@@ -1853,6 +1853,16 @@
   padding-bottom: 5px;
 }
 
+.repository .diff-file-box {
+  scroll-margin-top: 47px; /* match .repository .diff-detail-box */
+}
+
+@media (max-width: 991px) {
+  .repository .diff-file-box {
+    scroll-margin-top: 77px; /* match .repository .diff-detail-box */
+  }
+}
+
 .repository .diff-stats {
   clear: both;
   margin-bottom: 5px;
