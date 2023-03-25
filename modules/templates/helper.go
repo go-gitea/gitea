@@ -109,6 +109,9 @@ func NewFuncMap() []template.FuncMap {
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
 		},
+		"IsShowFullName": func() bool {
+			return setting.UI.DefaultShowFullName
+		},
 		"Safe":           Safe,
 		"SafeJS":         SafeJS,
 		"JSEscape":       JSEscape,

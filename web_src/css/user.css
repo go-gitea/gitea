@@ -67,6 +67,11 @@
   margin-top: 25px;
 }
 
+.user.profile .ui.repository.list .repo-title .labels {
+  word-break: normal;
+  flex-shrink: 0;
+}
+
 .user.profile #loading-heatmap {
   margin-bottom: 1em;
 }
@@ -83,27 +88,6 @@
 
 .user.followers .follow .ui.button {
   padding: 8px 15px;
-}
-
-.user.notification .svg {
-  float: left;
-  font-size: 2em;
-}
-
-.user.notification .svg.green {
-  color: var(--color-green);
-}
-
-.user.notification .svg.red {
-  color: var(--color-red);
-}
-
-.user.notification .svg.purple {
-  color: var(--color-purple);
-}
-
-.user.notification .svg.blue {
-  color: var(--color-blue);
 }
 
 .user.notification .content {
@@ -170,4 +154,13 @@
 
 #notification_div .tab.segment {
   overflow-x: auto;
+  padding: 0;
+}
+
+#notification_div .menu .active.item {
+  background: var(--color-box-body);
+}
+
+#notification_table {
+  border: none;
 }
