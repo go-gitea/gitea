@@ -168,9 +168,9 @@ func (e *escapeStreamer) ambiguousRune(r, c rune) error {
 
 	if err := e.PassthroughHTMLStreamer.StartTag("span", html.Attribute{
 		Key: "class",
-		Val: "ambiguous-code-point tooltip",
+		Val: "ambiguous-code-point",
 	}, html.Attribute{
-		Key: "data-content",
+		Key: "data-tooltip-content",
 		Val: e.locale.Tr("repo.ambiguous_character", r, c),
 	}); err != nil {
 		return err
