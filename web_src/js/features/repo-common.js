@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
 const {csrfToken} = window.config;
 
@@ -54,8 +55,8 @@ export function initRepoCloneLink() {
 
   // restore animation after first init
   setTimeout(() => {
-    $repoCloneSsh.removeClass('no-transition');
-    $repoCloneHttps.removeClass('no-transition');
+    $repoCloneSsh.removeClass('gt-no-transition');
+    $repoCloneHttps.removeClass('gt-no-transition');
   }, 100);
 
   $repoCloneSsh.on('click', () => {
@@ -76,8 +77,8 @@ export function initRepoCommonBranchOrTagDropdown(selector) {
   $(selector).each(function () {
     const $dropdown = $(this);
     $dropdown.find('.reference.column').on('click', function () {
-      $dropdown.find('.scrolling.reference-list-menu').hide();
-      $($(this).data('target')).show();
+      hideElem($dropdown.find('.scrolling.reference-list-menu'));
+      showElem($($(this).data('target')));
       return false;
     });
   });
@@ -102,7 +103,7 @@ export function initRepoCommonLanguageStats() {
   if ($('.language-stats').length > 0) {
     $('.language-stats').on('click', (e) => {
       e.preventDefault();
-      $('.language-stats-details, .repository-menu').slideToggle();
+      toggleElem($('.language-stats-details, .repository-menu'));
     });
   }
 }

@@ -2,9 +2,8 @@
 import './bootstrap.js';
 
 import $ from 'jquery';
-import {initVueEnv} from './components/VueComponentLoader.js';
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
-import {initDashboardRepoList} from './components/DashboardRepoList.js';
+import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
 import {attachTribute} from './features/tribute.js';
 import {initGlobalCopyToClipboardListener} from './features/clipboard.js';
@@ -48,7 +47,6 @@ import {
   initCommitStatuses,
 } from './features/repo-commit.js';
 import {
-  checkAppUrl,
   initFootLanguageMenu,
   initGlobalButtonClickOnEnter,
   initGlobalButtons,
@@ -58,7 +56,6 @@ import {
   initGlobalFormDirtyLeaveConfirm,
   initGlobalLinkActions,
   initHeadNavbarContentToggle,
-  initGlobalTooltips,
 } from './features/common-global.js';
 import {initRepoTopicBar} from './features/repo-home.js';
 import {initAdminEmails} from './features/admin/emails.js';
@@ -77,7 +74,7 @@ import {
 import {initViewedCheckboxListenerFor} from './features/pull-view-file.js';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.js';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
-import {initRepoRelease, initRepoReleaseEditor} from './features/repo-release.js';
+import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.js';
 import {initRepoEditor} from './features/repo-editor.js';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.js';
 import {initInstall} from './features/install.js';
@@ -91,6 +88,9 @@ import {initFormattingReplacements} from './features/formatting.js';
 import {initCopyContent} from './features/copycontent.js';
 import {initCaptcha} from './features/captcha.js';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
+import {initAriaCheckboxPatch} from './modules/aria/checkbox.js';
+import {initAriaDropdownPatch} from './modules/aria/dropdown.js';
+import {initGlobalTooltips} from './modules/tippy.js';
 
 // Run time-critical code as soon as possible. This is safe to do because this
 // script appears at the end of <body> and rendered HTML is accessible at that point.
@@ -100,8 +100,10 @@ initFormattingReplacements();
 $.fn.tab.settings.silent = true;
 // Disable the behavior of fomantic to toggle the checkbox when you press enter on a checkbox element.
 $.fn.checkbox.settings.enableEnterKey = false;
+// Use the patches to improve accessibility, these patches are designed to be as independent as possible, make it easy to modify or remove in the future.
+initAriaCheckboxPatch();
+initAriaDropdownPatch();
 
-initVueEnv();
 $(document).ready(() => {
   initGlobalCommon();
 
@@ -180,7 +182,7 @@ $(document).ready(() => {
   initRepoPullRequestAllowMaintainerEdit();
   initRepoPullRequestReview();
   initRepoRelease();
-  initRepoReleaseEditor();
+  initRepoReleaseNew();
   initRepoSettingGitHook();
   initRepoSettingSearchTeamBox();
   initRepoSettingsCollaboration();
@@ -199,5 +201,4 @@ $(document).ready(() => {
   initUserAuthWebAuthnRegister();
   initUserSettings();
   initViewedCheckboxListenerFor();
-  checkAppUrl();
 });

@@ -147,8 +147,8 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	// don't allow anonymous pulls if organization is not public
 	if isPublicPull {
-		if err := repo.GetOwner(ctx); err != nil {
-			ctx.ServerError("GetOwner", err)
+		if err := repo.LoadOwner(ctx); err != nil {
+			ctx.ServerError("LoadOwner", err)
 			return
 		}
 
@@ -229,7 +229,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 				}
 
 				if !p.CanAccess(accessMode, unitType) {
-					ctx.PlainText(http.StatusForbidden, "User permission denied")
+					ctx.PlainText(http.StatusNotFound, "Repository not found")
 					return
 				}
 			}
@@ -277,7 +277,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			return
 		}
 
-		repo, err = repo_service.PushCreateRepo(ctx.Doer, owner, reponame)
+		repo, err = repo_service.PushCreateRepo(ctx, ctx.Doer, owner, reponame)
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
 			ctx.Status(http.StatusNotFound)

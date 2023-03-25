@@ -119,7 +119,7 @@ func TestHtmlTimeSince(t *testing.T) {
 	// test that `diff` yields a result containing `expected`
 	test := func(expected string, diff time.Duration) {
 		actual := htmlTimeSince(BaseDate, BaseDate.Add(diff), translation.NewLocale("en-US"))
-		assert.Contains(t, actual, `data-content="Sat Jan  1 00:00:00 UTC 2000"`)
+		assert.Contains(t, actual, `data-tooltip-content="Sat Jan  1 00:00:00 UTC 2000"`)
 		assert.Contains(t, actual, expected)
 	}
 	test("1 second", time.Second)

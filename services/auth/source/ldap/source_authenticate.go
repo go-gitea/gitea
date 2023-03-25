@@ -10,9 +10,10 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
+	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/util"
+	source_service "code.gitea.io/gitea/services/auth/source"
 	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -64,61 +65,66 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	}
 
 	if user != nil {
-		if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
-			orgCache := make(map[string]*organization.Organization)
-			teamCache := make(map[string]*organization.Team)
-			source.SyncLdapGroupsToTeams(user, sr.LdapTeamAdd, sr.LdapTeamRemove, orgCache, teamCache)
-		}
 		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(user, source.authSource, sr.SSHPublicKey) {
-			return user, asymkey_model.RewriteAllPublicKeys()
+			if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
+				return user, err
+			}
 		}
-		return user, nil
+	} else {
+		// Fallback.
+		if len(sr.Username) == 0 {
+			sr.Username = userName
+		}
+
+		if len(sr.Mail) == 0 {
+			sr.Mail = fmt.Sprintf("%s@localhost", sr.Username)
+		}
+
+		user = &user_model.User{
+			LowerName:   strings.ToLower(sr.Username),
+			Name:        sr.Username,
+			FullName:    composeFullName(sr.Name, sr.Surname, sr.Username),
+			Email:       sr.Mail,
+			LoginType:   source.authSource.Type,
+			LoginSource: source.authSource.ID,
+			LoginName:   userName,
+			IsAdmin:     sr.IsAdmin,
+		}
+		overwriteDefault := &user_model.CreateUserOverwriteOptions{
+			IsRestricted: util.OptionalBoolOf(sr.IsRestricted),
+			IsActive:     util.OptionalBoolTrue,
+		}
+
+		err := user_model.CreateUser(user, overwriteDefault)
+		if err != nil {
+			return user, err
+		}
+
+		mailer.SendRegisterNotifyMail(user)
+
+		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(user, source.authSource, sr.SSHPublicKey) {
+			if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
+				return user, err
+			}
+		}
+		if len(source.AttributeAvatar) > 0 {
+			if err := user_service.UploadAvatar(user, sr.Avatar); err != nil {
+				return user, err
+			}
+		}
 	}
 
-	// Fallback.
-	if len(sr.Username) == 0 {
-		sr.Username = userName
-	}
-
-	if len(sr.Mail) == 0 {
-		sr.Mail = fmt.Sprintf("%s@localhost", sr.Username)
-	}
-
-	user = &user_model.User{
-		LowerName:   strings.ToLower(sr.Username),
-		Name:        sr.Username,
-		FullName:    composeFullName(sr.Name, sr.Surname, sr.Username),
-		Email:       sr.Mail,
-		LoginType:   source.authSource.Type,
-		LoginSource: source.authSource.ID,
-		LoginName:   userName,
-		IsAdmin:     sr.IsAdmin,
-	}
-	overwriteDefault := &user_model.CreateUserOverwriteOptions{
-		IsRestricted: util.OptionalBoolOf(sr.IsRestricted),
-		IsActive:     util.OptionalBoolTrue,
-	}
-
-	err := user_model.CreateUser(user, overwriteDefault)
-	if err != nil {
-		return user, err
-	}
-
-	mailer.SendRegisterNotifyMail(user)
-
-	if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(user, source.authSource, sr.SSHPublicKey) {
-		err = asymkey_model.RewriteAllPublicKeys()
-	}
-	if err == nil && len(source.AttributeAvatar) > 0 {
-		_ = user_service.UploadAvatar(user, sr.Avatar)
-	}
 	if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
-		orgCache := make(map[string]*organization.Organization)
-		teamCache := make(map[string]*organization.Team)
-		source.SyncLdapGroupsToTeams(user, sr.LdapTeamAdd, sr.LdapTeamRemove, orgCache, teamCache)
+		groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(source.GroupTeamMap)
+		if err != nil {
+			return user, err
+		}
+		if err := source_service.SyncGroupsToTeams(db.DefaultContext, user, sr.Groups, groupTeamMapping, source.GroupTeamMapRemoval); err != nil {
+			return user, err
+		}
 	}
 
-	return user, err
+	return user, nil
 }
 
 // IsSkipLocalTwoFA returns if this source should skip local 2fa for password authentication

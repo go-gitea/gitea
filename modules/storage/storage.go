@@ -65,7 +65,7 @@ type ObjectStorage interface {
 	Stat(path string) (os.FileInfo, error)
 	Delete(path string) error
 	URL(path, name string) (*url.URL, error)
-	IterateObjects(func(path string, obj Object) error) error
+	IterateObjects(path string, iterator func(path string, obj Object) error) error
 }
 
 // Copy copies a file from source ObjectStorage to dest ObjectStorage
@@ -87,7 +87,7 @@ func Copy(dstStorage ObjectStorage, dstPath string, srcStorage ObjectStorage, sr
 
 // Clean delete all the objects in this storage
 func Clean(storage ObjectStorage) error {
-	return storage.IterateObjects(func(path string, obj Object) error {
+	return storage.IterateObjects("", func(path string, obj Object) error {
 		_ = obj.Close()
 		return storage.Delete(path)
 	})

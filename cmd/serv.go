@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -24,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/process"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/lfs"
@@ -61,7 +59,8 @@ func setup(logPath string, debug bool) {
 	} else {
 		_ = log.NewLogger(1000, "console", "console", `{"level":"fatal","stacktracelevel":"NONE","stderr":true}`)
 	}
-	setting.LoadFromExisting()
+	setting.InitProviderFromExistingFile()
+	setting.LoadCommonSettings()
 	if debug {
 		setting.RunMode = "dev"
 	}
@@ -289,43 +288,19 @@ func runServ(c *cli.Context) error {
 		return nil
 	}
 
-	// Special handle for Windows.
-	if setting.IsWindows {
-		verb = strings.Replace(verb, "-", " ", 1)
-	}
-
-	var gitcmd *exec.Cmd
-	verbs := strings.Split(verb, " ")
-	if len(verbs) == 2 {
-		gitcmd = exec.CommandContext(ctx, verbs[0], verbs[1], repoPath)
-	} else {
-		gitcmd = exec.CommandContext(ctx, verb, repoPath)
-	}
-
-	process.SetSysProcAttribute(gitcmd)
-	gitcmd.Dir = setting.RepoRootPath
-	gitcmd.Stdout = os.Stdout
-	gitcmd.Stdin = os.Stdin
-	gitcmd.Stderr = os.Stderr
-	gitcmd.Env = append(gitcmd.Env, os.Environ()...)
-	gitcmd.Env = append(gitcmd.Env,
-		repo_module.EnvRepoIsWiki+"="+strconv.FormatBool(results.IsWiki),
-		repo_module.EnvRepoName+"="+results.RepoName,
-		repo_module.EnvRepoUsername+"="+results.OwnerName,
-		repo_module.EnvPusherName+"="+results.UserName,
-		repo_module.EnvPusherEmail+"="+results.UserEmail,
-		repo_module.EnvPusherID+"="+strconv.FormatInt(results.UserID, 10),
-		repo_module.EnvRepoID+"="+strconv.FormatInt(results.RepoID, 10),
-		repo_module.EnvPRID+"="+fmt.Sprintf("%d", 0),
-		repo_module.EnvDeployKeyID+"="+fmt.Sprintf("%d", results.DeployKeyID),
-		repo_module.EnvKeyID+"="+fmt.Sprintf("%d", results.KeyID),
-		repo_module.EnvAppURL+"="+setting.AppURL,
-	)
-	// to avoid breaking, here only use the minimal environment variables for the "gitea serv" command.
-	// it could be re-considered whether to use the same git.CommonGitCmdEnvs() as "git" command later.
-	gitcmd.Env = append(gitcmd.Env, git.CommonCmdServEnvs()...)
-
-	if err = gitcmd.Run(); err != nil {
+	if err := git.RunServCommand(ctx, verb, repoPath, []string{
+		repo_module.EnvRepoIsWiki + "=" + strconv.FormatBool(results.IsWiki),
+		repo_module.EnvRepoName + "=" + results.RepoName,
+		repo_module.EnvRepoUsername + "=" + results.OwnerName,
+		repo_module.EnvPusherName + "=" + results.UserName,
+		repo_module.EnvPusherEmail + "=" + results.UserEmail,
+		repo_module.EnvPusherID + "=" + strconv.FormatInt(results.UserID, 10),
+		repo_module.EnvRepoID + "=" + strconv.FormatInt(results.RepoID, 10),
+		repo_module.EnvPRID + "=" + fmt.Sprintf("%d", 0),
+		repo_module.EnvDeployKeyID + "=" + fmt.Sprintf("%d", results.DeployKeyID),
+		repo_module.EnvKeyID + "=" + fmt.Sprintf("%d", results.KeyID),
+		repo_module.EnvAppURL + "=" + setting.AppURL,
+	}); err != nil {
 		return fail("Internal error", "Failed to execute git command: %v", err)
 	}
 

@@ -10,8 +10,9 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
 	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/packages/container/oci"
 	"code.gitea.io/gitea/modules/util"
+
+	digest "github.com/opencontainers/go-digest"
 )
 
 // Cleanup removes expired container data
@@ -87,7 +88,7 @@ func ShouldBeSkipped(ctx context.Context, pcr *packages_model.PackageCleanupRule
 	}
 
 	// Check if the version is a digest (or untagged)
-	if oci.Digest(pv.LowerVersion).Validate() {
+	if digest.Digest(pv.LowerVersion).Validate() == nil {
 		// Check if there is another manifest referencing this version
 		has, err := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{
 			PackageID: p.ID,

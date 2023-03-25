@@ -237,7 +237,7 @@ func (repo *Repository) AfterLoad() {
 // LoadAttributes loads attributes of the repository.
 func (repo *Repository) LoadAttributes(ctx context.Context) error {
 	// Load owner
-	if err := repo.GetOwner(ctx); err != nil {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return fmt.Errorf("load owner: %w", err)
 	}
 
@@ -274,7 +274,7 @@ func (repo *Repository) CommitLink(commitID string) (result string) {
 	if commitID == "" || commitID == "0000000000000000000000000000000000000000" {
 		result = ""
 	} else {
-		result = repo.HTMLURL() + "/commit/" + url.PathEscape(commitID)
+		result = repo.Link() + "/commit/" + url.PathEscape(commitID)
 	}
 	return result
 }
@@ -373,8 +373,8 @@ func (repo *Repository) GetUnit(ctx context.Context, tp unit.Type) (*RepoUnit, e
 	return nil, ErrUnitTypeNotExist{tp}
 }
 
-// GetOwner returns the repository owner
-func (repo *Repository) GetOwner(ctx context.Context) (err error) {
+// LoadOwner loads owner user
+func (repo *Repository) LoadOwner(ctx context.Context) (err error) {
 	if repo.Owner != nil {
 		return nil
 	}
@@ -388,7 +388,7 @@ func (repo *Repository) GetOwner(ctx context.Context) (err error) {
 // It creates a fake object that contains error details
 // when error occurs.
 func (repo *Repository) MustOwner(ctx context.Context) *user_model.User {
-	if err := repo.GetOwner(ctx); err != nil {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return &user_model.User{
 			Name:     "error",
 			FullName: err.Error(),
@@ -475,7 +475,7 @@ func (repo *Repository) RepoPath() string {
 	return storage.RepoPath(repo.OwnerName, repo.Name)
 }
 
-// Link returns the repository link
+// Link returns the repository relative url
 func (repo *Repository) Link() string {
 	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
 }

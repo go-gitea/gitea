@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -115,4 +116,37 @@ func (c *localCommandRunner) Run(ctx context.Context, args []string, opts *RunOp
 	}
 
 	return ctx.Err()
+}
+
+func RunServCommand(ctx context.Context, verb, repoPath string, envs []string) error {
+	var gitcmd *exec.Cmd
+	gitBinPath := filepath.Dir(gitExecutable)     // e.g. /usr/bin
+	gitBinVerb := filepath.Join(gitBinPath, verb) // e.g. /usr/bin/git-upload-pack
+	if _, err := os.Stat(gitBinVerb); err != nil {
+		// if the command "git-upload-pack" doesn't exist, try to split "git-upload-pack" to use the sub-command with git
+		// ps: Windows only has "git.exe" in the bin path, so Windows always uses this way
+		verbFields := strings.SplitN(verb, "-", 2)
+		if len(verbFields) == 2 {
+			// use git binary with the sub-command part: "C:\...\bin\git.exe", "upload-pack", ...
+			gitcmd = exec.CommandContext(ctx, gitExecutable, verbFields[1], repoPath)
+		}
+	}
+	if gitcmd == nil {
+		// by default, use the verb (it has been checked above by allowedCommands)
+		gitcmd = exec.CommandContext(ctx, gitBinVerb, repoPath)
+	}
+
+	process.SetSysProcAttribute(gitcmd)
+	gitcmd.Dir = setting.RepoRootPath
+	gitcmd.Stdout = os.Stdout
+	gitcmd.Stdin = os.Stdin
+	gitcmd.Stderr = os.Stderr
+	gitcmd.Env = append(gitcmd.Env, os.Environ()...)
+	gitcmd.Env = append(gitcmd.Env, envs...)
+
+	// to avoid breaking, here only use the minimal environment variables for the "gitea serv" command.
+	// it could be re-considered whether to use the same git.CommonGitCmdEnvs() as "git" command later.
+	gitcmd.Env = append(gitcmd.Env, CommonCmdServEnvs()...)
+
+	return gitcmd.Run()
 }
