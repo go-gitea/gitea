@@ -97,12 +97,14 @@ var (
 // fail prints message to stdout, it's mainly used for git serv and git hook commands.
 // The output will be passed to git client and shown to user.
 func fail(ctx context.Context, userMessage, logMsgFmt string, args ...interface{}) error {
-	// There appears to be a chance to cause a zombie process and failure to read the Exit status
-	// if nothing is outputted on stdout.
 	if userMessage == "" {
 		userMessage = "Internal Server Error (no user message)"
 	}
-	_, _ = fmt.Fprintf(os.Stdout, "\nGitea: %s\n", userMessage)
+
+	// There appears to be a chance to cause a zombie process and failure to read the Exit status
+	// if nothing is outputted on stdout.
+	_, _ = fmt.Fprintln(os.Stdout, "")
+	_, _ = fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
 
 	if logMsgFmt != "" {
 		logMsg := fmt.Sprintf(logMsgFmt, args...)
