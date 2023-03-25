@@ -4,7 +4,7 @@
 		<li class="item gt-df gt-py-3">
 			<div class="issue-item-left gt-df gt-items-start">
 				{{if $.CanWriteIssuesOrPulls}}
-					<input type="checkbox" class="issue-checkbox gt-mt-2 gt-mr-4" data-issue-id={{.ID}} title="{{$.locale.Tr "repo.issues.action_check"}} «{{.Title}}»">
+					<input type="checkbox" autocomplete="off" class="issue-checkbox gt-mt-2 gt-mr-4" data-issue-id={{.ID}} title="{{$.locale.Tr "repo.issues.action_check"}} «{{.Title}}»">
 				{{end}}
 				<div class="issue-item-icon">
 					{{if .IsPull}}
