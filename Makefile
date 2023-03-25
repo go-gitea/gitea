@@ -131,7 +131,7 @@ TEST_TAGS ?= sqlite sqlite_unlock_notify
 
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
-GO_DIRS := cmd tests models modules routers build services tools
+GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
 GO_SOURCES := $(wildcard *.go)
@@ -219,7 +219,6 @@ help:
 	@echo " - tidy                             run go mod tidy"
 	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
-	@echo " - pr#<index>                       build and start gitea from a PR with integration test data loaded"
 
 .PHONY: go-check
 go-check:
@@ -353,7 +352,7 @@ lint-backend: golangci-lint vet editorconfig-checker
 
 .PHONY: watch
 watch:
-	bash tools/watch.sh
+	bash build/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
@@ -938,10 +937,6 @@ generate-manpage:
 	@./gitea docs --man > man/man1/gitea.1
 	@gzip -9 man/man1/gitea.1 && echo man/man1/gitea.1.gz created
 	@#TODO A small script that formats config-cheat-sheet.en-us.md nicely for use as a config man page
-
-.PHONY: pr\#%
-pr\#%: clean-all
-	$(GO) run contrib/pr/checkout.go $*
 
 .PHONY: golangci-lint
 golangci-lint:
