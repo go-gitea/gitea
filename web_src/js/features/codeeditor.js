@@ -132,10 +132,9 @@ function getFileBasedOptions(filename, lineWrapExts) {
 }
 
 function togglePreviewDisplay(previewable) {
-  const previewTab = document.querySelector('a[data-tab=preview]');
-  if (!previewTab) {
-    return;
-  }
+  const previewTab = document.querySelector('a[data-tab="preview"]');
+  if (!previewTab) return;
+
   if (previewable) {
     const newUrl = (previewTab.getAttribute('data-url') || '').replace(/(.*)\/.*/i, `$1/markup`);
     previewTab.setAttribute('data-url', newUrl);
@@ -145,7 +144,7 @@ function togglePreviewDisplay(previewable) {
     // If the "preview" tab was active, user changes the filename to a non-previewable one,
     // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
     if (previewTab.classList.contains('active')) {
-      const writeTab = document.querySelector('a[data-tab=write]');
+      const writeTab = document.querySelector('a[data-tab="write"]');
       writeTab.click();
     }
   }
