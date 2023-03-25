@@ -79,31 +79,31 @@ export default {
 </script>
 
 <style scoped>
-span.svg-icon.status {
+.svg-icon.status {
   float: right;
 }
 
-span.svg-icon.file {
+.svg-icon.file {
   color: var(--color-secondary-dark-7);
 }
 
-span.svg-icon.directory {
+.svg-icon.directory {
   color: var(--color-primary);
 }
 
-span.svg-icon.octicon-diff-modified {
+.svg-icon.octicon-diff-modified {
   color: var(--color-yellow);
 }
 
-span.svg-icon.octicon-diff-added {
+.svg-icon.octicon-diff-added {
   color: var(--color-green);
 }
 
-span.svg-icon.octicon-diff-removed {
+.svg-icon.octicon-diff-removed {
   color: var(--color-red);
 }
 
-span.svg-icon.octicon-diff-renamed {
+.svg-icon.octicon-diff-renamed {
   color: var(--color-teal);
 }
 
