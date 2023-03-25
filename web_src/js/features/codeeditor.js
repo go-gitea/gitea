@@ -166,14 +166,12 @@ export async function createCodeEditor(textarea, filenameInput) {
     ...getEditorConfigOptions(editorConfig),
   });
 
-  const debounceInputHandler = debounce(500, () => {
+  filenameInput.addEventListener('input', debounce(500, () => {
     const filename = filenameInput.value;
     const previewable = previewableExts.has(extname(filename));
     togglePreviewDisplay(previewable);
     updateEditor(monaco, editor, filename, lineWrapExts);
-  });
-
-  filenameInput.addEventListener('input', debounceInputHandler);
+  }));
 
   return editor;
 }
