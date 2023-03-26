@@ -913,12 +913,10 @@ func MergePullRequest(ctx *context.APIContext) {
 			}
 			defer headRepo.Close()
 		}
-		if setting.Repository.PullRequest.RetargetChildsOnClose && pr.BaseRepoID == pr.HeadRepoID {
-			if err := pull_service.RebaseBranchPulls(ctx, ctx.Doer, pr.HeadRepoID, pr.HeadBranch, pr.BaseBranch); err != nil {
-				log.Error("RebaseBranchPulls: %v", err)
-				ctx.Error(http.StatusInternalServerError, "RebaseBranchPulls", err)
-				return
-			}
+		if err := pull_service.RetargetChildrenOnMerge(ctx, ctx.Doer, pr); err != nil {
+			log.Error("RetargetChildrenOnMerge: %v", err)
+			ctx.Error(http.StatusInternalServerError, "RetargetChildrenOnMerge", err)
+			return
 		}
 		if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch); err != nil {
 			switch {

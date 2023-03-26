@@ -542,24 +542,32 @@ func (errs errlist) Error() string {
 	return ""
 }
 
-// RebaseBranchPulls change target branch for all pull requests who's base branch is the branch
-func RebaseBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch, targetBranch string) error {
-	prs, err := models.GetUnmergedPullRequestsByBaseInfo(repoID, branch)
+// RetargetChildrenOnMerge retarget children pull requests on merge if possible
+func RetargetChildrenOnMerge(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) error {
+	if setting.Repository.PullRequest.RetargetChildrenOnMerge && pr.BaseRepoID == pr.HeadRepoID {
+		return RetargetBranchPulls(ctx, doer, pr.HeadRepoID, pr.HeadBranch, pr.BaseBranch)
+	}
+	return nil
+}
+
+// RetargetBranchPulls change target branch for all pull requests who's base branch is the branch
+func RetargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch, targetBranch string) error {
+	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(repoID, branch)
 	if err != nil {
 		return err
 	}
 
-	if err := models.PullRequestList(prs).LoadAttributes(); err != nil {
+	if err := issues_model.PullRequestList(prs).LoadAttributes(); err != nil {
 		return err
 	}
 
 	var errs errlist
 	for _, pr := range prs {
-		if err = pr.Issue.LoadAttributes(); err != nil {
+		if err = pr.Issue.LoadAttributes(ctx); err != nil {
 			errs = append(errs, err)
 		} else if err = ChangeTargetBranch(ctx, pr, doer, targetBranch); err != nil &&
-			!models.IsErrIssueIsClosed(err) && !models.IsErrPullRequestHasMerged(err) &&
-			!models.IsErrPullRequestAlreadyExists(err) {
+			!issues_model.IsErrIssueIsClosed(err) && !models.IsErrPullRequestHasMerged(err) &&
+			!issues_model.IsErrPullRequestAlreadyExists(err) {
 			errs = append(errs, err)
 		}
 	}

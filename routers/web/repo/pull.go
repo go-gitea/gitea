@@ -1580,12 +1580,10 @@ func CleanUpPullRequest(ctx *context.Context) {
 func deleteBranch(ctx *context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) {
 	fullBranchName := pr.HeadRepo.FullName() + ":" + pr.HeadBranch
 
-	if setting.Repository.PullRequest.RetargetChildsOnClose && pr.BaseRepoID == pr.HeadRepoID {
-		if err := pull_service.RebaseBranchPulls(ctx, ctx.Doer, pr.HeadRepoID, pr.HeadBranch, pr.BaseBranch); err != nil {
-			log.Error("RebaseBranchPulls: %v", err)
-			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
-			return
-		}
+	if err := pull_service.RetargetChildrenOnMerge(ctx, ctx.Doer, pr); err != nil {
+		log.Error("RetargetChildrenOnMerge: %v", err)
+		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+		return
 	}
 
 	if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, gitRepo, pr.HeadBranch); err != nil {
