@@ -36,6 +36,7 @@ func (err ErrTemplateLoad) Error() string {
 // GetTemplateFile loads the label template file by given name,
 // then parses and returns a list of name-color pairs and optionally description.
 func GetTemplateFile(name string) ([]*Label, error) {
+	// Always check if <name>.yaml or <name>.yml exists and prefer those
 	data, err := options.Labels(name + ".yaml")
 	if err == nil && len(data) > 0 {
 		return parseYamlFormat(name+".yaml", data)

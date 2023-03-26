@@ -45,7 +45,18 @@ var (
 func LoadRepoConfig() {
 	// Load .gitignore and license files and readme templates.
 	types := []string{"gitignore", "license", "readme", "label"}
-	typeFiles := make([][]string, 4)
+
+	removeExtension := func(f string) string {
+		ext := strings.ToLower(filepath.Ext(f))
+		if ext == ".yaml" || ext == ".yml" {
+			return f[:len(f)-len(ext)]
+		}
+		return f
+	}
+
+	labelTemplatesFiles := []string{}
+	typeFiles := []*[]string{&Gitignores, &Licenses, &Readmes, &labelTemplatesFiles}
+
 	for i, t := range types {
 		files, err := options.Dir(t)
 		if err != nil {
@@ -53,10 +64,7 @@ func LoadRepoConfig() {
 		}
 		if t == "label" {
 			for i, f := range files {
-				ext := strings.ToLower(filepath.Ext(f))
-				if ext == ".yaml" || ext == ".yml" {
-					files[i] = f[:len(f)-len(ext)]
-				}
+				files[i] = removeExtension(f)
 			}
 		}
 		customPath := path.Join(setting.CustomPath, "options", t)
@@ -71,26 +79,22 @@ func LoadRepoConfig() {
 			}
 
 			for _, f := range customFiles {
+				if t == "label" {
+					f = removeExtension(f)
+				}
+
 				if !util.SliceContainsString(files, f, true) {
 					files = append(files, f)
 				}
 			}
 		}
-		typeFiles[i] = files
+		sort.Strings(files)
+		*typeFiles[i] = files
 	}
-
-	Gitignores = typeFiles[0]
-	Licenses = typeFiles[1]
-	Readmes = typeFiles[2]
-	LabelTemplatesFiles := typeFiles[3]
-	sort.Strings(Gitignores)
-	sort.Strings(Licenses)
-	sort.Strings(Readmes)
-	sort.Strings(LabelTemplatesFiles)
 
 	// Load label templates
 	LabelTemplates = make(map[string]string)
-	for _, templateFile := range LabelTemplatesFiles {
+	for _, templateFile := range labelTemplatesFiles {
 		labels, err := label.LoadFormatted(templateFile)
 		if err != nil {
 			log.Error("Failed to load labels: %v", err)
