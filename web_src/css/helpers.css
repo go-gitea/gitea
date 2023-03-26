@@ -23,6 +23,7 @@
 .gt-pointer-events-none { pointer-events: none !important; }
 .gt-relative { position: relative !important; }
 .gt-overflow-x-scroll { overflow-x: scroll !important; }
+.gt-cursor-default { cursor: default !important; }
 
 .gt-mono {
   font-family: var(--fonts-monospace) !important;
