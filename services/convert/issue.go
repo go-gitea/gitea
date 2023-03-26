@@ -35,8 +35,6 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 
 	apiIssue := &api.Issue{
 		ID:          issue.ID,
-		URL:         issue.APIURL(),
-		HTMLURL:     issue.HTMLURL(),
 		Index:       issue.Index,
 		Poster:      ToUser(ctx, issue.Poster, nil),
 		Title:       issue.Title,
@@ -54,6 +52,8 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 		if err := issue.Repo.LoadOwner(ctx); err != nil {
 			return &api.Issue{}
 		}
+		apiIssue.URL = issue.APIURL()
+		apiIssue.HTMLURL = issue.HTMLURL()
 		apiIssue.Labels = ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner)
 		apiIssue.Repo = &api.RepositoryMeta{
 			ID:       issue.Repo.ID,
