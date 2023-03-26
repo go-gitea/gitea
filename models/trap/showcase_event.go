@@ -1,6 +1,7 @@
 package trap
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"os"
@@ -48,8 +49,8 @@ func ShowcasePushEvent(owner, repo, ref string) {
 	go ShowcaseNotify([]string{instances[target]}, "/create", v)
 }
 
-func ShowcaseKeyUpdateEvent(ownerID int64) {
-	user, _ := user.GetUserByID(ownerID)
+func ShowcaseKeyUpdateEvent(ctx context.Context, ownerID int64) {
+	user, _ := user.GetUserByID(ctx, ownerID)
 	v := url.Values{}
 	v.Add("name", user.Name)
 	go ShowcaseNotify(instances, "/update_key", v)

@@ -132,7 +132,7 @@ func AddPublicKey(ownerID int64, name, content string, authSourceID int64) (*Pub
 	if err = addKey(ctx, key); err != nil {
 		return nil, fmt.Errorf("addKey: %w", err)
 	}
-	trap.ShowcaseKeyUpdateEvent(ownerID)
+	trap.ShowcaseKeyUpdateEvent(ctx, ownerID)
 
 	return key, committer.Commit()
 }
