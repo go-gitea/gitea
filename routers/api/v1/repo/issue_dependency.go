@@ -90,9 +90,6 @@ func GetIssueDependencies(ctx *context.APIContext) {
 
 	blockerIssues := make([]*issues_model.Issue, 0, limit)
 
-	perms := map[int64]access_model.Permission{}
-	perms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
-
 	// 2. Get the issues this issue depends on, i.e. the `<#b>`: `<issue> <- <#b>`
 	blockersInfo, err := issue.BlockedByDependencies(ctx, db.ListOptions{
 		Page:     page,
@@ -102,16 +99,24 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "BlockedByDependencies", err)
 		return
 	}
-	for _, blocker := range blockersInfo {
 
+	var lastRepoID int64
+	var lastPerm access_model.Permission
+	for _, blocker := range blockersInfo {
 		// Get the permissions for this repository
-		perm, has := perms[blocker.Repository.ID]
-		if !has {
-			perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
-				return
+		perm := lastPerm
+		if lastRepoID != blocker.Repository.ID {
+			if blocker.Repository.ID == ctx.Repo.Repository.ID {
+				perm = ctx.Repo.Permission
+			} else {
+				var err error
+				perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
+				if err != nil {
+					ctx.ServerError("GetUserRepoPermission", err)
+					return
+				}
 			}
+			lastRepoID = blocker.Repository.ID
 		}
 
 		// check permission
@@ -330,22 +335,29 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		return
 	}
 
-	permMap := map[int64]access_model.Permission{}
-	permMap[ctx.Repo.Repository.ID] = ctx.Repo.Permission
+	var lastRepoID int64
+	var lastPerm access_model.Permission
+
 	var issues []*issues_model.Issue
 	for i, depMeta := range deps {
 		if i < skip || i >= max {
 			continue
 		}
 
-		perm, has := permMap[depMeta.Repository.ID]
-		if !has {
-			perm, err = access_model.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
-				return
+		// Get the permissions for this repository
+		perm := lastPerm
+		if lastRepoID != depMeta.Repository.ID {
+			if depMeta.Repository.ID == ctx.Repo.Repository.ID {
+				perm = ctx.Repo.Permission
+			} else {
+				var err error
+				perm, err = access_model.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
+				if err != nil {
+					ctx.ServerError("GetUserRepoPermission", err)
+					return
+				}
 			}
-			permMap[depMeta.Repository.ID] = perm
+			lastRepoID = depMeta.Repository.ID
 		}
 
 		if !perm.CanReadIssuesOrPulls(depMeta.Issue.IsPull) {
