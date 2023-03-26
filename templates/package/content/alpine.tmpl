@@ -9,7 +9,7 @@
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.alpine.registry.key" | Safe}}</label>
-				<div class="markup"><pre class="code-block"><code>sudo curl <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/alpine/key"></gitea-origin-url> -o /etc/apk/keys/{{$.PackageDescriptor.Owner.LowerName}}@{{$.Domain}}.rsa.pub</code></pre></div>
+				<div class="markup"><pre class="code-block"><code>curl -JO <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/alpine/key"></gitea-origin-url></code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.alpine.install"}}</label>

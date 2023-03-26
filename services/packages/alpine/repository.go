@@ -13,6 +13,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -27,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -307,11 +307,16 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		return err
 	}
 
+	fingerprint, err := util.CreatePublicKeyFingerprint(&privKey.PublicKey)
+	if err != nil {
+		return err
+	}
+
 	signedIndexContent, _ := packages_module.NewHashedBuffer(32 * 1024 * 1024)
 
 	if err := writeGzipStream(
 		signedIndexContent,
-		fmt.Sprintf(".SIGN.RSA.%s@%s.rsa.pub", owner.LowerName, setting.Domain),
+		fmt.Sprintf(".SIGN.RSA.%s@%s.rsa.pub", owner.LowerName, hex.EncodeToString(fingerprint)),
 		sign,
 		false,
 	); err != nil {

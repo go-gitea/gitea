@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/minio/sha256-simd"
 	ini "gopkg.in/ini.v1"
 )
 
@@ -84,7 +83,7 @@ type rsaSingingKey struct {
 }
 
 func newRSASingingKey(signingMethod jwt.SigningMethod, key *rsa.PrivateKey) (rsaSingingKey, error) {
-	kid, err := createPublicKeyFingerprint(key.Public().(*rsa.PublicKey))
+	kid, err := util.CreatePublicKeyFingerprint(key.Public().(*rsa.PublicKey))
 	if err != nil {
 		return rsaSingingKey{}, err
 	}
@@ -135,7 +134,7 @@ type eddsaSigningKey struct {
 }
 
 func newEdDSASingingKey(signingMethod jwt.SigningMethod, key ed25519.PrivateKey) (eddsaSigningKey, error) {
-	kid, err := createPublicKeyFingerprint(key.Public().(ed25519.PublicKey))
+	kid, err := util.CreatePublicKeyFingerprint(key.Public().(ed25519.PublicKey))
 	if err != nil {
 		return eddsaSigningKey{}, err
 	}
@@ -186,7 +185,7 @@ type ecdsaSingingKey struct {
 }
 
 func newECDSASingingKey(signingMethod jwt.SigningMethod, key *ecdsa.PrivateKey) (ecdsaSingingKey, error) {
-	kid, err := createPublicKeyFingerprint(key.Public().(*ecdsa.PublicKey))
+	kid, err := util.CreatePublicKeyFingerprint(key.Public().(*ecdsa.PublicKey))
 	if err != nil {
 		return ecdsaSingingKey{}, err
 	}
@@ -229,19 +228,6 @@ func (key ecdsaSingingKey) ToJWK() (map[string]string, error) {
 
 func (key ecdsaSingingKey) PreProcessToken(token *jwt.Token) {
 	token.Header["kid"] = key.id
-}
-
-// createPublicKeyFingerprint creates a fingerprint of the given key.
-// The fingerprint is the sha256 sum of the PKIX structure of the key.
-func createPublicKeyFingerprint(key interface{}) ([]byte, error) {
-	bytes, err := x509.MarshalPKIXPublicKey(key)
-	if err != nil {
-		return nil, err
-	}
-
-	checksum := sha256.Sum256(bytes)
-
-	return checksum[:], nil
 }
 
 // CreateJWTSigningKey creates a signing key from an algorithm / key pair.

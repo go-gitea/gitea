@@ -4,6 +4,9 @@
 package alpine
 
 import (
+	"crypto/x509"
+	"encoding/hex"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -15,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -35,9 +37,27 @@ func GetRepositoryKey(ctx *context.Context) {
 		return
 	}
 
+	pubPem, _ := pem.Decode([]byte(pub))
+	if pubPem == nil {
+		apiError(ctx, http.StatusInternalServerError, "failed to decode private key pem")
+		return
+	}
+
+	pubKey, err := x509.ParsePKIXPublicKey(pubPem.Bytes)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	fingerprint, err := util.CreatePublicKeyFingerprint(pubKey)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
 	ctx.ServeContent(strings.NewReader(pub), &context.ServeHeaderOptions{
 		ContentType: "application/x-pem-file",
-		Filename:    fmt.Sprintf("%s@%s.rsa.pub", ctx.Package.Owner.LowerName, setting.Domain),
+		Filename:    fmt.Sprintf("%s@%s.rsa.pub", ctx.Package.Owner.LowerName, hex.EncodeToString(fingerprint)),
 	})
 }
 
