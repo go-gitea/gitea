@@ -59,7 +59,7 @@
 					<div class="ten wide column">
 						{{$.locale.Tr "repo.org_labels_desc" | Str2html}}
 						{{if .IsOrganizationOwner}}
-							<a class="ui" href="{{.OrganizationLink}}/settings/labels">({{$.locale.Tr "repo.org_labels_desc_manage"}})</a>:
+							<a href="{{.OrganizationLink}}/settings/labels">({{$.locale.Tr "repo.org_labels_desc_manage"}})</a>:
 						{{end}}
 					</div>
 				</div>
