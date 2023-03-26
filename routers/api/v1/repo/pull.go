@@ -914,7 +914,6 @@ func MergePullRequest(ctx *context.APIContext) {
 			defer headRepo.Close()
 		}
 		if err := pull_service.RetargetChildrenOnMerge(ctx, ctx.Doer, pr); err != nil {
-			log.Error("RetargetChildrenOnMerge: %v", err)
 			ctx.Error(http.StatusInternalServerError, "RetargetChildrenOnMerge", err)
 			return
 		}

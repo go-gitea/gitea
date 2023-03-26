@@ -1581,7 +1581,6 @@ func deleteBranch(ctx *context.Context, pr *issues_model.PullRequest, gitRepo *g
 	fullBranchName := pr.HeadRepo.FullName() + ":" + pr.HeadBranch
 
 	if err := pull_service.RetargetChildrenOnMerge(ctx, ctx.Doer, pr); err != nil {
-		log.Error("RetargetChildrenOnMerge: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
 	}
