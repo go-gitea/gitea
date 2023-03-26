@@ -33,9 +33,9 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 	ourSkip := 2
 	ourSkip += skip
 	deferFn := PrintCurrentTest(t, ourSkip)
-	assert.NoError(t, storage.GetStorage().RemoveAllRepos())
-	assert.NoError(t, storage.GetStorage().CopyDir(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
-	ownerDirs, err := storage.GetStorage().ReadDir("")
+	assert.NoError(t, storage.RemoveAllRepos())
+	assert.NoError(t, storage.CopyDir(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
+	ownerDirs, err := storage.ReadDir("")
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
 	}
@@ -43,12 +43,12 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 		if !ownerDir.Type().IsDir() {
 			continue
 		}
-		repoDirs, err := storage.GetStorage().ReadDir(ownerDir.Name())
+		repoDirs, err := storage.ReadDir(ownerDir.Name())
 		if err != nil {
 			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
 		}
 		for _, repoDir := range repoDirs {
-			storage.GetStorage().MakeDir(path.Join(ownerDir.Name(), repoDir.Name()))
+			storage.MakeDir(path.Join(ownerDir.Name(), repoDir.Name()))
 		}
 	}
 
@@ -157,7 +157,7 @@ func MainTest(m *testing.M) {
 
 	exitStatus := m.Run()
 
-	if err := removeAllWithRetry(setting.RepoRootPath); err != nil {
+	if err := storage.RemoveAllRepos(); err != nil {
 		fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
 	}
 	if err := removeAllWithRetry(tmpDataPath); err != nil {

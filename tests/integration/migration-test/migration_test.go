@@ -59,10 +59,10 @@ func initMigrationTest(t *testing.T) func() {
 
 	setting.InitProviderAndLoadCommonSettingsForTest()
 
-	assert.True(t, len(setting.RepoRootPath) != 0)
-	assert.NoError(t, storage.GetStorage().RemoveAllRepos())
-	assert.NoError(t, storage.GetStorage().CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
-	ownerDirs, err := storage.GetStorage().ReadDir("")
+	assert.True(t, )
+	assert.NoError(t, storage.RemoveAllRepos())
+	assert.NoError(t, storage.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
+	ownerDirs, err := storage.ReadDir("")
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
 	}
@@ -70,12 +70,12 @@ func initMigrationTest(t *testing.T) func() {
 		if !ownerDir.Type().IsDir() {
 			continue
 		}
-		repoDirs, err := storage.GetStorage().ReadDir(ownerDir.Name())
+		repoDirs, err := storage.ReadDir(ownerDir.Name())
 		if err != nil {
 			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
 		}
 		for _, repoDir := range repoDirs {
-			storage.GetStorage().MakeDir(path.Join(ownerDir.Name(), repoDir.Name()))
+			storage.MakeDir(path.Join(ownerDir.Name(), repoDir.Name()))
 		}
 	}
 
