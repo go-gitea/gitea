@@ -1,5 +1,4 @@
-// Copyright 2016 The Gogs Authors. All rights reserved.
-// Copyright 2018 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package repo
@@ -120,32 +119,23 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		}
 
 		// check permission
-		if !perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
-			if !canWrite {
-				hiddenBlocker := &issues_model.DependencyInfo{
-					Issue: issues_model.Issue{
-						Title: "HIDDEN",
-					},
-				}
-				blocker = hiddenBlocker
-			} else {
-				confidentialBlocker := &issues_model.DependencyInfo{
-					Issue: issues_model.Issue{
-						RepoID:   blocker.Issue.RepoID,
-						Index:    blocker.Index,
-						Title:    blocker.Title,
-						IsClosed: blocker.IsClosed,
-						IsPull:   blocker.IsPull,
-					},
-					Repository: repo_model.Repository{
-						ID:        blocker.Issue.Repo.ID,
-						Name:      blocker.Issue.Repo.Name,
-						OwnerName: blocker.Issue.Repo.OwnerName,
-					},
-				}
-				confidentialBlocker.Issue.Repo = &confidentialBlocker.Repository
-				blocker = confidentialBlocker
+		if !perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) && canWrite {
+			confidentialBlocker := &issues_model.DependencyInfo{
+				Issue: issues_model.Issue{
+					RepoID:   blocker.Issue.RepoID,
+					Index:    blocker.Index,
+					Title:    blocker.Title,
+					IsClosed: blocker.IsClosed,
+					IsPull:   blocker.IsPull,
+				},
+				Repository: repo_model.Repository{
+					ID:        blocker.Issue.Repo.ID,
+					Name:      blocker.Issue.Repo.Name,
+					OwnerName: blocker.Issue.Repo.OwnerName,
+				},
 			}
+			confidentialBlocker.Issue.Repo = &confidentialBlocker.Repository
+			blocker = confidentialBlocker
 		}
 		blockerIssues = append(blockerIssues, &blocker.Issue)
 	}
