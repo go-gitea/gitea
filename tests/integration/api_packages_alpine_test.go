@@ -139,7 +139,7 @@ Djfa/2q5bH4699v++uMAAAAAAAAAAAAAAAAAAAAAAHbgA/eXQh8AKAAA`
 					})
 				})
 
-				t.Run("APKINDEX", func(t *testing.T) {
+				t.Run("Index", func(t *testing.T) {
 					defer tests.PrintCurrentTest(t)()
 
 					url := fmt.Sprintf("%s/%s/%s/x86_64/APKINDEX.tar.gz", rootURL, branch, repository)
