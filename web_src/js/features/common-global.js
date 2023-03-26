@@ -124,21 +124,6 @@ export function initGlobalCommon() {
     toggleElem($($(this).data('target')));
   });
 
-  // make table <tr> and <td> elements clickable like a link
-  $('tr[data-href], td[data-href]').on('click', function (e) {
-    const href = $(this).data('href');
-    if (e.target.nodeName === 'A') {
-      // if a user clicks on <a>, then the <tr> or <td> should not act as a link.
-      return;
-    }
-    if (e.ctrlKey || e.metaKey) {
-      // ctrl+click or meta+click opens a new window in modern browsers
-      window.open(href);
-    } else {
-      window.location = href;
-    }
-  });
-
   // prevent multiple form submissions on forms containing .loading-button
   document.addEventListener('submit', (e) => {
     const btn = e.target.querySelector('.loading-button');
@@ -322,7 +307,7 @@ export function initGlobalButtons() {
   // There are many "cancel button" elements in modal dialogs, Fomantic UI expects they are button-like elements but never submit a form.
   // However, Gitea misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
   // There are a few cancel buttons in non-modal forms, and there are some dynamically created forms (eg: the "Edit Issue Content")
-  $(document).on('click', 'form .ui.cancel.button', (e) => {
+  $(document).on('click', 'form button.ui.cancel.button', (e) => {
     e.preventDefault();
   });
 

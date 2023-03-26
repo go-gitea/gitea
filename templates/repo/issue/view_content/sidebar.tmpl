@@ -23,7 +23,7 @@
 					{{if .Reviewers}}
 						{{range .Reviewers}}
 							{{if .User}}
-								<a class="{{if not .CanChange}}ui tooltip{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+								<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-tooltip-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 									<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 									<span class="text">
 										{{avatar $.Context .User 28 "gt-mr-3"}}{{template "repo/search_name" .User}}
@@ -36,7 +36,7 @@
 						<div class="ui divider"></div>
 						{{range .TeamReviewers}}
 							{{if .Team}}
-								<a class="{{if not .CanChange}}ui tooltip{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+								<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-tooltip-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 									<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
 									<span class="text">
 										{{svg "octicon-people" 16 "gt-ml-4 gt-mr-2"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
@@ -68,7 +68,7 @@
 								{{- else}}grey{{end}} right ">
 
 								{{if .CanChange}}
-									<a href="#" class="ui tooltip icon re-request-review {{if .Checked}}checked{{end}}" data-content="{{if .Checked}} {{$.locale.Tr "repo.issues.remove_request_review"}} {{else}} {{$.locale.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+									<a href="#" class="ui icon re-request-review {{if .Checked}}checked{{end}}" data-tooltip-content="{{if .Checked}} {{$.locale.Tr "repo.issues.remove_request_review"}} {{else}} {{$.locale.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 										{{if .Checked}} {{svg "octicon-trash"}} {{else}} {{svg "octicon-sync"}} {{end}}
 									</a>
 								{{end}}
@@ -78,7 +78,7 @@
 					{{end}}
 					{{range .OriginalReviews}}
 						<div class="item" style="margin-bottom: 10px;">
-							<a href="{{$.Repository.OriginalURL}}" class="ui tooltip" data-content="{{$.locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe}}">
+							<a href="{{$.Repository.OriginalURL}}" data-tooltip-content="{{$.locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe}}">
 								<span class="text black">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 									{{.OriginalAuthor}}
@@ -280,7 +280,7 @@
 			<span class="text"><strong>{{.locale.Tr "repo.issues.num_participants" .NumParticipants}}</strong></span>
 			<div class="ui list gt-df gt-fw">
 				{{range .Participants}}
-					<a class="ui tooltip" {{if gt .ID 0}}href="{{.HomeLink}}"{{end}} data-content="{{.GetDisplayName}}" data-position="top center">
+					<a {{if gt .ID 0}}href="{{.HomeLink}}"{{end}} data-tooltip-content="{{.GetDisplayName}}">
 						{{avatar $.Context . 28 "gt-my-1 gt-mr-2"}}
 					</a>
 				{{end}}
@@ -330,7 +330,7 @@
 									{{.locale.Tr "repo.issues.tracking_already_started" (.OtherStopwatchURL|Escape) | Safe}}
 								</div>
 							{{end}}
-							<button class="ui fluid button tooltip issue-start-time" data-content='{{.locale.Tr "repo.issues.start_tracking"}}' data-position="top center">{{.locale.Tr "repo.issues.start_tracking_short"}}</button>
+							<button class="ui fluid button issue-start-time" data-tooltip-content='{{.locale.Tr "repo.issues.start_tracking"}}'>{{.locale.Tr "repo.issues.start_tracking_short"}}</button>
 							<div class="ui mini modal issue-start-time-modal">
 								<div class="header">{{.locale.Tr "repo.issues.add_time"}}</div>
 								<div class="content">
@@ -345,7 +345,7 @@
 									<button class="ui red cancel button">{{.locale.Tr "repo.issues.add_time_cancel"}}</button>
 								</div>
 							</div>
-							<button class="ui fluid button green tooltip issue-add-time gt-mt-3" data-content='{{.locale.Tr "repo.issues.add_time"}}' data-position="top center">{{.locale.Tr "repo.issues.add_time_short"}}</button>
+							<button class="ui fluid button green issue-add-time gt-mt-3" data-tooltip-content='{{.locale.Tr "repo.issues.add_time"}}'>{{.locale.Tr "repo.issues.add_time_short"}}</button>
 						{{end}}
 					</div>
 				</div>
@@ -383,14 +383,14 @@
 			{{if ne .Issue.DeadlineUnix 0}}
 				<p>
 					<div class="gt-df gt-sb gt-ac">
-						<div class="due-date tooltip {{if .Issue.IsOverdue}}text red{{end}}" {{if .Issue.IsOverdue}}data-content="{{.locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
+						<div class="due-date {{if .Issue.IsOverdue}}text red{{end}}" {{if .Issue.IsOverdue}}data-tooltip-content="{{.locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
 							{{svg "octicon-calendar" 16 "gt-mr-3"}}
 							<time data-format="date" datetime="{{.Issue.DeadlineUnix.FormatDate}}">{{.Issue.DeadlineUnix.FormatDate}}</time>
 						</div>
 						<div>
 							{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-								<a class="issue-due-edit tooltip muted" data-content="{{$.locale.Tr "repo.issues.due_date_form_edit"}}">{{svg "octicon-pencil" 16 "gt-mr-2"}}</a>
-								<a class="issue-due-remove tooltip muted" data-content="{{$.locale.Tr "repo.issues.due_date_form_remove"}}">{{svg "octicon-trash"}}</a>
+								<a class="issue-due-edit muted" data-tooltip-content="{{$.locale.Tr "repo.issues.due_date_form_edit"}}">{{svg "octicon-pencil" 16 "gt-mr-2"}}</a>
+								<a class="issue-due-remove muted" data-tooltip-content="{{$.locale.Tr "repo.issues.due_date_form_remove"}}">{{svg "octicon-trash"}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -433,14 +433,14 @@
 				{{end}}
 
 				{{if .BlockingDependencies}}
-					<span class="text tooltip" data-content="{{if .Issue.IsPull}}{{.locale.Tr "repo.issues.dependency.pr_close_blocks"}}{{else}}{{.locale.Tr "repo.issues.dependency.issue_close_blocks"}}{{end}}">
+					<span class="text" data-tooltip-content="{{if .Issue.IsPull}}{{.locale.Tr "repo.issues.dependency.pr_close_blocks"}}{{else}}{{.locale.Tr "repo.issues.dependency.issue_close_blocks"}}{{end}}">
 						<strong>{{.locale.Tr "repo.issues.dependency.blocks_short"}}</strong>
 					</span>
 					<div class="ui relaxed divided list">
 						{{range .BlockingDependencies}}
 							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
 								<div class="item-left gt-df gt-jc gt-fc gt-f1">
-									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
+									<a class="title" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
 										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
 									</a>
 									<div class="text small">
@@ -449,7 +449,7 @@
 								</div>
 								<div class="item-right gt-df gt-ac">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
-										<a class="delete-dependency-button tooltip ci muted" data-id="{{.Issue.ID}}" data-type="blocking" data-content="{{$.locale.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
+										<a class="delete-dependency-button ci muted" data-id="{{.Issue.ID}}" data-type="blocking" data-tooltip-content="{{$.locale.Tr "repo.issues.dependency.remove_info"}}">
 											{{svg "octicon-trash" 16}}
 										</a>
 									{{end}}
@@ -460,14 +460,14 @@
 				{{end}}
 
 				{{if .BlockedByDependencies}}
-					<span class="text tooltip" data-content="{{if .Issue.IsPull}}{{.locale.Tr "repo.issues.dependency.pr_closing_blockedby"}}{{else}}{{.locale.Tr "repo.issues.dependency.issue_closing_blockedby"}}{{end}}">
+					<span class="text" data-tooltip-content="{{if .Issue.IsPull}}{{.locale.Tr "repo.issues.dependency.pr_closing_blockedby"}}{{else}}{{.locale.Tr "repo.issues.dependency.issue_closing_blockedby"}}{{end}}">
 						<strong>{{.locale.Tr "repo.issues.dependency.blocked_by_short"}}</strong>
 					</span>
 					<div class="ui relaxed divided list">
 						{{range .BlockedByDependencies}}
 							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
 								<div class="item-left gt-df gt-jc gt-fc gt-f1">
-									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
+									<a class="title" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
 										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
 									</a>
 									<div class="text small">
@@ -476,7 +476,7 @@
 								</div>
 								<div class="item-right gt-df gt-ac">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
-										<a class="delete-dependency-button tooltip ci muted" data-id="{{.Issue.ID}}" data-type="blockedBy" data-content="{{$.locale.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
+										<a class="delete-dependency-button ci muted" data-id="{{.Issue.ID}}" data-type="blockedBy" data-tooltip-content="{{$.locale.Tr "repo.issues.dependency.remove_info"}}">
 											{{svg "octicon-trash" 16}}
 										</a>
 									{{end}}
@@ -543,7 +543,7 @@
 		<div class="ui divider"></div>
 		<div class="ui equal width compact grid">
 			{{$issueReferenceLink := printf "%s#%d" .Issue.Repo.FullName .Issue.Index}}
-			<div class="row gt-ac tooltip" data-content="{{$issueReferenceLink}}">
+			<div class="row gt-ac" data-tooltip-content="{{$issueReferenceLink}}">
 				<span class="text column truncate">{{.locale.Tr "repo.issues.reference_link" $issueReferenceLink}}</span>
 				<button class="ui two wide button column gt-p-3" data-clipboard-text="{{$issueReferenceLink}}">{{svg "octicon-copy" 14}}</button>
 			</div>
@@ -661,7 +661,7 @@
 			{{if and (not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)) .CanWriteToHeadRepo}}
 				<div class="ui divider"></div>
 				<div class="inline field">
-					<div class="ui checkbox tooltip" id="allow-edits-from-maintainers"
+					<div class="ui checkbox" id="allow-edits-from-maintainers"
 							data-url="{{.Issue.Link}}"
 							data-tooltip-content="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"
 							data-prompt-error="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_err"}}"
