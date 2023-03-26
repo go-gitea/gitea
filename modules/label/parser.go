@@ -6,6 +6,7 @@ package label
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/options"
@@ -36,21 +37,20 @@ func (err ErrTemplateLoad) Error() string {
 // GetTemplateFile loads the label template file by given name,
 // then parses and returns a list of name-color pairs and optionally description.
 func GetTemplateFile(name string) ([]*Label, error) {
-	data, err := options.Labels(name + ".yaml")
-	if err == nil && len(data) > 0 {
-		return parseYamlFormat(name+".yaml", data)
+	if ext := filepath.Ext(name); ext == ".yaml" || ext == ".yml" {
+		data, err := options.Labels(name)
+		if err == nil && len(data) > 0 {
+			return parseYamlFormat(name, data)
+		} else {
+			return nil, ErrTemplateLoad{name, fmt.Errorf("GetRepoInitFile: %w", err)}
+		}
 	}
 
-	data, err = options.Labels(name + ".yml")
-	if err == nil && len(data) > 0 {
-		return parseYamlFormat(name+".yml", data)
-	}
-
+	// Fall back to legacy format
 	data, err = options.Labels(name)
 	if err != nil {
 		return nil, ErrTemplateLoad{name, fmt.Errorf("GetRepoInitFile: %w", err)}
 	}
-
 	return parseLegacyFormat(name, data)
 }
 
