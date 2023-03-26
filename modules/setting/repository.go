@@ -84,7 +84,7 @@ var (
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
-			RetargetChildsOnClose                    bool
+			RetargetChildrenOnMerge                  bool
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -208,7 +208,7 @@ var (
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
-			RetargetChildsOnClose                    bool
+			RetargetChildrenOnMerge                  bool
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -223,6 +223,7 @@ var (
 			DefaultMergeMessageOfficialApproversOnly: true,
 			PopulateSquashCommentWithCommitMessages:  false,
 			AddCoCommitterTrailers:                   true,
+			RetargetChildrenOnMerge:                  false,
 		},
 
 		// Issue settings
