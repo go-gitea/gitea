@@ -98,7 +98,7 @@ var (
 // The output will be passed to git client and shown to user.
 func fail(ctx context.Context, userMessage, logMsgFmt string, args ...interface{}) error {
 	if userMessage == "" {
-		userMessage = "Internal Server Error (no user message)"
+		userMessage = "Internal Server Error (no specific error)"
 	}
 
 	// There appears to be a chance to cause a zombie process and failure to read the Exit status
