@@ -1,7 +1,7 @@
 ---
 date: "2023-01-10T00:00:00+00:00"
 title: "Swift Packages Repository"
-slug: "usage/packages/swift"
+slug: "/usage/packages/swift"
 draft: false
 toc: false
 menu:
