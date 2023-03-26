@@ -118,10 +118,6 @@ export function initGlobalCommon() {
 
   $('.tabular.menu .item').tab();
 
-  $('.toggle.button').on('click', function () {
-    toggleElem($($(this).data('target')));
-  });
-
   // prevent multiple form submissions on forms containing .loading-button
   document.addEventListener('submit', (e) => {
     const btn = e.target.querySelector('.loading-button');
@@ -310,8 +306,15 @@ export function initGlobalButtons() {
   });
 
   $('.show-panel.button').on('click', function (e) {
+    // a '.show-panel.button' can show a panel, by `data-panel="selector"`
+    // if the button is a "toggle" button, it toggles the panel
     e.preventDefault();
-    showElem($(this).data('panel'));
+    const sel = $(this).attr('data-panel');
+    if (this.classList.contains('toggle')) {
+      toggleElem(sel);
+    } else {
+      showElem(sel);
+    }
   });
 
   $('.hide-panel.button').on('click', function (e) {
