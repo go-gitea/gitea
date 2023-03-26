@@ -30,12 +30,6 @@
 					<label for="viewed-files-summary" id="viewed-files-summary-label" class="gt-mr-3 gt-f1" data-text-changed-template="{{.locale.Tr "repo.pulls.viewed_files_label"}}">
 						{{.locale.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
 					</label>
-					<button id="expand-files-btn" class="ui button tiny tooltip basic" data-content="{{.locale.Tr "repo.pulls.expand_files"}}">
-						{{svg "octicon-fold-down"}}
-					</button>
-					<button id="collapse-files-btn" class="ui button tiny tooltip basic" data-content="{{.locale.Tr "repo.pulls.collapse_files"}}">
-						{{svg "octicon-fold-up"}}
-					</button>
 				{{end}}
 				{{template "repo/diff/whitespace_dropdown" .}}
 				{{template "repo/diff/options_dropdown" .}}
