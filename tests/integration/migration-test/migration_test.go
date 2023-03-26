@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	migrate_base "code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -61,8 +60,8 @@ func initMigrationTest(t *testing.T) func() {
 	setting.InitProviderAndLoadCommonSettingsForTest()
 
 	assert.True(t, len(setting.RepoRootPath) != 0)
-	assert.NoError(t, storage.GetStorage().RemoveAll())
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, storage.GetStorage().RemoveAllRepos())
+	assert.NoError(t, storage.GetStorage().CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
 	ownerDirs, err := storage.GetStorage().ReadDir("")
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
