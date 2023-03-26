@@ -83,7 +83,7 @@ export function initGlobalCommon() {
   const $uiDropdowns = $('.ui.dropdown');
 
   // do not init "custom" dropdowns, "custom" dropdowns are managed by their own code.
-  $uiDropdowns.filter(':not(.custom)').dropdown({fullTextSearch: 'exact'});
+  $uiDropdowns.filter(':not(.custom)').dropdown();
 
   // The "jump" means this dropdown is mainly used for "menu" purpose,
   // clicking an item will jump to somewhere else or trigger an action/function.
@@ -111,14 +111,12 @@ export function initGlobalCommon() {
     },
   });
 
-  // special animations/popup-directions
-  $uiDropdowns.filter('.slide.up').dropdown({transition: 'slide up'});
-  $uiDropdowns.filter('.upward').dropdown({direction: 'upward'});
+  // special popup-directions
+  $uiDropdowns.filter('.upward').dropdown('setting', 'direction', 'upward');
 
   $('.ui.checkbox').checkbox();
 
   $('.tabular.menu .item').tab();
-  $('.tabable.menu .item').tab();
 
   $('.toggle.button').on('click', function () {
     toggleElem($($(this).data('target')));
