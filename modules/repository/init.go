@@ -71,6 +71,10 @@ func LoadRepoConfig() {
 			}
 
 			for _, f := range customFiles {
+				ext := strings.ToLower(filepath.Ext(f))
+				if ext == ".yaml" || ext == ".yml" {
+					f = f[:len(f)-len(ext)]
+				}
 				if !util.SliceContainsString(files, f, true) {
 					files = append(files, f)
 				}
