@@ -79,7 +79,7 @@ func setup(ctx context.Context, debug bool) {
 		return
 	}
 
-	if err := git.InitSimple(ctx); err != nil {
+	if err := git.InitSimple(context.Background()); err != nil {
 		_ = fail(ctx, "Failed to init git", "Failed to init git, err: %v", err)
 	}
 }

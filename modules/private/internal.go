@@ -22,8 +22,8 @@ import (
 
 // Response is used for internal request response (for user message and error message)
 type Response struct {
-	Err     string `json:"err"`      // server-side error log message, it won't be exposed to end users
-	UserMsg string `json:"user_msg"` // meaningful error message for end users, it will be shown in git client's output.
+	Err     string `json:"err,omitempty"`      // server-side error log message, it won't be exposed to end users
+	UserMsg string `json:"user_msg,omitempty"` // meaningful error message for end users, it will be shown in git client's output.
 }
 
 func getClientIP() string {
@@ -34,7 +34,7 @@ func getClientIP() string {
 	return strings.Fields(sshConnEnv)[0]
 }
 
-func newInternalRequest(ctx context.Context, url, method string, postBody ...any) *httplib.Request {
+func newInternalRequest(ctx context.Context, url, method string, body ...any) *httplib.Request {
 	if setting.InternalToken == "" {
 		log.Fatal(`The INTERNAL_TOKEN setting is missing from the configuration file: %q.
 Ensure you are running in the correct environment or set the correct configuration file with -c.`, setting.CustomConf)
@@ -83,14 +83,12 @@ Ensure you are running in the correct environment or set the correct configurati
 		})
 	}
 
-	if method == "POST" {
+	if len(body) == 1 {
 		req.Header("Content-Type", "application/json")
-		if len(postBody) == 1 {
-			jsonBytes, _ := json.Marshal(postBody[0])
-			req.Body(jsonBytes)
-		} else if len(postBody) > 1 {
-			log.Fatal("Too many arguments for newInternalRequest")
-		}
+		jsonBytes, _ := json.Marshal(body[0])
+		req.Body(jsonBytes)
+	} else if len(body) > 1 {
+		log.Fatal("Too many arguments for newInternalRequest")
 	}
 
 	req.SetTimeout(10*time.Second, 60*time.Second)
