@@ -61,8 +61,8 @@ func TestSettingShowUserEmailProfile(t *testing.T) {
 	req = NewRequest(t, "GET", "/user2")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	// Should contain since this user owns the profile page
-	assert.Contains(t,
+	// Should not contain even if the user visits their own profile page
+	assert.NotContains(t,
 		htmlDoc.doc.Find(".user.profile").Text(),
 		"user2@example.com",
 	)
