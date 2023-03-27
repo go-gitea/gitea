@@ -44,9 +44,9 @@ func TestAPIReposValidateDefaultIssueConfig(t *testing.T) {
 	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var issueConfigValidate api.IssueConfigValidate
-	DecodeJSON(t, resp, &issueConfigValidate)
+	var issueConfigValidation api.IssueConfigValidation
+	DecodeJSON(t, resp, &IssueConfigValidation)
 
-	assert.True(t, issueConfigValidate.Valid)
-	assert.Equal(t, issueConfigValidate.Message, "")
+	assert.True(t, issueConfigValidation.Valid)
+	assert.Equal(t, issueConfigValidation.Message, "")
 }
