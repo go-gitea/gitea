@@ -28,6 +28,11 @@ func fileFromOptionsDir(elems ...string) ([]byte, error) {
 	return readLocalFile([]string{setting.CustomPath, setting.StaticRootPath}, "options", elems...)
 }
 
+// fileFromOptionsDirExtensions is a helper to read files from custom or static path.
+func fileFromOptionsDirExtensions(elems []string, extensions ...string) ([]byte, string, error) {
+	return readLocalFileExtensions([]string{setting.CustomPath, setting.StaticRootPath}, "options", elems, extensions...)
+}
+
 // IsDynamic will return false when using embedded data (-tags bindata)
 func IsDynamic() bool {
 	return true

@@ -37,19 +37,14 @@ func (err ErrTemplateLoad) Error() string {
 // then parses and returns a list of name-color pairs and optionally description.
 func GetTemplateFile(name string) ([]*Label, error) {
 	// Always check if <name>.yaml or <name>.yml exists and prefer those
-	data, err := options.Labels(name + ".yaml")
-	if err == nil && len(data) > 0 {
-		return parseYamlFormat(name+".yaml", data)
-	}
-
-	data, err = options.Labels(name + ".yml")
-	if err == nil && len(data) > 0 {
-		return parseYamlFormat(name+".yml", data)
-	}
-
-	data, err = options.Labels(name)
+	data, extension, err := options.Labels(name, ".yaml", ".yml", "")
 	if err != nil {
 		return nil, ErrTemplateLoad{name, fmt.Errorf("GetRepoInitFile: %w", err)}
+	}
+
+	// because we only handle .yaml/.yml we can simply test if the extension is not empty
+	if len(extension) > 0 && len(data) > 0 {
+		return parseYamlFormat(name+".yml", data)
 	}
 
 	return parseLegacyFormat(name, data)

@@ -37,8 +37,8 @@ func License(name string) ([]byte, error) {
 }
 
 // Labels reads the content of a specific labels from static/bindata or custom path.
-func Labels(name string) ([]byte, error) {
-	return fileFromOptionsDir("label", name)
+func Labels(name string, exts ...string) ([]byte, string, error) {
+	return fileFromOptionsDirExtensions([]string{"label", name}, exts...)
 }
 
 // WalkLocales reads the content of a specific locale
@@ -131,4 +131,21 @@ func readLocalFile(baseDirs []string, subDir string, elems ...string) ([]byte, e
 		}
 	}
 	return nil, os.ErrNotExist
+}
+
+func readLocalFileExtensions(baseDirs []string, subDir string, elems []string, extensions ...string) ([]byte, string, error) {
+	if len(extensions) == 0 {
+		extensions = append(extensions, "")
+	}
+	for _, localPath := range joinLocalPaths(baseDirs, subDir, elems...) {
+		for _, extension := range extensions {
+			data, err := os.ReadFile(localPath + extension)
+			if err == nil {
+				return data, extension, nil
+			} else if !os.IsNotExist(err) {
+				log.Error("Unable to read file %q. Error: %v", localPath, err)
+			}
+		}
+	}
+	return nil, "", os.ErrNotExist
 }

@@ -8,6 +8,7 @@ package options
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -64,6 +65,30 @@ func fileFromOptionsDir(elems ...string) ([]byte, error) {
 	}
 	defer f.Close()
 	return io.ReadAll(f)
+}
+
+// fileFromOptionsDir is a helper to read files from custom path or bindata.
+func fileFromOptionsDirExtensions(elem string, extensions ...string) ([]byte, error) {
+	// only try custom dir, no static dir
+	if data, err := readLocalFileExtensions([]string{setting.CustomPath}, "options", elem, extensions...); err == nil {
+		return data, nil
+	}
+
+	if len(extensions) == 0 {
+		extensions = append(extensions, "")
+	}
+
+	for _, extension := range extensions {
+		f, err := Assets.Open(util.PathJoinRelX(elems...))
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return nil, err
+		}
+		defer f.Close()
+		return io.ReadAll(f)
+	}
 }
 
 func Asset(name string) ([]byte, error) {
