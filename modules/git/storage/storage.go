@@ -13,9 +13,13 @@ import (
 )
 
 type Storage interface {
-	IsValid() bool
-	MakeDir(repoRelPath string) error
-	RemoveAllRepos() error
+	IsConfigured() bool
+	CheckStats() error
+	IsExist(path string) (bool, error)
+	// MakeDir(repoRelPath string) error
+	MakeDir(dir string, perm os.FileMode) error
+	MakeRepoDir(repoRelPath string) error
+	RemoveAll(path string) error
 	ReadDir(owner string) ([]fs.DirEntry, error)
 	CopyDir(source, target string) error
 	Rename(oldPath, newPath string) error
@@ -31,11 +35,24 @@ func (l *LocalStorage) absPath(relPath string) string {
 	return filepath.Join(l.repoRootPath, relPath)
 }
 
-func (l *LocalStorage) IsValid() bool {
+func (l *LocalStorage) IsConfigured() bool {
 	return len(l.repoRootPath) != 0
 }
 
-func (l *LocalStorage) MakeDir(repoRelPath string) error {
+func (l *LocalStorage) CheckStats() error {
+	_, err := os.Stat(l.repoRootPath)
+	return err
+}
+
+func (l *LocalStorage) IsExist(path string) (bool, error) {
+	return util.IsExist(path)
+}
+
+func (l *LocalStorage) MakeDir(dir string, perm os.FileMode) error {
+	return os.MkdirAll(l.absPath(dir), perm)
+}
+
+func (l *LocalStorage) MakeRepoDir(repoRelPath string) error {
 	_ = os.MkdirAll(filepath.Join(l.absPath(repoRelPath), "objects", "pack"), 0o755)
 	_ = os.MkdirAll(filepath.Join(l.absPath(repoRelPath), "objects", "info"), 0o755)
 	_ = os.MkdirAll(filepath.Join(l.absPath(repoRelPath), "refs", "heads"), 0o755)
@@ -43,9 +60,9 @@ func (l *LocalStorage) MakeDir(repoRelPath string) error {
 	return nil
 }
 
-func (l *LocalStorage) RemoveAllRepos() error {
-	// removeAllWithRetry(setting.RepoRootPath)
-	return os.RemoveAll(l.absPath(""))
+func (l *LocalStorage) RemoveAll(path string) error {
+	// TODO: removeAllWithRetry(l.absPath(path))
+	return os.RemoveAll(l.absPath(path))
 }
 
 func (l *LocalStorage) ReadDir(owner string) ([]fs.DirEntry, error) {
@@ -66,16 +83,28 @@ func getStorage() Storage {
 	}
 }
 
-func IsReposValid() bool {
-	return getStorage().IsValid()
+func IsConfigured() bool {
+	return getStorage().IsConfigured()
 }
 
-func MakeDir(repoRelPath string) error {
-	return getStorage().MakeDir(repoRelPath)
+func CheckStats() error {
+	return getStorage().CheckStats()
 }
 
-func RemoveAllRepos() error {
-	return getStorage().RemoveAllRepos()
+func IsExist(path string) (bool, error) {
+	return getStorage().IsExist(path)
+}
+
+func MakeDir(dir string, perm os.FileMode) error {
+	return getStorage().MakeDir(dir, perm)
+}
+
+func MakeRepoDir(repoRelPath string) error {
+	return getStorage().MakeRepoDir(repoRelPath)
+}
+
+func RemoveAll(p string) error {
+	return getStorage().RemoveAll(p)
 }
 
 func ReadDir(owner string) ([]fs.DirEntry, error) {

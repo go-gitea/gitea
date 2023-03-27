@@ -26,8 +26,7 @@ func TestRepository_WikiCloneLink(t *testing.T) {
 
 func TestWikiPath(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	expected := filepath.Join(setting.RepoRootPath, "user2/repo1.wiki.git")
-	assert.Equal(t, expected, storage.WikiPath("user2", "repo1"))
+	assert.Equal(t, "user2/repo1.wiki.git", storage.WikiRelPath("user2", "repo1"))
 }
 
 func TestRepository_WikiPath(t *testing.T) {

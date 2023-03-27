@@ -13,7 +13,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git/storage"
 	object_storage "code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // DeleteOrganization completely and permanently deletes everything of organization.
@@ -50,9 +49,9 @@ func DeleteOrganization(org *organization.Organization) error {
 	// FIXME: system notice
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
-	path := storage.UserPath(org.Name)
+	path := storage.UserRelPath(org.Name)
 
-	if err := util.RemoveAll(path); err != nil {
+	if err := storage.RemoveAll(path); err != nil {
 		return fmt.Errorf("Failed to RemoveAll %s: %w", path, err)
 	}
 

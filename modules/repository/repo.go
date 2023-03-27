@@ -91,13 +91,15 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	}
 
 	if opts.Wiki {
-		wikiPath := storage.WikiPath(u.Name, opts.RepoName)
+		wikiRelPath := storage.WikiRelPath(u.Name, opts.RepoName)
 		wikiRemotePath := WikiRemoteURL(ctx, opts.CloneAddr)
 		if len(wikiRemotePath) > 0 {
-			if err := util.RemoveAll(wikiPath); err != nil {
-				return repo, fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
+			if err := storage.RemoveAll(wikiRelPath); err != nil {
+				return repo, fmt.Errorf("Failed to remove %s: %w", wikiRelPath, err)
 			}
 
+			// FIXME: use storage
+			wikiPath := storage.WikiPath(u.Name, opts.RepoName)
 			if err := git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
 				Mirror:        true,
 				Quiet:         true,
@@ -106,8 +108,8 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)
-				if err := util.RemoveAll(wikiPath); err != nil {
-					return repo, fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
+				if err := storage.RemoveAll(wikiRelPath); err != nil {
+					return repo, fmt.Errorf("Failed to remove %s: %w", wikiRelPath, err)
 				}
 			} else {
 				if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {

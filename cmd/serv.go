@@ -19,6 +19,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
@@ -67,7 +68,7 @@ func setup(logPath string, debug bool) {
 
 	// Check if setting.RepoRootPath exists. It could be the case that it doesn't exist, this can happen when
 	// `[repository]` `ROOT` is a relative path and $GITEA_WORK_DIR isn't passed to the SSH connection.
-	if _, err := os.Stat(setting.RepoRootPath); err != nil {
+	if err := storage.CheckStats(); err != nil {
 		if os.IsNotExist(err) {
 			_ = fail("Incorrect configuration, no repository directory.", "Directory `[repository].ROOT` %q was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value.", setting.RepoRootPath)
 		} else {

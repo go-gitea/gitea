@@ -124,10 +124,10 @@ func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdo
 		return ErrRepoAlreadyExist{u.Name, name}
 	}
 
-	repoPath := storage.RepoPath(u.Name, name)
-	isExist, err := util.IsExist(repoPath)
+	repoRelPath := storage.RepoRelPath(u.Name, name)
+	isExist, err := storage.IsExist(repoRelPath)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		log.Error("Unable to check if %s exists. Error: %v", repoRelPath, err)
 		return err
 	}
 	if !overwriteOrAdopt && isExist {
@@ -160,14 +160,14 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 
-	wikiPath := repo.WikiPath()
-	isExist, err := util.IsExist(wikiPath)
+	wikiRelPath := storage.WikiRelPath(repo.OwnerName, repo.Name)
+	isExist, err := storage.IsExist(wikiRelPath)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
+		log.Error("Unable to check if %s exists. Error: %v", wikiRelPath, err)
 		return err
 	}
 	if isExist {
-		if err = util.Rename(wikiPath, storage.WikiPath(repo.Owner.Name, newRepoName)); err != nil {
+		if err = storage.Rename(wikiRelPath, storage.WikiRelPath(repo.Owner.Name, newRepoName)); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 	}

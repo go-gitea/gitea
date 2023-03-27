@@ -119,10 +119,10 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		fatalTestError("models.Init: %v\n", err)
 	}
 
-	if err = util.RemoveAll(repoRootPath); err != nil {
+	if err = storage.RemoveAll(""); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
-	if err = util.CopyDir(filepath.Join(testOpts.GiteaRootPath, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
+	if err = storage.CopyDir(filepath.Join(testOpts.GiteaRootPath, "tests", "gitea-repositories-meta"), ""); err != nil {
 		fatalTestError("util.CopyDir: %v\n", err)
 	}
 
@@ -142,7 +142,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 			fatalTestError("unable to read the new repo root: %v\n", err)
 		}
 		for _, repoDir := range repoDirs {
-			if err := storage.MakeDir(path.Join(ownerDir.Name(), repoDir.Name())); err != nil {
+			if err := storage.MakeRepoDir(path.Join(ownerDir.Name(), repoDir.Name())); err != nil {
 				fatalTestError("create directories failed: %v\n", err)
 			}
 		}
@@ -206,7 +206,7 @@ func PrepareTestDatabase() error {
 // by tests that use the above MainTest(..) function.
 func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
-	assert.NoError(t, storage.RemoveAllRepos())
+	assert.NoError(t, storage.RemoveAll(""))
 	metaPath := filepath.Join(giteaRoot, "tests", "gitea-repositories-meta")
 	assert.NoError(t, storage.CopyDir(metaPath, ""))
 	ownerDirs, err := storage.ReadDir("")
@@ -218,7 +218,7 @@ func PrepareTestEnv(t testing.TB) {
 		repoDirs, err := storage.ReadDir(ownerDir.Name())
 		assert.NoError(t, err)
 		for _, repoDir := range repoDirs {
-			err = storage.MakeDir(path.Join(ownerDir.Name(), repoDir.Name()))
+			err = storage.MakeRepoDir(path.Join(ownerDir.Name(), repoDir.Name()))
 			assert.NoError(t, err)
 		}
 	}

@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	object_storage "code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/packages"
 )
 
@@ -198,8 +197,8 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
-	path := storage.UserPath(u.Name)
-	if err := util.RemoveAll(path); err != nil {
+	path := storage.UserRelPath(u.Name)
+	if err := storage.RemoveAll(path); err != nil {
 		err = fmt.Errorf("Failed to RemoveAll %s: %w", path, err)
 		_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 		return err
