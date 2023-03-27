@@ -107,8 +107,8 @@
 								<div class="diff-file-header-actions gt-df gt-ac">
 									{{if $showFileViewToggle}}
 										<div class="ui compact icon buttons">
-											<button class="ui tiny basic button tooltip file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-content="{{$.locale.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code"}}</button>
-											<button class="ui tiny basic button tooltip file-view-toggle active" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-content="{{$.locale.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file"}}</button>
+											<button class="ui tiny basic button file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{$.locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
+											<button class="ui tiny basic button file-view-toggle active" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-tooltip-content="{{$.locale.Tr "repo.file_view_rendered"}}">{{svg "octicon-file"}}</button>
 										</div>
 									{{end}}
 									{{if $file.IsProtected}}
