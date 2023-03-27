@@ -5,6 +5,8 @@ slug: "logging-configuration"
 weight: 40
 toc: false
 draft: false
+aliases:
+  - /en-us/logging-configuration
 menu:
   sidebar:
     parent: "administration"

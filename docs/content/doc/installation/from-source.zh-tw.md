@@ -5,6 +5,8 @@ slug: "install-from-source"
 weight: 30
 toc: false
 draft: false
+aliases:
+  - /zh-tw/install-from-source
 menu:
   sidebar:
     parent: "installation"

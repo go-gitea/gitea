@@ -5,6 +5,8 @@ slug: "support"
 weight: 20
 toc: false
 draft: false
+aliases:
+  - /en-us/seek-help
 menu:
   sidebar:
     parent: "help"

@@ -5,6 +5,8 @@ slug: "secrets"
 weight: 50
 draft: false
 toc: false
+aliases:
+  - /en-us/secrets
 menu:
   sidebar:
     parent: "usage"

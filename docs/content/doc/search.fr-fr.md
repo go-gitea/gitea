@@ -1,10 +1,12 @@
 ---
 date: "2019-11-12T16:00:00+02:00"
-title: "Search"
+title: "Chercher"
 slug: "search"
 weight: 1
 toc: false
 draft: false
+aliases:
+  - /fr-fr/help/search
 sitemap:
   priority : 1
 layout: "search"

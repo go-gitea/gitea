@@ -5,6 +5,8 @@ slug: "search"
 weight: 1
 toc: false
 draft: false
+aliases:
+  - /nl-nl/help/search
 sitemap:
   priority : 1
 layout: "search"
