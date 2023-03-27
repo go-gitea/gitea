@@ -12,7 +12,7 @@
 			{{end}}
 		</h2>
 		{{if .EnableFeed}}
-			<a href="{{.RepoLink}}/{{if .PageIsTagList}}tags{{else}}releases{{end}}.rss"><i class="ui grey icon tooltip gt-ml-3" data-content="{{.locale.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 18}}</i></a>
+			<a href="{{.RepoLink}}/{{if .PageIsTagList}}tags{{else}}releases{{end}}.rss"><i class="ui grey icon gt-ml-3" data-tooltip-content="{{.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
 		{{end}}
 		{{if (and .CanCreateRelease (not .PageIsTagList))}}
 			<a class="ui right small green button" href="{{$.RepoLink}}/releases/new">
@@ -127,7 +127,7 @@
 								</h4>
 								<div class="gt-df gt-ac">
 									{{if $.CanCreateRelease}}
-										<a class="muted tooltip gt-ml-3 gt-df gt-ac" data-content="{{$.locale.Tr "repo.release.edit"}}" href="{{$.RepoLink}}/releases/edit/{{.TagName | PathEscapeSegments}}" rel="nofollow">
+										<a class="muted gt-ml-3 gt-df gt-ac" data-tooltip-content="{{$.locale.Tr "repo.release.edit"}}" href="{{$.RepoLink}}/releases/edit/{{.TagName | PathEscapeSegments}}" rel="nofollow">
 											{{svg "octicon-pencil"}}
 										</a>
 									{{end}}
@@ -175,7 +175,7 @@
 											<li>
 												<span class="ui text middle aligned right">
 													<span class="ui text grey">{{.Size | FileSize}}</span>
-													<span class="tooltip" data-content="{{$.locale.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
+													<span data-tooltip-content="{{$.locale.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
 														{{svg "octicon-info"}}
 													</span>
 												</span>

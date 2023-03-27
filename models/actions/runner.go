@@ -25,6 +25,7 @@ type ActionRunner struct {
 	ID          int64
 	UUID        string                 `xorm:"CHAR(36) UNIQUE"`
 	Name        string                 `xorm:"VARCHAR(255)"`
+	Version     string                 `xorm:"VARCHAR(64)"`
 	OwnerID     int64                  `xorm:"index"` // org level runner, 0 means system
 	Owner       *user_model.User       `xorm:"-"`
 	RepoID      int64                  `xorm:"index"` // repo level runner, if orgid also is zero, then it's a global

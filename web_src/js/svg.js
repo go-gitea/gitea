@@ -105,11 +105,30 @@ export function svg(name, size = 16, className = '') {
 
   const document = parser.parseFromString(svgs[name], 'image/svg+xml');
   const svgNode = document.firstChild;
-  if (size !== 16) svgNode.setAttribute('width', String(size));
-  if (size !== 16) svgNode.setAttribute('height', String(size));
-  // filter array to remove empty string
+  if (size !== 16) {
+    svgNode.setAttribute('width', String(size));
+    svgNode.setAttribute('height', String(size));
+  }
   if (className) svgNode.classList.add(...className.split(/\s+/).filter(Boolean));
   return serializer.serializeToString(svgNode);
+}
+
+export function svgParseOuterInner(name) {
+  const svgStr = svgs[name];
+  if (!svgStr) throw new Error(`Unknown SVG icon: ${name}`);
+
+  // parse the SVG string to 2 parts
+  // * svgInnerHtml: the inner part of the SVG, will be used as the content of the <svg> VNode
+  // * svgOuter: the outer part of the SVG, including attributes
+  // the builtin SVG contents are clean, so it's safe to use `indexOf` to split the content:
+  // eg: <svg outer-attributes>${svgInnerHtml}</svg>
+  const p1 = svgStr.indexOf('>'), p2 = svgStr.lastIndexOf('<');
+  if (p1 === -1 || p2 === -1) throw new Error(`Invalid SVG icon: ${name}`);
+  const svgInnerHtml = svgStr.slice(p1 + 1, p2);
+  const svgOuterHtml = svgStr.slice(0, p1 + 1) + svgStr.slice(p2);
+  const svgDoc = parser.parseFromString(svgOuterHtml, 'image/svg+xml');
+  const svgOuter = svgDoc.firstChild;
+  return {svgOuter, svgInnerHtml};
 }
 
 export const SvgIcon = {
@@ -120,6 +139,32 @@ export const SvgIcon = {
     className: {type: String, default: ''},
   },
   render() {
-    return h('span', {innerHTML: svg(this.name, this.size, this.className)});
+    const {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name);
+    // https://vuejs.org/guide/extras/render-function.html#creating-vnodes
+    // the `^` is used for attr, set SVG attributes like 'width', `aria-hidden`, `viewBox`, etc
+    const attrs = {};
+    for (const attr of svgOuter.attributes) {
+      if (attr.name === 'class') continue;
+      attrs[`^${attr.name}`] = attr.value;
+    }
+    attrs[`^width`] = this.size;
+    attrs[`^height`] = this.size;
+
+    // make the <SvgIcon class="foo" class-name="bar"> classes work together
+    const classes = [];
+    for (const cls of svgOuter.classList) {
+      classes.push(cls);
+    }
+    // TODO: drop the `className/class-name` prop in the future, only use "class" prop
+    if (this.className) {
+      classes.push(...this.className.split(/\s+/).filter(Boolean));
+    }
+
+    // create VNode
+    return h('svg', {
+      ...attrs,
+      class: classes,
+      innerHTML: svgInnerHtml,
+    });
   },
 };

@@ -6,7 +6,7 @@
 				<div class="ui card">
 					<div id="profile-avatar" class="content gt-df"/>
 					{{if eq .SignedUserName .Owner.Name}}
-						<a class="image tooltip" href="{{AppSubUrl}}/user/settings" data-content="{{.locale.Tr "user.change_avatar"}}" data-position="bottom center">
+						<a class="image" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{.locale.Tr "user.change_avatar"}}">
 							{{avatar $.Context .Owner 290}}
 						</a>
 					{{else}}
@@ -19,7 +19,7 @@
 						{{if .Owner.FullName}}<span class="header text center">{{.Owner.FullName}}</span>{{end}}
 						<span class="username text center">{{.Owner.Name}}</span>
 						{{if .EnableFeed}}
-							<a href="{{.Owner.HomeLink}}.rss"><i class="ui grey icon tooltip gt-ml-3" data-content="{{.locale.Tr "rss_feed"}}" data-position="bottom center">{{svg "octicon-rss" 18}}</i></a>
+							<a href="{{.Owner.HomeLink}}.rss"><i class="ui text grey gt-ml-3" data-tooltip-content="{{.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
 						{{end}}
 						<div class="gt-mt-3">
 							<a class="muted" href="{{.Owner.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.Owner.NumFollowers}} {{.locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.Owner.HomeLink}}?tab=following">{{.Owner.NumFollowing}} {{.locale.Tr "user.following"}}</a>
@@ -62,7 +62,7 @@
 								{{range .Orgs}}
 									{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.HasMemberWithUserID $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
 									<li>
-										<a class="tooltip" href="{{.HomeLink}}" data-content="{{.Name}}" data-position="top center">
+										<a href="{{.HomeLink}}" data-tooltip-content="{{.Name}}">
 											{{avatar $.Context .}}
 										</a>
 									</li>
@@ -76,7 +76,7 @@
 								<ul class="user-badges">
 								{{range .Badges}}
 									<li>
-										<img width="64" height="64" src="{{.ImageURL}}" alt="{{.Description}}" data-content="{{.Description}}" class="tooltip"/>
+										<img width="64" height="64" src="{{.ImageURL}}" alt="{{.Description}}" data-tooltip-content="{{.Description}}">
 									</li>
 								{{end}}
 								</ul>
