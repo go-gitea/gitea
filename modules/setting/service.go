@@ -12,6 +12,15 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 )
 
+// enumerates all the types of captchas
+const (
+	ImageCaptcha = "image"
+	ReCaptcha    = "recaptcha"
+	HCaptcha     = "hcaptcha"
+	MCaptcha     = "mcaptcha"
+	CfTurnstile  = "cfturnstile"
+)
+
 // Service settings
 var Service = struct {
 	DefaultUserVisibility                   string
@@ -105,8 +114,8 @@ func (a AllowedVisibility) ToVisibleTypeSlice() (result []structs.VisibleType) {
 	return result
 }
 
-func newService() {
-	sec := Cfg.Section("service")
+func loadServiceFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("service")
 	Service.ActiveCodeLives = sec.Key("ACTIVE_CODE_LIVE_MINUTES").MustInt(180)
 	Service.ResetPwdCodeLives = sec.Key("RESET_PASSWD_CODE_LIVE_MINUTES").MustInt(180)
 	Service.DisableRegistration = sec.Key("DISABLE_REGISTRATION").MustBool()
@@ -184,11 +193,13 @@ func newService() {
 	}
 	Service.ValidSiteURLSchemes = schemes
 
-	if err := Cfg.Section("service.explore").MapTo(&Service.Explore); err != nil {
-		log.Fatal("Failed to map service.explore settings: %v", err)
-	}
+	mustMapSetting(rootCfg, "service.explore", &Service.Explore)
 
-	sec = Cfg.Section("openid")
+	loadOpenIDSetting(rootCfg)
+}
+
+func loadOpenIDSetting(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
 	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration && Service.EnableOpenIDSignIn)
 	pats := sec.Key("WHITELISTED_URIS").Strings(" ")

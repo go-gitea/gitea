@@ -1,10 +1,10 @@
 <template>
-  <div v-show="show">
+  <div v-show="show" :title="item.name">
+    <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
     <div class="item" :class="item.isFile ? 'filewrapper gt-p-1' : ''">
       <!-- Files -->
       <SvgIcon
         v-if="item.isFile"
-        data-position="right center"
         name="octicon-file"
         class="svg-icon file"
       />
@@ -15,7 +15,6 @@
       >{{ item.name }}</a>
       <SvgIcon
         v-if="item.isFile"
-        data-position="right center"
         :name="getIconForDiffType(item.file.Type)"
         :class="['svg-icon', getIconForDiffType(item.file.Type), 'status']"
       />

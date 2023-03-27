@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -70,8 +71,13 @@ var localMetas = map[string]string{
 func TestRender_IssueIndexPattern(t *testing.T) {
 	// numeric: render inputs without valid mentions
 	test := func(s string) {
-		testRenderIssueIndexPattern(t, s, s, &RenderContext{})
-		testRenderIssueIndexPattern(t, s, s, &RenderContext{Metas: numericMetas})
+		testRenderIssueIndexPattern(t, s, s, &RenderContext{
+			Ctx: git.DefaultContext,
+		})
+		testRenderIssueIndexPattern(t, s, s, &RenderContext{
+			Ctx:   git.DefaultContext,
+			Metas: numericMetas,
+		})
 	}
 
 	// should not render anything when there are no mentions
@@ -119,7 +125,10 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 			links[i] = numericIssueLink(util.URLJoin(TestRepoURL, path), "ref-issue", index, marker)
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expectedNil, &RenderContext{Metas: localMetas})
+		testRenderIssueIndexPattern(t, s, expectedNil, &RenderContext{
+			Ctx:   git.DefaultContext,
+			Metas: localMetas,
+		})
 
 		class := "ref-issue"
 		if isExternal {
@@ -130,7 +139,10 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 			links[i] = numericIssueLink(prefix, class, index, marker)
 		}
 		expectedNum := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expectedNum, &RenderContext{Metas: numericMetas})
+		testRenderIssueIndexPattern(t, s, expectedNum, &RenderContext{
+			Ctx:   git.DefaultContext,
+			Metas: numericMetas,
+		})
 	}
 
 	// should render freestanding mentions
@@ -164,7 +176,10 @@ func TestRender_IssueIndexPattern3(t *testing.T) {
 
 	// alphanumeric: render inputs without valid mentions
 	test := func(s string) {
-		testRenderIssueIndexPattern(t, s, s, &RenderContext{Metas: alphanumericMetas})
+		testRenderIssueIndexPattern(t, s, s, &RenderContext{
+			Ctx:   git.DefaultContext,
+			Metas: alphanumericMetas,
+		})
 	}
 	test("")
 	test("this is a test")
@@ -194,7 +209,10 @@ func TestRender_IssueIndexPattern4(t *testing.T) {
 			links[i] = externalIssueLink("https://someurl.com/someUser/someRepo/", "ref-issue ref-external-issue", name)
 		}
 		expected := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expected, &RenderContext{Metas: alphanumericMetas})
+		testRenderIssueIndexPattern(t, s, expected, &RenderContext{
+			Ctx:   git.DefaultContext,
+			Metas: alphanumericMetas,
+		})
 	}
 	test("OTT-1234 test", "%s test", "OTT-1234")
 	test("test T-12 issue", "test %s issue", "T-12")
@@ -214,7 +232,10 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 		}
 
 		expected := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expected, &RenderContext{Metas: metas})
+		testRenderIssueIndexPattern(t, s, expected, &RenderContext{
+			Ctx:   git.DefaultContext,
+			Metas: metas,
+		})
 	}
 
 	test("abc ISSUE-123 def", "abc %s def",
@@ -235,7 +256,10 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 		[]string{"ISSUE-123"},
 	)
 
-	testRenderIssueIndexPattern(t, "will not match", "will not match", &RenderContext{Metas: regexpMetas})
+	testRenderIssueIndexPattern(t, "will not match", "will not match", &RenderContext{
+		Ctx:   git.DefaultContext,
+		Metas: regexpMetas,
+	})
 }
 
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *RenderContext) {
@@ -255,6 +279,7 @@ func TestRender_AutoLink(t *testing.T) {
 	test := func(input, expected string) {
 		var buffer strings.Builder
 		err := PostProcess(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 		}, strings.NewReader(input), &buffer)
@@ -263,6 +288,7 @@ func TestRender_AutoLink(t *testing.T) {
 
 		buffer.Reset()
 		err = PostProcess(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 			IsWiki:    true,
@@ -292,6 +318,7 @@ func TestRender_FullIssueURLs(t *testing.T) {
 	test := func(input, expected string) {
 		var result strings.Builder
 		err := postProcess(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 		}, []processor{fullIssuePatternProcessor}, strings.NewReader(input), &result)
