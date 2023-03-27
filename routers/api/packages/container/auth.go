@@ -27,14 +27,16 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 		return nil, err
 	}
 
-	if uid == 0 {
-		return nil, nil
-	}
-	if uid == -1 {
-		return user_model.NewGhostUser(), nil
-	}
-	if uid == -2 {
-		return user_model.NewActionsUser(), nil
+	if uid <= 0 {
+		switch uid {
+		case -1:
+			return user_model.NewGhostUser(), nil
+		case -2:
+			return user_model.NewActionsUser(), nil
+		default:
+			log.Error("Invaild uid: %d", uid)
+			return nil, nil
+		}
 	}
 
 	u, err := user_model.GetUserByID(req.Context(), uid)
