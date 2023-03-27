@@ -45,7 +45,7 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 
 		sha = payload.HeadCommit.ID
 		creatorID = payload.Pusher.ID
-	case webhook_module.HookEventPullRequest:
+	case webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestSync:
 		payload, err := run.GetPullRequestEventPayload()
 		if err != nil {
 			return fmt.Errorf("GetPullRequestEventPayload: %w", err)

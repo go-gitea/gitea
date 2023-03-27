@@ -479,7 +479,8 @@ textarea:focus,
 
 .repository.new.repo form .selection.dropdown,
 .repository.new.migrate form .selection.dropdown,
-.repository.new.fork form .selection.dropdown {
+.repository.new.fork form .selection.dropdown,
+.repository.new.fork form .field a {
   vertical-align: middle;
   width: 50% !important;
 }
@@ -491,6 +492,7 @@ textarea:focus,
   .repository.new.repo form input,
   .repository.new.migrate form input,
   .repository.new.fork form input,
+  .repository.new.fork form .field a,
   .repository.new.repo form .selection.dropdown,
   .repository.new.migrate form .selection.dropdown,
   .repository.new.fork form .selection.dropdown {
@@ -500,8 +502,7 @@ textarea:focus,
   .repository.new.migrate form .field button,
   .repository.new.fork form .field button,
   .repository.new.repo form .field a,
-  .repository.new.migrate form .field a,
-  .repository.new.fork form .field a {
+  .repository.new.migrate form .field a {
     margin-bottom: 1em;
     width: 100%;
   }
