@@ -36,21 +36,14 @@ func (err ErrTemplateLoad) Error() string {
 // GetTemplateFile loads the label template file by given name,
 // then parses and returns a list of name-color pairs and optionally description.
 func GetTemplateFile(name string) ([]*Label, error) {
-	data, err := options.Labels(name + ".yaml")
-	if err == nil && len(data) > 0 {
-		return parseYamlFormat(name+".yaml", data)
-	}
-
-	data, err = options.Labels(name + ".yml")
-	if err == nil && len(data) > 0 {
-		return parseYamlFormat(name+".yml", data)
-	}
-
-	data, err = options.Labels(name)
+	data, err := options.Labels(name)
 	if err != nil {
-		return nil, ErrTemplateLoad{name, fmt.Errorf("GetRepoInitFile: %w", err)}
+		return nil, ErrTemplateLoad{name, fmt.Errorf("GetTemplateFile: %w", err)}
 	}
 
+	if strings.HasSuffix(name, ".yaml") || strings.HasSuffix(name, ".yml") {
+		return parseYamlFormat(name, data)
+	}
 	return parseLegacyFormat(name, data)
 }
 

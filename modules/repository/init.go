@@ -27,6 +27,12 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
+type OptionFile struct {
+	FileName    string
+	DisplayName string
+	Description string
+}
+
 var (
 	// Gitignores contains the gitiginore files
 	Gitignores []string
@@ -37,8 +43,8 @@ var (
 	// Readmes contains the readme files
 	Readmes []string
 
-	// LabelTemplates contains the label template files and the list of labels for each file
-	LabelTemplates map[string]string
+	// LabelTemplateFiles contains the label template files and the list of labels for each file
+	LabelTemplateFiles []OptionFile
 )
 
 // LoadRepoConfig loads the repository config
@@ -50,14 +56,6 @@ func LoadRepoConfig() {
 		files, err := options.Dir(t)
 		if err != nil {
 			log.Fatal("Failed to get %s files: %v", t, err)
-		}
-		if t == "label" {
-			for i, f := range files {
-				ext := strings.ToLower(filepath.Ext(f))
-				if ext == ".yaml" || ext == ".yml" {
-					files[i] = f[:len(f)-len(ext)]
-				}
-			}
 		}
 		customPath := path.Join(setting.CustomPath, "options", t)
 		isDir, err := util.IsDir(customPath)
@@ -71,7 +69,14 @@ func LoadRepoConfig() {
 			}
 
 			for _, f := range customFiles {
-				if !util.SliceContainsString(files, f, true) {
+				stat, err := os.Stat(filepath.Join(customPath, f))
+				if err != nil {
+					log.Fatal("Failed to stat custom %s files: %v", t, err)
+				}
+				if stat.Size() == 0 {
+					// it's good to give end users a chance to hide builtin options if they put an empty file in their custom directory
+					files = util.SliceRemoveAllFunc(files, func(s string) bool { return strings.EqualFold(s, f) })
+				} else if !util.SliceContainsString(files, f, true) {
 					files = append(files, f)
 				}
 			}
@@ -82,20 +87,23 @@ func LoadRepoConfig() {
 	Gitignores = typeFiles[0]
 	Licenses = typeFiles[1]
 	Readmes = typeFiles[2]
-	LabelTemplatesFiles := typeFiles[3]
+	labelTemplatesFiles := typeFiles[3]
 	sort.Strings(Gitignores)
 	sort.Strings(Licenses)
 	sort.Strings(Readmes)
-	sort.Strings(LabelTemplatesFiles)
+	sort.Strings(labelTemplatesFiles)
 
 	// Load label templates
-	LabelTemplates = make(map[string]string)
-	for _, templateFile := range LabelTemplatesFiles {
+	for _, templateFile := range labelTemplatesFiles {
 		labels, err := label.LoadFormatted(templateFile)
 		if err != nil {
 			log.Error("Failed to load labels: %v", err)
 		}
-		LabelTemplates[templateFile] = labels
+		LabelTemplateFiles = append(LabelTemplateFiles, OptionFile{
+			DisplayName: strings.TrimSuffix(templateFile, filepath.Ext(templateFile)),
+			FileName:    templateFile,
+			Description: labels,
+		})
 	}
 
 	// Filter out invalid names and promote preferred licenses.
