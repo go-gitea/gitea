@@ -5,6 +5,7 @@ package oauth2
 
 import (
 	"encoding/gob"
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -14,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/markbates/goth/gothic"
 )
 
@@ -24,6 +26,8 @@ const UsersStoreKey = "gitea-oauth2-sessions"
 
 // ProviderHeaderKey is the HTTP header key
 const ProviderHeaderKey = "gitea-oauth2-provider"
+
+var successfulAccessTokenCache *lru.Cache
 
 // Init initializes the oauth source
 func Init() error {
@@ -50,6 +54,16 @@ func Init() error {
 
 	// Unlock our mutex
 	gothRWMutex.Unlock()
+
+	if setting.SuccessfulTokensCacheSize > 0 {
+		var err error
+		successfulAccessTokenCache, err = lru.New(setting.SuccessfulTokensCacheSize)
+		if err != nil {
+			return fmt.Errorf("unable to allocate AccessToken cache: %w", err)
+		}
+	} else {
+		successfulAccessTokenCache = nil
+	}
 
 	return initOAuth2Sources()
 }

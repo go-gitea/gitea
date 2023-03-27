@@ -41,6 +41,15 @@ type Token struct {
 
 // ParseToken parses a signed jwt string
 func ParseToken(jwtToken string, signingKey JWTSigningKey) (*Token, error) {
+	if successfulAccessTokenCache != nil {
+		tokenInterface, ok := successfulAccessTokenCache.Get(jwtToken)
+		if ok {
+			token, ok := tokenInterface.(*Token)
+			if ok {
+				return token, nil
+			}
+		}
+	}
 	parsedToken, err := jwt.ParseWithClaims(jwtToken, &Token{}, func(token *jwt.Token) (interface{}, error) {
 		if token.Method == nil || token.Method.Alg() != signingKey.SigningMethod().Alg() {
 			return nil, fmt.Errorf("unexpected signing algo: %v", token.Header["alg"])
@@ -54,6 +63,9 @@ func ParseToken(jwtToken string, signingKey JWTSigningKey) (*Token, error) {
 	var ok bool
 	if token, ok = parsedToken.Claims.(*Token); !ok || !parsedToken.Valid {
 		return nil, fmt.Errorf("invalid token")
+	}
+	if successfulAccessTokenCache != nil {
+		successfulAccessTokenCache.Add(jwtToken, token)
 	}
 	return token, nil
 }
