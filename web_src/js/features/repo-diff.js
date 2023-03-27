@@ -196,7 +196,6 @@ function initRepoDiffShowMore() {
 export function initRepoDiffView() {
   const diffFileList = $('#diff-file-list');
   if (diffFileList.length === 0) return;
-  
   initDiffFileTree();
   initRepoDiffShowMore();
   initRepoDiffReviewButton();
