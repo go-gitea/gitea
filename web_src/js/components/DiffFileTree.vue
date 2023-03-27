@@ -114,7 +114,7 @@ export default {
       const btn = document.querySelector('.diff-toggle-file-tree-button');
       const [toShow, toHide] = btn.querySelectorAll('.icon');
       const tree = document.getElementById('diff-file-tree');
-      const newTooltip = btn.getAttribute(`data-${visible ? 'hide' : 'show'}-text`);
+      const newTooltip = btn.getAttribute(visible ? 'data-hide-text' : 'data-show-text');
       btn.setAttribute('data-tooltip-content', newTooltip);
       toggleElem(tree, visible);
       toggleElem(toShow, !visible);

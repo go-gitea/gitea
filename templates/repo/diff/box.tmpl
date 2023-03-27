@@ -25,7 +25,7 @@
 					const diffTreeBtn = document.querySelector('.diff-toggle-file-tree-button');
 					const diffTreeIcon = `.octicon-sidebar-${diffTreeVisible ? 'expand' : 'collapse'}`;
 					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('gt-hidden');
-					diffTreeBtn.setAttribute('data-tooltip-content', diffTreeBtn.getAttribute(`data-${diffTreeVisible ? 'hide' : 'show'}-text`));
+					diffTreeBtn.setAttribute('data-tooltip-content', diffTreeBtn.getAttribute(diffTreeVisible ? 'data-hide-text' : 'data-show-text'));
 				</script>
 				<div class="diff-detail-stats gt-df gt-ac gt-ml-3">
 					{{svg "octicon-diff" 16 "gt-mr-2"}}{{.locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
