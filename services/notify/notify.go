@@ -10,6 +10,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 )
 
@@ -151,6 +152,10 @@ func DeleteComment(ctx context.Context, doer *user_model.User, c *issues_model.C
 
 // NewRelease notifies new release to notifiers
 func NewRelease(ctx context.Context, rel *repo_model.Release) {
+	if err := rel.LoadAttributes(ctx); err != nil {
+		log.Error("LoadPublisher: %v", err)
+		return
+	}
 	for _, notifier := range notifiers {
 		notifier.NewRelease(ctx, rel)
 	}

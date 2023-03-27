@@ -146,7 +146,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 
 	name2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
-		Attributes: []git.CmdArg{"lockable"},
+		Attributes: []string{"lockable"},
 		Filenames:  filenames,
 		CachedOnly: true,
 	})
@@ -207,7 +207,7 @@ func LFSLockFile(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
 		return
 	}
-	lockPath = path.Clean("/" + lockPath)[1:]
+	lockPath = util.PathJoinRel(lockPath)
 	if len(lockPath) == 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.lfs_invalid_locking_path", originalPath))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")

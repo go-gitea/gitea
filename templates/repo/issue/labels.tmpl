@@ -1,12 +1,12 @@
 {{template "base/head" .}}
-<div class="page-content repository labels">
+<div role="main" aria-label="{{.Title}}" class="page-content repository labels">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="navbar">
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
 				<div class="ui right">
-					<div class="ui green new-label button">{{.locale.Tr "repo.issues.new_label"}}</div>
+					<button class="ui green new-label button">{{.locale.Tr "repo.issues.new_label"}}</button>
 				</div>
 			{{end}}
 		</div>

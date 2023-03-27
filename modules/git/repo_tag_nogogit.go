@@ -25,7 +25,7 @@ func (repo *Repository) IsTagExist(name string) bool {
 // GetTags returns all tags of the repository.
 // returning at most limit tags, or all if limit is 0.
 func (repo *Repository) GetTags(skip, limit int) (tags []string, err error) {
-	tags, _, err = callShowRef(repo.Ctx, repo.Path, TagPrefix, []CmdArg{TagPrefix, "--sort=-taggerdate"}, skip, limit)
+	tags, _, err = callShowRef(repo.Ctx, repo.Path, TagPrefix, TrustedCmdArgs{TagPrefix, "--sort=-taggerdate"}, skip, limit)
 	return tags, err
 }
 

@@ -6,8 +6,6 @@ package user
 
 import (
 	"context"
-	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
 	"net/url"
@@ -21,6 +19,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/auth/openid"
+	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -30,10 +29,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
-	"golang.org/x/crypto/argon2"
-	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/crypto/pbkdf2"
-	"golang.org/x/crypto/scrypt"
 	"xorm.io/builder"
 )
 
@@ -47,21 +42,6 @@ const (
 	// UserTypeOrganization defines an organization
 	UserTypeOrganization
 )
-
-const (
-	algoBcrypt = "bcrypt"
-	algoScrypt = "scrypt"
-	algoArgon2 = "argon2"
-	algoPbkdf2 = "pbkdf2"
-)
-
-// AvailableHashAlgorithms represents the available password hashing algorithms
-var AvailableHashAlgorithms = []string{
-	algoPbkdf2,
-	algoArgon2,
-	algoScrypt,
-	algoBcrypt,
-}
 
 const (
 	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications except your own
@@ -377,42 +357,6 @@ func (u *User) NewGitSig() *git.Signature {
 	}
 }
 
-func hashPassword(passwd, salt, algo string) (string, error) {
-	var tempPasswd []byte
-	var saltBytes []byte
-
-	// There are two formats for the Salt value:
-	// * The new format is a (32+)-byte hex-encoded string
-	// * The old format was a 10-byte binary format
-	// We have to tolerate both here but Authenticate should
-	// regenerate the Salt following a successful validation.
-	if len(salt) == 10 {
-		saltBytes = []byte(salt)
-	} else {
-		var err error
-		saltBytes, err = hex.DecodeString(salt)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	switch algo {
-	case algoBcrypt:
-		tempPasswd, _ = bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
-		return string(tempPasswd), nil
-	case algoScrypt:
-		tempPasswd, _ = scrypt.Key([]byte(passwd), saltBytes, 65536, 16, 2, 50)
-	case algoArgon2:
-		tempPasswd = argon2.IDKey([]byte(passwd), saltBytes, 2, 65536, 8, 50)
-	case algoPbkdf2:
-		fallthrough
-	default:
-		tempPasswd = pbkdf2.Key([]byte(passwd), saltBytes, 10000, 50, sha256.New)
-	}
-
-	return hex.EncodeToString(tempPasswd), nil
-}
-
 // SetPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO
 // change passwd, salt and passwd_hash_algo fields
 func (u *User) SetPassword(passwd string) (err error) {
@@ -426,7 +370,7 @@ func (u *User) SetPassword(passwd string) (err error) {
 	if u.Salt, err = GetUserSalt(); err != nil {
 		return err
 	}
-	if u.Passwd, err = hashPassword(passwd, u.Salt, setting.PasswordHashAlgo); err != nil {
+	if u.Passwd, err = hash.Parse(setting.PasswordHashAlgo).Hash(passwd, u.Salt); err != nil {
 		return err
 	}
 	u.PasswdHashAlgo = setting.PasswordHashAlgo
@@ -434,20 +378,9 @@ func (u *User) SetPassword(passwd string) (err error) {
 	return nil
 }
 
-// ValidatePassword checks if given password matches the one belongs to the user.
+// ValidatePassword checks if the given password matches the one belonging to the user.
 func (u *User) ValidatePassword(passwd string) bool {
-	tempHash, err := hashPassword(passwd, u.Salt, u.PasswdHashAlgo)
-	if err != nil {
-		return false
-	}
-
-	if u.PasswdHashAlgo != algoBcrypt && subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1 {
-		return true
-	}
-	if u.PasswdHashAlgo == algoBcrypt && bcrypt.CompareHashAndPassword([]byte(u.Passwd), []byte(passwd)) == nil {
-		return true
-	}
-	return false
+	return hash.Parse(u.PasswdHashAlgo).VerifyPassword(passwd, u.Passwd, u.Salt)
 }
 
 // IsPasswordSet checks if the password is set or left empty
@@ -458,6 +391,11 @@ func (u *User) IsPasswordSet() bool {
 // IsOrganization returns true if user is actually a organization.
 func (u *User) IsOrganization() bool {
 	return u.Type == UserTypeOrganization
+}
+
+// IsIndividual returns true if user is actually a individual user.
+func (u *User) IsIndividual() bool {
+	return u.Type == UserTypeIndividual
 }
 
 // DisplayName returns full name if it's not empty,
@@ -559,32 +497,6 @@ func GetUserSalt() (string, error) {
 	return hex.EncodeToString(rBytes), nil
 }
 
-// NewGhostUser creates and returns a fake user for someone has deleted their account.
-func NewGhostUser() *User {
-	return &User{
-		ID:        -1,
-		Name:      "Ghost",
-		LowerName: "ghost",
-	}
-}
-
-// NewReplaceUser creates and returns a fake user for external user
-func NewReplaceUser(name string) *User {
-	return &User{
-		ID:        -1,
-		Name:      name,
-		LowerName: strings.ToLower(name),
-	}
-}
-
-// IsGhost check if user is fake user for a deleted account
-func (u *User) IsGhost() bool {
-	if u == nil {
-		return false
-	}
-	return u.ID == -1 && u.Name == "Ghost"
-}
-
 var (
 	reservedUsernames = []string{
 		".",
@@ -622,6 +534,7 @@ var (
 		"swagger.v1.json",
 		"user",
 		"v2",
+		"gitea-actions",
 	}
 
 	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom"}
@@ -664,6 +577,11 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	u.Theme = setting.UI.DefaultTheme
 	u.IsRestricted = setting.Service.DefaultUserIsRestricted
 	u.IsActive = !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm)
+
+	// Ensure consistency of the dates.
+	if u.UpdatedUnix < u.CreatedUnix {
+		u.UpdatedUnix = u.CreatedUnix
+	}
 
 	// overwrite defaults if set
 	if len(overwriteDefault) != 0 && overwriteDefault[0] != nil {
@@ -742,7 +660,15 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return err
 	}
 
-	if err = db.Insert(ctx, u); err != nil {
+	if u.CreatedUnix == 0 {
+		// Caller expects auto-time for creation & update timestamps.
+		err = db.Insert(ctx, u)
+	} else {
+		// Caller sets the timestamps themselves. They are responsible for ensuring
+		// both `CreatedUnix` and `UpdatedUnix` are set appropriately.
+		_, err = db.GetEngine(ctx).NoAutoTime().Insert(u)
+	}
+	if err != nil {
 		return err
 	}
 
@@ -816,13 +742,13 @@ func VerifyUserActiveCode(code string) (user *User) {
 }
 
 // ChangeUserName changes all corresponding setting from old user name to new one.
-func ChangeUserName(u *User, newUserName string) (err error) {
+func ChangeUserName(ctx context.Context, u *User, newUserName string) (err error) {
 	oldUserName := u.Name
 	if err = IsUsableUsername(newUserName); err != nil {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -1013,6 +939,20 @@ func GetUserByID(ctx context.Context, id int64) (*User, error) {
 	return u, nil
 }
 
+// GetPossibleUserByID returns the user if id > 0 or return system usrs if id < 0
+func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
+	switch id {
+	case -1:
+		return NewGhostUser(), nil
+	case ActionsUserID:
+		return NewActionsUser(), nil
+	case 0:
+		return nil, ErrUserNotExist{}
+	default:
+		return GetUserByID(ctx, id)
+	}
+}
+
 // GetUserByNameCtx returns user by given name.
 func GetUserByName(ctx context.Context, name string) (*User, error) {
 	if len(name) == 0 {
@@ -1125,11 +1065,11 @@ type UserCommit struct { //revive:disable-line:exported
 }
 
 // ValidateCommitWithEmail check if author's e-mail of commit is corresponding to a user.
-func ValidateCommitWithEmail(c *git.Commit) *User {
+func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 	if c.Author == nil {
 		return nil
 	}
-	u, err := GetUserByEmail(c.Author.Email)
+	u, err := GetUserByEmail(ctx, c.Author.Email)
 	if err != nil {
 		return nil
 	}
@@ -1137,7 +1077,7 @@ func ValidateCommitWithEmail(c *git.Commit) *User {
 }
 
 // ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
-func ValidateCommitsWithEmails(oldCommits []*git.Commit) []*UserCommit {
+func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) []*UserCommit {
 	var (
 		emails     = make(map[string]*User)
 		newCommits = make([]*UserCommit, 0, len(oldCommits))
@@ -1146,7 +1086,7 @@ func ValidateCommitsWithEmails(oldCommits []*git.Commit) []*UserCommit {
 		var u *User
 		if c.Author != nil {
 			if v, ok := emails[c.Author.Email]; !ok {
-				u, _ = GetUserByEmail(c.Author.Email)
+				u, _ = GetUserByEmail(ctx, c.Author.Email)
 				emails[c.Author.Email] = u
 			} else {
 				u = v
@@ -1162,12 +1102,7 @@ func ValidateCommitsWithEmails(oldCommits []*git.Commit) []*UserCommit {
 }
 
 // GetUserByEmail returns the user object by given e-mail if exists.
-func GetUserByEmail(email string) (*User, error) {
-	return GetUserByEmailContext(db.DefaultContext, email)
-}
-
-// GetUserByEmailContext returns the user object by given e-mail if exists with db context
-func GetUserByEmailContext(ctx context.Context, email string) (*User, error) {
+func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	if len(email) == 0 {
 		return nil, ErrUserNotExist{0, email, 0}
 	}

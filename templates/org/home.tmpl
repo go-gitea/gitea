@@ -1,19 +1,19 @@
 {{template "base/head" .}}
-<div class="page-content organization profile">
-	<div class="ui container df">
-		{{avatar .Org 140 "org-avatar"}}
+<div role="main" aria-label="{{.Title}}" class="page-content organization profile">
+	<div class="ui container gt-df">
+		{{avatar $.Context .Org 140 "org-avatar"}}
 		<div id="org-info">
 			<div class="ui header">
 				{{.Org.DisplayName}}
 				{{if .EnableFeed}}
-					<a href="{{.Org.HomeLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{.locale.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 36}}</i></a>
+					<a href="{{.Org.HomeLink}}.rss"><i class="ui grey icon gt-ml-3" data-tooltip-content="{{.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 36}}</i></a>
 				{{end}}
 				<span class="org-visibility">
 					{{if .Org.Visibility.IsLimited}}<div class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
 					{{if .Org.Visibility.IsPrivate}}<div class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
 				</span>
 			</div>
-			{{if $.RenderedDescription}}<p class="render-content markup">{{$.RenderedDescription|Str2html}}</p>{{end}}
+			{{if $.RenderedDescription}}<div class="render-content markup">{{$.RenderedDescription|Str2html}}</div>{{end}}
 			<div class="text grey meta">
 				{{if .Org.Location}}<div class="item">{{svg "octicon-location"}} <span>{{.Org.Location}}</span></div>{{end}}
 				{{if .Org.Website}}<div class="item">{{svg "octicon-link"}} <a target="_blank" rel="noopener noreferrer me" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
@@ -41,29 +41,25 @@
 					</div>
 					<div class="ui divider"></div>
 				{{end}}
-				<h4 class="ui top attached header df">
-					<strong class="f1">{{.locale.Tr "org.people"}}</strong>
-					<div class="ui">
-						<a class="text grey dif ac" href="{{.OrgLink}}/members"><span>{{.MembersTotal}}</span> {{svg "octicon-chevron-right"}}</a>
-					</div>
+				<h4 class="ui top attached header gt-df">
+					<strong class="gt-f1">{{.locale.Tr "org.members"}}</strong>
+					<a class="text grey gt-dif gt-ac" href="{{.OrgLink}}/members"><span>{{.MembersTotal}}</span> {{svg "octicon-chevron-right"}}</a>
 				</h4>
 				<div class="ui attached segment members">
 					{{$isMember := .IsOrganizationMember}}
 					{{range .Members}}
 						{{if or $isMember (call $.IsPublicMember .ID)}}
 							<a href="{{.HomeLink}}" title="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">
-								{{avatar .}}
+								{{avatar $.Context .}}
 							</a>
 						{{end}}
 					{{end}}
 				</div>
 
 				{{if .IsOrganizationMember}}
-					<div class="ui top attached header df">
-						<strong class="f1">{{.locale.Tr "org.teams"}}</strong>
-						<div class="ui">
-							<a class="text grey dif ac" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
-						</div>
+					<div class="ui top attached header gt-df">
+						<strong class="gt-f1">{{.locale.Tr "org.teams"}}</strong>
+						<a class="text grey gt-dif gt-ac" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
 					</div>
 					<div class="ui attached table segment teams">
 						{{range .Teams}}
