@@ -14,9 +14,9 @@
 					{{- else if eq $glyph.Glyph '_' -}}
 						M {{Add (Mul $glyph.Column 5) 0}} {{Add (Mul $glyph.Row 12) 12}} h 10 {{/* */ -}}
 					{{- end -}}
-				{{- end}}" stroke-width="1" fill="none" id="flow-{{$flow.ID}}-path" stroke-linecap="round">
+				{{- end}}" stroke-width="1" fill="none" id="flow-{{$flow.ID}}-path" stroke-linecap="round"></path>
 				{{range $flow.Commits}}
-					<circle class="flow-commit" cx="{{Add (Mul .Column 5) 5}}" cy="{{Add (Mul .Row 12) 6}}" r="2.5" stroke="none" id="flow-commit-{{.Rev}}" data-rev="{{.Rev}}">
+					<circle class="flow-commit" cx="{{Add (Mul .Column 5) 5}}" cy="{{Add (Mul .Row 12) 6}}" r="2.5" stroke="none" id="flow-commit-{{.Rev}}" data-rev="{{.Rev}}"></circle>
 				{{end}}
 			</g>
 		{{end}}
