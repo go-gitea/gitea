@@ -27,11 +27,12 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 		return nil, err
 	}
 
+	if uid == 0 {
+		return nil, nil
+	}
+
 	u, err := user_model.GetPossibleUserByID(req.Context(), uid)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			return nil, nil
-		}
 		log.Error("GetPossibleUserByID:  %v", err)
 		return nil, err
 	}
