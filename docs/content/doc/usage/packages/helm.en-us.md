@@ -1,7 +1,7 @@
 ---
 date: "2022-04-14T00:00:00+00:00"
 title: "Helm Chart Registry"
-slug: "usage/packages/helm"
+slug: "helm"
 weight: 50
 draft: false
 toc: false

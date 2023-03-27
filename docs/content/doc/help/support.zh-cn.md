@@ -1,7 +1,7 @@
 ---
 date: "2017-01-20T15:00:00+08:00"
 title: "需要帮助"
-slug: "seek-help"
+slug: "support"
 weight: 20
 toc: false
 draft: false
@@ -10,7 +10,7 @@ menu:
     parent: "help"
     name: "需要帮助"
     weight: 20
-    identifier: "seek-help"
+    identifier: "support"
 ---
 
 ## 需要帮助?

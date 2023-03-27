@@ -1,7 +1,7 @@
 ---
 date: "2022-08-23T00:00:00+00:00"
 title: "Vagrant Packages Repository"
-slug: "usage/packages/vagrant"
+slug: "vagrant"
 weight: 120
 draft: false
 toc: false

@@ -1,7 +1,7 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "npm Packages Repository"
-slug: "usage/packages/npm"
+slug: "npm"
 weight: 70
 draft: false
 toc: false

@@ -29,7 +29,7 @@ As mentioned below, there is a fully functional log output by default, so it is 
 
 ## Collecting Logs for Help
 
-To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
+To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/support.en-us.md" >}}).
 
 ## The `[log]` section
 

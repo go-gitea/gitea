@@ -1,7 +1,7 @@
 ---
 date: "2022-11-01T00:00:00+00:00"
 title: "Storage"
-slug: "usage/packages/storage"
+slug: "storage"
 weight: 5
 draft: false
 toc: false

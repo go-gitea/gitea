@@ -1,7 +1,7 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "PyPI Packages Repository"
-slug: "usage/packages/pypi"
+slug: "pypi"
 weight: 100
 draft: false
 toc: false

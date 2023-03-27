@@ -1,7 +1,7 @@
 ---
 date: "2022-07-31T00:00:00+00:00"
 title: "Pub Packages Repository"
-slug: "usage/packages/pub"
+slug: "pub"
 weight: 90
 draft: false
 toc: false

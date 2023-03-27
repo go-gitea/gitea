@@ -1,7 +1,7 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "Generic Packages Repository"
-slug: "usage/packages/generic"
+slug: "generic"
 weight: 40
 draft: false
 toc: false

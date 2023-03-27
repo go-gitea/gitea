@@ -1,7 +1,7 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "Maven Packages Repository"
-slug: "usage/packages/maven"
+slug: "maven"
 weight: 60
 draft: false
 toc: false
