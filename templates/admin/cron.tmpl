@@ -24,7 +24,7 @@
 						<td>{{DateFmtLong .Next}}</td>
 						<td>{{if gt .Prev.Year 1}}{{DateFmtLong .Prev}}{{else}}N/A{{end}}</td>
 						<td>{{.ExecTimes}}</td>
-						<td {{if ne .Status ""}}class="tooltip" data-content="{{.FormatLastMessage $.locale}}"{{end}} >{{if eq .Status ""}}—{{else if eq .Status "finished"}}{{svg "octicon-check" 16}}{{else}}{{svg "octicon-x" 16}}{{end}}</td>
+						<td {{if ne .Status ""}}data-tooltip-content="{{.FormatLastMessage $.locale}}"{{end}} >{{if eq .Status ""}}—{{else if eq .Status "finished"}}{{svg "octicon-check" 16}}{{else}}{{svg "octicon-x" 16}}{{end}}</td>
 					</tr>
 				{{end}}
 			</tbody>
