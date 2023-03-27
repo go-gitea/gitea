@@ -23,14 +23,8 @@ import {initRepoIssueContentHistory} from './features/repo-issue-content.js';
 import {initStopwatch} from './features/stopwatch.js';
 import {initFindFileInRepo} from './features/repo-findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
-import {initDiffFileTree} from './features/repo-diff-filetree.js';
 
 import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
-import {
-  initRepoDiffConversationForm,
-  initRepoDiffFileViewToggle,
-  initRepoDiffReviewButton, initRepoDiffShowMore,
-} from './features/repo-diff.js';
 import {
   initRepoIssueDue,
   initRepoIssueList,
@@ -72,7 +66,7 @@ import {
   initRepoSettingsCollaboration,
   initRepoSettingSearchTeamBox,
 } from './features/repo-settings.js';
-import {initViewedCheckboxListenerFor, initExpandAndCollapseFilesButton} from './features/pull-view-file.js';
+import {initRepoDiffView} from './features/pull-view-file.js';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.js';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
 import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.js';
@@ -162,11 +156,6 @@ $(document).ready(() => {
   initRepoCommentForm();
   initRepoEllipsisButton();
   initRepoCommitLastCommitLoader();
-  initRepoDiffConversationForm();
-  initRepoDiffFileViewToggle();
-  initRepoDiffReviewButton();
-  initRepoDiffShowMore();
-  initDiffFileTree();
   initRepoEditor();
   initRepoGraphGit();
   initRepoIssueContentHistory();
@@ -200,6 +189,5 @@ $(document).ready(() => {
   initUserAuthWebAuthn();
   initUserAuthWebAuthnRegister();
   initUserSettings();
-  initViewedCheckboxListenerFor();
-  initExpandAndCollapseFilesButton();
+  initRepoDiffView();
 });
