@@ -31,7 +31,7 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 		switch uid {
 		case -1:
 			return user_model.NewGhostUser(), nil
-		case -2:
+		case user_model.ActionsUserID:
 			return user_model.NewActionsUser(), nil
 		default:
 			log.Error("Invaild uid: %d", uid)
