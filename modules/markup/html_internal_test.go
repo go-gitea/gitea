@@ -330,13 +330,17 @@ func TestRender_FullIssueURLs(t *testing.T) {
 	test("Look here http://localhost:3000/person/repo/issues/4",
 		`Look here <a href="http://localhost:3000/person/repo/issues/4" class="ref-issue">person/repo#4</a>`)
 	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
-		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4</a>`)
+		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4 (comment)</a>`)
 	test("http://localhost:3000/gogits/gogs/issues/4",
 		`<a href="http://localhost:3000/gogits/gogs/issues/4" class="ref-issue">#4</a>`)
 	test("http://localhost:3000/gogits/gogs/issues/4 test",
 		`<a href="http://localhost:3000/gogits/gogs/issues/4" class="ref-issue">#4</a> test`)
 	test("http://localhost:3000/gogits/gogs/issues/4?a=1&b=2#comment-123 test",
-		`<a href="http://localhost:3000/gogits/gogs/issues/4?a=1&amp;b=2#comment-123" class="ref-issue">#4</a> test`)
+		`<a href="http://localhost:3000/gogits/gogs/issues/4?a=1&amp;b=2#comment-123" class="ref-issue">#4 (comment)</a> test`)
+	test("http://localhost:3000/testOrg/testOrgRepo/pulls/2/files#issuecomment-24",
+		"http://localhost:3000/testOrg/testOrgRepo/pulls/2/files#issuecomment-24")
+	test("http://localhost:3000/testOrg/testOrgRepo/pulls/2/files",
+		"http://localhost:3000/testOrg/testOrgRepo/pulls/2/files")
 }
 
 func TestRegExp_sha1CurrentPattern(t *testing.T) {

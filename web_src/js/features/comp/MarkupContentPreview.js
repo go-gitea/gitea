@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {initMarkupContent} from '../../markup/content.js';
+import {attachTippyToRefIssues} from '../contextpopup.js';
 
 const {csrfToken} = window.config;
 
@@ -15,8 +16,12 @@ export function initCompMarkupContentPreviewTab($form) {
       text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
     }, (data) => {
       const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
+      const refIssues = $previewPanel.find('p .ref-issue');
       $previewPanel.html(data);
       initMarkupContent();
+      if (refIssues) {
+        attachTippyToRefIssues(refIssues);
+      }
     });
   });
 }
