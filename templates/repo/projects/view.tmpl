@@ -182,7 +182,7 @@
 						{{if eq $.Project.CardType 1}}{{/* Images and Text*/}}
 							<div class="card-attachment-images">
 								{{range (index $.issuesAttachmentMap .ID)}}
-									<img src="{{.DownloadURL}}" alt="{{.Name}}" />
+									<img src="{{.DownloadURL}}" alt="{{.Name}}">
 								{{end}}
 							</div>
 						{{end}}
