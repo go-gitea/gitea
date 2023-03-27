@@ -1,12 +1,12 @@
 <form class="ui form ignore-dirty">
 	<div class="ui search fluid action input">
-		<input type="hidden" name="type" value="{{$.ViewType}}"/>
-		<input type="hidden" name="state" value="{{$.State}}"/>
-		<input type="hidden" name="labels" value="{{.SelectLabels}}"/>
-		<input type="hidden" name="milestone" value="{{$.MilestoneID}}"/>
-		<input type="hidden" name="project" value="{{$.ProjectID}}"/>
-		<input type="hidden" name="assignee" value="{{$.AssigneeID}}"/>
-		<input type="hidden" name="poster" value="{{$.PosterID}}"/>
+		<input type="hidden" name="type" value="{{$.ViewType}}">
+		<input type="hidden" name="state" value="{{$.State}}">
+		<input type="hidden" name="labels" value="{{.SelectLabels}}">
+		<input type="hidden" name="milestone" value="{{$.MilestoneID}}">
+		<input type="hidden" name="project" value="{{$.ProjectID}}">
+		<input type="hidden" name="assignee" value="{{$.AssigneeID}}">
+		<input type="hidden" name="poster" value="{{$.PosterID}}">
 		<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
 		<button class="ui primary button" type="submit">{{.locale.Tr "explore.search"}}</button>
 	</div>
