@@ -89,9 +89,14 @@ export function initGlobalCommon() {
 
   // Semantic UI modules.
   const $uiDropdowns = $('.ui.dropdown');
-  $uiDropdowns.filter(':not(.custom)').dropdown({
-    fullTextSearch: 'exact'
-  });
+
+  // do not init "custom" dropdowns, "custom" dropdowns are managed by their own code.
+  $uiDropdowns.filter(':not(.custom)').dropdown({fullTextSearch: 'exact'});
+
+  // The "jump" means this dropdown is mainly used for "menu" purpose,
+  // clicking an item will jump to somewhere else or trigger an action/function.
+  // When a dropdown is used for non-refresh actions with tippy,
+  // it must have this "jump" class to hide the tippy when dropdown is closed.
   $uiDropdowns.filter('.jump').dropdown({
     action: 'hide',
     onShow() {
@@ -101,17 +106,23 @@ export function initGlobalCommon() {
     },
     onHide() {
       this._tippy?.enable();
+
+      // hide all tippy elements of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
+      setTimeout(() => {
+        const $dropdown = $(this);
+        if ($dropdown.dropdown('is hidden')) {
+          $(this).find('.menu > .item').each((_, item) => {
+            item._tippy?.hide();
+          });
+        }
+      }, 2000);
     },
-    fullTextSearch: 'exact'
   });
-  $uiDropdowns.filter('.slide.up').dropdown({
-    transition: 'slide up',
-    fullTextSearch: 'exact'
-  });
-  $uiDropdowns.filter('.upward').dropdown({
-    direction: 'upward',
-    fullTextSearch: 'exact'
-  });
+
+  // special animations/popup-directions
+  $uiDropdowns.filter('.slide.up').dropdown({transition: 'slide up'});
+  $uiDropdowns.filter('.upward').dropdown({direction: 'upward'});
+
   attachDropdownAria($uiDropdowns);
 
   attachCheckboxAria($('.ui.checkbox'));
@@ -121,21 +132,6 @@ export function initGlobalCommon() {
 
   $('.toggle.button').on('click', function () {
     toggleElem($($(this).data('target')));
-  });
-
-  // make table <tr> and <td> elements clickable like a link
-  $('tr[data-href], td[data-href]').on('click', function (e) {
-    const href = $(this).data('href');
-    if (e.target.nodeName === 'A') {
-      // if a user clicks on <a>, then the <tr> or <td> should not act as a link.
-      return;
-    }
-    if (e.ctrlKey || e.metaKey) {
-      // ctrl+click or meta+click opens a new window in modern browsers
-      window.open(href);
-    } else {
-      window.location = href;
-    }
   });
 
   // prevent multiple form submissions on forms containing .loading-button

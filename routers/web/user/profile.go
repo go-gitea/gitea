@@ -288,6 +288,7 @@ func Profile(ctx *context.Context) {
 		pager.AddParam(ctx, "language", "Language")
 	}
 	ctx.Data["Page"] = pager
+	ctx.Data["IsProjectEnabled"] = true
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
