@@ -5,7 +5,7 @@
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.generic.download"}}</label>
 				<div class="markup"><pre class="code-block"><code>
-					{{- range .PackageDescriptor.Files -}}
+{{- range .PackageDescriptor.Files -}}
 curl <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/generic/{{$.PackageDescriptor.Package.Name}}/{{$.PackageDescriptor.Version.Version}}/{{.File.Name}}"></gitea-origin-url>
 {{end -}}
 				</code></pre></div>
