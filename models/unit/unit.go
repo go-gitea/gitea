@@ -356,7 +356,7 @@ func FindUnitTypes(nameKeys ...string) (res []Type, invalidKeys []string) {
 			m[t] = struct{}{}
 		}
 	}
-	return
+	return res, invalidKeys
 }
 
 // TypeFromKey give the unit key name and return unit
