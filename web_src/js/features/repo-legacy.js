@@ -443,9 +443,7 @@ async function onEditContent(event) {
           // check if the content contains ref-issue
           // if there are ref issues, attach the tippy
           const refIssues = $renderContent.find('p .ref-issue');
-          if (refIssues) {
-            attachTippyToRefIssues(refIssues);
-          }
+          attachTippyToRefIssues(refIssues);
         }
         const $content = $segment;
         if (!$content.find('.dropzone-attachments').length) {
