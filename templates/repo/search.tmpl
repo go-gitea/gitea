@@ -6,12 +6,12 @@
 			<form class="ui form ignore-dirty" method="get">
 				<div class="ui fluid action input">
 					<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{.locale.Tr "repo.search.search_repo"}}">
-					<div class="ui dropdown selection tooltip{{if .CodeIndexerUnavailable}} disabled{{end}}" data-content="{{.locale.Tr "repo.search.type.tooltip"}}">
+					<div class="ui dropdown selection {{if .CodeIndexerUnavailable}} disabled{{end}}" data-tooltip-content="{{.locale.Tr "repo.search.type.tooltip"}}">
 						<input name="t" type="hidden"{{if .CodeIndexerUnavailable}} disabled{{end}} value="{{.queryType}}">{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="text">{{.locale.Tr (printf "repo.search.%s" (or .queryType "fuzzy"))}}</div>
 						<div class="menu">
-							<div class="item tooltip" data-value="" data-content="{{.locale.Tr "repo.search.fuzzy.tooltip"}}">{{.locale.Tr "repo.search.fuzzy"}}</div>
-							<div class="item tooltip" data-value="match" data-content="{{.locale.Tr "repo.search.match.tooltip"}}">{{.locale.Tr "repo.search.match"}}</div>
+							<div class="item" data-value="" data-tooltip-content="{{.locale.Tr "repo.search.fuzzy.tooltip"}}">{{.locale.Tr "repo.search.fuzzy"}}</div>
+							<div class="item" data-value="match" data-tooltip-content="{{.locale.Tr "repo.search.match.tooltip"}}">{{.locale.Tr "repo.search.match"}}</div>
 						</div>
 					</div>
 					<button class="ui icon button"{{if .CodeIndexerUnavailable}} disabled{{end}} type="submit">{{svg "octicon-search" 16}}</button>
