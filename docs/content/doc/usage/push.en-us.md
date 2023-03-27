@@ -1,17 +1,50 @@
 ---
 date: "2020-07-06T16:00:00+02:00"
-title: "Usage: Push To Create"
-slug: "push-to-create"
+title: "Usage: Push"
+slug: "push"
 weight: 15
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "usage"
-    name: "Push To Create"
+    name: "Push"
     weight: 15
-    identifier: "push-to-create"
+    identifier: "push"
 ---
+
+**Table of Contents**
+
+{{< toc >}}
+
+There are some additional features when pushing commits to Gitea server.
+
+# Push Merge Hint
+
+When you pushing commits to a non-default branch, you will get an information from
+Gitea which is a link, you can click the link and go to a compare page. It's a quick
+way to create a pull request or a code review yourself in the Gitea UI.
+
+![Gitea Push Hint](/gitea-push-hint.png)
+
+# Push Options
+
+In Gitea `1.13`, support for some [push options](https://git-scm.com/docs/git-push#Documentation/git-push.txt--oltoptiongt)
+were added.
+
+## Supported Options
+
+- `repo.private` (true|false) - Change the repository's visibility.
+
+  This is particularly useful when combined with push-to-create.
+
+- `repo.template` (true|false) - Change whether the repository is a template.
+
+Example of changing a repository's visibility to public:
+
+```shell
+git push -o repo.private=false -u origin main
+```
 
 # Push To Create
 

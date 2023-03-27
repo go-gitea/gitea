@@ -1,35 +1,50 @@
 ---
-date: "2018-06-01T19:00:00+02:00"
-title: "使用: 合併請求"
-slug: "pull-request"
-weight: 13
+date: "2020-07-06T16:00:00+02:00"
+title: "使用: Push"
+slug: "push"
+weight: 15
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "usage"
-    name: "合併請求"
-    weight: 13
-    identifier: "pull-request"
+    name: "Push"
+    weight: 15
+    identifier: "push"
 ---
 
-# 合併請求
+**Table of Contents**
 
-## 「還在進行中（WIP）」的合併請求
+{{< toc >}}
 
-將合併請求標記為還在進行中（Work In Progress, WIP）可避免意外地被合併。
-要將合併請求標記為還在進行中請在標題中使用 `WIP:` 或 `[WIP]` 前綴（不分大小寫）。這些值可在您的 `app.ini` 中設定：
+There are some additional features when pushing commits to Gitea server.
 
-```ini
-[repository.pull-request]
-WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
+# Push Merge Hint
+
+When you pushing commits to a non-default branch, you will get an information from
+Gitea which is a link, you can click the link and go to a compare page. It's a quick
+way to create a pull request or a code review yourself in the Gitea UI.
+
+![Gitea Push Hint](/gitea-push-hint.png)
+
+# Push Options
+
+Gitea 從 `1.13` 版開始支援某些 [push options](https://git-scm.com/docs/git-push#Documentation/git-push.txt--oltoptiongt)
+。
+
+## 支援的 Options
+
+- `repo.private` (true|false) - 修改儲存庫的可見性。
+
+  與 push-to-create 一起使用時特別有用。
+
+- `repo.template` (true|false) - 修改儲存庫是否為範本儲存庫。
+
+以下範例修改儲存庫的可見性為公開：
+
+```shell
+git push -o repo.private=false -u origin main
 ```
-
-網頁提示會使用第一個值作為範例。
-
-## 合併請求範本
-
-您可以在[問題與合併請求範本](../issue-pull-request-templates)找到更多關於合併請求範本的資訊。
 
 # Push To Create
 
@@ -56,4 +71,3 @@ This assumes you are using an SSH remote, but you can also use HTTPS remotes as 
 ## Push options (bonus)
 
 Push-to-create will default to the visibility defined by `DEFAULT_PUSH_CREATE_PRIVATE` in `app.ini`. To explicitly set the visibility, you can use a [push option]({{< relref "doc/usage/push-options.en-us.md" >}}).
-
