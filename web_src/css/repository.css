@@ -3062,21 +3062,10 @@ tbody.commit-list {
   top: -2px;
 }
 
-#topic_edit {
-  margin-top: 5px;
-}
-
-#repo-topics {
-  margin-top: 5px;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.repo-topic {
-  font-weight: normal !important;
+#repo-topics .repo-topic {
+  font-weight: normal;
   cursor: pointer;
-  margin: 2px !important;
+  margin: 2px;
 }
 
 #new-dependency-drop-list.ui.selection.dropdown {
@@ -3090,18 +3079,6 @@ tbody.commit-list {
 #new-dependency-drop-list .text {
   width: 100%;
   overflow: hidden;
-}
-
-#manage_topic {
-  font-size: 12px;
-}
-
-.label + #manage_topic {
-  margin-left: 5px;
-}
-
-.ui.small.label.topic {
-  margin-bottom: 4px;
 }
 
 .repo-header {
