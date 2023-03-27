@@ -8,7 +8,6 @@ package actions
 
 import (
 	"context"
-	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -68,7 +67,7 @@ func GetArtifactByID(ctx context.Context, id int64) (*ActionArtifact, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, fmt.Errorf("task with id %d: %w", id, util.ErrNotExist)
+		return nil, util.NewNotExistErrorf("no ActionArtifact with id %d exists", id)
 	}
 
 	return &art, nil
