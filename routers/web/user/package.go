@@ -10,13 +10,14 @@ import (
 	org_model "code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
-	debian_model "code.gitea.io/gitea/models/packages/debian"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -168,22 +169,26 @@ func ViewPackageVersion(ctx *context.Context) {
 	case packages_model.TypeContainer:
 		ctx.Data["RegistryHost"] = setting.Packages.RegistryHost
 	case packages_model.TypeDebian:
-		var err error
-		ctx.Data["Distributions"], err = debian_model.GetDistributions(ctx, pd.Owner.ID)
-		if err != nil {
-			ctx.ServerError("GetDistributions", err)
-			return
+		distributions := make(container.Set[string])
+		components := make(container.Set[string])
+		architectures := make(container.Set[string])
+
+		for _, f := range pd.Files {
+			for _, pp := range f.Properties {
+				switch pp.Name {
+				case debian_module.PropertyDistribution:
+					distributions.Add(pp.Value)
+				case debian_module.PropertyComponent:
+					components.Add(pp.Value)
+				case debian_module.PropertyArchitecture:
+					architectures.Add(pp.Value)
+				}
+			}
 		}
-		ctx.Data["Components"], err = debian_model.GetComponents(ctx, pd.Owner.ID, "")
-		if err != nil {
-			ctx.ServerError("GetComponents", err)
-			return
-		}
-		ctx.Data["Architectures"], err = debian_model.GetArchitectures(ctx, pd.Owner.ID, "")
-		if err != nil {
-			ctx.ServerError("GetArchitectures", err)
-			return
-		}
+
+		ctx.Data["Distributions"] = distributions.Values()
+		ctx.Data["Components"] = components.Values()
+		ctx.Data["Architectures"] = architectures.Values()
 	}
 
 	var (
