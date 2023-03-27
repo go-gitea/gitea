@@ -226,8 +226,8 @@ func releasesOrTagsFeed(ctx *context.Context, isReleasesOnly bool, formatType st
 
 // SingleRelease renders a single release's page
 func SingleRelease(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 	ctx.Data["PageIsReleaseList"] = true
+	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 
 	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
@@ -240,6 +240,12 @@ func SingleRelease(ctx *context.Context) {
 		}
 		ctx.ServerError("GetReleasesByRepoID", err)
 		return
+	}
+	ctx.Data["PageIsSingleTag"] = release.IsTag
+	if release.IsTag {
+		ctx.Data["Title"] = release.TagName
+	} else {
+		ctx.Data["Title"] = release.Title
 	}
 
 	err = repo_model.GetReleaseAttachments(ctx, release)
