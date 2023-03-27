@@ -5,10 +5,10 @@
 		{{template "base/alert" .}}
 		<h2 class="ui compact small menu header">
 			{{if .Permission.CanRead $.UnitTypeReleases}}
-				<a class="{{if (not .PageIsTagList)}}active {{end}}item" href="{{.RepoLink}}/releases">{{.locale.Tr "repo.release.releases"}}</a>
+				<a class="{{if (and (not .PageIsSingleTag) (not .PageIsTagList))}}active {{end}}item" href="{{.RepoLink}}/releases">{{.locale.Tr "repo.release.releases"}}</a>
 			{{end}}
 			{{if .Permission.CanRead $.UnitTypeCode}}
-				<a class="{{if .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/tags">{{.locale.Tr "repo.release.tags"}}</a>
+				<a class="{{if (or .PageIsSingleTag .PageIsTagList)}}active {{end}}item" href="{{.RepoLink}}/tags">{{.locale.Tr "repo.release.tags"}}</a>
 			{{end}}
 		</h2>
 		{{if .EnableFeed}}
@@ -35,7 +35,7 @@
 						<tr>
 							<td class="tag">
 								<h3 class="release-tag-name gt-mb-3">
-									<a class="gt-df gt-ac" href="{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{.TagName}}</a>
+									<a class="gt-df gt-ac" href="{{$.RepoLink}}/releases/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{.TagName}}</a>
 								</h3>
 								<div class="download gt-df gt-ac">
 									{{if $.Permission.CanRead $.UnitTypeCode}}
@@ -69,9 +69,6 @@
 			{{range $idx, $release := .Releases}}
 				<li class="ui grid">
 					<div class="ui four wide column meta gt-mt-2">
-						{{if .IsTag}}
-							{{if .CreatedUnix}}<span class="time">{{TimeSinceUnix .CreatedUnix $.locale}}</span>{{end}}
-						{{else}}
 							<a class="gt-df gt-ac gt-je muted" href="{{if not .Sha1}}#{{else}}{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "gt-mr-2"}}{{.TagName}}</a>
 							{{if .Sha1}}
 								<span class="commit">
@@ -79,41 +76,8 @@
 								</span>
 								{{template "repo/branch_dropdown" dict "root" $ "release" .}}
 							{{end}}
-						{{end}}
 					</div>
 					<div class="ui twelve wide column detail">
-						{{if .IsTag}}
-							<div class="gt-df gt-ac gt-sb gt-fw gt-mb-3">
-								<h4 class="release-list-title gt-df gt-ac">
-									<a class="gt-df gt-ac" href="{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{svg "octicon-tag" 24 "gt-mr-3"}}{{.TagName}}</a>
-								</h4>
-							</div>
-							<p class="text grey">
-								{{if gt .Publisher.ID 0}}
-								<span class="author">
-									{{avatar $.Context .Publisher 20}}
-									<a href="{{.Publisher.HomeLink}}">{{.Publisher.Name}}</a>
-								</span>
-								<span class="released">
-									{{$.locale.Tr "repo.released_this"}}
-								</span>
-								{{if .CreatedUnix}}
-									<span class="time">{{TimeSinceUnix .CreatedUnix $.locale}}</span>
-								{{end}}
-								|
-								{{end}}
-								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}{{if .Target}}...{{.Target | PathEscapeSegments}}{{end}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.release.ahead.target" $.DefaultBranch}}</span>
-							</p>
-							<div class="download">
-							{{if $.Permission.CanRead $.UnitTypeCode}}
-								<a class="gt-mono muted" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "gt-mr-2"}}{{ShortSha .Sha1}}</a>
-								{{if not $.DisableDownloadSourceArchives}}
-									<a class="archive-link muted" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
-									<a class="archive-link muted" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
-								{{end}}
-							{{end}}
-							</div>
-						{{else}}
 							<div class="gt-df gt-ac gt-sb gt-fw gt-mb-3">
 								<h4 class="release-list-title gt-df gt-ac">
 									<a href="{{$.RepoLink}}/releases/tag/{{.TagName | PathEscapeSegments}}">{{.Title}}</a>
@@ -133,6 +97,24 @@
 									{{end}}
 								</div>
 							</div>
+						{{if .IsTag}}
+							<p class="text grey">
+								{{if gt .Publisher.ID 0}}
+								<span class="author">
+									{{avatar $.Context .Publisher 20}}
+									<a href="{{.Publisher.HomeLink}}">{{.Publisher.Name}}</a>
+								</span>
+								<span class="released">
+									{{$.locale.Tr "repo.tagged_this"}}
+								</span>
+								{{if .CreatedUnix}}
+									<span class="time">{{TimeSinceUnix .CreatedUnix $.locale}}</span>
+								{{end}}
+								|
+								{{end}}
+								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}{{if .Target}}...{{.Target | PathEscapeSegments}}{{end}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.tag.ahead.target" $.DefaultBranch}}</span>
+							</p>
+						{{else}}
 							<p class="text grey">
 								<span class="author">
 								{{if .OriginalAuthor}}
@@ -154,6 +136,7 @@
 									| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.Target | PathEscapeSegments}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.release.ahead.target" .Target}}</span>
 								{{end}}
 							</p>
+						{{end}}
 							<div class="markup desc">
 								{{Str2html .Note}}
 							</div>
@@ -187,7 +170,6 @@
 									{{end}}
 								</ul>
 							</details>
-						{{end}}
 						<span class="dot">&nbsp;</span>
 					</div>
 				</li>
