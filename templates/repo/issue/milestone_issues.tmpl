@@ -58,7 +58,7 @@
 							<span class="info">{{.locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{range .Labels}}
-								<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if contain $.SelLabelIDs .ID}}{{svg "octicon-check"}}{{end}} {{RenderLabel .}}</a>
+								<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if contain $.SelLabelIDs .ID}}{{svg "octicon-check"}}{{end}} {{RenderLabel $.Context .}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -70,10 +70,14 @@
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 						<div class="menu">
+							<div class="ui icon search input">
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
+							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
 							{{range .Posters}}
 								<a class="{{if eq $.PosterID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{.ID}}">
-									{{avatar $.Context .}} {{.GetDisplayName}}
+									{{avatar $.Context .}}{{template "repo/search_name" .}}
 								</a>
 							{{end}}
 						</div>
@@ -93,8 +97,7 @@
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
 							{{range .Assignees}}
 								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{.ID}}&poster={{$.PosterID}}">
-									{{avatar $.Context . 28 "gt-mr-2"}}
-									{{.GetDisplayName}}
+									{{avatar $.Context . 28 "gt-mr-2"}}{{template "repo/search_name" .}}
 								</a>
 							{{end}}
 						</div>
@@ -149,9 +152,9 @@
 				<div class="ui secondary filter stackable menu">
 					<!-- Action Button -->
 					{{if .IsShowClosed}}
-						<div class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_open"}}</div>
+						<button class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_open"}}</button>
 					{{else}}
-						<div class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_close"}}</div>
+						<button class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_close"}}</button>
 					{{end}}
 					<!-- Labels -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
@@ -162,7 +165,7 @@
 						<div class="menu">
 							{{range .Labels}}
 								<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-									{{if contain $.SelLabelIDs .ID}}{{svg "octicon-check"}}{{end}} {{RenderLabel .}}
+									{{if contain $.SelLabelIDs .ID}}{{svg "octicon-check"}}{{end}} {{RenderLabel $.Context .}}
 								</div>
 							{{end}}
 						</div>

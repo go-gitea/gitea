@@ -49,10 +49,15 @@ type swaggerParameterBodies struct {
 	CreateKeyOption api.CreateKeyOption
 
 	// in:body
+	RenameUserOption api.RenameUserOption
+
+	// in:body
 	CreateLabelOption api.CreateLabelOption
 	// in:body
 	EditLabelOption api.EditLabelOption
 
+	// in:body
+	MarkupOption api.MarkupOption
 	// in:body
 	MarkdownOption api.MarkdownOption
 

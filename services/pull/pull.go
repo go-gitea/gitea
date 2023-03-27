@@ -274,9 +274,12 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 				continue
 			}
 
+			// If the PR is closed, someone still push some commits to the PR,
+			// 1. We will insert comments of commits, but hidden until the PR is reopened.
+			// 2. We won't send any notification.
 			AddToTaskQueue(pr)
 			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
-			if err == nil && comment != nil {
+			if err == nil && comment != nil && !pr.Issue.IsClosed {
 				notification.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
 			}
 		}
@@ -349,18 +352,14 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 // checkIfPRContentChanged checks if diff to target branch has changed by push
 // A commit can be considered to leave the PR untouched if the patch/diff with its merge base is unchanged
 func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
-	tmpBasePath, err := createTemporaryRepo(ctx, pr)
+	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
-		log.Error("CreateTemporaryRepo: %v", err)
+		log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
 		return false, err
 	}
-	defer func() {
-		if err := repo_module.RemoveTemporaryPath(tmpBasePath); err != nil {
-			log.Error("checkIfPRContentChanged: RemoveTemporaryPath: %s", err)
-		}
-	}()
+	defer cancel()
 
-	tmpRepo, err := git.OpenRepository(ctx, tmpBasePath)
+	tmpRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
 	if err != nil {
 		return false, fmt.Errorf("OpenRepository: %w", err)
 	}
@@ -379,7 +378,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 	}
 
 	if err := cmd.Run(&git.RunOpts{
-		Dir:    tmpBasePath,
+		Dir:    prCtx.tmpBasePath,
 		Stdout: stdoutWriter,
 		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
@@ -673,7 +672,12 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 
 		authorString := commit.Author.String()
 		if uniqueAuthors.Add(authorString) && authorString != posterSig {
-			authors = append(authors, authorString)
+			// Compare use account as well to avoid adding the same author multiple times
+			// times when email addresses are private or multiple emails are used.
+			commitUser, _ := user_model.GetUserByEmail(ctx, commit.Author.Email)
+			if commitUser == nil || commitUser.ID != pr.Issue.Poster.ID {
+				authors = append(authors, authorString)
+			}
 		}
 	}
 
@@ -694,7 +698,10 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 			for _, commit := range commits {
 				authorString := commit.Author.String()
 				if uniqueAuthors.Add(authorString) && authorString != posterSig {
-					authors = append(authors, authorString)
+					commitUser, _ := user_model.GetUserByEmail(ctx, commit.Author.Email)
+					if commitUser == nil || commitUser.ID != pr.Issue.Poster.ID {
+						authors = append(authors, authorString)
+					}
 				}
 			}
 			skip += limit

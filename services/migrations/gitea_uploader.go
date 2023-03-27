@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -30,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/uri"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/pull"
 
 	"github.com/google/uuid"
@@ -865,8 +865,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				_, _, line, _ = git.ParseDiffHunkString(comment.DiffHunk)
 			}
 
-			// SECURITY: The TreePath must be cleaned!
-			comment.TreePath = path.Clean("/" + comment.TreePath)[1:]
+			// SECURITY: The TreePath must be cleaned! use relative path
+			comment.TreePath = util.PathJoinRel(comment.TreePath)
 
 			var patch string
 			reader, writer := io.Pipe()

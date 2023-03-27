@@ -31,7 +31,7 @@
 			<div class="column center aligned">
 				<form class="ui form ignore-dirty">
 					<div class="ui search fluid action input">
-						<input type="hidden" name="state" value="{{$.State}}"/>
+						<input type="hidden" name="state" value="{{$.State}}">
 						<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
 						<button class="ui primary button" type="submit">{{.locale.Tr "explore.search"}}</button>
 					</div>
@@ -124,16 +124,7 @@
 		<div class="content">
 			<p>{{.locale.Tr "repo.milestones.deletion_desc"}}</p>
 		</div>
-		<div class="actions">
-			<div class="ui red basic inverted cancel button">
-				<i class="remove icon"></i>
-				{{.locale.Tr "modal.no"}}
-			</div>
-			<div class="ui green basic inverted ok button">
-				<i class="checkmark icon"></i>
-				{{.locale.Tr "modal.yes"}}
-			</div>
-		</div>
+		{{template "base/delete_modal_actions" .}}
 	</div>
 {{end}}
 {{template "base/footer" .}}
