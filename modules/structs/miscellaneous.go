@@ -15,13 +15,41 @@ type SearchError struct {
 	Error string `json:"error"`
 }
 
+// MarkupOption markup options
+type MarkupOption struct {
+	// Text markup to render
+	//
+	// in: body
+	Text string
+	// Mode to render (comment, gfm, markdown, file)
+	//
+	// in: body
+	Mode string
+	// Context to render
+	//
+	// in: body
+	Context string
+	// Is it a wiki page ?
+	//
+	// in: body
+	Wiki bool
+	// File path for detecting extension in file mode
+	//
+	// in: body
+	FilePath string
+}
+
+// MarkupRender is a rendered markup document
+// swagger:response MarkupRender
+type MarkupRender string
+
 // MarkdownOption markdown options
 type MarkdownOption struct {
 	// Text markdown to render
 	//
 	// in: body
 	Text string
-	// Mode to render
+	// Mode to render (comment, gfm, markdown)
 	//
 	// in: body
 	Mode string

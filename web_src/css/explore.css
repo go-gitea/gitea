@@ -41,6 +41,11 @@
   margin-bottom: 0.5rem;
 }
 
+.ui.repository.list .repo-title .labels {
+  word-break: normal;
+  flex-shrink: 0;
+}
+
 .ui.repository.branches .info {
   font-size: 12px;
   color: var(--color-text-light);

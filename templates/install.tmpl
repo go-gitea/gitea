@@ -221,73 +221,73 @@
 						</summary>
 						<div class="inline field">
 							<div class="ui checkbox" id="offline-mode">
-								<label class="tooltip" data-content="{{.locale.Tr "install.offline_mode_popup"}}">{{.locale.Tr "install.offline_mode"}}</label>
+								<label data-tooltip-content="{{.locale.Tr "install.offline_mode_popup"}}">{{.locale.Tr "install.offline_mode"}}</label>
 								<input name="offline_mode" type="checkbox" {{if .offline_mode}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="disable-gravatar">
-								<label class="tooltip" data-content="{{.locale.Tr "install.disable_gravatar_popup"}}">{{.locale.Tr "install.disable_gravatar"}}</label>
+								<label data-tooltip-content="{{.locale.Tr "install.disable_gravatar_popup"}}">{{.locale.Tr "install.disable_gravatar"}}</label>
 								<input name="disable_gravatar" type="checkbox" {{if .disable_gravatar}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="federated-avatar-lookup">
-								<label class="tooltip" data-content="{{.locale.Tr "install.federated_avatar_lookup_popup"}}">{{.locale.Tr "install.federated_avatar_lookup"}}</label>
+								<label data-tooltip-content="{{.locale.Tr "install.federated_avatar_lookup_popup"}}">{{.locale.Tr "install.federated_avatar_lookup"}}</label>
 								<input name="enable_federated_avatar" type="checkbox" {{if .enable_federated_avatar}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="enable-openid-signin">
-								<label class="tooltip" data-content="{{.locale.Tr "install.openid_signin_popup"}}">{{.locale.Tr "install.openid_signin"}}</label>
+								<label data-tooltip-content="{{.locale.Tr "install.openid_signin_popup"}}">{{.locale.Tr "install.openid_signin"}}</label>
 								<input name="enable_open_id_sign_in" type="checkbox" {{if .enable_open_id_sign_in}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="disable-registration">
-								<label class="tooltip" data-content="{{.locale.Tr "install.disable_registration_popup"}}">{{.locale.Tr "install.disable_registration"}}</label>
+								<label data-tooltip-content="{{.locale.Tr "install.disable_registration_popup"}}">{{.locale.Tr "install.disable_registration"}}</label>
 								<input name="disable_registration" type="checkbox" {{if .disable_registration}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="allow-only-external-registration">
-								<label class="tooltip" data-content="{{.locale.Tr "install.allow_only_external_registration_popup"}}">{{.locale.Tr "install.allow_only_external_registration_popup"}}</label>
+								<label data-tooltip-content="{{.locale.Tr "install.allow_only_external_registration_popup"}}">{{.locale.Tr "install.allow_only_external_registration_popup"}}</label>
 								<input name="allow_only_external_registration" type="checkbox" {{if .allow_only_external_registration}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="enable-openid-signup">
-								<label class="tooltip" data-content="{{.locale.Tr "install.openid_signup_popup"}}">{{.locale.Tr "install.openid_signup"}}</label>
+								<label data-tooltip-content="{{.locale.Tr "install.openid_signup_popup"}}">{{.locale.Tr "install.openid_signup"}}</label>
 								<input name="enable_open_id_sign_up" type="checkbox" {{if .enable_open_id_sign_up}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="enable-captcha">
-								<label class="tooltip" data-content="{{.locale.Tr "install.enable_captcha_popup"}}">{{.locale.Tr "install.enable_captcha"}}</label>
+								<label data-tooltip-content="{{.locale.Tr "install.enable_captcha_popup"}}">{{.locale.Tr "install.enable_captcha"}}</label>
 								<input name="enable_captcha" type="checkbox" {{if .enable_captcha}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox">
-								<label class="tooltip" data-content="{{.locale.Tr "install.require_sign_in_view_popup"}}">{{.locale.Tr "install.require_sign_in_view"}}</label>
+								<label data-tooltip-content="{{.locale.Tr "install.require_sign_in_view_popup"}}">{{.locale.Tr "install.require_sign_in_view"}}</label>
 								<input name="require_sign_in_view" type="checkbox" {{if .require_sign_in_view}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox">
-								<label class="tooltip" data-content="{{.locale.Tr "install.default_keep_email_private_popup"}}">{{.locale.Tr "install.default_keep_email_private"}}</label>
+								<label data-tooltip-content="{{.locale.Tr "install.default_keep_email_private_popup"}}">{{.locale.Tr "install.default_keep_email_private"}}</label>
 								<input name="default_keep_email_private" type="checkbox" {{if .default_keep_email_private}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox">
-								<label class="tooltip" data-content="{{.locale.Tr "install.default_allow_create_organization_popup"}}">{{.locale.Tr "install.default_allow_create_organization"}}</label>
+								<label data-tooltip-content="{{.locale.Tr "install.default_allow_create_organization_popup"}}">{{.locale.Tr "install.default_allow_create_organization"}}</label>
 								<input name="default_allow_create_organization" type="checkbox" {{if .default_allow_create_organization}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox">
-								<label class="tooltip" data-content="{{.locale.Tr "install.default_enable_timetracking_popup"}}">{{.locale.Tr "install.default_enable_timetracking"}}</label>
+								<label data-tooltip-content="{{.locale.Tr "install.default_enable_timetracking_popup"}}">{{.locale.Tr "install.default_enable_timetracking"}}</label>
 								<input name="default_enable_timetracking" type="checkbox" {{if .default_enable_timetracking}}checked{{end}}>
 							</div>
 						</div>
@@ -346,5 +346,5 @@
 		</div>
 	</div>
 </div>
-<img class="gt-hidden" src="{{AssetUrlPrefix}}/img/loading.png"/>
+<img class="gt-hidden" src="{{AssetUrlPrefix}}/img/loading.png">
 {{template "base/footer" .}}
