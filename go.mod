@@ -99,6 +99,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
 	github.com/ulikunitz/xz v0.5.11
+	github.com/urfave/cli v1.22.14
 	github.com/urfave/cli/v2 v2.25.7
 	github.com/xanzy/go-gitlab v0.91.0
 	github.com/xeipuuv/gojsonschema v1.2.0
@@ -117,6 +118,7 @@ require (
 	google.golang.org/protobuf v1.31.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/ini.v1 v1.67.0
+	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 	mvdan.cc/xurls/v2 v2.5.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
@@ -296,7 +298,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
@@ -304,6 +305,8 @@ replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
 replace github.com/nektos/act => gitea.com/gitea/act v0.243.4
+
+replace xorm.io/xorm => ../../xorm/xorm
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 

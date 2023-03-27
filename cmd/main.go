@@ -142,6 +142,7 @@ func NewMainApp(version, versionExtra string) *cli.App {
 		CmdDumpRepository,
 		CmdRestoreRepository,
 		CmdActions,
+		CmdBackup,
 		cmdHelp(), // the "help" sub-command was used to show the more information for "work path" and "custom config"
 	}
 
