@@ -11,7 +11,7 @@
 						<div class="default text">{{.locale.Tr "repo.issues.label_templates.helper"}}</div>
 						<div class="menu">
 							{{range .LabelTemplateFiles}}
-								<div class="item" data-value="{{.FileName}}">{{.DisplayName}}<br/><i>({{.Description}})</i></div>
+								<div class="item" data-value="{{.FileName}}">{{.DisplayName}}<br><i>({{.Description}})</i></div>
 							{{end}}
 						</div>
 						{{svg "octicon-triangle-down" 18 "dropdown icon"}}
