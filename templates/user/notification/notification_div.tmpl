@@ -35,7 +35,7 @@
 							{{$issue := .Issue}}
 							{{$repo := .Repository}}
 							<tr id="notification_{{.ID}}">
-								<td class="collapsing gt-pl-4" data-href="{{.Link}}">
+								<td class="collapsing gt-pl-4">
 									{{if eq .Status 3}}
 										{{svg "octicon-pin" 16 "text blue"}}
 									{{else if not $issue}}
@@ -58,7 +58,7 @@
 										{{end}}
 									{{end}}
 								</td>
-								<td class="eleven wide" data-href="{{.Link}}">
+								<td class="eleven wide">
 									<a class="item" href="{{.Link}}">
 										{{if $issue}}
 											#{{$issue.Index}} - {{$issue.Title}}
@@ -67,7 +67,7 @@
 										{{end}}
 									</a>
 								</td>
-								<td data-href="{{$repo.Link}}">
+								<td>
 									<a class="item" href="{{$repo.Link}}">{{$repo.FullName}}</a>
 								</td>
 								<td class="collapsing">

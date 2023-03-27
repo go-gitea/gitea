@@ -711,6 +711,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			})
 		}
 		m.Get("/signing-key.gpg", misc.SigningKey)
+		m.Post("/markup", bind(api.MarkupOption{}), misc.Markup)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
 		m.Group("/settings", func() {
@@ -1034,6 +1035,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 						Patch(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditLabelOption{}), repo.EditLabel).
 						Delete(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteLabel)
 				})
+				m.Post("/markup", reqToken(auth_model.AccessTokenScopeRepo), bind(api.MarkupOption{}), misc.Markup)
 				m.Post("/markdown", reqToken(auth_model.AccessTokenScopeRepo), bind(api.MarkdownOption{}), misc.Markdown)
 				m.Post("/markdown/raw", reqToken(auth_model.AccessTokenScopeRepo), misc.MarkdownRaw)
 				m.Group("/milestones", func() {
