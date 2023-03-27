@@ -68,9 +68,9 @@ func fileFromOptionsDir(elems ...string) ([]byte, error) {
 }
 
 // fileFromOptionsDir is a helper to read files from custom path or bindata.
-func fileFromOptionsDirExtensions(elem string, extensions ...string) ([]byte, string, error) {
+func fileFromOptionsDirExtensions(elems []string, extensions ...string) ([]byte, string, error) {
 	// only try custom dir, no static dir
-	if data, extension, err := readLocalFileExtensions([]string{setting.CustomPath}, "options", elem, extensions...); err == nil {
+	if data, extension, err := readLocalFileExtensions([]string{setting.CustomPath}, "options", elems, extensions...); err == nil {
 		return data, extension, nil
 	}
 
@@ -93,6 +93,7 @@ func fileFromOptionsDirExtensions(elem string, extensions ...string) ([]byte, st
 		}
 		return bs, extension, nil
 	}
+	return nil, "", os.ErrNotExist
 }
 
 func Asset(name string) ([]byte, error) {
