@@ -394,9 +394,9 @@ type swaggerRepoIssueConfig struct {
 	Body api.IssueConfig `json:"body"`
 }
 
-// RepoIssueConfigValidate
-// swagger:response RepoIssueConfigValidate
-type swaggerRepoIssueConfigValidate struct {
+// RepoIssueConfigValidation
+// swagger:response RepoIssueConfigValidation
+type swaggerRepoIssueConfigValidation struct {
 	// in:body
-	Body api.IssueConfigValidate `json:"body"`
+	Body api.IssueConfigValidation `json:"body"`
 }

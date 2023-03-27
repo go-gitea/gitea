@@ -5074,7 +5074,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/RepoIssueConfigValidate"
+            "$ref": "#/responses/RepoIssueConfigValidation"
           }
         }
       }
@@ -17976,7 +17976,7 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "IssueConfigValidate": {
+    "IssueConfigValidation": {
       "type": "object",
       "properties": {
         "message": {
@@ -21255,10 +21255,10 @@
         "$ref": "#/definitions/IssueConfig"
       }
     },
-    "RepoIssueConfigValidate": {
-      "description": "RepoIssueConfigValidate",
+    "RepoIssueConfigValidation": {
+      "description": "RepoIssueConfigValidation",
       "schema": {
-        "$ref": "#/definitions/IssueConfigValidate"
+        "$ref": "#/definitions/IssueConfigValidation"
       }
     },
     "Repository": {

@@ -201,7 +201,7 @@ type IssueConfig struct {
 	ContactLinks       []IssueConfigContactLink `json:"contact_links" yaml:"contact_links"`
 }
 
-type IssueConfigValidate struct {
+type IssueConfigValidation struct {
 	Valid   bool   `json:"valid"`
 	Message string `json:"message"`
 }

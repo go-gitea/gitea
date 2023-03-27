@@ -1190,12 +1190,12 @@ func ValidateIssueConfig(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/RepoIssueConfigValidate"
+	//     "$ref": "#/responses/RepoIssueConfigValidation"
 	_, err := ctx.IssueConfigFromDefaultBranch()
 
 	if err == nil {
-		ctx.JSON(http.StatusOK, api.IssueConfigValidate{Valid: true, Message: ""})
+		ctx.JSON(http.StatusOK, api.IssueConfigValidation{Valid: true, Message: ""})
 	} else {
-		ctx.JSON(http.StatusOK, api.IssueConfigValidate{Valid: false, Message: err.Error()})
+		ctx.JSON(http.StatusOK, api.IssueConfigValidation{Valid: false, Message: err.Error()})
 	}
 }
