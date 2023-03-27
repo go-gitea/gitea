@@ -294,7 +294,7 @@
 				<span class="text"><strong>{{.locale.Tr "notification.notifications"}}</strong></span>
 				<div class="gt-mt-3">
 					<form method="POST" action="{{.Issue.Link}}/watch">
-						<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}" />
+						<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}">
 						{{$.CsrfTokenHtml}}
 						<button class="fluid ui button gt-df gt-jc">
 							{{if $.IssueWatch.IsWatching}}
@@ -517,8 +517,8 @@
 					<div class="content">
 						<form method="POST" action="{{.Issue.Link}}/dependency/delete" id="removeDependencyForm">
 							{{$.CsrfTokenHtml}}
-							<input type="hidden" value="" name="removeDependencyID" id="removeDependencyID"/>
-							<input type="hidden" value="" name="dependencyType" id="dependencyType"/>
+							<input type="hidden" value="" name="removeDependencyID" id="removeDependencyID">
+							<input type="hidden" value="" name="dependencyType" id="dependencyType">
 						</form>
 						<p>{{if .Issue.IsPull}}
 							{{.locale.Tr "repo.issues.dependency.pr_remove_text"}}
