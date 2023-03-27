@@ -312,7 +312,7 @@ var (
 
 	UnitActions = Unit{
 		TypeActions,
-		"actions.actions",
+		"repo.actions",
 		"/actions",
 		"actions.unit.desc",
 		7,
