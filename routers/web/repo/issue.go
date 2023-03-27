@@ -3300,3 +3300,31 @@ func handleTeamMentions(ctx *context.Context) {
 	ctx.Data["MentionableTeamsOrg"] = ctx.Repo.Owner.Name
 	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.AvatarLink(ctx)
 }
+
+func IssuePosters(ctx *context.Context) {
+	fmt.Println("IssuePostersIssuePostersIssuePostersIssuePosters")
+	var err error
+	repo := ctx.Repo.Repository
+	fmt.Println(repo)
+	isPullList := ctx.Params(":type") == "pulls"
+	fmt.Println(ctx.Params(":type"))
+	fmt.Println(isPullList)
+	isPullOption := util.OptionalBoolOf(isPullList)
+	posters, err := repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
+	fmt.Println("posters")
+	fmt.Println(posters)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, api.SearchError{
+			OK:    false,
+			Error: err.Error(),
+		})
+		return
+	}
+	results := make([]*api.User, len(posters))
+	fmt.Println("results")
+	fmt.Println(results)
+	ctx.JSON(http.StatusOK, api.UserSearchResults{
+		OK:   true,
+		Data: results,
+	})
+}
