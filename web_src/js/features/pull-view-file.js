@@ -1,11 +1,5 @@
 import {setFileFolding} from './file-fold.js';
-import {initDiffFileTree} from './repo-diff-filetree.js';
-import {
-  initRepoDiffShowMore,
-  initRepoDiffReviewButton, 
-  initRepoDiffFileViewToggle,
-  initRepoDiffConversationForm,
-} from './repo-diff.js';
+
 
 const {csrfToken, pageData} = window.config;
 const prReview = pageData.prReview || {};
@@ -79,7 +73,7 @@ export function initViewedCheckboxListenerFor() {
   }
 }
 
-function initExpandAndCollapseFilesButton() {
+export function initExpandAndCollapseFilesButton() {
   // expand btn
   document.querySelector(expandFilesBtnSelector)?.addEventListener('click', () => {
     for (const box of document.querySelectorAll('.file-content[data-folded="true"]')) {
@@ -95,15 +89,4 @@ function initExpandAndCollapseFilesButton() {
   });
 }
 
-export function initRepoDiffView() {
-  const expandFilesBtn = document.querySelector(expandFilesBtnSelector);
-  if (!expandFilesBtn) return;
 
-  initDiffFileTree();
-  initRepoDiffShowMore();
-  initRepoDiffReviewButton();
-  initRepoDiffFileViewToggle();
-  initRepoDiffConversationForm();
-  initViewedCheckboxListenerFor();
-  initExpandAndCollapseFilesButton();
-}

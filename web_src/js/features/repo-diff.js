@@ -2,12 +2,13 @@ import $ from 'jquery';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
 import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
-import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles} from './pull-view-file.js';
+import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.js';
 import {initTooltip} from '../modules/tippy.js';
+import {initDiffFileTree} from './repo-diff-filetree.js';
 
 const {csrfToken} = window.config;
 
-export function initRepoDiffReviewButton() {
+function initRepoDiffReviewButton() {
   const $reviewBox = $('#review-box');
   const $counter = $reviewBox.find('.review-comments-counter');
 
@@ -26,7 +27,7 @@ export function initRepoDiffReviewButton() {
   });
 }
 
-export function initRepoDiffFileViewToggle() {
+function initRepoDiffFileViewToggle() {
   $('.file-view-toggle').on('click', function () {
     const $this = $(this);
     $this.parent().children().removeClass('active');
@@ -38,7 +39,7 @@ export function initRepoDiffFileViewToggle() {
   });
 }
 
-export function initRepoDiffConversationForm() {
+function initRepoDiffConversationForm() {
   $(document).on('submit', '.conversation-holder form', async (e) => {
     e.preventDefault();
 
@@ -157,7 +158,7 @@ function loadMoreFiles(url, callback) {
   });
 }
 
-export function initRepoDiffShowMore() {
+function initRepoDiffShowMore() {
   $(document).on('click', 'a#diff-show-more-files', (e) => {
     e.preventDefault();
 
@@ -190,4 +191,17 @@ export function initRepoDiffShowMore() {
       $target.removeClass('disabled');
     });
   });
+}
+
+export function initRepoDiffView() {
+  const diffFileList = $('#diff-file-list');
+  if (diffFileList.length === 0) return;
+  
+  initDiffFileTree();
+  initRepoDiffShowMore();
+  initRepoDiffReviewButton();
+  initRepoDiffFileViewToggle();
+  initRepoDiffConversationForm();
+  initViewedCheckboxListenerFor();
+  initExpandAndCollapseFilesButton();
 }
