@@ -811,11 +811,11 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
 		m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
-		filesChangedm := getFilesChangedFullPattern().FindStringSubmatchIndex(node.Data)
 		if m == nil {
 			return
 		}
 
+		filesChangedm := getFilesChangedFullPattern().FindStringSubmatchIndex(node.Data)
 		// if the link is from files changed tab in pull requests, leave it as it is
 		if filesChangedm != nil {
 			return
