@@ -101,11 +101,8 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 	if err := run.Repo.LoadAttributes(ctx); err != nil {
 		return err
 	}
-	if err := run.LoadTriggerUser(ctx); err != nil {
-		return err
-	}
 
-	return nil
+	return run.LoadTriggerUser(ctx)
 }
 
 // LoadAttributes load Repo TriggerUser if not loaded
