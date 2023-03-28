@@ -8,7 +8,7 @@
 		{{range .PackageDescriptors}}
 			{{$p := .}}
 			{{range .Files}}
-				<a href="{{$.RegistryURL}}/files/{{$p.Package.LowerName}}/{{$p.Version.Version}}/{{.File.Name}}#sha256-{{.Blob.HashSHA256}}"{{if $p.Metadata.RequiresPython}} data-requires-python="{{$p.Metadata.RequiresPython}}"{{end}}>{{.File.Name}}</a><br/>
+				<a href="{{$.RegistryURL}}/files/{{$p.Package.LowerName}}/{{$p.Version.Version}}/{{.File.Name}}#sha256-{{.Blob.HashSHA256}}"{{if $p.Metadata.RequiresPython}} data-requires-python="{{$p.Metadata.RequiresPython}}"{{end}}>{{.File.Name}}</a><br>
 			{{end}}
 		{{end}}
 	</body>
