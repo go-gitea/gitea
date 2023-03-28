@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -22,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/regexplru"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates/vars"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/net/html"
@@ -807,7 +809,6 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 	if ctx.Metas == nil {
 		return
 	}
-
 	next := node.NextSibling
 	for node != nil && node != next {
 		m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
@@ -815,9 +816,9 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 			return
 		}
 
-		filesChangedm := getFilesChangedFullPattern().FindStringSubmatchIndex(node.Data)
+		Changedm := getFilesChangedFullPattern().FindStringSubmatchIndex(node.Data)
 		// if the link is from files changed tab in pull requests, leave it as it is
-		if filesChangedm != nil {
+		if Changedm != nil {
 			return
 		}
 
@@ -827,7 +828,8 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 		// if m[4] and m[5] is not -1, then link is to a comment
 		// indicate that in the text by appending (comment)
 		if m[4] != -1 && m[5] != -1 {
-			id += " (comment)"
+			locale := reflect.ValueOf(ctx.Ctx).Elem().FieldByName("Locale").Interface().(translation.Locale)
+			id += " " + locale.Tr("repo.from_comment")
 		}
 
 		// extract repo and org name from matched link like
