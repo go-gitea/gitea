@@ -54,20 +54,20 @@ func LoadRepoConfig() error {
 	for i, t := range types {
 		files, err := options.Dir(t)
 		if err != nil {
-			return fmt.Errorf("failed to list %s files: %v", t, err)
+			return fmt.Errorf("failed to list %s files: %w", t, err)
 		}
 		customPath := filepath.Join(setting.CustomPath, "options", t)
 		if isDir, err := util.IsDir(customPath); err != nil {
-			return fmt.Errorf("failed to check custom %s dir: %v", t, err)
+			return fmt.Errorf("failed to check custom %s dir: %w", t, err)
 		} else if isDir {
 			customFiles, err := util.StatDir(customPath)
 			if err != nil {
-				return fmt.Errorf("failed to list custom %s files: %v", t, err)
+				return fmt.Errorf("failed to list custom %s files: %w", t, err)
 			}
 			for _, f := range customFiles {
 				stat, err := os.Stat(filepath.Join(customPath, f))
 				if err != nil {
-					return fmt.Errorf("failed to stat custom %s file %q: %v", t, f, err)
+					return fmt.Errorf("failed to stat custom %s file %q: %w", t, f, err)
 				}
 				// give end users a chance to hide builtin options if they put an empty file in their custom directory
 				if stat.Size() == 0 {
@@ -93,7 +93,7 @@ func LoadRepoConfig() error {
 	for _, templateFile := range labelTemplatesFiles {
 		labels, err := label.LoadFormatted(templateFile)
 		if err != nil {
-			return fmt.Errorf("failed to load labels: %v", err)
+			return fmt.Errorf("failed to load labels: %w", err)
 		}
 		LabelTemplateFiles = append(LabelTemplateFiles, OptionFile{
 			DisplayName: strings.TrimSuffix(templateFile, filepath.Ext(templateFile)),
