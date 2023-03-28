@@ -3,7 +3,8 @@ import {updateIssuesMeta} from './repo-issue.js';
 import {toggleElem} from '../utils/dom.js';
 
 async function fetchData() {
-  const res = await fetch("/hester/testRepo/issues/posters", {
+  console.log('fetch Data')
+  const res = await fetch('/hester/testRepo/issues/posters', {
     method: 'GET'
   });
   const json = await res.json();
@@ -12,7 +13,8 @@ async function fetchData() {
 }
 
 export function initCommonIssue() {
-  console.log('initCommonIssue')
+  console.log('initCommonIssue');
+  fetchData();
   const $issueSelectAllWrapper = $('.issue-checkbox-all');
   const $issueSelectAll = $('.issue-checkbox-all input');
   const $issueCheckboxes = $('.issue-checkbox input');
@@ -34,7 +36,6 @@ export function initCommonIssue() {
     toggleElem($('#issue-actions'), anyChecked);
     // there are two panels but only one select-all checkbox, so move the checkbox to the visible panel
     $('#issue-filters, #issue-actions').filter(':visible').find('.column:first').prepend($issueSelectAllWrapper);
-    fetchData();
   };
 
   $issueCheckboxes.on('change', syncIssueSelectionState);
