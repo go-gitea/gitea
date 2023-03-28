@@ -147,7 +147,7 @@ func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error)
 			// some storages like:
 			// * https://developers.cloudflare.com/r2/api/s3/api/
 			// * https://www.backblaze.com/b2/docs/s3_compatible_api.html
-			// they do not support "x-amz-checksum-algorithm" header, so use legacy MD5 checksum
+			// do not support "x-amz-checksum-algorithm" header, so use legacy MD5 checksum
 			SendContentMd5: true,
 		},
 	)
