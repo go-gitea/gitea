@@ -5,7 +5,6 @@ package markup
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/url"
 	"path"
@@ -809,8 +808,6 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 	if ctx.Metas == nil {
 		return
 	}
-	fmt.Println("ctx.Metas")
-	fmt.Println(ctx.Metas)
 	next := node.NextSibling
 	for node != nil && node != next {
 		m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
@@ -818,20 +815,24 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 			return
 		}
 
-		Changedm := getFilesChangedFullPattern().FindStringSubmatchIndex(node.Data)
-		// if the link is from files changed tab in pull requests, leave it as it is
-		if Changedm != nil {
+		mDiffView := getFilesChangedFullPattern().FindStringSubmatchIndex(node.Data)
+		// if the link is from "Files Changed" tab in pull requests https://domain/org/repo/pulls/27/files (aka: the files diff view)
+		// leave it as it is
+		if mDiffView != nil {
 			return
 		}
 
 		link := node.Data[m[0]:m[1]]
 		id := "#" + node.Data[m[2]:m[3]]
-
+		text := id
 		// if m[4] and m[5] is not -1, then link is to a comment
 		// indicate that in the text by appending (comment)
 		if m[4] != -1 && m[5] != -1 {
-			locale := translation.NewLocale(ctx.Metas["language"])
-			id += " " + locale.Tr("repo.from_comment")
+			if locale, ok := ctx.Ctx.Value(translation.ContextKey).(translation.Locale); ok {
+				text += " " + locale.Tr("repo.from_comment")
+			} else {
+				text += " " + " (comment)"
+			}
 		}
 
 		// extract repo and org name from matched link like
@@ -841,10 +842,10 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 		matchRepo := linkParts[len(linkParts)-3]
 
 		if matchOrg == ctx.Metas["user"] && matchRepo == ctx.Metas["repo"] {
-			replaceContent(node, m[0], m[1], createLink(link, id, "ref-issue"))
+			replaceContent(node, m[0], m[1], createLink(link, text, "ref-issue"))
 		} else {
-			orgRepoID := matchOrg + "/" + matchRepo + id
-			replaceContent(node, m[0], m[1], createLink(link, orgRepoID, "ref-issue"))
+			text = matchOrg + "/" + matchRepo + text
+			replaceContent(node, m[0], m[1], createLink(link, text, "ref-issue"))
 		}
 		node = node.NextSibling.NextSibling
 	}

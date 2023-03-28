@@ -73,7 +73,7 @@ func RenderMarkup(ctx *context.Context, mode, text, urlPrefix, filePath string, 
 	if mode != "comment" {
 		meta["mode"] = "document"
 	}
-	meta["language"] = ctx.Locale.Language()
+
 	if err := markup.Render(&markup.RenderContext{
 		Ctx:          ctx,
 		URLPrefix:    urlPrefix,

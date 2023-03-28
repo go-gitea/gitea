@@ -1319,11 +1319,10 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IssueWatch"] = iw
-	metas := ctx.Repo.Repository.ComposeMetas()
-	metas["language"] = ctx.Locale.Language()
+
 	issue.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     metas,
+		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,
 	}, issue.Content)
@@ -2022,11 +2021,10 @@ func UpdateIssueContent(ctx *context.Context) {
 			return
 		}
 	}
-	metas := ctx.Repo.Repository.ComposeMetas()
-	metas["language"] = ctx.Locale.Language()
+
 	content, err := markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-		Metas:     metas,
+		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,
 	}, issue.Content)
@@ -2831,11 +2829,10 @@ func UpdateCommentContent(ctx *context.Context) {
 			return
 		}
 	}
-	metas := ctx.Repo.Repository.ComposeMetas()
-	metas["language"] = ctx.Locale.Language()
+
 	content, err := markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-		Metas:     metas,
+		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,
 	}, comment.Content)
