@@ -214,7 +214,9 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		if err != nil {
 			return nil, err
 		}
-		contentsResponse.SubmoduleGitURL = &submodule.URL
+		if submodule != nil && submodule.URL != "" {
+			contentsResponse.SubmoduleGitURL = &submodule.URL
+		}
 	}
 	// Handle links
 	if entry.IsRegular() || entry.IsLink() {

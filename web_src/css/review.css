@@ -214,6 +214,10 @@ a.blob-excerpt:hover {
   color: var(--color-primary-contrast);
 }
 
+.review-box-panel .ui.segment {
+  border: none;
+}
+
 /* See the comment of createCommentEasyMDE() for the review editor */
 /* EasyMDE's options can not handle minHeight & maxHeight together correctly, we have to set minHeight in JS code */
 .review-box-panel .CodeMirror-scroll {
@@ -247,14 +251,6 @@ a.blob-excerpt:hover {
 
 #review-box {
   position: relative;
-}
-
-.review-box-panel {
-  position: absolute;
-  min-width: max-content;
-  top: 45px;
-  right: -5px;
-  z-index: 2;
 }
 
 #review-box .review-comments-counter {

@@ -1,7 +1,7 @@
 ---
 date: "2023-01-01T00:00:00+00:00"
 title: "CRAN Packages Repository"
-slug: "packages/cran"
+slug: "cran"
 draft: false
 toc: false
 menu:
