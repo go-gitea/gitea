@@ -5,11 +5,11 @@ package markup
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/url"
 	"path"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -809,6 +809,8 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 	if ctx.Metas == nil {
 		return
 	}
+	fmt.Println("ctx.Metas")
+	fmt.Println(ctx.Metas)
 	next := node.NextSibling
 	for node != nil && node != next {
 		m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
@@ -828,7 +830,7 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 		// if m[4] and m[5] is not -1, then link is to a comment
 		// indicate that in the text by appending (comment)
 		if m[4] != -1 && m[5] != -1 {
-			locale := reflect.ValueOf(ctx.Ctx).Elem().FieldByName("Locale").Interface().(translation.Locale)
+			locale := translation.NewLocale(ctx.Metas["language"])
 			id += " " + locale.Tr("repo.from_comment")
 		}
 
