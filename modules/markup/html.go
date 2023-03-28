@@ -831,7 +831,7 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 			if locale, ok := ctx.Ctx.Value(translation.ContextKey).(translation.Locale); ok {
 				text += " " + locale.Tr("repo.from_comment")
 			} else {
-				text += " " + " (comment)"
+				text += " (comment)"
 			}
 		}
 
