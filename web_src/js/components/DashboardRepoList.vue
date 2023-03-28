@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div v-if="!isOrganization" class="ui two item tabable menu">
+    <div v-if="!isOrganization" class="ui two item menu">
       <a :class="{item: true, active: tab === 'repos'}" @click="changeTab('repos')">{{ textRepository }}</a>
       <a :class="{item: true, active: tab === 'organizations'}" @click="changeTab('organizations')">{{ textOrganization }}</a>
     </div>

@@ -83,7 +83,7 @@ export function initGlobalCommon() {
   const $uiDropdowns = $('.ui.dropdown');
 
   // do not init "custom" dropdowns, "custom" dropdowns are managed by their own code.
-  $uiDropdowns.filter(':not(.custom)').dropdown({fullTextSearch: 'exact'});
+  $uiDropdowns.filter(':not(.custom)').dropdown();
 
   // The "jump" means this dropdown is mainly used for "menu" purpose,
   // clicking an item will jump to somewhere else or trigger an action/function.
@@ -111,18 +111,12 @@ export function initGlobalCommon() {
     },
   });
 
-  // special animations/popup-directions
-  $uiDropdowns.filter('.slide.up').dropdown({transition: 'slide up'});
-  $uiDropdowns.filter('.upward').dropdown({direction: 'upward'});
+  // special popup-directions
+  $uiDropdowns.filter('.upward').dropdown('setting', 'direction', 'upward');
 
   $('.ui.checkbox').checkbox();
 
   $('.tabular.menu .item').tab();
-  $('.tabable.menu .item').tab();
-
-  $('.toggle.button').on('click', function () {
-    toggleElem($($(this).data('target')));
-  });
 
   // prevent multiple form submissions on forms containing .loading-button
   document.addEventListener('submit', (e) => {
@@ -312,8 +306,15 @@ export function initGlobalButtons() {
   });
 
   $('.show-panel.button').on('click', function (e) {
+    // a '.show-panel.button' can show a panel, by `data-panel="selector"`
+    // if the button is a "toggle" button, it toggles the panel
     e.preventDefault();
-    showElem($(this).data('panel'));
+    const sel = $(this).attr('data-panel');
+    if (this.classList.contains('toggle')) {
+      toggleElem(sel);
+    } else {
+      showElem(sel);
+    }
   });
 
   $('.hide-panel.button').on('click', function (e) {
