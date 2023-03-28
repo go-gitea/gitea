@@ -106,6 +106,7 @@ var filesChangedFullPatternOnce sync.Once
 
 func getIssueFullPattern() *regexp.Regexp {
 	issueFullPatternOnce.Do(func() {
+		// example: https://domain/org/repo/pulls/27#hash
 		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
 			`[\w_.-]+/[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
 	})
@@ -114,6 +115,7 @@ func getIssueFullPattern() *regexp.Regexp {
 
 func getFilesChangedFullPattern() *regexp.Regexp {
 	filesChangedFullPatternOnce.Do(func() {
+		// example: https://domain/org/repo/pulls/27/files#hash
 		filesChangedFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
 			`[\w_.-]+/[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
 	})
@@ -816,15 +818,13 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		mDiffView := getFilesChangedFullPattern().FindStringSubmatchIndex(node.Data)
-		// if the link is from "Files Changed" tab in pull requests https://domain/org/repo/pulls/27/files (aka: the files diff view)
-		// leave it as it is
+		// leave it as it is if the link is from "Files Changed" tab in PR Diff View https://domain/org/repo/pulls/27/files
 		if mDiffView != nil {
 			return
 		}
 
 		link := node.Data[m[0]:m[1]]
-		id := "#" + node.Data[m[2]:m[3]]
-		text := id
+		text := "#" + node.Data[m[2]:m[3]]
 		// if m[4] and m[5] is not -1, then link is to a comment
 		// indicate that in the text by appending (comment)
 		if m[4] != -1 && m[5] != -1 {

@@ -26,7 +26,7 @@ import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
 import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
 import {hideElem, showElem} from '../utils/dom.js';
-import {attachTippyToRefIssues} from './contextpopup.js';
+import {attachRefIssueContextPopup} from './contextpopup.js';
 
 const {csrfToken} = window.config;
 
@@ -440,10 +440,8 @@ async function onEditContent(event) {
         } else {
           $renderContent.html(data.content);
           $rawContent.text($textarea.val());
-          // check if the content contains ref-issue
-          // if there are ref issues, attach the tippy
           const refIssues = $renderContent.find('p .ref-issue');
-          attachTippyToRefIssues(refIssues);
+          attachRefIssueContextPopup(refIssues);
         }
         const $content = $segment;
         if (!$content.find('.dropzone-attachments').length) {
