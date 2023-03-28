@@ -101,15 +101,27 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 	if err := run.Repo.LoadAttributes(ctx); err != nil {
 		return err
 	}
-
-	if run.TriggerUser == nil {
-		u, err := user_model.GetPossibleUserByID(ctx, run.TriggerUserID)
-		if err != nil {
-			return err
-		}
-		run.TriggerUser = u
+	if err := run.LoadTriggerUser(ctx); err != nil {
+		return err
 	}
 
+	return nil
+}
+
+// LoadAttributes load Repo TriggerUser if not loaded
+func (run *ActionRun) LoadTriggerUser(ctx context.Context) error {
+	if run == nil {
+		return nil
+	}
+	if run.TriggerUser != nil {
+		return nil
+	}
+
+	u, err := user_model.GetPossibleUserByID(ctx, run.TriggerUserID)
+	if err != nil {
+		return err
+	}
+	run.TriggerUser = u
 	return nil
 }
 

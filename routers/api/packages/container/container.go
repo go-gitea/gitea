@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
 	user_model "code.gitea.io/gitea/models/user"
@@ -143,6 +144,22 @@ func Authenticate(ctx *context.Context) {
 	u := ctx.Doer
 	if u == nil {
 		u = user_model.NewGhostUser()
+	} else if u.IsActions() {
+		task, err := actions_model.GetTaskByID(ctx, ctx.Data["ActionsTaskID"].(int64))
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		if err := task.LoadJob(ctx); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		if err := task.Job.LoadRun(ctx); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		if err := task.Job.Run.LoadTriggerUser(ctx); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+
+		u = task.Job.Run.TriggerUser
 	}
 
 	token, err := packages_service.CreateAuthorizationToken(u)
