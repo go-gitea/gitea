@@ -96,4 +96,5 @@ func parseScope(ctx context.Context, scope string) (owner, repo int64, err error
 		return owner, repo, err
 	}
 	repo = r.ID
+	return owner, repo, nil
 }
