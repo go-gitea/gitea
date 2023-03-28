@@ -24,11 +24,11 @@ var (
 		Usage:       "",
 		Description: "Tasks for managing Gitea Actions",
 		Subcommands: []cli.Command{
-			subcmdList,
+			subcmdActionsGenRunnerToken,
 		},
 	}
 
-	subcmdList = cli.Command{
+	subcmdActionsGenRunnerToken = cli.Command{
 		Name:    "generate-runner-token",
 		Usage:   "Generate a new token for a runner to use to register with the server",
 		Action:  runGenerateActionsRunnerToken,
