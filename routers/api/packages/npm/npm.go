@@ -169,7 +169,7 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	repo, err := repo_model.GetRepositoryByURL(ctx, npmPackage.Metadata.RepositoryURL)
+	repo, err := repo_model.GetRepositoryByURL(ctx, npmPackage.Metadata.Repository.URL)
 	if err == nil {
 		canWrite := repo.OwnerID == ctx.Doer.ID
 

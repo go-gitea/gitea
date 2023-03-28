@@ -14,7 +14,6 @@ type Metadata struct {
 	Author                  string            `json:"author,omitempty"`
 	License                 string            `json:"license,omitempty"`
 	ProjectURL              string            `json:"project_url,omitempty"`
-	RepositoryURL           string            `json:"repository_url,omitempty"`
 	Keywords                []string          `json:"keywords,omitempty"`
 	Dependencies            map[string]string `json:"dependencies,omitempty"`
 	DevelopmentDependencies map[string]string `json:"development_dependencies,omitempty"`
