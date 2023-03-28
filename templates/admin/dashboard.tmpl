@@ -42,12 +42,12 @@
 						</tr>
 						{{if and (not .SSH.Disabled) (not .SSH.StartBuiltinServer)}}
 							<tr>
-								<td>{{.locale.Tr "admin.dashboard.resync_all_sshkeys"}}<br/>
+								<td>{{.locale.Tr "admin.dashboard.resync_all_sshkeys"}}<br>
 								{{.locale.Tr "admin.dashboard.resync_all_sshkeys.desc"}}</td>
 								<td><button type="submit" class="ui green button" name="op" value="resync_all_sshkeys">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 							</tr>
 							<tr>
-								<td>{{.locale.Tr "admin.dashboard.resync_all_sshprincipals"}}<br/>
+								<td>{{.locale.Tr "admin.dashboard.resync_all_sshprincipals"}}<br>
 								{{.locale.Tr "admin.dashboard.resync_all_sshprincipals.desc"}}</td>
 								<td><button type="submit" class="ui green button" name="op" value="resync_all_sshprincipals">{{svg "octicon-play" 16}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 							</tr>

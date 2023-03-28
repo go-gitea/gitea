@@ -17,7 +17,7 @@
 						{{if .blobBase}}
 						<span class="side">
 							<p class="side-header">{{.root.locale.Tr "repo.diff.file_before"}}</p>
-							<span class="before-container"><img class="image-before" /></span>
+							<span class="before-container"><img class="image-before"></span>
 							<p>
 								<span class="bounds-info-before">
 									{{.root.locale.Tr "repo.diff.file_image_width"}}: <span class="text bounds-info-width"></span>
@@ -32,7 +32,7 @@
 						{{if .blobHead}}
 						<span class="side">
 							<p class="side-header">{{.root.locale.Tr "repo.diff.file_after"}}</p>
-							<span class="after-container"><img class="image-after" /></span>
+							<span class="after-container"><img class="image-after"></span>
 							<p>
 								<span class="bounds-info-after">
 									{{.root.locale.Tr "repo.diff.file_image_width"}}: <span class="text bounds-info-width"></span>
@@ -50,9 +50,9 @@
 				<div class="ui bottom attached tab image-diff-container" data-tab="diff-swipe-{{.file.Index}}">
 					<div class="diff-swipe">
 						<div class="swipe-frame">
-							<span class="before-container"><img class="image-before" /></span>
+							<span class="before-container"><img class="image-before"></span>
 							<span class="swipe-container">
-								<span class="after-container"><img class="image-after" /></span>
+								<span class="after-container"><img class="image-after"></span>
 							</span>
 							<span class="swipe-bar">
 								<span class="handle top-handle"></span>
@@ -65,10 +65,10 @@
 					<div class="diff-overlay">
 						<div class="overlay-frame">
 							<div class="ui centered">
-								<input type="range" min="0" max="100" value="50" />
+								<input type="range" min="0" max="100" value="50">
 							</div>
-							<span class="before-container"><img class="image-before"/></span>
-							<span class="after-container"><img class="image-after" /></span>
+							<span class="before-container"><img class="image-before"></span>
+							<span class="after-container"><img class="image-after"></span>
 						</div>
 					</div>
 				</div>
