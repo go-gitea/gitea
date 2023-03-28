@@ -60,6 +60,12 @@ func (s *ContentStore) Put(pointer Pointer, r io.Reader) error {
 		return err
 	}
 
+	// check again whether there is any error during the Save operation
+	// because some errors might be ignored by the Reader's caller
+	if wrappedRd.lastError != nil {
+		return wrappedRd.lastError
+	}
+
 	// This shouldn't happen but it is sensible to test
 	if written != pointer.Size {
 		if err := s.Delete(p); err != nil {
@@ -109,6 +115,17 @@ type hashingReader struct {
 	expectedSize int64
 	hash         hash.Hash
 	expectedHash string
+	lastError    error
+}
+
+// recordError records the last error during the Save operation
+// Some callers of the Reader doesn't respect the returned "err"
+// For example, MinIO's Put will ignore errors if the written size could equal to expected size
+// So we must remember the error by ourselves,
+// and later check again whether ErrSizeMismatch or ErrHashMismatch occurs during the Save operation
+func (r *hashingReader) recordError(n int, err error) (int, error) {
+	r.lastError = err
+	return n, err
 }
 
 func (r *hashingReader) Read(b []byte) (int, error) {
@@ -118,22 +135,22 @@ func (r *hashingReader) Read(b []byte) (int, error) {
 		r.currentSize += int64(n)
 		wn, werr := r.hash.Write(b[:n])
 		if wn != n || werr != nil {
-			return n, werr
+			return r.recordError(n, werr)
 		}
 	}
 
-	if err != nil && err == io.EOF {
+	if errors.Is(err, io.EOF) || r.currentSize >= r.expectedSize {
 		if r.currentSize != r.expectedSize {
-			return n, ErrSizeMismatch
+			return r.recordError(n, ErrSizeMismatch)
 		}
 
 		shaStr := hex.EncodeToString(r.hash.Sum(nil))
 		if shaStr != r.expectedHash {
-			return n, ErrHashMismatch
+			return r.recordError(n, ErrHashMismatch)
 		}
 	}
 
-	return n, err
+	return r.recordError(n, err)
 }
 
 func newHashingReader(expectedSize int64, expectedHash string, reader io.Reader) *hashingReader {
