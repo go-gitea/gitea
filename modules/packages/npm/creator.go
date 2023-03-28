@@ -205,10 +205,6 @@ func ParsePackage(r io.Reader) (*Package, error) {
 			meta.Homepage = ""
 		}
 
-		if meta.Repository.Type != "git" {
-			meta.Repository.URL = ""
-		}
-
 		p := &Package{
 			Name:     meta.Name,
 			Version:  v.String(),
