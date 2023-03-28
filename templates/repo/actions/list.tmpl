@@ -11,11 +11,11 @@
 					{{range .workflows}}
 						<a class="item{{if eq .Entry.Name $.CurWorkflow}} active{{end}}" href="{{$.Link}}?workflow={{.Entry.Name}}">{{.Entry.Name}}
 							{{if .IsInvalid}}
-								<span class="tooltip" data-content="{{$.locale.Tr "actions.runs.invalid_workflow_helper" (.ErrMsg)}}">
+								<span data-tooltip-content="{{$.locale.Tr "actions.runs.invalid_workflow_helper" (.ErrMsg)}}">
 									<i class="warning icon red"></i>
 								</span>
 							{{else}}
-								<span class="tooltip" data-content="{{$.locale.Tr "actions.runs.valid_workflow_helper"}}">
+								<span data-tooltip-content="{{$.locale.Tr "actions.runs.valid_workflow_helper"}}">
 									<i class="check icon green"></i>
 								</span>
 							{{end}}

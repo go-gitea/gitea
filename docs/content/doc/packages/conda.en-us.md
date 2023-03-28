@@ -1,7 +1,7 @@
 ---
 date: "2022-12-28T00:00:00+00:00"
 title: "Conda Packages Repository"
-slug: "packages/conda"
+slug: "usage/packages/conda"
 draft: false
 toc: false
 menu:

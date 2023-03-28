@@ -18,13 +18,18 @@ params:
   description: Git with a cup of tea
   author: The Gitea Authors
   website: https://docs.gitea.io
-  version: 1.18.5
+  version: 1.19.0
   minGoVersion: 1.19
   goVersion: 1.20
   minNodeVersion: 16
   search: nav
   repo: "https://github.com/go-gitea/gitea"
   docContentPath: "docs/content"
+
+markup:
+  tableOfContents:
+    startLevel: 1
+    endLevel: 9
 
 outputs:
   home:
