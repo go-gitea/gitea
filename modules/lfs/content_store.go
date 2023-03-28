@@ -63,18 +63,19 @@ func (s *ContentStore) Put(pointer Pointer, r io.Reader) error {
 	// check again whether there is any error during the Save operation
 	// because some errors might be ignored by the Reader's caller
 	if wrappedRd.lastError != nil && !errors.Is(wrappedRd.lastError, io.EOF) {
-		return wrappedRd.lastError
+		err = wrappedRd.lastError
+	} else if written != pointer.Size {
+		err = ErrSizeMismatch
 	}
 
-	// This shouldn't happen but it is sensible to test
-	if written != pointer.Size {
-		if err := s.Delete(p); err != nil {
-			log.Error("Cleaning the LFS OID[%s] failed: %v", pointer.Oid, err)
+	// if the upload failed, try to delete the file
+	if err != nil {
+		if errDel := s.Delete(p); errDel != nil {
+			log.Error("Cleaning the LFS OID[%s] failed: %v", pointer.Oid, errDel)
 		}
-		return ErrSizeMismatch
 	}
 
-	return nil
+	return err
 }
 
 // Exists returns true if the object exists in the content store.
@@ -123,9 +124,9 @@ type hashingReader struct {
 // For example, MinIO's Put will ignore errors if the written size could equal to expected size
 // So we must remember the error by ourselves,
 // and later check again whether ErrSizeMismatch or ErrHashMismatch occurs during the Save operation
-func (r *hashingReader) recordError(n int, err error) (int, error) {
+func (r *hashingReader) recordError(err error) error {
 	r.lastError = err
-	return n, err
+	return err
 }
 
 func (r *hashingReader) Read(b []byte) (int, error) {
@@ -135,22 +136,22 @@ func (r *hashingReader) Read(b []byte) (int, error) {
 		r.currentSize += int64(n)
 		wn, werr := r.hash.Write(b[:n])
 		if wn != n || werr != nil {
-			return r.recordError(n, werr)
+			return n, r.recordError(werr)
 		}
 	}
 
 	if errors.Is(err, io.EOF) || r.currentSize >= r.expectedSize {
 		if r.currentSize != r.expectedSize {
-			return r.recordError(n, ErrSizeMismatch)
+			return n, r.recordError(ErrSizeMismatch)
 		}
 
 		shaStr := hex.EncodeToString(r.hash.Sum(nil))
 		if shaStr != r.expectedHash {
-			return r.recordError(n, ErrHashMismatch)
+			return n, r.recordError(ErrHashMismatch)
 		}
 	}
 
-	return r.recordError(n, err)
+	return n, r.recordError(err)
 }
 
 func newHashingReader(expectedSize int64, expectedHash string, reader io.Reader) *hashingReader {
