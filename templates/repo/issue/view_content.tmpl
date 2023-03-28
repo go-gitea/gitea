@@ -12,7 +12,7 @@
 	<!-- Agree, there should be a better way, eg: introduce window.config.pageData (original author: wxiaoguang @ 2021-09-05) -->
 	<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
 	<input type="hidden" id="repoId" value="{{.Repository.ID}}">
-	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>
+	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}">
 	<input type="hidden" id="type" value="{{.IssueType}}">
 
 	{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix $.locale}}
