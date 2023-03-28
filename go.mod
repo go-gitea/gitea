@@ -286,7 +286,7 @@ replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142
 
 replace github.com/blevesearch/zapx/v15 v15.3.6 => github.com/zeripath/zapx/v15 v15.3.6-alignment-fix
 
-replace github.com/nektos/act => gitea.com/gitea/act v0.243.2-0.20230326132719-8f12a6c947de
+replace github.com/nektos/act => gitea.com/gitea/act v0.243.2-0.20230328033840-342ad6a51a1a
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 
