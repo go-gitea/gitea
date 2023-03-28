@@ -47,27 +47,27 @@ var (
 )
 
 // LoadRepoConfig loads the repository config
-func LoadRepoConfig() {
+func LoadRepoConfig() error {
 	// Load .gitignore and license files and readme templates.
 	types := []string{"gitignore", "license", "readme", "label"}
 	typeFiles := make([][]string, 4)
 	for i, t := range types {
 		files, err := options.Dir(t)
 		if err != nil {
-			log.Fatal("Failed to list %s files: %v", t, err)
+			return fmt.Errorf("failed to list %s files: %v", t, err)
 		}
 		customPath := filepath.Join(setting.CustomPath, "options", t)
 		if isDir, err := util.IsDir(customPath); err != nil {
-			log.Fatal("Failed to check custom %s dir: %v", t, err)
+			return fmt.Errorf("failed to check custom %s dir: %v", t, err)
 		} else if isDir {
 			customFiles, err := util.StatDir(customPath)
 			if err != nil {
-				log.Fatal("Failed to list custom %s files: %v", t, err)
+				return fmt.Errorf("failed to list custom %s files: %v", t, err)
 			}
 			for _, f := range customFiles {
 				stat, err := os.Stat(filepath.Join(customPath, f))
 				if err != nil {
-					log.Fatal("Failed to stat custom %s file %q: %v", t, f, err)
+					return fmt.Errorf("failed to stat custom %s file %q: %v", t, f, err)
 				}
 				// give end users a chance to hide builtin options if they put an empty file in their custom directory
 				if stat.Size() == 0 {
@@ -93,7 +93,7 @@ func LoadRepoConfig() {
 	for _, templateFile := range labelTemplatesFiles {
 		labels, err := label.LoadFormatted(templateFile)
 		if err != nil {
-			log.Error("Failed to load labels: %v", err)
+			return fmt.Errorf("failed to load labels: %v", err)
 		}
 		LabelTemplateFiles = append(LabelTemplateFiles, OptionFile{
 			DisplayName: strings.TrimSuffix(templateFile, filepath.Ext(templateFile)),
@@ -115,6 +115,7 @@ func LoadRepoConfig() {
 		}
 	}
 	Licenses = sortedLicenses
+	return nil
 }
 
 func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
