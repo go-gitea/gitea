@@ -148,15 +148,19 @@ func Authenticate(ctx *context.Context) {
 		task, err := actions_model.GetTaskByID(ctx, ctx.Data["ActionsTaskID"].(int64))
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
+			return
 		}
 		if err := task.LoadJob(ctx); err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
+			return
 		}
 		if err := task.Job.LoadRun(ctx); err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
+			return
 		}
 		if err := task.Job.Run.LoadTriggerUser(ctx); err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
+			return
 		}
 
 		u = task.Job.Run.TriggerUser
