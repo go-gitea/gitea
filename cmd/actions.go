@@ -44,7 +44,6 @@ var (
 )
 
 func runGenerateActionsRunnerToken(c *cli.Context) error {
-
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -63,16 +62,15 @@ func runGenerateActionsRunnerToken(c *cli.Context) error {
 	if errors.Is(err, util.ErrNotExist) {
 		token, err = actions_model.NewRunnerToken(ctx, owner, repo)
 		if err != nil {
-			return fmt.Errorf("CreateRunnerToken", err)
+			return fmt.Errorf("CreateRunnerToken: %s", err)
 		}
 	} else if err != nil {
-		return fmt.Errorf("GetUnactivatedRunnerToken", err)
+		return fmt.Errorf("GetUnactivatedRunnerToken: %s", err)
 	}
 
 	fmt.Printf("%s", token.Token)
 
 	return nil
-
 }
 
 func parseScope(ctx context.Context, scope string) (owner, repo int64, err error) {
@@ -98,6 +96,4 @@ func parseScope(ctx context.Context, scope string) (owner, repo int64, err error
 		return owner, repo, err
 	}
 	repo = r.ID
-	return
-
 }
