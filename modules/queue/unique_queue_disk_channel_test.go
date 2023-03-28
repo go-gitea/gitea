@@ -155,7 +155,9 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 			assert.Equal(t, 101, len(executedInitial[name])+len(hasInitial[name]))
 			mapLock.Unlock()
 		})
+		mapLock.Lock()
 		done <- len(hasInitial[name])
+		mapLock.Unlock()
 		close(done)
 	}
 
