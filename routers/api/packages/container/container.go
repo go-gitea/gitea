@@ -162,7 +162,6 @@ func Authenticate(ctx *context.Context) {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
-
 		u = task.Job.Run.TriggerUser
 	}
 
