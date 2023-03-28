@@ -78,7 +78,7 @@ function updateDeadline(deadlineString) {
 
 export function initRepoIssueDue() {
   $(document).on('click', '.issue-due-edit', () => {
-    $('#deadlineForm').fadeToggle(150);
+    toggleElem('#deadlineForm');
   });
   $(document).on('click', '.issue-due-remove', () => {
     updateDeadline('');
