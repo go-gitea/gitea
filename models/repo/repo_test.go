@@ -129,7 +129,7 @@ func TestGetRepositoryByURL(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	t.Run("InvalidPath", func(t *testing.T) {
-		repo, err := repo_model.GetRepositoryByURL("something")
+		repo, err := repo_model.GetRepositoryByURL(db.DefaultContext, "something")
 
 		assert.Nil(t, repo)
 		assert.Error(t, err)
@@ -137,7 +137,7 @@ func TestGetRepositoryByURL(t *testing.T) {
 
 	t.Run("ValidHttpURL", func(t *testing.T) {
 		test := func(t *testing.T, url string) {
-			repo, err := repo_model.GetRepositoryByURL(url)
+			repo, err := repo_model.GetRepositoryByURL(db.DefaultContext, url)
 
 			assert.NotNil(t, repo)
 			assert.NoError(t, err)
@@ -152,7 +152,7 @@ func TestGetRepositoryByURL(t *testing.T) {
 
 	t.Run("ValidGitSshURL", func(t *testing.T) {
 		test := func(t *testing.T, url string) {
-			repo, err := repo_model.GetRepositoryByURL(url)
+			repo, err := repo_model.GetRepositoryByURL(db.DefaultContext, url)
 
 			assert.NotNil(t, repo)
 			assert.NoError(t, err)
@@ -170,7 +170,7 @@ func TestGetRepositoryByURL(t *testing.T) {
 
 	t.Run("ValidImplicitSshURL", func(t *testing.T) {
 		test := func(t *testing.T, url string) {
-			repo, err := repo_model.GetRepositoryByURL(url)
+			repo, err := repo_model.GetRepositoryByURL(db.DefaultContext, url)
 
 			assert.NotNil(t, repo)
 			assert.NoError(t, err)

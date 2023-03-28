@@ -681,7 +681,7 @@ func getRepositoryURLPathSegments(repoURL string) []string {
 }
 
 // GetRepositoryByURL returns the repository by given url
-func GetRepositoryByURL(repoURL string) (*Repository, error) {
+func GetRepositoryByURL(ctx context.Context, repoURL string) (*Repository, error) {
 	// possible urls for git:
 	//  https://my.domain/sub-path/<owner>/<repo>.git
 	//  https://my.domain/sub-path/<owner>/<repo>
@@ -698,7 +698,7 @@ func GetRepositoryByURL(repoURL string) (*Repository, error) {
 
 	ownerName := pathSegments[0]
 	repoName := strings.TrimSuffix(pathSegments[1], ".git")
-	return GetRepositoryByOwnerAndName(ownerName, repoName)
+	return GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
 }
 
 // GetRepositoryByID returns the repository by given id if exists.
