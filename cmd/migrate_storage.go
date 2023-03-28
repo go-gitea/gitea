@@ -72,11 +72,20 @@ var CmdMigrateStorage = cli.Command{
 		cli.StringFlag{
 			Name:  "minio-base-path",
 			Value: "",
-			Usage: "Minio storage basepath on the bucket",
+			Usage: "Minio storage base path on the bucket",
 		},
 		cli.BoolFlag{
 			Name:  "minio-use-ssl",
 			Usage: "Enable SSL for minio",
+		},
+		cli.BoolFlag{
+			Name:  "minio-insecure-skip-verify",
+			Usage: "Skip SSL verification",
+		},
+		cli.StringFlag{
+			Name:  "minio-checksum-algorithm",
+			Value: "",
+			Usage: "Minio checksum algorithm (default/md5)",
 		},
 	},
 }
@@ -168,13 +177,15 @@ func runMigrateStorage(ctx *cli.Context) error {
 		dstStorage, err = storage.NewMinioStorage(
 			stdCtx,
 			storage.MinioStorageConfig{
-				Endpoint:        ctx.String("minio-endpoint"),
-				AccessKeyID:     ctx.String("minio-access-key-id"),
-				SecretAccessKey: ctx.String("minio-secret-access-key"),
-				Bucket:          ctx.String("minio-bucket"),
-				Location:        ctx.String("minio-location"),
-				BasePath:        ctx.String("minio-base-path"),
-				UseSSL:          ctx.Bool("minio-use-ssl"),
+				Endpoint:           ctx.String("minio-endpoint"),
+				AccessKeyID:        ctx.String("minio-access-key-id"),
+				SecretAccessKey:    ctx.String("minio-secret-access-key"),
+				Bucket:             ctx.String("minio-bucket"),
+				Location:           ctx.String("minio-location"),
+				BasePath:           ctx.String("minio-base-path"),
+				UseSSL:             ctx.Bool("minio-use-ssl"),
+				InsecureSkipVerify: ctx.Bool("minio-insecure-skip-verify"),
+				ChecksumAlgorithm:  ctx.String("minio-checksum-algorithm"),
 			})
 	default:
 		return fmt.Errorf("unsupported storage type: %s", ctx.String("storage"))
