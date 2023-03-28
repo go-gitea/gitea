@@ -45,38 +45,49 @@ func TestSettingShowUserEmailProfile(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	showUserEmail := setting.UI.ShowUserEmail
+
+	// user1: keep_email_private = false, user2: keep_email_private = true
+
 	setting.UI.ShowUserEmail = true
 
-	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user2")
+	// user1 can see self
+	session := loginUser(t, "user1")
+	req := NewRequest(t, "GET", "/user1")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	assert.Contains(t,
-		htmlDoc.doc.Find(".user.profile").Text(),
-		"user2@example.com",
-	)
+	assert.Contains(t, htmlDoc.doc.Find(".user.profile").Text(), "user1@example.com")
+
+	// user1 can not see user2
+	req = NewRequest(t, "GET", "/user2")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	// Should not contain even if the user visits their own profile page
+	assert.NotContains(t, htmlDoc.doc.Find(".user.profile").Text(), "user2@example.com")
+
+	// user2 can see user1
+	session = loginUser(t, "user2")
+	req = NewRequest(t, "GET", "/user1")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	assert.Contains(t, htmlDoc.doc.Find(".user.profile").Text(), "user1@example.com")
+
+	// user2 can not see self
+	session = loginUser(t, "user2")
+	req = NewRequest(t, "GET", "/user2")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	assert.NotContains(t, htmlDoc.doc.Find(".user.profile").Text(), "user2@example.com")
 
 	setting.UI.ShowUserEmail = false
 
-	req = NewRequest(t, "GET", "/user2")
+	// user1 can not see self
+	session = loginUser(t, "user1")
+	req = NewRequest(t, "GET", "/user1")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	// Should contain since this user owns the profile page
-	assert.Contains(t,
-		htmlDoc.doc.Find(".user.profile").Text(),
-		"user2@example.com",
-	)
+	assert.NotContains(t, htmlDoc.doc.Find(".user.profile").Text(), "user1@example.com")
 
 	setting.UI.ShowUserEmail = showUserEmail
-
-	session = loginUser(t, "user4")
-	req = NewRequest(t, "GET", "/user2")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc = NewHTMLParser(t, resp.Body)
-	assert.NotContains(t,
-		htmlDoc.doc.Find(".user.profile").Text(),
-		"user2@example.com",
-	)
 }
 
 func TestSettingLandingPage(t *testing.T) {
