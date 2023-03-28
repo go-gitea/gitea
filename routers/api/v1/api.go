@@ -1162,6 +1162,11 @@ func Routes(ctx gocontext.Context) *web.Route {
 				}, reqAnyRepoReader())
 				m.Get("/issue_templates", context.ReferencesGitRepo(), repo.GetIssueTemplates)
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
+
+				// TODO: list runners
+				// TODO: update runner
+				// TODO: delete runner
+				m.Put("/runners", reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeActions), repo.GenerateRunnerToken)
 			}, repoAssignment())
 		})
 
