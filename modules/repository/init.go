@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -55,26 +54,23 @@ func LoadRepoConfig() {
 	for i, t := range types {
 		files, err := options.Dir(t)
 		if err != nil {
-			log.Fatal("Failed to get %s files: %v", t, err)
+			log.Fatal("Failed to list %s files: %v", t, err)
 		}
-		customPath := path.Join(setting.CustomPath, "options", t)
-		isDir, err := util.IsDir(customPath)
-		if err != nil {
-			log.Fatal("Failed to get custom %s files: %v", t, err)
-		}
-		if isDir {
+		customPath := filepath.Join(setting.CustomPath, "options", t)
+		if isDir, err := util.IsDir(customPath); err != nil {
+			log.Fatal("Failed to check custom %s dir: %v", t, err)
+		} else if isDir {
 			customFiles, err := util.StatDir(customPath)
 			if err != nil {
-				log.Fatal("Failed to get custom %s files: %v", t, err)
+				log.Fatal("Failed to list custom %s files: %v", t, err)
 			}
-
 			for _, f := range customFiles {
 				stat, err := os.Stat(filepath.Join(customPath, f))
 				if err != nil {
-					log.Fatal("Failed to stat custom %s files: %v", t, err)
+					log.Fatal("Failed to stat custom %s file %q: %v", t, f, err)
 				}
+				// give end users a chance to hide builtin options if they put an empty file in their custom directory
 				if stat.Size() == 0 {
-					// it's good to give end users a chance to hide builtin options if they put an empty file in their custom directory
 					files = util.SliceRemoveAllFunc(files, func(s string) bool { return strings.EqualFold(s, f) })
 				} else if !util.SliceContainsString(files, f, true) {
 					files = append(files, f)
