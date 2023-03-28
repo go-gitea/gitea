@@ -109,7 +109,7 @@ func fail(ctx context.Context, userMessage, logMsgFmt string, args ...interface{
 	if logMsgFmt != "" {
 		logMsg := fmt.Sprintf(logMsgFmt, args...)
 		if !setting.IsProd {
-			_, _ = fmt.Fprintln(os.Stderr, logMsg)
+			_, _ = fmt.Fprintln(os.Stderr, "Gitea:", logMsg)
 		}
 		if userMessage != "" {
 			if unicode.IsPunct(rune(userMessage[len(userMessage)-1])) {
