@@ -62,7 +62,7 @@ func (s *ContentStore) Put(pointer Pointer, r io.Reader) error {
 
 	// check again whether there is any error during the Save operation
 	// because some errors might be ignored by the Reader's caller
-	if wrappedRd.lastError != nil {
+	if wrappedRd.lastError != nil && !errors.Is(wrappedRd.lastError, io.EOF) {
 		return wrappedRd.lastError
 	}
 
