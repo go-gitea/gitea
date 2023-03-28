@@ -1812,14 +1812,24 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	// Get Dependencies
-	ctx.Data["BlockedByDependencies"], err = issue.BlockedByDependencies(ctx)
+	blockedBy, err := issue.BlockedByDependencies(ctx, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("BlockedByDependencies", err)
 		return
 	}
-	ctx.Data["BlockingDependencies"], err = issue.BlockingDependencies(ctx)
+	ctx.Data["BlockedByDependencies"], ctx.Data["BlockedByDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blockedBy)
+	if ctx.Written() {
+		return
+	}
+
+	blocking, err := issue.BlockingDependencies(ctx)
 	if err != nil {
 		ctx.ServerError("BlockingDependencies", err)
+		return
+	}
+
+	ctx.Data["BlockingDependencies"], ctx.Data["BlockingByDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blocking)
+	if ctx.Written() {
 		return
 	}
 
@@ -1849,6 +1859,48 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, tplIssueView)
+}
+
+func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo) {
+	var lastRepoID int64
+	var lastPerm access_model.Permission
+	for i, blocker := range blockers {
+		// Get the permissions for this repository
+		perm := lastPerm
+		if lastRepoID != blocker.Repository.ID {
+			if blocker.Repository.ID == ctx.Repo.Repository.ID {
+				perm = ctx.Repo.Permission
+			} else {
+				var err error
+				perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
+				if err != nil {
+					ctx.ServerError("GetUserRepoPermission", err)
+					return
+				}
+			}
+			lastRepoID = blocker.Repository.ID
+		}
+
+		// check permission
+		if !perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
+			blockers[len(notPermitted)], blockers[i] = blocker, blockers[len(notPermitted)]
+			notPermitted = blockers[:len(notPermitted)+1]
+		}
+	}
+	blockers = blockers[len(notPermitted):]
+	sortDependencyInfo(blockers)
+	sortDependencyInfo(notPermitted)
+
+	return blockers, notPermitted
+}
+
+func sortDependencyInfo(blockers []*issues_model.DependencyInfo) {
+	sort.Slice(blockers, func(i, j int) bool {
+		if blockers[i].RepoID == blockers[j].RepoID {
+			return blockers[i].Issue.CreatedUnix < blockers[j].Issue.CreatedUnix
+		}
+		return blockers[i].RepoID < blockers[j].RepoID
+	})
 }
 
 // GetActionIssue will return the issue which is used in the context.
