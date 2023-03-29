@@ -2,19 +2,7 @@ import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
 import {toggleElem} from '../utils/dom.js';
 
-async function fetchData() {
-  console.log('fetch Data')
-  const res = await fetch('/hester/testRepo/issues/posters', {
-    method: 'GET'
-  });
-  const json = await res.json();
-  console.log(res)
-  console.log(json)
-}
-
 export function initCommonIssue() {
-  console.log('initCommonIssue');
-  fetchData();
   const $issueSelectAllWrapper = $('.issue-checkbox-all');
   const $issueSelectAll = $('.issue-checkbox-all input');
   const $issueCheckboxes = $('.issue-checkbox input');

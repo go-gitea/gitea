@@ -54,6 +54,18 @@ type User struct {
 	StarredRepos int `json:"starred_repos_count"`
 }
 
+// UserBrief represents user info needed when using search dropdown
+type UserBrief struct {
+	// the user's id
+	ID int64 `json:"id"`
+	// the user's username
+	UserName string `json:"username"`
+	// URL to the user's avatar
+	AvatarURL string `json:"avatar_url"`
+	// the user's full name
+	FullName string `json:"full_name"`
+}
+
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility
 func (u User) MarshalJSON() ([]byte, error) {
 	// Re-declaring User to avoid recursion

@@ -77,8 +77,3 @@ type APIError struct {
 	Message string `json:"message"`
 	URL     string `json:"url"`
 }
-
-type UserSearchResults struct {
-	OK   bool    `json:"ok"`
-	Data []*User `json:"data"`
-}

@@ -26,6 +26,19 @@ func ToUser(ctx context.Context, user, doer *user_model.User) *api.User {
 	return toUser(ctx, user, signed, authed)
 }
 
+func ToUserBrief(ctx context.Context, user *user_model.User) *api.UserBrief {
+	if user == nil {
+		return nil
+	}
+	result := &api.UserBrief{
+		ID:        user.ID,
+		UserName:  user.Name,
+		FullName:  user.FullName,
+		AvatarURL: user.AvatarLink(ctx),
+	}
+	return result
+}
+
 // ToUsers convert list of user_model.User to list of api.User
 func ToUsers(ctx context.Context, doer *user_model.User, users []*user_model.User) []*api.User {
 	result := make([]*api.User, len(users))

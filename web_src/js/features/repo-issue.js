@@ -89,7 +89,54 @@ export function initRepoIssueDue() {
   });
 }
 
+async function fetchData() {
+  console.log('fetch Data')
+  const $autherSearch = document.getElementById('author-search');
+  const url = $autherSearch.getAttribute('data-url');
+  const posterID = $autherSearch.getAttribute('data-poster-id');
+  const isShowFullName = $autherSearch.getAttribute('data-show-fullname');
+  const posterGeneralHref = $autherSearch.getAttribute('data-general-poster-href');
+  const posterList = document.querySelector('.poster-list');
+  const res = await fetch(url, {
+    method: 'GET'
+  });
+  const postersJson = await res.json();
+  console.log(res)
+  console.log(postersJson)
+  if (!postersJson) {
+    $autherSearch.classList.add('disabled')
+  } else {
+    $('.poster-list').find('.poster-item').remove();
+    for (let i = 0; i < postersJson.length; i ++) {
+      const {id, avatar_url, username, full_name} = postersJson[i];
+      const $a = document.createElement('a');
+      $a.setAttribute('class', `item gt-df poster-item${posterID === id ? ' active selected': ''}`);
+      $a.setAttribute('href', `${posterGeneralHref}${id}`);
+      const $img = document.createElement('img');
+      $img.setAttribute('class', 'ui avatar gt-vm');
+      $img.setAttribute('src', avatar_url);
+      $img.setAttribute('title', username);
+      $img.setAttribute('width', '28');
+      $img.setAttribute('height', '28');
+      $a.appendChild($img);
+      const $span = document.createElement('span');
+      $span.setAttribute('class', 'gt-ellipsis');
+      $span.innerHTML = username;
+      console.log(isShowFullName)
+      if (isShowFullName === "true") {
+        const $spanInner = document.createElement('span');
+        $spanInner.setAttribute('class', 'search-fullname');
+        $spanInner.innerHTML = full_name;
+        $span.appendChild($spanInner);
+      }
+      $a.appendChild($span);
+      posterList.appendChild($a);
+    }
+  }
+}
+
 export function initRepoIssueList() {
+  console.log('initRepoIssueList')
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
@@ -152,6 +199,8 @@ export function initRepoIssueList() {
       }
     }
   });
+
+  fetchData();
 }
 
 export function initRepoIssueCommentDelete() {

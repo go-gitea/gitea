@@ -311,11 +311,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return
 	}
 
-	ctx.Data["Posters"], err = repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
-	if err != nil {
-		ctx.ServerError("GetIssuePosters", err)
-		return
-	}
+	// ctx.Data["Posters"], err = repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
+	// if err != nil {
+	// 	ctx.ServerError("GetIssuePosters", err)
+	// 	return
+	// }
 
 	handleTeamMentions(ctx)
 	if ctx.Written() {
@@ -3331,30 +3331,28 @@ func printContextInternals(ctx interface{}, inner bool) {
 }
 
 func IssuePosters(ctx *context.Context) {
-	fmt.Println("IssuePostersIssuePostersIssuePostersIssuePosters")
-	var err error
 	repo := ctx.Repo.Repository
-	// fmt.Println(repo)
 	printContextInternals(ctx, true)
 	isPullList := ctx.Params(":type") == "pulls"
-	fmt.Println(ctx.Params(":type"))
-	fmt.Println(isPullList)
 	isPullOption := util.OptionalBoolOf(isPullList)
-	posters, err := repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
-	fmt.Println("posters")
-	// fmt.Println(posters)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, api.SearchError{
-			OK:    false,
-			Error: err.Error(),
-		})
-		return
+	var allPosters []*user_model.User
+	for i := 1; i < 200; i++ {
+		var err error
+		posters, err := repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, api.SearchError{
+				OK:    false,
+				Error: err.Error(),
+			})
+			return
+		}
+		allPosters = append(allPosters, posters...)
 	}
-	results := make([]*api.User, len(posters))
-	fmt.Println("results")
-	fmt.Println(results)
-	ctx.JSON(http.StatusOK, api.UserSearchResults{
-		OK:   true,
-		Data: results,
-	})
+
+	results := make([]*api.UserBrief, len(allPosters))
+	for i, poster := range allPosters {
+		results[i] = convert.ToUserBrief(ctx, poster)
+	}
+	// fmt.Println(results)
+	ctx.JSON(http.StatusOK, results)
 }
