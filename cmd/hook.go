@@ -6,9 +6,9 @@ package cmd
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -167,11 +167,11 @@ func runHookPreReceive(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("hooks/pre-receive.log", c.Bool("debug"))
+	setup(ctx, c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
-			return fail(`Rejecting changes as Gitea environment not set.
+			return fail(ctx, `Rejecting changes as Gitea environment not set.
 If you are pushing over SSH you must push with a key managed by
 Gitea or set your environment appropriately.`, "")
 		}
@@ -257,14 +257,9 @@ Gitea or set your environment appropriately.`, "")
 				hookOptions.OldCommitIDs = oldCommitIDs
 				hookOptions.NewCommitIDs = newCommitIDs
 				hookOptions.RefFullNames = refFullNames
-				statusCode, msg := private.HookPreReceive(ctx, username, reponame, hookOptions)
-				switch statusCode {
-				case http.StatusOK:
-					// no-op
-				case http.StatusInternalServerError:
-					return fail("Internal Server Error", msg)
-				default:
-					return fail(msg, "")
+				extra := private.HookPreReceive(ctx, username, reponame, hookOptions)
+				if extra.HasError() {
+					return fail(ctx, extra.UserMsg, "HookPreReceive(batch) failed: %v", extra.Error)
 				}
 				count = 0
 				lastline = 0
@@ -285,12 +280,9 @@ Gitea or set your environment appropriately.`, "")
 
 		fmt.Fprintf(out, " Checking %d references\n", count)
 
-		statusCode, msg := private.HookPreReceive(ctx, username, reponame, hookOptions)
-		switch statusCode {
-		case http.StatusInternalServerError:
-			return fail("Internal Server Error", msg)
-		case http.StatusForbidden:
-			return fail(msg, "")
+		extra := private.HookPreReceive(ctx, username, reponame, hookOptions)
+		if extra.HasError() {
+			return fail(ctx, extra.UserMsg, "HookPreReceive(last) failed: %v", extra.Error)
 		}
 	} else if lastline > 0 {
 		fmt.Fprintf(out, "\n")
@@ -309,7 +301,7 @@ func runHookPostReceive(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("hooks/post-receive.log", c.Bool("debug"))
+	setup(ctx, c.Bool("debug"))
 
 	// First of all run update-server-info no matter what
 	if _, _, err := git.NewCommand(ctx, "update-server-info").RunStdString(nil); err != nil {
@@ -323,7 +315,7 @@ func runHookPostReceive(c *cli.Context) error {
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
-			return fail(`Rejecting changes as Gitea environment not set.
+			return fail(ctx, `Rejecting changes as Gitea environment not set.
 If you are pushing over SSH you must push with a key managed by
 Gitea or set your environment appropriately.`, "")
 		}
@@ -394,11 +386,11 @@ Gitea or set your environment appropriately.`, "")
 			hookOptions.OldCommitIDs = oldCommitIDs
 			hookOptions.NewCommitIDs = newCommitIDs
 			hookOptions.RefFullNames = refFullNames
-			resp, err := private.HookPostReceive(ctx, repoUser, repoName, hookOptions)
-			if resp == nil {
+			resp, extra := private.HookPostReceive(ctx, repoUser, repoName, hookOptions)
+			if extra.HasError() {
 				_ = dWriter.Close()
 				hookPrintResults(results)
-				return fail("Internal Server Error", err)
+				return fail(ctx, extra.UserMsg, "HookPostReceive failed: %v", extra.Error)
 			}
 			wasEmpty = wasEmpty || resp.RepoWasEmpty
 			results = append(results, resp.Results...)
@@ -409,9 +401,9 @@ Gitea or set your environment appropriately.`, "")
 	if count == 0 {
 		if wasEmpty && masterPushed {
 			// We need to tell the repo to reset the default branch to master
-			err := private.SetDefaultBranch(ctx, repoUser, repoName, "master")
-			if err != nil {
-				return fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
+			extra := private.SetDefaultBranch(ctx, repoUser, repoName, "master")
+			if extra.HasError() {
+				return fail(ctx, extra.UserMsg, "SetDefaultBranch failed: %v", extra.Error)
 			}
 		}
 		fmt.Fprintf(out, "Processed %d references in total\n", total)
@@ -427,11 +419,11 @@ Gitea or set your environment appropriately.`, "")
 
 	fmt.Fprintf(out, " Processing %d references\n", count)
 
-	resp, err := private.HookPostReceive(ctx, repoUser, repoName, hookOptions)
+	resp, extra := private.HookPostReceive(ctx, repoUser, repoName, hookOptions)
 	if resp == nil {
 		_ = dWriter.Close()
 		hookPrintResults(results)
-		return fail("Internal Server Error", err)
+		return fail(ctx, extra.UserMsg, "HookPostReceive failed: %v", extra.Error)
 	}
 	wasEmpty = wasEmpty || resp.RepoWasEmpty
 	results = append(results, resp.Results...)
@@ -440,9 +432,9 @@ Gitea or set your environment appropriately.`, "")
 
 	if wasEmpty && masterPushed {
 		// We need to tell the repo to reset the default branch to master
-		err := private.SetDefaultBranch(ctx, repoUser, repoName, "master")
-		if err != nil {
-			return fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
+		extra := private.SetDefaultBranch(ctx, repoUser, repoName, "master")
+		if extra.HasError() {
+			return fail(ctx, extra.UserMsg, "SetDefaultBranch failed: %v", extra.Error)
 		}
 	}
 	_ = dWriter.Close()
@@ -485,22 +477,22 @@ func pushOptions() map[string]string {
 }
 
 func runHookProcReceive(c *cli.Context) error {
-	setup("hooks/proc-receive.log", c.Bool("debug"))
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	setup(ctx, c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
-			return fail(`Rejecting changes as Gitea environment not set.
+			return fail(ctx, `Rejecting changes as Gitea environment not set.
 If you are pushing over SSH you must push with a key managed by
 Gitea or set your environment appropriately.`, "")
 		}
 		return nil
 	}
 
-	ctx, cancel := installSignals()
-	defer cancel()
-
 	if git.CheckGitVersionAtLeast("2.29") != nil {
-		return fail("Internal Server Error", "git not support proc-receive.")
+		return fail(ctx, "No proc-receive support", "current git version doesn't support proc-receive.")
 	}
 
 	reader := bufio.NewReader(os.Stdin)
@@ -515,7 +507,7 @@ Gitea or set your environment appropriately.`, "")
 	// H: PKT-LINE(version=1\0push-options...)
 	// H: flush-pkt
 
-	rs, err := readPktLine(reader, pktLineTypeData)
+	rs, err := readPktLine(ctx, reader, pktLineTypeData)
 	if err != nil {
 		return err
 	}
@@ -530,19 +522,19 @@ Gitea or set your environment appropriately.`, "")
 
 	index := bytes.IndexByte(rs.Data, byte(0))
 	if index >= len(rs.Data) {
-		return fail("Internal Server Error", "pkt-line: format error "+fmt.Sprint(rs.Data))
+		return fail(ctx, "Protocol: format error", "pkt-line: format error "+fmt.Sprint(rs.Data))
 	}
 
 	if index < 0 {
 		if len(rs.Data) == 10 && rs.Data[9] == '\n' {
 			index = 9
 		} else {
-			return fail("Internal Server Error", "pkt-line: format error "+fmt.Sprint(rs.Data))
+			return fail(ctx, "Protocol: format error", "pkt-line: format error "+fmt.Sprint(rs.Data))
 		}
 	}
 
 	if string(rs.Data[0:index]) != VersionHead {
-		return fail("Internal Server Error", "Received unsupported version: %s", string(rs.Data[0:index]))
+		return fail(ctx, "Protocol: version error", "Received unsupported version: %s", string(rs.Data[0:index]))
 	}
 	requestOptions = strings.Split(string(rs.Data[index+1:]), " ")
 
@@ -555,17 +547,17 @@ Gitea or set your environment appropriately.`, "")
 	}
 	response = append(response, '\n')
 
-	_, err = readPktLine(reader, pktLineTypeFlush)
+	_, err = readPktLine(ctx, reader, pktLineTypeFlush)
 	if err != nil {
 		return err
 	}
 
-	err = writeDataPktLine(os.Stdout, response)
+	err = writeDataPktLine(ctx, os.Stdout, response)
 	if err != nil {
 		return err
 	}
 
-	err = writeFlushPktLine(os.Stdout)
+	err = writeFlushPktLine(ctx, os.Stdout)
 	if err != nil {
 		return err
 	}
@@ -588,7 +580,7 @@ Gitea or set your environment appropriately.`, "")
 
 	for {
 		// note: pktLineTypeUnknow means pktLineTypeFlush and pktLineTypeData all allowed
-		rs, err = readPktLine(reader, pktLineTypeUnknow)
+		rs, err = readPktLine(ctx, reader, pktLineTypeUnknow)
 		if err != nil {
 			return err
 		}
@@ -609,7 +601,7 @@ Gitea or set your environment appropriately.`, "")
 
 	if hasPushOptions {
 		for {
-			rs, err = readPktLine(reader, pktLineTypeUnknow)
+			rs, err = readPktLine(ctx, reader, pktLineTypeUnknow)
 			if err != nil {
 				return err
 			}
@@ -626,9 +618,9 @@ Gitea or set your environment appropriately.`, "")
 	}
 
 	// 3. run hook
-	resp, err := private.HookProcReceive(ctx, repoUser, repoName, hookOptions)
-	if err != nil {
-		return fail("Internal Server Error", "run proc-receive hook failed :%v", err)
+	resp, extra := private.HookProcReceive(ctx, repoUser, repoName, hookOptions)
+	if extra.HasError() {
+		return fail(ctx, extra.UserMsg, "HookProcReceive failed: %v", extra.Error)
 	}
 
 	// 4. response result to service
@@ -649,7 +641,7 @@ Gitea or set your environment appropriately.`, "")
 
 	for _, rs := range resp.Results {
 		if len(rs.Err) > 0 {
-			err = writeDataPktLine(os.Stdout, []byte("ng "+rs.OriginalRef+" "+rs.Err))
+			err = writeDataPktLine(ctx, os.Stdout, []byte("ng "+rs.OriginalRef+" "+rs.Err))
 			if err != nil {
 				return err
 			}
@@ -657,43 +649,43 @@ Gitea or set your environment appropriately.`, "")
 		}
 
 		if rs.IsNotMatched {
-			err = writeDataPktLine(os.Stdout, []byte("ok "+rs.OriginalRef))
+			err = writeDataPktLine(ctx, os.Stdout, []byte("ok "+rs.OriginalRef))
 			if err != nil {
 				return err
 			}
-			err = writeDataPktLine(os.Stdout, []byte("option fall-through"))
+			err = writeDataPktLine(ctx, os.Stdout, []byte("option fall-through"))
 			if err != nil {
 				return err
 			}
 			continue
 		}
 
-		err = writeDataPktLine(os.Stdout, []byte("ok "+rs.OriginalRef))
+		err = writeDataPktLine(ctx, os.Stdout, []byte("ok "+rs.OriginalRef))
 		if err != nil {
 			return err
 		}
-		err = writeDataPktLine(os.Stdout, []byte("option refname "+rs.Ref))
+		err = writeDataPktLine(ctx, os.Stdout, []byte("option refname "+rs.Ref))
 		if err != nil {
 			return err
 		}
 		if rs.OldOID != git.EmptySHA {
-			err = writeDataPktLine(os.Stdout, []byte("option old-oid "+rs.OldOID))
+			err = writeDataPktLine(ctx, os.Stdout, []byte("option old-oid "+rs.OldOID))
 			if err != nil {
 				return err
 			}
 		}
-		err = writeDataPktLine(os.Stdout, []byte("option new-oid "+rs.NewOID))
+		err = writeDataPktLine(ctx, os.Stdout, []byte("option new-oid "+rs.NewOID))
 		if err != nil {
 			return err
 		}
 		if rs.IsForcePush {
-			err = writeDataPktLine(os.Stdout, []byte("option forced-update"))
+			err = writeDataPktLine(ctx, os.Stdout, []byte("option forced-update"))
 			if err != nil {
 				return err
 			}
 		}
 	}
-	err = writeFlushPktLine(os.Stdout)
+	err = writeFlushPktLine(ctx, os.Stdout)
 
 	return err
 }
@@ -718,7 +710,7 @@ type gitPktLine struct {
 	Data   []byte
 }
 
-func readPktLine(in *bufio.Reader, requestType pktLineType) (*gitPktLine, error) {
+func readPktLine(ctx context.Context, in *bufio.Reader, requestType pktLineType) (*gitPktLine, error) {
 	var (
 		err error
 		r   *gitPktLine
@@ -729,33 +721,33 @@ func readPktLine(in *bufio.Reader, requestType pktLineType) (*gitPktLine, error)
 	for i := 0; i < 4; i++ {
 		lengthBytes[i], err = in.ReadByte()
 		if err != nil {
-			return nil, fail("Internal Server Error", "Pkt-Line: read stdin failed : %v", err)
+			return nil, fail(ctx, "Protocol: stdin error", "Pkt-Line: read stdin failed : %v", err)
 		}
 	}
 
 	r = new(gitPktLine)
 	r.Length, err = strconv.ParseUint(string(lengthBytes), 16, 32)
 	if err != nil {
-		return nil, fail("Internal Server Error", "Pkt-Line format is wrong :%v", err)
+		return nil, fail(ctx, "Protocol: format parse error", "Pkt-Line format is wrong :%v", err)
 	}
 
 	if r.Length == 0 {
 		if requestType == pktLineTypeData {
-			return nil, fail("Internal Server Error", "Pkt-Line format is wrong")
+			return nil, fail(ctx, "Protocol: format data error", "Pkt-Line format is wrong")
 		}
 		r.Type = pktLineTypeFlush
 		return r, nil
 	}
 
 	if r.Length <= 4 || r.Length > 65520 || requestType == pktLineTypeFlush {
-		return nil, fail("Internal Server Error", "Pkt-Line format is wrong")
+		return nil, fail(ctx, "Protocol: format length error", "Pkt-Line format is wrong")
 	}
 
 	r.Data = make([]byte, r.Length-4)
 	for i := range r.Data {
 		r.Data[i], err = in.ReadByte()
 		if err != nil {
-			return nil, fail("Internal Server Error", "Pkt-Line: read stdin failed : %v", err)
+			return nil, fail(ctx, "Protocol: data error", "Pkt-Line: read stdin failed : %v", err)
 		}
 	}
 
@@ -764,19 +756,15 @@ func readPktLine(in *bufio.Reader, requestType pktLineType) (*gitPktLine, error)
 	return r, nil
 }
 
-func writeFlushPktLine(out io.Writer) error {
+func writeFlushPktLine(ctx context.Context, out io.Writer) error {
 	l, err := out.Write([]byte("0000"))
-	if err != nil {
-		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+	if err != nil || l != 4 {
+		return fail(ctx, "Protocol: write error", "Pkt-Line response failed: %v", err)
 	}
-	if l != 4 {
-		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
-	}
-
 	return nil
 }
 
-func writeDataPktLine(out io.Writer, data []byte) error {
+func writeDataPktLine(ctx context.Context, out io.Writer, data []byte) error {
 	hexchar := []byte("0123456789abcdef")
 	hex := func(n uint64) byte {
 		return hexchar[(n)&15]
@@ -790,19 +778,13 @@ func writeDataPktLine(out io.Writer, data []byte) error {
 	tmp[3] = hex(length)
 
 	lr, err := out.Write(tmp)
-	if err != nil {
-		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
-	}
-	if lr != 4 {
-		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+	if err != nil || lr != 4 {
+		return fail(ctx, "Protocol: write error", "Pkt-Line response failed: %v", err)
 	}
 
 	lr, err = out.Write(data)
-	if err != nil {
-		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
-	}
-	if int(length-4) != lr {
-		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+	if err != nil || int(length-4) != lr {
+		return fail(ctx, "Protocol: write error", "Pkt-Line response failed: %v", err)
 	}
 
 	return nil
