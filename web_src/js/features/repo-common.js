@@ -217,12 +217,12 @@ export async function initPostersDropdownTest() {
           const {id, avatar_url, username, full_name} = poster;
           console.log(poster)
           formattedResponse.results.push({
-            name: `
+            name: `<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralUrl}${id}">
               <img class="ui avatar gt-vm" src="${avatar_url}" title="${username}" width="28" height="28">
               <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>`: ''}</span>
+            </a>
             `,
             value: id,
-            class: `item gt-df${posterID === id ? ' active selected' : ''}`
           });
         });
         return formattedResponse;
@@ -235,5 +235,3 @@ export async function initPostersDropdownTest() {
     // }
   });
 }
-
-// href="${posterGeneralUrl}${id}"
