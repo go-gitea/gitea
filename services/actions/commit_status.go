@@ -21,49 +21,31 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	}
 
 	run := job.Run
-	var (
-		sha       string
-		creatorID int64
-	)
 
+	var (
+		sha string
+	)
 	switch run.Event {
 	case webhook_module.HookEventPush:
 		payload, err := run.GetPushEventPayload()
 		if err != nil {
 			return fmt.Errorf("GetPushEventPayload: %w", err)
 		}
-
-		// Since the payload comes from json data, we should check if it's broken, or it will cause panic
-		switch {
-		case payload.Repo == nil:
-			return fmt.Errorf("repo is missing in event payload")
-		case payload.Pusher == nil:
-			return fmt.Errorf("pusher is missing in event payload")
-		case payload.HeadCommit == nil:
+		if payload.HeadCommit == nil {
 			return fmt.Errorf("head commit is missing in event payload")
 		}
-
 		sha = payload.HeadCommit.ID
-		creatorID = payload.Pusher.ID
 	case webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestSync:
 		payload, err := run.GetPullRequestEventPayload()
 		if err != nil {
 			return fmt.Errorf("GetPullRequestEventPayload: %w", err)
 		}
-
-		switch {
-		case payload.PullRequest == nil:
+		if payload.PullRequest == nil {
 			return fmt.Errorf("pull request is missing in event payload")
-		case payload.PullRequest.Head == nil:
+		} else if payload.PullRequest.Head == nil {
 			return fmt.Errorf("head of pull request is missing in event payload")
-		case payload.PullRequest.Head.Repository == nil:
-			return fmt.Errorf("head repository of pull request is missing in event payload")
-		case payload.PullRequest.Head.Repository.Owner == nil:
-			return fmt.Errorf("owner of head repository of pull request is missing in evnt payload")
 		}
-
 		sha = payload.PullRequest.Head.Sha
-		creatorID = payload.PullRequest.Head.Repository.Owner.ID
 	default:
 		return nil
 	}
@@ -71,14 +53,11 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	repo := run.Repo
 	ctxname := job.Name
 	state := toCommitStatus(job.Status)
-	creator, err := user_model.GetUserByID(ctx, creatorID)
-	if err != nil {
-		return fmt.Errorf("GetUserByID: %w", err)
-	}
 	if statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{}); err == nil {
 		for _, v := range statuses {
 			if v.Context == ctxname {
 				if v.State == state {
+					// no need to update
 					return nil
 				}
 				break
@@ -88,6 +67,7 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	}
 
+	creator := user_model.NewActionsUser()
 	if err := git_model.NewCommitStatus(ctx, git_model.NewCommitStatusOptions{
 		Repo:    repo,
 		SHA:     sha,
@@ -97,7 +77,7 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 			TargetURL:   run.Link(),
 			Description: "",
 			Context:     ctxname,
-			CreatorID:   creatorID,
+			CreatorID:   creator.ID,
 			State:       state,
 		},
 	}); err != nil {
