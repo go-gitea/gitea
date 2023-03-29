@@ -3362,7 +3362,8 @@ func IssuePosters(ctx *context.Context) {
 	isPullList := ctx.Params(":type") == "pulls"
 	isPullOption := util.OptionalBoolOf(isPullList)
 	var allPosters []*user_model.User
-	for i := 1; i < 200; i++ {
+	// test sending more posters to frontend
+	for i := 1; i < 300; i++ {
 		var err error
 		posters, err := repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
 		if err != nil {
