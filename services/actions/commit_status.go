@@ -79,7 +79,7 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	}
 
 	description := ""
-	switch run.Status {
+	switch job.Status {
 	// TODO: if we want support description in different languages, we need to support i18n placeholders in it
 	case actions_model.StatusSuccess:
 		description = fmt.Sprintf("Successful in %s", job.Duration())
