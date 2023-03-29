@@ -11,6 +11,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 
 	"xorm.io/builder"
@@ -45,11 +46,11 @@ func jobEmitterQueueHandle(data ...queue.Data) []queue.Data {
 }
 
 func checkJobsOfRun(ctx context.Context, runID int64) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: runID})
-		if err != nil {
-			return err
-		}
+	jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: runID})
+	if err != nil {
+		return err
+	}
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		idToJobs := make(map[string][]*actions_model.ActionRunJob, len(jobs))
 		for _, job := range jobs {
 			idToJobs[job.JobID] = append(idToJobs[job.JobID], job)
@@ -67,7 +68,16 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 			}
 		}
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+	for _, job := range jobs {
+		if err := CreateCommitStatus(ctx, job); err != nil {
+			log.Error("Update commit status for job %v failed: %v", job.ID, err)
+			// go on
+		}
+	}
+	return nil
 }
 
 type jobStatusResolver struct {

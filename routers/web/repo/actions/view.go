@@ -349,6 +349,13 @@ func Approve(ctx *context_module.Context) {
 		return
 	}
 
+	for _, job := range jobs {
+		if err := actions_service.CreateCommitStatus(ctx, job); err != nil {
+			log.Error("Update commit status for job %v failed: %v", job.ID, err)
+			// go on
+		}
+	}
+
 	ctx.JSON(http.StatusOK, struct{}{})
 }
 
