@@ -124,3 +124,65 @@ func TestMetas(t *testing.T) {
 	assert.Equal(t, "user3", metas["org"])
 	assert.Equal(t, ",owners,team1,", metas["teams"])
 }
+
+func TestGetRepositoryByURL(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	t.Run("InvalidPath", func(t *testing.T) {
+		repo, err := repo_model.GetRepositoryByURL(db.DefaultContext, "something")
+
+		assert.Nil(t, repo)
+		assert.Error(t, err)
+	})
+
+	t.Run("ValidHttpURL", func(t *testing.T) {
+		test := func(t *testing.T, url string) {
+			repo, err := repo_model.GetRepositoryByURL(db.DefaultContext, url)
+
+			assert.NotNil(t, repo)
+			assert.NoError(t, err)
+
+			assert.Equal(t, repo.ID, int64(2))
+			assert.Equal(t, repo.OwnerID, int64(2))
+		}
+
+		test(t, "https://try.gitea.io/user2/repo2")
+		test(t, "https://try.gitea.io/user2/repo2.git")
+	})
+
+	t.Run("ValidGitSshURL", func(t *testing.T) {
+		test := func(t *testing.T, url string) {
+			repo, err := repo_model.GetRepositoryByURL(db.DefaultContext, url)
+
+			assert.NotNil(t, repo)
+			assert.NoError(t, err)
+
+			assert.Equal(t, repo.ID, int64(2))
+			assert.Equal(t, repo.OwnerID, int64(2))
+		}
+
+		test(t, "git+ssh://sshuser@try.gitea.io/user2/repo2")
+		test(t, "git+ssh://sshuser@try.gitea.io/user2/repo2.git")
+
+		test(t, "git+ssh://try.gitea.io/user2/repo2")
+		test(t, "git+ssh://try.gitea.io/user2/repo2.git")
+	})
+
+	t.Run("ValidImplicitSshURL", func(t *testing.T) {
+		test := func(t *testing.T, url string) {
+			repo, err := repo_model.GetRepositoryByURL(db.DefaultContext, url)
+
+			assert.NotNil(t, repo)
+			assert.NoError(t, err)
+
+			assert.Equal(t, repo.ID, int64(2))
+			assert.Equal(t, repo.OwnerID, int64(2))
+		}
+
+		test(t, "sshuser@try.gitea.io:user2/repo2")
+		test(t, "sshuser@try.gitea.io:user2/repo2.git")
+
+		test(t, "try.gitea.io:user2/repo2")
+		test(t, "try.gitea.io:user2/repo2.git")
+	})
+}
