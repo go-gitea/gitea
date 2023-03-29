@@ -12,13 +12,24 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
 
-func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) error {
+// CreateCommitStatus creates a commit status for the given job.
+// It won't return an error failed, but will log it, because it's not critical.
+func CreateCommitStatus(ctx context.Context, jobs ...*actions_model.ActionRunJob) {
+	for _, job := range jobs {
+		if err := createCommitStatus(ctx, job); err != nil {
+			log.Error("Failed to create commit status for job %d: %v", job.ID, err)
+		}
+	}
+}
+
+func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) error {
 	if err := job.LoadAttributes(ctx); err != nil {
 		return fmt.Errorf("load run: %w", err)
 	}

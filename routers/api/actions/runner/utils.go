@@ -28,10 +28,7 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		return nil, false, nil
 	}
 
-	if err := actions.CreateCommitStatus(ctx, t.Job); err != nil {
-		log.Error("Update commit status for job %v failed: %v", t.Job.ID, err)
-		// go on
-	}
+	actions.CreateCommitStatus(ctx, t.Job)
 
 	task := &runnerv1.Task{
 		Id:              t.ID,

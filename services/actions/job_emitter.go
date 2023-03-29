@@ -11,7 +11,6 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 
 	"xorm.io/builder"
@@ -71,12 +70,7 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 	}); err != nil {
 		return err
 	}
-	for _, job := range jobs {
-		if err := CreateCommitStatus(ctx, job); err != nil {
-			log.Error("Update commit status for job %v failed: %v", job.ID, err)
-			// go on
-		}
-	}
+	CreateCommitStatus(ctx, jobs...)
 	return nil
 }
 
