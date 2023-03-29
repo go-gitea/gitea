@@ -69,7 +69,7 @@ export function toggleElem(el, force) {
 }
 
 export function setAttributes(el, options) {
-  Object.keys(options).forEach(attr => 
-    el.setAttribute(attr, options[attr])
-  );
+  for (const key of Object.keys(options)) {
+    el.setAttribute(key, options[key]);
+  }
 }
