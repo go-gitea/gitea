@@ -78,6 +78,25 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	}
 
+	description := ""
+	switch run.Status {
+	// TODO: if we want support description in different languages, we need to support i18n placeholders in it
+	case actions_model.StatusSuccess:
+		description = fmt.Sprintf("Successful in %s", job.Duration())
+	case actions_model.StatusFailure:
+		description = fmt.Sprintf("Failing after %s", job.Duration())
+	case actions_model.StatusCancelled:
+		description = "Has been cancelled"
+	case actions_model.StatusSkipped:
+		description = "Has been skipped"
+	case actions_model.StatusRunning:
+		description = "Has started running"
+	case actions_model.StatusWaiting:
+		description = "Waiting to run"
+	case actions_model.StatusBlocked:
+		description = "Blocked by required conditions"
+	}
+
 	creator := user_model.NewActionsUser()
 	if err := git_model.NewCommitStatus(ctx, git_model.NewCommitStatusOptions{
 		Repo:    repo,
@@ -86,7 +105,7 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 		CommitStatus: &git_model.CommitStatus{
 			SHA:         sha,
 			TargetURL:   run.Link(),
-			Description: "",
+			Description: description,
 			Context:     ctxname,
 			CreatorID:   creator.ID,
 			State:       state,
