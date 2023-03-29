@@ -223,7 +223,7 @@ func (m *MSTeamsPayload) Review(p *api.PullRequestPayload, event webhook_module.
 			color = greenColor
 		case webhook_module.HookEventPullRequestReviewRejected:
 			color = redColor
-		case webhook_module.HookEventPullRequestComment:
+		case webhook_module.HookEventPullRequestReviewComment:
 			color = greyColor
 		default:
 			color = yellowColor

@@ -1663,8 +1663,14 @@
     align-items: center;
 
     .file {
-      flex: 1;
-      word-break: break-all;
+      min-width: 0;
+      .file-link {
+        max-width: fit-content;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+      }
     }
 
     .button {
@@ -2825,11 +2831,11 @@
 
 .labels-list .label {
   margin: 2px 0;
-  display: inline-block !important;
+  display: inline-flex !important;
   line-height: 1.3em; // there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly
 }
 
-// Scoped labels with different colors on left and right, and slanted divider in the middle
+// Scoped labels with different colors on left and right
 .scope-parent {
   background: none !important;
   padding: 0 !important;
@@ -2838,23 +2844,12 @@
 .ui.label.scope-left {
   border-bottom-right-radius: 0;
   border-top-right-radius: 0;
-  padding-right: 0;
-  margin-right: 0;
-}
-
-.ui.label.scope-middle {
-  width: 12px;
-  border-radius: 0;
-  padding-left: 0;
-  padding-right: 0;
-  margin-left: 0;
   margin-right: 0;
 }
 
 .ui.label.scope-right {
   border-bottom-left-radius: 0;
   border-top-left-radius: 0;
-  padding-left: 0;
   margin-left: 0;
 }
 
@@ -2863,7 +2858,7 @@
 }
 
 .repo-button-row > * {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .wiki .repo-button-row {
@@ -3275,6 +3270,15 @@ td.blob-excerpt {
     @media (max-width: 480px) {
       position: static;
     }
+  }
+
+  .diff-file-header-actions {
+    flex-shrink: 0;
+  }
+
+  .diff-file-name {
+    flex: auto;
+    min-width: 100px;
   }
 }
 

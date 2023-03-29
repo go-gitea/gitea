@@ -250,6 +250,8 @@ func runDump(ctx *cli.Context) error {
 
 		if ctx.IsSet("skip-lfs-data") && ctx.Bool("skip-lfs-data") {
 			log.Info("Skip dumping LFS data")
+		} else if !setting.LFS.StartServer {
+			log.Info("LFS isn't enabled. Skip dumping LFS data")
 		} else if err := storage.LFS.IterateObjects(func(objPath string, object storage.Object) error {
 			info, err := object.Stat()
 			if err != nil {
@@ -272,13 +274,14 @@ func runDump(ctx *cli.Context) error {
 		fatal("Failed to create tmp file: %v", err)
 	}
 	defer func() {
+		_ = dbDump.Close()
 		if err := util.Remove(dbDump.Name()); err != nil {
 			log.Warn("Unable to remove temporary file: %s: Error: %v", dbDump.Name(), err)
 		}
 	}()
 
 	targetDBType := ctx.String("database")
-	if len(targetDBType) > 0 && targetDBType != setting.Database.Type {
+	if len(targetDBType) > 0 && targetDBType != setting.Database.Type.String() {
 		log.Info("Dumping database %s => %s...", setting.Database.Type, targetDBType)
 	} else {
 		log.Info("Dumping database...")
@@ -363,6 +366,8 @@ func runDump(ctx *cli.Context) error {
 
 	if ctx.IsSet("skip-package-data") && ctx.Bool("skip-package-data") {
 		log.Info("Skip dumping package data")
+	} else if !setting.Packages.Enabled {
+		log.Info("Packages isn't enabled. Skip dumping package data")
 	} else if err := storage.Packages.IterateObjects(func(objPath string, object storage.Object) error {
 		info, err := object.Stat()
 		if err != nil {

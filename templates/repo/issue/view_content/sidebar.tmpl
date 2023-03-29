@@ -130,8 +130,8 @@
 							<div class="ui divider"></div>
 						{{end}}
 						{{$previousExclusiveScope = $exclusiveScope}}
-						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel .}}
-						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
+						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel $.Context .}}
+						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}</a>
 					{{end}}
 					<div class="ui divider"></div>
 					{{$previousExclusiveScope := "_no_scope"}}
@@ -141,8 +141,8 @@
 							<div class="ui divider"></div>
 						{{end}}
 						{{$previousExclusiveScope = $exclusiveScope}}
-						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel .}}
-						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
+						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel $.Context .}}
+						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}</a>
 					{{end}}
 				{{else}}
 					<div class="header" style="text-transform: none;font-size:14px;">{{.locale.Tr "repo.issues.new.no_items"}}</div>
@@ -487,8 +487,8 @@
 						{{range .BlockingDependencies}}
 							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
 								<div class="item-left gt-df gt-jc gt-fc gt-f1">
-									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}">
-										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
+									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
+										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
 									</a>
 									<div class="text small">
 										{{.Repository.OwnerName}}/{{.Repository.Name}}
@@ -514,8 +514,8 @@
 						{{range .BlockedByDependencies}}
 							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
 								<div class="item-left gt-df gt-jc gt-fc gt-f1">
-									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}">
-										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
+									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
+										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
 									</a>
 									<div class="text small">
 										{{.Repository.OwnerName}}/{{.Repository.Name}}
