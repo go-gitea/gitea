@@ -65,14 +65,7 @@ func LoadRepoConfig() error {
 				return fmt.Errorf("failed to list custom %s files: %w", t, err)
 			}
 			for _, f := range customFiles {
-				stat, err := os.Stat(filepath.Join(customPath, f))
-				if err != nil {
-					return fmt.Errorf("failed to stat custom %s file %q: %w", t, f, err)
-				}
-				// give end users a chance to hide builtin options if they put an empty file in their custom directory
-				if stat.Size() == 0 {
-					files = util.SliceRemoveAllFunc(files, func(s string) bool { return strings.EqualFold(s, f) })
-				} else if !util.SliceContainsString(files, f, true) {
+				if !util.SliceContainsString(files, f) {
 					files = append(files, f)
 				}
 			}
