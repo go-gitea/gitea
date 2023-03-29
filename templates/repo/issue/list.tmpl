@@ -139,6 +139,20 @@
 						</div>
 					</div>
 
+					<div class="ui dropdown jump item" id="author-search-1" data-show-fullname={{IsShowFullName}} data-url="{{$.RepoLink}}/issues/posters" data-poster-id="{{$.PosterID}}" data-general-poster-href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster=">
+						<span class="text">
+							{{.locale.Tr "repo.issues.filter_poster"}}
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						</span>
+						<!-- <div class="menu poster-list">
+							<div class="ui icon search input">
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
+							</div>
+							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
+						</div> -->
+					</div>
+
 					<!-- Assignee -->
 					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
 						<span class="text">

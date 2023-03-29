@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import {hideElem, showElem, toggleElem, setAttributes} from '../utils/dom.js';
 
-const {csrfToken} = window.config;
+const {appSubUrl, csrfToken} = window.config;
 
 function getArchive($target, url, first) {
   $.ajax({
@@ -160,4 +160,48 @@ export async function initPostersDropdown() {
     delete $('#author-search')[0]['_giteaAriaPatchDropdown'];
     $('#author-search').dropdown();
   }
+}
+
+export async function initPostersDropdownTest() {
+  console.log('fetch posters data 1');
+  const $autherSearch = document.getElementById('author-search-1');
+  if (!$autherSearch) {
+    return;
+  }
+  const url = $autherSearch.getAttribute('data-url');
+  const posterID = $autherSearch.getAttribute('data-poster-id');
+  const isShowFullName = $autherSearch.getAttribute('data-show-fullname');
+  const posterGeneralHref = $autherSearch.getAttribute('data-general-poster-href');
+  const posterList = document.querySelector('.poster-list');
+  console.log('url', `${appSubUrl}${url}`)
+  $('#author-search-1').dropdown({
+    apiSettings: {
+      fullTextSearch: 'exact',
+      saveRemoteData: false,
+      // this url parses query server side and returns filtered results
+      url: `${appSubUrl}${url}`,
+      onResponse(response) {
+        console.log(response)
+        const formattedResponse = {success: true, results: []};
+        // Parse the response from the api to work with our dropdown
+        $.each(response, (_, poster) => {
+          const {id, avatar_url, username, full_name} = poster;
+          console.log(poster)
+          formattedResponse.results.push({
+            name: `<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralHref}${id}">
+              <img class="ui avatar gt-vm" src="${avatar_url}" title="${username}" width="28" height="28">
+              <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>`: ''}</span>
+            </a>`,
+            value: id,
+          });
+        });
+        return formattedResponse;
+      },
+      cache: false,
+    },
+    // fields: {
+    // the remote api has a different structure than expected, which we can adjust
+    // remoteValues: 'item'
+    // }
+  });
 }
