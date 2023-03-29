@@ -179,7 +179,7 @@ func CheckPublicKeyString(content string) (_ string, err error) {
 		keyType string
 		length  int
 	)
-	if setting.SSH.StartBuiltinServer {
+	if len(setting.SSH.KeygenPath) == 0 {
 		fnName = "SSHNativeParsePublicKey"
 		keyType, length, err = SSHNativeParsePublicKey(content)
 	} else {
