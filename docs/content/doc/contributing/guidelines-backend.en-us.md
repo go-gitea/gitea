@@ -35,7 +35,7 @@ To maintain understandable code and avoid circular dependencies it is important 
 - `cmd`: All Gitea actual sub commands includes web, doctor, serv, hooks, admin and etc. `web` will start the web service. `serv` and `hooks` will be invoked by Git or OpenSSH. Other sub commands could help to maintain Gitea.
 - `tests`: Common test utility functions
   - `tests/integration`: Integration tests, to test back-end regressions
-  - `tests/e2e`: E2e tests, to test test front-end <> back-end compatibility and visual regressions.
+  - `tests/e2e`: E2e tests, to test test front-end \<\> back-end compatibility and visual regressions.
 - `models`: Contains the data structures used by xorm to construct database tables. It also contains functions to query and update the database. Dependencies to other Gitea code should be avoided. You can make exceptions in cases such as logging.
   - `models/db`: Basic database operations. All other `models/xxx` packages should depend on this package. The `GetEngine` function should only be invoked from `models/`.
   - `models/fixtures`: Sample data used in unit tests and integration tests. One `yml` file means one table which will be loaded into database when beginning the tests.
@@ -103,6 +103,46 @@ i.e. `services/user`, `models/repository`.
 
 Since there are some packages which use the same package name, it is possible that you find packages like `modules/user`, `models/user`, and `services/user`. When these packages are imported in one Go file, it's difficult to know which package we are using and if it's a variable name or an import name. So, we always recommend to use import aliases. To differ from package variables which are commonly in camelCase, just use **snake_case** for import aliases.
 i.e. `import user_service "code.gitea.io/gitea/services/user"`
+
+### Data Migrations
+
+Whenever you change the database structure, you **must** add a migration as well.
+Migrations are located under `models/migrations/v<next_gitea_version>/<version ID>.go`, and should be called in `models/migrations/migrations.go` using `NewMigration("<human readable title of what the migration does>", <migration function>)`
+
+#### Adding data
+
+If you only add data (structures), your migration function will look like the following example that actually exists:
+```go
+func AddVersionToActionRunner(x *xorm.Engine) error {
+	type ActionRunner struct {
+		Version string `xorm:"VARCHAR(64)"`
+	}
+
+	return x.Sync(new(ActionRunner))
+```
+As you can see, in this case you simply declare a function that takes `x *xorm.Engine` as parameter, and returns an `error` whether the migration was successful.
+Then, you declare a local migration type that shows what changes.
+Lastly, you call `return x.Sync(new(<migration type>))` to commit the migration and return the error it may produce.
+If your table didn't exist previously, it will be created.
+All columns present in your new type will also be created if they didn't exist yet.
+Existing columns that don't exist in your migration type are unaffected.
+If your migration type uses custom types, i.e. a new `int` type to simulate an enum, declare your migration type with `int` instead of `<your enum type>`. This helps to keep migrations consistent, even if the base type of your custom type is changed later.
+
+#### Deleting data
+
+In case you delete a column or table, please adapt the original migration that added it (and all subsequent migrations that use the deleted value) as well so that the column or table isn't added in the first place for new instances.
+Keep the original migration as a no-op (with a comment) in case it becomes empty.
+
+#### Updating data
+
+When you need to update data, i.e. by moving data from one column to another, you need to do the most:
+1. Declare a session that you use to commit your migration
+2. Make sure all data is updated
+3. Make sure that your migration is only run once:
+  - if it wasn't applied yet, apply it
+  - if it was applied already, it should be a no-op
+  - you cannot use the migration number as a way of identifying if this migration has already been run
+  - this is needed as it can happen that a previously applied migration can be applied again, and leads to bug reports otherwise
 
 ### Important Gotchas
 
