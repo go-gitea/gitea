@@ -107,7 +107,7 @@ func InitIssueIndexer(syncReindex bool) {
 
 	// Create the Queue
 	switch setting.Indexer.IssueType {
-	case "bleve", "elasticsearch":
+	case "bleve", "elasticsearch", "meilisearch":
 		handler := func(data ...queue.Data) []queue.Data {
 			indexer := holder.get()
 			if indexer == nil {
@@ -220,6 +220,21 @@ func InitIssueIndexer(syncReindex bool) {
 			issueIndexer := &DBIndexer{}
 			holder.set(issueIndexer)
 			graceful.GetManager().RunAtTerminate(finished)
+		case "meilisearch":
+			graceful.GetManager().RunWithShutdownFns(func(_, atTerminate func(func())) {
+				pprof.SetGoroutineLabels(ctx)
+				issueIndexer, err := NewMeilisearchIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueConnAuth, setting.Indexer.IssueIndexerName)
+				if err != nil {
+					log.Fatal("Unable to initialize Meilisearch Issue Indexer at connection: %s Error: %v", setting.Indexer.IssueConnStr, err)
+				}
+				exist, err := issueIndexer.Init()
+				if err != nil {
+					log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
+				}
+				populate = !exist
+				holder.set(issueIndexer)
+				atTerminate(finished)
+			})
 		default:
 			holder.cancel()
 			log.Fatal("Unknown issue indexer type: %s", setting.Indexer.IssueType)
