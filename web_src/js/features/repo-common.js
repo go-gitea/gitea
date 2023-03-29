@@ -108,6 +108,7 @@ export function initRepoCommonLanguageStats() {
   }
 }
 
+// native js approach
 export async function initPostersDropdown() {
   console.log('fetch posters data');
   const $autherSearch = document.getElementById('author-search');
@@ -184,6 +185,7 @@ export async function initPostersDropdown() {
   }
 }
 
+// fomantic dropdown approach
 export async function initPostersDropdownTest() {
   console.log('fetch posters data 1');
   const $autherSearch = document.getElementById('author-search-1');
