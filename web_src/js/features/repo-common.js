@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {hideElem, showElem, toggleElem} from '../utils/dom.js';
+import {hideElem, showElem, toggleElem, setAttributes} from '../utils/dom.js';
 
 const {csrfToken} = window.config;
 
@@ -105,5 +105,60 @@ export function initRepoCommonLanguageStats() {
       e.preventDefault();
       toggleElem($('.language-stats-details, .repository-menu'));
     });
+  }
+}
+
+export async function initPostersDropdown() {
+  console.log('fetch posters data')
+  const $autherSearch = document.getElementById('author-search');
+  if (!$autherSearch) {
+    return;
+  }
+  const url = $autherSearch.getAttribute('data-url');
+  const posterID = $autherSearch.getAttribute('data-poster-id');
+  const isShowFullName = $autherSearch.getAttribute('data-show-fullname');
+  const posterGeneralHref = $autherSearch.getAttribute('data-general-poster-href');
+  const posterList = document.querySelector('.poster-list');
+  const res = await fetch(url, {
+    method: 'GET'
+  });
+  const postersJson = await res.json();
+  console.log(res)
+  console.log(postersJson)
+  if (!postersJson) {
+    $autherSearch.classList.add('disabled');
+  } else {
+    $('.poster-list').find('.poster-item').remove();
+    for (let i = 0; i < postersJson.length; i ++) {
+      const {id, avatar_url, username, full_name} = postersJson[i];
+      const $a = document.createElement('a');
+      setAttributes($a, {
+        'class': `item gt-df poster-item${posterID === id ? ' active selected': ''}`,
+        'href': `${posterGeneralHref}${id}`,
+      })
+      const $img = document.createElement('img');
+      setAttributes($img, {
+        'class': 'ui avatar gt-vm',
+        'src': avatar_url,
+        'title': username,
+        'width': '28',
+        'height': '28'
+      })
+      $a.appendChild($img);
+      const $span = document.createElement('span');
+      setAttributes($span, {'class': 'gt-ellipsis'});
+      $span.innerHTML = username;
+      console.log(isShowFullName)
+      if (isShowFullName === "true") {
+        const $spanInner = document.createElement('span');
+        setAttributes($spanInner, {'class': 'search-fullname'});
+        $spanInner.innerHTML = full_name;
+        $span.appendChild($spanInner);
+      }
+      $a.appendChild($span);
+      posterList.appendChild($a);
+    }
+    delete $('#author-search')[0]['_giteaAriaPatchDropdown'];
+    $('#author-search').dropdown();
   }
 }
