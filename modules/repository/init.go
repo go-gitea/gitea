@@ -61,20 +61,19 @@ func mergeCustomLabels(fl optionFileList) []string {
 		return exts[filepath.Ext(fl.custom[i])] < exts[filepath.Ext(fl.custom[j])]
 	})
 
-	files := fl.all
-	if len(fl.custom) > 0 {
-		m := map[string]string{}
-		for _, f := range fl.all {
-			m[strings.TrimSuffix(f, filepath.Ext(f))] = f
-		}
-		for _, f := range fl.custom {
-			m[strings.TrimSuffix(f, filepath.Ext(f))] = f
-		}
-		files = make([]string, 0, len(m))
-		for _, f := range m {
-			files = append(files, f)
-		}
+	m := map[string]string{}
+	for _, f := range fl.all {
+		m[strings.TrimSuffix(f, filepath.Ext(f))] = f
 	}
+	for _, f := range fl.custom {
+		m[strings.TrimSuffix(f, filepath.Ext(f))] = f
+	}
+
+	files := make([]string, 0, len(m))
+	for _, f := range m {
+		files = append(files, f)
+	}
+
 	sort.Strings(files)
 	return files
 }
