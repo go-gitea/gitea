@@ -10,19 +10,19 @@ import (
 )
 
 func TestMergeCustomLabels(t *testing.T) {
-	files := mergeCustomLabels(optionFileList{
+	files := mergeCustomLabelFiles(optionFileList{
 		all:    []string{"a", "a.yaml", "a.yml"},
 		custom: nil,
 	})
 	assert.EqualValues(t, []string{"a.yaml"}, files, "yaml file should win")
 
-	files = mergeCustomLabels(optionFileList{
+	files = mergeCustomLabelFiles(optionFileList{
 		all:    []string{"a", "a.yaml"},
 		custom: []string{"a"},
 	})
 	assert.EqualValues(t, []string{"a"}, files, "custom file should win")
 
-	files = mergeCustomLabels(optionFileList{
+	files = mergeCustomLabelFiles(optionFileList{
 		all:    []string{"a", "a.yml", "a.yaml"},
 		custom: []string{"a", "a.yml"},
 	})

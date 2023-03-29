@@ -27,7 +27,6 @@ import (
 )
 
 type OptionFile struct {
-	FileName    string
 	DisplayName string
 	Description string
 }
@@ -42,39 +41,34 @@ var (
 	// Readmes contains the readme files
 	Readmes []string
 
-	// LabelTemplateFiles contains the label template files and the list of labels for each file
+	// LabelTemplateFiles contains the label template files, each item has its DisplayName and Description
 	LabelTemplateFiles   []OptionFile
-	labelTemplateFileMap = map[string]string{}
+	labelTemplateFileMap = map[string]string{} // DisplayName => FileName mapping
 )
 
 type optionFileList struct {
-	all    []string // all files provided by bindata & custom-path. sorted.
-	custom []string // custom files provided by custom-path. non-sorted.
+	all    []string // all files provided by bindata & custom-path. Sorted.
+	custom []string // custom files provided by custom-path. Non-sorted, internal use only.
 }
 
-// mergeCustomLabels merges the custom label files. Always use the file's main name as the key to de-duplicate.
-func mergeCustomLabels(fl optionFileList) []string {
+// mergeCustomLabelFiles merges the custom label files. Always use the file's main name (DisplayName) as the key to de-duplicate.
+func mergeCustomLabelFiles(fl optionFileList) []string {
 	exts := map[string]int{"": 0, ".yml": 1, ".yaml": 2} // "yaml" file has the highest priority to be used.
-	sort.Slice(fl.all, func(i, j int) bool {
-		return exts[filepath.Ext(fl.all[i])] < exts[filepath.Ext(fl.all[j])]
-	})
-	sort.Slice(fl.custom, func(i, j int) bool {
-		return exts[filepath.Ext(fl.custom[i])] < exts[filepath.Ext(fl.custom[j])]
-	})
 
 	m := map[string]string{}
-	for _, f := range fl.all {
-		m[strings.TrimSuffix(f, filepath.Ext(f))] = f
+	merge := func(list []string) {
+		sort.Slice(list, func(i, j int) bool { return exts[filepath.Ext(list[i])] < exts[filepath.Ext(list[j])] })
+		for _, f := range list {
+			m[strings.TrimSuffix(f, filepath.Ext(f))] = f
+		}
 	}
-	for _, f := range fl.custom {
-		m[strings.TrimSuffix(f, filepath.Ext(f))] = f
-	}
+	merge(fl.all)
+	merge(fl.custom)
 
 	files := make([]string, 0, len(m))
 	for _, f := range m {
 		files = append(files, f)
 	}
-
 	sort.Strings(files)
 	return files
 }
@@ -93,8 +87,7 @@ func LoadRepoConfig() error {
 		if isDir, err := util.IsDir(customPath); err != nil {
 			return fmt.Errorf("failed to check custom %s dir: %w", t, err)
 		} else if isDir {
-			typeFiles[i].custom, err = util.StatDir(customPath)
-			if err != nil {
+			if typeFiles[i].custom, err = util.StatDir(customPath); err != nil {
 				return fmt.Errorf("failed to list custom %s files: %w", t, err)
 			}
 		}
@@ -105,19 +98,16 @@ func LoadRepoConfig() error {
 	Readmes = typeFiles[2].all
 
 	// Load label templates
-	labelTemplatesFiles := mergeCustomLabels(typeFiles[3])
-	for _, templateFile := range labelTemplatesFiles {
-		description, err := label.LoadLabelFileDescription(templateFile)
+	LabelTemplateFiles = nil
+	labelTemplateFileMap = map[string]string{}
+	for _, file := range mergeCustomLabelFiles(typeFiles[3]) {
+		description, err := label.LoadTemplateDescription(file)
 		if err != nil {
 			return fmt.Errorf("failed to load labels: %w", err)
 		}
-		displayName := strings.TrimSuffix(templateFile, filepath.Ext(templateFile))
-		labelTemplateFileMap[displayName] = templateFile
-		LabelTemplateFiles = append(LabelTemplateFiles, OptionFile{
-			DisplayName: displayName,
-			FileName:    templateFile,
-			Description: description,
-		})
+		displayName := strings.TrimSuffix(file, filepath.Ext(file))
+		labelTemplateFileMap[displayName] = file
+		LabelTemplateFiles = append(LabelTemplateFiles, OptionFile{DisplayName: displayName, Description: description})
 	}
 
 	// Filter out invalid names and promote preferred licenses.
@@ -395,10 +385,9 @@ func InitializeLabels(ctx context.Context, id int64, labelTemplate string, isOrg
 }
 
 // LoadTemplateLabelsByDisplayName loads a label template by its display name
-func LoadTemplateLabelsByDisplayName(name string) ([]*label.Label, error) {
-	fileName, ok := labelTemplateFileMap[name]
-	if !ok {
-		return nil, fmt.Errorf("label template %s not found", name)
+func LoadTemplateLabelsByDisplayName(displayName string) ([]*label.Label, error) {
+	if fileName, ok := labelTemplateFileMap[displayName]; ok {
+		return label.LoadTemplateFile(fileName)
 	}
-	return label.LoadTemplateFile(fileName)
+	return nil, label.ErrTemplateLoad{TemplateFile: displayName, OriginalError: fmt.Errorf("label template %q not found", displayName)}
 }

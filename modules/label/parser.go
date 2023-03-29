@@ -33,8 +33,7 @@ func (err ErrTemplateLoad) Error() string {
 	return fmt.Sprintf("failed to load label template file %q: %v", err.TemplateFile, err.OriginalError)
 }
 
-// LoadTemplateFile loads the label template file by given file name,
-// then parses and returns a list of name-color pairs and optionally description.
+// LoadTemplateFile loads the label template file by given file name, returns a slice of Label structs.
 func LoadTemplateFile(fileName string) ([]*Label, error) {
 	data, err := options.Labels(fileName)
 	if err != nil {
@@ -101,8 +100,8 @@ func parseLegacyFormat(fileName string, data []byte) ([]*Label, error) {
 	return list, nil
 }
 
-// LoadLabelFileDescription loads the labels' list of a template file as a string separated by comma
-func LoadLabelFileDescription(fileName string) (string, error) {
+// LoadTemplateDescription loads the labels from a template file, returns a description string by joining each Label.Name with comma
+func LoadTemplateDescription(fileName string) (string, error) {
 	var buf strings.Builder
 	list, err := LoadTemplateFile(fileName)
 	if err != nil {
