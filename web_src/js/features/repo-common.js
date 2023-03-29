@@ -148,7 +148,6 @@ export async function initPostersDropdown() {
       const $span = document.createElement('span');
       setAttributes($span, {'class': 'gt-ellipsis'});
       $span.innerHTML = username;
-      console.log(isShowFullName);
       if (isShowFullName === 'true') {
         const $spanInner = document.createElement('span');
         setAttributes($spanInner, {'class': 'search-fullname'});
