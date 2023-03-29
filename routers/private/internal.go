@@ -1,7 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
+// Package private contains all internal routes. The package name "internal" isn't usable because Golang reserves it for disabling cross-package usage.
 package private
 
 import (
