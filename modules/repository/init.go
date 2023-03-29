@@ -47,30 +47,13 @@ var (
 )
 
 type optionFileList struct {
-	all    []string
-	custom []string
-}
-
-// mergeCustomFiles merges the custom files, de-duplicates and returns a sorted list of files
-func mergeCustomFiles(fl optionFileList) []string {
-	files := fl.all
-	for _, f := range fl.custom {
-		// for most cases, the SliceContainsString is good enough because there are only a few custom files
-		if !util.SliceContainsString(files, f) {
-			files = append(files, f)
-		}
-	}
-	sort.Strings(files)
-	return files
+	all    []string // all files provided by bindata & custom-path. sorted.
+	custom []string // custom files provided by custom-path. non-sorted.
 }
 
 // mergeCustomLabels merges the custom label files. Always use the file's main name as the key to de-duplicate.
 func mergeCustomLabels(fl optionFileList) []string {
-	exts := map[string]int{
-		"":      0,
-		".yml":  1,
-		".yaml": 2,
-	}
+	exts := map[string]int{"": 0, ".yml": 1, ".yaml": 2} // "yaml" file has the highest priority to be used.
 	sort.Slice(fl.all, func(i, j int) bool {
 		return exts[filepath.Ext(fl.all[i])] < exts[filepath.Ext(fl.all[j])]
 	})
@@ -98,32 +81,31 @@ func mergeCustomLabels(fl optionFileList) []string {
 
 // LoadRepoConfig loads the repository config
 func LoadRepoConfig() error {
-	// Load .gitignore and license files and readme templates.
-	types := []string{"gitignore", "license", "readme", "label"}
-	optionTypeFiles := make([]optionFileList, len(types))
-
+	types := []string{"gitignore", "license", "readme", "label"} // option file directories
+	typeFiles := make([]optionFileList, len(types))
 	for i, t := range types {
 		var err error
-		if optionTypeFiles[i].all, err = options.Dir(t); err != nil {
+		if typeFiles[i].all, err = options.Dir(t); err != nil {
 			return fmt.Errorf("failed to list %s files: %w", t, err)
 		}
+		sort.Strings(typeFiles[i].all)
 		customPath := filepath.Join(setting.CustomPath, "options", t)
 		if isDir, err := util.IsDir(customPath); err != nil {
 			return fmt.Errorf("failed to check custom %s dir: %w", t, err)
 		} else if isDir {
-			optionTypeFiles[i].custom, err = util.StatDir(customPath)
+			typeFiles[i].custom, err = util.StatDir(customPath)
 			if err != nil {
 				return fmt.Errorf("failed to list custom %s files: %w", t, err)
 			}
 		}
 	}
 
-	Gitignores = mergeCustomFiles(optionTypeFiles[0])
-	Licenses = mergeCustomFiles(optionTypeFiles[1])
-	Readmes = mergeCustomFiles(optionTypeFiles[2])
-	labelTemplatesFiles := mergeCustomLabels(optionTypeFiles[3])
+	Gitignores = typeFiles[0].all
+	Licenses = typeFiles[1].all
+	Readmes = typeFiles[2].all
 
 	// Load label templates
+	labelTemplatesFiles := mergeCustomLabels(typeFiles[3])
 	for _, templateFile := range labelTemplatesFiles {
 		labels, err := label.LoadFormatted(templateFile)
 		if err != nil {
