@@ -43,7 +43,8 @@ var (
 	Readmes []string
 
 	// LabelTemplateFiles contains the label template files and the list of labels for each file
-	LabelTemplateFiles []OptionFile
+	LabelTemplateFiles   []OptionFile
+	labelTemplateFileMap = map[string]string{}
 )
 
 type optionFileList struct {
@@ -106,14 +107,16 @@ func LoadRepoConfig() error {
 	// Load label templates
 	labelTemplatesFiles := mergeCustomLabels(typeFiles[3])
 	for _, templateFile := range labelTemplatesFiles {
-		labels, err := label.LoadFormatted(templateFile)
+		description, err := label.LoadLabelFileDescription(templateFile)
 		if err != nil {
 			return fmt.Errorf("failed to load labels: %w", err)
 		}
+		displayName := strings.TrimSuffix(templateFile, filepath.Ext(templateFile))
+		labelTemplateFileMap[displayName] = templateFile
 		LabelTemplateFiles = append(LabelTemplateFiles, OptionFile{
-			DisplayName: strings.TrimSuffix(templateFile, filepath.Ext(templateFile)),
+			DisplayName: displayName,
 			FileName:    templateFile,
-			Description: labels,
+			Description: description,
 		})
 	}
 
@@ -364,7 +367,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 
 // InitializeLabels adds a label set to a repository using a template
 func InitializeLabels(ctx context.Context, id int64, labelTemplate string, isOrg bool) error {
-	list, err := label.GetTemplateFile(labelTemplate)
+	list, err := LoadTemplateLabelsByDisplayName(labelTemplate)
 	if err != nil {
 		return err
 	}
@@ -389,4 +392,13 @@ func InitializeLabels(ctx context.Context, id int64, labelTemplate string, isOrg
 		}
 	}
 	return nil
+}
+
+// LoadTemplateLabelsByDisplayName loads a label template by its display name
+func LoadTemplateLabelsByDisplayName(name string) ([]*label.Label, error) {
+	fileName, ok := labelTemplateFileMap[name]
+	if !ok {
+		return nil, fmt.Errorf("label template %s not found", name)
+	}
+	return label.LoadTemplateFile(fileName)
 }
