@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"path"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -13,6 +14,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+
+	"github.com/nektos/act/pkg/jobparser"
 )
 
 func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) error {
@@ -23,10 +26,12 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	run := job.Run
 
 	var (
-		sha string
+		sha   string
+		event string
 	)
 	switch run.Event {
 	case webhook_module.HookEventPush:
+		event = "push"
 		payload, err := run.GetPushEventPayload()
 		if err != nil {
 			return fmt.Errorf("GetPushEventPayload: %w", err)
@@ -36,6 +41,7 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 		}
 		sha = payload.HeadCommit.ID
 	case webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestSync:
+		event = "pull_request"
 		payload, err := run.GetPullRequestEventPayload()
 		if err != nil {
 			return fmt.Errorf("GetPullRequestEventPayload: %w", err)
@@ -51,7 +57,12 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	}
 
 	repo := run.Repo
-	ctxname := job.Name
+	// TODO: store workflow name as a field in ActionRun to avoid parsing
+	runName := path.Base(run.WorkflowID)
+	if wfs, err := jobparser.Parse(job.WorkflowPayload); err == nil && len(wfs) > 0 {
+		runName = wfs[0].Name
+	}
+	ctxname := fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)
 	state := toCommitStatus(job.Status)
 	if statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{}); err == nil {
 		for _, v := range statuses {
