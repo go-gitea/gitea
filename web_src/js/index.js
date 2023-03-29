@@ -185,7 +185,7 @@ $(document).ready(() => {
   initRepoWikiForm();
   initRepository();
   initRepositoryActionView();
-  // initPostersDropdown();
+  initPostersDropdown();
   initPostersDropdownTest();
 
   initCommitStatuses();

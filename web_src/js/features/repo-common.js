@@ -133,7 +133,7 @@ export async function initPostersDropdown() {
       const {id, avatar_url, username, full_name} = postersJson[i];
       const $a = document.createElement('a');
       setAttributes($a, {
-        'class': `item gt-df poster-item${posterID === id ? ' active selected' : ''}`,
+        'class': `item gt-df poster-item${+posterID === id ? ' active selected' : ''}`,
         'href': `${posterGeneralHref}${id}`,
       });
       const $img = document.createElement('img');
@@ -158,7 +158,29 @@ export async function initPostersDropdown() {
       posterList.appendChild($a);
     }
     delete $('#author-search')[0]['_giteaAriaPatchDropdown'];
-    $('#author-search').dropdown();
+    $('#author-search').dropdown({
+      fullTextSearch: 'exact',
+      selectOnKeydown: false,
+      action: 'hide',
+      onShow() {
+        // hide associated tooltip while dropdown is open
+        this._tippy?.hide();
+        this._tippy?.disable();
+      },
+      onHide() {
+        this._tippy?.enable();
+
+        // hide all tippy elements of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
+        setTimeout(() => {
+          const $dropdown = $(this);
+          if ($dropdown.dropdown('is hidden')) {
+            $(this).find('.menu > .item').each((_, item) => {
+              item._tippy?.hide();
+            });
+          }
+        }, 2000);
+      },
+    });
   }
 }
 
@@ -171,10 +193,12 @@ export async function initPostersDropdownTest() {
   const url = $autherSearch.getAttribute('data-url');
   const posterID = $autherSearch.getAttribute('data-poster-id');
   const isShowFullName = $autherSearch.getAttribute('data-show-fullname');
-  const posterGeneralHref = $autherSearch.getAttribute('data-general-poster-href');
+  const noFilterUrl = $autherSearch.getAttribute('data-no-filter-url');
+  const posterGeneralUrl = $autherSearch.getAttribute('data-general-poster-url');
+  const noSelectText = $autherSearch.getAttribute('data-no-select-text');
   const posterList = document.querySelector('.poster-list');
-  console.log('url', `${appSubUrl}${url}`)
   $('#author-search-1').dropdown({
+    selectOnKeydown: false,
     apiSettings: {
       fullTextSearch: 'exact',
       saveRemoteData: false,
@@ -183,16 +207,22 @@ export async function initPostersDropdownTest() {
       onResponse(response) {
         console.log(response)
         const formattedResponse = {success: true, results: []};
+				formattedResponse.results.push({
+          name:  `<a class="item" href="${noFilterUrl}">${noSelectText}</a>`,
+          value: '000',
+        })			
+
         // Parse the response from the api to work with our dropdown
         $.each(response, (_, poster) => {
           const {id, avatar_url, username, full_name} = poster;
           console.log(poster)
           formattedResponse.results.push({
-            name: `<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralHref}${id}">
+            name: `
               <img class="ui avatar gt-vm" src="${avatar_url}" title="${username}" width="28" height="28">
               <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>`: ''}</span>
-            </a>`,
+            `,
             value: id,
+            class: `item gt-df${posterID === id ? ' active selected' : ''}`
           });
         });
         return formattedResponse;
@@ -200,8 +230,10 @@ export async function initPostersDropdownTest() {
       cache: false,
     },
     // fields: {
-    // the remote api has a different structure than expected, which we can adjust
-    // remoteValues: 'item'
+    // // the remote api has a different structure than expected, which we can adjust
+    //   remoteValues: 'posters'
     // }
   });
 }
+
+// href="${posterGeneralUrl}${id}"
