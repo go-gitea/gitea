@@ -13,6 +13,15 @@
           <i class="stop circle outline icon"/>
         </button>
       </div>
+      <div class="action-commit-summary">
+        {{ run.commit.localeCommit }}
+        <a :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+        &nbsp;<span class="ui label">
+          <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
+        </span>
+        &nbsp;{{ run.commit.localePushedBy }}
+        <a :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
+      </div>
     </div>
     <div class="action-view-body">
       <div class="action-view-left">
@@ -105,6 +114,20 @@ const sfc = {
           //   canRerun: false,
           // },
         ],
+        commit: {
+          localeCommit: '',
+          localePushedBy: '',
+          shortSHA: '',
+          link: '',
+          pusher: {
+            displayName: '',
+            link: '',
+          },
+          branch: {
+            name: '',
+            link: '',
+          },
+        }
       },
       currentJob: {
         title: '',
@@ -330,6 +353,10 @@ export function initRepositoryActionView() {
 
 .action-info-summary .action-title {
   padding: 0 5px;
+}
+
+.action-commit-summary {
+  padding: 10px 10px;
 }
 
 /* ================ */
