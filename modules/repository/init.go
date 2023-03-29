@@ -47,13 +47,13 @@ var (
 )
 
 type optionFileList struct {
-	builtin []string
-	custom  []string
+	all    []string
+	custom []string
 }
 
-// mergeBuiltinCustomFiles merges the builtin and custom files, de-duplicates and returns a sorted list of files
-func mergeBuiltinCustomFiles(fl optionFileList) []string {
-	files := fl.builtin
+// mergeCustomFiles merges the custom files, de-duplicates and returns a sorted list of files
+func mergeCustomFiles(fl optionFileList) []string {
+	files := fl.all
 	for _, f := range fl.custom {
 		// for most cases, the SliceContainsString is good enough because there are only a few custom files
 		if !util.SliceContainsString(files, f) {
@@ -64,12 +64,24 @@ func mergeBuiltinCustomFiles(fl optionFileList) []string {
 	return files
 }
 
-// mergeBuiltinCustomLabels merges the builtin and custom files. Always use the file's main name as the key to de-duplicate.
-func mergeBuiltinCustomLabels(fl optionFileList) []string {
-	files := fl.builtin
+// mergeCustomLabels merges the custom label files. Always use the file's main name as the key to de-duplicate.
+func mergeCustomLabels(fl optionFileList) []string {
+	exts := map[string]int{
+		"":      0,
+		".yml":  1,
+		".yaml": 2,
+	}
+	sort.Slice(fl.all, func(i, j int) bool {
+		return exts[filepath.Ext(fl.all[i])] < exts[filepath.Ext(fl.all[j])]
+	})
+	sort.Slice(fl.custom, func(i, j int) bool {
+		return exts[filepath.Ext(fl.custom[i])] < exts[filepath.Ext(fl.custom[j])]
+	})
+
+	files := fl.all
 	if len(fl.custom) > 0 {
 		m := map[string]string{}
-		for _, f := range fl.builtin {
+		for _, f := range fl.all {
 			m[strings.TrimSuffix(f, filepath.Ext(f))] = f
 		}
 		for _, f := range fl.custom {
@@ -92,7 +104,7 @@ func LoadRepoConfig() error {
 
 	for i, t := range types {
 		var err error
-		if optionTypeFiles[i].builtin, err = options.Dir(t); err != nil {
+		if optionTypeFiles[i].all, err = options.Dir(t); err != nil {
 			return fmt.Errorf("failed to list %s files: %w", t, err)
 		}
 		customPath := filepath.Join(setting.CustomPath, "options", t)
@@ -106,10 +118,10 @@ func LoadRepoConfig() error {
 		}
 	}
 
-	Gitignores = mergeBuiltinCustomFiles(optionTypeFiles[0])
-	Licenses = mergeBuiltinCustomFiles(optionTypeFiles[1])
-	Readmes = mergeBuiltinCustomFiles(optionTypeFiles[2])
-	labelTemplatesFiles := mergeBuiltinCustomLabels(optionTypeFiles[3])
+	Gitignores = mergeCustomFiles(optionTypeFiles[0])
+	Licenses = mergeCustomFiles(optionTypeFiles[1])
+	Readmes = mergeCustomFiles(optionTypeFiles[2])
+	labelTemplatesFiles := mergeCustomLabels(optionTypeFiles[3])
 
 	// Load label templates
 	for _, templateFile := range labelTemplatesFiles {
