@@ -1424,12 +1424,11 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	var (
-		role                 issues_model.RoleDescriptor
-		ok                   bool
-		marked               = make(map[int64]issues_model.RoleDescriptor)
-		comment              *issues_model.Comment
-		participants         = make([]*user_model.User, 1, 10)
-		latestCloseCommentID int64
+		role         issues_model.RoleDescriptor
+		ok           bool
+		marked       = make(map[int64]issues_model.RoleDescriptor)
+		comment      *issues_model.Comment
+		participants = make([]*user_model.User, 1, 10)
 	)
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if ctx.IsSigned {
@@ -1627,14 +1626,8 @@ func ViewIssue(ctx *context.Context) {
 			comment.Type == issues_model.CommentTypeStopTracking {
 			// drop error since times could be pruned from DB..
 			_ = comment.LoadTime()
-		} else if comment.Type == issues_model.CommentTypeClose {
-			// record ID of latest closed comment.
-			// if PR is closed, the comments whose type is CommentTypePullRequestPush(29) after latestCloseCommentID won't be rendered.
-			latestCloseCommentID = comment.ID
 		}
 	}
-
-	ctx.Data["LatestCloseCommentID"] = latestCloseCommentID
 
 	// Combine multiple label assignments into a single comment
 	combineLabelComments(issue)
