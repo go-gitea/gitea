@@ -31,14 +31,14 @@ func FlushQueues(ctx *context.PrivateContext) {
 			}
 		}()
 		ctx.JSON(http.StatusAccepted, private.Response{
-			Err: "Flushing",
+			UserMsg: "Flushing",
 		})
 		return
 	}
 	err := queue.GetManager().FlushAll(ctx, opts.Timeout)
 	if err != nil {
 		ctx.JSON(http.StatusRequestTimeout, private.Response{
-			Err: fmt.Sprintf("%v", err),
+			UserMsg: fmt.Sprintf("%v", err),
 		})
 	}
 	ctx.PlainText(http.StatusOK, "success")
