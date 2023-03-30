@@ -1,7 +1,7 @@
 <template>
   <div class="action-view-container">
     <div class="action-view-header">
-      <div class="action-info-summary">
+      <div class="action-info-summary gt-ac">
         <ActionRunStatus :status="run.status" :size="20"/>
         <div class="action-title">
           {{ run.title }}
@@ -30,7 +30,7 @@
             <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
                 <ActionRunStatus :status="job.status"/>
-                <span class="ui text">{{ job.name }}</span>
+                <span class="ui text gt-mx-3">{{ job.name }}</span>
               </a>
               <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
@@ -404,7 +404,6 @@ export function initRepositoryActionView() {
 }
 
 .job-group-section .job-brief-list .job-brief-item .job-brief-link span {
-  margin-right: 8px;
   display: flex;
   align-items: center;
 }
