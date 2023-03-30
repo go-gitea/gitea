@@ -2768,6 +2768,37 @@ func NewComment(ctx *context.Context) {
 			if form.Status == "reopen" && issue.IsPull {
 				pull := issue.PullRequest
 				var err error
+				// Check whether the head commit of PR exists in base branch
+				// Get head commit ID of PR
+				prHeadRef := pull.GetGitRefName()
+				err = pull.LoadBaseRepo(ctx)
+				if err != nil {
+					ctx.ServerError("Unable to load base repo", err)
+					return
+				}
+				prHeadCommitID, err := git.GetFullCommitID(ctx, pull.BaseRepo.RepoPath(), prHeadRef)
+				if err != nil {
+					ctx.ServerError("Get head commit Id fail", err)
+					return
+				}
+				// Open base repo
+				baseRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pull.BaseRepo.RepoPath())
+				if err != nil {
+					ctx.ServerError("Unable to open base repo", err)
+					return
+				}
+				defer closer.Close()
+				ok, err := baseRepo.IsCommitInBranch(prHeadCommitID, pull.BaseBranch)
+				if err != nil {
+					ctx.ServerError("", err)
+					return
+				}
+				if ok {
+					ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_merged"))
+					ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
+					return
+				}
+
 				pr, err = issues_model.GetUnmergedPullRequest(ctx, pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch, pull.Flow)
 				if err != nil {
 					if !issues_model.IsErrPullRequestNotExist(err) {

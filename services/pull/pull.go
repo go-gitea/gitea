@@ -265,22 +265,49 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 
 		for _, pr := range prs {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
-			if pr.Flow == issues_model.PullRequestFlowGithub {
-				if err := PushToBaseRepo(ctx, pr); err != nil {
-					log.Error("PushToBaseRepo: %v", err)
+
+			if err = pr.LoadIssue(ctx); err != nil {
+				log.Error("Load PR[%d]'s issue fail, error: %v", pr.ID, err)
+				return
+			}
+			if !pr.Issue.IsClosed {
+				// PR is unmerged but open.
+				// need do these: trigger action, create comment, notification(ui and email), execute `pushToBaseRepo()`
+				pushPRToBaseRepo(ctx, pr)
+				commentAndNotifyPullRequestPushComments(ctx, doer, pr, oldCommitID, newCommitID)
+			} else {
+				// Get head commit ID of PR
+				prHeadRef := pr.GetGitRefName()
+				err = pr.LoadBaseRepo(ctx)
+				if err != nil {
+					log.Error("LoadBaseRepo(%d), error: %v", pr.ID, err)
+					return
+				}
+				prHeadCommitID, err := git.GetFullCommitID(ctx, pr.BaseRepo.RepoPath(), prHeadRef)
+				if err != nil {
+					log.Error("GetFullCommitID(%s) in %s: %w", prHeadRef, pr.BaseRepo.FullName(), err)
+					return
+				}
+				// Open the base repo of PR
+				baseRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
+				if err != nil {
+					log.Error("Unable to open base repo, Error: %v", err)
+					return
+				}
+				defer closer.Close()
+				// If we can find it that the `prHeadCommitID` already exists in PR's `base_branch`.
+				// It means that all changes of the PR have been merged into PR's base_branch`.
+				// So we don't need to create action task, comment, notification, execute `pushToBaseRepo()` in this case.
+				ok, err := baseRepo.IsCommitInBranch(prHeadCommitID, pr.BaseBranch)
+				if err != nil {
+					log.Error("Check It that whether prHeadRef is in the baseBranch fail, Error: %v", err)
+					return
+				}
+				if ok {
 					continue
 				}
-			} else {
-				continue
-			}
-
-			// If the PR is closed, someone still push some commits to the PR,
-			// 1. We will insert comments of commits, but hidden until the PR is reopened.
-			// 2. We won't send any notification.
-			AddToTaskQueue(pr)
-			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
-			if err == nil && comment != nil && !pr.Issue.IsClosed {
-				notification.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
+				pushPRToBaseRepo(ctx, pr)
+				commentAndNotifyPullRequestPushComments(ctx, doer, pr, oldCommitID, newCommitID)
 			}
 		}
 
@@ -294,6 +321,10 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			}
 			if err == nil {
 				for _, pr := range prs {
+					if pr.Issue.IsClosed {
+						// The closed PR never trigger action or webhook
+						continue
+					}
 					if newCommitID != "" && newCommitID != git.EmptySHA {
 						changed, err := checkIfPRContentChanged(ctx, pr, oldCommitID, newCommitID)
 						if err != nil {
@@ -347,6 +378,22 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			AddToTaskQueue(pr)
 		}
 	})
+}
+
+func commentAndNotifyPullRequestPushComments(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldCommitID, newCommitID string) {
+	comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
+	if err == nil && comment != nil {
+		notification.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
+	}
+	AddToTaskQueue(pr)
+}
+
+func pushPRToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) {
+	if pr.Flow == issues_model.PullRequestFlowGithub {
+		if err := PushToBaseRepo(ctx, pr); err != nil {
+			log.Error("PushToBaseRepo: %v", err)
+		}
+	}
 }
 
 // checkIfPRContentChanged checks if diff to target branch has changed by push
