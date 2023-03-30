@@ -82,10 +82,12 @@ func NewUser(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
-	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
-	ctx.Data["login_type"] = "0-0"
+	ctx.Data["Form"] = forms.AdminCreateUserForm{
+		LoginType:  "0-0",
+		Visibility: setting.Service.DefaultUserVisibilityMode,
+	}
 
 	sources, err := auth.Sources()
 	if err != nil {
@@ -104,7 +106,7 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
-	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	sources, err := auth.Sources()
 	if err != nil {
