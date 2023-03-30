@@ -2399,9 +2399,107 @@ a.ui.label:hover {
 
 .ui.basic.labels .primary.label,
 .ui.ui.ui.basic.primary.label {
-  background: transparent !important;
-  border-color: var(--color-primary) !important;
-  color: var(--color-primary) !important;
+  background: transparent;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.ui.basic.labels .secondary.label,
+.ui.ui.ui.basic.secondary.label {
+  background: transparent;
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
+}
+
+.ui.basic.labels .orange.label,
+.ui.ui.ui.basic.orange.label {
+  background: transparent;
+  border-color: var(--color-orange);
+  color: var(--color-orange);
+}
+
+.ui.basic.labels .green.label,
+.ui.ui.ui.basic.green.label {
+  background: transparent;
+  border-color: var(--color-green);
+  color: var(--color-green);
+}
+
+.ui.basic.labels .olive.label,
+.ui.ui.ui.basic.olive.label {
+  background: transparent;
+  border-color: var(--color-olive);
+  color: var(--color-olive);
+}
+
+.ui.basic.labels .teal.label,
+.ui.ui.ui.basic.teal.label {
+  background: transparent;
+  border-color: var(--color-teal);
+  color: var(--color-teal);
+}
+
+.ui.basic.labels .blue.label,
+.ui.ui.ui.basic.blue.label {
+  background: transparent;
+  border-color: var(--color-blue);
+  color: var(--color-blue);
+}
+
+.ui.basic.labels .violet.label,
+.ui.ui.ui.basic.violet.label {
+  background: transparent;
+  border-color: var(--color-violet);
+  color: var(--color-violet);
+}
+
+.ui.basic.labels .purple.label,
+.ui.ui.ui.basic.purple.label {
+  background: transparent;
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.ui.basic.labels .pink.label,
+.ui.ui.ui.basic.pink.label {
+  background: transparent;
+  border-color: var(--color-pink);
+  color: var(--color-pink);
+}
+
+.ui.basic.labels .red.label,
+.ui.ui.ui.basic.red.label {
+  background: transparent;
+  border-color: var(--color-red);
+  color: var(--color-red);
+}
+
+.ui.basic.labels .brown.label,
+.ui.ui.ui.basic.brown.label {
+  background: transparent;
+  border-color: var(--color-brown);
+  color: var(--color-brown);
+}
+
+.ui.basic.labels .yellow.label,
+.ui.ui.ui.basic.yellow.label {
+  background: transparent;
+  border-color: var(--color-yellow);
+  color: var(--color-yellow);
+}
+
+.ui.basic.labels .grey.label,
+.ui.ui.ui.basic.grey.label {
+  background: transparent;
+  border-color: var(--color-grey);
+  color: var(--color-grey);
+}
+
+.ui.basic.labels .black.label,
+.ui.ui.ui.basic.black.label {
+  background: transparent;
+  border-color: var(--color-black);
+  color: var(--color-black);
 }
 
 .ui.basic.labels .label,
