@@ -149,10 +149,7 @@ func (s *Service) UpdateTask(
 		return nil, status.Errorf(codes.Internal, "load job: %v", err)
 	}
 
-	if err := actions_service.CreateCommitStatus(ctx, task.Job); err != nil {
-		log.Error("Update commit status for job %v failed: %v", task.Job.ID, err)
-		// go on
-	}
+	actions_service.CreateCommitStatus(ctx, task.Job)
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		if err := actions_service.EmitJobsIfReady(task.Job.RunID); err != nil {
