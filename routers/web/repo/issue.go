@@ -3355,20 +3355,6 @@ func IssuePosters(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 	isPullList := ctx.Params(":type") == "pulls"
 	isPullOption := util.OptionalBoolOf(isPullList)
-	var allPosters []*user_model.User
-	// test sending more posters to frontend
-	for i := 1; i < 300; i++ {
-		var err error
-		posters, err := repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, api.SearchError{
-				OK:    false,
-				Error: err.Error(),
-			})
-			return
-		}
-		allPosters = append(allPosters, posters...)
-	}
 	var err error
 	posters, err := repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
 	if err != nil {
@@ -3378,9 +3364,8 @@ func IssuePosters(ctx *context.Context) {
 		})
 		return
 	}
-	allPosters = append(allPosters, posters...)
-	results := make([]*api.UserSearchInfo, len(allPosters))
-	for i, poster := range allPosters {
+	results := make([]*api.UserSearchInfo, len(posters))
+	for i, poster := range posters {
 		results[i] = convert.ToUserSearchInfo(ctx, poster)
 	}
 	// fmt.Println(results)
