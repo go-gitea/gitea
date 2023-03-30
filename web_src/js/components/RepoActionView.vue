@@ -214,7 +214,7 @@ const sfc = {
 
       const logMessage = document.createElement('div');
       logMessage.className = 'log-msg';
-      logMessage.innerHTML = this.ansiToHTML.toHtml(line.message);
+      logMessage.innerHTML = this.ansiToHTML.toHtml(processConsoleLine(line.message));
       div.appendChild(logMessage);
 
       return div;
@@ -307,6 +307,22 @@ export function initRepositoryActionView() {
   view.mount(el);
 }
 
+export function processConsoleLine(line) {
+  if (!line.includes('\r')) return line;
+
+  // handle "\rReading...1%\rReading...5%\rReading...100%", only show the final message
+  // TODO: control chars like "\033[" ?
+  const parts = line.split('\r');
+  let result = '';
+  for (const part of parts) {
+    if (part.length >= result.length) {
+      result = part;
+    } else {
+      result = part + result.substring(part.length);
+    }
+  }
+  return result;
+}
 </script>
 
 <style scoped>
