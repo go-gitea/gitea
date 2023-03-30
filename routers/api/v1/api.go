@@ -1412,6 +1412,7 @@ func Routes() *web.Route {
 				m.Delete("", reqToken(), reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
 				m.Get("/files", reqToken(), packages.ListPackageFiles)
 			})
+			m.Post("/{type}/{name}/link", reqPackageAccess(perm.AccessModeWrite), packages.LinkPackage)
 			m.Get("/", reqToken(), packages.ListPackages)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context_service.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
 

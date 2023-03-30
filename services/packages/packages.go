@@ -14,7 +14,9 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -656,4 +658,36 @@ func RemoveAllPackages(ctx context.Context, userID int64) (int, error) {
 		}
 	}
 	return count, nil
+}
+
+func LinkPackage(ctx context.Context, doer *user_model.User, p *packages_model.Package, repoID int64) error {
+	if repoID != 0 {
+		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+		if err != nil {
+			return fmt.Errorf("Error getting repository %d: %w", repoID, err)
+		}
+
+		canWrite := repo.OwnerID == doer.ID
+
+		if !canWrite {
+			perms, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+			if err != nil {
+				return fmt.Errorf("Error getting repository permissions for %d on %d: %w", doer.ID, repo.ID, err)
+			}
+
+			canWrite = perms.CanWrite(unit.TypePackages)
+		}
+
+		if !canWrite {
+			return fmt.Errorf("No permissions to link this package and repository")
+		}
+
+		repoID = repo.ID
+	}
+
+	if err := packages_model.SetRepositoryLink(ctx, p.ID, repoID); err != nil {
+		return fmt.Errorf("Error updating package: %w", err)
+	}
+
+	return nil
 }

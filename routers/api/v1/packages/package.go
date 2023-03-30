@@ -213,3 +213,52 @@ func ListPackageFiles(ctx *context.APIContext) {
 
 	ctx.JSON(http.StatusOK, apiPackageFiles)
 }
+
+// LinkPackage sets a repository link for a package
+func LinkPackage(ctx *context.APIContext) {
+	// swagger:operation POST /packages/{owner}/{type}/{name}/link package linkPackage
+	// ---
+	// summary: Link a package to a repository
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the package
+	//   type: string
+	//   required: true
+	// - name: type
+	//   in: path
+	//   description: type of the package
+	//   type: string
+	//   required: true
+	// - name: name
+	//   in: path
+	//   description: name of the package
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: query
+	//   description: ID of the repository to link
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	repoID := ctx.FormInt64("repo")
+	packageType := ctx.Params("type")
+	name := ctx.Params("name")
+	pkg, err := packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(packageType), name)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LinkPackage", err)
+		return
+	}
+
+	err = packages_service.LinkPackage(ctx, ctx.Doer, pkg, repoID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LinkPackage", err)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+}
