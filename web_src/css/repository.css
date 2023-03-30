@@ -1861,7 +1861,15 @@
 .diff-file-box {
   border: 1px solid transparent;
   border-radius: var(--border-radius);
+  scroll-margin-top: 47px; /* match .repository .diff-detail-box */
 }
+
+@media (max-width: 991px) {
+  .diff-file-box {
+    scroll-margin-top: 77px; /* match .repository .diff-detail-box */
+  }
+}
+
 
 /* TODO: this can potentially be made "global" by removing the class prefix */
 .diff-file-box .ui.attached.header,
@@ -1869,16 +1877,6 @@
   margin: 0; /* remove fomantic negative margins */;
   width: initial; /* remove fomantic over 100% width */;
   max-width: initial; /* remove fomantic over 100% width */;
-}
-
-.repository .diff-file-box {
-  scroll-margin-top: 47px; /* match .repository .diff-detail-box */
-}
-
-@media (max-width: 991px) {
-  .repository .diff-file-box {
-    scroll-margin-top: 77px; /* match .repository .diff-detail-box */
-  }
 }
 
 .repository .diff-stats {
