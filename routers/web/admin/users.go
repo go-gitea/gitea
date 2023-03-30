@@ -275,6 +275,7 @@ func EditUserPost(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -316,13 +317,13 @@ func EditUserPost(ctx *context.Context) {
 				log.Error(err.Error())
 				errMsg = ctx.Tr("auth.password_pwned_err")
 			}
-			ctx.RenderWithErr(errMsg, tplUserNew, &form)
+			ctx.RenderWithErr(errMsg, tplUserEdit, &form)
 			return
 		}
 
 		if err := user_model.ValidateEmail(form.Email); err != nil {
 			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_error"), tplUserNew, &form)
+			ctx.RenderWithErr(ctx.Tr("form.email_error"), tplUserEdit, &form)
 			return
 		}
 
@@ -338,7 +339,10 @@ func EditUserPost(ctx *context.Context) {
 
 	if len(form.UserName) != 0 && u.Name != form.UserName {
 		if err := user_setting.HandleUsernameChange(ctx, u, form.UserName); err != nil {
-			ctx.Redirect(setting.AppSubURL + "/admin/users")
+			if ctx.Written() {
+				return
+			}
+			ctx.RenderWithErr(ctx.Flash.ErrorMsg, tplUserEdit, &form)
 			return
 		}
 		u.Name = form.UserName
