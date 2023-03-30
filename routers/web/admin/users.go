@@ -105,6 +105,7 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	sources, err := auth.Sources()
 	if err != nil {
