@@ -43,6 +43,7 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 		return fmt.Errorf("find tasks: %w", err)
 	}
 
+	jobs := make([]*actions_model.ActionRunJob, 0, len(tasks))
 	for _, task := range tasks {
 		if err := db.WithTx(ctx, func(ctx context.Context) error {
 			if err := actions_model.StopTask(ctx, task.ID, actions_model.StatusFailure); err != nil {
@@ -51,7 +52,8 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 			if err := task.LoadJob(ctx); err != nil {
 				return err
 			}
-			return CreateCommitStatus(ctx, task.Job)
+			jobs = append(jobs, task.Job)
+			return nil
 		}); err != nil {
 			log.Warn("Cannot stop task %v: %v", task.ID, err)
 			// go on
@@ -61,6 +63,9 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 			remove()
 		}
 	}
+
+	CreateCommitStatus(ctx, jobs...)
+
 	return nil
 }
 
@@ -80,14 +85,13 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		job.Status = actions_model.StatusCancelled
 		job.Stopped = now
 		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			if _, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "stopped"); err != nil {
-				return err
-			}
-			return CreateCommitStatus(ctx, job)
+			_, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
+			return err
 		}); err != nil {
 			log.Warn("cancel abandoned job %v: %v", job.ID, err)
 			// go on
 		}
+		CreateCommitStatus(ctx, job)
 	}
 
 	return nil

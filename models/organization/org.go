@@ -156,8 +156,8 @@ func (org *Organization) hasMemberWithUserID(ctx context.Context, userID int64) 
 }
 
 // AvatarLink returns the full avatar link with http host
-func (org *Organization) AvatarLink() string {
-	return org.AsUser().AvatarLink()
+func (org *Organization) AvatarLink(ctx context.Context) string {
+	return org.AsUser().AvatarLink(ctx)
 }
 
 // HTMLURL returns the organization's full link.
@@ -237,6 +237,32 @@ func (org *Organization) DisplayName() string {
 // CustomAvatarRelativePath returns user custom avatar relative path.
 func (org *Organization) CustomAvatarRelativePath() string {
 	return org.Avatar
+}
+
+// UnitPermission returns unit permission
+func (org *Organization) UnitPermission(ctx context.Context, doer *user_model.User, unitType unit.Type) perm.AccessMode {
+	if doer != nil {
+		teams, err := GetUserOrgTeams(ctx, org.ID, doer.ID)
+		if err != nil {
+			log.Error("GetUserOrgTeams: %v", err)
+			return perm.AccessModeNone
+		}
+
+		if err := teams.LoadUnits(ctx); err != nil {
+			log.Error("LoadUnits: %v", err)
+			return perm.AccessModeNone
+		}
+
+		if len(teams) > 0 {
+			return teams.UnitMaxAccess(unitType)
+		}
+	}
+
+	if org.Visibility.IsPublic() {
+		return perm.AccessModeRead
+	}
+
+	return perm.AccessModeNone
 }
 
 // CreateOrganization creates record of a new organization.

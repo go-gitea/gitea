@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -31,7 +32,7 @@ func commonCheckStorage(ctx context.Context, logger log.Logger, autofix bool, op
 	totalSize, orphanedSize := int64(0), int64(0)
 
 	var pathsToDelete []string
-	if err := opts.storer.IterateObjects(func(p string, obj storage.Object) error {
+	if err := opts.storer.IterateObjects("", func(p string, obj storage.Object) error {
 		defer obj.Close()
 
 		totalCount++
@@ -111,6 +112,10 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 		}
 
 		if opts.LFS || opts.All {
+			if !setting.LFS.StartServer {
+				logger.Info("LFS isn't enabled (skipped)")
+				return nil
+			}
 			if err := commonCheckStorage(ctx, logger, autofix,
 				&commonStorageCheckOptions{
 					storer: storage.LFS,
@@ -173,6 +178,10 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 		}
 
 		if opts.Packages || opts.All {
+			if !setting.Packages.Enabled {
+				logger.Info("Packages isn't enabled (skipped)")
+				return nil
+			}
 			if err := commonCheckStorage(ctx, logger, autofix,
 				&commonStorageCheckOptions{
 					storer: storage.Packages,

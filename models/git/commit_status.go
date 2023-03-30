@@ -65,7 +65,7 @@ func postgresGetCommitStatusIndex(ctx context.Context, repoID int64, sha string)
 
 // GetNextCommitStatusIndex retried 3 times to generate a resource index
 func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
-	if setting.Database.UsePostgreSQL {
+	if setting.Database.Type.IsPostgreSQL() {
 		return postgresGetCommitStatusIndex(ctx, repoID, sha)
 	}
 
@@ -351,7 +351,8 @@ func hashCommitStatusContext(context string) string {
 func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository) []*SignCommitWithStatuses {
 	return ParseCommitsWithStatus(ctx,
 		asymkey_model.ParseCommitsWithSignature(
-			user_model.ValidateCommitsWithEmails(commits),
+			ctx,
+			user_model.ValidateCommitsWithEmails(ctx, commits),
 			repo.GetTrustModel(),
 			func(user *user_model.User) (bool, error) {
 				return repo_model.IsOwnerMemberCollaborator(repo, user.ID)

@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
+import {toggleElem} from '../utils/dom.js';
 
 export function initCommonIssue() {
   const $issueSelectAllWrapper = $('.issue-checkbox-all');
@@ -19,8 +20,8 @@ export function initCommonIssue() {
       $issueSelectAll.prop({'checked': false, 'indeterminate': false});
     }
     // if any issue is selected, show the action panel, otherwise show the filter panel
-    $('#issue-filters').toggle(!anyChecked);
-    $('#issue-actions').toggle(anyChecked);
+    toggleElem($('#issue-filters'), !anyChecked);
+    toggleElem($('#issue-actions'), anyChecked);
     // there are two panels but only one select-all checkbox, so move the checkbox to the visible panel
     $('#issue-filters, #issue-actions').filter(':visible').find('.column:first').prepend($issueSelectAllWrapper);
   };
@@ -32,7 +33,8 @@ export function initCommonIssue() {
     syncIssueSelectionState();
   });
 
-  $('.issue-action').on('click', async function () {
+  $('.issue-action').on('click', async function (e) {
+    e.preventDefault();
     let action = this.getAttribute('data-action');
     let elementId = this.getAttribute('data-element-id');
     const url = this.getAttribute('data-url');
@@ -42,6 +44,9 @@ export function initCommonIssue() {
     if (elementId === '0' && url.slice(-9) === '/assignee') {
       elementId = '';
       action = 'clear';
+    }
+    if (action === 'toggle' && e.altKey) {
+      action = 'toggle-alt';
     }
     updateIssuesMeta(
       url,

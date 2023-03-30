@@ -10,14 +10,15 @@
       -d '{"context": "test/context", "description": "description", "state": "${state}", "target_url": "http://localhost"}'
   -->
   <div>
-    <!-- eslint-disable -->
-    <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message"></div>
+    <!-- eslint-disable-next-line vue/no-v-html -->
+    <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message"/>
 
     <div class="ui form" v-if="showActionForm">
       <form :action="mergeForm.baseLink+'/merge'" method="post">
         <input type="hidden" name="_csrf" :value="csrfToken">
         <input type="hidden" name="head_commit_id" v-model="mergeForm.pullHeadCommitID">
         <input type="hidden" name="merge_when_checks_succeed" v-model="autoMergeWhenSucceed">
+        <input type="hidden" name="force_merge" v-model="forceMerge">
 
         <template v-if="!mergeStyleDetail.hideMergeMessageTexts">
           <div class="field">
@@ -29,12 +30,17 @@
               <button @click.prevent="clearMergeMessage" class="ui tertiary button">
                 {{ mergeForm.textClearMergeMessage }}
               </button>
-              <div class="ui label"><!-- TODO: Convert to tooltip once we can use tooltips in Vue templates -->
+              <div class="ui label">
+                <!-- TODO: Convert to tooltip once we can use tooltips in Vue templates -->
                 {{ mergeForm.textClearMergeMessageHint }}
               </div>
             </template>
           </div>
         </template>
+
+        <div class="field" v-if="mergeStyle === 'manually-merged'">
+          <input type="text" name="merge_commit_id" :placeholder="mergeForm.textMergeCommitId">
+        </div>
 
         <button class="ui button" :class="mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle">
           {{ mergeStyleDetail.textDoMerge }}
@@ -47,14 +53,14 @@
           {{ mergeForm.textCancel }}
         </button>
 
-        <div class="ui checkbox ml-2" v-if="mergeForm.isPullBranchDeletable && !autoMergeWhenSucceed">
+        <div class="ui checkbox gt-ml-2" v-if="mergeForm.isPullBranchDeletable && !autoMergeWhenSucceed">
           <input name="delete_branch_after_merge" type="checkbox" v-model="deleteBranchAfterMerge" id="delete-branch-after-merge">
           <label for="delete-branch-after-merge">{{ mergeForm.textDeleteBranch }}</label>
         </div>
       </form>
     </div>
 
-    <div v-if="!showActionForm" class="df">
+    <div v-if="!showActionForm" class="gt-df">
       <!-- the merge button -->
       <div class="ui buttons merge-button" :class="[mergeForm.emptyCommit ? 'grey' : mergeForm.allOverridableChecksOk ? 'green' : 'red']" @click="toggleActionForm(true)" >
         <button class="ui button">
@@ -95,7 +101,7 @@
       </div>
 
       <!-- the cancel auto merge button -->
-      <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post" class="ml-4">
+      <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post" class="gt-ml-4">
         <input type="hidden" name="_csrf" :value="csrfToken">
         <button class="ui button">
           {{ mergeForm.textAutoMergeCancelSchedule }}
@@ -127,6 +133,7 @@ export default {
       textDoMerge: '',
       mergeTitleFieldText: '',
       mergeMessageFieldText: '',
+      hideAutoMerge: false,
     },
     mergeStyleAllowedCount: 0,
 
@@ -137,7 +144,10 @@ export default {
     mergeButtonStyleClass() {
       if (this.mergeForm.allOverridableChecksOk) return 'green';
       return this.autoMergeWhenSucceed ? 'blue' : 'red';
-    }
+    },
+    forceMerge() {
+      return this.mergeForm.canMergeNow && !this.mergeForm.allOverridableChecksOk;
+    },
   },
   watch: {
     mergeStyle(val) {

@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/pub"
 	"code.gitea.io/gitea/routers/api/packages/pypi"
 	"code.gitea.io/gitea/routers/api/packages/rubygems"
+	"code.gitea.io/gitea/routers/api/packages/swift"
 	"code.gitea.io/gitea/routers/api/packages/vagrant"
 	"code.gitea.io/gitea/services/auth"
 	context_service "code.gitea.io/gitea/services/context"
@@ -286,9 +287,18 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				}, reqPackageAccess(perm.AccessModeWrite))
 				r.Get("/symbols/{filename}/{guid:[0-9a-fA-F]{32}[fF]{8}}/{filename2}", nuget.DownloadSymbolFile)
 				r.Get("/Packages(Id='{id:[^']+}',Version='{version:[^']+}')", nuget.RegistrationLeafV2)
-				r.Get("/Packages()", nuget.SearchServiceV2)
-				r.Get("/FindPackagesById()", nuget.EnumeratePackageVersionsV2)
-				r.Get("/Search()", nuget.SearchServiceV2)
+				r.Group("/Packages()", func() {
+					r.Get("", nuget.SearchServiceV2)
+					r.Get("/$count", nuget.SearchServiceV2Count)
+				})
+				r.Group("/FindPackagesById()", func() {
+					r.Get("", nuget.EnumeratePackageVersionsV2)
+					r.Get("/$count", nuget.EnumeratePackageVersionsV2Count)
+				})
+				r.Group("/Search()", func() {
+					r.Get("", nuget.SearchServiceV2)
+					r.Get("/$count", nuget.SearchServiceV2Count)
+				})
 			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {
@@ -365,6 +375,41 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				r.Post("/", rubygems.UploadPackageFile)
 				r.Delete("/yank", rubygems.DeletePackage)
 			}, reqPackageAccess(perm.AccessModeWrite))
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/swift", func() {
+			r.Group("/{scope}/{name}", func() {
+				r.Group("", func() {
+					r.Get("", swift.EnumeratePackageVersions)
+					r.Get(".json", swift.EnumeratePackageVersions)
+				}, swift.CheckAcceptMediaType(swift.AcceptJSON))
+				r.Group("/{version}", func() {
+					r.Get("/Package.swift", swift.CheckAcceptMediaType(swift.AcceptSwift), swift.DownloadManifest)
+					r.Put("", reqPackageAccess(perm.AccessModeWrite), swift.CheckAcceptMediaType(swift.AcceptJSON), swift.UploadPackageFile)
+					r.Get("", func(ctx *context.Context) {
+						// Can't use normal routes here: https://github.com/go-chi/chi/issues/781
+
+						version := ctx.Params("version")
+						if strings.HasSuffix(version, ".zip") {
+							swift.CheckAcceptMediaType(swift.AcceptZip)(ctx)
+							if ctx.Written() {
+								return
+							}
+							ctx.SetParams("version", version[:len(version)-4])
+							swift.DownloadPackageFile(ctx)
+						} else {
+							swift.CheckAcceptMediaType(swift.AcceptJSON)(ctx)
+							if ctx.Written() {
+								return
+							}
+							if strings.HasSuffix(version, ".json") {
+								ctx.SetParams("version", version[:len(version)-5])
+							}
+							swift.PackageVersionMetadata(ctx)
+						}
+					})
+				})
+			})
+			r.Get("/identifiers", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.LookupPackageIdentifiers)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/vagrant", func() {
 			r.Group("/authenticate", func() {

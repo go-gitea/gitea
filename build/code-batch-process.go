@@ -65,7 +65,6 @@ func newFileCollector(fileFilter string, batchSize int) (*fileCollector, error) 
 			"modules",
 			"routers",
 			"services",
-			"tools",
 		}
 		co.includePatterns = append(co.includePatterns, regexp.MustCompile(`.*\.go$`))
 
