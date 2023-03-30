@@ -1,7 +1,7 @@
 import $ from 'jquery';
-import {hideElem, showElem, toggleElem, setAttributes} from '../utils/dom.js';
+import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
-const {appSubUrl, csrfToken} = window.config;
+const {csrfToken} = window.config;
 
 function getArchive($target, url, first) {
   $.ajax({
@@ -108,11 +108,10 @@ export function initRepoCommonLanguageStats() {
   }
 }
 
-// fomantic dropdown approach
-// generate dropdown options using fetched data (posters)
+// generate dropdown options for authors search dropdown using fetched data
 export async function initPostersDropdown() {
   console.log('fetch posters data');
-  const $authorSearchDropdown = $('#author-search');
+  const $authorSearchDropdown = $('.author-search');
   if (!$authorSearchDropdown.length) {
     return;
   }

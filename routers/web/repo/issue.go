@@ -309,12 +309,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return
 	}
 
-	// ctx.Data["Posters"], err = repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
-	// if err != nil {
-	// 	ctx.ServerError("GetIssuePosters", err)
-	// 	return
-	// }
-
 	handleTeamMentions(ctx)
 	if ctx.Written() {
 		return
@@ -3361,20 +3355,20 @@ func IssuePosters(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 	isPullList := ctx.Params(":type") == "pulls"
 	isPullOption := util.OptionalBoolOf(isPullList)
-	// var allPosters []*user_model.User
+	var allPosters []*user_model.User
 	// test sending more posters to frontend
-	// for i := 1; i < 300; i++ {
-	// 	var err error
-	// 	posters, err := repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
-	// 	if err != nil {
-	// 		ctx.JSON(http.StatusInternalServerError, api.SearchError{
-	// 			OK:    false,
-	// 			Error: err.Error(),
-	// 		})
-	// 		return
-	// 	}
-	// 	allPosters = append(allPosters, posters...)
-	// }
+	for i := 1; i < 300; i++ {
+		var err error
+		posters, err := repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, api.SearchError{
+				OK:    false,
+				Error: err.Error(),
+			})
+			return
+		}
+		allPosters = append(allPosters, posters...)
+	}
 	var err error
 	posters, err := repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
 	if err != nil {
@@ -3384,10 +3378,10 @@ func IssuePosters(ctx *context.Context) {
 		})
 		return
 	}
-	// allPosters = append(allPosters, posters...)
-	results := make([]*api.UserBrief, len(posters))
-	for i, poster := range posters {
-		results[i] = convert.ToUserBrief(ctx, poster)
+	allPosters = append(allPosters, posters...)
+	results := make([]*api.UserSearchInfo, len(allPosters))
+	for i, poster := range allPosters {
+		results[i] = convert.ToUserSearchInfo(ctx, poster)
 	}
 	// fmt.Println(results)
 	ctx.JSON(http.StatusOK, results)

@@ -26,11 +26,11 @@ func ToUser(ctx context.Context, user, doer *user_model.User) *api.User {
 	return toUser(ctx, user, signed, authed)
 }
 
-func ToUserBrief(ctx context.Context, user *user_model.User) *api.UserBrief {
+func ToUserSearchInfo(ctx context.Context, user *user_model.User) *api.UserSearchInfo {
 	if user == nil {
 		return nil
 	}
-	result := &api.UserBrief{
+	result := &api.UserSearchInfo{
 		ID:        user.ID,
 		UserName:  user.Name,
 		FullName:  user.FullName,

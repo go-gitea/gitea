@@ -54,8 +54,8 @@ type User struct {
 	StarredRepos int `json:"starred_repos_count"`
 }
 
-// UserBrief represents user info needed when using search dropdown
-type UserBrief struct {
+// UserSearchInfo represents user info needed when using user search dropdown
+type UserSearchInfo struct {
 	// the user's id
 	ID int64 `json:"id"`
 	// the user's username

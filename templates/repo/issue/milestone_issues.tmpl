@@ -64,7 +64,8 @@
 					</div>
 
 					<!-- Author -->
-					<div class="ui {{if not .Posters}}disabled{{end}} dropdown jump item">
+					<div class="ui dropdown jump item author-search" data-show-fullname={{IsShowFullName}} data-url="{{$.RepoLink}}/issues/posters" data-poster-id="{{$.PosterID}}" 
+						data-general-poster-url="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.AssigneeID}}&poster=">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_poster"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -75,11 +76,6 @@
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
-							{{range .Posters}}
-								<a class="{{if eq $.PosterID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{.ID}}">
-									{{avatar $.Context .}}{{template "repo/search_name" .}}
-								</a>
-							{{end}}
 						</div>
 					</div>
 

@@ -67,9 +67,3 @@ export function hideElem(el) {
 export function toggleElem(el, force) {
   elementsCall(el, toggleShown, force);
 }
-
-export function setAttributes(el, options) {
-  for (const key of Object.keys(options)) {
-    el.setAttribute(key, options[key]);
-  }
-}
