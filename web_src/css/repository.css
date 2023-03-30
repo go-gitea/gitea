@@ -1870,7 +1870,6 @@
   }
 }
 
-
 /* TODO: this can potentially be made "global" by removing the class prefix */
 .diff-file-box .ui.attached.header,
 .diff-file-box .ui.attached.table {
