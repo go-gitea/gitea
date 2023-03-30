@@ -112,6 +112,7 @@ func TestLocaleStoreQuirks(t *testing.T) {
 		err := ls.AddLocaleByIni("lang1", "Lang1", []byte("a="+testData.in), nil)
 		assert.NoError(t, err, testData.hint)
 		assert.Equal(t, testData.out, ls.Tr("lang1", "a"), testData.hint)
+		assert.NoError(t, ls.Close())
 	}
 
 	// TODO: Crowdin needs the strings to be quoted correctly and doesn't like incomplete quotes
