@@ -110,7 +110,6 @@ export function initRepoCommonLanguageStats() {
 
 // generate dropdown options for authors search dropdown using fetched data
 export async function initPostersDropdown() {
-  console.log('fetch posters data');
   const $authorSearchDropdown = $('.author-search');
   if (!$authorSearchDropdown.length) {
     return;
@@ -128,16 +127,13 @@ export async function initPostersDropdown() {
   const isShowFullName = $authorSearchDropdown.attr('data-show-fullname');
   const posterGeneralUrl = $authorSearchDropdown.attr('data-general-poster-url');
   const values = $authorSearchDropdown.dropdown('setting values');
-  let $defaultMenu = $(values[0]).find('.menu');
-  console.dir(values)
+  const $defaultMenu = $(values[0]).find('.menu');
   for (let i = 0; i < postersJson.length; i++) {
     const {id, avatar_url, username, full_name} = postersJson[i];
     $defaultMenu.append(`<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralUrl}${id}">
       <img class="ui avatar gt-vm" src="${avatar_url}" title="${username}" width="28" height="28">
-      <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>`: ''}</span>
+      <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>` : ''}</span>
     </a>`);
   }
-  console.log('new values')
-  console.dir(values)
   $authorSearchDropdown.dropdown('setting', 'values', values);
 }
