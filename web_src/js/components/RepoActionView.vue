@@ -404,8 +404,7 @@ export function initRepositoryActionView() {
 }
 
 .job-group-section .job-brief-list .job-brief-item .job-brief-link span {
-  margin-right: 8px;
-  padding-left: 5px;
+  margin: 0 8px;
   display: flex;
   align-items: center;
 }
