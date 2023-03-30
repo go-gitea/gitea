@@ -186,7 +186,6 @@ $(document).ready(() => {
   initRepository();
   initRepositoryActionView();
   initPostersDropdown();
-  initPostersDropdownTest();
 
   initCommitStatuses();
   initCaptcha();

@@ -108,134 +108,37 @@ export function initRepoCommonLanguageStats() {
   }
 }
 
-// native js approach
+// fomantic dropdown approach
 // generate dropdown options using fetched data (posters)
 export async function initPostersDropdown() {
   console.log('fetch posters data');
-  const $autherSearch = document.getElementById('author-search');
-  if (!$autherSearch) {
+  const $authorSearchDropdown = $('#author-search');
+  if (!$authorSearchDropdown.length) {
     return;
   }
-  const url = $autherSearch.getAttribute('data-url');
-  const posterID = $autherSearch.getAttribute('data-poster-id');
-  const isShowFullName = $autherSearch.getAttribute('data-show-fullname');
-  const posterGeneralHref = $autherSearch.getAttribute('data-general-poster-href');
-  const posterList = document.querySelector('.poster-list');
+  const url = $authorSearchDropdown.attr('data-url');
   const res = await fetch(url, {
     method: 'GET'
   });
   const postersJson = await res.json();
-  console.log(res);
-  console.log(postersJson);
   if (!postersJson) {
-    $autherSearch.classList.add('disabled');
-  } else {
-    $('.poster-list').find('.poster-item').remove();
-    for (let i = 0; i < postersJson.length; i++) {
-      const {id, avatar_url, username, full_name} = postersJson[i];
-      const $a = document.createElement('a');
-      setAttributes($a, {
-        'class': `item gt-df poster-item${+posterID === id ? ' active selected' : ''}`,
-        'href': `${posterGeneralHref}${id}`,
-      });
-      const $img = document.createElement('img');
-      setAttributes($img, {
-        'class': 'ui avatar gt-vm',
-        'src': avatar_url,
-        'title': username,
-        'width': '28',
-        'height': '28'
-      });
-      $a.appendChild($img);
-      const $span = document.createElement('span');
-      setAttributes($span, {'class': 'gt-ellipsis'});
-      $span.innerHTML = username;
-      if (isShowFullName === 'true') {
-        const $spanInner = document.createElement('span');
-        setAttributes($spanInner, {'class': 'search-fullname'});
-        $spanInner.innerHTML = full_name;
-        $span.appendChild($spanInner);
-      }
-      $a.appendChild($span);
-      posterList.appendChild($a);
-    }
-    delete $('#author-search')[0]['_giteaAriaPatchDropdown'];
-    $('#author-search').dropdown({
-      fullTextSearch: 'exact',
-      selectOnKeydown: false,
-      action: 'hide',
-      onShow() {
-        // hide associated tooltip while dropdown is open
-        this._tippy?.hide();
-        this._tippy?.disable();
-      },
-      onHide() {
-        this._tippy?.enable();
-
-        // hide all tippy elements of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
-        setTimeout(() => {
-          const $dropdown = $(this);
-          if ($dropdown.dropdown('is hidden')) {
-            $(this).find('.menu > .item').each((_, item) => {
-              item._tippy?.hide();
-            });
-          }
-        }, 2000);
-      },
-    });
-  }
-}
-
-// fomantic dropdown approach
-// generate dropdown options using fetched data (posters)
-export async function initPostersDropdownTest() {
-  console.log('fetch posters data 1');
-  const $autherSearch = document.getElementById('author-search-1');
-  if (!$autherSearch) {
+    $authorSearchDropdown.addClass('disabled');
     return;
   }
-  const url = $autherSearch.getAttribute('data-url');
-  const posterID = $autherSearch.getAttribute('data-poster-id');
-  const isShowFullName = $autherSearch.getAttribute('data-show-fullname');
-  const noFilterUrl = $autherSearch.getAttribute('data-no-filter-url');
-  const posterGeneralUrl = $autherSearch.getAttribute('data-general-poster-url');
-  const noSelectText = $autherSearch.getAttribute('data-no-select-text');
-  const posterList = document.querySelector('.poster-list');
-  $('#author-search-1').dropdown({
-    selectOnKeydown: false,
-    apiSettings: {
-      fullTextSearch: 'exact',
-      saveRemoteData: false,
-      // this url parses query server side and returns filtered results
-      url: `${appSubUrl}${url}`,
-      onResponse(response) {
-        console.log(response)
-        const formattedResponse = {success: true, results: []};
-				formattedResponse.results.push({
-          name:  `<a class="item" href="${noFilterUrl}">${noSelectText}</a>`,
-          value: '000',
-        })			
-
-        // Parse the response from the api to work with our dropdown
-        $.each(response, (_, poster) => {
-          const {id, avatar_url, username, full_name} = poster;
-          console.log(poster)
-          formattedResponse.results.push({
-            name: `<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralUrl}${id}">
-              <img class="ui avatar gt-vm" src="${avatar_url}" title="${username}" width="28" height="28">
-              <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>`: ''}</span>
-            </a>
-            `,
-            value: id,
-          });
-        });
-        return formattedResponse;
-      },
-      cache: false,
-    },
-    // fields: {
-    // // the remote api has a different structure than expected, which we can adjust
-    //   remoteValues: 'posters'
-    // }
-  });
+  const posterID = $authorSearchDropdown.attr('data-poster-id');
+  const isShowFullName = $authorSearchDropdown.attr('data-show-fullname');
+  const posterGeneralUrl = $authorSearchDropdown.attr('data-general-poster-url');
+  const values = $authorSearchDropdown.dropdown('setting values');
+  let $defaultMenu = $(values[0]).find('.menu');
+  console.dir(values)
+  for (let i = 0; i < postersJson.length; i++) {
+    const {id, avatar_url, username, full_name} = postersJson[i];
+    $defaultMenu.append(`<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralUrl}${id}">
+      <img class="ui avatar gt-vm" src="${avatar_url}" title="${username}" width="28" height="28">
+      <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>`: ''}</span>
+    </a>`);
+  }
+  console.log('new values')
+  console.dir(values)
+  $authorSearchDropdown.dropdown('setting', 'values', values);
 }
