@@ -29,9 +29,7 @@
 		<div id="issue-filters" class="ui stackable grid">
 			<div class="six wide column">
 				{{if $.CanWriteIssuesOrPulls}}
-					<div class="ui checkbox issue-checkbox-all gt-vm">
-						<input type="checkbox" title="{{.locale.Tr "repo.issues.action_check_all"}}">
-					</div>
+					<input type="checkbox" autocomplete="off" class="issue-checkbox-all gt-vm gt-mr-4" title="{{.locale.Tr "repo.issues.action_check_all"}}">
 				{{end}}
 				{{template "repo/issue/openclose" .}}
 			</div>

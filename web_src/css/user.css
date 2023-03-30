@@ -90,23 +90,6 @@
   padding: 8px 15px;
 }
 
-.user.notification .content {
-  float: left;
-  margin-left: 7px;
-}
-
-.user.notification table form {
-  display: inline-block;
-}
-
-.user.notification table button {
-  padding: 3px 3px 3px 5px;
-}
-
-.user.notification table tr {
-  cursor: pointer;
-}
-
 .user .button.adopt,
 .user .button.delete {
   margin-top: -15px;
@@ -152,15 +135,27 @@
   object-fit: contain;
 }
 
-#notification_div .tab.segment {
-  overflow-x: auto;
-  padding: 0;
+.user.notification table button {
+  padding: 3px 3px 3px 5px;
 }
 
-#notification_div .menu .active.item {
+#notification_div .tab.segment {
+  overflow-x: auto;
+}
+
+#notification_div .tabular.menu .active.item {
   background: var(--color-box-body);
 }
 
 #notification_table {
   border: none;
+}
+
+#notification_table tr {
+  cursor: default;
+}
+
+#notification_table td a {
+  width: 100%;
+  display: inline-block;
 }

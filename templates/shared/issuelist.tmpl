@@ -2,11 +2,9 @@
 	{{$approvalCounts := .ApprovalCounts}}
 	{{range .Issues}}
 		<li class="item gt-df gt-py-3">
-			<div class="issue-item-left gt-df">
+			<div class="issue-item-left gt-df gt-items-start">
 				{{if $.CanWriteIssuesOrPulls}}
-					<div class="ui checkbox issue-checkbox">
-						<input type="checkbox" data-issue-id={{.ID}} title="{{$.locale.Tr "repo.issues.action_check"}} «{{.Title}}»">
-					</div>
+					<input type="checkbox" autocomplete="off" class="issue-checkbox gt-mt-2 gt-mr-4" data-issue-id={{.ID}} aria-label="{{$.locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
 				{{end}}
 				<div class="issue-item-icon">
 					{{if .IsPull}}

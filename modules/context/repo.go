@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"html"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -33,6 +34,7 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
+	"gopkg.in/yaml.v3"
 )
 
 // IssueTemplateDirCandidates issue templates directory
@@ -45,6 +47,13 @@ var IssueTemplateDirCandidates = []string{
 	".github/issue_template",
 	".gitlab/ISSUE_TEMPLATE",
 	".gitlab/issue_template",
+}
+
+var IssueConfigCandidates = []string{
+	".gitea/ISSUE_TEMPLATE/config",
+	".gitea/issue_template/config",
+	".github/ISSUE_TEMPLATE/config",
+	".github/issue_template/config",
 }
 
 // PullRequest contains information to make a pull request
@@ -1087,4 +1096,109 @@ func (ctx *Context) IssueTemplatesErrorsFromDefaultBranch() ([]*api.IssueTemplat
 		}
 	}
 	return issueTemplates, invalidFiles
+}
+
+func GetDefaultIssueConfig() api.IssueConfig {
+	return api.IssueConfig{
+		BlankIssuesEnabled: true,
+		ContactLinks:       make([]api.IssueConfigContactLink, 0),
+	}
+}
+
+// GetIssueConfig loads the given issue config file.
+// It never returns a nil config.
+func (r *Repository) GetIssueConfig(path string, commit *git.Commit) (api.IssueConfig, error) {
+	if r.GitRepo == nil {
+		return GetDefaultIssueConfig(), nil
+	}
+
+	var err error
+
+	treeEntry, err := commit.GetTreeEntryByPath(path)
+	if err != nil {
+		return GetDefaultIssueConfig(), err
+	}
+
+	reader, err := treeEntry.Blob().DataAsync()
+	if err != nil {
+		log.Debug("DataAsync: %v", err)
+		return GetDefaultIssueConfig(), nil
+	}
+
+	defer reader.Close()
+
+	configContent, err := io.ReadAll(reader)
+	if err != nil {
+		return GetDefaultIssueConfig(), err
+	}
+
+	issueConfig := api.IssueConfig{}
+	if err := yaml.Unmarshal(configContent, &issueConfig); err != nil {
+		return GetDefaultIssueConfig(), err
+	}
+
+	for pos, link := range issueConfig.ContactLinks {
+		if link.Name == "" {
+			return GetDefaultIssueConfig(), fmt.Errorf("contact_link at position %d is missing name key", pos+1)
+		}
+
+		if link.URL == "" {
+			return GetDefaultIssueConfig(), fmt.Errorf("contact_link at position %d is missing url key", pos+1)
+		}
+
+		if link.About == "" {
+			return GetDefaultIssueConfig(), fmt.Errorf("contact_link at position %d is missing about key", pos+1)
+		}
+
+		_, err = url.ParseRequestURI(link.URL)
+		if err != nil {
+			return GetDefaultIssueConfig(), fmt.Errorf("%s is not a valid URL", link.URL)
+		}
+	}
+
+	return issueConfig, nil
+}
+
+// IssueConfigFromDefaultBranch returns the issue config for this repo.
+// It never returns a nil config.
+func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
+	if ctx.Repo.Repository.IsEmpty {
+		return GetDefaultIssueConfig(), nil
+	}
+
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	if err != nil {
+		return GetDefaultIssueConfig(), err
+	}
+
+	for _, configName := range IssueConfigCandidates {
+		if _, err := commit.GetTreeEntryByPath(configName + ".yaml"); err == nil {
+			return ctx.Repo.GetIssueConfig(configName+".yaml", commit)
+		}
+
+		if _, err := commit.GetTreeEntryByPath(configName + ".yml"); err == nil {
+			return ctx.Repo.GetIssueConfig(configName+".yml", commit)
+		}
+	}
+
+	return GetDefaultIssueConfig(), nil
+}
+
+// IsIssueConfig returns if the given path is a issue config file.
+func (r *Repository) IsIssueConfig(path string) bool {
+	for _, configName := range IssueConfigCandidates {
+		if path == configName+".yaml" || path == configName+".yml" {
+			return true
+		}
+	}
+	return false
+}
+
+func (ctx *Context) HasIssueTemplatesOrContactLinks() bool {
+	if len(ctx.IssueTemplatesFromDefaultBranch()) > 0 {
+		return true
+	}
+
+	issueConfig, _ := ctx.IssueConfigFromDefaultBranch()
+	return len(issueConfig.ContactLinks) > 0
 }
