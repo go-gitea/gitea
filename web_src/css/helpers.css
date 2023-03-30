@@ -24,6 +24,7 @@
 .gt-relative { position: relative !important; }
 .gt-overflow-x-scroll { overflow-x: scroll !important; }
 .gt-cursor-default { cursor: default !important; }
+.gt-items-start { align-items: flex-start !important; }
 
 .gt-mono {
   font-family: var(--fonts-monospace) !important;

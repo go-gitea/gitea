@@ -1,7 +1,7 @@
 <template>
   <div v-show="show" :title="item.name">
     <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
-    <div class="item" :class="item.isFile ? 'filewrapper gt-p-1' : ''">
+    <div class="item" :class="item.isFile ? 'filewrapper gt-p-1 gt-ac' : ''">
       <!-- Files -->
       <SvgIcon
         v-if="item.isFile"
@@ -10,7 +10,7 @@
       />
       <a
         v-if="item.isFile"
-        class="file gt-ellipsis muted"
+        class="file gt-ellipsis"
         :href="item.isFile ? '#diff-' + item.file.NameHash : ''"
       >{{ item.name }}</a>
       <SvgIcon
@@ -20,7 +20,7 @@
       />
 
       <!-- Directories -->
-      <div v-if="!item.isFile" class="directory gt-p-1" @click.stop="handleClick(item.isFile)">
+      <div v-if="!item.isFile" class="directory gt-p-1 gt-ac" @click.stop="handleClick(item.isFile)">
         <SvgIcon
           class="svg-icon"
           :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"
@@ -79,31 +79,31 @@ export default {
 </script>
 
 <style scoped>
-span.svg-icon.status {
+.svg-icon.status {
   float: right;
 }
 
-span.svg-icon.file {
+.svg-icon.file {
   color: var(--color-secondary-dark-7);
 }
 
-span.svg-icon.directory {
+.svg-icon.directory {
   color: var(--color-primary);
 }
 
-span.svg-icon.octicon-diff-modified {
+.svg-icon.octicon-diff-modified {
   color: var(--color-yellow);
 }
 
-span.svg-icon.octicon-diff-added {
+.svg-icon.octicon-diff-added {
   color: var(--color-green);
 }
 
-span.svg-icon.octicon-diff-removed {
+.svg-icon.octicon-diff-removed {
   color: var(--color-red);
 }
 
-span.svg-icon.octicon-diff-renamed {
+.svg-icon.octicon-diff-renamed {
   color: var(--color-teal);
 }
 
@@ -139,9 +139,11 @@ div.list {
 
 a {
   text-decoration: none;
+  color: var(--color-text);
 }
 
 a:hover {
   text-decoration: none;
+  color: var(--color-text);
 }
 </style>
