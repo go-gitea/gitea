@@ -3368,6 +3368,5 @@ func IssuePosters(ctx *context.Context) {
 	for i, poster := range posters {
 		results[i] = convert.ToUserSearchInfo(ctx, poster)
 	}
-	// fmt.Println(results)
 	ctx.JSON(http.StatusOK, results)
 }
