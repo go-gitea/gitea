@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
-
+import {updateMenuItem, ariaPatchKey} from '../modules/aria/dropdown.js';
 const {csrfToken} = window.config;
 
 function getArchive($target, url, first) {
@@ -135,5 +135,8 @@ export async function initPostersDropdown() {
       <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>` : ''}</span>
     </a>`);
   }
+  const $items = $defaultMenu.find('> .item');
+  $items.each((_, item) => updateMenuItem($authorSearchDropdown[0], item));
+  $authorSearchDropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
   $authorSearchDropdown.dropdown('setting', 'values', values);
 }
