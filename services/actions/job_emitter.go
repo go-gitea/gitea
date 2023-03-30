@@ -45,11 +45,11 @@ func jobEmitterQueueHandle(data ...queue.Data) []queue.Data {
 }
 
 func checkJobsOfRun(ctx context.Context, runID int64) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: runID})
-		if err != nil {
-			return err
-		}
+	jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: runID})
+	if err != nil {
+		return err
+	}
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		idToJobs := make(map[string][]*actions_model.ActionRunJob, len(jobs))
 		for _, job := range jobs {
 			idToJobs[job.JobID] = append(idToJobs[job.JobID], job)
@@ -67,7 +67,11 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 			}
 		}
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+	CreateCommitStatus(ctx, jobs...)
+	return nil
 }
 
 type jobStatusResolver struct {
