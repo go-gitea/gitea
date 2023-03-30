@@ -125,7 +125,7 @@ menu:
 - `CLOSE_KEYWORDS`: **close**, **closes**, **closed**, **fix**, **fixes**, **fixed**, **resolve**, **resolves**, **resolved**: 在拉取请求评论中用于自动关闭相关问题的关键词列表。
 - `REOPEN_KEYWORDS`: **reopen**, **reopens**, **reopened**: 在拉取请求评论中用于自动重新打开相关问题的
 关键词列表。
-- `DEFAULT_MERGE_STYLE`: **merge**: 设置创建仓库的默认合并方式，可选: `merge`, `rebase`, `rebase-merge`, `squash`
+- `DEFAULT_MERGE_STYLE`: **merge**: 设置创建仓库的默认合并方式，可选: `merge`, `rebase`, `rebase-merge`, `squash`, `fast-forward-only`
 - `DEFAULT_MERGE_MESSAGE_COMMITS_LIMIT`: **50**: 在默认合并消息中，对于`squash`提交，最多包括此数量的提交。设置为 -1 以包括所有提交。
 - `DEFAULT_MERGE_MESSAGE_SIZE`: **5120**: 在默认的合并消息中，对于`squash`提交，限制提交消息的大小。设置为 `-1`以取消限制。仅在`POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES`为`true`时使用。
 - `DEFAULT_MERGE_MESSAGE_ALL_AUTHORS`: **false**: 在默认合并消息中，对于`squash`提交，遍历所有提交以包括所有作者的`Co-authored-by`，否则仅使用限定列表中的作者。

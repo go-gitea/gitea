@@ -267,6 +267,10 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		if err := doMergeStyleSquash(mergeCtx, message); err != nil {
 			return "", err
 		}
+	case repo_model.MergeStyleFastForwardOnly:
+		if err := doMergeStyleFastForwardOnly(mergeCtx); err != nil {
+			return "", err
+		}
 	default:
 		return "", models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
 	}

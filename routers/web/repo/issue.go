@@ -1862,6 +1862,8 @@ func ViewIssue(ctx *context.Context) {
 				mergeStyle = repo_model.MergeStyleRebaseMerge
 			} else if prConfig.AllowSquash {
 				mergeStyle = repo_model.MergeStyleSquash
+			} else if prConfig.AllowFastForwardOnly {
+				mergeStyle = repo_model.MergeStyleFastForwardOnly
 			} else if prConfig.AllowManualMerge {
 				mergeStyle = repo_model.MergeStyleManuallyMerged
 			}
