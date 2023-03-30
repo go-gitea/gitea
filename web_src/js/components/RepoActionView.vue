@@ -308,6 +308,11 @@ export function initRepositoryActionView() {
 }
 
 export function processConsoleLine(line) {
+  if (line.endsWith('\r\n')) {
+    line = line.substring(0, line.length - 2);
+  } else if (line.endsWith('\n')) {
+    line = line.substring(0, line.length - 1);
+  }
   if (!line.includes('\r')) return line;
 
   // handle "\rReading...1%\rReading...5%\rReading...100%", only show the final message
