@@ -5,6 +5,7 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -27,6 +28,11 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
 )
+
+type EditUserForm struct {
+	*forms.AdminEditUserForm
+	*forms.AvatarForm
+}
 
 const (
 	tplUsers    base.TplName = "admin/user/list"
@@ -207,7 +213,7 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
 }
 
-func prepareUserInfo(ctx *context.Context) *user_model.User {
+func prepareUserInfo(ctx *context.Context, adminEditUserForm *forms.AdminEditUserForm, avatarForm *forms.AvatarForm) (*user_model.User, *EditUserForm) {
 	u, err := user_model.GetUserByID(ctx, ctx.ParamsInt64(":userid"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
@@ -215,40 +221,78 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 		} else {
 			ctx.ServerError("GetUserByID", err)
 		}
-		return nil
+		return nil, nil
 	}
 	ctx.Data["User"] = u
 
+	var loginSource *auth.Source
 	if u.LoginSource > 0 {
-		ctx.Data["LoginSource"], err = auth.GetSourceByID(u.LoginSource)
+		loginSource, err = auth.GetSourceByID(u.LoginSource)
 		if err != nil {
 			ctx.ServerError("auth.GetSourceByID", err)
-			return nil
+			return nil, nil
 		}
 	} else {
-		ctx.Data["LoginSource"] = &auth.Source{}
+		loginSource = &auth.Source{}
 	}
+	ctx.Data["LoginSource"] = loginSource
 
 	sources, err := auth.Sources()
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
-		return nil
+		return nil, nil
 	}
 	ctx.Data["Sources"] = sources
 
 	hasTOTP, err := auth.HasTwoFactorByUID(u.ID)
 	if err != nil {
 		ctx.ServerError("auth.HasTwoFactorByUID", err)
-		return nil
+		return nil, nil
 	}
 	hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(u.ID)
 	if err != nil {
 		ctx.ServerError("auth.HasWebAuthnRegistrationsByUID", err)
-		return nil
+		return nil, nil
 	}
 	ctx.Data["TwoFactorEnabled"] = hasTOTP || hasWebAuthn
 
-	return u
+	var source string
+	if u.UseCustomAvatar {
+		source = "local"
+	} else {
+		source = "lookup"
+	}
+
+	if adminEditUserForm == nil {
+		adminEditUserForm = &forms.AdminEditUserForm{
+			LoginType:               fmt.Sprintf("%d-%d", loginSource.Type.Int(), loginSource.ID),
+			UserName:                u.Name,
+			LoginName:               u.LoginName,
+			FullName:                u.FullName,
+			Email:                   u.Email,
+			Website:                 u.Website,
+			Location:                u.Location,
+			MaxRepoCreation:         u.MaxRepoCreation,
+			Active:                  u.IsActive,
+			Admin:                   u.IsAdmin,
+			Restricted:              u.IsRestricted,
+			AllowGitHook:            u.CanEditGitHook(),
+			AllowImportLocal:        u.CanImportLocal(),
+			AllowCreateOrganization: u.CanCreateOrganization(),
+			ProhibitLogin:           u.ProhibitLogin,
+			Visibility:              u.Visibility,
+		}
+	}
+	if avatarForm == nil {
+		avatarForm = &forms.AvatarForm{
+			Source:   source,
+			Gravatar: u.AvatarEmail,
+		}
+	}
+	form := &EditUserForm{adminEditUserForm, avatarForm}
+	ctx.Data["Form"] = form
+
+	return u, form
 }
 
 // EditUser show editing user page
@@ -260,7 +304,7 @@ func EditUser(ctx *context.Context) {
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
-	prepareUserInfo(ctx)
+	prepareUserInfo(ctx, nil, nil)
 	if ctx.Written() {
 		return
 	}
@@ -277,7 +321,7 @@ func EditUserPost(ctx *context.Context) {
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
-	u := prepareUserInfo(ctx)
+	u, f := prepareUserInfo(ctx, form, nil)
 	if ctx.Written() {
 		return
 	}
@@ -302,11 +346,11 @@ func EditUserPost(ctx *context.Context) {
 		var err error
 		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserEdit, &form)
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserEdit, &f)
 			return
 		}
 		if !password.IsComplexEnough(form.Password) {
-			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserEdit, &form)
+			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserEdit, &f)
 			return
 		}
 		pwned, err := password.IsPwned(ctx, form.Password)
@@ -317,13 +361,13 @@ func EditUserPost(ctx *context.Context) {
 				log.Error(err.Error())
 				errMsg = ctx.Tr("auth.password_pwned_err")
 			}
-			ctx.RenderWithErr(errMsg, tplUserEdit, &form)
+			ctx.RenderWithErr(errMsg, tplUserEdit, &f)
 			return
 		}
 
 		if err := user_model.ValidateEmail(form.Email); err != nil {
 			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_error"), tplUserEdit, &form)
+			ctx.RenderWithErr(ctx.Tr("form.email_error"), tplUserEdit, &f)
 			return
 		}
 
@@ -342,7 +386,7 @@ func EditUserPost(ctx *context.Context) {
 			if ctx.Written() {
 				return
 			}
-			ctx.RenderWithErr(ctx.Flash.ErrorMsg, tplUserEdit, &form)
+			ctx.RenderWithErr(ctx.Flash.ErrorMsg, tplUserEdit, &f)
 			return
 		}
 		u.Name = form.UserName
@@ -401,11 +445,11 @@ func EditUserPost(ctx *context.Context) {
 	if err := user_model.UpdateUser(ctx, u, emailChanged); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
+			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &f)
 		} else if user_model.IsErrEmailCharIsNotSupported(err) ||
 			user_model.IsErrEmailInvalid(err) {
 			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserEdit, &form)
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserEdit, &f)
 		} else {
 			ctx.ServerError("UpdateUser", err)
 		}
@@ -456,12 +500,13 @@ func DeleteUser(ctx *context.Context) {
 
 // AvatarPost response for change user's avatar request
 func AvatarPost(ctx *context.Context) {
-	u := prepareUserInfo(ctx)
+	form := web.GetForm(ctx).(*forms.AvatarForm)
+
+	u, _ := prepareUserInfo(ctx, nil, form)
 	if ctx.Written() {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.AvatarForm)
 	if err := user_setting.UpdateAvatarSetting(ctx, form, u); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
@@ -473,7 +518,7 @@ func AvatarPost(ctx *context.Context) {
 
 // DeleteAvatar render delete avatar page
 func DeleteAvatar(ctx *context.Context) {
-	u := prepareUserInfo(ctx)
+	u, _ := prepareUserInfo(ctx, nil, nil)
 	if ctx.Written() {
 		return
 	}
