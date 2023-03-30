@@ -4,6 +4,7 @@
 package explore
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
@@ -18,7 +19,7 @@ import (
 const (
 	// tplExploreRepos explore repositories page template
 	tplExploreRepos        base.TplName = "explore/repos"
-	relevantReposOnlyParam string       = "no_filter"
+	relevantReposOnlyParam string       = "only_show_relevant"
 )
 
 // RepoSearchOptions when calling search repositories
@@ -137,7 +138,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "topic", "TopicOnly")
 	pager.AddParam(ctx, "language", "Language")
-	pager.AddParamString(relevantReposOnlyParam, ctx.FormString(relevantReposOnlyParam))
+	pager.AddParamString(relevantReposOnlyParam, fmt.Sprint(opts.OnlyShowRelevant))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, opts.TplName)
@@ -156,11 +157,18 @@ func Repos(ctx *context.Context) {
 		ownerID = ctx.Doer.ID
 	}
 
+	onlyShowRelevant := setting.UI.OnlyShowRelevantRepos
+
+	_ = ctx.Req.ParseForm() // parse the form first, to prepare the ctx.Req.Form field
+	if len(ctx.Req.Form[relevantReposOnlyParam]) != 0 {
+		onlyShowRelevant = ctx.FormBool(relevantReposOnlyParam)
+	}
+
 	RenderRepoSearch(ctx, &RepoSearchOptions{
 		PageSize:         setting.UI.ExplorePagingNum,
 		OwnerID:          ownerID,
 		Private:          ctx.Doer != nil,
 		TplName:          tplExploreRepos,
-		OnlyShowRelevant: !ctx.FormBool(relevantReposOnlyParam),
+		OnlyShowRelevant: onlyShowRelevant,
 	})
 }
