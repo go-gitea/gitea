@@ -57,16 +57,17 @@
 					{{end}}
 					<div class="ui three wide column">
 						<div class="text right">
+						
 							{{if eq $.SignedUser.ID .ID}}
 								<form>
-									<button class="ui red small button delete-button" data-modal-id="leave-organization"
+									<button style="margin-top: 5px" class="ui red small button delete-button" data-modal-id="leave-organization"
 										data-url="{{$.OrgLink}}/members/action/leave" data-datauid="{{.ID}}"
 										data-name="{{.DisplayName}}"
 										data-data-organization-name="{{$.Org.DisplayName}}">{{$.locale.Tr "org.members.leave"}}</button>
 								</form>
 							{{else if $.IsOrganizationOwner}}
 								<form>
-									<button class="ui red small button delete-button" data-modal-id="remove-organization-member"
+									<button style="margin-top: 5px" class="ui red small button delete-button" data-modal-id="remove-organization-member"
 										data-url="{{$.OrgLink}}/members/action/remove" data-datauid="{{.ID}}"
 										data-name="{{.DisplayName}}"
 										data-data-organization-name="{{$.Org.DisplayName}}">{{$.locale.Tr "org.members.remove"}}</button>
