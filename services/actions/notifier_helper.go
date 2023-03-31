@@ -374,7 +374,7 @@ func handleWorkflows(
 			continue
 		}
 		for _, job := range jobs {
-			if err := CreateCommitStatus(ctx, job); err != nil {
+			if err := createCommitStatus(ctx, job); err != nil {
 				log.Error("CreateCommitStatus: %v", err)
 			}
 		}

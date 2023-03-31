@@ -102,7 +102,7 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule,
 
 	// Create commit statuses for each job
 	for _, job := range jobs {
-		if err := CreateCommitStatus(ctx, job); err != nil {
+		if err := createCommitStatus(ctx, job); err != nil {
 			return err
 		}
 	}
