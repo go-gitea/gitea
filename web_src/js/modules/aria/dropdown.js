@@ -69,24 +69,6 @@ function delegateOne($dropdown) {
     $dropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
     return $wrapper.html();
   };
-
-  if ($dropdown.attr('id') === 'author-search-1') {
-    dropdownTemplates.menu = function(response, fields, preserveHTML, className) {
-      console.log('menuuu')
-      // when the dropdown menu items are loaded from AJAX requests, the items are created dynamically
-      // TODO: everytime after onresponse, the input is cleared.. should fix this in a proper way
-      let menuItems = $('#menu-default-input').prop('outerHTML') + $('#menu-default-search-all').prop('outerHTML');
-      let values = response[fields.values] || [];
-      $.each(values, function(_, option) {
-        menuItems += option[fields.name];
-      })
-      const $wrapper = $('<div>').append(menuItems);
-      const $items = $wrapper.find('.menu > .item');
-      $items.each((_, item) => updateMenuItem($dropdown[0], item));
-      $dropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
-      return menuItems;
-    };
-  }
   dropdownCall('setting', 'templates', dropdownTemplates);
 
   // the `onLabelCreate` is used to add necessary aria attributes for dynamically created selection labels

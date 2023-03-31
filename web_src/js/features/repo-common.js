@@ -108,109 +108,46 @@ export function initRepoCommonLanguageStats() {
   }
 }
 
-// generate dropdown options for authors search dropdown using fetched data (onResponse)
-export async function initPostersDropdownTest() {
-  const $authorSearchDropdown = $('.author-search-1');
-  if (!$authorSearchDropdown.length) {
-    return;
-  }
-  const url = $authorSearchDropdown.attr('data-url');
-  $authorSearchDropdown.dropdown({
-    fullTextSearch: 'exact',
-    selectOnKeydown: false,
-    action: 'hide',
-    onShow() {
-      // hide associated tooltip while dropdown is open
-      this._tippy?.hide();
-      this._tippy?.disable();
-    },
-    onHide() {
-      this._tippy?.enable();
-
-      // hide all tippy elements of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
-      setTimeout(() => {
-        const $dropdown = $(this);
-        if ($dropdown.dropdown('is hidden')) {
-          $(this).find('.menu > .item').each((_, item) => {
-            item._tippy?.hide();
-          });
-        }
-      }, 2000);
-    },
-    apiSettings: {
-      url,
-      throttle: 500,
-      cache: false,
-      minCharacters: 2,
-      onResponse(res) {
-        console.log(res);
-        const postersJson = res;
-        if (!postersJson) {
-          $authorSearchDropdown.addClass('disabled');
-          return;
-        }
-        const posterID = $authorSearchDropdown.attr('data-poster-id');
-        const isShowFullName = $authorSearchDropdown.attr('data-show-fullname');
-        const posterGeneralUrl = $authorSearchDropdown.attr('data-general-poster-url');
-        // const values = $authorSearchDropdown.dropdown('setting values');
-        const formattedResponse = {
-          success: true,
-          results: [],
-        };
-        const userInput = $('#author-search-1-input').val();
-        $.each(postersJson, (_, poster) => {
-          const {id, avatar_url, username, full_name} = poster;
-          if (username.includes(userInput) || userInput === '') {
-            formattedResponse.results.push({
-              name: `<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralUrl}${id}">
-              <img class="ui avatar gt-vm" src="${avatar_url}" title="${username}" width="28" height="28">
-              <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>` : ''}</span>
-            </a>`,
-              value: id,
-            });
-          }
-        });
-        return formattedResponse;
-      },
-    },
-  });
-}
-
 // generate dropdown options for authors search dropdown using fetched data
 export function initPostersDropdown() {
   const $authorSearchDropdown = $('.author-search');
+  $('#author-search-input').on('input', function(e) {
+    e.stopImmediatePropagation();
+    fetchPostersData($authorSearchDropdown, false);
+  });
+  $authorSearchDropdown.on('click', function() {
+    fetchPostersData($authorSearchDropdown, true);
+  });
+}
+
+async function fetchPostersData($authorSearchDropdown, isShowAll) {
   if (!$authorSearchDropdown.length) {
     return;
   }
-  const url = $authorSearchDropdown.attr('data-url');
-  const $authorSearchInput = $('#author-search-input');
-  $authorSearchInput.on('input', async function getFilteredPosters(e) {
-    e.stopImmediatePropagation();
-    const res = await fetch(`${url}?q=${$('#author-search-input').val()}`, {
-      method: 'GET'
-    });
-    const postersJson = await res.json();
-    console.log(postersJson)
-    if (!postersJson) {
-      $authorSearchDropdown.addClass('disabled');
-      return;
-    }
-    const posterID = $authorSearchDropdown.attr('data-poster-id');
-    const isShowFullName = $authorSearchDropdown.attr('data-show-fullname');
-    const posterGeneralUrl = $authorSearchDropdown.attr('data-general-poster-url');
-    const values = $authorSearchDropdown.dropdown('setting values');
-    const $defaultMenu = $(values[0]).find('.menu');
-    $defaultMenu.find(".item:gt(0)").remove();
-    for (let i = 0; i < postersJson.length; i++) {
-      const {id, avatar_url, username, full_name} = postersJson[i];
-      $defaultMenu.append(`<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralUrl}${id}">
-        <img class="ui avatar gt-vm" src="${avatar_url}" title="${username}" width="28" height="28">
-        <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>` : ''}</span>
-      </a>`);
-    }
-    const $items = $defaultMenu.find('> .item');
-    $items.each((_, item) => updateMenuItem($authorSearchDropdown[0], item));
-    $authorSearchDropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
-    $authorSearchDropdown.dropdown('setting', 'values', values);
-  })
+  const baseUrl = $authorSearchDropdown.attr('data-url');
+  const url = isShowAll ? baseUrl: `${baseUrl}?q=${$('#author-search-input').val()}`;
+  const res = await fetch(url);
+  const postersJson = await res.json();
+  if (!postersJson) {
+    $authorSearchDropdown.addClass('disabled');
+    return;
+  }
+  const posterID = $authorSearchDropdown.attr('data-poster-id');
+  const isShowFullName = $authorSearchDropdown.attr('data-show-fullname');
+  const posterGeneralUrl = $authorSearchDropdown.attr('data-general-poster-url');
+  const values = $authorSearchDropdown.dropdown('setting values');
+  const $defaultMenu = $(values[0]).find('.menu');
+  // remove former options, then append newly searched options
+  $defaultMenu.find(".item:gt(0)").remove();
+  for (let i = 0; i < postersJson.length; i++) {
+    const {id, avatar_url, username, full_name} = postersJson[i];
+    $defaultMenu.append(`<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralUrl}${id}">
+      <img class="ui avatar gt-vm" src="${avatar_url}" title="${username}" width="28" height="28">
+      <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>` : ''}</span>
+    </a>`);
+  }
+  const $items = $defaultMenu.find('> .item');
+  $items.each((_, item) => updateMenuItem($authorSearchDropdown[0], item));
+  $authorSearchDropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
+  $authorSearchDropdown.dropdown('setting', 'values', values);
 }

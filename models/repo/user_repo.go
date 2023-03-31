@@ -176,5 +176,5 @@ func GetIssuePostersWithPrefix(ctx context.Context, repo *Repository, isPull boo
 				And(builder.Eq{"is_pull": isPull}),
 		).GroupBy("poster_id"),
 	)
-	return users, db.GetEngine(ctx).Where(cond).Table("user").Where("name LIKE ?", prefix+"%").OrderBy(user_model.GetOrderByName()).Find(&users)
+	return users, db.GetEngine(ctx).Where(cond).Table("user").Where("name LIKE ?", prefix+"%").OrderBy(user_model.GetOrderByName()).Limit(30).Find(&users)
 }
