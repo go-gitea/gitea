@@ -1,7 +1,7 @@
 <template>
   <div class="action-view-container">
     <div class="action-view-header">
-      <div class="action-info-summary">
+      <div class="action-info-summary gt-ac">
         <ActionRunStatus :status="run.status" :size="20"/>
         <div class="action-title">
           {{ run.title }}
@@ -13,6 +13,15 @@
           <i class="stop circle outline icon"/>
         </button>
       </div>
+      <div class="action-commit-summary">
+        {{ run.commit.localeCommit }}
+        <a :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+        &nbsp;<span class="ui label">
+          <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
+        </span>
+        &nbsp;{{ run.commit.localePushedBy }}
+        <a :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
+      </div>
     </div>
     <div class="action-view-body">
       <div class="action-view-left">
@@ -21,7 +30,7 @@
             <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
                 <ActionRunStatus :status="job.status"/>
-                <span class="ui text">{{ job.name }}</span>
+                <span class="ui text gt-mx-3">{{ job.name }}</span>
               </a>
               <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
@@ -105,6 +114,20 @@ const sfc = {
           //   canRerun: false,
           // },
         ],
+        commit: {
+          localeCommit: '',
+          localePushedBy: '',
+          shortSHA: '',
+          link: '',
+          pusher: {
+            displayName: '',
+            link: '',
+          },
+          branch: {
+            name: '',
+            link: '',
+          },
+        }
       },
       currentJob: {
         title: '',
@@ -332,6 +355,10 @@ export function initRepositoryActionView() {
   padding: 0 5px;
 }
 
+.action-commit-summary {
+  padding: 10px 10px;
+}
+
 /* ================ */
 /* action view left */
 
@@ -377,7 +404,6 @@ export function initRepositoryActionView() {
 }
 
 .job-group-section .job-brief-list .job-brief-item .job-brief-link span {
-  margin-right: 8px;
   display: flex;
   align-items: center;
 }

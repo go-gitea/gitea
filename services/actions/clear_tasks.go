@@ -64,12 +64,7 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 		}
 	}
 
-	for _, job := range jobs {
-		if err := CreateCommitStatus(ctx, job); err != nil {
-			log.Error("Update commit status for job %v failed: %v", job.ID, err)
-			// go on
-		}
-	}
+	CreateCommitStatus(ctx, jobs...)
 
 	return nil
 }
@@ -96,10 +91,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 			log.Warn("cancel abandoned job %v: %v", job.ID, err)
 			// go on
 		}
-		if err := CreateCommitStatus(ctx, job); err != nil {
-			log.Error("Update commit status for job %v failed: %v", job.ID, err)
-			// go on
-		}
+		CreateCommitStatus(ctx, job)
 	}
 
 	return nil
