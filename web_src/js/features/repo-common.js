@@ -137,7 +137,7 @@ async function fetchPostersData($authorSearchDropdown, isShowAll) {
   const posterGeneralUrl = $authorSearchDropdown.attr('data-general-poster-url');
   const values = $authorSearchDropdown.dropdown('setting values');
   const $defaultMenu = $(values[0]).find('.menu');
-  // remove former options, then append newly searched options
+  // remove former options, then append newly searched posters
   $defaultMenu.find(".item:gt(0)").remove();
   for (let i = 0; i < postersJson.length; i++) {
     const {id, avatar_url, username, full_name} = postersJson[i];

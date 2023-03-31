@@ -3355,12 +3355,10 @@ func IssuePosters(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 	isPullList := ctx.Params(":type") == "pulls"
 	isPullOption := util.OptionalBoolOf(isPullList)
+	isShowFullName := setting.UI.DefaultShowFullName
 	var err error
-	// posters, err := repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
 	prefix := strings.Trim(ctx.FormString("q"), " ")
-	fmt.Println("prefixprefixprefix")
-	fmt.Println(prefix)
-	posters, err := repo_model.GetIssuePostersWithPrefix(ctx, repo, isPullOption.IsTrue(), prefix)
+	posters, err := repo_model.GetIssuePostersWithPrefix(ctx, repo, isPullOption.IsTrue(), prefix, isShowFullName)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, api.SearchError{
 			OK:    false,
