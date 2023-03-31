@@ -426,9 +426,11 @@ func EditAuthSourcePost(ctx *context.Context) {
 	source.IsActive = form.IsActive
 	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
-	// FIXME: if the name conflicts, it will result in 500: Error 1062: Duplicate entry 'aa' for key 'login_source.UQE_login_source_name'
 	if err := auth.UpdateSource(source); err != nil {
-		if oauth2.IsErrOpenIDConnectInitialize(err) {
+		if auth.IsErrSourceAlreadyExist(err) {
+			ctx.Data["Err_Name"] = true
+			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthEdit, form)
+		} else if oauth2.IsErrOpenIDConnectInitialize(err) {
 			ctx.Flash.Error(err.Error(), true)
 			ctx.Data["Err_DiscoveryURL"] = true
 			ctx.HTML(http.StatusOK, tplAuthEdit)
