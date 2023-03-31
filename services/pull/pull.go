@@ -284,7 +284,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 				}
 				prHeadCommitID, err := git.GetFullCommitID(ctx, pr.BaseRepo.RepoPath(), prHeadRef)
 				if err != nil {
-					log.Error("GetFullCommitID(%s) in %s: %w", prHeadRef, pr.BaseRepo.FullName(), err)
+					log.Error("GetFullCommitID(%s) in %s: %v", prHeadRef, pr.BaseRepo.FullName(), err)
 					return
 				}
 				// Open the base repo of PR
