@@ -551,7 +551,11 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
 	}
-	ctx.Data["BeforeCommitID"] = ci.CompareInfo.MergeBase
+	if ci.DirectComparison {
+		ctx.Data["BeforeCommitID"] = ci.CompareInfo.BaseCommitID
+	} else {
+		ctx.Data["BeforeCommitID"] = ci.CompareInfo.MergeBase
+	}
 
 	return ci
 }
