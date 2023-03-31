@@ -496,7 +496,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		accessMode = perm.AccessModeWrite
 	}
 
-	if ctx.Data["IsActionsToken"] == true {
+	if ctx.Doer.IsActions() {
 		taskID := ctx.Data["ActionsTaskID"].(int64)
 		task, err := actions_model.GetTaskByID(ctx, taskID)
 		if err != nil {
@@ -509,9 +509,8 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 
 		if task.IsForkPullRequest {
 			return accessMode <= perm.AccessModeRead
-		} else {
-			return accessMode <= perm.AccessModeWrite
 		}
+		return accessMode <= perm.AccessModeWrite
 	} else {
 		// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
 		perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
