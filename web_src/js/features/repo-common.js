@@ -141,7 +141,7 @@ export async function initPostersDropdownTest() {
       url,
       throttle: 500,
       cache: false,
-      // minCharacters: 2,
+      minCharacters: 2,
       onResponse(res) {
         console.log(res);
         const postersJson = res;
@@ -161,7 +161,7 @@ export async function initPostersDropdownTest() {
         console.log(userInput);
         $.each(postersJson, (_, poster) => {
           const {id, avatar_url, username, full_name} = poster;
-          if (username.includes(userInput)) {
+          if (username.includes(userInput) || userInput === '') {
             console.log(username);
             formattedResponse.results.push({
               name: `<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralUrl}${id}">
