@@ -121,7 +121,7 @@ export function initPostersDropdown() {
   });
 }
 
-// isShowAll decides if fetching all data or fetching data with search query
+// isShowAll decides if fetching all data or fetching data with search query from user input
 async function fetchPostersData($authorSearchDropdown, isShowAll) {
   if (!$authorSearchDropdown.length) {
     return;
