@@ -94,6 +94,15 @@ textarea:focus,
   color: var(--color-text);
 }
 
+.ui.form .required.fields:not(.grouped) > .field > label::after,
+.ui.form .required.fields.grouped > label::after,
+.ui.form .required.field > label::after,
+.ui.form .required.fields:not(.grouped) > .field > .checkbox::after,
+.ui.form .required.field > .checkbox::after,
+.ui.form label.required::after {
+  color: var(--color-red);
+}
+
 .ui.input,
 .ui.checkbox input:focus ~ label::after,
 .ui.checkbox input:checked ~ label::after,
