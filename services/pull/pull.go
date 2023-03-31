@@ -278,8 +278,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			} else {
 				// Get head commit ID of PR
 				prHeadRef := pr.GetGitRefName()
-				err = pr.LoadBaseRepo(ctx)
-				if err != nil {
+				if err := pr.LoadBaseRepo(ctx); err != nil {
 					log.Error("LoadBaseRepo(%d), error: %v", pr.ID, err)
 					return
 				}
