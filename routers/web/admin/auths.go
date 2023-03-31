@@ -92,26 +92,26 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["type"] = auth.LDAP.Int()
 	ctx.Data["CurrentTypeName"] = auth.Names[auth.LDAP]
 	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted]
-	ctx.Data["smtp_auth"] = "PLAIN"
-	ctx.Data["is_active"] = true
-	ctx.Data["is_sync_enabled"] = true
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	oauth2providers := oauth2.GetOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
-	ctx.Data["SSPIAutoCreateUsers"] = true
-	ctx.Data["SSPIAutoActivateUsers"] = true
-	ctx.Data["SSPIStripDomainNames"] = true
-	ctx.Data["SSPISeparatorReplacement"] = "_"
-	ctx.Data["SSPIDefaultLanguage"] = ""
-
-	// only the first as default
-	ctx.Data["oauth2_provider"] = oauth2providers[0].Name()
+	ctx.Data["Form"] = forms.AuthenticationForm{
+		Type:                     auth.LDAP.Int(),
+		SMTPAuth:                 "PLAIN",
+		IsActive:                 true,
+		IsSyncEnabled:            true,
+		Oauth2Provider:           oauth2providers[0].Name(), // only the first as default
+		SSPIAutoCreateUsers:      true,
+		SSPIAutoActivateUsers:    true,
+		SSPIStripDomainNames:     true,
+		SSPISeparatorReplacement: "_",
+		SSPIDefaultLanguage:      "",
+	}
 
 	ctx.HTML(http.StatusOK, tplAuthNew)
 }
@@ -248,12 +248,6 @@ func NewAuthSourcePost(ctx *context.Context) {
 	oauth2providers := oauth2.GetOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
-	ctx.Data["SSPIAutoCreateUsers"] = true
-	ctx.Data["SSPIAutoActivateUsers"] = true
-	ctx.Data["SSPIStripDomainNames"] = true
-	ctx.Data["SSPISeparatorReplacement"] = "_"
-	ctx.Data["SSPIDefaultLanguage"] = ""
-
 	hasTLS := false
 	var config convert.Conversion
 	switch auth.Type(form.Type) {
@@ -361,6 +355,7 @@ func EditAuthSource(ctx *context.Context) {
 			}
 		}
 	}
+	ctx.Data["Form"] = forms.AuthenticationForm{}
 
 	ctx.HTML(http.StatusOK, tplAuthEdit)
 }

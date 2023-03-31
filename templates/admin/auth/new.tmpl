@@ -14,7 +14,7 @@
 				<div class="inline required field {{if .Err_Type}}error{{end}}">
 					<label>{{.locale.Tr "admin.auths.auth_type"}}</label>
 					<div class="ui selection type dropdown">
-						<input type="hidden" id="auth_type" name="type" value="{{.type}}">
+						<input type="hidden" id="auth_type" name="type" value="{{.Form.Type}}">
 						<div class="text">{{.CurrentTypeName}}</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
@@ -26,7 +26,7 @@
 				</div>
 				<div class="required inline field {{if .Err_Name}}error{{end}}">
 					<label for="name">{{.locale.Tr "admin.auths.auth_name"}}</label>
-					<input id="name" name="name" value="{{.name}}" autofocus required>
+					<input id="name" name="name" value="{{.Form.Name}}" autofocus required>
 				</div>
 
 				<!-- LDAP and DLDAP -->
@@ -36,16 +36,16 @@
 				{{template "admin/auth/source/smtp" .}}
 
 				<!-- PAM -->
-				<div class="pam required field {{if not (eq .type 4)}}gt-hidden{{end}}">
+				<div class="pam required field {{if not (eq .Form.Type 4)}}gt-hidden{{end}}">
 					<label for="pam_service_name">{{.locale.Tr "admin.auths.pam_service_name"}}</label>
-					<input id="pam_service_name" name="pam_service_name" value="{{.pam_service_name}}">
+					<input id="pam_service_name" name="pam_service_name" value="{{.Form.PAMServiceName}}">
 					<label for="pam_email_domain">{{.locale.Tr "admin.auths.pam_email_domain"}}</label>
-					<input id="pam_email_domain" name="pam_email_domain" value="{{.pam_email_domain}}">
+					<input id="pam_email_domain" name="pam_email_domain" value="{{.Form.PAMEmailDomain}}">
 				</div>
-				<div class="pam optional field {{if not (eq .type 4)}}gt-hidden{{end}}">
+				<div class="pam optional field {{if not (eq .Form.Type 4)}}gt-hidden{{end}}">
 					<div class="ui checkbox">
 						<label for="skip_local_two_fa"><strong>{{.locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
-						<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
+						<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .Form.SkipLocalTwoFA}}checked{{end}}>
 						<p class="help">{{.locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
 					</div>
 				</div>
@@ -59,19 +59,19 @@
 				<div class="ldap field">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.auths.attributes_in_bind"}}</strong></label>
-						<input name="attributes_in_bind" type="checkbox" {{if .attributes_in_bind}}checked{{end}}>
+						<input name="attributes_in_bind" type="checkbox" {{if .Form.AttributesInBind}}checked{{end}}>
 					</div>
 				</div>
-				<div class="ldap inline field {{if not (eq .type 2)}}gt-hidden{{end}}">
+				<div class="ldap inline field {{if not (eq .Form.Type 2)}}gt-hidden{{end}}">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.auths.syncenabled"}}</strong></label>
-						<input name="is_sync_enabled" type="checkbox" {{if .is_sync_enabled}}checked{{end}}>
+						<input name="is_sync_enabled" type="checkbox" {{if .Form.IsSyncEnabled}}checked{{end}}>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.auths.activated"}}</strong></label>
-						<input name="is_active" type="checkbox" {{if .is_active}}checked{{end}}>
+						<input name="is_active" type="checkbox" {{if .Form.IsActive}}checked{{end}}>
 					</div>
 				</div>
 

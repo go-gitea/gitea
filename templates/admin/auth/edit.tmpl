@@ -407,7 +407,7 @@
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="text">{{range .AllLangs}}{{if eq $cfg.DefaultLanguage .Lang}}{{.Name}}{{end}}{{end}}</div>
 							<div class="menu">
-								<div class="item{{if not $.SSPIDefaultLanguage}} active selected{{end}}" data-value="">-</div>
+								<div class="item{{if not $.Form.SSPIDefaultLanguage}} active selected{{end}}" data-value="">-</div>
 							{{range .AllLangs}}
 								<div class="item{{if eq $cfg.DefaultLanguage .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
 							{{end}}
