@@ -109,6 +109,76 @@ export function initRepoCommonLanguageStats() {
 }
 
 // generate dropdown options for authors search dropdown using fetched data
+export async function initPostersDropdownTest() {
+  const $authorSearchDropdown = $('.author-search-1');
+  if (!$authorSearchDropdown.length) {
+    return;
+  }
+  const url = $authorSearchDropdown.attr('data-url');
+  $authorSearchDropdown.dropdown({
+    fullTextSearch: 'exact',
+    selectOnKeydown: false,
+    action: 'hide',
+    onShow() {
+      // hide associated tooltip while dropdown is open
+      this._tippy?.hide();
+      this._tippy?.disable();
+    },
+    onHide() {
+      this._tippy?.enable();
+
+      // hide all tippy elements of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
+      setTimeout(() => {
+        const $dropdown = $(this);
+        if ($dropdown.dropdown('is hidden')) {
+          $(this).find('.menu > .item').each((_, item) => {
+            item._tippy?.hide();
+          });
+        }
+      }, 2000);
+    },
+    apiSettings: {
+      url,
+      throttle: 500,
+      cache: false,
+      // minCharacters: 2,
+      onResponse(res) {
+        console.log(res);
+        const postersJson = res;
+        if (!postersJson) {
+          $authorSearchDropdown.addClass('disabled');
+          return;
+        }
+        const posterID = $authorSearchDropdown.attr('data-poster-id');
+        const isShowFullName = $authorSearchDropdown.attr('data-show-fullname');
+        const posterGeneralUrl = $authorSearchDropdown.attr('data-general-poster-url');
+        // const values = $authorSearchDropdown.dropdown('setting values');
+        const formattedResponse = {
+          success: true,
+          results: [],
+        };
+        const userInput = $('#author-search-1-input').val();
+        console.log(userInput);
+        $.each(postersJson, (_, poster) => {
+          const {id, avatar_url, username, full_name} = poster;
+          if (username.includes(userInput)) {
+            console.log(username);
+            formattedResponse.results.push({
+              name: `<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralUrl}${id}">
+              <img class="ui avatar gt-vm" src="${avatar_url}" title="${username}" width="28" height="28">
+              <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>` : ''}</span>
+            </a>`,
+              value: id,
+            });
+          }
+        });
+        return formattedResponse;
+      },
+    },
+  });
+}
+
+// generate dropdown options for authors search dropdown using fetched data
 export async function initPostersDropdown() {
   const $authorSearchDropdown = $('.author-search');
   if (!$authorSearchDropdown.length) {
