@@ -2771,8 +2771,7 @@ func NewComment(ctx *context.Context) {
 				// Check whether the head commit of PR exists in base branch
 				// Get head commit ID of PR
 				prHeadRef := pull.GetGitRefName()
-				err = pull.LoadBaseRepo(ctx)
-				if err != nil {
+				if err := pull.LoadBaseRepo(ctx); err != nil {
 					ctx.ServerError("Unable to load base repo", err)
 					return
 				}
