@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -495,25 +496,44 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		accessMode = perm.AccessModeWrite
 	}
 
-	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
-	perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
-	if err != nil {
-		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository)
-		return false
+	if ctx.Data["IsActionsToken"] == true {
+		taskID := ctx.Data["ActionsTaskID"].(int64)
+		task, err := actions_model.GetTaskByID(ctx, taskID)
+		if err != nil {
+			log.Error("Unable to GetTaskByID for task[%d] Error: %v", taskID, err)
+			return false
+		}
+		if task.RepoID != repository.ID {
+			return false
+		}
+
+		if task.IsForkPullRequest {
+			return accessMode <= perm.AccessModeRead
+		} else {
+			return accessMode <= perm.AccessModeWrite
+		}
+	} else {
+		// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
+		perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
+		if err != nil {
+			log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository, err)
+			return false
+		}
+
+		canRead := perm.CanAccess(accessMode, unit.TypeCode)
+		if canRead && (!requireSigned || ctx.IsSigned) {
+			return true
+		}
+
+		user, err := parseToken(ctx, authorization, repository, accessMode)
+		if err != nil {
+			// Most of these are Warn level - the true internal server errors are logged in parseToken already
+			log.Warn("Authentication failure for provided token with Error: %v", err)
+			return false
+		}
+		ctx.Doer = user
 	}
 
-	canRead := perm.CanAccess(accessMode, unit.TypeCode)
-	if canRead && (!requireSigned || ctx.IsSigned) {
-		return true
-	}
-
-	user, err := parseToken(ctx, authorization, repository, accessMode)
-	if err != nil {
-		// Most of these are Warn level - the true internal server errors are logged in parseToken already
-		log.Warn("Authentication failure for provided token with Error: %v", err)
-		return false
-	}
-	ctx.Doer = user
 	return true
 }
 
