@@ -532,7 +532,6 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		return false
 	}
 	ctx.Doer = user
-
 	return true
 }
 
