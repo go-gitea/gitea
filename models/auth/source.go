@@ -42,6 +42,36 @@ func (typ Type) Int() int {
 	return int(typ)
 }
 
+// IsLDAP returns true of this type is of the LDAP type.
+func (typ Type) IsLDAP() bool {
+	return typ == LDAP
+}
+
+// IsDLDAP returns true of this type is of the DLDAP type.
+func (typ Type) IsDLDAP() bool {
+	return typ == DLDAP
+}
+
+// IsSMTP returns true of this type is of the SMTP type.
+func (typ Type) IsSMTP() bool {
+	return typ == SMTP
+}
+
+// IsPAM returns true of this type is of the PAM type.
+func (typ Type) IsPAM() bool {
+	return typ == PAM
+}
+
+// IsOAuth2 returns true of this type is of the OAuth2 type.
+func (typ Type) IsOAuth2() bool {
+	return typ == OAuth2
+}
+
+// IsSSPI returns true of this type is of the SSPI type.
+func (typ Type) IsSSPI() bool {
+	return typ == SSPI
+}
+
 // Names contains the name of LoginType values.
 var Names = map[Type]string{
 	LDAP:   "LDAP (via BindDN)",
@@ -150,32 +180,32 @@ func (source *Source) TypeName() string {
 
 // IsLDAP returns true of this source is of the LDAP type.
 func (source *Source) IsLDAP() bool {
-	return source.Type == LDAP
+	return source.Type.IsLDAP()
 }
 
 // IsDLDAP returns true of this source is of the DLDAP type.
 func (source *Source) IsDLDAP() bool {
-	return source.Type == DLDAP
+	return source.Type.IsDLDAP()
 }
 
 // IsSMTP returns true of this source is of the SMTP type.
 func (source *Source) IsSMTP() bool {
-	return source.Type == SMTP
+	return source.Type.IsSMTP()
 }
 
 // IsPAM returns true of this source is of the PAM type.
 func (source *Source) IsPAM() bool {
-	return source.Type == PAM
+	return source.Type.IsPAM()
 }
 
 // IsOAuth2 returns true of this source is of the OAuth2 type.
 func (source *Source) IsOAuth2() bool {
-	return source.Type == OAuth2
+	return source.Type.IsOAuth2()
 }
 
 // IsSSPI returns true of this source is of the SSPI type.
 func (source *Source) IsSSPI() bool {
-	return source.Type == SSPI
+	return source.Type.IsSSPI()
 }
 
 // HasTLS returns true of this source supports TLS.

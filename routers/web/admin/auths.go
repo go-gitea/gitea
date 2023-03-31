@@ -92,8 +92,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["CurrentTypeName"] = auth.Names[auth.LDAP]
-	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted]
+	ctx.Data["TypeNames"] = auth.Names
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
@@ -240,8 +239,6 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["CurrentTypeName"] = auth.Type(form.Type).String()
-	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocol(form.SecurityProtocol)]
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
@@ -334,14 +331,79 @@ func EditAuthSource(ctx *context.Context) {
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	oauth2providers := oauth2.GetOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
+	ctx.Data["SourceTypeNames"] = auth.Names
 
 	source, err := auth.GetSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
 		ctx.ServerError("auth.GetSourceByID", err)
 		return
 	}
-	ctx.Data["Source"] = source
 	ctx.Data["HasTLS"] = source.HasTLS()
+
+	form := forms.AuthenticationForm{
+		ID    :                        source.ID,
+		Type  :                        source.Type.Int(),
+		Name  :                        source.Name,
+		SkipVerify: source.SkipVerify,
+		IsActive          :            bool
+		IsSyncEnabled    :             bool
+	}
+
+	if source.Cfg == nil {
+
+	}
+
+	switch source.Type {
+	case auth.LDAP, auth.DLDAP:
+		Name:                  form.Name,
+		Host:                  form.Host,
+		Port:                  form.Port,
+		SecurityProtocol:      ldap.SecurityProtocol(form.SecurityProtocol),
+		SkipVerify:            form.SkipVerify,
+		BindDN:                form.BindDN,
+		UserDN:                form.UserDN,
+		BindPassword:          form.BindPassword,
+		UserBase:              form.UserBase,
+		AttributeUsername:     form.AttributeUsername,
+		AttributeName:         form.AttributeName,
+		AttributeSurname:      form.AttributeSurname,
+		AttributeMail:         form.AttributeMail,
+		AttributesInBind:      form.AttributesInBind,
+		AttributeSSHPublicKey: form.AttributeSSHPublicKey,
+		AttributeAvatar:       form.AttributeAvatar,
+		SearchPageSize:        pageSize,
+		Filter:                form.Filter,
+		GroupsEnabled:         form.GroupsEnabled,
+		GroupDN:               form.GroupDN,
+		GroupFilter:           form.GroupFilter,
+		GroupMemberUID:        form.GroupMemberUID,
+		GroupTeamMap:          form.GroupTeamMap,
+		GroupTeamMapRemoval:   form.GroupTeamMapRemoval,
+		UserUID:               form.UserUID,
+		AdminFilter:           form.AdminFilter,
+		RestrictedFilter:      form.RestrictedFilter,
+		AllowDeactivateAll:    form.AllowDeactivateAll,
+		Enabled:               true,
+		SkipLocalTwoFA:        form.SkipLocalTwoFA,
+
+		forms.SecurityProtocol= source.Cfg.SecurityProtocol.Int()
+		forms.Host =   source.Cfg.Host
+		forms.Port =    source.Cfg.Port
+		forms.BindDN   =                     source.Cfg.BindDN
+		forms.BindPassword   =              source.Cfg.BindPassword
+
+	case auth.SMTP:
+
+	case auth.PAM:
+
+	case auth.OAuth2:
+
+	case auth.SSPI:
+
+	default:
+		ctx.Error(http.StatusBadRequest)
+		return
+	}
 
 	if source.IsOAuth2() {
 		type Named interface {
@@ -355,7 +417,71 @@ func EditAuthSource(ctx *context.Context) {
 			}
 		}
 	}
-	ctx.Data["Form"] = forms.AuthenticationForm{}
+
+	ctx.Data["Form"] = forms.AuthenticationForm{
+		
+		
+		UserBase      :                source.Cfg.UserBase,
+		UserDN        :                source.Cfg.UserDN,
+		AttributeUsername   :          source.Cfg.AttributeUsername,
+		AttributeName       :          source.Cfg.AttributeName,
+		AttributeSurname    :          source.Cfg.AttributeSurname,
+		AttributeMail       :          source.Cfg.AttributeMail,
+		AttributeSSHPublicKey :        source.Cfg.AttributeSSHPublicKey,
+		AttributeAvatar      :         source.Cfg.AttributeAvatar,
+		AttributesInBind     :         source.Cfg.AttributesInBind,
+		UsePagedSearch      :          source.Cfg.UsePagedSearch,
+		SearchPageSize    :            source.Cfg.SearchPageSize,
+		Filter          :              source.Cfg.Filter,
+		AdminFilter    :               source.Cfg.AdminFilter,
+		GroupsEnabled  :               source.Cfg.GroupsEnabled,
+		GroupDN        :               source.Cfg.GroupDN,
+		GroupFilter   :                source.Cfg.GroupFilter,
+		GroupMemberUID :               source.Cfg.GroupMemberUID,
+		UserUID          :             source.Cfg.UserUID,
+		RestrictedFilter :             source.Cfg.RestrictedFilter,
+		AllowDeactivateAll:            source.Cfg.AllowDeactivateAll,
+		
+		SMTPAuth         :             source.Cfg.Auth,
+		SMTPHost    :                  source.Cfg.Host,
+		SMTPPort     :                 source.Cfg.Port,
+		AllowedDomains    :            source.Cfg.AllowedDomains,
+		
+		TLS          :                 bool
+
+		HeloHostname  :                source.Cfg.HeloHostname,
+		DisableHelo   :                source.Cfg.DisableHelo,
+		ForceSMTPS    :                source.Cfg.ForceSMTPS,
+		PAMServiceName :               source.Cfg.PAMServiceName,
+		PAMEmailDomain  :              source.Cfg.PAMEmailDomain,
+		Oauth2Provider  :              source.Cfg.Provider,
+		Oauth2Key      :               source.Cfg.
+		Oauth2Secret   :               source.Cfg.
+		OpenIDConnectAutoDiscoveryURL: source.Cfg.
+		Oauth2UseCustomURL  :         source.Cfg.
+		Oauth2TokenURL    :            source.Cfg.
+		Oauth2AuthURL    :             source.Cfg.
+		Oauth2ProfileURL :             source.Cfg.
+		Oauth2EmailURL   :             source.Cfg.
+		Oauth2IconURL    :             source.Cfg.
+		Oauth2Tenant     :             source.Cfg.
+		Oauth2Scopes     :             string
+		Oauth2RequiredClaimName :      string
+		Oauth2RequiredClaimValue :     string
+		Oauth2GroupClaimName     :     string
+		Oauth2AdminGroup        :      string
+		Oauth2RestrictedGroup  :       string
+		Oauth2GroupTeamMap     :       string `binding:"ValidGroupTeamMap"`
+		Oauth2GroupTeamMapRemoval :    bool
+		SkipLocalTwoFA         :       source.Cfg.SkipLocalTwoFA,
+		SSPIAutoCreateUsers    :       bool
+		SSPIAutoActivateUsers :        bool
+		SSPIStripDomainNames   :       bool
+		SSPISeparatorReplacement  :    string `binding:"AlphaDashDot;MaxSize(5)"`
+		SSPIDefaultLanguage      :     string
+		GroupTeamMap         :         source.Cfg.GroupTeamMap,
+		GroupTeamMapRemoval  :         source.Cfg.GroupTeamMapRemoval,
+	}
 
 	ctx.HTML(http.StatusOK, tplAuthEdit)
 }

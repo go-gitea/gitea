@@ -15,7 +15,7 @@
 					<label>{{.locale.Tr "admin.auths.auth_type"}}</label>
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="auth_type" name="type" value="{{.Form.Type}}">
-						<div class="text">{{.CurrentTypeName}}</div>
+						<div class="text">{{index .TypeNames .Form.Type}}</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							{{range .AuthSources}}
