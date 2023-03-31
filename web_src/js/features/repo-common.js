@@ -177,34 +177,40 @@ export async function initPostersDropdownTest() {
 }
 
 // generate dropdown options for authors search dropdown using fetched data
-export async function initPostersDropdown() {
+export function initPostersDropdown() {
   const $authorSearchDropdown = $('.author-search');
   if (!$authorSearchDropdown.length) {
     return;
   }
   const url = $authorSearchDropdown.attr('data-url');
-  const res = await fetch(url, {
-    method: 'GET'
-  });
-  const postersJson = await res.json();
-  if (!postersJson) {
-    $authorSearchDropdown.addClass('disabled');
-    return;
-  }
-  const posterID = $authorSearchDropdown.attr('data-poster-id');
-  const isShowFullName = $authorSearchDropdown.attr('data-show-fullname');
-  const posterGeneralUrl = $authorSearchDropdown.attr('data-general-poster-url');
-  const values = $authorSearchDropdown.dropdown('setting values');
-  const $defaultMenu = $(values[0]).find('.menu');
-  for (let i = 0; i < postersJson.length; i++) {
-    const {id, avatar_url, username, full_name} = postersJson[i];
-    $defaultMenu.append(`<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralUrl}${id}">
-      <img class="ui avatar gt-vm" src="${avatar_url}" title="${username}" width="28" height="28">
-      <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>` : ''}</span>
-    </a>`);
-  }
-  const $items = $defaultMenu.find('> .item');
-  $items.each((_, item) => updateMenuItem($authorSearchDropdown[0], item));
-  $authorSearchDropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
-  $authorSearchDropdown.dropdown('setting', 'values', values);
+  const $authorSearchInput = $('#author-search-input');
+  $authorSearchInput.on('input', async function getFilteredPosters(e) {
+    e.stopImmediatePropagation();
+    const res = await fetch(`${url}?q=${$('#author-search-input').val()}`, {
+      method: 'GET'
+    });
+    const postersJson = await res.json();
+    console.log(postersJson)
+    if (!postersJson) {
+      $authorSearchDropdown.addClass('disabled');
+      return;
+    }
+    const posterID = $authorSearchDropdown.attr('data-poster-id');
+    const isShowFullName = $authorSearchDropdown.attr('data-show-fullname');
+    const posterGeneralUrl = $authorSearchDropdown.attr('data-general-poster-url');
+    const values = $authorSearchDropdown.dropdown('setting values');
+    const $defaultMenu = $(values[0]).find('.menu');
+    $defaultMenu.find(".item:gt(0)").remove();
+    for (let i = 0; i < postersJson.length; i++) {
+      const {id, avatar_url, username, full_name} = postersJson[i];
+      $defaultMenu.append(`<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralUrl}${id}">
+        <img class="ui avatar gt-vm" src="${avatar_url}" title="${username}" width="28" height="28">
+        <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>` : ''}</span>
+      </a>`);
+    }
+    const $items = $defaultMenu.find('> .item');
+    $items.each((_, item) => updateMenuItem($authorSearchDropdown[0], item));
+    $authorSearchDropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
+    $authorSearchDropdown.dropdown('setting', 'values', values);
+  })
 }
