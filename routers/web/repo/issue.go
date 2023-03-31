@@ -3366,6 +3366,7 @@ func IssuePosters(ctx *context.Context) {
 		})
 		return
 	}
+	// only pass user info needed for generating options used by authors search dropdown to the frontend
 	results := make([]*api.UserSearchInfo, len(posters))
 	for i, poster := range posters {
 		results[i] = convert.ToUserSearchInfo(ctx, poster)

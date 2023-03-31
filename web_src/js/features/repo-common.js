@@ -115,11 +115,13 @@ export function initPostersDropdown() {
     e.stopImmediatePropagation();
     fetchPostersData($authorSearchDropdown, false);
   });
-  $authorSearchDropdown.on('click', function() {
+  // show all results when clicking on the dropdown
+  $authorSearchDropdown.on('click', function(e) {
     fetchPostersData($authorSearchDropdown, true);
   });
 }
 
+// isShowAll decides if fetching all data or fetching data with search query
 async function fetchPostersData($authorSearchDropdown, isShowAll) {
   if (!$authorSearchDropdown.length) {
     return;
@@ -132,6 +134,7 @@ async function fetchPostersData($authorSearchDropdown, isShowAll) {
     $authorSearchDropdown.addClass('disabled');
     return;
   }
+  // get data needed from data- attributes for generating the poster options
   const posterID = $authorSearchDropdown.attr('data-poster-id');
   const isShowFullName = $authorSearchDropdown.attr('data-show-fullname');
   const posterGeneralUrl = $authorSearchDropdown.attr('data-general-poster-url');
@@ -146,6 +149,7 @@ async function fetchPostersData($authorSearchDropdown, isShowAll) {
       <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>` : ''}</span>
     </a>`);
   }
+  // append aria related attributes to newly added menu items
   const $items = $defaultMenu.find('> .item');
   $items.each((_, item) => updateMenuItem($authorSearchDropdown[0], item));
   $authorSearchDropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
