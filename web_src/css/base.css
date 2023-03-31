@@ -78,7 +78,6 @@
   --color-purple: #a333c8;
   --color-pink: #e03997;
   --color-brown: #a5673f;
-  --color-grey: #888888;
   --color-black: #1b1c1d;
   /* light variants - produced via Sass scale-color(color, $lightness: +25%) */
   --color-red-light: #e45e5e;
@@ -92,9 +91,10 @@
   --color-purple-light: #bb64d8;
   --color-pink-light: #e86bb1;
   --color-brown-light: #c58b66;
-  --color-grey-light: #a6a6a6;
   --color-black-light: #525558;
   /* other colors */
+  --color-grey: #707070;
+  --color-grey-light: #838383;
   --color-gold: #a1882b;
   --color-white: #ffffff;
   --color-diff-removed-word-bg: #fdb8c0;
@@ -2655,6 +2655,10 @@ table th[data-sortt-desc] .svg {
 
 .ui.dropdown .menu .item:last-of-type {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.ui.multiple.dropdown > .label {
+  box-shadow: 0 0 0 1px var(--color-secondary) inset;
 }
 
 .text-label {
