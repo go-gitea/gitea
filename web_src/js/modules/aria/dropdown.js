@@ -74,14 +74,14 @@ function delegateOne($dropdown) {
     dropdownTemplates.menu = function(response, fields, preserveHTML, className) {
       console.log('menuuu')
       // when the dropdown menu items are loaded from AJAX requests, the items are created dynamically
-      // const menuItems = dropdownTemplatesMenuOld(response, fields, preserveHTML, className);
+      // TODO: everytime after onresponse, the input is cleared.. should fix this in a proper way
       let menuItems = $('#menu-default-input').prop('outerHTML') + $('#menu-default-search-all').prop('outerHTML');
       let values = response[fields.values] || [];
       $.each(values, function(_, option) {
         menuItems += option[fields.name];
       })
       const $wrapper = $('<div>').append(menuItems);
-      const $items = $wrapper.find('> .item');
+      const $items = $wrapper.find('.menu > .item');
       $items.each((_, item) => updateMenuItem($dropdown[0], item));
       $dropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
       return menuItems;

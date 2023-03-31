@@ -108,7 +108,7 @@ export function initRepoCommonLanguageStats() {
   }
 }
 
-// generate dropdown options for authors search dropdown using fetched data
+// generate dropdown options for authors search dropdown using fetched data (onResponse)
 export async function initPostersDropdownTest() {
   const $authorSearchDropdown = $('.author-search-1');
   if (!$authorSearchDropdown.length) {
@@ -158,11 +158,9 @@ export async function initPostersDropdownTest() {
           results: [],
         };
         const userInput = $('#author-search-1-input').val();
-        console.log(userInput);
         $.each(postersJson, (_, poster) => {
           const {id, avatar_url, username, full_name} = poster;
           if (username.includes(userInput) || userInput === '') {
-            console.log(username);
             formattedResponse.results.push({
               name: `<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralUrl}${id}">
               <img class="ui avatar gt-vm" src="${avatar_url}" title="${username}" width="28" height="28">
