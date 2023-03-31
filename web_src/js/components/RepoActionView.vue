@@ -77,6 +77,8 @@ import AnsiToHTML from 'ansi-to-html';
 
 const {csrfToken} = window.config;
 
+const ansiLogRender = new AnsiToHTML({escapeXML: true});
+
 const sfc = {
   name: 'RepoActionView',
   components: {
@@ -91,8 +93,6 @@ const sfc = {
 
   data() {
     return {
-      ansiToHTML: new AnsiToHTML({escapeXML: true}),
-
       // internal state
       loading: false,
       intervalID: null,
@@ -214,7 +214,7 @@ const sfc = {
 
       const logMessage = document.createElement('div');
       logMessage.className = 'log-msg';
-      logMessage.innerHTML = this.ansiToHTML.toHtml(processConsoleLine(line.message));
+      logMessage.innerHTML = ansiLogToHTML(line.message);
       div.appendChild(logMessage);
 
       return div;
@@ -307,27 +307,28 @@ export function initRepositoryActionView() {
   view.mount(el);
 }
 
-export function processConsoleLine(line) {
+export function ansiLogToHTML(line) {
   if (line.endsWith('\r\n')) {
     line = line.substring(0, line.length - 2);
   } else if (line.endsWith('\n')) {
     line = line.substring(0, line.length - 1);
   }
-  if (!line.includes('\r')) return line;
-
-  // handle "\rReading...1%\rReading...5%\rReading...100%", only show the final message
-  // TODO: control chars like "\033[" ?
-  const parts = line.split('\r');
-  let result = '';
-  for (const part of parts) {
-    if (part.length >= result.length) {
-      result = part;
-    } else {
-      result = part + result.substring(part.length);
-    }
+  if (!line.includes('\r')) {
+    return ansiLogRender.toHtml(line);
   }
-  return result;
+
+  // handle "\rReading...1%\rReading...5%\rReading...100%",
+  // convert it into a multiple-line string: "Reading...1%\nReading...5%\nReading...100%"
+  // then we do not need to process control chars like "\033[".
+  const lines = [];
+  for (const part of line.split('\r')) {
+    if (part === '') continue;
+    lines.push(part);
+  }
+  // the log message element is with "white-space: break-spaces;", so use "\n" to break lines
+  return ansiLogRender.toHtml(lines.join('\n'));
 }
+
 </script>
 
 <style scoped>

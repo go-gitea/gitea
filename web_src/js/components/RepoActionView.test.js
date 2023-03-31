@@ -1,12 +1,15 @@
 import {expect, test} from 'vitest';
 
-import {processConsoleLine} from './RepoActionView.vue';
+import {ansiLogToHTML} from './RepoActionView.vue';
 
 test('processConsoleLine', () => {
-  expect(processConsoleLine('abc')).toEqual('abc');
-  expect(processConsoleLine('abc\n')).toEqual('abc');
-  expect(processConsoleLine('abc\r\n')).toEqual('abc');
-  expect(processConsoleLine('\r')).toEqual('');
-  expect(processConsoleLine('\rx\rabc')).toEqual('abc');
-  expect(processConsoleLine('\rabc\rx\r')).toEqual('xbc');
+  expect(ansiLogToHTML('abc')).toEqual('abc');
+  expect(ansiLogToHTML('abc\n')).toEqual('abc');
+  expect(ansiLogToHTML('abc\r\n')).toEqual('abc');
+  expect(ansiLogToHTML('\r')).toEqual('');
+  expect(ansiLogToHTML('\rx\rabc')).toEqual('x\nabc');
+  expect(ansiLogToHTML('\rabc\rx\r')).toEqual('abc\nx');
+
+  expect(ansiLogToHTML('\x1b[30mblack\x1b[37mwhite')).toEqual('<span style="color:#000">black<span style="color:#AAA">white</span></span>');
+  expect(ansiLogToHTML('<script>')).toEqual('&lt;script&gt;');
 });
