@@ -511,27 +511,27 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 			return accessMode <= perm.AccessModeRead
 		}
 		return accessMode <= perm.AccessModeWrite
-	} else {
-		// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
-		perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
-		if err != nil {
-			log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository, err)
-			return false
-		}
-
-		canRead := perm.CanAccess(accessMode, unit.TypeCode)
-		if canRead && (!requireSigned || ctx.IsSigned) {
-			return true
-		}
-
-		user, err := parseToken(ctx, authorization, repository, accessMode)
-		if err != nil {
-			// Most of these are Warn level - the true internal server errors are logged in parseToken already
-			log.Warn("Authentication failure for provided token with Error: %v", err)
-			return false
-		}
-		ctx.Doer = user
 	}
+
+	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
+	perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
+	if err != nil {
+		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository, err)
+		return false
+	}
+
+	canRead := perm.CanAccess(accessMode, unit.TypeCode)
+	if canRead && (!requireSigned || ctx.IsSigned) {
+		return true
+	}
+
+	user, err := parseToken(ctx, authorization, repository, accessMode)
+	if err != nil {
+		// Most of these are Warn level - the true internal server errors are logged in parseToken already
+		log.Warn("Authentication failure for provided token with Error: %v", err)
+		return false
+	}
+	ctx.Doer = user
 
 	return true
 }
