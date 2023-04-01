@@ -68,7 +68,7 @@ export function toggleElem(el, force) {
   elementsCall(el, toggleShown, force);
 }
 
-export async function onDomReady(cb) {
+export function onDomReady(cb) {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', cb);
   } else {
