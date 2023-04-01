@@ -13,11 +13,18 @@ import (
 	"xorm.io/builder"
 )
 
+type RecentlyPushedBranches struct {
+	Repo     *repo.Repository
+	BaseRepo *repo.Repository
+	RefName  string
+}
+
 // GetRecentlyPushedBranches returns all actions where a user recently pushed but no PRs are created yet.
-func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (actions []*activities.Action, err error) {
+func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (recentlyPushedBranches []*RecentlyPushedBranches, err error) {
 
 	limit := time.Now().Add(-24 * time.Hour).Unix()
 
+	actions := []*activities.Action{}
 	err = db.GetEngine(ctx).
 		Select("action.ref_name, action.repo_id, replace(action.ref_name, 'refs/heads/', '') AS clean_ref_name").
 		Join("LEFT", "pull_request", "pull_request.head_branch = clean_ref_name").
@@ -54,24 +61,52 @@ func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (actions []*ac
 	}
 
 	repos := make(map[int64]*repo.Repository, len(repoIDs))
-	err = db.GetEngine(ctx).In("id", repoIDs).Find(&repos)
+	err = db.GetEngine(ctx).
+		Where(builder.Or(
+			builder.In("repository.id", repoIDs),
+			builder.In("repository.id",
+				builder.Select("repository.fork_id").
+					From("repository").
+					Where(builder.In("repository.id", repoIDs)),
+			),
+		)).
+		Find(&repos)
 	if err != nil {
 		return nil, err
 	}
 
 	owners := make(map[int64]*user.User)
 	err = db.GetEngine(ctx).
-		In("repository.id", repoIDs).
+		Where(builder.Or(
+			builder.In("repository.id", repoIDs),
+			builder.In("repository.id",
+				builder.Select("repository.fork_id").
+					From("repository").
+					Where(builder.In("repository.id", repoIDs)),
+			),
+		)).
 		Join("LEFT", "repository", "repository.owner_id = user.id").
 		Find(&owners)
 	if err != nil {
 		return nil, err
 	}
 
+	recentlyPushedBranches = []*RecentlyPushedBranches{}
 	for _, a := range actions {
-		a.Repo = repos[a.RepoID]
-		a.Repo.Owner = owners[a.Repo.OwnerID]
-		a.RefName = strings.Replace(a.RefName, "refs/heads/", "", 1)
+		pushed := &RecentlyPushedBranches{
+			Repo:     repos[a.RepoID],
+			BaseRepo: repos[a.RepoID],
+			RefName:  strings.Replace(a.RefName, "refs/heads/", "", 1),
+		}
+
+		if pushed.Repo.IsFork {
+			pushed.BaseRepo = repos[pushed.Repo.ForkID]
+			pushed.BaseRepo.Owner = owners[pushed.BaseRepo.OwnerID]
+		}
+
+		pushed.Repo.Owner = owners[pushed.Repo.OwnerID]
+
+		recentlyPushedBranches = append(recentlyPushedBranches, pushed)
 	}
 
 	return

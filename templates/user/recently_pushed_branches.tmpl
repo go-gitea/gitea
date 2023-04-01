@@ -1,7 +1,7 @@
 {{range .RecentlyPushedBranches}}
   <div class="ui blue message">
   	{{$.locale.Tr "repo.pulls.recently_pushed_to_branches" .Repo.Owner.Name .Repo.LowerName .RefName | Safe}}
-  	<a class="ui compact blue button" href="{{CompareLink .Repo .Repo .RefName}}">
+  	<a class="ui compact blue button" href="{{CompareLink .BaseRepo .Repo .RefName}}">
   		{{$.locale.Tr "repo.pulls.compare_changes"}}
   	</a>
   </div>
