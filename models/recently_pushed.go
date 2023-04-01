@@ -29,15 +29,15 @@ func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (recentlyPushe
 
 	actions := []*activities.Action{}
 	err = db.GetEngine(ctx).
-		Select("action.ref_name, action.repo_id, replace(action.ref_name, 'refs/heads/', '') AS clean_ref_name, action.created_unix").
-		Join("LEFT", "pull_request", "pull_request.head_branch = clean_ref_name").
+		Select("action.ref_name, action.repo_id, action.created_unix").
+		Join("LEFT", "pull_request", "pull_request.head_branch = replace(action.ref_name, 'refs/heads/', '')").
 		Join("LEFT", "issue", "pull_request.issue_id = issue.id").
 		Join("LEFT", "repository", "action.repo_id = repository.id").
 		Where(builder.And(
 			builder.Eq{"action.op_type": activities.ActionCommitRepo},
 			builder.Eq{"action.act_user_id": u.ID},
 			builder.Or(
-				builder.Expr("repository.default_branch != clean_ref_name"),
+				builder.Expr("repository.default_branch != replace(action.ref_name, 'refs/heads/', '')"),
 				builder.Eq{"repository.is_fork": true},
 			),
 			builder.Or(
