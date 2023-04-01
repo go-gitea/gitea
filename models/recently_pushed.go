@@ -28,6 +28,7 @@ func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (recentlyPushe
 	limit := time.Now().Add(-24 * time.Hour).Unix()
 
 	actions := []*activities.Action{}
+	// We're fetching the last three commits activity actions within the limit...
 	err = db.GetEngine(ctx).
 		Select("action.ref_name, action.repo_id, action.created_unix").
 		Join("LEFT", "pull_request", "pull_request.head_branch = replace(action.ref_name, 'refs/heads/', '')").
@@ -35,11 +36,14 @@ func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (recentlyPushe
 		Join("LEFT", "repository", "action.repo_id = repository.id").
 		Where(builder.And(
 			builder.Eq{"action.op_type": activities.ActionCommitRepo},
+			// ...done by the current user
 			builder.Eq{"action.act_user_id": u.ID},
+			// ...which have been pushed to a fork or a branch different from the default branch
 			builder.Or(
 				builder.Expr("repository.default_branch != replace(action.ref_name, 'refs/heads/', '')"),
 				builder.Eq{"repository.is_fork": true},
 			),
+			// ...and don't have an open or closed PR corresponding to that branch.
 			builder.Or(
 				builder.IsNull{"pull_request.id"},
 				builder.And(
@@ -63,6 +67,8 @@ func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (recentlyPushe
 		repoIDs = append(repoIDs, a.RepoID)
 	}
 
+	// Because we need the repo name and url, we need to fetch all repos from recent pushes
+	// and, if they are forked, the parent repo as well.
 	repos := make(map[int64]*repo.Repository, len(repoIDs))
 	err = db.GetEngine(ctx).
 		Where(builder.Or(
