@@ -55,5 +55,5 @@ This assumes you are using an SSH remote, but you can also use HTTPS remotes as 
 
 ## Push options (bonus)
 
-Push-to-create will default to the visibility defined by `DEFAULT_PUSH_CREATE_PRIVATE` in `app.ini`. To explicitly set the visibility, you can use a [push option]({{< relref "doc/usage/push-options.en-us.md" >}}).
+Push-to-create will default to the visibility defined by `DEFAULT_PUSH_CREATE_PRIVATE` in `app.ini`. To explicitly set the visibility, you can use a [push option]({{< relref "doc/usage/push.en-us.md" >}}).
 
