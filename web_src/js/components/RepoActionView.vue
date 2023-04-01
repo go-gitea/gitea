@@ -309,8 +309,8 @@ export function initRepositoryActionView() {
 
 // some unhandled control sequences by AnsiToHTML
 // https://man7.org/linux/man-pages/man4/console_codes.4.html
-const ansiRegexpRemove = /\x1b\[\d[A-H]/g; // Move cursor, treat them as a no-op.
-const ansiRegexpNewLine = /\x1b\[\d[JK]/g; // Erase display/line, treat them as a Carrige Return
+const ansiRegexpRemove = /\x1b\[\d+[A-H]/g; // Move cursor, treat them as no-op.
+const ansiRegexpNewLine = /\x1b\[\d?[JK]/g; // Erase display/line, treat them as a Carriage Return
 
 function ansiCleanControlSequences(line) {
   if (line.includes('\x1b')) {

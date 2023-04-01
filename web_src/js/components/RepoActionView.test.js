@@ -26,5 +26,5 @@ test('processConsoleLine', () => {
   expect(ansiLogToHTML('\x1b[1A\x1b[2K\rtest\r\x1b[1B\x1b[1A\x1b[2K')).toEqual('test');
 
   // treat "\033[0K" and "\033[0J" (Erase display/line) as "\r", then it will be covered to "\n" finally.
-  expect(ansiLogToHTML('a\x1b[0Kb\x1b[2Jc')).toEqual('a\nb\nc');
+  expect(ansiLogToHTML('a\x1b[Kb\x1b[2Jc')).toEqual('a\nb\nc');
 });
