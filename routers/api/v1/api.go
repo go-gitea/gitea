@@ -1026,6 +1026,14 @@ func Routes(ctx gocontext.Context) *web.Route {
 								Patch(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueAttachment).
 								Delete(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, repo.DeleteIssueAttachment)
 						}, mustEnableAttachments)
+						m.Combo("/dependencies").
+							Get(repo.GetIssueDependencies).
+							Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.IssueMeta{}), repo.CreateIssueDependency).
+							Delete(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.IssueMeta{}), repo.RemoveIssueDependency)
+						m.Combo("/blocks").
+							Get(repo.GetIssueBlocks).
+							Post(reqToken(auth_model.AccessTokenScopeRepo), bind(api.IssueMeta{}), repo.CreateIssueBlocking).
+							Delete(reqToken(auth_model.AccessTokenScopeRepo), bind(api.IssueMeta{}), repo.RemoveIssueBlocking)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
@@ -1161,6 +1169,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 					}, reqAdmin())
 				}, reqAnyRepoReader())
 				m.Get("/issue_templates", context.ReferencesGitRepo(), repo.GetIssueTemplates)
+				m.Get("/issue_config", context.ReferencesGitRepo(), repo.GetIssueConfig)
+				m.Get("/issue_config/validate", context.ReferencesGitRepo(), repo.ValidateIssueConfig)
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
 			}, repoAssignment())
 		})

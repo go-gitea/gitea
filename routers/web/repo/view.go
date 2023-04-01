@@ -348,6 +348,9 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	if ctx.Repo.TreePath == ".editorconfig" {
 		_, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
 		ctx.Data["FileError"] = editorconfigErr
+	} else if ctx.Repo.IsIssueConfig(ctx.Repo.TreePath) {
+		_, issueConfigErr := ctx.Repo.GetIssueConfig(ctx.Repo.TreePath, ctx.Repo.Commit)
+		ctx.Data["FileError"] = issueConfigErr
 	}
 
 	isDisplayingSource := ctx.FormString("display") == "source"
