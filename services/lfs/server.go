@@ -496,7 +496,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		accessMode = perm.AccessModeWrite
 	}
 
-	if ctx.Doer.IsActions() {
+	if ctx.Data["IsActionsToken"] == true {
 		taskID := ctx.Data["ActionsTaskID"].(int64)
 		task, err := actions_model.GetTaskByID(ctx, taskID)
 		if err != nil {
