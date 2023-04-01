@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/models"
 	activities_model "code.gitea.io/gitea/models/activities"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
@@ -123,7 +124,7 @@ func Dashboard(ctx *context.Context) {
 		},
 	})
 
-	ctx.Data["RecentlyPushedBranches"], err = models.GetRecentlyPushedBranches(ctxUser)
+	ctx.Data["RecentlyPushedBranches"], err = models.GetRecentlyPushedBranches(ctx, ctxUser)
 	if err != nil {
 		ctx.ServerError("GetRecentlyPushedBranches", err)
 		return
