@@ -1,5 +1,5 @@
 ---
-date: "2016-11-08T16:00:00+02:00"
+date: "2023-01-07T22:03:00+01:00"
 title: "Dokumentation"
 slug: "documentation"
 url: "/de-de/"
@@ -10,27 +10,28 @@ draft: false
 
 # Was ist Gitea?
 
-Gitea ist ein einfacher, selbst gehosteter Git-Service. Änlich wie GitHub, Bitbucket oder GitLab.  
+Gitea ist ein einfacher, selbst gehosteter Git-Service. Änlich wie GitHub, Bitbucket oder GitLab.
+
 Gitea ist ein [Gogs](http://gogs.io)-Fork.
 
 ## Ziele
 
- * Einfach zu installieren
- * Plattformübergreifend
- * Leichtgewichtig
- * Quelloffen
+* Einfach zu installieren
+* Plattformübergreifend
+* Leichtgewichtig
+* Quelloffen
 
 ## System Voraussetzungen
 
-- A Raspberry Pi 3 is powerful enough to run Gitea for small workloads.
-- 2 CPU cores and 1GB RAM is typically sufficient for small teams/projects.
-- Gitea should be run with a dedicated non-root system account on UNIX-type systems.
-   - Note: Gitea manages the `~/.ssh/authorized_keys` file. Running Gitea as a regular user could break that user's ability to log in.
-- [Git](https://git-scm.com/) version 1.7.2 or later is required. Version 1.9.0 or later is recommended. Also please note:
-   - Git [large file storage](https://git-lfs.github.com/) will be available if enabled when git >= 2.1.2.
-   - Git commit-graph rendering will be enabled automatically when git >= 2.18.
+* Ein Raspberry Pi 3 ist leistungsstark genug, um Gitea für kleine Belastungen laufen zu lassen.
+* 2 CPU Kerne und 1GB RAM sind für kleine Teams/Projekte ausreichend.
+* Gitea sollte unter einem seperaten nicht-root Account auf UNIX-Systemen ausgeführt werden.
+  * Achtung: Gitea verwaltet die `~/.ssh/authorized_keys` Datei. Gitea unter einem normalen Benutzer auszuführen könnte dazu führen, dass dieser sich nicht mehr anmelden kann.
+* [Git](https://git-scm.com/) Version 2.0 oder aktueller wird benötigt.
+  * Wenn Git >= 2.1.2 und [Git LFS](https://git-lfs.github.com/) vorhanden ist, dann wird Git LFS Support automatisch für Gitea aktiviert.
+  * Wenn Git >= 2.18, dann wird das Rendern von Commit-Graphen automatisch aktiviert.
 
 ## Browser Unterstützung
 
-- Letzten 2 Versions von Chrome, Firefox, Safari und Edge
-- Firefox ESR
+* Die neuesten zwei Versionen von Chrome, Firefox, Safari und Edge
+* Firefox ESR

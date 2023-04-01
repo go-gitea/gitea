@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package swagger
 
@@ -254,6 +253,35 @@ type swaggerCommitList struct {
 	Body []api.Commit `json:"body"`
 }
 
+// ChangedFileList
+// swagger:response ChangedFileList
+type swaggerChangedFileList struct {
+	// The current page
+	Page int `json:"X-Page"`
+
+	// Commits per page
+	PerPage int `json:"X-PerPage"`
+
+	// Total commit count
+	Total int `json:"X-Total"`
+
+	// Total number of pages
+	PageCount int `json:"X-PageCount"`
+
+	// True if there is another page
+	HasMore bool `json:"X-HasMore"`
+
+	// in: body
+	Body []api.ChangedFile `json:"body"`
+}
+
+// Note
+// swagger:response Note
+type swaggerNote struct {
+	// in: body
+	Body api.Note `json:"body"`
+}
+
 // EmptyRepository
 // swagger:response EmptyRepository
 type swaggerEmptyRepository struct {
@@ -315,4 +343,60 @@ type swaggerLanguageStatistics struct {
 type swaggerCombinedStatus struct {
 	// in: body
 	Body api.CombinedStatus `json:"body"`
+}
+
+// WikiPageList
+// swagger:response WikiPageList
+type swaggerWikiPageList struct {
+	// in:body
+	Body []api.WikiPageMetaData `json:"body"`
+}
+
+// WikiPage
+// swagger:response WikiPage
+type swaggerWikiPage struct {
+	// in:body
+	Body api.WikiPage `json:"body"`
+}
+
+// WikiCommitList
+// swagger:response WikiCommitList
+type swaggerWikiCommitList struct {
+	// in:body
+	Body api.WikiCommitList `json:"body"`
+}
+
+// PushMirror
+// swagger:response PushMirror
+type swaggerPushMirror struct {
+	// in:body
+	Body api.PushMirror `json:"body"`
+}
+
+// PushMirrorList
+// swagger:response PushMirrorList
+type swaggerPushMirrorList struct {
+	// in:body
+	Body []api.PushMirror `json:"body"`
+}
+
+// RepoCollaboratorPermission
+// swagger:response RepoCollaboratorPermission
+type swaggerRepoCollaboratorPermission struct {
+	// in:body
+	Body api.RepoCollaboratorPermission `json:"body"`
+}
+
+// RepoIssueConfig
+// swagger:response RepoIssueConfig
+type swaggerRepoIssueConfig struct {
+	// in:body
+	Body api.IssueConfig `json:"body"`
+}
+
+// RepoIssueConfigValidation
+// swagger:response RepoIssueConfigValidation
+type swaggerRepoIssueConfigValidation struct {
+	// in:body
+	Body api.IssueConfigValidation `json:"body"`
 }

@@ -1,10 +1,11 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package queue
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/modules/nosql"
 
 	"gitea.com/lunny/levelqueue"
@@ -41,6 +42,7 @@ func NewLevelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, 
 	if len(config.ConnectionString) == 0 {
 		config.ConnectionString = config.DataDir
 	}
+	config.WaitOnEmpty = true
 
 	byteFIFO, err := NewLevelUniqueQueueByteFIFO(config.ConnectionString, config.QueueName)
 	if err != nil {
@@ -86,12 +88,17 @@ func NewLevelUniqueQueueByteFIFO(connection, prefix string) (*LevelUniqueQueueBy
 }
 
 // PushFunc pushes data to the end of the fifo and calls the callback if it is added
-func (fifo *LevelUniqueQueueByteFIFO) PushFunc(data []byte, fn func() error) error {
+func (fifo *LevelUniqueQueueByteFIFO) PushFunc(ctx context.Context, data []byte, fn func() error) error {
 	return fifo.internal.LPushFunc(data, fn)
 }
 
+// PushBack pushes data to the top of the fifo
+func (fifo *LevelUniqueQueueByteFIFO) PushBack(ctx context.Context, data []byte) error {
+	return fifo.internal.RPush(data)
+}
+
 // Pop pops data from the start of the fifo
-func (fifo *LevelUniqueQueueByteFIFO) Pop() ([]byte, error) {
+func (fifo *LevelUniqueQueueByteFIFO) Pop(ctx context.Context) ([]byte, error) {
 	data, err := fifo.internal.RPop()
 	if err != nil && err != levelqueue.ErrNotFound {
 		return nil, err
@@ -100,12 +107,12 @@ func (fifo *LevelUniqueQueueByteFIFO) Pop() ([]byte, error) {
 }
 
 // Len returns the length of the fifo
-func (fifo *LevelUniqueQueueByteFIFO) Len() int64 {
+func (fifo *LevelUniqueQueueByteFIFO) Len(ctx context.Context) int64 {
 	return fifo.internal.Len()
 }
 
 // Has returns whether the fifo contains this data
-func (fifo *LevelUniqueQueueByteFIFO) Has(data []byte) (bool, error) {
+func (fifo *LevelUniqueQueueByteFIFO) Has(ctx context.Context, data []byte) (bool, error) {
 	return fifo.internal.Has(data)
 }
 

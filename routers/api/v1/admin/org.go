@@ -1,21 +1,20 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package admin
 
 import (
-	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // CreateOrg api for create organization
@@ -44,33 +43,30 @@ func CreateOrg(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	form := web.GetForm(ctx).(*api.CreateOrgOption)
-	u := user.GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
 
 	visibility := api.VisibleTypePublic
 	if form.Visibility != "" {
 		visibility = api.VisibilityModes[form.Visibility]
 	}
 
-	org := &models.User{
+	org := &organization.Organization{
 		Name:        form.UserName,
 		FullName:    form.FullName,
 		Description: form.Description,
 		Website:     form.Website,
 		Location:    form.Location,
 		IsActive:    true,
-		Type:        models.UserTypeOrganization,
+		Type:        user_model.UserTypeOrganization,
 		Visibility:  visibility,
 	}
 
-	if err := models.CreateOrganization(org, u); err != nil {
-		if models.IsErrUserAlreadyExist(err) ||
-			models.IsErrNameReserved(err) ||
-			models.IsErrNameCharsNotAllowed(err) ||
-			models.IsErrNamePatternNotAllowed(err) {
+	if err := organization.CreateOrganization(org, ctx.ContextUser); err != nil {
+		if user_model.IsErrUserAlreadyExist(err) ||
+			db.IsErrNameReserved(err) ||
+			db.IsErrNameCharsNotAllowed(err) ||
+			db.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateOrganization", err)
@@ -78,10 +74,10 @@ func CreateOrg(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToOrganization(org))
+	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }
 
-//GetAllOrgs API for getting information of all the organizations
+// GetAllOrgs API for getting information of all the organizations
 func GetAllOrgs(ctx *context.APIContext) {
 	// swagger:operation GET /admin/orgs admin adminGetAllOrgs
 	// ---
@@ -105,9 +101,10 @@ func GetAllOrgs(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	users, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
-		Type:        models.UserTypeOrganization,
-		OrderBy:     models.SearchOrderByAlphabetically,
+	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
+		Actor:       ctx.Doer,
+		Type:        user_model.UserTypeOrganization,
+		OrderBy:     db.SearchOrderByAlphabetically,
 		ListOptions: listOptions,
 		Visible:     []api.VisibleType{api.VisibleTypePublic, api.VisibleTypeLimited, api.VisibleTypePrivate},
 	})
@@ -117,11 +114,10 @@ func GetAllOrgs(ctx *context.APIContext) {
 	}
 	orgs := make([]*api.Organization, len(users))
 	for i := range users {
-		orgs[i] = convert.ToOrganization(users[i])
+		orgs[i] = convert.ToOrganization(ctx, organization.OrgFromUser(users[i]))
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, &orgs)
 }

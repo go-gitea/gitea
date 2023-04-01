@@ -1,17 +1,19 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
-// +build gogit
+//go:build gogit
 
 package git
 
 import (
+	"context"
 	"errors"
 	"path/filepath"
 
 	gitealog "code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/go-git/go-billy/v5/osfs"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/cache"
@@ -27,10 +29,18 @@ type Repository struct {
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
 	gpgSettings  *GPGSettings
+
+	Ctx             context.Context
+	LastCommitCache *LastCommitCache
 }
 
-// OpenRepository opens the repository at the given path.
-func OpenRepository(repoPath string) (*Repository, error) {
+// openRepositoryWithDefaultContext opens the repository at the given path with DefaultContext.
+func openRepositoryWithDefaultContext(repoPath string) (*Repository, error) {
+	return OpenRepository(DefaultContext, repoPath)
+}
+
+// OpenRepository opens the repository at the given path within the context.Context
+func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	repoPath, err := filepath.Abs(repoPath)
 	if err != nil {
 		return nil, err
@@ -46,7 +56,7 @@ func OpenRepository(repoPath string) (*Repository, error) {
 			return nil, err
 		}
 	}
-	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{KeepDescriptors: true})
+	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{KeepDescriptors: true, LargeObjectThreshold: setting.Git.LargeObjectThreshold})
 	gogitRepo, err := gogit.Open(storage, fs)
 	if err != nil {
 		return nil, err
@@ -57,17 +67,21 @@ func OpenRepository(repoPath string) (*Repository, error) {
 		gogitRepo:    gogitRepo,
 		gogitStorage: storage,
 		tagCache:     newObjectCache(),
+		Ctx:          ctx,
 	}, nil
 }
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil
-func (repo *Repository) Close() {
+func (repo *Repository) Close() (err error) {
 	if repo == nil || repo.gogitStorage == nil {
 		return
 	}
 	if err := repo.gogitStorage.Close(); err != nil {
 		gitealog.Error("Error closing storage: %v", err)
 	}
+	repo.LastCommitCache = nil
+	repo.tagCache = nil
+	return
 }
 
 // GoGitRepo gets the go-git repo representation

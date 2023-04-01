@@ -1,6 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -11,9 +10,11 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
-// ObjectCache provides thread-safe cache opeations.
+// ObjectCache provides thread-safe cache operations.
 type ObjectCache struct {
 	lock  sync.RWMutex
 	cache map[string]interface{}
@@ -92,12 +93,15 @@ func RefEndName(refStr string) string {
 
 // RefURL returns the absolute URL for a ref in a repository
 func RefURL(repoURL, ref string) string {
-	refName := RefEndName(ref)
+	refName := util.PathEscapeSegments(RefEndName(ref))
 	switch {
 	case strings.HasPrefix(ref, BranchPrefix):
 		return repoURL + "/src/branch/" + refName
 	case strings.HasPrefix(ref, TagPrefix):
 		return repoURL + "/src/tag/" + refName
+	case !IsValidSHAPattern(ref):
+		// assume they mean a branch
+		return repoURL + "/src/branch/" + refName
 	default:
 		return repoURL + "/src/commit/" + refName
 	}
@@ -123,7 +127,7 @@ func SplitRefName(refStr string) (string, string) {
 // 0 is false, true
 // Any other integer is true, true
 // Anything else will return false, false
-func ParseBool(value string) (result bool, valid bool) {
+func ParseBool(value string) (result, valid bool) {
 	// Empty strings are true but invalid
 	if len(value) == 0 {
 		return true, false
@@ -161,7 +165,7 @@ func (l *LimitedReaderCloser) Read(p []byte) (n int, err error) {
 	}
 	n, err = l.R.Read(p)
 	l.N -= int64(n)
-	return
+	return n, err
 }
 
 // Close implements io.Closer

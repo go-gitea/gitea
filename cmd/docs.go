@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -43,7 +42,11 @@ func runDocs(ctx *cli.Context) error {
 		// Clean up markdown. The following bug was fixed in v2, but is present in v1.
 		// It affects markdown output (even though the issue is referring to man pages)
 		// https://github.com/urfave/cli/issues/1040
-		docs = docs[strings.Index(docs, "#"):]
+		firstHashtagIndex := strings.Index(docs, "#")
+
+		if firstHashtagIndex > 0 {
+			docs = docs[firstHashtagIndex:]
+		}
 	}
 
 	out := os.Stdout

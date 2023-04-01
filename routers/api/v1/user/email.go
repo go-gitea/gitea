@@ -1,6 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -8,12 +7,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // ListEmails list all of the authenticated user's email addresses
@@ -28,7 +27,7 @@ func ListEmails(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/EmailList"
 
-	emails, err := models.GetEmailAddresses(ctx.User.ID)
+	emails, err := user_model.GetEmailAddresses(ctx.Doer.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetEmailAddresses", err)
 		return
@@ -48,11 +47,6 @@ func AddEmail(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: options
-	//   in: body
-	//   schema:
-	//     "$ref": "#/definitions/CreateEmailOption"
-	// parameters:
 	// - name: body
 	//   in: body
 	//   schema:
@@ -68,20 +62,28 @@ func AddEmail(ctx *context.APIContext) {
 		return
 	}
 
-	emails := make([]*models.EmailAddress, len(form.Emails))
+	emails := make([]*user_model.EmailAddress, len(form.Emails))
 	for i := range form.Emails {
-		emails[i] = &models.EmailAddress{
-			UID:         ctx.User.ID,
+		emails[i] = &user_model.EmailAddress{
+			UID:         ctx.Doer.ID,
 			Email:       form.Emails[i],
 			IsActivated: !setting.Service.RegisterEmailConfirm,
 		}
 	}
 
-	if err := models.AddEmailAddresses(emails); err != nil {
-		if models.IsErrEmailAlreadyUsed(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "", "Email address has been used: "+err.(models.ErrEmailAlreadyUsed).Email)
-		} else if models.IsErrEmailInvalid(err) {
-			errMsg := fmt.Sprintf("Email address %s invalid", err.(models.ErrEmailInvalid).Email)
+	if err := user_model.AddEmailAddresses(emails); err != nil {
+		if user_model.IsErrEmailAlreadyUsed(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "", "Email address has been used: "+err.(user_model.ErrEmailAlreadyUsed).Email)
+		} else if user_model.IsErrEmailCharIsNotSupported(err) || user_model.IsErrEmailInvalid(err) {
+			email := ""
+			if typedError, ok := err.(user_model.ErrEmailInvalid); ok {
+				email = typedError.Email
+			}
+			if typedError, ok := err.(user_model.ErrEmailCharIsNotSupported); ok {
+				email = typedError.Email
+			}
+
+			errMsg := fmt.Sprintf("Email address %q invalid", email)
 			ctx.Error(http.StatusUnprocessableEntity, "", errMsg)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "AddEmailAddresses", err)
@@ -119,16 +121,16 @@ func DeleteEmail(ctx *context.APIContext) {
 		return
 	}
 
-	emails := make([]*models.EmailAddress, len(form.Emails))
+	emails := make([]*user_model.EmailAddress, len(form.Emails))
 	for i := range form.Emails {
-		emails[i] = &models.EmailAddress{
+		emails[i] = &user_model.EmailAddress{
 			Email: form.Emails[i],
-			UID:   ctx.User.ID,
+			UID:   ctx.Doer.ID,
 		}
 	}
 
-	if err := models.DeleteEmailAddresses(emails); err != nil {
-		if models.IsErrEmailAddressNotExist(err) {
+	if err := user_model.DeleteEmailAddresses(emails); err != nil {
+		if user_model.IsErrEmailAddressNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteEmailAddresses", err)
 			return
 		}

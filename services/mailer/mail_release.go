@@ -1,18 +1,20 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mailer
 
 import (
 	"bytes"
+	"context"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 )
 
@@ -20,17 +22,22 @@ const (
 	tplNewReleaseMail base.TplName = "release"
 )
 
-// MailNewRelease send new release notify to all all repo watchers.
-func MailNewRelease(rel *models.Release) {
-	watcherIDList, err := models.GetRepoWatchersIDs(rel.RepoID)
+// MailNewRelease send new release notify to all repo watchers.
+func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
+
+	watcherIDList, err := repo_model.GetRepoWatchersIDs(ctx, rel.RepoID)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs(%d): %v", rel.RepoID, err)
 		return
 	}
 
-	recipients, err := models.GetMaileableUsersByIDs(watcherIDList, false)
+	recipients, err := user_model.GetMaileableUsersByIDs(ctx, watcherIDList, false)
 	if err != nil {
-		log.Error("models.GetMaileableUsersByIDs: %v", err)
+		log.Error("user_model.GetMaileableUsersByIDs: %v", err)
 		return
 	}
 
@@ -42,15 +49,16 @@ func MailNewRelease(rel *models.Release) {
 	}
 
 	for lang, tos := range langMap {
-		mailNewRelease(lang, tos, rel)
+		mailNewRelease(ctx, lang, tos, rel)
 	}
 }
 
-func mailNewRelease(lang string, tos []string, rel *models.Release) {
+func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_model.Release) {
 	locale := translation.NewLocale(lang)
 
 	var err error
 	rel.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: rel.Repo.Link(),
 		Metas:     rel.Repo.ComposeMetas(),
 	}, rel.Note)
@@ -63,13 +71,15 @@ func mailNewRelease(lang string, tos []string, rel *models.Release) {
 	mailMeta := map[string]interface{}{
 		"Release":  rel,
 		"Subject":  subject,
-		"i18n":     locale,
 		"Language": locale.Language(),
+		// helper
+		"locale":    locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	var mailBody bytes.Buffer
 
-	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplNewReleaseMail)+"/body", err)
 		return
@@ -79,7 +89,7 @@ func mailNewRelease(lang string, tos []string, rel *models.Release) {
 	publisherName := rel.Publisher.DisplayName()
 	relURL := "<" + rel.HTMLURL() + ">"
 	for _, to := range tos {
-		msg := NewMessageFrom([]string{to}, publisherName, setting.MailService.FromEmail, subject, mailBody.String())
+		msg := NewMessageFrom(to, publisherName, setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = subject
 		msg.SetHeader("Message-ID", relURL)
 		msgs = append(msgs, msg)

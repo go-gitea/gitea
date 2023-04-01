@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package validation
 
@@ -24,12 +23,12 @@ func Test_IsValidURL(t *testing.T) {
 			valid:       false,
 		},
 		{
-			description: "Loobpack IPv4 URL",
+			description: "Loopback IPv4 URL",
 			url:         "http://127.0.1.1:5678/",
 			valid:       true,
 		},
 		{
-			description: "Loobpack IPv6 URL",
+			description: "Loopback IPv6 URL",
 			url:         "https://[::1]/",
 			valid:       true,
 		},
@@ -61,7 +60,7 @@ func Test_IsValidExternalURL(t *testing.T) {
 			valid:       true,
 		},
 		{
-			description: "Loobpack IPv4 URL",
+			description: "Loopback IPv4 URL",
 			url:         "http://127.0.1.1:5678/",
 			valid:       false,
 		},
@@ -152,6 +151,37 @@ func Test_IsValidExternalTrackerURLFormat(t *testing.T) {
 	for _, testCase := range cases {
 		t.Run(testCase.description, func(t *testing.T) {
 			assert.Equal(t, testCase.valid, IsValidExternalTrackerURLFormat(testCase.url))
+		})
+	}
+}
+
+func TestIsValidUsername(t *testing.T) {
+	tests := []struct {
+		arg  string
+		want bool
+	}{
+		{arg: "a", want: true},
+		{arg: "abc", want: true},
+		{arg: "0.b-c", want: true},
+		{arg: "a.b-c_d", want: true},
+		{arg: "", want: false},
+		{arg: ".abc", want: false},
+		{arg: "abc.", want: false},
+		{arg: "a..bc", want: false},
+		{arg: "a...bc", want: false},
+		{arg: "a.-bc", want: false},
+		{arg: "a._bc", want: false},
+		{arg: "a_-bc", want: false},
+		{arg: "a/bc", want: false},
+		{arg: "☁️", want: false},
+		{arg: "-", want: false},
+		{arg: "--diff", want: false},
+		{arg: "-im-here", want: false},
+		{arg: "a space", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.arg, func(t *testing.T) {
+			assert.Equalf(t, tt.want, IsValidUsername(tt.arg), "IsValidUsername(%v)", tt.arg)
 		})
 	}
 }

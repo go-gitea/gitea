@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -9,12 +8,16 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -48,20 +51,22 @@ func ListForks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	forks, err := ctx.Repo.Repository.GetForks(utils.GetListOptions(ctx))
+	forks, err := repo_model.GetForks(ctx.Repo.Repository, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetForks", err)
 		return
 	}
 	apiForks := make([]*api.Repository, len(forks))
 	for i, fork := range forks {
-		access, err := models.AccessLevel(ctx.User, fork)
+		access, err := access_model.AccessLevel(ctx, ctx.Doer, fork)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
 		}
-		apiForks[i] = convert.ToRepo(fork, access)
+		apiForks[i] = convert.ToRepo(ctx, fork, access)
 	}
+
+	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumForks))
 	ctx.JSON(http.StatusOK, apiForks)
 }
 
@@ -92,25 +97,27 @@ func CreateFork(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Repository"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "409":
+	//     description: The repository with the same name already exists.
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm(ctx).(*api.CreateForkOption)
 	repo := ctx.Repo.Repository
-	var forker *models.User // user/org that will own the fork
+	var forker *user_model.User // user/org that will own the fork
 	if form.Organization == nil {
-		forker = ctx.User
+		forker = ctx.Doer
 	} else {
-		org, err := models.GetOrgByName(*form.Organization)
+		org, err := organization.GetOrgByName(ctx, *form.Organization)
 		if err != nil {
-			if models.IsErrOrgNotExist(err) {
+			if organization.IsErrOrgNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
 			}
 			return
 		}
-		isMember, err := org.IsOrgMember(ctx.User.ID)
+		isMember, err := org.IsOrgMember(ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
@@ -118,15 +125,30 @@ func CreateFork(ctx *context.APIContext) {
 			ctx.Error(http.StatusForbidden, "isMemberNot", fmt.Sprintf("User is no Member of Organisation '%s'", org.Name))
 			return
 		}
-		forker = org
+		forker = org.AsUser()
 	}
 
-	fork, err := repo_service.ForkRepository(ctx.User, forker, repo, repo.Name, repo.Description)
+	var name string
+	if form.Name == nil {
+		name = repo.Name
+	} else {
+		name = *form.Name
+	}
+
+	fork, err := repo_service.ForkRepository(ctx, ctx.Doer, forker, repo_service.ForkRepoOptions{
+		BaseRepo:    repo,
+		Name:        name,
+		Description: repo.Description,
+	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ForkRepository", err)
+		if repo_model.IsErrReachLimitOfRepo(err) || repo_model.IsErrRepoAlreadyExist(err) {
+			ctx.Error(http.StatusConflict, "ForkRepository", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "ForkRepository", err)
+		}
 		return
 	}
 
-	//TODO change back to 201
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(fork, models.AccessModeOwner))
+	// TODO change back to 201
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, fork, perm.AccessModeOwner))
 }

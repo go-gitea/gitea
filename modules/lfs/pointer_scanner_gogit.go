@@ -1,8 +1,7 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
-// +build gogit
+//go:build gogit
 
 package lfs
 
@@ -50,7 +49,6 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 			return nil
 		})
 	}()
-
 	if err != nil {
 		select {
 		case <-ctx.Done():

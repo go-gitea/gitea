@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package code
 
@@ -8,13 +7,13 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestESIndexAndSearch(t *testing.T) {
-	models.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	u := os.Getenv("TEST_INDEXER_CODE_ES_URL")
 	if u == "" {

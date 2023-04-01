@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package test
 
@@ -13,20 +12,23 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/web/middleware"
 
-	"github.com/go-chi/chi"
+	chi "github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/unrolled/render"
 )
 
 // MockContext mock context for unit tests
 func MockContext(t *testing.T, path string) *context.Context {
-	var resp = &mockResponseWriter{}
-	var ctx = context.Context{
+	resp := &mockResponseWriter{}
+	ctx := context.Context{
 		Render: &mockRender{},
 		Data:   make(map[string]interface{}),
 		Flash: &middleware.Flash{
@@ -35,10 +37,11 @@ func MockContext(t *testing.T, path string) *context.Context {
 		Resp:   context.NewResponse(resp),
 		Locale: &mockLocale{},
 	}
+	defer ctx.Close()
 
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)
-	var req = &http.Request{
+	req := &http.Request{
 		URL:  requestURL,
 		Form: url.Values{},
 	}
@@ -52,18 +55,18 @@ func MockContext(t *testing.T, path string) *context.Context {
 // LoadRepo load a repo into a test context.
 func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 	ctx.Repo = &context.Repository{}
-	ctx.Repo.Repository = models.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
+	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
 	var err error
-	ctx.Repo.Owner, err = models.GetUserByID(ctx.Repo.Repository.OwnerID)
+	ctx.Repo.Owner, err = user_model.GetUserByID(ctx, ctx.Repo.Repository.OwnerID)
 	assert.NoError(t, err)
 	ctx.Repo.RepoLink = ctx.Repo.Repository.Link()
-	ctx.Repo.Permission, err = models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
+	ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, ctx.Doer)
 	assert.NoError(t, err)
 }
 
 // LoadRepoCommit loads a repo's commit into a test context.
 func LoadRepoCommit(t *testing.T, ctx *context.Context) {
-	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 	branch, err := gitRepo.GetHEADBranch()
@@ -77,15 +80,15 @@ func LoadRepoCommit(t *testing.T, ctx *context.Context) {
 
 // LoadUser load a user into a test context.
 func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
-	ctx.User = models.AssertExistsAndLoadBean(t, &models.User{ID: userID}).(*models.User)
+	ctx.Doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
 }
 
 // LoadGitRepo load a git repo into a test context. Requires that ctx.Repo has
 // already been populated.
 func LoadGitRepo(t *testing.T, ctx *context.Context) {
-	assert.NoError(t, ctx.Repo.Repository.GetOwner())
+	assert.NoError(t, ctx.Repo.Repository.LoadOwner(ctx))
 	var err error
-	ctx.Repo.GitRepo, err = git.OpenRepository(ctx.Repo.Repository.RepoPath())
+	ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
 }
 
@@ -97,6 +100,10 @@ func (l mockLocale) Language() string {
 
 func (l mockLocale) Tr(s string, _ ...interface{}) string {
 	return s
+}
+
+func (l mockLocale) TrN(_cnt interface{}, key1, _keyN string, _args ...interface{}) string {
+	return key1
 }
 
 type mockResponseWriter struct {
@@ -125,8 +132,7 @@ func (rw *mockResponseWriter) Push(target string, opts *http.PushOptions) error 
 	return nil
 }
 
-type mockRender struct {
-}
+type mockRender struct{}
 
 func (tr *mockRender) TemplateLookup(tmpl string) *template.Template {
 	return nil

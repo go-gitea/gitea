@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package log
 
@@ -8,7 +7,8 @@ import (
 	"fmt"
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +17,6 @@ type testLevel struct {
 }
 
 func TestLevelMarshalUnmarshalJSON(t *testing.T) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	levelBytes, err := json.Marshal(testLevel{
 		Level: INFO,
 	})

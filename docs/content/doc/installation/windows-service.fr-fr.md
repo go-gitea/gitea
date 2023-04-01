@@ -21,9 +21,9 @@ Pour activer le service Windows Gitea, ouvrez une `cmd` en tant qu'Administrateu
 sc create gitea start= auto binPath= "\"C:\gitea\gitea.exe\" web --config \"C:\gitea\custom\conf\app.ini\""
 ```
 
-N'oubliez pas de remplacer `C:\gitea` par le chemin que vous avez utilisez pour votre installation.
+N'oubliez pas de remplacer `C:\gitea` par le chemin que vous avez utilisé pour votre installation.
 
-Ensuite, ouvrez "Services Windows", puis recherchez le service `gitea`, faites un clique droit et selectionnez "Run". Si tout fonctionne, vous devriez être capable d'accèder à Gitea à l'URL `http://localhost:3000` (ou sur le port configuré si différent de 3000).
+Ensuite, ouvrez "Services Windows", puis recherchez le service `gitea`, faites un clic droit et selectionnez "Run". Si tout fonctionne, vous devriez être capable d'accèder à Gitea à l'URL `http://localhost:3000` (ou sur le port configuré si différent de 3000).
 
 ## Désactiver un service Windows
 

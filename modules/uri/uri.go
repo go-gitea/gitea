@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package uri
 
@@ -31,7 +30,10 @@ func Open(uriStr string) (io.ReadCloser, error) {
 	switch strings.ToLower(u.Scheme) {
 	case "http", "https":
 		f, err := http.Get(uriStr)
-		return f.Body, err
+		if err != nil {
+			return nil, err
+		}
+		return f.Body, nil
 	case "file":
 		return os.Open(u.Path)
 	default:

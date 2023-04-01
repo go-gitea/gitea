@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -42,11 +41,15 @@ func (repo *Repository) HashObject(reader io.Reader) (SHA1, error) {
 }
 
 func (repo *Repository) hashObject(reader io.Reader) (string, error) {
-	cmd := NewCommand("hash-object", "-w", "--stdin")
+	cmd := NewCommand(repo.Ctx, "hash-object", "-w", "--stdin")
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err := cmd.RunInDirFullPipeline(repo.Path, stdout, stderr, reader)
-
+	err := cmd.Run(&RunOpts{
+		Dir:    repo.Path,
+		Stdin:  reader,
+		Stdout: stdout,
+		Stderr: stderr,
+	})
 	if err != nil {
 		return "", err
 	}

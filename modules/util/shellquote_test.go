@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package util
 
@@ -33,7 +32,7 @@ func TestShellEscape(t *testing.T) {
 			"~git/Gitea v1.13/gitea",
 			`~git/"Gitea v1.13/gitea"`,
 		}, {
-			"Bangs are unforutunately not predictable so need to be singlequoted",
+			"Bangs are unfortunately not predictable so need to be singlequoted",
 			"C:/Program Files/Gitea!/gitea",
 			`'C:/Program Files/Gitea!/gitea'`,
 		}, {
@@ -41,7 +40,7 @@ func TestShellEscape(t *testing.T) {
 			"/home/git/Gitea\n\nWHY-WOULD-YOU-DO-THIS\n\nGitea/gitea",
 			"'/home/git/Gitea\n\nWHY-WOULD-YOU-DO-THIS\n\nGitea/gitea'",
 		}, {
-			"Similarly we should nicely handle mutiple single quotes if we have to single-quote",
+			"Similarly we should nicely handle multiple single quotes if we have to single-quote",
 			"'!''!'''!''!'!'",
 			`\''!'\'\''!'\'\'\''!'\'\''!'\''!'\'`,
 		}, {

@@ -1,5 +1,5 @@
 name: gitea
-summary:  Gitea - A painless self-hosted Git service
+summary: Gitea - A painless self-hosted Git service
 description: |
   The goal of this project is to make the easiest, fastest, and most painless
   way of setting up a self-hosted Git service. With Go, this can be done with
@@ -25,27 +25,26 @@ environment:
 apps:
   gitea:
     command: gitea
-    plugs: [network, network-bind]
+    plugs: [network, network-bind, removable-media]
   web:
     command: gitea web
     daemon: simple
-    plugs: [network, network-bind]
+    plugs: [network, network-bind, removable-media]
   dump:
     command: gitea dump
-    plugs: [home]
+    plugs: [home, removable-media]
   version:
     command: gitea --version
   sqlite:
     command: usr/bin/sqlite3
 
 parts:
-
   gitea:
     plugin: make
     source: .
     stage-packages: [ git, sqlite3, openssh-client ]
-    build-packages: [ git, libpam0g-dev, libsqlite3-dev]
-    build-snaps: [ go, node/14/stable ]
+    build-packages: [ git, libpam0g-dev, libsqlite3-dev, build-essential]
+    build-snaps: [ go, node/18/stable ]
     build-environment:
       - LDFLAGS: ""
     override-pull: |
@@ -67,6 +66,7 @@ parts:
 
     override-build: |
       set -x
+      sed -i 's/os.Getuid()/1/g' modules/setting/setting.go
       TAGS="bindata sqlite sqlite_unlock_notify pam cert" make build
       install -D gitea "${SNAPCRAFT_PART_INSTALL}/gitea"
       cp -r options "${SNAPCRAFT_PART_INSTALL}/"

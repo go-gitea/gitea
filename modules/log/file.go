@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package log
 
@@ -15,8 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // FileLogger implements LoggerProvider.
@@ -76,7 +75,7 @@ func (mw *MuxWriter) SetFd(fd *os.File) {
 func NewFileLogger() LoggerProvider {
 	log := &FileLogger{
 		Filename:         "",
-		Maxsize:          1 << 28, //256 MB
+		Maxsize:          1 << 28, // 256 MB
 		Daily:            true,
 		Maxdays:          7,
 		Rotate:           true,
@@ -93,6 +92,7 @@ func NewFileLogger() LoggerProvider {
 
 // Init file logger with json config.
 // config like:
+//
 //	{
 //	"filename":"log/gogs.log",
 //	"maxsize":1<<30,
@@ -101,9 +101,8 @@ func NewFileLogger() LoggerProvider {
 //	"rotate":true
 //	}
 func (log *FileLogger) Init(config string) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(config), log); err != nil {
-		return fmt.Errorf("Unable to parse JSON: %v", err)
+		return fmt.Errorf("Unable to parse JSON: %w", err)
 	}
 	if len(log.Filename) == 0 {
 		return errors.New("config must have filename")
@@ -138,14 +137,14 @@ func (log *FileLogger) docheck(size int) {
 
 func (log *FileLogger) createLogFile() (*os.File, error) {
 	// Open the log file
-	return os.OpenFile(log.Filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660)
+	return os.OpenFile(log.Filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o660)
 }
 
 func (log *FileLogger) initFd() error {
 	fd := log.mw.fd
 	finfo, err := fd.Stat()
 	if err != nil {
-		return fmt.Errorf("get stat: %v", err)
+		return fmt.Errorf("get stat: %w", err)
 	}
 	log.maxsizeCursize = int(finfo.Size())
 	log.dailyOpenDate = time.Now().Day()
@@ -177,8 +176,8 @@ func (log *FileLogger) DoRotate() error {
 
 		// close fd before rename
 		// Rename the file to its newfound home
-		if err = os.Rename(log.Filename, fname); err != nil {
-			return fmt.Errorf("Rotate: %v", err)
+		if err = util.Rename(log.Filename, fname); err != nil {
+			return fmt.Errorf("Rotate: %w", err)
 		}
 
 		if log.Compress {
@@ -187,7 +186,7 @@ func (log *FileLogger) DoRotate() error {
 
 		// re-start logger
 		if err = log.StartLogger(); err != nil {
-			return fmt.Errorf("Rotate StartLogger: %v", err)
+			return fmt.Errorf("Rotate StartLogger: %w", err)
 		}
 
 		go log.deleteOldLog()
@@ -203,7 +202,7 @@ func compressOldLogFile(fname string, compressionLevel int) error {
 	}
 	defer reader.Close()
 	buffer := bufio.NewReader(reader)
-	fw, err := os.OpenFile(fname+".gz", os.O_WRONLY|os.O_CREATE, 0660)
+	fw, err := os.OpenFile(fname+".gz", os.O_WRONLY|os.O_CREATE, 0o660)
 	if err != nil {
 		return err
 	}
@@ -226,23 +225,41 @@ func compressOldLogFile(fname string, compressionLevel int) error {
 
 func (log *FileLogger) deleteOldLog() {
 	dir := filepath.Dir(log.Filename)
-	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) (returnErr error) {
+	_ = filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) (returnErr error) {
 		defer func() {
 			if r := recover(); r != nil {
 				returnErr = fmt.Errorf("Unable to delete old log '%s', error: %+v", path, r)
 			}
 		}()
 
-		if !info.IsDir() && info.ModTime().Unix() < (time.Now().Unix()-60*60*24*log.Maxdays) {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		if info.ModTime().Unix() < (time.Now().Unix() - 60*60*24*log.Maxdays) {
 			if strings.HasPrefix(filepath.Base(path), filepath.Base(log.Filename)) {
-
 				if err := util.Remove(path); err != nil {
-					returnErr = fmt.Errorf("Failed to remove %s: %v", path, err)
+					returnErr = fmt.Errorf("Failed to remove %s: %w", path, err)
 				}
 			}
 		}
 		return returnErr
 	})
+}
+
+// Content returns the content accumulated in the content provider
+func (log *FileLogger) Content() (string, error) {
+	b, err := os.ReadFile(log.Filename)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 // Flush flush file logger.

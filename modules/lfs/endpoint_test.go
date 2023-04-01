@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package lfs
 
@@ -18,7 +17,7 @@ func str2url(raw string) *url.URL {
 
 func TestDetermineEndpoint(t *testing.T) {
 	// Test cases
-	var cases = []struct {
+	cases := []struct {
 		cloneurl string
 		lfsurl   string
 		expected *url.URL

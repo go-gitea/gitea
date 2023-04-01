@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -62,11 +61,15 @@ func runKeys(c *cli.Context) error {
 		return errors.New("No key type and content provided")
 	}
 
-	setup("keys.log", false)
+	ctx, cancel := installSignals()
+	defer cancel()
 
-	authorizedString, err := private.AuthorizedPublicKeyByContent(content)
-	if err != nil {
-		return err
+	setup(ctx, false)
+
+	authorizedString, extra := private.AuthorizedPublicKeyByContent(ctx, content)
+	// do not use handleCliResponseExtra or cli.NewExitError, if it exists immediately, it breaks some tests like Test_CmdKeys
+	if extra.Error != nil {
+		return extra.Error
 	}
 	fmt.Println(strings.TrimSpace(authorizedString))
 	return nil

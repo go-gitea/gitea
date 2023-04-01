@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package web
 
@@ -10,7 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-chi/chi"
+	chi "github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,7 +66,7 @@ func TestRoute2(t *testing.T) {
 				route = 1
 			})
 		}, func(resp http.ResponseWriter, req *http.Request) {
-			resp.WriteHeader(200)
+			resp.WriteHeader(http.StatusOK)
 		})
 
 		r.Group("/issues/{index}", func() {

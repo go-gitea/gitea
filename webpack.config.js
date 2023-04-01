@@ -1,24 +1,27 @@
 import fastGlob from 'fast-glob';
 import wrapAnsi from 'wrap-ansi';
 import AddAssetPlugin from 'add-asset-webpack-plugin';
-import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import LicenseCheckerWebpackPlugin from 'license-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
-import VueLoader from 'vue-loader';
+import {VueLoaderPlugin} from 'vue-loader';
 import EsBuildLoader from 'esbuild-loader';
-import {resolve, parse, dirname} from 'path';
+import {parse, dirname} from 'node:path';
 import webpack from 'webpack';
-import {fileURLToPath} from 'url';
+import {fileURLToPath} from 'node:url';
+import {readFileSync} from 'node:fs';
 
-const {VueLoaderPlugin} = VueLoader;
-const {ESBuildMinifyPlugin} = EsBuildLoader;
-const {SourceMapDevToolPlugin} = webpack;
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
+const {EsbuildPlugin} = EsBuildLoader;
+const {SourceMapDevToolPlugin, DefinePlugin} = webpack;
+const formatLicenseText = (licenseText) => wrapAnsi(licenseText || '', 80).trim();
+
+const glob = (pattern) => fastGlob.sync(pattern, {
+  cwd: dirname(fileURLToPath(new URL(import.meta.url))),
+  absolute: true,
+});
 
 const themes = {};
-for (const path of glob('web_src/less/themes/*.less')) {
+for (const path of glob('web_src/css/themes/*.css')) {
   themes[parse(path).name] = [path];
 }
 
@@ -33,6 +36,10 @@ const filterCssImport = (url, ...args) => {
     if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
   }
 
+  if (cssFile.includes('katex') && /(ttf|woff)$/.test(importedFile)) {
+    return false;
+  }
+
   if (cssFile.includes('font-awesome') && /(eot|ttf|otf|woff|svg)$/.test(importedFile)) {
     return false;
   }
@@ -40,36 +47,36 @@ const filterCssImport = (url, ...args) => {
   return true;
 };
 
+/** @type {import("webpack").Configuration} */
 export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
     index: [
-      resolve(__dirname, 'web_src/js/jquery.js'),
-      resolve(__dirname, 'web_src/fomantic/build/semantic.js'),
-      resolve(__dirname, 'web_src/js/index.js'),
-      resolve(__dirname, 'web_src/fomantic/build/semantic.css'),
-      resolve(__dirname, 'web_src/less/misc.css'),
-      resolve(__dirname, 'web_src/less/index.less'),
+      fileURLToPath(new URL('web_src/js/jquery.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/fomantic/build/semantic.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/index.js', import.meta.url)),
+      fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
+      fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
+      fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
+    ],
+    webcomponents: [
+      fileURLToPath(new URL('web_src/js/webcomponents/GiteaOriginUrl.js', import.meta.url)),
     ],
     swagger: [
-      resolve(__dirname, 'web_src/js/standalone/swagger.js'),
-      resolve(__dirname, 'web_src/less/standalone/swagger.less'),
+      fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/css/standalone/swagger.css', import.meta.url)),
     ],
     serviceworker: [
-      resolve(__dirname, 'web_src/js/serviceworker.js'),
+      fileURLToPath(new URL('web_src/js/serviceworker.js', import.meta.url)),
     ],
     'eventsource.sharedworker': [
-      resolve(__dirname, 'web_src/js/features/eventsource.sharedworker.js'),
-    ],
-    'easymde': [
-      resolve(__dirname, 'web_src/js/easymde.js'),
-      resolve(__dirname, 'node_modules/easymde/dist/easymde.min.css'),
+      fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.js', import.meta.url)),
     ],
     ...themes,
   },
   devtool: false,
   output: {
-    path: resolve(__dirname, 'public'),
+    path: fileURLToPath(new URL('public', import.meta.url)),
     filename: ({chunk}) => {
       // serviceworker can only manage assets below it's script's directory so
       // we have to put it in / instead of /js/
@@ -77,28 +84,17 @@ export default {
     },
     chunkFilename: ({chunk}) => {
       const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
-      return language ? `js/monaco-language-${language.toLowerCase()}.js` : `js/[name].js`;
+      return `js/${language ? `monaco-language-${language.toLowerCase()}` : `[name]`}.[contenthash:8].js`;
     },
   },
   optimization: {
     minimize: isProduction,
     minimizer: [
-      new ESBuildMinifyPlugin({
+      new EsbuildPlugin({
         target: 'es2015',
-        minify: true
-      }),
-      new CssMinimizerPlugin({
-        minimizerOptions: {
-          preset: [
-            'default',
-            {
-              discardComments: {
-                removeAll: true,
-              },
-              colormin: false,
-            },
-          ],
-        },
+        minify: true,
+        css: true,
+        legalComments: 'none',
       }),
     ],
     splitChunks: {
@@ -116,31 +112,20 @@ export default {
         loader: 'vue-loader',
       },
       {
-        test: /\.worker\.js$/,
-        exclude: /monaco/,
-        use: [
-          {
-            loader: 'worker-loader',
-            options: {
-              inline: 'no-fallback',
-            },
-          },
-        ],
-      },
-      {
         test: /\.js$/,
         exclude: /node_modules/,
         use: [
           {
             loader: 'esbuild-loader',
             options: {
-              target: 'es2015'
+              loader: 'js',
+              target: 'es2015',
             },
           },
         ],
       },
       {
-        test: /.css$/i,
+        test: /\.css$/i,
         use: [
           {
             loader: MiniCssExtractPlugin.loader,
@@ -149,87 +134,80 @@ export default {
             loader: 'css-loader',
             options: {
               sourceMap: true,
-              url: filterCssImport,
-              import: filterCssImport,
-            },
-          },
-        ],
-      },
-      {
-        test: /.less$/i,
-        use: [
-          {
-            loader: MiniCssExtractPlugin.loader,
-          },
-          {
-            loader: 'css-loader',
-            options: {
-              sourceMap: true,
-              importLoaders: 1,
-              url: filterCssImport,
-              import: filterCssImport,
-            },
-          },
-          {
-            loader: 'less-loader',
-            options: {
-              sourceMap: true,
+              url: {filter: filterCssImport},
+              import: {filter: filterCssImport},
             },
           },
         ],
       },
       {
         test: /\.svg$/,
-        include: resolve(__dirname, 'public/img/svg'),
+        include: fileURLToPath(new URL('public/img/svg', import.meta.url)),
         type: 'asset/source',
       },
       {
         test: /\.(ttf|woff2?)$/,
         type: 'asset/resource',
         generator: {
-          filename: 'fonts/[name][ext]',
-          publicPath: '../', // required to remove css/ path segment
+          filename: 'fonts/[name].[contenthash:8][ext]',
         }
       },
       {
         test: /\.png$/i,
         type: 'asset/resource',
         generator: {
-          filename: 'img/webpack/[name][ext]',
-          publicPath: '../', // required to remove css/ path segment
+          filename: 'img/webpack/[name].[contenthash:8][ext]',
         }
       },
     ],
   },
   plugins: [
+    new DefinePlugin({
+      __VUE_OPTIONS_API__: true, // at the moment, many Vue components still use the Vue Options API
+      __VUE_PROD_DEVTOOLS__: false, // do not enable devtools support in production
+    }),
     new VueLoaderPlugin(),
     new MiniCssExtractPlugin({
       filename: 'css/[name].css',
-      chunkFilename: 'css/[name].css',
+      chunkFilename: 'css/[name].[contenthash:8].css',
     }),
     new SourceMapDevToolPlugin({
-      filename: '[file].map',
+      filename: '[file].[contenthash:8].map',
       include: [
         'js/index.js',
         'css/index.css',
       ],
     }),
     new MonacoWebpackPlugin({
-      filename: 'js/monaco-[name].worker.js',
+      filename: 'js/monaco-[name].[contenthash:8].worker.js',
     }),
     isProduction ? new LicenseCheckerWebpackPlugin({
       outputFilename: 'js/licenses.txt',
       outputWriter: ({dependencies}) => {
         const line = '-'.repeat(80);
-        return dependencies.map((module) => {
-          const {name, version, licenseName, licenseText} = module;
-          const body = wrapAnsi(licenseText || '', 80);
-          return `${line}\n${name}@${version} - ${licenseName}\n${line}\n${body}`;
+        const goJson = readFileSync('assets/go-licenses.json', 'utf8');
+        const goModules = JSON.parse(goJson).map(({name, licenseText}) => {
+          return {name, body: formatLicenseText(licenseText)};
+        });
+        const jsModules = dependencies.map(({name, version, licenseName, licenseText}) => {
+          return {name, version, licenseName, body: formatLicenseText(licenseText)};
+        });
+
+        const modules = [...goModules, ...jsModules].sort((a, b) => a.name.localeCompare(b.name));
+        return modules.map(({name, version, licenseName, body}) => {
+          const title = licenseName ? `${name}@${version} - ${licenseName}` : name;
+          return `${line}\n${title}\n${line}\n${body}`;
         }).join('\n');
       },
       override: {
-        'jquery.are-you-sure@*': {licenseName: 'MIT'},
+        'jquery.are-you-sure@*': {licenseName: 'MIT'}, // https://github.com/codedance/jquery.AreYouSure/pull/147
+        'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
       },
+      emitError: true,
+      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
+      ignore: [
+        'font-awesome',
+      ],
     }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
   ],
   performance: {
@@ -239,9 +217,6 @@ export default {
   },
   resolve: {
     symlinks: false,
-    alias: {
-      vue$: 'vue/dist/vue.esm.js', // needed because vue's default export is the runtime only
-    },
   },
   watchOptions: {
     ignored: [
@@ -262,7 +237,7 @@ export default {
     excludeAssets: [
       /^js\/monaco-language-.+\.js$/,
       !isProduction && /^js\/licenses.txt$/,
-    ].filter((item) => !!item),
+    ].filter(Boolean),
     groupAssetsByChunk: false,
     groupAssetsByEmitStatus: false,
     groupAssetsByInfo: false,

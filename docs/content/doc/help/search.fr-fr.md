@@ -5,12 +5,6 @@ slug: "search"
 weight: 4
 toc: false
 draft: false
-menu:
-  sidebar:
-    parent: "help"
-    name: "Chercher"
-    weight: 4
-    identifier: "search"
 sitemap:
   priority : 0.1
 layout: "search"

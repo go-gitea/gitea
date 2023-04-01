@@ -1,13 +1,13 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
 import (
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,6 +28,5 @@ func TestMakeAbsoluteAssetURL(t *testing.T) {
 
 func TestMakeManifestData(t *testing.T) {
 	jsonBytes := MakeManifestData(`Example App '\"`, "https://example.com", "https://example.com/foo/bar")
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	assert.True(t, json.Valid(jsonBytes))
 }

@@ -1,8 +1,7 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
-// +build !gogit
+//go:build !gogit
 
 package lfs
 
@@ -36,7 +35,7 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 	go createPointerResultsFromCatFileBatch(ctx, catFileBatchReader, &wg, pointerChan)
 
 	// 3. Take the shas of the blobs and batch read them
-	go pipeline.CatFileBatch(shasToBatchReader, catFileBatchWriter, &wg, basePath)
+	go pipeline.CatFileBatch(ctx, shasToBatchReader, catFileBatchWriter, &wg, basePath)
 
 	// 2. From the provided objects restrict to blobs <=1k
 	go pipeline.BlobsLessThan1024FromCatFileBatchCheck(catFileCheckReader, shasToBatchWriter, &wg)
@@ -46,11 +45,11 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 		revListReader, revListWriter := io.Pipe()
 		shasToCheckReader, shasToCheckWriter := io.Pipe()
 		wg.Add(2)
-		go pipeline.CatFileBatchCheck(shasToCheckReader, catFileCheckWriter, &wg, basePath)
+		go pipeline.CatFileBatchCheck(ctx, shasToCheckReader, catFileCheckWriter, &wg, basePath)
 		go pipeline.BlobsFromRevListObjects(revListReader, shasToCheckWriter, &wg)
-		go pipeline.RevListAllObjects(revListWriter, &wg, basePath, errChan)
+		go pipeline.RevListAllObjects(ctx, revListWriter, &wg, basePath, errChan)
 	} else {
-		go pipeline.CatFileBatchCheckAllObjects(catFileCheckWriter, &wg, basePath, errChan)
+		go pipeline.CatFileBatchCheckAllObjects(ctx, catFileCheckWriter, &wg, basePath, errChan)
 	}
 	wg.Wait()
 

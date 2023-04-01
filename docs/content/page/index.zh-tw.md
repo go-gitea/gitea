@@ -10,7 +10,7 @@ draft: false
 
 # 關於 Gitea
 
-Gitea 是一個可自行託管的 Git 服務。你可以拿 GitHub、Bitbucket 或 Gitlab 來比較看看。  
+Gitea 是一個可自行託管的 Git 服務。你可以拿 GitHub、Bitbucket 或 Gitlab 來比較看看。
 Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [Gitea 公告](https://blog.gitea.io/2016/12/welcome-to-gitea/)以了解我們 Fork 的理由。
 
 ## 目標
@@ -69,7 +69,7 @@ Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [G
     - PostgreSQL
     - SQLite3
     - MSSQL
-    - TiDB（實驗中, 不建議使用）
+    - TiDB（MySQL 協議）
   - 設定檔
     - [app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
   - 管理員面板
@@ -255,7 +255,7 @@ Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [G
 - 在類 UNIX 系統上， 應該以專用的非 root 系統帳號來執行 Gitea。
   - 備註：Gitea 管理著 `~/.ssh/authorized_keys` 檔案。以一般身份使用者執行 Gitea 可能會破壞該使用者的登入能力。
 
-- [Git](https://git-scm.com/) 的最低需求為 1.7.2 或更新版本。建議使用 1.9.0 或更新版本。並請留意：
+- [Git](https://git-scm.com/) 的最低需求為 2.0 或更新版本。
   - 當 git 版本 >= 2.1.2 時，可啟用 Git [large file storage](https://git-lfs.github.com/)。
   - 當 git 版本 >= 2.18 時，將自動啟用 Git 提交線圖渲染。
 
@@ -269,19 +269,17 @@ Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [G
 - Web 框架： [Chi](http://github.com/go-chi/chi)
 - ORM： [XORM](https://xorm.io)
 - UI 元件：
-  - [Semantic UI](http://semantic-ui.com/)
-  - [GitHub Octicons](https://octicons.github.com/)
-  - [Font Awesome](http://fontawesome.io/)
-  - [DropzoneJS](http://www.dropzonejs.com/)
-  - [Highlight](https://highlightjs.org/)
-  - [Clipboard](https://zenorocha.github.io/clipboard.js/)
-  - [CodeMirror](https://codemirror.net/)
-  - [jQuery MiniColors](https://github.com/claviska/jquery-minicolors)
+  - [jQuery](https://jquery.com)
+  - [Fomantic UI](https://fomantic-ui.com)
+  - [Vue3](https://vuejs.org)
+  - [CodeMirror](https://codemirror.net)
+  - [EasyMDE](https://github.com/Ionaru/easy-markdown-editor)
+  - [Monaco Editor](https://microsoft.github.io/monaco-editor)
+  - ... (package.json)
 - 資料庫驅動程式：
   - [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
   - [github.com/lib/pq](https://github.com/lib/pq)
   - [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
-  - [github.com/pingcap/tidb](https://github.com/pingcap/tidb)
   - [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
 ## 軟體和服務支援

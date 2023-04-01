@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package util
 
@@ -36,7 +35,7 @@ func TestPaginateSlice(t *testing.T) {
 		Val int
 	}
 
-	var testVar = []*Test{{Val: 2}, {Val: 3}, {Val: 4}}
+	testVar := []*Test{{Val: 2}, {Val: 3}, {Val: 4}}
 	testVar, ok = PaginateSlice(testVar, 1, 50).([]*Test)
 	assert.True(t, ok)
 	assert.EqualValues(t, []*Test{{Val: 2}, {Val: 3}, {Val: 4}}, testVar)

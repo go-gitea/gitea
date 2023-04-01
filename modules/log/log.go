@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package log
 
@@ -10,6 +9,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"code.gitea.io/gitea/modules/process"
 )
 
 type loggerMap struct {
@@ -219,9 +220,9 @@ func ReleaseReopen() error {
 		logger := value.(*MultiChannelledLogger)
 		if err := logger.ReleaseReopen(); err != nil {
 			if accumulatedErr == nil {
-				accumulatedErr = fmt.Errorf("Error reopening %s: %v", key.(string), err)
+				accumulatedErr = fmt.Errorf("Error reopening %s: %w", key.(string), err)
 			} else {
-				accumulatedErr = fmt.Errorf("Error reopening %s: %v & %v", key.(string), err, accumulatedErr)
+				accumulatedErr = fmt.Errorf("Error reopening %s: %v & %w", key.(string), err, accumulatedErr)
 			}
 		}
 		return true
@@ -286,6 +287,19 @@ func (l *LoggerAsWriter) Log(msg string) {
 }
 
 func init() {
+	process.Trace = func(start bool, pid process.IDType, description string, parentPID process.IDType, typ string) {
+		if start && parentPID != "" {
+			Log(1, TRACE, "Start %s: %s (from %s) (%s)", NewColoredValue(pid, FgHiYellow), description, NewColoredValue(parentPID, FgYellow), NewColoredValue(typ, Reset))
+		} else if start {
+			Log(1, TRACE, "Start %s: %s (%s)", NewColoredValue(pid, FgHiYellow), description, NewColoredValue(typ, Reset))
+		} else {
+			Log(1, TRACE, "Done %s: %s", NewColoredValue(pid, FgHiYellow), NewColoredValue(description, Reset))
+		}
+	}
 	_, filename, _, _ := runtime.Caller(0)
 	prefix = strings.TrimSuffix(filename, "modules/log/log.go")
+	if prefix == filename {
+		// in case the source code file is moved, we can not trim the suffix, the code above should also be updated.
+		panic("unable to detect correct package prefix, please update file: " + filename)
+	}
 }

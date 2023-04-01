@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -17,9 +16,7 @@ type ResponseWriter interface {
 	Size() int
 }
 
-var (
-	_ ResponseWriter = &Response{}
-)
+var _ ResponseWriter = &Response{}
 
 // Response represents a response
 type Response struct {
@@ -49,7 +46,7 @@ func (r *Response) Write(bs []byte) (int, error) {
 		return size, err
 	}
 	if r.status == 0 {
-		r.WriteHeader(200)
+		r.status = http.StatusOK
 	}
 	return size, nil
 }

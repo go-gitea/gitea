@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package log
 
@@ -73,7 +72,7 @@ func (logger *WriterLogger) GetStacktraceLevel() Level {
 }
 
 // Copy of cheap integer to fixed-width decimal to ascii from logger.
-func itoa(buf *[]byte, i int, wid int) {
+func itoa(buf *[]byte, i, wid int) {
 	var logger [20]byte
 	bp := len(logger) - 1
 	for i >= 10 || wid > 1 {
@@ -189,7 +188,7 @@ func (logger *WriterLogger) createMsg(buf *[]byte, event *Event) {
 		*buf = append(*buf, ' ')
 	}
 
-	var msg = []byte(event.msg)
+	msg := []byte(event.msg)
 	if len(msg) > 0 && msg[len(msg)-1] == '\n' {
 		msg = msg[:len(msg)-1]
 	}

@@ -1,13 +1,16 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markdown_test
 
 import (
+	"context"
+	"os"
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	. "code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -16,15 +19,31 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const AppURL = "http://localhost:3000/"
-const Repo = "gogits/gogs"
-const AppSubURL = AppURL + Repo + "/"
+const (
+	AppURL    = "http://localhost:3000/"
+	Repo      = "gogits/gogs"
+	AppSubURL = AppURL + Repo + "/"
+)
 
 // these values should match the Repo const above
 var localMetas = map[string]string{
 	"user":     "gogits",
 	"repo":     "gogs",
-	"repoPath": "../../../integrations/gitea-repositories-meta/user13/repo11.git/",
+	"repoPath": "../../../tests/gitea-repositories-meta/user13/repo11.git/",
+}
+
+func TestMain(m *testing.M) {
+	setting.InitProviderAllowEmpty()
+	setting.LoadCommonSettings()
+	if err := git.InitSimple(context.Background()); err != nil {
+		log.Fatal("git init failed, err: %v", err)
+	}
+	markup.Init(&markup.ProcessorHelper{
+		IsUsernameMentionable: func(ctx context.Context, username string) bool {
+			return username == "r-lyeh"
+		},
+	})
+	os.Exit(m.Run())
 }
 
 func TestRender_StandardLinks(t *testing.T) {
@@ -33,15 +52,18 @@ func TestRender_StandardLinks(t *testing.T) {
 
 	test := func(input, expected, expectedWiki string) {
 		buffer, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: setting.AppSubURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 
 		buffer, err = RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: setting.AppSubURL,
 			IsWiki:    true,
 		}, input)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
 	}
 
@@ -55,34 +77,13 @@ func TestRender_StandardLinks(t *testing.T) {
 		`<p><a href="`+lnkWiki+`" rel="nofollow">WikiPage</a></p>`)
 }
 
-func TestMisc_IsMarkdownFile(t *testing.T) {
-	setting.Markdown.FileExtensions = []string{".md", ".markdown", ".mdown", ".mkd"}
-	trueTestCases := []string{
-		"test.md",
-		"wow.MARKDOWN",
-		"LOL.mDoWn",
-	}
-	falseTestCases := []string{
-		"test",
-		"abcdefg",
-		"abcdefghijklmnopqrstuvwxyz",
-		"test.md.test",
-	}
-
-	for _, testCase := range trueTestCases {
-		assert.True(t, IsMarkdownFile(testCase))
-	}
-	for _, testCase := range falseTestCases {
-		assert.False(t, IsMarkdownFile(testCase))
-	}
-}
-
 func TestRender_Images(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: setting.AppSubURL,
 		}, input)
 		assert.NoError(t, err)
@@ -93,10 +94,11 @@ func TestRender_Images(t *testing.T) {
 	title := "Train"
 	href := "https://gitea.io"
 	result := util.URLJoin(AppSubURL, url)
+	// hint: With Markdown v2.5.2, there is a new syntax: [link](URL){:target="_blank"} , but we do not support it now
 
 	test(
 		"!["+title+"]("+url+")",
-		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+		`<p><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 
 	test(
 		"[["+title+"|"+url+"]]",
@@ -108,7 +110,7 @@ func TestRender_Images(t *testing.T) {
 	url = "/../../.images/src/02/train.jpg"
 	test(
 		"!["+title+"]("+url+")",
-		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+		`<p><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 
 	test(
 		"[["+title+"|"+url+"]]",
@@ -116,7 +118,6 @@ func TestRender_Images(t *testing.T) {
 	test(
 		"[!["+title+"]("+url+")]("+href+")",
 		`<p><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
-
 }
 
 func testAnswers(baseURLContent, baseURLImages string) []string {
@@ -166,9 +167,9 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <p>(from <a href="https://www.markdownguide.org/extended-syntax/" rel="nofollow">https://www.markdownguide.org/extended-syntax/</a>)</p>
 <h3 id="user-content-checkboxes">Checkboxes</h3>
 <ul>
-<li class="task-list-item"><input type="checkbox" disabled=""/>unchecked</li>
-<li class="task-list-item"><input type="checkbox" disabled="" checked=""/>checked</li>
-<li class="task-list-item"><input type="checkbox" disabled=""/>still unchecked</li>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="434"/>unchecked</li>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="450" checked=""/>checked</li>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="464"/>still unchecked</li>
 </ul>
 <h3 id="user-content-definition-list">Definition list</h3>
 <dl>
@@ -194,6 +195,11 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 </li>
 </ol>
 </div>
+`, `<ul>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="3"/> If you want to rebase/retry this PR, click this checkbox.</li>
+</ul>
+<hr/>
+<p>This PR has been generated by <a href="https://github.com/renovatebot/renovate" rel="nofollow">Renovate Bot</a>.</p>
 `,
 	}
 }
@@ -266,13 +272,25 @@ Here is a simple footnote,[^1] and here is a longer one.[^bignote]
 
     Add as many paragraphs as you like.
 `,
+	`
+- [ ] <!-- rebase-check --> If you want to rebase/retry this PR, click this checkbox.
+
+---
+
+This PR has been generated by [Renovate Bot](https://github.com/renovatebot/renovate).
+
+<!-- test-comment -->`,
 }
 
 func TestTotal_RenderWiki(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
 	answers := testAnswers(util.URLJoin(AppSubURL, "wiki/"), util.URLJoin(AppSubURL, "wiki", "raw/"))
 
 	for i := 0; i < len(sameCases); i++ {
 		line, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: AppSubURL,
 			Metas:     localMetas,
 			IsWiki:    true,
@@ -296,6 +314,7 @@ func TestTotal_RenderWiki(t *testing.T) {
 
 	for i := 0; i < len(testCases); i += 2 {
 		line, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: AppSubURL,
 			IsWiki:    true,
 		}, testCases[i])
@@ -305,10 +324,14 @@ func TestTotal_RenderWiki(t *testing.T) {
 }
 
 func TestTotal_RenderString(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
 	answers := testAnswers(util.URLJoin(AppSubURL, "src", "master/"), util.URLJoin(AppSubURL, "raw", "master/"))
 
 	for i := 0; i < len(sameCases); i++ {
 		line, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: util.URLJoin(AppSubURL, "src", "master/"),
 			Metas:     localMetas,
 		}, sameCases[i])
@@ -320,6 +343,7 @@ func TestTotal_RenderString(t *testing.T) {
 
 	for i := 0; i < len(testCases); i += 2 {
 		line, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: AppSubURL,
 		}, testCases[i])
 		assert.NoError(t, err)
@@ -329,17 +353,17 @@ func TestTotal_RenderString(t *testing.T) {
 
 func TestRender_RenderParagraphs(t *testing.T) {
 	test := func(t *testing.T, str string, cnt int) {
-		res, err := RenderRawString(&markup.RenderContext{}, str)
+		res, err := RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, str)
 		assert.NoError(t, err)
 		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for unix should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
 		mac := strings.ReplaceAll(str, "\n", "\r")
-		res, err = RenderRawString(&markup.RenderContext{}, mac)
+		res, err = RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, mac)
 		assert.NoError(t, err)
 		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for mac should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
 		dos := strings.ReplaceAll(str, "\n", "\r\n")
-		res, err = RenderRawString(&markup.RenderContext{}, dos)
+		res, err = RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, dos)
 		assert.NoError(t, err)
 		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for windows should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 	}
@@ -366,7 +390,8 @@ func TestMarkdownRenderRaw(t *testing.T) {
 	}
 
 	for _, testcase := range testcases {
-		_, err := RenderRawString(&markup.RenderContext{}, string(testcase))
+		log.Info("Test markdown render error with fuzzy data: %x, the following errors can be recovered", testcase)
+		_, err := RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, string(testcase))
 		assert.NoError(t, err)
 	}
 }
@@ -375,11 +400,122 @@ func TestRenderSiblingImages_Issue12925(t *testing.T) {
 	testcase := `![image1](/image1)
 ![image2](/image2)
 `
-	expected := `<p><a href="/image1" rel="nofollow"><img src="/image1" alt="image1"></a><br>
-<a href="/image2" rel="nofollow"><img src="/image2" alt="image2"></a></p>
+	expected := `<p><a href="/image1" target="_blank" rel="nofollow noopener"><img src="/image1" alt="image1"></a><br>
+<a href="/image2" target="_blank" rel="nofollow noopener"><img src="/image2" alt="image2"></a></p>
 `
-	res, err := RenderRawString(&markup.RenderContext{}, testcase)
+	res, err := RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, testcase)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, res)
+}
 
+func TestRenderEmojiInLinks_Issue12331(t *testing.T) {
+	testcase := `[Link with emoji :moon: in text](https://gitea.io)`
+	expected := `<p><a href="https://gitea.io" rel="nofollow">Link with emoji <span class="emoji" aria-label="waxing gibbous moon">🌔</span> in text</a></p>
+`
+	res, err := RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, testcase)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, res)
+}
+
+func TestColorPreview(t *testing.T) {
+	const nl = "\n"
+	positiveTests := []struct {
+		testcase string
+		expected string
+	}{
+		{ // hex
+			"`#FF0000`",
+			`<p><code>#FF0000<span class="color-preview" style="background-color: #FF0000"></span></code></p>` + nl,
+		},
+		{ // rgb
+			"`rgb(16, 32, 64)`",
+			`<p><code>rgb(16, 32, 64)<span class="color-preview" style="background-color: rgb(16, 32, 64)"></span></code></p>` + nl,
+		},
+		{ // short hex
+			"This is the color white `#000`",
+			`<p>This is the color white <code>#000<span class="color-preview" style="background-color: #000"></span></code></p>` + nl,
+		},
+		{ // hsl
+			"HSL stands for hue, saturation, and lightness. An example: `hsl(0, 100%, 50%)`.",
+			`<p>HSL stands for hue, saturation, and lightness. An example: <code>hsl(0, 100%, 50%)<span class="color-preview" style="background-color: hsl(0, 100%, 50%)"></span></code>.</p>` + nl,
+		},
+		{ // uppercase hsl
+			"HSL stands for hue, saturation, and lightness. An example: `HSL(0, 100%, 50%)`.",
+			`<p>HSL stands for hue, saturation, and lightness. An example: <code>HSL(0, 100%, 50%)<span class="color-preview" style="background-color: HSL(0, 100%, 50%)"></span></code>.</p>` + nl,
+		},
+	}
+
+	for _, test := range positiveTests {
+		res, err := RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test.testcase)
+		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
+		assert.Equal(t, test.expected, res, "Unexpected result in testcase %q", test.testcase)
+
+	}
+
+	negativeTests := []string{
+		// not a color code
+		"`FF0000`",
+		// inside a code block
+		"```javascript" + nl + `const red = "#FF0000";` + nl + "```",
+		// no backticks
+		"rgb(166, 32, 64)",
+		// typo
+		"`hsI(0, 100%, 50%)`",
+		// looks like a color but not really
+		"`hsl(40, 60, 80)`",
+	}
+
+	for _, test := range negativeTests {
+		res, err := RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test)
+		assert.NoError(t, err, "Unexpected error in testcase: %q", test)
+		assert.NotContains(t, res, `<span class="color-preview" style="background-color: `, "Unexpected result in testcase %q", test)
+	}
+}
+
+func TestMathBlock(t *testing.T) {
+	const nl = "\n"
+	testcases := []struct {
+		testcase string
+		expected string
+	}{
+		{
+			"$a$",
+			`<p><code class="language-math is-loading">a</code></p>` + nl,
+		},
+		{
+			"$ a $",
+			`<p><code class="language-math is-loading">a</code></p>` + nl,
+		},
+		{
+			"$a$ $b$",
+			`<p><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
+		},
+		{
+			`\(a\) \(b\)`,
+			`<p><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
+		},
+		{
+			`$a a$b b$`,
+			`<p><code class="language-math is-loading">a a$b b</code></p>` + nl,
+		},
+		{
+			`a a$b b`,
+			`<p>a a$b b</p>` + nl,
+		},
+		{
+			`a$b $a a$b b$`,
+			`<p>a$b <code class="language-math is-loading">a a$b b</code></p>` + nl,
+		},
+		{
+			"$$a$$",
+			`<pre class="code-block is-loading"><code class="chroma language-math display">a</code></pre>` + nl,
+		},
+	}
+
+	for _, test := range testcases {
+		res, err := RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test.testcase)
+		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
+		assert.Equal(t, test.expected, res, "Unexpected result in testcase %q", test.testcase)
+
+	}
 }

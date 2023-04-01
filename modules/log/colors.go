@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package log
 
@@ -169,10 +168,12 @@ var levelToColor = map[Level][]byte{
 	NONE:     ColorBytes(Reset),
 }
 
-var resetBytes = ColorBytes(Reset)
-var fgCyanBytes = ColorBytes(FgCyan)
-var fgGreenBytes = ColorBytes(FgGreen)
-var fgBoldBytes = ColorBytes(Bold)
+var (
+	resetBytes   = ColorBytes(Reset)
+	fgCyanBytes  = ColorBytes(FgCyan)
+	fgGreenBytes = ColorBytes(FgGreen)
+	fgBoldBytes  = ColorBytes(Bold)
+)
 
 type protectedANSIWriterMode int
 
@@ -259,7 +260,7 @@ normalLoop:
 		}
 
 		// Process naughty character
-		if _, err := fmt.Fprintf(c.w, `\%#o03d`, bytes[i]); err != nil {
+		if _, err := fmt.Fprintf(c.w, `\%#03o`, bytes[i]); err != nil {
 			return totalWritten, err
 		}
 		i++
@@ -335,7 +336,6 @@ func NewColoredValuePointer(value *interface{}, color ...ColorAttribute) *Colore
 		resetBytes: &resetBytes,
 		Value:      value,
 	}
-
 }
 
 // NewColoredValueBytes creates a value from the provided value with color bytes
@@ -381,6 +381,13 @@ func (cv *ColoredValue) Format(s fmt.State, c rune) {
 	s.Write(*cv.colorBytes)
 	fmt.Fprintf(&protectedANSIWriter{w: s}, fmtString(s, c), *(cv.Value))
 	s.Write(*cv.resetBytes)
+}
+
+// ColorFormatAsString returns the result of the ColorFormat without the color
+func ColorFormatAsString(colorVal ColorFormatted) string {
+	s := new(strings.Builder)
+	_, _ = ColorFprintf(&protectedANSIWriter{w: s, mode: removeColor}, "%-v", colorVal)
+	return s.String()
 }
 
 // SetColorBytes will allow a user to set the colorBytes of a colored value

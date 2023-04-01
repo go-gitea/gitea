@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package timeutil
 
@@ -10,13 +9,11 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-var (
-	langTimeFormats = map[string]string{
-		"zh-CN": "2006年01月02日 15时04分05秒",
-		"en-US": time.RFC1123,
-		"lv-LV": "02.01.2006. 15:04:05",
-	}
-)
+var langTimeFormats = map[string]string{
+	"zh-CN": "2006年01月02日 15时04分05秒",
+	"en-US": time.RFC1123,
+	"lv-LV": "02.01.2006. 15:04:05",
+}
 
 // GetLangTimeFormat represents the default time format for the language
 func GetLangTimeFormat(lang string) string {

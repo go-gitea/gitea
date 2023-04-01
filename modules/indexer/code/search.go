@@ -1,11 +1,11 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package code
 
 import (
 	"bytes"
+	"context"
 	"strings"
 
 	"code.gitea.io/gitea/modules/highlight"
@@ -93,6 +93,9 @@ func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, erro
 		lineNumbers[i] = startLineNum + i
 		index += len(line)
 	}
+
+	highlighted, _ := highlight.Code(result.Filename, "", formattedLinesBuffer.String())
+
 	return &Result{
 		RepoID:         result.RepoID,
 		Filename:       result.Filename,
@@ -101,17 +104,17 @@ func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, erro
 		Language:       result.Language,
 		Color:          result.Color,
 		LineNumbers:    lineNumbers,
-		FormattedLines: highlight.Code(result.Filename, formattedLinesBuffer.String()),
+		FormattedLines: highlighted,
 	}, nil
 }
 
 // PerformSearch perform a search on a repository
-func PerformSearch(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int, []*Result, []*SearchResultLanguages, error) {
+func PerformSearch(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int, []*Result, []*SearchResultLanguages, error) {
 	if len(keyword) == 0 {
 		return 0, nil, nil, nil
 	}
 
-	total, results, resultLanguages, err := indexer.Search(repoIDs, language, keyword, page, pageSize, isMatch)
+	total, results, resultLanguages, err := indexer.Search(ctx, repoIDs, language, keyword, page, pageSize, isMatch)
 	if err != nil {
 		return 0, nil, nil, err
 	}

@@ -1,11 +1,12 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package upload
 
 import (
+	"mime"
 	"net/http"
+	"net/url"
 	"path"
 	"regexp"
 	"strings"
@@ -30,11 +31,10 @@ func (err ErrFileTypeForbidden) Error() string {
 	return "This file extension or type is not allowed to be uploaded."
 }
 
-var mimeTypeSuffixRe = regexp.MustCompile(`;.*$`)
 var wildcardTypeRe = regexp.MustCompile(`^[a-z]+/\*$`)
 
 // Verify validates whether a file is allowed to be uploaded.
-func Verify(buf []byte, fileName string, allowedTypesStr string) error {
+func Verify(buf []byte, fileName, allowedTypesStr string) error {
 	allowedTypesStr = strings.ReplaceAll(allowedTypesStr, "|", ",") // compat for old config format
 
 	allowedTypes := []string{}
@@ -50,7 +50,11 @@ func Verify(buf []byte, fileName string, allowedTypesStr string) error {
 	}
 
 	fullMimeType := http.DetectContentType(buf)
-	mimeType := strings.TrimSpace(mimeTypeSuffixRe.ReplaceAllString(fullMimeType, ""))
+	mimeType, _, err := mime.ParseMediaType(fullMimeType)
+	if err != nil {
+		log.Warn("Detected attachment type could not be parsed %s", fullMimeType)
+		return ErrFileTypeForbidden{Type: fullMimeType}
+	}
 	extension := strings.ToLower(path.Ext(fileName))
 
 	// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file#Unique_file_type_specifiers
@@ -83,7 +87,7 @@ func AddUploadContext(ctx *context.Context, uploadType string) {
 		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
 		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/issues/attachments/remove"
 		if len(ctx.Params(":index")) > 0 {
-			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/" + ctx.Params(":index") + "/attachments"
+			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/" + url.PathEscape(ctx.Params(":index")) + "/attachments"
 		} else {
 			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
 		}

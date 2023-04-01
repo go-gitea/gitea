@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package lfs
 
@@ -45,18 +44,18 @@ type BatchResponse struct {
 // ObjectResponse is object metadata as seen by clients of the LFS server.
 type ObjectResponse struct {
 	Pointer
-	Actions map[string]*Link `json:"actions"`
+	Actions map[string]*Link `json:"actions,omitempty"`
 	Error   *ObjectError     `json:"error,omitempty"`
 }
 
-// Link provides a structure used to build a hypermedia representation of an HTTP link.
+// Link provides a structure with information about how to access a object.
 type Link struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header,omitempty"`
-	ExpiresAt time.Time         `json:"expires_at,omitempty"`
+	ExpiresAt *time.Time        `json:"expires_at,omitempty"`
 }
 
-// ObjectError defines the JSON structure returned to the client in case of an error
+// ObjectError defines the JSON structure returned to the client in case of an error.
 type ObjectError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
@@ -66,4 +65,11 @@ type ObjectError struct {
 type PointerBlob struct {
 	Hash string
 	Pointer
+}
+
+// ErrorResponse describes the error to the client.
+type ErrorResponse struct {
+	Message          string
+	DocumentationURL string `json:"documentation_url,omitempty"`
+	RequestID        string `json:"request_id,omitempty"`
 }

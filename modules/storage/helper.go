@@ -1,13 +1,16 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package storage
 
 import (
+	"fmt"
+	"io"
+	"net/url"
+	"os"
 	"reflect"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
 )
 
 // Mappable represents an interface that can MapTo another interface
@@ -20,8 +23,6 @@ type Mappable interface {
 // It will tolerate the cfg being passed as a []byte or string of a json representation of the
 // exemplar or the correct type of the exemplar itself
 func toConfig(exemplar, cfg interface{}) (interface{}, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-
 	// First of all check if we've got the same type as the exemplar - if so it's all fine.
 	if reflect.TypeOf(cfg).AssignableTo(reflect.TypeOf(exemplar)) {
 		return cfg, nil
@@ -48,7 +49,6 @@ func toConfig(exemplar, cfg interface{}) (interface{}, error) {
 	if !ok {
 		// hmm ... can we marshal it to json?
 		var err error
-
 		configBytes, err = json.Marshal(cfg)
 		ok = err == nil
 	}
@@ -64,4 +64,32 @@ func toConfig(exemplar, cfg interface{}) (interface{}, error) {
 		return nil, ErrInvalidConfiguration{cfg: cfg, err: err}
 	}
 	return newVal.Elem().Interface(), nil
+}
+
+var uninitializedStorage = discardStorage("uninitialized storage")
+
+type discardStorage string
+
+func (s discardStorage) Open(_ string) (Object, error) {
+	return nil, fmt.Errorf("%s", s)
+}
+
+func (s discardStorage) Save(_ string, _ io.Reader, _ int64) (int64, error) {
+	return 0, fmt.Errorf("%s", s)
+}
+
+func (s discardStorage) Stat(_ string) (os.FileInfo, error) {
+	return nil, fmt.Errorf("%s", s)
+}
+
+func (s discardStorage) Delete(_ string) error {
+	return fmt.Errorf("%s", s)
+}
+
+func (s discardStorage) URL(_, _ string) (*url.URL, error) {
+	return nil, fmt.Errorf("%s", s)
+}
+
+func (s discardStorage) IterateObjects(_ string, _ func(string, Object) error) error {
+	return fmt.Errorf("%s", s)
 }

@@ -13,3 +13,8 @@
 		<p>{{.Flash.InfoMsg | Str2html}}</p>
 	</div>
 {{end}}
+{{if .Flash.WarningMsg}}
+	<div class="ui warning message flash-warning">
+		<p>{{.Flash.WarningMsg | Str2html}}</p>
+	</div>
+{{end}}

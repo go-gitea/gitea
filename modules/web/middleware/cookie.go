@@ -1,7 +1,6 @@
 // Copyright 2020 The Macaron Authors
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package middleware
 
@@ -98,17 +97,6 @@ func DeleteRedirectToCookie(resp http.ResponseWriter) {
 		SameSite(setting.SessionConfig.SameSite))
 }
 
-// DeleteSesionConfigPathCookie convenience function to delete SessionConfigPath cookies consistently
-func DeleteSesionConfigPathCookie(resp http.ResponseWriter, name string) {
-	SetCookie(resp, name, "",
-		-1,
-		setting.SessionConfig.CookiePath,
-		setting.SessionConfig.Domain,
-		setting.SessionConfig.Secure,
-		true,
-		SameSite(setting.SessionConfig.SameSite))
-}
-
 // DeleteCSRFCookie convenience function to delete SessionConfigPath cookies consistently
 func DeleteCSRFCookie(resp http.ResponseWriter) {
 	SetCookie(resp, setting.CSRFCookieName, "",
@@ -117,9 +105,9 @@ func DeleteCSRFCookie(resp http.ResponseWriter) {
 		setting.SessionConfig.Domain) // FIXME: Do we need to set the Secure, httpOnly and SameSite values too?
 }
 
-// SetCookie set the cookies
+// SetCookie set the cookies. (name, value, lifetime, path, domain, secure, httponly, expires, {sameSite, ...})
 // TODO: Copied from gitea.com/macaron/macaron and should be improved after macaron removed.
-func SetCookie(resp http.ResponseWriter, name string, value string, others ...interface{}) {
+func SetCookie(resp http.ResponseWriter, name, value string, others ...interface{}) {
 	cookie := http.Cookie{}
 	cookie.Name = name
 	cookie.Value = url.QueryEscape(value)
@@ -149,7 +137,7 @@ func SetCookie(resp http.ResponseWriter, name string, value string, others ...in
 	if len(others) > 2 {
 		if v, ok := others[2].(string); ok && len(v) > 0 {
 			cookie.Domain = v
-		} else if v, ok := others[1].(func(*http.Cookie)); ok {
+		} else if v, ok := others[2].(func(*http.Cookie)); ok {
 			v(&cookie)
 		}
 	}
@@ -170,7 +158,7 @@ func SetCookie(resp http.ResponseWriter, name string, value string, others ...in
 	if len(others) > 4 {
 		if v, ok := others[4].(bool); ok && v {
 			cookie.HttpOnly = true
-		} else if v, ok := others[1].(func(*http.Cookie)); ok {
+		} else if v, ok := others[4].(func(*http.Cookie)); ok {
 			v(&cookie)
 		}
 	}
@@ -179,7 +167,7 @@ func SetCookie(resp http.ResponseWriter, name string, value string, others ...in
 		if v, ok := others[5].(time.Time); ok {
 			cookie.Expires = v
 			cookie.RawExpires = v.Format(time.UnixDate)
-		} else if v, ok := others[1].(func(*http.Cookie)); ok {
+		} else if v, ok := others[5].(func(*http.Cookie)); ok {
 			v(&cookie)
 		}
 	}

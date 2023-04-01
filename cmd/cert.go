@@ -1,8 +1,7 @@
 // Copyright 2009 The Go Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -180,7 +179,7 @@ func runCert(c *cli.Context) error {
 	}
 	log.Println("Written cert.pem")
 
-	keyOut, err := os.OpenFile("key.pem", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	keyOut, err := os.OpenFile("key.pem", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		log.Fatalf("Failed to open key.pem for writing: %v", err)
 	}

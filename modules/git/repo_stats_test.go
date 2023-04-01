@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -14,7 +13,7 @@ import (
 
 func TestRepository_GetCodeActivityStats(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(bareRepo1Path)
+	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -25,9 +24,9 @@ func TestRepository_GetCodeActivityStats(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, code)
 
-	assert.EqualValues(t, 9, code.CommitCount)
+	assert.EqualValues(t, 10, code.CommitCount)
 	assert.EqualValues(t, 3, code.AuthorCount)
-	assert.EqualValues(t, 9, code.CommitCountInAllBranches)
+	assert.EqualValues(t, 10, code.CommitCountInAllBranches)
 	assert.EqualValues(t, 10, code.Additions)
 	assert.EqualValues(t, 1, code.Deletions)
 	assert.Len(t, code.Authors, 3)

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package gitgraph
 
@@ -144,7 +143,6 @@ func (parser *Parser) releaseUnusedColors() {
 
 // ParseGlyphs parses the provided glyphs and sets the internal state
 func (parser *Parser) ParseGlyphs(glyphs []byte) {
-
 	// Clean state for parsing this row
 	parser.glyphs, parser.oldGlyphs = parser.oldGlyphs, parser.glyphs
 	parser.glyphs = parser.glyphs[0:0]

@@ -1,34 +1,94 @@
 linters:
   enable:
-    - gosimple
-    - deadcode
-    - typecheck
-    - govet
-    - errcheck
-    - staticcheck
-    - unused
-    - structcheck
-    - varcheck
-    - golint
+    - bidichk
+    # - deadcode # deprecated - https://github.com/golangci/golangci-lint/issues/1841
+    - depguard
     - dupl
-    #- gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
-    - gofmt
-    - misspell
+    - errcheck
     - gocritic
+    # - gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
+    - gofmt
+    - gofumpt
+    - gosimple
+    - govet
+    - ineffassign
+    - nakedret
+    - nolintlint
+    - revive
+    - staticcheck
+    # - structcheck # deprecated - https://github.com/golangci/golangci-lint/issues/1841
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unused
+    # - varcheck # deprecated - https://github.com/golangci/golangci-lint/issues/1841
+    # - wastedassign # disabled - https://github.com/golangci/golangci-lint/issues/2649
   enable-all: false
   disable-all: true
   fast: false
 
 run:
-  timeout: 3m
+  go: "1.20"
+  timeout: 10m
+  skip-dirs:
+    - node_modules
+    - public
+    - web_src
 
 linters-settings:
+  stylecheck:
+    checks: ["all", "-ST1005", "-ST1003"]
+  nakedret:
+    max-func-lines: 0
   gocritic:
     disabled-checks:
       - ifElseChain
       - singleCaseSwitch # Every time this occurred in the code, there  was no other way.
+  revive:
+    ignore-generated-header: false
+    severity: warning
+    confidence: 0.8
+    errorCode: 1
+    warningCode: 1
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: duplicated-imports
+      - name: modifies-value-receiver
+  gofumpt:
+    extra-rules: true
+    lang-version: "1.20"
+  depguard:
+    list-type: denylist
+    # Check the list against standard lib.
+    include-go-root: true
+    packages-with-error-message:
+      - encoding/json: "use gitea's modules/json instead of encoding/json"
+      - github.com/unknwon/com: "use gitea's util and replacements"
+      - io/ioutil: "use os or io instead"
+      - golang.org/x/exp: "it's experimental and unreliable."
+      - code.gitea.io/gitea/modules/git/internal: "do not use the internal package, use AddXxx function instead"
 
 issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test\.go
@@ -70,9 +130,6 @@ issues:
     - path: modules/log/
       linters:
         - errcheck
-    - path: routers/routes/web.go
-      linters:
-        - dupl
     - path: routers/api/v1/repo/issue_subscription.go
       linters:
         - dupl
@@ -92,9 +149,6 @@ issues:
     - path: models/issue_comment_list.go
       linters:
         - dupl
-    - linters:
-        - misspell
-      text: '`Unknwon` is a misspelling of `Unknown`'
     - path: models/update.go
       linters:
         - unused
@@ -110,3 +164,14 @@ issues:
     - text: "exitAfterDefer:"
       linters:
         - gocritic
+    - path: modules/graceful/manager_windows.go
+      linters:
+        - staticcheck
+      text: "svc.IsAnInteractiveSession is deprecated: Use IsWindowsService instead."
+    - path: models/user/openid.go
+      linters:
+        - golint
+    - path: models/user/badge.go
+      linters:
+        - revive
+      text: "exported: type name will be used as user.UserBadge by other packages, and that stutters; consider calling this Badge"

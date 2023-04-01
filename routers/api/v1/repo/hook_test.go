@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -8,7 +7,8 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/test"
 
@@ -16,7 +16,7 @@ import (
 )
 
 func TestTestHook(t *testing.T) {
-	models.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1/wiki/_pages")
 	ctx.SetParams(":id", "1")
@@ -26,8 +26,7 @@ func TestTestHook(t *testing.T) {
 	TestHook(&context.APIContext{Context: ctx, Org: nil})
 	assert.EqualValues(t, http.StatusNoContent, ctx.Resp.Status())
 
-	models.AssertExistsAndLoadBean(t, &models.HookTask{
-		RepoID: 1,
+	unittest.AssertExistsAndLoadBean(t, &webhook.HookTask{
 		HookID: 1,
-	}, models.Cond("is_delivered=?", false))
+	}, unittest.Cond("is_delivered=?", false))
 }

@@ -1,11 +1,9 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package lfs
 
 import (
-	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -14,6 +12,10 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
+
+	"github.com/minio/sha256-simd"
 )
 
 const (
@@ -109,6 +111,17 @@ func (p Pointer) RelativePath() string {
 	}
 
 	return path.Join(p.Oid[0:2], p.Oid[2:4], p.Oid[4:])
+}
+
+// ColorFormat provides a basic color format for a Team
+func (p Pointer) ColorFormat(s fmt.State) {
+	if p.Oid == "" && p.Size == 0 {
+		log.ColorFprintf(s, "<empty>")
+		return
+	}
+	log.ColorFprintf(s, "%s:%d",
+		log.NewColoredIDValue(p.Oid),
+		p.Size)
 }
 
 // GeneratePointer generates a pointer for arbitrary content

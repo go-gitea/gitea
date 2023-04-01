@@ -1,13 +1,11 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -23,12 +21,7 @@ type CommitTreeOpts struct {
 }
 
 // CommitTree creates a commit from a given tree id for the user with provided message
-func (repo *Repository) CommitTree(author *Signature, committer *Signature, tree *Tree, opts CommitTreeOpts) (SHA1, error) {
-	err := LoadGitVersion()
-	if err != nil {
-		return SHA1{}, err
-	}
-
+func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opts CommitTreeOpts) (SHA1, error) {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	// Because this may call hooks we should pass in the environment
@@ -40,28 +33,33 @@ func (repo *Repository) CommitTree(author *Signature, committer *Signature, tree
 		"GIT_COMMITTER_EMAIL="+committer.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
-	cmd := NewCommand("commit-tree", tree.ID.String())
+	cmd := NewCommand(repo.Ctx, "commit-tree").AddDynamicArguments(tree.ID.String())
 
 	for _, parent := range opts.Parents {
-		cmd.AddArguments("-p", parent)
+		cmd.AddArguments("-p").AddDynamicArguments(parent)
 	}
 
 	messageBytes := new(bytes.Buffer)
 	_, _ = messageBytes.WriteString(opts.Message)
 	_, _ = messageBytes.WriteString("\n")
 
-	if CheckGitVersionAtLeast("1.7.9") == nil && (opts.KeyID != "" || opts.AlwaysSign) {
-		cmd.AddArguments(fmt.Sprintf("-S%s", opts.KeyID))
+	if opts.KeyID != "" || opts.AlwaysSign {
+		cmd.AddOptionFormat("-S%s", opts.KeyID)
 	}
 
-	if CheckGitVersionAtLeast("2.0.0") == nil && opts.NoGPGSign {
+	if opts.NoGPGSign {
 		cmd.AddArguments("--no-gpg-sign")
 	}
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err = cmd.RunInDirTimeoutEnvFullPipeline(env, -1, repo.Path, stdout, stderr, messageBytes)
-
+	err := cmd.Run(&RunOpts{
+		Env:    env,
+		Dir:    repo.Path,
+		Stdin:  messageBytes,
+		Stdout: stdout,
+		Stderr: stderr,
+	})
 	if err != nil {
 		return SHA1{}, ConcatenateError(err, stderr.String())
 	}

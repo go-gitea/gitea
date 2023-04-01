@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -20,49 +19,52 @@ type Cache struct {
 	TTL      time.Duration `ini:"ITEM_TTL"`
 }
 
-var (
-	// CacheService the global cache
-	CacheService = struct {
-		Cache `ini:"cache"`
+// CacheService the global cache
+var CacheService = struct {
+	Cache `ini:"cache"`
 
-		LastCommit struct {
-			Enabled      bool
-			TTL          time.Duration `ini:"ITEM_TTL"`
-			CommitsCount int64
-		} `ini:"cache.last_commit"`
+	LastCommit struct {
+		Enabled      bool
+		TTL          time.Duration `ini:"ITEM_TTL"`
+		CommitsCount int64
+	} `ini:"cache.last_commit"`
+}{
+	Cache: Cache{
+		Enabled:  true,
+		Adapter:  "memory",
+		Interval: 60,
+		TTL:      16 * time.Hour,
+	},
+	LastCommit: struct {
+		Enabled      bool
+		TTL          time.Duration `ini:"ITEM_TTL"`
+		CommitsCount int64
 	}{
-		Cache: Cache{
-			Enabled:  true,
-			Adapter:  "memory",
-			Interval: 60,
-			TTL:      16 * time.Hour,
-		},
-		LastCommit: struct {
-			Enabled      bool
-			TTL          time.Duration `ini:"ITEM_TTL"`
-			CommitsCount int64
-		}{
-			Enabled:      true,
-			TTL:          8760 * time.Hour,
-			CommitsCount: 1000,
-		},
-	}
-)
+		Enabled:      true,
+		TTL:          8760 * time.Hour,
+		CommitsCount: 1000,
+	},
+}
 
 // MemcacheMaxTTL represents the maximum memcache TTL
 const MemcacheMaxTTL = 30 * 24 * time.Hour
 
-func newCacheService() {
-	sec := Cfg.Section("cache")
+func loadCacheFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("cache")
 	if err := sec.MapTo(&CacheService); err != nil {
 		log.Fatal("Failed to map Cache settings: %v", err)
 	}
 
-	CacheService.Adapter = sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"})
+	CacheService.Adapter = sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache", "twoqueue"})
 	switch CacheService.Adapter {
 	case "memory":
 	case "redis", "memcache":
 		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
+	case "twoqueue":
+		CacheService.Conn = strings.TrimSpace(sec.Key("HOST").String())
+		if CacheService.Conn == "" {
+			CacheService.Conn = "50000"
+		}
 	case "": // disable cache
 		CacheService.Enabled = false
 	default:
@@ -77,7 +79,7 @@ func newCacheService() {
 		Service.EnableCaptcha = false
 	}
 
-	sec = Cfg.Section("cache.last_commit")
+	sec = rootCfg.Section("cache.last_commit")
 	if !CacheService.Enabled {
 		CacheService.LastCommit.Enabled = false
 	}

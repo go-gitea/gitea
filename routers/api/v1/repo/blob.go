@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -8,7 +7,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/repofiles"
+	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
 // GetBlob get the blob of a repository file.
@@ -45,7 +44,8 @@ func GetBlob(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "", "sha not provided")
 		return
 	}
-	if blob, err := repofiles.GetBlobBySHA(ctx.Repo.Repository, sha); err != nil {
+
+	if blob, err := files_service.GetBlobBySHA(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, sha); err != nil {
 		ctx.Error(http.StatusBadRequest, "", err)
 	} else {
 		ctx.JSON(http.StatusOK, blob)

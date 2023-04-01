@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -17,7 +16,9 @@ import (
 // If used as part of a cat-file --batch stream you need to limit the reader to the correct size
 func CommitFromReader(gitRepo *Repository, sha SHA1, reader io.Reader) (*Commit, error) {
 	commit := &Commit{
-		ID: sha,
+		ID:        sha,
+		Author:    &Signature{},
+		Committer: &Signature{},
 	}
 
 	payloadSB := new(strings.Builder)

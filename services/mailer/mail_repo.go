@@ -1,27 +1,40 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mailer
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 )
 
 // SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created
-func SendRepoTransferNotifyMail(doer, newOwner *models.User, repo *models.Repository) error {
+func SendRepoTransferNotifyMail(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
+	if setting.MailService == nil {
+		// No mail service configured
+		return nil
+	}
+
 	if newOwner.IsOrganization() {
-		users, err := models.GetUsersWhoCanCreateOrgRepo(newOwner.ID)
+		users, err := organization.GetUsersWhoCanCreateOrgRepo(ctx, newOwner.ID)
 		if err != nil {
 			return err
 		}
 
 		langMap := make(map[string][]string)
 		for _, user := range users {
+			if !user.IsActive {
+				// don't send emails to inactive users
+				continue
+			}
 			langMap[user.Language] = append(langMap[user.Language], user.Email)
 		}
 
@@ -38,7 +51,7 @@ func SendRepoTransferNotifyMail(doer, newOwner *models.User, repo *models.Reposi
 }
 
 // sendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created for each language
-func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *models.User, emails []string, repo *models.Repository) error {
+func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.User, emails []string, repo *repo_model.Repository) error {
 	var (
 		locale  = translation.NewLocale(lang)
 		content bytes.Buffer
@@ -57,19 +70,24 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *models.User,
 		"Repo":        repo.FullName(),
 		"Link":        repo.HTMLURL(),
 		"Subject":     subject,
-		"i18n":        locale,
 		"Language":    locale.Language(),
 		"Destination": destination,
+		// helper
+		"locale":    locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
-	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
 		return err
 	}
 
-	msg := NewMessage(emails, subject, content.String())
-	msg.Info = fmt.Sprintf("UID: %d, repository pending transfer notification", newOwner.ID)
+	for _, to := range emails {
+		msg := NewMessage(to, subject, content.String())
+		msg.Info = fmt.Sprintf("UID: %d, repository pending transfer notification", newOwner.ID)
 
-	SendAsync(msg)
+		SendAsync(msg)
+	}
+
 	return nil
 }

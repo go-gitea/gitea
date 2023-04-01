@@ -1,8 +1,7 @@
-// +build pam
+//go:build pam
 
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pam
 
@@ -15,6 +14,6 @@ import (
 func TestPamAuth(t *testing.T) {
 	result, err := Auth("gitea", "user1", "false-pwd")
 	assert.Error(t, err)
-	assert.EqualValues(t, "Authentication failure", err.Error())
+	assert.EqualError(t, err, "Authentication failure")
 	assert.Len(t, result, 0)
 }

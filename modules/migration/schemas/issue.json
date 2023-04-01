@@ -1,0 +1,114 @@
+{
+    "title": "Issue",
+    "description": "Issues associated to a repository within a forge (Gitea, GitLab, etc.).",
+
+    "type": "array",
+    "items": {
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+	    "number": {
+		"description": "Unique identifier, relative to the repository.",
+		"type": "number"
+	    },
+	    "poster_id": {
+		"description": "Unique identifier of the user who authored the issue.",
+		"type": "number"
+	    },
+	    "poster_name": {
+		"description": "Name of the user who authored the issue.",
+		"type": "string"
+	    },
+	    "poster_email": {
+		"description": "Email of the user who authored the issue.",
+		"type": "string"
+	    },
+	    "title": {
+		"description": "Short description displayed as the title.",
+		"type": "string"
+	    },
+	    "content": {
+		"description": "Long, multiline, description.",
+		"type": "string"
+	    },
+	    "ref": {
+		"description": "Target branch in the repository.",
+		"type": "string"
+	    },
+	    "milestone": {
+		"description": "Name of the milestone.",
+		"type": "string"
+	    },
+	    "state": {
+		"description": "A 'closed' issue will not see any activity in the future, otherwise it is 'open'.",
+		"enum": [
+		    "closed",
+		    "open"
+		]
+	    },
+	    "is_locked": {
+		"description": "A locked issue can only be modified by privileged users.",
+		"type": "boolean"
+	    },
+	    "created": {
+		"description": "Creation time.",
+		"type": "string",
+		"format": "date-time"
+	    },
+	    "updated": {
+		"description": "Last update time.",
+		"type": "string",
+		"format": "date-time"
+	    },
+	    "closed": {
+		"description": "The last time 'state' changed to 'closed'.",
+		"anyOf": [
+		    {
+			"type": "string",
+			"format": "date-time"
+		    },
+		    {
+			"type": "null"
+		    }
+		]
+	    },
+	    "labels": {
+		"description": "List of labels.",
+		"type": "array",
+		"items": {
+		    "$ref": "label.json"
+		}
+	    },
+	    "reactions": {
+		"description": "List of reactions.",
+		"type": "array",
+		"items": {
+		    "$ref": "reaction.json"
+		}
+	    },
+	    "assignees": {
+		"description": "List of assignees.",
+		"type": "array",
+		"items": {
+		    "description": "Name of a user assigned to the issue.",
+		    "type": "string"
+		}
+	    }
+	},
+	"required": [
+	    "number",
+	    "poster_id",
+	    "poster_name",
+	    "title",
+	    "content",
+	    "state",
+	    "is_locked",
+	    "created",
+	    "updated"
+	]
+    },
+
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$id": "http://example.com/issue.json",
+    "$$target": "issue.json"
+}
