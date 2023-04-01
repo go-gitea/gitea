@@ -67,3 +67,11 @@ export function hideElem(el) {
 export function toggleElem(el, force) {
   elementsCall(el, toggleShown, force);
 }
+
+export function onDomReady(cb) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', cb);
+  } else {
+    cb();
+  }
+}
