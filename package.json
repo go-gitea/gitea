@@ -55,6 +55,7 @@
     "@playwright/test": "1.31.2",
     "@rollup/pluginutils": "5.0.2",
     "@stoplight/spectral-cli": "6.6.0",
+    "@vitejs/plugin-vue": "4.1.0",
     "eslint": "8.36.0",
     "eslint-plugin-import": "2.27.5",
     "eslint-plugin-jquery": "1.5.1",
