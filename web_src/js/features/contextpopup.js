@@ -30,6 +30,7 @@ export function initContextPopups() {
 
     createTippy(this, {
       content: el,
+      placement: 'top-start',
       interactive: true,
       interactiveBorder: 5,
       onShow: () => {

@@ -33,7 +33,7 @@
 			<div class="comment-header-right actions gt-df gt-ac">
 				{{if and .Review}}
 					{{if eq .Review.Type 0}}
-						<div class="ui label basic small yellow pending-label tooltip" data-content="{{$.root.locale.Tr "repo.issues.review.pending.tooltip" ($.root.locale.Tr "repo.diff.review") ($.root.locale.Tr "repo.diff.review.approve") ($.root.locale.Tr "repo.diff.review.comment") ($.root.locale.Tr "repo.diff.review.reject")}}">
+						<div class="ui label basic small yellow pending-label" data-tooltip-content="{{$.root.locale.Tr "repo.issues.review.pending.tooltip" ($.root.locale.Tr "repo.diff.review") ($.root.locale.Tr "repo.diff.review.approve") ($.root.locale.Tr "repo.diff.review.comment") ($.root.locale.Tr "repo.diff.review.reject")}}">
 						{{$.root.locale.Tr "repo.issues.review.pending"}}
 						</div>
 					{{else}}

@@ -264,7 +264,7 @@ func (n *actionsNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 	case issues_model.ReviewTypeApprove:
 		reviewHookType = webhook_module.HookEventPullRequestReviewApproved
 	case issues_model.ReviewTypeComment:
-		reviewHookType = webhook_module.HookEventPullRequestComment
+		reviewHookType = webhook_module.HookEventPullRequestReviewComment
 	case issues_model.ReviewTypeReject:
 		reviewHookType = webhook_module.HookEventPullRequestReviewRejected
 	default:

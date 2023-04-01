@@ -1,10 +1,8 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{if .IsSigned}}{{.locale.Tr "dashboard"}}{{else}}{{.locale.Tr "home"}}{{end}}" class="page-content home">
-	<div class="ui stackable middle very relaxed page grid">
-		<div class="sixteen wide center aligned centered column">
-			<div>
-				<img class="logo" width="220" height="220" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}"/>
-			</div>
+	<div class="gt-mb-5 gt-px-5">
+		<div class="center">
+			<img class="logo" width="220" height="220" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}">
 			<div class="hero">
 				<h1 class="ui icon header title">
 					{{AppName}}

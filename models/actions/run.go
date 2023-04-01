@@ -129,7 +129,7 @@ func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
 }
 
 func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, error) {
-	if run.Event == webhook_module.HookEventPullRequest {
+	if run.Event == webhook_module.HookEventPullRequest || run.Event == webhook_module.HookEventPullRequestSync {
 		var payload api.PullRequestPayload
 		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 			return nil, err
@@ -197,7 +197,9 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	for _, v := range jobs {
 		id, job := v.Job()
 		needs := job.Needs()
-		job.EraseNeeds()
+		if err := v.SetJob(id, job.EraseNeeds()); err != nil {
+			return err
+		}
 		payload, _ := v.Marshal()
 		status := StatusWaiting
 		if len(needs) > 0 || run.NeedApproval {

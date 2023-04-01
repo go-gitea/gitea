@@ -20,29 +20,29 @@ func TestBuildLocalPath(t *testing.T) {
 		expected string
 	}{
 		{
-			"a",
+			"/a",
 			"0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
-			"a/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
+			"/a/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
 		},
 		{
-			"a",
+			"/a",
 			"../0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
-			"a/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
+			"/a/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
 		},
 		{
-			"a",
+			"/a",
 			"0\\a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
-			"a/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
+			"/a/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
 		},
 		{
-			"b",
+			"/b",
 			"a/../0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
-			"b/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
+			"/b/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
 		},
 		{
-			"b",
+			"/b",
 			"a\\..\\0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
-			"b/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
+			"/b/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
 		},
 	}
 

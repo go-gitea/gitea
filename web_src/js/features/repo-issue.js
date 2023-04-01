@@ -4,7 +4,7 @@ import {attachTribute} from './tribute.js';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
-import {initTooltip, showTemporaryTooltip, createTippy} from '../modules/tippy.js';
+import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
 
@@ -78,7 +78,7 @@ function updateDeadline(deadlineString) {
 
 export function initRepoIssueDue() {
   $(document).on('click', '.issue-due-edit', () => {
-    $('#deadlineForm').fadeToggle(150);
+    toggleElem('#deadlineForm');
   });
   $(document).on('click', '.issue-due-remove', () => {
     updateDeadline('');
@@ -280,10 +280,7 @@ export function initRepoPullRequestAllowMaintainerEdit() {
   const $checkbox = $('#allow-edits-from-maintainers');
   if (!$checkbox.length) return;
 
-  const promptTip = $checkbox.attr('data-prompt-tip');
   const promptError = $checkbox.attr('data-prompt-error');
-
-  initTooltip($checkbox[0], {content: promptTip});
   $checkbox.checkbox({
     'onChange': () => {
       const checked = $checkbox.checkbox('is checked');

@@ -1,7 +1,7 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "npm Packages Repository"
-slug: "packages/npm"
+slug: "usage/packages/npm"
 draft: false
 toc: false
 menu:
@@ -41,7 +41,7 @@ npm config set -- '//gitea.example.com/api/packages/{owner}/npm/:_authToken' "{t
 | ------------ | ----------- |
 | `scope`      | The scope of the packages. |
 | `owner`      | The owner of the package. |
-| `token`      | Your [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}). |
+| `token`      | Your [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}). |
 
 For example:
 
