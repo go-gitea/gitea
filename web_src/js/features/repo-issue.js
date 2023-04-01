@@ -4,7 +4,7 @@ import {attachTribute} from './tribute.js';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
-import {initTooltip, showTemporaryTooltip, createTippy} from '../modules/tippy.js';
+import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
 
@@ -78,7 +78,7 @@ function updateDeadline(deadlineString) {
 
 export function initRepoIssueDue() {
   $(document).on('click', '.issue-due-edit', () => {
-    $('#deadlineForm').fadeToggle(150);
+    toggleElem('#deadlineForm');
   });
   $(document).on('click', '.issue-due-remove', () => {
     updateDeadline('');
@@ -280,10 +280,7 @@ export function initRepoPullRequestAllowMaintainerEdit() {
   const $checkbox = $('#allow-edits-from-maintainers');
   if (!$checkbox.length) return;
 
-  const promptTip = $checkbox.attr('data-prompt-tip');
   const promptError = $checkbox.attr('data-prompt-error');
-
-  initTooltip($checkbox[0], {content: promptTip});
   $checkbox.checkbox({
     'onChange': () => {
       const checked = $checkbox.checkbox('is checked');
@@ -516,20 +513,22 @@ export function initRepoPullRequestReview() {
   const $panel = $reviewBtn.parent().find('.review-box-panel');
   const $closeBtn = $panel.find('.close');
 
-  const tippy = createTippy($reviewBtn[0], {
-    content: $panel[0],
-    placement: 'bottom',
-    trigger: 'click',
-    role: 'menu',
-    maxWidth: 'none',
-    interactive: true,
-    hideOnClick: true,
-  });
+  if ($reviewBtn.length && $panel.length) {
+    const tippy = createTippy($reviewBtn[0], {
+      content: $panel[0],
+      placement: 'bottom',
+      trigger: 'click',
+      role: 'menu',
+      maxWidth: 'none',
+      interactive: true,
+      hideOnClick: true,
+    });
 
-  $closeBtn.on('click', (e) => {
-    e.preventDefault();
-    tippy.hide();
-  });
+    $closeBtn.on('click', (e) => {
+      e.preventDefault();
+      tippy.hide();
+    });
+  }
 
   $(document).on('click', 'a.add-code-comment', async function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
@@ -646,8 +645,6 @@ export function initRepoIssueTitleEdit() {
       $.post(update_url, {
         _csrf: csrfToken,
         target_branch: targetBranch
-      }).done((data) => {
-        $branchTarget.text(data.base_branch);
       }).always(() => {
         window.location.reload();
       });

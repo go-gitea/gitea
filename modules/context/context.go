@@ -16,8 +16,10 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
+	texttemplate "text/template"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -213,6 +215,8 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
+var templateExecutingErr = regexp.MustCompile(`^template: (.*):([1-9][0-9]*):([1-9][0-9]*): executing (?:"(.*)" at <(.*)>: )?`)
+
 // HTML calls Context.HTML and renders the template to HTTP response
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
@@ -227,6 +231,34 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 		if status == http.StatusInternalServerError && name == base.TplName("status/500") {
 			ctx.PlainText(http.StatusInternalServerError, "Unable to find status/500 template")
 			return
+		}
+		if execErr, ok := err.(texttemplate.ExecError); ok {
+			if groups := templateExecutingErr.FindStringSubmatch(err.Error()); len(groups) > 0 {
+				errorTemplateName, lineStr, posStr := groups[1], groups[2], groups[3]
+				target := ""
+				if len(groups) == 6 {
+					target = groups[5]
+				}
+				line, _ := strconv.Atoi(lineStr) // Cannot error out as groups[2] is [1-9][0-9]*
+				pos, _ := strconv.Atoi(posStr)   // Cannot error out as groups[3] is [1-9][0-9]*
+				filename, filenameErr := templates.GetAssetFilename("templates/" + errorTemplateName + ".tmpl")
+				if filenameErr != nil {
+					filename = "(template) " + errorTemplateName
+				}
+				if errorTemplateName != string(name) {
+					filename += " (subtemplate of " + string(name) + ")"
+				}
+				err = fmt.Errorf("%w\nin template file %s:\n%s", err, filename, templates.GetLineFromTemplate(errorTemplateName, line, target, pos))
+			} else {
+				filename, filenameErr := templates.GetAssetFilename("templates/" + execErr.Name + ".tmpl")
+				if filenameErr != nil {
+					filename = "(template) " + execErr.Name
+				}
+				if execErr.Name != string(name) {
+					filename += " (subtemplate of " + string(name) + ")"
+				}
+				err = fmt.Errorf("%w\nin template file %s", err, filename)
+			}
 		}
 		ctx.ServerError("Render failed", err)
 	}

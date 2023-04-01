@@ -9,7 +9,7 @@ menu:
   sidebar:
     parent: "installation"
     name: "With Docker Rootless"
-    weight: 10
+    weight: 48
     identifier: "install-with-docker-rootless"
 ---
 

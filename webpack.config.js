@@ -112,18 +112,6 @@ export default {
         loader: 'vue-loader',
       },
       {
-        test: /\.worker\.js$/,
-        exclude: /monaco/,
-        use: [
-          {
-            loader: 'worker-loader',
-            options: {
-              inline: 'no-fallback',
-            },
-          },
-        ],
-      },
-      {
         test: /\.js$/,
         exclude: /node_modules/,
         use: [

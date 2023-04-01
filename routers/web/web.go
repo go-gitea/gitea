@@ -1115,7 +1115,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/comments/{id}", func() {
 			m.Get("/attachments", repo.GetCommentAttachments)
 		})
-		m.Post("/markdown", web.Bind(structs.MarkdownOption{}), misc.Markdown)
+		m.Post("/markup", web.Bind(structs.MarkupOption{}), misc.Markup)
 		m.Group("/labels", func() {
 			m.Post("/new", web.Bind(forms.CreateLabelForm{}), repo.NewLabel)
 			m.Post("/edit", web.Bind(forms.CreateLabelForm{}), repo.UpdateLabel)
