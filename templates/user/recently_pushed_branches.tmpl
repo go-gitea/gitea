@@ -1,9 +1,9 @@
 {{range .RecentlyPushedBranches}}
-  <div class="ui blue message">
+	<div class="ui blue message">
 		{{$timeSince := TimeSince .Time $.locale}}
-  	{{$.locale.Tr "repo.pulls.recently_pushed_to_branches" .Repo.Owner.Name .Repo.LowerName .RefName $timeSince | Safe}}
-  	<a class="ui compact blue button" href="{{CompareLink .BaseRepo .Repo .RefName}}">
-  		{{$.locale.Tr "repo.pulls.compare_changes"}}
-  	</a>
-  </div>
+		{{$.locale.Tr "repo.pulls.recently_pushed_to_branches" .Repo.Owner.Name .Repo.LowerName .RefName $timeSince | Safe}}
+		<a class="ui compact blue button" href="{{CompareLink .BaseRepo .Repo .RefName}}">
+			{{$.locale.Tr "repo.pulls.compare_changes"}}
+		</a>
+	</div>
 {{end}}

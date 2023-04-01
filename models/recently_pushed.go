@@ -1,3 +1,6 @@
+// Copyright 2023 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package models
 
 import (
@@ -22,7 +25,6 @@ type RecentlyPushedBranches struct {
 
 // GetRecentlyPushedBranches returns all actions where a user recently pushed but no PRs are created yet.
 func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (recentlyPushedBranches []*RecentlyPushedBranches, err error) {
-
 	limit := time.Now().Add(-24 * time.Hour).Unix()
 
 	actions := []*activities.Action{}
@@ -111,5 +113,5 @@ func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (recentlyPushe
 		recentlyPushedBranches = append(recentlyPushedBranches, pushed)
 	}
 
-	return
+	return recentlyPushedBranches, nil
 }

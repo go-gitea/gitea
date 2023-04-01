@@ -123,15 +123,14 @@ func Dashboard(ctx *context.Context) {
 			PageSize: setting.UI.FeedPagingNum,
 		},
 	})
+	if err != nil {
+		ctx.ServerError("GetFeeds", err)
+		return
+	}
 
 	ctx.Data["RecentlyPushedBranches"], err = models.GetRecentlyPushedBranches(ctx, ctxUser)
 	if err != nil {
 		ctx.ServerError("GetRecentlyPushedBranches", err)
-		return
-	}
-
-	if err != nil {
-		ctx.ServerError("GetFeeds", err)
 		return
 	}
 
