@@ -17,6 +17,7 @@ type RecentlyPushedBranches struct {
 	Repo     *repo.Repository
 	BaseRepo *repo.Repository
 	RefName  string
+	Time     time.Time
 }
 
 // GetRecentlyPushedBranches returns all actions where a user recently pushed but no PRs are created yet.
@@ -26,7 +27,7 @@ func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (recentlyPushe
 
 	actions := []*activities.Action{}
 	err = db.GetEngine(ctx).
-		Select("action.ref_name, action.repo_id, replace(action.ref_name, 'refs/heads/', '') AS clean_ref_name").
+		Select("action.ref_name, action.repo_id, replace(action.ref_name, 'refs/heads/', '') AS clean_ref_name, action.created_unix").
 		Join("LEFT", "pull_request", "pull_request.head_branch = clean_ref_name").
 		Join("LEFT", "issue", "pull_request.issue_id = issue.id").
 		Join("LEFT", "repository", "action.repo_id = repository.id").
@@ -97,6 +98,7 @@ func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (recentlyPushe
 			Repo:     repos[a.RepoID],
 			BaseRepo: repos[a.RepoID],
 			RefName:  strings.Replace(a.RefName, "refs/heads/", "", 1),
+			Time:     a.GetCreate(),
 		}
 
 		if pushed.Repo.IsFork {
