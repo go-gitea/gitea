@@ -52,7 +52,7 @@ func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (recentlyPushe
 		)).
 		Limit(3).
 		GroupBy("action.ref_name, action.repo_id, action.created_unix").
-		Desc("action.id").
+		Desc("action.created_unix").
 		Find(&actions)
 	if err != nil {
 		return nil, err
