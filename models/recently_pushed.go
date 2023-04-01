@@ -62,7 +62,7 @@ func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (actions []*ac
 	owners := make(map[int64]*user.User)
 	err = db.GetEngine(ctx).
 		In("repository.id", repoIDs).
-		Join("LEFT", "repository", "repository.owner_id = u.id").
+		Join("LEFT", "repository", "repository.owner_id = user.id").
 		Find(&owners)
 	if err != nil {
 		return nil, err
