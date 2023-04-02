@@ -17,10 +17,10 @@ import (
 )
 
 type RecentlyPushedBranches struct {
-	Repo     *repo.Repository
-	BaseRepo *repo.Repository
-	RefName  string
-	Time     time.Time
+	Repo       *repo.Repository
+	BaseRepo   *repo.Repository
+	BranchName string
+	Time       time.Time
 }
 
 // GetRecentlyPushedBranches returns all actions where a user recently pushed but no PRs are created yet.
@@ -103,10 +103,10 @@ func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (recentlyPushe
 	recentlyPushedBranches = []*RecentlyPushedBranches{}
 	for _, a := range actions {
 		pushed := &RecentlyPushedBranches{
-			Repo:     repos[a.RepoID],
-			BaseRepo: repos[a.RepoID],
-			RefName:  strings.Replace(a.RefName, "refs/heads/", "", 1),
-			Time:     a.GetCreate(),
+			Repo:       repos[a.RepoID],
+			BaseRepo:   repos[a.RepoID],
+			BranchName: strings.Replace(a.RefName, "refs/heads/", "", 1),
+			Time:       a.GetCreate(),
 		}
 
 		if pushed.Repo.IsFork {
