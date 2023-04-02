@@ -660,7 +660,7 @@ func RemoveAllPackages(ctx context.Context, userID int64) (int, error) {
 	return count, nil
 }
 
-func LinkPackage(ctx context.Context, doer *user_model.User, p *packages_model.Package, repoID int64) error {
+func LinkPackageToRepository(ctx context.Context, doer *user_model.User, p *packages_model.Package, repoID int64) error {
 	if repoID != 0 {
 		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 		if err != nil {

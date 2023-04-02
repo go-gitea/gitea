@@ -255,7 +255,7 @@ func LinkPackage(ctx *context.APIContext) {
 		return
 	}
 
-	err = packages_service.LinkPackage(ctx, ctx.Doer, pkg, repoID)
+	err = packages_service.LinkPackageToRepository(ctx, ctx.Doer, pkg, repoID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "LinkPackage", err)
 		return
