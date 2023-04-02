@@ -536,6 +536,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/activate", auth.Activate)
 		m.Post("/activate", auth.ActivatePost)
 		m.Any("/activate_email", auth.ActivateEmail)
+		m.Get("/avatar/{username}", user.AvatarByUserName)
 		m.Get("/avatar/{username}/{size}", user.AvatarByUserName)
 		m.Get("/recover_account", auth.ResetPasswd)
 		m.Post("/recover_account", auth.ResetPasswdPost)
@@ -678,10 +679,6 @@ func RegisterRoutes(m *web.Route) {
 			// https://github.com/go-chi/chi/issues/781
 			username := ctx.Params("username")
 			switch {
-			case strings.HasSuffix(username, ".png"):
-				ctx.SetParams("username", strings.TrimSuffix(username, ".png"))
-				context_service.UserAssignmentWeb()(ctx)
-				user.AvatarByUserName(ctx)
 			case strings.HasSuffix(username, ".keys"):
 				ctx.SetParams("username", strings.TrimSuffix(username, ".keys"))
 				context_service.UserAssignmentWeb()(ctx)
