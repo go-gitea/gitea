@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
@@ -672,16 +673,43 @@ func RegisterRoutes(m *web.Route) {
 			})
 			http.ServeFile(ctx.Resp, ctx.Req, path.Join(setting.StaticRootPath, "public/img/favicon.png"))
 		})
-		m.Group("/{username}", func() {
-			m.Get(".png", user.AvatarByUserName)
-			m.Get(".keys", user.ShowSSHKeys)
-			m.Get(".gpg", user.ShowGPGKeys)
-			m.Get(".rss", feedEnabled, feed.ShowUserFeedRSS)
-			m.Get(".atom", feedEnabled, feed.ShowUserFeedAtom)
-			m.Get("", user.Profile)
-		}, func(ctx *context.Context) {
-			ctx.Data["EnableFeed"] = setting.EnableFeed
-		}, context_service.UserAssignmentWeb())
+		m.Get("/{username}", func(ctx *context.Context) {
+			// WORKAROUND to support usernames with "." in it
+			// https://github.com/go-chi/chi/issues/781
+			username := ctx.Params("username")
+			switch {
+			case strings.HasSuffix(username, ".png"):
+				ctx.SetParams("username", strings.TrimSuffix(username, ".png"))
+				context_service.UserAssignmentWeb()(ctx)
+				user.AvatarByUserName(ctx)
+			case strings.HasSuffix(username, ".keys"):
+				ctx.SetParams("username", strings.TrimSuffix(username, ".keys"))
+				context_service.UserAssignmentWeb()(ctx)
+				user.ShowSSHKeys(ctx)
+			case strings.HasSuffix(username, ".gpg"):
+				ctx.SetParams("username", strings.TrimSuffix(username, ".gpg"))
+				context_service.UserAssignmentWeb()(ctx)
+				user.ShowGPGKeys(ctx)
+			case strings.HasSuffix(username, ".rss"):
+				feedEnabled(ctx)
+				if !ctx.Written() {
+					ctx.SetParams("username", strings.TrimSuffix(username, ".rss"))
+					context_service.UserAssignmentWeb()(ctx)
+					feed.ShowUserFeedRSS(ctx)
+				}
+			case strings.HasSuffix(username, ".atom"):
+				feedEnabled(ctx)
+				if !ctx.Written() {
+					ctx.SetParams("username", strings.TrimSuffix(username, ".atom"))
+					context_service.UserAssignmentWeb()(ctx)
+					feed.ShowUserFeedAtom(ctx)
+				}
+			default:
+				context_service.UserAssignmentWeb()(ctx)
+				ctx.Data["EnableFeed"] = setting.EnableFeed
+				user.Profile(ctx)
+			}
+		})
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
 	}, ignSignIn)
 
