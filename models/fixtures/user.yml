@@ -1226,6 +1226,7 @@
   lower_name: the_34-user.with.all.allowedchars
   name: the_34-user.with.all.allowedChars
   full_name: the_1-user.with.all.allowedChars
+  description: 'some [commonmark](https://commonmark.org/)!'
   email: user34@example.com
   keep_email_private: false
   email_notifications_preference: enabled
