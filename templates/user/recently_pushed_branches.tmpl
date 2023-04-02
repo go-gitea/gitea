@@ -1,11 +1,11 @@
 {{range .RecentlyPushedBranches}}
-	<div class="ui blue message grid recently-pushed-branches">
+	<div class="ui positive message grid recently-pushed-branches">
 		<div class="twelve wide column">
 			{{$timeSince := TimeSince .Time $.locale}}
 			{{$.locale.Tr "repo.pulls.recently_pushed_to_branches" .Repo.Owner.Name .Repo.LowerName .RefName $timeSince | Safe}}
 		</div>
 		<div class="four wide column">
-			<a class="ui compact blue button" href="{{CompareLink .BaseRepo .Repo .RefName}}">
+			<a class="ui compact positive button" href="{{CompareLink .BaseRepo .Repo .RefName}}">
 				{{$.locale.Tr "repo.pulls.compare_changes"}}
 			</a>
 		</div>
