@@ -51,12 +51,3 @@
     float: none;
   }
 }
-
-.ui.message.recently-pushed-branches {
-  align-items: center;
-  padding: 0;
-}
-
-.ui.message.recently-pushed-branches .button {
-  margin: 0;
-}
