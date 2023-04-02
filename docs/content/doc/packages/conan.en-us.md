@@ -1,7 +1,7 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "Conan Packages Repository"
-slug: "packages/conan"
+slug: "usage/packages/conan"
 draft: false
 toc: false
 menu:
@@ -37,7 +37,7 @@ conan user --remote {remote} --password {password} {username}
 | -----------| ----------- |
 | `remote`   | The remote name. |
 | `username` | Your Gitea username. |
-| `password` | Your Gitea password. If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}) instead of the password. |
+| `password` | Your Gitea password. If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) instead of the password. |
 | `owner`    | The owner of the package. |
 
 For example:

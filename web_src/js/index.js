@@ -1,10 +1,8 @@
 // bootstrap module must be the first one to be imported, it handles webpack lazy-loading and global errors
 import './bootstrap.js';
 
-import $ from 'jquery';
-import {initVueEnv} from './components/VueComponentLoader.js';
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
-import {initDashboardRepoList} from './components/DashboardRepoList.js';
+import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
 import {attachTribute} from './features/tribute.js';
 import {initGlobalCopyToClipboardListener} from './features/clipboard.js';
@@ -48,7 +46,6 @@ import {
   initCommitStatuses,
 } from './features/repo-commit.js';
 import {
-  checkAppUrl,
   initFootLanguageMenu,
   initGlobalButtonClickOnEnter,
   initGlobalButtons,
@@ -58,7 +55,6 @@ import {
   initGlobalFormDirtyLeaveConfirm,
   initGlobalLinkActions,
   initHeadNavbarContentToggle,
-  initGlobalTooltips,
 } from './features/common-global.js';
 import {initRepoTopicBar} from './features/repo-home.js';
 import {initAdminEmails} from './features/admin/emails.js';
@@ -77,7 +73,7 @@ import {
 import {initViewedCheckboxListenerFor} from './features/pull-view-file.js';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.js';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
-import {initRepoRelease, initRepoReleaseEditor} from './features/repo-release.js';
+import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.js';
 import {initRepoEditor} from './features/repo-editor.js';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.js';
 import {initInstall} from './features/install.js';
@@ -88,21 +84,21 @@ import {initCommonOrganization} from './features/common-organization.js';
 import {initRepoWikiForm} from './features/repo-wiki.js';
 import {initRepoCommentForm, initRepository} from './features/repo-legacy.js';
 import {initFormattingReplacements} from './features/formatting.js';
-import {initMcaptcha} from './features/mcaptcha.js';
 import {initCopyContent} from './features/copycontent.js';
+import {initCaptcha} from './features/captcha.js';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
+import {initGlobalTooltips} from './modules/tippy.js';
+import {initGiteaFomantic} from './modules/fomantic.js';
+import {onDomReady} from './utils/dom.js';
 
 // Run time-critical code as soon as possible. This is safe to do because this
 // script appears at the end of <body> and rendered HTML is accessible at that point.
+// TODO: replace them with CustomElements
 initFormattingReplacements();
+// Init Gitea's Fomantic settings
+initGiteaFomantic();
 
-// Silence fomantic's error logging when tabs are used without a target content element
-$.fn.tab.settings.silent = true;
-// Disable the behavior of fomantic to toggle the checkbox when you press enter on a checkbox element.
-$.fn.checkbox.settings.enableEnterKey = false;
-
-initVueEnv();
-$(document).ready(() => {
+onDomReady(() => {
   initGlobalCommon();
 
   initGlobalTooltips();
@@ -180,7 +176,7 @@ $(document).ready(() => {
   initRepoPullRequestAllowMaintainerEdit();
   initRepoPullRequestReview();
   initRepoRelease();
-  initRepoReleaseEditor();
+  initRepoReleaseNew();
   initRepoSettingGitHook();
   initRepoSettingSearchTeamBox();
   initRepoSettingsCollaboration();
@@ -191,7 +187,7 @@ $(document).ready(() => {
   initRepositoryActionView();
 
   initCommitStatuses();
-  initMcaptcha();
+  initCaptcha();
 
   initUserAuthLinkAccountView();
   initUserAuthOauth2();
@@ -199,5 +195,4 @@ $(document).ready(() => {
   initUserAuthWebAuthnRegister();
   initUserSettings();
   initViewedCheckboxListenerFor();
-  checkAppUrl();
 });

@@ -201,7 +201,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	if pr.HasMerged {
 		apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
 		apiPullRequest.MergedCommitID = &pr.MergedCommitID
-		apiPullRequest.MergedBy = ToUser(pr.Merger, nil)
+		apiPullRequest.MergedBy = ToUser(ctx, pr.Merger, nil)
 	}
 
 	return apiPullRequest

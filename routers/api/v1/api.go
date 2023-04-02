@@ -507,7 +507,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 
 		var err error
 		if assignOrg {
-			ctx.Org.Organization, err = organization.GetOrgByName(ctx.Params(":org"))
+			ctx.Org.Organization, err = organization.GetOrgByName(ctx, ctx.Params(":org"))
 			if err != nil {
 				if organization.IsErrOrgNotExist(err) {
 					redirectUserID, err := user_model.LookupUserRedirect(ctx.Params(":org"))
@@ -687,7 +687,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	}
 
 	// Get user from session if logged in.
-	m.Use(context.APIAuth(group))
+	m.Use(auth.APIAuth(group))
 
 	m.Use(context.ToggleAPI(&context.ToggleOptions{
 		SignInRequired: setting.Service.RequireSignInView,
@@ -711,6 +711,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			})
 		}
 		m.Get("/signing-key.gpg", misc.SigningKey)
+		m.Post("/markup", bind(api.MarkupOption{}), misc.Markup)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
 		m.Group("/settings", func() {
@@ -835,6 +836,13 @@ func Routes(ctx gocontext.Context) *web.Route {
 			m.Get("/stopwatches", reqToken(auth_model.AccessTokenScopeRepo), repo.GetStopwatches)
 			m.Get("/subscriptions", reqToken(auth_model.AccessTokenScopeRepo), user.GetMyWatchedRepos)
 			m.Get("/teams", reqToken(auth_model.AccessTokenScopeRepo), org.ListUserTeams)
+			m.Group("/hooks", func() {
+				m.Combo("").Get(user.ListHooks).
+					Post(bind(api.CreateHookOption{}), user.CreateHook)
+				m.Combo("/{id}").Get(user.GetHook).
+					Patch(bind(api.EditHookOption{}), user.EditHook).
+					Delete(user.DeleteHook)
+			}, reqToken(auth_model.AccessTokenScopeAdminUserHook), reqWebhooksEnabled())
 		}, reqToken(""))
 
 		// Repositories
@@ -1018,6 +1026,14 @@ func Routes(ctx gocontext.Context) *web.Route {
 								Patch(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueAttachment).
 								Delete(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, repo.DeleteIssueAttachment)
 						}, mustEnableAttachments)
+						m.Combo("/dependencies").
+							Get(repo.GetIssueDependencies).
+							Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.IssueMeta{}), repo.CreateIssueDependency).
+							Delete(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.IssueMeta{}), repo.RemoveIssueDependency)
+						m.Combo("/blocks").
+							Get(repo.GetIssueBlocks).
+							Post(reqToken(auth_model.AccessTokenScopeRepo), bind(api.IssueMeta{}), repo.CreateIssueBlocking).
+							Delete(reqToken(auth_model.AccessTokenScopeRepo), bind(api.IssueMeta{}), repo.RemoveIssueBlocking)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
@@ -1027,6 +1043,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 						Patch(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditLabelOption{}), repo.EditLabel).
 						Delete(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteLabel)
 				})
+				m.Post("/markup", reqToken(auth_model.AccessTokenScopeRepo), bind(api.MarkupOption{}), misc.Markup)
 				m.Post("/markdown", reqToken(auth_model.AccessTokenScopeRepo), bind(api.MarkdownOption{}), misc.Markdown)
 				m.Post("/markdown/raw", reqToken(auth_model.AccessTokenScopeRepo), misc.MarkdownRaw)
 				m.Group("/milestones", func() {
@@ -1152,6 +1169,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 					}, reqAdmin())
 				}, reqAnyRepoReader())
 				m.Get("/issue_templates", context.ReferencesGitRepo(), repo.GetIssueTemplates)
+				m.Get("/issue_config", context.ReferencesGitRepo(), repo.GetIssueConfig)
+				m.Get("/issue_config/validate", context.ReferencesGitRepo(), repo.ValidateIssueConfig)
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
 			}, repoAssignment())
 		})
@@ -1238,7 +1257,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			})
 			m.Get("/orgs", admin.GetAllOrgs)
 			m.Group("/users", func() {
-				m.Get("", admin.GetAllUsers)
+				m.Get("", admin.SearchUsers)
 				m.Post("", bind(api.CreateUserOption{}), admin.CreateUser)
 				m.Group("/{username}", func() {
 					m.Combo("").Patch(bind(api.EditUserOption{}), admin.EditUser).
@@ -1250,7 +1269,12 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Get("/orgs", org.ListUserOrgs)
 					m.Post("/orgs", bind(api.CreateOrgOption{}), admin.CreateOrg)
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
+					m.Post("/rename", bind(api.RenameUserOption{}), admin.RenameUser)
 				}, context_service.UserAssignmentAPI())
+			})
+			m.Group("/emails", func() {
+				m.Get("", admin.GetAllEmails)
+				m.Get("/search", admin.SearchEmail)
 			})
 			m.Group("/unadopted", func() {
 				m.Get("", admin.ListUnadoptedRepositories)

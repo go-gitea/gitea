@@ -19,7 +19,7 @@ import (
 
 func TestExternalMarkupRenderer(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	if !setting.Database.UseSQLite3 {
+	if !setting.Database.Type.IsSQLite3() {
 		t.Skip()
 		return
 	}

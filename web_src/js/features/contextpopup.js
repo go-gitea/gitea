@@ -30,9 +30,11 @@ export function initContextPopups() {
 
     createTippy(this, {
       content: el,
+      placement: 'top-start',
       interactive: true,
+      interactiveBorder: 5,
       onShow: () => {
-        el.firstChild.dispatchEvent(new CustomEvent('us-load-context-popup', {detail: {owner, repo, index}}));
+        el.firstChild.dispatchEvent(new CustomEvent('ce-load-context-popup', {detail: {owner, repo, index}}));
       }
     });
   });

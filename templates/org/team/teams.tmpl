@@ -32,7 +32,7 @@
 					</div>
 					<div class="ui attached segment members">
 						{{range .Members}}
-							{{template "shared/user/avatarlink" .}}
+							{{template "shared/user/avatarlink" Dict "Context" $.Context "user" .}}
 						{{end}}
 					</div>
 					<div class="ui bottom attached header">

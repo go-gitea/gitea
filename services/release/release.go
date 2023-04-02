@@ -102,7 +102,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 		}
 
 		if rel.PublisherID <= 0 {
-			u, err := user_model.GetUserByEmailContext(ctx, commit.Author.Email)
+			u, err := user_model.GetUserByEmail(ctx, commit.Author.Email)
 			if err == nil {
 				rel.PublisherID = u.ID
 			}

@@ -115,7 +115,7 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 }
 
 // CloneWithArgs original repository to target path.
-func CloneWithArgs(ctx context.Context, args []CmdArg, from, to string, opts CloneRepoOptions) (err error) {
+func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, opts CloneRepoOptions) (err error) {
 	toDir := path.Dir(to)
 	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
 		return err
@@ -163,10 +163,8 @@ func CloneWithArgs(ctx context.Context, args []CmdArg, from, to string, opts Clo
 
 	envs := os.Environ()
 	u, err := url.Parse(from)
-	if err == nil && (strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https")) {
-		if proxy.Match(u.Host) {
-			envs = append(envs, fmt.Sprintf("https_proxy=%s", proxy.GetProxyURL()))
-		}
+	if err == nil {
+		envs = proxy.EnvWithProxy(u)
 	}
 
 	stderr := new(bytes.Buffer)

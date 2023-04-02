@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	secret_module "code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/actions"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -26,6 +27,8 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	if !ok {
 		return nil, false, nil
 	}
+
+	actions.CreateCommitStatus(ctx, t.Job)
 
 	task := &runnerv1.Task{
 		Id:              t.ID,

@@ -125,7 +125,7 @@ function updateStopwatchData(data) {
   const btnEl = $('.active-stopwatch-trigger');
   if (!watch) {
     clearStopwatchTimer();
-    btnEl.addClass('hidden');
+    btnEl.addClass('gt-hidden');
   } else {
     const {repo_owner_name, repo_name, issue_index, seconds} = watch;
     const issueUrl = `${appSubUrl}/${repo_owner_name}/${repo_name}/issues/${issue_index}`;
@@ -134,7 +134,7 @@ function updateStopwatchData(data) {
     $('.stopwatch-cancel').attr('action', `${issueUrl}/times/stopwatch/cancel`);
     $('.stopwatch-issue').text(`${repo_owner_name}/${repo_name}#${issue_index}`);
     updateStopwatchTime(seconds);
-    btnEl.removeClass('hidden');
+    btnEl.removeClass('gt-hidden');
   }
   return Boolean(data.length);
 }

@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 	actions_service "code.gitea.io/gitea/services/actions"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
@@ -51,13 +52,14 @@ func (s *Service) Register(
 	}
 
 	if runnerToken.IsActive {
-		return nil, errors.New("runner token has already activated")
+		return nil, errors.New("runner token has already been activated")
 	}
 
 	// create new runner
+	name, _ := util.SplitStringAtByteN(req.Msg.Name, 255)
 	runner := &actions_model.ActionRunner{
 		UUID:         gouuid.New().String(),
-		Name:         req.Msg.Name,
+		Name:         name,
 		OwnerID:      runnerToken.OwnerID,
 		RepoID:       runnerToken.RepoID,
 		AgentLabels:  req.Msg.AgentLabels,
@@ -147,10 +149,7 @@ func (s *Service) UpdateTask(
 		return nil, status.Errorf(codes.Internal, "load job: %v", err)
 	}
 
-	if err := actions_service.CreateCommitStatus(ctx, task.Job); err != nil {
-		log.Error("Update commit status failed: %v", err)
-		// go on
-	}
+	actions_service.CreateCommitStatus(ctx, task.Job)
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		if err := actions_service.EmitJobsIfReady(task.Job.RunID); err != nil {

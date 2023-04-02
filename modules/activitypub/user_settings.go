@@ -5,7 +5,10 @@ package activitypub
 
 import (
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/util"
 )
+
+const rsaBits = 2048
 
 // GetKeyPair function returns a user's private and public keys
 func GetKeyPair(user *user_model.User) (pub, priv string, err error) {
@@ -14,7 +17,7 @@ func GetKeyPair(user *user_model.User) (pub, priv string, err error) {
 	if err != nil {
 		return
 	} else if len(settings) == 0 {
-		if priv, pub, err = GenerateKeyPair(); err != nil {
+		if priv, pub, err = util.GenerateKeyPair(rsaBits); err != nil {
 			return
 		}
 		if err = user_model.SetUserSetting(user.ID, user_model.UserActivityPubPrivPem, priv); err != nil {

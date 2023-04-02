@@ -1,0 +1,65 @@
+.page-content.install {
+  padding-top: 45px;
+}
+
+.page-content.install form.ui.form .inline.field > label {
+  text-align: right;
+  width: 30%;
+  padding-right: 10px;
+  margin-right: 0;
+}
+
+.page-content.install form.ui.form .inline.field > .ui.checkbox:first-child {
+  margin-left: 30%;
+  padding-left: 5px;
+}
+
+.page-content.install form.ui.form .inline.field > .ui.checkbox:first-child label {
+  width: auto;
+}
+
+.page-content.install form.ui.form .title {
+  margin-left: 30%;
+  padding-left: 5px;
+}
+
+.page-content.install form.ui.form input {
+  width: 60%;
+}
+
+.page-content.install form.ui.form details.optional.field[open] {
+  border-bottom: 1px solid var(--color-secondary);
+  padding-bottom: 10px;
+}
+
+.page-content.install form.ui.form details.optional.field[open] summary {
+  margin-bottom: 10px;
+}
+
+.page-content.install form.ui.form details.optional.field * {
+  box-sizing: border-box;
+}
+
+.page-content.install form.ui.form .field {
+  text-align: left;
+}
+
+.page-content.install form.ui.form .field .help {
+  margin-left: 30%;
+  padding-left: 5px;
+  width: 60%;
+}
+
+.page-content.install .ui .reinstall-message {
+  width: 70%;
+  margin: 20px auto;
+  color: var(--color-red);
+  text-align: left;
+  font-weight: bold;
+}
+
+.page-content.install .ui .reinstall-confirm {
+  width: 70%;
+  text-align: left;
+  margin: 10px auto;
+}

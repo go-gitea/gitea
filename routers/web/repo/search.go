@@ -54,7 +54,7 @@ func Search(ctx *context.Context) {
 		ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
 	}
 
-	ctx.Data["SourcePath"] = ctx.Repo.Repository.HTMLURL()
+	ctx.Data["SourcePath"] = ctx.Repo.Repository.Link()
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 

@@ -64,7 +64,7 @@ func GetRelease(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToRelease(release))
+	ctx.JSON(http.StatusOK, convert.ToRelease(ctx, release))
 }
 
 // GetLatestRelease gets the most recent non-prerelease, non-draft release of a repository, sorted by created_at
@@ -105,7 +105,7 @@ func GetLatestRelease(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToRelease(release))
+	ctx.JSON(http.StatusOK, convert.ToRelease(ctx, release))
 }
 
 // ListReleases list a repository's releases
@@ -174,7 +174,7 @@ func ListReleases(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 			return
 		}
-		rels[i] = convert.ToRelease(release)
+		rels[i] = convert.ToRelease(ctx, release)
 	}
 
 	filteredCount, err := repo_model.CountReleasesByRepoID(ctx.Repo.Repository.ID, opts)
@@ -272,7 +272,7 @@ func CreateRelease(ctx *context.APIContext) {
 			return
 		}
 	}
-	ctx.JSON(http.StatusCreated, convert.ToRelease(rel))
+	ctx.JSON(http.StatusCreated, convert.ToRelease(ctx, rel))
 }
 
 // EditRelease edit a release
@@ -357,7 +357,7 @@ func EditRelease(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToRelease(rel))
+	ctx.JSON(http.StatusOK, convert.ToRelease(ctx, rel))
 }
 
 // DeleteRelease delete a release from a repository

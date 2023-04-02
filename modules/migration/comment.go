@@ -8,8 +8,7 @@ import "time"
 
 // Commentable can be commented upon
 type Commentable interface {
-	GetLocalIndex() int64
-	GetForeignIndex() int64
+	Reviewable
 	GetContext() DownloaderContext
 }
 

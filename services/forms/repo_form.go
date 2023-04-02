@@ -160,6 +160,7 @@ type RepoSettingForm struct {
 	EnableAutodetectManualMerge           bool
 	PullsAllowRebaseUpdate                bool
 	DefaultDeleteBranchAfterMerge         bool
+	DefaultAllowMaintainerEdit            bool
 	EnableTimetracker                     bool
 	AllowOnlyContributorsToTrackTime      bool
 	EnableIssueDependencies               bool
@@ -189,6 +190,7 @@ func (f *RepoSettingForm) Validate(req *http.Request, errs binding.Errors) bindi
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
 	RuleName                      string `binding:"Required"`
+	RuleID                        int64
 	EnablePush                    string
 	WhitelistUsers                string
 	WhitelistTeams                string
@@ -512,6 +514,7 @@ type CreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
 	BoardType project_model.BoardType
+	CardType  project_model.CardType
 }
 
 // UserCreateProjectForm is a from for creating an individual or organization
@@ -520,6 +523,7 @@ type UserCreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
 	BoardType project_model.BoardType
+	CardType  project_model.CardType
 	UID       int64 `binding:"Required"`
 }
 
@@ -561,6 +565,7 @@ func (f *CreateMilestoneForm) Validate(req *http.Request, errs binding.Errors) b
 type CreateLabelForm struct {
 	ID          int64
 	Title       string `binding:"Required;MaxSize(50)" locale:"repo.issues.label_title"`
+	Exclusive   bool   `form:"exclusive"`
 	Description string `binding:"MaxSize(200)" locale:"repo.issues.label_description"`
 	Color       string `binding:"Required;MaxSize(7)" locale:"repo.issues.label_color"`
 }
@@ -599,7 +604,7 @@ type MergePullRequestForm struct {
 	MergeMessageField      string
 	MergeCommitID          string // only used for manually-merged
 	HeadCommitID           string `json:"head_commit_id,omitempty"`
-	ForceMerge             *bool  `json:"force_merge,omitempty"`
+	ForceMerge             bool   `json:"force_merge,omitempty"`
 	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
 	DeleteBranchAfterMerge bool   `json:"delete_branch_after_merge,omitempty"`
 }
@@ -617,7 +622,7 @@ type CodeCommentForm struct {
 	Side           string `binding:"Required;In(previous,proposed)"`
 	Line           int64
 	TreePath       string `form:"path" binding:"Required"`
-	IsReview       bool   `form:"is_review"`
+	SingleReview   bool   `form:"single_review"`
 	Reply          int64  `form:"reply"`
 	LatestCommitID string
 }

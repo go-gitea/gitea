@@ -80,7 +80,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	var result []api.Reaction
 	for _, r := range reactions {
 		result = append(result, api.Reaction{
-			User:     convert.ToUser(r.User, ctx.Doer),
+			User:     convert.ToUser(ctx, r.User, ctx.Doer),
 			Reaction: r.Type,
 			Created:  r.CreatedUnix.AsTime(),
 		})
@@ -202,7 +202,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 				ctx.Error(http.StatusForbidden, err.Error(), err)
 			} else if issues_model.IsErrReactionAlreadyExist(err) {
 				ctx.JSON(http.StatusOK, api.Reaction{
-					User:     convert.ToUser(ctx.Doer, ctx.Doer),
+					User:     convert.ToUser(ctx, ctx.Doer, ctx.Doer),
 					Reaction: reaction.Type,
 					Created:  reaction.CreatedUnix.AsTime(),
 				})
@@ -213,7 +213,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		}
 
 		ctx.JSON(http.StatusCreated, api.Reaction{
-			User:     convert.ToUser(ctx.Doer, ctx.Doer),
+			User:     convert.ToUser(ctx, ctx.Doer, ctx.Doer),
 			Reaction: reaction.Type,
 			Created:  reaction.CreatedUnix.AsTime(),
 		})
@@ -298,7 +298,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 	var result []api.Reaction
 	for _, r := range reactions {
 		result = append(result, api.Reaction{
-			User:     convert.ToUser(r.User, ctx.Doer),
+			User:     convert.ToUser(ctx, r.User, ctx.Doer),
 			Reaction: r.Type,
 			Created:  r.CreatedUnix.AsTime(),
 		})
@@ -412,7 +412,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 				ctx.Error(http.StatusForbidden, err.Error(), err)
 			} else if issues_model.IsErrReactionAlreadyExist(err) {
 				ctx.JSON(http.StatusOK, api.Reaction{
-					User:     convert.ToUser(ctx.Doer, ctx.Doer),
+					User:     convert.ToUser(ctx, ctx.Doer, ctx.Doer),
 					Reaction: reaction.Type,
 					Created:  reaction.CreatedUnix.AsTime(),
 				})
@@ -423,7 +423,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		}
 
 		ctx.JSON(http.StatusCreated, api.Reaction{
-			User:     convert.ToUser(ctx.Doer, ctx.Doer),
+			User:     convert.ToUser(ctx, ctx.Doer, ctx.Doer),
 			Reaction: reaction.Type,
 			Created:  reaction.CreatedUnix.AsTime(),
 		})

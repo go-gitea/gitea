@@ -12,9 +12,13 @@ import (
 
 // Git settings
 var Git = struct {
-	Path                      string
-	HomePath                  string
-	DisableDiffHighlight      bool
+	Path                 string
+	HomePath             string
+	DisableDiffHighlight bool
+	Reflog               struct {
+		Enabled    bool
+		Expiration int
+	} `ini:"git.reflog"`
 	MaxGitDiffLines           int
 	MaxGitDiffLineCharacters  int
 	MaxGitDiffFiles           int
@@ -37,6 +41,13 @@ var Git = struct {
 		GC      int `ini:"GC"`
 	} `ini:"git.timeout"`
 }{
+	Reflog: struct {
+		Enabled    bool
+		Expiration int
+	}{
+		Enabled:    true,
+		Expiration: 90,
+	},
 	DisableDiffHighlight:      false,
 	MaxGitDiffLines:           1000,
 	MaxGitDiffLineCharacters:  5000,
@@ -67,9 +78,8 @@ var Git = struct {
 	},
 }
 
-func newGit() {
-	sec := Cfg.Section("git")
-
+func loadGitFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("git")
 	if err := sec.MapTo(&Git); err != nil {
 		log.Fatal("Failed to map Git settings: %v", err)
 	}

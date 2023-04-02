@@ -203,7 +203,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	}
 
 	// Get user from session if logged in.
-	common = append(common, context.Auth(group))
+	common = append(common, auth_service.Auth(group))
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	common = append(common, middleware.GetHead)
@@ -313,6 +313,35 @@ func RegisterRoutes(m *web.Route) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
+	}
+
+	addWebhookAddRoutes := func() {
+		m.Get("/{type}/new", repo.WebhooksNew)
+		m.Post("/gitea/new", web.Bind(forms.NewWebhookForm{}), repo.GiteaHooksNewPost)
+		m.Post("/gogs/new", web.Bind(forms.NewGogshookForm{}), repo.GogsHooksNewPost)
+		m.Post("/slack/new", web.Bind(forms.NewSlackHookForm{}), repo.SlackHooksNewPost)
+		m.Post("/discord/new", web.Bind(forms.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
+		m.Post("/dingtalk/new", web.Bind(forms.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
+		m.Post("/telegram/new", web.Bind(forms.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
+		m.Post("/matrix/new", web.Bind(forms.NewMatrixHookForm{}), repo.MatrixHooksNewPost)
+		m.Post("/msteams/new", web.Bind(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
+		m.Post("/feishu/new", web.Bind(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
+		m.Post("/wechatwork/new", web.Bind(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
+		m.Post("/packagist/new", web.Bind(forms.NewPackagistHookForm{}), repo.PackagistHooksNewPost)
+	}
+
+	addWebhookEditRoutes := func() {
+		m.Post("/gitea/{id}", web.Bind(forms.NewWebhookForm{}), repo.GiteaHooksEditPost)
+		m.Post("/gogs/{id}", web.Bind(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
+		m.Post("/slack/{id}", web.Bind(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
+		m.Post("/discord/{id}", web.Bind(forms.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
+		m.Post("/dingtalk/{id}", web.Bind(forms.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
+		m.Post("/telegram/{id}", web.Bind(forms.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
+		m.Post("/matrix/{id}", web.Bind(forms.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
+		m.Post("/msteams/{id}", web.Bind(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
+		m.Post("/feishu/{id}", web.Bind(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
+		m.Post("/wechatwork/{id}", web.Bind(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
+		m.Post("/packagist/{id}", web.Bind(forms.NewPackagistHookForm{}), repo.PackagistHooksEditPost)
 	}
 
 	// FIXME: not all routes need go through same middleware.
@@ -468,6 +497,11 @@ func RegisterRoutes(m *web.Route) {
 					m.Get("/preview", user_setting.PackagesRulePreview)
 				})
 			})
+			m.Group("/cargo", func() {
+				m.Post("/initialize", user_setting.InitializeCargoIndex)
+				m.Post("/rebuild", user_setting.RebuildCargoIndex)
+			})
+			m.Post("/chef/regenerate_keypair", user_setting.RegenerateChefKeyPair)
 		}, packagesEnabled)
 		m.Group("/secrets", func() {
 			m.Get("", user_setting.Secrets)
@@ -477,6 +511,19 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
 		m.Post("/repos/unadopted", user_setting.AdoptOrDeleteRepository)
+
+		m.Group("/hooks", func() {
+			m.Get("", user_setting.Webhooks)
+			m.Post("/delete", user_setting.DeleteWebhook)
+			addWebhookAddRoutes()
+			m.Group("/{id}", func() {
+				m.Get("", repo.WebHooksEdit)
+				m.Post("/replay/{uuid}", repo.ReplayWebhook)
+			})
+			addWebhookEditRoutes()
+		}, webhooksEnabled, func(ctx *context.Context) {
+			ctx.Data["IsUserWebhook"] = true
+		})
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
 		ctx.Data["AllThemes"] = setting.UI.Themes
@@ -570,32 +617,11 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("", repo.WebHooksEdit)
 				m.Post("/replay/{uuid}", repo.ReplayWebhook)
 			})
-			m.Post("/gitea/{id}", web.Bind(forms.NewWebhookForm{}), repo.GiteaHooksEditPost)
-			m.Post("/gogs/{id}", web.Bind(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
-			m.Post("/slack/{id}", web.Bind(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
-			m.Post("/discord/{id}", web.Bind(forms.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
-			m.Post("/dingtalk/{id}", web.Bind(forms.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
-			m.Post("/telegram/{id}", web.Bind(forms.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
-			m.Post("/matrix/{id}", web.Bind(forms.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
-			m.Post("/msteams/{id}", web.Bind(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
-			m.Post("/feishu/{id}", web.Bind(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
-			m.Post("/wechatwork/{id}", web.Bind(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
-			m.Post("/packagist/{id}", web.Bind(forms.NewPackagistHookForm{}), repo.PackagistHooksEditPost)
+			addWebhookEditRoutes()
 		}, webhooksEnabled)
 
 		m.Group("/{configType:default-hooks|system-hooks}", func() {
-			m.Get("/{type}/new", repo.WebhooksNew)
-			m.Post("/gitea/new", web.Bind(forms.NewWebhookForm{}), repo.GiteaHooksNewPost)
-			m.Post("/gogs/new", web.Bind(forms.NewGogshookForm{}), repo.GogsHooksNewPost)
-			m.Post("/slack/new", web.Bind(forms.NewSlackHookForm{}), repo.SlackHooksNewPost)
-			m.Post("/discord/new", web.Bind(forms.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
-			m.Post("/dingtalk/new", web.Bind(forms.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
-			m.Post("/telegram/new", web.Bind(forms.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
-			m.Post("/matrix/new", web.Bind(forms.NewMatrixHookForm{}), repo.MatrixHooksNewPost)
-			m.Post("/msteams/new", web.Bind(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
-			m.Post("/feishu/new", web.Bind(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
-			m.Post("/wechatwork/new", web.Bind(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
-			m.Post("/packagist/new", web.Bind(forms.NewPackagistHookForm{}), repo.PackagistHooksNewPost)
+			addWebhookAddRoutes()
 		})
 
 		m.Group("/auths", func() {
@@ -685,6 +711,21 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode) func(ctx *context.Context) {
+		return func(ctx *context.Context) {
+			if ctx.ContextUser == nil {
+				ctx.NotFound(unitType.String(), nil)
+				return
+			}
+			if ctx.ContextUser.IsOrganization() {
+				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
+					ctx.NotFound(unitType.String(), nil)
+					return
+				}
+			}
+		}
+	}
+
 	// ***** START: Organization *****
 	m.Group("/org", func() {
 		m.Group("/{org}", func() {
@@ -754,32 +795,15 @@ func RegisterRoutes(m *web.Route) {
 				m.Group("/hooks", func() {
 					m.Get("", org.Webhooks)
 					m.Post("/delete", org.DeleteWebhook)
-					m.Get("/{type}/new", repo.WebhooksNew)
-					m.Post("/gitea/new", web.Bind(forms.NewWebhookForm{}), repo.GiteaHooksNewPost)
-					m.Post("/gogs/new", web.Bind(forms.NewGogshookForm{}), repo.GogsHooksNewPost)
-					m.Post("/slack/new", web.Bind(forms.NewSlackHookForm{}), repo.SlackHooksNewPost)
-					m.Post("/discord/new", web.Bind(forms.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
-					m.Post("/dingtalk/new", web.Bind(forms.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
-					m.Post("/telegram/new", web.Bind(forms.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
-					m.Post("/matrix/new", web.Bind(forms.NewMatrixHookForm{}), repo.MatrixHooksNewPost)
-					m.Post("/msteams/new", web.Bind(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
-					m.Post("/feishu/new", web.Bind(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
-					m.Post("/wechatwork/new", web.Bind(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
+					addWebhookAddRoutes()
 					m.Group("/{id}", func() {
 						m.Get("", repo.WebHooksEdit)
 						m.Post("/replay/{uuid}", repo.ReplayWebhook)
 					})
-					m.Post("/gitea/{id}", web.Bind(forms.NewWebhookForm{}), repo.GiteaHooksEditPost)
-					m.Post("/gogs/{id}", web.Bind(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
-					m.Post("/slack/{id}", web.Bind(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
-					m.Post("/discord/{id}", web.Bind(forms.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
-					m.Post("/dingtalk/{id}", web.Bind(forms.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
-					m.Post("/telegram/{id}", web.Bind(forms.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
-					m.Post("/matrix/{id}", web.Bind(forms.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
-					m.Post("/msteams/{id}", web.Bind(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
-					m.Post("/feishu/{id}", web.Bind(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
-					m.Post("/wechatwork/{id}", web.Bind(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
-				}, webhooksEnabled)
+					addWebhookEditRoutes()
+				}, webhooksEnabled, func(ctx *context.Context) {
+					ctx.Data["IsOrganizationWebhook"] = true
+				})
 
 				m.Group("/labels", func() {
 					m.Get("", org.RetrieveLabels, org.Labels)
@@ -817,6 +841,10 @@ func RegisterRoutes(m *web.Route) {
 							m.Post("", web.Bind(forms.PackageCleanupRuleForm{}), org.PackagesRuleEditPost)
 							m.Get("/preview", org.PackagesRulePreview)
 						})
+					})
+					m.Group("/cargo", func() {
+						m.Post("/initialize", org.InitializeCargoIndex)
+						m.Post("/rebuild", org.RebuildCargoIndex)
 					})
 				}, packagesEnabled)
 			}, func(ctx *context.Context) {
@@ -860,8 +888,10 @@ func RegisterRoutes(m *web.Route) {
 		}
 
 		m.Group("/projects", func() {
-			m.Get("", org.Projects)
-			m.Get("/{id}", org.ViewProject)
+			m.Group("", func() {
+				m.Get("", org.Projects)
+				m.Get("/{id}", org.ViewProject)
+			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead))
 			m.Group("", func() { //nolint:dupl
 				m.Get("/new", org.NewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
@@ -881,25 +911,18 @@ func RegisterRoutes(m *web.Route) {
 						m.Post("/move", org.MoveIssues)
 					})
 				})
-			}, reqSignIn, func(ctx *context.Context) {
-				if ctx.ContextUser == nil {
-					ctx.NotFound("NewProject", nil)
-					return
-				}
-				if ctx.ContextUser.IsOrganization() {
-					if !ctx.Org.CanWriteUnit(ctx, unit.TypeProjects) {
-						ctx.NotFound("NewProject", nil)
-						return
-					}
-				} else if ctx.ContextUser.ID != ctx.Doer.ID {
+			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite), func(ctx *context.Context) {
+				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
 					ctx.NotFound("NewProject", nil)
 					return
 				}
 			})
 		}, repo.MustEnableProjects)
 
-		m.Get("/code", user.CodeSearch)
-	}, context_service.UserAssignmentWeb())
+		m.Group("", func() {
+			m.Get("/code", user.CodeSearch)
+		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead))
+	}, context_service.UserAssignmentWeb(), context.OrgAssignment())
 
 	// ***** Release Attachment Download without Signin
 	m.Get("/{username}/{reponame}/releases/download/{vTag}/{fileName}", ignSignIn, context.RepoAssignment, repo.MustBeNotEmpty, repo.RedirectDownload)
@@ -953,35 +976,16 @@ func RegisterRoutes(m *web.Route) {
 			m.Group("/hooks", func() {
 				m.Get("", repo.Webhooks)
 				m.Post("/delete", repo.DeleteWebhook)
-				m.Get("/{type}/new", repo.WebhooksNew)
-				m.Post("/gitea/new", web.Bind(forms.NewWebhookForm{}), repo.GiteaHooksNewPost)
-				m.Post("/gogs/new", web.Bind(forms.NewGogshookForm{}), repo.GogsHooksNewPost)
-				m.Post("/slack/new", web.Bind(forms.NewSlackHookForm{}), repo.SlackHooksNewPost)
-				m.Post("/discord/new", web.Bind(forms.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
-				m.Post("/dingtalk/new", web.Bind(forms.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
-				m.Post("/telegram/new", web.Bind(forms.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
-				m.Post("/matrix/new", web.Bind(forms.NewMatrixHookForm{}), repo.MatrixHooksNewPost)
-				m.Post("/msteams/new", web.Bind(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
-				m.Post("/feishu/new", web.Bind(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
-				m.Post("/wechatwork/new", web.Bind(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
-				m.Post("/packagist/new", web.Bind(forms.NewPackagistHookForm{}), repo.PackagistHooksNewPost)
+				addWebhookAddRoutes()
 				m.Group("/{id}", func() {
 					m.Get("", repo.WebHooksEdit)
 					m.Post("/test", repo.TestWebhook)
 					m.Post("/replay/{uuid}", repo.ReplayWebhook)
 				})
-				m.Post("/gitea/{id}", web.Bind(forms.NewWebhookForm{}), repo.GiteaHooksEditPost)
-				m.Post("/gogs/{id}", web.Bind(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
-				m.Post("/slack/{id}", web.Bind(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
-				m.Post("/discord/{id}", web.Bind(forms.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
-				m.Post("/dingtalk/{id}", web.Bind(forms.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
-				m.Post("/telegram/{id}", web.Bind(forms.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
-				m.Post("/matrix/{id}", web.Bind(forms.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
-				m.Post("/msteams/{id}", web.Bind(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
-				m.Post("/feishu/{id}", web.Bind(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
-				m.Post("/wechatwork/{id}", web.Bind(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
-				m.Post("/packagist/{id}", web.Bind(forms.NewPackagistHookForm{}), repo.PackagistHooksEditPost)
-			}, webhooksEnabled)
+				addWebhookEditRoutes()
+			}, webhooksEnabled, func(ctx *context.Context) {
+				ctx.Data["IsRepositoryWebhook"] = true
+			})
 
 			m.Group("/keys", func() {
 				m.Combo("").Get(repo.DeployKeys).
@@ -1111,7 +1115,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/comments/{id}", func() {
 			m.Get("/attachments", repo.GetCommentAttachments)
 		})
-		m.Post("/markdown", web.Bind(structs.MarkdownOption{}), misc.Markdown)
+		m.Post("/markup", web.Bind(structs.MarkupOption{}), misc.Markup)
 		m.Group("/labels", func() {
 			m.Post("/new", web.Bind(forms.CreateLabelForm{}), repo.NewLabel)
 			m.Post("/edit", web.Bind(forms.CreateLabelForm{}), repo.UpdateLabel)
@@ -1277,6 +1281,7 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 				})
 				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
+				m.Post("/approve", reqRepoActionsWriter, actions.Approve)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
 

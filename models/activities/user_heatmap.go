@@ -39,9 +39,9 @@ func getUserHeatmapData(user *user_model.User, team *organization.Team, doer *us
 	groupBy := "created_unix / 900 * 900"
 	groupByName := "timestamp" // We need this extra case because mssql doesn't allow grouping by alias
 	switch {
-	case setting.Database.UseMySQL:
+	case setting.Database.Type.IsMySQL():
 		groupBy = "created_unix DIV 900 * 900"
-	case setting.Database.UseMSSQL:
+	case setting.Database.Type.IsMSSQL():
 		groupByName = groupBy
 	}
 
