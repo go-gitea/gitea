@@ -49,7 +49,7 @@ func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (recentlyPushe
 				builder.And(
 					builder.Eq{"pull_request.has_merged": false},
 					builder.Eq{"issue.is_closed": true},
-					builder.Gt{"action.created_unix": "issue.closed_unix"},
+					builder.Expr("action.created_unix > issue.closed_unix"),
 				),
 			),
 			builder.Gte{"action.created_unix": limit},
