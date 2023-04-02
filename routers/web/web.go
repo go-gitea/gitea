@@ -678,27 +678,29 @@ func RegisterRoutes(m *web.Route) {
 			// WORKAROUND to support usernames with "." in it
 			// https://github.com/go-chi/chi/issues/781
 			username := ctx.Params("username")
+			reloadParam := func(suffix string) (success bool) {
+				ctx.SetParams("username", strings.TrimSuffix(username, suffix))
+				context_service.UserAssignmentWeb()(ctx)
+				return !ctx.Written()
+			}
 			switch {
 			case strings.HasSuffix(username, ".keys"):
-				ctx.SetParams("username", strings.TrimSuffix(username, ".keys"))
-				context_service.UserAssignmentWeb()(ctx)
-				user.ShowSSHKeys(ctx)
+				if reloadParam(".keys") {
+					user.ShowSSHKeys(ctx)
+				}
 			case strings.HasSuffix(username, ".gpg"):
-				ctx.SetParams("username", strings.TrimSuffix(username, ".gpg"))
-				context_service.UserAssignmentWeb()(ctx)
-				user.ShowGPGKeys(ctx)
+				if reloadParam(".gpg") {
+					user.ShowGPGKeys(ctx)
+				}
 			case strings.HasSuffix(username, ".rss"):
 				feedEnabled(ctx)
-				if !ctx.Written() {
-					ctx.SetParams("username", strings.TrimSuffix(username, ".rss"))
+				if !ctx.Written() && reloadParam(".rss") {
 					context_service.UserAssignmentWeb()(ctx)
 					feed.ShowUserFeedRSS(ctx)
 				}
 			case strings.HasSuffix(username, ".atom"):
 				feedEnabled(ctx)
-				if !ctx.Written() {
-					ctx.SetParams("username", strings.TrimSuffix(username, ".atom"))
-					context_service.UserAssignmentWeb()(ctx)
+				if !ctx.Written() && reloadParam(".atom") {
 					feed.ShowUserFeedAtom(ctx)
 				}
 			default:
