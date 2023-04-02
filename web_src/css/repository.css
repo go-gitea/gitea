@@ -1616,14 +1616,12 @@
   padding: 7px 0;
   background: var(--color-body);
   line-height: 30px;
-  height: 47px; /* match .ui.attached.header.diff-file-header.sticky-2nd-row */
 }
 
 @media (max-width: 991px) {
   .repository .diff-detail-box {
     flex-direction: column;
     align-items: flex-start;
-    height: 77px; /* match .ui.attached.header.diff-file-header.sticky-2nd-row */
   }
 }
 
@@ -1677,6 +1675,13 @@
   .repository .diff-detail-box .diff-detail-stats strong {
     font-size: 1rem;
   }
+}
+
+.diff-detail-actions {
+  /* prevent font-size from increasing element height so that .diff-detail-box comes
+     out with height of 47px (one line) and 77px (two lines), which is important for
+     position: sticky */
+  height: 33px;
 }
 
 .repository .diff-detail-box .diff-detail-actions > * {
@@ -1853,10 +1858,24 @@
   padding-bottom: 5px;
 }
 
+.diff-file-box {
+  border: 1px solid transparent;
+  border-radius: var(--border-radius);
+}
+
+/* TODO: this can potentially be made "global" by removing the class prefix */
+.diff-file-box .ui.attached.header,
+.diff-file-box .ui.attached.table {
+  margin: 0; /* remove fomantic negative margins */;
+  width: initial; /* remove fomantic over 100% width */;
+  max-width: initial; /* remove fomantic over 100% width */;
+}
+
 .repository .diff-stats {
   clear: both;
   margin-bottom: 5px;
-  max-height: 400px;
+  max-height: 200px;
+  height: fit-content;
   overflow: auto;
   padding-left: 0;
 }
@@ -2652,7 +2671,8 @@
   filter: drop-shadow(-3px 0 0 var(--color-primary-alpha-30)) !important;
 }
 
-.code-comment:target {
+.code-comment:target,
+.diff-file-box:target {
   border-color: var(--color-primary) !important;
   border-radius: var(--border-radius) !important;
   box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
@@ -3226,15 +3246,26 @@ td.blob-excerpt {
 }
 
 #diff-file-tree {
-  width: 20%;
+  flex: 0 0 20%;
   max-width: 380px;
   line-height: inherit;
   position: sticky;
   padding-top: 0;
   top: 47px;
-  max-height: calc(100vh - 50px);
+  max-height: calc(100vh - 47px);
   height: 100%;
   overflow-y: auto;
+}
+
+.diff-toggle-file-tree-button {
+  background: none;
+  border: none;
+  user-select: none;
+  color: inherit;
+}
+
+.diff-toggle-file-tree-button:hover {
+  color: var(--color-primary);
 }
 
 @media (max-width: 991px) {
