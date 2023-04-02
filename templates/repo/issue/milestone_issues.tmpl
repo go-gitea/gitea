@@ -10,10 +10,10 @@
 				<div class="column right aligned">
 					{{if or .CanWriteIssues .CanWritePulls}}
 						{{if .Milestone.IsClosed}}
-							<a class="ui green basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.Milestone.ID}}/open">{{$.locale.Tr "repo.milestones.open"}}
+							<a class="ui green basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/open">{{$.locale.Tr "repo.milestones.open"}}
 							</a>
 						{{else}}
-							<a class="ui red basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.Milestone.ID}}/close">{{$.locale.Tr "repo.milestones.close"}}
+							<a class="ui red basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/close">{{$.locale.Tr "repo.milestones.close"}}
 							</a>
 						{{end}}
 						<a class="ui button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/edit">{{.locale.Tr "repo.milestones.edit"}}</a>
