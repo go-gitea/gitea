@@ -344,7 +344,7 @@ var (
 	}
 )
 
-// FindUnitTypes give the unit key names and return valid deduplicate units and invalid keys
+// FindUnitTypes give the unit key names and return valid unique units and invalid keys
 func FindUnitTypes(nameKeys ...string) (res []Type, invalidKeys []string) {
 	m := map[Type]struct{}{}
 	for _, key := range nameKeys {
