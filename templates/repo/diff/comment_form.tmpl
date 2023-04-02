@@ -27,6 +27,7 @@
 				{{if $.reply}}
 					<button class="ui submit green tiny button btn-reply" type="submit">{{$.root.locale.Tr "repo.diff.comment.reply"}}</button>
 					<input type="hidden" name="reply" value="{{$.reply}}">
+					<input type="hidden" name="single_review" value="true">
 				{{else}}
 					{{if $.root.CurrentReview}}
 						<button name="pending_review" type="submit" class="ui submit green tiny button btn-add-comment">{{$.root.locale.Tr "repo.diff.comment.add_review_comment"}}</button>
