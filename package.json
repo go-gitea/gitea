@@ -19,6 +19,7 @@
     "add-asset-webpack-plugin": "2.0.1",
     "ansi-to-html": "0.7.2",
     "asciinema-player": "3.2.0",
+    "clippie": "3.1.4",
     "css-loader": "6.7.3",
     "dropzone": "6.0.0-beta.2",
     "easymde": "2.18.0",
