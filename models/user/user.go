@@ -537,6 +537,7 @@ var (
 		"gitea-actions",
 	}
 
+	// DON'T ADD ANY NEW STUFF, WE SOLVE THIS WITH ALTERNATE PATHS!
 	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom"}
 )
 
