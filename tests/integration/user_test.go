@@ -241,6 +241,13 @@ func testExportUserGPGKeys(t *testing.T, user, expected string) {
 	assert.Equal(t, expected, resp.Body.String())
 }
 
+func TestGetPng(t *testing.T) {
+	user34 := "the_34-user.with.all.allowedChars"
+	req := NewRequestf(t, "GET", "/%s.png", user34)
+	resp := MakeRequest(t, req, http.StatusSeeOther)
+	assert.EqualValues(t, "/avatars/avatar34", resp.Header().Get("location"))
+}
+
 func TestListStopWatches(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
