@@ -705,8 +705,10 @@ func RegisterRoutes(m *web.Route) {
 				}
 			default:
 				context_service.UserAssignmentWeb()(ctx)
-				ctx.Data["EnableFeed"] = setting.EnableFeed
-				user.Profile(ctx)
+				if !ctx.Written() {
+					ctx.Data["EnableFeed"] = setting.EnableFeed
+					user.Profile(ctx)
+				}
 			}
 		})
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
