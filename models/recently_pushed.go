@@ -94,7 +94,7 @@ func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (recentlyPushe
 					Where(builder.In("repository.id", repoIDs)),
 			),
 		)).
-		Join("LEFT", "repository", "repository.owner_id = user.id").
+		Join("LEFT", "repository", "`repository`.owner_id = `user`.id").
 		Find(&owners)
 	if err != nil {
 		return nil, err
