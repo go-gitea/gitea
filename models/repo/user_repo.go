@@ -171,27 +171,20 @@ func GetIssuePosters(ctx context.Context, repo *Repository, isPull bool) ([]*use
 // If isShowFullName is set to true, also include full name prefix search
 func GetIssuePostersWithPrefix(ctx context.Context, repo *Repository, isPull bool, prefix string, isShowFullName bool) ([]*user_model.User, error) {
 	users := make([]*user_model.User, 0, 8)
+	var prefixCond builder.Cond = builder.Like{"name", prefix + "%"}
+	if isShowFullName {
+		prefixCond = prefixCond.Or(builder.Like{"full_name", prefix + "%"})
+	}
 	cond := builder.In("`user`.id",
 		builder.Select("poster_id").From("issue").Where(
 			builder.Eq{"repo_id": repo.ID}.
 				And(builder.Eq{"is_pull": isPull}),
-		).GroupBy("poster_id"),
-	)
-	if isShowFullName {
-		return users, db.GetEngine(ctx).
-			Where(cond).
-			Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
-			Table("user").
-			Where("name LIKE ? or full_name LIKE ?", prefix+"%", prefix+"%").
-			OrderBy(user_model.GetOrderByName()).
-			Limit(30).
-			Find(&users)
-	}
+		).GroupBy("poster_id"))
+	cond = cond.And(prefixCond)
 	return users, db.GetEngine(ctx).
 		Where(cond).
 		Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
 		Table("user").
-		Where("name LIKE ?", prefix+"%").
 		OrderBy(user_model.GetOrderByName()).
 		Limit(30).
 		Find(&users)
