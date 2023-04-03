@@ -16,6 +16,7 @@ import (
 	"github.com/gobwas/glob"
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
+	"github.com/nektos/act/pkg/workflowpattern"
 )
 
 func ListWorkflows(commit *git.Commit) (git.Entries, error) {
@@ -121,8 +122,8 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		webhook_module.HookEventRepository,
 		webhook_module.HookEventRelease,
 		webhook_module.HookEventPackage:
-		if len(evt.Acts) != 0 {
-			log.Warn("Ignore unsupported %s event arguments %q", triggedEvent, evt.Acts)
+		if len(evt.Acts()) != 0 {
+			log.Warn("Ignore unsupported %s event arguments %v", triggedEvent, evt.Acts())
 		}
 		// no special filter parameters for these events, just return true if name matched
 		return true
@@ -147,57 +148,111 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 
 func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
-	if len(evt.Acts) == 0 {
+	if len(evt.Acts()) == 0 {
 		return true
 	}
 
 	matchTimes := 0
+	hasBranchFilter := false
+	hasTagFilter := false
+	refName := git.RefName(pushPayload.Ref)
 	// all acts conditions should be satisfied
-	for cond, vals := range evt.Acts {
+	for cond, vals := range evt.Acts() {
 		switch cond {
-		case "branches", "tags":
-			refShortName := git.RefName(pushPayload.Ref).ShortName()
-			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(refShortName) {
-					matchTimes++
-					break
-				}
+		case "branches":
+			hasBranchFilter = true
+			if !refName.IsBranch() {
+				break
+			}
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Skip(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+				matchTimes++
+			}
+		case "branches-ignore":
+			hasBranchFilter = true
+			if !refName.IsBranch() {
+				break
+			}
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Filter(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+				matchTimes++
+			}
+		case "tags":
+			hasTagFilter = true
+			if !refName.IsTag() {
+				break
+			}
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Skip(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+				matchTimes++
+			}
+		case "tags-ignore":
+			hasTagFilter = true
+			if !refName.IsTag() {
+				break
+			}
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Filter(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+				matchTimes++
 			}
 		case "paths":
 			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
 			} else {
-				for _, val := range vals {
-					matched := false
-					for _, file := range filesChanged {
-						if glob.MustCompile(val, '/').Match(file) {
-							matched = true
-							break
-						}
-					}
-					if matched {
-						matchTimes++
-						break
-					}
+				patterns, err := workflowpattern.CompilePatterns(vals...)
+				if err != nil {
+					break
+				}
+				if !workflowpattern.Skip(patterns, filesChanged, &workflowpattern.EmptyTraceWriter{}) {
+					matchTimes++
+				}
+			}
+		case "paths-ignore":
+			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
+			if err != nil {
+				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+			} else {
+				patterns, err := workflowpattern.CompilePatterns(vals...)
+				if err != nil {
+					break
+				}
+				if !workflowpattern.Filter(patterns, filesChanged, &workflowpattern.EmptyTraceWriter{}) {
+					matchTimes++
 				}
 			}
 		default:
 			log.Warn("push event unsupported condition %q", cond)
 		}
 	}
-	return matchTimes == len(evt.Acts)
+	// if both branch and tag filter are defined in the workflow only one needs to match
+	if hasBranchFilter && hasTagFilter {
+		matchTimes++
+	}
+	return matchTimes == len(evt.Acts())
 }
 
 func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
-	if len(evt.Acts) == 0 {
+	if len(evt.Acts()) == 0 {
 		return true
 	}
 
 	matchTimes := 0
 	// all acts conditions should be satisfied
-	for cond, vals := range evt.Acts {
+	for cond, vals := range evt.Acts() {
 		switch cond {
 		case "types":
 			for _, val := range vals {
@@ -210,19 +265,19 @@ func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *j
 			log.Warn("issue event unsupported condition %q", cond)
 		}
 	}
-	return matchTimes == len(evt.Acts)
+	return matchTimes == len(evt.Acts())
 }
 
 func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
-	if len(evt.Acts) == 0 {
+	if len(evt.Acts()) == 0 {
 		// defaultly, only pull request opened and synchronized will trigger workflow
 		return prPayload.Action == api.HookIssueSynchronized || prPayload.Action == api.HookIssueOpened
 	}
 
 	matchTimes := 0
 	// all acts conditions should be satisfied
-	for cond, vals := range evt.Acts {
+	for cond, vals := range evt.Acts() {
 		switch cond {
 		case "types":
 			action := prPayload.Action
@@ -237,48 +292,65 @@ func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload
 				}
 			}
 		case "branches":
-			refShortName := git.RefName(prPayload.PullRequest.Base.Ref).ShortName()
-			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(refShortName) {
-					matchTimes++
-					break
-				}
+			refName := git.RefName(prPayload.PullRequest.Base.Ref)
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Skip(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+				matchTimes++
+			}
+		case "branches-ignore":
+			refName := git.RefName(prPayload.PullRequest.Base.Ref)
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Filter(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+				matchTimes++
 			}
 		case "paths":
 			filesChanged, err := commit.GetFilesChangedSinceCommit(prPayload.PullRequest.Base.Ref)
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
 			} else {
-				for _, val := range vals {
-					matched := false
-					for _, file := range filesChanged {
-						if glob.MustCompile(val, '/').Match(file) {
-							matched = true
-							break
-						}
-					}
-					if matched {
-						matchTimes++
-						break
-					}
+				patterns, err := workflowpattern.CompilePatterns(vals...)
+				if err != nil {
+					break
+				}
+				if !workflowpattern.Skip(patterns, filesChanged, &workflowpattern.EmptyTraceWriter{}) {
+					matchTimes++
+				}
+			}
+		case "paths-ignore":
+			filesChanged, err := commit.GetFilesChangedSinceCommit(prPayload.PullRequest.Base.Ref)
+			if err != nil {
+				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+			} else {
+				patterns, err := workflowpattern.CompilePatterns(vals...)
+				if err != nil {
+					break
+				}
+				if !workflowpattern.Filter(patterns, filesChanged, &workflowpattern.EmptyTraceWriter{}) {
+					matchTimes++
 				}
 			}
 		default:
 			log.Warn("pull request event unsupported condition %q", cond)
 		}
 	}
-	return matchTimes == len(evt.Acts)
+	return matchTimes == len(evt.Acts())
 }
 
 func matchIssueCommentEvent(commit *git.Commit, issueCommentPayload *api.IssueCommentPayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
-	if len(evt.Acts) == 0 {
+	if len(evt.Acts()) == 0 {
 		return true
 	}
 
 	matchTimes := 0
 	// all acts conditions should be satisfied
-	for cond, vals := range evt.Acts {
+	for cond, vals := range evt.Acts() {
 		switch cond {
 		case "types":
 			for _, val := range vals {
@@ -291,5 +363,5 @@ func matchIssueCommentEvent(commit *git.Commit, issueCommentPayload *api.IssueCo
 			log.Warn("issue comment unsupported condition %q", cond)
 		}
 	}
-	return matchTimes == len(evt.Acts)
+	return matchTimes == len(evt.Acts())
 }

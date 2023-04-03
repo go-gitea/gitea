@@ -26,6 +26,7 @@ import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
 import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
 import {hideElem, showElem} from '../utils/dom.js';
+import {attachRefIssueContextPopup} from './contextpopup.js';
 
 const {csrfToken} = window.config;
 
@@ -439,6 +440,8 @@ async function onEditContent(event) {
         } else {
           $renderContent.html(data.content);
           $rawContent.text($textarea.val());
+          const refIssues = $renderContent.find('p .ref-issue');
+          attachRefIssueContextPopup(refIssues);
         }
         const $content = $segment;
         if (!$content.find('.dropzone-attachments').length) {

@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {initMarkupContent} from '../../markup/content.js';
+import {attachRefIssueContextPopup} from '../contextpopup.js';
 
 const {csrfToken} = window.config;
 
@@ -16,6 +17,8 @@ export function initCompMarkupContentPreviewTab($form) {
     }, (data) => {
       const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
+      const refIssues = $previewPanel.find('p .ref-issue');
+      attachRefIssueContextPopup(refIssues);
       initMarkupContent();
     });
   });
