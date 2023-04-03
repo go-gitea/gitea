@@ -18,17 +18,18 @@ import (
 
 // Attachment represent a attachment of issue/comment/release.
 type Attachment struct {
-	ID            int64  `xorm:"pk autoincr"`
-	UUID          string `xorm:"uuid UNIQUE"`
-	RepoID        int64  `xorm:"INDEX"`           // this should not be zero
-	IssueID       int64  `xorm:"INDEX"`           // maybe zero when creating
-	ReleaseID     int64  `xorm:"INDEX"`           // maybe zero when creating
-	UploaderID    int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
-	CommentID     int64
-	Name          string
-	DownloadCount int64              `xorm:"DEFAULT 0"`
-	Size          int64              `xorm:"DEFAULT 0"`
-	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
+	ID                int64  `xorm:"pk autoincr"`
+	UUID              string `xorm:"uuid UNIQUE"`
+	RepoID            int64  `xorm:"INDEX"`           // this should not be zero
+	IssueID           int64  `xorm:"INDEX"`           // maybe zero when creating
+	ReleaseID         int64  `xorm:"INDEX"`           // maybe zero when creating
+	UploaderID        int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
+	CommentID         int64
+	Name              string
+	DownloadCount     int64              `xorm:"DEFAULT 0"`
+	Size              int64              `xorm:"DEFAULT 0"`
+	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
+	CustomDownloadURL string             `xorm:"-"`
 }
 
 func init() {
@@ -57,7 +58,11 @@ func (a *Attachment) RelativePath() string {
 
 // DownloadURL returns the download url of the attached file
 func (a *Attachment) DownloadURL() string {
-	return setting.AppURL + "attachments/" + url.PathEscape(a.UUID)
+	if a.CustomDownloadURL == "" {
+		return setting.AppURL + "attachments/" + url.PathEscape(a.UUID)
+	} else {
+		return a.CustomDownloadURL
+	}
 }
 
 //    _____   __    __                .__                           __
