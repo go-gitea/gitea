@@ -25,7 +25,7 @@ type RecentlyPushedBranches struct {
 
 // GetRecentlyPushedBranches returns all actions where a user recently pushed but no PRs are created yet.
 func GetRecentlyPushedBranches(ctx context.Context, u *user.User) (recentlyPushedBranches []*RecentlyPushedBranches, err error) {
-	limit := time.Now().Add(-24 * time.Hour).Unix()
+	limit := time.Now().Add(-2 * time.Hour).Unix()
 
 	actions := []*activities.Action{}
 	// We're fetching the last three commits activity actions within the limit...
