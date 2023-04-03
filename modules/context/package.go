@@ -97,7 +97,7 @@ func determineAccessMode(ctx *Context) (perm.AccessMode, error) {
 		org := organization.OrgFromUser(ctx.Package.Owner)
 
 		// 1. If user is logined
-		if ctx.Doer != nil {
+		if ctx.Doer != nil && !ctx.Doer.IsGhost() {
 			// check every team permissions
 			teams, err := organization.GetUserOrgTeams(ctx, org.ID, ctx.Doer.ID)
 			if err != nil {
