@@ -61,11 +61,7 @@ func registerGarbageCollectRepositories() {
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		rhcConfig := config.(*RepoHealthCheckConfig)
 		// the git args are set by config, they can be safe to be trusted
-		args := make([]git.CmdArg, 0, len(rhcConfig.Args))
-		for _, arg := range rhcConfig.Args {
-			args = append(args, git.CmdArg(arg))
-		}
-		return repo_service.GitGcRepos(ctx, rhcConfig.Timeout, args...)
+		return repo_service.GitGcRepos(ctx, rhcConfig.Timeout, git.ToTrustedCmdArgs(rhcConfig.Args))
 	})
 }
 

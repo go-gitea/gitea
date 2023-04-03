@@ -355,7 +355,7 @@ func (c *Comment) LoadPoster(ctx context.Context) (err error) {
 		return nil
 	}
 
-	c.Poster, err = user_model.GetUserByID(ctx, c.PosterID)
+	c.Poster, err = user_model.GetPossibleUserByID(ctx, c.PosterID)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			c.PosterID = -1
@@ -391,21 +391,40 @@ func (c *Comment) HTMLURL() string {
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
+	return c.Issue.HTMLURL() + c.hashLink()
+}
+
+// Link formats a relative URL-string to the issue-comment
+func (c *Comment) Link() string {
+	err := c.LoadIssue(db.DefaultContext)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadIssue(%d): %v", c.IssueID, err)
+		return ""
+	}
+	err = c.Issue.LoadRepo(db.DefaultContext)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
+		return ""
+	}
+	return c.Issue.Link() + c.hashLink()
+}
+
+func (c *Comment) hashLink() string {
 	if c.Type == CommentTypeCode {
 		if c.ReviewID == 0 {
-			return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+			return "/files#" + c.HashTag()
 		}
 		if c.Review == nil {
 			if err := c.LoadReview(); err != nil {
 				log.Warn("LoadReview(%d): %v", c.ReviewID, err)
-				return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+				return "/files#" + c.HashTag()
 			}
 		}
 		if c.Review.Type <= ReviewTypePending {
-			return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+			return "/files#" + c.HashTag()
 		}
 	}
-	return fmt.Sprintf("%s#%s", c.Issue.HTMLURL(), c.HashTag())
+	return "#" + c.HashTag()
 }
 
 // APIURL formats a API-string to the issue-comment
@@ -601,7 +620,7 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 			return err
 		}
 
-		if err = c.Issue.Repo.GetOwner(db.DefaultContext); err != nil {
+		if err = c.Issue.Repo.LoadOwner(db.DefaultContext); err != nil {
 			return err
 		}
 
@@ -708,8 +727,8 @@ func (c *Comment) UnsignedLine() uint64 {
 	return uint64(c.Line)
 }
 
-// CodeCommentURL returns the url to a comment in code
-func (c *Comment) CodeCommentURL() string {
+// CodeCommentLink returns the url to a comment in code
+func (c *Comment) CodeCommentLink() string {
 	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
@@ -720,7 +739,7 @@ func (c *Comment) CodeCommentURL() string {
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
-	return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+	return fmt.Sprintf("%s/files#%s", c.Issue.Link(), c.HashTag())
 }
 
 // LoadPushCommits Load push commits
@@ -805,7 +824,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		return nil, err
 	}
 
-	if err = opts.Repo.GetOwner(ctx); err != nil {
+	if err = opts.Repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 
@@ -1224,4 +1243,9 @@ func FixCommentTypeLabelWithOutsideLabels(ctx context.Context) (int64, error) {
 	}
 
 	return res.RowsAffected()
+}
+
+// HasOriginalAuthor returns if a comment was migrated and has an original author.
+func (c *Comment) HasOriginalAuthor() bool {
+	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
 }

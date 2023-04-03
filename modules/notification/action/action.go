@@ -56,7 +56,7 @@ func (a *actionNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model
 }
 
 // NotifyIssueChangeStatus notifies close or reopen issue to notifiers
-func (a *actionNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, actionComment *issues_model.Comment, closeOrReopen bool) {
+func (a *actionNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, closeOrReopen bool) {
 	// Compose comment action, could be plain comment, close or reopen issue/pull request.
 	// This object will be used to notify watchers in the end of function.
 	act := &activities_model.Action{

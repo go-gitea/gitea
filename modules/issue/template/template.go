@@ -259,7 +259,9 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 	}
 
 	// write label
-	_, _ = fmt.Fprintf(builder, "### %s\n\n", f.Label())
+	if !f.HideLabel() {
+		_, _ = fmt.Fprintf(builder, "### %s\n\n", f.Label())
+	}
 
 	blankPlaceholder := "_No response_\n"
 
@@ -309,6 +311,13 @@ func (f *valuedField) Label() string {
 		return label
 	}
 	return ""
+}
+
+func (f *valuedField) HideLabel() bool {
+	if label, ok := f.Attributes["hide_label"].(bool); ok {
+		return label
+	}
+	return false
 }
 
 func (f *valuedField) Render() string {

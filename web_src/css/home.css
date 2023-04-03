@@ -1,0 +1,53 @@
+.home .logo {
+  max-width: 220px;
+}
+
+@media (max-width: 767px) {
+  .home .hero h1 {
+    font-size: 3.5em;
+  }
+  .home .hero h2 {
+    font-size: 2em;
+  }
+}
+
+@media (min-width: 768px) {
+  .home .hero h1 {
+    font-size: 5.5em;
+  }
+  .home .hero h2 {
+    font-size: 3em;
+  }
+}
+
+.home .hero .svg {
+  color: var(--color-green);
+  height: 40px;
+  width: 50px;
+  vertical-align: bottom;
+}
+
+.home .hero.header {
+  font-size: 20px;
+}
+
+.home p.large {
+  font-size: 16px;
+}
+
+.home .stackable {
+  padding-top: 30px;
+}
+
+.home a {
+  color: var(--color-green);
+}
+
+@media (max-width: 880px) {
+  footer .ui.container .left,
+  footer .ui.container .right {
+    display: block;
+    text-align: center;
+    float: none;
+  }
+}

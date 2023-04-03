@@ -29,5 +29,5 @@ Gitea 從 `1.13` 版開始支援某些 [push options](https://git-scm.com/docs/g
 以下範例修改儲存庫的可見性為公開：
 
 ```shell
-git push -o repo.private=false -u origin master
+git push -o repo.private=false -u origin main
 ```

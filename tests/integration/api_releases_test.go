@@ -176,6 +176,24 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 	createNewReleaseUsingAPI(t, session, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
 }
 
+func TestAPIGetLatestRelease(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/latest",
+		owner.Name, repo.Name)
+
+	req := NewRequestf(t, "GET", urlStr)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var release *api.Release
+	DecodeJSON(t, resp, &release)
+
+	assert.Equal(t, "testing-release", release.Title)
+}
+
 func TestAPIGetReleaseByTag(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

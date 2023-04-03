@@ -151,7 +151,7 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 			}
 			for i := range users {
 				notify = append(notify, &Notification{
-					UserID:    users[i].ID,
+					UserID:    i,
 					RepoID:    repo.ID,
 					Status:    NotificationStatusUnread,
 					UpdatedBy: doer.ID,
@@ -455,6 +455,22 @@ func (n *Notification) HTMLURL() string {
 		return n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
 	case NotificationSourceRepository:
 		return n.Repository.HTMLURL()
+	}
+	return ""
+}
+
+// Link formats a relative URL-string to the notification
+func (n *Notification) Link() string {
+	switch n.Source {
+	case NotificationSourceIssue, NotificationSourcePullRequest:
+		if n.Comment != nil {
+			return n.Comment.Link()
+		}
+		return n.Issue.Link()
+	case NotificationSourceCommit:
+		return n.Repository.Link() + "/commit/" + url.PathEscape(n.CommitID)
+	case NotificationSourceRepository:
+		return n.Repository.Link()
 	}
 	return ""
 }

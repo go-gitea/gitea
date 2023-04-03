@@ -24,6 +24,9 @@ func (err ErrKeyUnableVerify) Error() string {
 	return fmt.Sprintf("Unable to verify key content [result: %s]", err.Result)
 }
 
+// ErrKeyIsPrivate is returned when the provided key is a private key not a public key
+var ErrKeyIsPrivate = util.NewSilentWrapErrorf(util.ErrInvalidArgument, "the provided key is a private key")
+
 // ErrKeyNotExist represents a "KeyNotExist" kind of error.
 type ErrKeyNotExist struct {
 	ID int64

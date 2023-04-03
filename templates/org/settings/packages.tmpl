@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content organization settings packages">
+<div role="main" aria-label="{{.Title}}" class="page-content organization settings packages">
 	{{template "org/header" .}}
 	<div class="ui container">
 		<div class="ui grid">
@@ -7,6 +7,7 @@
 			<div class="twelve wide column content">
 				{{template "base/alert" .}}
 				{{template "package/shared/cleanup_rules/list" .}}
+				{{template "package/shared/cargo" .}}
 			</div>
 		</div>
 	</div>

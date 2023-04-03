@@ -86,7 +86,7 @@ func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
 // LoadGitRepo load a git repo into a test context. Requires that ctx.Repo has
 // already been populated.
 func LoadGitRepo(t *testing.T, ctx *context.Context) {
-	assert.NoError(t, ctx.Repo.Repository.GetOwner(ctx))
+	assert.NoError(t, ctx.Repo.Repository.LoadOwner(ctx))
 	var err error
 	ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)

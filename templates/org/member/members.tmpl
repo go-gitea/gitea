@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content organization members">
+<div role="main" aria-label="{{.Title}}" class="page-content organization members">
 	{{template "org/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -8,7 +8,7 @@
 			{{range .Members}}
 				<div class="item ui grid">
 					<div class="ui four wide column" style="display: flex;">
-						{{avatar . 48}}
+						{{avatar $.Context . 48}}
 						<div>
 							<div class="meta"><a href="{{.HomeLink}}">{{.Name}}</a></div>
 							<div class="meta">{{.FullName}}</div>
@@ -39,6 +39,7 @@
 							</div>
 						</div>
 						<div class="ui two wide column center">
+							{{if $.IsOrganizationOwner}}
 							<div class="meta">
 								{{$.locale.Tr "admin.users.2fa"}}
 							</div>
@@ -51,6 +52,7 @@
 									{{end}}
 								</strong>
 							</div>
+							{{end}}
 						</div>
 					{{end}}
 					<div class="ui three wide column">

@@ -1,10 +1,10 @@
 {{template "base/head" .}}
-<div class="page-content organization invite">
+<div role="main" aria-label="{{.Title}}" class="page-content organization invite">
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<div class="ui centered card">
 			<div class="image">
-				{{avatar .Organization 140}}
+				{{avatar $.Context .Organization 140}}
 			</div>
 			<div class="content">
 				<div class="header">{{.locale.Tr "org.teams.invite.title" .Team.Name .Organization.Name | Str2html}}</div>

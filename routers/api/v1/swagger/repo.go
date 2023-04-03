@@ -387,6 +387,20 @@ type swaggerRepoCollaboratorPermission struct {
 	Body api.RepoCollaboratorPermission `json:"body"`
 }
 
+// RepoIssueConfig
+// swagger:response RepoIssueConfig
+type swaggerRepoIssueConfig struct {
+	// in:body
+	Body api.IssueConfig `json:"body"`
+}
+
+// RepoIssueConfigValidation
+// swagger:response RepoIssueConfigValidation
+type swaggerRepoIssueConfigValidation struct {
+	// in:body
+	Body api.IssueConfigValidation `json:"body"`
+}
+
 // Project
 // swagger:response Project
 type swaggerProject struct {

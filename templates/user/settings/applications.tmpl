@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content user settings applications">
+<div role="main" aria-label="{{.Title}}" class="page-content user settings applications">
 	{{template "user/settings/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -15,13 +15,20 @@
 					<div class="item">
 						<div class="right floated content">
 								<button class="ui red tiny button delete-button" data-modal-id="delete-token" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
-									{{svg "octicon-trash" 16 "mr-2"}}
+									{{svg "octicon-trash" 16 "gt-mr-2"}}
 									{{$.locale.Tr "settings.delete_token"}}
 								</button>
 						</div>
-						<i class="icon tooltip{{if .HasRecentActivity}} green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.token_state_desc"}}"{{end}}>{{svg "fontawesome-send" 36}}</i>
+						<i class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.token_state_desc"}}"{{end}}>{{svg "fontawesome-send" 36}}</i>
 						<div class="content">
-							<strong>{{.Name}}</strong>
+							<details><summary><strong>{{.Name}}</strong></summary>
+								<p class="gt-my-2">{{$.locale.Tr "settings.scopes_list"}}</p>
+								<ul class="gt-my-2">
+								{{range .Scope.StringSlice}}
+									<li>{{.}}</li>
+								{{end}}
+								</ul>
+							</details>
 							<div class="activity meta">
 								<i>{{$.locale.Tr "settings.add_on"}} <span><time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time></span> — {{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}><time data-format="short-date" datetime="{{.UpdatedUnix.FormatLong}}">{{.UpdatedUnix.FormatShort}}</time></span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
 							</div>
@@ -42,16 +49,16 @@
 					<input id="name" name="name" value="{{.name}}" autofocus required>
 				</div>
 				<details class="ui optional field">
-					<summary class="p-2">
+					<summary class="gt-p-2">
 						{{.locale.Tr "settings.select_scopes"}}
 					</summary>
-					<div class="field pl-2">
+					<div class="field gt-pl-2">
 						<div class="ui checkbox">
 							<input class="enable-system" type="checkbox" name="scope" value="repo">
 							<label>repo</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="repo:status">
@@ -71,7 +78,7 @@
 							<label>admin:org</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="write:org">
@@ -91,7 +98,7 @@
 							<label>admin:public_key</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="write:public_key">
@@ -111,7 +118,7 @@
 							<label>admin:repo_hook</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="write:repo_hook">
@@ -133,6 +140,12 @@
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
+							<input class="enable-system" type="checkbox" name="scope" value="admin:user_hook">
+							<label>admin:user_hook</label>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
 							<input class="enable-system" type="checkbox" name="scope" value="notification">
 							<label>notification</label>
 						</div>
@@ -143,7 +156,7 @@
 							<label>user</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="read:user">
@@ -165,7 +178,7 @@
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="delete:repo">
+							<input class="enable-system" type="checkbox" name="scope" value="delete_repo">
 							<label>delete_repo</label>
 						</div>
 					</div>
@@ -175,7 +188,7 @@
 							<label>package</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="write:package">
@@ -201,7 +214,7 @@
 							<label>admin:gpg_key</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="write:gpg_key">
@@ -221,7 +234,7 @@
 							<label>admin:application</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="write:application">
@@ -263,15 +276,16 @@
 	<div class="content">
 		<p>{{.locale.Tr "settings.access_token_deletion_desc"}}</p>
 	</div>
-	<div class="actions">
-		<div class="ui cancel button">
-			<i class="remove icon"></i>
+
+	<div class="actions">{{/* TODO: Convert to base/delete_modal_actions.tmpl */}}
+		<button class="ui green basic inverted cancel button">
+			{{svg "octicon-x"}}
 			{{.locale.Tr "settings.access_token_deletion_cancel_action"}}
-		</div>
-		<div class="ui red basic inverted ok button">
-			<i class="checkmark icon"></i>
+		</button>
+		<button class="ui red basic inverted ok button">
+			{{svg "octicon-check"}}
 			{{.locale.Tr "settings.access_token_deletion_confirm_action"}}
-		</div>
+		</button>
 	</div>
 </div>
 

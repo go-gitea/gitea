@@ -1,10 +1,10 @@
-<div class="ui bottom attached table segment df ac sb">
-		<div class="df ac ml-4">
+<div class="ui bottom attached table segment gt-df gt-ac gt-sb">
+		<div class="gt-df gt-ac gt-ml-4">
 			{{if .result.Language}}
-					<i class="color-icon mr-3" style="background-color: {{.result.Color}}"></i>{{.result.Language}}
+					<i class="color-icon gt-mr-3" style="background-color: {{.result.Color}}"></i>{{.result.Language}}
 			{{end}}
 		</div>
-		<div class="mr-4">
+		<div class="gt-mr-4">
 			{{if not .result.UpdatedUnix.IsZero}}
 					<span class="ui grey text">{{.root.locale.Tr "explore.code_last_indexed_at" (TimeSinceUnix .result.UpdatedUnix .root.locale) | Safe}}</span>
 			{{end}}

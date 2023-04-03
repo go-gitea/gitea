@@ -21,14 +21,14 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 		r.Reviewer = user_model.NewGhostUser()
 	}
 
-	apiTeam, err := ToTeam(r.ReviewerTeam)
+	apiTeam, err := ToTeam(ctx, r.ReviewerTeam)
 	if err != nil {
 		return nil, err
 	}
 
 	result := &api.PullReview{
 		ID:                r.ID,
-		Reviewer:          ToUser(r.Reviewer, doer),
+		Reviewer:          ToUser(ctx, r.Reviewer, doer),
 		ReviewerTeam:      apiTeam,
 		State:             api.ReviewStateUnknown,
 		Body:              r.Content,
@@ -93,8 +93,8 @@ func ToPullReviewCommentList(ctx context.Context, review *issues_model.Review, d
 				apiComment := &api.PullReviewComment{
 					ID:           comment.ID,
 					Body:         comment.Content,
-					Poster:       ToUser(comment.Poster, doer),
-					Resolver:     ToUser(comment.ResolveDoer, doer),
+					Poster:       ToUser(ctx, comment.Poster, doer),
+					Resolver:     ToUser(ctx, comment.ResolveDoer, doer),
 					ReviewID:     review.ID,
 					Created:      comment.CreatedUnix.AsTime(),
 					Updated:      comment.UpdatedUnix.AsTime(),

@@ -1,5 +1,5 @@
 <div class="commit-form-wrapper">
-	{{avatar .SignedUser 48 "commit-avatar"}}
+	{{avatar $.Context .SignedUser 48 "commit-avatar"}}
 	<div class="commit-form">
 		<h3>{{- if .CanCommitToBranch.WillSign}}
 			<span title="{{.locale.Tr "repo.signing.will_sign" .CanCommitToBranch.SigningKey}}">{{svg "octicon-lock" 24}}</span>
@@ -9,14 +9,14 @@
 			{{.locale.Tr "repo.editor.commit_changes"}}
 		{{- end}}</h3>
 		<div class="field">
-			<input name="commit_summary" placeholder="{{if .PageIsDelete}}{{.locale.Tr "repo.editor.delete" .TreePath}}{{else if .PageIsUpload}}{{.locale.Tr "repo.editor.upload_files_to_dir" .TreePath}}{{else if .IsNewFile}}{{.locale.Tr "repo.editor.add_tmpl"}}{{else}}{{.locale.Tr "repo.editor.update" .TreePath}}{{end}}" value="{{.commit_summary}}" autofocus>
+			<input name="commit_summary" placeholder="{{if .PageIsDelete}}{{.locale.Tr "repo.editor.delete" .TreePath}}{{else if .PageIsUpload}}{{.locale.Tr "repo.editor.upload_files_to_dir" .TreePath}}{{else if .IsNewFile}}{{.locale.Tr "repo.editor.add_tmpl"}}{{else if .PageIsPatch}}{{.locale.Tr "repo.editor.patch"}}{{else}}{{.locale.Tr "repo.editor.update" .TreePath}}{{end}}" value="{{.commit_summary}}" autofocus>
 		</div>
 		<div class="field">
 			<textarea name="commit_message" placeholder="{{.locale.Tr "repo.editor.commit_message_desc"}}" rows="5">{{.commit_message}}</textarea>
 		</div>
 		<div class="inline field">
 			<div class="ui checkbox">
-				<input name="signoff" type="checkbox" tabindex="0" class="hidden">
+				<input name="signoff" type="checkbox" tabindex="0">
 				<label>{{.locale.Tr "repo.editor.signoff_desc"}}</label>
 			</div>
 		</div>
@@ -58,10 +58,10 @@
 					</label>
 				</div>
 			</div>
-			<div class="quick-pull-branch-name {{if not (eq .commit_choice "commit-to-new-branch")}}hide{{end}}">
+			<div class="quick-pull-branch-name {{if not (eq .commit_choice "commit-to-new-branch")}}gt-hidden{{end}}">
 				<div class="new-branch-name-input field {{if .Err_NewBranchName}}error{{end}}">
 					{{svg "octicon-git-branch"}}
-					<input type="text" name="new_branch_name" value="{{.new_branch_name}}" class="input-contrast mr-2 js-quick-pull-new-branch-name" placeholder="{{.locale.Tr "repo.editor.new_branch_name_desc"}}" {{if eq .commit_choice "commit-to-new-branch"}}required{{end}}>
+					<input type="text" name="new_branch_name" value="{{.new_branch_name}}" class="input-contrast gt-mr-2 js-quick-pull-new-branch-name" placeholder="{{.locale.Tr "repo.editor.new_branch_name_desc"}}" {{if eq .commit_choice "commit-to-new-branch"}}required{{end}} title="{{.locale.Tr "repo.editor.new_branch_name"}}">
 					<span class="text-muted js-quick-pull-normalization-info"></span>
 				</div>
 			</div>

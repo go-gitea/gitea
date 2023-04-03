@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content organization teams">
+<div role="main" aria-label="{{.Title}}" class="page-content organization teams">
 	{{template "org/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -35,7 +35,7 @@
 								</form>
 							{{end}}
 							<a href="{{.HomeLink}}">
-								{{avatar .}}
+								{{avatar $.Context .}}
 								{{.DisplayName}}
 							</a>
 						</div>
@@ -52,7 +52,7 @@
 						<div class="item">
 							<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
 								{{$.CsrfTokenHtml}}
-								<input type="hidden" name="iid" value="{{.ID}}" />
+								<input type="hidden" name="iid" value="{{.ID}}">
 								<button class="ui red button right">{{$.locale.Tr "org.members.remove"}}</button>
 							</form>
 							{{.Email}}

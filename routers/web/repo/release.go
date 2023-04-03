@@ -226,8 +226,8 @@ func releasesOrTagsFeed(ctx *context.Context, isReleasesOnly bool, formatType st
 
 // SingleRelease renders a single release's page
 func SingleRelease(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 	ctx.Data["PageIsReleaseList"] = true
+	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 
 	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
@@ -240,6 +240,12 @@ func SingleRelease(ctx *context.Context) {
 		}
 		ctx.ServerError("GetReleasesByRepoID", err)
 		return
+	}
+	ctx.Data["PageIsSingleTag"] = release.IsTag
+	if release.IsTag {
+		ctx.Data["Title"] = release.TagName
+	} else {
+		ctx.Data["Title"] = release.Title
 	}
 
 	err = repo_model.GetReleaseAttachments(ctx, release)
@@ -295,7 +301,7 @@ func LatestRelease(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(release.HTMLURL())
+	ctx.Redirect(release.Link())
 }
 
 // NewRelease render creating or edit release page
@@ -328,6 +334,14 @@ func NewRelease(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	var err error
+	// Get assignees.
+	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetAssignees", err)
+		return
+	}
+
 	upload.AddUploadContext(ctx, "release")
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
@@ -483,6 +497,13 @@ func EditRelease(ctx *context.Context) {
 		return
 	}
 	ctx.Data["attachments"] = rel.Attachments
+
+	// Get assignees.
+	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, rel.Repo)
+	if err != nil {
+		ctx.ServerError("GetAssignees", err)
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }

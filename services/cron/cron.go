@@ -30,6 +30,7 @@ func NewContext(original context.Context) {
 	_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().ShutdownContext(), "Service: Cron", process.SystemProcessType, true)
 	initBasicTasks()
 	initExtendedTasks()
+	initActionsTasks()
 
 	lock.Lock()
 	for _, task := range tasks {

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -94,7 +95,18 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 	}
 	t, err := auth_model.GetAccessTokenBySHA(tokenSHA)
 	if err != nil {
-		if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
+		if auth_model.IsErrAccessTokenNotExist(err) {
+			// check task token
+			task, err := actions_model.GetRunningTaskByToken(db.DefaultContext, tokenSHA)
+			if err == nil && task != nil {
+				log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
+
+				store.GetData()["IsActionsToken"] = true
+				store.GetData()["ActionsTaskID"] = task.ID
+
+				return user_model.ActionsUserID
+			}
+		} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
 			log.Error("GetAccessTokenBySHA: %v", err)
 		}
 		return 0
@@ -118,12 +130,13 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 	}
 
 	id := o.userIDFromToken(req, store)
-	if id <= 0 {
+
+	if id <= 0 && id != -2 { // -2 means actions, so we need to allow it.
 		return nil, nil
 	}
 	log.Trace("OAuth2 Authorization: Found token for user[%d]", id)
 
-	user, err := user_model.GetUserByID(req.Context(), id)
+	user, err := user_model.GetPossibleUserByID(req.Context(), id)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)

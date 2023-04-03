@@ -281,7 +281,7 @@ func migrateRepository(doer *user_model.User, downloader base.Downloader, upload
 				lbBatchSize = len(labels)
 			}
 
-			if err := uploader.CreateLabels(labels...); err != nil {
+			if err := uploader.CreateLabels(labels[:lbBatchSize]...); err != nil {
 				return err
 			}
 			labels = labels[lbBatchSize:]

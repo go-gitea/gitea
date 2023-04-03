@@ -8,6 +8,6 @@ draft: false
 menu:
   sidebar:
     name: "使用指南"
-    weight: 35
+    weight: 30
     identifier: "usage"
 ---

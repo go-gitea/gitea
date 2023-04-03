@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,9 +19,12 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
+	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/minio/sha256-simd"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -171,66 +175,111 @@ func TestPackageAccess(t *testing.T) {
 func TestPackageQuota(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	limitTotalOwnerCount, limitTotalOwnerSize, limitSizeGeneric := setting.Packages.LimitTotalOwnerCount, setting.Packages.LimitTotalOwnerSize, setting.Packages.LimitSizeGeneric
+	limitTotalOwnerCount, limitTotalOwnerSize := setting.Packages.LimitTotalOwnerCount, setting.Packages.LimitTotalOwnerSize
 
+	// Exceeded quota result in StatusForbidden for normal users but admins are always allowed to upload.
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
 
-	uploadPackage := func(doer *user_model.User, version string, expectedStatus int) {
-		url := fmt.Sprintf("/api/packages/%s/generic/test-package/%s/file.bin", user.Name, version)
-		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
-		AddBasicAuthHeader(req, doer.Name)
-		MakeRequest(t, req, expectedStatus)
-	}
+	t.Run("Common", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
-	// Exceeded quota result in StatusForbidden for normal users but admins are always allowed to upload.
+		limitSizeGeneric := setting.Packages.LimitSizeGeneric
 
-	setting.Packages.LimitTotalOwnerCount = 0
-	uploadPackage(user, "1.0", http.StatusForbidden)
-	uploadPackage(admin, "1.0", http.StatusCreated)
-	setting.Packages.LimitTotalOwnerCount = limitTotalOwnerCount
+		uploadPackage := func(doer *user_model.User, version string, expectedStatus int) {
+			url := fmt.Sprintf("/api/packages/%s/generic/test-package/%s/file.bin", user.Name, version)
+			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
+			AddBasicAuthHeader(req, doer.Name)
+			MakeRequest(t, req, expectedStatus)
+		}
 
-	setting.Packages.LimitTotalOwnerSize = 0
-	uploadPackage(user, "1.1", http.StatusForbidden)
-	uploadPackage(admin, "1.1", http.StatusCreated)
-	setting.Packages.LimitTotalOwnerSize = limitTotalOwnerSize
+		setting.Packages.LimitTotalOwnerCount = 0
+		uploadPackage(user, "1.0", http.StatusForbidden)
+		uploadPackage(admin, "1.0", http.StatusCreated)
+		setting.Packages.LimitTotalOwnerCount = limitTotalOwnerCount
 
-	setting.Packages.LimitSizeGeneric = 0
-	uploadPackage(user, "1.2", http.StatusForbidden)
-	uploadPackage(admin, "1.2", http.StatusCreated)
-	setting.Packages.LimitSizeGeneric = limitSizeGeneric
+		setting.Packages.LimitTotalOwnerSize = 0
+		uploadPackage(user, "1.1", http.StatusForbidden)
+		uploadPackage(admin, "1.1", http.StatusCreated)
+		setting.Packages.LimitTotalOwnerSize = limitTotalOwnerSize
+
+		setting.Packages.LimitSizeGeneric = 0
+		uploadPackage(user, "1.2", http.StatusForbidden)
+		uploadPackage(admin, "1.2", http.StatusCreated)
+		setting.Packages.LimitSizeGeneric = limitSizeGeneric
+	})
+
+	t.Run("Container", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		limitSizeContainer := setting.Packages.LimitSizeContainer
+
+		uploadBlob := func(doer *user_model.User, data string, expectedStatus int) {
+			url := fmt.Sprintf("/v2/%s/quota-test/blobs/uploads?digest=sha256:%x", user.Name, sha256.Sum256([]byte(data)))
+			req := NewRequestWithBody(t, "POST", url, strings.NewReader(data))
+			AddBasicAuthHeader(req, doer.Name)
+			MakeRequest(t, req, expectedStatus)
+		}
+
+		setting.Packages.LimitTotalOwnerSize = 0
+		uploadBlob(user, "2", http.StatusForbidden)
+		uploadBlob(admin, "2", http.StatusCreated)
+		setting.Packages.LimitTotalOwnerSize = limitTotalOwnerSize
+
+		setting.Packages.LimitSizeContainer = 0
+		uploadBlob(user, "3", http.StatusForbidden)
+		uploadBlob(admin, "3", http.StatusCreated)
+		setting.Packages.LimitSizeContainer = limitSizeContainer
+	})
 }
 
 func TestPackageCleanup(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	duration, _ := time.ParseDuration("-1h")
 
 	t.Run("Common", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
+		// Upload and delete a generic package and upload a container blob
+		data, _ := util.CryptoRandomBytes(5)
+		url := fmt.Sprintf("/api/packages/%s/generic/cleanup-test/1.1.1/file.bin", user.Name)
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(data))
+		AddBasicAuthHeader(req, user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "DELETE", url)
+		AddBasicAuthHeader(req, user.Name)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		data, _ = util.CryptoRandomBytes(5)
+		url = fmt.Sprintf("/v2/%s/cleanup-test/blobs/uploads?digest=sha256:%x", user.Name, sha256.Sum256(data))
+		req = NewRequestWithBody(t, "POST", url, bytes.NewReader(data))
+		AddBasicAuthHeader(req, user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
 		pbs, err := packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, pbs)
 
-		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, 2, packages_model.TypeContainer, "test", container_model.UploadVersion)
+		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_model.UploadVersion)
 		assert.NoError(t, err)
 
-		err = packages_service.Cleanup(db.DefaultContext, duration)
+		err = packages_cleanup_service.Cleanup(db.DefaultContext, duration)
 		assert.NoError(t, err)
 
 		pbs, err = packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
 		assert.NoError(t, err)
 		assert.Empty(t, pbs)
 
-		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, 2, packages_model.TypeContainer, "test", container_model.UploadVersion)
+		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_model.UploadVersion)
 		assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
 	})
 
 	t.Run("CleanupRules", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		type version struct {
 			Version     string
@@ -353,7 +402,7 @@ func TestPackageCleanup(t *testing.T) {
 				pcr, err := packages_model.InsertCleanupRule(db.DefaultContext, c.Rule)
 				assert.NoError(t, err)
 
-				err = packages_service.Cleanup(db.DefaultContext, duration)
+				err = packages_cleanup_service.Cleanup(db.DefaultContext, duration)
 				assert.NoError(t, err)
 
 				for _, v := range c.Versions {

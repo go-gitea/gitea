@@ -124,7 +124,10 @@ func (q *ChannelQueue) Shutdown() {
 		log.Trace("ChannelQueue: %s Flushing", q.name)
 		// We can't use Cleanup here because that will close the channel
 		if err := q.FlushWithContext(q.terminateCtx); err != nil {
-			log.Warn("ChannelQueue: %s Terminated before completed flushing", q.name)
+			count := atomic.LoadInt64(&q.numInQueue)
+			if count > 0 {
+				log.Warn("ChannelQueue: %s Terminated before completed flushing", q.name)
+			}
 			return
 		}
 		log.Debug("ChannelQueue: %s Flushed", q.name)

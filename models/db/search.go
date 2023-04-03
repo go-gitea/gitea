@@ -27,3 +27,9 @@ const (
 	SearchOrderByForks                 SearchOrderBy = "num_forks ASC"
 	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
 )
+
+const (
+	// Which means a condition to filter the records which don't match any id.
+	// It's different from zero which means the condition could be ignored.
+	NoneID = -1
+)
