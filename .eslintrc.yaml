@@ -164,7 +164,7 @@ rules:
   jquery/no-parse-html: [2]
   jquery/no-prop: [0]
   jquery/no-proxy: [2]
-  jquery/no-ready: [0]
+  jquery/no-ready: [2]
   jquery/no-serialize: [2]
   jquery/no-show: [2]
   jquery/no-size: [2]
