@@ -13,7 +13,6 @@
 }
 
 .editor-toolbar {
-  max-width: calc(100vw - 80px);
   border-color: var(--color-secondary);
 }
 
