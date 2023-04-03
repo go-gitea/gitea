@@ -1,12 +1,9 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
-import {attachTribute} from './tribute.js';
-import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
-import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
-import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
+import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -223,21 +220,6 @@ export function initRepoIssueCodeCommentCancel() {
   });
 }
 
-export function initRepoIssueStatusButton() {
-  // Change status
-  const $statusButton = $('#status-button');
-  $('#comment-form textarea').on('keyup', function () {
-    const easyMDE = getAttachedEasyMDE(this);
-    const value = easyMDE?.value() || $(this).val();
-    $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
-  });
-  $statusButton.on('click', (e) => {
-    e.preventDefault();
-    $('#status').val($statusButton.data('status-val'));
-    $('#comment-form').trigger('submit');
-  });
-}
-
 export function initRepoPullRequestUpdate() {
   // Pull Request update button
   const $pullUpdateButton = $('.update-button > button');
@@ -402,35 +384,18 @@ export function initRepoIssueComments() {
   });
 }
 
-
-function assignMenuAttributes(menu) {
-  const id = Math.floor(Math.random() * Math.floor(1000000));
-  menu.attr('data-write', menu.attr('data-write') + id);
-  menu.attr('data-preview', menu.attr('data-preview') + id);
-  menu.find('.item').each(function () {
-    const tab = $(this).attr('data-tab') + id;
-    $(this).attr('data-tab', tab);
-  });
-  menu.parent().find("*[data-tab='write']").attr('data-tab', `write${id}`);
-  menu.parent().find("*[data-tab='preview']").attr('data-tab', `preview${id}`);
-  initCompMarkupContentPreviewTab(menu.parent('.form'));
-  return id;
-}
-
 export async function handleReply($el) {
   hideElem($el);
   const form = $el.closest('.comment-code-cloud').find('.comment-form');
   form.removeClass('gt-hidden');
+
   const $textarea = form.find('textarea');
-  let easyMDE = getAttachedEasyMDE($textarea);
-  if (!easyMDE) {
-    await attachTribute($textarea.get(), {mentions: true, emoji: true});
-    easyMDE = await createCommentEasyMDE($textarea);
+  let editor = getComboMarkdownEditor($textarea);
+  if (!editor) {
+    editor = await initComboMarkdownEditor(form.find('.combo-markdown-editor'));
   }
-  $textarea.focus();
-  easyMDE.codemirror.focus();
-  assignMenuAttributes(form.find('.menu'));
-  return easyMDE;
+  editor.focus();
+  return editor;
 }
 
 export function initRepoPullRequestReview() {
@@ -494,14 +459,7 @@ export function initRepoPullRequestReview() {
 
   const $reviewBox = $('.review-box-panel');
   if ($reviewBox.length === 1) {
-    (async () => {
-      // the editor's height is too large in some cases, and the panel cannot be scrolled with page now because there is `.repository .diff-detail-box.sticky { position: sticky; }`
-      // the temporary solution is to make the editor's height smaller (about 4 lines). GitHub also only show 4 lines for default. We can improve the UI (including Dropzone area) in future
-      // EasyMDE's options can not handle minHeight & maxHeight together correctly, we have to set max-height for .CodeMirror-scroll in CSS.
-      const $reviewTextarea = $reviewBox.find('textarea');
-      const easyMDE = await createCommentEasyMDE($reviewTextarea, {minHeight: '80px'});
-      initEasyMDEImagePaste(easyMDE, $reviewBox.find('.dropzone'));
-    })();
+    const _promise = initComboMarkdownEditor($reviewBox.find('.combo-markdown-editor'));
   }
 
   // The following part is only for diff views
@@ -565,20 +523,16 @@ export function initRepoPullRequestReview() {
     }
 
     const td = ntr.find(`.add-comment-${side}`);
-    let commentCloud = td.find('.comment-code-cloud');
+    const commentCloud = td.find('.comment-code-cloud');
     if (commentCloud.length === 0 && !ntr.find('button[name="pending_review"]').length) {
-      const data = await $.get($(this).closest('[data-new-comment-url]').data('new-comment-url'));
-      td.html(data);
-      commentCloud = td.find('.comment-code-cloud');
-      assignMenuAttributes(commentCloud.find('.menu'));
+      const html = await $.get($(this).closest('[data-new-comment-url]').attr('data-new-comment-url'));
+      td.html(html);
       td.find("input[name='line']").val(idx);
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
-      const $textarea = commentCloud.find('textarea');
-      await attachTribute($textarea.get(), {mentions: true, emoji: true});
-      const easyMDE = await createCommentEasyMDE($textarea);
-      $textarea.focus();
-      easyMDE.codemirror.focus();
+
+      const editor = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
+      editor.focus();
     }
   });
 }

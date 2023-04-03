@@ -1,0 +1,47 @@
+{{/*
+Template Attributes:
+* locale
+* ContainerId / ContainerClasses : for the container element
+* MarkdownPreviewUrl / MarkdownPreviewContext: for the preview tab
+* TextareaName / TextareaContent / TextareaPlaceholder: for the main textarea
+* DropzoneParentContainer: for file upload (leave it empty if no upload)
+*/}}
+<div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{.ContainerClasses}}" data-dropzone-parent-container="{{.DropzoneParentContainer}}">
+	{{if .MarkdownPreviewUrl}}
+	<div class="ui top tabular menu">
+		<a class="active item" data-tab-for="markdown-writer">{{.locale.Tr "write"}}</a>
+		<a class="item" data-tab-for="markdown-previewer" data-preview-url="{{.MarkdownPreviewUrl}}" data-preview-context="{{.MarkdownPreviewContext}}">{{.locale.Tr "preview"}}</a>
+	</div>
+	{{end}}
+	<div class="ui tab active" data-tab-panel="markdown-writer">
+		<markdown-toolbar class="gt-df">
+			<div class="markdown-toolbar-group">
+				<md-header class="markdown-toolbar-button">{{svg "octicon-heading"}}</md-header>
+				<md-bold class="markdown-toolbar-button">{{svg "octicon-bold"}}</md-bold>
+				<md-italic class="markdown-toolbar-button">{{svg "octicon-italic"}}</md-italic>
+			</div>
+			<div class="markdown-toolbar-group">
+				<md-quote class="markdown-toolbar-button">{{svg "octicon-quote"}}</md-quote>
+				<md-code class="markdown-toolbar-button">{{svg "octicon-code"}}</md-code>
+				<md-link class="markdown-toolbar-button">{{svg "octicon-link"}}</md-link>
+			</div>
+			<div class="markdown-toolbar-group">
+				<md-unordered-list class="markdown-toolbar-button">{{svg "octicon-list-unordered"}}</md-unordered-list>
+				<md-ordered-list class="markdown-toolbar-button">{{svg "octicon-list-ordered"}}</md-ordered-list>
+				<md-task-list class="markdown-toolbar-button">{{svg "octicon-tasklist"}}</md-task-list>
+			</div>
+			<div class="markdown-toolbar-group">
+				<md-mention class="markdown-toolbar-button">{{svg "octicon-mention"}}</md-mention>
+				<md-ref class="markdown-toolbar-button">{{svg "octicon-cross-reference"}}</md-ref>
+			</div>
+			<div class="markdown-toolbar-group gt-f1"></div>
+			<div class="markdown-toolbar-group">
+				<span class="markdown-toolbar-button markdown-switch-easymde">{{svg "octicon-arrow-switch"}}</span>
+			</div>
+		</markdown-toolbar>
+		<textarea class="markdown-text-editor js-quick-submit" name="{{.TextareaName}}" placeholder="{{.TextareaPlaceholder}}">{{.TextareaContent}}</textarea>
+	</div>
+	<div class="ui tab markup" data-tab-panel="markdown-previewer">
+		{{.locale.Tr "loading"}}
+	</div>
+</div>

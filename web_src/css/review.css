@@ -224,28 +224,15 @@ a.blob-excerpt:hover {
   max-height: calc(100vh - 360px);
 }
 
-@media (max-width: 767px) {
-  .review-box-panel .CodeMirror-scroll {
-    max-width: calc(100vw - 70px);
-  }
+.review-box-panel .editor-toolbar,
+.review-box-panel .CodeMirror-scroll {
+  width: min(calc(100vw - 2em), 800px);
+  max-width: none;
 }
 
-@media (min-width: 768px) and (max-width: 991px) {
-  .review-box-panel .CodeMirror-scroll {
-    max-width: 700px;
-  }
-}
-
-@media (min-width: 992px) and (max-width: 1200px) {
-  .review-box-panel .CodeMirror-scroll {
-    max-width: 800px;
-  }
-}
-
-@media (min-width: 1201px) {
-  .review-box-panel .CodeMirror-scroll {
-    max-width: 900px;
-  }
+.review-box-panel .combo-markdown-editor textarea {
+  width: 730px;
+  max-width: calc(100vw - 70px);
 }
 
 #review-box {
