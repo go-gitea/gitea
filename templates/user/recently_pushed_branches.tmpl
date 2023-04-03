@@ -1,13 +1,11 @@
 {{range .RecentlyPushedBranches}}
-	<div class="ui positive message grid gt-p-0 gt-ac">
-		<div class="twelve wide column">
+	<div class="ui positive message gt-p-4 gt-df gt-ac">
+		<div class="gt-f1">
 			{{$timeSince := TimeSince .Time $.locale}}
 			{{$.locale.Tr "repo.pulls.recently_pushed_to_branches" .Repo.Owner.Name .Repo.LowerName .BranchName $timeSince | Safe}}
 		</div>
-		<div class="four wide column gt-tr">
-			<a class="ui compact positive button gt-m-0" href="{{CompareLink .BaseRepo .Repo .BranchName}}">
-				{{$.locale.Tr "repo.pulls.compare_changes"}}
-			</a>
-		</div>
+		<a aria-role="button" class="ui compact positive button gt-m-0" href="{{CompareLink .BaseRepo .Repo .BranchName}}">
+			{{$.locale.Tr "repo.pulls.compare_changes"}}
+		</a>
 	</div>
 {{end}}
