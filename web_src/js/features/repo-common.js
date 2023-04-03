@@ -132,7 +132,6 @@ export function initPostersDropdown() {
 
 // isShowAll decides if fetching all data or fetching data with search query from user input
 async function fetchPostersData($authorSearchDropdown, isShowAll) {
-  console.log('fetch')
   const baseUrl = $authorSearchDropdown.attr('data-url');
   const url = isShowAll ? baseUrl : `${baseUrl}?q=${$('#author-search-input').val()}`;
   const res = await fetch(url);
