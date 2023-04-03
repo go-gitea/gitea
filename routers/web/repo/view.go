@@ -696,8 +696,8 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 }
 
-// Home render repository home page
-func Home(ctx *context.Context) {
+// AddHeaderCtxData adds context data for the repo header
+func AddHeaderCtxData(ctx *context.Context) {
 	if setting.EnableFeed {
 		isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
 		if isFeed {
@@ -708,7 +708,11 @@ func Home(ctx *context.Context) {
 		ctx.Data["EnableFeed"] = true
 		ctx.Data["FeedURL"] = ctx.Repo.Repository.Link()
 	}
+}
 
+// Home render repository home page
+func Home(ctx *context.Context) {
+	AddHeaderCtxData(ctx)
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {
 		return

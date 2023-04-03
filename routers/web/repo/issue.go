@@ -135,6 +135,7 @@ func MustAllowPulls(ctx *context.Context) {
 }
 
 func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption util.OptionalBool) {
+	AddHeaderCtxData(ctx)
 	var err error
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
