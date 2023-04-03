@@ -1,6 +1,6 @@
 import {expect, test} from 'vitest';
 import {
-  basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref,
+  basename, extname, isObject, stripTags, joinPaths, parseIssueHref,
   prettyNumber, parseUrl, translateMonth, translateDay, blobToDataURI,
   toAbsoluteUrl,
 } from './utils.js';
@@ -60,10 +60,6 @@ test('joinPaths', () => {
 test('isObject', () => {
   expect(isObject({})).toBeTruthy();
   expect(isObject([])).toBeFalsy();
-});
-
-test('uniq', () => {
-  expect(uniq([1, 1, 1, 2])).toEqual([1, 2]);
 });
 
 test('stripTags', () => {
