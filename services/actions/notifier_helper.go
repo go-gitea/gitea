@@ -152,6 +152,21 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("json.Marshal: %w", err)
 	}
 
+	isForkPullRequest := false
+	if pr := input.PullRequest; pr != nil {
+		switch pr.Flow {
+		case issues_model.PullRequestFlowGithub:
+			isForkPullRequest = pr.IsFromFork()
+		case issues_model.PullRequestFlowAGit:
+			// There is no fork concept in agit flow, anyone with read permission can push refs/for/<target-branch>/<topic-branch> to the repo.
+			// So we can treat it as a fork pull request because it may be from an untrusted user
+			isForkPullRequest = true
+		default:
+			// unknown flow, assume it's a fork pull request to be safe
+			isForkPullRequest = true
+		}
+	}
+
 	for id, content := range workflows {
 		run := &actions_model.ActionRun{
 			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
@@ -161,7 +176,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 			TriggerUserID:     input.Doer.ID,
 			Ref:               ref,
 			CommitSHA:         commit.ID.String(),
-			IsForkPullRequest: input.PullRequest != nil && input.PullRequest.IsFromFork(),
+			IsForkPullRequest: isForkPullRequest,
 			Event:             input.Event,
 			EventPayload:      string(p),
 			Status:            actions_model.StatusWaiting,

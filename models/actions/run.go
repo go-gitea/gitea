@@ -36,7 +36,7 @@ type ActionRun struct {
 	TriggerUser       *user_model.User       `xorm:"-"`
 	Ref               string
 	CommitSHA         string
-	IsForkPullRequest bool
+	IsForkPullRequest bool  // is this a PR from a forked repository or an untrusted user, if so, we need to check if it's approved and limit the permissions when running the workflow
 	NeedApproval      bool  // may need approval if it's a fork pull request
 	ApprovedBy        int64 `xorm:"index"` // who approved
 	Event             webhook_module.HookEventType
