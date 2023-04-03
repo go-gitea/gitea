@@ -16,6 +16,7 @@
 <script>
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import {doLoadMoreFiles} from '../features/repo-diff.js';
+import {toggleElem} from '../utils/dom.js';
 
 const {pageData} = window.config;
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
@@ -92,8 +93,6 @@ export default {
     }
   },
   mounted() {
-    // ensure correct buttons when we are mounted to the dom
-    this.adjustToggleButton(this.fileTreeIsVisible);
     // replace the pageData.diffFileInfo.files with our watched data so we get updates
     pageData.diffFileInfo.files = this.files;
 
@@ -109,15 +108,17 @@ export default {
     updateVisibility(visible) {
       this.fileTreeIsVisible = visible;
       localStorage.setItem(LOCAL_STORAGE_KEY, this.fileTreeIsVisible);
-      this.adjustToggleButton(this.fileTreeIsVisible);
+      this.updateState(this.fileTreeIsVisible);
     },
-    adjustToggleButton(visible) {
-      const [toShow, toHide] = document.querySelectorAll('.diff-toggle-file-tree-button .icon');
-      toShow.classList.toggle('gt-hidden', visible);  // hide the toShow icon if the tree is visible
-      toHide.classList.toggle('gt-hidden', !visible); // similarly
-
-      const diffTree = document.getElementById('diff-file-tree');
-      diffTree.classList.toggle('gt-hidden', !visible);
+    updateState(visible) {
+      const btn = document.querySelector('.diff-toggle-file-tree-button');
+      const [toShow, toHide] = btn.querySelectorAll('.icon');
+      const tree = document.getElementById('diff-file-tree');
+      const newTooltip = btn.getAttribute(visible ? 'data-hide-text' : 'data-show-text');
+      btn.setAttribute('data-tooltip-content', newTooltip);
+      toggleElem(tree, visible);
+      toggleElem(toShow, !visible);
+      toggleElem(toHide, visible);
     },
     loadMoreData() {
       this.isLoadingNewData = true;
