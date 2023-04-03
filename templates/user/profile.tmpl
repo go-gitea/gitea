@@ -32,6 +32,7 @@
 							{{end}}
 							<li>
 								{{svg "octicon-mail"}}
+								<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
 								{{if (eq .SignedUserName .Owner.Name)}}
 									{{if .Owner.KeepEmailPrivate}}
 										{{svg "octicon-lock"}}
@@ -39,7 +40,6 @@
 										{{svg "octicon-globe"}}
 									{{end}}
 								{{end}}
-								<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
 							</li>
 							{{if .Owner.Website}}
 								<li>
