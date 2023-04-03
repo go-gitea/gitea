@@ -94,6 +94,11 @@
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					</button>
 				{{end}}
+				{{if and .EnableFeed (eq $n 0) (ne .Repository.DefaultBranch $.BranchName)}}
+					<a role="button" class="ui primary compact button" href="{{$.FeedURL}}/rss/{{$.BranchNameSubURL}}">
+						<svg viewBox="0 2 16 16" class="svg octicon-rss" width="18" height="18" aria-hidden="true"><path d="M2.002 2.725a.75.75 0 0 1 .797-.699C8.79 2.42 13.58 7.21 13.974 13.201a.75.75 0 0 1-1.497.098 10.502 10.502 0 0 0-9.776-9.776.747.747 0 0 1-.7-.798ZM2.84 7.05h-.002a7.002 7.002 0 0 1 6.113 6.111.75.75 0 0 1-1.49.178 5.503 5.503 0 0 0-4.8-4.8.75.75 0 0 1 .179-1.489ZM2 13a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z"></path></svg>
+					</a>
+				{{end}}
 				{{if and (eq $n 0) (.Repository.IsTemplate)}}
 					<a role="button" class="ui primary compact button" href="{{AppSubUrl}}/repo/create?template_id={{.Repository.ID}}">
 						{{.locale.Tr "repo.use_template"}}
