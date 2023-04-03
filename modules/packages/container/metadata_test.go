@@ -46,7 +46,7 @@ func TestParseImageConfig(t *testing.T) {
 		},
 		metadata.Labels,
 	)
-	assert.Empty(t, metadata.MultiArch)
+	assert.Empty(t, metadata.Manifests)
 
 	configHelm := `{"description":"` + description + `", "home": "` + projectURL + `", "sources": ["` + repositoryURL + `"], "maintainers":[{"name":"` + author + `"}]}`
 
