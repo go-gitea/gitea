@@ -111,6 +111,9 @@ export function initRepoCommonLanguageStats() {
 // generate dropdown options for authors search dropdown using fetched data
 export function initPostersDropdown() {
   const $authorSearchDropdown = $('.author-search');
+  if (!$authorSearchDropdown.length) {
+    return;
+  }
   $('#author-search-input').on('input', (e) => {
     e.stopImmediatePropagation();
     fetchPostersData($authorSearchDropdown, false);
@@ -129,9 +132,7 @@ export function initPostersDropdown() {
 
 // isShowAll decides if fetching all data or fetching data with search query from user input
 async function fetchPostersData($authorSearchDropdown, isShowAll) {
-  if (!$authorSearchDropdown.length) {
-    return;
-  }
+  console.log('fetch')
   const baseUrl = $authorSearchDropdown.attr('data-url');
   const url = isShowAll ? baseUrl : `${baseUrl}?q=${$('#author-search-input').val()}`;
   const res = await fetch(url);
