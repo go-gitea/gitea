@@ -52,7 +52,7 @@
 						<div class="item">
 							<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
 								{{$.CsrfTokenHtml}}
-								<input type="hidden" name="iid" value="{{.ID}}" />
+								<input type="hidden" name="iid" value="{{.ID}}">
 								<button class="ui red button right">{{$.locale.Tr "org.members.remove"}}</button>
 							</form>
 							{{.Email}}

@@ -131,7 +131,7 @@ TEST_TAGS ?= sqlite sqlite_unlock_notify
 
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
-GO_DIRS := cmd tests models modules routers build services tools
+GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
 GO_SOURCES := $(wildcard *.go)
@@ -189,6 +189,7 @@ help:
 	@echo " - clean                            delete backend and integration files"
 	@echo " - clean-all                        delete backend, frontend and integration files"
 	@echo " - deps                             install dependencies"
+	@echo " - deps-docs                        install docs dependencies"
 	@echo " - deps-frontend                    install frontend dependencies"
 	@echo " - deps-backend                     install backend dependencies"
 	@echo " - deps-tools                       install tool dependencies"
@@ -218,7 +219,6 @@ help:
 	@echo " - tidy                             run go mod tidy"
 	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
-	@echo " - pr#<index>                       build and start gitea from a PR with integration test data loaded"
 
 .PHONY: go-check
 go-check:
@@ -352,7 +352,7 @@ lint-backend: golangci-lint vet editorconfig-checker
 
 .PHONY: watch
 watch:
-	bash tools/watch.sh
+	bash build/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
@@ -816,14 +816,17 @@ release-docs: | $(DIST_DIRS) docs
 	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
 
 .PHONY: docs
-docs:
-	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		curl -sL https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_$(HUGO_VERSION)_Linux-64bit.tar.gz | tar zxf - -C /tmp && mv /tmp/hugo /usr/bin/hugo && chmod +x /usr/bin/hugo; \
-	fi
+docs: deps-docs
 	cd docs; make trans-copy clean build-offline;
 
+.PHONY: deps-docs
+deps-docs:
+	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		curl -sL https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_$(HUGO_VERSION)_Linux-64bit.tar.gz | tar zxf - -C /tmp && mkdir -p ~/go/bin && mv /tmp/hugo ~/go/bin/hugo && chmod +x ~/go/bin/hugo; \
+	fi
+
 .PHONY: deps
-deps: deps-frontend deps-backend deps-tools
+deps: deps-frontend deps-backend deps-tools deps-docs
 
 .PHONY: deps-frontend
 deps-frontend: node_modules
@@ -934,10 +937,6 @@ generate-manpage:
 	@./gitea docs --man > man/man1/gitea.1
 	@gzip -9 man/man1/gitea.1 && echo man/man1/gitea.1.gz created
 	@#TODO A small script that formats config-cheat-sheet.en-us.md nicely for use as a config man page
-
-.PHONY: pr\#%
-pr\#%: clean-all
-	$(GO) run contrib/pr/checkout.go $*
 
 .PHONY: golangci-lint
 golangci-lint:

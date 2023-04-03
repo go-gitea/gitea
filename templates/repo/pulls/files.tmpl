@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 
 <input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
-<input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>
+<input type="hidden" id="issueIndex" value="{{.Issue.Index}}">
 
 <div role="main" aria-label="{{.Title}}" class="page-content repository view issue pull files diff">
 	{{template "repo/header" .}}

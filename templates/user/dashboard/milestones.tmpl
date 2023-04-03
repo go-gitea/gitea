@@ -50,10 +50,10 @@
 					<div class="column center aligned">
 						<form class="ui form ignore-dirty">
 							<div class="ui search fluid action input">
-								<input type="hidden" name="type" value="{{$.ViewType}}"/>
-								<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}},{{end}}]"/>
-								<input type="hidden" name="sort" value="{{$.SortType}}"/>
-								<input type="hidden" name="state" value="{{$.State}}"/>
+								<input type="hidden" name="type" value="{{$.ViewType}}">
+								<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}},{{end}}]">
+								<input type="hidden" name="sort" value="{{$.SortType}}">
+								<input type="hidden" name="state" value="{{$.State}}">
 								<input name="q" value="{{$.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
 								<button class="ui primary button" type="submit">{{.locale.Tr "explore.search"}}</button>
 							</div>
