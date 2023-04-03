@@ -30,8 +30,8 @@
 							{{if .Owner.Location}}
 								<li>{{svg "octicon-location"}} {{.Owner.Location}}</li>
 							{{end}}
-							<li>
-								{{if (eq .SignedUserName .Owner.Name)}}
+							{{if (eq .SignedUserName .Owner.Name)}}
+								<li>
 									{{svg "octicon-mail"}}
 									<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
 									<a href="{{AppSubUrl}}/user/settings#keep-email-private">
@@ -45,13 +45,15 @@
 											</i>
 										{{end}}
 									</a>
-								{{else}}
-									{{if .ShowUserEmail}}
+								</li>
+							{{else}}
+								{{if .ShowUserEmail}}
+									<li>
 										{{svg "octicon-mail"}}
 										<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
-									{{end}}
+									</li>
 								{{end}}
-							</li>
+							{{end}}
 							{{if .Owner.Website}}
 								<li>
 									{{svg "octicon-link"}}
