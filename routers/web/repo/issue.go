@@ -415,7 +415,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 // Issues render issues page
 func Issues(ctx *context.Context) {
 	isPullList := ctx.Params(":type") == "pulls"
-	// pass listType which will be used by GET /{type:issues|pulls}/posters request
+	// pass listType to ctx.Data which will be used by GET /{type:issues|pulls}/posters request
 	ctx.Data["listType"] = ctx.Params(":type")
 	if isPullList {
 		MustAllowPulls(ctx)
@@ -3353,6 +3353,7 @@ func handleTeamMentions(ctx *context.Context) {
 	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.AvatarLink(ctx)
 }
 
+// get posters for current repo's issues/pull requests
 func IssuePosters(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 	isPullList := ctx.Params(":type") == "pulls"
