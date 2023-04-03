@@ -1,7 +1,6 @@
 // bootstrap module must be the first one to be imported, it handles webpack lazy-loading and global errors
 import './bootstrap.js';
 
-import $ from 'jquery';
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
 import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
@@ -90,6 +89,7 @@ import {initCaptcha} from './features/captcha.js';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
 import {initGlobalTooltips} from './modules/tippy.js';
 import {initGiteaFomantic} from './modules/fomantic.js';
+import {onDomReady} from './utils/dom.js';
 
 // Run time-critical code as soon as possible. This is safe to do because this
 // script appears at the end of <body> and rendered HTML is accessible at that point.
@@ -98,7 +98,7 @@ initFormattingReplacements();
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
 
-$(document).ready(() => {
+onDomReady(() => {
   initGlobalCommon();
 
   initGlobalTooltips();

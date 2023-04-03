@@ -645,8 +645,6 @@ export function initRepoIssueTitleEdit() {
       $.post(update_url, {
         _csrf: csrfToken,
         target_branch: targetBranch
-      }).done((data) => {
-        $branchTarget.text(data.base_branch);
       }).always(() => {
         window.location.reload();
       });
