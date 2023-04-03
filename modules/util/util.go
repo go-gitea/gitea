@@ -186,19 +186,16 @@ func ToUpperASCII(s string) string {
 	return string(b)
 }
 
-var (
-	titleCaser        = cases.Title(language.English)
-	titleCaserNoLower = cases.Title(language.English, cases.NoLower)
-)
-
 // ToTitleCase returns s with all english words capitalized
 func ToTitleCase(s string) string {
-	return titleCaser.String(s)
+	// `cases.Title` is not thread-safe, do not use global shared variable for it
+	return cases.Title(language.English).String(s)
 }
 
-// ToTitleCaseNoLower returns s with all english words capitalized without lowercasing
+// ToTitleCaseNoLower returns s with all english words capitalized without lower-casing
 func ToTitleCaseNoLower(s string) string {
-	return titleCaserNoLower.String(s)
+	// `cases.Title` is not thread-safe, do not use global shared variable for it
+	return cases.Title(language.English, cases.NoLower).String(s)
 }
 
 func logError(msg string, args ...any) {
