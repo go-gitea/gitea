@@ -49,9 +49,7 @@
 					{{$isMember := .IsOrganizationMember}}
 					{{range .Members}}
 						{{if or $isMember (call $.IsPublicMember .ID)}}
-							<a href="{{.HomeLink}}" title="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">
-								{{avatar $.Context .}}
-							</a>
+							<a href="{{.HomeLink}}" title="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">{{avatar $.Context . 48}}</a>
 						{{end}}
 					{{end}}
 				</div>
