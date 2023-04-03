@@ -282,13 +282,9 @@ class ComboMarkdownEditor {
       this.textareaInitalHeight = this.textarea.offsetHeight;
     }
     const offset = this.textarea.offsetHeight - this.textarea.clientHeight;
-    if (!this.lastValue || Math.abs(this.lastValue.length - this.textarea.value.length) > 2) {
-      // the value has changed a lot, so reset the height to calculate the real scroll height, it might cause UI flickering
+    if (!this.lastValue || !this.textarea.value.startsWith(this.lastValue)) {
+      // the value has changed a lot, so reset the height to calculate the real scroll height, it's slow and might cause slight flickering.
       this.textarea.style.height = 'auto';
-    } else {
-      // try to shrink a little to see if a line is deleted (since the value doesn't change much), it won't cause UI flickering
-      // the magic number is a general number which fits most line-height styles.
-      this.textarea.style.height = `${this.textarea.scrollHeight + offset - 40}px`;
     }
     // make sure the height is not smaller than the initial height
     this.textarea.style.height = `${Math.max(this.textareaInitalHeight, this.textarea.scrollHeight + offset)}px`;
