@@ -1,5 +1,5 @@
 {{range .RecentlyPushedBranches}}
-	<div class="ui positive message gt-p-4 gt-df gt-ac">
+	<div class="ui positive message gt-p-4 gt-df gt-ac gt-tl">
 		<div class="gt-f1">
 			{{$timeSince := TimeSince .Time $.locale}}
 			{{$.locale.Tr "repo.pulls.recently_pushed_to_branches" .Repo.Owner.Name .Repo.LowerName .BranchName $timeSince | Safe}}
