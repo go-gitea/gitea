@@ -58,7 +58,6 @@ func verifyAuth(r *web.Route, authMethods []auth.Method) {
 			ctx.Error(http.StatusUnauthorized, "authGroup.Verify")
 			return
 		}
-		// TODO: check ActionUser's access permission
 		ctx.IsSigned = ctx.Doer != nil
 	})
 }
