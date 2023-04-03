@@ -4,8 +4,9 @@ import {attachTribute} from './tribute.js';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
-import {initTooltip, showTemporaryTooltip} from '../modules/tippy.js';
+import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
+import {setFileFolding} from './file-fold.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -77,7 +78,7 @@ function updateDeadline(deadlineString) {
 
 export function initRepoIssueDue() {
   $(document).on('click', '.issue-due-edit', () => {
-    $('#deadlineForm').fadeToggle(150);
+    toggleElem('#deadlineForm');
   });
   $(document).on('click', '.issue-due-remove', () => {
     updateDeadline('');
@@ -279,10 +280,7 @@ export function initRepoPullRequestAllowMaintainerEdit() {
   const $checkbox = $('#allow-edits-from-maintainers');
   if (!$checkbox.length) return;
 
-  const promptTip = $checkbox.attr('data-prompt-tip');
   const promptError = $checkbox.attr('data-prompt-error');
-
-  initTooltip($checkbox[0], {content: promptTip});
   $checkbox.checkbox({
     'onChange': () => {
       const checked = $checkbox.checkbox('is checked');
@@ -437,17 +435,36 @@ export async function handleReply($el) {
 
 export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
+    // set scrollRestoration to 'manual' when there is a hash in url, so that the scroll position will not be remembered after refreshing
+    if (window.history.scrollRestoration !== 'manual') {
+      window.history.scrollRestoration = 'manual';
+    }
     const commentDiv = $(window.location.hash);
     if (commentDiv) {
       // get the name of the parent id
       const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
+        const ancestorDiffBox = commentDiv.closest('.diff-file-box');
+        // on pages like conversation, there is no diff header
+        const diffHeader = ancestorDiffBox.find('.diff-file-header');
+        // offset is for scrolling
+        let offset = 30;
+        if (diffHeader[0]) {
+          offset += $('.diff-detail-box').outerHeight() + diffHeader.outerHeight();
+        }
         $(`#show-outdated-${id}`).addClass('gt-hidden');
         $(`#code-comments-${id}`).removeClass('gt-hidden');
         $(`#code-preview-${id}`).removeClass('gt-hidden');
         $(`#hide-outdated-${id}`).removeClass('gt-hidden');
-        commentDiv[0].scrollIntoView();
+        // if the comment box is folded, expand it
+        if (ancestorDiffBox.attr('data-folded') && ancestorDiffBox.attr('data-folded') === 'true') {
+          setFileFolding(ancestorDiffBox[0], ancestorDiffBox.find('.fold-file')[0], false);
+        }
+        window.scrollTo({
+          top: commentDiv.offset().top - offset,
+          behavior: 'instant'
+        });
       }
     }
   }
@@ -492,13 +509,26 @@ export function initRepoPullRequestReview() {
     return;
   }
 
-  $('.js-btn-review').on('click', function (e) {
-    e.preventDefault();
-    toggleElem($(this).parent().find('.review-box-panel'));
-  }).parent().find('.review-box-panel .close').on('click', function (e) {
-    e.preventDefault();
-    hideElem($(this).closest('.review-box-panel'));
-  });
+  const $reviewBtn = $('.js-btn-review');
+  const $panel = $reviewBtn.parent().find('.review-box-panel');
+  const $closeBtn = $panel.find('.close');
+
+  if ($reviewBtn.length && $panel.length) {
+    const tippy = createTippy($reviewBtn[0], {
+      content: $panel[0],
+      placement: 'bottom',
+      trigger: 'click',
+      role: 'menu',
+      maxWidth: 'none',
+      interactive: true,
+      hideOnClick: true,
+    });
+
+    $closeBtn.on('click', (e) => {
+      e.preventDefault();
+      tippy.hide();
+    });
+  }
 
   $(document).on('click', 'a.add-code-comment', async function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
@@ -615,8 +645,6 @@ export function initRepoIssueTitleEdit() {
       $.post(update_url, {
         _csrf: csrfToken,
         target_branch: targetBranch
-      }).done((data) => {
-        $branchTarget.text(data.base_branch);
       }).always(() => {
         window.location.reload();
       });

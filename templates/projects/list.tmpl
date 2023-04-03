@@ -38,7 +38,7 @@
 		<div class="milestone list">
 			{{range .Projects}}
 				<li class="item">
-					{{svg "octicon-project-symlink"}} <a href="{{.Link}}">{{.Title}}</a>
+					{{svg .IconName}} <a href="{{.Link}}">{{.Title}}</a>
 					<div class="meta">
 						{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
 						{{if .IsClosed}}

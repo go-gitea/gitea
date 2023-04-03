@@ -3,7 +3,6 @@ import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
 import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles} from './pull-view-file.js';
-import {initTooltip} from '../modules/tippy.js';
 
 const {csrfToken} = window.config;
 
@@ -59,10 +58,6 @@ export function initRepoDiffConversationForm() {
     const formDataString = String(new URLSearchParams(formData));
     const $newConversationHolder = $(await $.post($form.attr('action'), formDataString));
     const {path, side, idx} = $newConversationHolder.data();
-
-    $newConversationHolder.find('.tooltip').each(function () {
-      initTooltip(this);
-    });
 
     $form.closest('.conversation-holder').replaceWith($newConversationHolder);
     if ($form.closest('tr').data('line-type') === 'same') {

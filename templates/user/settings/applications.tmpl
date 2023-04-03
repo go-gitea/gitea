@@ -19,7 +19,7 @@
 									{{$.locale.Tr "settings.delete_token"}}
 								</button>
 						</div>
-						<i class="icon tooltip{{if .HasRecentActivity}} green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.token_state_desc"}}"{{end}}>{{svg "fontawesome-send" 36}}</i>
+						<i class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.token_state_desc"}}"{{end}}>{{svg "fontawesome-send" 36}}</i>
 						<div class="content">
 							<details><summary><strong>{{.Name}}</strong></summary>
 								<p class="gt-my-2">{{$.locale.Tr "settings.scopes_list"}}</p>

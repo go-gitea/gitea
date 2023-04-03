@@ -471,6 +471,14 @@ var migrations = []Migration{
 	NewMigration("Rename Webhook org_id to owner_id", v1_20.RenameWebhookOrgToOwner),
 	// v246 -> v247
 	NewMigration("Add missed column owner_id for project table", v1_20.AddNewColumnForProject),
+	// v247 -> v248
+	NewMigration("Fix incorrect project type", v1_20.FixIncorrectProjectType),
+	// v248 -> v249
+	NewMigration("Add version column to action_runner table", v1_20.AddVersionToActionRunner),
+	// v249 -> v250
+	NewMigration("Improve Action table indices v3", v1_20.ImproveActionTableIndices),
+	// v250 -> v251
+	NewMigration("Change Container Metadata", v1_20.ChangeContainerMetadataMultiArch),
 }
 
 // GetCurrentDBVersion returns the current db version

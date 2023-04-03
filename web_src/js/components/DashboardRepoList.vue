@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div v-if="!isOrganization" class="ui two item tabable menu">
+    <div v-if="!isOrganization" class="ui two item menu">
       <a :class="{item: true, active: tab === 'repos'}" @click="changeTab('repos')">{{ textRepository }}</a>
       <a :class="{item: true, active: tab === 'organizations'}" @click="changeTab('organizations')">{{ textOrganization }}</a>
     </div>
@@ -10,7 +10,7 @@
           {{ textMyRepos }}
           <span class="ui grey label gt-ml-3">{{ reposTotalCount }}</span>
         </div>
-        <a class="tooltip" :href="subUrl + '/repo/create'" :data-content="textNewRepo" data-position="left center">
+        <a :href="subUrl + '/repo/create'" :data-tooltip-content="textNewRepo">
           <svg-icon name="octicon-plus"/>
           <span class="sr-only">{{ textNewRepo }}</span>
         </a>
@@ -72,16 +72,12 @@
         <ul class="repo-owner-name-list">
           <li v-for="repo in repos" :class="{'private': repo.private || repo.internal}" :key="repo.id">
             <a class="repo-list-link gt-df gt-ac gt-sb" :href="repo.link">
-              <div class="item-name gt-df gt-ac gt-f1 gt-mr-2">
+              <div class="item-name gt-df gt-ac gt-f1">
                 <svg-icon :name="repoIcon(repo)" :size="16" class-name="gt-mr-2"/>
                 <div class="text gt-bold truncate gt-ml-1">{{ repo.full_name }}</div>
                 <span v-if="repo.archived">
                   <svg-icon name="octicon-archive" :size="16" class-name="gt-ml-2"/>
                 </span>
-              </div>
-              <div class="text light grey gt-df gt-ac" v-if="isStarsEnabled">
-                {{ repo.stars_count }}
-                <svg-icon name="octicon-star" :size="16" class-name="gt-ml-2"/>
               </div>
             </a>
           </li>
@@ -123,7 +119,7 @@
           {{ textMyOrgs }}
           <span class="ui grey label gt-ml-3">{{ organizationsTotalCount }}</span>
         </div>
-        <a v-if="canCreateOrganization" class="tooltip" :href="subUrl + '/org/create'" :data-content="textNewOrg" data-position="left center">
+        <a v-if="canCreateOrganization" :href="subUrl + '/org/create'" :data-tooltip-content="textNewOrg">
           <svg-icon name="octicon-plus"/>
           <span class="sr-only">{{ textNewOrg }}</span>
         </a>
@@ -151,7 +147,6 @@
 <script>
 import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
-import {initTooltip} from '../modules/tippy.js';
 import {SvgIcon} from '../svg.js';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
@@ -242,9 +237,6 @@ const sfc = {
   mounted() {
     const el = document.getElementById('dashboard-repo-list');
     this.changeReposFilter(this.reposFilter);
-    for (const elTooltip of el.querySelectorAll('.tooltip')) {
-      initTooltip(elTooltip);
-    }
     $(el).find('.dropdown').dropdown();
     nextTick(() => {
       this.$refs.search.focus();

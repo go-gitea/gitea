@@ -18,6 +18,10 @@ import (
 	"golang.org/x/text/language"
 )
 
+type contextKey struct{}
+
+var ContextKey interface{} = &contextKey{}
+
 // Locale represents an interface to translation
 type Locale interface {
 	Language() string

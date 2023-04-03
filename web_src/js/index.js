@@ -1,7 +1,6 @@
 // bootstrap module must be the first one to be imported, it handles webpack lazy-loading and global errors
 import './bootstrap.js';
 
-import $ from 'jquery';
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
 import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
@@ -56,7 +55,6 @@ import {
   initGlobalFormDirtyLeaveConfirm,
   initGlobalLinkActions,
   initHeadNavbarContentToggle,
-  initGlobalTooltips,
 } from './features/common-global.js';
 import {initRepoTopicBar} from './features/repo-home.js';
 import {initAdminEmails} from './features/admin/emails.js';
@@ -89,17 +87,18 @@ import {initFormattingReplacements} from './features/formatting.js';
 import {initCopyContent} from './features/copycontent.js';
 import {initCaptcha} from './features/captcha.js';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
+import {initGlobalTooltips} from './modules/tippy.js';
+import {initGiteaFomantic} from './modules/fomantic.js';
+import {onDomReady} from './utils/dom.js';
 
 // Run time-critical code as soon as possible. This is safe to do because this
 // script appears at the end of <body> and rendered HTML is accessible at that point.
+// TODO: replace them with CustomElements
 initFormattingReplacements();
+// Init Gitea's Fomantic settings
+initGiteaFomantic();
 
-// Silence fomantic's error logging when tabs are used without a target content element
-$.fn.tab.settings.silent = true;
-// Disable the behavior of fomantic to toggle the checkbox when you press enter on a checkbox element.
-$.fn.checkbox.settings.enableEnterKey = false;
-
-$(document).ready(() => {
+onDomReady(() => {
   initGlobalCommon();
 
   initGlobalTooltips();

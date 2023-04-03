@@ -15,7 +15,7 @@
 		</div>
 	{{end}}
 	{{if .LFSLock}}
-		<div class="file-info-entry ui tooltip" data-content="{{.LFSLockHint}}">
+		<div class="file-info-entry ui" data-tooltip-content="{{.LFSLockHint}}">
 			{{svg "octicon-lock" 16 "gt-mr-2"}}
 			<a href="{{.LFSLockOwnerHomeLink}}">{{.LFSLockOwner}}</a>
 		</div>
