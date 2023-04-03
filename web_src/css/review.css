@@ -227,15 +227,9 @@ a.blob-excerpt:hover {
   max-height: calc(100vh - 360px);
 }
 
-.review-box-panel .editor-toolbar,
-.review-box-panel .CodeMirror-scroll {
-  width: min(calc(100vw - 2em), 800px);
-  max-width: none;
-}
-
 .review-box-panel .combo-markdown-editor {
-  width: 730px;
-  max-width: calc(100vw - 70px);
+  width: 730px; /* this width matches current EasyMDE's toolbar's width */
+  max-width: calc(100vw - 70px); /* leave enough space on left, and align the page content */
 }
 
 #review-box {
