@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/auth"
+	"code.gitea.io/gitea/routers/web/devtest"
 	"code.gitea.io/gitea/routers/web/events"
 	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/routers/web/feed"
@@ -1491,6 +1492,12 @@ func RegisterRoutes(m *web.Route) {
 	if setting.API.EnableSwagger {
 		m.Get("/swagger.v1.json", SwaggerV1Json)
 	}
+
+	if !setting.IsProd {
+		m.Any("/devtest", devtest.List)
+		m.Any("/devtest/{sub}", devtest.Tmpl)
+	}
+
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.GetContext(req)
 		ctx.NotFound("", nil)

@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -495,10 +496,27 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		accessMode = perm.AccessModeWrite
 	}
 
+	if ctx.Data["IsActionsToken"] == true {
+		taskID := ctx.Data["ActionsTaskID"].(int64)
+		task, err := actions_model.GetTaskByID(ctx, taskID)
+		if err != nil {
+			log.Error("Unable to GetTaskByID for task[%d] Error: %v", taskID, err)
+			return false
+		}
+		if task.RepoID != repository.ID {
+			return false
+		}
+
+		if task.IsForkPullRequest {
+			return accessMode <= perm.AccessModeRead
+		}
+		return accessMode <= perm.AccessModeWrite
+	}
+
 	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
 	perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
 	if err != nil {
-		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository)
+		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository, err)
 		return false
 	}
 

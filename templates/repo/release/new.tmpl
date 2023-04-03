@@ -49,18 +49,17 @@
 					<label>{{.locale.Tr "repo.release.title"}}</label>
 					<input name="title" placeholder="{{.locale.Tr "repo.release.title"}}" value="{{.title}}" autofocus required maxlength="255">
 				</div>
-				<div class="field content-editor">
+				<div class="field">
 					<label>{{.locale.Tr "repo.release.content"}}</label>
-					<div class="ui top tabular menu" data-write="write" data-preview="preview">
-						<a class="active write item" data-tab="write">{{$.locale.Tr "write"}}</a>
-						<a class="preview item" data-tab="preview" data-url="{{$.Repository.Link}}/markup" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
-					</div>
-					<div class="ui bottom active tab" data-tab="write">
-						<textarea name="content">{{.content}}</textarea>
-					</div>
-					<div class="ui bottom tab markup" data-tab="preview">
-						{{$.locale.Tr "loading"}}
-					</div>
+
+					{{template "shared/combomarkdowneditor" (dict
+						"locale" $.locale
+						"MarkdownPreviewUrl" (print .Repository.Link "/markup")
+						"MarkdownPreviewContext" .RepoLink
+						"TextareaName" "content"
+						"TextareaContent" .content
+						"DropzoneParentContainer" "form"
+					)}}
 				</div>
 				{{range .attachments}}
 					<div class="field" id="attachment-{{.ID}}">
