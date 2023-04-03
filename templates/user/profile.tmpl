@@ -31,13 +31,24 @@
 								<li>{{svg "octicon-location"}} {{.Owner.Location}}</li>
 							{{end}}
 							<li>
-								{{svg "octicon-mail"}}
-								<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
 								{{if (eq .SignedUserName .Owner.Name)}}
-									{{if .Owner.KeepEmailPrivate}}
-										{{svg "octicon-lock"}}
-									{{else}}
-										{{svg "octicon-globe"}}
+									{{svg "octicon-mail"}}
+									<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
+									<a href="{{AppSubUrl}}/user/settings#keep-email-private">
+										{{if .Owner.KeepEmailPrivate}}
+											<i data-tooltip-content="{{.locale.Tr "user.email_visibility.private"}}">
+												{{svg "octicon-lock"}}
+											</i>
+										{{else}}
+											<i data-tooltip-content="{{.locale.Tr "user.email_visibility.public"}}">
+												{{svg "octicon-globe"}}
+											</i>
+										{{end}}
+									</a>
+								{{else}}
+									{{if .ShowUserEmail}}
+										{{svg "octicon-mail"}}
+										<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
 									{{end}}
 								{{end}}
 							</li>
