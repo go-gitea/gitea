@@ -138,8 +138,7 @@ async function fetchPostersData($authorSearchDropdown, isShowAll) {
   const posterID = $authorSearchDropdown.attr('data-poster-id');
   const isShowFullName = $authorSearchDropdown.attr('data-show-fullname');
   const posterGeneralUrl = $authorSearchDropdown.attr('data-general-poster-url');
-  const values = $authorSearchDropdown.dropdown('setting values');
-  const $defaultMenu = $(values[0]).find('.menu');
+  const $defaultMenu = $authorSearchDropdown.find('.menu');
   // remove former options, then append newly searched posters
   $defaultMenu.find(".item:gt(0)").remove();
   for (let i = 0; i < postersJson.length; i++) {
@@ -153,5 +152,4 @@ async function fetchPostersData($authorSearchDropdown, isShowAll) {
   const $items = $defaultMenu.find('> .item');
   $items.each((_, item) => updateMenuItem($authorSearchDropdown[0], item));
   $authorSearchDropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
-  $authorSearchDropdown.dropdown('setting', 'values', values);
 }
