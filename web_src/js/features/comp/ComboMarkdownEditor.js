@@ -1,8 +1,8 @@
 import '@github/markdown-toolbar-element';
+import $ from 'jquery';
 import {attachTribute} from '../tribute.js';
 import {hideElem, showElem} from '../../utils/dom.js';
 import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
-import $ from 'jquery';
 import {initMarkupContent} from '../../markup/content.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {attachRefIssueContextPopup} from '../contextpopup.js';
@@ -39,31 +39,57 @@ class ComboMarkdownEditor {
   }
 
   async init() {
+    this.prepareEasyMDEToolbarActions();
+
+    this.setupTab();
+    this.setupDropzone();
+
+    this.setupTextarea();
+
+    await attachTribute(this.textarea, {mentions: true, emoji: true});
+
+    if (this.userPreferredEditor === 'easymde') {
+      await this.switchToEasyMDE();
+    }
+  }
+
+  applyEditorHeights(el, heights) {
+    if (!heights) return;
+    if (heights.minHeight) el.style.minHeight = heights.minHeight;
+    if (heights.height) el.style.height = heights.height;
+    if (heights.maxHeight) el.style.maxHeight = heights.maxHeight;
+  }
+
+  setupTextarea() {
     this.textarea = this.container.querySelector('.markdown-text-editor');
     this.textarea._giteaComboMarkdownEditor = this;
-    this.textarea.id = `_combo_markdown_editor_${String(elementIdCounter)}`;
-    this.textarea.addEventListener('input', (e) => {this.options?.onContentChanged?.(this, e)});
+    this.textarea.id = `_combo_markdown_editor_${String(elementIdCounter++)}`;
+    this.textarea.addEventListener('input', (e) => {
+      this.textareaAutoResize();
+      this.options?.onContentChanged?.(this, e);
+    });
+    this.applyEditorHeights(this.textarea, this.options.editorHeights);
+    this.textareaAutoResize();
     this.textareaMarkdownToolbar = this.container.querySelector('markdown-toolbar');
     this.textareaMarkdownToolbar.setAttribute('for', this.textarea.id);
-
-    elementIdCounter++;
 
     this.switchToEasyMDEButton = this.container.querySelector('.markdown-switch-easymde');
     this.switchToEasyMDEButton?.addEventListener('click', async (e) => {
       e.preventDefault();
+      this.userPreferredEditor = 'easymde';
       await this.switchToEasyMDE();
     });
 
-    await attachTribute(this.textarea, {mentions: true, emoji: true});
+    if (this.dropzone) {
+      initTextareaImagePaste(this.textarea, this.dropzone);
+    }
+  }
 
+  setupDropzone() {
     const dropzoneParentContainer = this.container.getAttribute('data-dropzone-parent-container');
     if (dropzoneParentContainer) {
       this.dropzone = this.container.closest(this.container.getAttribute('data-dropzone-parent-container'))?.querySelector('.dropzone');
-      initTextareaImagePaste(this.textarea, this.dropzone);
     }
-
-    this.setupTab();
-    this.prepareEasyMDEToolbarActions();
   }
 
   setupTab() {
@@ -134,7 +160,10 @@ class ComboMarkdownEditor {
         title: 'Add Checkbox (checked)',
       },
       'gitea-switch-to-textarea': {
-        action: this.switchToTextarea.bind(this),
+        action: () => {
+          this.userPreferredEditor = 'textarea';
+          this.switchToTextarea();
+        },
         className: 'fa fa-file',
         title: 'Revert to simple textarea',
       },
@@ -169,7 +198,7 @@ class ComboMarkdownEditor {
     return processed;
   }
 
-  async switchToTextarea() {
+  switchToTextarea() {
     showElem(this.textareaMarkdownToolbar);
     if (this.easyMDE) {
       this.easyMDE.toTextArea();
@@ -218,6 +247,7 @@ class ComboMarkdownEditor {
         }
       },
     });
+    this.applyEditorHeights(this.container.querySelector('.CodeMirror-scroll'), this.options.editorHeights);
     await attachTribute(this.easyMDE.codemirror.getInputField(), {mentions: true, emoji: true});
     initEasyMDEImagePaste(this.easyMDE, this.dropzone);
     hideElem(this.textareaMarkdownToolbar);
@@ -235,6 +265,7 @@ class ComboMarkdownEditor {
       this.easyMDE.value(v);
     } else {
       this.textarea.value = v;
+      this.textareaAutoResize();
     }
   }
 
@@ -246,6 +277,24 @@ class ComboMarkdownEditor {
     }
   }
 
+  textareaAutoResize() {
+    if (this.textareaInitalHeight === undefined) {
+      this.textareaInitalHeight = this.textarea.offsetHeight;
+    }
+    const offset = this.textarea.offsetHeight - this.textarea.clientHeight;
+    if (!this.lastValue || Math.abs(this.lastValue.length - this.textarea.value.length) > 2) {
+      // the value has changed a lot, so reset the height to calculate the real scroll height, it might cause UI flickering
+      this.textarea.style.height = 'auto';
+    } else {
+      // try to shrink a little to see if a line is deleted (since the value doesn't change much), it won't cause UI flickering
+      // the magic number is a general number which fits most line-height styles.
+      this.textarea.style.height = `${this.textarea.scrollHeight + offset - 40}px`;
+    }
+    // make sure the height is not smaller than the initial height
+    this.textarea.style.height = `${Math.max(this.textareaInitalHeight, this.textarea.scrollHeight + offset)}px`;
+    this.lastValue = this.textarea.value;
+  }
+
   moveCursorToEnd() {
     this.textarea.focus();
     this.textarea.setSelectionRange(this.textarea.value.length, this.textarea.value.length);
@@ -253,6 +302,13 @@ class ComboMarkdownEditor {
       this.easyMDE.codemirror.focus();
       this.easyMDE.codemirror.setCursor(this.easyMDE.codemirror.lineCount(), 0);
     }
+  }
+
+  get userPreferredEditor() {
+    return window.localStorage.getItem(`markdown-editor-${this.options.useScene ?? 'default'}`);
+  }
+  set userPreferredEditor(s) {
+    window.localStorage.setItem(`markdown-editor-${this.options.useScene ?? 'default'}`, s);
   }
 }
 

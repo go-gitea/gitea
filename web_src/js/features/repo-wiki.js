@@ -44,6 +44,8 @@ async function initRepoWikiFormEditor() {
   renderEasyMDEPreview();
 
   editor = await initComboMarkdownEditor($editorContainer, {
+    useScene: 'wiki',
+    editorHeights: {minHeight: '300px', height: 'calc(100vh - 600px)'},
     previewMode: 'gfm',
     previewWiki: true,
     easyMDEOptions: {
