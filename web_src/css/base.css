@@ -344,8 +344,7 @@ a.muted,
   color: inherit;
 }
 
-button.muted,
-.muted-buttons button {
+button.muted {
   background: none;
   border: none;
 }
