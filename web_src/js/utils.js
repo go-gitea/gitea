@@ -30,11 +30,6 @@ export function isDarkTheme() {
   return style.getPropertyValue('--is-dark-theme').trim().toLowerCase() === 'true';
 }
 
-// removes duplicate elements in an array
-export function uniq(arr) {
-  return Array.from(new Set(arr));
-}
-
 // strip <tags> from a string
 export function stripTags(text) {
   return text.replace(/<[^>]*>?/gm, '');

@@ -10,17 +10,16 @@ export function initContextPopups() {
 }
 
 export function attachRefIssueContextPopup(refIssues) {
-  if (!refIssues.length) return;
-  refIssues.each(function () {
-    if ($(this).hasClass('ref-external-issue')) {
+  for (const refIssue of refIssues) {
+    if (refIssue.classList.contains('ref-external-issue')) {
       return;
     }
 
-    const {owner, repo, index} = parseIssueHref($(this).attr('href'));
+    const {owner, repo, index} = parseIssueHref(refIssue.getAttribute('href'));
     if (!owner) return;
 
     const el = document.createElement('div');
-    this.parentNode.insertBefore(el, this.nextSibling);
+    refIssue.parentNode.insertBefore(el, refIssue.nextSibling);
 
     const view = createApp(ContextPopup);
 
@@ -31,7 +30,7 @@ export function attachRefIssueContextPopup(refIssues) {
       el.textContent = 'ContextPopup failed to load';
     }
 
-    createTippy(this, {
+    createTippy(refIssue, {
       content: el,
       placement: 'top-start',
       interactive: true,
@@ -40,5 +39,5 @@ export function attachRefIssueContextPopup(refIssues) {
         el.firstChild.dispatchEvent(new CustomEvent('ce-load-context-popup', {detail: {owner, repo, index}}));
       }
     });
-  });
+  }
 }
