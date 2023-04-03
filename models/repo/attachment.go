@@ -58,11 +58,11 @@ func (a *Attachment) RelativePath() string {
 
 // DownloadURL returns the download url of the attached file
 func (a *Attachment) DownloadURL() string {
-	if a.CustomDownloadURL == "" {
-		return setting.AppURL + "attachments/" + url.PathEscape(a.UUID)
-	} else {
+	if a.CustomDownloadURL != "" {
 		return a.CustomDownloadURL
 	}
+
+	return setting.AppURL + "attachments/" + url.PathEscape(a.UUID)
 }
 
 //    _____   __    __                .__                           __
