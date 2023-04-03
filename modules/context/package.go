@@ -96,21 +96,29 @@ func determineAccessMode(ctx *Context) (perm.AccessMode, error) {
 	if ctx.Package.Owner.IsOrganization() {
 		org := organization.OrgFromUser(ctx.Package.Owner)
 
-		// 1. If user is logined
-		if ctx.Doer != nil && !ctx.Doer.IsGhost() {
-			// check every team permissions
-			teams, err := organization.GetUserOrgTeams(ctx, org.ID, ctx.Doer.ID)
+		// 1. Get user max authorize level for the org (may be none, if user is not member of the org)
+		if ctx.Doer != nil {
+			var err error
+			accessMode, err = org.GetOrgUserMaxAuthorizeLevel(ctx.Doer.ID)
 			if err != nil {
 				return accessMode, err
 			}
-			for _, t := range teams {
-				perm := t.UnitAccessMode(ctx, unit.TypePackages)
-				if accessMode < perm {
-					accessMode = perm
+			// If access mode is less than write check every team for more permissions
+			if accessMode < perm.AccessModeWrite {
+				teams, err := organization.GetUserOrgTeams(ctx, org.ID, ctx.Doer.ID)
+				if err != nil {
+					return accessMode, err
+				}
+				for _, t := range teams {
+					perm := t.UnitAccessMode(ctx, unit.TypePackages)
+					if accessMode < perm {
+						accessMode = perm
+					}
 				}
 			}
-		} else if organization.HasOrgOrUserVisible(ctx, ctx.Package.Owner, ctx.Doer) {
-			// 2. If user is non-login, check if org is visible to non-login user
+		}
+		// 2. If authorize level is none, check if org is visible to user
+		if accessMode == perm.AccessModeNone && organization.HasOrgOrUserVisible(ctx, ctx.Package.Owner, ctx.Doer) {
 			accessMode = perm.AccessModeRead
 		}
 	} else {
