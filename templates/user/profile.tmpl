@@ -30,12 +30,17 @@
 							{{if .Owner.Location}}
 								<li>{{svg "octicon-location"}} {{.Owner.Location}}</li>
 							{{end}}
-							{{if .ShowUserEmail}}
-								<li>
-									{{svg "octicon-mail"}}
-									<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
-								</li>
-							{{end}}
+							<li>
+								{{svg "octicon-mail"}}
+								{{if (eq .SignedUserName .Owner.Name)}}
+									{{if .Owner.KeepEmailPrivate}}
+										{{svg "octicon-lock"}}
+									{{else}}
+										{{svg "octicon-globe"}}
+									{{end}}
+								{{end}}
+								<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
+							</li>
 							{{if .Owner.Website}}
 								<li>
 									{{svg "octicon-link"}}
