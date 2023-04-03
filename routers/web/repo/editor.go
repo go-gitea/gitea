@@ -538,7 +538,6 @@ func DeleteFilePost(ctx *context.Context) {
 // UploadFile render upload file page
 func UploadFile(ctx *context.Context) {
 	ctx.Data["PageIsUpload"] = true
-	ctx.Data["RequireTribute"] = true
 	upload.AddUploadContext(ctx, "repo")
 	canCommit := renderCommitRights(ctx)
 	treePath := cleanUploadFileName(ctx.Repo.TreePath)
@@ -573,7 +572,6 @@ func UploadFile(ctx *context.Context) {
 func UploadFilePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UploadRepoFileForm)
 	ctx.Data["PageIsUpload"] = true
-	ctx.Data["RequireTribute"] = true
 	upload.AddUploadContext(ctx, "repo")
 	canCommit := renderCommitRights(ctx)
 

@@ -248,6 +248,11 @@ a.blob-excerpt:hover {
   }
 }
 
+.review-box-panel .combo-markdown-editor textarea {
+  width: 730px;
+  max-width: calc(100vw - 70px);
+}
+
 #review-box {
   position: relative;
 }
