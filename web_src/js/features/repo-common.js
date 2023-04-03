@@ -111,12 +111,17 @@ export function initRepoCommonLanguageStats() {
 // generate dropdown options for authors search dropdown using fetched data
 export function initPostersDropdown() {
   const $authorSearchDropdown = $('.author-search');
-  $('#author-search-input').on('input', function(e) {
+  $('#author-search-input').on('input', (e) => {
     e.stopImmediatePropagation();
     fetchPostersData($authorSearchDropdown, false);
   });
   // show all results when clicking on the dropdown
-  $authorSearchDropdown.on('click', function() {
+  $authorSearchDropdown.on('click', () => {
+    // if dropdown is from visible to not, do not need to fetch data
+    if ($authorSearchDropdown.attr('aria-expanded') === 'true') {
+      return;
+    }
+    // reset input value
     $('#author-search-input').val('');
     fetchPostersData($authorSearchDropdown, true);
   });
@@ -128,7 +133,7 @@ async function fetchPostersData($authorSearchDropdown, isShowAll) {
     return;
   }
   const baseUrl = $authorSearchDropdown.attr('data-url');
-  const url = isShowAll ? baseUrl: `${baseUrl}?q=${$('#author-search-input').val()}`;
+  const url = isShowAll ? baseUrl : `${baseUrl}?q=${$('#author-search-input').val()}`;
   const res = await fetch(url);
   const postersJson = await res.json();
   if (!postersJson) {
@@ -141,7 +146,7 @@ async function fetchPostersData($authorSearchDropdown, isShowAll) {
   const posterGeneralUrl = $authorSearchDropdown.attr('data-general-poster-url');
   const $defaultMenu = $authorSearchDropdown.find('.menu');
   // remove former options, then append newly searched posters
-  $defaultMenu.find(".item:gt(0)").remove();
+  $defaultMenu.find('.item:gt(0)').remove();
   for (let i = 0; i < postersJson.length; i++) {
     const {id, avatar_url, username, full_name} = postersJson[i];
     $defaultMenu.append(`<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralUrl}${id}">
