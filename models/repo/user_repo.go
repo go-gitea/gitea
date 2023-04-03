@@ -178,7 +178,21 @@ func GetIssuePostersWithPrefix(ctx context.Context, repo *Repository, isPull boo
 		).GroupBy("poster_id"),
 	)
 	if isShowFullName {
-		return users, db.GetEngine(ctx).Where(cond).Table("user").Where("name LIKE ? or full_name LIKE ?", prefix+"%", prefix+"%").OrderBy(user_model.GetOrderByName()).Limit(30).Find(&users)
+		return users, db.GetEngine(ctx).
+			Where(cond).
+			Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
+			Table("user").
+			Where("name LIKE ? or full_name LIKE ?", prefix+"%", prefix+"%").
+			OrderBy(user_model.GetOrderByName()).
+			Limit(30).
+			Find(&users)
 	}
-	return users, db.GetEngine(ctx).Where(cond).Table("user").Where("name LIKE ?", prefix+"%").OrderBy(user_model.GetOrderByName()).Limit(30).Find(&users)
+	return users, db.GetEngine(ctx).
+		Where(cond).
+		Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
+		Table("user").
+		Where("name LIKE ?", prefix+"%").
+		OrderBy(user_model.GetOrderByName()).
+		Limit(30).
+		Find(&users)
 }
