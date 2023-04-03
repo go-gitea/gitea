@@ -628,7 +628,9 @@ func (ctx *Context) Value(key interface{}) interface{} {
 	if key == git.RepositoryContextKey && ctx.Repo != nil {
 		return ctx.Repo.GitRepo
 	}
-
+	if key == translation.ContextKey && ctx.Locale != nil {
+		return ctx.Locale
+	}
 	return ctx.Req.Context().Value(key)
 }
 

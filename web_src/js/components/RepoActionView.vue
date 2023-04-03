@@ -77,6 +77,8 @@ import AnsiToHTML from 'ansi-to-html';
 
 const {csrfToken} = window.config;
 
+const ansiLogRender = new AnsiToHTML({escapeXML: true});
+
 const sfc = {
   name: 'RepoActionView',
   components: {
@@ -91,8 +93,6 @@ const sfc = {
 
   data() {
     return {
-      ansiToHTML: new AnsiToHTML({escapeXML: true}),
-
       // internal state
       loading: false,
       intervalID: null,
@@ -214,7 +214,7 @@ const sfc = {
 
       const logMessage = document.createElement('div');
       logMessage.className = 'log-msg';
-      logMessage.innerHTML = this.ansiToHTML.toHtml(line.message);
+      logMessage.innerHTML = ansiLogToHTML(line.message);
       div.appendChild(logMessage);
 
       return div;
@@ -305,6 +305,48 @@ export function initRepositoryActionView() {
     actionsURL: el.getAttribute('data-actions-url'),
   });
   view.mount(el);
+}
+
+// some unhandled control sequences by AnsiToHTML
+// https://man7.org/linux/man-pages/man4/console_codes.4.html
+const ansiRegexpRemove = /\x1b\[\d+[A-H]/g; // Move cursor, treat them as no-op.
+const ansiRegexpNewLine = /\x1b\[\d?[JK]/g; // Erase display/line, treat them as a Carriage Return
+
+function ansiCleanControlSequences(line) {
+  if (line.includes('\x1b')) {
+    line = line.replace(ansiRegexpRemove, '');
+    line = line.replace(ansiRegexpNewLine, '\r');
+  }
+  return line;
+}
+
+export function ansiLogToHTML(line) {
+  if (line.endsWith('\r\n')) {
+    line = line.substring(0, line.length - 2);
+  } else if (line.endsWith('\n')) {
+    line = line.substring(0, line.length - 1);
+  }
+
+  // usually we do not need to process control chars like "\033[", let AnsiToHTML do it
+  // but AnsiToHTML has bugs, so we need to clean some control sequences first
+  line = ansiCleanControlSequences(line);
+
+  if (!line.includes('\r')) {
+    return ansiLogRender.toHtml(line);
+  }
+
+  // handle "\rReading...1%\rReading...5%\rReading...100%",
+  // convert it into a multiple-line string: "Reading...1%\nReading...5%\nReading...100%"
+  const lines = [];
+  for (const part of line.split('\r')) {
+    if (part === '') continue;
+    const partHtml = ansiLogRender.toHtml(part);
+    if (partHtml !== '') {
+      lines.push(partHtml);
+    }
+  }
+  // the log message element is with "white-space: break-spaces;", so use "\n" to break lines
+  return lines.join('\n');
 }
 
 </script>
