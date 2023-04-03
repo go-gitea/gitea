@@ -4,7 +4,7 @@
 		<div class="ui stackable grid">
 			<div class="ui five wide column">
 				<div class="ui card">
-					<div id="profile-avatar" class="content gt-df"/>
+					<div id="profile-avatar" class="content gt-df">
 					{{if eq .SignedUserName .Owner.Name}}
 						<a class="image" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{.locale.Tr "user.change_avatar"}}">
 							{{avatar $.Context .Owner 290}}

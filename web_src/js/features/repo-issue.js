@@ -78,7 +78,7 @@ function updateDeadline(deadlineString) {
 
 export function initRepoIssueDue() {
   $(document).on('click', '.issue-due-edit', () => {
-    $('#deadlineForm').fadeToggle(150);
+    toggleElem('#deadlineForm');
   });
   $(document).on('click', '.issue-due-remove', () => {
     updateDeadline('');
@@ -645,8 +645,6 @@ export function initRepoIssueTitleEdit() {
       $.post(update_url, {
         _csrf: csrfToken,
         target_branch: targetBranch
-      }).done((data) => {
-        $branchTarget.text(data.base_branch);
       }).always(() => {
         window.location.reload();
       });
