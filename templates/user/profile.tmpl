@@ -36,8 +36,8 @@
 									<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
 									<a href="{{AppSubUrl}}/user/settings#keep-email-private">
 										{{if .ShowUserEmail}}
-											<i class="ui right" data-tooltip-content="{{.locale.Tr "user.email_visibility.public"}}">
-												{{svg "octicon-globe"}}
+											<i class="ui right" data-tooltip-content="{{.locale.Tr "user.email_visibility.all_users"}}">
+												{{svg "octicon-unlock"}}
 											</i>
 										{{else}}
 											<i class="ui right" data-tooltip-content="{{.locale.Tr "user.email_visibility.private"}}">
