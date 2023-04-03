@@ -80,7 +80,7 @@
 						<div class="menu">
 							<div class="ui icon search input">
 								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
+								<input type="text" id="author-search-input" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
 						</div>
