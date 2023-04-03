@@ -26,19 +26,21 @@ func RenderBranchFeedAtom(ctx *context.Context) {
 // The logic for rendering as a rss / atom feed checks against:
 // * existence of Accept header containing application/rss+xml or application/atom+xml
 // * support for the {repo}.rss url
-func RenderRepoFeed(ctx *context.Context) bool {
+func RenderRepoFeed(ctx *context.Context) {
 	if !setting.EnableFeed {
-		return false
+		return
 	}
 	isFeed, _, showFeedType := GetFeedType(ctx.Params(":reponame"), ctx.Req)
 	if !isFeed {
-		return false
+		ctx.Data["EnableFeed"] = true
+		ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
+		return
 	}
-	return render(ctx, showFeedType)
+	render(ctx, showFeedType)
 }
 
 // render
-func render(ctx *context.Context, showFeedType string) bool {
+func render(ctx *context.Context, showFeedType string) {
 	var renderer func(ctx *context.Context, repo *model.Repository, formatType string)
 	switch {
 	case ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType):
@@ -47,18 +49,6 @@ func render(ctx *context.Context, showFeedType string) bool {
 		renderer = ShowBranchFeed
 	case ctx.Repo.TreePath != "":
 		renderer = ShowFileFeed
-	default:
-		return false
 	}
 	renderer(ctx, ctx.Repo.Repository, showFeedType)
-	return true
-}
-
-// InjectContextVariables adds required context variables to allow feed to be displayed in the UI
-func InjectContextVariables(ctx *context.Context) {
-	if !setting.EnableFeed {
-		return
-	}
-	ctx.Data["EnableFeed"] = true
-	ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
 }

@@ -22,8 +22,8 @@ func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType stri
 		return
 	}
 
-	title := fmt.Sprintf("Latest commits for branch %s", strings.TrimSpace(ctx.Repo.BranchName))
-	link := &feeds.Link{Href: repo.HTMLURL() + "/branch/" + ctx.Repo.BranchName}
+	title := fmt.Sprintf("Latest commits for branch %s", ctx.Repo.BranchName)
+	link := &feeds.Link{Href: repo.HTMLURL() + "/" + ctx.Repo.BranchNameSubURL()}
 
 	feed := &feeds.Feed{
 		Title:       title,
@@ -35,7 +35,7 @@ func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType stri
 	for _, commit := range commits {
 		feed.Items = append(feed.Items, &feeds.Item{
 			Id:    commit.ID.String(),
-			Title: strings.TrimSpace(commit.Message()),
+			Title: strings.TrimSpace(strings.Split(commit.Message(), "\n")[0]),
 			Link:  &feeds.Link{Href: repo.HTMLURL() + "/commit/" + commit.ID.String()},
 			Author: &feeds.Author{
 				Name:  commit.Author.Name,
