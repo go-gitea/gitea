@@ -127,7 +127,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	defer gitRepo.Close()
 
 	ref := input.Ref
-	if ref == "" {
+	if ref == "" || input.Event == webhook_module.HookEventDelete {
 		ref = input.Repo.DefaultBranch
 	}
 
