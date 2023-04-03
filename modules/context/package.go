@@ -92,6 +92,7 @@ func determineAccessMode(ctx *Context) (perm.AccessMode, error) {
 		return perm.AccessModeNone, nil
 	}
 
+	// TODO: ActionUser permission check
 	accessMode := perm.AccessModeNone
 	if ctx.Package.Owner.IsOrganization() {
 		org := organization.OrgFromUser(ctx.Package.Owner)
