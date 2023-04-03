@@ -5,6 +5,7 @@ import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
 import $ from 'jquery';
 import {initMarkupContent} from '../../markup/content.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
+import {attachRefIssueContextPopup} from '../contextpopup.js';
 
 let elementIdCounter = 0;
 
@@ -61,21 +62,34 @@ class ComboMarkdownEditor {
       initTextareaImagePaste(this.textarea, this.dropzone);
     }
 
-    this.setupPreview();
+    this.setupTab();
     this.prepareEasyMDEToolbarActions();
   }
 
-  setupPreview() {
-    const $tabMenu = $(this.container).find('.tabular.menu');
+  setupTab() {
+    const $container = $(this.container);
+    const $tabMenu = $container.find('.tabular.menu');
     const $tabs = $tabMenu.find('> .item');
-    const $tabPreview = $tabs.filter(`.item[data-tab="markdown-previewer"]`);
+
+    // Fomantic Tab requires the "data-tab" to be globally unique.
+    // So here it uses our defined "data-tab-for" and "data-tab-panel" to generate the "data-tab" attribute for Fomantic.
+    const $tabEditor = $tabs.filter(`.item[data-tab-for="markdown-writer"]`);
+    const $tabPreviewer = $tabs.filter(`.item[data-tab-for="markdown-previewer"]`);
+    $tabEditor.attr('data-tab', `markdown-writer-${elementIdCounter}`);
+    $tabPreviewer.attr('data-tab', `markdown-previewer-${elementIdCounter}`);
+    const $panelEditor = $container.find('.ui.tab[data-tab-panel="markdown-writer"]');
+    const $panelPreviewer = $container.find('.ui.tab[data-tab-panel="markdown-previewer"]');
+    $panelEditor.attr('data-tab', `markdown-writer-${elementIdCounter}`);
+    $panelPreviewer.attr('data-tab', `markdown-previewer-${elementIdCounter}`);
+    elementIdCounter++;
+
     $tabs.tab();
 
-    this.previewUrl = $tabPreview.attr('data-preview-url');
-    this.previewContext = $tabPreview.attr('data-preview-context');
+    this.previewUrl = $tabPreviewer.attr('data-preview-url');
+    this.previewContext = $tabPreviewer.attr('data-preview-context');
     this.previewMode = this.options.previewMode ?? 'comment';
     this.previewWiki = this.options.previewWiki ?? false;
-    $tabPreview.on('click', () => {
+    $tabPreviewer.on('click', () => {
       $.post(this.previewUrl, {
         _csrf: window.config.csrfToken,
         mode: this.previewMode,
@@ -83,9 +97,11 @@ class ComboMarkdownEditor {
         text: this.value(),
         wiki: this.previewWiki,
       }, (data) => {
-        const previewPanel = this.container.querySelector(`.tab[data-tab="markdown-previewer"]`);
-        previewPanel.innerHTML = data;
+        $panelPreviewer.html(data);
         initMarkupContent();
+
+        const refIssues = $panelPreviewer.find('p .ref-issue');
+        attachRefIssueContextPopup(refIssues);
       });
     });
   }

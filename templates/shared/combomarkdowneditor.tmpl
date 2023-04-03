@@ -9,11 +9,11 @@ Template Attributes:
 <div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{.ContainerClasses}}" data-dropzone-parent-container="{{.DropzoneParentContainer}}">
 	{{if .MarkdownPreviewUrl}}
 	<div class="ui top tabular menu">
-		<a class="active item" data-tab="markdown-writer">{{.locale.Tr "write"}}</a>
-		<a class="item" data-tab="markdown-previewer" data-preview-url="{{.MarkdownPreviewUrl}}" data-preview-context="{{.MarkdownPreviewContext}}">{{.locale.Tr "preview"}}</a>
+		<a class="active item" data-tab-for="markdown-writer">{{.locale.Tr "write"}}</a>
+		<a class="item" data-tab-for="markdown-previewer" data-preview-url="{{.MarkdownPreviewUrl}}" data-preview-context="{{.MarkdownPreviewContext}}">{{.locale.Tr "preview"}}</a>
 	</div>
 	{{end}}
-	<div class="ui tab active" data-tab="markdown-writer">
+	<div class="ui tab active" data-tab-panel="markdown-writer">
 		<markdown-toolbar class="gt-df">
 			<div class="markdown-toolbar-group">
 				<md-header class="markdown-toolbar-button">{{svg "octicon-heading"}}</md-header>
@@ -41,7 +41,7 @@ Template Attributes:
 		</markdown-toolbar>
 		<textarea class="markdown-text-editor js-quick-submit" name="{{.TextareaName}}" placeholder="{{.TextareaPlaceholder}}">{{.TextareaContent}}</textarea>
 	</div>
-	<div class="ui tab markup" data-tab="markdown-previewer">
+	<div class="ui tab markup" data-tab-panel="markdown-previewer">
 		{{.locale.Tr "loading"}}
 	</div>
 </div>

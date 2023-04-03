@@ -23,6 +23,7 @@ import {initRepoSettingBranches} from './repo-settings.js';
 import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
 import {hideElem, showElem} from '../utils/dom.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
+import {attachRefIssueContextPopup} from './contextpopup.js';
 
 const {csrfToken} = window.config;
 
@@ -400,12 +401,15 @@ async function onEditContent(event) {
       context: $editContentZone.data('context'),
       files: $attachments,
     }, (data) => {
-      if (data.length === 0 || data.content.length === 0) {
+      if (!data.content) {
         $renderContent.html($('#no-content').html());
         $rawContent.text('');
       } else {
         $renderContent.html(data.content);
         $rawContent.text(comboMarkdownEditor.value());
+
+        const refIssues = $renderContent.find('p .ref-issue');
+        attachRefIssueContextPopup(refIssues);
       }
       const $content = $segment;
       if (!$content.find('.dropzone-attachments').length) {
@@ -432,7 +436,7 @@ async function onEditContent(event) {
     comboMarkdownEditor = await initComboMarkdownEditor($editContentZone.find('.combo-markdown-editor'));
 
     const $dropzone = $editContentZone.find('.dropzone');
-    const dz = setupDropzone($dropzone);
+    const dz = await setupDropzone($dropzone);
     $editContentZone.find('.cancel.button').on('click', (e) => {
       e.preventDefault();
       cancelAndReset(dz);
