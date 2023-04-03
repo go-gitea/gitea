@@ -116,7 +116,8 @@ export function initPostersDropdown() {
     fetchPostersData($authorSearchDropdown, false);
   });
   // show all results when clicking on the dropdown
-  $authorSearchDropdown.on('click', function(e) {
+  $authorSearchDropdown.on('click', function() {
+    $('#author-search-input').val('');
     fetchPostersData($authorSearchDropdown, true);
   });
 }
