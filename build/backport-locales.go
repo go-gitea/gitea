@@ -62,6 +62,7 @@ func main() {
 
 	// use old en-US as the base, and copy the new translations to the old locales
 	enUsOld := inisOld["options/locale/locale_en-US.ini"]
+	brokenWarned := map[string]bool{}
 	for path, iniOld := range inisOld {
 		if iniOld == enUsOld {
 			continue
@@ -77,11 +78,14 @@ func main() {
 				if secNew.HasKey(keyEnUs.Name()) {
 					oldStr := secOld.Key(keyEnUs.Name()).String()
 					newStr := secNew.Key(keyEnUs.Name()).String()
-					if oldStr != "" && strings.Count(oldStr, "%") != strings.Count(newStr, "%") {
-						fmt.Printf("WARNING: locale %s [%s]%s has different number of arguments, skipping\n", path, secEnUS.Name(), keyEnUs.Name())
-						fmt.Printf("\told: %s\n", oldStr)
-						fmt.Printf("\tnew: %s\n", newStr)
-						fmt.Println("---- ")
+					broken := oldStr != "" && strings.Count(oldStr, "%") != strings.Count(newStr, "%")
+					broken = broken || strings.Contains(oldStr, "\n") || strings.Contains(oldStr, "\n")
+					if broken {
+						brokenWarned[secOld.Name()+"."+keyEnUs.Name()] = true
+						fmt.Println("----")
+						fmt.Printf("WARNING: skip broken locale: %s , [%s] %s\n", path, secEnUS.Name(), keyEnUs.Name())
+						fmt.Printf("\told: %s\n", strings.ReplaceAll(oldStr, "\n", "\\n"))
+						fmt.Printf("\tnew: %s\n", strings.ReplaceAll(newStr, "\n", "\\n"))
 						continue
 					}
 					secOld.Key(keyEnUs.Name()).SetValue(newStr)
@@ -89,5 +93,26 @@ func main() {
 			}
 		}
 		mustNoErr(iniOld.SaveTo(path))
+	}
+
+	fmt.Println("========")
+
+	for path, iniNew := range inisNew {
+		for _, sec := range iniNew.Sections() {
+			for _, key := range sec.Keys() {
+				str := sec.Key(key.Name()).String()
+				broken := strings.Contains(str, "\n")
+				broken = broken || strings.HasPrefix(str, "`") != strings.HasSuffix(str, "`")
+				broken = broken || strings.HasPrefix(str, "\"`")
+				broken = broken || strings.HasPrefix(str, "`\"")
+				broken = broken || strings.Count(str, `"`)%2 == 1
+				broken = broken || strings.Count(str, "`")%2 == 1
+				if broken && !brokenWarned[sec.Name()+"."+key.Name()] {
+					fmt.Printf("WARNING: found broken locale: %s , [%s] %s\n", path, sec.Name(), key.Name())
+					fmt.Printf("\tstr: %s\n", strings.ReplaceAll(str, "\n", "\\n"))
+					fmt.Println("----")
+				}
+			}
+		}
 	}
 }
