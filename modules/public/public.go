@@ -45,15 +45,15 @@ func AssetsHandlerFunc(opts *Options) http.HandlerFunc {
 			return
 		}
 
-		var corsSent bool
 		if opts.CorsHandler != nil {
+			var corsSent bool
 			opts.CorsHandler(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 				corsSent = true
 			})).ServeHTTP(resp, req)
-		}
-		// If CORS is not sent, the response must have been written by other handlers
-		if !corsSent {
-			return
+			// If CORS is not sent, the response must have been written by other handlers
+			if !corsSent {
+				return
+			}
 		}
 
 		file := req.URL.Path[len(opts.Prefix):]

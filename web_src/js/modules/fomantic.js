@@ -9,10 +9,6 @@ export function initGiteaFomantic() {
   // Disable the behavior of fomantic to toggle the checkbox when you press enter on a checkbox element.
   $.fn.checkbox.settings.enableEnterKey = false;
 
-  // Prevent Fomantic from guessing the popup direction.
-  // Otherwise, if the viewport height is small, Fomantic would show the popup upward,
-  // if the dropdown is at the beginning of the page, then the top part would be clipped by the window view, eg: Issue List "Sort" dropdown
-  $.fn.dropdown.settings.direction = 'downward';
   // By default, use "exact match" for full text search
   $.fn.dropdown.settings.fullTextSearch = 'exact';
   // Do not use "cursor: pointer" for dropdown labels
