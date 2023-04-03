@@ -2,6 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository">
 	{{template "repo/header" .}}
 	<div class="ui container">
+		{{template "user/recently_pushed_branches" .}}
 		<div class="ui three column grid issue-list-headers">
 			<div class="column">
 				{{template "repo/issue/navbar" .}}

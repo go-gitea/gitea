@@ -4,7 +4,7 @@
 			{{$timeSince := TimeSince .Time $.locale}}
 			{{$.locale.Tr "repo.pulls.recently_pushed_to_branches" .Repo.Owner.Name .Repo.LowerName .BranchName $timeSince | Safe}}
 		</div>
-		<div class="four wide column">
+		<div class="four wide column gt-tr">
 			<a class="ui compact positive button gt-m-0" href="{{CompareLink .BaseRepo .Repo .BranchName}}">
 				{{$.locale.Tr "repo.pulls.compare_changes"}}
 			</a>

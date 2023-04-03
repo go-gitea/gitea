@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models"
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -455,6 +456,14 @@ func Issues(ctx *context.Context) {
 	}
 
 	ctx.Data["CanWriteIssuesOrPulls"] = ctx.Repo.CanWriteIssuesOrPulls(isPullList)
+
+	if ctx.Doer != nil {
+		ctx.Data["RecentlyPushedBranches"], err = models.GetRecentlyPushedBranches(ctx, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetRecentlyPushedBranches", err)
+			return
+		}
+	}
 
 	ctx.HTML(http.StatusOK, tplIssues)
 }

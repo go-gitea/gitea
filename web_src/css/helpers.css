@@ -6,6 +6,7 @@
 .gt-ab { align-items: baseline !important; }
 .gt-tc { text-align: center !important; }
 .gt-tl { text-align: left !important; }
+.gt-tr { text-align: right !important; }
 .gt-tdn { text-decoration: none !important; }
 .gt-jc { justify-content: center !important; }
 .gt-js { justify-content: flex-start !important; }

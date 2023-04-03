@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models"
 	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -955,6 +956,14 @@ func renderCode(ctx *context.Context) {
 		ctx.Data["HasParentPath"] = true
 		if len(paths)-2 >= 0 {
 			ctx.Data["ParentPath"] = "/" + paths[len(paths)-2]
+		}
+	}
+
+	if ctx.Doer != nil {
+		ctx.Data["RecentlyPushedBranches"], err = models.GetRecentlyPushedBranches(ctx, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetRecentlyPushedBranches", err)
+			return
 		}
 	}
 
