@@ -93,7 +93,7 @@
 									{{end}}
 								</h4>
 								<div class="gt-df gt-ac">
-									{{if $.CanCreateRelease}}
+									{{if and $.CanCreateRelease (not .IsTag)}}
 										<a class="muted gt-ml-3 gt-df gt-ac" data-tooltip-content="{{$.locale.Tr "repo.release.edit"}}" href="{{$.RepoLink}}/releases/edit/{{.TagName | PathEscapeSegments}}" rel="nofollow">
 											{{svg "octicon-pencil"}}
 										</a>
