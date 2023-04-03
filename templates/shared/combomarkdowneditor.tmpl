@@ -7,14 +7,12 @@ Template Attributes:
 * DropzoneParentContainer: for file upload (leave it empty if no upload)
 */}}
 <div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{.ContainerClasses}}" data-dropzone-parent-container="{{.DropzoneParentContainer}}">
-
 	{{if .MarkdownPreviewUrl}}
 	<div class="ui top tabular menu">
 		<a class="active item" data-tab="markdown-writer">{{.locale.Tr "write"}}</a>
 		<a class="item" data-tab="markdown-previewer" data-preview-url="{{.MarkdownPreviewUrl}}" data-preview-context="{{.MarkdownPreviewContext}}">{{.locale.Tr "preview"}}</a>
 	</div>
 	{{end}}
-
 	<div class="ui tab active" data-tab="markdown-writer">
 		<markdown-toolbar class="gt-df">
 			<div class="markdown-toolbar-group">
@@ -43,9 +41,7 @@ Template Attributes:
 		</markdown-toolbar>
 		<textarea class="markdown-text-editor js-quick-submit" name="{{.TextareaName}}" placeholder="{{.TextareaPlaceholder}}">{{.TextareaContent}}</textarea>
 	</div>
-
 	<div class="ui tab markup" data-tab="markdown-previewer">
 		{{.locale.Tr "loading"}}
 	</div>
-
 </div>
