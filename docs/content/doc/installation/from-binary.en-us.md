@@ -2,14 +2,14 @@
 date: "2017-06-19T12:00:00+02:00"
 title: "Installation from binary"
 slug: "install-from-binary"
-weight: 10
+weight: 15
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "installation"
     name: "From binary"
-    weight: 20
+    weight: 15
     identifier: "install-from-binary"
 ---
 
