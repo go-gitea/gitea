@@ -2,7 +2,7 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "Installation depuis le gestionnaire de paquets"
 slug: "install-from-package"
-weight: 10
+weight: 20
 toc: false
 draft: false
 menu:

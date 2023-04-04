@@ -2,6 +2,7 @@
 date: "2022-12-28T00:00:00+00:00"
 title: "Conda Packages Repository"
 slug: "usage/packages/conda"
+weight: 25
 draft: false
 toc: false
 menu:
