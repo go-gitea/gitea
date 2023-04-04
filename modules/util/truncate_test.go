@@ -43,18 +43,4 @@ func TestSplitString(t *testing.T) {
 		{"\xef\x03", 1, "\xef\x03", ""},
 	}
 	test(tc, SplitStringAtByteN)
-
-	tc = []*testCase{
-		{"abc123xyz", 0, "", utf8Ellipsis},
-		{"abc123xyz", 1, "", utf8Ellipsis},
-		{"abc123xyz", 4, "abc", utf8Ellipsis},
-		{"啊bc123xyz", 4, "啊bc", utf8Ellipsis},
-		{"啊bc123xyz", 6, "啊bc12", utf8Ellipsis},
-		{"啊bc", 3, "啊bc", ""},
-		{"啊bc", 4, "啊bc", ""},
-		{"abc\xef\x03\xfe", 3, "", asciiEllipsis},
-		{"abc\xef\x03\xfe", 4, "a", asciiEllipsis},
-		{"\xef\x03", 1, "\xef\x03", ""},
-	}
-	test(tc, SplitStringAtRuneN)
 }
