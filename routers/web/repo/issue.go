@@ -415,8 +415,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 // Issues render issues page
 func Issues(ctx *context.Context) {
 	isPullList := ctx.Params(":type") == "pulls"
-	// pass listType to ctx.Data which will be used by GET /{type:issues|pulls}/posters request
-	ctx.Data["listType"] = ctx.Params(":type")
+	// pass RepoListType to ctx.Data which will be used by GET /{type:issues|pulls}/posters request
+	ctx.Data["RepoListType"] = ctx.Params(":type")
 	if isPullList {
 		MustAllowPulls(ctx)
 		if ctx.Written() {
