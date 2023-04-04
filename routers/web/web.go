@@ -537,7 +537,6 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/activate", auth.Activate)
 		m.Post("/activate", auth.ActivatePost)
 		m.Any("/activate_email", auth.ActivateEmail)
-		m.Get("/avatar/{username}", user.AvatarByUserName)
 		m.Get("/avatar/{username}/{size}", user.AvatarByUserName)
 		m.Get("/recover_account", auth.ResetPasswd)
 		m.Post("/recover_account", auth.ResetPasswdPost)
@@ -685,6 +684,10 @@ func RegisterRoutes(m *web.Route) {
 				return !ctx.Written()
 			}
 			switch {
+			case strings.HasSuffix(username, ".png"):
+				if reloadParam(".png") {
+					user.AvatarByUserName(ctx)
+				}
 			case strings.HasSuffix(username, ".keys"):
 				if reloadParam(".keys") {
 					user.ShowSSHKeys(ctx)

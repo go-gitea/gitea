@@ -5,7 +5,6 @@ package integration
 
 import (
 	"bytes"
-	"fmt"
 	"image/png"
 	"io"
 	"mime/multipart"
@@ -78,16 +77,6 @@ func TestUserAvatar(t *testing.T) {
 		req = NewRequest(t, "GET", user2.AvatarLinkWithSize(db.DefaultContext, 0))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
-		testGetAvatarRedirect(t, user2)
-
 		// Can't test if the response matches because the image is re-generated on upload but checking that this at least doesn't give a 404 should be enough.
-	})
-}
-
-func testGetAvatarRedirect(t *testing.T, user *user_model.User) {
-	t.Run(fmt.Sprintf("getAvatarRedirect_%s", user.Name), func(t *testing.T) {
-		req := NewRequestf(t, "GET", "/user/avatar/%s", user.Name)
-		resp := MakeRequest(t, req, http.StatusSeeOther)
-		assert.EqualValues(t, fmt.Sprintf("/avatars/%s", user.Avatar), resp.Header().Get("location"))
 	})
 }
