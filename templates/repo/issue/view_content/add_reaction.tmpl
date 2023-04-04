@@ -7,7 +7,7 @@
 		<div class="header">{{.ctxData.locale.Tr "repo.pick_reaction"}}</div>
 		<div class="divider"></div>
 		{{range $value := AllowedReactions}}
-			<a class="item reaction tooltip" data-content="{{$value}}">{{ReactionToEmoji $value}}</a>
+			<a class="item reaction" data-tooltip-content="{{$value}}" data-reaction-content="{{$value}}">{{ReactionToEmoji $value}}</a>
 		{{end}}
 	</div>
 </div>

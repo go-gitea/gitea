@@ -226,8 +226,8 @@ func releasesOrTagsFeed(ctx *context.Context, isReleasesOnly bool, formatType st
 
 // SingleRelease renders a single release's page
 func SingleRelease(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 	ctx.Data["PageIsReleaseList"] = true
+	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 
 	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
@@ -240,6 +240,12 @@ func SingleRelease(ctx *context.Context) {
 		}
 		ctx.ServerError("GetReleasesByRepoID", err)
 		return
+	}
+	ctx.Data["PageIsSingleTag"] = release.IsTag
+	if release.IsTag {
+		ctx.Data["Title"] = release.TagName
+	} else {
+		ctx.Data["Title"] = release.Title
 	}
 
 	err = repo_model.GetReleaseAttachments(ctx, release)
@@ -302,7 +308,6 @@ func LatestRelease(ctx *context.Context) {
 func NewRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
-	ctx.Data["RequireTribute"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
 	if tagName := ctx.FormString("tag"); len(tagName) > 0 {
 		rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)
@@ -345,7 +350,6 @@ func NewReleasePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewReleaseForm)
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
-	ctx.Data["RequireTribute"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplReleaseNew)
@@ -463,7 +467,6 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
-	ctx.Data["RequireTribute"] = true
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "release")
 
@@ -508,7 +511,6 @@ func EditReleasePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
-	ctx.Data["RequireTribute"] = true
 
 	tagName := ctx.Params("*")
 	rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)

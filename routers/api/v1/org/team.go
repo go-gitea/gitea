@@ -135,7 +135,7 @@ func GetTeam(ctx *context.APIContext) {
 }
 
 func attachTeamUnits(team *organization.Team, units []string) {
-	unitTypes := unit_model.FindUnitTypes(units...)
+	unitTypes, _ := unit_model.FindUnitTypes(units...)
 	team.Units = make([]*organization.TeamUnit, 0, len(units))
 	for _, tp := range unitTypes {
 		team.Units = append(team.Units, &organization.TeamUnit{

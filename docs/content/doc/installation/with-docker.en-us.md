@@ -9,7 +9,7 @@ menu:
   sidebar:
     parent: "installation"
     name: "With Docker"
-    weight: 10
+    weight: 49
     identifier: "install-with-docker"
 ---
 
