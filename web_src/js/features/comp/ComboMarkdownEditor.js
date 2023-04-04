@@ -280,6 +280,7 @@ class ComboMarkdownEditor {
   textareaAutoResize() {
     if (this.textareaInitalHeight === undefined) {
       this.textareaInitalHeight = this.textarea.offsetHeight;
+      new ResizeObserver(() => this.textareaInitalHeight = this.textarea.offsetHeight).observe(this.textarea);
     }
     const offset = this.textarea.offsetHeight - this.textarea.clientHeight;
     if (!this.lastValue || !this.textarea.value.startsWith(this.lastValue)) {

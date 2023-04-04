@@ -24,7 +24,6 @@
   width: 100%;
   min-height: 200px;
   max-height: calc(100vh - 200px);
-  resize: none;
 }
 
 .combo-markdown-editor .CodeMirror-scroll {
