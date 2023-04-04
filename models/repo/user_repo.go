@@ -175,12 +175,13 @@ func GetIssuePostersWithPrefix(ctx context.Context, repo *Repository, isPull boo
 	if isShowFullName {
 		prefixCond = prefixCond.Or(builder.Like{"full_name", prefix + "%"})
 	}
+
 	cond := builder.In("`user`.id",
 		builder.Select("poster_id").From("issue").Where(
 			builder.Eq{"repo_id": repo.ID}.
 				And(builder.Eq{"is_pull": isPull}),
-		).GroupBy("poster_id"))
-	cond = cond.And(prefixCond)
+		).GroupBy("poster_id")).And(prefixCond)
+
 	return users, db.GetEngine(ctx).
 		Where(cond).
 		Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
