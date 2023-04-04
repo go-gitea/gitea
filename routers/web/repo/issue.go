@@ -3371,6 +3371,24 @@ func IssuePosters(ctx *context.Context) {
 		return
 	}
 
+	if search == "" && ctx.Doer != nil {
+		hasSelf := false
+		for _, user := range posters {
+			if hasSelf = user.ID == ctx.Doer.ID; hasSelf {
+				break
+			}
+		}
+		if !hasSelf {
+			posters = append(posters, ctx.Doer)
+		}
+		sort.Slice(posters, func(i, j int) bool {
+			if posters[i].ID == posters[j].ID {
+				return false
+			}
+			return posters[i].ID == ctx.Doer.ID // if posters[i] is self, put it before others, so less=true
+		})
+	}
+
 	resp := &userSearchResponse{}
 	resp.Results = make([]*userSearchInfo, len(posters))
 	for i, user := range posters {
