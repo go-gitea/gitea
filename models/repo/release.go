@@ -79,7 +79,7 @@ type Release struct {
 	RenderedNote     string             `xorm:"-"`
 	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
 	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
-	IsTag            bool               `xorm:"NOT NULL DEFAULT false"`
+	IsTag            bool               `xorm:"NOT NULL DEFAULT false"` // will be true only if the record is a tag and has no related releases
 	Attachments      []*Attachment      `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
 }

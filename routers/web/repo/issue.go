@@ -845,7 +845,6 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["NewIssueChooseTemplate"] = ctx.HasIssueTemplatesOrContactLinks()
-	ctx.Data["RequireTribute"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	title := ctx.FormString("title")
 	ctx.Data["TitleQuery"] = title
@@ -1291,7 +1290,6 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Data["IssueType"] = "all"
 	}
 
-	ctx.Data["RequireTribute"] = true
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeProjects)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")

@@ -4,7 +4,6 @@ import './bootstrap.js';
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
 import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
-import {attachTribute} from './features/tribute.js';
 import {initGlobalCopyToClipboardListener} from './features/clipboard.js';
 import {initContextPopups} from './features/contextpopup.js';
 import {initRepoGraphGit} from './features/repo-graph.js';
@@ -109,8 +108,6 @@ onDomReady(() => {
   initGlobalEnterQuickSubmit();
   initGlobalFormDirtyLeaveConfirm();
   initGlobalLinkActions();
-
-  attachTribute(document.querySelectorAll('#content, .emoji-input'));
 
   initCommonIssue();
   initCommonOrganization();

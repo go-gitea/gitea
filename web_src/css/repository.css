@@ -2075,25 +2075,6 @@
   width: 450px !important;
 }
 
-.repository.forks .list {
-  margin-top: 0;
-}
-
-.repository.forks .list .item {
-  padding-top: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--color-secondary);
-}
-
-.repository.forks .list .item .ui.avatar {
-  float: left;
-  margin-right: 5px;
-}
-
-.repository.forks .list .item .link {
-  padding-top: 5px;
-}
-
 .repository.packages .empty {
   padding-top: 70px;
   padding-bottom: 100px;
@@ -2114,10 +2095,6 @@
 
 .repository.wiki.start .ui.segment .svg {
   height: 48px;
-}
-
-.repository.wiki.new .ui.attached.tabular.menu.previewtabs {
-  margin-bottom: 15px;
 }
 
 .repository.wiki.view > .markup {

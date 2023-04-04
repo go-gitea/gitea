@@ -15,5 +15,4 @@ https://developer.mozilla.org/en-US/docs/Web/Web_Components
 
 There are still some components that are not migrated to web components yet:
 
-* `<span class="js-pretty-number">`
 * `<time data-format>`

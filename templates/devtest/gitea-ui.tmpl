@@ -1,0 +1,12 @@
+{{template "base/head" .}}
+<div class="page-content devtest">
+	<div>
+		<gitea-origin-url data-url="test/url"></gitea-origin-url>
+		<gitea-origin-url data-url="/test/url"></gitea-origin-url>
+	</div>
+	<div>
+		<span data-tooltip-content="test tooltip">text with tooltip</span>
+	</div>
+	{{template "shared/combomarkdowneditor" .}}
+</div>
+{{template "base/footer" .}}
