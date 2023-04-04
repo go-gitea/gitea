@@ -155,25 +155,13 @@ func GetReviewers(ctx context.Context, repo *Repository, doerID, posterID int64)
 	return users, db.GetEngine(ctx).Where(cond).OrderBy(user_model.GetOrderByName()).Find(&users)
 }
 
-// GetIssuePosters returns all users that have authored an issue/pull request for the given repository
-func GetIssuePosters(ctx context.Context, repo *Repository, isPull bool) ([]*user_model.User, error) {
-	users := make([]*user_model.User, 0, 8)
-	cond := builder.In("`user`.id",
-		builder.Select("poster_id").From("issue").Where(
-			builder.Eq{"repo_id": repo.ID}.
-				And(builder.Eq{"is_pull": isPull}),
-		).GroupBy("poster_id"),
-	)
-	return users, db.GetEngine(ctx).Where(cond).OrderBy(user_model.GetOrderByName()).Find(&users)
-}
-
 // GetIssuePostersWithSearch returns users with limit of 30 whose username started with prefix that have authored an issue/pull request for the given repository
 // If isShowFullName is set to true, also include full name prefix search
-func GetIssuePostersWithSearch(ctx context.Context, repo *Repository, isPull bool, prefix string, isShowFullName bool) ([]*user_model.User, error) {
+func GetIssuePostersWithSearch(ctx context.Context, repo *Repository, isPull bool, search string, isShowFullName bool) ([]*user_model.User, error) {
 	users := make([]*user_model.User, 0, 30)
-	var prefixCond builder.Cond = builder.Like{"name", prefix + "%"}
+	var prefixCond builder.Cond = builder.Like{"name", search + "%"}
 	if isShowFullName {
-		prefixCond = prefixCond.Or(builder.Like{"full_name", "%" + prefix + "%"})
+		prefixCond = prefixCond.Or(builder.Like{"full_name", "%" + search + "%"})
 	}
 
 	cond := builder.In("`user`.id",

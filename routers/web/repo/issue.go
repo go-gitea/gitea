@@ -3350,10 +3350,10 @@ func handleTeamMentions(ctx *context.Context) {
 }
 
 type UserSearchInfo struct {
-	UserID    int64  `json:"user_id"`
-	UserName  string `json:"username"`
-	AvatarURL string `json:"avatar_url"`
-	FullName  string `json:"full_name"`
+	UserID     int64  `json:"user_id"`
+	UserName   string `json:"username"`
+	AvatarLink string `json:"avatar_link"`
+	FullName   string `json:"full_name"`
 }
 
 type UserSearchResponse struct {
@@ -3376,7 +3376,7 @@ func IssuePosters(ctx *context.Context) {
 	resp := &UserSearchResponse{}
 	resp.Results = make([]*UserSearchInfo, len(posters))
 	for i, user := range posters {
-		resp.Results[i] = &UserSearchInfo{UserID: user.ID, UserName: user.Name, AvatarURL: user.AvatarLink(ctx)}
+		resp.Results[i] = &UserSearchInfo{UserID: user.ID, UserName: user.Name, AvatarLink: user.AvatarLink(ctx)}
 		if isShowFullName {
 			resp.Results[i].FullName = user.FullName
 		}
