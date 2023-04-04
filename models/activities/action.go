@@ -123,7 +123,7 @@ func (at ActionType) String() string {
 	case ActionAutoMergePullRequest:
 		return "auto_merge_pull_request"
 	default:
-		return "action" + strconv.Itoa(int(at))
+		return "action-" + strconv.Itoa(int(at))
 	}
 }
 
