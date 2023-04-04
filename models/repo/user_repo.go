@@ -185,7 +185,7 @@ func GetIssuePostersWithPrefix(ctx context.Context, repo *Repository, isPull boo
 		Where(cond).
 		Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
 		Table("user").
-		OrderBy(user_model.GetOrderByName()).
+		OrderBy("name").
 		Limit(30).
 		Find(&users)
 }
