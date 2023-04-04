@@ -19,7 +19,6 @@ const (
 
 // Activity render the page to show repository latest changes
 func Activity(ctx *context.Context) {
-	AddHeaderCtxData(ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.activity")
 	ctx.Data["PageIsActivity"] = true
 

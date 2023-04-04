@@ -50,7 +50,6 @@ func MustEnableProjects(ctx *context.Context) {
 
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
-	AddHeaderCtxData(ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.project_board")
 
 	sortType := ctx.FormTrim("sort")

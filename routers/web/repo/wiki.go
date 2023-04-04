@@ -137,8 +137,6 @@ func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName strin
 }
 
 func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
-	AddHeaderCtxData(ctx)
-
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
 		if wikiRepo != nil {
