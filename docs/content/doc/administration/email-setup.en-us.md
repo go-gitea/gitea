@@ -81,7 +81,7 @@ SMTP_ADDR      = smtp.gmail.com
 SMTP_PORT      = 465
 FROM           = example.user@gmail.com
 USER           = example.user
-PASSWD         = ***
+PASSWD         = `***`
 MAILER_TYPE    = smtp
 IS_TLS_ENABLED = true
 ```
