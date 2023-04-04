@@ -2383,9 +2383,9 @@ a.ui.label:hover {
 
 .ui.basic.labels .primary.label,
 .ui.ui.ui.basic.primary.label {
-  background: transparent !important;
-  border-color: var(--color-primary) !important;
-  color: var(--color-primary) !important;
+  background: transparent !important; /* reset background of the ".ui.primary.label", for branch protection labels in repository settings */
+  border-color: var(--color-primary) !important; /* reset border-color of the ".ui.primary.label", for branch protection labels in repository settings */
+  color: var(--color-primary);
 }
 
 .ui.basic.labels .secondary.label,
