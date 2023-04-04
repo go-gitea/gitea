@@ -3374,22 +3374,12 @@ func IssuePosters(ctx *context.Context) {
 	}
 
 	if search == "" && ctx.Doer != nil {
-		hasSelf := false
-		for _, user := range posters {
-			if hasSelf = user.ID == ctx.Doer.ID; hasSelf {
-				break
-			}
-		}
-		if !hasSelf {
+		if !util.SliceContainsFunc(posters, func(user *user_model.User) bool { return user.ID == ctx.Doer.ID }) {
 			posters = append(posters, ctx.Doer)
 		}
-		sort.Slice(posters, func(i, j int) bool {
-			if posters[i].ID == posters[j].ID {
-				return false
-			}
-			return posters[i].ID == ctx.Doer.ID // if posters[i] is self, put it before others, so less=true
-		})
 	}
+
+	posters = makeSelfOnTop(ctx, posters)
 
 	resp := &userSearchResponse{}
 	resp.Results = make([]*userSearchInfo, len(posters))
