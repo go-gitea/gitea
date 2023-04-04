@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import {generateAriaId} from './base.js';
 
-export const ariaPatchKey = '_giteaAriaPatchDropdown';
+const ariaPatchKey = '_giteaAriaPatchDropdown';
 const fomanticDropdownFn = $.fn.dropdown;
 
 // use our own `$().dropdown` function to patch Fomantic's dropdown module
@@ -34,7 +34,7 @@ function ariaDropdownFn(...args) {
 
 // make the item has role=option/menuitem, add an id if there wasn't one yet, make items as non-focusable
 // the elements inside the dropdown menu item should not be focusable, the focus should always be on the dropdown primary element.
-export function updateMenuItem(dropdown, item) {
+function updateMenuItem(dropdown, item) {
   if (!item.id) item.id = generateAriaId();
   item.setAttribute('role', dropdown[ariaPatchKey].listItemRole);
   item.setAttribute('tabindex', '-1');
