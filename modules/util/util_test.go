@@ -224,10 +224,3 @@ func TestToTitleCase(t *testing.T) {
 	assert.Equal(t, ToTitleCase(`foo bar baz`), `Foo Bar Baz`)
 	assert.Equal(t, ToTitleCase(`FOO BAR BAZ`), `Foo Bar Baz`)
 }
-
-func TestDedent(t *testing.T) {
-	assert.Equal(t, Dedent(`
-		foo
-			bar
-	`), "foo\n\tbar")
-}
