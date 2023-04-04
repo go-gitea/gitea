@@ -71,7 +71,7 @@
 					</div>
 
 					<!-- Author -->
-					<div class="ui dropdown jump item author-search" data-tooltip-content="{{.locale.Tr "repo.author_search_tooltip"}}" data-show-fullname={{IsShowFullName}} data-url="{{$.RepoLink}}/issues/posters" data-poster-id="{{$.PosterID}}"
+					<div class="ui dropdown jump item user-remote-search" data-tooltip-content="{{.locale.Tr "repo.author_search_tooltip"}}" data-show-fullname={{IsShowFullName}} data-url="{{$.RepoLink}}/issues/posters" data-poster-id="{{$.PosterID}}"
 						data-general-poster-url="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.AssigneeID}}&poster=">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_poster"}}
@@ -80,7 +80,7 @@
 						<div class="menu">
 							<div class="ui icon search input">
 								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-								<input autocomplete="off" type="text" id="author-search-input" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
+								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
 						</div>

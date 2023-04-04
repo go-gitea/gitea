@@ -60,27 +60,8 @@ function initRepoIssueListCheckboxes() {
 
 function initRepoIssueListAuthorDropdown() {
 
-  const $authorSearchDropdown = $('.author-search');
-  if (!$authorSearchDropdown.length) {
-    return;
-  }
-  $('#author-search-input').on('input', (e) => {
-    e.stopImmediatePropagation();
-    fetchPostersData($authorSearchDropdown, false);
-  });
-  // show all results when clicking on the dropdown
-  $authorSearchDropdown.on('click', () => {
-    // if dropdown is from visible to not, do not need to fetch data
-    if ($authorSearchDropdown.attr('aria-expanded') === 'true') {
-      return;
-    }
-    // reset input value
-    $('#author-search-input').val('');
-    fetchPostersData($authorSearchDropdown, true);
-  });
-
-// isShowAll decides if fetching all data or fetching data with search query from user input
-  async function fetchPostersData($authorSearchDropdown, isShowAll) {
+  /*
+  const fetchPostersData= async function ($authorSearchDropdown, isShowAll) {
     const baseUrl = $authorSearchDropdown.attr('data-url');
     const url = isShowAll ? baseUrl : `${baseUrl}?q=${$('#author-search-input').val()}`;
     const res = await fetch(url);
@@ -108,6 +89,27 @@ function initRepoIssueListAuthorDropdown() {
     $items.each((_, item) => updateMenuItem($authorSearchDropdown[0], item));
     $authorSearchDropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
   }
+
+  const $authorSearchDropdown = $('.author-search');
+  if (!$authorSearchDropdown.length) {
+    return;
+  }
+
+  $('#author-search-input').on('input', (e) => {
+    e.stopImmediatePropagation();
+    fetchPostersData($authorSearchDropdown, false);
+  });
+  // show all results when clicking on the dropdown
+  $authorSearchDropdown.on('click', () => {
+    // if dropdown is from visible to not, do not need to fetch data
+    if ($authorSearchDropdown.attr('aria-expanded') === 'true') {
+      return;
+    }
+    // reset input value
+    $('#author-search-input').val('');
+    fetchPostersData($authorSearchDropdown, true);
+  });
+   */
 }
 
 export function initRepoIssueList() {
