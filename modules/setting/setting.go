@@ -265,18 +265,26 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	loadSSHFrom(cfg)
 	loadOAuth2From(cfg)
 	loadSecurityFrom(cfg)
-	loadAttachmentFrom(cfg)
-	loadLFSFrom(cfg)
+	if err := loadAttachmentFrom(cfg); err != nil {
+		return err
+	}
+	if err := loadLFSFrom(cfg); err != nil {
+		return err
+	}
 	loadTimeFrom(cfg)
 	loadRepositoryFrom(cfg)
 	if err := loadAvatarsFrom(cfg); err != nil {
 		return err
 	}
-	loadRepoAvatarFrom(cfg)
+	if err := loadRepoAvatarFrom(cfg); err != nil {
+		return err
+	}
 	if err := loadPackagesFrom(cfg); err != nil {
 		return err
 	}
-	loadActionsFrom(cfg)
+	if err := loadActionsFrom(cfg); err != nil {
+		return err
+	}
 	loadUIFrom(cfg)
 	loadAdminFrom(cfg)
 	loadAPIFrom(cfg)
