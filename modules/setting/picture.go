@@ -3,8 +3,6 @@
 
 package setting
 
-import "code.gitea.io/gitea/modules/log"
-
 // settings
 var (
 	// Picture settings
@@ -67,13 +65,6 @@ func loadAvatarsFrom(rootCfg ConfigProvider) error {
 	deprecatedSettingDB(rootCfg, "", "ENABLE_FEDERATED_AVATAR")
 
 	return nil
-}
-
-func loadPictureFrom(rootCfg ConfigProvider) {
-	if err := loadAvatarsFrom(rootCfg); err != nil {
-		log.Fatal("%v", err)
-	}
-	loadRepoAvatarFrom(rootCfg)
 }
 
 func GetDefaultDisableGravatar() bool {
