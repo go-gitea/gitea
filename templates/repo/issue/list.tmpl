@@ -182,7 +182,7 @@
 							{{.locale.Tr "repo.issues.filter_sort"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
-						<div class="left menu">
+						<div class="menu">
 							<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=latest&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_sort.latest"}}</a>
 							<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=oldest&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
 							<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=recentupdate&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>

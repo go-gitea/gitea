@@ -1,7 +1,7 @@
 <div class="dashboard-navbar">
 	<div class="ui secondary stackable menu">
 		<div class="item">
-			<div class="ui floating dropdown link jump">
+			<div class="ui floating dropdown jump">
 				<span class="text truncated-item-container">
 					{{avatar $.Context .ContextUser}}
 					<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
@@ -45,7 +45,7 @@
 		</div>
 		{{if .ContextUser.IsOrganization}}
 			<div class="item">
-				<div class="ui floating dropdown link jump">
+				<div class="ui floating dropdown jump">
 					<span class="text">
 						{{svg "octicon-people" 18}}
 						{{if .Team}}
