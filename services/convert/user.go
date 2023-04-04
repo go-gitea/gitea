@@ -26,19 +26,6 @@ func ToUser(ctx context.Context, user, doer *user_model.User) *api.User {
 	return toUser(ctx, user, signed, authed)
 }
 
-func ToUserSearchInfo(ctx context.Context, user *user_model.User) *api.UserSearchInfo {
-	if user == nil {
-		return nil
-	}
-	result := &api.UserSearchInfo{
-		ID:        user.ID,
-		UserName:  user.Name,
-		FullName:  user.FullName,
-		AvatarURL: user.AvatarLink(ctx),
-	}
-	return result
-}
-
 // ToUsers convert list of user_model.User to list of api.User
 func ToUsers(ctx context.Context, doer *user_model.User, users []*user_model.User) []*api.User {
 	result := make([]*api.User, len(users))

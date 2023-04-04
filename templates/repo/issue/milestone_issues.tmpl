@@ -71,8 +71,7 @@
 					</div>
 
 					<!-- Author -->
-					<div class="ui dropdown jump item user-remote-search" data-tooltip-content="{{.locale.Tr "repo.author_search_tooltip"}}" data-show-fullname={{IsShowFullName}} data-url="{{$.RepoLink}}/issues/posters" data-poster-id="{{$.PosterID}}"
-						data-general-poster-url="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.AssigneeID}}&poster=">
+					<div class="ui dropdown jump item user-remote-search" data-tooltip-content="{{.locale.Tr "repo.author_search_tooltip"}}" data-search-url="{{$.RepoLink}}/issues/posters" data-selected-user-id="{{$.PosterID}}">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_poster"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}

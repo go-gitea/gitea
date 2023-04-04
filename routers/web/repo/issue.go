@@ -3351,26 +3351,39 @@ func handleTeamMentions(ctx *context.Context) {
 	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.AvatarLink(ctx)
 }
 
-// get posters for current repo's issues/pull requests
+type UserSearchInfo struct {
+	UserID    int64  `json:"id"`
+	UserName  string `json:"username"`
+	AvatarURL string `json:"avatar_url"`
+	FullName  string `json:"full_name"`
+}
+
+type UserSearchResponse struct {
+	Results []*UserSearchInfo `json:"results"`
+}
+
+// IssuePosters get posters for current repo's issues/pull requests
 func IssuePosters(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 	isPullList := ctx.Params(":type") == "pulls"
 	isPullOption := util.OptionalBoolOf(isPullList)
 	isShowFullName := setting.UI.DefaultShowFullName
-	var err error
 	prefix := strings.Trim(ctx.FormString("q"), " ")
 	posters, err := repo_model.GetIssuePostersWithPrefix(ctx, repo, isPullOption.IsTrue(), prefix, isShowFullName)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, api.SearchError{
-			OK:    false,
-			Error: err.Error(),
-		})
+		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	// only pass user info needed for generating options used by authors search dropdown to the frontend
-	results := make([]*api.UserSearchInfo, len(posters))
-	for i, poster := range posters {
-		results[i] = convert.ToUserSearchInfo(ctx, poster)
+
+	resp := &UserSearchResponse{}
+	resp.Results = make([]*UserSearchInfo, len(posters))
+	for i, user := range posters {
+		resp.Results[i] = &UserSearchInfo{
+			UserID:    user.ID,
+			UserName:  user.Name,
+			FullName:  user.FullName,
+			AvatarURL: user.AvatarLink(ctx),
+		}
 	}
-	ctx.JSON(http.StatusOK, results)
+	ctx.JSON(http.StatusOK, resp)
 }

@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
 import {toggleElem} from '../utils/dom.js';
+import {htmlEscape} from 'escape-goat';
 
 function initRepoIssueListCheckboxes() {
   const $issueSelectAll = $('.issue-checkbox-all');
@@ -110,6 +111,44 @@ function initRepoIssueListAuthorDropdown() {
     fetchPostersData($authorSearchDropdown, true);
   });
    */
+
+  const $searchDropdown = $('.user-remote-search');
+  if (!$searchDropdown.length) {
+    return;
+  }
+  const selectedUserId = $searchDropdown.attr('data-selected-user-id');
+  let searchUrl = $searchDropdown.attr('data-search-url');
+  if (searchUrl.indexOf('?') === -1) searchUrl += '?';
+  $searchDropdown.dropdown({
+    fullTextSearch: true,
+    apiSettings: {
+      url: `${searchUrl}&q={query}`,
+      onResponse1(response) {
+        /*
+        const filteredResponse = {success: true, results: []};
+        filteredResponse.results.push({
+          name: '',
+          value: ''
+        });
+        // Parse the response from the api to work with our dropdown
+        $.each(response.data, (_r, repo) => {
+          filteredResponse.results.push({
+            name: htmlEscape(repo.full_name),
+            value: repo.id
+          });
+        });
+        return filteredResponse;
+
+         */
+        console.log('response', response);
+        return [];
+      },
+    },
+  });
+  const dropdownSetup =$searchDropdown.dropdown('internal', 'setup');
+  dropdownSetup.menu = function (values) {
+    console.log('setup menu', values);
+  }
 }
 
 export function initRepoIssueList() {
