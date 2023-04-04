@@ -65,6 +65,7 @@ function initRepoIssueListAuthorDropdown() {
 
   let searchUrl = $searchDropdown.attr('data-search-url');
   const actionJumpUrl = $searchDropdown.attr('data-action-jump-url');
+  const dataSelectedId = $searchDropdown.attr('data-selected-user-id');
   if (!searchUrl.includes('?')) searchUrl += '?';
 
   $searchDropdown.dropdown('setting', {
@@ -73,7 +74,6 @@ function initRepoIssueListAuthorDropdown() {
     apiSettings: {
       cache: false,
       url: `${searchUrl}&q={query}`,
-      throttle: 500,
       onResponse(resp) {
         // the content is provided by backend IssuePosters handler
         for (const item of resp.results) {
@@ -82,12 +82,17 @@ function initRepoIssueListAuthorDropdown() {
           if (item.full_name) {
             item.name += `<span class="search-fullname gt-ml-3">${htmlEscape(item.full_name)}</span>`;
           }
+          // TODO: right now selected always on "all authors" option, need to fix this
+          item.class = `item gt-df${Number(dataSelectedId) === item.user_id ? ' active selected' : ''}`;
         }
         return resp;
       },
     },
     action: (_text, value) => {
       window.location.href = actionJumpUrl.replace('{user_id}', encodeURIComponent(value));
+    },
+    onShow: () => {
+      $searchDropdown.dropdown('filter', ' ');
     },
   });
 
