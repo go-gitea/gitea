@@ -69,61 +69,61 @@ const (
 func (at ActionType) String() string {
 	switch at {
 	case ActionCreateRepo:
-		return "CREATE_REPO"
+		return "create_repo"
 	case ActionRenameRepo:
-		return "RENAME_REPO"
+		return "rename_repo"
 	case ActionStarRepo:
-		return "STAR_REPO"
+		return "star_repo"
 	case ActionWatchRepo:
-		return "WATCH_REPO"
+		return "watch_repo"
 	case ActionCommitRepo:
-		return "COMMIT_REPO"
+		return "commit_repo"
 	case ActionCreateIssue:
-		return "CREATE_ISSUE"
+		return "create_issue"
 	case ActionCreatePullRequest:
-		return "CREATE_PULL_REQUEST"
+		return "create_pull_request"
 	case ActionTransferRepo:
-		return "TRANSFER_REPO"
+		return "transfer_repo"
 	case ActionPushTag:
-		return "PUSH_TAG"
+		return "push_tag"
 	case ActionCommentIssue:
-		return "COMMENT_ISSUE"
+		return "comment_issue"
 	case ActionMergePullRequest:
-		return "MERGE_PULL_REQUEST"
+		return "merge_pull_request"
 	case ActionCloseIssue:
-		return "CLOSE_ISSUE"
+		return "close_issue"
 	case ActionReopenIssue:
-		return "REOPEN_ISSUE"
+		return "reopen_issue"
 	case ActionClosePullRequest:
-		return "CLOSE_PULL_REQUEST"
+		return "close_pull_request"
 	case ActionReopenPullRequest:
-		return "REOPEN_PULL_REQUEST"
+		return "reopen_pull_request"
 	case ActionDeleteTag:
-		return "DELETE_TAG"
+		return "delete_tag"
 	case ActionDeleteBranch:
-		return "DELETE_BRANCH"
+		return "delete_branch"
 	case ActionMirrorSyncPush:
-		return "MIRROR_SYNC_PUSH"
+		return "mirror_sync_push"
 	case ActionMirrorSyncCreate:
-		return "MIRROR_SYNC_CREATE"
+		return "mirror_sync_create"
 	case ActionMirrorSyncDelete:
-		return "MIRROR_SYNC_DELETE"
+		return "mirror_sync_delete"
 	case ActionApprovePullRequest:
-		return "APPROVE_PULL_REQUEST"
+		return "approve_pull_request"
 	case ActionRejectPullRequest:
-		return "REJECT_PULL_REQUEST"
+		return "reject_pull_request"
 	case ActionCommentPull:
-		return "COMMENT_PULL"
+		return "comment_pull"
 	case ActionPublishRelease:
-		return "PUBLISH_RELEASE"
+		return "publish_release"
 	case ActionPullReviewDismissed:
-		return "PULL_REVIEW_DISMISSED"
+		return "pull_review_dismissed"
 	case ActionPullRequestReadyForReview:
-		return "PULL_REQUEST_READY_FOR_REVIEW"
+		return "pull_request_ready_for_review"
 	case ActionAutoMergePullRequest:
-		return "AUTO_MERGE_PULL_REQUEST"
+		return "auto_merge_pull_request"
 	default:
-		return strconv.Itoa(int(at))
+		return "action" + strconv.Itoa(int(at))
 	}
 }
 
