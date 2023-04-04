@@ -63,7 +63,6 @@ function initRepoIssueListAuthorDropdown() {
   const $searchDropdown = $('.user-remote-search');
   if (!$searchDropdown.length) return;
 
-  // TODO: the data-selected-user-id is not used yet, it seems unnecessary
   let searchUrl = $searchDropdown.attr('data-search-url');
   const actionJumpUrl = $searchDropdown.attr('data-action-jump-url');
   if (!searchUrl.includes('?')) searchUrl += '?';
@@ -74,13 +73,14 @@ function initRepoIssueListAuthorDropdown() {
     apiSettings: {
       cache: false,
       url: `${searchUrl}&q={query}`,
+      throttle: 500,
       onResponse(resp) {
         // the content is provided by backend IssuePosters handler
         for (const item of resp.results) {
           item.value = item.user_id;
-          item.name = `<img class="ui avatar gt-vm gt-mr-2" src="${htmlEscape(item.avatar_link)}">${htmlEscape(item.username)}`;
+          item.name = `<img class="ui avatar gt-vm" src="${htmlEscape(item.avatar_link)}"><span class="gt-ellipsis">${htmlEscape(item.username)}</span>`;
           if (item.full_name) {
-            item.name += `(${htmlEscape(item.full_name)})`;
+            item.name += `<span class="search-fullname gt-ml-3">${htmlEscape(item.full_name)}</span>`;
           }
         }
         return resp;
