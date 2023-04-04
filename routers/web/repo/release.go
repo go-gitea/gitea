@@ -361,6 +361,12 @@ func NewReleasePost(ctx *context.Context) {
 		return
 	}
 
+	// Title of release cannot be empty
+	if len(form.TagOnly) == 0 && len(form.Title) == 0 {
+		ctx.RenderWithErr(ctx.Tr("repo.release.title_empty"), tplReleaseNew, &form)
+		return
+	}
+
 	var attachmentUUIDs []string
 	if setting.Attachment.Enabled {
 		attachmentUUIDs = form.Files
@@ -405,12 +411,6 @@ func NewReleasePost(ctx *context.Context) {
 
 			ctx.Flash.Success(ctx.Tr("repo.tag.create_success", form.TagName))
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/tag/" + util.PathEscapeSegments(form.TagName))
-			return
-		}
-
-		// Title of release cannot be empty
-		if len(form.Title) == 0 {
-			ctx.RenderWithErr(ctx.Tr("repo.release.title_empty"), tplReleaseNew, &form)
 			return
 		}
 
