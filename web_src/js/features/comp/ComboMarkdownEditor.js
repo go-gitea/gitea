@@ -6,6 +6,7 @@ import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
 import {initMarkupContent} from '../../markup/content.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {attachRefIssueContextPopup} from '../contextpopup.js';
+import autosize from 'autosize';
 
 let elementIdCounter = 0;
 
@@ -64,12 +65,10 @@ class ComboMarkdownEditor {
     this.textarea = this.container.querySelector('.markdown-text-editor');
     this.textarea._giteaComboMarkdownEditor = this;
     this.textarea.id = `_combo_markdown_editor_${String(elementIdCounter++)}`;
-    this.textarea.addEventListener('input', (e) => {
-      this.textareaAutoResize();
-      this.options?.onContentChanged?.(this, e);
-    });
+    this.textarea.addEventListener('input', (e) => this.options?.onContentChanged?.(this, e));
     this.applyEditorHeights(this.textarea, this.options.editorHeights);
-    this.textareaAutoResize();
+    autosize(this.textarea);
+
     this.textareaMarkdownToolbar = this.container.querySelector('markdown-toolbar');
     this.textareaMarkdownToolbar.setAttribute('for', this.textarea.id);
 
@@ -265,7 +264,6 @@ class ComboMarkdownEditor {
       this.easyMDE.value(v);
     } else {
       this.textarea.value = v;
-      this.textareaAutoResize();
     }
   }
 
@@ -275,21 +273,6 @@ class ComboMarkdownEditor {
     } else {
       this.textarea.focus();
     }
-  }
-
-  textareaAutoResize() {
-    if (this.textareaInitalHeight === undefined) {
-      this.textareaInitalHeight = this.textarea.offsetHeight;
-      new ResizeObserver(() => this.textareaInitalHeight = this.textarea.offsetHeight).observe(this.textarea);
-    }
-    const offset = this.textarea.offsetHeight - this.textarea.clientHeight;
-    if (!this.lastValue || !this.textarea.value.startsWith(this.lastValue)) {
-      // the value has changed a lot, so reset the height to calculate the real scroll height, it's slow and might cause slight flickering.
-      this.textarea.style.height = 'auto';
-    }
-    // make sure the height is not smaller than the initial height
-    this.textarea.style.height = `${Math.max(this.textareaInitalHeight, this.textarea.scrollHeight + offset)}px`;
-    this.lastValue = this.textarea.value;
   }
 
   moveCursorToEnd() {
