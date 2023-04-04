@@ -1,9 +1,6 @@
 import $ from 'jquery';
-import {attachTribute} from './tribute.js';
-import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
-import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
-import {createCommentEasyMDE} from './comp/EasyMDE.js';
 import {hideElem, showElem} from '../utils/dom.js';
+import {initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 
 export function initRepoRelease() {
   $(document).on('click', '.remove-rel-attach', function() {
@@ -51,17 +48,9 @@ function initTagNameEditor() {
 }
 
 function initRepoReleaseEditor() {
-  const $editor = $('.repository.new.release .content-editor');
+  const $editor = $('.repository.new.release .combo-markdown-editor');
   if ($editor.length === 0) {
     return;
   }
-
-  (async () => {
-    const $textarea = $editor.find('textarea');
-    await attachTribute($textarea.get(), {mentions: true, emoji: true});
-    const easyMDE = await createCommentEasyMDE($textarea);
-    initCompMarkupContentPreviewTab($editor);
-    const $dropzone = $editor.parent().find('.dropzone');
-    initEasyMDEImagePaste(easyMDE, $dropzone);
-  })();
+  const _promise = initComboMarkdownEditor($editor);
 }
