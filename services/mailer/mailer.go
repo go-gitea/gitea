@@ -168,10 +168,9 @@ func (a *ntlmAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	if more {
 		if len(fromServer) == 0 {
 			return nil, fmt.Errorf("ChallengeMessage is empty. ")
-		} else {
-			authenticateMessage, err := ntlmssp.ProcessChallenge(fromServer, a.username, a.password, a.domainNeeded)
-			return authenticateMessage, err
 		}
+		authenticateMessage, err := ntlmssp.ProcessChallenge(fromServer, a.username, a.password, a.domainNeeded)
+		return authenticateMessage, err
 	}
 	return nil, nil
 }
