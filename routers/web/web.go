@@ -536,6 +536,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/activate", auth.Activate)
 		m.Post("/activate", auth.ActivatePost)
 		m.Any("/activate_email", auth.ActivateEmail)
+		m.Get("/avatar/{username}", user.AvatarByUserName)
 		m.Get("/avatar/{username}/{size}", user.AvatarByUserName)
 		m.Get("/recover_account", auth.ResetPasswd)
 		m.Post("/recover_account", auth.ResetPasswdPost)
@@ -674,7 +675,6 @@ func RegisterRoutes(m *web.Route) {
 			http.ServeFile(ctx.Resp, ctx.Req, path.Join(setting.StaticRootPath, "public/img/favicon.png"))
 		})
 		m.Group("/{username}", func() {
-			m.Get(".png", user.AvatarByUserName)
 			m.Get(".keys", user.ShowSSHKeys)
 			m.Get(".gpg", user.ShowGPGKeys)
 			m.Get(".rss", feedEnabled, feed.ShowUserFeedRSS)
