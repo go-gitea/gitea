@@ -176,7 +176,7 @@ function attachDomEvents($dropdown, $focusable, $menu) {
     } else if (dropdown[ariaPatchKey].listPopupRole === 'menu') {
       // for menu, when the popup is hidden, no need to keep the aria-activedescendant, and clear the active/selected item
       $focusable.removeAttr('aria-activedescendant');
-      $active.each((_, el) => el.classList.remove('active', 'selected'));
+      $active.removeClass('active').removeClass('selected');
     }
   };
 

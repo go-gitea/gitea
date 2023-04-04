@@ -100,18 +100,18 @@ function initRepoIssueListAuthorDropdown() {
   $searchDropdown.dropdown('internal', 'setup', dropdownSetup);
   dropdownSetup.menu = function (values) {
     const $menu = $searchDropdown.find('> .menu');
-    $menu.find('> .dynamic-item').each((_, el) => el.remove()); // remove old dynamic items
+    $menu.find('> .dynamic-item').remove(); // remove old dynamic items
 
     const newMenuHtml = dropdownTemplates.menu(values, $searchDropdown.dropdown('setting', 'fields'), true /* html */, $searchDropdown.dropdown('setting', 'className'));
     if (newMenuHtml) {
       const $newMenuItems = $(newMenuHtml);
-      $newMenuItems.each((_, el) => el.classList.add('dynamic-item'));
+      $newMenuItems.addClass('dynamic-item');
       $menu.append('<div class="ui divider dynamic-item"></div>', ...$newMenuItems);
     }
     $searchDropdown.dropdown('refresh');
     // defer our selection to the next tick, because dropdown will set the selection item after this `menu` function
     setTimeout(() => {
-      $menu.find('.item.active, .item.selected').each((_, el) => el.classList.remove('active', 'selected'));
+      $menu.find('.item.active, .item.selected').removeClass('active selected');
       $menu.find(`.item[data-value="${selectedUserId}"]`).addClass('selected');
     }, 0);
   };
