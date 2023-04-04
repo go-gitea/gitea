@@ -19,15 +19,18 @@
 			<div class="help">
 				{{.locale.Tr "repo.wiki.page_name_desc"}}
 			</div>
-			<div class="ui top attached tabular menu previewtabs" data-write="write" data-preview="preview">
-				<a class="active item" data-tab="write">{{.locale.Tr "write"}}</a>
-				<a class="item" data-tab="preview" data-url="{{$.Repository.Link}}/markup" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
-			</div>
-			<div class="field content" data-loading="{{.locale.Tr "loading"}}">
-				<div class="ui bottom active tab" data-tab="write">
-					<textarea class="js-quick-submit" id="edit_area" name="content" data-id="wiki-{{.title}}" data-url="{{.Repository.Link}}/markup" data-context="{{.RepoLink}}">{{if .PageIsWikiEdit}}{{.content}}{{else}}{{.locale.Tr "repo.wiki.welcome"}}{{end}}</textarea>
-				</div>
-			</div>
+
+			{{$content := .content}}
+			{{if not .PageIsWikiEdit}}
+				{{$content = .locale.Tr "repo.wiki.welcome"}}
+			{{end}}
+			{{template "shared/combomarkdowneditor" (dict
+				"locale" $.locale
+				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
+				"MarkdownPreviewContext" .RepoLink
+				"TextareaName" "content"
+			)}}
+
 			<div class="field">
 				<input name="message" placeholder="{{.locale.Tr "repo.wiki.default_commit_message"}}">
 			</div>

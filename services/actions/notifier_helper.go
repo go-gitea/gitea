@@ -185,12 +185,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		if jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID}); err != nil {
 			log.Error("FindRunJobs: %v", err)
 		} else {
-			for _, job := range jobs {
-				if err := CreateCommitStatus(ctx, job); err != nil {
-					log.Error("Update commit status for job %v failed: %v", job.ID, err)
-					// go on
-				}
-			}
+			CreateCommitStatus(ctx, jobs...)
 		}
 
 	}
