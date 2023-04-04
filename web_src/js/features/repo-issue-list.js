@@ -65,7 +65,7 @@ function initRepoIssueListAuthorDropdown() {
 
   let searchUrl = $searchDropdown.attr('data-search-url');
   const actionJumpUrl = $searchDropdown.attr('data-action-jump-url');
-  const dataSelectedId = $searchDropdown.attr('data-selected-user-id');
+  const selectedUserId = $searchDropdown.attr('data-selected-user-id');
   if (!searchUrl.includes('?')) searchUrl += '?';
 
   $searchDropdown.dropdown('setting', {
@@ -76,15 +76,13 @@ function initRepoIssueListAuthorDropdown() {
       url: `${searchUrl}&q={query}`,
       onResponse(resp) {
         // the content is provided by backend IssuePosters handler
+        const processedResults = []; // to be used by dropdown to generate menu items
         for (const item of resp.results) {
-          item.value = item.user_id;
-          item.name = `<img class="ui avatar gt-vm" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt=""><span class="gt-ellipsis">${htmlEscape(item.username)}</span>`;
-          if (item.full_name) {
-            item.name += `<span class="search-fullname gt-ml-3">${htmlEscape(item.full_name)}</span>`;
-          }
-          // TODO: right now selected always on "all authors" option, need to fix this
-          item.class = `item gt-df${Number(dataSelectedId) === item.user_id ? ' active selected' : ''}`;
+          let html = `<img class="ui avatar gt-vm" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt=""><span class="gt-ellipsis">${htmlEscape(item.username)}</span>`;
+          if (item.full_name) html += `<span class="search-fullname gt-ml-3">${htmlEscape(item.full_name)}</span>`;
+          processedResults.push({value: item.user_id, name: html});
         }
+        resp.results = processedResults;
         return resp;
       },
     },
@@ -92,7 +90,7 @@ function initRepoIssueListAuthorDropdown() {
       window.location.href = actionJumpUrl.replace('{user_id}', encodeURIComponent(value));
     },
     onShow: () => {
-      $searchDropdown.dropdown('filter', ' ');
+      $searchDropdown.dropdown('filter', ' '); // trigger a search on first show
     },
   });
 
@@ -111,6 +109,11 @@ function initRepoIssueListAuthorDropdown() {
       $menu.append('<div class="ui divider dynamic-item"></div>', ...$newMenuItems);
     }
     $searchDropdown.dropdown('refresh');
+    // defer our selection to the next tick, because dropdown will set the selection item after this `menu` function
+    setTimeout(() => {
+      $menu.find('.item.active, .item.selected').each((_, el) => el.classList.remove('active', 'selected'));
+      $menu.find(`.item[data-value="${selectedUserId}"]`).addClass('selected');
+    }, 0);
   };
 }
 
