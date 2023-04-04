@@ -72,8 +72,8 @@
   max-height: 500px;
 }
 
-.repository .metas .ui.list.assignees .icon {
-  line-height: 2em;
+.repository .metas .ui.list.assignees .item {
+  line-height: 2.5em;
 }
 
 .repository .metas .ui.list.assignees .teamavatar {
