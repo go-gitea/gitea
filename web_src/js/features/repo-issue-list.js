@@ -78,7 +78,7 @@ function initRepoIssueListAuthorDropdown() {
         // the content is provided by backend IssuePosters handler
         for (const item of resp.results) {
           item.value = item.user_id;
-          item.name = `<img class="ui avatar gt-vm" src="${htmlEscape(item.avatar_link)}"><span class="gt-ellipsis">${htmlEscape(item.username)}</span>`;
+          item.name = `<img class="ui avatar gt-vm" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt=""><span class="gt-ellipsis">${htmlEscape(item.username)}</span>`;
           if (item.full_name) {
             item.name += `<span class="search-fullname gt-ml-3">${htmlEscape(item.full_name)}</span>`;
           }
@@ -91,29 +91,19 @@ function initRepoIssueListAuthorDropdown() {
     },
   });
 
+  // we want to generate the dropdown menu items by ourselves, replace its internal setup functions
   const dropdownSetup = {...$searchDropdown.dropdown('internal', 'setup')};
-  const dropdownSetting = (...args) => $searchDropdown.dropdown('setting', ...args);
-  const dropdownTemplates = dropdownSetting('templates');
+  const dropdownTemplates = $searchDropdown.dropdown('setting', 'templates');
   $searchDropdown.dropdown('internal', 'setup', dropdownSetup);
   dropdownSetup.menu = function (values) {
-    // we want to generate the dropdown menu items by ourselves
     const $menu = $searchDropdown.find('> .menu');
-    const menusHtml = dropdownTemplates.menu(values, dropdownSetting('fields'), true /* html */, dropdownSetting('className'));
-    const $items = $menu.find('> .ui.divider, > .item');
+    $menu.find('> .dynamic-item').each((_, el) => el.remove()); // remove old dynamic items
 
-    // replace the menu items after the divider
-    let elDivider;
-    for (const el of $items) {
-      if (!elDivider && el.classList.contains('divider')) {
-        elDivider = el;
-      } else if (elDivider) {
-        el.remove();
-      }
-    }
-    elDivider?.remove();
-    if (menusHtml) {
-      $menu.append('<div class="ui divider"></div>');
-      $menu.append(...$(menusHtml));
+    const newMenuHtml = dropdownTemplates.menu(values, $searchDropdown.dropdown('setting', 'fields'), true /* html */, $searchDropdown.dropdown('setting', 'className'));
+    if (newMenuHtml) {
+      const $newMenuItems = $(newMenuHtml);
+      $newMenuItems.each((_, el) => el.classList.add('dynamic-item'));
+      $menu.append('<div class="ui divider dynamic-item"></div>', ...$newMenuItems);
     }
     $searchDropdown.dropdown('refresh');
   };
