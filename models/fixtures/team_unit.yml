@@ -268,3 +268,9 @@
   team_id: 9
   type: 1 # code
   access_mode: 1
+
+-
+  id: 46
+  team_id: 17
+  type: 9 # package
+  access_mode: 0
