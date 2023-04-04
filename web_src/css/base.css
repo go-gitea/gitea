@@ -2376,15 +2376,16 @@ a.ui.label:hover {
 }
 
 .ui.primary.label,
-.ui.primary.labels .label {
-  background-color: var(--color-primary) !important;
-  border-color: var(--color-primary-dark-2) !important;
+.ui.primary.labels .label, 
+.ui.ui.ui.primary.label {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary-dark-2);
 }
 
 .ui.basic.labels .primary.label,
 .ui.ui.ui.basic.primary.label {
-  background: transparent !important; /* reset background of the ".ui.primary.label", for branch protection labels in repository settings */
-  border-color: var(--color-primary) !important; /* reset border-color of the ".ui.primary.label", for branch protection labels in repository settings */
+  background: transparent;
+  border-color: var(--color-primary);
   color: var(--color-primary);
 }
 
