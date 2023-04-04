@@ -3349,35 +3349,33 @@ func handleTeamMentions(ctx *context.Context) {
 	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.AvatarLink(ctx)
 }
 
-type UserSearchInfo struct {
+type userSearchInfo struct {
 	UserID     int64  `json:"user_id"`
 	UserName   string `json:"username"`
 	AvatarLink string `json:"avatar_link"`
 	FullName   string `json:"full_name"`
 }
 
-type UserSearchResponse struct {
-	Results []*UserSearchInfo `json:"results"`
+type userSearchResponse struct {
+	Results []*userSearchInfo `json:"results"`
 }
 
 // IssuePosters get posters for current repo's issues/pull requests
 func IssuePosters(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 	isPullList := ctx.Params(":type") == "pulls"
-	isPullOption := util.OptionalBoolOf(isPullList)
-	isShowFullName := setting.UI.DefaultShowFullName
-	prefix := strings.TrimSpace(ctx.FormString("q"))
-	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullOption.IsTrue(), prefix, isShowFullName)
+	search := strings.TrimSpace(ctx.FormString("q"))
+	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullList, search, setting.UI.DefaultShowFullName)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
 
-	resp := &UserSearchResponse{}
-	resp.Results = make([]*UserSearchInfo, len(posters))
+	resp := &userSearchResponse{}
+	resp.Results = make([]*userSearchInfo, len(posters))
 	for i, user := range posters {
-		resp.Results[i] = &UserSearchInfo{UserID: user.ID, UserName: user.Name, AvatarLink: user.AvatarLink(ctx)}
-		if isShowFullName {
+		resp.Results[i] = &userSearchInfo{UserID: user.ID, UserName: user.Name, AvatarLink: user.AvatarLink(ctx)}
+		if setting.UI.DefaultShowFullName {
 			resp.Results[i].FullName = user.FullName
 		}
 	}
