@@ -303,11 +303,12 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["CommitStatuses"] = commitStatuses
 
 	// Get assignees.
-	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, repo)
+	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, repo)
 	if err != nil {
-		ctx.ServerError("GetAssignees", err)
+		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
+	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
 
 	handleTeamMentions(ctx)
 	if ctx.Written() {
@@ -473,11 +474,12 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 		return
 	}
 
-	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, repo)
+	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, repo)
 	if err != nil {
-		ctx.ServerError("GetAssignees", err)
+		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
+	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
 
 	handleTeamMentions(ctx)
 }

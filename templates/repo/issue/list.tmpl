@@ -149,7 +149,7 @@
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
 							{{range .Assignees}}
 								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item gt-df" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{.ID}}&poster={{$.PosterID}}">
-									{{avatar $.Context .}}{{template "repo/search_name" .}}
+									{{avatar $.Context . 16}}{{template "repo/search_name" .}}
 								</a>
 							{{end}}
 						</div>
