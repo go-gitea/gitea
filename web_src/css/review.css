@@ -53,12 +53,6 @@
   margin-bottom: 0.5em;
 }
 
-.add-comment .lines-num,
-.add-comment .lines-escape,
-.add-comment .lines-type-marker {
-  display: none;
-}
-
 .show-outdated:hover,
 .hide-outdated:hover {
   text-decoration: underline;
