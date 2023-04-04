@@ -1,7 +1,7 @@
 {{if and (not .HideRepoInfo) (not .IsBlame)}}
 <div class="ui segments repository-summary{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats}} repository-summary-language-stats{{end}} gt-mt-2 gt-mb-0">
 	<div class="ui segment sub-menu repository-menu">
-		<div class="ui two horizontal center link list">
+		<div class="ui two horizontal center list">
 			{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo)}}
 				<div class="item{{if .PageIsCommits}} active{{end}}">
 					<a href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}">{{svg "octicon-history"}} <b>{{LocaleNumber .CommitsCount}}</b> {{.locale.TrN .CommitsCount "repo.commit" "repo.commits"}}</a>
@@ -22,7 +22,7 @@
 	</div>
 	{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats}}
 	<div class="ui segment sub-menu language-stats-details gt-hidden">
-		<div class="ui horizontal center link list">
+		<div class="ui horizontal center list">
 			{{range .LanguageStats}}
 			<div class="item gt-df gt-ac gt-jc">
 				<i class="color-icon gt-mr-3" style="background-color: {{.Color}}"></i>
