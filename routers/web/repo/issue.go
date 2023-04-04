@@ -3352,7 +3352,7 @@ func handleTeamMentions(ctx *context.Context) {
 }
 
 type UserSearchInfo struct {
-	UserID    int64  `json:"id"`
+	UserID    int64  `json:"user_id"`
 	UserName  string `json:"username"`
 	AvatarURL string `json:"avatar_url"`
 	FullName  string `json:"full_name"`
@@ -3381,8 +3381,10 @@ func IssuePosters(ctx *context.Context) {
 		resp.Results[i] = &UserSearchInfo{
 			UserID:    user.ID,
 			UserName:  user.Name,
-			FullName:  user.FullName,
 			AvatarURL: user.AvatarLink(ctx),
+		}
+		if setting.UI.DefaultShowFullName {
+			resp.Results[i].FullName = user.FullName
 		}
 	}
 	ctx.JSON(http.StatusOK, resp)

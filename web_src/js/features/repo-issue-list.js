@@ -60,94 +60,62 @@ function initRepoIssueListCheckboxes() {
 }
 
 function initRepoIssueListAuthorDropdown() {
-
-  /*
-  const fetchPostersData= async function ($authorSearchDropdown, isShowAll) {
-    const baseUrl = $authorSearchDropdown.attr('data-url');
-    const url = isShowAll ? baseUrl : `${baseUrl}?q=${$('#author-search-input').val()}`;
-    const res = await fetch(url);
-    const postersJson = await res.json();
-    if (!postersJson) {
-      $authorSearchDropdown.addClass('disabled');
-      return;
-    }
-    // get data needed from data- attributes for generating the poster options
-    const posterID = $authorSearchDropdown.attr('data-poster-id');
-    const isShowFullName = $authorSearchDropdown.attr('data-show-fullname');
-    const posterGeneralUrl = $authorSearchDropdown.attr('data-general-poster-url');
-    const $defaultMenu = $authorSearchDropdown.find('.menu');
-    // remove former options, then append newly searched posters
-    $defaultMenu.find('.item:gt(0)').remove();
-    for (let i = 0; i < postersJson.length; i++) {
-      const {id, avatar_url, username, full_name} = postersJson[i];
-      $defaultMenu.append(`<a class="item gt-df${posterID === id ? ' active selected' : ''}" href="${posterGeneralUrl}${id}">
-      <img class="ui avatar gt-vm" src="${avatar_url}" title="${username}" width="28" height="28">
-      <span class="gt-ellipsis">${username}${isShowFullName === 'true' ? `<span class="search-fullname"> ${full_name}</span>` : ''}</span>
-    </a>`);
-    }
-    // append aria related attributes to newly added menu items
-    const $items = $defaultMenu.find('> .item');
-    $items.each((_, item) => updateMenuItem($authorSearchDropdown[0], item));
-    $authorSearchDropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
-  }
-
-  const $authorSearchDropdown = $('.author-search');
-  if (!$authorSearchDropdown.length) {
-    return;
-  }
-
-  $('#author-search-input').on('input', (e) => {
-    e.stopImmediatePropagation();
-    fetchPostersData($authorSearchDropdown, false);
-  });
-  // show all results when clicking on the dropdown
-  $authorSearchDropdown.on('click', () => {
-    // if dropdown is from visible to not, do not need to fetch data
-    if ($authorSearchDropdown.attr('aria-expanded') === 'true') {
-      return;
-    }
-    // reset input value
-    $('#author-search-input').val('');
-    fetchPostersData($authorSearchDropdown, true);
-  });
-   */
-
   const $searchDropdown = $('.user-remote-search');
   if (!$searchDropdown.length) {
     return;
   }
-  const selectedUserId = $searchDropdown.attr('data-selected-user-id');
+
+  // TODO: the data-selected-user-id is not used yet, it seems unnecessary
   let searchUrl = $searchDropdown.attr('data-search-url');
+  let actionJumpUrl = $searchDropdown.attr('data-action-jump-url');
   if (searchUrl.indexOf('?') === -1) searchUrl += '?';
   $searchDropdown.dropdown({
     fullTextSearch: true,
+    selectOnKeydown: false,
     apiSettings: {
+      cache: false,
       url: `${searchUrl}&q={query}`,
-      onResponse1(response) {
-        /*
-        const filteredResponse = {success: true, results: []};
-        filteredResponse.results.push({
-          name: '',
-          value: ''
-        });
-        // Parse the response from the api to work with our dropdown
-        $.each(response.data, (_r, repo) => {
-          filteredResponse.results.push({
-            name: htmlEscape(repo.full_name),
-            value: repo.id
-          });
-        });
-        return filteredResponse;
-
-         */
-        console.log('response', response);
-        return [];
+      onResponse(resp) {
+        // the content is provided by backend IssuePosters handler
+        for (const item of resp.results) {
+          item.value = item.user_id;
+          item.name = `<img class="ui avatar gt-vm gt-mr-2" src="${htmlEscape(item.avatar_url)}">${htmlEscape(item.username)}`;
+          if (item.full_name) {
+            item.name += `(${htmlEscape(item.full_name)})`;
+          }
+        }
+        return resp;
       },
     },
+    action: (_text, value) => {
+      window.location.href = actionJumpUrl.replace('{user_id}', encodeURIComponent(value));
+    },
   });
-  const dropdownSetup =$searchDropdown.dropdown('internal', 'setup');
+
+  const dropdownSetup = {...$searchDropdown.dropdown('internal', 'setup')};
+  const dropdownSetting = (...args) => $searchDropdown.dropdown('setting', ...args);
+  const dropdownTemplates = dropdownSetting('templates');
+  $searchDropdown.dropdown('internal', 'setup', dropdownSetup);
   dropdownSetup.menu = function (values) {
-    console.log('setup menu', values);
+    // we want to generate the dropdown menu items by ourselves
+    const $menu = $searchDropdown.find('> .menu');
+    const menusHtml = dropdownTemplates.menu(values, dropdownSetting('fields'), true /* html */, dropdownSetting('className'));
+    const $items = $menu.find('> .ui.divider, > .item');
+
+    // replace the menu items after the divider
+    let afterDivider = false;
+    for (const el of $items) {
+      if (el.classList.contains('divider')) {
+        afterDivider = true;
+        continue;
+      }
+      if (afterDivider) el.remove();
+    }
+    if (!afterDivider) {
+      $menu.append('<div class="ui divider"></div>');
+    }
+    $menu.append(...$(menusHtml));
+    $searchDropdown.dropdown('refresh');
   }
 }
 
