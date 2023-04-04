@@ -61,15 +61,14 @@ function initRepoIssueListCheckboxes() {
 
 function initRepoIssueListAuthorDropdown() {
   const $searchDropdown = $('.user-remote-search');
-  if (!$searchDropdown.length) {
-    return;
-  }
+  if (!$searchDropdown.length) return;
 
   // TODO: the data-selected-user-id is not used yet, it seems unnecessary
   let searchUrl = $searchDropdown.attr('data-search-url');
   let actionJumpUrl = $searchDropdown.attr('data-action-jump-url');
   if (searchUrl.indexOf('?') === -1) searchUrl += '?';
-  $searchDropdown.dropdown({
+
+  $searchDropdown.dropdown('setting', {
     fullTextSearch: true,
     selectOnKeydown: false,
     apiSettings: {
@@ -103,18 +102,19 @@ function initRepoIssueListAuthorDropdown() {
     const $items = $menu.find('> .ui.divider, > .item');
 
     // replace the menu items after the divider
-    let afterDivider = false;
+    let elDivider;
     for (const el of $items) {
-      if (el.classList.contains('divider')) {
-        afterDivider = true;
-        continue;
+      if (!elDivider && el.classList.contains('divider')) {
+        elDivider = el;
+      } else if (elDivider) {
+        el.remove();
       }
-      if (afterDivider) el.remove();
     }
-    if (!afterDivider) {
+    elDivider?.remove();
+    if (menusHtml) {
       $menu.append('<div class="ui divider"></div>');
+      $menu.append(...$(menusHtml));
     }
-    $menu.append(...$(menusHtml));
     $searchDropdown.dropdown('refresh');
   }
 }
