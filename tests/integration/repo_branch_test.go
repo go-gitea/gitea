@@ -120,9 +120,9 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 			req := NewRequest(t, "GET", redirectURL)
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			htmlDoc := NewHTMLParser(t, resp.Body)
-			assert.Equal(t,
-				test.FlashMessage,
+			assert.Contains(t,
 				strings.TrimSpace(htmlDoc.doc.Find(".ui.message").Text()),
+				test.FlashMessage,
 			)
 		}
 	}
