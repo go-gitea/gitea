@@ -5,10 +5,10 @@ package setting
 
 import (
 	"encoding/base64"
+	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/log"
 
 	ini "gopkg.in/ini.v1"
 )
@@ -25,10 +25,10 @@ var LFS = struct {
 	Storage
 }{}
 
-func loadLFSFrom(rootCfg ConfigProvider) {
+func loadLFSFrom(rootCfg ConfigProvider) error {
 	sec := rootCfg.Section("server")
 	if err := sec.MapTo(&LFS); err != nil {
-		log.Fatal("Failed to map LFS settings: %v", err)
+		return fmt.Errorf("failed to map LFS settings: %v", err)
 	}
 
 	lfsSec := rootCfg.Section("lfs")
@@ -50,21 +50,23 @@ func loadLFSFrom(rootCfg ConfigProvider) {
 
 	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
 
-	if LFS.StartServer {
-		LFS.JWTSecretBytes = make([]byte, 32)
-		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
-
-		if err != nil || n != 32 {
-			LFS.JWTSecretBase64, err = generate.NewJwtSecretBase64()
-			if err != nil {
-				log.Fatal("Error generating JWT Secret for custom config: %v", err)
-				return
-			}
-
-			// Save secret
-			CreateOrAppendToCustomConf("server.LFS_JWT_SECRET", func(cfg *ini.File) {
-				cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
-			})
-		}
+	if !LFS.StartServer {
+		return nil
 	}
+
+	LFS.JWTSecretBytes = make([]byte, 32)
+	n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
+
+	if err != nil || n != 32 {
+		LFS.JWTSecretBase64, err = generate.NewJwtSecretBase64()
+		if err != nil {
+			return fmt.Errorf("error generating JWT Secret for custom config: %v", err)
+		}
+
+		// Save secret
+		CreateOrAppendToCustomConf("server.LFS_JWT_SECRET", func(cfg *ini.File) {
+			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
+		})
+	}
+	return nil
 }

@@ -210,7 +210,9 @@ func InitProviderAllowEmpty() {
 // InitProviderAndLoadCommonSettingsForTest initializes config provider and load common setttings for tests
 func InitProviderAndLoadCommonSettingsForTest(extraConfigs ...string) {
 	CfgProvider = newFileProviderFromConf(CustomConf, true, strings.Join(extraConfigs, "\n"))
-	loadCommonSettingsFrom(CfgProvider)
+	if err := loadCommonSettingsFrom(CfgProvider); err != nil {
+		log.Fatal("%v", err)
+	}
 	if err := PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
 	}
@@ -249,11 +251,13 @@ func newFileProviderFromConf(customConf string, allowEmpty bool, extraConfig str
 
 // LoadCommonSettings loads common configurations from a configuration provider.
 func LoadCommonSettings() {
-	loadCommonSettingsFrom(CfgProvider)
+	if err := loadCommonSettingsFrom(CfgProvider); err != nil {
+		log.Fatal("%v", err)
+	}
 }
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.
-func loadCommonSettingsFrom(cfg ConfigProvider) {
+func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	// WARNNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
 	loadLogFrom(cfg)
@@ -266,7 +270,9 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 	loadTimeFrom(cfg)
 	loadRepositoryFrom(cfg)
 	loadPictureFrom(cfg)
-	loadPackagesFrom(cfg)
+	if err := loadPackagesFrom(cfg); err != nil {
+		return err
+	}
 	loadActionsFrom(cfg)
 	loadUIFrom(cfg)
 	loadAdminFrom(cfg)
@@ -278,6 +284,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
 	loadOtherFrom(cfg)
+	return nil
 }
 
 func loadRunModeFrom(rootCfg ConfigProvider) {

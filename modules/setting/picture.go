@@ -3,6 +3,8 @@
 
 package setting
 
+import "code.gitea.io/gitea/modules/log"
+
 // settings
 var (
 	// Picture settings
@@ -32,7 +34,7 @@ var (
 	}{}
 )
 
-func loadPictureFrom(rootCfg ConfigProvider) {
+func loadAvatarsFrom(rootCfg ConfigProvider) error {
 	sec := rootCfg.Section("picture")
 
 	avatarSec := rootCfg.Section("avatar")
@@ -64,6 +66,13 @@ func loadPictureFrom(rootCfg ConfigProvider) {
 	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(GetDefaultEnableFederatedAvatar(DisableGravatar))
 	deprecatedSettingDB(rootCfg, "", "ENABLE_FEDERATED_AVATAR")
 
+	return nil
+}
+
+func loadPictureFrom(rootCfg ConfigProvider) {
+	if err := loadAvatarsFrom(rootCfg); err != nil {
+		log.Fatal("%v", err)
+	}
 	loadRepoAvatarFrom(rootCfg)
 }
 
@@ -82,7 +91,7 @@ func GetDefaultEnableFederatedAvatar(disableGravatar bool) bool {
 	return v
 }
 
-func loadRepoAvatarFrom(rootCfg ConfigProvider) {
+func loadRepoAvatarFrom(rootCfg ConfigProvider) error {
 	sec := rootCfg.Section("picture")
 
 	repoAvatarSec := rootCfg.Section("repo-avatar")
@@ -95,4 +104,6 @@ func loadRepoAvatarFrom(rootCfg ConfigProvider) {
 
 	RepoAvatar.Fallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
 	RepoAvatar.FallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/assets/img/repo_default.png")
+
+	return nil
 }

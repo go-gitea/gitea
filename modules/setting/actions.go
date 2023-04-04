@@ -3,9 +3,7 @@
 
 package setting
 
-import (
-	"code.gitea.io/gitea/modules/log"
-)
+import "fmt"
 
 // Actions settings
 var (
@@ -19,11 +17,14 @@ var (
 	}
 )
 
-func loadActionsFrom(rootCfg ConfigProvider) {
+func loadActionsFrom(rootCfg ConfigProvider) error {
 	sec := rootCfg.Section("actions")
 	if err := sec.MapTo(&Actions); err != nil {
-		log.Fatal("Failed to map Actions settings: %v", err)
+		return fmt.Errorf("failed to map Actions settings: %v", err)
 	}
+	sec.Key("MINIO_BASE_PATH").MustString("actions_log/")
+	storageType := sec.Key("STORAGE_TYPE").MustString("")
 
-	Actions.Storage = getStorage(rootCfg, "actions_log", "", nil)
+	Actions.Storage = getStorage(rootCfg, "actions_log", storageType, sec)
+	return nil
 }
