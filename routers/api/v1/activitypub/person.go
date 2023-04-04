@@ -4,6 +4,7 @@
 package activitypub
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -18,22 +19,23 @@ import (
 
 // Person function returns the Person actor for a user
 func Person(ctx *context.APIContext) {
-	// swagger:operation GET /activitypub/user/{username} activitypub activitypubPerson
+	// swagger:operation GET /activitypub/user-id/{user-id} activitypub activitypubPerson
 	// ---
 	// summary: Returns the Person actor for a user
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: username
+	// - name: user-id
 	//   in: path
-	//   description: username of the user
-	//   type: string
+	//   description: user ID of the user
+	//   type: integer
 	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name
+	// TODO: the setting.AppURL during the test doesn't follow the definition: "It always has a '/' suffix"
+	link := fmt.Sprintf("%s/api/v1/activitypub/user-id/%d", strings.TrimSuffix(setting.AppURL, "/"), ctx.ContextUser.ID)
 	person := ap.PersonNew(ap.IRI(link))
 
 	person.Name = ap.NaturalLanguageValuesNew()
@@ -85,16 +87,16 @@ func Person(ctx *context.APIContext) {
 
 // PersonInbox function handles the incoming data for a user inbox
 func PersonInbox(ctx *context.APIContext) {
-	// swagger:operation POST /activitypub/user/{username}/inbox activitypub activitypubPersonInbox
+	// swagger:operation POST /activitypub/user-id/{user-id}/inbox activitypub activitypubPersonInbox
 	// ---
 	// summary: Send to the inbox
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: username
+	// - name: user-id
 	//   in: path
-	//   description: username of the user
-	//   type: string
+	//   description: user ID of the user
+	//   type: integer
 	//   required: true
 	// responses:
 	//   "204":
