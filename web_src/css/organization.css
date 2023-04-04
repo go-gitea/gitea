@@ -156,11 +156,6 @@
   padding: 10px 15px;
 }
 
-.organization.teams .members a:hover,
-.organization.profile .members a:hover {
-  text-decoration: none;
-}
-
 .organization.teams .members .ui.avatar,
 .organization.profile .members .ui.avatar {
   width: 48px;
@@ -218,8 +213,7 @@
 
 .organization.teams .repositories .item,
 .organization.teams .members .item {
-  padding: 10px 20px;
-  line-height: 32px;
+  padding: 10px 19px;
 }
 
 .organization.teams .repositories .item:not(:last-child),
@@ -230,6 +224,7 @@
 .organization.teams .repositories .item .button,
 .organization.teams .members .item .button {
   padding: 9px 10px;
+  margin: 0;
 }
 
 .organization.teams #add-repo-form input,
@@ -247,4 +242,8 @@
 
 .organization.teams #repo-top-segment {
   height: 60px;
+}
+
+.org-team-navbar .active.item {
+  background: var(--color-box-body) !important;
 }
