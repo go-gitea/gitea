@@ -408,6 +408,12 @@ func NewReleasePost(ctx *context.Context) {
 			return
 		}
 
+		// Title of release cannot be empty
+		if len(form.Title) == 0 {
+			ctx.RenderWithErr(ctx.Tr("repo.release.title_empty"), tplReleaseNew, &form)
+			return
+		}
+
 		rel = &repo_model.Release{
 			RepoID:       ctx.Repo.Repository.ID,
 			Repo:         ctx.Repo.Repository,
