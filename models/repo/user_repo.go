@@ -167,13 +167,13 @@ func GetIssuePosters(ctx context.Context, repo *Repository, isPull bool) ([]*use
 	return users, db.GetEngine(ctx).Where(cond).OrderBy(user_model.GetOrderByName()).Find(&users)
 }
 
-// GetIssuePosters returns users with limit of 30 whose user name started with prefix that have authored an issue/pull request for the given repository
+// GetIssuePostersWithSearch returns users with limit of 30 whose username started with prefix that have authored an issue/pull request for the given repository
 // If isShowFullName is set to true, also include full name prefix search
-func GetIssuePostersWithPrefix(ctx context.Context, repo *Repository, isPull bool, prefix string, isShowFullName bool) ([]*user_model.User, error) {
-	users := make([]*user_model.User, 0, 8)
+func GetIssuePostersWithSearch(ctx context.Context, repo *Repository, isPull bool, prefix string, isShowFullName bool) ([]*user_model.User, error) {
+	users := make([]*user_model.User, 0, 30)
 	var prefixCond builder.Cond = builder.Like{"name", prefix + "%"}
 	if isShowFullName {
-		prefixCond = prefixCond.Or(builder.Like{"full_name", prefix + "%"})
+		prefixCond = prefixCond.Or(builder.Like{"full_name", "%" + prefix + "%"})
 	}
 
 	cond := builder.In("`user`.id",

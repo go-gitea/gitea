@@ -415,8 +415,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 // Issues render issues page
 func Issues(ctx *context.Context) {
 	isPullList := ctx.Params(":type") == "pulls"
-	// pass RepoListType to ctx.Data which will be used by GET /{type:issues|pulls}/posters request
-	ctx.Data["RepoListType"] = ctx.Params(":type")
 	if isPullList {
 		MustAllowPulls(ctx)
 		if ctx.Written() {
@@ -3368,8 +3366,8 @@ func IssuePosters(ctx *context.Context) {
 	isPullList := ctx.Params(":type") == "pulls"
 	isPullOption := util.OptionalBoolOf(isPullList)
 	isShowFullName := setting.UI.DefaultShowFullName
-	prefix := strings.Trim(ctx.FormString("q"), " ")
-	posters, err := repo_model.GetIssuePostersWithPrefix(ctx, repo, isPullOption.IsTrue(), prefix, isShowFullName)
+	prefix := strings.TrimSpace(ctx.FormString("q"))
+	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullOption.IsTrue(), prefix, isShowFullName)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
@@ -3378,12 +3376,8 @@ func IssuePosters(ctx *context.Context) {
 	resp := &UserSearchResponse{}
 	resp.Results = make([]*UserSearchInfo, len(posters))
 	for i, user := range posters {
-		resp.Results[i] = &UserSearchInfo{
-			UserID:    user.ID,
-			UserName:  user.Name,
-			AvatarURL: user.AvatarLink(ctx),
-		}
-		if setting.UI.DefaultShowFullName {
+		resp.Results[i] = &UserSearchInfo{UserID: user.ID, UserName: user.Name, AvatarURL: user.AvatarLink(ctx)}
+		if isShowFullName {
 			resp.Results[i].FullName = user.FullName
 		}
 	}
