@@ -65,8 +65,8 @@ function initRepoIssueListAuthorDropdown() {
 
   // TODO: the data-selected-user-id is not used yet, it seems unnecessary
   let searchUrl = $searchDropdown.attr('data-search-url');
-  let actionJumpUrl = $searchDropdown.attr('data-action-jump-url');
-  if (searchUrl.indexOf('?') === -1) searchUrl += '?';
+  const actionJumpUrl = $searchDropdown.attr('data-action-jump-url');
+  if (!searchUrl.includes('?')) searchUrl += '?';
 
   $searchDropdown.dropdown('setting', {
     fullTextSearch: true,
@@ -116,7 +116,7 @@ function initRepoIssueListAuthorDropdown() {
       $menu.append(...$(menusHtml));
     }
     $searchDropdown.dropdown('refresh');
-  }
+  };
 }
 
 export function initRepoIssueList() {
