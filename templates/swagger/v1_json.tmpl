@@ -3433,6 +3433,142 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/check-runs": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "checkRuns"
+        ],
+        "summary": "Create a new check run",
+        "operationId": "checkRunsCreate",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateCheckRunOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/CheckRun"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/check-runs/{check_run_id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "checkRuns"
+        ],
+        "summary": "Get a check run",
+        "operationId": "checkRunsGet",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the check run",
+            "name": "check_run_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CheckRun"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "checkRuns"
+        ],
+        "summary": "Update a check run",
+        "operationId": "checkRunsUpdate",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the check run",
+            "name": "check_run_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateCheckRunOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CheckRun"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/collaborators": {
       "get": {
         "produces": [
@@ -3724,6 +3860,74 @@
           },
           "409": {
             "$ref": "#/responses/EmptyRepository"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/commits/{ref}/check-runs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "checkRuns"
+        ],
+        "summary": "ListCheckRun List check runs for a Git reference",
+        "operationId": "checkRunsList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of branch/tag/commit",
+            "name": "ref",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "oldest",
+              "recentupdate",
+              "leastupdate",
+              "leastindex",
+              "highestindex"
+            ],
+            "type": "string",
+            "description": "type of sort",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CommitStatusList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -15523,6 +15727,163 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CheckRun": {
+      "description": "CheckRun represents a check run on a repository",
+      "type": "object",
+      "properties": {
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CompletedAt"
+        },
+        "conclusion": {
+          "type": "string",
+          "x-go-name": "Conclusion"
+        },
+        "details_url": {
+          "type": "string",
+          "x-go-name": "DetailsURL"
+        },
+        "external_id": {
+          "type": "string",
+          "x-go-name": "ExternalID"
+        },
+        "head_sha": {
+          "type": "string",
+          "x-go-name": "HeadSHA"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "node_id": {
+          "type": "string",
+          "x-go-name": "NodeID"
+        },
+        "output": {
+          "$ref": "#/definitions/CheckRunOutput"
+        },
+        "pull_requests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PullRequest"
+          },
+          "x-go-name": "PullRequests"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "StartedAt"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CheckRunAnnotation": {
+      "type": "object",
+      "title": "CheckRunAnnotation represents an annotation object for a CheckRun output.",
+      "properties": {
+        "annotation_level": {
+          "$ref": "#/definitions/CheckRunAnnotationLevel"
+        },
+        "end_column": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "EndColumn"
+        },
+        "end_line": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "EndLine"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "raw_details": {
+          "type": "string",
+          "x-go-name": "RawDetails"
+        },
+        "start_column": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "StartColumn"
+        },
+        "start_line": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "StartLine"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CheckRunAnnotationLevel": {
+      "type": "string",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CheckRunConclusion": {
+      "type": "string",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CheckRunOutput": {
+      "type": "object",
+      "title": "CheckRunOutput represents the output of a CheckRun.",
+      "properties": {
+        "annotations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CheckRunAnnotation"
+          },
+          "x-go-name": "Annotations"
+        },
+        "annotations_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "AnnotationsCount"
+        },
+        "annotations_url": {
+          "type": "string",
+          "x-go-name": "AnnotationsURL"
+        },
+        "summary": {
+          "type": "string",
+          "x-go-name": "Summary"
+        },
+        "text": {
+          "type": "string",
+          "x-go-name": "Text"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CheckRunStatus": {
+      "type": "string",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CombinedStatus": {
       "description": "CombinedStatus holds the combined state of several statuses for a single commit",
       "type": "object",
@@ -16039,6 +16400,48 @@
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "OldBranchName"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreateCheckRunOptions": {
+      "type": "object",
+      "title": "CreateCheckRunOptions options needed to create a CheckRun.",
+      "properties": {
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CompletedAt"
+        },
+        "conclusion": {
+          "$ref": "#/definitions/CheckRunConclusion"
+        },
+        "details_url": {
+          "type": "string",
+          "x-go-name": "DetailsURL"
+        },
+        "external_id": {
+          "type": "string",
+          "x-go-name": "ExternalID"
+        },
+        "head_sha": {
+          "type": "string",
+          "x-go-name": "HeadSHA"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "output": {
+          "$ref": "#/definitions/CheckRunOutput"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "StartedAt"
+        },
+        "status": {
+          "$ref": "#/definitions/CheckRunStatus"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -21310,6 +21713,21 @@
         }
       }
     },
+    "CheckRun": {
+      "description": "CheckRun",
+      "schema": {
+        "$ref": "#/definitions/CheckRun"
+      }
+    },
+    "CheckRunList": {
+      "description": "CheckRunList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/CheckRun"
+        }
+      }
+    },
     "CombinedStatus": {
       "description": "CombinedStatus",
       "schema": {
@@ -22075,7 +22493,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreatePushMirrorOption"
+        "$ref": "#/definitions/CreateCheckRunOptions"
       }
     },
     "redirect": {

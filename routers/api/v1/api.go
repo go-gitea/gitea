@@ -1137,11 +1137,18 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
 						Post(reqToken(auth_model.AccessTokenScopeRepoStatus), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				}, reqRepoReader(unit.TypeCode))
+				m.Group("/check-runs", func() {
+					m.Post("", reqToken(auth_model.AccessTokenScopeRepoStatus), reqRepoWriter(unit.TypeCode), bind(api.CreateCheckRunOptions{}), repo.CreateCheckRun)
+					m.Combo("/{}").Get(repo.GetCheckRun).
+						Patch(reqToken(auth_model.AccessTokenScopeRepoStatus), reqRepoWriter(unit.TypeCode), bind(api.CreateCheckRunOptions{}), repo.UpdateCheckRun)
+				}, reqRepoReader(unit.TypeCode))
+
 				m.Group("/commits", func() {
 					m.Get("", context.ReferencesGitRepo(), repo.GetAllCommits)
 					m.Group("/{ref}", func() {
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
+						m.Get("/check-runs", repo.ListCheckRun)
 					}, context.ReferencesGitRepo())
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {

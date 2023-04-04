@@ -400,3 +400,17 @@ type swaggerRepoIssueConfigValidation struct {
 	// in:body
 	Body api.IssueConfigValidation `json:"body"`
 }
+
+// CheckRun
+// swagger:response CheckRun
+type swaggerCheckRun struct {
+	// in:body
+	Body api.CheckRun `json:"body"`
+}
+
+// CheckRunList
+// swagger:response CheckRunList
+type swaggerResponseCheckRunList struct {
+	// in:body
+	Body []api.CheckRun `json:"body"`
+}

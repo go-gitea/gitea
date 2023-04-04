@@ -178,4 +178,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreatePushMirrorOption api.CreatePushMirrorOption
+
+	// in:body
+	CreateCheckRunOptions api.CreateCheckRunOptions
 }
