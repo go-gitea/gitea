@@ -2,6 +2,7 @@
 date: "2022-11-20T00:00:00+00:00"
 title: "Cargo Packages Repository"
 slug: "usage/packages/cargo"
+weight: 5
 draft: false
 toc: false
 menu:

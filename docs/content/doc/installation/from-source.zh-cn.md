@@ -2,7 +2,7 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "从源代码安装"
 slug: "install-from-source"
-weight: 10
+weight: 30
 toc: false
 draft: false
 menu:
