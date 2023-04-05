@@ -24,7 +24,7 @@ func dictMerge(base map[string]any, arg any) bool {
 
 // dict is a helper function for creating a map[string]any from a list of key-value pairs.
 // If the key is dot ".", the value is merged into the base map, just like Golang template's dot syntax: dot means current
-// The dot syntax is highly discouraged, because it might case unclear key conflicts. It's always good use explicit keys.
+// The dot syntax is highly discouraged because it might cause unclear key conflicts. It's always good to use explicit keys.
 func dict(args ...any) (map[string]any, error) {
 	if len(args)%2 != 0 {
 		return nil, fmt.Errorf("invalid dict constructor syntax: must have key-value pairs")
