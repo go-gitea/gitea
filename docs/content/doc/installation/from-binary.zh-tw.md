@@ -2,14 +2,14 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "執行檔安裝"
 slug: "install-from-binary"
-weight: 10
+weight: 15
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "installation"
     name: "執行檔"
-    weight: 20
+    weight: 15
     identifier: "install-from-binary"
 ---
 
