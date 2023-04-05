@@ -49,3 +49,92 @@ export function onDomReady(cb) {
     cb();
   }
 }
+
+/* autosize a textarea to fit content */
+/* Based on https://github.com/github/textarea-autosize */
+export function autosize(textarea, {viewportMarginBottom = 100} = {}) {
+  let isUserResized = false;
+  let x, y, height;
+
+  function onUserResize(event) {
+    if (x !== event.clientX || y !== event.clientY) {
+      const newHeight = textarea.style.height;
+      if (height && height !== newHeight) {
+        isUserResized = true;
+        textarea.style.removeProperty('max-height');
+        textarea.removeEventListener('mousemove', onUserResize);
+      }
+      height = newHeight;
+    }
+
+    x = event.clientX;
+    y = event.clientY;
+  }
+
+  function overflowOffset() {
+    let offsetTop = 0;
+    let el = textarea;
+
+    while (el !== document.body && el !== null) {
+      offsetTop += el.offsetTop || 0;
+      el = el.offsetParent;
+    }
+
+    const top = offsetTop - document.defaultView.pageYOffset;
+    const bottom = document.documentElement.clientHeight - (top + textarea.offsetHeight);
+    return {top, bottom};
+  }
+
+  function sizeToFit() {
+    try {
+      if (isUserResized) return;
+      if (textarea.offsetWidth <= 0 && textarea.offsetHeight <= 0) return;
+
+      const {top, bottom} = overflowOffset();
+      if (top < 0 || bottom < 0) return;
+
+      const textareaStyle = getComputedStyle(textarea);
+      const topBorderWidth = Number(textareaStyle.borderTopWidth.replace(/px/, ''));
+      const bottomBorderWidth = Number(textareaStyle.borderBottomWidth.replace(/px/, ''));
+      const isBorderBox = textareaStyle.boxSizing === 'border-box';
+      const borderAddOn = isBorderBox ? topBorderWidth + bottomBorderWidth : 0;
+      const maxHeight = Number(textareaStyle.height.replace(/px/, '')) + bottom;
+      const adjustedViewportMarginBottom = bottom < viewportMarginBottom ? bottom : viewportMarginBottom;
+
+      textarea.style.maxHeight = `${maxHeight - adjustedViewportMarginBottom}px`;
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight + borderAddOn}px`;
+      height = textarea.style.height;
+    } finally {
+      // ensure that the textarea is fully scrolled to the end
+      // when the cursor is at the end during an input event
+      if (textarea.selectionStart === textarea.selectionEnd &&
+          textarea.selectionStart === textarea.value.length) {
+        textarea.scrollTop = textarea.scrollHeight;
+      }
+    }
+  }
+
+  function onFormReset() {
+    isUserResized = false;
+    textarea.style.removeProperty('height');
+    textarea.style.removeProperty('max-height');
+  }
+
+  textarea.addEventListener('mousemove', onUserResize);
+  textarea.addEventListener('keyup', sizeToFit);
+  textarea.addEventListener('paste', sizeToFit);
+  textarea.addEventListener('input', sizeToFit);
+  const form = textarea.form;
+  if (form) form.addEventListener('reset', onFormReset);
+  if (textarea.value) sizeToFit();
+
+  return {
+    unsubscribe() {
+      textarea.removeEventListener('mousemove', onUserResize);
+      textarea.removeEventListener('keyup', sizeToFit);
+      textarea.removeEventListener('input', sizeToFit);
+      if (form) form.removeEventListener('reset', onFormReset);
+    }
+  };
+}

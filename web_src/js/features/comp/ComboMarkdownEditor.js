@@ -1,12 +1,11 @@
 import '@github/markdown-toolbar-element';
 import $ from 'jquery';
 import {attachTribute} from '../tribute.js';
-import {hideElem, showElem} from '../../utils/dom.js';
+import {hideElem, showElem, autosize} from '../../utils/dom.js';
 import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
 import {initMarkupContent} from '../../markup/content.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {attachRefIssueContextPopup} from '../contextpopup.js';
-import autosize from 'autosize';
 
 let elementIdCounter = 0;
 
@@ -67,7 +66,7 @@ class ComboMarkdownEditor {
     this.textarea.id = `_combo_markdown_editor_${String(elementIdCounter++)}`;
     this.textarea.addEventListener('input', (e) => this.options?.onContentChanged?.(this, e));
     this.applyEditorHeights(this.textarea, this.options.editorHeights);
-    autosize(this.textarea);
+    autosize(this.textarea, {viewportMarginBottom: 130});
 
     this.textareaMarkdownToolbar = this.container.querySelector('markdown-toolbar');
     this.textareaMarkdownToolbar.setAttribute('for', this.textarea.id);

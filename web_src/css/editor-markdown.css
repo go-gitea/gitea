@@ -24,7 +24,7 @@
   width: 100%;
   min-height: 200px;
   max-height: calc(100vh - 200px);
-  resize: vertical; /* TODO: even if we set this, the `autosize` package doesn't support manually resize vertically */
+  resize: vertical;
 }
 
 .combo-markdown-editor .CodeMirror-scroll {
