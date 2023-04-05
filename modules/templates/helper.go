@@ -43,6 +43,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
+	"code.gitea.io/gitea/modules/templates/eval"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -119,24 +120,9 @@ func NewFuncMap() []template.FuncMap {
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"FileSize":      base.FileSize,
 		"LocaleNumber":  LocaleNumber,
-		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": MigrationIcon,
-		"Add": func(a ...int) int {
-			sum := 0
-			for _, val := range a {
-				sum += val
-			}
-			return sum
-		},
-		"Mul": func(a ...int) int {
-			sum := 1
-			for _, val := range a {
-				sum *= val
-			}
-			return sum
-		},
-		"ActionIcon": ActionIcon,
+		"ActionIcon":    ActionIcon,
 		"DateFmtLong": func(t time.Time) string {
 			return t.Format(time.RFC1123Z)
 		},
@@ -409,7 +395,7 @@ func NewFuncMap() []template.FuncMap {
 		"QueryEscape": url.QueryEscape,
 		"DotEscape":   DotEscape,
 		"Iterate": func(arg interface{}) (items []int64) {
-			count := util.ToInt64(arg)
+			count, _ := util.ToInt64(arg)
 			for i := int64(0); i < count; i++ {
 				items = append(items, i)
 			}
@@ -432,6 +418,7 @@ func NewFuncMap() []template.FuncMap {
 		"RefShortName": func(ref string) string {
 			return git.RefName(ref).ShortName()
 		},
+		"Eval": Eval,
 	}}
 }
 
@@ -529,28 +516,8 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 			}
 			return dict, nil
 		},
-		"percentage": func(n int, values ...int) float32 {
-			sum := 0
-			for i := 0; i < len(values); i++ {
-				sum += values[i]
-			}
-			return float32(n) * 100 / float32(sum)
-		},
-		"Add": func(a ...int) int {
-			sum := 0
-			for _, val := range a {
-				sum += val
-			}
-			return sum
-		},
-		"Mul": func(a ...int) int {
-			sum := 1
-			for _, val := range a {
-				sum *= val
-			}
-			return sum
-		},
 		"QueryEscape": url.QueryEscape,
+		"Eval":        Eval,
 	}}
 }
 
@@ -1014,6 +981,11 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 
 // LocaleNumber renders a number with a Custom Element, browser will render it with a locale number
 func LocaleNumber(v interface{}) template.HTML {
-	num := util.ToInt64(v)
+	num, _ := util.ToInt64(v)
 	return template.HTML(fmt.Sprintf(`<gitea-locale-number data-number="%d">%d</gitea-locale-number>`, num, num))
+}
+
+func Eval(tokens ...any) (any, error) {
+	n, err := eval.Expr(tokens...)
+	return n.Value, err
 }
