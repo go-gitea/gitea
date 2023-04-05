@@ -215,19 +215,19 @@ func TestGetOrgUsersByUserID(t *testing.T) {
 	if assert.Len(t, orgUsers, 3) {
 		assert.Equal(t, organization.OrgUser{
 			ID:       orgUsers[0].ID,
-			OrgID:    6,
+			OrgID:    23,
 			UID:      5,
-			IsPublic: true,
+			IsPublic: false,
 		}, *orgUsers[0])
 		assert.Equal(t, organization.OrgUser{
 			ID:       orgUsers[1].ID,
-			OrgID:    7,
+			OrgID:    6,
 			UID:      5,
-			IsPublic: false,
+			IsPublic: true,
 		}, *orgUsers[1])
 		assert.Equal(t, organization.OrgUser{
 			ID:       orgUsers[2].ID,
-			OrgID:    23,
+			OrgID:    7,
 			UID:      5,
 			IsPublic: false,
 		}, *orgUsers[2])
