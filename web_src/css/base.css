@@ -230,10 +230,6 @@ body {
   }
 }
 
-img {
-  border-radius: 3px;
-}
-
 table {
   border-collapse: collapse;
 }
@@ -865,10 +861,6 @@ a.label,
   margin-bottom: -0.25rem;
 }
 
-.ui.dropdown .menu > .item > svg.img {
-  margin-right: 0.78571429rem;
-}
-
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
 }
@@ -1178,9 +1170,9 @@ a.ui.card:hover {
   border-color: var(--color-secondary);
 }
 
+img.ui.avatar,
 .ui.avatar img,
 .ui.avatar svg,
-.ui.avatar.img,
 .ui.cards > .card img.avatar,
 .ui.cards > .card .avatar img,
 .ui.card img.avatar,
