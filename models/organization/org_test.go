@@ -236,7 +236,7 @@ func TestGetOrgUsersByUserID(t *testing.T) {
 	publicOrgUsers, err := organization.GetOrgUsersByUserID(5, &organization.SearchOrganizationsOptions{All: false})
 	assert.NoError(t, err)
 	assert.Len(t, publicOrgUsers, 1)
-	assert.Equal(t, *orgUsers[0], *publicOrgUsers[0])
+	assert.Equal(t, *orgUsers[1], *publicOrgUsers[0])
 
 	orgUsers, err = organization.GetOrgUsersByUserID(1, &organization.SearchOrganizationsOptions{All: true})
 	assert.NoError(t, err)
