@@ -502,6 +502,8 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment,
 	return g.getAllCommentsSince(page, perPage, nil)
 }
 
+// GetAllCommentsSince returns repository comments since a time.
+// If since is nil, it will return all comments.
 func (g *GithubDownloaderV3) getAllCommentsSince(page, perPage int, since *time.Time) ([]*base.Comment, bool, error) {
 	var (
 		allComments = make([]*base.Comment, 0, perPage)
@@ -579,7 +581,8 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 	return g.GetNewPullRequests(page, perPage, time.Time{})
 }
 
-func convertGithubReview(r *github.PullRequestReview) *base.Review {
+// convertGithubReview converts github review to Gitea review
+func (g *GithubDownloaderV3) convertGithubReview(r *github.PullRequestReview) *base.Review {
 	return &base.Review{
 		ID:           r.GetID(),
 		ReviewerID:   r.GetUser().GetID(),
@@ -655,7 +658,7 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 		}
 		g.setRate(&resp.Rate)
 		for _, review := range reviews {
-			r := convertGithubReview(review)
+			r := g.convertGithubReview(review)
 			r.IssueIndex = reviewable.GetLocalIndex()
 			// retrieve all review comments
 			opt2 := &github.ListOptions{
@@ -717,7 +720,8 @@ func (g *GithubDownloaderV3) GetNewIssues(page, perPage int, updatedAfter time.T
 	return g.getIssuesSince(page, perPage, updatedAfter)
 }
 
-// getIssuesSince returns issues given page, perPage and since
+// getIssuesSince returns issues given page, perPage and since.
+// when since is empty, it will return all issues
 func (g *GithubDownloaderV3) getIssuesSince(page, perPage int, since time.Time) ([]*base.Issue, bool, error) {
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
@@ -899,6 +903,7 @@ func (g *GithubDownloaderV3) convertGithubPullRequest(pr *github.PullRequest, pe
 	}, nil
 }
 
+// getIssueReactions returns reactions using Github API
 func (g *GithubDownloaderV3) getIssueReactions(number, perPage int) ([]*base.Reaction, error) {
 	var reactions []*base.Reaction
 	if !g.SkipReactions {
