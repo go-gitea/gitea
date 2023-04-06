@@ -34,7 +34,7 @@ const (
 
 // const artifactXActionsResultsCRC64Header = "x-actions-results-crc64"
 
-const artifactRouteBase = "/_apis/pipelines/workflows/{taskID}/artifacts"
+const artifactRouteBase = "/_apis/pipelines/workflows/{jobID}/artifacts"
 
 func ArtifactsRoutes(goctx gocontext.Context, prefix string) *web.Route {
 	m := web.NewRoute()
@@ -96,9 +96,9 @@ type artifactRoutes struct {
 	fs     storage.ObjectStorage
 }
 
-func (ar artifactRoutes) buildArtifactURL(taskID, artifactID int64, suffix string) (string, error) {
+func (ar artifactRoutes) buildArtifactURL(jobID, artifactID int64, suffix string) (string, error) {
 	uploadURL := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ar.prefix, "/") +
-		strings.ReplaceAll(artifactRouteBase, "{taskID}", strconv.FormatInt(taskID, 10)) +
+		strings.ReplaceAll(artifactRouteBase, "{jobID}", strconv.FormatInt(jobID, 10)) +
 		"/" + strconv.FormatInt(artifactID, 10) + "/" + suffix
 	u, err := url.Parse(uploadURL)
 	if err != nil {
@@ -115,10 +115,10 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, "Error getting task in context")
 		return
 	}
-	taskID := ctx.ParamsInt64("taskID")
-	if task.JobID != taskID {
-		log.Error("Error task id not match")
-		ctx.Error(http.StatusInternalServerError, "Error task id not match")
+	jobID := ctx.ParamsInt64("jobID")
+	if task.JobID != jobID {
+		log.Error("Error jobID not match")
+		ctx.Error(http.StatusInternalServerError, "Error jobID not match")
 		return
 	}
 
@@ -128,7 +128,7 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	url, err := ar.buildArtifactURL(taskID, artifact.ID, "upload")
+	url, err := ar.buildArtifactURL(jobID, artifact.ID, "upload")
 	if err != nil {
 		log.Error("Error parsing upload URL: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -175,7 +175,7 @@ func (hr *hashReader) Match(md5Str string) bool {
 
 func (ar artifactRoutes) saveUploadChunk(ctx *context.Context,
 	artifact *actions.ActionArtifact,
-	contentSize, taskID int64,
+	contentSize, jobID int64,
 ) (int64, error) {
 	contentRange := ctx.Req.Header.Get("Content-Range")
 	start, end, length := int64(0), int64(0), int64(0)
@@ -183,7 +183,7 @@ func (ar artifactRoutes) saveUploadChunk(ctx *context.Context,
 		return -1, fmt.Errorf("parse content range error: %v", err)
 	}
 
-	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d.chunk", taskID, artifact.ID, start, end)
+	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d.chunk", jobID, artifact.ID, start, end)
 
 	// use hashReader to avoid reading all body to md5 sum.
 	// it writes data to hasher after reading end
@@ -239,7 +239,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
 	// itemPath is generated from upload-artifact action
 	// it's formatted as {artifact_name}/{artfict_path_in_runner}
 	itemPath := util.PathJoinRel(ctx.Req.URL.Query().Get("itemPath"))
-	taskID := ctx.ParamsInt64("taskID")
+	jobID := ctx.ParamsInt64("jobID")
 	artifactName := strings.Split(itemPath, "/")[0]
 	if err = checkArtifactName(artifactName); err != nil {
 		log.Error("Error checking artifact name: %v", err)
@@ -256,7 +256,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
 	}
 
 	// save chunk
-	chunkAllLength, err := ar.saveUploadChunk(ctx, artifact, contentLength, taskID)
+	chunkAllLength, err := ar.saveUploadChunk(ctx, artifact, contentLength, jobID)
 	if err != nil {
 		log.Error("Error saving upload chunk: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -285,8 +285,8 @@ func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
 // comfirmUploadArtifact comfirm upload artifact.
 // if all chunks are uploaded, merge them to one file.
 func (ar artifactRoutes) comfirmUploadArtifact(ctx *context.Context) {
-	taskID := ctx.ParamsInt64("taskID")
-	if err := ar.mergeArtifactChunks(ctx, taskID); err != nil {
+	jobID := ctx.ParamsInt64("jobID")
+	if err := ar.mergeArtifactChunks(ctx, jobID); err != nil {
 		log.Error("Error merging chunks: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -304,8 +304,8 @@ type chunkItem struct {
 	Path       string
 }
 
-func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, taskID int64) error {
-	storageDir := fmt.Sprintf("tmp%d", taskID)
+func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, jobID int64) error {
+	storageDir := fmt.Sprintf("tmp%d", jobID)
 	var chunks []*chunkItem
 	if err := ar.fs.IterateObjects(storageDir, func(path string, obj storage.Object) error {
 		item := chunkItem{Path: path}
@@ -374,7 +374,7 @@ func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, taskID int64)
 		}
 
 		// save merged file
-		storagePath := fmt.Sprintf("%d/%d/%d.chunk", (taskID+artifactID)%255, artifact.FileSize%255, time.Now().UnixNano())
+		storagePath := fmt.Sprintf("%d/%d/%d.chunk", (jobID+artifactID)%255, artifact.FileSize%255, time.Now().UnixNano())
 		written, err := ar.fs.Save(storagePath, mergedReader, -1)
 		if err != nil {
 			return fmt.Errorf("save merged file error: %v", err)
@@ -413,10 +413,10 @@ func (ar artifactRoutes) listArtifacts(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, "Error getting task in context")
 		return
 	}
-	taskID := ctx.ParamsInt64("taskID")
-	if task.JobID != taskID {
-		log.Error("Error task id not match")
-		ctx.Error(http.StatusInternalServerError, "Error task id not match")
+	jobID := ctx.ParamsInt64("jobID")
+	if task.JobID != jobID {
+		log.Error("Error jobID not match")
+		ctx.Error(http.StatusInternalServerError, "Error jobID not match")
 		return
 	}
 
@@ -429,7 +429,7 @@ func (ar artifactRoutes) listArtifacts(ctx *context.Context) {
 
 	artficatsData := make([]map[string]interface{}, 0, len(artficats))
 	for _, a := range artficats {
-		url, err := ar.buildArtifactURL(taskID, a.ID, "path")
+		url, err := ar.buildArtifactURL(jobID, a.ID, "path")
 		if err != nil {
 			log.Error("Error parsing artifact URL: %v", err)
 			ctx.Error(http.StatusInternalServerError, err.Error())
@@ -455,8 +455,8 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	taskID := ctx.ParamsInt64("taskID")
-	url, err := ar.buildArtifactURL(taskID, artifact.ID, "download")
+	jobID := ctx.ParamsInt64("jobID")
+	url, err := ar.buildArtifactURL(jobID, artifact.ID, "download")
 	if err != nil {
 		log.Error("Error parsing download URL: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -482,9 +482,9 @@ func (ar artifactRoutes) downloadArtifact(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	taskID := ctx.ParamsInt64("taskID")
-	if artifact.JobID != taskID {
-		log.Error("Error dismatch taskID and artifactID, task: %v, artifact: %v", taskID, artifactID)
+	jobID := ctx.ParamsInt64("jobID")
+	if artifact.JobID != jobID {
+		log.Error("Error dismatch jobID and artifactID, task: %v, artifact: %v", jobID, artifactID)
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
