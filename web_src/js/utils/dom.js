@@ -68,8 +68,8 @@ export function onDomReady(cb) {
 // ---------------------------------------------------------------------
 export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
   let isUserResized = false;
-  let lastMouseX, lastMouseY, lastStyleHeight; // the height is the property in style like '100px', not a number
-  let initialStyleHeight;
+  // lastStyleHeight is a CSS value like '100px'
+  let lastMouseX, lastMouseY, lastStyleHeight, initialStyleHeight;
 
   function onUserResize(event) {
     if (isUserResized) return;
@@ -126,8 +126,9 @@ export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
         if (newHeight > curHeight) {
           newHeight = curHeight;
         }
-        // * if the textarea is shrinking, shrink line by line (just use the scrollHeight)
-        //   do not apply max-height limit, otherwise the page flickers and the textarea jumps
+        // * if the textarea is shrinking, shrink line by line (just use the
+        //   scrollHeight). do not apply max-height limit, otherwise the page
+        //   flickers and the textarea jumps
       } else {
         // * if it is in the viewport, apply the max-height limit
         newHeight = Math.min(maxHeight, newHeight);
@@ -136,7 +137,8 @@ export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
       textarea.style.height = `${newHeight}px`;
       lastStyleHeight = textarea.style.height;
     } finally {
-      // ensure that the textarea is fully scrolled to the end, when the cursor is at the end during an input event
+      // ensure that the textarea is fully scrolled to the end, when the cursor
+      // is at the end during an input event
       if (textarea.selectionStart === textarea.selectionEnd &&
           textarea.selectionStart === textarea.value.length) {
         textarea.scrollTop = textarea.scrollHeight;
