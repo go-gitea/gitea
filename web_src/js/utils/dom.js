@@ -68,35 +68,21 @@ export function onDomReady(cb) {
 // ---------------------------------------------------------------------
 export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
   let isUserResized = false;
-  let x, y, styleHeight; // the height in style like '100px', not a number
-
-  const originalStyles = {};
-  function backupStyle(name) {
-    originalStyles[name] = textarea.style[name];
-  }
-  function restoreStyle(name) {
-    if (name in originalStyles) {
-      if (originalStyles[name] === undefined) {
-        textarea.style.removeProperty(name);
-      } else {
-        textarea.style[name] = originalStyles[name];
-      }
-    }
-  }
+  let lastMouseX, lastMouseY, lastStyleHeight; // the height is the property in style like '100px', not a number
+  let initialStyleHeight = undefined;
 
   function onUserResize(event) {
     if (isUserResized) return;
-    if (x !== event.clientX || y !== event.clientY) {
+    if (lastMouseX !== event.clientX || lastMouseY !== event.clientY) {
       const newStyleHeight = textarea.style.height;
-      if (styleHeight && styleHeight !== newStyleHeight) {
+      if (lastStyleHeight && lastStyleHeight !== newStyleHeight) {
         isUserResized = true;
-        textarea.style.removeProperty('max-height');
       }
-      styleHeight = newStyleHeight;
+      lastStyleHeight = newStyleHeight;
     }
 
-    x = event.clientX;
-    y = event.clientY;
+    lastMouseX = event.clientX;
+    lastMouseY = event.clientY;
   }
 
   function overflowOffset() {
@@ -114,28 +100,43 @@ export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
   }
 
   function resizeToFit() {
+    if (isUserResized) return;
+    if (textarea.offsetWidth <= 0 && textarea.offsetHeight <= 0) return;
+
     try {
-      if (isUserResized) return;
-      if (textarea.offsetWidth <= 0 && textarea.offsetHeight <= 0) return;
-
       const {top, bottom} = overflowOffset();
-      if (top < 0 || bottom < 0) return;
+      const isOutOfViewport = top < 0 || bottom < 0;
 
-      const textareaStyle = getComputedStyle(textarea);
-      const topBorderWidth = parseFloat(textareaStyle.borderTopWidth);
-      const bottomBorderWidth = parseFloat(textareaStyle.borderBottomWidth);
-      const isBorderBox = textareaStyle.boxSizing === 'border-box';
+      const computedStyle = getComputedStyle(textarea);
+      const topBorderWidth = parseFloat(computedStyle.borderTopWidth);
+      const bottomBorderWidth = parseFloat(computedStyle.borderBottomWidth);
+      const isBorderBox = computedStyle.boxSizing === 'border-box';
       const borderAddOn = isBorderBox ? topBorderWidth + bottomBorderWidth : 0;
-      const maxHeight = parseFloat(textareaStyle.height) + bottom;
-      const adjustedViewportMarginBottom = bottom < viewportMarginBottom ? bottom : viewportMarginBottom;
 
-      textarea.style.maxHeight = `${maxHeight - adjustedViewportMarginBottom}px`;
+      const adjustedViewportMarginBottom = bottom < viewportMarginBottom ? bottom : viewportMarginBottom;
+      const curHeight = parseFloat(computedStyle.height);
+      const maxHeight = curHeight + bottom - adjustedViewportMarginBottom;
+
       textarea.style.height = 'auto';
-      textarea.style.height = `${textarea.scrollHeight + borderAddOn}px`;
-      styleHeight = textarea.style.height;
+      let newHeight = textarea.scrollHeight + borderAddOn;
+
+      if (isOutOfViewport) {
+        // it is already out of the viewport:
+        // * if the textarea is expanding: do not resize it
+        if (newHeight > curHeight) {
+          newHeight = curHeight;
+        }
+        // * if the textarea is shrinking, shrink line by line (just use the scrollHeight)
+        //   do not apply max-height limit, otherwise the page flickers and the textarea jumps
+      } else {
+        // * if it is in the viewport, apply the max-height limit
+        newHeight = Math.min(maxHeight, newHeight);
+      }
+
+      textarea.style.height = `${newHeight}px`;
+      lastStyleHeight = textarea.style.height;
     } finally {
-      // ensure that the textarea is fully scrolled to the end
-      // when the cursor is at the end during an input event
+      // ensure that the textarea is fully scrolled to the end, when the cursor is at the end during an input event
       if (textarea.selectionStart === textarea.selectionEnd &&
           textarea.selectionStart === textarea.value.length) {
         textarea.scrollTop = textarea.scrollHeight;
@@ -145,15 +146,17 @@ export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
 
   function onFormReset() {
     isUserResized = false;
-    restoreStyle('height');
-    restoreStyle('max-height');
+    if (initialStyleHeight !== undefined) {
+      textarea.style.height = initialStyleHeight;
+    } else {
+      textarea.style.removeProperty('height');
+    }
   }
 
   textarea.addEventListener('mousemove', onUserResize);
   textarea.addEventListener('input', resizeToFit);
   textarea.form?.addEventListener('reset', onFormReset);
-  backupStyle('height');
-  backupStyle('max-height');
+  initialStyleHeight = textarea.style.height ?? undefined;
   if (textarea.value) resizeToFit();
 
   return {
