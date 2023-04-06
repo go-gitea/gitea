@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/regexplru"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates/vars"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/net/html"
@@ -97,12 +98,28 @@ var issueFullPattern *regexp.Regexp
 // Once for to prevent races
 var issueFullPatternOnce sync.Once
 
+// regexp for full links to hash comment in pull request files changed tab
+var filesChangedFullPattern *regexp.Regexp
+
+// Once for to prevent races
+var filesChangedFullPatternOnce sync.Once
+
 func getIssueFullPattern() *regexp.Regexp {
 	issueFullPatternOnce.Do(func() {
+		// example: https://domain/org/repo/pulls/27#hash
 		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
 			`[\w_.-]+/[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
 	})
 	return issueFullPattern
+}
+
+func getFilesChangedFullPattern() *regexp.Regexp {
+	filesChangedFullPatternOnce.Do(func() {
+		// example: https://domain/org/repo/pulls/27/files#hash
+		filesChangedFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
+			`[\w_.-]+/[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
+	})
+	return filesChangedFullPattern
 }
 
 // CustomLinkURLSchemes allows for additional schemes to be detected when parsing links within text
@@ -793,15 +810,30 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 	if ctx.Metas == nil {
 		return
 	}
-
 	next := node.NextSibling
 	for node != nil && node != next {
 		m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
 		if m == nil {
 			return
 		}
+
+		mDiffView := getFilesChangedFullPattern().FindStringSubmatchIndex(node.Data)
+		// leave it as it is if the link is from "Files Changed" tab in PR Diff View https://domain/org/repo/pulls/27/files
+		if mDiffView != nil {
+			return
+		}
+
 		link := node.Data[m[0]:m[1]]
-		id := "#" + node.Data[m[2]:m[3]]
+		text := "#" + node.Data[m[2]:m[3]]
+		// if m[4] and m[5] is not -1, then link is to a comment
+		// indicate that in the text by appending (comment)
+		if m[4] != -1 && m[5] != -1 {
+			if locale, ok := ctx.Ctx.Value(translation.ContextKey).(translation.Locale); ok {
+				text += " " + locale.Tr("repo.from_comment")
+			} else {
+				text += " (comment)"
+			}
+		}
 
 		// extract repo and org name from matched link like
 		// http://localhost:3000/gituser/myrepo/issues/1
@@ -810,12 +842,10 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 		matchRepo := linkParts[len(linkParts)-3]
 
 		if matchOrg == ctx.Metas["user"] && matchRepo == ctx.Metas["repo"] {
-			// TODO if m[4]:m[5] is not nil, then link is to a comment,
-			// and we should indicate that in the text somehow
-			replaceContent(node, m[0], m[1], createLink(link, id, "ref-issue"))
+			replaceContent(node, m[0], m[1], createLink(link, text, "ref-issue"))
 		} else {
-			orgRepoID := matchOrg + "/" + matchRepo + id
-			replaceContent(node, m[0], m[1], createLink(link, orgRepoID, "ref-issue"))
+			text = matchOrg + "/" + matchRepo + text
+			replaceContent(node, m[0], m[1], createLink(link, text, "ref-issue"))
 		}
 		node = node.NextSibling.NextSibling
 	}

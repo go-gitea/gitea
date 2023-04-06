@@ -197,7 +197,9 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	for _, v := range jobs {
 		id, job := v.Job()
 		needs := job.Needs()
-		job.EraseNeeds()
+		if err := v.SetJob(id, job.EraseNeeds()); err != nil {
+			return err
+		}
 		payload, _ := v.Marshal()
 		status := StatusWaiting
 		if len(needs) > 0 || run.NeedApproval {

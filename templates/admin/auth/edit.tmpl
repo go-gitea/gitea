@@ -212,7 +212,7 @@
 					<div class="has-tls inline field {{if not .HasTLS}}gt-hidden{{end}}">
 						<div class="ui checkbox">
 							<label><strong>{{.locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
-							<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>
+							<input name="skip_verify" type="checkbox" {{if $cfg.SkipVerify}}checked{{end}}>
 						</div>
 					</div>
 					<div class="field">

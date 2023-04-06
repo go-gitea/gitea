@@ -1,8 +1,8 @@
 ---
 date: "2018-05-22T11:00:00+00:00"
-title: "Usage: Reverse Proxies"
+title: "Reverse Proxies"
 slug: "reverse-proxies"
-weight: 17
+weight: 16
 toc: false
 draft: false
 menu:
