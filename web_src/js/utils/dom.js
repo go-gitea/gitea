@@ -66,19 +66,33 @@ export function onDomReady(cb) {
 // The above copyright notice and this permission notice shall be
 // included in all copies or substantial portions of the Software.
 // ---------------------------------------------------------------------
-export function autosize(textarea, {viewportMarginBottom = 100} = {}) {
+export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
   let isUserResized = false;
-  let x, y, height;
+  let x, y, styleHeight; // the height in style like '100px', not a number
+
+  const originalStyles = {};
+  function backupStyle(name) {
+    originalStyles[name] = textarea.style[name];
+  }
+  function restoreStyle(name) {
+    if (name in originalStyles) {
+      if (originalStyles[name] === undefined) {
+        textarea.style.removeProperty(name);
+      } else {
+        textarea.style[name] = originalStyles[name];
+      }
+    }
+  }
 
   function onUserResize(event) {
+    if (isUserResized) return;
     if (x !== event.clientX || y !== event.clientY) {
-      const newHeight = textarea.style.height;
-      if (height && height !== newHeight) {
+      const newStyleHeight = textarea.style.height;
+      if (styleHeight && styleHeight !== newStyleHeight) {
         isUserResized = true;
         textarea.style.removeProperty('max-height');
-        textarea.removeEventListener('mousemove', onUserResize);
       }
-      height = newHeight;
+      styleHeight = newStyleHeight;
     }
 
     x = event.clientX;
@@ -94,12 +108,12 @@ export function autosize(textarea, {viewportMarginBottom = 100} = {}) {
       el = el.offsetParent;
     }
 
-    const top = offsetTop - document.defaultView.pageYOffset;
+    const top = offsetTop - document.defaultView.scrollY;
     const bottom = document.documentElement.clientHeight - (top + textarea.offsetHeight);
     return {top, bottom};
   }
 
-  function sizeToFit() {
+  function resizeToFit() {
     try {
       if (isUserResized) return;
       if (textarea.offsetWidth <= 0 && textarea.offsetHeight <= 0) return;
@@ -118,7 +132,7 @@ export function autosize(textarea, {viewportMarginBottom = 100} = {}) {
       textarea.style.maxHeight = `${maxHeight - adjustedViewportMarginBottom}px`;
       textarea.style.height = 'auto';
       textarea.style.height = `${textarea.scrollHeight + borderAddOn}px`;
-      height = textarea.style.height;
+      styleHeight = textarea.style.height;
     } finally {
       // ensure that the textarea is fully scrolled to the end
       // when the cursor is at the end during an input event
@@ -131,24 +145,23 @@ export function autosize(textarea, {viewportMarginBottom = 100} = {}) {
 
   function onFormReset() {
     isUserResized = false;
-    textarea.style.removeProperty('height');
-    textarea.style.removeProperty('max-height');
+    restoreStyle('height');
+    restoreStyle('max-height');
   }
 
   textarea.addEventListener('mousemove', onUserResize);
-  textarea.addEventListener('keyup', sizeToFit);
-  textarea.addEventListener('paste', sizeToFit);
-  textarea.addEventListener('input', sizeToFit);
-  const form = textarea.form;
-  if (form) form.addEventListener('reset', onFormReset);
-  if (textarea.value) sizeToFit();
+  textarea.addEventListener('input', resizeToFit);
+  textarea.form?.addEventListener('reset', onFormReset);
+  backupStyle('height');
+  backupStyle('max-height');
+  if (textarea.value) resizeToFit();
 
   return {
-    unsubscribe() {
+    resizeToFit,
+    destroy() {
       textarea.removeEventListener('mousemove', onUserResize);
-      textarea.removeEventListener('keyup', sizeToFit);
-      textarea.removeEventListener('input', sizeToFit);
-      if (form) form.removeEventListener('reset', onFormReset);
+      textarea.removeEventListener('input', resizeToFit);
+      textarea.form?.removeEventListener('reset', onFormReset);
     }
   };
 }
