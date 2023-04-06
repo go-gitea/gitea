@@ -131,24 +131,25 @@
 		{{$showGeneralMergeForm := false}}
 		<div class="ui attached merge-section segment {{if not $.LatestCommitStatus}}no-header{{end}}">
 			{{if .Issue.PullRequest.HasMerged}}
-				<div class="item text">
-					{{if .Issue.PullRequest.MergedCommitID}}
-						{{$link := printf "%s/commit/%s" $.Repository.Link (.Issue.PullRequest.MergedCommitID|PathEscape)}}
-						{{if eq $.Issue.PullRequest.Status 3}}
-							{{$.locale.Tr "repo.pulls.manually_merged_as" ($link|Escape) (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
+				<div class="item item-section text gt-f1">
+					<div class="item-section-left">
+						{{if .Issue.PullRequest.MergedCommitID}}
+							{{$link := printf "%s/commit/%s" $.Repository.Link (.Issue.PullRequest.MergedCommitID|PathEscape)}}
+							{{if eq $.Issue.PullRequest.Status 3}}
+								{{$.locale.Tr "repo.pulls.manually_merged_as" ($link|Escape) (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
+							{{else}}
+								{{$.locale.Tr "repo.pulls.merged_as" ($link|Escape) (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
+							{{end}}
 						{{else}}
-							{{$.locale.Tr "repo.pulls.merged_as" ($link|Escape) (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
+							{{$.locale.Tr "repo.pulls.has_merged"}}
 						{{end}}
-					{{else}}
-						{{$.locale.Tr "repo.pulls.has_merged"}}
+					</div>
+					{{if .IsPullBranchDeletable}}
+						<div class="item-section-right">
+							<button class="delete-button ui button" data-url="{{.DeleteBranchLink}}">{{$.locale.Tr "repo.branch.delete_html"}}</a>
+						</div>
 					{{end}}
 				</div>
-				{{if .IsPullBranchDeletable}}
-					<div class="ui divider"></div>
-					<div>
-						<a class="delete-button ui red button" href="" data-url="{{.DeleteBranchLink}}">{{$.locale.Tr "repo.branch.delete" .HeadTarget}}</a>
-					</div>
-				{{end}}
 			{{else if .Issue.IsClosed}}
 				<div class="item text">
 					{{if .IsPullRequestBroken}}
@@ -471,7 +472,7 @@
 				</div>
 			{{end}}
 
-			{{if and .ShowMergeInstructions .Issue.PullRequest.HeadRepo}}
+			{{if and .ShowMergeInstructions .Issue.PullRequest.HeadRepo (not .Issue.PullRequest.HasMerged)}}
 				{{template "repo/issue/view_content/pull_merge_instruction" (dict "locale" .locale "Issue" .Issue)}}
 			{{end}}
 		</div>
