@@ -22,7 +22,7 @@
 				</div>
 
 				<!-- LDAP and DLDAP -->
-				{{if or .Form.Type.IsLDAP .Form.Type.IsDLDAP}}
+				{{if or .Type.IsLDAP .Type.IsDLDAP}}
 					<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
 						<label>{{.locale.Tr "admin.auths.security_protocol"}}</label>
 						<div class="ui selection security-protocol dropdown">
@@ -50,7 +50,7 @@
 							<input name="skip_verify" type="checkbox" {{if .Form.SkipVerify}}checked{{end}}>
 						</div>
 					</div>
-					{{if .Form.Type.IsLDAP}}
+					{{if .Type.IsLDAP}}
 						<div class="field">
 							<label for="bind_dn">{{.locale.Tr "admin.auths.bind_dn"}}</label>
 							<input id="bind_dn" name="bind_dn" value="{{.Form.BindDN}}" placeholder="e.g. cn=Search,dc=mydomain,dc=com">
@@ -60,11 +60,11 @@
 							<input id="bind_password" name="bind_password" type="password" value="{{.Form.BindPassword}}">
 						</div>
 					{{end}}
-					<div class="{{if .Form.Type.IsLDAP}}required{{end}} field">
+					<div class="{{if .Type.IsLDAP}}required{{end}} field">
 							<label for="user_base">{{.locale.Tr "admin.auths.user_base"}}</label>
-							<input id="user_base" name="user_base" value="{{.Form.UserBase}}" placeholder="e.g. ou=Users,dc=mydomain,dc=com" {{if .Form.Type.IsLDAP}}required{{end}}>
+							<input id="user_base" name="user_base" value="{{.Form.UserBase}}" placeholder="e.g. ou=Users,dc=mydomain,dc=com" {{if .Type.IsLDAP}}required{{end}}>
 					</div>
-					{{if .Form.Type.IsDLDAP}}
+					{{if .Type.IsDLDAP}}
 						<div class="required field">
 							<label for="user_dn">{{.locale.Tr "admin.auths.user_dn"}}</label>
 							<input id="user_dn" name="user_dn" value="{{.Form.UserDN}}" placeholder="e.g. uid=%s,ou=Users,dc=mydomain,dc=com" required>
@@ -144,7 +144,7 @@
 					</div>
 					<!-- ldap group end -->
 
-					{{if .Form.Type.IsLDAP}}
+					{{if .Type.IsLDAP}}
 						<div class="inline field">
 							<div class="ui checkbox">
 								<label for="use_paged_search"><strong>{{.locale.Tr "admin.auths.use_paged_search"}}</strong></label>
@@ -178,7 +178,7 @@
 				{{end}}
 
 				<!-- SMTP -->
-				{{if .Form.Type.IsSMTP}}
+				{{if .Type.IsSMTP}}
 					<div class="inline required field">
 						<label>{{.locale.Tr "admin.auths.smtp_auth"}}</label>
 						<div class="ui selection type dropdown">
@@ -239,7 +239,7 @@
 				{{end}}
 
 				<!-- PAM -->
-				{{if .Form.Type.IsPAM}}
+				{{if .Type.IsPAM}}
 					<div class="required field">
 						<label for="pam_service_name">{{.locale.Tr "admin.auths.pam_service_name"}}</label>
 						<input id="pam_service_name" name="pam_service_name" value="{{.Form.PAMServiceName}}" required>
@@ -258,12 +258,12 @@
 				{{end}}
 
 				<!-- OAuth2 -->
-				{{if .Form.Type.IsOAuth2}}
+				{{if .Type.IsOAuth2}}
 					<div class="inline required field">
 						<label>{{.locale.Tr "admin.auths.oauth2_provider"}}</label>
 						<div class="ui selection type dropdown">
 							<input type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{.From.Oauth2Provider}}" required>
-							<div class="text">{{.CurrentOAuth2Provider.DisplayName}}</div>
+							<div class="text">{{.From.Oauth2Provider}}</div>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								{{range .OAuth2Providers}}
@@ -274,52 +274,52 @@
 					</div>
 					<div class="required field">
 						<label for="oauth2_key">{{.locale.Tr "admin.auths.oauth2_clientID"}}</label>
-						<input id="oauth2_key" name="oauth2_key" value="{{$cfg.ClientID}}" required>
+						<input id="oauth2_key" name="oauth2_key" value="{{.Form.Oauth2Key}}" required>
 					</div>
 					<div class="required field">
 						<label for="oauth2_secret">{{.locale.Tr "admin.auths.oauth2_clientSecret"}}</label>
-						<input id="oauth2_secret" name="oauth2_secret" value="{{$cfg.ClientSecret}}" required>
+						<input id="oauth2_secret" name="oauth2_secret" value="{{.Form.Oauth2Secret}}" required>
 					</div>
 					<div class="optional field">
 						<label for="oauth2_icon_url">{{.locale.Tr "admin.auths.oauth2_icon_url"}}</label>
-						<input id="oauth2_icon_url" name="oauth2_icon_url" value="{{$cfg.IconURL}}">
+						<input id="oauth2_icon_url" name="oauth2_icon_url" value="{{.Form.Oauth2IconURL}}">
 					</div>
 					<div class="open_id_connect_auto_discovery_url required field">
 						<label for="open_id_connect_auto_discovery_url">{{.locale.Tr "admin.auths.openIdConnectAutoDiscoveryURL"}}</label>
-						<input id="open_id_connect_auto_discovery_url" name="open_id_connect_auto_discovery_url" value="{{$cfg.OpenIDConnectAutoDiscoveryURL}}">
+						<input id="open_id_connect_auto_discovery_url" name="open_id_connect_auto_discovery_url" value="{{.Form.OpenIDConnectAutoDiscoveryURL}}">
 					</div>
 					<div class="optional field">
 						<div class="ui checkbox">
 							<label for="skip_local_two_fa"><strong>{{.locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
-							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if $cfg.SkipLocalTwoFA}}checked{{end}}>
+							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .Form.SkipLocalTwoFA}}checked{{end}}>
 							<p class="help">{{.locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
 						</div>
 					</div>
 					<div class="oauth2_use_custom_url inline field">
 						<div class="ui checkbox">
 							<label><strong>{{.locale.Tr "admin.auths.oauth2_use_custom_url"}}</strong></label>
-							<input id="oauth2_use_custom_url" name="oauth2_use_custom_url" type="checkbox" {{if $cfg.CustomURLMapping}}checked{{end}}>
+							<input id="oauth2_use_custom_url" name="oauth2_use_custom_url" type="checkbox" {{if .Form.Oauth2UseCustomURL}}checked{{end}}>
 						</div>
 					</div>
 					<div class="oauth2_use_custom_url_field oauth2_auth_url required field">
 						<label for="oauth2_auth_url">{{.locale.Tr "admin.auths.oauth2_authURL"}}</label>
-						<input id="oauth2_auth_url" name="oauth2_auth_url" value="{{if $cfg.CustomURLMapping}}{{$cfg.CustomURLMapping.AuthURL}}{{end}}">
+						<input id="oauth2_auth_url" name="oauth2_auth_url" value="{{if .Form.Oauth2UseCustomURL}}{{.Form.Oauth2AuthURL}}{{end}}">
 					</div>
 					<div class="oauth2_use_custom_url_field oauth2_token_url required field">
 						<label for="oauth2_token_url">{{.locale.Tr "admin.auths.oauth2_tokenURL"}}</label>
-						<input id="oauth2_token_url" name="oauth2_token_url" value="{{if $cfg.CustomURLMapping}}{{$cfg.CustomURLMapping.TokenURL}}{{end}}">
+						<input id="oauth2_token_url" name="oauth2_token_url" value="{{if .Form.Oauth2UseCustomURL}}{{.Form.Oauth2TokenURL}}{{end}}">
 					</div>
 					<div class="oauth2_use_custom_url_field oauth2_profile_url required field">
 						<label for="oauth2_profile_url">{{.locale.Tr "admin.auths.oauth2_profileURL"}}</label>
-						<input id="oauth2_profile_url" name="oauth2_profile_url" value="{{if $cfg.CustomURLMapping}}{{$cfg.CustomURLMapping.ProfileURL}}{{end}}">
+						<input id="oauth2_profile_url" name="oauth2_profile_url" value="{{if .Form.Oauth2UseCustomURL}}{{.Form.Oauth2ProfileURL}}{{end}}">
 					</div>
 					<div class="oauth2_use_custom_url_field oauth2_email_url required field">
 						<label for="oauth2_email_url">{{.locale.Tr "admin.auths.oauth2_emailURL"}}</label>
-						<input id="oauth2_email_url" name="oauth2_email_url" value="{{if $cfg.CustomURLMapping}}{{$cfg.CustomURLMapping.EmailURL}}{{end}}">
+						<input id="oauth2_email_url" name="oauth2_email_url" value="{{if .Form.Oauth2UseCustomURL}}{{.Form.Oauth2EmailURL}}{{end}}">
 					</div>
 					<div class="oauth2_use_custom_url_field oauth2_tenant required field">
 						<label for="oauth2_tenant">{{.locale.Tr "admin.auths.oauth2_tenant"}}</label>
-						<input id="oauth2_tenant" name="oauth2_tenant" value="{{if $cfg.CustomURLMapping}}{{$cfg.CustomURLMapping.Tenant}}{{end}}">
+						<input id="oauth2_tenant" name="oauth2_tenant" value="{{if .Form.Oauth2UseCustomURL}}{{.Form.Oauth2Tenant}}{{end}}">
 					</div>
 
 					{{range .OAuth2Providers}}{{if .CustomURLSettings}}
@@ -333,97 +333,96 @@
 
 					<div class="field">
 						<label for="oauth2_scopes">{{.locale.Tr "admin.auths.oauth2_scopes"}}</label>
-						<input id="oauth2_scopes" name="oauth2_scopes" value="{{if $cfg.Scopes}}{{Join $cfg.Scopes ","}}{{end}}">
+						<input id="oauth2_scopes" name="oauth2_scopes" value="{{.Form.Oauth2Scopes}}">
 					</div>
 					<div class="field">
 						<label for="oauth2_required_claim_name">{{.locale.Tr "admin.auths.oauth2_required_claim_name"}}</label>
-						<input id="oauth2_required_claim_name" name="oauth2_required_claim_name" value="{{$cfg.RequiredClaimName}}">
+						<input id="oauth2_required_claim_name" name="oauth2_required_claim_name" value="{{.Form.Oauth2RequiredClaimName}}">
 						<p class="help">{{.locale.Tr "admin.auths.oauth2_required_claim_name_helper"}}</p>
 					</div>
 					<div class="field">
 						<label for="oauth2_required_claim_value">{{.locale.Tr "admin.auths.oauth2_required_claim_value"}}</label>
-						<input id="oauth2_required_claim_value" name="oauth2_required_claim_value" value="{{$cfg.RequiredClaimValue}}">
+						<input id="oauth2_required_claim_value" name="oauth2_required_claim_value" value="{{.Form.Oauth2RequiredClaimValue}}">
 						<p class="help">{{.locale.Tr "admin.auths.oauth2_required_claim_value_helper"}}</p>
 					</div>
 					<div class="field">
 						<label for="oauth2_group_claim_name">{{.locale.Tr "admin.auths.oauth2_group_claim_name"}}</label>
-						<input id="oauth2_group_claim_name" name="oauth2_group_claim_name" value="{{$cfg.GroupClaimName}}">
+						<input id="oauth2_group_claim_name" name="oauth2_group_claim_name" value="{{.Form.Oauth2GroupClaimName}}">
 					</div>
 					<div class="field">
 						<label for="oauth2_admin_group">{{.locale.Tr "admin.auths.oauth2_admin_group"}}</label>
-						<input id="oauth2_admin_group" name="oauth2_admin_group" value="{{$cfg.AdminGroup}}">
+						<input id="oauth2_admin_group" name="oauth2_admin_group" value="{{.Form.Oauth2AdminGroup}}">
 					</div>
 					<div class="field">
 						<label for="oauth2_restricted_group">{{.locale.Tr "admin.auths.oauth2_restricted_group"}}</label>
-						<input id="oauth2_restricted_group" name="oauth2_restricted_group" value="{{$cfg.RestrictedGroup}}">
+						<input id="oauth2_restricted_group" name="oauth2_restricted_group" value="{{.Form.Oauth2RestrictedGroup}}">
 					</div>
 					<div class="field">
 						<label>{{.locale.Tr "admin.auths.oauth2_map_group_to_team"}}</label>
-						<input name="oauth2_group_team_map" value="{{$cfg.GroupTeamMap}}" placeholder='e.g. {"Developer": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>
+						<input name="oauth2_group_team_map" value="{{.Form.Oauth2GroupTeamMap}}" placeholder='e.g. {"Developer": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>
 					</div>
 					<div class="ui checkbox">
 						<label>{{.locale.Tr "admin.auths.oauth2_map_group_to_team_removal"}}</label>
-						<input name="oauth2_group_team_map_removal" type="checkbox" {{if $cfg.GroupTeamMapRemoval}}checked{{end}}>
+						<input name="oauth2_group_team_map_removal" type="checkbox" {{if .Form.Oauth2GroupTeamMapRemoval}}checked{{end}}>
 					</div>
 				{{end}}
 
 				<!-- SSPI -->
-				{{if .Form.Type.IsSSPI}}
-					{{$cfg:=.Source.Cfg}}
+				{{if .Type.IsSSPI}}
 					<div class="field">
 						<div class="ui checkbox">
 							<label for="sspi_auto_create_users"><strong>{{.locale.Tr "admin.auths.sspi_auto_create_users"}}</strong></label>
-							<input id="sspi_auto_create_users" name="sspi_auto_create_users" class="sspi-auto-create-users" type="checkbox" {{if $cfg.AutoCreateUsers}}checked{{end}}>
+							<input id="sspi_auto_create_users" name="sspi_auto_create_users" class="sspi-auto-create-users" type="checkbox" {{if .Form.SSPIAutoCreateUsers}}checked{{end}}>
 							<p class="help">{{.locale.Tr "admin.auths.sspi_auto_create_users_helper"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
 							<label for="sspi_auto_activate_users"><strong>{{.locale.Tr "admin.auths.sspi_auto_activate_users"}}</strong></label>
-							<input id="sspi_auto_activate_users" name="sspi_auto_activate_users" class="sspi-auto-activate-users" type="checkbox" {{if $cfg.AutoActivateUsers}}checked{{end}}>
+							<input id="sspi_auto_activate_users" name="sspi_auto_activate_users" class="sspi-auto-activate-users" type="checkbox" {{if .Form.SSPIAutoActivateUsers}}checked{{end}}>
 							<p class="help">{{.locale.Tr "admin.auths.sspi_auto_activate_users_helper"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
 							<label for="sspi_strip_domain_names"><strong>{{.locale.Tr "admin.auths.sspi_strip_domain_names"}}</strong></label>
-							<input id="sspi_strip_domain_names" name="sspi_strip_domain_names" class="sspi-strip-domain-names" type="checkbox" {{if $cfg.StripDomainNames}}checked{{end}}>
+							<input id="sspi_strip_domain_names" name="sspi_strip_domain_names" class="sspi-strip-domain-names" type="checkbox" {{if .Form.SSPIStripDomainNames}}checked{{end}}>
 							<p class="help">{{.locale.Tr "admin.auths.sspi_strip_domain_names_helper"}}</p>
 						</div>
 					</div>
 					<div class="required field">
 						<label for="sspi_separator_replacement">{{.locale.Tr "admin.auths.sspi_separator_replacement"}}</label>
-						<input id="sspi_separator_replacement" name="sspi_separator_replacement" value="{{$cfg.SeparatorReplacement}}" required>
+						<input id="sspi_separator_replacement" name="sspi_separator_replacement" value="{{.Form.SSPISeparatorReplacement}}" required>
 						<p class="help">{{.locale.Tr "admin.auths.sspi_separator_replacement_helper"}}</p>
 					</div>
 					<div class="field">
 						<label for="sspi_default_language">{{.locale.Tr "admin.auths.sspi_default_language"}}</label>
 						<div class="ui language selection dropdown" id="sspi_default_language">
-							<input name="sspi_default_language" type="hidden" value="{{$cfg.DefaultLanguage}}">
+							<input name="sspi_default_language" type="hidden" value="{{.Form.SSPIDefaultLanguage}}">
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="text">{{range .AllLangs}}{{if eq $cfg.DefaultLanguage .Lang}}{{.Name}}{{end}}{{end}}</div>
+							<div class="text">{{range .AllLangs}}{{if eq $.Form.SSPIDefaultLanguage .Lang}}{{.Name}}{{end}}{{end}}</div>
 							<div class="menu">
 								<div class="item{{if not $.Form.SSPIDefaultLanguage}} active selected{{end}}" data-value="">-</div>
 							{{range .AllLangs}}
-								<div class="item{{if eq $cfg.DefaultLanguage .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
+								<div class="item{{if eq $.Form.SSPIDefaultLanguage .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
 							{{end}}
 							</div>
 						</div>
 						<p class="help">{{.locale.Tr "admin.auths.sspi_default_language_helper"}}</p>
 					</div>
 				{{end}}
-				{{if .Form.Type.IsLDAP}}
+				{{if .Type.IsLDAP}}
 					<div class="inline field">
 						<div class="ui checkbox">
 							<label><strong>{{.locale.Tr "admin.auths.syncenabled"}}</strong></label>
-							<input name="is_sync_enabled" type="checkbox" {{if .Source.IsSyncEnabled}}checked{{end}}>
+							<input name="is_sync_enabled" type="checkbox" {{if .Form.IsSyncEnabled}}checked{{end}}>
 						</div>
 					</div>
 				{{end}}
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.auths.activated"}}</strong></label>
-						<input name="is_active" type="checkbox" {{if .Source.IsActive}}checked{{end}}>
+						<input name="is_active" type="checkbox" {{if .Form.IsActive}}checked{{end}}>
 					</div>
 				</div>
 

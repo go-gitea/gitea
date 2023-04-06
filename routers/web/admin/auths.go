@@ -109,7 +109,6 @@ func NewAuthSource(ctx *context.Context) {
 		SSPIAutoActivateUsers:    true,
 		SSPIStripDomainNames:     true,
 		SSPISeparatorReplacement: "_",
-		SSPIDefaultLanguage:      "",
 	}
 
 	ctx.HTML(http.StatusOK, tplAuthNew)
@@ -321,6 +320,115 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/admin/auths")
 }
 
+func parseSource(ctx *context.Context) *auth.Source {
+	source, err := auth.GetSourceByID(ctx.ParamsInt64(":authid"))
+	if err != nil {
+		ctx.ServerError("auth.GetSourceByID", err)
+		return nil
+	}
+	ctx.Data["HasTLS"] = source.HasTLS()
+	ctx.Data["Type"] = source.Type
+
+	form := forms.AuthenticationForm{
+		ID:            source.ID,
+		Type:          source.Type.Int(),
+		Name:          source.Name,
+		IsActive:      source.IsActive,
+		IsSyncEnabled: source.IsSyncEnabled,
+	}
+
+	if source.Cfg != nil {
+		switch source.Type {
+		case auth.LDAP, auth.DLDAP:
+			cfg := source.Cfg.(*ldap.Source)
+			if cfg.SearchPageSize > 0 {
+				form.UsePagedSearch = true
+			}
+			form.Host = cfg.Host
+			form.Port = cfg.Port
+			form.SecurityProtocol = cfg.SecurityProtocol.Int()
+			form.SkipVerify = cfg.SkipVerify
+			form.BindDN = cfg.BindDN
+			form.BindPassword = cfg.BindPassword
+			form.UserBase = cfg.UserBase
+			form.AttributeUsername = cfg.AttributeUsername
+			form.AttributeName = cfg.AttributeName
+			form.AttributeSurname = cfg.AttributeSurname
+			form.AttributeMail = cfg.AttributeMail
+			form.AttributesInBind = cfg.AttributesInBind
+			form.AttributeSSHPublicKey = cfg.AttributeSSHPublicKey
+			form.AttributeAvatar = cfg.AttributeAvatar
+			form.SearchPageSize = int(cfg.SearchPageSize)
+			form.Filter = cfg.Filter
+			form.GroupsEnabled = cfg.GroupsEnabled
+			form.GroupDN = cfg.GroupDN
+			form.GroupFilter = cfg.GroupFilter
+			form.GroupMemberUID = cfg.GroupMemberUID
+			form.GroupTeamMap = cfg.GroupTeamMap
+			form.GroupTeamMapRemoval = cfg.GroupTeamMapRemoval
+			form.UserUID = cfg.UserUID
+			form.AdminFilter = cfg.AdminFilter
+			form.RestrictedFilter = cfg.RestrictedFilter
+			form.AllowDeactivateAll = cfg.AllowDeactivateAll
+			//form.Enabled=cfg.Enabled
+			form.SkipLocalTwoFA = cfg.SkipLocalTwoFA
+		case auth.SMTP:
+			cfg := source.Cfg.(*smtp.Source)
+			form.SMTPAuth = cfg.Auth
+			form.SMTPHost = cfg.Host
+			form.SMTPPort = cfg.Port
+			form.AllowedDomains = cfg.AllowedDomains
+			form.ForceSMTPS = cfg.ForceSMTPS
+			form.SkipVerify = cfg.SkipVerify
+			form.HeloHostname = cfg.HeloHostname
+			form.DisableHelo = cfg.DisableHelo
+			form.SkipLocalTwoFA = cfg.SkipLocalTwoFA
+		case auth.PAM:
+			cfg := source.Cfg.(*pam_service.Source)
+			form.PAMServiceName = cfg.ServiceName
+			form.PAMEmailDomain = cfg.EmailDomain
+			form.SkipLocalTwoFA = cfg.SkipLocalTwoFA
+		case auth.OAuth2:
+			cfg := source.Cfg.(*oauth2.Source)
+			form.Oauth2Provider = cfg.Provider
+			form.Oauth2Key = cfg.ClientID
+			form.Oauth2Secret = cfg.ClientSecret
+			form.OpenIDConnectAutoDiscoveryURL = cfg.OpenIDConnectAutoDiscoveryURL
+			if cfg.CustomURLMapping != nil {
+				form.Oauth2UseCustomURL = true
+				form.Oauth2TokenURL = cfg.CustomURLMapping.TokenURL
+				form.Oauth2AuthURL = cfg.CustomURLMapping.AuthURL
+				form.Oauth2ProfileURL = cfg.CustomURLMapping.ProfileURL
+				form.Oauth2EmailURL = cfg.CustomURLMapping.EmailURL
+				form.Oauth2Tenant = cfg.CustomURLMapping.Tenant
+			}
+			form.Oauth2IconURL = cfg.IconURL
+			form.Oauth2Scopes = strings.Join(cfg.Scopes, ",")
+			form.Oauth2RequiredClaimName = cfg.RequiredClaimName
+			form.Oauth2RequiredClaimValue = cfg.RequiredClaimValue
+			form.SkipLocalTwoFA = cfg.SkipLocalTwoFA
+			form.Oauth2GroupClaimName = cfg.GroupClaimName
+			form.Oauth2RestrictedGroup = cfg.RestrictedGroup
+			form.Oauth2AdminGroup = cfg.AdminGroup
+			form.Oauth2GroupTeamMap = cfg.GroupTeamMap
+			form.Oauth2GroupTeamMapRemoval = cfg.GroupTeamMapRemoval
+		case auth.SSPI:
+			cfg := source.Cfg.(*sspi.Source)
+			form.SSPIAutoCreateUsers = cfg.AutoCreateUsers
+			form.SSPIAutoActivateUsers = cfg.AutoActivateUsers
+			form.SSPIStripDomainNames = cfg.StripDomainNames
+			form.SSPISeparatorReplacement = cfg.SeparatorReplacement
+			form.SSPIDefaultLanguage = cfg.DefaultLanguage
+		default:
+			ctx.Error(http.StatusBadRequest)
+			return nil
+		}
+	}
+	ctx.Data["Form"] = form
+
+	return source
+}
+
 // EditAuthSource render editing auth source page
 func EditAuthSource(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.edit")
@@ -333,154 +441,9 @@ func EditAuthSource(ctx *context.Context) {
 	ctx.Data["OAuth2Providers"] = oauth2providers
 	ctx.Data["SourceTypeNames"] = auth.Names
 
-	source, err := auth.GetSourceByID(ctx.ParamsInt64(":authid"))
-	if err != nil {
-		ctx.ServerError("auth.GetSourceByID", err)
+	parseSource(ctx)
+	if ctx.Written() {
 		return
-	}
-	ctx.Data["HasTLS"] = source.HasTLS()
-
-	form := forms.AuthenticationForm{
-		ID    :                        source.ID,
-		Type  :                        source.Type.Int(),
-		Name  :                        source.Name,
-		SkipVerify: source.SkipVerify,
-		IsActive          :            bool
-		IsSyncEnabled    :             bool
-	}
-
-	if source.Cfg == nil {
-
-	}
-
-	switch source.Type {
-	case auth.LDAP, auth.DLDAP:
-		Name:                  form.Name,
-		Host:                  form.Host,
-		Port:                  form.Port,
-		SecurityProtocol:      ldap.SecurityProtocol(form.SecurityProtocol),
-		SkipVerify:            form.SkipVerify,
-		BindDN:                form.BindDN,
-		UserDN:                form.UserDN,
-		BindPassword:          form.BindPassword,
-		UserBase:              form.UserBase,
-		AttributeUsername:     form.AttributeUsername,
-		AttributeName:         form.AttributeName,
-		AttributeSurname:      form.AttributeSurname,
-		AttributeMail:         form.AttributeMail,
-		AttributesInBind:      form.AttributesInBind,
-		AttributeSSHPublicKey: form.AttributeSSHPublicKey,
-		AttributeAvatar:       form.AttributeAvatar,
-		SearchPageSize:        pageSize,
-		Filter:                form.Filter,
-		GroupsEnabled:         form.GroupsEnabled,
-		GroupDN:               form.GroupDN,
-		GroupFilter:           form.GroupFilter,
-		GroupMemberUID:        form.GroupMemberUID,
-		GroupTeamMap:          form.GroupTeamMap,
-		GroupTeamMapRemoval:   form.GroupTeamMapRemoval,
-		UserUID:               form.UserUID,
-		AdminFilter:           form.AdminFilter,
-		RestrictedFilter:      form.RestrictedFilter,
-		AllowDeactivateAll:    form.AllowDeactivateAll,
-		Enabled:               true,
-		SkipLocalTwoFA:        form.SkipLocalTwoFA,
-
-		forms.SecurityProtocol= source.Cfg.SecurityProtocol.Int()
-		forms.Host =   source.Cfg.Host
-		forms.Port =    source.Cfg.Port
-		forms.BindDN   =                     source.Cfg.BindDN
-		forms.BindPassword   =              source.Cfg.BindPassword
-
-	case auth.SMTP:
-
-	case auth.PAM:
-
-	case auth.OAuth2:
-
-	case auth.SSPI:
-
-	default:
-		ctx.Error(http.StatusBadRequest)
-		return
-	}
-
-	if source.IsOAuth2() {
-		type Named interface {
-			Name() string
-		}
-
-		for _, provider := range oauth2providers {
-			if provider.Name() == source.Cfg.(Named).Name() {
-				ctx.Data["CurrentOAuth2Provider"] = provider
-				break
-			}
-		}
-	}
-
-	ctx.Data["Form"] = forms.AuthenticationForm{
-		
-		
-		UserBase      :                source.Cfg.UserBase,
-		UserDN        :                source.Cfg.UserDN,
-		AttributeUsername   :          source.Cfg.AttributeUsername,
-		AttributeName       :          source.Cfg.AttributeName,
-		AttributeSurname    :          source.Cfg.AttributeSurname,
-		AttributeMail       :          source.Cfg.AttributeMail,
-		AttributeSSHPublicKey :        source.Cfg.AttributeSSHPublicKey,
-		AttributeAvatar      :         source.Cfg.AttributeAvatar,
-		AttributesInBind     :         source.Cfg.AttributesInBind,
-		UsePagedSearch      :          source.Cfg.UsePagedSearch,
-		SearchPageSize    :            source.Cfg.SearchPageSize,
-		Filter          :              source.Cfg.Filter,
-		AdminFilter    :               source.Cfg.AdminFilter,
-		GroupsEnabled  :               source.Cfg.GroupsEnabled,
-		GroupDN        :               source.Cfg.GroupDN,
-		GroupFilter   :                source.Cfg.GroupFilter,
-		GroupMemberUID :               source.Cfg.GroupMemberUID,
-		UserUID          :             source.Cfg.UserUID,
-		RestrictedFilter :             source.Cfg.RestrictedFilter,
-		AllowDeactivateAll:            source.Cfg.AllowDeactivateAll,
-		
-		SMTPAuth         :             source.Cfg.Auth,
-		SMTPHost    :                  source.Cfg.Host,
-		SMTPPort     :                 source.Cfg.Port,
-		AllowedDomains    :            source.Cfg.AllowedDomains,
-		
-		TLS          :                 bool
-
-		HeloHostname  :                source.Cfg.HeloHostname,
-		DisableHelo   :                source.Cfg.DisableHelo,
-		ForceSMTPS    :                source.Cfg.ForceSMTPS,
-		PAMServiceName :               source.Cfg.PAMServiceName,
-		PAMEmailDomain  :              source.Cfg.PAMEmailDomain,
-		Oauth2Provider  :              source.Cfg.Provider,
-		Oauth2Key      :               source.Cfg.
-		Oauth2Secret   :               source.Cfg.
-		OpenIDConnectAutoDiscoveryURL: source.Cfg.
-		Oauth2UseCustomURL  :         source.Cfg.
-		Oauth2TokenURL    :            source.Cfg.
-		Oauth2AuthURL    :             source.Cfg.
-		Oauth2ProfileURL :             source.Cfg.
-		Oauth2EmailURL   :             source.Cfg.
-		Oauth2IconURL    :             source.Cfg.
-		Oauth2Tenant     :             source.Cfg.
-		Oauth2Scopes     :             string
-		Oauth2RequiredClaimName :      string
-		Oauth2RequiredClaimValue :     string
-		Oauth2GroupClaimName     :     string
-		Oauth2AdminGroup        :      string
-		Oauth2RestrictedGroup  :       string
-		Oauth2GroupTeamMap     :       string `binding:"ValidGroupTeamMap"`
-		Oauth2GroupTeamMapRemoval :    bool
-		SkipLocalTwoFA         :       source.Cfg.SkipLocalTwoFA,
-		SSPIAutoCreateUsers    :       bool
-		SSPIAutoActivateUsers :        bool
-		SSPIStripDomainNames   :       bool
-		SSPISeparatorReplacement  :    string `binding:"AlphaDashDot;MaxSize(5)"`
-		SSPIDefaultLanguage      :     string
-		GroupTeamMap         :         source.Cfg.GroupTeamMap,
-		GroupTeamMapRemoval  :         source.Cfg.GroupTeamMapRemoval,
 	}
 
 	ctx.HTML(http.StatusOK, tplAuthEdit)
@@ -493,23 +456,18 @@ func EditAuthSourcePost(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
+	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	oauth2providers := oauth2.GetOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
+	ctx.Data["SourceTypeNames"] = auth.Names
 
-	source, err := auth.GetSourceByID(ctx.ParamsInt64(":authid"))
-	if err != nil {
-		ctx.ServerError("auth.GetSourceByID", err)
-		return
-	}
-	ctx.Data["Source"] = source
-	ctx.Data["HasTLS"] = source.HasTLS()
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplAuthEdit)
+	source := parseSource(ctx)
+	if ctx.Written() {
 		return
 	}
 
+	var err error
 	var config convert.Conversion
 	switch auth.Type(form.Type) {
 	case auth.LDAP, auth.DLDAP:
