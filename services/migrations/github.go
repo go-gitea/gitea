@@ -259,11 +259,11 @@ func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 			milestones = append(milestones, &base.Milestone{
 				Title:       m.GetTitle(),
 				Description: m.GetDescription(),
-				Deadline:    m.DueOn,
+				Deadline:    &m.DueOn.Time,
 				State:       state,
-				Created:     m.GetCreatedAt(),
-				Updated:     m.UpdatedAt,
-				Closed:      m.ClosedAt,
+				Created:     m.GetCreatedAt().Time,
+				Updated:     &m.UpdatedAt.Time,
+				Closed:      &m.ClosedAt.Time,
 			})
 		}
 		if len(ms) < perPage {
@@ -486,11 +486,11 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			Content:      issue.GetBody(),
 			Milestone:    issue.GetMilestone().GetTitle(),
 			State:        issue.GetState(),
-			Created:      issue.GetCreatedAt(),
-			Updated:      issue.GetUpdatedAt(),
+			Created:      issue.GetCreatedAt().Time,
+			Updated:      issue.GetUpdatedAt().Time,
 			Labels:       labels,
 			Reactions:    reactions,
-			Closed:       issue.ClosedAt,
+			Closed:       &issue.ClosedAt.Time,
 			IsLocked:     issue.GetLocked(),
 			Assignees:    assignees,
 			ForeignIndex: int64(*issue.Number),
@@ -565,8 +565,8 @@ func (g *GithubDownloaderV3) getComments(commentable base.Commentable) ([]*base.
 				PosterName:  comment.GetUser().GetLogin(),
 				PosterEmail: comment.GetUser().GetEmail(),
 				Content:     comment.GetBody(),
-				Created:     comment.GetCreatedAt(),
-				Updated:     comment.GetUpdatedAt(),
+				Created:     comment.GetCreatedAt().Time,
+				Updated:     comment.GetUpdatedAt().Time,
 				Reactions:   reactions,
 			})
 		}
@@ -641,8 +641,8 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment,
 			PosterName:  comment.GetUser().GetLogin(),
 			PosterEmail: comment.GetUser().GetEmail(),
 			Content:     comment.GetBody(),
-			Created:     comment.GetCreatedAt(),
-			Updated:     comment.GetUpdatedAt(),
+			Created:     comment.GetCreatedAt().Time,
+			Updated:     comment.GetUpdatedAt().Time,
 			Reactions:   reactions,
 		})
 	}
@@ -716,13 +716,13 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			Content:        pr.GetBody(),
 			Milestone:      pr.GetMilestone().GetTitle(),
 			State:          pr.GetState(),
-			Created:        pr.GetCreatedAt(),
-			Updated:        pr.GetUpdatedAt(),
-			Closed:         pr.ClosedAt,
+			Created:        pr.GetCreatedAt().Time,
+			Updated:        pr.GetUpdatedAt().Time,
+			Closed:         &pr.ClosedAt.Time,
 			Labels:         labels,
 			Merged:         pr.MergedAt != nil,
 			MergeCommitSHA: pr.GetMergeCommitSHA(),
-			MergedTime:     pr.MergedAt,
+			MergedTime:     &pr.MergedAt.Time,
 			IsLocked:       pr.ActiveLockReason != nil,
 			Head: base.PullRequestBranch{
 				Ref:       pr.GetHead().GetRef(),
@@ -756,7 +756,7 @@ func convertGithubReview(r *github.PullRequestReview) *base.Review {
 		ReviewerName: r.GetUser().GetLogin(),
 		CommitID:     r.GetCommitID(),
 		Content:      r.GetBody(),
-		CreatedAt:    r.GetSubmittedAt(),
+		CreatedAt:    r.GetSubmittedAt().Time,
 		State:        r.GetState(),
 	}
 }
@@ -800,8 +800,8 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 			CommitID:  c.GetCommitID(),
 			PosterID:  c.GetUser().GetID(),
 			Reactions: reactions,
-			CreatedAt: c.GetCreatedAt(),
-			UpdatedAt: c.GetUpdatedAt(),
+			CreatedAt: c.GetCreatedAt().Time,
+			UpdatedAt: c.GetUpdatedAt().Time,
 		})
 	}
 	return rcs, nil
