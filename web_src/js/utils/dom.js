@@ -68,7 +68,7 @@ export function onDomReady(cb) {
 // ---------------------------------------------------------------------
 export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
   let isUserResized = false;
-  // lastStyleHeight is a CSS value like '100px'
+  // lastStyleHeight and initialStyleHeight are CSS values like '100px'
   let lastMouseX, lastMouseY, lastStyleHeight, initialStyleHeight;
 
   function onUserResize(event) {
