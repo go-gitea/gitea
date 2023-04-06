@@ -23,7 +23,7 @@ Gitea supports permissions for repository so that you can give different access 
 
 ## Unit
 
-In Gitea, we call a sub module of a repository `Unit`. Now we have following units.
+In Gitea, we call a sub module of a repository `Unit`. Now we have following possible units.
 
 | Name            | Description                                          | Permissions |
 | --------------- | ---------------------------------------------------- | ----------- |
@@ -35,6 +35,8 @@ In Gitea, we call a sub module of a repository `Unit`. Now we have following uni
 | ExternalWiki    | Link to an external wiki                             | Read        |
 | ExternalTracker | Link to an external issue tracker                    | Read        |
 | Projects        | The URL to the template repository                   | Read Write  |
+| Packages        | Packages which linked to this repository             | Read Write  |
+| Actions         | Review actions logs or restart/cacnel pipelines      | Read Write  |
 | Settings        | Manage the repository                                | Admin       |
 
 With different permissions, people could do different things with these units.
@@ -49,6 +51,8 @@ With different permissions, people could do different things with these units.
 | ExternalWiki    | Link to an external wiki                           | -                            | -                         |
 | ExternalTracker | Link to an external issue tracker                  | -                            | -                         |
 | Projects        | View the boards                                    | Change issues across boards  | -                         |
+| Packages        | View the packages                                  | Upload/Delete packages       | -                         |
+| Actions         | View the Actions logs                              | Approve / Cacnel / Restart   | -                         |
 | Settings        | -                                                  | -                            | Manage the repository     |
 
 And there are some differences for permissions between individual repositories and organization repositories.
@@ -58,16 +62,24 @@ And there are some differences for permissions between individual repositories a
 For individual repositories, the creators are the only owners of repositories and have no limit to change anything of this
 repository or delete it. Repositories owners could add collaborators to help maintain the repositories. Collaborators could have `Read`, `Write` and `Admin` permissions.
 
+For a private repository, it's the same as anonymous visit a public repository. You can read all possible units of this repository. You can clone the code, post issues, reply issue comments, send a pull request and etc. With `Write` permission, you can push code to some branches of this repository if it's allowed by the branch protection rules. You can also change the wiki pages. With `Admin` permission, you can change the repository's settings.
+But you cannot delete or transfer this repository if you are not that repository's owner.
+
 ## Organization Repository
 
 Different from individual repositories, the owner of organization repositories are the owner team of this organization.
 
-### Team
+### Owner Team
 
-A team in an organization has unit permissions settings. It can have members and repositories scope. A team could access all the repositories in this organization or special repositories changed by the owner team. A team could also be allowed to create new
-repositories.
+The owner team will be created when the organization is created, and the creator will become the first member of the owner team. The owner team cannot be deleted and only members of the owner team can create a new team.
 
-The owner team will be created when the organization is created, and the creator will become the first member of the owner team.
-Every member of an organization must be in at least one team. The owner team cannot be deleted and only
-members of the owner team can create a new team. An admin team can be created to manage some of the repositories, whose members can do anything with these repositories.
-The Generate team can be created by the owner team to do the operations allowed by their permissions.
+### Other Teams
+
+Every member of an organization must be in at least one team.
+
+A team in an organization has unit permissions settings. It can have members and repositories scope.
+
+- A team could access all the repositories in this organization or special repositories.
+- A team could also be allowed to create new repositories.
+
+When creating teams, there are two types teams. One is admin team, another is general team. An admin team can be created to manage some of the repositories, whose members can do anything with these repositories. The Generate team can be created to do the operations allowed by their permissions.
