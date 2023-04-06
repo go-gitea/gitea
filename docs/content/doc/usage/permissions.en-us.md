@@ -71,15 +71,17 @@ Different from individual repositories, the owner of organization repositories a
 
 ### Owner Team
 
-The owner team will be created when the organization is created, and the creator will become the first member of the owner team. The owner team cannot be deleted and only members of the owner team can create a new team.
+The owner team will be created when the organization is created, and the creator will become the first member of the owner team. The owner team cannot be deleted and there is at least one member on owner team. Every member of an organization must be in at least one team.
 
-### Other Teams
+### Admin Team
 
-Every member of an organization must be in at least one team.
+When creating teams, there are two types teams. One is admin team, another is general team. An admin team can be created to manage some of the repositories, whose members can do anything with these repositories. Only members of the owner or admin team can create a new team.
 
-A team in an organization has unit permissions settings. It can have members and repositories scope.
+### General Team
+
+A general team in an organization has unit permissions settings. It can have members and repositories scope.
 
 - A team could access all the repositories in this organization or special repositories.
-- A team could also be allowed to create new repositories.
+- A team could also be allowed to create new repositories or not.
 
-When creating teams, there are two types teams. One is admin team, another is general team. An admin team can be created to manage some of the repositories, whose members can do anything with these repositories. The Generate team can be created to do the operations allowed by their permissions.
+The General team can be created to do the operations allowed by their permissions. One member could join multiple teams.
