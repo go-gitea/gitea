@@ -1,4 +1,4 @@
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package actions
@@ -46,8 +46,8 @@ func ArtifactsRoutes(goctx gocontext.Context, prefix string) *web.Route {
 	}
 
 	// retrieve, list and confirm artifacts
-	m.Post(artifactRouteBase, r.getUploadArtifactURL)
 	m.Get(artifactRouteBase, r.listArtifacts)
+	m.Post(artifactRouteBase, r.getUploadArtifactURL)
 	m.Patch(artifactRouteBase, r.comfirmUploadArtifact)
 
 	// handle container artifacts
@@ -116,7 +116,7 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *context.Context) {
 		return
 	}
 	taskID := ctx.ParamsInt64("taskID")
-	if task.ID != taskID {
+	if task.JobID != taskID {
 		log.Error("Error task id not match")
 		ctx.Error(http.StatusInternalServerError, "Error task id not match")
 		return
@@ -160,7 +160,7 @@ type hashReader struct {
 
 func (hr *hashReader) Read(p []byte) (n int, err error) {
 	n, err = hr.Reader.Read(p)
-	if err == nil {
+	if n > 0 {
 		hr.Hasher.Write(p[:n])
 	}
 	return n, err
@@ -169,6 +169,7 @@ func (hr *hashReader) Read(p []byte) (n int, err error) {
 func (hr *hashReader) Match(md5Str string) bool {
 	md5Hash := hr.Hasher.Sum(nil)
 	md5String := base64.StdEncoding.EncodeToString(md5Hash)
+	log.Debug("[artifact] check chunk md5, sum: %s, header: %s", md5String, md5Str)
 	return md5Str == md5String
 }
 
@@ -413,7 +414,7 @@ func (ar artifactRoutes) listArtifacts(ctx *context.Context) {
 		return
 	}
 	taskID := ctx.ParamsInt64("taskID")
-	if task.ID != taskID {
+	if task.JobID != taskID {
 		log.Error("Error task id not match")
 		ctx.Error(http.StatusInternalServerError, "Error task id not match")
 		return
