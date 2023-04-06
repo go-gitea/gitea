@@ -88,38 +88,43 @@ class CodeMirrorEditor {
 }
 
 
-export function initEasyMDEImagePaste(easyMDE, $dropzone) {
+const uploadClipboardImage = async (editor, dropzone, e) => {
+  const $dropzone = $(dropzone);
   const uploadUrl = $dropzone.attr('data-upload-url');
   const $files = $dropzone.find('.files');
 
   if (!uploadUrl || !$files.length) return;
 
-  const uploadClipboardImage = async (editor, e) => {
-    const pastedImages = clipboardPastedImages(e);
-    if (!pastedImages || pastedImages.length === 0) {
-      return;
-    }
-    e.preventDefault();
-    e.stopPropagation();
+  const pastedImages = clipboardPastedImages(e);
+  if (!pastedImages || pastedImages.length === 0) {
+    return;
+  }
+  e.preventDefault();
+  e.stopPropagation();
 
-    for (const img of pastedImages) {
-      const name = img.name.slice(0, img.name.lastIndexOf('.'));
+  for (const img of pastedImages) {
+    const name = img.name.slice(0, img.name.lastIndexOf('.'));
 
-      const placeholder = `![${name}](uploading ...)`;
-      editor.insertPlaceholder(placeholder);
-      const data = await uploadFile(img, uploadUrl);
-      editor.replacePlaceholder(placeholder, `![${name}](/attachments/${data.uuid})`);
+    const placeholder = `![${name}](uploading ...)`;
+    editor.insertPlaceholder(placeholder);
+    const data = await uploadFile(img, uploadUrl);
+    editor.replacePlaceholder(placeholder, `![${name}](/attachments/${data.uuid})`);
 
-      const $input = $(`<input name="files" type="hidden">`).attr('id', data.uuid).val(data.uuid);
-      $files.append($input);
-    }
-  };
+    const $input = $(`<input name="files" type="hidden">`).attr('id', data.uuid).val(data.uuid);
+    $files.append($input);
+  }
+};
 
+export function initEasyMDEImagePaste(easyMDE, dropzone) {
+  if (!dropzone) return;
   easyMDE.codemirror.on('paste', async (_, e) => {
-    return uploadClipboardImage(new CodeMirrorEditor(easyMDE.codemirror), e);
+    return uploadClipboardImage(new CodeMirrorEditor(easyMDE.codemirror), dropzone, e);
   });
+}
 
-  $(easyMDE.element).on('paste', async (e) => {
-    return uploadClipboardImage(new TextareaEditor(easyMDE.element), e.originalEvent);
+export function initTextareaImagePaste(textarea, dropzone) {
+  if (!dropzone) return;
+  $(textarea).on('paste', async (e) => {
+    return uploadClipboardImage(new TextareaEditor(textarea), dropzone, e.originalEvent);
   });
 }

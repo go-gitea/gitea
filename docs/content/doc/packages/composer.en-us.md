@@ -2,6 +2,7 @@
 date: "2021-07-20T00:00:00+00:00"
 title: "Composer Packages Repository"
 slug: "usage/packages/composer"
+weight: 10
 draft: false
 toc: false
 menu:

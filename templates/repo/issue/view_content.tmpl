@@ -164,25 +164,22 @@
 	{{template "repo/issue/view_content/sidebar" .}}
 </div>
 
-<div class="gt-hidden" id="edit-content-form">
+<template id="issue-comment-editor-template">
 	<div class="ui comment form">
-		<div class="ui top tabular menu">
-			<a class="active write item">{{$.locale.Tr "write"}}</a>
-			<a class="preview item" data-url="{{$.Repository.Link}}/markup" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
-		</div>
-		<div class="field">
-			<div class="ui bottom active tab write">
-				<textarea tabindex="1" name="content" class="js-quick-submit"></textarea>
-			</div>
-			<div class="ui bottom tab preview markup">
-				{{$.locale.Tr "loading"}}
-			</div>
-		</div>
+		{{template "shared/combomarkdowneditor" (dict
+			"locale" $.locale
+			"MarkdownPreviewUrl" (print .Repository.Link "/markup")
+			"MarkdownPreviewContext" .RepoLink
+			"TextareaName" "content"
+			"DropzoneParentContainer" ".ui.form"
+		)}}
+
 		{{if .IsAttachmentEnabled}}
 			<div class="field">
 				{{template "repo/upload" .}}
 			</div>
 		{{end}}
+
 		<div class="field footer">
 			<div class="text right edit">
 				<button class="ui basic secondary cancel button" tabindex="3">{{.locale.Tr "repo.issues.cancel"}}</button>
@@ -190,7 +187,7 @@
 			</div>
 		</div>
 	</div>
-</div>
+</template>
 
 {{template "repo/issue/view_content/reference_issue_dialog" .}}
 
