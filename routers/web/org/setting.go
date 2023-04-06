@@ -48,8 +48,16 @@ func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
-	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
-	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
+	ctx.Data["Form"] = forms.UpdateOrgSettingForm{
+		Name:                      ctx.Org.Organization.Name,
+		FullName:                  ctx.Org.Organization.FullName,
+		Description:               ctx.Org.Organization.Description,
+		Website:                   ctx.Org.Organization.Website,
+		Location:                  ctx.Org.Organization.Location,
+		Visibility:                ctx.Org.Organization.Visibility,
+		MaxRepoCreation:           ctx.Org.Organization.MaxRepoCreation,
+		RepoAdminChangeTeamAccess: ctx.Org.Organization.RepoAdminChangeTeamAccess,
+	}
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
@@ -59,7 +67,6 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
-	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSettingsOptions)
