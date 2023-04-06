@@ -84,7 +84,7 @@ func parseScope(ctx context.Context, scope string) (ownerID, repoID int64, err e
 
 	u, err := user_model.GetUserByName(ctx, ownerName)
 	if err != nil {
-		return ownerID, repoID, nil
+		return ownerID, repoID, err
 	}
 
 	if !found {
