@@ -67,22 +67,3 @@ git push -u origin main
 ```
 
 This assumes you are using an SSH remote, but you can also use HTTPS remotes as well.
-
-# Push options
-
-Gitea 從 `1.13` 版開始支援某些 [push options](https://git-scm.com/docs/git-push#Documentation/git-push.txt--oltoptiongt)
-。
-
-## 支援的 Options
-
-- `repo.private` (true|false) - 修改儲存庫的可見性。
-
-  與 push-to-create 一起使用時特別有用。
-
-- `repo.template` (true|false) - 修改儲存庫是否為範本儲存庫。
-
-以下範例修改儲存庫的可見性為公開：
-
-```shell
-git push -o repo.private=false -u origin main
-```

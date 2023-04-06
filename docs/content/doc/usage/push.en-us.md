@@ -68,21 +68,4 @@ git push -u origin main
 
 This assumes you are using an SSH remote, but you can also use HTTPS remotes as well.
 
-# Push options
-
-In Gitea `1.13`, support for some [push options](https://git-scm.com/docs/git-push#Documentation/git-push.txt--oltoptiongt)
-were added.
-
-## Supported Options
-
-- `repo.private` (true|false) - Change the repository's visibility.
-
-  This is particularly useful when combined with push-to-create.
-
-- `repo.template` (true|false) - Change whether the repository is a template.
-
-Example of changing a repository's visibility to public:
-
-```shell
-git push -o repo.private=false -u origin main
-```
+Push-to-create will default to the visibility defined by `DEFAULT_PUSH_CREATE_PRIVATE` in `app.ini`.

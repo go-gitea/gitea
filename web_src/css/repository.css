@@ -1867,6 +1867,13 @@
 .diff-file-box {
   border: 1px solid transparent;
   border-radius: var(--border-radius);
+  scroll-margin-top: 47px; /* match .repository .diff-detail-box */
+}
+
+@media (max-width: 991px) {
+  .diff-file-box {
+    scroll-margin-top: 77px; /* match .repository .diff-detail-box */
+  }
 }
 
 /* TODO: this can potentially be made "global" by removing the class prefix */
