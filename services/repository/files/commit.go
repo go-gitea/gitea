@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/services/automerge"
 )
 
@@ -85,4 +86,61 @@ func GetPayloadCommitVerification(ctx context.Context, commit *git.Commit) *stru
 		verification.Reason = "gpg.error.not_signed_commit"
 	}
 	return verification
+}
+
+// CreateCheckRun creates a new checkrun given a bunch of parameters
+func CreateCheckRun(ctx context.Context, repo *repo_model.Repository, creator *user_model.User, opts *structs.CreateCheckRunOptions) (*git_model.CheckRun, error) {
+	repoPath := repo.RepoPath()
+
+	// confirm that commit is exist
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, fmt.Errorf("OpenRepository[%s]: %w", repoPath, err)
+	}
+	defer closer.Close()
+
+	if commit, err := gitRepo.GetCommit(opts.HeadSHA); err != nil {
+		gitRepo.Close()
+		return nil, fmt.Errorf("GetCommit[%s]: %w", opts.HeadSHA, err)
+	} else if len(opts.HeadSHA) != git.SHAFullLength {
+		// use complete commit sha
+		opts.HeadSHA = commit.ID.String()
+	}
+	gitRepo.Close()
+
+	opts2 := &git_model.NewCheckRunOptions{
+		Repo:    repo,
+		Creator: creator,
+		HeadSHA: opts.HeadSHA,
+		Name:    opts.Name,
+		Status:  opts.Status,
+	}
+	if opts.Conclusion != nil {
+		opts2.Conclusion = *opts.Conclusion
+	}
+	if opts.DetailsURL != nil {
+		opts2.DetailsURL = *opts.DetailsURL
+	}
+	if opts.ExternalID != nil {
+		opts2.ExternalID = *opts.ExternalID
+	}
+	if opts.StartedAt != nil {
+		opts2.StartedAt = timeutil.TimeStamp(opts.StartedAt.Unix())
+	}
+	if opts.CompletedAt != nil {
+		opts2.CompletedAt = timeutil.TimeStamp(opts.CompletedAt.Unix())
+	}
+
+	checkRrun, err := git_model.CreateCheckRun(ctx, opts2)
+	if err != nil {
+		return nil, err
+	}
+
+	if checkRrun.ToStatus(nil).State.IsSuccess() {
+		if err := automerge.MergeScheduledPullRequest(ctx, opts.HeadSHA, repo); err != nil {
+			return nil, fmt.Errorf("MergeScheduledPullRequest[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, creator.ID, opts.HeadSHA, err)
+		}
+	}
+
+	return checkRrun, nil
 }

@@ -85,19 +85,20 @@ type CreateCheckRunOptions struct {
 
 // CheckRun represents a check run on a repository
 type CheckRun struct {
-	ID         int64   `json:"id"`
-	NodeID     string  `json:"node_id"`
-	HeadSHA    string  `json:"head_sha"`
-	ExternalID *string `json:"external_id,omitempty"`
-	URL        *string `json:"url,omitempty"`
-	DetailsURL *string `json:"details_url,omitempty"`
-	Status     *string `json:"status,omitempty"`
-	Conclusion *string `json:"conclusion,omitempty"`
+	ID         int64               `json:"id"`
+	NodeID     string              `json:"node_id"`
+	HeadSHA    string              `json:"head_sha"`
+	ExternalID *string             `json:"external_id,omitempty"`
+	URL        *string             `json:"url,omitempty"`
+	DetailsURL *string             `json:"details_url,omitempty"`
+	Status     *CheckRunStatus     `json:"status,omitempty"`
+	Conclusion *CheckRunConclusion `json:"conclusion,omitempty"`
 	// swagger:strfmt date-time
 	StartedAt *time.Time `json:"started_at,omitempty"`
 	// swagger:strfmt date-time
 	CompletedAt  *time.Time      `json:"completed_at,omitempty"`
 	Output       *CheckRunOutput `json:"output,omitempty"`
-	Name         *string         `json:"name,omitempty"`
+	Name         string          `json:"name,omitempty"`
 	PullRequests []*PullRequest  `json:"pull_requests,omitempty"`
+	Creator      *User           `json:"creator,omitempty"`
 }

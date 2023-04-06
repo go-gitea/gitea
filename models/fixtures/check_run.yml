@@ -1,0 +1,9 @@
+-
+  id: 1
+  repo_id: 1
+  status: 2 # completed
+  conclusion: 5 # success
+  head_sha: "1234123412341234123412341234123412341234"
+  details_url: https://example.com/builds/
+  name: test check run
+  creator_id: 2

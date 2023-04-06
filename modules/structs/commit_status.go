@@ -20,6 +20,15 @@ const (
 	CommitStatusWarning CommitStatusState = "warning"
 	// CommitStatusRunning is for when the CommitStatus is Running
 	CommitStatusRunning CommitStatusState = "running"
+
+	// status used in check runs, should not be used as commit status:
+
+	// CommitStatusNeutral is for when the CommitStatus is neutral
+	CommitStatusNeutral CommitStatusState = "neutral"
+	// CommitStatusSkipped is for when the CommitStatus is neutral
+	CommitStatusSkipped CommitStatusState = "skipped"
+	// CommitStatusTimedOut is for when the CommitStatus is timed_out
+	CommitStatusTimedOut CommitStatusState = "timed_out"
 )
 
 // NoBetterThan returns true if this State is no better than the given State
