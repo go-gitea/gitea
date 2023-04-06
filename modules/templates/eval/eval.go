@@ -16,7 +16,7 @@ type Num struct {
 }
 
 var opPrecedence = map[string]int{
-	"(": 1, ")": 1,
+	// "(": 1, this is for low precedence like function calls, they are handled separately
 	"or":  2,
 	"and": 3,
 	"not": 4,
@@ -26,6 +26,7 @@ var opPrecedence = map[string]int{
 }
 
 type stack[T any] struct {
+	name  string
 	elems []T
 }
 
@@ -35,7 +36,7 @@ func (s *stack[T]) push(t T) {
 
 func (s *stack[T]) pop() T {
 	if len(s.elems) == 0 {
-		panic("stack is empty")
+		panic(s.name + " stack is empty")
 	}
 	t := s.elems[len(s.elems)-1]
 	s.elems = s.elems[:len(s.elems)-1]
@@ -44,17 +45,24 @@ func (s *stack[T]) pop() T {
 
 func (s *stack[T]) peek() T {
 	if len(s.elems) == 0 {
-		panic("stack is empty")
+		panic(s.name + " stack is empty")
 	}
 	return s.elems[len(s.elems)-1]
 }
 
 type operator string
 
-type Eval struct {
+type eval struct {
 	stackNum stack[Num]
 	stackOp  stack[operator]
 	funcMap  map[string]func([]Num) Num
+}
+
+func newEval() *eval {
+	e := &eval{}
+	e.stackNum.name = "num"
+	e.stackOp.name = "op"
+	return e
 }
 
 func toNum(v any) (Num, error) {
@@ -144,7 +152,7 @@ func toOp(v any) (operator, error) {
 	if v, ok := v.(string); ok {
 		return operator(v), nil
 	}
-	return "", fmt.Errorf("unable to convert %q to operator", v)
+	return "", fmt.Errorf(`unsupported token type "%T"`, v)
 }
 
 func (op operator) hasOpenBracket() bool {
@@ -184,12 +192,14 @@ func (err ExprError) Unwrap() error {
 	return err.err
 }
 
-func (e *Eval) applyOp() {
+func (e *eval) applyOp() {
 	op := e.stackOp.pop()
 	if op == "not" {
 		num := e.stackNum.pop()
 		i, _ := util.ToInt64(num.Value)
 		e.stackNum.push(Num{truth(i == 0)})
+	} else if op.hasOpenBracket() || op.isCloseBracket() || op.isComma() {
+		panic(fmt.Sprintf("incomplete sub-expression with operator %q", op))
 	} else {
 		num2 := e.stackNum.pop()
 		num1 := e.stackNum.pop()
@@ -201,7 +211,7 @@ func (e *Eval) applyOp() {
 // If no error occurs, the result is either an int64 or a float64.
 // If all numbers are integer, the result is an int64, otherwise if there is any float number, the result is a float64.
 // Golang's template syntax supports comparable int types: {{if lt $i32 $i64}} is right.
-func (e *Eval) Exec(tokens ...any) (ret Num, err error) {
+func (e *eval) Exec(tokens ...any) (ret Num, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			rErr, ok := r.(error)
@@ -228,7 +238,7 @@ func (e *Eval) Exec(tokens ...any) (ret Num, err error) {
 			e.stackOp.push(op)
 		case op.isCloseBracket(), op.isComma():
 			var stackTopOp operator
-			for {
+			for len(e.stackOp.elems) > 0 {
 				stackTopOp = e.stackOp.peek()
 				if stackTopOp.hasOpenBracket() || stackTopOp.isComma() {
 					break
@@ -265,7 +275,7 @@ func (e *Eval) Exec(tokens ...any) (ret Num, err error) {
 		default:
 			for len(e.stackOp.elems) > 0 && len(e.stackNum.elems) > 0 {
 				stackTopOp := e.stackOp.peek()
-				if stackTopOp.isComma() || precedence(stackTopOp, op) < 0 {
+				if stackTopOp.hasOpenBracket() || stackTopOp.isComma() || precedence(stackTopOp, op) < 0 {
 					break
 				}
 				e.applyOp()
@@ -273,11 +283,11 @@ func (e *Eval) Exec(tokens ...any) (ret Num, err error) {
 			e.stackOp.push(op)
 		}
 	}
-	for len(e.stackOp.elems) > 0 {
+	for len(e.stackOp.elems) > 0 && !e.stackOp.peek().isComma() {
 		e.applyOp()
 	}
 	if len(e.stackNum.elems) != 1 {
-		return Num{}, ExprError{"too many final values", tokens, nil}
+		return Num{}, ExprError{fmt.Sprintf("expect 1 value as final result, but there are %d", len(e.stackNum.elems)), tokens, nil}
 	}
 	return e.stackNum.pop(), nil
 }
@@ -327,6 +337,7 @@ func fnSum(nums []Num) Num {
 }
 
 func Expr(tokens ...any) (Num, error) {
-	e := &Eval{funcMap: map[string]func([]Num) Num{"sum": fnSum}}
+	e := newEval()
+	e.funcMap = map[string]func([]Num) Num{"sum": fnSum}
 	return e.Exec(tokens...)
 }

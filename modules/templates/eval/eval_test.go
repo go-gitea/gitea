@@ -23,6 +23,13 @@ func TestEval(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, math.IsNaN(n.Value.(float64)))
 
+	_, err = Expr(nil)
+	assert.ErrorContains(t, err, "unsupported token type")
+	_, err = Expr([]string{})
+	assert.ErrorContains(t, err, "unsupported token type")
+	_, err = Expr(struct{}{})
+	assert.ErrorContains(t, err, "unsupported token type")
+
 	cases := []struct {
 		expr string
 		want any
@@ -72,16 +79,16 @@ func TestEval(t *testing.T) {
 		errMsg string
 	}{
 		{"0 / 0", "integer divide by zero"},
-		{"1 +", "stack is empty"},
-		{"+ 1", "stack is empty"},
-		{"( 1", "stack is empty"},
-		{"1 )", "stack is empty"},
+		{"1 +", "num stack is empty"},
+		{"+ 1", "num stack is empty"},
+		{"( 1", "incomplete sub-expression"},
+		{"1 )", "op stack is empty"}, // can not find the corresponding open bracket after the stack becomes empty
+		{"1 , 2", "expect 1 value as final result"},
+		{"( 1 , 2 )", "too many values in one bracket"},
 		{"1 a 2", "unknown operator"},
 	}
 	for _, c := range bads {
-		_, err := Expr(tokens(c.expr)...)
-		if assert.Error(t, err, "expr: %s", c.expr) {
-			assert.Contains(t, err.Error(), c.errMsg)
-		}
+		_, err = Expr(tokens(c.expr)...)
+		assert.ErrorContains(t, err, c.errMsg, "expr: %s", c.expr)
 	}
 }
