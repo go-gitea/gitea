@@ -476,7 +476,10 @@ func (g *GiteaLocalUploader) prepareComments(comments ...*base.Comment) ([]*issu
 		var issue *issues_model.Issue
 		issue, ok := g.issues[comment.IssueIndex]
 		if !ok {
-			return nil, fmt.Errorf("comment references non existent IssueIndex %d", comment.IssueIndex)
+			// ignore comments for non existent issues
+			// It can happen when a comment belongs to a pull request, but the pull request is not imported
+			log.Warn("Ignoring comment for non existent issue %d", comment.IssueIndex)
+			continue
 		}
 
 		if comment.Created.IsZero() {
