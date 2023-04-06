@@ -207,11 +207,7 @@ func (e *eval) applyOp() {
 	}
 }
 
-// Exec evaluates the given expression tokens and returns the result.
-// If no error occurs, the result is either an int64 or a float64.
-// If all numbers are integer, the result is an int64, otherwise if there is any float number, the result is a float64.
-// Golang's template syntax supports comparable int types: {{if lt $i32 $i64}} is right.
-func (e *eval) Exec(tokens ...any) (ret Num, err error) {
+func (e *eval) exec(tokens ...any) (ret Num, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			rErr, ok := r.(error)
@@ -336,8 +332,13 @@ func fnSum(nums []Num) Num {
 	return Num{sum}
 }
 
+// Expr evaluates the given expression tokens and returns the result.
+// It supports the following operators: +, -, *, /, and, or, not, ==, !=, >, >=, <, <=.
+// Non-zero values are treated as true, zero values are treated as false.
+// If no error occurs, the result is either an int64 or a float64.
+// If all numbers are integer, the result is an int64, otherwise if there is any float number, the result is a float64.
 func Expr(tokens ...any) (Num, error) {
 	e := newEval()
 	e.funcMap = map[string]func([]Num) Num{"sum": fnSum}
-	return e.Exec(tokens...)
+	return e.exec(tokens...)
 }
