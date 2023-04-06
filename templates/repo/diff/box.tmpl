@@ -198,24 +198,21 @@
 		</div>
 
 		{{if not $.Repository.IsArchived}}
-			<div class="gt-hidden" id="edit-content-form">
+			<template id="issue-comment-editor-template">
 				<div class="ui comment form">
-					<div class="ui top attached tabular menu">
-						<a class="active write item">{{$.locale.Tr "write"}}</a>
-						<a class="preview item" data-url="{{$.Repository.Link}}/markup" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
-					</div>
-					<div class="ui bottom attached active write tab segment">
-						<textarea class="review-textarea js-quick-submit" tabindex="1" name="content"></textarea>
-					</div>
-					<div class="ui bottom attached tab preview segment markup">
-					{{$.locale.Tr "loading"}}
-					</div>
+					{{template "shared/combomarkdowneditor" (dict
+						"locale" $.locale
+						"MarkdownPreviewUrl" (print $.Repository.Link "/markup")
+						"MarkdownPreviewContext" $.RepoLink
+						"TextareaName" "content"
+						"DropzoneParentContainer" ".ui.form"
+					)}}
 					<div class="text right edit buttons">
 						<button class="ui basic primary cancel button" tabindex="3">{{.locale.Tr "repo.issues.cancel"}}</button>
 						<button class="ui green save button" tabindex="2">{{.locale.Tr "repo.issues.save"}}</button>
 					</div>
 				</div>
-			</div>
+			</template>
 		{{end}}
 
 		{{template "repo/issue/view_content/reference_issue_dialog" .}}
