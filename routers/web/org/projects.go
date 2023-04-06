@@ -245,9 +245,11 @@ func EditProject(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["projectID"] = p.ID
 	ctx.Data["title"] = p.Title
 	ctx.Data["content"] = p.Description
 	ctx.Data["redirect"] = ctx.FormString("redirect")
+	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
 
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }

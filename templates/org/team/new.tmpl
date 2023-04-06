@@ -78,11 +78,11 @@
 										<tr>
 											<th>{{.locale.Tr "units.unit"}}</th>
 											<th class="center aligned">{{.locale.Tr "org.teams.none_access"}}
-											<span class="tooltip gt-vm" data-content="{{.locale.Tr "org.teams.none_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
+											<span class="gt-vm" data-tooltip-content="{{.locale.Tr "org.teams.none_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
 											<th class="center aligned">{{.locale.Tr "org.teams.read_access"}}
-											<span class="tooltip gt-vm" data-content="{{.locale.Tr "org.teams.read_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
+											<span class="gt-vm" data-tooltip-content="{{.locale.Tr "org.teams.read_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
 											<th class="center aligned">{{.locale.Tr "org.teams.write_access"}}
-											<span class="tooltip gt-vm" data-content="{{.locale.Tr "org.teams.write_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
+											<span class="gt-vm" data-tooltip-content="{{.locale.Tr "org.teams.write_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
 										</tr>
 									</thead>
 									<tbody>
@@ -90,8 +90,8 @@
 											{{if ge $unit.MaxPerm 2}}
 												<tr>
 													<td>
-														<div {{if $unit.Type.UnitGlobalDisabled}}class="field tooltip" data-content="{{$.locale.Tr "repo.unit_disabled"}}"{{- else -}}class="field"{{end}}>
-															<div class="ui">
+														<div {{if $unit.Type.UnitGlobalDisabled}}class="field" data-tooltip-content="{{$.locale.Tr "repo.unit_disabled"}}"{{- else -}}class="field"{{end}}>
+															<div>
 																<label>{{$.locale.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{$.locale.Tr "org.team_unit_disabled"}}{{end}}</label>
 																<span class="help">{{$.locale.Tr $unit.DescKey}}</span>
 															</div>
@@ -119,7 +119,7 @@
 								</table>
 								{{range $t, $unit := $.Units}}
 									{{if lt $unit.MaxPerm 2}}
-										<div {{if $unit.Type.UnitGlobalDisabled}}class="field tooltip" data-content="{{$.locale.Tr "repo.unit_disabled"}}"{{else}}class="field"{{end}}>
+										<div {{if $unit.Type.UnitGlobalDisabled}}class="field" data-tooltip-content="{{$.locale.Tr "repo.unit_disabled"}}"{{else}}class="field"{{end}}>
 											<div class="ui checkbox">
 												<input type="checkbox" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
 												<label>{{$.locale.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{$.locale.Tr "org.team_unit_disabled"}}{{end}}</label>

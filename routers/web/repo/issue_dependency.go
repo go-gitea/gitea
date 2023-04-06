@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -44,9 +45,25 @@ func AddDependency(ctx *context.Context) {
 	}
 
 	// Check if both issues are in the same repo if cross repository dependencies is not enabled
-	if issue.RepoID != dep.RepoID && !setting.Service.AllowCrossRepositoryDependencies {
-		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_same_repo"))
-		return
+	if issue.RepoID != dep.RepoID {
+		if !setting.Service.AllowCrossRepositoryDependencies {
+			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_same_repo"))
+			return
+		}
+		if err := dep.LoadRepo(ctx); err != nil {
+			ctx.ServerError("loadRepo", err)
+			return
+		}
+		// Can ctx.Doer read issues in the dep repo?
+		depRepoPerm, err := access_model.GetUserRepoPermission(ctx, dep.Repo, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
+		if !depRepoPerm.CanReadIssuesOrPulls(dep.IsPull) {
+			// you can't see this dependency
+			return
+		}
 	}
 
 	// Check if issue and dependency is the same

@@ -75,7 +75,7 @@ func testViewRepo(t *testing.T) {
 			}
 		})
 
-		f.commitTime, _ = s.Find("span.time-since").Attr("data-content")
+		f.commitTime, _ = s.Find("span.time-since").Attr("data-tooltip-content")
 		items = append(items, f)
 	})
 

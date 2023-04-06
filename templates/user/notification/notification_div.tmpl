@@ -35,7 +35,7 @@
 							{{$issue := .Issue}}
 							{{$repo := .Repository}}
 							<tr id="notification_{{.ID}}">
-								<td class="collapsing gt-pl-4" data-href="{{.Link}}">
+								<td class="collapsing gt-pl-4">
 									{{if eq .Status 3}}
 										{{svg "octicon-pin" 16 "text blue"}}
 									{{else if not $issue}}
@@ -58,7 +58,7 @@
 										{{end}}
 									{{end}}
 								</td>
-								<td class="eleven wide" data-href="{{.Link}}">
+								<td class="eleven wide">
 									<a class="item" href="{{.Link}}">
 										{{if $issue}}
 											#{{$issue.Index}} - {{$issue.Title}}
@@ -67,15 +67,15 @@
 										{{end}}
 									</a>
 								</td>
-								<td data-href="{{$repo.Link}}">
+								<td>
 									<a class="item" href="{{$repo.Link}}">{{$repo.FullName}}</a>
 								</td>
 								<td class="collapsing">
 									{{if ne .Status 3}}
 										<form action="{{AppSubUrl}}/notifications/status" method="POST">
 											{{$.CsrfTokenHtml}}
-											<input type="hidden" name="notification_id" value="{{.ID}}" />
-											<input type="hidden" name="status" value="pinned" />
+											<input type="hidden" name="notification_id" value="{{.ID}}">
+											<input type="hidden" name="status" value="pinned">
 											<button class="ui mini button" title='{{$.locale.Tr "notification.pin"}}'
 												data-url="{{AppSubUrl}}/notifications/status"
 												data-status="pinned"
@@ -91,9 +91,9 @@
 									{{if or (eq .Status 1) (eq .Status 3)}}
 										<form action="{{AppSubUrl}}/notifications/status" method="POST">
 											{{$.CsrfTokenHtml}}
-											<input type="hidden" name="notification_id" value="{{.ID}}" />
-											<input type="hidden" name="status" value="read" />
-											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
+											<input type="hidden" name="notification_id" value="{{.ID}}">
+											<input type="hidden" name="status" value="read">
+											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
 											<button class="ui mini button" title='{{$.locale.Tr "notification.mark_as_read"}}'
 												data-url="{{AppSubUrl}}/notifications/status"
 												data-status="read"
@@ -106,9 +106,9 @@
 									{{else if eq .Status 2}}
 										<form action="{{AppSubUrl}}/notifications/status" method="POST">
 											{{$.CsrfTokenHtml}}
-											<input type="hidden" name="notification_id" value="{{.ID}}" />
-											<input type="hidden" name="status" value="unread" />
-											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
+											<input type="hidden" name="notification_id" value="{{.ID}}">
+											<input type="hidden" name="status" value="unread">
+											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
 											<button class="ui mini button" title='{{$.locale.Tr "notification.mark_as_unread"}}'
 												data-url="{{AppSubUrl}}/notifications/status"
 												data-status="unread"

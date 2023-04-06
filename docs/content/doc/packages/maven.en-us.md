@@ -1,7 +1,8 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "Maven Packages Repository"
-slug: "packages/maven"
+slug: "usage/packages/maven"
+weight: 60
 draft: false
 toc: false
 menu:
@@ -70,7 +71,7 @@ Afterwards add the following sections to your project `pom.xml` file:
 
 | Parameter      | Description |
 | -------------- | ----------- |
-| `access_token` | Your [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}). |
+| `access_token` | Your [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}). |
 | `owner`        | The owner of the package. |
 
 ### Gradle variant

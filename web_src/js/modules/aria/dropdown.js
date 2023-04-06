@@ -102,8 +102,9 @@ function attachStaticElements($dropdown, $focusable, $menu) {
   });
 
   // use tooltip's content as aria-label if there is no aria-label
-  if ($dropdown.hasClass('tooltip') && $dropdown.attr('data-content') && !$dropdown.attr('aria-label')) {
-    $dropdown.attr('aria-label', $dropdown.attr('data-content'));
+  const tooltipContent = $dropdown.attr('data-tooltip-content');
+  if (tooltipContent && !$dropdown.attr('aria-label')) {
+    $dropdown.attr('aria-label', tooltipContent);
   }
 }
 
