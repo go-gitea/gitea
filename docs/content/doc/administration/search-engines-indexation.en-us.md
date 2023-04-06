@@ -2,7 +2,7 @@
 date: "2019-12-31T13:55:00+05:00"
 title: "Advanced: Search Engines Indexation"
 slug: "search-engines-indexation"
-weight: 30
+weight: 60
 toc: false
 draft: false
 menu:
