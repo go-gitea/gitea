@@ -148,7 +148,7 @@ func toOp(v any) (operator, error) {
 }
 
 func (op operator) hasOpenBracket() bool {
-	return strings.HasSuffix(string(op), "(")
+	return strings.HasSuffix(string(op), "(") // it's used to support functions like "sum("
 }
 
 func (op operator) isComma() bool {
@@ -227,10 +227,10 @@ func (e *Eval) Exec(tokens ...any) (ret Num, err error) {
 		case op.hasOpenBracket():
 			e.stackOp.push(op)
 		case op.isCloseBracket(), op.isComma():
-			var sop operator
+			var stackTopOp operator
 			for {
-				sop = e.stackOp.peek()
-				if sop.hasOpenBracket() || sop.isComma() {
+				stackTopOp = e.stackOp.peek()
+				if stackTopOp.hasOpenBracket() || stackTopOp.isComma() {
 					break
 				}
 				e.applyOp()
@@ -238,8 +238,8 @@ func (e *Eval) Exec(tokens ...any) (ret Num, err error) {
 			if op.isCloseBracket() {
 				nums := []Num{e.stackNum.pop()}
 				for !e.stackOp.peek().hasOpenBracket() {
-					sop = e.stackOp.pop()
-					if !sop.isComma() {
+					stackTopOp = e.stackOp.pop()
+					if !stackTopOp.isComma() {
 						return Num{}, ExprError{"bracket doesn't match", tokens, nil}
 					}
 					nums = append(nums, e.stackNum.pop())
@@ -247,8 +247,8 @@ func (e *Eval) Exec(tokens ...any) (ret Num, err error) {
 				for i, j := 0, len(nums)-1; i < j; i, j = i+1, j-1 {
 					nums[i], nums[j] = nums[j], nums[i] // reverse nums slice, to get the right order for arguments
 				}
-				sop = e.stackOp.pop()
-				fn := string(sop[:len(sop)-1])
+				stackTopOp = e.stackOp.pop()
+				fn := string(stackTopOp[:len(stackTopOp)-1])
 				if fn == "" {
 					if len(nums) != 1 {
 						return Num{}, ExprError{"too many values in one bracket", tokens, nil}
@@ -264,8 +264,8 @@ func (e *Eval) Exec(tokens ...any) (ret Num, err error) {
 			}
 		default:
 			for len(e.stackOp.elems) > 0 && len(e.stackNum.elems) > 0 {
-				sop := e.stackOp.peek()
-				if sop.isComma() || precedence(sop, op) < 0 {
+				stackTopOp := e.stackOp.peek()
+				if stackTopOp.isComma() || precedence(stackTopOp, op) < 0 {
 					break
 				}
 				e.applyOp()
