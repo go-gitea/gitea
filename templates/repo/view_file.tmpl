@@ -1,9 +1,12 @@
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
 	{{- if .FileError}}
+		<div class="ui error message">
+			<div class="text left gt-whitespace-pre">{{.FileError}}</div>
+		</div>
+	{{end}}
+	{{- if .FileWarning}}
 		<div class="ui warning message">
-			<div class="text left">
-				<div>{{.FileError}}</div>
-			</div>
+			<div class="text left gt-whitespace-pre">{{.FileWarning}}</div>
 		</div>
 	{{end}}
 	<h4 class="file-header ui top attached header gt-df gt-ac gt-sb gt-fw">
