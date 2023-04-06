@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -14,9 +13,9 @@ import (
 func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (string, error) {
 	var cmd *Command
 	if CheckGitVersionAtLeast("2.7") == nil {
-		cmd = NewCommand(ctx, "remote", "get-url", remoteName)
+		cmd = NewCommand(ctx, "remote", "get-url").AddDynamicArguments(remoteName)
 	} else {
-		cmd = NewCommand(ctx, "config", "--get", "remote."+remoteName+".url")
+		cmd = NewCommand(ctx, "config", "--get").AddDynamicArguments("remote." + remoteName + ".url")
 	}
 
 	result, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})

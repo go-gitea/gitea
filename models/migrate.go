@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
@@ -8,9 +7,9 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/foreignreference"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -21,7 +20,7 @@ func InsertMilestones(ms ...*issues_model.Milestone) (err error) {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -47,7 +46,7 @@ func UpdateMilestones(ms ...*issues_model.Milestone) (err error) {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -85,7 +84,7 @@ func UpdateMilestones(ms ...*issues_model.Milestone) (err error) {
 
 // InsertIssues insert issues to database
 func InsertIssues(issues ...*issues_model.Issue) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -132,19 +131,12 @@ func insertIssue(ctx context.Context, issue *issues_model.Issue) error {
 		}
 	}
 
-	if issue.ForeignReference != nil {
-		issue.ForeignReference.LocalIndex = issue.Index
-		if _, err := sess.Insert(issue.ForeignReference); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
 // UpsertIssues creates new issues and updates existing issues in database
 func UpsertIssues(issues ...*issues_model.Issue) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -198,24 +190,6 @@ func updateIssue(ctx context.Context, issue *issues_model.Issue) error {
 		}
 	}
 
-	if issue.ForeignReference != nil {
-		issue.ForeignReference.LocalIndex = issue.Index
-
-		exists, err := sess.Exist(&foreignreference.ForeignReference{
-			RepoID:     issue.ForeignReference.RepoID,
-			LocalIndex: issue.ForeignReference.LocalIndex,
-		})
-		if err != nil {
-			return err
-		}
-
-		if !exists {
-			if _, err := sess.Insert(issue.ForeignReference); err != nil {
-				return err
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -242,12 +216,12 @@ func InsertIssueComments(comments []*issues_model.Comment) error {
 		return nil
 	}
 
-	issueIDs := make(map[int64]bool)
+	issueIDs := make(container.Set[int64])
 	for _, comment := range comments {
-		issueIDs[comment.IssueID] = true
+		issueIDs.Add(comment.IssueID)
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -288,7 +262,7 @@ func UpsertIssueComments(comments []*issues_model.Comment) error {
 		issueIDs[comment.IssueID] = true
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -357,7 +331,7 @@ func UpsertIssueComments(comments []*issues_model.Comment) error {
 
 // InsertPullRequests inserted pull requests
 func InsertPullRequests(prs ...*issues_model.PullRequest) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -377,7 +351,7 @@ func InsertPullRequests(prs ...*issues_model.PullRequest) error {
 
 // UpsertPullRequests inserts new pull requests and updates existing pull requests in database
 func UpsertPullRequests(prs ...*issues_model.PullRequest) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -404,8 +378,8 @@ func UpsertPullRequests(prs ...*issues_model.PullRequest) error {
 }
 
 // InsertReleases migrates release
-func InsertReleases(rels ...*Release) error {
-	ctx, committer, err := db.TxContext()
+func InsertReleases(rels ...*repo_model.Release) error {
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -432,8 +406,8 @@ func InsertReleases(rels ...*Release) error {
 }
 
 // UpsertReleases inserts new releases and updates existing releases
-func UpsertReleases(rels ...*Release) error {
-	ctx, committer, err := db.TxContext()
+func UpsertReleases(rels ...*repo_model.Release) error {
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -441,7 +415,7 @@ func UpsertReleases(rels ...*Release) error {
 	sess := db.GetEngine(ctx)
 
 	for _, rel := range rels {
-		exists, err := sess.Where("repo_id = ? AND tag_name = ?", rel.RepoID, rel.TagName).Exist(&Release{})
+		exists, err := sess.Where("repo_id = ? AND tag_name = ?", rel.RepoID, rel.TagName).Exist(&repo_model.Release{})
 		if err != nil {
 			return err
 		}
@@ -510,7 +484,7 @@ func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID string, us
 		return err
 	}
 
-	if err := UpdateReleasesMigrationsByType(tp, externalUserID, userID); err != nil {
+	if err := repo_model.UpdateReleasesMigrationsByType(tp, externalUserID, userID); err != nil {
 		return err
 	}
 

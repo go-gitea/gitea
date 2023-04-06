@@ -1,6 +1,6 @@
 import $ from 'jquery';
 
-const {appSubUrl, csrfToken, notificationSettings} = window.config;
+const {appSubUrl, csrfToken, notificationSettings, assetVersionEncoded} = window.config;
 let notificationSequenceNumber = 0;
 
 export function initNotificationsTable() {
@@ -29,7 +29,7 @@ async function receiveUpdateCount(event) {
     const data = JSON.parse(event.data);
 
     for (const count of document.querySelectorAll('.notification_count')) {
-      count.classList.toggle('hidden', data.Count === 0);
+      count.classList.toggle('gt-hidden', data.Count === 0);
       count.textContent = `${data.Count}`;
     }
     await updateNotificationTable();
@@ -57,7 +57,7 @@ export function initNotificationCount() {
 
   if (notificationSettings.EventSourceUpdateTime > 0 && window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
-    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
+    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js?v=${assetVersionEncoded}`, 'notification-worker');
     worker.addEventListener('error', (event) => {
       console.error('worker error', event);
     });
@@ -165,9 +165,9 @@ async function updateNotificationCount() {
 
   const notificationCount = $('.notification_count');
   if (data.new === 0) {
-    notificationCount.addClass('hidden');
+    notificationCount.addClass('gt-hidden');
   } else {
-    notificationCount.removeClass('hidden');
+    notificationCount.removeClass('gt-hidden');
   }
 
   notificationCount.text(`${data.new}`);

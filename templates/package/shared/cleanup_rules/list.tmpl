@@ -1,0 +1,34 @@
+<h4 class="ui top attached header">
+	{{.locale.Tr "packages.owner.settings.cleanuprules.title"}}
+	<div class="ui right">
+		<a class="ui primary tiny button" href="{{.Link}}/rules/add">{{.locale.Tr "packages.owner.settings.cleanuprules.add"}}</a>
+	</div>
+</h4>
+<div class="ui attached segment">
+	<div class="ui key list">
+		{{range .CleanupRules}}
+			<div class="item">
+				<div class="right floated content">
+					<div class="ui dropdown tiny basic button icon-button">
+						{{svg "octicon-kebab-horizontal"}}
+						<div class="menu">
+							<a class="item" href="{{$.Link}}/rules/{{.ID}}">{{$.locale.Tr "edit"}}</a>
+							<a class="item" href="{{$.Link}}/rules/{{.ID}}/preview">{{$.locale.Tr "packages.owner.settings.cleanuprules.preview"}}</a>
+						</div>
+					</div>
+				</div>
+				<i class="icon">{{svg .Type.SVGName 36}}</i>
+				<div class="content">
+					<a class="item" href="{{$.Link}}/rules/{{.ID}}"><strong>{{.Type.Name}}</strong></a>
+					<div><i>{{if .Enabled}}{{$.locale.Tr "enabled"}}{{else}}{{$.locale.Tr "disabled"}}{{end}}</i></div>
+					{{if .KeepCount}}<div><i>{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.count"}}:</i> {{if eq .KeepCount 1}}{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.count.1"}}{{else}}{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" .KeepCount}}{{end}}</div>{{end}}
+					{{if .KeepPattern}}<div><i>{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.pattern"}}:</i> {{EllipsisString .KeepPattern 100}}</div>{{end}}
+					{{if .RemoveDays}}<div><i>{{$.locale.Tr "packages.owner.settings.cleanuprules.remove.days"}}:</i> {{$.locale.Tr "tool.days" .RemoveDays}}</div>{{end}}
+					{{if .RemovePattern}}<div><i>{{$.locale.Tr "packages.owner.settings.cleanuprules.remove.pattern"}}:</i> {{EllipsisString .RemovePattern 100}}</div>{{end}}
+				</div>
+			</div>
+		{{else}}
+			<div class="item">{{.locale.Tr "packages.owner.settings.cleanuprules.none"}}</div>
+		{{end}}
+	</div>
+</div>

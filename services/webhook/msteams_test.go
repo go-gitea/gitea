@@ -1,14 +1,13 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
 import (
 	"testing"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -278,7 +277,7 @@ func TestMSTeamsPayload(t *testing.T) {
 		p.Action = api.HookIssueReviewed
 
 		d := new(MSTeamsPayload)
-		pl, err := d.Review(p, webhook_model.HookEventPullRequestReviewApproved)
+		pl, err := d.Review(p, webhook_module.HookEventPullRequestReviewApproved)
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 		require.IsType(t, &MSTeamsPayload{}, pl)
@@ -328,6 +327,80 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction, 1)
 		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction[0].Targets, 1)
 		assert.Equal(t, "http://localhost:3000/test/repo", pl.(*MSTeamsPayload).PotentialAction[0].Targets[0].URI)
+	})
+
+	t.Run("Wiki", func(t *testing.T) {
+		p := wikiTestPayload()
+
+		d := new(MSTeamsPayload)
+		p.Action = api.HookWikiCreated
+		pl, err := d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &MSTeamsPayload{}, pl)
+
+		assert.Equal(t, "[test/repo] New wiki page 'index' (Wiki change comment)", pl.(*MSTeamsPayload).Title)
+		assert.Equal(t, "[test/repo] New wiki page 'index' (Wiki change comment)", pl.(*MSTeamsPayload).Summary)
+		assert.Len(t, pl.(*MSTeamsPayload).Sections, 1)
+		assert.Equal(t, "user1", pl.(*MSTeamsPayload).Sections[0].ActivitySubtitle)
+		assert.Equal(t, "", pl.(*MSTeamsPayload).Sections[0].Text)
+		assert.Len(t, pl.(*MSTeamsPayload).Sections[0].Facts, 2)
+		for _, fact := range pl.(*MSTeamsPayload).Sections[0].Facts {
+			if fact.Name == "Repository:" {
+				assert.Equal(t, p.Repository.FullName, fact.Value)
+			} else {
+				t.Fail()
+			}
+		}
+		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction, 1)
+		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction[0].Targets, 1)
+		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", pl.(*MSTeamsPayload).PotentialAction[0].Targets[0].URI)
+
+		p.Action = api.HookWikiEdited
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &MSTeamsPayload{}, pl)
+
+		assert.Equal(t, "[test/repo] Wiki page 'index' edited (Wiki change comment)", pl.(*MSTeamsPayload).Title)
+		assert.Equal(t, "[test/repo] Wiki page 'index' edited (Wiki change comment)", pl.(*MSTeamsPayload).Summary)
+		assert.Len(t, pl.(*MSTeamsPayload).Sections, 1)
+		assert.Equal(t, "user1", pl.(*MSTeamsPayload).Sections[0].ActivitySubtitle)
+		assert.Equal(t, "", pl.(*MSTeamsPayload).Sections[0].Text)
+		assert.Len(t, pl.(*MSTeamsPayload).Sections[0].Facts, 2)
+		for _, fact := range pl.(*MSTeamsPayload).Sections[0].Facts {
+			if fact.Name == "Repository:" {
+				assert.Equal(t, p.Repository.FullName, fact.Value)
+			} else {
+				t.Fail()
+			}
+		}
+		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction, 1)
+		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction[0].Targets, 1)
+		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", pl.(*MSTeamsPayload).PotentialAction[0].Targets[0].URI)
+
+		p.Action = api.HookWikiDeleted
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &MSTeamsPayload{}, pl)
+
+		assert.Equal(t, "[test/repo] Wiki page 'index' deleted", pl.(*MSTeamsPayload).Title)
+		assert.Equal(t, "[test/repo] Wiki page 'index' deleted", pl.(*MSTeamsPayload).Summary)
+		assert.Len(t, pl.(*MSTeamsPayload).Sections, 1)
+		assert.Equal(t, "user1", pl.(*MSTeamsPayload).Sections[0].ActivitySubtitle)
+		assert.Empty(t, pl.(*MSTeamsPayload).Sections[0].Text)
+		assert.Len(t, pl.(*MSTeamsPayload).Sections[0].Facts, 2)
+		for _, fact := range pl.(*MSTeamsPayload).Sections[0].Facts {
+			if fact.Name == "Repository:" {
+				assert.Equal(t, p.Repository.FullName, fact.Value)
+			} else {
+				t.Fail()
+			}
+		}
+		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction, 1)
+		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction[0].Targets, 1)
+		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", pl.(*MSTeamsPayload).PotentialAction[0].Targets[0].URI)
 	})
 
 	t.Run("Release", func(t *testing.T) {

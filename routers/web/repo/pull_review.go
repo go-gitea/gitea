@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -78,7 +77,7 @@ func CreateCodeComment(ctx *context.Context) {
 		signedLine,
 		form.Content,
 		form.TreePath,
-		form.IsReview,
+		!form.SingleReview,
 		form.Reply,
 		form.LatestCommitID,
 	)
@@ -99,7 +98,7 @@ func CreateCodeComment(ctx *context.Context) {
 		renderConversation(ctx, comment)
 		return
 	}
-	ctx.Redirect(comment.HTMLURL())
+	ctx.Redirect(comment.Link())
 }
 
 // UpdateResolveConversation add or remove an Conversation resolved mark
@@ -114,7 +113,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 		return
 	}
 
-	if err = comment.LoadIssue(); err != nil {
+	if err = comment.LoadIssue(ctx); err != nil {
 		ctx.ServerError("comment.LoadIssue", err)
 		return
 	}
@@ -169,7 +168,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment) {
 	ctx.Data["comments"] = comments
 	ctx.Data["CanMarkConversation"] = true
 	ctx.Data["Issue"] = comment.Issue
-	if err = comment.Issue.LoadPullRequest(); err != nil {
+	if err = comment.Issue.LoadPullRequest(ctx); err != nil {
 		ctx.ServerError("comment.Issue.LoadPullRequest", err)
 		return
 	}

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package files
 
@@ -26,23 +25,26 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	// confirm that commit is exist
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 	if err != nil {
-		return fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
+		return fmt.Errorf("OpenRepository[%s]: %w", repoPath, err)
 	}
 	defer closer.Close()
 
-	if _, err := gitRepo.GetCommit(sha); err != nil {
+	if commit, err := gitRepo.GetCommit(sha); err != nil {
 		gitRepo.Close()
-		return fmt.Errorf("GetCommit[%s]: %v", sha, err)
+		return fmt.Errorf("GetCommit[%s]: %w", sha, err)
+	} else if len(sha) != git.SHAFullLength {
+		// use complete commit sha
+		sha = commit.ID.String()
 	}
 	gitRepo.Close()
 
-	if err := git_model.NewCommitStatus(git_model.NewCommitStatusOptions{
+	if err := git_model.NewCommitStatus(ctx, git_model.NewCommitStatusOptions{
 		Repo:         repo,
 		Creator:      creator,
 		SHA:          sha,
 		CommitStatus: status,
 	}); err != nil {
-		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %v", repo.ID, creator.ID, sha, err)
+		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, creator.ID, sha, err)
 	}
 
 	if status.State.IsSuccess() {
@@ -64,9 +66,9 @@ func CountDivergingCommits(ctx context.Context, repo *repo_model.Repository, bra
 }
 
 // GetPayloadCommitVerification returns the verification information of a commit
-func GetPayloadCommitVerification(commit *git.Commit) *structs.PayloadCommitVerification {
+func GetPayloadCommitVerification(ctx context.Context, commit *git.Commit) *structs.PayloadCommitVerification {
 	verification := &structs.PayloadCommitVerification{}
-	commitVerification := asymkey_model.ParseCommitWithSignature(commit)
+	commitVerification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 	if commit.Signature != nil {
 		verification.Signature = commit.Signature.Signature
 		verification.Payload = commit.Signature.Payload

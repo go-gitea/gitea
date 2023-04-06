@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package npm
 
@@ -20,5 +19,7 @@ type Metadata struct {
 	DevelopmentDependencies map[string]string `json:"development_dependencies,omitempty"`
 	PeerDependencies        map[string]string `json:"peer_dependencies,omitempty"`
 	OptionalDependencies    map[string]string `json:"optional_dependencies,omitempty"`
+	Bin                     map[string]string `json:"bin,omitempty"`
 	Readme                  string            `json:"readme,omitempty"`
+	Repository              Repository        `json:"repository,omitempty"`
 }

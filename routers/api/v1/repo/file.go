@@ -1,13 +1,13 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -28,7 +28,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/routers/web/repo"
+	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -179,7 +179,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 
 	// Now check if there is a meta object for this pointer
-	meta, err := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+	meta, err := git_model.GetLFSMetaObjectByOid(ctx, ctx.Repo.Repository.ID, pointer.Oid)
 
 	// If there isn't one just serve the data directly
 	if err == git_model.ErrLFSObjectNotExist {
@@ -294,7 +294,57 @@ func GetArchive(ctx *context.APIContext) {
 		defer gitRepo.Close()
 	}
 
-	repo.Download(ctx.Context)
+	archiveDownload(ctx)
+}
+
+func archiveDownload(ctx *context.APIContext) {
+	uri := ctx.Params("*")
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
+	if err != nil {
+		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
+			ctx.Error(http.StatusBadRequest, "unknown archive format", err)
+		} else if errors.Is(err, archiver_service.RepoRefNotFoundError{}) {
+			ctx.Error(http.StatusNotFound, "unrecognized reference", err)
+		} else {
+			ctx.ServerError("archiver_service.NewRequest", err)
+		}
+		return
+	}
+
+	archiver, err := aReq.Await(ctx)
+	if err != nil {
+		ctx.ServerError("archiver.Await", err)
+		return
+	}
+
+	download(ctx, aReq.GetArchiveName(), archiver)
+}
+
+func download(ctx *context.APIContext, archiveName string, archiver *repo_model.RepoArchiver) {
+	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
+
+	rPath := archiver.RelativePath()
+	if setting.RepoArchive.ServeDirect {
+		// If we have a signed url (S3, object storage), redirect to this directly.
+		u, err := storage.RepoArchives.URL(rPath, downloadName)
+		if u != nil && err == nil {
+			ctx.Redirect(u.String())
+			return
+		}
+	}
+
+	// If we have matched and access to release or issue
+	fr, err := storage.RepoArchives.Open(rPath)
+	if err != nil {
+		ctx.ServerError("Open", err)
+		return
+	}
+	defer fr.Close()
+
+	ctx.ServeContent(fr, &context.ServeHeaderOptions{
+		Filename:     downloadName,
+		LastModified: archiver.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // GetEditorconfig get editor config of a repository

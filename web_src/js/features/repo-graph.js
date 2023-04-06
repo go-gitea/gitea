@@ -1,6 +1,6 @@
 import $ from 'jquery';
 
-export default function initRepoGraphGit() {
+export function initRepoGraphGit() {
   const graphContainer = document.getElementById('git-graph-container');
   if (!graphContainer) return;
 
@@ -56,17 +56,17 @@ export default function initRepoGraphGit() {
     ajaxUrl.searchParams.set('div-only', 'true');
     window.history.replaceState({}, '', queryString ? `?${queryString}` : window.location.pathname);
     $('#pagination').empty();
-    $('#rel-container').addClass('hide');
-    $('#rev-container').addClass('hide');
-    $('#loading-indicator').removeClass('hide');
+    $('#rel-container').addClass('gt-hidden');
+    $('#rev-container').addClass('gt-hidden');
+    $('#loading-indicator').removeClass('gt-hidden');
     (async () => {
       const div = $(await $.ajax(String(ajaxUrl)));
       $('#pagination').html(div.find('#pagination').html());
       $('#rel-container').html(div.find('#rel-container').html());
       $('#rev-container').html(div.find('#rev-container').html());
-      $('#loading-indicator').addClass('hide');
-      $('#rel-container').removeClass('hide');
-      $('#rev-container').removeClass('hide');
+      $('#loading-indicator').addClass('gt-hidden');
+      $('#rel-container').removeClass('gt-hidden');
+      $('#rev-container').removeClass('gt-hidden');
     })();
   };
   const dropdownSelected = params.getAll('branch');

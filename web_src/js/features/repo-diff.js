@@ -1,9 +1,8 @@
 import $ from 'jquery';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
-import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles} from './pull-view-file.js';
-import {initTooltip} from '../modules/tippy.js';
+import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.js';
 
 const {csrfToken} = window.config;
 
@@ -11,10 +10,8 @@ export function initRepoDiffReviewButton() {
   const $reviewBox = $('#review-box');
   const $counter = $reviewBox.find('.review-comments-counter');
 
-  $(document).on('click', 'button[name="is_review"]', (e) => {
+  $(document).on('click', 'button[name="pending_review"]', (e) => {
     const $form = $(e.target).closest('form');
-    $form.append('<input type="hidden" name="is_review" value="true">');
-
     // Watch for the form's submit event.
     $form.on('submit', () => {
       const num = parseInt($counter.attr('data-pending-comment-number')) + 1 || 1;
@@ -35,8 +32,8 @@ export function initRepoDiffFileViewToggle() {
     $this.addClass('active');
 
     const $target = $($this.data('toggle-selector'));
-    $target.parent().children().addClass('hide');
-    $target.removeClass('hide');
+    $target.parent().children().addClass('gt-hidden');
+    $target.removeClass('gt-hidden');
   });
 }
 
@@ -50,13 +47,17 @@ export function initRepoDiffConversationForm() {
       return;
     }
 
-    const formDataString = String(new URLSearchParams(new FormData($form[0])));
+    const formData = new FormData($form[0]);
+
+    // if the form is submitted by a button, append the button's name and value to the form data
+    const submitter = e.originalEvent?.submitter;
+    const isSubmittedByButton = (submitter?.nodeName === 'BUTTON') || (submitter?.nodeName === 'INPUT' && submitter.type === 'submit');
+    if (isSubmittedByButton && submitter.name) {
+      formData.append(submitter.name, submitter.value);
+    }
+    const formDataString = String(new URLSearchParams(formData));
     const $newConversationHolder = $(await $.post($form.attr('action'), formDataString));
     const {path, side, idx} = $newConversationHolder.data();
-
-    $newConversationHolder.find('.tooltip').each(function () {
-      initTooltip(this);
-    });
 
     $form.closest('.conversation-holder').replaceWith($newConversationHolder);
     if ($form.closest('tr').data('line-type') === 'same') {
@@ -67,7 +68,6 @@ export function initRepoDiffConversationForm() {
     $newConversationHolder.find('.dropdown').dropdown();
     initCompReactionSelector($newConversationHolder);
   });
-
 
   $(document).on('click', '.resolve-conversation', async function (e) {
     e.preventDefault();
@@ -93,7 +93,7 @@ export function initRepoDiffConversationNav() {
   // Previous/Next code review conversation
   $(document).on('click', '.previous-conversation', (e) => {
     const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
-    const $conversations = $('.comment-code-cloud:not(.hide)');
+    const $conversations = $('.comment-code-cloud:not(.gt-hidden)');
     const index = $conversations.index($conversation);
     const previousIndex = index > 0 ? index - 1 : $conversations.length - 1;
     const $previousConversation = $conversations.eq(previousIndex);
@@ -102,7 +102,7 @@ export function initRepoDiffConversationNav() {
   });
   $(document).on('click', '.next-conversation', (e) => {
     const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
-    const $conversations = $('.comment-code-cloud:not(.hide)');
+    const $conversations = $('.comment-code-cloud:not(.gt-hidden)');
     const index = $conversations.index($conversation);
     const nextIndex = index < $conversations.length - 1 ? index + 1 : 0;
     const $nextConversation = $conversations.eq(nextIndex);
@@ -118,33 +118,49 @@ function onShowMoreFiles() {
   countAndUpdateViewedFiles();
 }
 
-export function initRepoDiffShowMore() {
-  $('#diff-files, #diff-file-boxes').on('click', '#diff-show-more-files, #diff-show-more-files-stats', (e) => {
-    e.preventDefault();
+export function doLoadMoreFiles(link, diffEnd, callback) {
+  const url = `${link}?skip-to=${diffEnd}&file-only=true`;
+  loadMoreFiles(url, callback);
+}
 
-    if ($(e.target).hasClass('disabled')) {
+function loadMoreFiles(url, callback) {
+  const $target = $('a#diff-show-more-files');
+  if ($target.hasClass('disabled')) {
+    callback();
+    return;
+  }
+  $target.addClass('disabled');
+  $.ajax({
+    type: 'GET',
+    url,
+  }).done((resp) => {
+    if (!resp) {
+      $target.removeClass('disabled');
+      callback(resp);
       return;
     }
-    $('#diff-show-more-files, #diff-show-more-files-stats').addClass('disabled');
-
-    const url = $('#diff-show-more-files, #diff-show-more-files-stats').data('href');
-    $.ajax({
-      type: 'GET',
-      url,
-    }).done((resp) => {
-      if (!resp) {
-        $('#diff-show-more-files, #diff-show-more-files-stats').removeClass('disabled');
-        return;
-      }
-      $('#diff-too-many-files-stats').remove();
-      $('#diff-files').append($(resp).find('#diff-files li'));
-      $('#diff-incomplete').replaceWith($(resp).find('#diff-file-boxes').children());
-      onShowMoreFiles();
-    }).fail(() => {
-      $('#diff-show-more-files, #diff-show-more-files-stats').removeClass('disabled');
-    });
+    $('#diff-incomplete').replaceWith($(resp).find('#diff-file-boxes').children());
+    // By simply rerunning the script we add the new data to our existing
+    // pagedata object. this triggers vue and the filetree and filelist will
+    // render the new elements.
+    $('body').append($(resp).find('script#diff-data-script'));
+    onShowMoreFiles();
+    callback(resp);
+  }).fail(() => {
+    $target.removeClass('disabled');
+    callback();
   });
-  $(document).on('click', 'a.diff-show-more-button', (e) => {
+}
+
+export function initRepoDiffShowMore() {
+  $(document).on('click', 'a#diff-show-more-files', (e) => {
+    e.preventDefault();
+
+    const $target = $(e.target);
+    loadMoreFiles($target.data('href'), () => {});
+  });
+
+  $(document).on('click', 'a.diff-load-button', (e) => {
     e.preventDefault();
     const $target = $(e.target);
 
@@ -163,7 +179,6 @@ export function initRepoDiffShowMore() {
         $target.removeClass('disabled');
         return;
       }
-
       $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
       onShowMoreFiles();
     }).fail(() => {

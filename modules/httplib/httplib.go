@@ -1,7 +1,6 @@
 // Copyright 2013 The Beego Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package httplib
 
@@ -9,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -65,6 +65,11 @@ func (r *Request) SetContext(ctx context.Context) *Request {
 // SetTimeout sets connect time out and read-write time out for BeegoRequest.
 func (r *Request) SetTimeout(connectTimeout, readWriteTimeout time.Duration) *Request {
 	r.setting.ConnectTimeout = connectTimeout
+	r.setting.ReadWriteTimeout = readWriteTimeout
+	return r
+}
+
+func (r *Request) SetReadWriteTimeout(readWriteTimeout time.Duration) *Request {
 	r.setting.ReadWriteTimeout = readWriteTimeout
 	return r
 }
@@ -139,11 +144,11 @@ func (r *Request) getResponse() (*http.Response, error) {
 		r.Body(paramBody)
 	}
 
-	url, err := url.Parse(r.url)
+	var err error
+	r.req.URL, err = url.Parse(r.url)
 	if err != nil {
 		return nil, err
 	}
-	r.req.URL = url
 
 	trans := r.setting.Transport
 	if trans == nil {
@@ -194,4 +199,8 @@ func TimeoutDialer(cTimeout time.Duration) func(ctx context.Context, net, addr s
 		}
 		return conn, nil
 	}
+}
+
+func (r *Request) GoString() string {
+	return fmt.Sprintf("%s %s", r.req.Method, r.url)
 }

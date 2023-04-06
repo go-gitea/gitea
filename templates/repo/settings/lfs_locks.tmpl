@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository settings lfs">
+<div role="main" aria-label="{{.Title}}" class="page-content repository settings lfs">
 	{{template "repo/header" .}}
 	{{template "repo/settings/navbar" .}}
 	<div class="ui container repository file list">
@@ -27,15 +27,15 @@
 								<a href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments $.Repository.DefaultBranch}}/{{PathEscapeSegments $lock.Path}}" title="{{$lock.Path}}">{{$lock.Path}}</a>
 								{{else}}
 									{{svg "octicon-diff"}}
-								<span class="tooltip" title="{{$.locale.Tr "repo.settings.lfs_lock_file_no_exist"}}">{{$lock.Path}}</span>
+								<span data-tooltip-content="{{$.locale.Tr "repo.settings.lfs_lock_file_no_exist"}}">{{$lock.Path}}</span>
 								{{end}}
 								{{if not (index $.Lockables $index)}}
-									<span class="tooltip" title="{{$.locale.Tr "repo.settings.lfs_noattribute"}}">{{svg "octicon-alert"}}</span>
+									<span data-tooltip-content="{{$.locale.Tr "repo.settings.lfs_noattribute"}}">{{svg "octicon-alert"}}</span>
 								{{end}}
 							</td>
 							<td>
 								<a href="{{$.Owner.HomeLink}}">
-									{{avatar $.Owner}}
+									{{avatar $.Context $.Owner}}
 									{{$.Owner.DisplayName}}
 								</a>
 							</td>

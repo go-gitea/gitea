@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Copied and modified from https://github.com/issue9/identicon/ (MIT License)
 
@@ -36,20 +35,20 @@ func drawBlock(img *image.Paletted, x, y, size, angle int, points []int) {
 
 // blank
 //
-//  --------
-//  |      |
-//  |      |
-//  |      |
-//  --------
+//	--------
+//	|      |
+//	|      |
+//	|      |
+//	--------
 func b0(img *image.Paletted, x, y, size, angle int) {}
 
 // full-filled
 //
-//  --------
-//  |######|
-//  |######|
-//  |######|
-//  --------
+//	--------
+//	|######|
+//	|######|
+//	|######|
+//	--------
 func b1(img *image.Paletted, x, y, size, angle int) {
 	for i := x; i < x+size; i++ {
 		for j := y; j < y+size; j++ {
@@ -59,12 +58,13 @@ func b1(img *image.Paletted, x, y, size, angle int) {
 }
 
 // a small block
-//  ----------
-//  |        |
-//  |  ####  |
-//  |  ####  |
-//  |        |
-//  ----------
+//
+//	----------
+//	|        |
+//	|  ####  |
+//	|  ####  |
+//	|        |
+//	----------
 func b2(img *image.Paletted, x, y, size, angle int) {
 	l := size / 4
 	x += l
@@ -79,15 +79,15 @@ func b2(img *image.Paletted, x, y, size, angle int) {
 
 // diamond
 //
-//  ---------
-//  |   #   |
-//  |  ###  |
-//  | ##### |
-//  |#######|
-//  | ##### |
-//  |  ###  |
-//  |   #   |
-//  ---------
+//	---------
+//	|   #   |
+//	|  ###  |
+//	| ##### |
+//	|#######|
+//	| ##### |
+//	|  ###  |
+//	|   #   |
+//	---------
 func b3(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, 0, []int{
@@ -101,13 +101,13 @@ func b3(img *image.Paletted, x, y, size, angle int) {
 
 // b4
 //
-//  -------
-//  |#####|
-//  |#### |
-//  |###  |
-//  |##   |
-//  |#    |
-//  |------
+//	-------
+//	|#####|
+//	|#### |
+//	|###  |
+//	|##   |
+//	|#    |
+//	|------
 func b4(img *image.Paletted, x, y, size, angle int) {
 	drawBlock(img, x, y, size, angle, []int{
 		0, 0,
@@ -119,11 +119,11 @@ func b4(img *image.Paletted, x, y, size, angle int) {
 
 // b5
 //
-//  ---------
-//  |   #   |
-//  |  ###  |
-//  | ##### |
-//  |#######|
+//	---------
+//	|   #   |
+//	|  ###  |
+//	| ##### |
+//	|#######|
 func b5(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
@@ -136,11 +136,11 @@ func b5(img *image.Paletted, x, y, size, angle int) {
 
 // b6
 //
-//  --------
-//  |###   |
-//  |###   |
-//  |###   |
-//  --------
+//	--------
+//	|###   |
+//	|###   |
+//	|###   |
+//	--------
 func b6(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
@@ -154,12 +154,12 @@ func b6(img *image.Paletted, x, y, size, angle int) {
 
 // b7 italic cone
 //
-//  ---------
-//  | #     |
-//  |  ##   |
-//  |  #####|
-//  |   ####|
-//  |--------
+//	---------
+//	| #     |
+//	|  ##   |
+//	|  #####|
+//	|   ####|
+//	|--------
 func b7(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
@@ -173,14 +173,14 @@ func b7(img *image.Paletted, x, y, size, angle int) {
 
 // b8 three small triangles
 //
-//  -----------
-//  |    #    |
-//  |   ###   |
-//  |  #####  |
-//  |  #   #  |
-//  | ### ### |
-//  |#########|
-//  -----------
+//	-----------
+//	|    #    |
+//	|   ###   |
+//	|  #####  |
+//	|  #   #  |
+//	| ### ### |
+//	|#########|
+//	-----------
 func b8(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	mm := m / 2
@@ -212,13 +212,13 @@ func b8(img *image.Paletted, x, y, size, angle int) {
 
 // b9 italic triangle
 //
-//  ---------
-//  |#      |
-//  | ####  |
-//  |  #####|
-//  |  #### |
-//  |   #   |
-//  ---------
+//	---------
+//	|#      |
+//	| ####  |
+//	|  #####|
+//	|  #### |
+//	|   #   |
+//	---------
 func b9(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
@@ -231,16 +231,16 @@ func b9(img *image.Paletted, x, y, size, angle int) {
 
 // b10
 //
-//  ----------
-//  |    ####|
-//  |    ### |
-//  |    ##  |
-//  |    #   |
-//  |####    |
-//  |###     |
-//  |##      |
-//  |#       |
-//  ----------
+//	----------
+//	|    ####|
+//	|    ### |
+//	|    ##  |
+//	|    #   |
+//	|####    |
+//	|###     |
+//	|##      |
+//	|#       |
+//	----------
 func b10(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
@@ -260,13 +260,13 @@ func b10(img *image.Paletted, x, y, size, angle int) {
 
 // b11
 //
-//  ----------
-//  |####    |
-//  |####    |
-//  |####    |
-//  |        |
-//  |        |
-//  ----------
+//	----------
+//	|####    |
+//	|####    |
+//	|####    |
+//	|        |
+//	|        |
+//	----------
 func b11(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
@@ -280,13 +280,13 @@ func b11(img *image.Paletted, x, y, size, angle int) {
 
 // b12
 //
-//  -----------
-//  |         |
-//  |         |
-//  |#########|
-//  |  #####  |
-//  |    #    |
-//  -----------
+//	-----------
+//	|         |
+//	|         |
+//	|#########|
+//	|  #####  |
+//	|    #    |
+//	-----------
 func b12(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
@@ -299,13 +299,13 @@ func b12(img *image.Paletted, x, y, size, angle int) {
 
 // b13
 //
-//  -----------
-//  |         |
-//  |         |
-//  |    #    |
-//  |  #####  |
-//  |#########|
-//  -----------
+//	-----------
+//	|         |
+//	|         |
+//	|    #    |
+//	|  #####  |
+//	|#########|
+//	-----------
 func b13(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
@@ -318,13 +318,13 @@ func b13(img *image.Paletted, x, y, size, angle int) {
 
 // b14
 //
-//  ---------
-//  |   #   |
-//  | ###   |
-//  |####   |
-//  |       |
-//  |       |
-//  ---------
+//	---------
+//	|   #   |
+//	| ###   |
+//	|####   |
+//	|       |
+//	|       |
+//	---------
 func b14(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
@@ -337,13 +337,13 @@ func b14(img *image.Paletted, x, y, size, angle int) {
 
 // b15
 //
-//  ----------
-//  |#####   |
-//  |###     |
-//  |#       |
-//  |        |
-//  |        |
-//  ----------
+//	----------
+//	|#####   |
+//	|###     |
+//	|#       |
+//	|        |
+//	|        |
+//	----------
 func b15(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
@@ -356,14 +356,14 @@ func b15(img *image.Paletted, x, y, size, angle int) {
 
 // b16
 //
-//  ---------
-//  |   #   |
-//  | ##### |
-//  |#######|
-//  |   #   |
-//  | ##### |
-//  |#######|
-//  ---------
+//	---------
+//	|   #   |
+//	| ##### |
+//	|#######|
+//	|   #   |
+//	| ##### |
+//	|#######|
+//	---------
 func b16(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
@@ -383,13 +383,13 @@ func b16(img *image.Paletted, x, y, size, angle int) {
 
 // b17
 //
-//  ----------
-//  |#####   |
-//  |###     |
-//  |#       |
-//  |      ##|
-//  |      ##|
-//  ----------
+//	----------
+//	|#####   |
+//	|###     |
+//	|#       |
+//	|      ##|
+//	|      ##|
+//	----------
 func b17(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 
@@ -412,13 +412,13 @@ func b17(img *image.Paletted, x, y, size, angle int) {
 
 // b18
 //
-//  ----------
-//  |#####   |
-//  |####    |
-//  |###     |
-//  |##      |
-//  |#       |
-//  ----------
+//	----------
+//	|#####   |
+//	|####    |
+//	|###     |
+//	|##      |
+//	|#       |
+//	----------
 func b18(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 
@@ -432,13 +432,13 @@ func b18(img *image.Paletted, x, y, size, angle int) {
 
 // b19
 //
-//  ----------
-//  |########|
-//  |###  ###|
-//  |#      #|
-//  |###  ###|
-//  |########|
-//  ----------
+//	----------
+//	|########|
+//	|###  ###|
+//	|#      #|
+//	|###  ###|
+//	|########|
+//	----------
 func b19(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 
@@ -473,13 +473,13 @@ func b19(img *image.Paletted, x, y, size, angle int) {
 
 // b20
 //
-//  ----------
-//  |  ##     |
-//  |###      |
-//  |##       |
-//  |##       |
-//  |#        |
-//  ----------
+//	----------
+//	|  ##     |
+//	|###      |
+//	|##       |
+//	|##       |
+//	|#        |
+//	----------
 func b20(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4
@@ -494,13 +494,13 @@ func b20(img *image.Paletted, x, y, size, angle int) {
 
 // b21
 //
-//  ----------
-//  | ####   |
-//  |## #####|
-//  |##    ##|
-//  |##      |
-//  |#       |
-//  ----------
+//	----------
+//	| ####   |
+//	|## #####|
+//	|##    ##|
+//	|##      |
+//	|#       |
+//	----------
 func b21(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4
@@ -522,13 +522,13 @@ func b21(img *image.Paletted, x, y, size, angle int) {
 
 // b22
 //
-//  ----------
-//  | ####   |
-//  |##  ### |
-//  |##    ##|
-//  |##    ##|
-//  |#      #|
-//  ----------
+//	----------
+//	| ####   |
+//	|##  ### |
+//	|##    ##|
+//	|##    ##|
+//	|#      #|
+//	----------
 func b22(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4
@@ -550,13 +550,13 @@ func b22(img *image.Paletted, x, y, size, angle int) {
 
 // b23
 //
-//  ----------
-//  | #######|
-//  |###    #|
-//  |##      |
-//  |##      |
-//  |#       |
-//  ----------
+//	----------
+//	| #######|
+//	|###    #|
+//	|##      |
+//	|##      |
+//	|#       |
+//	----------
 func b23(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4
@@ -578,13 +578,13 @@ func b23(img *image.Paletted, x, y, size, angle int) {
 
 // b24
 //
-//  ----------
-//  | ##  ###|
-//  |###  ###|
-//  |##  ##  |
-//  |##  ##  |
-//  |#   #   |
-//  ----------
+//	----------
+//	| ##  ###|
+//	|###  ###|
+//	|##  ##  |
+//	|##  ##  |
+//	|#   #   |
+//	----------
 func b24(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4
@@ -606,13 +606,13 @@ func b24(img *image.Paletted, x, y, size, angle int) {
 
 // b25
 //
-//  ----------
-//  |#      #|
-//  |##   ###|
-//  |##  ##  |
-//  |######  |
-//  |####    |
-//  ----------
+//	----------
+//	|#      #|
+//	|##   ###|
+//	|##  ##  |
+//	|######  |
+//	|####    |
+//	----------
 func b25(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4
@@ -634,13 +634,13 @@ func b25(img *image.Paletted, x, y, size, angle int) {
 
 // b26
 //
-//  ----------
-//  |#      #|
-//  |###  ###|
-//  |  ####  |
-//  |###  ###|
-//  |#      #|
-//  ----------
+//	----------
+//	|#      #|
+//	|###  ###|
+//	|  ####  |
+//	|###  ###|
+//	|#      #|
+//	----------
 func b26(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4
@@ -676,13 +676,13 @@ func b26(img *image.Paletted, x, y, size, angle int) {
 
 // b27
 //
-//  ----------
-//  |########|
-//  |##   ###|
-//  |#      #|
-//  |###   ##|
-//  |########|
-//  ----------
+//	----------
+//	|########|
+//	|##   ###|
+//	|#      #|
+//	|###   ##|
+//	|########|
+//	----------
 func b27(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4

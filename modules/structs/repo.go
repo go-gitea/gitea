@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package structs
 
@@ -34,8 +33,10 @@ type ExternalTracker struct {
 	ExternalTrackerURL string `json:"external_tracker_url"`
 	// External Issue Tracker URL Format. Use the placeholders {user}, {repo} and {index} for the username, repository name and issue index.
 	ExternalTrackerFormat string `json:"external_tracker_format"`
-	// External Issue Tracker Number Format, either `numeric` or `alphanumeric`
+	// External Issue Tracker Number Format, either `numeric`, `alphanumeric`, or `regexp`
 	ExternalTrackerStyle string `json:"external_tracker_style"`
+	// External Issue Tracker issue regular expression
+	ExternalTrackerRegexpPattern string `json:"external_tracker_regexp_pattern"`
 }
 
 // ExternalWiki represents setting for external wiki
@@ -62,6 +63,7 @@ type Repository struct {
 	Language      string      `json:"language"`
 	LanguagesURL  string      `json:"languages_url"`
 	HTMLURL       string      `json:"html_url"`
+	Link          string      `json:"link"`
 	SSHURL        string      `json:"ssh_url"`
 	CloneURL      string      `json:"clone_url"`
 	OriginalURL   string      `json:"original_url"`
@@ -86,6 +88,9 @@ type Repository struct {
 	ExternalWiki                  *ExternalWiki    `json:"external_wiki,omitempty"`
 	HasPullRequests               bool             `json:"has_pull_requests"`
 	HasProjects                   bool             `json:"has_projects"`
+	HasReleases                   bool             `json:"has_releases"`
+	HasPackages                   bool             `json:"has_packages"`
+	HasActions                    bool             `json:"has_actions"`
 	IgnoreWhitespaceConflicts     bool             `json:"ignore_whitespace_conflicts"`
 	AllowMerge                    bool             `json:"allow_merge_commits"`
 	AllowRebase                   bool             `json:"allow_rebase"`
@@ -94,6 +99,7 @@ type Repository struct {
 	AllowRebaseUpdate             bool             `json:"allow_rebase_update"`
 	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
 	DefaultMergeStyle             string           `json:"default_merge_style"`
+	DefaultAllowMaintainerEdit    bool             `json:"default_allow_maintainer_edit"`
 	AvatarURL                     string           `json:"avatar_url"`
 	Internal                      bool             `json:"internal"`
 	MirrorInterval                string           `json:"mirror_interval"`
@@ -111,7 +117,7 @@ type CreateRepoOption struct {
 	// unique: true
 	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 	// Description of the repository to create
-	Description string `json:"description" binding:"MaxSize(255)"`
+	Description string `json:"description" binding:"MaxSize(2048)"`
 	// Whether the repository is private
 	Private bool `json:"private"`
 	// Label-Set to use
@@ -140,9 +146,9 @@ type EditRepoOption struct {
 	// unique: true
 	Name *string `json:"name,omitempty" binding:"OmitEmpty;AlphaDashDot;MaxSize(100);"`
 	// a short description of the repository.
-	Description *string `json:"description,omitempty" binding:"MaxSize(255)"`
+	Description *string `json:"description,omitempty" binding:"MaxSize(2048)"`
 	// a URL with more information about the repository.
-	Website *string `json:"website,omitempty" binding:"MaxSize(255)"`
+	Website *string `json:"website,omitempty" binding:"MaxSize(1024)"`
 	// either `true` to make the repository private or `false` to make it public.
 	// Note: you will get a 422 error if the organization restricts changing repository visibility to organization
 	// owners and a non-owner tries to change the value of private.
@@ -151,13 +157,13 @@ type EditRepoOption struct {
 	Template *bool `json:"template,omitempty"`
 	// either `true` to enable issues for this repository or `false` to disable them.
 	HasIssues *bool `json:"has_issues,omitempty"`
-	// set this structure to configure internal issue tracker (requires has_issues)
+	// set this structure to configure internal issue tracker
 	InternalTracker *InternalTracker `json:"internal_tracker,omitempty"`
-	// set this structure to use external issue tracker (requires has_issues)
+	// set this structure to use external issue tracker
 	ExternalTracker *ExternalTracker `json:"external_tracker,omitempty"`
 	// either `true` to enable the wiki for this repository or `false` to disable it.
 	HasWiki *bool `json:"has_wiki,omitempty"`
-	// set this structure to use external wiki instead of internal (requires has_wiki)
+	// set this structure to use external wiki instead of internal
 	ExternalWiki *ExternalWiki `json:"external_wiki,omitempty"`
 	// sets the default branch for this repository.
 	DefaultBranch *string `json:"default_branch,omitempty"`
@@ -165,26 +171,34 @@ type EditRepoOption struct {
 	HasPullRequests *bool `json:"has_pull_requests,omitempty"`
 	// either `true` to enable project unit, or `false` to disable them.
 	HasProjects *bool `json:"has_projects,omitempty"`
-	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `has_pull_requests` must be `true`.
+	// either `true` to enable releases unit, or `false` to disable them.
+	HasReleases *bool `json:"has_releases,omitempty"`
+	// either `true` to enable packages unit, or `false` to disable them.
+	HasPackages *bool `json:"has_packages,omitempty"`
+	// either `true` to enable actions unit, or `false` to disable them.
+	HasActions *bool `json:"has_actions,omitempty"`
+	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace.
 	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace_conflicts,omitempty"`
-	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `has_pull_requests` must be `true`.
+	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits.
 	AllowMerge *bool `json:"allow_merge_commits,omitempty"`
-	// either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `has_pull_requests` must be `true`.
+	// either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging.
 	AllowRebase *bool `json:"allow_rebase,omitempty"`
-	// either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `has_pull_requests` must be `true`.
+	// either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits.
 	AllowRebaseMerge *bool `json:"allow_rebase_explicit,omitempty"`
-	// either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `has_pull_requests` must be `true`.
+	// either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging.
 	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
-	// either `true` to allow mark pr as merged manually, or `false` to prevent it. `has_pull_requests` must be `true`.
+	// either `true` to allow mark pr as merged manually, or `false` to prevent it.
 	AllowManualMerge *bool `json:"allow_manual_merge,omitempty"`
-	// either `true` to enable AutodetectManualMerge, or `false` to prevent it. `has_pull_requests` must be `true`, Note: In some special cases, misjudgments can occur.
+	// either `true` to enable AutodetectManualMerge, or `false` to prevent it. Note: In some special cases, misjudgments can occur.
 	AutodetectManualMerge *bool `json:"autodetect_manual_merge,omitempty"`
-	// either `true` to allow updating pull request branch by rebase, or `false` to prevent it. `has_pull_requests` must be `true`.
+	// either `true` to allow updating pull request branch by rebase, or `false` to prevent it.
 	AllowRebaseUpdate *bool `json:"allow_rebase_update,omitempty"`
 	// set to `true` to delete pr branch after merge by default
 	DefaultDeleteBranchAfterMerge *bool `json:"default_delete_branch_after_merge,omitempty"`
-	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", or "squash". `has_pull_requests` must be `true`.
+	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", or "squash".
 	DefaultMergeStyle *string `json:"default_merge_style,omitempty"`
+	// set to `true` to allow edits from maintainers by default
+	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
 	// set to a string like `8h30m0s` to set the mirror interval time
@@ -208,7 +222,7 @@ type GenerateRepoOption struct {
 	// Default branch of the new repository
 	DefaultBranch string `json:"default_branch"`
 	// Description of the repository to create
-	Description string `json:"description" binding:"MaxSize(255)"`
+	Description string `json:"description" binding:"MaxSize(2048)"`
 	// Whether the repository is private
 	Private bool `json:"private"`
 	// include git content of default branch in template repo
@@ -316,7 +330,7 @@ type MigrateRepoOptions struct {
 	LFS            bool   `json:"lfs"`
 	LFSEndpoint    string `json:"lfs_endpoint"`
 	Private        bool   `json:"private"`
-	Description    string `json:"description" binding:"MaxSize(255)"`
+	Description    string `json:"description" binding:"MaxSize(2048)"`
 	Wiki           bool   `json:"wiki"`
 	Milestones     bool   `json:"milestones"`
 	Labels         bool   `json:"labels"`

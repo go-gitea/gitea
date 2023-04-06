@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content user activate">
+<div role="main" aria-label="{{.Title}}" class="page-content user activate">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
 			<form class="ui form ignore-dirty" action="{{AppSubUrl}}/user/activate" method="post">
@@ -30,8 +30,10 @@
 							<input id="code" name="code" type="hidden" value="{{.Code}}">
 						{{else if .IsSendRegisterMail}}
 							<p>{{.locale.Tr "auth.confirmation_mail_sent_prompt" (.Email|Escape) .ActiveCodeLives | Str2html}}</p>
-						{{else if .IsActivateFailed}}
+						{{else if .IsCodeInvalid}}
 							<p>{{.locale.Tr "auth.invalid_code"}}</p>
+						{{else if .IsPasswordInvalid}}
+							<p>{{.locale.Tr "auth.invalid_password"}}</p>
 						{{else if .ManualActivationOnly}}
 							<p class="center">{{.locale.Tr "auth.manual_activation_only"}}</p>
 						{{else}}

@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package gitdiff
 
@@ -280,7 +279,8 @@ func DiffInlineWithUnicodeEscape(s template.HTML, locale translation.Locale) Dif
 
 // DiffInlineWithHighlightCode makes a DiffInline with code highlight and hidden unicode characters escaped
 func DiffInlineWithHighlightCode(fileName, language, code string, locale translation.Locale) DiffInline {
-	status, content := charset.EscapeControlHTML(highlight.Code(fileName, language, code), locale)
+	highlighted, _ := highlight.Code(fileName, language, code)
+	status, content := charset.EscapeControlHTML(highlighted, locale)
 	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
 }
 
@@ -474,7 +474,7 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader, ski
 	sb := strings.Builder{}
 
 	// OK let's set a reasonable buffer size.
-	// This should be let's say at least the size of maxLineCharacters or 4096 whichever is larger.
+	// This should be at least the size of maxLineCharacters or 4096 whichever is larger.
 	readerSize := maxLineCharacters
 	if readerSize < 4096 {
 		readerSize = 4096
@@ -1056,7 +1056,7 @@ type DiffOptions struct {
 	MaxLines           int
 	MaxLineCharacters  int
 	MaxFiles           int
-	WhitespaceBehavior string
+	WhitespaceBehavior git.TrustedCmdArgs
 	DirectComparison   bool
 }
 
@@ -1071,38 +1071,22 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		return nil, err
 	}
 
-	argsLength := 6
-	if len(opts.WhitespaceBehavior) > 0 {
-		argsLength++
-	}
-	if len(opts.SkipTo) > 0 {
-		argsLength++
-	}
-	if len(files) > 0 {
-		argsLength += len(files) + 1
-	}
-
-	diffArgs := make([]string, 0, argsLength)
+	cmdDiff := git.NewCommand(gitRepo.Ctx)
 	if (len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
-		diffArgs = append(diffArgs, "diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M")
-		if len(opts.WhitespaceBehavior) != 0 {
-			diffArgs = append(diffArgs, opts.WhitespaceBehavior)
-		}
-		// append empty tree ref
-		diffArgs = append(diffArgs, "4b825dc642cb6eb9a060e54bf8d69288fbee4904")
-		diffArgs = append(diffArgs, opts.AfterCommitID)
+		cmdDiff.AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
+			AddArguments(opts.WhitespaceBehavior...).
+			AddArguments("4b825dc642cb6eb9a060e54bf8d69288fbee4904"). // append empty tree ref
+			AddDynamicArguments(opts.AfterCommitID)
 	} else {
 		actualBeforeCommitID := opts.BeforeCommitID
 		if len(actualBeforeCommitID) == 0 {
 			parentCommit, _ := commit.Parent(0)
 			actualBeforeCommitID = parentCommit.ID.String()
 		}
-		diffArgs = append(diffArgs, "diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M")
-		if len(opts.WhitespaceBehavior) != 0 {
-			diffArgs = append(diffArgs, opts.WhitespaceBehavior)
-		}
-		diffArgs = append(diffArgs, actualBeforeCommitID)
-		diffArgs = append(diffArgs, opts.AfterCommitID)
+
+		cmdDiff.AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
+			AddArguments(opts.WhitespaceBehavior...).
+			AddDynamicArguments(actualBeforeCommitID, opts.AfterCommitID)
 		opts.BeforeCommitID = actualBeforeCommitID
 	}
 
@@ -1111,14 +1095,11 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	// the skipping for us
 	parsePatchSkipToFile := opts.SkipTo
 	if opts.SkipTo != "" && git.CheckGitVersionAtLeast("2.31") == nil {
-		diffArgs = append(diffArgs, "--skip-to="+opts.SkipTo)
+		cmdDiff.AddOptionFormat("--skip-to=%s", opts.SkipTo)
 		parsePatchSkipToFile = ""
 	}
 
-	if len(files) > 0 {
-		diffArgs = append(diffArgs, "--")
-		diffArgs = append(diffArgs, files...)
-	}
+	cmdDiff.AddDashesAndList(files...)
 
 	reader, writer := io.Pipe()
 	defer func() {
@@ -1126,10 +1107,9 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		_ = writer.Close()
 	}()
 
-	go func(ctx context.Context, diffArgs []string, repoPath string, writer *io.PipeWriter) {
-		cmd := git.NewCommand(ctx, diffArgs...)
-		cmd.SetDescription(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
-		if err := cmd.Run(&git.RunOpts{
+	go func() {
+		cmdDiff.SetDescription(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
+		if err := cmdDiff.Run(&git.RunOpts{
 			Timeout: time.Duration(setting.Git.Timeout.Default) * time.Second,
 			Dir:     repoPath,
 			Stderr:  os.Stderr,
@@ -1139,7 +1119,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		}
 
 		_ = writer.Close()
-	}(gitRepo.Ctx, diffArgs, repoPath, writer)
+	}()
 
 	diff, err := ParsePatch(opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile)
 	if err != nil {
@@ -1178,8 +1158,6 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
 					diffFile.Language = language
 				}
-			} else {
-				log.Error("Unexpected error: %v", err)
 			}
 		}
 
@@ -1201,16 +1179,16 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		separator = ".."
 	}
 
-	shortstatArgs := []string{opts.BeforeCommitID + separator + opts.AfterCommitID}
+	diffPaths := []string{opts.BeforeCommitID + separator + opts.AfterCommitID}
 	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA {
-		shortstatArgs = []string{git.EmptyTreeSHA, opts.AfterCommitID}
+		diffPaths = []string{git.EmptyTreeSHA, opts.AfterCommitID}
 	}
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, shortstatArgs...)
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		// git >= 2.28 now returns an error if base and head have become unrelated.
 		// previously it would return the results of git diff --shortstat base head so let's try that...
-		shortstatArgs = []string{opts.BeforeCommitID, opts.AfterCommitID}
-		diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, shortstatArgs...)
+		diffPaths = []string{opts.BeforeCommitID, opts.AfterCommitID}
+		diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
 	}
 	if err != nil {
 		return nil, err
@@ -1237,8 +1215,13 @@ func SyncAndGetUserSpecificDiff(ctx context.Context, userID int64, pull *issues_
 	}
 
 	changedFiles, err := gitRepo.GetFilesChangedBetween(review.CommitSHA, latestCommit)
+	// There are way too many possible errors.
+	// Examples are various git errors such as the commit the review was based on was gc'ed and hence doesn't exist anymore as well as unrecoverable errors where we should serve a 500 response
+	// Due to the current architecture and physical limitation of needing to compare explicit error messages, we can only choose one approach without the code getting ugly
+	// For SOME of the errors such as the gc'ed commit, it would be best to mark all files as changed
+	// But as that does not work for all potential errors, we simply mark all files as unchanged and drop the error which always works, even if not as good as possible
 	if err != nil {
-		return diff, err
+		log.Error("Could not get changed files between %s and %s for pull request %d in repo with path %s. Assuming no changes. Error: %w", review.CommitSHA, latestCommit, pull.Index, gitRepo.Path, err)
 	}
 
 	filesChangedSinceLastDiff := make(map[string]pull_model.ViewedState)
@@ -1319,17 +1302,17 @@ func CommentMustAsDiff(c *issues_model.Comment) *Diff {
 }
 
 // GetWhitespaceFlag returns git diff flag for treating whitespaces
-func GetWhitespaceFlag(whitespaceBehavior string) string {
-	whitespaceFlags := map[string]string{
-		"ignore-all":    "-w",
-		"ignore-change": "-b",
-		"ignore-eol":    "--ignore-space-at-eol",
-		"show-all":      "",
+func GetWhitespaceFlag(whitespaceBehavior string) git.TrustedCmdArgs {
+	whitespaceFlags := map[string]git.TrustedCmdArgs{
+		"ignore-all":    {"-w"},
+		"ignore-change": {"-b"},
+		"ignore-eol":    {"--ignore-space-at-eol"},
+		"show-all":      nil,
 	}
 
 	if flag, ok := whitespaceFlags[whitespaceBehavior]; ok {
 		return flag
 	}
 	log.Warn("unknown whitespace behavior: %q, default to 'show-all'", whitespaceBehavior)
-	return ""
+	return nil
 }

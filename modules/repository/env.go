@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -28,6 +27,7 @@ const (
 	EnvPRID         = "GITEA_PR_ID"
 	EnvIsInternal   = "GITEA_INTERNAL_PUSH"
 	EnvAppURL       = "GITEA_ROOT_URL"
+	EnvActionPerm   = "GITEA_ACTION_PERM"
 )
 
 // InternalPushingEnvironment returns an os environment to switch off hooks on push

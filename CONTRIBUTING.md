@@ -86,8 +86,10 @@ Here's how to run the test suite:
 |                                        |                                                  |
 | :------------------------------------- | :----------------------------------------------- |
 |``make test[\#TestSpecificName]``       |  run unit test  |
-|``make test-sqlite[\#TestSpecificName]``|  run [integration](integrations) test for SQLite |
-|[More details about integrations](integrations/README.md)  |
+|``make test-sqlite[\#TestSpecificName]``|  run [integration](tests/integration) test for SQLite |
+|[More details about integration tests](tests/integration/README.md)  |
+|``make test-e2e-sqlite[\#TestSpecificFileName]``|  run [end-to-end](tests/e2e) test for SQLite |
+|[More details about e2e tests](tests/e2e/README.md)  |
 
 ## Vendoring
 
@@ -144,6 +146,16 @@ If your PR could cause a breaking change you must add a BREAKING section to this
 
 To explain how this could affect users and how to mitigate these changes.
 
+Once code review starts on your PR, do not rebase nor squash your branch as it makes it
+difficult to review the new changes. Only if there is a need, sync your branch by merging
+the base branch into yours. Don't worry about merge commits messing up your tree as
+the final merge process squashes all commits into one, with the visible commit message (first
+line) being the PR title + PR index and description being the PR's first comment.
+
+Once your PR gets the `lgtm/done` label, don't worry about keeping it up-to-date or breaking
+builds (unless there's a merge conflict or a request is made by a maintainer to make
+modifications). It is the maintainer team's responsibility from this point to get it merged.
+
 ## Styleguide
 
 For imports you should use the following format (*without* the comments)
@@ -168,16 +180,23 @@ import (
 
 To maintain understandable code and avoid circular dependencies it is important to have a good structure of the code. The Gitea code is divided into the following parts:
 
-- **integration:** Integrations tests
 - **models:** Contains the data structures used by xorm to construct database tables. It also contains supporting functions to query and update the database. Dependencies to other code in Gitea should be avoided although some modules might be needed (for example for logging).
 - **models/fixtures:** Sample model data used in integration tests.
 - **models/migrations:** Handling of database migrations between versions. PRs that changes a database structure shall also have a migration step.
-- **modules:** Different modules to handle specific functionality in Gitea.
+- **modules:** Different modules to handle specific functionality in Gitea. Shall only depend on other modules but not other packages (models, services).
 - **public:** Frontend files (javascript, images, css, etc.)
-- **routers:** Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers
+- **routers:** Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers.
 - **services:** Support functions for common routing operations. Uses models and modules to handle the request.
 - **templates:** Golang templates for generating the html output.
+- **tests/e2e:** End to end tests
+- **tests/integration:** Integration tests
+- **tests/gitea-repositories-meta:** Sample repos used in integration tests. Adding a new repo requires editing `models/fixtures/repositories.yml` and `models/fixtures/repo_unit.yml` to match.
+- **tests/gitea-lfs-meta:** Sample LFS objects used in integration tests. Adding a new object requires editing `models/fixtures/lfs_meta_object.yml` to match.
 - **vendor:** External code that Gitea depends on.
+
+## Documentation
+
+If you add a new feature or change an existing aspect of Gitea, the documentation for that feature must be created or updated.
 
 ## API v1
 
@@ -227,27 +246,6 @@ An endpoint which changes/edits an object expects all fields to be optional (exc
 - support pagination (`page` & `limit` options in query)
 - set `X-Total-Count` header via **SetTotalCountHeader** ([example](https://github.com/go-gitea/gitea/blob/7aae98cc5d4113f1e9918b7ee7dd09f67c189e3e/routers/api/v1/repo/issue.go#L444))
 
-## Large Character Comments
-
-Throughout the codebase there are large-text comments for sections of code, e.g.:
-
-```go
-// __________            .__               
-// \______   \ _______  _|__| ______  _  __
-//  |       _// __ \  \/ /  |/ __ \ \/ \/ /
-//  |    |   \  ___/\   /|  \  ___/\     / 
-//  |____|_  /\___  >\_/ |__|\___  >\/\_/  
-//         \/     \/             \/        
-```
-
-These were created using the `figlet` tool with the `graffiti` font.
-
-A simple way of creating these is to use the following:
-
-```bash
-figlet -f graffiti Review | sed  -e's+^+// +' - | xclip -sel clip -in
-```
-
 ## Backports and Frontports
 
 Occasionally backports of PRs are required.
@@ -269,26 +267,10 @@ with the rest of the summary matching the original PR. Similarly for frontports
 
 ---
 
-The below is a script that may be helpful in creating backports. YMMV.
+A command to help create backports can be found in `contrib/backport` and can be installed (from inside the gitea repo root directory) using:
 
 ```bash
-#!/bin/sh
-PR="$1"
-SHA="$2"
-VERSION="$3"
-
-if [ -z "$SHA" ]; then
-    SHA=$(gh api /repos/go-gitea/gitea/pulls/$PR -q '.merge_commit_sha')
-fi
-
-if [ -z "$VERSION" ]; then
-    VERSION="v1.16"
-fi
-
-echo git checkout origin/release/"$VERSION" -b backport-$PR-$VERSION
-git checkout origin/release/"$VERSION" -b backport-$PR-$VERSION
-git cherry-pick $SHA && git commit --amend && git push zeripath backport-$PR-$VERSION && xdg-open https://github.com/go-gitea/gitea/compare/release/"$VERSION"...zeripath:backport-$PR-$VERSION
-
+go install contrib/backport/backport.go
 ```
 
 ## Developer Certificate of Origin (DCO)
@@ -317,9 +299,7 @@ known as the release freeze. All the feature pull requests should be
 merged before feature freeze. And, during the frozen period, a corresponding
 release branch is open for fixes backported from main branch. Release candidates
 are made during this period for user testing to
-obtain a final version that is maintained in this branch. A release is
-maintained by issuing patch releases to only correct critical problems
-such as crashes or security issues.
+obtain a final version that is maintained in this branch.
 
 Major release cycles are seasonal. They always begin on the 25th and end on
 the 24th (i.e., the 25th of December to March 24th).
@@ -328,6 +308,16 @@ During a development cycle, we may also publish any necessary minor releases
 for the previous version. For example, if the latest, published release is
 v1.2, then minor changes for the previous release—e.g., v1.1.0 -> v1.1.1—are
 still possible.
+
+The previous release gets fixes for:
+
+- Security issues
+- Critical bugs
+- Regressions
+- Build issues
+- Necessary enhancements (including necessary UI/UX fixes)
+
+The backported fixes should avoid breaking downgrade between minor releases as much as possible.
 
 ## Maintainers
 
@@ -443,9 +433,9 @@ be reviewed by two maintainers and must pass the automatic tests.
 Code that you contribute should use the standard copyright header:
 
 ```
-// Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// Copyright <year> The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 ```
 
 Files in the repository contain copyright from the year they are added

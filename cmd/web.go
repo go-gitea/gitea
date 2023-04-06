@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -10,6 +9,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 
 	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
@@ -25,6 +26,9 @@ import (
 	"github.com/urfave/cli"
 	ini "gopkg.in/ini.v1"
 )
+
+// PIDFile could be set from build tag
+var PIDFile = "/run/gitea.pid"
 
 // CmdWeb represents the available web sub-command.
 var CmdWeb = cli.Command{
@@ -46,7 +50,7 @@ and it takes care of all the other things for you`,
 		},
 		cli.StringFlag{
 			Name:  "pid, P",
-			Value: setting.PIDFile,
+			Value: PIDFile,
 			Usage: "Custom pid file path",
 		},
 		cli.BoolFlag{
@@ -82,6 +86,22 @@ func runHTTPRedirector() {
 	}
 }
 
+func createPIDFile(pidPath string) {
+	currentPid := os.Getpid()
+	if err := os.MkdirAll(filepath.Dir(pidPath), os.ModePerm); err != nil {
+		log.Fatal("Failed to create PID folder: %v", err)
+	}
+
+	file, err := os.Create(pidPath)
+	if err != nil {
+		log.Fatal("Failed to create PID file: %v", err)
+	}
+	defer file.Close()
+	if _, err := file.WriteString(strconv.FormatInt(int64(currentPid), 10)); err != nil {
+		log.Fatal("Failed to write PID information: %v", err)
+	}
+}
+
 func runWeb(ctx *cli.Context) error {
 	if ctx.Bool("verbose") {
 		_ = log.DelLogger("console")
@@ -108,8 +128,7 @@ func runWeb(ctx *cli.Context) error {
 
 	// Set pid file setting
 	if ctx.IsSet("pid") {
-		setting.PIDFile = ctx.String("pid")
-		setting.WritePIDFile = true
+		createPIDFile(ctx.String("pid"))
 	}
 
 	// Perform pre-initialization
@@ -126,8 +145,10 @@ func runWeb(ctx *cli.Context) error {
 				return err
 			}
 		}
-		c := install.Routes()
+		installCtx, cancel := context.WithCancel(graceful.GetManager().HammerContext())
+		c := install.Routes(installCtx)
 		err := listen(c, false)
+		cancel()
 		if err != nil {
 			log.Critical("Unable to open listener for installer. Is Gitea already running?")
 			graceful.GetManager().DoGracefulShutdown()
@@ -157,7 +178,8 @@ func runWeb(ctx *cli.Context) error {
 
 	log.Info("Global init")
 	// Perform global initialization
-	setting.LoadFromExisting()
+	setting.InitProviderFromExistingFile()
+	setting.LoadCommonSettings()
 	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 
 	// We check that AppDataPath exists here (it should have been created during installation)
@@ -175,7 +197,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Set up Chi routes
-	c := routers.NormalRoutes()
+	c := routers.NormalRoutes(graceful.GetManager().HammerContext())
 	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
@@ -201,7 +223,7 @@ func setPort(port string) error {
 		defaultLocalURL += ":" + setting.HTTPPort + "/"
 
 		// Save LOCAL_ROOT_URL if port changed
-		setting.CreateOrAppendToCustomConf(func(cfg *ini.File) {
+		setting.CreateOrAppendToCustomConf("server.LOCAL_ROOT_URL", func(cfg *ini.File) {
 			cfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
 		})
 	}

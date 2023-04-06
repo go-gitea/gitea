@@ -10,8 +10,8 @@ draft: false
 
 # What is Gitea?
 
-Gitea is a painless self-hosted Git service. It is similar to GitHub, Bitbucket, and GitLab.
-Gitea is a fork of [Gogs](http://gogs.io). See the [Gitea Announcement](https://blog.gitea.io/2016/12/welcome-to-gitea/)
+Gitea is a painless self-hosted all-in-one software development service, it includes Git hosting, code review, team collaboration, package registry and CI/CD. It is similar to GitHub, Bitbucket and GitLab.
+Gitea was forked from [Gogs](http://gogs.io) originally and almost all the code has been changed. See the [Gitea Announcement](https://blog.gitea.io/2016/12/welcome-to-gitea/)
 blog post to read about the justification for a fork.
 
 ## Purpose
@@ -106,7 +106,7 @@ You can try it out using [the online demo](https://try.gitea.io/).
       - Permission to create organizations
       - Permission to import repositories
     - Organization management
-      - People
+      - Members
       - Teams
       - Avatar
       - Hooks
@@ -131,7 +131,8 @@ You can try it out using [the online demo](https://try.gitea.io/).
   - Environment variables
   - Command line options
 - Multi-language support ([21 languages](https://github.com/go-gitea/gitea/tree/main/options/locale))
-- [Mermaid](https://mermaidjs.github.io/) Diagram support
+- [Mermaid](https://mermaidjs.github.io/) diagrams in Markdown
+- Math syntax in Markdown
 - Mail service
   - Notifications
   - Registration confirmation
@@ -286,7 +287,7 @@ You can try it out using [the online demo](https://try.gitea.io/).
 - UI frameworks:
   - [jQuery](https://jquery.com)
   - [Fomantic UI](https://fomantic-ui.com)
-  - [Vue2](https://vuejs.org)
+  - [Vue3](https://vuejs.org)
   - and various components (see package.json)
 - Editors:
   - [CodeMirror](https://codemirror.net)

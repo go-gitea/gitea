@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -22,9 +21,9 @@ func TreeList(ctx *context.Context) {
 		return
 	}
 
-	entries, err := tree.ListEntriesRecursive()
+	entries, err := tree.ListEntriesRecursiveFast()
 	if err != nil {
-		ctx.ServerError("ListEntriesRecursive", err)
+		ctx.ServerError("ListEntriesRecursiveFast", err)
 		return
 	}
 	entries.CustomSort(base.NaturalSortLess)

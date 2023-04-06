@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository settings lfs">
+<div role="main" aria-label="{{.Title}}" class="page-content repository settings lfs">
 	{{template "repo/header" .}}
 	{{template "repo/settings/navbar" .}}
 	<div class="ui container repository file list">
@@ -19,7 +19,7 @@
 							<td class="message">
 								<span class="truncate">
 									<a href="{{$.RepoLink}}/commit/{{.SHA}}" title="{{.Summary | RenderEmojiPlain}}">
-										{{.Summary | RenderEmoji}}
+										{{.Summary | RenderEmoji $.Context}}
 									</a>
 								</span>
 							</td>

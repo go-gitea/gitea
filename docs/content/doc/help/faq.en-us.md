@@ -43,7 +43,7 @@ On the other hand, 1.x.x downloads should never change.
 
 To migrate from Gogs to Gitea:
 
-- [Gogs version 0.9.146 or less]({{< relref "doc/upgrade/from-gogs.en-us.md" >}})
+- [Gogs version 0.9.146 or less]({{< relref "doc/installation/upgrade-from-gogs.en-us.md" >}})
 - [Gogs version 0.11.46.0418](https://github.com/go-gitea/gitea/issues/4286)
 
 To migrate from GitHub to Gitea, you can use Gitea's built-in migration form.
@@ -58,35 +58,39 @@ https://github.com/loganinak/MigrateGitlabToGogs
 
 ## Where does Gitea store what file
 
-- WorkPath
-  - Environment variable `GITEA_WORK_DIR`
-  - Else `--work-path` flag
+- _`AppWorkPath`_
+  - The `--work-path` flag
+  - Else Environment variable `GITEA_WORK_DIR`
+  - Else a built-in value set at build time
   - Else the directory that contains the Gitea binary
-- AppDataPath (default for database, indexers, etc.)
+- `%(APP_DATA_PATH)` (default for database, indexers, etc.)
   - `APP_DATA_PATH` from `app.ini`
-  - Else `%(WorkPath)/data`
-- CustomPath (custom templates)
-  - Environment variable `GITEA_CUSTOM`
-  - Else `%(WorkPath)/custom`
+  - Else _`AppWorkPath`_`/data`
+- _`CustomPath`_ (custom templates)
+  - The `--custom-path` flag
+  - Else Environment variable `GITEA_CUSTOM`
+  - Else a built-in value set at build time
+  - Else _`AppWorkPath`_`/custom`
 - HomeDir
   - Unix: Environment variable `HOME`
   - Windows: Environment variable `USERPROFILE`, else environment variables `HOMEDRIVE`+`HOMEPATH`
 - RepoRootPath
   - `ROOT` in the \[repository] section of `app.ini` if absolute
-  - Else `%(AppWorkPath)/ROOT` if `ROOT` in the \[repository] section of `app.ini` if relative
-  - Default `%(AppDataPath)/gitea-repositories`
+  - Else _`AppWorkPath`_`/ROOT` if `ROOT` in the \[repository] section of `app.ini` if relative
+  - Default `%(APP_DATA_PATH)/gitea-repositories`
 - INI (config file)
-  - `-c` flag
-  - Else `%(CustomPath)/conf/app.ini`
+  - `--config` flag
+  - A possible built-in value set a build time
+  - Else _`CustomPath`_`/conf/app.ini`
 - SQLite Database
   - `PATH` in `database` section of `app.ini`
-  - Else `%(AppDataPath)/gitea.db`
+  - Else `%(APP_DATA_PATH)/gitea.db`
 
 ## Not seeing a clone URL or the clone URL being incorrect
 
 There are a few places that could make this show incorrectly.
 
-1. If using a reverse proxy, make sure you have followed the correction directions in the [reverse proxy guide]({{< relref "doc/usage/reverse-proxies.en-us.md" >}})
+1. If using a reverse proxy, make sure you have followed the correction directions in the [reverse proxy guide]({{< relref "doc/administration/reverse-proxies.en-us.md" >}})
 2. Make sure you have correctly set `ROOT_URL` in the `server` section of your `app.ini`
 
 If certain clone options aren't showing up (HTTP/S or SSH), the following options can be checked in your `app.ini`
@@ -99,7 +103,7 @@ If certain clone options aren't showing up (HTTP/S or SSH), the following option
 
 This error occurs when the reverse proxy limits the file upload size.
 
-See the [reverse proxy guide]({{< relref "doc/usage/reverse-proxies.en-us.md" >}}) for a solution with nginx.
+See the [reverse proxy guide]({{< relref "doc/administration/reverse-proxies.en-us.md" >}}) for a solution with nginx.
 
 ## Custom Templates not loading or working incorrectly
 
@@ -112,7 +116,7 @@ The correct path for the template(s) will be relative to the `CustomPath`
     If that doesn't exist, you can try `echo $GITEA_CUSTOM`
 
 2. If you are still unable to find a path, the default can be [calculated above](#where-does-gitea-store-what-file)
-3. Once you have figured out the correct custom path, you can refer to the [customizing Gitea]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}}) page to add your template to the correct location.
+3. Once you have figured out the correct custom path, you can refer to the [customizing Gitea]({{< relref "doc/administration/customizing-gitea.en-us.md" >}}) page to add your template to the correct location.
 
 ## Active user vs login prohibited user
 
@@ -122,17 +126,19 @@ A "login prohibited" user is a user that is not allowed to log in to Gitea anymo
 
 ## Setting up logging
 
-- [Official Docs]({{< relref "doc/advanced/logging-documentation.en-us.md" >}})
+- [Official Docs]({{< relref "doc/administration/logging-documentation.en-us.md" >}})
 
 ## What is Swagger?
 
-[Swagger](https://swagger.io/) is what Gitea uses for its API.
+[Swagger](https://swagger.io/) is what Gitea uses for its API documentation.
 
-All Gitea instances have the built-in API, though it can be disabled by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`
+All Gitea instances have the built-in API and there is no way to disable it completely.
+You can, however, disable showing its documentation by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`.
+For more information, refer to Gitea's [API docs]({{< relref "doc/development/api-usage.en-us.md" >}}).
 
-For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}})
+You can see the latest API (for example) on <https://try.gitea.io/api/swagger>.
 
-[Swagger Example](https://try.gitea.io/api/swagger)
+You can also see an example of the `swagger.json` file at <https://try.gitea.io/swagger.v1.json>.
 
 ## Adjusting your server for public/private use
 
@@ -143,7 +149,7 @@ There are multiple things you can combine to prevent spammers.
 1. By whitelisting or blocklisting certain email domains
 2. By only whitelisting certain domains with OpenID (see below)
 3. Setting `ENABLE_CAPTCHA` to `true` in your `app.ini` and properly configuring `RECAPTCHA_SECRET` and `RECAPTCHA_SITEKEY`
-4. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/developers/api-usage.en-us.md" >}}), or Gitea's Admin UI
+4. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/administration/command-line.en-us.md" >}}), [API]({{< relref "doc/development/api-usage.en-us.md" >}}), or Gitea's Admin UI
 
 ### Only allow/block certain email domains
 
@@ -169,7 +175,7 @@ At some point, a customer or third party needs access to a specific repo and onl
 
 ### Enable Fail2ban
 
-Use [Fail2Ban]({{< relref "doc/usage/fail2ban-setup.en-us.md" >}}) to monitor and stop automated login attempts or other malicious behavior based on log patterns
+Use [Fail2Ban]({{< relref "doc/administration/fail2ban-setup.en-us.md" >}}) to monitor and stop automated login attempts or other malicious behavior based on log patterns
 
 ## How to add/use custom themes
 
@@ -214,13 +220,13 @@ Our translations are currently crowd-sourced on our [Crowdin project](https://cr
 
 Whether you want to change a translation or add a new one, it will need to be there as all translations are overwritten in our CI via the Crowdin integration.
 
-## Hooks aren't running
+## Push Hook / Webhook aren't running
 
-If Gitea is not running hooks, a common cause is incorrect setup of SSH keys.
+If you can push but can't see push activities on the home dashboard, or the push doesn't trigger webhook, there are a few possibilities:
 
-See [SSH Issues](#ssh-issues) for more information.
-
-You can also try logging into the administration panel and running the `Resynchronize pre-receive, update and post-receive hooks of all repositories.` option.
+1. The git hooks are out of sync: run "Resynchronize pre-receive, update and post-receive hooks of all repositories" on the site admin panel
+2. The git repositories (and hooks) are stored on some filesystems (ex: mounted by NAS) which don't support script execution, make sure the filesystem supports `chmod a+x any-script`
+3. If you are using docker, make sure Docker Server (not the client) >= 20.10.6
 
 ## SSH issues
 
@@ -322,24 +328,24 @@ You may want to set this value to `60m` or `120m`.
 
 ## How can I create users before starting Gitea
 
-Gitea provides a sub-command `gitea migrate` to initialize the database, after which you can use the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md#admin" >}}) to add users like normal.
+Gitea provides a sub-command `gitea migrate` to initialize the database, after which you can use the [admin CLI commands]({{< relref "doc/administration/command-line.en-us.md#admin" >}}) to add users like normal.
 
 ## How can I enable password reset
 
-There is no setting for password resets. It is enabled when a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}) is configured, and disabled otherwise.
+There is no setting for password resets. It is enabled when a [mail service]({{< relref "doc/administration/email-setup.en-us.md" >}}) is configured, and disabled otherwise.
 
 ## How can a user's password be changed
 
 - As an **admin**, you can change any user's password (and optionally force them to change it on next login)...
   - By navigating to your `Site Administration -> User Accounts` page and editing a user.
-  - By using the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md#admin" >}}).
+  - By using the [admin CLI commands]({{< relref "doc/administration/command-line.en-us.md#admin" >}}).
 
-    Keep in mind most commands will also need a [global flag]({{< relref "doc/usage/command-line.en-us.md#global-options" >}}) to point the CLI at the correct configuration.
+    Keep in mind most commands will also need a [global flag]({{< relref "doc/administration/command-line.en-us.md#global-options" >}}) to point the CLI at the correct configuration.
 - As a **user** you can change it...
   - In your account `Settings -> Account` page (this method **requires** you to know your current password).
   - By using the `Forgot Password` link.
 
-    If the `Forgot Password/Account Recovery` page is disabled, please contact your administrator to configure a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}).
+    If the `Forgot Password/Account Recovery` page is disabled, please contact your administrator to configure a [mail service]({{< relref "doc/administration/email-setup.en-us.md" >}}).
 
 ## Why is my markdown broken
 
@@ -392,7 +398,9 @@ Gitea requires the system or browser to have one of the supported Emoji fonts in
 
 Stdout on systemd goes to the journal by default. Try using `journalctl`, `journalctl  -u gitea`, or `journalctl <path-to-gitea-binary>`.
 
-Similarly stdout on docker can be viewed using `docker logs <container>`
+Similarly, stdout on docker can be viewed using `docker logs <container>`.
+
+To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
 
 ## Initial logging
 
@@ -413,7 +421,7 @@ unchanged in the database schema. This may lead to warning such as:
 2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync2() [W] Table user Column keep_activity_private db default is , struct default is 0
 ```
 
-These can safely be ignored but you may able to stop these warnings by getting Gitea to recreate these tables using:
+These can safely be ignored, but you are able to stop these warnings by getting Gitea to recreate these tables using:
 
 ```
 gitea doctor recreate-table user
@@ -441,3 +449,14 @@ It is highly recommended to back-up your database before running these commands.
 If you are using Cloudflare, turn off the auto-minify option in the dashboard.
 
 `Speed` -> `Optimization` -> Uncheck `HTML` within the `Auto-Minify` settings.
+
+## How to adopt repositories from disk
+
+- Add your (bare) repositories to the correct spot for your configuration (`repository.ROOT`), ensuring they are in the correct layout `<REPO_ROOT>/[user]/[repo].git`.
+  - **Note:** the directory names must be lowercase.
+  - You can also check `<ROOT_URL>/admin/config` for the repository root path.
+- Ensure that the user/org exists that you want to adopt repositories for.
+- As an admin, go to `<ROOT_URL>/admin/repos/unadopted` and search.
+  - Users can also be given similar permissions via config [`ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`]({{< relref "doc/administration/config-cheat-sheet.en-us.md#repository" >}}).
+- If the above steps are done correctly, you should be able to select repositories to adopt.
+  - If no repositories are found, enable [debug logging]({{< relref "doc/administration/config-cheat-sheet.en-us.md#repository" >}}) to check for any specific errors.

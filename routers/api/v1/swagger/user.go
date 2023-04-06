@@ -1,11 +1,10 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package swagger
 
 import (
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -40,7 +39,7 @@ type swaggerModelEditUserOption struct {
 // swagger:response UserHeatmapData
 type swaggerResponseUserHeatmapData struct {
 	// in:body
-	Body []models.UserHeatmapData `json:"body"`
+	Body []activities_model.UserHeatmapData `json:"body"`
 }
 
 // UserSettings

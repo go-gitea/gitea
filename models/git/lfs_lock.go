@@ -1,13 +1,11 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
 import (
 	"context"
 	"fmt"
-	"path"
 	"strings"
 	"time"
 
@@ -18,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // LFSLock represents a git lfs lock of repository.
@@ -35,16 +34,12 @@ func init() {
 
 // BeforeInsert is invoked from XORM before inserting an object of this type.
 func (l *LFSLock) BeforeInsert() {
-	l.Path = cleanPath(l.Path)
-}
-
-func cleanPath(p string) string {
-	return path.Clean("/" + p)[1:]
+	l.Path = util.PathJoinRel(l.Path)
 }
 
 // CreateLFSLock creates a new lock.
-func CreateLFSLock(repo *repo_model.Repository, lock *LFSLock) (*LFSLock, error) {
-	dbCtx, committer, err := db.TxContext()
+func CreateLFSLock(ctx context.Context, repo *repo_model.Repository, lock *LFSLock) (*LFSLock, error) {
+	dbCtx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +49,7 @@ func CreateLFSLock(repo *repo_model.Repository, lock *LFSLock) (*LFSLock, error)
 		return nil, err
 	}
 
-	lock.Path = cleanPath(lock.Path)
+	lock.Path = util.PathJoinRel(lock.Path)
 	lock.RepoID = repo.ID
 
 	l, err := GetLFSLock(dbCtx, repo, lock.Path)
@@ -74,7 +69,7 @@ func CreateLFSLock(repo *repo_model.Repository, lock *LFSLock) (*LFSLock, error)
 
 // GetLFSLock returns release by given path.
 func GetLFSLock(ctx context.Context, repo *repo_model.Repository, path string) (*LFSLock, error) {
-	path = cleanPath(path)
+	path = util.PathJoinRel(path)
 	rel := &LFSLock{RepoID: repo.ID}
 	has, err := db.GetEngine(ctx).Where("lower(path) = ?", strings.ToLower(path)).Get(rel)
 	if err != nil {
@@ -99,8 +94,8 @@ func GetLFSLockByID(ctx context.Context, id int64) (*LFSLock, error) {
 }
 
 // GetLFSLockByRepoID returns a list of locks of repository.
-func GetLFSLockByRepoID(repoID int64, page, pageSize int) ([]*LFSLock, error) {
-	e := db.GetEngine(db.DefaultContext)
+func GetLFSLockByRepoID(ctx context.Context, repoID int64, page, pageSize int) ([]*LFSLock, error) {
+	e := db.GetEngine(ctx)
 	if page >= 0 && pageSize > 0 {
 		start := 0
 		if page > 0 {
@@ -113,12 +108,12 @@ func GetLFSLockByRepoID(repoID int64, page, pageSize int) ([]*LFSLock, error) {
 }
 
 // GetTreePathLock returns LSF lock for the treePath
-func GetTreePathLock(repoID int64, treePath string) (*LFSLock, error) {
+func GetTreePathLock(ctx context.Context, repoID int64, treePath string) (*LFSLock, error) {
 	if !setting.LFS.StartServer {
 		return nil, nil
 	}
 
-	locks, err := GetLFSLockByRepoID(repoID, 0, 0)
+	locks, err := GetLFSLockByRepoID(ctx, repoID, 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -131,13 +126,13 @@ func GetTreePathLock(repoID int64, treePath string) (*LFSLock, error) {
 }
 
 // CountLFSLockByRepoID returns a count of all LFSLocks associated with a repository.
-func CountLFSLockByRepoID(repoID int64) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Count(&LFSLock{RepoID: repoID})
+func CountLFSLockByRepoID(ctx context.Context, repoID int64) (int64, error) {
+	return db.GetEngine(ctx).Count(&LFSLock{RepoID: repoID})
 }
 
 // DeleteLFSLockByID deletes a lock by given ID.
-func DeleteLFSLockByID(id int64, repo *repo_model.Repository, u *user_model.User, force bool) (*LFSLock, error) {
-	dbCtx, committer, err := db.TxContext()
+func DeleteLFSLockByID(ctx context.Context, id int64, repo *repo_model.Repository, u *user_model.User, force bool) (*LFSLock, error) {
+	dbCtx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +163,7 @@ func CheckLFSAccessForRepo(ctx context.Context, ownerID int64, repo *repo_model.
 	if ownerID == 0 {
 		return ErrLFSUnauthorizedAction{repo.ID, "undefined", mode}
 	}
-	u, err := user_model.GetUserByIDCtx(ctx, ownerID)
+	u, err := user_model.GetUserByID(ctx, ownerID)
 	if err != nil {
 		return err
 	}

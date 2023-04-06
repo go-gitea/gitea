@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package base
 
@@ -115,13 +114,6 @@ func TestFileSize(t *testing.T) {
 	assert.Equal(t, "2.0 EiB", FileSize(size))
 }
 
-func TestPrettyNumber(t *testing.T) {
-	assert.Equal(t, "23,342,432", PrettyNumber(23342432))
-	assert.Equal(t, "23,342,432", PrettyNumber(int32(23342432)))
-	assert.Equal(t, "0", PrettyNumber(0))
-	assert.Equal(t, "-100,000", PrettyNumber(-100000))
-}
-
 func TestSubtract(t *testing.T) {
 	toFloat64 := func(n interface{}) float64 {
 		switch v := n.(type) {
@@ -214,16 +206,7 @@ func TestInt64sToStrings(t *testing.T) {
 	)
 }
 
-func TestInt64sToMap(t *testing.T) {
-	assert.Equal(t, map[int64]bool{}, Int64sToMap([]int64{}))
-	assert.Equal(t,
-		map[int64]bool{1: true, 4: true, 16: true},
-		Int64sToMap([]int64{1, 4, 16}),
-	)
-}
-
 func TestInt64sContains(t *testing.T) {
-	assert.Equal(t, map[int64]bool{}, Int64sToMap([]int64{}))
 	assert.True(t, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 1))
 	assert.True(t, Int64sContains([]int64{2323}, 2323))
 	assert.False(t, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 232))

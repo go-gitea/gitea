@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
@@ -66,25 +65,6 @@ func TestTeam_HasRepository(t *testing.T) {
 
 	test(2, 3, true)
 	test(2, 5, false)
-}
-
-func TestTeam_AddRepository(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	testSuccess := func(teamID, repoID int64) {
-		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
-		assert.NoError(t, AddRepository(team, repo))
-		unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: teamID, RepoID: repoID})
-		unittest.CheckConsistencyFor(t, &organization.Team{ID: teamID}, &repo_model.Repository{ID: repoID})
-	}
-	testSuccess(2, 3)
-	testSuccess(2, 5)
-
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	assert.Error(t, AddRepository(team, repo))
-	unittest.CheckConsistencyFor(t, &organization.Team{ID: 1}, &repo_model.Repository{ID: 1})
 }
 
 func TestTeam_RemoveRepository(t *testing.T) {
@@ -162,7 +142,7 @@ func TestDeleteTeam(t *testing.T) {
 	// check that team members don't have "leftover" access to repos
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	accessMode, err := access_model.AccessLevel(user, repo)
+	accessMode, err := access_model.AccessLevel(db.DefaultContext, user, repo)
 	assert.NoError(t, err)
 	assert.True(t, accessMode < perm.AccessModeWrite)
 }

@@ -2,7 +2,7 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "使用包管理器安装"
 slug: "install-from-package"
-weight: 10
+weight: 20
 toc: false
 draft: false
 menu:
@@ -71,7 +71,7 @@ choco install gitea
 macOS 平台下当前我们仅支持通过 `brew` 来安装。如果你没有安装 [Homebrew](http://brew.sh/)，你也可以查看 [从二进制安装]({{< relref "from-binary.zh-cn.md" >}})。在你安装了 `brew` 之后， 你可以执行以下命令：
 
 ```
-brew tap go-gitea/gitea
+brew tap gitea/tap https://gitea.com/gitea/homebrew-gitea
 brew install gitea
 ```
 

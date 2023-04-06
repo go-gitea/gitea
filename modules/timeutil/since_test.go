@@ -1,10 +1,10 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package timeutil
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -31,7 +31,7 @@ func TestMain(m *testing.M) {
 	setting.Names = []string{"english"}
 	setting.Langs = []string{"en-US"}
 	// setup
-	translation.InitLocales()
+	translation.InitLocales(context.Background())
 	BaseDate = time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)
 
 	// run the tests
@@ -119,7 +119,7 @@ func TestHtmlTimeSince(t *testing.T) {
 	// test that `diff` yields a result containing `expected`
 	test := func(expected string, diff time.Duration) {
 		actual := htmlTimeSince(BaseDate, BaseDate.Add(diff), translation.NewLocale("en-US"))
-		assert.Contains(t, actual, `data-content="Sat Jan  1 00:00:00 UTC 2000"`)
+		assert.Contains(t, actual, `data-tooltip-content="Sat Jan  1 00:00:00 UTC 2000"`)
 		assert.Contains(t, actual, expected)
 	}
 	test("1 second", time.Second)

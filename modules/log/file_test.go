@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package log
 
@@ -14,15 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/util"
-
 	"github.com/stretchr/testify/assert"
 )
 
 func TestFileLoggerFails(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "TestFileLogger")
-	assert.NoError(t, err)
-	defer util.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	prefix := "TestPrefix "
 	level := INFO
@@ -34,7 +29,7 @@ func TestFileLoggerFails(t *testing.T) {
 	// assert.True(t, ok)
 
 	// Fail if there is bad json
-	err = fileLogger.Init("{")
+	err := fileLogger.Init("{")
 	assert.Error(t, err)
 
 	// Fail if there is no filename
@@ -47,9 +42,7 @@ func TestFileLoggerFails(t *testing.T) {
 }
 
 func TestFileLogger(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "TestFileLogger")
-	assert.NoError(t, err)
-	defer util.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	prefix := "TestPrefix "
 	level := INFO
@@ -150,9 +143,7 @@ func TestFileLogger(t *testing.T) {
 }
 
 func TestCompressFileLogger(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "TestFileLogger")
-	assert.NoError(t, err)
-	defer util.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	prefix := "TestPrefix "
 	level := INFO
@@ -210,9 +201,7 @@ func TestCompressFileLogger(t *testing.T) {
 }
 
 func TestCompressOldFile(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "TestFileLogger")
-	assert.NoError(t, err)
-	defer util.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 	fname := filepath.Join(tmpDir, "test")
 	nonGzip := filepath.Join(tmpDir, "test-nonGzip")
 

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<title>{{.Subject}}</title>
 
 	<style>
@@ -11,7 +11,7 @@
 
 </head>
 
-{{$release_url := printf "<a href='%s'>%s</a>" (.Release.HTMLURL | Escape) (.Release.TagName | Escape) }}
+{{$release_url := printf "<a href='%s'>%s</a>" (.Release.HTMLURL | Escape) (.Release.TagName | Escape)}}
 {{$repo_url := printf "<a href='%s'>%s</a>" (.Release.Repo.HTMLURL | Escape) (.Release.Repo.FullName | Escape)}}
 <body>
 	<p>

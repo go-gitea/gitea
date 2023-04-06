@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -116,7 +115,7 @@ func TestCreateUser_Issue5882(t *testing.T) {
 
 		assert.NoError(t, user_model.CreateUser(v.user))
 
-		u, err := user_model.GetUserByEmail(v.user.Email)
+		u, err := user_model.GetUserByEmail(db.DefaultContext, v.user.Email)
 		assert.NoError(t, err)
 
 		assert.Equal(t, !u.AllowCreateOrganization, v.disableOrgCreation)

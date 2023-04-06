@@ -1,13 +1,11 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -18,8 +16,10 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
+	texttemplate "text/template"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -34,13 +34,14 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 	chi "github.com/go-chi/chi/v5"
+	"github.com/minio/sha256-simd"
 	"github.com/unrolled/render"
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -139,7 +140,7 @@ func (ctx *Context) IsUserRepoReaderAny() bool {
 
 // RedirectToUser redirect to a differently-named user
 func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
-	user, err := user_model.GetUserByID(redirectUserID)
+	user, err := user_model.GetUserByID(ctx, redirectUserID)
 	if err != nil {
 		ctx.ServerError("GetUserByID", err)
 		return
@@ -214,6 +215,8 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
+var templateExecutingErr = regexp.MustCompile(`^template: (.*):([1-9][0-9]*):([1-9][0-9]*): executing (?:"(.*)" at <(.*)>: )?`)
+
 // HTML calls Context.HTML and renders the template to HTTP response
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
@@ -228,6 +231,34 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 		if status == http.StatusInternalServerError && name == base.TplName("status/500") {
 			ctx.PlainText(http.StatusInternalServerError, "Unable to find status/500 template")
 			return
+		}
+		if execErr, ok := err.(texttemplate.ExecError); ok {
+			if groups := templateExecutingErr.FindStringSubmatch(err.Error()); len(groups) > 0 {
+				errorTemplateName, lineStr, posStr := groups[1], groups[2], groups[3]
+				target := ""
+				if len(groups) == 6 {
+					target = groups[5]
+				}
+				line, _ := strconv.Atoi(lineStr) // Cannot error out as groups[2] is [1-9][0-9]*
+				pos, _ := strconv.Atoi(posStr)   // Cannot error out as groups[3] is [1-9][0-9]*
+				filename, filenameErr := templates.GetAssetFilename("templates/" + errorTemplateName + ".tmpl")
+				if filenameErr != nil {
+					filename = "(template) " + errorTemplateName
+				}
+				if errorTemplateName != string(name) {
+					filename += " (subtemplate of " + string(name) + ")"
+				}
+				err = fmt.Errorf("%w\nin template file %s:\n%s", err, filename, templates.GetLineFromTemplate(errorTemplateName, line, target, pos))
+			} else {
+				filename, filenameErr := templates.GetAssetFilename("templates/" + execErr.Name + ".tmpl")
+				if filenameErr != nil {
+					filename = "(template) " + execErr.Name
+				}
+				if execErr.Name != string(name) {
+					filename += " (subtemplate of " + string(name) + ")"
+				}
+				err = fmt.Errorf("%w\nin template file %s", err, filename)
+			}
 		}
 		ctx.ServerError("Render failed", err)
 	}
@@ -322,9 +353,9 @@ func (ctx *Context) plainTextInternal(skip, status int, bs []byte) {
 	if statusPrefix == 4 || statusPrefix == 5 {
 		log.Log(skip, log.TRACE, "plainTextInternal (status=%d): %s", status, string(bs))
 	}
-	ctx.Resp.WriteHeader(status)
 	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
+	ctx.Resp.WriteHeader(status)
 	if _, err := ctx.Resp.Write(bs); err != nil {
 		log.ErrorWithSkip(skip, "plainTextInternal (status=%d): write bytes failed: %v", status, err)
 	}
@@ -345,50 +376,61 @@ func (ctx *Context) RespHeader() http.Header {
 	return ctx.Resp.Header()
 }
 
+type ServeHeaderOptions struct {
+	ContentType        string // defaults to "application/octet-stream"
+	ContentTypeCharset string
+	ContentLength      *int64
+	Disposition        string // defaults to "attachment"
+	Filename           string
+	CacheDuration      time.Duration // defaults to 5 minutes
+	LastModified       time.Time
+}
+
 // SetServeHeaders sets necessary content serve headers
-func (ctx *Context) SetServeHeaders(filename string) {
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+filename)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
-	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+func (ctx *Context) SetServeHeaders(opts *ServeHeaderOptions) {
+	header := ctx.Resp.Header()
+
+	contentType := typesniffer.ApplicationOctetStream
+	if opts.ContentType != "" {
+		if opts.ContentTypeCharset != "" {
+			contentType = opts.ContentType + "; charset=" + strings.ToLower(opts.ContentTypeCharset)
+		} else {
+			contentType = opts.ContentType
+		}
+	}
+	header.Set("Content-Type", contentType)
+	header.Set("X-Content-Type-Options", "nosniff")
+
+	if opts.ContentLength != nil {
+		header.Set("Content-Length", strconv.FormatInt(*opts.ContentLength, 10))
+	}
+
+	if opts.Filename != "" {
+		disposition := opts.Disposition
+		if disposition == "" {
+			disposition = "attachment"
+		}
+
+		backslashEscapedName := strings.ReplaceAll(strings.ReplaceAll(opts.Filename, `\`, `\\`), `"`, `\"`) // \ -> \\, " -> \"
+		header.Set("Content-Disposition", fmt.Sprintf(`%s; filename="%s"; filename*=UTF-8''%s`, disposition, backslashEscapedName, url.PathEscape(opts.Filename)))
+		header.Set("Access-Control-Expose-Headers", "Content-Disposition")
+	}
+
+	duration := opts.CacheDuration
+	if duration == 0 {
+		duration = 5 * time.Minute
+	}
+	httpcache.SetCacheControlInHeader(header, duration)
+
+	if !opts.LastModified.IsZero() {
+		header.Set("Last-Modified", opts.LastModified.UTC().Format(http.TimeFormat))
+	}
 }
 
 // ServeContent serves content to http request
-func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interface{}) {
-	modTime := time.Now()
-	for _, p := range params {
-		switch v := p.(type) {
-		case time.Time:
-			modTime = v
-		}
-	}
-	ctx.SetServeHeaders(name)
-	http.ServeContent(ctx.Resp, ctx.Req, name, modTime, r)
-}
-
-// ServeFile serves given file to response.
-func (ctx *Context) ServeFile(file string, names ...string) {
-	var name string
-	if len(names) > 0 {
-		name = names[0]
-	} else {
-		name = path.Base(file)
-	}
-	ctx.SetServeHeaders(name)
-	http.ServeFile(ctx.Resp, ctx.Req, file)
-}
-
-// ServeStream serves file via io stream
-func (ctx *Context) ServeStream(rd io.Reader, name string) {
-	ctx.SetServeHeaders(name)
-	_, err := io.Copy(ctx.Resp, rd)
-	if err != nil {
-		ctx.ServerError("Download file failed", err)
-	}
+func (ctx *Context) ServeContent(r io.ReadSeeker, opts *ServeHeaderOptions) {
+	ctx.SetServeHeaders(opts)
+	http.ServeContent(ctx.Resp, ctx.Req, opts.Filename, opts.LastModified, r)
 }
 
 // UploadStream returns the request body or the first form file
@@ -586,7 +628,9 @@ func (ctx *Context) Value(key interface{}) interface{} {
 	if key == git.RepositoryContextKey && ctx.Repo != nil {
 		return ctx.Repo.GitRepo
 	}
-
+	if key == translation.ContextKey && ctx.Locale != nil {
+		return ctx.Locale
+	}
 	return ctx.Req.Context().Value(key)
 }
 
@@ -648,34 +692,9 @@ func getCsrfOpts() CsrfOptions {
 	}
 }
 
-// Auth converts auth.Auth as a middleware
-func Auth(authMethod auth.Method) func(*Context) {
-	return func(ctx *Context) {
-		ctx.Doer = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if ctx.Doer != nil {
-			if ctx.Locale.Language() != ctx.Doer.Language {
-				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
-			}
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth.BasicMethodName
-			ctx.IsSigned = true
-			ctx.Data["IsSigned"] = ctx.IsSigned
-			ctx.Data["SignedUser"] = ctx.Doer
-			ctx.Data["SignedUserID"] = ctx.Doer.ID
-			ctx.Data["SignedUserName"] = ctx.Doer.Name
-			ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
-		} else {
-			ctx.Data["SignedUserID"] = int64(0)
-			ctx.Data["SignedUserName"] = ""
-
-			// ensure the session uid is deleted
-			_ = ctx.Session.Delete("uid")
-		}
-	}
-}
-
 // Contexter initializes a classic context for a request.
-func Contexter() func(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
+func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
+	_, rnd := templates.HTMLRenderer(ctx)
 	csrfOpts := getCsrfOpts()
 	if !setting.IsProd {
 		CsrfTokenRegenerationInterval = 5 * time.Second // in dev, re-generate the tokens more aggressively for debug purpose
@@ -768,7 +787,7 @@ func Contexter() func(next http.Handler) http.Handler {
 				}
 			}
 
-			httpcache.AddCacheControlToHeader(ctx.Resp.Header(), 0, "no-transform")
+			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 0, "no-transform")
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["CsrfToken"] = ctx.csrf.GetToken()
@@ -788,6 +807,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 			ctx.Data["DisableStars"] = setting.Repository.DisableStars
+			ctx.Data["EnableActions"] = setting.Actions.Enabled
 
 			ctx.Data["ManifestData"] = setting.ManifestData
 
@@ -795,6 +815,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["UnitIssuesGlobalDisabled"] = unit.TypeIssues.UnitGlobalDisabled()
 			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
 			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
+			ctx.Data["UnitActionsGlobalDisabled"] = unit.TypeActions.UnitGlobalDisabled()
 
 			ctx.Data["locale"] = locale
 			ctx.Data["AllLangs"] = translation.AllLangs()

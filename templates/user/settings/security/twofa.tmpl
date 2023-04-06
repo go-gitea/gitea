@@ -4,7 +4,7 @@
 <div class="ui attached segment">
 	<p>{{.locale.Tr "settings.twofa_desc"}}</p>
 	{{if .TOTPEnrolled}}
-	<p>{{$.locale.Tr "settings.twofa_is_enrolled" | Str2html }}</p>
+	<p>{{$.locale.Tr "settings.twofa_is_enrolled" | Str2html}}</p>
 	<form class="ui form" action="{{AppSubUrl}}/user/settings/security/two_factor/regenerate_scratch" method="post" enctype="multipart/form-data">
 		{{.CsrfTokenHtml}}
 		<p>{{.locale.Tr "settings.regenerate_scratch_token_desc"}}</p>
@@ -13,7 +13,7 @@
 	<form class="ui form" action="{{AppSubUrl}}/user/settings/security/two_factor/disable" method="post" enctype="multipart/form-data" id="disable-form">
 		{{.CsrfTokenHtml}}
 		<p>{{.locale.Tr "settings.twofa_disable_note"}}</p>
-		<div class="ui red button delete-button" data-modal-id="disable-twofa" data-type="form" data-form="#disable-form">{{$.locale.Tr "settings.twofa_disable"}}</div>
+		<button class="ui red button delete-button" data-modal-id="disable-twofa" data-type="form" data-form="#disable-form">{{$.locale.Tr "settings.twofa_disable"}}</button>
 	</form>
 	{{else}}
 	<p>{{.locale.Tr "settings.twofa_not_enrolled"}}</p>

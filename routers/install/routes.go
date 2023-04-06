@@ -1,11 +1,12 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package install
 
 import (
+	goctx "context"
 	"fmt"
+	"html"
 	"net/http"
 	"path"
 
@@ -29,15 +30,15 @@ func (d *dataStore) GetData() map[string]interface{} {
 	return *d
 }
 
-func installRecovery() func(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
+func installRecovery(ctx goctx.Context) func(next http.Handler) http.Handler {
+	_, rnd := templates.HTMLRenderer(ctx)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			defer func() {
 				// Why we need this? The first recover will try to render a beautiful
 				// error page for user, but the process can still panic again, then
 				// we have to just recover twice and send a simple error page that
-				// should not panic any more.
+				// should not panic anymore.
 				defer func() {
 					if err := recover(); err != nil {
 						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
@@ -63,7 +64,7 @@ func installRecovery() func(next http.Handler) http.Handler {
 						"SignedUserName": "",
 					}
 
-					httpcache.AddCacheControlToHeader(w.Header(), 0, "no-transform")
+					httpcache.SetCacheControlInHeader(w.Header(), 0, "no-transform")
 					w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 					if !setting.IsProd {
@@ -82,7 +83,7 @@ func installRecovery() func(next http.Handler) http.Handler {
 }
 
 // Routes registers the install routes
-func Routes() *web.Route {
+func Routes(ctx goctx.Context) *web.Route {
 	r := web.NewRoute()
 	for _, middle := range common.Middlewares() {
 		r.Use(middle)
@@ -105,10 +106,11 @@ func Routes() *web.Route {
 		Domain:         setting.SessionConfig.Domain,
 	}))
 
-	r.Use(installRecovery())
-	r.Use(Init)
-	r.Get("/", Install)
+	r.Use(installRecovery(ctx))
+	r.Use(Init(ctx))
+	r.Get("/", Install) // it must be on the root, because the "install.js" use the window.location to replace the "localhost" AppURL
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
+	r.Get("/post-install", InstallDone)
 	r.Get("/api/healthz", healthcheck.Check)
 
 	r.NotFound(web.Wrap(installNotFound))
@@ -116,5 +118,10 @@ func Routes() *web.Route {
 }
 
 func installNotFound(w http.ResponseWriter, req *http.Request) {
-	http.Redirect(w, req, setting.AppURL, http.StatusFound)
+	w.Header().Add("Content-Type", "text/html; charset=utf-8")
+	w.Header().Add("Refresh", fmt.Sprintf("1; url=%s", setting.AppSubURL+"/"))
+	// do not use 30x status, because the "post-install" page needs to use 404/200 to detect if Gitea has been installed.
+	// the fetch API could follow 30x requests to the page with 200 status.
+	w.WriteHeader(http.StatusNotFound)
+	_, _ = fmt.Fprintf(w, `Not Found. <a href="%s">Go to default page</a>.`, html.EscapeString(setting.AppSubURL+"/"))
 }
