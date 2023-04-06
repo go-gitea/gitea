@@ -73,28 +73,28 @@ func runGenerateActionsRunnerToken(c *cli.Context) error {
 	return nil
 }
 
-func parseScope(ctx context.Context, scope string) (owner, repo int64, err error) {
-	owner = 0
-	repo = 0
+func parseScope(ctx context.Context, scope string) (ownerID, repoID int64, err error) {
+	ownerID = 0
+	repoID = 0
 	if scope == "" {
-		return owner, repo, nil
+		return ownerID, repoID, nil
 	}
 
-	before, after, found := strings.Cut(scope, "/")
+	ownerName, repoName, found := strings.Cut(scope, "/")
 
-	u, err := user_model.GetUserByName(ctx, before)
+	u, err := user_model.GetUserByName(ctx, ownerName)
 	if err != nil {
-		return owner, repo, nil
+		return ownerID, repoID, nil
 	}
 
 	if !found {
-		return u.ID, repo, nil
+		return u.ID, repoID, nil
 	}
 
-	r, err := repo_model.GetRepositoryByName(u.ID, after)
+	r, err := repo_model.GetRepositoryByName(u.ID, repoName)
 	if err != nil {
-		return owner, repo, err
+		return ownerID, repoID, err
 	}
-	repo = r.ID
-	return owner, repo, nil
+	repoID = r.ID
+	return ownerID, repoID, nil
 }
