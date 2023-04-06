@@ -1,6 +1,6 @@
 ---
 date: "2023-03-04T19:00:00+00:00"
-title: "Use Labels"
+title: "Labels"
 slug: "labels"
 weight: 13
 toc: false
