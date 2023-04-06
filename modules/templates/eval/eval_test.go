@@ -54,6 +54,7 @@ func TestEval(t *testing.T) {
 		{"0 and 0", int64(0)},
 		{"1 or 2", int64(1)},
 		{"1 or 0", int64(1)},
+		{"0 or 1", int64(1)},
 		{"0 or 0", int64(0)},
 		{"not 2 == 1", int64(1)},
 		{"not not ( 9 < 5 )", int64(0)},

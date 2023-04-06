@@ -233,7 +233,7 @@ func ToInt64(number interface{}) (int64, error) {
 			return 0, err
 		}
 	default:
-		return 0, errors.New("unable to convert to int64")
+		return 0, fmt.Errorf("unable to convert %v to int64", number)
 	}
 	return value, nil
 }
@@ -275,7 +275,7 @@ func ToFloat64(number interface{}) (float64, error) {
 			return 0, err
 		}
 	default:
-		return 0, errors.New("unable to convert to float64")
+		return 0, fmt.Errorf("unable to convert %v to float64", number)
 	}
 	return value, nil
 }
