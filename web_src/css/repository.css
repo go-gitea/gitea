@@ -694,9 +694,8 @@
   margin-right: 5px;
 }
 
-.repository.view.issue .pull .merge.box .avatar {
-  margin-left: 10px;
-  margin-top: 10px;
+.repository.view.issue .pull .merge.box .timeline-avatar {
+  margin-top: 2px;
 }
 
 .repository.view.issue .pull .merge.box .branch-update.grid .row {
