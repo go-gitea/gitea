@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 
 	"xorm.io/xorm"
 )
@@ -322,7 +323,7 @@ type SignCommitWithStatuses struct {
 }
 
 // ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
-func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.SignCommit, repo *repo_model.Repository) []*SignCommitWithStatuses {
+func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.SignCommit, repo *repo_model.Repository, lang translation.Locale) []*SignCommitWithStatuses {
 	newCommits := make([]*SignCommitWithStatuses, 0, len(oldCommits))
 
 	for _, c := range oldCommits {
@@ -332,7 +333,16 @@ func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.Sig
 		statuses, _, err := GetLatestCommitStatus(ctx, repo.ID, commit.ID.String(), db.ListOptions{})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
-		} else {
+		}
+
+		// add check runs
+		checkRuns, _, err2 := GetLatestCheckRuns(ctx, repo.ID, commit.ID.String(), db.ListOptions{})
+		if err2 != nil {
+			log.Error("GetLatestCommitStatus: %v", err)
+		}
+		statuses = CheckRunAppendToCommitStatus(statuses, checkRuns, lang)
+
+		if err == nil {
 			commit.Statuses = statuses
 			commit.Status = CalcCommitStatus(statuses)
 		}
@@ -348,7 +358,7 @@ func hashCommitStatusContext(context string) string {
 }
 
 // ConvertFromGitCommit converts git commits into SignCommitWithStatuses
-func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository) []*SignCommitWithStatuses {
+func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository, lang translation.Locale) []*SignCommitWithStatuses {
 	return ParseCommitsWithStatus(ctx,
 		asymkey_model.ParseCommitsWithSignature(
 			ctx,
@@ -358,6 +368,5 @@ func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo
 				return repo_model.IsOwnerMemberCollaborator(repo, user.ID)
 			},
 		),
-		repo,
-	)
+		repo, lang)
 }

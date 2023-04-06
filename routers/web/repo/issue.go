@@ -1613,7 +1613,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 		} else if comment.Type == issues_model.CommentTypePullRequestPush {
 			participants = addParticipant(comment.Poster, participants)
-			if err = comment.LoadPushCommits(ctx); err != nil {
+			if err = comment.LoadPushCommits(ctx, ctx.Locale); err != nil {
 				ctx.ServerError("LoadPushCommits", err)
 				return
 			}

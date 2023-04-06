@@ -34,6 +34,8 @@ const (
 // NoBetterThan returns true if this State is no better than the given State
 func (css CommitStatusState) NoBetterThan(css2 CommitStatusState) bool {
 	switch css {
+	case CommitStatusTimedOut:
+		return true
 	case CommitStatusError:
 		return true
 	case CommitStatusFailure:
@@ -70,4 +72,19 @@ func (css CommitStatusState) IsFailure() bool {
 // IsWarning represents if commit status state is warning
 func (css CommitStatusState) IsWarning() bool {
 	return css == CommitStatusWarning
+}
+
+// IsSkiped represents if commit status state is skipped
+func (css CommitStatusState) IsSkipped() bool {
+	return css == CommitStatusSkipped
+}
+
+// IsNeutral represents if commit status state is neutral
+func (css CommitStatusState) IsNeutral() bool {
+	return css == CommitStatusNeutral
+}
+
+// IsTimedOut represents if commit status state is timed_out
+func (css CommitStatusState) IsTimedOut() bool {
+	return css == CommitStatusTimedOut
 }

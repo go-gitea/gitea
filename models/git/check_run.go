@@ -15,6 +15,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 )
 
 type CheckRunStatus int64
@@ -112,6 +113,7 @@ func (c *CheckRun) ToStatus(lang translation.Locale) *CommitStatus {
 		Creator:     c.Creator,
 		CreatorID:   c.CreatorID,
 		Description: c.Summary,
+		TargetURL:   c.DetailsURL,
 	}
 
 	if c.Status == CheckRunStatusCompleted {
@@ -127,9 +129,9 @@ func (c *CheckRun) ToStatus(lang translation.Locale) *CommitStatus {
 	}
 
 	if c.Status == CheckRunStatusCompleted {
-		stat.Description = lang.Tr("check_runs.conclusion."+string(c.Conclusion.ToAPI()), c.CompletedAt-c.StartedAt)
+		stat.Description = lang.Tr("check_runs.conclusion."+string(c.Conclusion.ToAPI()), util.SecToTime(int64(c.CompletedAt-c.StartedAt)))
 	} else if c.Status == CheckRunStatusInProgress {
-		stat.Description = lang.Tr("check_runs.status.runing", timeutil.TimeStampNow()-c.StartedAt)
+		stat.Description = lang.Tr("check_runs.status.runing", util.SecToTime(int64(timeutil.TimeStampNow()-c.StartedAt)))
 	} else {
 		stat.Description = lang.Tr("check_runs.status.pending")
 	}
@@ -386,4 +388,50 @@ func GetCheckRunByID(ctx context.Context, id int64) (*CheckRun, error) {
 	}
 
 	return checkRun, nil
+}
+
+// GetLatestCheckRuns returns all check runs with a unique context for a given commit.
+func GetLatestCheckRuns(ctx context.Context, repoID int64, sha string, listOptions db.ListOptions) ([]*CheckRun, int64, error) {
+	ids := make([]int64, 0, 10)
+	sess := db.GetEngine(ctx).Table(&CheckRun{}).
+		Where("repo_id = ?", repoID).And("head_sha = ?", sha).
+		Select("max( id ) as id").
+		GroupBy("name_hash").OrderBy("max( id ) desc")
+
+	sess = db.SetSessionPagination(sess, &listOptions)
+
+	count, err := sess.FindAndCount(&ids)
+	if err != nil {
+		return nil, count, err
+	}
+	checkRuns := make([]*CheckRun, 0, len(ids))
+	if len(ids) == 0 {
+		return checkRuns, count, nil
+	}
+	return checkRuns, count, db.GetEngine(ctx).In("id", ids).Find(&checkRuns)
+}
+
+func CheckRunAppendToCommitStatus(statuses []*CommitStatus, checkRuns []*CheckRun, lang translation.Locale) []*CommitStatus {
+	results := make(map[string]*CommitStatus)
+
+	for _, checkRun := range checkRuns {
+		results[checkRun.NameHash] = checkRun.ToStatus(lang)
+	}
+
+	for _, status := range statuses {
+		if otherState, ok := results[status.ContextHash]; ok {
+			if status.State.NoBetterThan(otherState.State) {
+				results[status.ContextHash] = status
+			}
+		} else {
+			results[status.ContextHash] = status
+		}
+	}
+
+	resultsList := make([]*CommitStatus, 0, len(results))
+	for _, result := range results {
+		resultsList = append(resultsList, result)
+	}
+
+	return resultsList
 }

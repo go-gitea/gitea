@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -743,7 +744,7 @@ func (c *Comment) CodeCommentLink() string {
 }
 
 // LoadPushCommits Load push commits
-func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
+func (c *Comment) LoadPushCommits(ctx context.Context, lang translation.Locale) (err error) {
 	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullRequestPush {
 		return nil
 	}
@@ -771,7 +772,7 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 		}
 		defer closer.Close()
 
-		c.Commits = git_model.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
+		c.Commits = git_model.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo, lang)
 		c.CommitsNum = int64(len(c.Commits))
 	}
 
