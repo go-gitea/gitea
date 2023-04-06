@@ -52,7 +52,7 @@ With different permissions, people could do different things with these units.
 | ExternalTracker | Link to an external issue tracker                  | -                            | -                         |
 | Projects        | View the boards                                    | Change issues across boards  | -                         |
 | Packages        | View the packages                                  | Upload/Delete packages       | -                         |
-| Actions         | View the Actions logs                              | Approve / Cacnel / Restart   | -                         |
+| Actions         | View the Actions logs                              | Approve / Cancel / Restart   | -                         |
 | Settings        | -                                                  | -                            | Manage the repository     |
 
 And there are some differences for permissions between individual repositories and organization repositories.
