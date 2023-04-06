@@ -268,7 +268,7 @@ func AddTopic(repoID int64, topicName string) (*Topic, error) {
 }
 
 func AddTopics(repoID int64, topicNames ...string) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

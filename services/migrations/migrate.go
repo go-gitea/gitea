@@ -502,7 +502,7 @@ func SyncRepository(ctx context.Context, doer *user_model.User, ownerName string
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
-		if err2 := admin_model.CreateRepositoryNotice(fmt.Sprintf("Syncing repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
+		if err2 := system_model.CreateRepositoryNotice(fmt.Sprintf("Syncing repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
 			log.Error("create repository notice failed: ", err2)
 		}
 		return nil, err
