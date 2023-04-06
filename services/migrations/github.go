@@ -841,6 +841,9 @@ func (g *GithubDownloaderV3) GetNewPullRequests(page, perPage int, updatedAfter 
 			return nil, false, err
 		}
 		allPRs = append(allPRs, basePR)
+
+		// SECURITY: Ensure that the PR is safe
+		_ = CheckAndEnsureSafePR(allPRs[len(allPRs)-1], g.baseURL, g)
 	}
 
 	return allPRs, len(issues) < perPage, nil
