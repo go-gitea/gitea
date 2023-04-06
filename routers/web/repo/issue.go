@@ -3374,6 +3374,8 @@ func IssuePosters(ctx *context.Context) {
 	}
 
 	if search == "" && ctx.Doer != nil {
+		// the returned posters slice only contains limited number of users,
+		// to make the current user (doer) can quickly filter their own issues, always add doer to the posters slice
 		if !util.SliceContainsFunc(posters, func(user *user_model.User) bool { return user.ID == ctx.Doer.ID }) {
 			posters = append(posters, ctx.Doer)
 		}
