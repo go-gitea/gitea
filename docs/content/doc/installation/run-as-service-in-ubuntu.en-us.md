@@ -2,14 +2,14 @@
 date: "2017-07-21T12:00:00+02:00"
 title: "Run as service in Linux"
 slug: "linux-service"
-weight: 10
+weight: 40
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "installation"
     name: "Linux service"
-    weight: 20
+    weight: 40
     identifier: "linux-service"
 ---
 
