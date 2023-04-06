@@ -1,6 +1,6 @@
 ---
 date: "2020-07-06T16:00:00+02:00"
-title: "Usage: Push To Create"
+title: "Push To Create"
 slug: "push-to-create"
 weight: 15
 toc: false
