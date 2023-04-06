@@ -19,11 +19,11 @@ menu:
 
 There are some additional features when pushing commits to Gitea server.
 
-# Push Merge Hint
+# Open PR through Push
 
-When you pushing commits to a non-default branch, you will get an information from
-Gitea which is a link, you can click the link and go to a compare page. It's a quick
-way to create a pull request or a code review yourself in the Gitea UI.
+When you push commits to a non-default branch for the first time,
+you will receive a link you can click on to visit the compare page of your branch compared to your main branch.
+From there, it's easy to create a pull request, even if you want to target another branch.
 
 ![Gitea Push Hint](/gitea-push-hint.png)
 
