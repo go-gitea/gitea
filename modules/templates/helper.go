@@ -19,7 +19,6 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 	texttmpl "text/template"
 	"time"
@@ -112,18 +111,17 @@ func NewFuncMap() []template.FuncMap {
 		"IsShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName
 		},
-		"Safe":           Safe,
-		"SafeJS":         SafeJS,
-		"JSEscape":       JSEscape,
-		"Str2html":       Str2html,
-		"TimeSince":      timeutil.TimeSince,
-		"TimeSinceUnix":  timeutil.TimeSinceUnix,
-		"FileSize":       base.FileSize,
-		"PrettyNumber":   base.PrettyNumber,
-		"JsPrettyNumber": JsPrettyNumber,
-		"Subtract":       base.Subtract,
-		"EntryIcon":      base.EntryIcon,
-		"MigrationIcon":  MigrationIcon,
+		"Safe":          Safe,
+		"SafeJS":        SafeJS,
+		"JSEscape":      JSEscape,
+		"Str2html":      Str2html,
+		"TimeSince":     timeutil.TimeSince,
+		"TimeSinceUnix": timeutil.TimeSinceUnix,
+		"FileSize":      base.FileSize,
+		"LocaleNumber":  LocaleNumber,
+		"Subtract":      base.Subtract,
+		"EntryIcon":     base.EntryIcon,
+		"MigrationIcon": MigrationIcon,
 		"Add": func(a ...int) int {
 			sum := 0
 			for _, val := range a {
@@ -410,62 +408,9 @@ func NewFuncMap() []template.FuncMap {
 		"Join":        strings.Join,
 		"QueryEscape": url.QueryEscape,
 		"DotEscape":   DotEscape,
-		"Iterate": func(arg interface{}) (items []uint64) {
-			count := uint64(0)
-			switch val := arg.(type) {
-			case uint64:
-				count = val
-			case *uint64:
-				count = *val
-			case int64:
-				if val < 0 {
-					val = 0
-				}
-				count = uint64(val)
-			case *int64:
-				if *val < 0 {
-					*val = 0
-				}
-				count = uint64(*val)
-			case int:
-				if val < 0 {
-					val = 0
-				}
-				count = uint64(val)
-			case *int:
-				if *val < 0 {
-					*val = 0
-				}
-				count = uint64(*val)
-			case uint:
-				count = uint64(val)
-			case *uint:
-				count = uint64(*val)
-			case int32:
-				if val < 0 {
-					val = 0
-				}
-				count = uint64(val)
-			case *int32:
-				if *val < 0 {
-					*val = 0
-				}
-				count = uint64(*val)
-			case uint32:
-				count = uint64(val)
-			case *uint32:
-				count = uint64(*val)
-			case string:
-				cnt, _ := strconv.ParseInt(val, 10, 64)
-				if cnt < 0 {
-					cnt = 0
-				}
-				count = uint64(cnt)
-			}
-			if count <= 0 {
-				return items
-			}
-			for i := uint64(0); i < count; i++ {
+		"Iterate": func(arg interface{}) (items []int64) {
+			count := util.ToInt64(arg)
+			for i := int64(0); i < count; i++ {
 				items = append(items, i)
 			}
 			return items
@@ -1067,10 +1012,8 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 	return a
 }
 
-// JsPrettyNumber renders a number using english decimal separators, e.g. 1,200 and subsequent
-// JS will replace the number with locale-specific separators, based on the user's selected language
-func JsPrettyNumber(i interface{}) template.HTML {
-	num := util.NumberIntoInt64(i)
-
-	return template.HTML(`<span class="js-pretty-number" data-value="` + strconv.FormatInt(num, 10) + `">` + base.PrettyNumber(num) + `</span>`)
+// LocaleNumber renders a number with a Custom Element, browser will render it with a locale number
+func LocaleNumber(v interface{}) template.HTML {
+	num := util.ToInt64(v)
+	return template.HTML(fmt.Sprintf(`<gitea-locale-number data-number="%d">%d</gitea-locale-number>`, num, num))
 }

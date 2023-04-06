@@ -114,13 +114,6 @@ func TestFileSize(t *testing.T) {
 	assert.Equal(t, "2.0 EiB", FileSize(size))
 }
 
-func TestPrettyNumber(t *testing.T) {
-	assert.Equal(t, "23,342,432", PrettyNumber(23342432))
-	assert.Equal(t, "23,342,432", PrettyNumber(int32(23342432)))
-	assert.Equal(t, "0", PrettyNumber(0))
-	assert.Equal(t, "-100,000", PrettyNumber(-100000))
-}
-
 func TestSubtract(t *testing.T) {
 	toFloat64 := func(n interface{}) float64 {
 		switch v := n.(type) {
