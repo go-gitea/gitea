@@ -443,17 +443,17 @@ func (n *actionsNotifier) NotifySyncDeleteRef(ctx context.Context, pusher *user_
 
 func (n *actionsNotifier) NotifyNewRelease(ctx context.Context, rel *repo_model.Release) {
 	ctx = withMethod(ctx, "NotifyNewRelease")
-	notifyRelease(ctx, rel.Publisher, rel, rel.Sha1, api.HookReleasePublished)
+	notifyRelease(ctx, rel.Publisher, rel, api.HookReleasePublished)
 }
 
 func (n *actionsNotifier) NotifyUpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 	ctx = withMethod(ctx, "NotifyUpdateRelease")
-	notifyRelease(ctx, doer, rel, rel.Sha1, api.HookReleaseUpdated)
+	notifyRelease(ctx, doer, rel, api.HookReleaseUpdated)
 }
 
 func (n *actionsNotifier) NotifyDeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 	ctx = withMethod(ctx, "NotifyDeleteRelease")
-	notifyRelease(ctx, doer, rel, rel.Sha1, api.HookReleaseDeleted)
+	notifyRelease(ctx, doer, rel, api.HookReleaseDeleted)
 }
 
 func (n *actionsNotifier) NotifyPackageCreate(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
