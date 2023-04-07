@@ -965,10 +965,6 @@
   max-width: 100%;
 }
 
-.repository.view.issue .comment-list .ui.comments .avatar {
-  margin-right: 0.5rem;
-}
-
 .repository.view.issue .comment-list .comment > .content > div:first-child {
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
@@ -1091,6 +1087,14 @@
 
 .repository.view.issue .comment-list .code-comment .comment-content {
   margin-left: 36px;
+}
+
+.repository.view.issue .comment-list .comment > .avatar {
+  margin-top: 6px;
+}
+
+.repository.view.issue .comment-list .comment > .avatar ~ .content {
+  margin-left: 3em;
 }
 
 .repository.view.issue .comment-list .code-comment img.avatar,
@@ -2092,17 +2096,17 @@
   height: 48px;
 }
 
-.repository.wiki.view > .markup {
-  padding: 15px 30px;
+.repository.wiki.new .ui.attached.tabular.menu.previewtabs {
+  margin-bottom: 15px;
 }
 
-.repository.wiki.view > .markup h1:first-of-type,
-.repository.wiki.view > .markup h2:first-of-type,
-.repository.wiki.view > .markup h3:first-of-type,
-.repository.wiki.view > .markup h4:first-of-type,
-.repository.wiki.view > .markup h5:first-of-type,
-.repository.wiki.view > .markup h6:first-of-type {
-  margin-top: 0;
+.file-view.markup {
+  padding: 1em 2em;
+}
+
+.wiki-content-main {
+  padding: 1em 2em !important;
+  margin-left: 1em !important;
 }
 
 
@@ -2730,11 +2734,10 @@
   width: 100% !important;
   max-width: 100% !important;
   margin: 0 !important;
-  padding: 0 !important;
+  padding: 1em;
 }
 
 .comment-body .markup {
-  padding: 1em;
   border-radius: 0 0 var(--border-radius) var(--border-radius); /* don't render outside box */
 }
 
