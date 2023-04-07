@@ -335,20 +335,6 @@ func (s releaseMetaSearch) Less(i, j int) bool {
 	return s.ID[i] < s.ID[j]
 }
 
-// InitReleaseRepo makes sure the Repo field of releases is not nil
-func InitReleaseRepo(ctx context.Context, rels ...*Release) error {
-	var err error
-	for _, release := range rels {
-		if release.Repo == nil {
-			release.Repo, err = GetRepositoryByID(ctx, release.RepoID)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return err
-}
-
 // GetReleaseAttachments retrieves the attachments for releases
 func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	if len(rels) == 0 {
