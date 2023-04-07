@@ -86,7 +86,7 @@ export function initRepoIssueDue() {
   });
 }
 
-export function initRepoIssueList() {
+export function initRepoIssueSidebarList() {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();

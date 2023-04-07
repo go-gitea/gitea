@@ -18,7 +18,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"runtime"
 	"strings"
 	texttmpl "text/template"
 	"time"
@@ -57,12 +56,6 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
 	return []template.FuncMap{map[string]interface{}{
-		"GoVer": func() string {
-			return util.ToTitleCase(runtime.Version())
-		},
-		"UseHTTPS": func() bool {
-			return strings.HasPrefix(setting.AppURL, "https")
-		},
 		"AppName": func() string {
 			return setting.AppName
 		},
@@ -82,10 +75,7 @@ func NewFuncMap() []template.FuncMap {
 		"AppVer": func() string {
 			return setting.AppVer
 		},
-		"AppBuiltWith": func() string {
-			return setting.AppBuiltWith
-		},
-		"AppDomain": func() string {
+		"AppDomain": func() string { // documented in mail-templates.md
 			return setting.Domain
 		},
 		"AssetVersion": func() string {
@@ -109,11 +99,7 @@ func NewFuncMap() []template.FuncMap {
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
 		},
-		"IsShowFullName": func() bool {
-			return setting.UI.DefaultShowFullName
-		},
 		"Safe":          Safe,
-		"SafeJS":        SafeJS,
 		"JSEscape":      JSEscape,
 		"Str2html":      Str2html,
 		"TimeSince":     timeutil.TimeSince,
@@ -126,25 +112,8 @@ func NewFuncMap() []template.FuncMap {
 		"DateFmtLong": func(t time.Time) string {
 			return t.Format(time.RFC1123Z)
 		},
-		"DateFmtShort": func(t time.Time) string {
-			return t.Format("Jan 02, 2006")
-		},
-		"CountFmt": base.FormatNumberSI,
-		"SubStr": func(str string, start, length int) string {
-			if len(str) == 0 {
-				return ""
-			}
-			end := start + length
-			if length == -1 {
-				end = len(str)
-			}
-			if len(str) < end {
-				return str
-			}
-			return str[start:end]
-		},
+		"CountFmt":                       base.FormatNumberSI,
 		"EllipsisString":                 base.EllipsisString,
-		"DiffTypeToStr":                  DiffTypeToStr,
 		"DiffLineTypeToStr":              DiffLineTypeToStr,
 		"ShortSha":                       base.ShortSha,
 		"ActionContent2Commits":          ActionContent2Commits,
@@ -152,7 +121,6 @@ func NewFuncMap() []template.FuncMap {
 		"PathEscapeSegments":             util.PathEscapeSegments,
 		"URLJoin":                        util.URLJoin,
 		"RenderCommitMessage":            RenderCommitMessage,
-		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
 		"RenderCodeBlock":                RenderCodeBlock,
@@ -415,9 +383,6 @@ func NewFuncMap() []template.FuncMap {
 				curBranch,
 			)
 		},
-		"RefShortName": func(ref string) string {
-			return git.RefName(ref).ShortName()
-		},
 		"Eval": Eval,
 	}}
 }
@@ -426,9 +391,6 @@ func NewFuncMap() []template.FuncMap {
 // It's a subset of those used for HTML and other templates
 func NewTextFuncMap() []texttmpl.FuncMap {
 	return []texttmpl.FuncMap{map[string]interface{}{
-		"GoVer": func() string {
-			return util.ToTitleCase(runtime.Version())
-		},
 		"AppName": func() string {
 			return setting.AppName
 		},
@@ -441,32 +403,13 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		"AppVer": func() string {
 			return setting.AppVer
 		},
-		"AppBuiltWith": func() string {
-			return setting.AppBuiltWith
-		},
-		"AppDomain": func() string {
+		"AppDomain": func() string { // documented in mail-templates.md
 			return setting.Domain
 		},
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"DateFmtLong": func(t time.Time) string {
 			return t.Format(time.RFC1123Z)
-		},
-		"DateFmtShort": func(t time.Time) string {
-			return t.Format("Jan 02, 2006")
-		},
-		"SubStr": func(str string, start, length int) string {
-			if len(str) == 0 {
-				return ""
-			}
-			end := start + length
-			if length == -1 {
-				end = len(str)
-			}
-			if len(str) < end {
-				return str
-			}
-			return str[start:end]
 		},
 		"EllipsisString": base.EllipsisString,
 		"URLJoin":        util.URLJoin,
@@ -589,11 +532,6 @@ func AvatarByEmail(ctx context.Context, email, name string, others ...interface{
 // Safe render raw as HTML
 func Safe(raw string) template.HTML {
 	return template.HTML(raw)
-}
-
-// SafeJS renders raw as JS
-func SafeJS(raw string) template.JS {
-	return template.JS(raw)
 }
 
 // Str2html render Markdown text to HTML
@@ -890,14 +828,6 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	}
 
 	return push
-}
-
-// DiffTypeToStr returns diff type name
-func DiffTypeToStr(diffType int) string {
-	diffTypes := map[int]string{
-		1: "add", 2: "modify", 3: "del", 4: "rename", 5: "copy",
-	}
-	return diffTypes[diffType]
 }
 
 // DiffLineTypeToStr returns diff line type name
