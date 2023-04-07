@@ -68,6 +68,10 @@ text-expander .suggestions li:last-child {
   border-radius: 0 0 4px 4px;
 }
 
+text-expander .suggestions li:only-child {
+  border-radius: 4px;
+}
+
 text-expander .suggestions li:hover {
   background: var(--color-hover);
 }
