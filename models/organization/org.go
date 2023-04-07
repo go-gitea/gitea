@@ -100,6 +100,11 @@ func (org *Organization) IsOwnedBy(uid int64) (bool, error) {
 	return IsOrganizationOwner(db.DefaultContext, org.ID, uid)
 }
 
+// IsOrgAdmin returns true if given user is in the owner team or an admin team.
+func (org *Organization) IsOrgAdmin(uid int64) (bool, error) {
+	return IsOrganizationAdmin(db.DefaultContext, org.ID, uid)
+}
+
 // IsOrgMember returns true if given user is member of organization.
 func (org *Organization) IsOrgMember(uid int64) (bool, error) {
 	return IsOrganizationMember(db.DefaultContext, org.ID, uid)
