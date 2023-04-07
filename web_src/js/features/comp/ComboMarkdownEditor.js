@@ -42,11 +42,10 @@ class ComboMarkdownEditor {
 
   async init() {
     this.prepareEasyMDEToolbarActions();
-
     this.setupTab();
     this.setupDropzone();
-    this.setupExpander();
     this.setupTextarea();
+    this.setupExpander();
 
     if (this.userPreferredEditor === 'easymde') {
       await this.switchToEasyMDE();
