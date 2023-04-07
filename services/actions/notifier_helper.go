@@ -127,6 +127,11 @@ func notify(ctx context.Context, input *notifyInput) error {
 	defer gitRepo.Close()
 
 	ref := input.Ref
+	if input.Event == webhook_module.HookEventDelete {
+		// The event is deleting a reference, so it will fail to get the commit for a deleted reference.
+		// Set ref to empty string to fall back to the default branch.
+		ref = ""
+	}
 	if ref == "" {
 		ref = input.Repo.DefaultBranch
 	}
