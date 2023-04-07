@@ -181,4 +181,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateCheckRunOptions api.CreateCheckRunOptions
+
+	// in:body
+	UpdateCheckRunOptions api.UpdateCheckRunOptions
 }

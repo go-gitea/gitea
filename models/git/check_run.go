@@ -177,9 +177,14 @@ func (e ErrUnVaildCheckRunOptions) Error() string {
 	return "unvaild check run options: " + e.Err
 }
 
+func IsErrUnVaildCheckRunOptions(err error) bool {
+	_, ok := err.(ErrUnVaildCheckRunOptions)
+	return ok
+}
+
 func (opts *NewCheckRunOptions) Vaild() error {
 	if opts.Repo == nil || opts.Creator == nil {
-		return errors.New("`repo` or `creater` not set")
+		return errors.New("`repo` or `creator` not set")
 	}
 
 	if len(opts.Name) == 0 {
@@ -191,7 +196,7 @@ func (opts *NewCheckRunOptions) Vaild() error {
 	}
 
 	if len(opts.Status) > 0 && opts.Status != api.CheckRunStatusQueued && opts.StartedAt == timeutil.TimeStamp(0) {
-		return ErrUnVaildCheckRunOptions{Err: "request `start_at` if staus isn't `queued`"}
+		return ErrUnVaildCheckRunOptions{Err: "request `started_at` if staus isn't `queued`"}
 	}
 
 	if opts.Status != api.CheckRunStatusCompleted {
@@ -227,6 +232,12 @@ func (e ErrCheckRunExist) Error() string {
 	return fmt.Sprintf("check run with  name already created [repo_id: %d, head_sha: %s, name: %s]", e.RepoID, e.HeadSHA, e.Name)
 }
 
+func IsErrCheckRunExist(err error) bool {
+	_, ok := err.(ErrCheckRunExist)
+
+	return ok
+}
+
 func CreateCheckRun(ctx context.Context, opts *NewCheckRunOptions) (*CheckRun, error) {
 	err := opts.Vaild()
 	if err != nil {
@@ -250,7 +261,7 @@ func CreateCheckRun(ctx context.Context, opts *NewCheckRunOptions) (*CheckRun, e
 	if err != nil {
 		return nil, err
 	} else if exist {
-		return nil, ErrCheckRunExist{RepoID: opts.Repo.RepoID, HeadSHA: opts.HeadSHA, Name: opts.Name}
+		return nil, ErrCheckRunExist{RepoID: opts.Repo.ID, HeadSHA: opts.HeadSHA, Name: opts.Name}
 	}
 
 	checkRun := &CheckRun{
@@ -364,11 +375,12 @@ func (conclusion CheckRunConclusion) ToAPI() api.CheckRunConclusion {
 }
 
 type ErrCheckRunNotExist struct {
-	ID int64
+	RepoID int64
+	ID     int64
 }
 
 func (e ErrCheckRunNotExist) Error() string {
-	return fmt.Sprintf("can't find check run [id: %d]", e.ID)
+	return fmt.Sprintf("can't find check run [repo_id: %d, id: %d]", e.RepoID, e.ID)
 }
 
 func IsErrCheckRunNotExist(err error) bool {
@@ -377,14 +389,14 @@ func IsErrCheckRunNotExist(err error) bool {
 }
 
 // GetCheckRunByID get check run by id
-func GetCheckRunByID(ctx context.Context, id int64) (*CheckRun, error) {
+func GetCheckRunByRepoIDAndID(ctx context.Context, repoID, id int64) (*CheckRun, error) {
 	checkRun := &CheckRun{}
 
-	exist, err := db.GetEngine(ctx).ID(id).Get(checkRun)
+	exist, err := db.GetEngine(ctx).Where("id = ? AND repo_id = ?", id, repoID).Get(checkRun)
 	if err != nil {
 		return nil, err
 	} else if !exist {
-		return nil, ErrCheckRunNotExist{ID: id}
+		return nil, ErrCheckRunNotExist{RepoID: repoID, ID: id}
 	}
 
 	return checkRun, nil
@@ -434,4 +446,107 @@ func CheckRunAppendToCommitStatus(statuses []*CommitStatus, checkRuns []*CheckRu
 	}
 
 	return resultsList
+}
+
+// UpdateCheckRunOptions holds options for update a CheckRun
+type UpdateCheckRunOptions struct {
+	Repo        *repo_model.Repository
+	Creator     *user_model.User
+	Name        string
+	Status      api.CheckRunStatus
+	Conclusion  api.CheckRunConclusion
+	DetailsURL  *string
+	ExternalID  *string
+	StartedAt   timeutil.TimeStamp
+	CompletedAt timeutil.TimeStamp
+	Output      *api.CheckRunOutput
+}
+
+func (opts *UpdateCheckRunOptions) Vaild(ck *CheckRun) error {
+	if opts.Repo == nil || opts.Creator == nil {
+		return errors.New("`repo` or `creator` not set")
+	}
+
+	if len(opts.Status) > 0 && opts.Status != api.CheckRunStatusQueued && opts.StartedAt == timeutil.TimeStamp(0) && ck.StartedAt == timeutil.TimeStamp(0) {
+		return ErrUnVaildCheckRunOptions{Err: "request `started_at` if staus isn't `queued`"}
+	}
+
+	if opts.Status != api.CheckRunStatusCompleted {
+		return nil
+	}
+
+	if opts.Conclusion == "" && ck.Conclusion == CheckRunConclusionUnknow {
+		return ErrUnVaildCheckRunOptions{Err: "request `conclusion` if staus is `completed`"}
+	}
+
+	if opts.CompletedAt == timeutil.TimeStamp(0) {
+		opts.CompletedAt = timeutil.TimeStampNow()
+	}
+
+	return nil
+}
+
+func (c *CheckRun) Update(ctx context.Context, opts UpdateCheckRunOptions) error {
+	if err := opts.Vaild(c); err != nil {
+		return err
+	}
+
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if len(opts.Name) > 0 && opts.Name != c.Name {
+		nameHash := hashCommitStatusContext(opts.Name)
+		exist, err := isCheckRunExist(ctx, opts.Repo.ID, c.HeadSHA, nameHash)
+		if err != nil {
+			return err
+		} else if exist {
+			return ErrCheckRunExist{RepoID: opts.Repo.ID, HeadSHA: c.HeadSHA, Name: opts.Name}
+		}
+
+		c.Name = opts.Name
+		c.NameHash = nameHash
+	}
+
+	if len(opts.Status) > 0 {
+		c.Status = toCheckRunStatus(opts.Status)
+	}
+
+	if len(opts.Conclusion) > 0 {
+		c.Conclusion = toCheckRunConclusion(opts.Conclusion)
+	}
+
+	if opts.DetailsURL != nil {
+		c.DetailsURL = *opts.DetailsURL
+	}
+
+	if opts.ExternalID != nil {
+		c.ExternalID = *opts.ExternalID
+	}
+
+	if opts.StartedAt != timeutil.TimeStamp(0) {
+		c.StartedAt = opts.StartedAt
+	}
+
+	if opts.CompletedAt != timeutil.TimeStamp(0) {
+		c.CompletedAt = opts.CompletedAt
+	}
+
+	if c.Status != CheckRunStatusCompleted {
+		c.Conclusion = CheckRunConclusionUnknow
+		c.CompletedAt = 0
+	}
+
+	if c.Status == CheckRunStatusQueued {
+		c.StartedAt = 0
+	}
+
+	_, err = db.GetEngine(ctx).ID(c.ID).Cols("name", "name_hash", "started_at", "completed_at", "status", "conclusion", "details_url", "external_id").Update(c)
+	if err != nil {
+		return err
+	}
+
+	return committer.Commit()
 }

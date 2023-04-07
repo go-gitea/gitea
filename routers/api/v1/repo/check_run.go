@@ -6,6 +6,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/convert"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -43,7 +44,7 @@ func CreateCheckRun(ctx *context.APIContext) {
 
 	checkRun, err := files_service.CreateCheckRun(ctx, ctx.Repo.Repository, ctx.Doer, form)
 	if err != nil {
-		if git_model.IsErrLFSLockAlreadyExist(err) {
+		if git_model.IsErrCheckRunExist(err) || git_model.IsErrUnVaildCheckRunOptions(err) {
 			ctx.Error(http.StatusBadRequest, "CreateCheckRun", err)
 			return
 		}
@@ -86,19 +87,14 @@ func GetCheckRun(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	id := ctx.ParamsInt64(":check_run_id")
-	checkRun, err := git_model.GetCheckRunByID(ctx, id)
+	checkRun, err := git_model.GetCheckRunByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil {
 		if git_model.IsErrCheckRunNotExist(err) {
 			ctx.NotFound(err)
 			return
 		}
 
-		ctx.Error(http.StatusInternalServerError, "GetCheckRunByID", err)
-		return
-	}
-
-	if checkRun.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(err)
+		ctx.Error(http.StatusInternalServerError, "GetCheckRunByRepoIDAndID", err)
 		return
 	}
 
@@ -132,12 +128,63 @@ func UpdateCheckRun(ctx *context.APIContext) {
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/CreateCheckRunOptions"
+	//     "$ref": "#/definitions/UpdateCheckRunOptions"
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CheckRun"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	id := ctx.ParamsInt64(":check_run_id")
+	checkRun, err := git_model.GetCheckRunByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id)
+	if err != nil {
+		if git_model.IsErrCheckRunNotExist(err) {
+			ctx.NotFound(err)
+			return
+		}
+
+		ctx.Error(http.StatusInternalServerError, "GetCheckRunByRepoIDAndID", err)
+		return
+	}
+
+	form := web.GetForm(ctx).(*api.UpdateCheckRunOptions)
+	opts := git_model.UpdateCheckRunOptions{
+		Creator:    ctx.Doer,
+		Repo:       ctx.Repo.Repository,
+		ExternalID: form.ExternalID,
+		DetailsURL: form.DetailsURL,
+	}
+	if form.Name != nil {
+		opts.Name = *form.Name
+	}
+
+	if form.StartedAt != nil {
+		opts.StartedAt = timeutil.TimeStamp(form.StartedAt.Unix())
+	}
+
+	if form.CompletedAt != nil {
+		opts.CompletedAt = timeutil.TimeStamp(form.CompletedAt.Unix())
+	}
+
+	if form.Status != nil {
+		opts.Status = *form.Status
+	}
+
+	if form.Conclusion != nil {
+		opts.Conclusion = *form.Conclusion
+	}
+
+	err = checkRun.Update(ctx, opts)
+	if err != nil {
+		if git_model.IsErrCheckRunExist(err) || git_model.IsErrUnVaildCheckRunOptions(err) {
+			ctx.Error(http.StatusBadRequest, "UpdateCheckRun", err)
+			return
+		}
+
+		ctx.Error(http.StatusInternalServerError, "UpdateCheckRun", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToChekckRun(ctx, checkRun))
 }
 
 // ListCheckRun List check runs for a Git reference

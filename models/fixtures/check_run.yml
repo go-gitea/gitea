@@ -3,7 +3,21 @@
   repo_id: 1
   status: 2 # completed
   conclusion: 5 # success
+  started_at: 1680835483
+  completed_at: 1680835683
   head_sha: "1234123412341234123412341234123412341234"
   details_url: https://example.com/builds/
   name: test check run
+  name_hash: 1873ed8cc0aa496ea3fe09c73f02e2b7f910f647
+  creator_id: 2
+
+-
+  id: 2
+  repo_id: 1
+  status: 1 # in_progress
+  started_at: 1680835683
+  completed_at: 0
+  head_sha: "1234123412341234123412341234123412341234"
+  name: test check run 2
+  name_hash: c690241f67b13743903d427b1068d3e153e81148
   creator_id: 2

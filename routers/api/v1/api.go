@@ -1140,7 +1140,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Group("/check-runs", func() {
 					m.Post("", reqToken(auth_model.AccessTokenScopeRepoStatus), reqRepoWriter(unit.TypeCode), bind(api.CreateCheckRunOptions{}), repo.CreateCheckRun)
 					m.Combo("/{check_run_id}").Get(repo.GetCheckRun).
-						Patch(reqToken(auth_model.AccessTokenScopeRepoStatus), reqRepoWriter(unit.TypeCode), bind(api.CreateCheckRunOptions{}), repo.UpdateCheckRun)
+						Patch(reqToken(auth_model.AccessTokenScopeRepoStatus), reqRepoWriter(unit.TypeCode), bind(api.UpdateCheckRunOptions{}), repo.UpdateCheckRun)
 				}, reqRepoReader(unit.TypeCode))
 
 				m.Group("/commits", func() {

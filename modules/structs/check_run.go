@@ -83,6 +83,20 @@ type CreateCheckRunOptions struct {
 	Output      *CheckRunOutput `json:"output,omitempty"`
 }
 
+// UpdateCheckRunOptions options needed to update a CheckRun.
+type UpdateCheckRunOptions struct {
+	Name       *string             `json:"name,omitempty"`
+	DetailsURL *string             `json:"details_url,omitempty"`
+	ExternalID *string             `json:"external_id,omitempty"`
+	Status     *CheckRunStatus     `json:"status"`
+	Conclusion *CheckRunConclusion `json:"conclusion,omitempty"`
+	// swagger:strfmt date-time
+	StartedAt *time.Time `json:"started_at,omitempty"`
+	// swagger:strfmt date-time
+	CompletedAt *time.Time      `json:"completed_at,omitempty"`
+	Output      *CheckRunOutput `json:"output,omitempty"`
+}
+
 // CheckRun represents a check run on a repository
 type CheckRun struct {
 	ID         int64               `json:"id"`
