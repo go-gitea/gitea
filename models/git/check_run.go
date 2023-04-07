@@ -12,10 +12,13 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
+	"xorm.io/xorm"
 )
 
 type CheckRunStatus int64
@@ -543,10 +546,67 @@ func (c *CheckRun) Update(ctx context.Context, opts UpdateCheckRunOptions) error
 		c.StartedAt = 0
 	}
 
-	_, err = db.GetEngine(ctx).ID(c.ID).Cols("name", "name_hash", "started_at", "completed_at", "status", "conclusion", "details_url", "external_id").Update(c)
+	_, err = db.GetEngine(ctx).ID(c.ID).Cols("name", "name_hash", "started_at", "completed_at", "status", "conclusion", "details_url", "external_id", "updated_unix").Update(c)
 	if err != nil {
 		return err
 	}
 
 	return committer.Commit()
+}
+
+type CheckRunOptions struct {
+	db.ListOptions
+	Status     string
+	Conclusion string
+	SortType   string
+}
+
+// GetCheckRuns returns all check runs for a given commit.
+func GetCheckRuns(ctx context.Context, repo *repo_model.Repository, headSHA string, opts *CheckRunOptions) ([]*CheckRun, int64, error) {
+	if opts.Page <= 0 {
+		opts.Page = 1
+	}
+	if opts.PageSize <= 0 {
+		opts.Page = setting.ItemsPerPage
+	}
+
+	countSession := listCheckRunStatement(ctx, repo, headSHA, opts)
+	countSession = db.SetSessionPagination(countSession, opts)
+	maxResults, err := countSession.Count(new(CheckRun))
+	if err != nil {
+		log.Error("Count CheckRuns: %v", err)
+		return nil, maxResults, err
+	}
+
+	checkRuns := make([]*CheckRun, 0, opts.PageSize)
+	findSession := listCheckRunStatement(ctx, repo, headSHA, opts)
+	findSession = db.SetSessionPagination(findSession, opts)
+	sortCheckRunsSession(findSession, opts.SortType)
+	return checkRuns, maxResults, findSession.Find(&checkRuns)
+}
+
+func sortCheckRunsSession(sess *xorm.Session, sortType string) {
+	switch sortType {
+	case "oldest":
+		sess.Asc("created_unix")
+	case "recentupdate":
+		sess.Desc("updated_unix")
+	case "leastupdate":
+		sess.Asc("updated_unix")
+	default:
+		sess.Desc("created_unix")
+	}
+}
+
+func listCheckRunStatement(ctx context.Context, repo *repo_model.Repository, headSHA string, opts *CheckRunOptions) *xorm.Session {
+	sess := db.GetEngine(ctx).Where("repo_id = ?", repo.ID).And("head_sha = ?", headSHA)
+	switch opts.Status {
+	case "queued", "in_progress", "completed":
+		sess.And("status = ?", toCheckRunStatus(api.CheckRunStatus(opts.Status)))
+	}
+	switch opts.Conclusion {
+	case "action_required", "cancelled", "failure", "neutral", "success", "skipped", "stale", "timed_out":
+		sess.And("conclusion = ?", toCheckRunConclusion(api.CheckRunConclusion(opts.Status)))
+	}
+	return sess
 }

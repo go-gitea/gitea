@@ -3900,13 +3900,38 @@
             "enum": [
               "oldest",
               "recentupdate",
-              "leastupdate",
-              "leastindex",
-              "highestindex"
+              "leastupdate"
             ],
             "type": "string",
             "description": "type of sort",
             "name": "sort",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "queued",
+              "in_progress",
+              "completed"
+            ],
+            "type": "string",
+            "description": "type of status",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "action_required",
+              "cancelled",
+              "failure",
+              "neutral",
+              "success",
+              "skipped",
+              "stale",
+              "timed_out"
+            ],
+            "type": "string",
+            "description": "type of conclusion",
+            "name": "conclusion",
             "in": "query"
           },
           {
@@ -3925,9 +3950,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/CommitStatusList"
-          },
-          "400": {
-            "$ref": "#/responses/error"
           }
         }
       }

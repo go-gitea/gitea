@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -8,6 +9,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
@@ -214,7 +216,19 @@ func ListCheckRun(ctx *context.APIContext) {
 	//   in: query
 	//   description: type of sort
 	//   type: string
-	//   enum: [oldest, recentupdate, leastupdate, leastindex, highestindex]
+	//   enum: [oldest, recentupdate, leastupdate]
+	//   required: false
+	// - name: status
+	//   in: query
+	//   description: type of status
+	//   type: string
+	//   enum: [queued, in_progress, completed]
+	//   required: false
+	// - name: conclusion
+	//   in: query
+	//   description: type of conclusion
+	//   type: string
+	//   enum: [action_required, cancelled, failure, neutral, success, skipped, stale, timed_out]
 	//   required: false
 	// - name: page
 	//   in: query
@@ -227,6 +241,43 @@ func ListCheckRun(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommitStatusList"
-	//   "400":
-	//     "$ref": "#/responses/error"
+
+	filter := utils.ResolveRefOrSha(ctx, ctx.Params("ref"))
+	if ctx.Written() {
+		return
+	}
+
+	getCommitCheckRuns(ctx, filter) // By default filter is maybe the raw SHA
+}
+
+func getCommitCheckRuns(ctx *context.APIContext, sha string) {
+	if len(sha) == 0 {
+		ctx.Error(http.StatusBadRequest, "ref/sha not given", nil)
+		return
+	}
+	sha = utils.MustConvertToSHA1(ctx.Context, sha)
+	repo := ctx.Repo.Repository
+
+	listOptions := utils.GetListOptions(ctx)
+
+	checkRuns, maxResults, err := git_model.GetCheckRuns(ctx, repo, sha, &git_model.CheckRunOptions{
+		ListOptions: listOptions,
+		SortType:    ctx.FormTrim("sort"),
+		Status:      ctx.FormTrim("status"),
+		Conclusion:  ctx.FormTrim("conclusion"),
+	})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetCheckRuns", fmt.Errorf("GetCheckRuns[%s, %s, %d]: %w", repo.FullName(), sha, ctx.FormInt("page"), err))
+		return
+	}
+
+	apiCheckRuns := make([]*api.CheckRun, 0, len(checkRuns))
+	for _, checkRun := range checkRuns {
+		apiCheckRuns = append(apiCheckRuns, convert.ToChekckRun(ctx, checkRun))
+	}
+
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.SetTotalCountHeader(maxResults)
+
+	ctx.JSON(http.StatusOK, apiCheckRuns)
 }
