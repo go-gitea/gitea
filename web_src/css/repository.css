@@ -544,10 +544,6 @@
   margin: 0;
 }
 
-.repository .comment textarea {
-  max-height: none !important;
-}
-
 .repository.new.issue .comment.form .comment .avatar {
   width: 3em;
 }
