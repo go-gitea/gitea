@@ -18,7 +18,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"runtime"
 	"strings"
 	texttmpl "text/template"
 	"time"
@@ -43,6 +42,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
+	"code.gitea.io/gitea/modules/templates/eval"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -56,12 +56,6 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
 	return []template.FuncMap{map[string]interface{}{
-		"GoVer": func() string {
-			return util.ToTitleCase(runtime.Version())
-		},
-		"UseHTTPS": func() bool {
-			return strings.HasPrefix(setting.AppURL, "https")
-		},
 		"AppName": func() string {
 			return setting.AppName
 		},
@@ -81,10 +75,7 @@ func NewFuncMap() []template.FuncMap {
 		"AppVer": func() string {
 			return setting.AppVer
 		},
-		"AppBuiltWith": func() string {
-			return setting.AppBuiltWith
-		},
-		"AppDomain": func() string {
+		"AppDomain": func() string { // documented in mail-templates.md
 			return setting.Domain
 		},
 		"AssetVersion": func() string {
@@ -108,57 +99,21 @@ func NewFuncMap() []template.FuncMap {
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
 		},
-		"IsShowFullName": func() bool {
-			return setting.UI.DefaultShowFullName
-		},
 		"Safe":          Safe,
-		"SafeJS":        SafeJS,
 		"JSEscape":      JSEscape,
 		"Str2html":      Str2html,
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"FileSize":      base.FileSize,
 		"LocaleNumber":  LocaleNumber,
-		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": MigrationIcon,
-		"Add": func(a ...int) int {
-			sum := 0
-			for _, val := range a {
-				sum += val
-			}
-			return sum
-		},
-		"Mul": func(a ...int) int {
-			sum := 1
-			for _, val := range a {
-				sum *= val
-			}
-			return sum
-		},
-		"ActionIcon": ActionIcon,
+		"ActionIcon":    ActionIcon,
 		"DateFmtLong": func(t time.Time) string {
 			return t.Format(time.RFC1123Z)
 		},
-		"DateFmtShort": func(t time.Time) string {
-			return t.Format("Jan 02, 2006")
-		},
-		"CountFmt": base.FormatNumberSI,
-		"SubStr": func(str string, start, length int) string {
-			if len(str) == 0 {
-				return ""
-			}
-			end := start + length
-			if length == -1 {
-				end = len(str)
-			}
-			if len(str) < end {
-				return str
-			}
-			return str[start:end]
-		},
+		"CountFmt":                       base.FormatNumberSI,
 		"EllipsisString":                 base.EllipsisString,
-		"DiffTypeToStr":                  DiffTypeToStr,
 		"DiffLineTypeToStr":              DiffLineTypeToStr,
 		"ShortSha":                       base.ShortSha,
 		"ActionContent2Commits":          ActionContent2Commits,
@@ -166,7 +121,6 @@ func NewFuncMap() []template.FuncMap {
 		"PathEscapeSegments":             util.PathEscapeSegments,
 		"URLJoin":                        util.URLJoin,
 		"RenderCommitMessage":            RenderCommitMessage,
-		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
 		"RenderCodeBlock":                RenderCodeBlock,
@@ -409,7 +363,7 @@ func NewFuncMap() []template.FuncMap {
 		"QueryEscape": url.QueryEscape,
 		"DotEscape":   DotEscape,
 		"Iterate": func(arg interface{}) (items []int64) {
-			count := util.ToInt64(arg)
+			count, _ := util.ToInt64(arg)
 			for i := int64(0); i < count; i++ {
 				items = append(items, i)
 			}
@@ -429,9 +383,7 @@ func NewFuncMap() []template.FuncMap {
 				curBranch,
 			)
 		},
-		"RefShortName": func(ref string) string {
-			return git.RefName(ref).ShortName()
-		},
+		"Eval": Eval,
 	}}
 }
 
@@ -439,9 +391,6 @@ func NewFuncMap() []template.FuncMap {
 // It's a subset of those used for HTML and other templates
 func NewTextFuncMap() []texttmpl.FuncMap {
 	return []texttmpl.FuncMap{map[string]interface{}{
-		"GoVer": func() string {
-			return util.ToTitleCase(runtime.Version())
-		},
 		"AppName": func() string {
 			return setting.AppName
 		},
@@ -454,32 +403,13 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		"AppVer": func() string {
 			return setting.AppVer
 		},
-		"AppBuiltWith": func() string {
-			return setting.AppBuiltWith
-		},
-		"AppDomain": func() string {
+		"AppDomain": func() string { // documented in mail-templates.md
 			return setting.Domain
 		},
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"DateFmtLong": func(t time.Time) string {
 			return t.Format(time.RFC1123Z)
-		},
-		"DateFmtShort": func(t time.Time) string {
-			return t.Format("Jan 02, 2006")
-		},
-		"SubStr": func(str string, start, length int) string {
-			if len(str) == 0 {
-				return ""
-			}
-			end := start + length
-			if length == -1 {
-				end = len(str)
-			}
-			if len(str) < end {
-				return str
-			}
-			return str[start:end]
 		},
 		"EllipsisString": base.EllipsisString,
 		"URLJoin":        util.URLJoin,
@@ -529,28 +459,8 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 			}
 			return dict, nil
 		},
-		"percentage": func(n int, values ...int) float32 {
-			sum := 0
-			for i := 0; i < len(values); i++ {
-				sum += values[i]
-			}
-			return float32(n) * 100 / float32(sum)
-		},
-		"Add": func(a ...int) int {
-			sum := 0
-			for _, val := range a {
-				sum += val
-			}
-			return sum
-		},
-		"Mul": func(a ...int) int {
-			sum := 1
-			for _, val := range a {
-				sum *= val
-			}
-			return sum
-		},
 		"QueryEscape": url.QueryEscape,
+		"Eval":        Eval,
 	}}
 }
 
@@ -622,11 +532,6 @@ func AvatarByEmail(ctx context.Context, email, name string, others ...interface{
 // Safe render raw as HTML
 func Safe(raw string) template.HTML {
 	return template.HTML(raw)
-}
-
-// SafeJS renders raw as JS
-func SafeJS(raw string) template.JS {
-	return template.JS(raw)
 }
 
 // Str2html render Markdown text to HTML
@@ -925,14 +830,6 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	return push
 }
 
-// DiffTypeToStr returns diff type name
-func DiffTypeToStr(diffType int) string {
-	diffTypes := map[int]string{
-		1: "add", 2: "modify", 3: "del", 4: "rename", 5: "copy",
-	}
-	return diffTypes[diffType]
-}
-
 // DiffLineTypeToStr returns diff line type name
 func DiffLineTypeToStr(diffType int) string {
 	switch diffType {
@@ -1014,6 +911,18 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 
 // LocaleNumber renders a number with a Custom Element, browser will render it with a locale number
 func LocaleNumber(v interface{}) template.HTML {
-	num := util.ToInt64(v)
+	num, _ := util.ToInt64(v)
 	return template.HTML(fmt.Sprintf(`<gitea-locale-number data-number="%d">%d</gitea-locale-number>`, num, num))
+}
+
+// Eval the expression and return the result, see the comment of eval.Expr for details.
+// To use this helper function in templates, pass each token as a separate parameter.
+//
+//	{{ $int64 := Eval $var "+" 1 }}
+//	{{ $float64 := Eval $var "+" 1.0 }}
+//
+// Golang's template supports comparable int types, so the int64 result can be used in later statements like {{if lt $int64 10}}
+func Eval(tokens ...any) (any, error) {
+	n, err := eval.Expr(tokens...)
+	return n.Value, err
 }
