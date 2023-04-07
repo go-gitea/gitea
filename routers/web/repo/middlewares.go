@@ -19,7 +19,7 @@ func SetEditorconfigIfExists(ctx *context.Context) {
 		return
 	}
 
-	ec, err := ctx.Repo.GetEditorconfig()
+	ec, _, err := ctx.Repo.GetEditorconfig()
 
 	if err != nil && !git.IsErrNotExist(err) {
 		description := fmt.Sprintf("Error while getting .editorconfig file: %v", err)

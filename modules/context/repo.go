@@ -240,35 +240,34 @@ func (r *Repository) FileExists(path, branch string) (bool, error) {
 
 // GetEditorconfig returns the .editorconfig definition if found in the
 // HEAD of the default repo branch.
-func (r *Repository) GetEditorconfig(optCommit ...*git.Commit) (*editorconfig.Editorconfig, error) {
+func (r *Repository) GetEditorconfig(optCommit ...*git.Commit) (cfg *editorconfig.Editorconfig, warning, err error) {
 	if r.GitRepo == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
-	var (
-		err    error
-		commit *git.Commit
-	)
+
+	var commit *git.Commit
+
 	if len(optCommit) != 0 {
 		commit = optCommit[0]
 	} else {
 		commit, err = r.GitRepo.GetBranchCommit(r.Repository.DefaultBranch)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	treeEntry, err := commit.GetTreeEntryByPath(".editorconfig")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if treeEntry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
-		return nil, git.ErrNotExist{ID: "", RelPath: ".editorconfig"}
+		return nil, nil, git.ErrNotExist{ID: "", RelPath: ".editorconfig"}
 	}
 	reader, err := treeEntry.Blob().DataAsync()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer reader.Close()
-	return editorconfig.Parse(reader)
+	return editorconfig.ParseGraceful(reader)
 }
 
 // RetrieveBaseRepo retrieves base repository
