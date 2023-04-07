@@ -1,3 +1,8 @@
+.ui.input textarea,
+.ui.form textarea {
+  transition: none;
+}
+
 input,
 textarea,
 .ui.input > input,
