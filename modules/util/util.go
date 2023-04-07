@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"os"
 	"strconv"
 	"strings"
 
@@ -198,14 +197,8 @@ func ToTitleCaseNoLower(s string) string {
 	return cases.Title(language.English, cases.NoLower).String(s)
 }
 
-func logError(msg string, args ...any) {
-	// TODO: the "util" package can not import the "modules/log" package, so we use the "fmt" package here temporarily.
-	// In the future, we should decouple the dependency between them.
-	_, _ = fmt.Fprintf(os.Stderr, msg, args...)
-}
-
 // ToInt64 transform a given int into int64.
-func ToInt64(number interface{}) int64 {
+func ToInt64(number interface{}) (int64, error) {
 	var value int64
 	switch v := number.(type) {
 	case int:
@@ -218,6 +211,7 @@ func ToInt64(number interface{}) int64 {
 		value = int64(v)
 	case int64:
 		value = v
+
 	case uint:
 		value = int64(v)
 	case uint8:
@@ -228,13 +222,61 @@ func ToInt64(number interface{}) int64 {
 		value = int64(v)
 	case uint64:
 		value = int64(v)
+
+	case float32:
+		value = int64(v)
+	case float64:
+		value = int64(v)
+
 	case string:
 		var err error
 		if value, err = strconv.ParseInt(v, 10, 64); err != nil {
-			logError("strconv.ParseInt failed for %q: %v", v, err)
+			return 0, err
 		}
 	default:
-		logError("unable to convert %q to int64", v)
+		return 0, fmt.Errorf("unable to convert %v to int64", number)
 	}
-	return value
+	return value, nil
+}
+
+// ToFloat64 transform a given int into float64.
+func ToFloat64(number interface{}) (float64, error) {
+	var value float64
+	switch v := number.(type) {
+	case int:
+		value = float64(v)
+	case int8:
+		value = float64(v)
+	case int16:
+		value = float64(v)
+	case int32:
+		value = float64(v)
+	case int64:
+		value = float64(v)
+
+	case uint:
+		value = float64(v)
+	case uint8:
+		value = float64(v)
+	case uint16:
+		value = float64(v)
+	case uint32:
+		value = float64(v)
+	case uint64:
+		value = float64(v)
+
+	case float32:
+		value = float64(v)
+	case float64:
+		value = v
+
+	case string:
+		var err error
+		if value, err = strconv.ParseFloat(v, 64); err != nil {
+			return 0, err
+		}
+	default:
+		return 0, fmt.Errorf("unable to convert %v to float64", number)
+	}
+	return value, nil
 }
