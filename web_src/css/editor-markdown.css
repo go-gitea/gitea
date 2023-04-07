@@ -43,7 +43,7 @@ text-expander .suggestions {
   margin-top: 24px;
   list-style: none;
   background: var(--color-box-body);
-  border-radius: var(--border-radius);
+  border-radius: 5px;
   border: 1px solid var(--color-secondary);
   box-shadow: 0 .5rem 1rem var(--color-shadow);
 }
@@ -56,15 +56,15 @@ text-expander .suggestions li {
 }
 
 text-expander .suggestions li + li {
-  border-top: 1px solid var(--color-secondary);
+  border-top: 1px solid var(--color-secondary-alpha-40);
 }
 
 text-expander .suggestions li:first-child {
-  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  border-radius: 4px 4px 0 0;
 }
 
 text-expander .suggestions li:last-child {
-  border-radius: 0 0 var(--border-radius) var(--border-radius);
+  border-radius: 0 0 4px 4px;
 }
 
 text-expander li[aria-selected="true"] {
