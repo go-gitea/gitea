@@ -30,3 +30,44 @@
 .combo-markdown-editor .CodeMirror-scroll {
   max-height: calc(100vh - 200px);
 }
+
+text-expander {
+  display: block;
+  position: relative;
+}
+
+text-expander .suggestions {
+  position: absolute;
+  min-width: 180px;
+  padding: 0;
+  margin-top: 24px;
+  list-style: none;
+  background: var(--color-box-body);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-secondary);
+  box-shadow: 0 .5rem 1rem var(--color-shadow);
+}
+
+text-expander .suggestions li {
+  display: block;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-weight: 500;
+}
+
+text-expander .suggestions li + li {
+  border-top: 1px solid var(--color-secondary);
+}
+
+text-expander .suggestions li:first-child {
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+text-expander .suggestions li:last-child {
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+text-expander li[aria-selected="true"] {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}

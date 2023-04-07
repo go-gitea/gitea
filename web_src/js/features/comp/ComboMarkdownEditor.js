@@ -1,4 +1,5 @@
 import '@github/markdown-toolbar-element';
+import '@github/text-expander-element';
 import $ from 'jquery';
 import {attachTribute} from '../tribute.js';
 import {hideElem, showElem, autosize} from '../../utils/dom.js';
@@ -6,6 +7,7 @@ import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
 import {initMarkupContent} from '../../markup/content.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {attachRefIssueContextPopup} from '../contextpopup.js';
+import {emojiKeys, emojiString} from '../emoji.js';
 
 let elementIdCounter = 0;
 
@@ -43,10 +45,8 @@ class ComboMarkdownEditor {
 
     this.setupTab();
     this.setupDropzone();
-
+    this.setupExpander();
     this.setupTextarea();
-
-    await attachTribute(this.textarea, {mentions: true, emoji: true});
 
     if (this.userPreferredEditor === 'easymde') {
       await this.switchToEasyMDE();
@@ -81,6 +81,40 @@ class ComboMarkdownEditor {
     if (this.dropzone) {
       initTextareaImagePaste(this.textarea, this.dropzone);
     }
+  }
+
+  setupExpander() {
+    const expander = this.container.querySelector('text-expander');
+    expander?.addEventListener('text-expander-change', ({detail: {key, provide, text}}) => {
+      if (key === ':') {
+        const ul = document.createElement('ul');
+        ul.classList.add('suggestions');
+
+        const matches = [];
+        for (const name of emojiKeys) {
+          if (name.includes(text)) {
+            matches.push(name);
+            if (matches.length > 5) break;
+          }
+        }
+
+        for (const name of matches) {
+          const emoji = emojiString(name);
+          const li = document.createElement('li');
+          li.setAttribute('role', 'option');
+          li.setAttribute('data-value', emoji);
+          li.textContent = `${emoji} :${name}:`;
+          ul.append(li);
+        }
+
+        provide(Promise.resolve({matched: true, fragment: ul}));
+      }
+    });
+    expander?.addEventListener('text-expander-value', ({detail}) => {
+      if (detail?.key === ':' && detail?.item) {
+        detail.value = detail.item.getAttribute('data-value');
+      }
+    });
   }
 
   setupDropzone() {
