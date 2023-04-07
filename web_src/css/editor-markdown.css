@@ -67,6 +67,10 @@ text-expander .suggestions li:last-child {
   border-radius: 0 0 4px 4px;
 }
 
+text-expander li:hover {
+  background: var(--color-hover);
+}
+
 text-expander li[aria-selected="true"] {
   background: var(--color-primary);
   color: var(--color-primary-contrast);
