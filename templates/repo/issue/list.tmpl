@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository">
+<div role="main" aria-label="{{.Title}}" class="page-content repository issue-list">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="ui three column grid issue-list-headers">
@@ -117,7 +117,11 @@
 					</div>
 
 					<!-- Author -->
-					<div class="ui {{if not .Posters}}disabled{{end}} dropdown jump item">
+					<div class="ui dropdown jump item user-remote-search" data-tooltip-content="{{.locale.Tr "repo.author_search_tooltip"}}"
+						data-search-url="{{$.Link}}/posters"
+						data-selected-user-id="{{$.PosterID}}"
+						data-action-jump-url="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={user_id}"
+					>
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_poster"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -127,12 +131,7 @@
 								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
 							</div>
-							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
-							{{range .Posters}}
-								<a class="{{if eq $.PosterID .ID}}active selected{{end}} item gt-df" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{.ID}}">
-									{{avatar $.Context .}}{{template "repo/search_name" .}}
-								</a>
-							{{end}}
+							<a class="item" data-value="0">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
 						</div>
 					</div>
 
@@ -150,7 +149,7 @@
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
 							{{range .Assignees}}
 								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item gt-df" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{.ID}}&poster={{$.PosterID}}">
-									{{avatar $.Context .}}{{template "repo/search_name" .}}
+									{{avatar $.Context . 20}}{{template "repo/search_name" .}}
 								</a>
 							{{end}}
 						</div>
@@ -299,7 +298,7 @@
 							</div>
 							{{range .Assignees}}
 								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/assignee">
-									{{avatar $.Context .}} {{.GetDisplayName}}
+									{{avatar $.Context . 20}} {{.GetDisplayName}}
 								</div>
 							{{end}}
 						</div>
