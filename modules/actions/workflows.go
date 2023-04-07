@@ -17,7 +17,17 @@ import (
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
 	"github.com/nektos/act/pkg/workflowpattern"
+	"gopkg.in/yaml.v3"
 )
+
+func init() {
+	model.OnDecodeNodeError = func(node yaml.Node, out interface{}, err error) {
+		// Log the error instead of panic or fatal.
+		// It will be a big job to refactor act/pkg/model to return decode error,
+		// so we just log the error and return empty value, and improve it later.
+		log.Error("Failed to decode node %v into %T: %v", node, out, err)
+	}
+}
 
 func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 	tree, err := commit.SubTree(".gitea/workflows")
