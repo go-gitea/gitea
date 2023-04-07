@@ -5,7 +5,7 @@
 	{{if .OriginalAuthor}}
 		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 	{{else}}
-		{{template "shared/user/avatarlink" Dict "Context" $.root.Context "user" .Poster}}
+		{{template "shared/user/avatarlink" dict "Context" $.root.Context "user" .Poster}}
 	{{end}}
 	<div class="content comment-container">
 		<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
@@ -42,8 +42,8 @@
 						</div>
 					{{end}}
 				{{end}}
-				{{template "repo/issue/view_content/add_reaction" Dict "ctxData" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID)}}
-				{{template "repo/issue/view_content/context_menu" Dict "ctxData" $.root "item" . "delete" true "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
+				{{template "repo/issue/view_content/add_reaction" dict "ctxData" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID)}}
+				{{template "repo/issue/view_content/context_menu" dict "ctxData" $.root "item" . "delete" true "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">
@@ -60,7 +60,7 @@
 		{{$reactions := .Reactions.GroupByType}}
 		{{if $reactions}}
 			<div class="ui attached segment reactions">
-			{{template "repo/issue/view_content/reactions" Dict "ctxData" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) "Reactions" $reactions}}
+			{{template "repo/issue/view_content/reactions" dict "ctxData" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) "Reactions" $reactions}}
 			</div>
 		{{end}}
 	</div>
