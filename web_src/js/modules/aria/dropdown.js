@@ -132,6 +132,11 @@ function attachInit($dropdown) {
   const $focusable = $textSearch.length ? $textSearch : $dropdown; // the primary element for focus, see comment above
   if (!$focusable.length) return;
 
+  // as a combobox, the input should not have autocomplete by default
+  if ($textSearch.length && !$textSearch.attr('autocomplete')) {
+    $textSearch.attr('autocomplete', 'off');
+  }
+
   let $menu = $dropdown.find('> .menu');
   if (!$menu.length) {
     // some "multiple selection" dropdowns don't have a static menu element in HTML, we need to pre-create it to make it have correct aria attributes
