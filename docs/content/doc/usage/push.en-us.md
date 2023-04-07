@@ -1,17 +1,50 @@
 ---
 date: "2020-07-06T16:00:00+02:00"
-title: "Push To Create"
-slug: "push-to-create"
+title: "Usage: Push"
+slug: "push"
 weight: 15
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "usage"
-    name: "Push To Create"
+    name: "Push"
     weight: 15
-    identifier: "push-to-create"
+    identifier: "push"
 ---
+
+**Table of Contents**
+
+{{< toc >}}
+
+There are some additional features when pushing commits to Gitea server.
+
+# Open PR through Push
+
+When you push commits to a non-default branch for the first time,
+you will receive a link you can click on to visit the compare page of your branch compared to your main branch.
+From there, it's easy to create a pull request, even if you want to target another branch.
+
+![Gitea Push Hint](/gitea-push-hint.png)
+
+# Push Options
+
+In Gitea `1.13`, support for some [push options](https://git-scm.com/docs/git-push#Documentation/git-push.txt--oltoptiongt)
+were added.
+
+## Supported Options
+
+- `repo.private` (true|false) - Change the repository's visibility.
+
+  This is particularly useful when combined with push-to-create.
+
+- `repo.template` (true|false) - Change whether the repository is a template.
+
+Example of changing a repository's visibility to public:
+
+```shell
+git push -o repo.private=false -u origin main
+```
 
 # Push To Create
 
@@ -35,6 +68,4 @@ git push -u origin main
 
 This assumes you are using an SSH remote, but you can also use HTTPS remotes as well.
 
-## Push options (bonus)
-
-Push-to-create will default to the visibility defined by `DEFAULT_PUSH_CREATE_PRIVATE` in `app.ini`. To explicitly set the visibility, you can use a [push option]({{< relref "doc/usage/push-options.en-us.md" >}}).
+Push-to-create will default to the visibility defined by `DEFAULT_PUSH_CREATE_PRIVATE` in `app.ini`.
