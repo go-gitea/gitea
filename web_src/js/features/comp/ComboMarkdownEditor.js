@@ -93,7 +93,7 @@ class ComboMarkdownEditor {
         for (const name of emojiKeys) {
           if (name.includes(text)) {
             matches.push(name);
-            if (matches.length > 5) break;
+            if (matches.length > 4) break;
           }
         }
 
