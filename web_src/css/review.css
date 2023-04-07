@@ -246,12 +246,12 @@ a.blob-excerpt:hover {
   display: none;
 }
 
-.pull.files.diff [id] {
+.pull.files.diff .comment {
   scroll-margin-top: 99px;
 }
 
 @media (max-width: 991px) {
-  .pull.files.diff [id] {
+  .pull.files.diff .comment {
     scroll-margin-top: 130px;
   }
 }
