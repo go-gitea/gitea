@@ -131,14 +131,17 @@ func NewFuncMap() []template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// time / number / format
-		"TimeSince":     timeutil.TimeSince,
-		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"FileSize":      base.FileSize,
 		"LocaleNumber":  LocaleNumber,
 		"CountFmt":      base.FormatNumberSI,
+		"TimeSince":     timeutil.TimeSince,
+		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"Sec2Time":      util.SecToTime,
 		"DateFmtLong": func(t time.Time) string {
 			return t.Format(time.RFC1123Z)
+		},
+		"LoadTimes": func(startTime time.Time) string {
+			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
 
 		// -----------------------------------------------------------------
@@ -213,9 +216,6 @@ func NewFuncMap() []template.FuncMap {
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.ShowFooterTemplateLoadTime
 		},
-		"LoadTimes": func(startTime time.Time) string {
-			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
-		},
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
@@ -248,9 +248,6 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
-		},
-		"ParseDeadline": func(deadline string) []string {
-			return strings.Split(deadline, "|")
 		},
 		"DefaultTheme": func() string {
 			return setting.UI.DefaultTheme
@@ -316,6 +313,9 @@ func NewFuncMap() []template.FuncMap {
 		"CommentMustAsDiff":        gitdiff.CommentMustAsDiff,
 		"MirrorRemoteAddress":      mirrorRemoteAddress,
 
+		"ParseDeadline": func(deadline string) []string {
+			return strings.Split(deadline, "|")
+		},
 		"FilenameIsImage": func(filename string) bool {
 			mimeType := mime.TypeByExtension(filepath.Ext(filename))
 			return strings.HasPrefix(mimeType, "image/")
