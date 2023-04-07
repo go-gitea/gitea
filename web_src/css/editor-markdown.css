@@ -49,7 +49,8 @@ text-expander .suggestions {
 }
 
 text-expander .suggestions li {
-  display: block;
+  display: flex;
+  align-items: center;
   cursor: pointer;
   padding: 4px 8px;
   font-weight: 500;
@@ -67,11 +68,24 @@ text-expander .suggestions li:last-child {
   border-radius: 0 0 4px 4px;
 }
 
-text-expander li:hover {
+text-expander .suggestions li:hover {
   background: var(--color-hover);
 }
 
-text-expander li[aria-selected="true"] {
+text-expander .suggestions .fullname {
+  font-weight: normal;
+  margin-left: 4px;
+  color: var(--color-text-light-1);
+}
+
+text-expander .suggestions li[aria-selected="true"],
+text-expander .suggestions li[aria-selected="true"] span {
   background: var(--color-primary);
   color: var(--color-primary-contrast);
+}
+
+text-expander .suggestions img {
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
 }
