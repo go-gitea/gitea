@@ -32,6 +32,7 @@
                 <ActionRunStatus :status="job.status"/>
                 <span class="ui text gt-mx-3">{{ job.name }}</span>
               </a>
+              <span class="step-summary-dur">{{ job.duration }}</span>
               <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
@@ -112,6 +113,7 @@ const sfc = {
           //   name: '',
           //   status: '',
           //   canRerun: false,
+          //   duration: 0,
           // },
         ],
         commit: {
