@@ -113,7 +113,7 @@ const sfc = {
           //   name: '',
           //   status: '',
           //   canRerun: false,
-          //   duration: 0,
+          //   duration: '',
           // },
         ],
         commit: {
