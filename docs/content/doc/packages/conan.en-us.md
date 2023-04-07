@@ -2,6 +2,7 @@
 date: "2021-07-20T00:00:00+00:00"
 title: "Conan Packages Repository"
 slug: "usage/packages/conan"
+weight: 20
 draft: false
 toc: false
 menu:

@@ -2,14 +2,14 @@
 date: "2016-12-21T15:00:00-02:00"
 title: "註冊為 Windows 服務"
 slug: "windows-service"
-weight: 10
+weight: 50
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "installation"
     name: "Windows 服務"
-    weight: 30
+    weight: 50
     identifier: "windows-service"
 ---
 
