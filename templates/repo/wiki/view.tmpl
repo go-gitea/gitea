@@ -65,8 +65,8 @@
 				<p>{{.FormatWarning}}</p>
 			</div>
 		{{end}}
-		<div class="ui {{if or .sidebarPresent .toc}}grid equal width{{end}}" style="margin-top: 1rem;">
-			<div class="ui {{if or .sidebarPresent .toc}}eleven wide column{{end}} segment markup wiki-content-main">
+		<div class="ui gt-mt-0 {{if or .sidebarPresent .toc}}grid equal width{{end}}">
+			<div class="ui {{if or .sidebarPresent .toc}}eleven wide column{{else}}gt-ml-0{{end}} segment markup wiki-content-main">
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 				{{.content | Safe}}
 			</div>
@@ -80,8 +80,8 @@
 							</summary>
 							{{$level := 0}}
 							{{range .toc}}
-								{{if lt $level .Level}}{{range Iterate (Subtract .Level $level)}}<ul>{{end}}{{end}}
-								{{if gt $level .Level}}{{range Iterate (Subtract $level .Level)}}</ul>{{end}}{{end}}
+								{{if lt $level .Level}}{{range Iterate (Eval .Level "-" $level)}}<ul>{{end}}{{end}}
+								{{if gt $level .Level}}{{range Iterate (Eval $level "-" .Level)}}</ul>{{end}}{{end}}
 								{{$level = .Level}}
 								<li><a href="#{{.ID}}">{{.Text}}</a></li>
 							{{end}}

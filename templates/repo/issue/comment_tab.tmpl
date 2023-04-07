@@ -3,14 +3,17 @@
 {{if not $textareaContent}}{{$textareaContent = .PullRequestTemplate}}{{end}}
 {{if not $textareaContent}}{{$textareaContent = .content}}{{end}}
 
-{{template "shared/combomarkdowneditor" (dict
-	"locale" $.locale
-	"MarkdownPreviewUrl" (print .Repository.Link "/markup")
-	"MarkdownPreviewContext" .RepoLink
-	"TextareaName" "content"
-	"TextareaContent" $textareaContent
-	"DropzoneParentContainer" "form, .ui.form"
-)}}
+<div class="field">
+	{{template "shared/combomarkdowneditor" (dict
+		"locale" $.locale
+		"MarkdownPreviewUrl" (print .Repository.Link "/markup")
+		"MarkdownPreviewContext" .RepoLink
+		"TextareaName" "content"
+		"TextareaContent" $textareaContent
+		"TextareaPlaceholder"  ($.locale.Tr "repo.diff.comment.placeholder")
+		"DropzoneParentContainer" "form, .ui.form"
+	)}}
+</div>
 
 {{if .IsAttachmentEnabled}}
 	<div class="field">

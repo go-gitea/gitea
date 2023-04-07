@@ -1,6 +1,6 @@
 ---
 date: "2017-01-01T16:00:00+02:00"
-title: "Usage: Command Line"
+title: "Gitea Command Line"
 slug: "command-line"
 weight: 1
 toc: false

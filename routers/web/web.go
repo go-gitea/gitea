@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
@@ -674,15 +675,43 @@ func RegisterRoutes(m *web.Route) {
 			})
 			http.ServeFile(ctx.Resp, ctx.Req, path.Join(setting.StaticRootPath, "public/img/favicon.png"))
 		})
-		m.Group("/{username}", func() {
-			m.Get(".keys", user.ShowSSHKeys)
-			m.Get(".gpg", user.ShowGPGKeys)
-			m.Get(".rss", feedEnabled, feed.ShowUserFeedRSS)
-			m.Get(".atom", feedEnabled, feed.ShowUserFeedAtom)
-			m.Get("", user.Profile)
-		}, func(ctx *context.Context) {
-			ctx.Data["EnableFeed"] = setting.EnableFeed
-		}, context_service.UserAssignmentWeb())
+		m.Get("/{username}", func(ctx *context.Context) {
+			// WORKAROUND to support usernames with "." in it
+			// https://github.com/go-chi/chi/issues/781
+			username := ctx.Params("username")
+			reloadParam := func(suffix string) (success bool) {
+				ctx.SetParams("username", strings.TrimSuffix(username, suffix))
+				context_service.UserAssignmentWeb()(ctx)
+				return !ctx.Written()
+			}
+			switch {
+			case strings.HasSuffix(username, ".keys"):
+				if reloadParam(".keys") {
+					user.ShowSSHKeys(ctx)
+				}
+			case strings.HasSuffix(username, ".gpg"):
+				if reloadParam(".gpg") {
+					user.ShowGPGKeys(ctx)
+				}
+			case strings.HasSuffix(username, ".rss"):
+				feedEnabled(ctx)
+				if !ctx.Written() && reloadParam(".rss") {
+					context_service.UserAssignmentWeb()(ctx)
+					feed.ShowUserFeedRSS(ctx)
+				}
+			case strings.HasSuffix(username, ".atom"):
+				feedEnabled(ctx)
+				if !ctx.Written() && reloadParam(".atom") {
+					feed.ShowUserFeedAtom(ctx)
+				}
+			default:
+				context_service.UserAssignmentWeb()(ctx)
+				if !ctx.Written() {
+					ctx.Data["EnableFeed"] = setting.EnableFeed
+					user.Profile(ctx)
+				}
+			}
+		})
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
 	}, ignSignIn)
 
@@ -1228,7 +1257,10 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("", func() {
-			m.Get("/{type:issues|pulls}", repo.Issues)
+			m.Group("/{type:issues|pulls}", func() {
+				m.Get("", repo.Issues)
+				m.Get("/posters", repo.IssuePosters)
+			})
 			m.Get("/{type:issues|pulls}/{index}", repo.ViewIssue)
 			m.Group("/{type:issues|pulls}/{index}/content-history", func() {
 				m.Get("/overview", repo.GetContentHistoryOverview)
