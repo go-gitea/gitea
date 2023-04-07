@@ -711,9 +711,6 @@ func Home(ctx *context.Context) {
 			feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
 			return
 		}
-
-		ctx.Data["EnableFeed"] = true
-		ctx.Data["FeedURL"] = ctx.Repo.Repository.Link()
 	}
 
 	checkHomeCodeViewable(ctx)
