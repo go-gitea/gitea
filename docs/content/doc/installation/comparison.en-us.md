@@ -53,7 +53,7 @@ _Symbols used in table:_
 | Custom Theme Support                             | ✓                                                   | ✓    | ✘         | ✘         | ✘         | ✓         | ✘            |
 | Markdown support                                 | ✓                                                   | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | CSV support                                      | ✓                                                   | ✘    | ✓         | ✘         | ✘         | ✓         | ?            |
-| 'GitHub / GitLab pages'                          | [✘](https://github.com/go-gitea/gitea/issues/302)   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| 'GitHub / GitLab pages'                          | [⚙️](https://codeberg.org/Codeberg/pages-server)   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
 | Repo-specific wiki (as a repo itself)            | ✓                                                   | ✓    | ✓         | ✓         | ✓         | /         | ✘            |
 | Deploy Tokens                                    | ✓                                                   | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Repository Tokens with write rights              | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |

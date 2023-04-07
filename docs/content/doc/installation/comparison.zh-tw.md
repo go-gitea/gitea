@@ -46,7 +46,7 @@ menu:
 | 支援 Orgmode             | ✓                                                  | ✘    | ✓         | ✘         | ✘         | ✘         | ?            |
 | 支援 CSV                 | ✓                                                  | ✘    | ✓         | ✘         | ✘         | ✓         | ?            |
 | 支援第三方渲染工具       | ✓                                                  | ✘    | ✘         | ✘         | ✘         | ✓         | ?            |
-| Git 驅動的靜態頁面       | [✘](https://github.com/go-gitea/gitea/issues/302)  | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Git 驅動的靜態頁面       | [⚙️](https://codeberg.org/Codeberg/pages-server)  | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
 | Git 驅動的整合 wiki      | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓         | ✘            |
 | 部署 Token               | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | 有寫入權限的儲存庫 Token | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✘         | ✓            |
