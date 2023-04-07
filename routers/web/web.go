@@ -1228,7 +1228,10 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("", func() {
-			m.Get("/{type:issues|pulls}", repo.Issues)
+			m.Group("/{type:issues|pulls}", func() {
+				m.Get("", repo.Issues)
+				m.Get("/posters", repo.IssuePosters)
+			})
 			m.Get("/{type:issues|pulls}/{index}", repo.ViewIssue)
 			m.Group("/{type:issues|pulls}/{index}/content-history", func() {
 				m.Get("/overview", repo.GetContentHistoryOverview)
