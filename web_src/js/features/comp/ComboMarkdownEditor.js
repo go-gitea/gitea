@@ -106,7 +106,7 @@ class ComboMarkdownEditor {
           ul.append(li);
         }
 
-        provide(Promise.resolve({matched: true, fragment: ul}));
+        provide({matched: matches.length > 0, fragment: ul});
       }
     });
     expander?.addEventListener('text-expander-value', ({detail}) => {
