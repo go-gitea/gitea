@@ -80,8 +80,8 @@
 							</summary>
 							{{$level := 0}}
 							{{range .toc}}
-								{{if lt $level .Level}}{{range Iterate (Subtract .Level $level)}}<ul>{{end}}{{end}}
-								{{if gt $level .Level}}{{range Iterate (Subtract $level .Level)}}</ul>{{end}}{{end}}
+								{{if lt $level .Level}}{{range Iterate (Eval .Level "-" $level)}}<ul>{{end}}{{end}}
+								{{if gt $level .Level}}{{range Iterate (Eval $level "-" .Level)}}</ul>{{end}}{{end}}
 								{{$level = .Level}}
 								<li><a href="#{{.ID}}">{{.Text}}</a></li>
 							{{end}}
