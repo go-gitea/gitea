@@ -142,9 +142,8 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		return
 	}
 
-	if err = repo_model.InitReleaseRepo(ctx, releases...); err != nil {
-		ctx.ServerError("InitReleaseRepo", err)
-		return
+	for _, release := range releases {
+		release.Repo = ctx.Repo.Repository
 	}
 
 	if err = repo_model.GetReleaseAttachments(ctx, releases...); err != nil {
@@ -253,11 +252,7 @@ func SingleRelease(ctx *context.Context) {
 		ctx.Data["Title"] = release.Title
 	}
 
-	err = repo_model.InitReleaseRepo(ctx, release)
-	if err != nil {
-		ctx.ServerError("InitReleaseRepo", err)
-		return
-	}
+	release.Repo = ctx.Repo.Repository
 
 	err = repo_model.GetReleaseAttachments(ctx, release)
 	if err != nil {
