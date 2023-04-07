@@ -1,7 +1,7 @@
 <template>
   <div v-show="show" class="tooltip" :title="item.name">
     <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
-    <div class="item" :class="item.isFile ? 'filewrapper gt-p-1' : ''">
+    <div class="item" :class="[item.isFile ? 'filewrapper gt-p-1 gt-ac' : '', selectedFile === genCompleteFileHash(item.file?.NameHash) ? 'selected' : '']">
       <!-- Files -->
       <SvgIcon
         v-if="item.isFile"
@@ -34,7 +34,7 @@
         <span class="gt-ellipsis">{{ item.name }}</span>
       </div>
       <div v-show="!collapsed">
-        <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem" class="list" />
+        <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem" class="list" :selected-file="selectedFile"/>
       </div>
     </div>
   </div>
@@ -54,6 +54,11 @@ export default {
       type: Boolean,
       required: false,
       default: true
+    },
+    selectedFile: {
+      type: String,
+      default: '',
+      required: true
     }
   },
   data: () => ({
@@ -76,6 +81,9 @@ export default {
       };
       return diffTypes[pType];
     },
+    genCompleteFileHash(hash) {
+      return `#diff-${hash}`;
+    }
   },
 };
 </script>
@@ -115,9 +123,15 @@ span.svg-icon.octicon-diff-renamed {
   padding-left: 18px !important;
 }
 
-.item.filewrapper:hover {
+.item.filewrapper:hover, div.directory:hover {
   color: var(--color-text);
   background: var(--color-hover);
+  border-radius: 4px;
+}
+
+.item.filewrapper.selected {
+  color: var(--color-text);
+  background: var(--color-active);
   border-radius: 4px;
 }
 
@@ -126,12 +140,6 @@ div.directory {
   grid-template-columns: 18px 20px auto;
   user-select: none;
   cursor: pointer;
-}
-
-div.directory:hover {
-  color: var(--color-text);
-  background: var(--color-hover);
-  border-radius: 4px;
 }
 
 div.list {
