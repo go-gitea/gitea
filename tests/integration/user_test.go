@@ -241,6 +241,19 @@ func testExportUserGPGKeys(t *testing.T, user, expected string) {
 	assert.Equal(t, expected, resp.Body.String())
 }
 
+func TestGetUserRss(t *testing.T) {
+	user34 := "the_34-user.with.all.allowedChars"
+	req := NewRequestf(t, "GET", "/%s.rss", user34)
+	resp := MakeRequest(t, req, http.StatusOK)
+	if assert.EqualValues(t, "application/rss+xml;charset=utf-8", resp.Header().Get("Content-Type")) {
+		rssDoc := NewHTMLParser(t, resp.Body).Find("channel")
+		title, _ := rssDoc.ChildrenFiltered("title").Html()
+		assert.EqualValues(t, "Feed of &#34;the_1-user.with.all.allowedChars&#34;", title)
+		description, _ := rssDoc.ChildrenFiltered("description").Html()
+		assert.EqualValues(t, "&lt;p&gt;some &lt;a href=&#34;https://commonmark.org/&#34; rel=&#34;nofollow&#34;&gt;commonmark&lt;/a&gt;!&lt;/p&gt;\n", description)
+	}
+}
+
 func TestListStopWatches(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
