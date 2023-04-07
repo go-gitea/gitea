@@ -118,11 +118,11 @@ The correct path for the template(s) will be relative to the `CustomPath`
 2. If you are still unable to find a path, the default can be [calculated above](#where-does-gitea-store-what-file)
 3. Once you have figured out the correct custom path, you can refer to the [customizing Gitea]({{< relref "doc/administration/customizing-gitea.en-us.md" >}}) page to add your template to the correct location.
 
-## Do Gitea has a "GitHub/GitLab pages" feature?
+## Does Gitea have a "GitHub/GitLab pages" feature?
 
-Well, not build-in currently and not in the future.
+No, Gitea does not ship with that functionality and most likely never will.
 
-But there is a battle tested service, called [pages server](https://codeberg.org/Codeberg/pages-server), that should be easy to setup next to Gitea.
+However, there is a battle-tested third-party service called [pages server](https://codeberg.org/Codeberg/pages-server) that can be run easily in combination with Gitea.
 
 ## Active user vs login prohibited user
 

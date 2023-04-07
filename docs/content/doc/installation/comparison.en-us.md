@@ -31,7 +31,7 @@ _Symbols used in table:_
 
 - _✘ - unsupported_
 
-- _⚙️ - supported by additional service/plugin_
+- _⚙️ - supported through third-party software_
 
 ## General Features
 
