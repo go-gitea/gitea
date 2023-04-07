@@ -103,7 +103,7 @@ class ComboMarkdownEditor {
           const li = document.createElement('li');
           li.setAttribute('role', 'option');
           li.setAttribute('data-value', emoji);
-          li.textContent = `${emoji} :${name}:`;
+          li.textContent = `${emoji} ${name}`;
           ul.append(li);
         }
 
