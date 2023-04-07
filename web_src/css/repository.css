@@ -544,10 +544,6 @@
   margin: 0;
 }
 
-.repository .comment textarea {
-  max-height: none !important;
-}
-
 .repository.new.issue .comment.form .comment .avatar {
   width: 3em;
 }
@@ -1068,11 +1064,6 @@
   min-height: 5rem;
 }
 
-.repository.view.issue .comment-list .comment .ui.form textarea {
-  height: 200px;
-  font-family: var(--fonts-monospace);
-}
-
 .repository.view.issue .comment-list .comment .edit.buttons {
   margin-top: 10px;
 }
@@ -1189,15 +1180,6 @@
   border-right-color: var(--color-box-body);
   border-width: 8px;
   margin-top: -8px;
-}
-
-.repository .comment.form .content textarea {
-  height: 200px;
-  font-family: var(--fonts-monospace);
-}
-
-.repository .comment.form .content .CodeMirror-scroll {
-  max-height: 85vh;
 }
 
 .repository .milestone.list {
@@ -2123,9 +2105,6 @@
   margin-top: 0;
 }
 
-.repository.wiki .form .CodeMirror-scroll {
-  max-height: 85vh;
-}
 
 @media (max-width: 767px) {
   .repository.wiki .dividing.header .stackable.grid .button {
