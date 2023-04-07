@@ -227,6 +227,12 @@ func GetLineFromTemplate(templateName string, targetLineNum int, target string, 
 		}
 	}
 
+	// FIXME: this algorithm could provide incorrect results and mislead the developers.
+	// For example: Undefined function "file" in template .....
+	//     {{Func .file.Addition file.Deletion .file.Addition}}
+	//             ^^^^          ^(the real error is here)
+	// The pointer is added to the first one, but the second one is the real incorrect one.
+	//
 	// If there is a provided target to look for in the line add a pointer to it
 	// e.g.                                                        ^^^^^^^
 	if target != "" {
