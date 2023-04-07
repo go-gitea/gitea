@@ -18,8 +18,15 @@
   cursor: pointer;
 }
 
-.combo-markdown-editor .markdown-text-editor {
+.ui.form .combo-markdown-editor textarea.markdown-text-editor,
+.combo-markdown-editor textarea.markdown-text-editor {
   display: block;
   width: 100%;
-  height: 200px;
+  min-height: 200px;
+  max-height: calc(100vh - 200px);
+  resize: vertical;
+}
+
+.combo-markdown-editor .CodeMirror-scroll {
+  max-height: calc(100vh - 200px);
 }
