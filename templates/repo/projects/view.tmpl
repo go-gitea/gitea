@@ -214,7 +214,7 @@
 							<div class="meta gt-my-2">
 								<span class="text light grey">
 									#{{.Index}}
-									{{$timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale}}
+									{{$timeStr := TimeSinceUnix .GetLastEventTimestamp}}
 									{{if .OriginalAuthor}}
 										{{$.locale.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
 									{{else if gt .Poster.ID 0}}

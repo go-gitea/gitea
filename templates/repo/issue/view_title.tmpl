@@ -42,7 +42,7 @@
 			{{$baseHref = printf "<a href=\"%s\">%s</a>" (.BaseBranchLink | Escape) $baseHref}}
 		{{end}}
 		{{if .Issue.PullRequest.HasMerged}}
-			{{$mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix $.locale}}
+			{{$mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix}}
 			{{if .Issue.OriginalAuthor}}
 				{{.Issue.OriginalAuthor}}
 				<span class="pull-desc">{{$.locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Safe}}</span>
@@ -90,7 +90,7 @@
 			</span>
 		{{end}}
 	{{else}}
-		{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix $.locale}}
+		{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix}}
 		<span class="time-desc">
 			{{if .Issue.OriginalAuthor}}
 				{{$.locale.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.OriginalAuthor|Escape) | Safe}}

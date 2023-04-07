@@ -52,7 +52,7 @@
 							#{{.Index}}
 						{{end}}
 					</a>
-					{{$timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale}}
+					{{$timeStr := TimeSinceUnix .GetLastEventTimestamp}}
 					{{if .OriginalAuthor}}
 						{{$.locale.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
 					{{else if gt .Poster.ID 0}}
@@ -106,7 +106,7 @@
 						<span class="due-date" data-tooltip-content="{{$.locale.Tr "repo.issues.due_date"}}">
 							<span{{if .IsOverdue}} class="overdue"{{end}}>
 								{{svg "octicon-calendar" 14 "gt-mr-2"}}
-								<time data-format="short-date" datetime="{{.DeadlineUnix.FormatDate}}">{{.DeadlineUnix.FormatShort}}</time>
+								<relative-time format="datetime" year="numeric" month="short" day="numeric" weekday="" datetime="{{.DeadlineUnix.FormatDate}}">{{.DeadlineUnix.FormatShort}}</relative-time>
 							</span>
 						</span>
 					{{end}}

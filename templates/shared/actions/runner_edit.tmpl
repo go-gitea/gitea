@@ -14,7 +14,7 @@
 				</div>
 				<div class="field gt-dib gt-mr-4 disabled">
 					<label>{{.locale.Tr "actions.runners.last_online"}}</label>
-					<span>{{TimeSinceUnix .Runner.LastOnline $.locale}}</span>
+					<span>{{TimeSinceUnix .Runner.LastOnline}}</span>
 				</div>
 				<div class="field gt-dib gt-mr-4 disabled">
 					<label>{{.locale.Tr "actions.runners.agent_labels"}}</label>
@@ -76,7 +76,7 @@
 						<strong><a href="{{.GetCommitLink}}" target="_blank">{{ShortSha .CommitSHA}}</a></strong>
 					</td>
 					<td>{{if .IsStopped}}
-						<span>{{TimeSinceUnix .Stopped $.locale}}</span>
+						<span>{{TimeSinceUnix .Stopped}}</span>
 						{{else}}-{{end}}</td>
 				</tr>
 				{{end}}

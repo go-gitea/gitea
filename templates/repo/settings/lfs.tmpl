@@ -23,7 +23,7 @@
 							</span>
 						</td>
 						<td>{{FileSize .Size}}</td>
-						<td>{{TimeSince .CreatedUnix.AsTime $.locale}}</td>
+						<td>{{TimeSince .CreatedUnix.AsTime}}</td>
 						<td class="right aligned">
 							<a class="ui primary button" href="{{$.Link}}/find?oid={{.Oid}}&size={{.Size}}">{{$.locale.Tr "repo.settings.lfs_findcommits"}}</a>
 							<button class="ui basic show-modal icon button" data-modal="#delete-{{.Oid}}">

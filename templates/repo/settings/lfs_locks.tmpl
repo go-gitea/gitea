@@ -39,7 +39,7 @@
 									{{$.Owner.DisplayName}}
 								</a>
 							</td>
-							<td>{{TimeSince .Created $.locale}}</td>
+							<td>{{TimeSince .Created}}</td>
 							<td class="right aligned">
 								<form action="{{$.LFSFilesLink}}/locks/{{$lock.ID}}/unlock" method="POST">
 									{{$.CsrfTokenHtml}}
