@@ -360,6 +360,12 @@ func NewReleasePost(ctx *context.Context) {
 		return
 	}
 
+	// Title of release cannot be empty
+	if len(form.TagOnly) == 0 && len(form.Title) == 0 {
+		ctx.RenderWithErr(ctx.Tr("repo.release.title_empty"), tplReleaseNew, &form)
+		return
+	}
+
 	var attachmentUUIDs []string
 	if setting.Attachment.Enabled {
 		attachmentUUIDs = form.Files
