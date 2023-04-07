@@ -25,7 +25,7 @@ func TestSettingShowUserEmailExplore(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	assert.Contains(t,
 		htmlDoc.doc.Find(".ui.user.list").Text(),
-		"user4@example.com",
+		"user34@example.com",
 	)
 
 	setting.UI.ShowUserEmail = false
@@ -35,7 +35,7 @@ func TestSettingShowUserEmailExplore(t *testing.T) {
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	assert.NotContains(t,
 		htmlDoc.doc.Find(".ui.user.list").Text(),
-		"user4@example.com",
+		"user34@example.com",
 	)
 
 	setting.UI.ShowUserEmail = showUserEmail
