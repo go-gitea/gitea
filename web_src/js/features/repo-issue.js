@@ -86,7 +86,7 @@ export function initRepoIssueDue() {
   });
 }
 
-export function initRepoIssueList() {
+export function initRepoIssueSidebarList() {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
@@ -504,18 +504,9 @@ export function initRepoPullRequestReview() {
       ntr = $(`
         <tr class="add-comment" data-line-type="${lineType}">
           ${isSplit ? `
-            <td class="lines-num"></td>
-            <td class="lines-escape"></td>
-            <td class="lines-type-marker"></td>
             <td class="add-comment-left" colspan="4"></td>
-            <td class="lines-num"></td>
-            <td class="lines-escape"></td>
-            <td class="lines-type-marker"></td>
             <td class="add-comment-right" colspan="4"></td>
           ` : `
-            <td class="lines-num"></td>
-            <td class="lines-num"></td>
-            <td class="lines-escape"></td>
             <td class="add-comment-left add-comment-right" colspan="5"></td>
           `}
         </tr>`);

@@ -72,9 +72,9 @@
 							<input name="attachment-edit-{{.UUID}}" class="gt-mr-3 attachment_edit" required value="{{.Name}}">
 							<input name="attachment-del-{{.UUID}}" type="hidden" value="false">
 							<span class="ui text grey gt-mr-3">{{.Size | FileSize}}</span>
-							<span data-tooltip-content="{{$.locale.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
+							<gitea-locale-number data-number-in-tooltip="{{dict "message" ($.locale.Tr "repo.release.download_count") "number" .DownloadCount | Json}}">
 								{{svg "octicon-info"}}
-							</span>
+							</gitea-locale-number>
 						</div>
 					</div>
 				{{end}}

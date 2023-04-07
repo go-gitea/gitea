@@ -1,6 +1,6 @@
 ---
 date: "2018-06-01T19:00:00+02:00"
-title: "使用: 合併請求"
+title: "合併請求"
 slug: "pull-request"
 weight: 13
 toc: false
