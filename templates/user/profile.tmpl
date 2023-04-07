@@ -55,7 +55,7 @@
 									</li>
 								{{end}}
 							{{end}}
-							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} <relative-time format="datetime" year="numeric" month="short" day="numeric" weekday="" datetime="{{.Owner.CreatedUnix.FormatLong}}">{{.Owner.CreatedUnix.FormatShort}}</relative-time></li>
+							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} {{template "shared/datetime/short" (dict "Datetime" .Owner.CreatedUnix.FormatLong "Fallback" .Owner.CreatedUnix.FormatShort)}}</li>
 							{{if and .Orgs .HasOrgsVisible}}
 							<li>
 								<ul class="user-orgs">

@@ -18,7 +18,7 @@
 								{{svg "octicon-mail"}}
 								<a href="mailto:{{.Email}}" rel="nofollow">{{.Email}}</a>
 							{{end}}
-							{{svg "octicon-clock"}} {{$.locale.Tr "user.join_on"}} <relative-time format="datetime" year="numeric" month="short" day="numeric" weekday="" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</relative-time>
+							{{svg "octicon-clock"}} {{$.locale.Tr "user.join_on"}} {{template "shared/datetime/short" (dict "Datetime" .CreatedUnix.FormatLong "Fallback" .CreatedUnix.FormatShort)}}
 						</div>
 					</div>
 				</div>
