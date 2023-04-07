@@ -227,14 +227,7 @@ func NewFuncMap() []template.FuncMap {
 		"DefaultTheme": func() string {
 			return setting.UI.DefaultTheme
 		},
-		"dict": dict,
-		"percentage": func(n int, values ...int) float32 {
-			sum := 0
-			for i := 0; i < len(values); i++ {
-				sum += values[i]
-			}
-			return float32(n) * 100 / float32(sum)
-		},
+		"dict":                dict,
 		"CommentMustAsDiff":   gitdiff.CommentMustAsDiff,
 		"MirrorRemoteAddress": mirrorRemoteAddress,
 		"NotificationSettings": func() map[string]interface{} {
@@ -383,8 +376,7 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
 		},
-		"dict": dict,
-		},
+		"dict":        dict,
 		"QueryEscape": url.QueryEscape,
 		"Eval":        Eval,
 	}}
