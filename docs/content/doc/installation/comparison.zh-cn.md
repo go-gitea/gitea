@@ -29,6 +29,8 @@ _表格中的符号含义:_
 
 * _? - 不确定_
 
+* _⚙️ - supported by additional service/plugin_
+
 #### 主要特性
 
 | 特性                  | Gitea                                              | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket      | RhodeCode CE |

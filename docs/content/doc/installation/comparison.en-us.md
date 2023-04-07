@@ -31,6 +31,8 @@ _Symbols used in table:_
 
 - _✘ - unsupported_
 
+- _⚙️ - supported by additional service/plugin_
+
 ## General Features
 
 | Feature                                          | Gitea                                               | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |

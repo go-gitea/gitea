@@ -31,6 +31,8 @@ menu:
 
 - ✘ - 不支援
 
+- _⚙️ - supported by additional service/plugin_
+
 ## 一般功能
 
 | 功能                     | Gitea                                              | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
