@@ -23,8 +23,8 @@ import (
 func init() {
 	model.OnDecodeNodeError = func(node yaml.Node, out interface{}, err error) {
 		// Log the error instead of panic or fatal.
-		// It will be a big job to refactor act/pkg/model return decode error,
-		// so we just log the error and continue, and improve it later.
+		// It will be a big job to refactor act/pkg/model to return decode error,
+		// so we just log the error and return empty value, and improve it later.
 		log.Error("Failed to decode node %v into %T: %v", node, out, err)
 	}
 }
