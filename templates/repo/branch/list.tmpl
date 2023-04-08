@@ -18,7 +18,7 @@
 									{{svg "octicon-shield-lock"}}
 								{{end}}
 								<a href="{{.RepoLink}}/src/branch/{{PathEscapeSegments .DefaultBranch}}">{{.DefaultBranch}}</a>
-								<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.Commit.ID.String}}">{{ShortSha .DefaultBranchBranch.Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.Commit.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.Commit.Committer.When $.locale}}</p>
+								<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.Commit.ID.String}}">{{ShortSha .DefaultBranchBranch.Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.Commit.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.Commit.Committer.When .locale}}</p>
 							</td>
 							<td class="right aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
