@@ -120,9 +120,8 @@ The correct path for the template(s) will be relative to the `CustomPath`
 
 ## Does Gitea have a "GitHub/GitLab pages" feature?
 
-No, Gitea does not ship with that functionality and most likely never will.
-
-However, there is a battle-tested third-party service called [pages server](https://codeberg.org/Codeberg/pages-server) that can be run easily in combination with Gitea.
+Gitea will not implement this feature due to CSRF security concerns.
+And there are already available third-party services like [pages server](https://codeberg.org/Codeberg/pages-server) that can provide the required functionality.
 
 ## Active user vs login prohibited user
 
