@@ -259,11 +259,11 @@ func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 			milestones = append(milestones, &base.Milestone{
 				Title:       m.GetTitle(),
 				Description: m.GetDescription(),
-				Deadline:    &m.DueOn.Time,
+				Deadline:    convertGithubTimeToTime(m.DueOn),
 				State:       state,
 				Created:     m.GetCreatedAt().Time,
-				Updated:     &m.UpdatedAt.Time,
-				Closed:      &m.ClosedAt.Time,
+				Updated:     convertGithubTimeToTime(m.UpdatedAt),
+				Closed:      convertGithubTimeToTime(m.ClosedAt),
 			})
 		}
 		if len(ms) < perPage {
@@ -718,11 +718,11 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			State:          pr.GetState(),
 			Created:        pr.GetCreatedAt().Time,
 			Updated:        pr.GetUpdatedAt().Time,
-			Closed:         &pr.ClosedAt.Time,
+			Closed:         convertGithubTimeToTime(pr.ClosedAt),
 			Labels:         labels,
 			Merged:         pr.MergedAt != nil,
 			MergeCommitSHA: pr.GetMergeCommitSHA(),
-			MergedTime:     &pr.MergedAt.Time,
+			MergedTime:     convertGithubTimeToTime(pr.MergedAt),
 			IsLocked:       pr.ActiveLockReason != nil,
 			Head: base.PullRequestBranch{
 				Ref:       pr.GetHead().GetRef(),
@@ -880,4 +880,11 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 		opt.Page = resp.NextPage
 	}
 	return allReviews, nil
+}
+
+func convertGithubTimeToTime(t *github.Timestamp) *time.Time {
+	if t == nil {
+		return nil
+	}
+	return &t.Time
 }
