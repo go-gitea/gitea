@@ -67,10 +67,14 @@ func (h *HTMLRender) TemplateLookup(name string) (*template.Template, error) {
 
 func (h *HTMLRender) CompileTemplates() error {
 	dirPrefix := "templates/"
+	extSuffix := ".tmpl"
 	tmpls := template.New("")
 	for _, path := range GetTemplateAssetNames() {
-		name := path[len(dirPrefix):]
-		name = strings.TrimSuffix(name, ".tmpl")
+		if !strings.HasSuffix(path, extSuffix) {
+			continue
+		}
+		name := strings.TrimPrefix(path, dirPrefix)
+		name = strings.TrimSuffix(name, extSuffix)
 		tmpl := tmpls.New(filepath.ToSlash(name))
 		for _, fm := range NewFuncMap() {
 			tmpl.Funcs(fm)
@@ -101,7 +105,11 @@ func HTMLRenderer(ctx context.Context) (context.Context, *HTMLRender) {
 
 	renderer := &HTMLRender{}
 	if err := renderer.CompileTemplates(); err != nil {
-		handleFatalError(err)
+		wrapFatal(handleNotDefinedPanicError(err))
+		wrapFatal(handleUnexpected(err))
+		wrapFatal(handleExpectedEnd(err))
+		wrapFatal(handleGenericTemplateError(err))
+		log.Fatal("HTMLRenderer error: %v", err)
 	}
 	if !setting.IsProd {
 		watcher.CreateWatcher(ctx, "HTML Templates", &watcher.CreateWatcherOpts{
@@ -114,13 +122,6 @@ func HTMLRenderer(ctx context.Context) (context.Context, *HTMLRender) {
 		})
 	}
 	return context.WithValue(ctx, rendererKey, renderer), renderer
-}
-
-func handleFatalError(err error) {
-	wrapFatal(handleNotDefinedPanicError(err))
-	wrapFatal(handleUnexpected(err))
-	wrapFatal(handleExpectedEnd(err))
-	wrapFatal(handleGenericTemplateError(err))
 }
 
 func wrapFatal(format string, args []interface{}) {
