@@ -133,8 +133,8 @@ func (rw *mockResponseWriter) Push(target string, opts *http.PushOptions) error 
 
 type mockRender struct{}
 
-func (tr *mockRender) TemplateLookup(tmpl string) *template.Template {
-	return nil
+func (tr *mockRender) TemplateLookup(tmpl string) (*template.Template, error) {
+	return nil, nil
 }
 
 func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}) error {
