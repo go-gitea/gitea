@@ -59,6 +59,7 @@
     "@stoplight/spectral-cli": "6.6.0",
     "@vitejs/plugin-vue": "4.1.0",
     "eslint": "8.37.0",
+    "eslint-plugin-custom-elements": "0.0.7",
     "eslint-plugin-import": "2.27.5",
     "eslint-plugin-jquery": "1.5.1",
     "eslint-plugin-sonarjs": "0.19.0",
