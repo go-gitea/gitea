@@ -64,7 +64,7 @@
 								</div>
 							{{end}}
 							{{if not $.Repository.IsArchived}}
-								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 								{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" true "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 							{{end}}
 						</div>
@@ -86,7 +86,7 @@
 					{{$reactions := .Reactions.GroupByType}}
 					{{if $reactions}}
 						<div class="ui attached segment reactions" role="note">
-							{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
+							{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 						</div>
 					{{end}}
 				</div>
@@ -436,7 +436,7 @@
 										</div>
 									{{end}}
 									{{if not $.Repository.IsArchived}}
-											{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+											{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 											{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" false "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 									{{end}}
 							</div>
@@ -458,7 +458,7 @@
 						{{$reactions := .Reactions.GroupByType}}
 						{{if $reactions}}
 							<div class="ui attached segment reactions">
-									{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
+									{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 							</div>
 						{{end}}
 					</div>
@@ -563,7 +563,7 @@
 																	</div>
 																{{end}}
 																{{if not $.Repository.IsArchived}}
-																	{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+																	{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 																	{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 																{{end}}
 															</div>
@@ -582,7 +582,7 @@
 														{{$reactions := .Reactions.GroupByType}}
 														{{if $reactions}}
 															<div class="ui attached segment reactions">
-																{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
+																{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 															</div>
 														{{end}}
 													</div>

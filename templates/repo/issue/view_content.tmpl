@@ -64,7 +64,7 @@
 								{{end}}
 							{{end}}
 							{{if not $.Repository.IsArchived}}
-								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
+								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
 								{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
 							{{end}}
 						</div>
@@ -86,7 +86,7 @@
 					{{$reactions := .Issue.Reactions.GroupByType}}
 					{{if $reactions}}
 						<div class="ui attached segment reactions" role="note">
-							{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
+							{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
 						</div>
 					{{end}}
 				</div>
