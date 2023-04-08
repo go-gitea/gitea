@@ -7,15 +7,18 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"html/template"
+	"io"
+	"net/http"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/watcher"
-
-	"github.com/unrolled/render"
 )
 
 var (
@@ -27,14 +30,50 @@ var (
 	expectedEndError = regexp.MustCompile(`^template: (.*):([0-9]+): expected end; found (.*)`)
 )
 
-// HTMLRenderer returns the current html renderer for the context or creates and stores one within the context for future use
-func HTMLRenderer(ctx context.Context) (context.Context, *render.Render) {
-	rendererInterface := ctx.Value(rendererKey)
-	if rendererInterface != nil {
-		renderer, ok := rendererInterface.(*render.Render)
-		if ok {
-			return ctx, renderer
+type HTMLRender struct {
+	templates atomic.Pointer[template.Template]
+}
+
+func (h *HTMLRender) HTML(w io.Writer, status int, name string, data interface{}) error {
+	if respWriter, ok := w.(http.ResponseWriter); ok {
+		if respWriter.Header().Get("Content-Type") == "" {
+			respWriter.Header().Set("Content-Type", "text/html; charset=utf-8")
 		}
+		respWriter.WriteHeader(status)
+	}
+	return h.templates.Load().ExecuteTemplate(w, name, data)
+}
+
+func (h *HTMLRender) TemplateLookup(t string) *template.Template {
+	return h.templates.Load().Lookup(t)
+}
+
+func (h *HTMLRender) CompileTemplates() error {
+	dirPrefix := "templates/"
+	tmpls := template.New("")
+	for _, path := range GetTemplateAssetNames() {
+		name := path[len(dirPrefix):]
+		name = strings.TrimSuffix(name, ".tmpl")
+		tmpl := tmpls.New(filepath.ToSlash(name))
+		for _, fm := range NewFuncMap() {
+			tmpl.Funcs(fm)
+		}
+		buf, err := GetAsset(path)
+		if err != nil {
+			return err
+		}
+		if _, err = tmpl.Parse(string(buf)); err != nil {
+			return err
+		}
+	}
+	h.templates.Store(tmpls)
+	return nil
+}
+
+// HTMLRenderer returns the current html renderer for the context or creates and stores one within the context for future use
+func HTMLRenderer(ctx context.Context) (context.Context, *HTMLRender) {
+	if renderer, ok := ctx.Value(rendererKey).(*HTMLRender); ok {
+		return ctx, renderer
 	}
 
 	rendererType := "static"
@@ -43,53 +82,24 @@ func HTMLRenderer(ctx context.Context) (context.Context, *render.Render) {
 	}
 	log.Log(1, log.DEBUG, "Creating "+rendererType+" HTML Renderer")
 
-	compilingTemplates := true
-	defer func() {
-		if !compilingTemplates {
-			return
-		}
-
-		panicked := recover()
-		if panicked == nil {
-			return
-		}
-
-		// OK try to handle the panic...
-		err, ok := panicked.(error)
-		if ok {
-			handlePanicError(err)
-		}
-		log.Fatal("PANIC: Unable to compile templates!\n%v\n\nStacktrace:\n%s", panicked, log.Stack(2))
-	}()
-
-	renderer := render.New(render.Options{
-		Extensions:                []string{".tmpl"},
-		Directory:                 "templates",
-		Funcs:                     NewFuncMap(),
-		Asset:                     GetAsset,
-		AssetNames:                GetTemplateAssetNames,
-		UseMutexLock:              !setting.IsProd,
-		IsDevelopment:             false,
-		DisableHTTPErrorRendering: true,
-	})
-	compilingTemplates = false
+	renderer := &HTMLRender{}
+	if err := renderer.CompileTemplates(); err != nil {
+		handleFatalError(err)
+	}
 	if !setting.IsProd {
 		watcher.CreateWatcher(ctx, "HTML Templates", &watcher.CreateWatcherOpts{
 			PathsCallback: walkTemplateFiles,
 			BetweenCallback: func() {
-				defer func() {
-					if err := recover(); err != nil {
-						log.Error("PANIC: %v\n%s", err, log.Stack(2))
-					}
-				}()
-				renderer.CompileTemplates()
+				if err := renderer.CompileTemplates(); err != nil {
+					log.Error("Template error: %v\n%s", err, log.Stack(2))
+				}
 			},
 		})
 	}
 	return context.WithValue(ctx, rendererKey, renderer), renderer
 }
 
-func handlePanicError(err error) {
+func handleFatalError(err error) {
 	wrapFatal(handleNotDefinedPanicError(err))
 	wrapFatal(handleUnexpected(err))
 	wrapFatal(handleExpectedEnd(err))
