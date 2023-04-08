@@ -111,22 +111,22 @@
 						<td class="add-comment-left" colspan="4">
 							{{if gt (len $line.Comments) 0}}
 								{{if eq $line.GetCommentSide "previous"}}
-									{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
+									{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
 								{{end}}
 							{{end}}
 							{{if gt (len $match.Comments) 0}}
 								{{if eq $match.GetCommentSide "previous"}}
-									{{template "repo/diff/conversation" mergeinto $.root "comments" $match.Comments}}
+									{{template "repo/diff/conversation" dict "." $.root "comments" $match.Comments}}
 								{{end}}
 							{{end}}
 						</td>
 						<td class="add-comment-right" colspan="4">
 							{{if eq $line.GetCommentSide "proposed"}}
-								{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
+								{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
 							{{end}}
 							{{if gt (len $match.Comments) 0}}
 								{{if eq $match.GetCommentSide "proposed"}}
-									{{template "repo/diff/conversation" mergeinto $.root "comments" $match.Comments}}
+									{{template "repo/diff/conversation" dict "." $.root "comments" $match.Comments}}
 								{{end}}
 							{{end}}
 						</td>
@@ -137,13 +137,13 @@
 					<td class="add-comment-left" colspan="4">
 						{{if gt (len $line.Comments) 0}}
 							{{if eq $line.GetCommentSide "previous"}}
-								{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
+								{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
 							{{end}}
 						{{end}}
 					</td>
 					<td class="add-comment-right" colspan="4">
 						{{if eq $line.GetCommentSide "proposed"}}
-							{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
+							{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
 						{{end}}
 					</td>
 				</tr>
