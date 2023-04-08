@@ -18,7 +18,6 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
-	texttmpl "text/template"
 	"time"
 	"unicode"
 
@@ -55,6 +54,134 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
 	return []template.FuncMap{map[string]interface{}{
+		// -----------------------------------------------------------------
+		// html/template related functions
+		"dict":        dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
+		"Eval":        Eval,
+		"Safe":        Safe,
+		"Escape":      html.EscapeString,
+		"QueryEscape": url.QueryEscape,
+		"JSEscape":    template.JSEscapeString,
+		"Str2html":    Str2html, // TODO: rename it to SanitizeHTML
+		"URLJoin":     util.URLJoin,
+
+		"PathEscape":         url.PathEscape,
+		"PathEscapeSegments": util.PathEscapeSegments,
+
+		// -----------------------------------------------------------------
+		// string / json
+		"Join":           strings.Join,
+		"DotEscape":      DotEscape,
+		"HasPrefix":      strings.HasPrefix,
+		"EllipsisString": base.EllipsisString,
+
+		"Json": func(in interface{}) string {
+			out, err := json.Marshal(in)
+			if err != nil {
+				return ""
+			}
+			return string(out)
+		},
+		"JsonPrettyPrint": func(in string) string {
+			var out bytes.Buffer
+			err := json.Indent(&out, []byte(in), "", "  ")
+			if err != nil {
+				return ""
+			}
+			return out.String()
+		},
+
+		// -----------------------------------------------------------------
+		// svg / avatar / icon
+		"svg":            svg.RenderHTML,
+		"avatar":         Avatar,
+		"avatarHTML":     AvatarHTML,
+		"avatarByAction": AvatarByAction,
+		"avatarByEmail":  AvatarByEmail,
+		"repoAvatar":     RepoAvatar,
+		"EntryIcon":      base.EntryIcon,
+		"MigrationIcon":  MigrationIcon,
+		"ActionIcon":     ActionIcon,
+
+		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
+			// if needed
+			if len(normSort) == 0 || len(urlSort) == 0 {
+				return ""
+			}
+
+			if len(urlSort) == 0 && isDefault {
+				// if sort is sorted as default add arrow tho this table header
+				if isDefault {
+					return svg.RenderHTML("octicon-triangle-down", 16)
+				}
+			} else {
+				// if sort arg is in url test if it correlates with column header sort arguments
+				// the direction of the arrow should indicate the "current sort order", up means ASC(normal), down means DESC(rev)
+				if urlSort == normSort {
+					// the table is sorted with this header normal
+					return svg.RenderHTML("octicon-triangle-up", 16)
+				} else if urlSort == revSort {
+					// the table is sorted with this header reverse
+					return svg.RenderHTML("octicon-triangle-down", 16)
+				}
+			}
+			// the table is NOT sorted with this header
+			return ""
+		},
+
+		// -----------------------------------------------------------------
+		// time / number / format
+		"FileSize":      base.FileSize,
+		"LocaleNumber":  LocaleNumber,
+		"CountFmt":      base.FormatNumberSI,
+		"TimeSince":     timeutil.TimeSince,
+		"TimeSinceUnix": timeutil.TimeSinceUnix,
+		"Sec2Time":      util.SecToTime,
+		"DateFmtLong": func(t time.Time) string {
+			return t.Format(time.RFC1123Z)
+		},
+		"LoadTimes": func(startTime time.Time) string {
+			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
+		},
+
+		// -----------------------------------------------------------------
+		// slice
+		"containGeneric": func(arr, v interface{}) bool {
+			arrV := reflect.ValueOf(arr)
+			if arrV.Kind() == reflect.String && reflect.ValueOf(v).Kind() == reflect.String {
+				return strings.Contains(arr.(string), v.(string))
+			}
+			if arrV.Kind() == reflect.Slice {
+				for i := 0; i < arrV.Len(); i++ {
+					iV := arrV.Index(i)
+					if !iV.CanInterface() {
+						continue
+					}
+					if iV.Interface() == v {
+						return true
+					}
+				}
+			}
+			return false
+		},
+		"contain": func(s []int64, id int64) bool {
+			for i := 0; i < len(s); i++ {
+				if s[i] == id {
+					return true
+				}
+			}
+			return false
+		},
+		"Iterate": func(arg interface{}) (items []int64) {
+			count, _ := util.ToInt64(arg)
+			for i := int64(0); i < count; i++ {
+				items = append(items, i)
+			}
+			return items
+		},
+
+		// -----------------------------------------------------------------
+		// setting
 		"AppName": func() string {
 			return setting.AppName
 		},
@@ -89,56 +216,12 @@ func NewFuncMap() []template.FuncMap {
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.ShowFooterTemplateLoadTime
 		},
-		"LoadTimes": func(startTime time.Time) string {
-			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
-		},
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
 		},
-		"Safe":          Safe,
-		"JSEscape":      JSEscape,
-		"Str2html":      Str2html,
-		"TimeSince":     timeutil.TimeSince,
-		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"FileSize":      base.FileSize,
-		"LocaleNumber":  LocaleNumber,
-		"EntryIcon":     base.EntryIcon,
-		"MigrationIcon": MigrationIcon,
-		"ActionIcon":    ActionIcon,
-		"DateFmtLong": func(t time.Time) string {
-			return t.Format(time.RFC1123Z)
-		},
-		"CountFmt":                       base.FormatNumberSI,
-		"EllipsisString":                 base.EllipsisString,
-		"DiffLineTypeToStr":              DiffLineTypeToStr,
-		"ShortSha":                       base.ShortSha,
-		"ActionContent2Commits":          ActionContent2Commits,
-		"PathEscape":                     url.PathEscape,
-		"PathEscapeSegments":             util.PathEscapeSegments,
-		"URLJoin":                        util.URLJoin,
-		"RenderCommitMessage":            RenderCommitMessage,
-		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
-		"RenderCommitBody":               RenderCommitBody,
-		"RenderCodeBlock":                RenderCodeBlock,
-		"RenderIssueTitle":               RenderIssueTitle,
-		"RenderEmoji":                    RenderEmoji,
-		"RenderEmojiPlain":               emoji.ReplaceAliases,
-		"ReactionToEmoji":                ReactionToEmoji,
-		"RenderNote":                     RenderNote,
-		"RenderMarkdownToHtml": func(ctx context.Context, input string) template.HTML {
-			output, err := markdown.RenderString(&markup.RenderContext{
-				Ctx:       ctx,
-				URLPrefix: setting.AppSubURL,
-			}, input)
-			if err != nil {
-				log.Error("RenderString: %v", err)
-			}
-			return template.HTML(output)
-		},
-		"IsMultilineCommitMessage": IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
 		},
@@ -156,6 +239,82 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"EnableTimetracking": func() bool {
 			return setting.Service.EnableTimetracking
+		},
+		"DisableGitHooks": func() bool {
+			return setting.DisableGitHooks
+		},
+		"DisableWebhooks": func() bool {
+			return setting.DisableWebhooks
+		},
+		"DisableImportLocal": func() bool {
+			return !setting.ImportLocalPaths
+		},
+		"DefaultTheme": func() string {
+			return setting.UI.DefaultTheme
+		},
+		"NotificationSettings": func() map[string]interface{} {
+			return map[string]interface{}{
+				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
+				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
+				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
+				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
+			}
+		},
+		"MermaidMaxSourceCharacters": func() int {
+			return setting.MermaidMaxSourceCharacters
+		},
+
+		// -----------------------------------------------------------------
+		// render
+		"RenderCommitMessage":            RenderCommitMessage,
+		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
+
+		"RenderCommitBody": RenderCommitBody,
+		"RenderCodeBlock":  RenderCodeBlock,
+		"RenderIssueTitle": RenderIssueTitle,
+		"RenderEmoji":      RenderEmoji,
+		"RenderEmojiPlain": emoji.ReplaceAliases,
+		"ReactionToEmoji":  ReactionToEmoji,
+		"RenderNote":       RenderNote,
+
+		"RenderMarkdownToHtml": func(ctx context.Context, input string) template.HTML {
+			output, err := markdown.RenderString(&markup.RenderContext{
+				Ctx:       ctx,
+				URLPrefix: setting.AppSubURL,
+			}, input)
+			if err != nil {
+				log.Error("RenderString: %v", err)
+			}
+			return template.HTML(output)
+		},
+		"RenderLabel": func(ctx context.Context, label *issues_model.Label) template.HTML {
+			return template.HTML(RenderLabel(ctx, label))
+		},
+		"RenderLabels": func(ctx context.Context, labels []*issues_model.Label, repoLink string) template.HTML {
+			htmlCode := `<span class="labels-list">`
+			for _, label := range labels {
+				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
+				if label == nil {
+					continue
+				}
+				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
+					repoLink, label.ID, RenderLabel(ctx, label))
+			}
+			htmlCode += "</span>"
+			return template.HTML(htmlCode)
+		},
+
+		// -----------------------------------------------------------------
+		// misc
+		"DiffLineTypeToStr":        DiffLineTypeToStr,
+		"ShortSha":                 base.ShortSha,
+		"ActionContent2Commits":    ActionContent2Commits,
+		"IsMultilineCommitMessage": IsMultilineCommitMessage,
+		"CommentMustAsDiff":        gitdiff.CommentMustAsDiff,
+		"MirrorRemoteAddress":      mirrorRemoteAddress,
+
+		"ParseDeadline": func(deadline string) []string {
+			return strings.Split(deadline, "|")
 		},
 		"FilenameIsImage": func(filename string) bool {
 			mimeType := mime.TypeByExtension(filepath.Ext(filename))
@@ -191,142 +350,6 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return path
 		},
-		"DiffStatsWidth": func(adds, dels int) string {
-			return fmt.Sprintf("%f", float64(adds)/(float64(adds)+float64(dels))*100)
-		},
-		"Json": func(in interface{}) string {
-			out, err := json.Marshal(in)
-			if err != nil {
-				return ""
-			}
-			return string(out)
-		},
-		"JsonPrettyPrint": func(in string) string {
-			var out bytes.Buffer
-			err := json.Indent(&out, []byte(in), "", "  ")
-			if err != nil {
-				return ""
-			}
-			return out.String()
-		},
-		"DisableGitHooks": func() bool {
-			return setting.DisableGitHooks
-		},
-		"DisableWebhooks": func() bool {
-			return setting.DisableWebhooks
-		},
-		"DisableImportLocal": func() bool {
-			return !setting.ImportLocalPaths
-		},
-		"Printf":   fmt.Sprintf,
-		"Escape":   Escape,
-		"Sec2Time": util.SecToTime,
-		"ParseDeadline": func(deadline string) []string {
-			return strings.Split(deadline, "|")
-		},
-		"DefaultTheme": func() string {
-			return setting.UI.DefaultTheme
-		},
-		"dict":                dict,
-		"CommentMustAsDiff":   gitdiff.CommentMustAsDiff,
-		"MirrorRemoteAddress": mirrorRemoteAddress,
-		"NotificationSettings": func() map[string]interface{} {
-			return map[string]interface{}{
-				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
-				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
-				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
-				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
-			}
-		},
-		"containGeneric": func(arr, v interface{}) bool {
-			arrV := reflect.ValueOf(arr)
-			if arrV.Kind() == reflect.String && reflect.ValueOf(v).Kind() == reflect.String {
-				return strings.Contains(arr.(string), v.(string))
-			}
-
-			if arrV.Kind() == reflect.Slice {
-				for i := 0; i < arrV.Len(); i++ {
-					iV := arrV.Index(i)
-					if !iV.CanInterface() {
-						continue
-					}
-					if iV.Interface() == v {
-						return true
-					}
-				}
-			}
-
-			return false
-		},
-		"contain": func(s []int64, id int64) bool {
-			for i := 0; i < len(s); i++ {
-				if s[i] == id {
-					return true
-				}
-			}
-			return false
-		},
-		"svg":            svg.RenderHTML,
-		"avatar":         Avatar,
-		"avatarHTML":     AvatarHTML,
-		"avatarByAction": AvatarByAction,
-		"avatarByEmail":  AvatarByEmail,
-		"repoAvatar":     RepoAvatar,
-		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
-			// if needed
-			if len(normSort) == 0 || len(urlSort) == 0 {
-				return ""
-			}
-
-			if len(urlSort) == 0 && isDefault {
-				// if sort is sorted as default add arrow tho this table header
-				if isDefault {
-					return svg.RenderHTML("octicon-triangle-down", 16)
-				}
-			} else {
-				// if sort arg is in url test if it correlates with column header sort arguments
-				// the direction of the arrow should indicate the "current sort order", up means ASC(normal), down means DESC(rev)
-				if urlSort == normSort {
-					// the table is sorted with this header normal
-					return svg.RenderHTML("octicon-triangle-up", 16)
-				} else if urlSort == revSort {
-					// the table is sorted with this header reverse
-					return svg.RenderHTML("octicon-triangle-down", 16)
-				}
-			}
-			// the table is NOT sorted with this header
-			return ""
-		},
-		"RenderLabel": func(ctx context.Context, label *issues_model.Label) template.HTML {
-			return template.HTML(RenderLabel(ctx, label))
-		},
-		"RenderLabels": func(ctx context.Context, labels []*issues_model.Label, repoLink string) template.HTML {
-			htmlCode := `<span class="labels-list">`
-			for _, label := range labels {
-				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
-				if label == nil {
-					continue
-				}
-				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
-					repoLink, label.ID, RenderLabel(ctx, label))
-			}
-			htmlCode += "</span>"
-			return template.HTML(htmlCode)
-		},
-		"MermaidMaxSourceCharacters": func() int {
-			return setting.MermaidMaxSourceCharacters
-		},
-		"Join":        strings.Join,
-		"QueryEscape": url.QueryEscape,
-		"DotEscape":   DotEscape,
-		"Iterate": func(arg interface{}) (items []int64) {
-			count, _ := util.ToInt64(arg)
-			for i := int64(0); i < count; i++ {
-				items = append(items, i)
-			}
-			return items
-		},
-		"HasPrefix": strings.HasPrefix,
 		"CompareLink": func(baseRepo, repo *repo_model.Repository, branchName string) string {
 			var curBranch string
 			if repo.ID != baseRepo.ID {
@@ -340,45 +363,6 @@ func NewFuncMap() []template.FuncMap {
 				curBranch,
 			)
 		},
-		"Eval": Eval,
-	}}
-}
-
-// NewTextFuncMap returns functions for injecting to text templates
-// It's a subset of those used for HTML and other templates
-func NewTextFuncMap() []texttmpl.FuncMap {
-	return []texttmpl.FuncMap{map[string]interface{}{
-		"AppName": func() string {
-			return setting.AppName
-		},
-		"AppSubUrl": func() string {
-			return setting.AppSubURL
-		},
-		"AppUrl": func() string {
-			return setting.AppURL
-		},
-		"AppVer": func() string {
-			return setting.AppVer
-		},
-		"AppDomain": func() string { // documented in mail-templates.md
-			return setting.Domain
-		},
-		"TimeSince":     timeutil.TimeSince,
-		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"DateFmtLong": func(t time.Time) string {
-			return t.Format(time.RFC1123Z)
-		},
-		"EllipsisString": base.EllipsisString,
-		"URLJoin":        util.URLJoin,
-		"Printf":         fmt.Sprintf,
-		"Escape":         Escape,
-		"Sec2Time":       util.SecToTime,
-		"ParseDeadline": func(deadline string) []string {
-			return strings.Split(deadline, "|")
-		},
-		"dict":        dict,
-		"QueryEscape": url.QueryEscape,
-		"Eval":        Eval,
 	}}
 }
 
@@ -455,16 +439,6 @@ func Safe(raw string) template.HTML {
 // Str2html render Markdown text to HTML
 func Str2html(raw string) template.HTML {
 	return template.HTML(markup.Sanitize(raw))
-}
-
-// Escape escapes a HTML string
-func Escape(raw string) string {
-	return html.EscapeString(raw)
-}
-
-// JSEscape escapes a JS string
-func JSEscape(raw string) string {
-	return template.JSEscapeString(raw)
 }
 
 // DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls
@@ -768,25 +742,6 @@ func MigrationIcon(hostname string) string {
 		return "octicon-mark-github"
 	default:
 		return "gitea-git"
-	}
-}
-
-func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, name string, content []byte) {
-	// Split template into subject and body
-	var subjectContent []byte
-	bodyContent := content
-	loc := mailSubjectSplit.FindIndex(content)
-	if loc != nil {
-		subjectContent = content[0:loc[0]]
-		bodyContent = content[loc[1]:]
-	}
-	if _, err := stpl.New(name).
-		Parse(string(subjectContent)); err != nil {
-		log.Warn("Failed to parse template [%s/subject]: %v", name, err)
-	}
-	if _, err := btpl.New(name).
-		Parse(string(bodyContent)); err != nil {
-		log.Warn("Failed to parse template [%s/body]: %v", name, err)
 	}
 }
 

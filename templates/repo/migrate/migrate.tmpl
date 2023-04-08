@@ -6,13 +6,13 @@
 			<div class="ui three stackable cards">
 				{{range .Services}}
 					<a class="ui card gt-df gt-ac" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
-						{{svg (Printf "gitea-%s" .Name) 184}}
+						{{svg (printf "gitea-%s" .Name) 184}}
 						<div class="content">
 							<div class="header gt-tc">
 								{{.Title}}
 							</div>
 							<div class="description gt-tc">
-								{{(Printf "repo.migrate.%s.description" .Name) | $.locale.Tr}}
+								{{(printf "repo.migrate.%s.description" .Name) | $.locale.Tr}}
 							</div>
 						</div>
 					</a>
