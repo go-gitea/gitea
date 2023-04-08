@@ -117,7 +117,7 @@ func timeSincePro(then, now time.Time, lang translation.Locale) string {
 // TimeSince calculates the time interval and generate user-friendly string.
 func TimeSince(then time.Time) template.HTML {
 	timestamp := then.Format(time.RFC1123)
-	return template.HTML(fmt.Sprintf(`<relative-time class="time-since" datetime="%s">%s</relative-time>`, timestamp, timestamp))
+	return template.HTML(fmt.Sprintf(`<relative-time class="time-since" tense="past" datetime="%s">%s</relative-time>`, timestamp, timestamp))
 }
 
 // TimeSinceUnix calculates the time interval and generate user-friendly string.
