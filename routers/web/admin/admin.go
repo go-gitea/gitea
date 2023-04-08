@@ -73,7 +73,7 @@ var sysStatus struct {
 }
 
 func updateSystemStatus() {
-	sysStatus.StartTime = setting.AppStartTime.Format(time.RFC1123)
+	sysStatus.StartTime = setting.AppStartTime.Format("2006-01-02 15:04:05 -07:00")
 
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)
