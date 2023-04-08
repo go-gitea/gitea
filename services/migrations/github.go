@@ -807,11 +807,9 @@ func (g *GithubDownloaderV3) GetNewPullRequests(page, perPage int, updatedAfter 
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
-	opt := &github.IssueListByRepoOptions{
-		Sort:      "created",
-		Direction: "asc",
-		State:     "all",
-		Since:     updatedAfter,
+	opt := &github.SearchOptions{
+		Sort:  "created",
+		Order: "asc",
 		ListOptions: github.ListOptions{
 			PerPage: perPage,
 			Page:    page,
@@ -820,17 +818,22 @@ func (g *GithubDownloaderV3) GetNewPullRequests(page, perPage int, updatedAfter 
 
 	allPRs := make([]*base.PullRequest, 0, perPage)
 	g.waitAndPickClient()
-	issues, resp, err := g.getClient().Issues.ListByRepo(g.ctx, g.repoOwner, g.repoName, opt)
+
+	searchQuery := fmt.Sprintf("repo:%s/%s is:pr", g.repoOwner, g.repoName)
+	if !updatedAfter.IsZero() {
+		// timezone denoted by plus, rather than 'Z',
+		// according to https://docs.github.com/en/search-github/searching-on-github/searching-issues-and-pull-requests#search-by-when-an-issue-or-pull-request-was-created-or-last-updated
+		timeStr := updatedAfter.Format("2006-01-02T15:04:05+07:00")
+		searchQuery += fmt.Sprintf(" updated:>=%s", timeStr)
+	}
+
+	result, resp, err := g.getClient().Search.Issues(g.ctx, searchQuery, opt)
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %v", err)
 	}
-	log.Trace("Request get issues %d/%d, but in fact get %d", perPage, page, len(issues))
+	log.Trace("Request get issues %d/%d, but in fact get %d", perPage, page, len(result.Issues))
 	g.setRate(&resp.Rate)
-	for _, issue := range issues {
-		if !issue.IsPullRequest() {
-			continue
-		}
-
+	for _, issue := range result.Issues {
 		pr, resp, err := g.getClient().PullRequests.Get(g.ctx, g.repoOwner, g.repoName, issue.GetNumber())
 		if err != nil {
 			return nil, false, fmt.Errorf("error while getting repo pull request: %v", err)
@@ -846,7 +849,7 @@ func (g *GithubDownloaderV3) GetNewPullRequests(page, perPage int, updatedAfter 
 		_ = CheckAndEnsureSafePR(allPRs[len(allPRs)-1], g.baseURL, g)
 	}
 
-	return allPRs, len(issues) < perPage, nil
+	return allPRs, len(result.Issues) < perPage, nil
 }
 
 // GetNewReviews returns new pull requests review after the given time
