@@ -29,7 +29,7 @@ _表格中的符号含义:_
 
 * _? - 不确定_
 
-* _⚙️ - supported by additional service/plugin_
+* _⚙️ - 由第三方服务或插件支持_
 
 #### 主要特性
 
