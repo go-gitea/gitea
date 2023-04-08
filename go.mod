@@ -96,7 +96,6 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
-	github.com/unrolled/render v1.5.0
 	github.com/urfave/cli v1.22.12
 	github.com/xanzy/go-gitlab v0.80.2
 	github.com/xeipuuv/gojsonschema v1.2.0
