@@ -802,8 +802,10 @@ func (g GithubDownloaderV3) GetAllNewComments(page, perPage int, updatedAfter ti
 
 // GetNewPullRequests returns pull requests after the given time according page and perPage
 func (g *GithubDownloaderV3) GetNewPullRequests(page, perPage int, updatedAfter time.Time) ([]*base.PullRequest, bool, error) {
-	// Every pull request is an issue, and only Issues API provides parameter `since`,
-	// So we should get issues IDs first and then get pull requests
+	// Pulls API doesn't have parameter `since`, so we have to use Search API instead.
+	// By specifying `repo:owner/repo is:pr` in the query, we can get all pull requests of the repository.
+	// In addition, we can specify `updated:>=YYYY-MM-DDTHH:MM:SS+00:00` to get pull requests updated after the given time.
+
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
@@ -823,7 +825,7 @@ func (g *GithubDownloaderV3) GetNewPullRequests(page, perPage int, updatedAfter 
 	if !updatedAfter.IsZero() {
 		// timezone denoted by plus, rather than 'Z',
 		// according to https://docs.github.com/en/search-github/searching-on-github/searching-issues-and-pull-requests#search-by-when-an-issue-or-pull-request-was-created-or-last-updated
-		timeStr := updatedAfter.Format("2006-01-02T15:04:05+07:00")
+		timeStr := updatedAfter.Format("2006-01-02T15:04:05-07:00")
 		searchQuery += fmt.Sprintf(" updated:>=%s", timeStr)
 	}
 
