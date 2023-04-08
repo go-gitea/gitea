@@ -6,6 +6,7 @@ package templates
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -15,9 +16,11 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
+	texttemplate "text/template"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/watcher"
 )
 
@@ -34,6 +37,8 @@ type HTMLRender struct {
 	templates atomic.Pointer[template.Template]
 }
 
+var ErrTemplateNotInitialized = errors.New("template system is not initialized, check your log for errors")
+
 func (h *HTMLRender) HTML(w io.Writer, status int, name string, data interface{}) error {
 	if respWriter, ok := w.(http.ResponseWriter); ok {
 		if respWriter.Header().Get("Content-Type") == "" {
@@ -41,11 +46,23 @@ func (h *HTMLRender) HTML(w io.Writer, status int, name string, data interface{}
 		}
 		respWriter.WriteHeader(status)
 	}
-	return h.templates.Load().ExecuteTemplate(w, name, data)
+	t, err := h.TemplateLookup(name)
+	if err != nil {
+		return texttemplate.ExecError{Name: name, Err: err}
+	}
+	return t.Execute(w, data)
 }
 
-func (h *HTMLRender) TemplateLookup(t string) *template.Template {
-	return h.templates.Load().Lookup(t)
+func (h *HTMLRender) TemplateLookup(name string) (*template.Template, error) {
+	tmpls := h.templates.Load()
+	if tmpls == nil {
+		return nil, ErrTemplateNotInitialized
+	}
+	tmpl := tmpls.Lookup(name)
+	if tmpl == nil {
+		return nil, util.ErrNotExist
+	}
+	return tmpl, nil
 }
 
 func (h *HTMLRender) CompileTemplates() error {
