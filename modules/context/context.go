@@ -42,14 +42,13 @@ import (
 	"gitea.com/go-chi/session"
 	chi "github.com/go-chi/chi/v5"
 	"github.com/minio/sha256-simd"
-	"github.com/unrolled/render"
 	"golang.org/x/crypto/pbkdf2"
 )
 
 // Render represents a template render
 type Render interface {
 	TemplateLookup(tmpl string) *template.Template
-	HTML(w io.Writer, status int, name string, binding interface{}, htmlOpt ...render.HTMLOptions) error
+	HTML(w io.Writer, status int, name string, data interface{}) error
 }
 
 // Context represents context of a request.
