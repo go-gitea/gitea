@@ -96,7 +96,6 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
-	github.com/unrolled/render v1.5.0
 	github.com/urfave/cli v1.22.12
 	github.com/xanzy/go-gitlab v0.80.2
 	github.com/xeipuuv/gojsonschema v1.2.0
@@ -289,7 +288,7 @@ replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142
 
 replace github.com/blevesearch/zapx/v15 v15.3.6 => github.com/zeripath/zapx/v15 v15.3.6-alignment-fix
 
-replace github.com/nektos/act => gitea.com/gitea/act v0.243.2-0.20230329055922-5e76853b55ab
+replace github.com/nektos/act => gitea.com/gitea/act v0.243.3-0.20230407083103-5c4a96bcb797
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 
