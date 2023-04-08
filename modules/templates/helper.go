@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"html"
 	"html/template"
@@ -42,6 +41,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
+	"code.gitea.io/gitea/modules/templates/eval"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -105,24 +105,9 @@ func NewFuncMap() []template.FuncMap {
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"FileSize":      base.FileSize,
 		"LocaleNumber":  LocaleNumber,
-		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": MigrationIcon,
-		"Add": func(a ...int) int {
-			sum := 0
-			for _, val := range a {
-				sum += val
-			}
-			return sum
-		},
-		"Mul": func(a ...int) int {
-			sum := 1
-			for _, val := range a {
-				sum *= val
-			}
-			return sum
-		},
-		"ActionIcon": ActionIcon,
+		"ActionIcon":    ActionIcon,
 		"DateFmtLong": func(t time.Time) string {
 			return t.Format(time.RFC1123Z)
 		},
@@ -233,20 +218,6 @@ func NewFuncMap() []template.FuncMap {
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
-		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
-			if len(values)%2 != 0 {
-				return nil, errors.New("invalid dict call")
-			}
-			dict := make(map[string]interface{}, len(values)/2)
-			for i := 0; i < len(values); i += 2 {
-				key, ok := values[i].(string)
-				if !ok {
-					return nil, errors.New("dict keys must be strings")
-				}
-				dict[key] = values[i+1]
-			}
-			return dict, nil
-		},
 		"Printf":   fmt.Sprintf,
 		"Escape":   Escape,
 		"Sec2Time": util.SecToTime,
@@ -256,35 +227,7 @@ func NewFuncMap() []template.FuncMap {
 		"DefaultTheme": func() string {
 			return setting.UI.DefaultTheme
 		},
-		// pass key-value pairs to a partial template which receives them as a dict
-		"dict": func(values ...interface{}) (map[string]interface{}, error) {
-			if len(values) == 0 {
-				return nil, errors.New("invalid dict call")
-			}
-
-			dict := make(map[string]interface{})
-			return util.MergeInto(dict, values...)
-		},
-		/* like dict but merge key-value pairs into the first dict and return it */
-		"mergeinto": func(root map[string]interface{}, values ...interface{}) (map[string]interface{}, error) {
-			if len(values) == 0 {
-				return nil, errors.New("invalid mergeinto call")
-			}
-
-			dict := make(map[string]interface{})
-			for key, value := range root {
-				dict[key] = value
-			}
-
-			return util.MergeInto(dict, values...)
-		},
-		"percentage": func(n int, values ...int) float32 {
-			sum := 0
-			for i := 0; i < len(values); i++ {
-				sum += values[i]
-			}
-			return float32(n) * 100 / float32(sum)
-		},
+		"dict":                dict,
 		"CommentMustAsDiff":   gitdiff.CommentMustAsDiff,
 		"MirrorRemoteAddress": mirrorRemoteAddress,
 		"NotificationSettings": func() map[string]interface{} {
@@ -377,7 +320,7 @@ func NewFuncMap() []template.FuncMap {
 		"QueryEscape": url.QueryEscape,
 		"DotEscape":   DotEscape,
 		"Iterate": func(arg interface{}) (items []int64) {
-			count := util.ToInt64(arg)
+			count, _ := util.ToInt64(arg)
 			for i := int64(0); i < count; i++ {
 				items = append(items, i)
 			}
@@ -397,6 +340,7 @@ func NewFuncMap() []template.FuncMap {
 				curBranch,
 			)
 		},
+		"Eval": Eval,
 	}}
 }
 
@@ -426,74 +370,15 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		},
 		"EllipsisString": base.EllipsisString,
 		"URLJoin":        util.URLJoin,
-		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
-			if len(values)%2 != 0 {
-				return nil, errors.New("invalid dict call")
-			}
-			dict := make(map[string]interface{}, len(values)/2)
-			for i := 0; i < len(values); i += 2 {
-				key, ok := values[i].(string)
-				if !ok {
-					return nil, errors.New("dict keys must be strings")
-				}
-				dict[key] = values[i+1]
-			}
-			return dict, nil
-		},
-		"Printf":   fmt.Sprintf,
-		"Escape":   Escape,
-		"Sec2Time": util.SecToTime,
+		"Printf":         fmt.Sprintf,
+		"Escape":         Escape,
+		"Sec2Time":       util.SecToTime,
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
 		},
-		"dict": func(values ...interface{}) (map[string]interface{}, error) {
-			if len(values) == 0 {
-				return nil, errors.New("invalid dict call")
-			}
-
-			dict := make(map[string]interface{})
-
-			for i := 0; i < len(values); i++ {
-				switch key := values[i].(type) {
-				case string:
-					i++
-					if i == len(values) {
-						return nil, errors.New("specify the key for non array values")
-					}
-					dict[key] = values[i]
-				case map[string]interface{}:
-					m := values[i].(map[string]interface{})
-					for i, v := range m {
-						dict[i] = v
-					}
-				default:
-					return nil, errors.New("dict values must be maps")
-				}
-			}
-			return dict, nil
-		},
-		"percentage": func(n int, values ...int) float32 {
-			sum := 0
-			for i := 0; i < len(values); i++ {
-				sum += values[i]
-			}
-			return float32(n) * 100 / float32(sum)
-		},
-		"Add": func(a ...int) int {
-			sum := 0
-			for _, val := range a {
-				sum += val
-			}
-			return sum
-		},
-		"Mul": func(a ...int) int {
-			sum := 1
-			for _, val := range a {
-				sum *= val
-			}
-			return sum
-		},
+		"dict":        dict,
 		"QueryEscape": url.QueryEscape,
+		"Eval":        Eval,
 	}}
 }
 
@@ -944,6 +829,18 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 
 // LocaleNumber renders a number with a Custom Element, browser will render it with a locale number
 func LocaleNumber(v interface{}) template.HTML {
-	num := util.ToInt64(v)
+	num, _ := util.ToInt64(v)
 	return template.HTML(fmt.Sprintf(`<gitea-locale-number data-number="%d">%d</gitea-locale-number>`, num, num))
+}
+
+// Eval the expression and return the result, see the comment of eval.Expr for details.
+// To use this helper function in templates, pass each token as a separate parameter.
+//
+//	{{ $int64 := Eval $var "+" 1 }}
+//	{{ $float64 := Eval $var "+" 1.0 }}
+//
+// Golang's template supports comparable int types, so the int64 result can be used in later statements like {{if lt $int64 10}}
+func Eval(tokens ...any) (any, error) {
+	n, err := eval.Expr(tokens...)
+	return n.Value, err
 }
