@@ -74,7 +74,7 @@ func GetContentHistoryList(ctx *context.Context) {
 		class := avatars.DefaultAvatarClass + " gt-mr-3"
 		name := html.EscapeString(username)
 		avatarHTML := string(templates.AvatarHTML(src, 28, class, username))
-		timeSinceText := string(timeutil.TimeSinceUnix(item.EditedUnix))
+		timeSinceText := string(timeutil.TimeSinceUnix(item.EditedUnix, ctx.Locale))
 
 		results = append(results, map[string]interface{}{
 			"name":  avatarHTML + "<strong>" + name + "</strong> " + actionText + " " + timeSinceText,

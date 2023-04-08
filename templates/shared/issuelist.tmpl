@@ -52,7 +52,7 @@
 							#{{.Index}}
 						{{end}}
 					</a>
-					{{$timeStr := TimeSinceUnix .GetLastEventTimestamp}}
+					{{$timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale}}
 					{{if .OriginalAuthor}}
 						{{$.locale.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
 					{{else if gt .Poster.ID 0}}

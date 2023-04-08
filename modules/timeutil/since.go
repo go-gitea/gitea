@@ -115,12 +115,12 @@ func timeSincePro(then, now time.Time, lang translation.Locale) string {
 }
 
 // TimeSince calculates the time interval and generate user-friendly string.
-func TimeSince(then time.Time) template.HTML {
+func TimeSince(then time.Time, lang translation.Locale) template.HTML {
 	timestamp := then.Format("2006-01-02 15:04:05 -07:00")
-	return template.HTML(fmt.Sprintf(`<relative-time class="time-since" prefix="" datetime="%s">%s</relative-time>`, timestamp, timestamp))
+	return template.HTML(fmt.Sprintf(`<relative-time class="time-since" prefix="%s" datetime="%s">%s</relative-time>`, lang.Tr("packages.versions.on"), timestamp, timestamp))
 }
 
 // TimeSinceUnix calculates the time interval and generate user-friendly string.
-func TimeSinceUnix(then TimeStamp) template.HTML {
-	return TimeSince(then.AsTime())
+func TimeSinceUnix(then TimeStamp, lang translation.Locale) template.HTML {
+	return TimeSince(then.AsTime(), lang)
 }
