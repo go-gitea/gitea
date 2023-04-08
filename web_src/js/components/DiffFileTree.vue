@@ -5,7 +5,7 @@
   >
     <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
     <div class="ui list">
-      <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item" :selected-file="selectedFile"/>
+      <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item"/>
     </div>
     <div v-if="isIncomplete" id="diff-too-many-files-stats" class="gt-pt-2">
       <span class="gt-mr-2">{{ tooManyFilesMessage }}</span><a :class="['ui', 'basic', 'tiny', 'button', isLoadingNewData === true ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ showMoreMessage }}</a>
@@ -14,7 +14,7 @@
 </template>
 
 <script>
-import DiffFileTreeItem from './DiffFileTreeItem.vue';
+import DiffFileTreeItem, {store} from './DiffFileTreeItem.vue';
 import {doLoadMoreFiles} from '../features/repo-diff.js';
 import {toggleElem} from '../utils/dom.js';
 
@@ -28,7 +28,7 @@ export default {
     pageData.diffFileInfo.fileTreeIsVisible = fileTreeIsVisible;
     return {
       ...pageData.diffFileInfo,
-      selectedFile: ''
+      store,
     };
   },
   computed: {
@@ -102,10 +102,10 @@ export default {
     document.querySelector('.diff-toggle-file-tree-button').addEventListener('click', this.toggleVisibility);
 
     this.hashChangeListener = () => {
-      this.selectedFile = window.location.hash;
+      this.store.selectedItem = window.location.hash;
     };
-    this.hashListener = window.addEventListener('hashchange', this.hashChangeListener);
-    this.selectedFile = window.location.hash;
+    this.hashChangeListener();
+    window.addEventListener('hashchange', this.hashChangeListener);
   },
   unmounted() {
     document.querySelector('.diff-toggle-file-tree-button').removeEventListener('click', this.toggleVisibility);
