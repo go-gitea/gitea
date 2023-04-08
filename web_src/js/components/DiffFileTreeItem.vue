@@ -40,11 +40,7 @@
 
 <script>
 import {SvgIcon} from '../svg.js';
-import {reactive} from 'vue';
-
-export const store = reactive({
-  selectedItem: '',
-});
+import {store} from './DiffFileTreeStore.js';
 
 export default {
   components: {SvgIcon},

@@ -14,9 +14,10 @@
 </template>
 
 <script>
-import DiffFileTreeItem, {store} from './DiffFileTreeItem.vue';
+import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import {doLoadMoreFiles} from '../features/repo-diff.js';
 import {toggleElem} from '../utils/dom.js';
+import {store} from './DiffFileTreeStore.js';
 
 const {pageData} = window.config;
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
