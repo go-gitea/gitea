@@ -65,8 +65,8 @@
 				<p>{{.FormatWarning}}</p>
 			</div>
 		{{end}}
-		<div class="ui {{if or .sidebarPresent .toc}}grid equal width{{end}}" style="margin-top: 1rem;">
-			<div class="ui {{if or .sidebarPresent .toc}}eleven wide column{{end}} segment markup wiki-content-main">
+		<div class="ui gt-mt-0 {{if or .sidebarPresent .toc}}grid equal width{{end}}">
+			<div class="ui {{if or .sidebarPresent .toc}}eleven wide column{{else}}gt-ml-0{{end}} segment markup wiki-content-main">
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 				{{.content | Safe}}
 			</div>
