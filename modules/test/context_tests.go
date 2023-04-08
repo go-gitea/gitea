@@ -22,7 +22,6 @@ import (
 
 	chi "github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
-	"github.com/unrolled/render"
 )
 
 // MockContext mock context for unit tests
@@ -138,7 +137,7 @@ func (tr *mockRender) TemplateLookup(tmpl string) *template.Template {
 	return nil
 }
 
-func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}, _ ...render.HTMLOptions) error {
+func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}) error {
 	if resp, ok := w.(http.ResponseWriter); ok {
 		resp.WriteHeader(status)
 	}
