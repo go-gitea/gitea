@@ -3,15 +3,6 @@
   font-size: 16px;
   line-height: 1.5 !important;
   word-wrap: break-word;
-  background: var(--color-box-body);
-}
-
-.markup.ui.segment {
-  padding: 3em;
-}
-
-.markup.file-view {
-  padding: 2em !important;
 }
 
 .markup > *:first-child {
@@ -309,6 +300,14 @@
 .markup img {
   max-width: 100%;
   box-sizing: initial;
+}
+
+/* this background ensures images can break <hr>. We can only do this on
+   cases where the background is known and not transparent. */
+.markup.file-view img,
+.comment-body .markup img, /* regular comment */
+.comment-content .markup img, /* code comment */
+.wiki .markup img {
   background: var(--color-box-body);
 }
 

@@ -69,11 +69,12 @@
 										<div class="commit-divergence">
 											<div class="bar-group">
 												<div class="count count-behind">{{.CommitsBehind}}</div>
-												<div class="bar bar-behind" style="width: {{percentage .CommitsBehind .CommitsBehind .CommitsAhead}}%"></div>
+												{{/* old code bears 0/0.0 = NaN output, so it might output invalid "width: NaNpx", it just works and doesn't caues any problem. */}}
+												<div class="bar bar-behind" style="width: {{Eval 100 "*" .CommitsBehind "/" "(" .CommitsBehind "+" .CommitsAhead "+" 0.0 ")"}}%"></div>
 											</div>
 											<div class="bar-group">
 												<div class="count count-ahead">{{.CommitsAhead}}</div>
-												<div class="bar bar-ahead" style="width: {{percentage .CommitsAhead .CommitsBehind .CommitsAhead}}%"></div>
+												<div class="bar bar-ahead" style="width: {{Eval 100 "*" .CommitsAhead "/" "(" .CommitsBehind "+" .CommitsAhead "+" 0.0 ")"}}%"></div>
 											</div>
 										</div>
 										{{end}}

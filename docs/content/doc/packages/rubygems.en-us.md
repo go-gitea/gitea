@@ -2,6 +2,7 @@
 date: "2021-07-20T00:00:00+00:00"
 title: "RubyGems Packages Repository"
 slug: "usage/packages/rubygems"
+weight: 110
 draft: false
 toc: false
 menu:

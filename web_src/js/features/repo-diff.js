@@ -1,8 +1,8 @@
 import $ from 'jquery';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
-import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
 import {initDiffFileTree} from './repo-diff-filetree.js';
+import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.js';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.js';
 
 const {csrfToken} = window.config;
