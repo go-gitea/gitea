@@ -31,13 +31,12 @@ import {
 } from './features/repo-diff.js';
 import {
   initRepoIssueDue,
-  initRepoIssueList,
   initRepoIssueReferenceRepositorySearch,
   initRepoIssueTimeTracking,
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
-  initRepoPullRequestReview,
+  initRepoPullRequestReview, initRepoIssueSidebarList,
 } from './features/repo-issue.js';
 import {
   initRepoEllipsisButton,
@@ -77,7 +76,6 @@ import {initRepoEditor} from './features/repo-editor.js';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.js';
 import {initInstall} from './features/install.js';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.js';
-import {initCommonIssue} from './features/common-issue.js';
 import {initRepoBranchButton} from './features/repo-branch.js';
 import {initCommonOrganization} from './features/common-organization.js';
 import {initRepoWikiForm} from './features/repo-wiki.js';
@@ -89,6 +87,7 @@ import {initRepositoryActionView} from './components/RepoActionView.vue';
 import {initGlobalTooltips} from './modules/tippy.js';
 import {initGiteaFomantic} from './modules/fomantic.js';
 import {onDomReady} from './utils/dom.js';
+import {initRepoIssueList} from './features/repo-issue-list.js';
 
 // Run time-critical code as soon as possible. This is safe to do because this
 // script appears at the end of <body> and rendered HTML is accessible at that point.
@@ -109,7 +108,6 @@ onDomReady(() => {
   initGlobalFormDirtyLeaveConfirm();
   initGlobalLinkActions();
 
-  initCommonIssue();
   initCommonOrganization();
 
   initCompSearchUserBox();
@@ -163,6 +161,7 @@ onDomReady(() => {
   initRepoIssueContentHistory();
   initRepoIssueDue();
   initRepoIssueList();
+  initRepoIssueSidebarList();
   initRepoIssueReferenceRepositorySearch();
   initRepoIssueTimeTracking();
   initRepoIssueWipTitle();

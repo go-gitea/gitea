@@ -1,6 +1,6 @@
 ---
 date: "2018-05-07T13:00:00+02:00"
-title: "Gitea compared to other Git hosting options"
+title: "Compared to other Git hosting"
 slug: "comparison"
 weight: 5
 toc: false

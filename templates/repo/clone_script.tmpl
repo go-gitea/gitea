@@ -11,7 +11,10 @@
 		const value = localStorage.getItem('repo-clone-protocol') || 'https';
 		const isSSH = value === 'ssh' && sshBtn || value !== 'ssh' && !httpsBtn;
 
-		if (httpsBtn) httpsBtn.classList[!isSSH ? 'add' : 'remove']('primary');
+		if (httpsBtn) {
+			httpsBtn.textContent = window.origin.split(':')[0].toUpperCase();
+			httpsBtn.classList[!isSSH ? 'add' : 'remove']('primary');
+		}
 		if (sshBtn) sshBtn.classList[isSSH ? 'add' : 'remove']('primary');
 
 		const btn = isSSH ? sshBtn : httpsBtn;
