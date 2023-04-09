@@ -196,6 +196,7 @@ help:
 	@echo " - lint                             lint everything"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-backend                     lint backend files"
+	@echo " - lint-md                          lint markdown files"
 	@echo " - checks                           run various consistency checks"
 	@echo " - checks-frontend                  check frontend files"
 	@echo " - checks-backend                   check backend files"
@@ -345,6 +346,10 @@ lint-frontend: node_modules
 	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
 	npx stylelint --color --max-warnings=0 web_src/css
 	npx spectral lint -q -F hint $(SWAGGER_SPEC)
+	@$(MAKE) --no-print-directory lint-md
+
+.PHONY: lint-md
+lint-md: node_modules
 	npx markdownlint docs *.md
 
 .PHONY: lint-backend
