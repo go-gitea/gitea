@@ -24,7 +24,7 @@ menu:
 在启用HTTPS之前，确保您拥有有效的SSL/TLS证书。
 建议在测试和评估情况下使用自签名证书，请运行 `gitea cert --host [HOST]` 以生成自签名证书
 
-如果您在服务器上使用阿帕奇（Apache）或Nginx，建议参考 [反向代理指南]({{< relref "doc/administration/reverse-proxies.en-us.md" >}})。
+如果您在服务器上使用阿帕奇（Apache）或Nginx，建议参考 [反向代理指南]({{< relref "doc/administration/reverse-proxies.zh-cn.md" >}})。
 
 要使用Gitea内置HTTPS支持，您必须编辑`app.ini`文件。
 
