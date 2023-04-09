@@ -41,6 +41,9 @@ const (
 
 	// UserTypeOrganization defines an organization
 	UserTypeOrganization
+
+	// UserTypeReserved defines a reserved user, which is used for internal purposes
+	UserTypeReserved
 )
 
 const (
