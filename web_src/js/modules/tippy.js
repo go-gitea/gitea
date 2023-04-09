@@ -86,6 +86,17 @@ function attachChildrenLazyTooltip(target) {
   }
 }
 
+// on <relative-time> elements, swap title for data-tooltip-content this
+// only runs once, so is only suitable for content that does not change.
+function swapTitleForTooltip(el) {
+  if (el.hasAttribute('data-tooltip-content')) return;
+  el.setAttribute('data-tooltip-content', el.getAttribute('title'));
+  el.setAttribute('data-tooltip-interactive', 'true');
+  el.setAttribute('title', '');
+}
+
+const elementNodeTypes = new Set([Node.ELEMENT_NODE, Node.DOCUMENT_FRAGMENT_NODE]);
+
 export function initGlobalTooltips() {
   // use MutationObserver to detect new elements added to the DOM, or attributes changed
   const observer = new MutationObserver((mutationList) => {
@@ -93,8 +104,10 @@ export function initGlobalTooltips() {
       if (mutation.type === 'childList') {
         // mainly for Vue components and AJAX rendered elements
         for (const el of mutation.addedNodes) {
-          // handle all "tooltip" elements in added nodes which have 'querySelectorAll' method, skip non-related nodes (eg: "#text")
-          if ('querySelectorAll' in el) {
+          if (el.nodeName === 'RELATIVE-TIME') {
+            swapTitleForTooltip(el);
+          }
+          if (elementNodeTypes.has(el.nodeType)) {
             attachChildrenLazyTooltip(el);
           }
         }
@@ -110,7 +123,13 @@ export function initGlobalTooltips() {
     attributeFilter: ['data-tooltip-content'],
   });
 
+  // init tooltips
   attachChildrenLazyTooltip(document.documentElement);
+
+  // init time elements
+  for (const el of document.querySelectorAll('relative-time')) {
+    swapTitleForTooltip(el);
+  }
 }
 
 export function showTemporaryTooltip(target, content) {
