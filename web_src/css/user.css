@@ -15,26 +15,26 @@
   padding: 0;
 }
 
-.user.profile .ui.card .extra.content ul {
+.user.profile .ui.card .extra.content > ul {
   margin: 0;
   padding: 0;
 }
 
-.user.profile .ui.card .extra.content ul li {
+.user.profile .ui.card .extra.content > ul > li {
   padding: 10px;
   list-style: none;
 }
 
-.user.profile .ui.card .extra.content ul li:not(:last-child) {
+.user.profile .ui.card .extra.content > ul > li:not(:last-child) {
   border-bottom: 1px solid var(--color-secondary);
 }
 
-.user.profile .ui.card .extra.content ul li .svg {
+.user.profile .ui.card .extra.content > ul > li .svg {
   margin-left: 1px;
   margin-right: 5px;
 }
 
-.user.profile .ui.card .extra.content ul li.follow .ui.button {
+.user.profile .ui.card .extra.content > ul > li.follow .ui.button {
   width: 100%;
 }
 
@@ -117,7 +117,7 @@
   margin: -3px !important;
 }
 
-.user-orgs li {
+.user-orgs > li {
   display: flex;
   border-bottom: 0 !important;
   padding: 3px !important;

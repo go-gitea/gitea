@@ -7,9 +7,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
-	goPath "path"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -27,9 +28,14 @@ type LicenseEntry struct {
 }
 
 func main() {
+	if len(os.Args) != 3 {
+		fmt.Println("usage: go run generate-go-licenses.go <base-dir> <out-json-file>")
+		os.Exit(1)
+	}
+
 	base, out := os.Args[1], os.Args[2]
 
-	paths := []string{}
+	var paths []string
 	err := filepath.WalkDir(base, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -46,28 +52,27 @@ func main() {
 
 	sort.Strings(paths)
 
-	entries := []LicenseEntry{}
-	for _, path := range paths {
-		path := filepath.ToSlash(path)
-
-		licenseText, err := os.ReadFile(path)
+	var entries []LicenseEntry
+	for _, filePath := range paths {
+		licenseText, err := os.ReadFile(filePath)
 		if err != nil {
 			panic(err)
 		}
 
-		path = strings.Replace(path, base+"/", "", 1)
-		name := goPath.Dir(path)
+		pkgPath := filepath.ToSlash(filePath)
+		pkgPath = strings.TrimPrefix(pkgPath, base+"/")
+		pkgName := path.Dir(pkgPath)
 
 		// There might be a bug somewhere in go-licenses that sometimes interprets the
 		// root package as "." and sometimes as "code.gitea.io/gitea". Workaround by
 		// removing both of them for the sake of stable output.
-		if name == "." || name == "code.gitea.io/gitea" {
+		if pkgName == "." || pkgName == "code.gitea.io/gitea" {
 			continue
 		}
 
 		entries = append(entries, LicenseEntry{
-			Name:        name,
-			Path:        path,
+			Name:        pkgName,
+			Path:        pkgPath,
 			LicenseText: string(licenseText),
 		})
 	}

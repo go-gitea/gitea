@@ -704,10 +704,15 @@ func Routes(ctx gocontext.Context) *web.Route {
 		if setting.Federation.Enabled {
 			m.Get("/nodeinfo", misc.NodeInfo)
 			m.Group("/activitypub", func() {
+				// deprecated, remove in 1.20, use /user-id/{user-id} instead
 				m.Group("/user/{username}", func() {
 					m.Get("", activitypub.Person)
 					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
 				}, context_service.UserAssignmentAPI())
+				m.Group("/user-id/{user-id}", func() {
+					m.Get("", activitypub.Person)
+					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
+				}, context_service.UserIDAssignmentAPI())
 			})
 		}
 		m.Get("/signing-key.gpg", misc.SigningKey)
@@ -749,6 +754,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
 					m.Combo("/{id}").Delete(user.DeleteAccessToken)
 				}, reqBasicAuth())
+
+				m.Get("/activities/feeds", user.ListUserActivityFeeds)
 			}, context_service.UserAssignmentAPI())
 		})
 
@@ -1026,6 +1033,14 @@ func Routes(ctx gocontext.Context) *web.Route {
 								Patch(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueAttachment).
 								Delete(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, repo.DeleteIssueAttachment)
 						}, mustEnableAttachments)
+						m.Combo("/dependencies").
+							Get(repo.GetIssueDependencies).
+							Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.IssueMeta{}), repo.CreateIssueDependency).
+							Delete(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.IssueMeta{}), repo.RemoveIssueDependency)
+						m.Combo("/blocks").
+							Get(repo.GetIssueBlocks).
+							Post(reqToken(auth_model.AccessTokenScopeRepo), bind(api.IssueMeta{}), repo.CreateIssueBlocking).
+							Delete(reqToken(auth_model.AccessTokenScopeRepo), bind(api.IssueMeta{}), repo.RemoveIssueBlocking)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
@@ -1161,7 +1176,10 @@ func Routes(ctx gocontext.Context) *web.Route {
 					}, reqAdmin())
 				}, reqAnyRepoReader())
 				m.Get("/issue_templates", context.ReferencesGitRepo(), repo.GetIssueTemplates)
+				m.Get("/issue_config", context.ReferencesGitRepo(), repo.GetIssueConfig)
+				m.Get("/issue_config/validate", context.ReferencesGitRepo(), repo.ValidateIssueConfig)
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
+				m.Get("/activities/feeds", repo.ListRepoActivityFeeds)
 			}, repoAssignment())
 		})
 
@@ -1219,6 +1237,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					Patch(bind(api.EditHookOption{}), org.EditHook).
 					Delete(org.DeleteHook)
 			}, reqToken(auth_model.AccessTokenScopeAdminOrgHook), reqOrgOwnership(), reqWebhooksEnabled())
+			m.Get("/activities/feeds", org.ListOrgActivityFeeds)
 		}, orgAssignment(true))
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeam).
@@ -1238,6 +1257,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), org.RemoveTeamRepository).
 					Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeamRepo)
 			})
+			m.Get("/activities/feeds", org.ListTeamActivityFeeds)
 		}, orgAssignment(false, true), reqToken(""), reqTeamMembership())
 
 		m.Group("/admin", func() {

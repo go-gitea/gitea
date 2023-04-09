@@ -118,7 +118,7 @@
 								<div class="menu">
 									<div class="item" data-value="">{{.locale.Tr "repo.issue_labels_helper"}}</div>
 									{{range $template, $labels := .LabelTemplates}}
-										<div class="item" data-value="{{$template}}">{{$template}}<br/><i>({{$labels}})</i></div>
+										<div class="item" data-value="{{$template}}">{{$template}}<br><i>({{$labels}})</i></div>
 									{{end}}
 								</div>
 							</div>
@@ -210,7 +210,7 @@
 						</div>
 					</div>
 
-					<br/>
+					<br>
 					<div class="inline field">
 						<label></label>
 						<button class="ui green button{{if not .CanCreateRepo}} disabled{{end}}">

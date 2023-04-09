@@ -111,8 +111,15 @@ export function initGlobalCommon() {
     },
   });
 
-  // special popup-directions
+  // Special popup-directions, prevent Fomantic from guessing the popup direction.
+  // With default "direction: auto", if the viewport height is small, Fomantic would show the popup upward,
+  //   if the dropdown is at the beginning of the page, then the top part would be clipped by the window view.
+  //   eg: Issue List "Sort" dropdown
+  // But we can not set "direction: downward" for all dropdowns, because there is a bug in dropdown menu positioning when calculating the "left" position,
+  //   which would make some dropdown popups slightly shift out of the right viewport edge in some cases.
+  //   eg: the "Create New Repo" menu on the navbar.
   $uiDropdowns.filter('.upward').dropdown('setting', 'direction', 'upward');
+  $uiDropdowns.filter('.downward').dropdown('setting', 'direction', 'downward');
 
   $('.ui.checkbox').checkbox();
 
