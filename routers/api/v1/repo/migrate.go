@@ -154,7 +154,7 @@ func Migrate(ctx *context.APIContext) {
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,
 		Labels:         form.Labels,
-		Comments:       true,
+		Comments:       form.Issues || form.PullRequests,
 		PullRequests:   form.PullRequests,
 		Releases:       form.Releases,
 		GitServiceType: gitServiceType,

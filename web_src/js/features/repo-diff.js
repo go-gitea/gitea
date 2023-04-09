@@ -1,9 +1,8 @@
 import $ from 'jquery';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
-import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles} from './pull-view-file.js';
-import {initTooltip} from '../modules/tippy.js';
+import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.js';
 
 const {csrfToken} = window.config;
 
@@ -11,10 +10,8 @@ export function initRepoDiffReviewButton() {
   const $reviewBox = $('#review-box');
   const $counter = $reviewBox.find('.review-comments-counter');
 
-  $(document).on('click', 'button[name="is_review"]', (e) => {
+  $(document).on('click', 'button[name="pending_review"]', (e) => {
     const $form = $(e.target).closest('form');
-    $form.append('<input type="hidden" name="is_review" value="true">');
-
     // Watch for the form's submit event.
     $form.on('submit', () => {
       const num = parseInt($counter.attr('data-pending-comment-number')) + 1 || 1;
@@ -35,8 +32,8 @@ export function initRepoDiffFileViewToggle() {
     $this.addClass('active');
 
     const $target = $($this.data('toggle-selector'));
-    $target.parent().children().addClass('hide');
-    $target.removeClass('hide');
+    $target.parent().children().addClass('gt-hidden');
+    $target.removeClass('gt-hidden');
   });
 }
 
@@ -50,13 +47,17 @@ export function initRepoDiffConversationForm() {
       return;
     }
 
-    const formDataString = String(new URLSearchParams(new FormData($form[0])));
+    const formData = new FormData($form[0]);
+
+    // if the form is submitted by a button, append the button's name and value to the form data
+    const submitter = e.originalEvent?.submitter;
+    const isSubmittedByButton = (submitter?.nodeName === 'BUTTON') || (submitter?.nodeName === 'INPUT' && submitter.type === 'submit');
+    if (isSubmittedByButton && submitter.name) {
+      formData.append(submitter.name, submitter.value);
+    }
+    const formDataString = String(new URLSearchParams(formData));
     const $newConversationHolder = $(await $.post($form.attr('action'), formDataString));
     const {path, side, idx} = $newConversationHolder.data();
-
-    $newConversationHolder.find('.tooltip').each(function () {
-      initTooltip(this);
-    });
 
     $form.closest('.conversation-holder').replaceWith($newConversationHolder);
     if ($form.closest('tr').data('line-type') === 'same') {
@@ -92,7 +93,7 @@ export function initRepoDiffConversationNav() {
   // Previous/Next code review conversation
   $(document).on('click', '.previous-conversation', (e) => {
     const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
-    const $conversations = $('.comment-code-cloud:not(.hide)');
+    const $conversations = $('.comment-code-cloud:not(.gt-hidden)');
     const index = $conversations.index($conversation);
     const previousIndex = index > 0 ? index - 1 : $conversations.length - 1;
     const $previousConversation = $conversations.eq(previousIndex);
@@ -101,7 +102,7 @@ export function initRepoDiffConversationNav() {
   });
   $(document).on('click', '.next-conversation', (e) => {
     const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
-    const $conversations = $('.comment-code-cloud:not(.hide)');
+    const $conversations = $('.comment-code-cloud:not(.gt-hidden)');
     const index = $conversations.index($conversation);
     const nextIndex = index < $conversations.length - 1 ? index + 1 : 0;
     const $nextConversation = $conversations.eq(nextIndex);

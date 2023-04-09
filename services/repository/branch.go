@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -105,7 +104,7 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 }
 
 // RenameBranch rename a branch
-func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *git.Repository, from, to string) (string, error) {
+func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, gitRepo *git.Repository, from, to string) (string, error) {
 	if from == to {
 		return "target_exist", nil
 	}
@@ -118,7 +117,7 @@ func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *g
 		return "from_not_exist", nil
 	}
 
-	if err := git_model.RenameBranch(db.DefaultContext, repo, from, to, func(isDefault bool) error {
+	if err := git_model.RenameBranch(ctx, repo, from, to, func(isDefault bool) error {
 		err2 := gitRepo.RenameBranch(from, to)
 		if err2 != nil {
 			return err2
@@ -140,8 +139,8 @@ func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *g
 		return "", err
 	}
 
-	notification.NotifyDeleteRef(db.DefaultContext, doer, repo, "branch", git.BranchPrefix+from)
-	notification.NotifyCreateRef(db.DefaultContext, doer, repo, "branch", git.BranchPrefix+to, refID)
+	notification.NotifyDeleteRef(ctx, doer, repo, "branch", git.BranchPrefix+from)
+	notification.NotifyCreateRef(ctx, doer, repo, "branch", git.BranchPrefix+to, refID)
 
 	return "", nil
 }
@@ -152,12 +151,12 @@ var (
 )
 
 // DeleteBranch delete branch
-func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
+func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
 	if branchName == repo.DefaultBranch {
 		return ErrBranchIsDefault
 	}
 
-	isProtected, err := git_model.IsBranchProtected(db.DefaultContext, repo.ID, branchName)
+	isProtected, err := git_model.IsBranchProtected(ctx, repo.ID, branchName)
 	if err != nil {
 		return err
 	}

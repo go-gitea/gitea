@@ -79,7 +79,7 @@ type Release struct {
 	RenderedNote     string             `xorm:"-"`
 	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
 	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
-	IsTag            bool               `xorm:"NOT NULL DEFAULT false"`
+	IsTag            bool               `xorm:"NOT NULL DEFAULT false"` // will be true only if the record is a tag and has no related releases
 	Attachments      []*Attachment      `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
 }
@@ -128,6 +128,11 @@ func (r *Release) TarURL() string {
 // HTMLURL the url for a release on the web UI. release must have attributes loaded
 func (r *Release) HTMLURL() string {
 	return r.Repo.HTMLURL() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
+}
+
+// Link the relative url for a release on the web UI. release must have attributes loaded
+func (r *Release) Link() string {
+	return r.Repo.Link() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
 }
 
 // IsReleaseExist returns true if release with given tag name already exists.
@@ -246,6 +251,28 @@ func GetReleasesByRepoID(ctx context.Context, repoID int64, opts FindReleasesOpt
 
 	rels := make([]*Release, 0, opts.PageSize)
 	return rels, sess.Find(&rels)
+}
+
+// GetTagNamesByRepoID returns a list of release tag names of repository.
+func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
+	listOptions := db.ListOptions{
+		ListAll: true,
+	}
+	opts := FindReleasesOptions{
+		ListOptions:   listOptions,
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		HasSha1:       util.OptionalBoolTrue,
+	}
+
+	tags := make([]string, 0)
+	sess := db.GetEngine(ctx).
+		Table("release").
+		Desc("created_unix", "id").
+		Where(opts.toConds(repoID)).
+		Cols("tag_name")
+
+	return tags, sess.Find(&tags)
 }
 
 // CountReleasesByRepoID returns a number of releases matching FindReleaseOptions and RepoID.

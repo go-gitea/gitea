@@ -63,6 +63,7 @@ type Repository struct {
 	Language      string      `json:"language"`
 	LanguagesURL  string      `json:"languages_url"`
 	HTMLURL       string      `json:"html_url"`
+	Link          string      `json:"link"`
 	SSHURL        string      `json:"ssh_url"`
 	CloneURL      string      `json:"clone_url"`
 	OriginalURL   string      `json:"original_url"`
@@ -87,6 +88,9 @@ type Repository struct {
 	ExternalWiki                  *ExternalWiki    `json:"external_wiki,omitempty"`
 	HasPullRequests               bool             `json:"has_pull_requests"`
 	HasProjects                   bool             `json:"has_projects"`
+	HasReleases                   bool             `json:"has_releases"`
+	HasPackages                   bool             `json:"has_packages"`
+	HasActions                    bool             `json:"has_actions"`
 	IgnoreWhitespaceConflicts     bool             `json:"ignore_whitespace_conflicts"`
 	AllowMerge                    bool             `json:"allow_merge_commits"`
 	AllowRebase                   bool             `json:"allow_rebase"`
@@ -95,6 +99,7 @@ type Repository struct {
 	AllowRebaseUpdate             bool             `json:"allow_rebase_update"`
 	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
 	DefaultMergeStyle             string           `json:"default_merge_style"`
+	DefaultAllowMaintainerEdit    bool             `json:"default_allow_maintainer_edit"`
 	AvatarURL                     string           `json:"avatar_url"`
 	Internal                      bool             `json:"internal"`
 	MirrorInterval                string           `json:"mirror_interval"`
@@ -166,6 +171,12 @@ type EditRepoOption struct {
 	HasPullRequests *bool `json:"has_pull_requests,omitempty"`
 	// either `true` to enable project unit, or `false` to disable them.
 	HasProjects *bool `json:"has_projects,omitempty"`
+	// either `true` to enable releases unit, or `false` to disable them.
+	HasReleases *bool `json:"has_releases,omitempty"`
+	// either `true` to enable packages unit, or `false` to disable them.
+	HasPackages *bool `json:"has_packages,omitempty"`
+	// either `true` to enable actions unit, or `false` to disable them.
+	HasActions *bool `json:"has_actions,omitempty"`
 	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace.
 	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace_conflicts,omitempty"`
 	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits.
@@ -186,6 +197,8 @@ type EditRepoOption struct {
 	DefaultDeleteBranchAfterMerge *bool `json:"default_delete_branch_after_merge,omitempty"`
 	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", or "squash".
 	DefaultMergeStyle *string `json:"default_merge_style,omitempty"`
+	// set to `true` to allow edits from maintainers by default
+	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
 	// set to a string like `8h30m0s` to set the mirror interval time

@@ -92,6 +92,10 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter pulls requesting your review, default is false
 	//   type: boolean
+	// - name: reviewed
+	//   in: query
+	//   description: filter pulls reviewed by you, default is false
+	//   type: boolean
 	// - name: owner
 	//   in: query
 	//   description: filter by owner
@@ -265,6 +269,9 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 		if ctx.FormBool("review_requested") {
 			issuesOpt.ReviewRequestedID = ctxUserID
+		}
+		if ctx.FormBool("reviewed") {
+			issuesOpt.ReviewedID = ctxUserID
 		}
 
 		if issues, err = issues_model.Issues(ctx, issuesOpt); err != nil {

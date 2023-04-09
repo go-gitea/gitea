@@ -2,21 +2,21 @@
 date: "2017-06-19T12:00:00+02:00"
 title: "Installation from binary"
 slug: "install-from-binary"
-weight: 10
+weight: 15
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "installation"
     name: "From binary"
-    weight: 20
+    weight: 15
     identifier: "install-from-binary"
 ---
 
 # Installation from binary
 
 All downloads come with SQLite, MySQL and PostgreSQL support, and are built with
-embedded assets. This can be different for older releases.
+embedded assets. This can be different from Gogs.
 
 **Table of Contents**
 
@@ -24,7 +24,7 @@ embedded assets. This can be different for older releases.
 
 ## Download
 
-You can find the file matching your platform from the [downloads page](https://dl.gitea.io/gitea/) after navigating to the version you want to download.
+You can find the file matching your platform from the [downloads page](https://dl.gitea.com/gitea/) after navigating to the version you want to download.
 
 ### Choosing the right file
 
@@ -36,12 +36,14 @@ You can find the file matching your platform from the [downloads page](https://d
 
 **For macOS**, you should choose `darwin-arm64` if your hardware uses Apple Silicon, or `darwin-amd64` for Intel.
 
+**For FreeBSD**, you should choose `freebsd12-amd64` for 64-bit Intel/AMD platforms.
+
 ### Downloading with wget
 
 Copy the commands below and replace the URL within the one you wish to download.
 
 ```sh
-wget -O gitea https://dl.gitea.io/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
+wget -O gitea https://dl.gitea.com/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
 chmod +x gitea
 ```
 
@@ -62,7 +64,7 @@ despite warnings like `This key is not certified with a trusted signature!`.
 
 ## Recommended server configuration
 
-**NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/advanced/environment-variables.en-us.md" >}}) as well!
+**NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/administration/environment-variables.en-us.md" >}}) as well!
 Of note, configuring `GITEA_WORK_DIR` will tell Gitea where to base its working directory, as well as ease installation.
 
 ### Prepare environment
@@ -111,7 +113,7 @@ If you don't want the web installer to be able to write to the config file, it i
 * Ensure that the `SECRET_KEY` and `INTERNAL_TOKEN` values are set. (You may want to use the `gitea generate secret` to generate these secret keys.)
 * Ensure that any other secret keys you need are set.
 
-See the [command line documentation]({{< relref "doc/usage/command-line.en-us.md" >}}) for information on using `gitea generate secret`.
+See the [command line documentation]({{< relref "doc/administration/command-line.en-us.md" >}}) for information on using `gitea generate secret`.
 
 ### Configure Gitea's working directory
 
@@ -126,6 +128,16 @@ export GITEA_WORK_DIR=/var/lib/gitea/
 ```sh
 cp gitea /usr/local/bin/gitea
 ```
+
+### Adding bash/zsh autocompletion (from 1.19)
+
+A script to enable bash-completion can be found at [`contrib/autocompletion/bash_autocomplete`](https://raw.githubusercontent.com/go-gitea/gitea/main/contrib/autocompletion/bash_autocomplete). This can be copied to `/usr/share/bash-completion/completions/gitea`
+or sourced within your `.bashrc`.
+
+Similarly a script for zsh-completion can be found at [`contrib/autocompletion/zsh_autocomplete`](https://raw.githubusercontent.com/go-gitea/gitea/main/contrib/autocompletion/zsh_autocomplete). This can be copied to `/usr/share/zsh/_gitea` or sourced within your
+`.zshrc`.
+
+YMMV and these scripts may need further improvement.
 
 ## Running Gitea
 
@@ -146,7 +158,7 @@ GITEA_WORK_DIR=/var/lib/gitea/ /usr/local/bin/gitea web -c /etc/gitea/app.ini
 You can update to a new version of Gitea by stopping Gitea, replacing the binary at `/usr/local/bin/gitea` and restarting the instance.
 The binary file name should not be changed during the update to avoid problems in existing repositories.
 
-It is recommended that you make a [backup]({{< relref "doc/usage/backup-and-restore.en-us.md" >}}) before updating your installation.
+It is recommended that you make a [backup]({{< relref "doc/administration/backup-and-restore.en-us.md" >}}) before updating your installation.
 
 If you have carried out the installation steps as described above, the binary should
 have the generic name `gitea`. Do not change this, i.e. to include the version number.
@@ -173,7 +185,7 @@ an update of your Gitea version.
 Older Linux distributions (such as Debian 7 and CentOS 6) may not be able to load the
 Gitea binary, usually producing an error such as `./gitea: /lib/x86_64-linux-gnu/libc.so.6:
 version 'GLIBC\_2.14' not found (required by ./gitea)`. This is due to the integrated
-SQLite support in the binaries provided by dl.gitea.io. In this situation, it is usually
+SQLite support in the binaries provided by dl.gitea.com. In this situation, it is usually
 possible to [install from source]({{< relref "from-source.en-us.md" >}}), without including
 SQLite support.
 

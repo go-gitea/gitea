@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.helm.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>helm repo add gitea {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/helm
+				<div class="markup"><pre class="code-block"><code>helm repo add gitea <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/helm"></gitea-origin-url>
 helm repo update</code></pre></div>
 			</div>
 			<div class="field">

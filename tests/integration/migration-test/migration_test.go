@@ -57,7 +57,7 @@ func initMigrationTest(t *testing.T) func() {
 		setting.CustomConf = giteaConf
 	}
 
-	setting.LoadForTest()
+	setting.InitProviderAndLoadCommonSettingsForTest()
 
 	assert.True(t, len(setting.RepoRootPath) != 0)
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
@@ -83,8 +83,8 @@ func initMigrationTest(t *testing.T) func() {
 	}
 
 	assert.NoError(t, git.InitFull(context.Background()))
-	setting.InitDBConfig()
-	setting.NewLogServices(true)
+	setting.LoadDBSetting()
+	setting.InitLogs(true)
 	return deferFn
 }
 
@@ -94,7 +94,7 @@ func availableVersions() ([]string, error) {
 		return nil, err
 	}
 	defer migrationsDir.Close()
-	versionRE, err := regexp.Compile("gitea-v(?P<version>.+)\\." + regexp.QuoteMeta(setting.Database.Type) + "\\.sql.gz")
+	versionRE, err := regexp.Compile("gitea-v(?P<version>.+)\\." + regexp.QuoteMeta(setting.Database.Type.String()) + "\\.sql.gz")
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func restoreOldDB(t *testing.T, version string) bool {
 	}
 
 	switch {
-	case setting.Database.UseSQLite3:
+	case setting.Database.Type.IsSQLite3():
 		util.Remove(setting.Database.Path)
 		err := os.MkdirAll(path.Dir(setting.Database.Path), os.ModePerm)
 		assert.NoError(t, err)
@@ -162,7 +162,7 @@ func restoreOldDB(t *testing.T, version string) bool {
 		assert.NoError(t, err)
 		db.Close()
 
-	case setting.Database.UseMySQL:
+	case setting.Database.Type.IsMySQL():
 		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/",
 			setting.Database.User, setting.Database.Passwd, setting.Database.Host))
 		assert.NoError(t, err)
@@ -184,7 +184,7 @@ func restoreOldDB(t *testing.T, version string) bool {
 		assert.NoError(t, err)
 		db.Close()
 
-	case setting.Database.UsePostgreSQL:
+	case setting.Database.Type.IsPostgreSQL():
 		var db *sql.DB
 		var err error
 		if setting.Database.Host[0] == '/' {
@@ -252,7 +252,7 @@ func restoreOldDB(t *testing.T, version string) bool {
 		assert.NoError(t, err)
 		db.Close()
 
-	case setting.Database.UseMSSQL:
+	case setting.Database.Type.IsMSSQL():
 		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
 			host, port, "master", setting.Database.User, setting.Database.Passwd))
@@ -292,7 +292,7 @@ func doMigrationTest(t *testing.T, version string) {
 		return
 	}
 
-	setting.NewXORMLogService(false)
+	setting.InitSQLLog(false)
 
 	err := db.InitEngineWithMigration(context.Background(), wrappedMigrate)
 	assert.NoError(t, err)

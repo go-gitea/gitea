@@ -92,8 +92,11 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 
 		// We have a common base - therefore we know that ... should work
 		if !fileOnly {
+			// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
 			var logs []byte
-			logs, _, err = NewCommand(repo.Ctx, "log").AddDynamicArguments(baseCommitID + separator + headBranch).AddArguments(prettyLogFormat).RunStdBytes(&RunOpts{Dir: repo.Path})
+			logs, _, err = NewCommand(repo.Ctx, "log").AddArguments(prettyLogFormat).
+				AddDynamicArguments(baseCommitID + separator + headBranch).AddArguments("--").
+				RunStdBytes(&RunOpts{Dir: repo.Path})
 			if err != nil {
 				return nil, err
 			}
@@ -146,7 +149,8 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 		separator = ".."
 	}
 
-	if err := NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddDynamicArguments(base + separator + head).
+	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
+	if err := NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddDynamicArguments(base + separator + head).AddArguments("--").
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
@@ -157,7 +161,7 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 			// previously it would return the results of git diff -z --name-only base head so let's try that...
 			w = &lineCountWriter{}
 			stderr.Reset()
-			if err = NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddDynamicArguments(base, head).Run(&RunOpts{
+			if err = NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddDynamicArguments(base, head).AddArguments("--").Run(&RunOpts{
 				Dir:    repo.Path,
 				Stdout: w,
 				Stderr: stderr,
@@ -172,25 +176,21 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 
 // GetDiffShortStat counts number of changed files, number of additions and deletions
 func (repo *Repository) GetDiffShortStat(base, head string) (numFiles, totalAdditions, totalDeletions int, err error) {
-	numFiles, totalAdditions, totalDeletions, err = GetDiffShortStat(repo.Ctx, repo.Path, CmdArgCheck(base+"..."+head))
+	numFiles, totalAdditions, totalDeletions, err = GetDiffShortStat(repo.Ctx, repo.Path, nil, base+"..."+head)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
-		return GetDiffShortStat(repo.Ctx, repo.Path, CmdArgCheck(base), CmdArgCheck(head))
+		return GetDiffShortStat(repo.Ctx, repo.Path, nil, base, head)
 	}
 	return numFiles, totalAdditions, totalDeletions, err
 }
 
 // GetDiffShortStat counts number of changed files, number of additions and deletions
-func GetDiffShortStat(ctx context.Context, repoPath string, args ...CmdArg) (numFiles, totalAdditions, totalDeletions int, err error) {
+func GetDiffShortStat(ctx context.Context, repoPath string, trustedArgs TrustedCmdArgs, dynamicArgs ...string) (numFiles, totalAdditions, totalDeletions int, err error) {
 	// Now if we call:
 	// $ git diff --shortstat 1ebb35b98889ff77299f24d82da426b434b0cca0...788b8b1440462d477f45b0088875
 	// we get:
 	// " 9902 files changed, 2034198 insertions(+), 298800 deletions(-)\n"
-	args = append([]CmdArg{
-		"diff",
-		"--shortstat",
-	}, args...)
-
-	stdout, _, err := NewCommand(ctx, args...).RunStdString(&RunOpts{Dir: repoPath})
+	cmd := NewCommand(ctx, "diff", "--shortstat").AddArguments(trustedArgs...).AddDynamicArguments(dynamicArgs...)
+	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -281,11 +281,18 @@ func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 
 // GetFilesChangedBetween returns a list of all files that have been changed between the given commits
 func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only").AddDynamicArguments(base + ".." + head).RunStdString(&RunOpts{Dir: repo.Path})
+	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only", "-z").AddDynamicArguments(base + ".." + head).RunStdString(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}
-	return strings.Split(stdout, "\n"), err
+	split := strings.Split(stdout, "\000")
+
+	// Because Git will always emit filenames with a terminal NUL ignore the last entry in the split - which will always be empty.
+	if len(split) > 0 {
+		split = split[:len(split)-1]
+	}
+
+	return split, err
 }
 
 // GetDiffFromMergeBase generates and return patch data from merge base to head

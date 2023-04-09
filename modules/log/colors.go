@@ -383,6 +383,13 @@ func (cv *ColoredValue) Format(s fmt.State, c rune) {
 	s.Write(*cv.resetBytes)
 }
 
+// ColorFormatAsString returns the result of the ColorFormat without the color
+func ColorFormatAsString(colorVal ColorFormatted) string {
+	s := new(strings.Builder)
+	_, _ = ColorFprintf(&protectedANSIWriter{w: s, mode: removeColor}, "%-v", colorVal)
+	return s.String()
+}
+
 // SetColorBytes will allow a user to set the colorBytes of a colored value
 func (cv *ColoredValue) SetColorBytes(colorBytes []byte) {
 	cv.colorBytes = &colorBytes

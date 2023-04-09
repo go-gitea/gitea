@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // SyncBranches synchronizes branch table with repository branches
@@ -35,7 +36,7 @@ func SyncBranches(ctx context.Context, repo *repo_model.Repository, doerID int64
 		return err
 	}
 
-	var toAdd []string
+	var toAdd []*git_model.Branch
 	var toRemove []int64
 	for _, branch := range allBranches {
 		var found bool
@@ -46,7 +47,17 @@ func SyncBranches(ctx context.Context, repo *repo_model.Repository, doerID int64
 			}
 		}
 		if !found {
-			toAdd = append(toAdd, branch)
+			commit, err := gitRepo.GetBranchCommit(branch)
+			if err != nil {
+				return err
+			}
+			toAdd = append(toAdd, &git_model.Branch{
+				RepoID:     repo.ID,
+				Name:       branch,
+				Commit:     commit.ID.String(),
+				PusherID:   doerID,
+				CommitTime: timeutil.TimeStamp(commit.Author.When.Unix()),
+			})
 		}
 	}
 
@@ -63,9 +74,13 @@ func SyncBranches(ctx context.Context, repo *repo_model.Repository, doerID int64
 		}
 	}
 
+	if len(toAdd) <= 0 && len(toRemove) <= 0 {
+		return nil
+	}
+
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if len(toAdd) > 0 {
-			err = git_model.AddBranches(ctx, repo.ID, toAdd)
+			err = db.Insert(ctx, toAdd)
 			if err != nil {
 				return err
 			}

@@ -26,6 +26,11 @@
 			{{.locale.Tr "packages.title"}}
 		</a>
 		{{end}}
+		{{if not DisableWebhooks}}
+		<a class="{{if .PageIsSettingsHooks}}active {{end}}item" href="{{AppSubUrl}}/user/settings/hooks">
+			{{.locale.Tr "repo.settings.hooks"}}
+		</a>
+		{{end}}
 		<a class="{{if .PageIsSettingsOrganization}}active {{end}}item" href="{{AppSubUrl}}/user/settings/organization">
 			{{.locale.Tr "settings.organization"}}
 		</a>

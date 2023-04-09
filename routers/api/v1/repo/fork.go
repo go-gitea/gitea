@@ -108,7 +108,7 @@ func CreateFork(ctx *context.APIContext) {
 	if form.Organization == nil {
 		forker = ctx.Doer
 	} else {
-		org, err := organization.GetOrgByName(*form.Organization)
+		org, err := organization.GetOrgByName(ctx, *form.Organization)
 		if err != nil {
 			if organization.IsErrOrgNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "", err)

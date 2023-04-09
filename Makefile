@@ -23,16 +23,16 @@ SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
-XGO_VERSION := go-1.19.x
+XGO_VERSION := go-1.20.x
 
 AIR_PACKAGE ?= github.com/cosmtrek/air@v1.40.4
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.6.0
 ERRCHECK_PACKAGE ?= github.com/kisielk/errcheck@v1.6.2
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.4.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50.1
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.2
 GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.3
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.4
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.5.0
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@latest
@@ -77,6 +77,7 @@ ifeq ($(RACE_ENABLED),true)
 endif
 
 STORED_VERSION_FILE := VERSION
+HUGO_VERSION ?= 0.111.3
 
 ifneq ($(DRONE_TAG),)
 	VERSION ?= $(subst v,,$(DRONE_TAG))
@@ -105,7 +106,7 @@ GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/m
 
 FOMANTIC_WORK_DIR := web_src/fomantic
 
-WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
+WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
 WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/js/index.js public/css/index.css
 WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack public/serviceworker.js
@@ -130,8 +131,8 @@ TEST_TAGS ?= sqlite sqlite_unlock_notify
 
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
-GO_DIRS := cmd tests models modules routers build services tools
-WEB_DIRS := web_src/js web_src/less
+GO_DIRS := build cmd models modules routers services tests
+WEB_DIRS := web_src/js web_src/css
 
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
@@ -188,8 +189,10 @@ help:
 	@echo " - clean                            delete backend and integration files"
 	@echo " - clean-all                        delete backend, frontend and integration files"
 	@echo " - deps                             install dependencies"
+	@echo " - deps-docs                        install docs dependencies"
 	@echo " - deps-frontend                    install frontend dependencies"
 	@echo " - deps-backend                     install backend dependencies"
+	@echo " - deps-tools                       install tool dependencies"
 	@echo " - lint                             lint everything"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-backend                     lint backend files"
@@ -216,7 +219,6 @@ help:
 	@echo " - tidy                             run go mod tidy"
 	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
-	@echo " - pr#<index>                       build and start gitea from a PR with integration test data loaded"
 
 .PHONY: go-check
 go-check:
@@ -272,7 +274,7 @@ fmt:
 
 .PHONY: fmt-check
 fmt-check: fmt
-	@diff=$$(git diff $(GO_SOURCES) templates $(WEB_DIRS)); \
+	@diff=$$(git diff --color=always $(GO_SOURCES) templates $(WEB_DIRS)); \
 	if [ -n "$$diff" ]; then \
 	  echo "Please run 'make fmt' and commit the result:"; \
 	  echo "$${diff}"; \
@@ -308,7 +310,7 @@ $(SWAGGER_SPEC): $(GO_SOURCES_NO_BINDATA)
 
 .PHONY: swagger-check
 swagger-check: generate-swagger
-	@diff=$$(git diff '$(SWAGGER_SPEC)'); \
+	@diff=$$(git diff --color=always '$(SWAGGER_SPEC)'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make generate-swagger' and commit the result:"; \
 		echo "$${diff}"; \
@@ -341,7 +343,7 @@ lint: lint-frontend lint-backend
 .PHONY: lint-frontend
 lint-frontend: node_modules
 	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
-	npx stylelint --color --max-warnings=0 web_src/less
+	npx stylelint --color --max-warnings=0 web_src/css
 	npx spectral lint -q -F hint $(SWAGGER_SPEC)
 	npx markdownlint docs *.md
 
@@ -350,7 +352,7 @@ lint-backend: golangci-lint vet editorconfig-checker
 
 .PHONY: watch
 watch:
-	bash tools/watch.sh
+	bash build/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
@@ -413,7 +415,7 @@ vendor: go.mod go.sum
 
 .PHONY: tidy-check
 tidy-check: tidy
-	@diff=$$(git diff go.mod go.sum $(GO_LICENSE_FILE)); \
+	@diff=$$(git diff --color=always go.mod go.sum $(GO_LICENSE_FILE)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make tidy' and commit the result:"; \
 		echo "$${diff}"; \
@@ -745,7 +747,7 @@ generate-go: $(TAGS_PREREQ)
 
 .PHONY: security-check
 security-check:
-	go run $(GOVULNCHECK_PACKAGE) -v ./...
+	go run $(GOVULNCHECK_PACKAGE) ./...
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
@@ -814,14 +816,17 @@ release-docs: | $(DIST_DIRS) docs
 	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
 
 .PHONY: docs
-docs:
-	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		curl -sL https://github.com/gohugoio/hugo/releases/download/v0.74.3/hugo_0.74.3_Linux-64bit.tar.gz | tar zxf - -C /tmp && mv /tmp/hugo /usr/bin/hugo && chmod +x /usr/bin/hugo; \
-	fi
+docs: deps-docs
 	cd docs; make trans-copy clean build-offline;
 
+.PHONY: deps-docs
+deps-docs:
+	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		curl -sL https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_$(HUGO_VERSION)_Linux-64bit.tar.gz | tar zxf - -C /tmp && mkdir -p ~/go/bin && mv /tmp/hugo ~/go/bin/hugo && chmod +x ~/go/bin/hugo; \
+	fi
+
 .PHONY: deps
-deps: deps-frontend deps-backend
+deps: deps-frontend deps-backend deps-tools deps-docs
 
 .PHONY: deps-frontend
 deps-frontend: node_modules
@@ -829,6 +834,9 @@ deps-frontend: node_modules
 .PHONY: deps-backend
 deps-backend:
 	$(GO) mod download
+
+.PHONY: deps-tools
+deps-tools:
 	$(GO) install $(AIR_PACKAGE)
 	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE)
 	$(GO) install $(ERRCHECK_PACKAGE)
@@ -859,6 +867,8 @@ fomantic:
 	cp -f $(FOMANTIC_WORK_DIR)/theme.config.less $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/theme.config
 	cp -rf $(FOMANTIC_WORK_DIR)/_site $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/
 	cd $(FOMANTIC_WORK_DIR) && npx gulp -f node_modules/fomantic-ui/gulpfile.js build
+	# fomantic uses "touchstart" as click event for some browsers, it's not ideal, so we force fomantic to always use "click" as click event
+	$(SED_INPLACE) -e 's/clickEvent[ \t]*=/clickEvent = "click", unstableClickEvent =/g' $(FOMANTIC_WORK_DIR)/build/semantic.js
 	$(SED_INPLACE) -e 's/\r//g' $(FOMANTIC_WORK_DIR)/build/semantic.css $(FOMANTIC_WORK_DIR)/build/semantic.js
 	rm -f $(FOMANTIC_WORK_DIR)/build/*.min.*
 
@@ -879,7 +889,7 @@ svg: node-check | node_modules
 .PHONY: svg-check
 svg-check: svg
 	@git add $(SVG_DEST_DIR)
-	@diff=$$(git diff --cached $(SVG_DEST_DIR)); \
+	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIR)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
 		echo "$${diff}"; \
@@ -889,7 +899,7 @@ svg-check: svg
 .PHONY: lockfile-check
 lockfile-check:
 	npm install --package-lock-only
-	@diff=$$(git diff package-lock.json); \
+	@diff=$$(git diff --color=always package-lock.json); \
 	if [ -n "$$diff" ]; then \
 		echo "package-lock.json is inconsistent with package.json"; \
 		echo "Please run 'npm install --package-lock-only' and commit the result:"; \
@@ -927,10 +937,6 @@ generate-manpage:
 	@./gitea docs --man > man/man1/gitea.1
 	@gzip -9 man/man1/gitea.1 && echo man/man1/gitea.1.gz created
 	@#TODO A small script that formats config-cheat-sheet.en-us.md nicely for use as a config man page
-
-.PHONY: pr\#%
-pr\#%: clean-all
-	$(GO) run contrib/pr/checkout.go $*
 
 .PHONY: golangci-lint
 golangci-lint:

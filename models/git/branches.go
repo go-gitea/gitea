@@ -48,7 +48,7 @@ func init() {
 
 func LoadAllBranches(ctx context.Context, repoID int64) ([]*Branch, error) {
 	var branches []*Branch
-	err := db.GetEngine(ctx).Find(&branches)
+	err := db.GetEngine(ctx).Where("repo_id=?", repoID).Find(&branches)
 	return branches, err
 }
 

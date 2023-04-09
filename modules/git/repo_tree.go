@@ -6,7 +6,6 @@ package git
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -45,7 +44,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 	_, _ = messageBytes.WriteString("\n")
 
 	if opts.KeyID != "" || opts.AlwaysSign {
-		cmd.AddArguments(CmdArg(fmt.Sprintf("-S%s", opts.KeyID)))
+		cmd.AddOptionFormat("-S%s", opts.KeyID)
 	}
 
 	if opts.NoGPGSign {

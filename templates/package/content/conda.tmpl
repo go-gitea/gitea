@@ -4,11 +4,11 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-code"}} {{.locale.Tr "packages.conda.registry" | Safe}}</label>
-				<div class="markup"><pre class="code-block"><code>channel_alias: {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/conda
+				<div class="markup"><pre class="code-block"><code>channel_alias: <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/conda"></gitea-origin-url>
 channels:
-&#32;&#32;- {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/conda
+&#32;&#32;- <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/conda"></gitea-origin-url>
 default_channels:
-&#32;&#32;- {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/conda</code></pre></div>
+&#32;&#32;- <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/conda"></gitea-origin-url></code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.conda.install"}}</label>

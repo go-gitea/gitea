@@ -32,6 +32,8 @@ const (
 
 	AccessTokenScopeAdminOrgHook AccessTokenScope = "admin:org_hook"
 
+	AccessTokenScopeAdminUserHook AccessTokenScope = "admin:user_hook"
+
 	AccessTokenScopeNotification AccessTokenScope = "notification"
 
 	AccessTokenScopeUser       AccessTokenScope = "user"
@@ -64,7 +66,7 @@ type AccessTokenScopeBitmap uint64
 const (
 	// AccessTokenScopeAllBits is the bitmap of all access token scopes, except `sudo`.
 	AccessTokenScopeAllBits AccessTokenScopeBitmap = AccessTokenScopeRepoBits |
-		AccessTokenScopeAdminOrgBits | AccessTokenScopeAdminPublicKeyBits | AccessTokenScopeAdminOrgHookBits |
+		AccessTokenScopeAdminOrgBits | AccessTokenScopeAdminPublicKeyBits | AccessTokenScopeAdminOrgHookBits | AccessTokenScopeAdminUserHookBits |
 		AccessTokenScopeNotificationBits | AccessTokenScopeUserBits | AccessTokenScopeDeleteRepoBits |
 		AccessTokenScopePackageBits | AccessTokenScopeAdminGPGKeyBits | AccessTokenScopeAdminApplicationBits
 
@@ -85,6 +87,8 @@ const (
 	AccessTokenScopeReadRepoHookBits  AccessTokenScopeBitmap = 1 << iota
 
 	AccessTokenScopeAdminOrgHookBits AccessTokenScopeBitmap = 1 << iota
+
+	AccessTokenScopeAdminUserHookBits AccessTokenScopeBitmap = 1 << iota
 
 	AccessTokenScopeNotificationBits AccessTokenScopeBitmap = 1 << iota
 
@@ -123,6 +127,7 @@ var allAccessTokenScopes = []AccessTokenScope{
 	AccessTokenScopeAdminPublicKey, AccessTokenScopeWritePublicKey, AccessTokenScopeReadPublicKey,
 	AccessTokenScopeAdminRepoHook, AccessTokenScopeWriteRepoHook, AccessTokenScopeReadRepoHook,
 	AccessTokenScopeAdminOrgHook,
+	AccessTokenScopeAdminUserHook,
 	AccessTokenScopeNotification,
 	AccessTokenScopeUser, AccessTokenScopeReadUser, AccessTokenScopeUserEmail, AccessTokenScopeUserFollow,
 	AccessTokenScopeDeleteRepo,
@@ -147,6 +152,7 @@ var allAccessTokenScopeBits = map[AccessTokenScope]AccessTokenScopeBitmap{
 	AccessTokenScopeWriteRepoHook:    AccessTokenScopeWriteRepoHookBits,
 	AccessTokenScopeReadRepoHook:     AccessTokenScopeReadRepoHookBits,
 	AccessTokenScopeAdminOrgHook:     AccessTokenScopeAdminOrgHookBits,
+	AccessTokenScopeAdminUserHook:    AccessTokenScopeAdminUserHookBits,
 	AccessTokenScopeNotification:     AccessTokenScopeNotificationBits,
 	AccessTokenScopeUser:             AccessTokenScopeUserBits,
 	AccessTokenScopeReadUser:         AccessTokenScopeReadUserBits,
@@ -168,10 +174,23 @@ var allAccessTokenScopeBits = map[AccessTokenScope]AccessTokenScopeBitmap{
 
 // Parse parses the scope string into a bitmap, thus removing possible duplicates.
 func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
-	list := strings.Split(string(s), ",")
-
 	var bitmap AccessTokenScopeBitmap
-	for _, v := range list {
+
+	// The following is the more performant equivalent of 'for _, v := range strings.Split(remainingScope, ",")' as this is hot code
+	remainingScopes := string(s)
+	for len(remainingScopes) > 0 {
+		i := strings.IndexByte(remainingScopes, ',')
+		var v string
+		if i < 0 {
+			v = remainingScopes
+			remainingScopes = ""
+		} else if i+1 >= len(remainingScopes) {
+			v = remainingScopes[:i]
+			remainingScopes = ""
+		} else {
+			v = remainingScopes[:i]
+			remainingScopes = remainingScopes[i+1:]
+		}
 		singleScope := AccessTokenScope(v)
 		if singleScope == "" {
 			continue
@@ -187,7 +206,13 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 		}
 		bitmap |= bits
 	}
+
 	return bitmap, nil
+}
+
+// StringSlice returns the AccessTokenScope as a []string
+func (s AccessTokenScope) StringSlice() []string {
+	return strings.Split(string(s), ",")
 }
 
 // Normalize returns a normalized scope string without any duplicates.
@@ -244,7 +269,7 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 	scope := AccessTokenScope(strings.Join(scopes, ","))
 	scope = AccessTokenScope(strings.ReplaceAll(
 		string(scope),
-		"repo,admin:org,admin:public_key,admin:org_hook,notification,user,delete_repo,package,admin:gpg_key,admin:application",
+		"repo,admin:org,admin:public_key,admin:org_hook,admin:user_hook,notification,user,delete_repo,package,admin:gpg_key,admin:application",
 		"all",
 	))
 	return scope

@@ -1,7 +1,8 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "RubyGems Packages Repository"
-slug: "packages/rubygems"
+slug: "usage/packages/rubygems"
+weight: 110
 draft: false
 toc: false
 menu:
@@ -36,7 +37,7 @@ https://gitea.example.com/api/packages/{owner}/rubygems: Bearer {token}
 | Parameter     | Description |
 | ------------- | ----------- |
 | `owner`       | The owner of the package. |
-| `token`       | Your [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}). |
+| `token`       | Your [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}). |
 
 For example:
 

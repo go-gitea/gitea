@@ -38,8 +38,19 @@ func ToEmail(email *user_model.EmailAddress) *api.Email {
 	}
 }
 
+// ToEmail convert models.EmailAddress to api.Email
+func ToEmailSearch(email *user_model.SearchEmailResult) *api.Email {
+	return &api.Email{
+		Email:    email.Email,
+		Verified: email.IsActivated,
+		Primary:  email.IsPrimary,
+		UserID:   email.UID,
+		UserName: email.Name,
+	}
+}
+
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *git_model.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
+func ToBranch(ctx context.Context, repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *git_model.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
 		var hasPerm bool
 		var canPush bool
@@ -59,7 +70,7 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *git
 
 		return &api.Branch{
 			Name:                b.Name,
-			Commit:              ToPayloadCommit(repo, c),
+			Commit:              ToPayloadCommit(ctx, repo, c),
 			Protected:           false,
 			RequiredApprovals:   0,
 			EnableStatusCheck:   false,
@@ -71,7 +82,7 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *git
 
 	branch := &api.Branch{
 		Name:                b.Name,
-		Commit:              ToPayloadCommit(repo, c),
+		Commit:              ToPayloadCommit(ctx, repo, c),
 		Protected:           true,
 		RequiredApprovals:   bp.RequiredApprovals,
 		EnableStatusCheck:   bp.EnableStatusCheck,
@@ -169,8 +180,8 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 }
 
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
-func ToVerification(c *git.Commit) *api.PayloadCommitVerification {
-	verif := asymkey_model.ParseCommitWithSignature(c)
+func ToVerification(ctx context.Context, c *git.Commit) *api.PayloadCommitVerification {
+	verif := asymkey_model.ParseCommitWithSignature(ctx, c)
 	commitVerification := &api.PayloadCommitVerification{
 		Verified: verif.Verified,
 		Reason:   verif.Reason,
@@ -271,10 +282,10 @@ func ToDeployKey(apiLink string, key *asymkey_model.DeployKey) *api.DeployKey {
 }
 
 // ToOrganization convert user_model.User to api.Organization
-func ToOrganization(org *organization.Organization) *api.Organization {
+func ToOrganization(ctx context.Context, org *organization.Organization) *api.Organization {
 	return &api.Organization{
 		ID:                        org.ID,
-		AvatarURL:                 org.AsUser().AvatarLink(),
+		AvatarURL:                 org.AsUser().AvatarLink(ctx),
 		Name:                      org.Name,
 		UserName:                  org.Name,
 		FullName:                  org.FullName,
@@ -287,8 +298,8 @@ func ToOrganization(org *organization.Organization) *api.Organization {
 }
 
 // ToTeam convert models.Team to api.Team
-func ToTeam(team *organization.Team, loadOrg ...bool) (*api.Team, error) {
-	teams, err := ToTeams([]*organization.Team{team}, len(loadOrg) != 0 && loadOrg[0])
+func ToTeam(ctx context.Context, team *organization.Team, loadOrg ...bool) (*api.Team, error) {
+	teams, err := ToTeams(ctx, []*organization.Team{team}, len(loadOrg) != 0 && loadOrg[0])
 	if err != nil || len(teams) == 0 {
 		return nil, err
 	}
@@ -296,7 +307,7 @@ func ToTeam(team *organization.Team, loadOrg ...bool) (*api.Team, error) {
 }
 
 // ToTeams convert models.Team list to api.Team list
-func ToTeams(teams []*organization.Team, loadOrgs bool) ([]*api.Team, error) {
+func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]*api.Team, error) {
 	if len(teams) == 0 || teams[0] == nil {
 		return nil, nil
 	}
@@ -304,7 +315,7 @@ func ToTeams(teams []*organization.Team, loadOrgs bool) ([]*api.Team, error) {
 	cache := make(map[int64]*api.Organization)
 	apiTeams := make([]*api.Team, len(teams))
 	for i := range teams {
-		if err := teams[i].GetUnits(); err != nil {
+		if err := teams[i].LoadUnits(ctx); err != nil {
 			return nil, err
 		}
 
@@ -326,7 +337,7 @@ func ToTeams(teams []*organization.Team, loadOrgs bool) ([]*api.Team, error) {
 				if err != nil {
 					return nil, err
 				}
-				apiOrg = ToOrganization(org)
+				apiOrg = ToOrganization(ctx, org)
 				cache[teams[i].OrgID] = apiOrg
 			}
 			apiTeams[i].Organization = apiOrg
@@ -336,7 +347,7 @@ func ToTeams(teams []*organization.Team, loadOrgs bool) ([]*api.Team, error) {
 }
 
 // ToAnnotatedTag convert git.Tag to api.AnnotatedTag
-func ToAnnotatedTag(repo *repo_model.Repository, t *git.Tag, c *git.Commit) *api.AnnotatedTag {
+func ToAnnotatedTag(ctx context.Context, repo *repo_model.Repository, t *git.Tag, c *git.Commit) *api.AnnotatedTag {
 	return &api.AnnotatedTag{
 		Tag:          t.Name,
 		SHA:          t.ID.String(),
@@ -344,7 +355,7 @@ func ToAnnotatedTag(repo *repo_model.Repository, t *git.Tag, c *git.Commit) *api
 		Message:      t.Message,
 		URL:          util.URLJoin(repo.APIURL(), "git/tags", t.ID.String()),
 		Tagger:       ToCommitUser(t.Tagger),
-		Verification: ToVerification(c),
+		Verification: ToVerification(ctx, c),
 	}
 }
 
