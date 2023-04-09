@@ -1,6 +1,5 @@
 import {setFileFolding} from './file-fold.js';
 
-
 const {csrfToken, pageData} = window.config;
 const prReview = pageData.prReview || {};
 const viewedStyleClass = 'viewed-file-checked-form';
