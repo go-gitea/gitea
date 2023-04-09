@@ -23,7 +23,6 @@ import (
 
 	gouuid "github.com/google/uuid"
 	"github.com/quasoft/websspi"
-	"github.com/unrolled/render"
 )
 
 const (
@@ -48,7 +47,7 @@ var (
 // On successful authentication returns a valid user object.
 // Returns nil if authentication fails.
 type SSPI struct {
-	rnd *render.Render
+	rnd *templates.HTMLRender
 }
 
 // Init creates a new global websspi.Authenticator object

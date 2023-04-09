@@ -216,7 +216,7 @@ func newNotifyInputFromIssue(issue *issues_model.Issue, event webhook_module.Hoo
 	return newNotifyInput(issue.Repo, issue.Poster, event)
 }
 
-func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release, ref string, action api.HookReleaseAction) {
+func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release, action api.HookReleaseAction) {
 	if err := rel.LoadAttributes(ctx); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return
@@ -225,7 +225,7 @@ func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 	mode, _ := access_model.AccessLevel(ctx, doer, rel.Repo)
 
 	newNotifyInput(rel.Repo, doer, webhook_module.HookEventRelease).
-		WithRef(ref).
+		WithRef(git.TagPrefix + rel.TagName).
 		WithPayload(&api.ReleasePayload{
 			Action:     action,
 			Release:    convert.ToRelease(ctx, rel),
