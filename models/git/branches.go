@@ -52,15 +52,37 @@ func LoadAllBranches(ctx context.Context, repoID int64) ([]*Branch, error) {
 	return branches, err
 }
 
-func AddBranches(ctx context.Context, repoID int64, branches []string) error {
-	var dbBranches []*Branch
-	for _, branch := range branches {
-		dbBranches = append(dbBranches, &Branch{
-			RepoID: repoID,
-			Name:   branch,
-		})
+type FindBranchOptions struct {
+	db.ListOptions
+	RepoID int64
+}
+
+func FindBranches(ctx context.Context, opts FindBranchOptions) ([]*Branch, error) {
+	sess := db.GetEngine(ctx).Where("repo_id=?", opts.RepoID)
+	if opts.PageSize > 0 {
+		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}
-	return db.Insert(ctx, dbBranches)
+	var branches []*Branch
+	return branches, sess.Find(&branches)
+}
+
+func AddBranch(ctx context.Context, branch *Branch) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if _, err := db.GetEngine(ctx).Insert(branch); err != nil {
+			return err
+		}
+
+		return removeDeletedBranchByName(ctx, branch.RepoID, branch.Name)
+	})
+}
+
+func AddBranches(ctx context.Context, branches []*Branch) error {
+	for _, branch := range branches {
+		if err := AddBranch(ctx, branch); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func DeleteBranches(ctx context.Context, repoID, doerID int64, branchIDs []int64) error {

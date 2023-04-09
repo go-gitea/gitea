@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // CreateNewBranch creates a new repository branch
@@ -190,4 +192,104 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	}
 
 	return nil
+}
+
+// SyncRepoBranches synchronizes branch table with repository branches
+func SyncRepoBranches(ctx context.Context, repo *repo_model.Repository, doerID int64, gitRepo *git.Repository) error {
+	log.Debug("SyncRepoBranches: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
+
+	const limit = 100
+	var allBranches []string
+	for page := 1; ; page++ {
+		branches, _, err := gitRepo.GetBranchNames(page*limit, limit)
+		if err != nil {
+			return err
+		}
+		if len(branches) == 0 {
+			break
+		}
+		allBranches = append(allBranches, branches...)
+	}
+
+	dbBranches, err := git_model.LoadAllBranches(ctx, repo.ID)
+	if err != nil {
+		return err
+	}
+
+	var toAdd []*git_model.Branch
+	var toUpdate []*git_model.Branch
+	var toRemove []int64
+	for _, branch := range allBranches {
+		var dbb *git_model.Branch
+		for _, dbBranch := range dbBranches {
+			if branch == dbBranch.Name {
+				dbb = dbBranch
+				break
+			}
+		}
+		commit, err := gitRepo.GetBranchCommit(branch)
+		if err != nil {
+			return err
+		}
+		if dbb == nil {
+			toAdd = append(toAdd, &git_model.Branch{
+				RepoID:     repo.ID,
+				Name:       branch,
+				Commit:     commit.ID.String(),
+				PusherID:   doerID,
+				CommitTime: timeutil.TimeStamp(commit.Author.When.Unix()),
+			})
+		} else if commit.ID.String() != dbb.Commit {
+			toUpdate = append(toUpdate, &git_model.Branch{
+				ID:         dbb.ID,
+				RepoID:     repo.ID,
+				Name:       branch,
+				Commit:     commit.ID.String(),
+				PusherID:   doerID,
+				CommitTime: timeutil.TimeStamp(commit.Author.When.Unix()),
+			})
+		}
+	}
+
+	for _, dbBranch := range dbBranches {
+		var found bool
+		for _, branch := range allBranches {
+			if branch == dbBranch.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			toRemove = append(toRemove, dbBranch.ID)
+		}
+	}
+
+	if len(toAdd) <= 0 && len(toRemove) <= 0 && len(toUpdate) <= 0 {
+		return nil
+	}
+
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if len(toAdd) > 0 {
+			if err := git_model.AddBranches(ctx, toAdd); err != nil {
+				return err
+			}
+		}
+
+		if len(toUpdate) > 0 {
+			for _, b := range toUpdate {
+				if _, err := db.GetEngine(ctx).ID(b.ID).Cols("commit, pusher_id, commit_time").Update(b); err != nil {
+					return err
+				}
+			}
+		}
+
+		if len(toRemove) > 0 {
+			err = git_model.DeleteBranches(ctx, repo.ID, doerID, toRemove)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }

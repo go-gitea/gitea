@@ -445,7 +445,7 @@ func runRepoSyncBranches(_ *cli.Context) error {
 				continue
 			}
 
-			if err = repo_module.SyncBranches(ctx, repo, doer.ID, gitRepo); err != nil {
+			if err = repo_service.SyncRepoBranches(ctx, repo, doer.ID, gitRepo); err != nil {
 				log.Warn("repo_module.SyncBranches: %v", err)
 				gitRepo.Close()
 				continue
