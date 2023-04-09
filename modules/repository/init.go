@@ -47,7 +47,7 @@ func LoadRepoConfig() {
 	types := []string{"gitignore", "license", "readme", "label"}
 	typeFiles := make([][]string, 4)
 	for i, t := range types {
-		files, err := options.Dir(t)
+		files, err := options.AssetFS().ListFiles(t, true)
 		if err != nil {
 			log.Fatal("Failed to get %s files: %v", t, err)
 		}

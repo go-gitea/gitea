@@ -1,8 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build bindata
-
 package cmd
 
 import (
@@ -13,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"code.gitea.io/gitea/modules/assetfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/public"
@@ -89,15 +88,12 @@ var (
 		},
 	}
 
-	sections map[string]*section
-	assets   []asset
+	assets []asset
 )
 
 type section struct {
-	Path  string
-	Names func() []string
-	IsDir func(string) (bool, error)
-	Asset func(string) ([]byte, error)
+	Path    string
+	AssetFS *assetfs.LayeredFS
 }
 
 type asset struct {
@@ -121,9 +117,9 @@ func initEmbeddedExtractor(c *cli.Context) error {
 	}
 	sections := make(map[string]*section, 3)
 
-	sections["public"] = &section{Path: "public", Names: public.AssetNames, IsDir: public.AssetIsDir, Asset: public.Asset}
-	sections["options"] = &section{Path: "options", Names: options.AssetNames, IsDir: options.AssetIsDir, Asset: options.Asset}
-	sections["templates"] = &section{Path: "templates", Names: templates.BuiltinAssetNames, IsDir: templates.BuiltinAssetIsDir, Asset: templates.BuiltinAsset}
+	sections["public"] = &section{Path: "public", AssetFS: assetfs.Layered(public.BuiltinAssets())}
+	sections["options"] = &section{Path: "options", AssetFS: assetfs.Layered(options.BuiltinAssets())}
+	sections["templates"] = &section{Path: "templates", AssetFS: assetfs.Layered(templates.BuiltinAssets())}
 
 	for _, sec := range sections {
 		assets = append(assets, buildAssetList(sec, pats, c)...)
@@ -178,13 +174,7 @@ func runViewDo(c *cli.Context) error {
 		return err
 	}
 
-	if len(assets) == 0 {
-		return fmt.Errorf("No files matched the given pattern")
-	} else if len(assets) > 1 {
-		return fmt.Errorf("Too many files matched the given pattern; try to be more specific")
-	}
-
-	data, err := assets[0].Section.Asset(assets[0].Name)
+	data, err := assets[0].Section.AssetFS.ReadFile(assets[0].Name)
 	if err != nil {
 		return fmt.Errorf("%s: %w", assets[0].Path, err)
 	}
@@ -227,7 +217,7 @@ func runExtractDo(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("%s: %s", destdir, err)
 	} else if !fi.IsDir() {
-		return fmt.Errorf("%s is not a directory.", destdir)
+		return fmt.Errorf("destination %q is not a directory", destdir)
 	}
 
 	fmt.Printf("Extracting to %s:\n", destdir)
@@ -249,7 +239,7 @@ func extractAsset(d string, a asset, overwrite, rename bool) error {
 	dest := filepath.Join(d, filepath.FromSlash(a.Path))
 	dir := filepath.Dir(dest)
 
-	data, err := a.Section.Asset(a.Name)
+	data, err := a.Section.AssetFS.ReadFile(a.Name)
 	if err != nil {
 		return fmt.Errorf("%s: %w", a.Path, err)
 	}
@@ -295,23 +285,26 @@ func extractAsset(d string, a asset, overwrite, rename bool) error {
 
 func buildAssetList(sec *section, globs []glob.Glob, c *cli.Context) []asset {
 	results := make([]asset, 0, 64)
-	for _, name := range sec.Names() {
-		if isdir, err := sec.IsDir(name); !isdir && err == nil {
-			if sec.Path == "public" &&
-				strings.HasPrefix(name, "vendor/") &&
-				!c.Bool("include-vendored") {
-				continue
-			}
-			matchName := sec.Path + "/" + name
-			for _, g := range globs {
-				if g.Match(matchName) {
-					results = append(results, asset{
-						Section: sec,
-						Name:    name,
-						Path:    sec.Path + "/" + name,
-					})
-					break
-				}
+	files, err := sec.AssetFS.ListFiles(".", true)
+	if err != nil {
+		log.Error("Error listing files in %q: %v", sec.Path, err)
+		return results
+	}
+	for _, name := range files {
+		if sec.Path == "public" &&
+			strings.HasPrefix(name, "vendor/") &&
+			!c.Bool("include-vendored") {
+			continue
+		}
+		matchName := sec.Path + "/" + name
+		for _, g := range globs {
+			if g.Match(matchName) {
+				results = append(results, asset{
+					Section: sec,
+					Name:    name,
+					Path:    sec.Path + "/" + name,
+				})
+				break
 			}
 		}
 	}
@@ -326,7 +319,7 @@ func getPatterns(args []string) ([]glob.Glob, error) {
 	for i := range args {
 		if g, err := glob.Compile(args[i], '/'); err != nil {
 			return nil, fmt.Errorf("'%s': Invalid glob pattern: %w", args[i], err)
-		} else {
+		} else { //nolint:revive
 			pat[i] = g
 		}
 	}

@@ -4,11 +4,15 @@
 package public
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"os"
-	"path/filepath"
+	"path"
 	"strings"
+	"time"
 
+	"code.gitea.io/gitea/modules/assetfs"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
@@ -18,28 +22,36 @@ import (
 
 // Options represents the available options to configure the handler.
 type Options struct {
-	Directory   string
-	Prefix      string
 	CorsHandler func(http.Handler) http.Handler
 }
 
 // AssetsURLPathPrefix is the path prefix for static asset files
 const AssetsURLPathPrefix = "/assets/"
 
+func CustomAssets() *assetfs.Layer {
+	return assetfs.Local("custom", setting.CustomPath, "public")
+}
+
+func StaticAssets() *assetfs.Layer {
+	return assetfs.Local("static", setting.StaticRootPath, "public")
+}
+
 // AssetsHandlerFunc implements the static handler for serving custom or original assets.
 func AssetsHandlerFunc(opts *Options) http.HandlerFunc {
-	custPath := filepath.Join(setting.CustomPath, "public")
-	if !filepath.IsAbs(custPath) {
-		custPath = filepath.Join(setting.AppWorkPath, custPath)
-	}
-	if !filepath.IsAbs(opts.Directory) {
-		opts.Directory = filepath.Join(setting.AppWorkPath, opts.Directory)
-	}
-	if !strings.HasSuffix(opts.Prefix, "/") {
-		opts.Prefix += "/"
+	var assetFS http.FileSystem
+	if setting.HasBuiltinBindata {
+		assetFS = assetfs.Layered(CustomAssets(), StaticAssets(), BuiltinAssets()) // old behavior: always include StaticAssets
+	} else {
+		assetFS = assetfs.Layered(CustomAssets(), BuiltinAssets()) // now BuiltinAssets is StaticAssets
 	}
 
 	return func(resp http.ResponseWriter, req *http.Request) {
+		path := req.URL.Path
+		if !strings.HasPrefix(path, AssetsURLPathPrefix) {
+			return
+		}
+		path = strings.TrimPrefix(path, AssetsURLPathPrefix)
+
 		if req.Method != "GET" && req.Method != "HEAD" {
 			resp.WriteHeader(http.StatusNotFound)
 			return
@@ -56,15 +68,7 @@ func AssetsHandlerFunc(opts *Options) http.HandlerFunc {
 			}
 		}
 
-		file := req.URL.Path[len(opts.Prefix):]
-
-		// custom files
-		if opts.handle(resp, req, http.Dir(custPath), file) {
-			return
-		}
-
-		// internal files
-		if opts.handle(resp, req, fileSystem(opts.Directory), file) {
+		if opts.handle(resp, req, assetFS, path) {
 			return
 		}
 
@@ -85,7 +89,7 @@ func parseAcceptEncoding(val string) container.Set[string] {
 // setWellKnownContentType will set the Content-Type if the file is a well-known type.
 // See the comments of detectWellKnownMimeType
 func setWellKnownContentType(w http.ResponseWriter, file string) {
-	mimeType := detectWellKnownMimeType(filepath.Ext(file))
+	mimeType := detectWellKnownMimeType(path.Ext(file))
 	if mimeType != "" {
 		w.Header().Set("Content-Type", mimeType)
 	}
@@ -121,8 +125,34 @@ func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.Fi
 		return true
 	}
 
-	setWellKnownContentType(w, file)
-
 	serveContent(w, req, fi, fi.ModTime(), f)
 	return true
+}
+
+type GzipBytesProvider interface {
+	GzipBytes() []byte
+}
+
+// serveContent serve http content
+func serveContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modtime time.Time, content io.ReadSeeker) {
+	setWellKnownContentType(w, fi.Name())
+
+	encodings := parseAcceptEncoding(req.Header.Get("Accept-Encoding"))
+	if encodings.Contains("gzip") {
+		// try to provide gzip content directly from bindata (provided by vfsgen۰CompressedFileInfo)
+		if compressed, ok := fi.(GzipBytesProvider); ok {
+			rdGzip := bytes.NewReader(compressed.GzipBytes())
+			// all gzipped static files (from bindata) are managed by Gitea, so we can make sure every file has the correct ext name
+			// then we can get the correct Content-Type, we do not need to do http.DetectContentType on the decompressed data
+			if w.Header().Get("Content-Type") == "" {
+				w.Header().Set("Content-Type", "application/octet-stream")
+			}
+			w.Header().Set("Content-Encoding", "gzip")
+			http.ServeContent(w, req, fi.Name(), modtime, rdGzip)
+			return
+		}
+	}
+
+	http.ServeContent(w, req, fi.Name(), modtime, content)
+	return
 }
