@@ -1,7 +1,8 @@
 ---
 date: "2022-11-20T00:00:00+00:00"
 title: "Cargo Packages Repository"
-slug: "packages/cargo"
+slug: "usage/packages/cargo"
+weight: 5
 draft: false
 toc: false
 menu:
@@ -73,7 +74,7 @@ token = "Bearer {token}"
 
 | Parameter | Description |
 | --------- | ----------- |
-| `token`   | Your [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}) |
+| `token`   | Your [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) |
 
 ## Publish a package
 

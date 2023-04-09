@@ -100,6 +100,11 @@ func (org *Organization) IsOwnedBy(uid int64) (bool, error) {
 	return IsOrganizationOwner(db.DefaultContext, org.ID, uid)
 }
 
+// IsOrgAdmin returns true if given user is in the owner team or an admin team.
+func (org *Organization) IsOrgAdmin(uid int64) (bool, error) {
+	return IsOrganizationAdmin(db.DefaultContext, org.ID, uid)
+}
+
 // IsOrgMember returns true if given user is member of organization.
 func (org *Organization) IsOrgMember(uid int64) (bool, error) {
 	return IsOrganizationMember(db.DefaultContext, org.ID, uid)
@@ -338,9 +343,10 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 	units := make([]TeamUnit, 0, len(unit.AllRepoUnitTypes))
 	for _, tp := range unit.AllRepoUnitTypes {
 		units = append(units, TeamUnit{
-			OrgID:  org.ID,
-			TeamID: t.ID,
-			Type:   tp,
+			OrgID:      org.ID,
+			TeamID:     t.ID,
+			Type:       tp,
+			AccessMode: perm.AccessModeOwner,
 		})
 	}
 

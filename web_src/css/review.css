@@ -53,12 +53,6 @@
   margin-bottom: 0.5em;
 }
 
-.add-comment .lines-num,
-.add-comment .lines-escape,
-.add-comment .lines-type-marker {
-  display: none;
-}
-
 .show-outdated:hover,
 .hide-outdated:hover {
   text-decoration: underline;
@@ -67,8 +61,7 @@
 .comment-code-cloud {
   padding: 0.5rem 1rem !important;
   position: relative;
-  margin: 0 auto;
-  max-width: 1000px;
+  max-width: 820px;
 }
 
 @media (max-width: 767px) {
@@ -161,8 +154,11 @@
   margin: 0.5em;
 }
 
+.comment-code-cloud .editor-statusbar {
+  display: none;
+}
+
 .comment-code-cloud .footer {
-  border-top: 1px solid var(--color-secondary);
   padding: 10px 0;
 }
 
@@ -214,6 +210,10 @@ a.blob-excerpt:hover {
   color: var(--color-primary-contrast);
 }
 
+.review-box-panel .ui.segment {
+  border: none;
+}
+
 /* See the comment of createCommentEasyMDE() for the review editor */
 /* EasyMDE's options can not handle minHeight & maxHeight together correctly, we have to set minHeight in JS code */
 .review-box-panel .CodeMirror-scroll {
@@ -221,40 +221,13 @@ a.blob-excerpt:hover {
   max-height: calc(100vh - 360px);
 }
 
-@media (max-width: 767px) {
-  .review-box-panel .CodeMirror-scroll {
-    max-width: calc(100vw - 70px);
-  }
-}
-
-@media (min-width: 768px) and (max-width: 991px) {
-  .review-box-panel .CodeMirror-scroll {
-    max-width: 700px;
-  }
-}
-
-@media (min-width: 992px) and (max-width: 1200px) {
-  .review-box-panel .CodeMirror-scroll {
-    max-width: 800px;
-  }
-}
-
-@media (min-width: 1201px) {
-  .review-box-panel .CodeMirror-scroll {
-    max-width: 900px;
-  }
+.review-box-panel .combo-markdown-editor {
+  width: 730px; /* this width matches current EasyMDE's toolbar's width */
+  max-width: calc(100vw - 70px); /* leave enough space on left, and align the page content */
 }
 
 #review-box {
   position: relative;
-}
-
-.review-box-panel {
-  position: absolute;
-  min-width: max-content;
-  top: 45px;
-  right: -5px;
-  z-index: 2;
 }
 
 #review-box .review-comments-counter {
@@ -270,12 +243,12 @@ a.blob-excerpt:hover {
   display: none;
 }
 
-.pull.files.diff [id] {
+.pull.files.diff .comment {
   scroll-margin-top: 99px;
 }
 
 @media (max-width: 991px) {
-  .pull.files.diff [id] {
+  .pull.files.diff .comment {
     scroll-margin-top: 130px;
   }
 }
@@ -283,7 +256,7 @@ a.blob-excerpt:hover {
 .changed-since-last-review {
   border: 1px var(--color-accent) solid;
   background-color: var(--color-small-accent);
-  border-radius: 15px;
+  border-radius: var(--border-radius);
   padding: 4px 8px;
   margin: -8px 0; /* just like other buttons in the diff box header */
   font-size: 0.857rem; /* just like .ui.tiny.button */
@@ -311,12 +284,4 @@ a.blob-excerpt:hover {
 #viewed-files-summary {
   width: 72px;
   height: 10px;
-}
-
-.diff-file-box {
-  border-radius: 0.285rem; /* Just like ui.top.attached.header */
-}
-
-.diff-file-box:target {
-  box-shadow: 0 0 0 3px var(--color-accent);
 }

@@ -2,7 +2,7 @@
 <div class="timeline-item commits-list">
 {{range .comment.Commits}}
 	{{$tag := printf "%s-%d" $.comment.HashTag $index}}
-	{{$index = Add $index 1}}
+	{{$index = Eval $index "+" 1}}
 	<div class="singular-commit" id="{{$tag}}">
 		<span class="badge badge-commit">{{svg "octicon-git-commit"}}</span>
 		{{if .User}}
@@ -12,6 +12,8 @@
 		{{else}}
 			{{avatarByEmail $.root.Context .Author.Email .Author.Name}}
 		{{end}}
+
+		{{$commitLink:= printf "%s/commit/%s" $.comment.Issue.PullRequest.BaseRepo.Link (PathEscape .ID.String)}}
 
 		<span class="ui float right shabox">
 			{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $.root}}
@@ -30,23 +32,14 @@
 					{{$class = (printf "%s%s" $class " isWarning")}}
 				{{end}}
 			{{end}}
-			{{if $.comment.Issue.PullRequest.BaseRepo.Name}}
-				<a href="{{$.comment.Issue.PullRequest.BaseRepo.Link}}/commit/{{PathEscape .ID.String}}" rel="nofollow" class="{{$class}}">
-			{{else}}
-				<span class="{{$class}}">
-			{{end}}
-			<span class="shortsha">{{ShortSha .ID.String}}</span>
-			{{if .Signature}}
-				{{template "repo/shabox_badge" dict "root" $.root "verification" .Verification}}
-			{{end}}
-			{{if $.comment.Issue.PullRequest.BaseRepo.Name}}
-				</a>
-			{{else}}
-				</span>
-			{{end}}
+			<a href="{{$commitLink}}" rel="nofollow" class="{{$class}}">
+				<span class="shortsha">{{ShortSha .ID.String}}</span>
+				{{if .Signature}}
+					{{template "repo/shabox_badge" dict "root" $.root "verification" .Verification}}
+				{{end}}
+			</a>
 		</span>
 
-		{{$commitLink:= printf "%s/commit/%s" $.comment.Issue.PullRequest.BaseRepo.Link (PathEscape .ID.String)}}
 		<span class="gt-mono commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) $commitLink $.comment.Issue.PullRequest.BaseRepo.ComposeMetas}}</span>
 		{{if IsMultilineCommitMessage .Message}}
 			<button class="ui button ellipsis-button" aria-expanded="false">...</button>

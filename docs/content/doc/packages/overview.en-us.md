@@ -1,7 +1,8 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "Package Registry"
-slug: "packages/overview"
+slug: "usage/packages/overview"
+weight: 1
 draft: false
 toc: false
 menu:

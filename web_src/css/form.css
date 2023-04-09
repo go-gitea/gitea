@@ -1,3 +1,20 @@
+.ui.input textarea,
+.ui.form textarea,
+.ui.form input:not([type]),
+.ui.form input[type="date"],
+.ui.form input[type="datetime-local"],
+.ui.form input[type="email"],
+.ui.form input[type="number"],
+.ui.form input[type="password"],
+.ui.form input[type="search"],
+.ui.form input[type="tel"],
+.ui.form input[type="time"],
+.ui.form input[type="text"],
+.ui.form input[type="file"],
+.ui.form input[type="url"] {
+  transition: none;
+}
+
 input,
 textarea,
 .ui.input > input,
@@ -92,6 +109,15 @@ textarea:focus,
 .ui.checkbox input:focus ~ label,
 .ui.checkbox input:active ~ label {
   color: var(--color-text);
+}
+
+.ui.form .required.fields:not(.grouped) > .field > label::after,
+.ui.form .required.fields.grouped > label::after,
+.ui.form .required.field > label::after,
+.ui.form .required.fields:not(.grouped) > .field > .checkbox::after,
+.ui.form .required.field > .checkbox::after,
+.ui.form label.required::after {
+  color: var(--color-red);
 }
 
 .ui.input,
@@ -479,7 +505,8 @@ textarea:focus,
 
 .repository.new.repo form .selection.dropdown,
 .repository.new.migrate form .selection.dropdown,
-.repository.new.fork form .selection.dropdown {
+.repository.new.fork form .selection.dropdown,
+.repository.new.fork form .field a {
   vertical-align: middle;
   width: 50% !important;
 }
@@ -491,6 +518,7 @@ textarea:focus,
   .repository.new.repo form input,
   .repository.new.migrate form input,
   .repository.new.fork form input,
+  .repository.new.fork form .field a,
   .repository.new.repo form .selection.dropdown,
   .repository.new.migrate form .selection.dropdown,
   .repository.new.fork form .selection.dropdown {
@@ -500,8 +528,7 @@ textarea:focus,
   .repository.new.migrate form .field button,
   .repository.new.fork form .field button,
   .repository.new.repo form .field a,
-  .repository.new.migrate form .field a,
-  .repository.new.fork form .field a {
+  .repository.new.migrate form .field a {
     margin-bottom: 1em;
     width: 100%;
   }

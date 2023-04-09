@@ -4,17 +4,22 @@
 		<span class="ui small label review-comments-counter" data-pending-comment-number="{{.PendingCodeCommentNumber}}">{{.PendingCodeCommentNumber}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	</button>
-	<div class="review-box-panel gt-hidden">
+	<div class="review-box-panel tippy-target">
 		<div class="ui segment">
 			<form class="ui form" action="{{.Link}}/reviews/submit" method="post">
-			{{.CsrfTokenHtml}}
-				<input type="hidden" name="commit_id" value="{{.AfterCommitID}}"/>
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="commit_id" value="{{.AfterCommitID}}">
 				<div class="header gt-df gt-ac gt-pb-3">
 					<div class="gt-f1">{{$.locale.Tr "repo.diff.review.header"}}</div>
 					<a class="muted close gt-px-3">{{svg "octicon-x" 16}}</a>
 				</div>
 				<div class="ui field">
-					<textarea name="content" tabindex="0" rows="2" placeholder="{{$.locale.Tr "repo.diff.review.placeholder"}}"></textarea>
+					{{template "shared/combomarkdowneditor" (dict
+						"locale" $.locale
+						"TextareaName" "content"
+						"TextareaPlaceholder" ($.locale.Tr "repo.diff.review.placeholder")
+						"DropzoneParentContainer" "form"
+					)}}
 				</div>
 				{{if .IsAttachmentEnabled}}
 					<div class="field">
@@ -22,9 +27,22 @@
 					</div>
 				{{end}}
 				<div class="ui divider"></div>
-				<button type="submit" name="type" value="approve" {{if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID)}} disabled {{end}} class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
+				{{$showSelfTooltip := (and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID))}}
+				{{if $showSelfTooltip}}
+					<span class="gt-dib" data-tooltip-content="{{$.locale.Tr "repo.diff.review.self_approve"}}">
+						<button type="submit" name="type" value="approve" disabled class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
+					</span>
+				{{else}}
+					<button type="submit" name="type" value="approve" class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
+				{{end}}
 				<button type="submit" name="type" value="comment" class="ui submit tiny basic button btn-submit">{{$.locale.Tr "repo.diff.review.comment"}}</button>
-				<button type="submit" name="type" value="reject" {{if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID)}} disabled {{end}} class="ui submit red tiny button btn-submit">{{$.locale.Tr "repo.diff.review.reject"}}</button>
+				{{if $showSelfTooltip}}
+					<span class="gt-dib" data-tooltip-content="{{$.locale.Tr "repo.diff.review.self_reject"}}">
+						<button type="submit" name="type" value="reject" disabled class="ui submit red tiny button btn-submit">{{$.locale.Tr "repo.diff.review.reject"}}</button>
+					</span>
+				{{else}}
+					<button type="submit" name="type" value="reject" class="ui submit red tiny button btn-submit">{{$.locale.Tr "repo.diff.review.reject"}}</button>
+				{{end}}
 			</form>
 		</div>
 	</div>

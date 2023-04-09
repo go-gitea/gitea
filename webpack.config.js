@@ -11,8 +11,8 @@ import webpack from 'webpack';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 
-const {ESBuildMinifyPlugin} = EsBuildLoader;
-const {SourceMapDevToolPlugin} = webpack;
+const {EsbuildPlugin} = EsBuildLoader;
+const {SourceMapDevToolPlugin, DefinePlugin} = webpack;
 const formatLicenseText = (licenseText) => wrapAnsi(licenseText || '', 80).trim();
 
 const glob = (pattern) => fastGlob.sync(pattern, {
@@ -60,7 +60,7 @@ export default {
       fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
     ],
     webcomponents: [
-      fileURLToPath(new URL('web_src/js/webcomponents/GiteaOriginUrl.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/webcomponents/webcomponents.js', import.meta.url)),
     ],
     swagger: [
       fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
@@ -90,7 +90,7 @@ export default {
   optimization: {
     minimize: isProduction,
     minimizer: [
-      new ESBuildMinifyPlugin({
+      new EsbuildPlugin({
         target: 'es2015',
         minify: true,
         css: true,
@@ -112,25 +112,14 @@ export default {
         loader: 'vue-loader',
       },
       {
-        test: /\.worker\.js$/,
-        exclude: /monaco/,
-        use: [
-          {
-            loader: 'worker-loader',
-            options: {
-              inline: 'no-fallback',
-            },
-          },
-        ],
-      },
-      {
         test: /\.js$/,
         exclude: /node_modules/,
         use: [
           {
             loader: 'esbuild-loader',
             options: {
-              target: 'es2015'
+              loader: 'js',
+              target: 'es2015',
             },
           },
         ],
@@ -173,7 +162,7 @@ export default {
     ],
   },
   plugins: [
-    new webpack.DefinePlugin({
+    new DefinePlugin({
       __VUE_OPTIONS_API__: true, // at the moment, many Vue components still use the Vue Options API
       __VUE_PROD_DEVTOOLS__: false, // do not enable devtools support in production
     }),

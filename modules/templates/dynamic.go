@@ -6,18 +6,11 @@
 package templates
 
 import (
-	"html/template"
 	"io/fs"
 	"os"
 	"path/filepath"
-	texttmpl "text/template"
 
 	"code.gitea.io/gitea/modules/setting"
-)
-
-var (
-	subjectTemplates = texttmpl.New("")
-	bodyTemplates    = template.New("")
 )
 
 // GetAsset returns asset content via name

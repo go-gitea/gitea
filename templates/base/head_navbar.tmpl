@@ -1,4 +1,4 @@
-<div class="ui container" id="navbar" role="navigation" aria-label="{{.locale.Tr "aria.navbar"}}">
+<nav class="ui container" id="navbar" aria-label="{{.locale.Tr "aria.navbar"}}">
 	{{$notificationUnreadCount := 0}}
 	{{if .IsSigned}}
 		{{if .NotificationUnreadCount}}{{$notificationUnreadCount = call .NotificationUnreadCount}}{{end}}
@@ -9,7 +9,7 @@
 		</a>
 		<div class="gt-df gt-ac">
 			{{if .IsSigned}}
-			<a href="{{AppSubUrl}}/notifications" class="tooltip mobile-only gt-mr-4 gt-mt-3" data-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
+			<a href="{{AppSubUrl}}/notifications" class="mobile-only gt-mr-4 gt-mt-3" data-tooltip-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
 				<span class="fitted item">
 					{{svg "octicon-bell"}}
 					<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">
@@ -57,7 +57,7 @@
 
 	{{if and .IsSigned .MustChangePassword}}
 		<div class="right stackable menu">
-			<div class="ui dropdown jump item tooltip" tabindex="-1" data-content="{{.locale.Tr "user_profile_and_more"}}">
+			<div class="ui dropdown jump item" tabindex="-1" data-tooltip-content="{{.locale.Tr "user_profile_and_more"}}">
 				<span class="text">
 					{{avatar $.Context .SignedUser 24 "tiny"}}
 					<span class="sr-only">{{.locale.Tr "user_profile_and_more"}}</span>
@@ -100,25 +100,23 @@
 						{{.CsrfTokenHtml}}
 						<button
 							type="submit"
-							class="ui button mini compact basic icon fitted tooltip"
-							data-content="{{.locale.Tr "repo.issues.stop_tracking"}}"
-							data-position="top right"
+							class="ui button mini compact basic icon fitted"
+							data-tooltip-content="{{.locale.Tr "repo.issues.stop_tracking"}}"
 						>{{svg "octicon-square-fill"}}</button>
 					</form>
 					<form class="stopwatch-cancel" method="POST" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/cancel">
 						{{.CsrfTokenHtml}}
 						<button
 							type="submit"
-							class="ui button mini compact basic icon fitted tooltip"
-							data-content="{{.locale.Tr "repo.issues.cancel_tracking"}}"
-							data-position="top right"
+							class="ui button mini compact basic icon fitted"
+							data-tooltip-content="{{.locale.Tr "repo.issues.cancel_tracking"}}"
 						>{{svg "octicon-trash"}}</button>
 					</form>
 				</div>
 			</div>
 			{{end}}
 
-			<a href="{{AppSubUrl}}/notifications" class="item tooltip not-mobile gt-mx-0" data-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
+			<a href="{{AppSubUrl}}/notifications" class="item not-mobile gt-mx-0" data-tooltip-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
 				<span class="fitted item">
 					{{svg "octicon-bell"}}
 					<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">
@@ -127,7 +125,7 @@
 				</span>
 			</a>
 
-			<div class="ui dropdown jump item tooltip gt-mx-0" data-content="{{.locale.Tr "create_new"}}">
+			<div class="ui dropdown jump item gt-mx-0" data-tooltip-content="{{.locale.Tr "create_new"}}">
 				<span class="text">
 					<span class="fitted">{{svg "octicon-plus"}}</span>
 					<span class="sr-mobile-only">{{.locale.Tr "create_new"}}</span>
@@ -150,7 +148,7 @@
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
 
-			<div class="ui dropdown jump item tooltip gt-mx-0" tabindex="-1" data-content="{{.locale.Tr "user_profile_and_more"}}">
+			<div class="ui dropdown jump item gt-mx-0" data-tooltip-content="{{.locale.Tr "user_profile_and_more"}}">
 				<span class="text">
 					{{avatar $.Context .SignedUser 24 "tiny"}}
 					<span class="sr-only">{{.locale.Tr "user_profile_and_more"}}</span>
@@ -190,14 +188,14 @@
 
 						<a class="{{if .PageIsAdmin}}active {{end}}item" href="{{AppSubUrl}}/admin">
 							{{svg "octicon-server"}}
-							{{.locale.Tr "admin_panel"}}<!-- Admin Panel -->
+							{{.locale.Tr "admin_panel"}}
 						</a>
 					{{end}}
 
 					<div class="divider"></div>
 					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout" data-redirect="{{AppSubUrl}}/">
 						{{svg "octicon-sign-out"}}
-						{{.locale.Tr "sign_out"}}<!-- Sign Out -->
+						{{.locale.Tr "sign_out"}}
 					</a>
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
@@ -213,6 +211,6 @@
 			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login{{if not .PageIsSignIn}}?redirect_to={{.CurrentURL}}{{end}}">
 				{{svg "octicon-sign-in"}} {{.locale.Tr "sign_in"}}
 			</a>
-		</div><!-- end anonymous right menu -->
+		</div><!-- end anonymous user right menu -->
 	{{end}}
-</div>
+</nav>
