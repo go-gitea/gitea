@@ -29,7 +29,7 @@ local addIssueLabelsOverrides(labels) =
 
   grafanaDashboards+:: {
 
-    local giteaSelector = 'job="$job", instance="$instance"',
+    local giteaSelector = 'job=~"$job", instance=~"$instance"',
     local giteaStatsPanel =
       grafana.statPanel.new(
         'Gitea stats',
@@ -399,25 +399,31 @@ local addIssueLabelsOverrides(labels) =
       .addTemplate(
         {
           hide: 0,
-          label: null,
+          label: 'job',
           name: 'job',
           options: [],
+          datasource: '$datasource',
           query: 'label_values(gitea_organizations, job)',
           refresh: 1,
           regex: '',
           type: 'query',
+          multi: true,
+          allValue: '.+'
         },
       )
       .addTemplate(
         {
           hide: 0,
-          label: null,
+          label: 'instance',
           name: 'instance',
           options: [],
+          datasource: '$datasource',
           query: 'label_values(gitea_organizations{job="$job"}, instance)',
           refresh: 1,
           regex: '',
           type: 'query',
+          multi: true,
+          allValue: '.+'
         },
       )
       .addTemplate(

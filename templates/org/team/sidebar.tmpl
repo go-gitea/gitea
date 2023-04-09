@@ -11,7 +11,7 @@
 			{{else if .IsOrganizationOwner}}
 				<form method="post" action="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/action/join">
 					{{$.CsrfTokenHtml}}
-					<input type="hidden" name="page" value="team"/>
+					<input type="hidden" name="page" value="team">
 					<button type="submit" class="ui primary tiny button" name="uid" value="{{$.SignedUser.ID}}">{{$.locale.Tr "org.teams.join"}}</button>
 				</form>
 			{{end}}
@@ -58,14 +58,14 @@
 						</thead>
 						<tbody>
 							{{range $t, $unit := $.Units}}
-								{{if and (lt $unit.MaxPerm 2) (not $unit.Type.UnitGlobalDisabled)}}
+								{{if (not $unit.Type.UnitGlobalDisabled)}}
 									<tr>
 										<td><strong>{{$.locale.Tr $unit.NameKey}}</strong></td>
-										<td>{{if eq ($.Team.UnitAccessMode $unit.Type) 0 -}}
+										<td>{{if eq ($.Team.UnitAccessMode $.Context $unit.Type) 0 -}}
 										{{$.locale.Tr "org.teams.none_access"}}
-										{{- else if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $unit.Type) 1) -}}
+										{{- else if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1) -}}
 										{{$.locale.Tr "org.teams.read_access"}}
-										{{- else if eq ($.Team.UnitAccessMode $unit.Type) 2 -}}
+										{{- else if eq ($.Team.UnitAccessMode $.Context $unit.Type) 2 -}}
 										{{$.locale.Tr "org.teams.write_access"}}
 										{{- end}}</td>
 									</tr>

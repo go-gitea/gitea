@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package oauth2
 
@@ -8,13 +7,6 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/json"
 )
-
-// ________      _____          __  .__     ________
-// \_____  \    /  _  \  __ ___/  |_|  |__  \_____  \
-// /   |   \  /  /_\  \|  |  \   __\  |  \  /  ____/
-// /    |    \/    |    \  |  /|  | |   Y  \/       \
-// \_______  /\____|__  /____/ |__| |___|  /\_______ \
-//         \/         \/                 \/         \/
 
 // Source holds configuration for the OAuth2 login source.
 type Source struct {
@@ -25,13 +17,15 @@ type Source struct {
 	CustomURLMapping              *CustomURLMapping
 	IconURL                       string
 
-	Scopes             []string
-	RequiredClaimName  string
-	RequiredClaimValue string
-	GroupClaimName     string
-	AdminGroup         string
-	RestrictedGroup    string
-	SkipLocalTwoFA     bool `json:",omitempty"`
+	Scopes              []string
+	RequiredClaimName   string
+	RequiredClaimValue  string
+	GroupClaimName      string
+	AdminGroup          string
+	GroupTeamMap        string
+	GroupTeamMapRemoval bool
+	RestrictedGroup     string
+	SkipLocalTwoFA      bool `json:",omitempty"`
 
 	// reference to the authSource
 	authSource *auth.Source

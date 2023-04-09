@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -15,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -34,6 +34,10 @@ func (err ErrForbiddenIssueReaction) Error() string {
 	return fmt.Sprintf("'%s' is not an allowed reaction", err.Reaction)
 }
 
+func (err ErrForbiddenIssueReaction) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // ErrReactionAlreadyExist is used when a existing reaction was try to created
 type ErrReactionAlreadyExist struct {
 	Reaction string
@@ -47,6 +51,10 @@ func IsErrReactionAlreadyExist(err error) bool {
 
 func (err ErrReactionAlreadyExist) Error() string {
 	return fmt.Sprintf("reaction '%s' already exists", err.Reaction)
+}
+
+func (err ErrReactionAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // Reaction represents a reactions on issues and comments.
@@ -67,7 +75,7 @@ func (r *Reaction) LoadUser() (*user_model.User, error) {
 	if r.User != nil {
 		return r.User, nil
 	}
-	user, err := user_model.GetUserByIDCtx(db.DefaultContext, r.UserID)
+	user, err := user_model.GetUserByID(db.DefaultContext, r.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -211,11 +219,11 @@ type ReactionOptions struct {
 
 // CreateReaction creates reaction for issue or comment.
 func CreateReaction(opts *ReactionOptions) (*Reaction, error) {
-	if !setting.UI.ReactionsMap[opts.Type] {
+	if !setting.UI.ReactionsLookup.Contains(opts.Type) {
 		return nil, ErrForbiddenIssueReaction{opts.Type}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -316,16 +324,14 @@ func (list ReactionList) GroupByType() map[string]ReactionList {
 }
 
 func (list ReactionList) getUserIDs() []int64 {
-	userIDs := make(map[int64]struct{}, len(list))
+	userIDs := make(container.Set[int64], len(list))
 	for _, reaction := range list {
 		if reaction.OriginalAuthor != "" {
 			continue
 		}
-		if _, ok := userIDs[reaction.UserID]; !ok {
-			userIDs[reaction.UserID] = struct{}{}
-		}
+		userIDs.Add(reaction.UserID)
 	}
-	return container.KeysInt64(userIDs)
+	return userIDs.Values()
 }
 
 func valuesUser(m map[int64]*user_model.User) []*user_model.User {
@@ -348,7 +354,7 @@ func (list ReactionList) LoadUsers(ctx context.Context, repo *repo_model.Reposit
 		In("id", userIDs).
 		Find(&userMaps)
 	if err != nil {
-		return nil, fmt.Errorf("find user: %v", err)
+		return nil, fmt.Errorf("find user: %w", err)
 	}
 
 	for _, reaction := range list {

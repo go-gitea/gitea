@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markdown
 
@@ -10,11 +9,14 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 	giteautil "code.gitea.io/gitea/modules/util"
 
+	"github.com/microcosm-cc/bluemonday/css"
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/parser"
@@ -44,6 +46,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		ctx.TableOfContents = make([]markup.Header, 0, 100)
 	}
 
+	attentionMarkedBlockquotes := make(container.Set[*ast.Blockquote])
 	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
@@ -177,6 +180,23 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInDocuments)
 				}
 			}
+		case *ast.CodeSpan:
+			colorContent := n.Text(reader.Source())
+			if css.ColorHandler(strings.ToLower(string(colorContent))) {
+				v.AppendChild(v, NewColorPreview(colorContent))
+			}
+		case *ast.Emphasis:
+			// check if inside blockquote for attention, expected hierarchy is
+			// Emphasis < Paragraph < Blockquote
+			blockquote, isInBlockquote := n.Parent().Parent().(*ast.Blockquote)
+			if isInBlockquote && !attentionMarkedBlockquotes.Contains(blockquote) {
+				fullText := string(n.Text(reader.Source()))
+				if fullText == AttentionNote || fullText == AttentionWarning {
+					v.SetAttributeString("class", []byte("attention-"+strings.ToLower(fullText)))
+					v.Parent().InsertBefore(v.Parent(), v, NewAttention(fullText))
+					attentionMarkedBlockquotes.Add(blockquote)
+				}
+			}
 		}
 		return ast.WalkContinue, nil
 	})
@@ -198,7 +218,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 }
 
 type prefixedIDs struct {
-	values map[string]bool
+	values container.Set[string]
 }
 
 // Generate generates a new element id.
@@ -219,14 +239,12 @@ func (p *prefixedIDs) GenerateWithDefault(value, dft []byte) []byte {
 	if !bytes.HasPrefix(result, []byte("user-content-")) {
 		result = append([]byte("user-content-"), result...)
 	}
-	if _, ok := p.values[util.BytesToReadOnlyString(result)]; !ok {
-		p.values[util.BytesToReadOnlyString(result)] = true
+	if p.values.Add(util.BytesToReadOnlyString(result)) {
 		return result
 	}
 	for i := 1; ; i++ {
 		newResult := fmt.Sprintf("%s-%d", result, i)
-		if _, ok := p.values[newResult]; !ok {
-			p.values[newResult] = true
+		if p.values.Add(newResult) {
 			return []byte(newResult)
 		}
 	}
@@ -234,12 +252,12 @@ func (p *prefixedIDs) GenerateWithDefault(value, dft []byte) []byte {
 
 // Put puts a given element id to the used ids table.
 func (p *prefixedIDs) Put(value []byte) {
-	p.values[util.BytesToReadOnlyString(value)] = true
+	p.values.Add(util.BytesToReadOnlyString(value))
 }
 
 func newPrefixedIDs() *prefixedIDs {
 	return &prefixedIDs{
-		values: map[string]bool{},
+		values: make(container.Set[string]),
 	}
 }
 
@@ -267,8 +285,64 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(KindDetails, r.renderDetails)
 	reg.Register(KindSummary, r.renderSummary)
 	reg.Register(KindIcon, r.renderIcon)
+	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
+	reg.Register(KindAttention, r.renderAttention)
 	reg.Register(KindTaskCheckBoxListItem, r.renderTaskCheckBoxListItem)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
+}
+
+// renderCodeSpan renders CodeSpan elements (like goldmark upstream does) but also renders ColorPreview elements.
+// See #21474 for reference
+func (r *HTMLRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		if n.Attributes() != nil {
+			_, _ = w.WriteString("<code")
+			html.RenderAttributes(w, n, html.CodeAttributeFilter)
+			_ = w.WriteByte('>')
+		} else {
+			_, _ = w.WriteString("<code>")
+		}
+		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+			switch v := c.(type) {
+			case *ast.Text:
+				segment := v.Segment
+				value := segment.Value(source)
+				if bytes.HasSuffix(value, []byte("\n")) {
+					r.Writer.RawWrite(w, value[:len(value)-1])
+					r.Writer.RawWrite(w, []byte(" "))
+				} else {
+					r.Writer.RawWrite(w, value)
+				}
+			case *ColorPreview:
+				_, _ = w.WriteString(fmt.Sprintf(`<span class="color-preview" style="background-color: %v"></span>`, string(v.Color)))
+			}
+		}
+		return ast.WalkSkipChildren, nil
+	}
+	_, _ = w.WriteString("</code>")
+	return ast.WalkContinue, nil
+}
+
+// renderAttention renders a quote marked with i.e. "> **Note**" or "> **Warning**" with a corresponding svg
+func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		_, _ = w.WriteString(`<span class="attention-icon attention-`)
+		n := node.(*Attention)
+		_, _ = w.WriteString(strings.ToLower(n.AttentionType))
+		_, _ = w.WriteString(`">`)
+
+		var octiconType string
+		switch n.AttentionType {
+		case AttentionNote:
+			octiconType = "info"
+		case AttentionWarning:
+			octiconType = "alert"
+		}
+		_, _ = w.WriteString(string(svg.RenderHTML("octicon-" + octiconType)))
+	} else {
+		_, _ = w.WriteString("</span>\n")
+	}
+	return ast.WalkContinue, nil
 }
 
 func (r *HTMLRenderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {

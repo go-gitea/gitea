@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content user settings profile">
+<div role="main" aria-label="{{.Title}}" class="page-content user settings profile">
 	{{template "user/settings/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -12,8 +12,8 @@
 				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Name}}error{{end}}">
 					<label for="username">{{.locale.Tr "username"}}
-						<span class="text red hide" id="name-change-prompt"> {{.locale.Tr "settings.change_username_prompt"}}</span>
-						<span class="text red hide" id="name-change-redirect-prompt"> {{.locale.Tr "settings.change_username_redirect_prompt"}}</span>
+						<span class="text red gt-hidden" id="name-change-prompt"> {{.locale.Tr "settings.change_username_prompt"}}</span>
+						<span class="text red gt-hidden" id="name-change-redirect-prompt"> {{.locale.Tr "settings.change_username_redirect_prompt"}}</span>
 					</label>
 					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) .IsReverseProxy}}disabled{{end}}>
 					{{if or (not .SignedUser.IsLocal) .IsReverseProxy}}
@@ -30,7 +30,7 @@
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox" id="keep-email-private">
-						<label class="tooltip" data-content="{{.locale.Tr "settings.keep_email_private_popup"}}"><strong>{{.locale.Tr "settings.keep_email_private"}}</strong></label>
+						<label data-tooltip-content="{{.locale.Tr "settings.keep_email_private_popup"}}"><strong>{{.locale.Tr "settings.keep_email_private"}}</strong></label>
 						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
 					</div>
 				</div>
@@ -69,11 +69,11 @@
 						<div class="menu">
 							{{range $mode := .AllowedUserVisibilityModes}}
 								{{if $mode.IsPublic}}
-									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.locale.Tr "settings.visibility.public"}}</div>
+									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.locale.Tr "settings.visibility.public"}}</div>
 								{{else if $mode.IsLimited}}
-									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.locale.Tr "settings.visibility.limited"}}</div>
+									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.locale.Tr "settings.visibility.limited"}}</div>
 								{{else if $mode.IsPrivate}}
-									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.locale.Tr "settings.visibility.private"}}</div>
+									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.locale.Tr "settings.visibility.private"}}</div>
 								{{end}}
 							{{end}}
 						</div>
@@ -82,7 +82,7 @@
 
 				<div class="field">
 					<div class="ui checkbox" id="keep-activity-private">
-						<label class="tooltip" data-content="{{.locale.Tr "settings.keep_activity_private_popup"}}"><strong>{{.locale.Tr "settings.keep_activity_private"}}</strong></label>
+						<label data-tooltip-content="{{.locale.Tr "settings.keep_activity_private_popup"}}"><strong>{{.locale.Tr "settings.keep_activity_private"}}</strong></label>
 						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.KeepActivityPrivate}}checked{{end}}>
 					</div>
 				</div>
@@ -101,7 +101,7 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 				{{.CsrfTokenHtml}}
-				{{if not DisableGravatar}}
+				{{if not (DisableGravatar $.Context)}}
 				<div class="inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="lookup" type="radio" {{if not .SignedUser.UseCustomAvatar}}checked{{end}}>
@@ -110,7 +110,7 @@
 				</div>
 				<div class="field {{if .Err_Gravatar}}error{{end}}">
 					<label for="gravatar">Avatar {{.locale.Tr "email"}}</label>
-					<input id="gravatar" name="gravatar" value="{{.SignedUser.AvatarEmail}}" />
+					<input id="gravatar" name="gravatar" value="{{.SignedUser.AvatarEmail}}">
 				</div>
 				{{end}}
 

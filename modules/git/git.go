@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -202,6 +201,23 @@ func InitFull(ctx context.Context) (err error) {
 	return syncGitConfig()
 }
 
+func enableReflogs() error {
+	if err := configSet("core.logAllRefUpdates", "true"); err != nil {
+		return err
+	}
+	err := configSet("gc.reflogExpire", fmt.Sprintf("%d", setting.Git.Reflog.Expiration))
+	return err
+}
+
+func disableReflogs() error {
+	if err := configUnsetAll("core.logAllRefUpdates", "true"); err != nil {
+		return err
+	} else if err := configUnsetAll("gc.reflogExpire", ""); err != nil {
+		return err
+	}
+	return nil
+}
+
 // syncGitConfig only modifies gitconfig, won't change global variables (otherwise there will be data-race problem)
 func syncGitConfig() (err error) {
 	if err = os.MkdirAll(HomeDir(), os.ModePerm); err != nil {
@@ -223,6 +239,16 @@ func syncGitConfig() (err error) {
 	// Set git some configurations - these must be set to these values for gitea to work correctly
 	if err := configSet("core.quotePath", "false"); err != nil {
 		return err
+	}
+
+	if setting.Git.Reflog.Enabled {
+		if err := enableReflogs(); err != nil {
+			return err
+		}
+	} else {
+		if err := disableReflogs(); err != nil {
+			return err
+		}
 	}
 
 	if CheckGitVersionAtLeast("2.10") == nil {
@@ -313,7 +339,7 @@ func CheckGitVersionAtLeast(atLeast string) error {
 }
 
 func configSet(key, value string) error {
-	stdout, _, err := NewCommand(DefaultContext, "config", "--get", key).RunStdString(nil)
+	stdout, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
 	if err != nil && !err.IsExitCode(1) {
 		return fmt.Errorf("failed to get git config %s, err: %w", key, err)
 	}
@@ -323,7 +349,7 @@ func configSet(key, value string) error {
 		return nil
 	}
 
-	_, _, err = NewCommand(DefaultContext, "config", "--global", key, value).RunStdString(nil)
+	_, _, err = NewCommand(DefaultContext, "config", "--global").AddDynamicArguments(key, value).RunStdString(nil)
 	if err != nil {
 		return fmt.Errorf("failed to set git global config %s, err: %w", key, err)
 	}
@@ -332,14 +358,14 @@ func configSet(key, value string) error {
 }
 
 func configSetNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get", key).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
 	if err == nil {
 		// already exist
 		return nil
 	}
 	if err.IsExitCode(1) {
 		// not exist, set new config
-		_, _, err = NewCommand(DefaultContext, "config", "--global", key, value).RunStdString(nil)
+		_, _, err = NewCommand(DefaultContext, "config", "--global").AddDynamicArguments(key, value).RunStdString(nil)
 		if err != nil {
 			return fmt.Errorf("failed to set git global config %s, err: %w", key, err)
 		}
@@ -350,14 +376,14 @@ func configSetNonExist(key, value string) error {
 }
 
 func configAddNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get", key, regexp.QuoteMeta(value)).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
 	if err == nil {
 		// already exist
 		return nil
 	}
 	if err.IsExitCode(1) {
 		// not exist, add new config
-		_, _, err = NewCommand(DefaultContext, "config", "--global", "--add", key, value).RunStdString(nil)
+		_, _, err = NewCommand(DefaultContext, "config", "--global", "--add").AddDynamicArguments(key, value).RunStdString(nil)
 		if err != nil {
 			return fmt.Errorf("failed to add git global config %s, err: %w", key, err)
 		}
@@ -367,10 +393,10 @@ func configAddNonExist(key, value string) error {
 }
 
 func configUnsetAll(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get", key).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
 	if err == nil {
 		// exist, need to remove
-		_, _, err = NewCommand(DefaultContext, "config", "--global", "--unset-all", key, regexp.QuoteMeta(value)).RunStdString(nil)
+		_, _, err = NewCommand(DefaultContext, "config", "--global", "--unset-all").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
 		if err != nil {
 			return fmt.Errorf("failed to unset git global config %s, err: %w", key, err)
 		}
@@ -384,6 +410,6 @@ func configUnsetAll(key, value string) error {
 }
 
 // Fsck verifies the connectivity and validity of the objects in the database
-func Fsck(ctx context.Context, repoPath string, timeout time.Duration, args ...string) error {
+func Fsck(ctx context.Context, repoPath string, timeout time.Duration, args TrustedCmdArgs) error {
 	return NewCommand(ctx, "fsck").AddArguments(args...).Run(&RunOpts{Timeout: timeout, Dir: repoPath})
 }

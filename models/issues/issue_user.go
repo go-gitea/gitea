@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -29,7 +28,7 @@ func init() {
 func NewIssueUsers(ctx context.Context, repo *repo_model.Repository, issue *Issue) error {
 	assignees, err := repo_model.GetRepoAssignees(ctx, repo)
 	if err != nil {
-		return fmt.Errorf("getAssignees: %v", err)
+		return fmt.Errorf("getAssignees: %w", err)
 	}
 
 	// Poster can be anyone, append later if not one of assignees.

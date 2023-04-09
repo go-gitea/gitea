@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -112,6 +111,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		if len(test.addTime) > 0 {
 			var lfsLock api.LFSLockResponse
 			DecodeJSON(t, resp, &lfsLock)
+			assert.Equal(t, test.user.Name, lfsLock.Lock.Owner.Name)
 			assert.EqualValues(t, lfsLock.Lock.LockedAt.Format(time.RFC3339), lfsLock.Lock.LockedAt.Format(time.RFC3339Nano)) // locked at should be rounded to second
 			for _, id := range test.addTime {
 				resultsTests[id].locksTimes = append(resultsTests[id].locksTimes, time.Now())
@@ -129,7 +129,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		DecodeJSON(t, resp, &lfsLocks)
 		assert.Len(t, lfsLocks.Locks, test.totalCount)
 		for i, lock := range lfsLocks.Locks {
-			assert.EqualValues(t, test.locksOwners[i].DisplayName(), lock.Owner.Name)
+			assert.EqualValues(t, test.locksOwners[i].Name, lock.Owner.Name)
 			assert.WithinDuration(t, test.locksTimes[i], lock.LockedAt, 10*time.Second)
 			assert.EqualValues(t, lock.LockedAt.Format(time.RFC3339), lock.LockedAt.Format(time.RFC3339Nano)) // locked at should be rounded to second
 		}
@@ -143,7 +143,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		assert.Len(t, lfsLocksVerify.Ours, test.oursCount)
 		assert.Len(t, lfsLocksVerify.Theirs, test.theirsCount)
 		for _, lock := range lfsLocksVerify.Ours {
-			assert.EqualValues(t, test.user.DisplayName(), lock.Owner.Name)
+			assert.EqualValues(t, test.user.Name, lock.Owner.Name)
 			deleteTests = append(deleteTests, struct {
 				user   *user_model.User
 				repo   *repo_model.Repository
@@ -165,7 +165,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		var lfsLockRep api.LFSLockResponse
 		DecodeJSON(t, resp, &lfsLockRep)
 		assert.Equal(t, test.lockID, lfsLockRep.Lock.ID)
-		assert.Equal(t, test.user.DisplayName(), lfsLockRep.Lock.Owner.Name)
+		assert.Equal(t, test.user.Name, lfsLockRep.Lock.Owner.Name)
 	}
 
 	// check that we don't have any lock

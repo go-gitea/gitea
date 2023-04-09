@@ -1,8 +1,8 @@
 function displayError(el, err) {
   const target = targetElement(el);
-  target.remove('is-loading');
+  target.classList.remove('is-loading');
   const errorNode = document.createElement('div');
-  errorNode.setAttribute('class', 'ui message error markup-block-error mono');
+  errorNode.setAttribute('class', 'ui message error markup-block-error gt-mono');
   errorNode.textContent = err.str || err.message || String(err);
   target.before(errorNode);
 }
@@ -23,12 +23,16 @@ export async function renderMath() {
 
   for (const el of els) {
     const source = el.textContent;
-    const options = {display: el.classList.contains('display')};
+    const displayMode = el.classList.contains('display');
+    const nodeName = displayMode ? 'p' : 'span';
 
     try {
-      const markup = katex.renderToString(source, options);
-      const tempEl = document.createElement(options.display ? 'p' : 'span');
-      tempEl.innerHTML = markup;
+      const tempEl = document.createElement(nodeName);
+      katex.render(source, tempEl, {
+        maxSize: 25,
+        maxExpand: 50,
+        displayMode,
+      });
       targetElement(el).replaceWith(tempEl);
     } catch (error) {
       displayError(el, error);

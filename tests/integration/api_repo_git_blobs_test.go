@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -33,11 +32,10 @@ func TestAPIReposGitBlobs(t *testing.T) {
 	// Login as User2.
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session)
-	session = emptyTestSession(t) // don't want anyone logged in for this
 
 	// Test a public repo that anyone can GET the blob of
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s", user2.Name, repo1.Name, repo1ReadmeSHA)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	var gitBlobResponse api.GitBlobResponse
 	DecodeJSON(t, resp, &gitBlobResponse)
 	assert.NotNil(t, gitBlobResponse)
@@ -46,34 +44,33 @@ func TestAPIReposGitBlobs(t *testing.T) {
 
 	// Tests a private repo with no token so will fail
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s", user2.Name, repo16.Name, repo16ReadmeSHA)
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test using access token for a private repo that the user of the token owns
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s?token=%s", user2.Name, repo16.Name, repo16ReadmeSHA, token)
-	session.MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusOK)
 
 	// Test using bad sha
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s", user2.Name, repo1.Name, badSHA)
-	session.MakeRequest(t, req, http.StatusBadRequest)
+	MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test using org repo "user3/repo3" where user2 is a collaborator
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s?token=%s", user3.Name, repo3.Name, repo3ReadmeSHA, token)
-	session.MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusOK)
 
 	// Test using org repo "user3/repo3" where user2 is a collaborator
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s?token=%s", user3.Name, repo3.Name, repo3ReadmeSHA, token)
-	session.MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusOK)
 
 	// Test using org repo "user3/repo3" with no user token
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s", user3.Name, repo3ReadmeSHA, repo3.Name)
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	// Login as User4.
 	session = loginUser(t, user4.Name)
 	token4 := getTokenForLoggedInUser(t, session)
-	session = emptyTestSession(t) // don't want anyone logged in for this
 
 	// Test using org repo "user3/repo3" where user4 is a NOT collaborator
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/d56a3073c1dbb7b15963110a049d50cdb5db99fc?access=%s", user3.Name, repo3.Name, token4)
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 }

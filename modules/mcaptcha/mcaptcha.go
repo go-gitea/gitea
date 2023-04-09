@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mcaptcha
 
@@ -21,7 +20,7 @@ func Verify(ctx context.Context, token string) (bool, error) {
 		Token:       token,
 	})
 	if err != nil {
-		return false, fmt.Errorf("wasn't able to verify mCaptcha: %v", err)
+		return false, fmt.Errorf("wasn't able to verify mCaptcha: %w", err)
 	}
 	return valid, nil
 }

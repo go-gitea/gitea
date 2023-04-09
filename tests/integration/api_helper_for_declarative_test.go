@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -14,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/json"
@@ -32,9 +32,9 @@ type APITestContext struct {
 	ExpectedCode int
 }
 
-func NewAPITestContext(t *testing.T, username, reponame string) APITestContext {
+func NewAPITestContext(t *testing.T, username, reponame string, scope ...auth.AccessTokenScope) APITestContext {
 	session := loginUser(t, username)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, scope...)
 	return APITestContext{
 		Session:  session,
 		Token:    token,

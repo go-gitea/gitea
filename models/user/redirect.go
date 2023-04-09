@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -10,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrUserRedirectNotExist represents a "UserRedirectNotExist" kind of error.
@@ -25,6 +25,10 @@ func IsErrUserRedirectNotExist(err error) bool {
 
 func (err ErrUserRedirectNotExist) Error() string {
 	return fmt.Sprintf("user redirect does not exist [name: %s]", err.Name)
+}
+
+func (err ErrUserRedirectNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // Redirect represents that a user name should be redirected to another

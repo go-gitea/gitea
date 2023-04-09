@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package activities
 
@@ -49,32 +48,32 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 	stats := &ActivityStats{Code: &git.CodeActivityStats{}}
 	if releases {
 		if err := stats.FillReleases(repo.ID, timeFrom); err != nil {
-			return nil, fmt.Errorf("FillReleases: %v", err)
+			return nil, fmt.Errorf("FillReleases: %w", err)
 		}
 	}
 	if prs {
 		if err := stats.FillPullRequests(repo.ID, timeFrom); err != nil {
-			return nil, fmt.Errorf("FillPullRequests: %v", err)
+			return nil, fmt.Errorf("FillPullRequests: %w", err)
 		}
 	}
 	if issues {
 		if err := stats.FillIssues(repo.ID, timeFrom); err != nil {
-			return nil, fmt.Errorf("FillIssues: %v", err)
+			return nil, fmt.Errorf("FillIssues: %w", err)
 		}
 	}
 	if err := stats.FillUnresolvedIssues(repo.ID, timeFrom, issues, prs); err != nil {
-		return nil, fmt.Errorf("FillUnresolvedIssues: %v", err)
+		return nil, fmt.Errorf("FillUnresolvedIssues: %w", err)
 	}
 	if code {
 		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 		if err != nil {
-			return nil, fmt.Errorf("OpenRepository: %v", err)
+			return nil, fmt.Errorf("OpenRepository: %w", err)
 		}
 		defer closer.Close()
 
 		code, err := gitRepo.GetCodeActivityStats(timeFrom, repo.DefaultBranch)
 		if err != nil {
-			return nil, fmt.Errorf("FillFromGit: %v", err)
+			return nil, fmt.Errorf("FillFromGit: %w", err)
 		}
 		stats.Code = code
 	}
@@ -85,25 +84,25 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %v", err)
+		return nil, fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer closer.Close()
 
 	code, err := gitRepo.GetCodeActivityStats(timeFrom, "")
 	if err != nil {
-		return nil, fmt.Errorf("FillFromGit: %v", err)
+		return nil, fmt.Errorf("FillFromGit: %w", err)
 	}
 	if code.Authors == nil {
 		return nil, nil
 	}
 	users := make(map[int64]*ActivityAuthorData)
 	var unknownUserID int64
-	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink()
+	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink(ctx)
 	for _, v := range code.Authors {
 		if len(v.Email) == 0 {
 			continue
 		}
-		u, err := user_model.GetUserByEmail(v.Email)
+		u, err := user_model.GetUserByEmail(ctx, v.Email)
 		if u == nil || user_model.IsErrUserNotExist(err) {
 			unknownUserID--
 			users[unknownUserID] = &ActivityAuthorData{
@@ -120,7 +119,7 @@ func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository
 			users[u.ID] = &ActivityAuthorData{
 				Name:       u.DisplayName(),
 				Login:      u.LowerName,
-				AvatarLink: u.AvatarLink(),
+				AvatarLink: u.AvatarLink(ctx),
 				HomeLink:   u.HomeLink(),
 				Commits:    v.Commits,
 			}

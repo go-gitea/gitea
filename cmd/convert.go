@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -33,10 +32,10 @@ func runConvert(ctx *cli.Context) error {
 	log.Info("AppPath: %s", setting.AppPath)
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)
-	log.Info("Log path: %s", setting.LogRootPath)
+	log.Info("Log path: %s", setting.Log.RootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
 
-	if !setting.Database.UseMySQL {
+	if !setting.Database.Type.IsMySQL() {
 		fmt.Println("This command can only be used with a MySQL database")
 		return nil
 	}

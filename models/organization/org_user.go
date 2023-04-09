@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization
 
@@ -9,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 
@@ -54,6 +54,20 @@ func IsOrganizationOwner(ctx context.Context, orgID, uid int64) (bool, error) {
 	return IsTeamMember(ctx, orgID, ownerTeam.ID, uid)
 }
 
+// IsOrganizationAdmin returns true if given user is in the owner team or an admin team.
+func IsOrganizationAdmin(ctx context.Context, orgID, uid int64) (bool, error) {
+	teams, err := GetUserOrgTeams(ctx, orgID, uid)
+	if err != nil {
+		return false, err
+	}
+	for _, t := range teams {
+		if t.AccessMode >= perm.AccessModeAdmin {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // IsOrganizationMember returns true if given user is member of organization.
 func IsOrganizationMember(ctx context.Context, orgID, uid int64) (bool, error) {
 	return db.GetEngine(ctx).
@@ -74,8 +88,8 @@ func IsPublicMembership(orgID, uid int64) (bool, error) {
 }
 
 // CanCreateOrgRepo returns true if user can create repo in organization
-func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
-	return db.GetEngine(db.DefaultContext).
+func CanCreateOrgRepo(ctx context.Context, orgID, uid int64) (bool, error) {
+	return db.GetEngine(ctx).
 		Where(builder.Eq{"team.can_create_org_repo": true}).
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		And("team_user.uid = ?", uid).
@@ -118,7 +132,7 @@ func loadOrganizationOwners(ctx context.Context, users user_model.UserList, orgI
 		And("team_id=?", ownerTeam.ID).
 		Find(&ownerMaps)
 	if err != nil {
-		return nil, fmt.Errorf("find team users: %v", err)
+		return nil, fmt.Errorf("find team users: %w", err)
 	}
 	return ownerMaps, nil
 }

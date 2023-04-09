@@ -6,7 +6,7 @@
 				{{.locale.Tr "twofa"}}
 				</h3>
 				<div class="ui attached segment">
-					<i class="huge key icon"></i>
+					{{svg "octicon-key" 56}}
 					<h3>{{.locale.Tr "webauthn_insert_key"}}</h3>
 					{{template "base/alert" .}}
 					<p>{{.locale.Tr "webauthn_sign_in"}}</p>

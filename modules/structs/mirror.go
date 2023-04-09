@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package structs
 
@@ -10,6 +9,7 @@ type CreatePushMirrorOption struct {
 	RemoteUsername string `json:"remote_username"`
 	RemotePassword string `json:"remote_password"`
 	Interval       string `json:"interval"`
+	SyncOnCommit   bool   `json:"sync_on_commit"`
 }
 
 // PushMirror represents information of a push mirror
@@ -22,4 +22,5 @@ type PushMirror struct {
 	LastUpdateUnix string `json:"last_update"`
 	LastError      string `json:"last_error"`
 	Interval       string `json:"interval"`
+	SyncOnCommit   bool   `json:"sync_on_commit"`
 }

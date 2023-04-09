@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -22,7 +21,7 @@ func TeamAddRepository(t *organization.Team, repo *repo_model.Repository) (err e
 		return nil
 	}
 
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		return models.AddRepository(ctx, t, repo)
 	})
 }

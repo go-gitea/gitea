@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -9,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"html"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -34,6 +34,7 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
+	"gopkg.in/yaml.v3"
 )
 
 // IssueTemplateDirCandidates issue templates directory
@@ -46,6 +47,13 @@ var IssueTemplateDirCandidates = []string{
 	".github/issue_template",
 	".gitlab/ISSUE_TEMPLATE",
 	".gitlab/issue_template",
+}
+
+var IssueConfigCandidates = []string{
+	".gitea/ISSUE_TEMPLATE/config",
+	".gitea/issue_template/config",
+	".github/ISSUE_TEMPLATE/config",
+	".github/issue_template/config",
 }
 
 // PullRequest contains information to make a pull request
@@ -120,14 +128,15 @@ type CanCommitToBranchResults struct {
 //
 // and branch is not protected for push
 func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
-	protectedBranch, err := git_model.GetProtectedBranchBy(ctx, r.Repository.ID, r.BranchName)
+	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, r.Repository.ID, r.BranchName)
 	if err != nil {
 		return CanCommitToBranchResults{}, err
 	}
 	userCanPush := true
 	requireSigned := false
 	if protectedBranch != nil {
-		userCanPush = protectedBranch.CanUserPush(doer.ID)
+		protectedBranch.Repo = r.Repository
+		userCanPush = protectedBranch.CanUserPush(ctx, doer)
 		requireSigned = protectedBranch.RequireSignedCommits
 	}
 
@@ -164,13 +173,13 @@ func (r *Repository) CanUseTimetracker(issue *issues_model.Issue, user *user_mod
 	// 1. Is timetracker enabled
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
 	isAssigned, _ := issues_model.IsUserAssignedToIssue(db.DefaultContext, issue, user)
-	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
+	return r.Repository.IsTimetrackerEnabled(db.DefaultContext) && (!r.Repository.AllowOnlyContributorsToTrackTime(db.DefaultContext) ||
 		r.Permission.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsPoster(user.ID) || isAssigned)
 }
 
 // CanCreateIssueDependencies returns whether or not a user can create dependencies.
 func (r *Repository) CanCreateIssueDependencies(user *user_model.User, isPull bool) bool {
-	return r.Repository.IsDependenciesEnabled() && r.Permission.CanWriteIssuesOrPulls(isPull)
+	return r.Repository.IsDependenciesEnabled(db.DefaultContext) && r.Permission.CanWriteIssuesOrPulls(isPull)
 }
 
 // GetCommitsCount returns cached commit count for current view
@@ -231,41 +240,40 @@ func (r *Repository) FileExists(path, branch string) (bool, error) {
 
 // GetEditorconfig returns the .editorconfig definition if found in the
 // HEAD of the default repo branch.
-func (r *Repository) GetEditorconfig(optCommit ...*git.Commit) (*editorconfig.Editorconfig, error) {
+func (r *Repository) GetEditorconfig(optCommit ...*git.Commit) (cfg *editorconfig.Editorconfig, warning, err error) {
 	if r.GitRepo == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
-	var (
-		err    error
-		commit *git.Commit
-	)
+
+	var commit *git.Commit
+
 	if len(optCommit) != 0 {
 		commit = optCommit[0]
 	} else {
 		commit, err = r.GitRepo.GetBranchCommit(r.Repository.DefaultBranch)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	treeEntry, err := commit.GetTreeEntryByPath(".editorconfig")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if treeEntry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
-		return nil, git.ErrNotExist{ID: "", RelPath: ".editorconfig"}
+		return nil, nil, git.ErrNotExist{ID: "", RelPath: ".editorconfig"}
 	}
 	reader, err := treeEntry.Blob().DataAsync()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer reader.Close()
-	return editorconfig.Parse(reader)
+	return editorconfig.ParseGraceful(reader)
 }
 
 // RetrieveBaseRepo retrieves base repository
 func RetrieveBaseRepo(ctx *Context, repo *repo_model.Repository) {
 	// Non-fork repository will not return error in this method.
-	if err := repo.GetBaseRepo(); err != nil {
+	if err := repo.GetBaseRepo(ctx); err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			repo.IsFork = false
 			repo.ForkID = 0
@@ -273,8 +281,8 @@ func RetrieveBaseRepo(ctx *Context, repo *repo_model.Repository) {
 		}
 		ctx.ServerError("GetBaseRepo", err)
 		return
-	} else if err = repo.BaseRepo.GetOwner(ctx); err != nil {
-		ctx.ServerError("BaseRepo.GetOwner", err)
+	} else if err = repo.BaseRepo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("BaseRepo.LoadOwner", err)
 		return
 	}
 }
@@ -290,8 +298,8 @@ func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 		}
 		ctx.ServerError("GetTemplateRepo", err)
 		return
-	} else if err = templateRepo.GetOwner(ctx); err != nil {
-		ctx.ServerError("TemplateRepo.GetOwner", err)
+	} else if err = templateRepo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("TemplateRepo.LoadOwner", err)
 		return
 	}
 
@@ -336,7 +344,7 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	ownerName := ctx.Params(":username")
 	previousRepoName := ctx.Params(":reponame")
 
-	repo, err := repo_model.GetRepositoryByID(redirectRepoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, redirectRepoID)
 	if err != nil {
 		ctx.ServerError("GetRepositoryByID", err)
 		return
@@ -356,8 +364,8 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 
 func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	var err error
-	if err = repo.GetOwner(ctx); err != nil {
-		ctx.ServerError("GetOwner", err)
+	if err = repo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("LoadOwner", err)
 		return
 	}
 
@@ -411,7 +419,7 @@ func RepoIDAssignment() func(ctx *Context) {
 		repoID := ctx.ParamsInt64(":repoid")
 
 		// Get repository.
-		repo, err := repo_model.GetRepositoryByID(repoID)
+		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
 				ctx.NotFound("GetRepositoryByID", nil)
@@ -441,8 +449,10 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	userName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 	repoName = strings.TrimSuffix(repoName, ".git")
-	repoName = strings.TrimSuffix(repoName, ".rss")
-	repoName = strings.TrimSuffix(repoName, ".atom")
+	if setting.EnableFeed {
+		repoName = strings.TrimSuffix(repoName, ".rss")
+		repoName = strings.TrimSuffix(repoName, ".atom")
+	}
 
 	// Check if the user is the same as the repository owner
 	if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
@@ -451,11 +461,20 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		owner, err = user_model.GetUserByName(ctx, userName)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
+				// go-get does not support redirects
+				// https://github.com/golang/go/issues/19760
 				if ctx.FormString("go-get") == "1" {
 					EarlyResponseForGoGetMeta(ctx)
 					return
 				}
-				ctx.NotFound("GetUserByName", nil)
+
+				if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
+					RedirectToUser(ctx, userName, redirectUserID)
+				} else if user_model.IsErrUserRedirectNotExist(err) {
+					ctx.NotFound("GetUserByName", nil)
+				} else {
+					ctx.ServerError("LookupUserRedirect", err)
+				}
 			} else {
 				ctx.ServerError("GetUserByName", err)
 			}
@@ -518,19 +537,26 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
 	ctx.Data["RepoRelPath"] = ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
 
-	unit, err := ctx.Repo.Repository.GetUnit(unit_model.TypeExternalTracker)
+	if setting.EnableFeed {
+		ctx.Data["EnableFeed"] = true
+		ctx.Data["FeedURL"] = ctx.Repo.RepoLink
+	}
+
+	unit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeExternalTracker)
 	if err == nil {
 		ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 	}
 
-	ctx.Data["NumTags"], err = repo_model.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
-		IncludeTags: true,
+	ctx.Data["NumTags"], err = repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		HasSha1:       util.OptionalBoolTrue, // only draft releases which are created with existing tags
 	})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return
 	}
-	ctx.Data["NumReleases"], err = repo_model.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{})
+	ctx.Data["NumReleases"], err = repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return
@@ -647,20 +673,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		return
 	}
 
-	tags, err := ctx.Repo.GitRepo.GetTags(0, 0)
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		if strings.Contains(err.Error(), "fatal: not a git repository ") {
-			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
-			ctx.Repo.Repository.Status = repo_model.RepositoryBroken
-			ctx.Repo.Repository.IsEmpty = true
-			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
-			// Only allow access to base of repo or settings
-			if !isHomeOrSettings {
-				ctx.Redirect(ctx.Repo.RepoLink)
-			}
-			return
-		}
-		ctx.ServerError("GetTags", err)
+		ctx.ServerError("GetTagNamesByRepoID", err)
 		return
 	}
 	ctx.Data["Tags"] = tags
@@ -711,13 +726,13 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
 	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
-		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.ServerError("GetPendingRepositoryTransfer", err)
 			return
 		}
 
-		if err := repoTransfer.LoadAttributes(); err != nil {
+		if err := repoTransfer.LoadAttributes(ctx); err != nil {
 			ctx.ServerError("LoadRecipient", err)
 			return
 		}
@@ -730,9 +745,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	if ctx.FormString("go-get") == "1" {
 		ctx.Data["GoGetImport"] = ComposeGoGetImport(owner.Name, repo.Name)
-		prefix := repo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(ctx.Repo.BranchName)
-		ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
-		ctx.Data["GoDocFile"] = prefix + "{/dir}/{file}#L{line}"
+		fullURLPrefix := repo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(ctx.Repo.BranchName)
+		ctx.Data["GoDocDirectory"] = fullURLPrefix + "{/dir}"
+		ctx.Data["GoDocFile"] = fullURLPrefix + "{/dir}/{file}#L{line}"
 	}
 	return cancel
 }
@@ -805,7 +820,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		}
 		// For legacy and API support only full commit sha
 		parts := strings.Split(path, "/")
-		if len(parts) > 0 && len(parts[0]) == 40 {
+		if len(parts) > 0 && len(parts[0]) == git.SHAFullLength {
 			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
@@ -819,7 +834,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		if len(ref) == 0 {
 			// maybe it's a renamed branch
 			return getRefNameFromPath(ctx, path, func(s string) bool {
-				b, exist, err := git_model.FindRenamedBranch(ctx.Repo.Repository.ID, s)
+				b, exist, err := git_model.FindRenamedBranch(ctx, ctx.Repo.Repository.ID, s)
 				if err != nil {
 					log.Error("FindRenamedBranch", err)
 					return false
@@ -841,7 +856,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsTagExist)
 	case RepoRefCommit:
 		parts := strings.Split(path, "/")
-		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= 40 {
+		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= git.SHAFullLength {
 			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
@@ -950,7 +965,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if len(refName) >= 7 && len(refName) <= 40 {
+			} else if len(refName) >= 7 && len(refName) <= git.SHAFullLength {
 				ctx.Repo.IsViewCommit = true
 				ctx.Repo.CommitID = refName
 
@@ -960,7 +975,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 					return
 				}
 				// If short commit ID add canonical link header
-				if len(refName) < 40 {
+				if len(refName) < git.SHAFullLength {
 					ctx.RespHeader().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
 						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1))))
 				}
@@ -1030,6 +1045,7 @@ func UnitTypes() func(ctx *Context) {
 		ctx.Data["UnitTypeExternalTracker"] = unit_model.TypeExternalTracker
 		ctx.Data["UnitTypeProjects"] = unit_model.TypeProjects
 		ctx.Data["UnitTypePackages"] = unit_model.TypePackages
+		ctx.Data["UnitTypeActions"] = unit_model.TypeActions
 	}
 }
 
@@ -1076,9 +1092,117 @@ func (ctx *Context) IssueTemplatesErrorsFromDefaultBranch() ([]*api.IssueTemplat
 			if it, err := template.UnmarshalFromEntry(entry, dirName); err != nil {
 				invalidFiles[fullName] = err
 			} else {
+				if !strings.HasPrefix(it.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
+					it.Ref = git.BranchPrefix + it.Ref
+				}
 				issueTemplates = append(issueTemplates, it)
 			}
 		}
 	}
 	return issueTemplates, invalidFiles
+}
+
+func GetDefaultIssueConfig() api.IssueConfig {
+	return api.IssueConfig{
+		BlankIssuesEnabled: true,
+		ContactLinks:       make([]api.IssueConfigContactLink, 0),
+	}
+}
+
+// GetIssueConfig loads the given issue config file.
+// It never returns a nil config.
+func (r *Repository) GetIssueConfig(path string, commit *git.Commit) (api.IssueConfig, error) {
+	if r.GitRepo == nil {
+		return GetDefaultIssueConfig(), nil
+	}
+
+	var err error
+
+	treeEntry, err := commit.GetTreeEntryByPath(path)
+	if err != nil {
+		return GetDefaultIssueConfig(), err
+	}
+
+	reader, err := treeEntry.Blob().DataAsync()
+	if err != nil {
+		log.Debug("DataAsync: %v", err)
+		return GetDefaultIssueConfig(), nil
+	}
+
+	defer reader.Close()
+
+	configContent, err := io.ReadAll(reader)
+	if err != nil {
+		return GetDefaultIssueConfig(), err
+	}
+
+	issueConfig := api.IssueConfig{}
+	if err := yaml.Unmarshal(configContent, &issueConfig); err != nil {
+		return GetDefaultIssueConfig(), err
+	}
+
+	for pos, link := range issueConfig.ContactLinks {
+		if link.Name == "" {
+			return GetDefaultIssueConfig(), fmt.Errorf("contact_link at position %d is missing name key", pos+1)
+		}
+
+		if link.URL == "" {
+			return GetDefaultIssueConfig(), fmt.Errorf("contact_link at position %d is missing url key", pos+1)
+		}
+
+		if link.About == "" {
+			return GetDefaultIssueConfig(), fmt.Errorf("contact_link at position %d is missing about key", pos+1)
+		}
+
+		_, err = url.ParseRequestURI(link.URL)
+		if err != nil {
+			return GetDefaultIssueConfig(), fmt.Errorf("%s is not a valid URL", link.URL)
+		}
+	}
+
+	return issueConfig, nil
+}
+
+// IssueConfigFromDefaultBranch returns the issue config for this repo.
+// It never returns a nil config.
+func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
+	if ctx.Repo.Repository.IsEmpty {
+		return GetDefaultIssueConfig(), nil
+	}
+
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	if err != nil {
+		return GetDefaultIssueConfig(), err
+	}
+
+	for _, configName := range IssueConfigCandidates {
+		if _, err := commit.GetTreeEntryByPath(configName + ".yaml"); err == nil {
+			return ctx.Repo.GetIssueConfig(configName+".yaml", commit)
+		}
+
+		if _, err := commit.GetTreeEntryByPath(configName + ".yml"); err == nil {
+			return ctx.Repo.GetIssueConfig(configName+".yml", commit)
+		}
+	}
+
+	return GetDefaultIssueConfig(), nil
+}
+
+// IsIssueConfig returns if the given path is a issue config file.
+func (r *Repository) IsIssueConfig(path string) bool {
+	for _, configName := range IssueConfigCandidates {
+		if path == configName+".yaml" || path == configName+".yml" {
+			return true
+		}
+	}
+	return false
+}
+
+func (ctx *Context) HasIssueTemplatesOrContactLinks() bool {
+	if len(ctx.IssueTemplatesFromDefaultBranch()) > 0 {
+		return true
+	}
+
+	issueConfig, _ := ctx.IssueConfigFromDefaultBranch()
+	return len(issueConfig.ContactLinks) > 0
 }

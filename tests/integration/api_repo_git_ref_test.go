@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -25,12 +24,12 @@ func TestAPIReposGitRefs(t *testing.T) {
 		"refs/tags/v1.1",    // Tag
 	} {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/%s?token="+token, user.Name, ref)
-		session.MakeRequest(t, req, http.StatusOK)
+		MakeRequest(t, req, http.StatusOK)
 	}
 	// Test getting all refs
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/refs?token="+token, user.Name)
-	session.MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusOK)
 	// Test getting non-existent refs
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/refs/heads/unknown?token="+token, user.Name)
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 }

@@ -2,7 +2,11 @@ import $ from 'jquery';
 import {svg} from '../svg.js';
 import {invertFileFolding} from './file-fold.js';
 import {createTippy} from '../modules/tippy.js';
-import {copyToClipboard} from './clipboard.js';
+import {clippie} from 'clippie';
+import {toAbsoluteUrl} from '../utils.js';
+
+export const singleAnchorRegex = /^#(L|n)([1-9][0-9]*)$/;
+export const rangeAnchorRegex = /^#(L[1-9][0-9]*)-(L[1-9][0-9]*)$/;
 
 function changeHash(hash) {
   if (window.history.pushState) {
@@ -16,17 +20,18 @@ function selectRange($list, $select, $from) {
   $list.removeClass('active');
 
   // add hashchange to permalink
-  const $issue = $('a.ref-in-new-issue');
+  const $refInNewIssue = $('a.ref-in-new-issue');
   const $copyPermalink = $('a.copy-line-permalink');
   const $viewGitBlame = $('a.view_git_blame');
 
   const updateIssueHref = function (anchor) {
-    if ($issue.length === 0) {
+    if ($refInNewIssue.length === 0) {
       return;
     }
-    let href = $issue.attr('href');
-    href = `${href.replace(/%23L\d+$|%23L\d+-L\d+$/, '')}%23${anchor}`;
-    $issue.attr('href', href);
+    const urlIssueNew = $refInNewIssue.attr('data-url-issue-new');
+    const urlParamBodyLink = $refInNewIssue.attr('data-url-param-body-link');
+    const issueContent = `${toAbsoluteUrl(urlParamBodyLink)}#${anchor}`; // the default content for issue body
+    $refInNewIssue.attr('href', `${urlIssueNew}?body=${encodeURIComponent(issueContent)}`);
   };
 
   const updateViewGitBlameFragment = function (anchor) {
@@ -135,7 +140,7 @@ export function initRepoCodeView() {
     });
 
     $(window).on('hashchange', () => {
-      let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
+      let m = window.location.hash.match(rangeAnchorRegex);
       let $list;
       if ($('div.blame').length) {
         $list = $('.code-view td.lines-code.blame-code');
@@ -145,27 +150,31 @@ export function initRepoCodeView() {
       let $first;
       if (m) {
         $first = $list.filter(`[rel=${m[1]}]`);
-        selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
+        if ($first.length) {
+          selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
 
-        // show code view menu marker (don't show in blame page)
-        if ($('div.blame').length === 0) {
-          showLineButton();
+          // show code view menu marker (don't show in blame page)
+          if ($('div.blame').length === 0) {
+            showLineButton();
+          }
+
+          $('html, body').scrollTop($first.offset().top - 200);
+          return;
         }
-
-        $('html, body').scrollTop($first.offset().top - 200);
-        return;
       }
-      m = window.location.hash.match(/^#(L|n)(\d+)$/);
+      m = window.location.hash.match(singleAnchorRegex);
       if (m) {
         $first = $list.filter(`[rel=L${m[2]}]`);
-        selectRange($list, $first);
+        if ($first.length) {
+          selectRange($list, $first);
 
-        // show code view menu marker (don't show in blame page)
-        if ($('div.blame').length === 0) {
-          showLineButton();
+          // show code view menu marker (don't show in blame page)
+          if ($('div.blame').length === 0) {
+            showLineButton();
+          }
+
+          $('html, body').scrollTop($first.offset().top - 200);
         }
-
-        $('html, body').scrollTop($first.offset().top - 200);
       }
     }).trigger('hashchange');
   }
@@ -181,7 +190,7 @@ export function initRepoCodeView() {
     currentTarget.closest('tr').outerHTML = blob;
   });
   $(document).on('click', '.copy-line-permalink', async (e) => {
-    const success = await copyToClipboard(e.currentTarget.getAttribute('data-url'));
+    const success = await clippie(toAbsoluteUrl(e.currentTarget.getAttribute('data-url')));
     if (!success) return;
     document.querySelector('.code-line-button')?._tippy?.hide();
   });

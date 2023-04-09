@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package translation
 
@@ -18,6 +17,10 @@ import (
 
 	"golang.org/x/text/language"
 )
+
+type contextKey struct{}
+
+var ContextKey interface{} = &contextKey{}
 
 // Locale represents an interface to translation
 type Locale interface {

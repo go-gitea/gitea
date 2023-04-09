@@ -24,7 +24,7 @@ export default {
   },
 
   /* Fail the build on CI if you accidentally left test.only in the source code. */
-  forbidOnly: !!process.env.CI,
+  forbidOnly: Boolean(process.env.CI),
 
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
@@ -64,12 +64,13 @@ export default {
       },
     },
 
-    {
-      name: 'firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-      },
-    },
+    // disabled because of https://github.com/go-gitea/gitea/issues/21355
+    // {
+    //   name: 'firefox',
+    //   use: {
+    //     ...devices['Desktop Firefox'],
+    //   },
+    // },
 
     {
       name: 'webkit',

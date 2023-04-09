@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package csv
 
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 
 	"github.com/stretchr/testify/assert"
@@ -230,7 +230,10 @@ John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimiters`,
 	}
 
 	for n, c := range cases {
-		delimiter := determineDelimiter(&markup.RenderContext{RelativePath: c.filename}, []byte(decodeSlashes(t, c.csv)))
+		delimiter := determineDelimiter(&markup.RenderContext{
+			Ctx:          git.DefaultContext,
+			RelativePath: c.filename,
+		}, []byte(decodeSlashes(t, c.csv)))
 		assert.EqualValues(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
 	}
 }

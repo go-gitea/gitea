@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -11,6 +10,15 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
+)
+
+// enumerates all the types of captchas
+const (
+	ImageCaptcha = "image"
+	ReCaptcha    = "recaptcha"
+	HCaptcha     = "hcaptcha"
+	MCaptcha     = "mcaptcha"
+	CfTurnstile  = "cfturnstile"
 )
 
 // Service settings
@@ -40,12 +48,15 @@ var Service = struct {
 	EnableReverseProxyEmail                 bool
 	EnableReverseProxyFullName              bool
 	EnableCaptcha                           bool
+	RequireCaptchaForLogin                  bool
 	RequireExternalRegistrationCaptcha      bool
 	RequireExternalRegistrationPassword     bool
 	CaptchaType                             string
 	RecaptchaSecret                         string
 	RecaptchaSitekey                        string
 	RecaptchaURL                            string
+	CfTurnstileSecret                       string
+	CfTurnstileSitekey                      string
 	HcaptchaSecret                          string
 	HcaptchaSitekey                         string
 	McaptchaSecret                          string
@@ -103,8 +114,8 @@ func (a AllowedVisibility) ToVisibleTypeSlice() (result []structs.VisibleType) {
 	return result
 }
 
-func newService() {
-	sec := Cfg.Section("service")
+func loadServiceFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("service")
 	Service.ActiveCodeLives = sec.Key("ACTIVE_CODE_LIVE_MINUTES").MustInt(180)
 	Service.ResetPwdCodeLives = sec.Key("RESET_PASSWD_CODE_LIVE_MINUTES").MustInt(180)
 	Service.DisableRegistration = sec.Key("DISABLE_REGISTRATION").MustBool()
@@ -130,12 +141,15 @@ func newService() {
 	Service.EnableReverseProxyEmail = sec.Key("ENABLE_REVERSE_PROXY_EMAIL").MustBool()
 	Service.EnableReverseProxyFullName = sec.Key("ENABLE_REVERSE_PROXY_FULL_NAME").MustBool()
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool(false)
+	Service.RequireCaptchaForLogin = sec.Key("REQUIRE_CAPTCHA_FOR_LOGIN").MustBool(false)
 	Service.RequireExternalRegistrationCaptcha = sec.Key("REQUIRE_EXTERNAL_REGISTRATION_CAPTCHA").MustBool(Service.EnableCaptcha)
 	Service.RequireExternalRegistrationPassword = sec.Key("REQUIRE_EXTERNAL_REGISTRATION_PASSWORD").MustBool()
 	Service.CaptchaType = sec.Key("CAPTCHA_TYPE").MustString(ImageCaptcha)
 	Service.RecaptchaSecret = sec.Key("RECAPTCHA_SECRET").MustString("")
 	Service.RecaptchaSitekey = sec.Key("RECAPTCHA_SITEKEY").MustString("")
 	Service.RecaptchaURL = sec.Key("RECAPTCHA_URL").MustString("https://www.google.com/recaptcha/")
+	Service.CfTurnstileSecret = sec.Key("CF_TURNSTILE_SECRET").MustString("")
+	Service.CfTurnstileSitekey = sec.Key("CF_TURNSTILE_SITEKEY").MustString("")
 	Service.HcaptchaSecret = sec.Key("HCAPTCHA_SECRET").MustString("")
 	Service.HcaptchaSitekey = sec.Key("HCAPTCHA_SITEKEY").MustString("")
 	Service.McaptchaURL = sec.Key("MCAPTCHA_URL").MustString("https://demo.mcaptcha.org/")
@@ -179,11 +193,13 @@ func newService() {
 	}
 	Service.ValidSiteURLSchemes = schemes
 
-	if err := Cfg.Section("service.explore").MapTo(&Service.Explore); err != nil {
-		log.Fatal("Failed to map service.explore settings: %v", err)
-	}
+	mustMapSetting(rootCfg, "service.explore", &Service.Explore)
 
-	sec = Cfg.Section("openid")
+	loadOpenIDSetting(rootCfg)
+}
+
+func loadOpenIDSetting(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
 	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration && Service.EnableOpenIDSignIn)
 	pats := sec.Key("WHITELISTED_URIS").Strings(" ")

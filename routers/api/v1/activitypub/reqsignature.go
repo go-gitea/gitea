@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package activitypub
 
@@ -26,7 +25,7 @@ func getPublicKeyFromResponse(b []byte, keyID *url.URL) (p crypto.PublicKey, err
 	person := ap.PersonNew(ap.IRI(keyID.String()))
 	err = person.UnmarshalJSON(b)
 	if err != nil {
-		err = fmt.Errorf("ActivityStreams type cannot be converted to one known to have publicKey property: %v", err)
+		err = fmt.Errorf("ActivityStreams type cannot be converted to one known to have publicKey property: %w", err)
 		return
 	}
 	pubKey := person.PublicKey

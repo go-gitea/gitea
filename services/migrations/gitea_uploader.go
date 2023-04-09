@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Copyright 2018 Jonas Franz. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -10,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -18,11 +16,11 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/foreignreference"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -31,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/uri"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/pull"
 
 	"github.com/google/uuid"
@@ -110,7 +109,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 			Status:         repo_model.RepositoryBeingMigrated,
 		})
 	} else {
-		r, err = repo_model.GetRepositoryByID(opts.MigrateToRepoID)
+		r, err = repo_model.GetRepositoryByID(g.ctx, opts.MigrateToRepoID)
 	}
 	if err != nil {
 		return err
@@ -219,18 +218,20 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 // CreateLabels creates labels
 func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 	lbs := make([]*issues_model.Label, 0, len(labels))
-	for _, label := range labels {
-		// We must validate color here:
-		if !issues_model.LabelColorPattern.MatchString("#" + label.Color) {
-			log.Warn("Invalid label color: #%s for label: %s in migration to %s/%s", label.Color, label.Name, g.repoOwner, g.repoName)
-			label.Color = "ffffff"
+	for _, l := range labels {
+		if color, err := label.NormalizeColor(l.Color); err != nil {
+			log.Warn("Invalid label color: #%s for label: %s in migration to %s/%s", l.Color, l.Name, g.repoOwner, g.repoName)
+			l.Color = "#ffffff"
+		} else {
+			l.Color = color
 		}
 
 		lbs = append(lbs, &issues_model.Label{
 			RepoID:      g.repo.ID,
-			Name:        label.Name,
-			Description: label.Description,
-			Color:       "#" + label.Color,
+			Name:        l.Name,
+			Exclusive:   l.Exclusive,
+			Description: l.Description,
+			Color:       l.Color,
 		})
 	}
 
@@ -288,12 +289,12 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
 			if !git.IsErrNotExist(err) {
 				if err != nil {
-					return fmt.Errorf("GetTagCommit[%v]: %v", rel.TagName, err)
+					return fmt.Errorf("GetTagCommit[%v]: %w", rel.TagName, err)
 				}
 				rel.Sha1 = commit.ID.String()
 				rel.NumCommits, err = commit.CommitsCount()
 				if err != nil {
-					return fmt.Errorf("CommitsCount: %v", err)
+					return fmt.Errorf("CommitsCount: %w", err)
 				}
 			}
 		}
@@ -404,12 +405,6 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			Labels:      labels,
 			CreatedUnix: timeutil.TimeStamp(issue.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(issue.Updated.Unix()),
-			ForeignReference: &foreignreference.ForeignReference{
-				LocalIndex:   issue.GetLocalIndex(),
-				ForeignIndex: strconv.FormatInt(issue.GetForeignIndex(), 10),
-				RepoID:       g.repo.ID,
-				Type:         foreignreference.TypeIssue,
-			},
 		}
 
 		if err := g.remapUser(issue, &is); err != nil {
@@ -462,13 +457,34 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 		if comment.Updated.IsZero() {
 			comment.Updated = comment.Created
 		}
-
+		if comment.CommentType == "" {
+			// if type field is missing, then assume a normal comment
+			comment.CommentType = issues_model.CommentTypeComment.String()
+		}
 		cm := issues_model.Comment{
 			IssueID:     issue.ID,
-			Type:        issues_model.CommentTypeComment,
+			Type:        issues_model.AsCommentType(comment.CommentType),
 			Content:     comment.Content,
 			CreatedUnix: timeutil.TimeStamp(comment.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(comment.Updated.Unix()),
+		}
+
+		switch cm.Type {
+		case issues_model.CommentTypeAssignees:
+			if assigneeID, ok := comment.Meta["AssigneeID"].(int); ok {
+				cm.AssigneeID = int64(assigneeID)
+			}
+			if comment.Meta["RemovedAssigneeID"] != nil {
+				cm.RemovedAssignee = true
+			}
+		case issues_model.CommentTypeChangeTitle:
+			if comment.Meta["OldTitle"] != nil {
+				cm.OldTitle = fmt.Sprintf("%s", comment.Meta["OldTitle"])
+			}
+			if comment.Meta["NewTitle"] != nil {
+				cm.NewTitle = fmt.Sprintf("%s", comment.Meta["NewTitle"])
+			}
+		default:
 		}
 
 		if err := g.remapUser(comment, &cm); err != nil {
@@ -622,7 +638,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 				fetchArg = git.BranchPrefix + fetchArg
 			}
 
-			_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags", "--", remote, fetchArg).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
+			_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags").AddDashesAndList(remote, fetchArg).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 			if err != nil {
 				log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 				return head, nil
@@ -641,7 +657,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 			pr.Head.SHA = headSha
 		}
 
-		_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref", pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
+		_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 		if err != nil {
 			return "", err
 		}
@@ -658,13 +674,13 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 		// The SHA is empty
 		log.Warn("Empty reference, no pull head for PR #%d in %s/%s", pr.Number, g.repoOwner, g.repoName)
 	} else {
-		_, _, err = git.NewCommand(g.ctx, "rev-list", "--quiet", "-1", pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
+		_, _, err = git.NewCommand(g.ctx, "rev-list", "--quiet", "-1").AddDynamicArguments(pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 		if err != nil {
 			// Git update-ref remove bad references with a relative path
 			log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitRefName())
 		} else {
 			// set head information
-			_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref", pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
+			_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 			if err != nil {
 				log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 			}
@@ -849,8 +865,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				_, _, line, _ = git.ParseDiffHunkString(comment.DiffHunk)
 			}
 
-			// SECURITY: The TreePath must be cleaned!
-			comment.TreePath = path.Clean("/" + comment.TreePath)[1:]
+			// SECURITY: The TreePath must be cleaned! use relative path
+			comment.TreePath = util.PathJoinRel(comment.TreePath)
 
 			var patch string
 			reader, writer := io.Pipe()

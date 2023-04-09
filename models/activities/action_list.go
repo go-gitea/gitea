@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package activities
 
@@ -18,13 +17,11 @@ import (
 type ActionList []*Action
 
 func (actions ActionList) getUserIDs() []int64 {
-	userIDs := make(map[int64]struct{}, len(actions))
+	userIDs := make(container.Set[int64], len(actions))
 	for _, action := range actions {
-		if _, ok := userIDs[action.ActUserID]; !ok {
-			userIDs[action.ActUserID] = struct{}{}
-		}
+		userIDs.Add(action.ActUserID)
 	}
-	return container.KeysInt64(userIDs)
+	return userIDs.Values()
 }
 
 func (actions ActionList) loadUsers(ctx context.Context) (map[int64]*user_model.User, error) {
@@ -38,7 +35,7 @@ func (actions ActionList) loadUsers(ctx context.Context) (map[int64]*user_model.
 		In("id", userIDs).
 		Find(&userMaps)
 	if err != nil {
-		return nil, fmt.Errorf("find user: %v", err)
+		return nil, fmt.Errorf("find user: %w", err)
 	}
 
 	for _, action := range actions {
@@ -48,13 +45,11 @@ func (actions ActionList) loadUsers(ctx context.Context) (map[int64]*user_model.
 }
 
 func (actions ActionList) getRepoIDs() []int64 {
-	repoIDs := make(map[int64]struct{}, len(actions))
+	repoIDs := make(container.Set[int64], len(actions))
 	for _, action := range actions {
-		if _, ok := repoIDs[action.RepoID]; !ok {
-			repoIDs[action.RepoID] = struct{}{}
-		}
+		repoIDs.Add(action.RepoID)
 	}
-	return container.KeysInt64(repoIDs)
+	return repoIDs.Values()
 }
 
 func (actions ActionList) loadRepositories(ctx context.Context) error {
@@ -66,7 +61,7 @@ func (actions ActionList) loadRepositories(ctx context.Context) error {
 	repoMaps := make(map[int64]*repo_model.Repository, len(repoIDs))
 	err := db.GetEngine(ctx).In("id", repoIDs).Find(&repoMaps)
 	if err != nil {
-		return fmt.Errorf("find repository: %v", err)
+		return fmt.Errorf("find repository: %w", err)
 	}
 
 	for _, action := range actions {
@@ -86,7 +81,7 @@ func (actions ActionList) loadRepoOwner(ctx context.Context, userMap map[int64]*
 		}
 		repoOwner, ok := userMap[action.Repo.OwnerID]
 		if !ok {
-			repoOwner, err = user_model.GetUserByIDCtx(ctx, action.Repo.OwnerID)
+			repoOwner, err = user_model.GetUserByID(ctx, action.Repo.OwnerID)
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					continue

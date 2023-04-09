@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package tests
 
@@ -14,6 +13,8 @@ import (
 	"runtime"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
@@ -58,7 +59,7 @@ func InitTest(requireGitea bool) {
 	}
 
 	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadForTest()
+	setting.InitProviderAndLoadCommonSettingsForTest()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	_ = util.RemoveAll(repo_module.LocalCopyPath())
 
@@ -66,14 +67,14 @@ func InitTest(requireGitea bool) {
 		log.Fatal("git.InitOnceWithSync: %v", err)
 	}
 
-	setting.InitDBConfig()
+	setting.LoadDBSetting()
 	if err := storage.Init(); err != nil {
 		fmt.Printf("Init storage failed: %v", err)
 		os.Exit(1)
 	}
 
 	switch {
-	case setting.Database.UseMySQL:
+	case setting.Database.Type.IsMySQL():
 		connType := "tcp"
 		if len(setting.Database.Host) > 0 && setting.Database.Host[0] == '/' { // looks like a unix socket
 			connType = "unix"
@@ -88,7 +89,7 @@ func InitTest(requireGitea bool) {
 		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name)); err != nil {
 			log.Fatal("db.Exec: %v", err)
 		}
-	case setting.Database.UsePostgreSQL:
+	case setting.Database.Type.IsPostgreSQL():
 		var db *sql.DB
 		var err error
 		if setting.Database.Host[0] == '/' {
@@ -145,7 +146,7 @@ func InitTest(requireGitea bool) {
 			}
 		}
 
-	case setting.Database.UseMSSQL:
+	case setting.Database.Type.IsMSSQL():
 		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
 			host, port, "master", setting.Database.User, setting.Database.Passwd))
@@ -168,7 +169,11 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 		ourSkip += skip[0]
 	}
 	deferFn := PrintCurrentTest(t, ourSkip)
+
+	// load database fixtures
 	assert.NoError(t, unittest.LoadFixtures())
+
+	// load git repo fixtures
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
@@ -190,6 +195,28 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
 		}
 	}
+
+	// load LFS object fixtures
+	// (LFS storage can be on any of several backends, including remote servers, so we init it with the storage API)
+	lfsFixtures, err := storage.NewStorage("", storage.LocalStorageConfig{Path: path.Join(filepath.Dir(setting.AppPath), "tests/gitea-lfs-meta")})
+	assert.NoError(t, err)
+	assert.NoError(t, storage.Clean(storage.LFS))
+	assert.NoError(t, lfsFixtures.IterateObjects("", func(path string, _ storage.Object) error {
+		_, err := storage.Copy(storage.LFS, path, lfsFixtures, path)
+		return err
+	}))
+
+	// clear all package data
+	assert.NoError(t, db.TruncateBeans(db.DefaultContext,
+		&packages_model.Package{},
+		&packages_model.PackageVersion{},
+		&packages_model.PackageFile{},
+		&packages_model.PackageBlob{},
+		&packages_model.PackageProperty{},
+		&packages_model.PackageBlobUpload{},
+		&packages_model.PackageCleanupRule{},
+	))
+	assert.NoError(t, storage.Clean(storage.Packages))
 
 	return deferFn
 }
@@ -199,7 +226,11 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 // within a single test this is required
 func ResetFixtures(t *testing.T) {
 	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), -1))
+
+	// load database fixtures
 	assert.NoError(t, unittest.LoadFixtures())
+
+	// load git repo fixtures
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
@@ -221,4 +252,14 @@ func ResetFixtures(t *testing.T) {
 			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
 		}
 	}
+
+	// load LFS object fixtures
+	// (LFS storage can be on any of several backends, including remote servers, so we init it with the storage API)
+	lfsFixtures, err := storage.NewStorage("", storage.LocalStorageConfig{Path: path.Join(filepath.Dir(setting.AppPath), "tests/gitea-lfs-meta")})
+	assert.NoError(t, err)
+	assert.NoError(t, storage.Clean(storage.LFS))
+	assert.NoError(t, lfsFixtures.IterateObjects("", func(path string, _ storage.Object) error {
+		_, err := storage.Copy(storage.LFS, path, lfsFixtures, path)
+		return err
+	}))
 }

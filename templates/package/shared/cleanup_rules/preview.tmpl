@@ -1,0 +1,34 @@
+<h4 class="ui top attached header">{{.locale.Tr "packages.owner.settings.cleanuprules.preview"}}</h4>
+<div class="ui attached segment">
+	<p>{{.locale.Tr "packages.owner.settings.cleanuprules.preview.overview" (len .VersionsToRemove)}}</p>
+</div>
+<div class="ui attached table segment">
+	<table class="ui very basic striped table unstackable">
+		<thead>
+			<tr>
+				<th>{{.locale.Tr "admin.packages.type"}}</th>
+				<th>{{.locale.Tr "admin.packages.name"}}</th>
+				<th>{{.locale.Tr "admin.packages.version"}}</th>
+				<th>{{.locale.Tr "admin.packages.creator"}}</th>
+				<th>{{.locale.Tr "admin.packages.size"}}</th>
+				<th>{{.locale.Tr "admin.packages.published"}}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{range .VersionsToRemove}}
+				<tr>
+					<td>{{.Package.Type.Name}}</td>
+					<td>{{.Package.Name}}</td>
+					<td><a href="{{.FullWebLink}}">{{.Version.Version}}</a></td>
+					<td><a href="{{.Creator.HomeLink}}">{{.Creator.Name}}</a></td>
+					<td>{{FileSize .CalculateBlobSize}}</td>
+					<td><span title="{{.Version.CreatedUnix.FormatLong}}"><time data-format="short-date" datetime="{{.Version.CreatedUnix.FormatLong}}">{{.Version.CreatedUnix.FormatShort}}</time></span></td>
+				</tr>
+			{{else}}
+				<tr>
+					<td colspan="6">{{.locale.Tr "packages.owner.settings.cleanuprules.preview.none"}}</td>
+				</tr>
+			{{end}}
+		</tbody>
+	</table>
+</div>

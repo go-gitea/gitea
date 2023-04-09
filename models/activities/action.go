@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package activities
 
@@ -64,7 +63,69 @@ const (
 	ActionPublishRelease                                  // 24
 	ActionPullReviewDismissed                             // 25
 	ActionPullRequestReadyForReview                       // 26
+	ActionAutoMergePullRequest                            // 27
 )
+
+func (at ActionType) String() string {
+	switch at {
+	case ActionCreateRepo:
+		return "create_repo"
+	case ActionRenameRepo:
+		return "rename_repo"
+	case ActionStarRepo:
+		return "star_repo"
+	case ActionWatchRepo:
+		return "watch_repo"
+	case ActionCommitRepo:
+		return "commit_repo"
+	case ActionCreateIssue:
+		return "create_issue"
+	case ActionCreatePullRequest:
+		return "create_pull_request"
+	case ActionTransferRepo:
+		return "transfer_repo"
+	case ActionPushTag:
+		return "push_tag"
+	case ActionCommentIssue:
+		return "comment_issue"
+	case ActionMergePullRequest:
+		return "merge_pull_request"
+	case ActionCloseIssue:
+		return "close_issue"
+	case ActionReopenIssue:
+		return "reopen_issue"
+	case ActionClosePullRequest:
+		return "close_pull_request"
+	case ActionReopenPullRequest:
+		return "reopen_pull_request"
+	case ActionDeleteTag:
+		return "delete_tag"
+	case ActionDeleteBranch:
+		return "delete_branch"
+	case ActionMirrorSyncPush:
+		return "mirror_sync_push"
+	case ActionMirrorSyncCreate:
+		return "mirror_sync_create"
+	case ActionMirrorSyncDelete:
+		return "mirror_sync_delete"
+	case ActionApprovePullRequest:
+		return "approve_pull_request"
+	case ActionRejectPullRequest:
+		return "reject_pull_request"
+	case ActionCommentPull:
+		return "comment_pull"
+	case ActionPublishRelease:
+		return "publish_release"
+	case ActionPullReviewDismissed:
+		return "pull_review_dismissed"
+	case ActionPullRequestReadyForReview:
+		return "pull_request_ready_for_review"
+	case ActionAutoMergePullRequest:
+		return "auto_merge_pull_request"
+	default:
+		return "action-" + strconv.Itoa(int(at))
+	}
+}
 
 // Action represents user operation type and other information to
 // repository. It implemented interface base.Actioner so that can be
@@ -98,12 +159,10 @@ func (a *Action) TableIndices() []*schemas.Index {
 	actUserIndex := schemas.NewIndex("au_r_c_u_d", schemas.IndexType)
 	actUserIndex.AddColumn("act_user_id", "repo_id", "created_unix", "user_id", "is_deleted")
 
-	indices := []*schemas.Index{actUserIndex, repoIndex}
-	if setting.Database.UsePostgreSQL {
-		cudIndex := schemas.NewIndex("c_u_d", schemas.IndexType)
-		cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
-		indices = append(indices, cudIndex)
-	}
+	cudIndex := schemas.NewIndex("c_u_d", schemas.IndexType)
+	cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
+
+	indices := []*schemas.Index{actUserIndex, repoIndex, cudIndex}
 
 	return indices
 }
@@ -114,12 +173,12 @@ func (a *Action) GetOpType() ActionType {
 }
 
 // LoadActUser loads a.ActUser
-func (a *Action) LoadActUser() {
+func (a *Action) LoadActUser(ctx context.Context) {
 	if a.ActUser != nil {
 		return
 	}
 	var err error
-	a.ActUser, err = user_model.GetUserByID(a.ActUserID)
+	a.ActUser, err = user_model.GetUserByID(ctx, a.ActUserID)
 	if err == nil {
 		return
 	} else if user_model.IsErrUserNotExist(err) {
@@ -129,12 +188,12 @@ func (a *Action) LoadActUser() {
 	}
 }
 
-func (a *Action) loadRepo() {
+func (a *Action) loadRepo(ctx context.Context) {
 	if a.Repo != nil {
 		return
 	}
 	var err error
-	a.Repo, err = repo_model.GetRepositoryByID(a.RepoID)
+	a.Repo, err = repo_model.GetRepositoryByID(ctx, a.RepoID)
 	if err != nil {
 		log.Error("repo_model.GetRepositoryByID(%d): %v", a.RepoID, err)
 	}
@@ -142,13 +201,13 @@ func (a *Action) loadRepo() {
 
 // GetActFullName gets the action's user full name.
 func (a *Action) GetActFullName() string {
-	a.LoadActUser()
+	a.LoadActUser(db.DefaultContext)
 	return a.ActUser.FullName
 }
 
 // GetActUserName gets the action's user name.
 func (a *Action) GetActUserName() string {
-	a.LoadActUser()
+	a.LoadActUser(db.DefaultContext)
 	return a.ActUser.Name
 }
 
@@ -179,7 +238,7 @@ func (a *Action) GetDisplayNameTitle() string {
 
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName() string {
-	a.loadRepo()
+	a.loadRepo(db.DefaultContext)
 	return a.Repo.OwnerName
 }
 
@@ -191,7 +250,7 @@ func (a *Action) ShortRepoUserName() string {
 
 // GetRepoName returns the name of the action repository.
 func (a *Action) GetRepoName() string {
-	a.loadRepo()
+	a.loadRepo(db.DefaultContext)
 	return a.Repo.Name
 }
 
@@ -223,18 +282,24 @@ func (a *Action) GetRepoAbsoluteLink() string {
 	return setting.AppURL + url.PathEscape(a.GetRepoUserName()) + "/" + url.PathEscape(a.GetRepoName())
 }
 
-// GetCommentLink returns link to action comment.
-func (a *Action) GetCommentLink() string {
-	return a.getCommentLink(db.DefaultContext)
+// GetCommentHTMLURL returns link to action comment.
+func (a *Action) GetCommentHTMLURL() string {
+	return a.getCommentHTMLURL(db.DefaultContext)
 }
 
-func (a *Action) getCommentLink(ctx context.Context) string {
+func (a *Action) loadComment(ctx context.Context) (err error) {
+	if a.CommentID == 0 || a.Comment != nil {
+		return nil
+	}
+	a.Comment, err = issues_model.GetCommentByID(ctx, a.CommentID)
+	return err
+}
+
+func (a *Action) getCommentHTMLURL(ctx context.Context) string {
 	if a == nil {
 		return "#"
 	}
-	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = issues_model.GetCommentByID(ctx, a.CommentID)
-	}
+	_ = a.loadComment(ctx)
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
 	}
@@ -260,6 +325,41 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 	return issue.HTMLURL()
 }
 
+// GetCommentLink returns link to action comment.
+func (a *Action) GetCommentLink() string {
+	return a.getCommentLink(db.DefaultContext)
+}
+
+func (a *Action) getCommentLink(ctx context.Context) string {
+	if a == nil {
+		return "#"
+	}
+	_ = a.loadComment(ctx)
+	if a.Comment != nil {
+		return a.Comment.Link()
+	}
+	if len(a.GetIssueInfos()) == 0 {
+		return "#"
+	}
+	// Return link to issue
+	issueIDString := a.GetIssueInfos()[0]
+	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
+	if err != nil {
+		return "#"
+	}
+
+	issue, err := issues_model.GetIssueByID(ctx, issueID)
+	if err != nil {
+		return "#"
+	}
+
+	if err = issue.LoadRepo(ctx); err != nil {
+		return "#"
+	}
+
+	return issue.Link()
+}
+
 // GetBranch returns the action's repository branch.
 func (a *Action) GetBranch() string {
 	return strings.TrimPrefix(a.RefName, git.BranchPrefix)
@@ -272,7 +372,7 @@ func (a *Action) GetRefLink() string {
 		return a.GetRepoLink() + "/src/branch/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.BranchPrefix))
 	case strings.HasPrefix(a.RefName, git.TagPrefix):
 		return a.GetRepoLink() + "/src/tag/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.TagPrefix))
-	case len(a.RefName) == 40 && git.IsValidSHAPattern(a.RefName):
+	case len(a.RefName) == git.SHAFullLength && git.IsValidSHAPattern(a.RefName):
 		return a.GetRepoLink() + "/src/commit/" + a.RefName
 	default:
 		// FIXME: we will just assume it's a branch - this was the old way - at some point we may want to enforce that there is always a ref here.
@@ -339,14 +439,14 @@ type GetFeedsOptions struct {
 }
 
 // GetFeeds returns actions according to the provided options
-func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
+func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, error) {
 	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
-		return nil, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
+		return nil, 0, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
 	}
 
 	cond, err := activityQueryCondition(opts)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	sess := db.GetEngine(ctx).Where(cond).
@@ -357,16 +457,16 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	sess = db.SetSessionPagination(sess, &opts)
 
 	actions := make([]*Action, 0, opts.PageSize)
-
-	if err := sess.Desc("`action`.created_unix").Find(&actions); err != nil {
-		return nil, fmt.Errorf("Find: %v", err)
+	count, err := sess.Desc("`action`.created_unix").FindAndCount(&actions)
+	if err != nil {
+		return nil, 0, fmt.Errorf("FindAndCount: %w", err)
 	}
 
 	if err := ActionList(actions).loadAttributes(ctx); err != nil {
-		return nil, fmt.Errorf("LoadAttributes: %v", err)
+		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
 	}
 
-	return actions, nil
+	return actions, count, nil
 }
 
 // ActivityReadable return whether doer can read activities of user
@@ -379,7 +479,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	cond := builder.NewCond()
 
 	if opts.RequestedTeam != nil && opts.RequestedUser == nil {
-		org, err := user_model.GetUserByID(opts.RequestedTeam.OrgID)
+		org, err := user_model.GetUserByID(db.DefaultContext, opts.RequestedTeam.OrgID)
 		if err != nil {
 			return nil, err
 		}
@@ -415,7 +515,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		env := organization.OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(opts.RequestedTeam)
 		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
 		if err != nil {
-			return nil, fmt.Errorf("GetTeamRepositories: %v", err)
+			return nil, fmt.Errorf("GetTeamRepositories: %w", err)
 		}
 		cond = cond.And(builder.In("repo_id", teamRepoIDs))
 	}
@@ -460,7 +560,8 @@ func DeleteOldActions(olderThan time.Duration) (err error) {
 	return err
 }
 
-func notifyWatchers(ctx context.Context, actions ...*Action) error {
+// NotifyWatchers creates batch of actions for every watcher.
+func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 	var watchers []*repo_model.Watch
 	var repo *repo_model.Repository
 	var err error
@@ -477,23 +578,23 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 			// Add feeds for user self and all watchers.
 			watchers, err = repo_model.GetWatchers(ctx, act.RepoID)
 			if err != nil {
-				return fmt.Errorf("get watchers: %v", err)
+				return fmt.Errorf("get watchers: %w", err)
 			}
 		}
 
 		// Add feed for actioner.
 		act.UserID = act.ActUserID
 		if _, err = e.Insert(act); err != nil {
-			return fmt.Errorf("insert new actioner: %v", err)
+			return fmt.Errorf("insert new actioner: %w", err)
 		}
 
 		if repoChanged {
-			act.loadRepo()
+			act.loadRepo(ctx)
 			repo = act.Repo
 
 			// check repo owner exist.
-			if err := act.Repo.GetOwner(ctx); err != nil {
-				return fmt.Errorf("can't get repo owner: %v", err)
+			if err := act.Repo.LoadOwner(ctx); err != nil {
+				return fmt.Errorf("can't get repo owner: %w", err)
 			}
 		} else if act.Repo == nil {
 			act.Repo = repo
@@ -504,7 +605,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 			act.ID = 0
 			act.UserID = act.Repo.Owner.ID
 			if err = db.Insert(ctx, act); err != nil {
-				return fmt.Errorf("insert new actioner: %v", err)
+				return fmt.Errorf("insert new actioner: %w", err)
 			}
 		}
 
@@ -513,7 +614,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 			permIssue = make([]bool, len(watchers))
 			permPR = make([]bool, len(watchers))
 			for i, watcher := range watchers {
-				user, err := user_model.GetUserByIDCtx(ctx, watcher.UserID)
+				user, err := user_model.GetUserByID(ctx, watcher.UserID)
 				if err != nil {
 					permCode[i] = false
 					permIssue[i] = false
@@ -550,34 +651,29 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 				if !permIssue[i] {
 					continue
 				}
-			case ActionCreatePullRequest, ActionCommentPull, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest:
+			case ActionCreatePullRequest, ActionCommentPull, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest, ActionAutoMergePullRequest:
 				if !permPR[i] {
 					continue
 				}
 			}
 
 			if err = db.Insert(ctx, act); err != nil {
-				return fmt.Errorf("insert new action: %v", err)
+				return fmt.Errorf("insert new action: %w", err)
 			}
 		}
 	}
 	return nil
 }
 
-// NotifyWatchers creates batch of actions for every watcher.
-func NotifyWatchers(actions ...*Action) error {
-	return notifyWatchers(db.DefaultContext, actions...)
-}
-
 // NotifyWatchersActions creates batch of actions for every watcher.
 func NotifyWatchersActions(acts []*Action) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 	for _, act := range acts {
-		if err := notifyWatchers(ctx, act); err != nil {
+		if err := NotifyWatchers(ctx, act); err != nil {
 			return err
 		}
 	}
@@ -602,17 +698,17 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
 }
 
 // CountActionCreatedUnixString count actions where created_unix is an empty string
-func CountActionCreatedUnixString() (int64, error) {
-	if setting.Database.UseSQLite3 {
-		return db.GetEngine(db.DefaultContext).Where(`created_unix = ""`).Count(new(Action))
+func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
+	if setting.Database.Type.IsSQLite3() {
+		return db.GetEngine(ctx).Where(`created_unix = ""`).Count(new(Action))
 	}
 	return 0, nil
 }
 
 // FixActionCreatedUnixString set created_unix to zero if it is an empty string
-func FixActionCreatedUnixString() (int64, error) {
-	if setting.Database.UseSQLite3 {
-		res, err := db.GetEngine(db.DefaultContext).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
+func FixActionCreatedUnixString(ctx context.Context) (int64, error) {
+	if setting.Database.Type.IsSQLite3() {
+		res, err := db.GetEngine(ctx).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
 		if err != nil {
 			return 0, err
 		}

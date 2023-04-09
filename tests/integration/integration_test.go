@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -18,9 +17,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
@@ -33,6 +34,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 var c *web.Route
@@ -85,8 +87,8 @@ func TestMain(m *testing.M) {
 	c = routers.NormalRoutes(context.TODO())
 
 	// integration test settings...
-	if setting.Cfg != nil {
-		testingCfg := setting.Cfg.Section("integration-tests")
+	if setting.CfgProvider != nil {
+		testingCfg := setting.CfgProvider.Section("integration-tests")
 		tests.SlowTest = testingCfg.Key("SLOW_TEST").MustDuration(tests.SlowTest)
 		tests.SlowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(tests.SlowFlush)
 	}
@@ -208,8 +210,6 @@ func (s *TestSession) MakeRequestNilResponseHashSumRecorder(t testing.TB, req *h
 
 const userPassword = "password"
 
-var loginSessionCache = make(map[string]*TestSession, 10)
-
 func emptyTestSession(t testing.TB) *TestSession {
 	t.Helper()
 	jar, err := cookiejar.New(nil)
@@ -218,18 +218,14 @@ func emptyTestSession(t testing.TB) *TestSession {
 	return &TestSession{jar: jar}
 }
 
-func getUserToken(t testing.TB, userName string) string {
-	return getTokenForLoggedInUser(t, loginUser(t, userName))
+func getUserToken(t testing.TB, userName string, scope ...auth.AccessTokenScope) string {
+	return getTokenForLoggedInUser(t, loginUser(t, userName), scope...)
 }
 
 func loginUser(t testing.TB, userName string) *TestSession {
 	t.Helper()
-	if session, ok := loginSessionCache[userName]; ok {
-		return session
-	}
-	session := loginUserWithPassword(t, userName, userPassword)
-	loginSessionCache[userName] = session
-	return session
+
+	return loginUserWithPassword(t, userName, userPassword)
 }
 
 func loginUserWithPassword(t testing.TB, userName, password string) *TestSession {
@@ -261,21 +257,54 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 // token has to be unique this counter take care of
 var tokenCounter int64
 
-func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
+// getTokenForLoggedInUser returns a token for a logged in user.
+// The scope is an optional list of snake_case strings like the frontend form fields,
+// but without the "scope_" prefix.
+func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.AccessTokenScope) string {
 	t.Helper()
-	tokenCounter++
+	var token string
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
-		"_csrf": doc.GetCSRF(),
-		"name":  fmt.Sprintf("api-testing-token-%d", tokenCounter),
-	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	var csrf string
+	for _, cookie := range resp.Result().Cookies() {
+		if cookie.Name != "_csrf" {
+			continue
+		}
+		csrf = cookie.Value
+		break
+	}
+	if csrf == "" {
+		doc := NewHTMLParser(t, resp.Body)
+		csrf = doc.GetCSRF()
+	}
+	assert.NotEmpty(t, csrf)
+	urlValues := url.Values{}
+	urlValues.Add("_csrf", csrf)
+	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)))
+	for _, scope := range scopes {
+		urlValues.Add("scope", string(scope))
+	}
+	req = NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+
+	// Log the flash values on failure
+	if !assert.Equal(t, resp.Result().Header["Location"], []string{"/user/settings/applications"}) {
+		for _, cookie := range resp.Result().Cookies() {
+			if cookie.Name != "macaron_flash" {
+				continue
+			}
+			flash, _ := url.ParseQuery(cookie.Value)
+			for key, value := range flash {
+				t.Logf("Flash %q: %q", key, value)
+			}
+		}
+	}
+
 	req = NewRequest(t, "GET", "/user/settings/applications")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	token := htmlDoc.doc.Find(".ui.info p").Text()
+	token = htmlDoc.doc.Find(".ui.info p").Text()
+	assert.NotEmpty(t, token)
 	return token
 }
 
@@ -295,6 +324,11 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 	for key, value := range values {
 		urlValues[key] = []string{value}
 	}
+	return NewRequestWithURLValues(t, method, urlStr, urlValues)
+}
+
+func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.Values) *http.Request {
+	t.Helper()
 	req := NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	return req
@@ -396,6 +430,25 @@ func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
 
 	decoder := json.NewDecoder(resp.Body)
 	assert.NoError(t, decoder.Decode(v))
+}
+
+func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile string) {
+	t.Helper()
+
+	schemaFilePath := filepath.Join(filepath.Dir(setting.AppPath), "tests", "integration", "schemas", schemaFile)
+	_, schemaFileErr := os.Stat(schemaFilePath)
+	assert.Nil(t, schemaFileErr)
+
+	schema, schemaFileReadErr := os.ReadFile(schemaFilePath)
+	assert.Nil(t, schemaFileReadErr)
+	assert.True(t, len(schema) > 0)
+
+	nodeinfoSchema := gojsonschema.NewStringLoader(string(schema))
+	nodeinfoString := gojsonschema.NewStringLoader(resp.Body.String())
+	result, schemaValidationErr := gojsonschema.Validate(nodeinfoSchema, nodeinfoString)
+	assert.Nil(t, schemaValidationErr)
+	assert.Empty(t, result.Errors())
+	assert.True(t, result.Valid())
 }
 
 func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {

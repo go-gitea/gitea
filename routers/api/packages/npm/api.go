@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package npm
 
@@ -46,6 +45,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 		Author:      npm_module.User{Name: metadata.Author},
 		License:     metadata.License,
 		Versions:    versions,
+		Repository:  metadata.Repository,
 	}
 }
 
@@ -67,6 +67,7 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 		PeerDependencies:     metadata.PeerDependencies,
 		OptionalDependencies: metadata.OptionalDependencies,
 		Readme:               metadata.Readme,
+		Bin:                  metadata.Bin,
 		Dist: npm_module.PackageDistribution{
 			Shasum:    pd.Files[0].Blob.HashSHA1,
 			Integrity: "sha512-" + base64.StdEncoding.EncodeToString(hashBytes),

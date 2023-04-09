@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.package models
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -9,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/auth"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -34,6 +33,7 @@ func testAPICreateOAuth2Application(t *testing.T) {
 		RedirectURIs: []string{
 			"http://www.google.com",
 		},
+		ConfidentialClient: true,
 	}
 
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/applications/oauth2", &appBody)
@@ -46,27 +46,29 @@ func testAPICreateOAuth2Application(t *testing.T) {
 	assert.EqualValues(t, appBody.Name, createdApp.Name)
 	assert.Len(t, createdApp.ClientSecret, 56)
 	assert.Len(t, createdApp.ClientID, 36)
+	assert.True(t, createdApp.ConfidentialClient)
 	assert.NotEmpty(t, createdApp.Created)
 	assert.EqualValues(t, appBody.RedirectURIs[0], createdApp.RedirectURIs[0])
-	unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{UID: user.ID, Name: createdApp.Name})
+	unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{UID: user.ID, Name: createdApp.Name})
 }
 
 func testAPIListOAuth2Applications(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadApplication)
 
-	existApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
+	existApp := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{
 		UID:  user.ID,
 		Name: "test-app-1",
 		RedirectURIs: []string{
 			"http://www.google.com",
 		},
+		ConfidentialClient: true,
 	})
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2?token=%s", token)
 	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var appList api.OAuth2ApplicationList
 	DecodeJSON(t, resp, &appList)
@@ -74,49 +76,51 @@ func testAPIListOAuth2Applications(t *testing.T) {
 
 	assert.EqualValues(t, existApp.Name, expectedApp.Name)
 	assert.EqualValues(t, existApp.ClientID, expectedApp.ClientID)
+	assert.Equal(t, existApp.ConfidentialClient, expectedApp.ConfidentialClient)
 	assert.Len(t, expectedApp.ClientID, 36)
 	assert.Empty(t, expectedApp.ClientSecret)
 	assert.EqualValues(t, existApp.RedirectURIs[0], expectedApp.RedirectURIs[0])
-	unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
+	unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
 }
 
 func testAPIDeleteOAuth2Application(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteApplication)
 
-	oldApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
+	oldApp := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{
 		UID:  user.ID,
 		Name: "test-app-1",
 	})
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2/%d?token=%s", oldApp.ID, token)
 	req := NewRequest(t, "DELETE", urlStr)
-	session.MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, http.StatusNoContent)
 
-	unittest.AssertNotExistsBean(t, &auth.OAuth2Application{UID: oldApp.UID, Name: oldApp.Name})
+	unittest.AssertNotExistsBean(t, &auth_model.OAuth2Application{UID: oldApp.UID, Name: oldApp.Name})
 
 	// Delete again will return not found
 	req = NewRequest(t, "DELETE", urlStr)
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func testAPIGetOAuth2Application(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadApplication)
 
-	existApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
+	existApp := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{
 		UID:  user.ID,
 		Name: "test-app-1",
 		RedirectURIs: []string{
 			"http://www.google.com",
 		},
+		ConfidentialClient: true,
 	})
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2/%d?token=%s", existApp.ID, token)
 	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var app api.OAuth2Application
 	DecodeJSON(t, resp, &app)
@@ -124,17 +128,18 @@ func testAPIGetOAuth2Application(t *testing.T) {
 
 	assert.EqualValues(t, existApp.Name, expectedApp.Name)
 	assert.EqualValues(t, existApp.ClientID, expectedApp.ClientID)
+	assert.Equal(t, existApp.ConfidentialClient, expectedApp.ConfidentialClient)
 	assert.Len(t, expectedApp.ClientID, 36)
 	assert.Empty(t, expectedApp.ClientSecret)
 	assert.Len(t, expectedApp.RedirectURIs, 1)
 	assert.EqualValues(t, existApp.RedirectURIs[0], expectedApp.RedirectURIs[0])
-	unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
+	unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
 }
 
 func testAPIUpdateOAuth2Application(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	existApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
+	existApp := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{
 		UID:  user.ID,
 		Name: "test-app-1",
 		RedirectURIs: []string{
@@ -148,6 +153,7 @@ func testAPIUpdateOAuth2Application(t *testing.T) {
 			"http://www.google.com/",
 			"http://www.github.com/",
 		},
+		ConfidentialClient: true,
 	}
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2/%d", existApp.ID)
@@ -162,5 +168,6 @@ func testAPIUpdateOAuth2Application(t *testing.T) {
 	assert.Len(t, expectedApp.RedirectURIs, 2)
 	assert.EqualValues(t, expectedApp.RedirectURIs[0], appBody.RedirectURIs[0])
 	assert.EqualValues(t, expectedApp.RedirectURIs[1], appBody.RedirectURIs[1])
-	unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
+	assert.Equal(t, expectedApp.ConfidentialClient, appBody.ConfidentialClient)
+	unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
 }

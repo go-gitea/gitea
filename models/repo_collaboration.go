@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
@@ -25,7 +24,7 @@ func DeleteCollaboration(repo *repo_model.Repository, uid int64) (err error) {
 		UserID: uid,
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -54,7 +53,7 @@ func DeleteCollaboration(repo *repo_model.Repository, uid int64) (err error) {
 }
 
 func reconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Repository, uid int64) error {
-	user, err := user_model.GetUserByIDCtx(ctx, uid)
+	user, err := user_model.GetUserByID(ctx, uid)
 	if err != nil {
 		return err
 	}
@@ -66,7 +65,7 @@ func reconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Reposito
 	if _, err := db.GetEngine(ctx).Where(builder.Eq{"assignee_id": uid}).
 		In("issue_id", builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repo.ID})).
 		Delete(&issues_model.IssueAssignees{}); err != nil {
-		return fmt.Errorf("Could not delete assignee[%d] %v", uid, err)
+		return fmt.Errorf("Could not delete assignee[%d] %w", uid, err)
 	}
 	return nil
 }

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -408,7 +407,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 		Type:        gitea_sdk.IssueTypeIssue,
 	})
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing issues: %v", err)
+		return nil, false, fmt.Errorf("error while listing issues: %w", err)
 	}
 	for _, issue := range issues {
 
@@ -476,7 +475,7 @@ func (g *GiteaDownloader) GetComments(commentable base.Commentable) ([]*base.Com
 			Page:     i,
 		}})
 		if err != nil {
-			return nil, false, fmt.Errorf("error while listing comments for issue #%d. Error: %v", commentable.GetForeignIndex(), err)
+			return nil, false, fmt.Errorf("error while listing comments for issue #%d. Error: %w", commentable.GetForeignIndex(), err)
 		}
 
 		for _, comment := range comments {
@@ -520,7 +519,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 		State: gitea_sdk.StateAll,
 	})
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing pull requests (page: %d, pagesize: %d). Error: %v", page, perPage, err)
+		return nil, false, fmt.Errorf("error while listing pull requests (page: %d, pagesize: %d). Error: %w", page, perPage, err)
 	}
 	for _, pr := range prs {
 		var milestone string

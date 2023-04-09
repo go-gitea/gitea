@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -18,7 +17,7 @@ func cacheableRedirect(ctx *context.Context, location string) {
 	// here we should not use `setting.StaticCacheTime`, it is pretty long (default: 6 hours)
 	// we must make sure the redirection cache time is short enough, otherwise a user won't see the updated avatar in 6 hours
 	// it's OK to make the cache time short, it is only a redirection, and doesn't cost much to make a new request
-	httpcache.AddCacheControlToHeader(ctx.Resp.Header(), 5*time.Minute)
+	httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 5*time.Minute)
 	ctx.Redirect(location)
 }
 
@@ -31,6 +30,10 @@ func AvatarByUserName(ctx *context.Context) {
 	if strings.ToLower(userName) != "ghost" {
 		var err error
 		if user, err = user_model.GetUserByName(ctx, userName); err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.NotFound("GetUserByName", err)
+				return
+			}
 			ctx.ServerError("Invalid user: "+userName, err)
 			return
 		}
@@ -38,7 +41,7 @@ func AvatarByUserName(ctx *context.Context) {
 		user = user_model.NewGhostUser()
 	}
 
-	cacheableRedirect(ctx, user.AvatarLinkWithSize(size))
+	cacheableRedirect(ctx, user.AvatarLinkWithSize(ctx, size))
 }
 
 // AvatarByEmailHash redirects the browser to the email avatar link
@@ -50,5 +53,5 @@ func AvatarByEmailHash(ctx *context.Context) {
 		return
 	}
 	size := ctx.FormInt("size")
-	cacheableRedirect(ctx, avatars.GenerateEmailAvatarFinalLink(email, size))
+	cacheableRedirect(ctx, avatars.GenerateEmailAvatarFinalLink(ctx, email, size))
 }

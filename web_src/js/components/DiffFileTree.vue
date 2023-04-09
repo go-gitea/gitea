@@ -1,15 +1,14 @@
 <template>
   <div
-    v-show="fileTreeIsVisible"
-    id="diff-file-tree"
-    class="mr-3 mt-3 diff-detail-box"
+    v-if="fileTreeIsVisible"
+    class="gt-mr-3 gt-mt-3 diff-detail-box"
   >
     <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
-    <div class="ui list" v-if="fileTreeIsVisible">
-      <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item" />
+    <div class="ui list">
+      <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item" :selected-file="selectedFile"/>
     </div>
-    <div v-if="isIncomplete" id="diff-too-many-files-stats" class="pt-2">
-      <span>{{ tooManyFilesMessage }}</span><a :class="['ui', 'basic', 'tiny', 'button', isLoadingNewData === true ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ showMoreMessage }}</a>
+    <div v-if="isIncomplete" id="diff-too-many-files-stats" class="gt-pt-2">
+      <span class="gt-mr-2">{{ tooManyFilesMessage }}</span><a :class="['ui', 'basic', 'tiny', 'button', isLoadingNewData === true ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ showMoreMessage }}</a>
     </div>
   </div>
 </template>
@@ -17,20 +16,21 @@
 <script>
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import {doLoadMoreFiles} from '../features/repo-diff.js';
+import {toggleElem} from '../utils/dom.js';
 
 const {pageData} = window.config;
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 
 export default {
-  name: 'DiffFileTree',
   components: {DiffFileTreeItem},
-
   data: () => {
     const fileTreeIsVisible = localStorage.getItem(LOCAL_STORAGE_KEY) === 'true';
     pageData.diffFileInfo.fileTreeIsVisible = fileTreeIsVisible;
-    return pageData.diffFileInfo;
+    return {
+      ...pageData.diffFileInfo,
+      selectedFile: ''
+    };
   },
-
   computed: {
     fileTree() {
       const result = [];
@@ -95,14 +95,21 @@ export default {
       return result;
     }
   },
-
   mounted() {
-    // ensure correct buttons when we are mounted to the dom
-    this.adjustToggleButton(this.fileTreeIsVisible);
+    // replace the pageData.diffFileInfo.files with our watched data so we get updates
+    pageData.diffFileInfo.files = this.files;
+
     document.querySelector('.diff-toggle-file-tree-button').addEventListener('click', this.toggleVisibility);
+
+    this.hashChangeListener = () => {
+      this.selectedFile = window.location.hash;
+    };
+    this.hashListener = window.addEventListener('hashchange', this.hashChangeListener);
+    this.selectedFile = window.location.hash;
   },
   unmounted() {
     document.querySelector('.diff-toggle-file-tree-button').removeEventListener('click', this.toggleVisibility);
+    window.removeEventListener('hashchange', this.hashChangeListener);
   },
   methods: {
     toggleVisibility() {
@@ -111,19 +118,24 @@ export default {
     updateVisibility(visible) {
       this.fileTreeIsVisible = visible;
       localStorage.setItem(LOCAL_STORAGE_KEY, this.fileTreeIsVisible);
-      this.adjustToggleButton(this.fileTreeIsVisible);
+      this.updateState(this.fileTreeIsVisible);
     },
-    adjustToggleButton(visible) {
-      const [toShow, toHide] = document.querySelectorAll('.diff-toggle-file-tree-button .icon');
-      toShow.classList.toggle('hide', visible);  // hide the toShow icon if the tree is visible
-      toHide.classList.toggle('hide', !visible); // similarly
+    updateState(visible) {
+      const btn = document.querySelector('.diff-toggle-file-tree-button');
+      const [toShow, toHide] = btn.querySelectorAll('.icon');
+      const tree = document.getElementById('diff-file-tree');
+      const newTooltip = btn.getAttribute(visible ? 'data-hide-text' : 'data-show-text');
+      btn.setAttribute('data-tooltip-content', newTooltip);
+      toggleElem(tree, visible);
+      toggleElem(toShow, !visible);
+      toggleElem(toHide, visible);
     },
     loadMoreData() {
       this.isLoadingNewData = true;
       doLoadMoreFiles(this.link, this.diffEnd, () => {
         this.isLoadingNewData = false;
       });
-    }
+    },
   },
 };
 </script>

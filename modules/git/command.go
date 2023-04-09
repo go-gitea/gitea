@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -17,14 +16,20 @@ import (
 	"time"
 	"unsafe"
 
+	"code.gitea.io/gitea/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/util"
 )
 
+// TrustedCmdArgs returns the trusted arguments for git command.
+// It's mainly for passing user-provided and trusted arguments to git command
+// In most cases, it shouldn't be used. Use AddXxx function instead
+type TrustedCmdArgs []internal.CmdArg
+
 var (
 	// globalCommandArgs global command args for external package setting
-	globalCommandArgs []string
+	globalCommandArgs TrustedCmdArgs
 
 	// defaultCommandExecutionTimeout default command execution timeout duration
 	defaultCommandExecutionTimeout = 360 * time.Second
@@ -40,6 +45,7 @@ type Command struct {
 	parentContext    context.Context
 	desc             string
 	globalArgsLength int
+	brokenArgs       []string
 }
 
 func (c *Command) String() string {
@@ -50,28 +56,34 @@ func (c *Command) String() string {
 }
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
-func NewCommand(ctx context.Context, args ...string) *Command {
+// Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
+func NewCommand(ctx context.Context, args ...internal.CmdArg) *Command {
 	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
-	cargs := make([]string, len(globalCommandArgs))
-	copy(cargs, globalCommandArgs)
+	cargs := make([]string, 0, len(globalCommandArgs)+len(args))
+	for _, arg := range globalCommandArgs {
+		cargs = append(cargs, string(arg))
+	}
+	for _, arg := range args {
+		cargs = append(cargs, string(arg))
+	}
 	return &Command{
 		name:             GitExecutable,
-		args:             append(cargs, args...),
+		args:             cargs,
 		parentContext:    ctx,
 		globalArgsLength: len(globalCommandArgs),
 	}
 }
 
-// NewCommandNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
-func NewCommandNoGlobals(args ...string) *Command {
-	return NewCommandContextNoGlobals(DefaultContext, args...)
-}
-
 // NewCommandContextNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
-func NewCommandContextNoGlobals(ctx context.Context, args ...string) *Command {
+// Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
+func NewCommandContextNoGlobals(ctx context.Context, args ...internal.CmdArg) *Command {
+	cargs := make([]string, 0, len(args))
+	for _, arg := range args {
+		cargs = append(cargs, string(arg))
+	}
 	return &Command{
 		name:          GitExecutable,
-		args:          args,
+		args:          cargs,
 		parentContext: ctx,
 	}
 }
@@ -82,17 +94,98 @@ func (c *Command) SetParentContext(ctx context.Context) *Command {
 	return c
 }
 
-// SetDescription sets the description for this command which be returned on
-// c.String()
+// SetDescription sets the description for this command which be returned on c.String()
 func (c *Command) SetDescription(desc string) *Command {
 	c.desc = desc
 	return c
 }
 
-// AddArguments adds new argument(s) to the command.
-func (c *Command) AddArguments(args ...string) *Command {
+// isSafeArgumentValue checks if the argument is safe to be used as a value (not an option)
+func isSafeArgumentValue(s string) bool {
+	return s == "" || s[0] != '-'
+}
+
+// isValidArgumentOption checks if the argument is a valid option (starting with '-').
+// It doesn't check whether the option is supported or not
+func isValidArgumentOption(s string) bool {
+	return s != "" && s[0] == '-'
+}
+
+// AddArguments adds new git arguments (option/value) to the command. It only accepts string literals, or trusted CmdArg.
+// Type CmdArg is in the internal package, so it can not be used outside of this package directly,
+// it makes sure that user-provided arguments won't cause RCE risks.
+// User-provided arguments should be passed by other AddXxx functions
+func (c *Command) AddArguments(args ...internal.CmdArg) *Command {
+	for _, arg := range args {
+		c.args = append(c.args, string(arg))
+	}
+	return c
+}
+
+// AddOptionValues adds a new option with a list of non-option values
+// For example: AddOptionValues("--opt", val) means 2 arguments: {"--opt", val}.
+// The values are treated as dynamic argument values. It equals to: AddArguments("--opt") then AddDynamicArguments(val).
+func (c *Command) AddOptionValues(opt internal.CmdArg, args ...string) *Command {
+	if !isValidArgumentOption(string(opt)) {
+		c.brokenArgs = append(c.brokenArgs, string(opt))
+		return c
+	}
+	c.args = append(c.args, string(opt))
+	c.AddDynamicArguments(args...)
+	return c
+}
+
+// AddOptionFormat adds a new option with a format string and arguments
+// For example: AddOptionFormat("--opt=%s %s", val1, val2) means 1 argument: {"--opt=val1 val2"}.
+func (c *Command) AddOptionFormat(opt string, args ...any) *Command {
+	if !isValidArgumentOption(opt) {
+		c.brokenArgs = append(c.brokenArgs, opt)
+		return c
+	}
+	// a quick check to make sure the format string matches the number of arguments, to find low-level mistakes ASAP
+	if strings.Count(strings.ReplaceAll(opt, "%%", ""), "%") != len(args) {
+		c.brokenArgs = append(c.brokenArgs, opt)
+		return c
+	}
+	s := fmt.Sprintf(opt, args...)
+	c.args = append(c.args, s)
+	return c
+}
+
+// AddDynamicArguments adds new dynamic argument values to the command.
+// The arguments may come from user input and can not be trusted, so no leading '-' is allowed to avoid passing options.
+// TODO: in the future, this function can be renamed to AddArgumentValues
+func (c *Command) AddDynamicArguments(args ...string) *Command {
+	for _, arg := range args {
+		if !isSafeArgumentValue(arg) {
+			c.brokenArgs = append(c.brokenArgs, arg)
+		}
+	}
+	if len(c.brokenArgs) != 0 {
+		return c
+	}
 	c.args = append(c.args, args...)
 	return c
+}
+
+// AddDashesAndList adds the "--" and then add the list as arguments, it's usually for adding file list
+// At the moment, this function can be only called once, maybe in future it can be refactored to support multiple calls (if necessary)
+func (c *Command) AddDashesAndList(list ...string) *Command {
+	c.args = append(c.args, "--")
+	// Some old code also checks `arg != ""`, IMO it's not necessary.
+	// If the check is needed, the list should be prepared before the call to this function
+	c.args = append(c.args, list...)
+	return c
+}
+
+// ToTrustedCmdArgs converts a list of strings (trusted as argument) to TrustedCmdArgs
+// In most cases, it shouldn't be used. Use NewCommand().AddXxx() function instead
+func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
+	ret := make(TrustedCmdArgs, len(args))
+	for i, arg := range args {
+		ret[i] = internal.CmdArg(arg)
+	}
+	return ret
 }
 
 // RunOpts represents parameters to run the command. If UseContextTimeout is specified, then Timeout is ignored.
@@ -133,18 +226,27 @@ func CommonGitCmdEnvs() []string {
 	}...)
 }
 
-// CommonCmdServEnvs is like CommonGitCmdEnvs but it only returns minimal required environment variables for the "gitea serv" command
+// CommonCmdServEnvs is like CommonGitCmdEnvs, but it only returns minimal required environment variables for the "gitea serv" command
 func CommonCmdServEnvs() []string {
 	return commonBaseEnvs()
 }
 
+var ErrBrokenCommand = errors.New("git command is broken")
+
 // Run runs the command with the RunOpts
 func (c *Command) Run(opts *RunOpts) error {
+	if len(c.brokenArgs) != 0 {
+		log.Error("git command is broken: %s, broken args: %s", c.String(), strings.Join(c.brokenArgs, " "))
+		return ErrBrokenCommand
+	}
 	if opts == nil {
 		opts = &RunOpts{}
 	}
-	if opts.Timeout <= 0 {
-		opts.Timeout = defaultCommandExecutionTimeout
+
+	// We must not change the provided options
+	timeout := opts.Timeout
+	if timeout <= 0 {
+		timeout = defaultCommandExecutionTimeout
 	}
 
 	if len(opts.Dir) == 0 {
@@ -179,7 +281,7 @@ func (c *Command) Run(opts *RunOpts) error {
 	if opts.UseContextTimeout {
 		ctx, cancel, finished = process.GetManager().AddContext(c.parentContext, desc)
 	} else {
-		ctx, cancel, finished = process.GetManager().AddContextTimeout(c.parentContext, opts.Timeout, desc)
+		ctx, cancel, finished = process.GetManager().AddContextTimeout(c.parentContext, timeout, desc)
 	}
 	defer finished()
 
@@ -280,9 +382,20 @@ func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunS
 	}
 	stdoutBuf := &bytes.Buffer{}
 	stderrBuf := &bytes.Buffer{}
-	opts.Stdout = stdoutBuf
-	opts.Stderr = stderrBuf
-	err := c.Run(opts)
+
+	// We must not change the provided options as it could break future calls - therefore make a copy.
+	newOpts := &RunOpts{
+		Env:               opts.Env,
+		Timeout:           opts.Timeout,
+		UseContextTimeout: opts.UseContextTimeout,
+		Dir:               opts.Dir,
+		Stdout:            stdoutBuf,
+		Stderr:            stderrBuf,
+		Stdin:             opts.Stdin,
+		PipelineFunc:      opts.PipelineFunc,
+	}
+
+	err := c.Run(newOpts)
 	stderr = stderrBuf.Bytes()
 	if err != nil {
 		return nil, stderr, &runStdError{err: err, stderr: bytesToString(stderr)}
@@ -292,12 +405,12 @@ func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunS
 }
 
 // AllowLFSFiltersArgs return globalCommandArgs with lfs filter, it should only be used for tests
-func AllowLFSFiltersArgs() []string {
+func AllowLFSFiltersArgs() TrustedCmdArgs {
 	// Now here we should explicitly allow lfs filters to run
-	filteredLFSGlobalArgs := make([]string, len(globalCommandArgs))
+	filteredLFSGlobalArgs := make(TrustedCmdArgs, len(globalCommandArgs))
 	j := 0
 	for _, arg := range globalCommandArgs {
-		if strings.Contains(arg, "lfs") {
+		if strings.Contains(string(arg), "lfs") {
 			j--
 		} else {
 			filteredLFSGlobalArgs[j] = arg

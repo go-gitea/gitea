@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -10,15 +9,15 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 func responseAPIUsers(ctx *context.APIContext, users []*user_model.User) {
 	apiUsers := make([]*api.User, len(users))
 	for i := range users {
-		apiUsers[i] = convert.ToUser(users[i], ctx.Doer)
+		apiUsers[i] = convert.ToUser(ctx, users[i], ctx.Doer)
 	}
 	ctx.JSON(http.StatusOK, &apiUsers)
 }

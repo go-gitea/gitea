@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -8,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -53,6 +53,22 @@ func TestRenameInvalidUsername(t *testing.T) {
 		"%00",
 		"thisHas ASpace",
 		"p<A>tho>lo<gical",
+		".",
+		"..",
+		".well-known",
+		".abc",
+		"abc.",
+		"a..bc",
+		"a...bc",
+		"a.-bc",
+		"a._bc",
+		"a_-bc",
+		"a/bc",
+		"☁️",
+		"-",
+		"--diff",
+		"-im-here",
+		"a space",
 	}
 
 	session := loginUser(t, "user2")
@@ -68,7 +84,7 @@ func TestRenameInvalidUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			translation.NewLocale("en-US").Tr("form.alpha_dash_dot_error"),
+			translation.NewLocale("en-US").Tr("form.username_error"),
 		)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: invalidUsername})
@@ -79,9 +95,7 @@ func TestRenameReservedUsername(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	reservedUsernames := []string{
-		".",
-		"..",
-		".well-known",
+		// ".", "..", ".well-known", // The names are not only reserved but also invalid
 		"admin",
 		"api",
 		"assets",
@@ -152,7 +166,7 @@ Note: This user hasn't uploaded any GPG keys.
 	// Import key
 	// User1 <user1@example.com>
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteGPGKey)
 	testCreateGPGKey(t, session.MakeRequest, token, http.StatusCreated, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFyy/VUBCADJ7zbM20Z1RWmFoVgp5WkQfI2rU1Vj9cQHes9i42wVLLtcbPeo
@@ -225,6 +239,19 @@ func testExportUserGPGKeys(t *testing.T, user, expected string) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	// t.Log(resp.Body.String())
 	assert.Equal(t, expected, resp.Body.String())
+}
+
+func TestGetUserRss(t *testing.T) {
+	user34 := "the_34-user.with.all.allowedChars"
+	req := NewRequestf(t, "GET", "/%s.rss", user34)
+	resp := MakeRequest(t, req, http.StatusOK)
+	if assert.EqualValues(t, "application/rss+xml;charset=utf-8", resp.Header().Get("Content-Type")) {
+		rssDoc := NewHTMLParser(t, resp.Body).Find("channel")
+		title, _ := rssDoc.ChildrenFiltered("title").Html()
+		assert.EqualValues(t, "Feed of &#34;the_1-user.with.all.allowedChars&#34;", title)
+		description, _ := rssDoc.ChildrenFiltered("description").Html()
+		assert.EqualValues(t, "&lt;p&gt;some &lt;a href=&#34;https://commonmark.org/&#34; rel=&#34;nofollow&#34;&gt;commonmark&lt;/a&gt;!&lt;/p&gt;\n", description)
+	}
 }
 
 func TestListStopWatches(t *testing.T) {

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package test
 
@@ -23,7 +22,6 @@ import (
 
 	chi "github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
-	"github.com/unrolled/render"
 )
 
 // MockContext mock context for unit tests
@@ -58,7 +56,7 @@ func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 	ctx.Repo = &context.Repository{}
 	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
 	var err error
-	ctx.Repo.Owner, err = user_model.GetUserByID(ctx.Repo.Repository.OwnerID)
+	ctx.Repo.Owner, err = user_model.GetUserByID(ctx, ctx.Repo.Repository.OwnerID)
 	assert.NoError(t, err)
 	ctx.Repo.RepoLink = ctx.Repo.Repository.Link()
 	ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, ctx.Doer)
@@ -87,7 +85,7 @@ func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
 // LoadGitRepo load a git repo into a test context. Requires that ctx.Repo has
 // already been populated.
 func LoadGitRepo(t *testing.T, ctx *context.Context) {
-	assert.NoError(t, ctx.Repo.Repository.GetOwner(ctx))
+	assert.NoError(t, ctx.Repo.Repository.LoadOwner(ctx))
 	var err error
 	ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
@@ -135,11 +133,11 @@ func (rw *mockResponseWriter) Push(target string, opts *http.PushOptions) error 
 
 type mockRender struct{}
 
-func (tr *mockRender) TemplateLookup(tmpl string) *template.Template {
-	return nil
+func (tr *mockRender) TemplateLookup(tmpl string) (*template.Template, error) {
+	return nil, nil
 }
 
-func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}, _ ...render.HTMLOptions) error {
+func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}) error {
 	if resp, ok := w.(http.ResponseWriter); ok {
 		resp.WriteHeader(status)
 	}

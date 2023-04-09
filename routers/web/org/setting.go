@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -38,6 +37,10 @@ const (
 	tplSettingsHooks base.TplName = "org/settings/hooks"
 	// tplSettingsLabels template path for render labels settings
 	tplSettingsLabels base.TplName = "org/settings/labels"
+	// tplSettingsRunners template path for render runners settings
+	tplSettingsRunners base.TplName = "org/settings/runners"
+	// tplSettingsRunnersEdit template path for render runners edit settings
+	tplSettingsRunnersEdit base.TplName = "org/settings/runners_edit"
 )
 
 // Settings render the main settings page
@@ -76,7 +79,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Data["OrgName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
 			return
-		} else if err = user_model.ChangeUserName(org.AsUser(), form.Name); err != nil {
+		} else if err = user_model.ChangeUserName(ctx, org.AsUser(), form.Name); err != nil {
 			switch {
 			case db.IsErrNameReserved(err):
 				ctx.Data["OrgName"] = true
@@ -134,7 +137,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 		for _, repo := range repos {
 			repo.OwnerName = org.Name
-			if err := repo_service.UpdateRepository(repo, true); err != nil {
+			if err := repo_service.UpdateRepository(ctx, repo, true); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
@@ -215,9 +218,9 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLinkNew"] = ctx.Org.OrgLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("org.settings.hooks_desc")
 
-	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{OrgID: ctx.Org.Organization.ID})
+	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{OwnerID: ctx.Org.Organization.ID})
 	if err != nil {
-		ctx.ServerError("GetWebhooksByOrgId", err)
+		ctx.ServerError("ListWebhooksByOpts", err)
 		return
 	}
 
@@ -227,8 +230,8 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByOrgID(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
-		ctx.Flash.Error("DeleteWebhookByOrgID: " + err.Error())
+	if err := webhook.DeleteWebhookByOwnerID(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
+		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
@@ -243,7 +246,6 @@ func Labels(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsLabels"] = true
-	ctx.Data["RequireTribute"] = true
 	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
 	ctx.HTML(http.StatusOK, tplSettingsLabels)
 }

@@ -1,24 +1,16 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build !bindata
 
 package templates
 
 import (
-	"html/template"
 	"io/fs"
 	"os"
 	"path/filepath"
-	texttmpl "text/template"
 
 	"code.gitea.io/gitea/modules/setting"
-)
-
-var (
-	subjectTemplates = texttmpl.New("")
-	bodyTemplates    = template.New("")
 )
 
 // GetAsset returns asset content via name
@@ -31,6 +23,21 @@ func GetAsset(name string) ([]byte, error) {
 	}
 
 	return os.ReadFile(filepath.Join(setting.StaticRootPath, name))
+}
+
+// GetAssetFilename returns the filename of the provided asset
+func GetAssetFilename(name string) (string, error) {
+	filename := filepath.Join(setting.CustomPath, name)
+	_, err := os.Stat(filename)
+	if err != nil && !os.IsNotExist(err) {
+		return filename, err
+	} else if err == nil {
+		return filename, nil
+	}
+
+	filename = filepath.Join(setting.StaticRootPath, name)
+	_, err = os.Stat(filename)
+	return filename, err
 }
 
 // walkTemplateFiles calls a callback for each template asset

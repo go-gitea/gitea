@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo_test
 
@@ -55,7 +54,7 @@ func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(repo, 4, perm.AccessModeAdmin))
+	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(db.DefaultContext, repo, 4, perm.AccessModeAdmin))
 
 	collaboration := unittest.AssertExistsAndLoadBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: 4})
 	assert.EqualValues(t, perm.AccessModeAdmin, collaboration.Mode)
@@ -63,9 +62,9 @@ func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
 	access := unittest.AssertExistsAndLoadBean(t, &access_model.Access{UserID: 4, RepoID: repo.ID})
 	assert.EqualValues(t, perm.AccessModeAdmin, access.Mode)
 
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(repo, 4, perm.AccessModeAdmin))
+	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(db.DefaultContext, repo, 4, perm.AccessModeAdmin))
 
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(repo, unittest.NonexistentID, perm.AccessModeAdmin))
+	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(db.DefaultContext, repo, unittest.NonexistentID, perm.AccessModeAdmin))
 
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
 }
