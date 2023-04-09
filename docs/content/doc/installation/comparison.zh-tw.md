@@ -31,7 +31,7 @@ menu:
 
 - ✘ - 不支援
 
-- _⚙️ - supported by additional service/plugin_
+- _⚙️ - 由第三方服務或外掛程式支援_
 
 ## 一般功能
 
