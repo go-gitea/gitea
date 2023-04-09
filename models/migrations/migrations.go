@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_17"
 	"code.gitea.io/gitea/models/migrations/v1_18"
 	"code.gitea.io/gitea/models/migrations/v1_19"
+	"code.gitea.io/gitea/models/migrations/v1_20"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -455,6 +456,11 @@ var migrations = []Migration{
 	NewMigration("Add scope for access_token", v1_19.AddScopeForAccessTokens),
 	// v240 -> v241
 	NewMigration("Add actions tables", v1_19.AddActionsTables),
+
+	// Gitea 1.19.0 ends at v241
+
+	// v241 -> v242
+	NewMigration("Add branch table", v1_20.AddBranchTable),
 }
 
 // GetCurrentDBVersion returns the current db version

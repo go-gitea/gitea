@@ -14,7 +14,7 @@ import (
 )
 
 // SyncBranches synchronizes branch table with repository branches
-func SyncBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
+func SyncBranches(ctx context.Context, repo *repo_model.Repository, doerID int64, gitRepo *git.Repository) error {
 	log.Debug("SyncBranches: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
 
 	const limit = 100
@@ -72,7 +72,7 @@ func SyncBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		}
 
 		if len(toRemove) > 0 {
-			err = git_model.DeleteBranches(ctx, repo.ID, toRemove)
+			err = git_model.DeleteBranches(ctx, repo.ID, doerID, toRemove)
 			if err != nil {
 				return err
 			}

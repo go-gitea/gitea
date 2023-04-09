@@ -42,6 +42,7 @@ var (
 		Subcommands: []cli.Command{
 			subcmdUser,
 			subcmdRepoSyncReleases,
+			subcmdRepoSyncBranches,
 			subcmdRegenerate,
 			subcmdAuth,
 			subcmdSendMail,
@@ -193,6 +194,12 @@ var (
 		Name:   "repo-sync-releases",
 		Usage:  "Synchronize repository releases with tags",
 		Action: runRepoSyncReleases,
+	}
+
+	subcmdRepoSyncBranches = cli.Command{
+		Name:   "repo-sync-branches",
+		Usage:  "Synchronize repository branches",
+		Action: runRepoSyncBranches,
 	}
 
 	subcmdRegenerate = cli.Command{
@@ -780,6 +787,57 @@ func runRepoSyncReleases(_ *cli.Context) error {
 
 			log.Trace(" repo %s releases synchronized to tags: from %d to %d",
 				repo.FullName(), oldnum, count)
+			gitRepo.Close()
+		}
+	}
+
+	return nil
+}
+
+func runRepoSyncBranches(_ *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
+		return err
+	}
+
+	doer, err := user_model.GetAdminUser()
+	if err != nil {
+		return err
+	}
+
+	log.Trace("Synchronizing repository branches (this may take a while)")
+	for page := 1; ; page++ {
+		repos, count, err := repo_model.SearchRepositoryByName(ctx, &repo_model.SearchRepoOptions{
+			ListOptions: db.ListOptions{
+				PageSize: repo_model.RepositoryListDefaultPageSize,
+				Page:     page,
+			},
+			Private: true,
+		})
+		if err != nil {
+			return fmt.Errorf("SearchRepositoryByName: %w", err)
+		}
+		if len(repos) == 0 {
+			break
+		}
+		log.Trace("Processing next %d repos of %d", len(repos), count)
+		for _, repo := range repos {
+			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
+			gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+			if err != nil {
+				log.Warn("OpenRepository: %v", err)
+				continue
+			}
+
+			if err = repo_module.SyncBranches(ctx, repo, doer.ID, gitRepo); err != nil {
+				log.Warn("repo_module.SyncBranches: %v", err)
+				gitRepo.Close()
+				continue
+			}
+
+			log.Trace("repo %s branches synchronized")
 			gitRepo.Close()
 		}
 	}

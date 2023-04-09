@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // CreateNewBranch creates a new repository branch
@@ -177,10 +176,6 @@ func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *g
 		return err
 	}
 
-	if err := pull_service.CloseBranchPulls(doer, repo.ID, branchName); err != nil {
-		return err
-	}
-
 	// Don't return error below this
 	if err := PushUpdate(
 		&repo_module.PushUpdateOptions{
@@ -193,10 +188,6 @@ func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *g
 			RepoName:     repo.Name,
 		}); err != nil {
 		log.Error("Update: %v", err)
-	}
-
-	if err := git_model.AddDeletedBranch(db.DefaultContext, repo.ID, branchName, commit.ID.String(), doer.ID); err != nil {
-		log.Warn("AddDeletedBranch: %v", err)
 	}
 
 	return nil

@@ -20,9 +20,13 @@ import (
 // for pagination and search
 type Branch struct {
 	ID          int64
-	RepoID      int64              `xorm:"index UNIQUE(s)"`
-	Name        string             `xorm:"UNIQUE(s) NOT NULL"`
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	RepoID      int64  `xorm:"index UNIQUE(s)"`
+	Name        string `xorm:"UNIQUE(s) NOT NULL"`
+	Commit      string
+	PusherID    int64
+	CommitTime  timeutil.TimeStamp // The commit
+	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
 
 // DeletedBranch struct
@@ -59,22 +63,67 @@ func AddBranches(ctx context.Context, repoID int64, branches []string) error {
 	return db.Insert(ctx, dbBranches)
 }
 
-func DeleteBranches(ctx context.Context, repoID int64, branches []int64) error {
-	_, err := db.GetEngine(ctx).Where("repo_id=?", repoID).In("id", branches).Delete(new(Branch))
-	return err
+func DeleteBranches(ctx context.Context, repoID, doerID int64, branchIDs []int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		branches := make([]*Branch, 0, len(branchIDs))
+		if err := db.GetEngine(ctx).In("id", branchIDs).Find(&branches); err != nil {
+			return err
+		}
+		for _, branch := range branches {
+			if err := AddDeletedBranch(ctx, repoID, branch.Name, branch.Commit, doerID); err != nil {
+				return err
+			}
+		}
+		_, err := db.GetEngine(ctx).In("id", branchIDs).Delete(new(Branch))
+		return err
+	})
+}
+
+// UpdateBranch updates the branch information in the database. If the branch exist, it will update latest commit of this branch information
+// If it doest not exist, insert a new record into database
+func UpdateBranch(ctx context.Context, repoID int64, branchName string, commitID string, pusherID int64, commitTime time.Time) error {
+	if err := removeDeletedBranchByName(ctx, repoID, branchName); err != nil {
+		return err
+	}
+	cnt, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repoID, branchName).
+		Cols("commit, pusher_id, commit_time, updated_unix").
+		Update(&Branch{
+			Commit:     commitID,
+			PusherID:   pusherID,
+			CommitTime: timeutil.TimeStamp(commitTime.Unix()),
+		})
+	if err != nil {
+		return err
+	}
+	if cnt > 0 {
+		return nil
+	}
+
+	return db.Insert(ctx, &Branch{
+		RepoID:     repoID,
+		Name:       branchName,
+		Commit:     commitID,
+		PusherID:   pusherID,
+		CommitTime: timeutil.TimeStamp(commitTime.Unix()),
+	})
 }
 
 // AddDeletedBranch adds a deleted branch to the database
 func AddDeletedBranch(ctx context.Context, repoID int64, branchName, commit string, deletedByID int64) error {
-	deletedBranch := &DeletedBranch{
-		RepoID:      repoID,
-		Name:        branchName,
-		Commit:      commit,
-		DeletedByID: deletedByID,
-	}
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if _, err := db.GetEngine(ctx).Where("repo_id = ? AND name = ?", repoID, branchName).Delete(new(Branch)); err != nil {
+			return err
+		}
 
-	_, err := db.GetEngine(ctx).Insert(deletedBranch)
-	return err
+		deletedBranch := &DeletedBranch{
+			RepoID:      repoID,
+			Name:        branchName,
+			Commit:      commit,
+			DeletedByID: deletedByID,
+		}
+		_, err := db.GetEngine(ctx).Insert(deletedBranch)
+		return err
+	})
 }
 
 // GetDeletedBranches returns all the deleted branches
@@ -122,8 +171,8 @@ func (deletedBranch *DeletedBranch) LoadUser(ctx context.Context) {
 	deletedBranch.DeletedBy = user
 }
 
-// RemoveDeletedBranchByName removes all deleted branches
-func RemoveDeletedBranchByName(ctx context.Context, repoID int64, branch string) error {
+// removeDeletedBranchByName removes all deleted branches
+func removeDeletedBranchByName(ctx context.Context, repoID int64, branch string) error {
 	_, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repoID, branch).Delete(new(DeletedBranch))
 	return err
 }
@@ -170,7 +219,26 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	defer committer.Close()
 
 	sess := db.GetEngine(ctx)
-	// 1. update default branch if needed
+
+	// 1. update deleted branch
+	if _, err := sess.Where("repo_id = ? AND name=?", repo.ID, from).Update(&DeletedBranch{
+		RepoID: repo.ID,
+		Name:   to,
+	}); err != nil {
+		return err
+	}
+
+	// 2. update branch in database
+	if n, err := sess.Where("repo_id=? AND name=?", repo.ID, from).Update(&Branch{
+		Name: to,
+	}); err != nil {
+		return err
+	} else if n <= 0 {
+		// branch does not exist in the database, so we think branch is not existed
+		return nil
+	}
+
+	// 3. update default branch if needed
 	isDefault := repo.DefaultBranch == from
 	if isDefault {
 		repo.DefaultBranch = to
@@ -180,19 +248,21 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 		}
 	}
 
-	// 2. Update protected branch if needed
+	// 4. Update protected branch if needed
 	protectedBranch, err := GetProtectedBranchRuleByName(ctx, repo.ID, from)
 	if err != nil {
 		return err
 	}
 
 	if protectedBranch != nil {
+		// there is a protect rule for this branch
 		protectedBranch.RuleName = to
 		_, err = sess.ID(protectedBranch.ID).Cols("branch_name").Update(protectedBranch)
 		if err != nil {
 			return err
 		}
 	} else {
+		// some glob protect rules may match this branch
 		protected, err := IsBranchProtected(ctx, repo.ID, from)
 		if err != nil {
 			return err
@@ -202,7 +272,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 		}
 	}
 
-	// 3. Update all not merged pull request base branch name
+	// 5. Update all not merged pull request base branch name
 	_, err = sess.Table("pull_request").Where("base_repo_id=? AND base_branch=? AND has_merged=?",
 		repo.ID, from, false).
 		Update(map[string]interface{}{"base_branch": to})
@@ -210,12 +280,12 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 		return err
 	}
 
-	// 4. do git action
+	// 6. do git action
 	if err = gitAction(isDefault); err != nil {
 		return err
 	}
 
-	// 5. insert renamed branch record
+	// 7. insert renamed branch record
 	renamedBranch := &RenamedBranch{
 		RepoID: repo.ID,
 		From:   from,

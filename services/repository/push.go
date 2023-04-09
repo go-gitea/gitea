@@ -261,8 +261,8 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				notification.NotifyPushCommits(db.DefaultContext, pusher, repo, opts, commits)
 
-				if err = git_model.RemoveDeletedBranchByName(ctx, repo.ID, branch); err != nil {
-					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
+				if err = git_model.UpdateBranch(ctx, repo.ID, branch, newCommit.ID.String(), opts.PusherID, newCommit.Committer.When); err != nil {
+					log.Error("git_model.UpdateBranch %s/%s failed: %v", repo.ID, branch, err)
 				}
 
 				// Cache for big repository
@@ -274,6 +274,10 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
 					// close all related pulls
 					log.Error("close related pull request failed: %v", err)
+				}
+
+				if err := git_model.AddDeletedBranch(db.DefaultContext, repo.ID, branch, opts.OldCommitID, pusher.ID); err != nil {
+					log.Warn("AddDeletedBranch: %v", err)
 				}
 			}
 
