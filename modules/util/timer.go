@@ -34,13 +34,14 @@ func Debounce(d time.Duration) func(f func()) {
 		if db.t != nil {
 			db.t.Stop()
 		}
-		trigger := db.t
-		db.t = time.AfterFunc(d, func() {
+		var trigger *time.Timer
+		trigger = time.AfterFunc(d, func() {
 			db.mu.Lock()
 			defer db.mu.Unlock()
 			if trigger == db.t {
 				f()
 			}
 		})
+		db.t = trigger
 	}
 }

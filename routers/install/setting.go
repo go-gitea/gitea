@@ -30,7 +30,7 @@ func PreloadSettings(ctx context.Context) bool {
 		}
 
 		setting.LoadSettingsForInstall()
-		svg.Init()
+		_ = svg.Init()
 	}
 
 	return !setting.InstallLock

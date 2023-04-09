@@ -116,8 +116,8 @@ func (l *LayeredFS) ListFiles(name string, fileMode ...bool) ([]string, error) {
 			return nil, err
 		}
 		infos, err := f.Readdir(-1)
+		_ = f.Close()
 		if err != nil {
-			_ = f.Close()
 			return nil, err
 		}
 		for _, info := range infos {
@@ -133,7 +133,6 @@ func (l *LayeredFS) ListFiles(name string, fileMode ...bool) ([]string, error) {
 				fileMap[info.Name()] = true
 			}
 		}
-		_ = f.Close()
 	}
 	var files []string
 	for file := range fileMap {
@@ -164,11 +163,10 @@ func (l *LayeredFS) listAllFiles(layers []*Layer, name string, fileMode ...bool)
 				return err
 			}
 			infos, err := f.Readdir(-1)
+			_ = f.Close()
 			if err != nil {
-				_ = f.Close()
 				return err
 			}
-			_ = f.Close()
 			for _, info := range infos {
 				include := false
 				if len(fileMode) == 0 {

@@ -70,11 +70,11 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 		for _, assetPath := range assetPaths {
 			content, layerName, err := assetFS.ReadLayeredFile(assetPath)
 			if err != nil {
-				log.Warn("Failed to read mail template %s: %v (by %s)", assetPath, err, layerName)
+				log.Warn("Failed to read mail template %s by %s: %v", assetPath, layerName, err)
 				continue
 			}
 			tmplName := strings.TrimPrefix(strings.TrimSuffix(assetPath, ".tmpl"), "mail/")
-			log.Debug("Adding mail template %s: %s (by %s)", tmplName, assetPath, layerName)
+			log.Trace("Adding mail template %s: %s by %s", tmplName, assetPath, layerName)
 			buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, tmplName, content)
 		}
 	}
