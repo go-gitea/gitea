@@ -342,11 +342,10 @@ checks-backend: tidy-check swagger-check fmt-check misspell-check swagger-valida
 lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
-lint-frontend: node_modules
+lint-frontend: node_modules lint-md
 	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
 	npx stylelint --color --max-warnings=0 web_src/css
 	npx spectral lint -q -F hint $(SWAGGER_SPEC)
-	@$(MAKE) --no-print-directory lint-md
 
 .PHONY: lint-md
 lint-md: node_modules
