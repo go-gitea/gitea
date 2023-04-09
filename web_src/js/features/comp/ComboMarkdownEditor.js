@@ -1,4 +1,5 @@
 import '@github/markdown-toolbar-element';
+import '@github/text-expander-element';
 import $ from 'jquery';
 import {attachTribute} from '../tribute.js';
 import {hideElem, showElem, autosize} from '../../utils/dom.js';
@@ -6,8 +7,10 @@ import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
 import {initMarkupContent} from '../../markup/content.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {attachRefIssueContextPopup} from '../contextpopup.js';
+import {emojiKeys, emojiString} from '../emoji.js';
 
 let elementIdCounter = 0;
+const maxExpanderMatches = 6;
 
 /**
  * validate if the given textarea is non-empty.
@@ -40,13 +43,10 @@ class ComboMarkdownEditor {
 
   async init() {
     this.prepareEasyMDEToolbarActions();
-
     this.setupTab();
     this.setupDropzone();
-
     this.setupTextarea();
-
-    await attachTribute(this.textarea, {mentions: true, emoji: true});
+    this.setupExpander();
 
     if (this.userPreferredEditor === 'easymde') {
       await this.switchToEasyMDE();
@@ -81,6 +81,76 @@ class ComboMarkdownEditor {
     if (this.dropzone) {
       initTextareaImagePaste(this.textarea, this.dropzone);
     }
+  }
+
+  setupExpander() {
+    const expander = this.container.querySelector('text-expander');
+    expander?.addEventListener('text-expander-change', ({detail: {key, provide, text}}) => {
+      if (key === ':') {
+        const matches = [];
+        for (const name of emojiKeys) {
+          if (name.includes(text)) {
+            matches.push(name);
+            if (matches.length >= maxExpanderMatches) break;
+          }
+        }
+        if (!matches.length) return provide({matched: false});
+
+        const ul = document.createElement('ul');
+        ul.classList.add('suggestions');
+        for (const name of matches) {
+          const emoji = emojiString(name);
+          const li = document.createElement('li');
+          li.setAttribute('role', 'option');
+          li.setAttribute('data-value', emoji);
+          li.textContent = `${emoji} ${name}`;
+          ul.append(li);
+        }
+
+        provide({matched: true, fragment: ul});
+      } else if (key === '@') {
+        const matches = [];
+        for (const obj of window.config.tributeValues) {
+          if (obj.key.includes(text)) {
+            matches.push(obj);
+            if (matches.length >= maxExpanderMatches) break;
+          }
+        }
+        if (!matches.length) return provide({matched: false});
+
+        const ul = document.createElement('ul');
+        ul.classList.add('suggestions');
+        for (const {value, name, fullname, avatar} of matches) {
+          const li = document.createElement('li');
+          li.setAttribute('role', 'option');
+          li.setAttribute('data-value', `${key}${value}`);
+
+          const img = document.createElement('img');
+          img.src = avatar;
+          li.append(img);
+
+          const nameSpan = document.createElement('span');
+          nameSpan.textContent = name;
+          li.append(nameSpan);
+
+          if (fullname && fullname.toLowerCase() !== name) {
+            const fullnameSpan = document.createElement('span');
+            fullnameSpan.classList.add('fullname');
+            fullnameSpan.textContent = fullname;
+            li.append(fullnameSpan);
+          }
+
+          ul.append(li);
+        }
+
+        provide({matched: true, fragment: ul});
+      }
+    });
+    expander?.addEventListener('text-expander-value', ({detail}) => {
+      if (detail?.item) {
+        detail.value = detail.item.getAttribute('data-value');
+      }
+    });
   }
 
   setupDropzone() {
