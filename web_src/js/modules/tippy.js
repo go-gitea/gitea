@@ -104,7 +104,7 @@ export function initGlobalTooltips() {
       if (mutation.type === 'childList') {
         // mainly for Vue components and AJAX rendered elements
         for (const el of mutation.addedNodes) {
-          if (el.nodeName === 'RELATIVE-TIME') {
+          if (el.nodeName === 'RELATIVE-TIME' && el.classList.contains('time-since')) {
             swapTitleForTooltip(el);
           }
           if (elementNodeTypes.has(el.nodeType)) {
@@ -127,7 +127,7 @@ export function initGlobalTooltips() {
   attachChildrenLazyTooltip(document.documentElement);
 
   // init time elements
-  for (const el of document.querySelectorAll('relative-time')) {
+  for (const el of document.querySelectorAll('relative-time.time-since')) {
     swapTitleForTooltip(el);
   }
 }
