@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 )
 
@@ -117,7 +118,9 @@ func timeSincePro(then, now time.Time, lang translation.Locale) string {
 // TimeSince calculates the time interval and generate user-friendly string.
 func TimeSince(then time.Time, lang translation.Locale) template.HTML {
 	timestamp := then.Format(time.RFC3339)
-	return template.HTML(fmt.Sprintf(`<relative-time class="time-since" prefix="%s" datetime="%s">%s</relative-time>`, lang.Tr("packages.versions.on"), timestamp, timestamp))
+	return template.HTML(fmt.Sprintf(`<relative-time class="time-since" title="" data-tooltip-content="%s" data-tooltip-interactive="true" prefix="%s" datetime="%s">%s</relative-time>`,
+		then.In(setting.DefaultUILocation).Format(GetTimeFormat(lang.Language())),
+		lang.Tr("packages.versions.on"), timestamp, timestamp))
 }
 
 // TimeSinceUnix calculates the time interval and generate user-friendly string.
