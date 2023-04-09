@@ -2368,9 +2368,10 @@ a.ui.label:hover {
 }
 
 .ui.primary.label,
-.ui.primary.labels .label {
-  background-color: var(--color-primary) !important;
-  border-color: var(--color-primary-dark-2) !important;
+.ui.primary.labels .label, 
+.ui.ui.ui.primary.label {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary-dark-2);
 }
 
 .ui.basic.labels .primary.label,
