@@ -172,7 +172,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(ssh.Init)
 
 	auth.Init()
-	svg.Init()
+	mustInit(svg.Init)
 
 	actions_service.Init()
 

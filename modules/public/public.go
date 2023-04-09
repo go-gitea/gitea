@@ -36,14 +36,17 @@ func StaticAssets() *assetfs.Layer {
 	return assetfs.Local("static", setting.StaticRootPath, "public")
 }
 
+func AssetFS() *assetfs.LayeredFS {
+	if setting.HasBuiltinBindata {
+		return assetfs.Layered(CustomAssets(), StaticAssets(), BuiltinAssets()) // old behavior: always include StaticAssets
+	} else {
+		return assetfs.Layered(CustomAssets(), BuiltinAssets()) // now BuiltinAssets is StaticAssets
+	}
+}
+
 // AssetsHandlerFunc implements the static handler for serving custom or original assets.
 func AssetsHandlerFunc(opts *Options) http.HandlerFunc {
-	var assetFS http.FileSystem
-	if setting.HasBuiltinBindata {
-		assetFS = assetfs.Layered(CustomAssets(), StaticAssets(), BuiltinAssets()) // old behavior: always include StaticAssets
-	} else {
-		assetFS = assetfs.Layered(CustomAssets(), BuiltinAssets()) // now BuiltinAssets is StaticAssets
-	}
+	assetFS := AssetFS()
 
 	return func(resp http.ResponseWriter, req *http.Request) {
 		path := req.URL.Path

@@ -47,6 +47,5 @@ func reloadSettings(ctx context.Context) {
 		} else {
 			log.Fatal("ORM engine initialization failed: %v", err)
 		}
-		svg.Init()
 	}
 }
