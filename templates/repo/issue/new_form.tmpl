@@ -8,7 +8,7 @@
 	<div class="twelve wide column">
 		<div class="ui comments">
 			<div class="comment">
-				{{template "shared/user/avatarlink" Dict "Context" $.Context "user" .SignedUser}}
+				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .SignedUser}}
 				<div class="ui segment content">
 					<div class="field">
 						<input name="title" id="issue_title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255" autocomplete="off">
@@ -20,15 +20,15 @@
 						<input type="hidden" name="template-file" value="{{.TemplateFile}}">
 						{{range .Fields}}
 							{{if eq .Type "input"}}
-								{{template "repo/issue/fields/input" Dict "Context" $.Context "item" .}}
+								{{template "repo/issue/fields/input" dict "Context" $.Context "item" .}}
 							{{else if eq .Type "markdown"}}
-								{{template "repo/issue/fields/markdown" Dict "Context" $.Context "item" .}}
+								{{template "repo/issue/fields/markdown" dict "Context" $.Context "item" .}}
 							{{else if eq .Type "textarea"}}
-								{{template "repo/issue/fields/textarea" Dict "Context" $.Context "item" .}}
+								{{template "repo/issue/fields/textarea" dict "Context" $.Context "item" .}}
 							{{else if eq .Type "dropdown"}}
-								{{template "repo/issue/fields/dropdown" Dict "Context" $.Context "item" .}}
+								{{template "repo/issue/fields/dropdown" dict "Context" $.Context "item" .}}
 							{{else if eq .Type "checkboxes"}}
-								{{template "repo/issue/fields/checkboxes" Dict "Context" $.Context "item" .}}
+								{{template "repo/issue/fields/checkboxes" dict "Context" $.Context "item" .}}
 							{{end}}
 						{{end}}
 						{{if .IsAttachmentEnabled}}

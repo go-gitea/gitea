@@ -157,6 +157,7 @@ func TestPackageAccess(t *testing.T) {
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	inactive := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9})
+	privatedOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
 
 	uploadPackage := func(doer, owner *user_model.User, expectedStatus int) {
 		url := fmt.Sprintf("/api/packages/%s/generic/test-package/1.0/file.bin", owner.Name)
@@ -170,6 +171,15 @@ func TestPackageAccess(t *testing.T) {
 	uploadPackage(inactive, user, http.StatusUnauthorized)
 	uploadPackage(admin, inactive, http.StatusCreated)
 	uploadPackage(admin, user, http.StatusCreated)
+
+	// team.authorize is write, but team_unit.access_mode is none
+	// so the user can not upload packages or get package list
+	uploadPackage(user, privatedOrg, http.StatusUnauthorized)
+
+	session := loginUser(t, user.Name)
+	tokenReadPackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?token=%s", privatedOrg.Name, tokenReadPackage))
+	MakeRequest(t, req, http.StatusForbidden)
 }
 
 func TestPackageQuota(t *testing.T) {

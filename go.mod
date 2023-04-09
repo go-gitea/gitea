@@ -54,7 +54,7 @@ require (
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v4 v4.5.0
-	github.com/google/go-github/v45 v45.2.0
+	github.com/google/go-github/v51 v51.0.0
 	github.com/google/pprof v0.0.0-20230222194610-99052d3372e7
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/feeds v1.1.1
@@ -96,7 +96,6 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
-	github.com/unrolled/render v1.5.0
 	github.com/urfave/cli v1.22.12
 	github.com/xanzy/go-gitlab v0.80.2
 	github.com/xeipuuv/gojsonschema v1.2.0
@@ -104,11 +103,11 @@ require (
 	github.com/yuin/goldmark v1.5.4
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20220924101305-151362477c87
 	github.com/yuin/goldmark-meta v1.1.0
-	golang.org/x/crypto v0.6.0
-	golang.org/x/net v0.7.0
-	golang.org/x/oauth2 v0.5.0
+	golang.org/x/crypto v0.7.0
+	golang.org/x/net v0.8.0
+	golang.org/x/oauth2 v0.6.0
 	golang.org/x/sys v0.6.0
-	golang.org/x/text v0.7.0
+	golang.org/x/text v0.8.0
 	golang.org/x/tools v0.6.0
 	google.golang.org/grpc v1.53.0
 	google.golang.org/protobuf v1.28.1
@@ -289,7 +288,7 @@ replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142
 
 replace github.com/blevesearch/zapx/v15 v15.3.6 => github.com/zeripath/zapx/v15 v15.3.6-alignment-fix
 
-replace github.com/nektos/act => gitea.com/gitea/act v0.243.2-0.20230329055922-5e76853b55ab
+replace github.com/nektos/act => gitea.com/gitea/act v0.243.3-0.20230407083103-5c4a96bcb797
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 

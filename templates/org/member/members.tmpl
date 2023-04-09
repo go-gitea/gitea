@@ -8,7 +8,7 @@
 			{{range .Members}}
 				<div class="item ui grid">
 					<div class="ui four wide column" style="display: flex;">
-						{{avatar $.Context . 48}}
+						<a href="{{.HomeLink}}">{{avatar $.Context . 48}}</a>
 						<div>
 							<div class="meta"><a href="{{.HomeLink}}">{{.Name}}</a></div>
 							<div class="meta">{{.FullName}}</div>
@@ -55,7 +55,7 @@
 							{{end}}
 						</div>
 					{{end}}
-					<div class="ui three wide column">
+					<div class="ui three wide column gt-df gt-ac gt-je">
 						<div class="text right">
 							{{if eq $.SignedUser.ID .ID}}
 								<form>

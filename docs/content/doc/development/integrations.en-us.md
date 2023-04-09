@@ -2,7 +2,7 @@
 date: "2019-04-15T17:29:00+08:00"
 title: "Integrations"
 slug: "integrations"
-weight: 40
+weight: 65
 toc: false
 draft: false
 menu:

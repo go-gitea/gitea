@@ -21,23 +21,16 @@ import {initRepoIssueContentHistory} from './features/repo-issue-content.js';
 import {initStopwatch} from './features/stopwatch.js';
 import {initFindFileInRepo} from './features/repo-findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
-import {initDiffFileTree} from './features/repo-diff-filetree.js';
 
 import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
 import {
-  initRepoDiffConversationForm,
-  initRepoDiffFileViewToggle,
-  initRepoDiffReviewButton, initRepoDiffShowMore,
-} from './features/repo-diff.js';
-import {
   initRepoIssueDue,
-  initRepoIssueList,
   initRepoIssueReferenceRepositorySearch,
   initRepoIssueTimeTracking,
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
-  initRepoPullRequestReview,
+  initRepoPullRequestReview, initRepoIssueSidebarList,
 } from './features/repo-issue.js';
 import {
   initRepoEllipsisButton,
@@ -69,7 +62,7 @@ import {
   initRepoSettingsCollaboration,
   initRepoSettingSearchTeamBox,
 } from './features/repo-settings.js';
-import {initViewedCheckboxListenerFor} from './features/pull-view-file.js';
+import {initRepoDiffView} from './features/repo-diff.js';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.js';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
 import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.js';
@@ -77,7 +70,6 @@ import {initRepoEditor} from './features/repo-editor.js';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.js';
 import {initInstall} from './features/install.js';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.js';
-import {initCommonIssue} from './features/common-issue.js';
 import {initRepoBranchButton} from './features/repo-branch.js';
 import {initCommonOrganization} from './features/common-organization.js';
 import {initRepoWikiForm} from './features/repo-wiki.js';
@@ -89,6 +81,7 @@ import {initRepositoryActionView} from './components/RepoActionView.vue';
 import {initGlobalTooltips} from './modules/tippy.js';
 import {initGiteaFomantic} from './modules/fomantic.js';
 import {onDomReady} from './utils/dom.js';
+import {initRepoIssueList} from './features/repo-issue-list.js';
 
 // Run time-critical code as soon as possible. This is safe to do because this
 // script appears at the end of <body> and rendered HTML is accessible at that point.
@@ -109,7 +102,6 @@ onDomReady(() => {
   initGlobalFormDirtyLeaveConfirm();
   initGlobalLinkActions();
 
-  initCommonIssue();
   initCommonOrganization();
 
   initCompSearchUserBox();
@@ -153,16 +145,12 @@ onDomReady(() => {
   initRepoCommentForm();
   initRepoEllipsisButton();
   initRepoCommitLastCommitLoader();
-  initRepoDiffConversationForm();
-  initRepoDiffFileViewToggle();
-  initRepoDiffReviewButton();
-  initRepoDiffShowMore();
-  initDiffFileTree();
   initRepoEditor();
   initRepoGraphGit();
   initRepoIssueContentHistory();
   initRepoIssueDue();
   initRepoIssueList();
+  initRepoIssueSidebarList();
   initRepoIssueReferenceRepositorySearch();
   initRepoIssueTimeTracking();
   initRepoIssueWipTitle();
@@ -191,5 +179,5 @@ onDomReady(() => {
   initUserAuthWebAuthn();
   initUserAuthWebAuthnRegister();
   initUserSettings();
-  initViewedCheckboxListenerFor();
+  initRepoDiffView();
 });
