@@ -293,7 +293,6 @@ steps:
 
   - name: lint-md
     image: node:18
-    pull: always
     commands:
       - make lint-md
 
