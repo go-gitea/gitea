@@ -658,6 +658,49 @@ func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
 	return repo, err
 }
 
+// getRepositoryURLPathSegments returns segments (owner, reponame) extracted from a url
+func getRepositoryURLPathSegments(repoURL string) []string {
+	if strings.HasPrefix(repoURL, setting.AppURL) {
+		return strings.Split(strings.TrimPrefix(repoURL, setting.AppURL), "/")
+	}
+
+	sshURLVariants := [4]string{
+		setting.SSH.Domain + ":",
+		setting.SSH.User + "@" + setting.SSH.Domain + ":",
+		"git+ssh://" + setting.SSH.Domain + "/",
+		"git+ssh://" + setting.SSH.User + "@" + setting.SSH.Domain + "/",
+	}
+
+	for _, sshURL := range sshURLVariants {
+		if strings.HasPrefix(repoURL, sshURL) {
+			return strings.Split(strings.TrimPrefix(repoURL, sshURL), "/")
+		}
+	}
+
+	return nil
+}
+
+// GetRepositoryByURL returns the repository by given url
+func GetRepositoryByURL(ctx context.Context, repoURL string) (*Repository, error) {
+	// possible urls for git:
+	//  https://my.domain/sub-path/<owner>/<repo>.git
+	//  https://my.domain/sub-path/<owner>/<repo>
+	//  git+ssh://user@my.domain/<owner>/<repo>.git
+	//  git+ssh://user@my.domain/<owner>/<repo>
+	//  user@my.domain:<owner>/<repo>.git
+	//  user@my.domain:<owner>/<repo>
+
+	pathSegments := getRepositoryURLPathSegments(repoURL)
+
+	if len(pathSegments) != 2 {
+		return nil, fmt.Errorf("unknown or malformed repository URL")
+	}
+
+	ownerName := pathSegments[0]
+	repoName := strings.TrimSuffix(pathSegments[1], ".git")
+	return GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
+}
+
 // GetRepositoryByID returns the repository by given id if exists.
 func GetRepositoryByID(ctx context.Context, id int64) (*Repository, error) {
 	repo := new(Repository)

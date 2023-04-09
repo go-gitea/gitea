@@ -7,10 +7,6 @@
   color: var(--color-primary) !important;
 }
 
-.issue.list > .item .issue-checkbox {
-  margin-top: 1px;
-}
-
 .issue.list > .item .issue-item-icon svg {
   margin-right: 0.75rem;
   margin-top: 1px;
