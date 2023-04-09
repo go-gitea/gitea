@@ -238,11 +238,10 @@ func (l *LayeredFS) WatchLocalChanges(ctx context.Context, callback func()) {
 			if !ok {
 				return
 			}
-			log.Debug("Watched asset local file-system had event: %v", event)
+			log.Trace("Watched asset local file-system had event: %v", event)
 			debounce(callback)
 		case err, ok := <-watcher.Errors:
 			if !ok {
-				_ = watcher.Close()
 				return
 			}
 			log.Error("Watched asset local file-system had error: %v", err)
