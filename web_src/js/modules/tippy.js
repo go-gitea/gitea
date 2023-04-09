@@ -86,7 +86,7 @@ function attachChildrenLazyTooltip(target) {
   }
 }
 
-// on <relative-time> elements, swap title for data-tooltip-content this
+// on <relative-time> elements, swap `title` for `data-tooltip-content`. This
 // only runs once, so is only suitable for content that does not change.
 function swapTitleForTooltip(el) {
   if (el.hasAttribute('data-tooltip-content')) return;
