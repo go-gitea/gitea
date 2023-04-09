@@ -24,7 +24,7 @@ menu:
 在启用HTTPS之前，确保您拥有有效的SSL/TLS证书。
 建议在测试和评估情况下使用自签名证书，请运行 `gitea cert --host [HOST]` 以生成自签名证书
 
-如果您在服务器上使用阿帕奇（Apache）或Nginx，建议参考 [反向代理指南]({{< relref "doc/usage/reverse-proxies.en-us.md" >}})。
+如果您在服务器上使用阿帕奇（Apache）或Nginx，建议参考 [反向代理指南]({{< relref "doc/administration/reverse-proxies.en-us.md" >}})。
 
 要使用Gitea内置HTTPS支持，您必须编辑`app.ini`文件。
 
@@ -42,6 +42,7 @@ KEY_FILE  = key.pem
 对于“CERT_FILE”或“KEY_FILE”字段，当文件路径是相对路径时，文件路径相对于“GITEA_CUSTOM”环境变量。它也可以是绝对路径。
 
 ### 设置HTTP重定向
+
 Gitea服务器仅支持监听一个端口；要重定向HTTP请求致HTTPS端口，您需要启用HTTP重定向服务：
 
 ```ini
@@ -53,7 +54,6 @@ PORT_TO_REDIRECT = 3080
 
 如果您使用Docker，确保端口已配置在 `docker-compose.yml` 文件
 
-## Using ACME (Default: Let's Encrypt)
 ## 使用 ACME (默认: Let's Encrypt)
 
 [ACME]（https://tools.ietf.org/html/rfc8555） 是一种证书颁发机构标准协议，允许您自动请求和续订 SSL/TLS 证书。[Let`s Encrypt]（https://letsencrypt.org/） 是使用此标准的免费公开信任的证书颁发机构服务器。仅实施“HTTP-01”和“TLS-ALPN-01”挑战。为了使 ACME 质询通过并验证您的域所有权，“80”端口（“HTTP-01”）或“443”端口（“TLS-ALPN-01”）上 gitea 域的外部流量必须由 gitea 实例提供服务。可能需要设置 [HTTP 重定向]（#setting-up-http-redirection） 和端口转发才能正确路由外部流量。否则，到端口“80”的正常流量将自动重定向到 HTTPS。**您必须同意**ACME提供商的服务条款（默认为Let's Encrypt的[服务条款]（https://letsencrypt.org/documents/LE-SA-v1.2-2017年11月15日.pdf））。
