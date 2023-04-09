@@ -10,9 +10,6 @@ platform:
 trigger:
   event:
     - pull_request
-  paths:
-    exclude:
-      - docs/**
 
 volumes:
   - name: deps
