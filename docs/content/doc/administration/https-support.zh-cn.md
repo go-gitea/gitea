@@ -1,5 +1,5 @@
 ---
-date: "2018-06-02T11:00:00+02:00"
+date: "2023-04-09T11:00:00+02:00"
 title: "使用： HTTPS配置"
 slug: "https-setup"
 weight: 12
@@ -7,7 +7,7 @@ toc: false
 draft: false
 menu:
   sidebar:
-    parent: "usage"
+    parent: "administration"
     name: "HTTPS setup"
     weight: 12
     identifier: "https-setup"
