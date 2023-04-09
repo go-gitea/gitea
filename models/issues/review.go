@@ -681,12 +681,12 @@ func UpsertReviews(reviews []*Review) error {
 				}
 			}
 		} else {
-			if _, err = sess.NoAutoTime().Where("issue_id = ? AND created_unix", review.IssueID, review.CreatedUnix).Update(review); err != nil {
+			if _, err = sess.NoAutoTime().Where("issue_id = ? AND created_unix = ?", review.IssueID, review.CreatedUnix).Update(review); err != nil {
 				return err
 			}
 
 			// Get id of the review
-			if err = sess.NoAutoTime().Where("issue_id = ? AND created_unix", review.IssueID, review.CreatedUnix).Find(review); err != nil {
+			if err = sess.NoAutoTime().Where("issue_id = ? AND created_unix = ?", review.IssueID, review.CreatedUnix).Find(review); err != nil {
 				return err
 			}
 
