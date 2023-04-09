@@ -1,7 +1,8 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "Package Registry"
-slug: "packages/overview"
+slug: "usage/packages/overview"
+weight: 1
 draft: false
 toc: false
 menu:
@@ -9,7 +10,7 @@ menu:
     parent: "packages"
     name: "Overview"
     weight: 1
-    identifier: "overview"
+    identifier: "packages-overview"
 ---
 
 # Package Registry
@@ -40,6 +41,7 @@ The following package managers are currently supported:
 | [Pub]({{< relref "doc/packages/pub.en-us.md" >}}) | Dart | `dart`, `flutter` |
 | [PyPI]({{< relref "doc/packages/pypi.en-us.md" >}}) | Python | `pip`, `twine` |
 | [RubyGems]({{< relref "doc/packages/rubygems.en-us.md" >}}) | Ruby | `gem`, `Bundler` |
+| [Swift]({{< relref "doc/packages/rubygems.en-us.md" >}}) | Swift | `swift` |
 | [Vagrant]({{< relref "doc/packages/vagrant.en-us.md" >}}) | - | `vagrant` |
 
 **The following paragraphs only apply if Packages are not globally disabled!**

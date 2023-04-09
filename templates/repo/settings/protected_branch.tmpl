@@ -49,8 +49,7 @@
 								<div class="menu">
 									{{range .Users}}
 										<div class="item" data-value="{{.ID}}">
-											{{avatar $.Context . 28 "mini"}}
-											{{.GetDisplayName}}
+											{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
 										</div>
 									{{end}}
 								</div>
@@ -101,8 +100,7 @@
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
-										{{avatar $.Context . 28 "mini"}}
-									{{.GetDisplayName}}
+										{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
 									</div>
 								{{end}}
 								</div>
@@ -181,8 +179,7 @@
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
-										{{avatar $.Context . 28 "mini"}}
-									{{.GetDisplayName}}
+										{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
 									</div>
 								{{end}}
 								</div>

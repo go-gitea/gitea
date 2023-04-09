@@ -6,7 +6,6 @@ package public
 import (
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Options represents the available options to configure the handler.
@@ -45,28 +45,18 @@ func AssetsHandlerFunc(opts *Options) http.HandlerFunc {
 			return
 		}
 
-		file := req.URL.Path
-		file = file[len(opts.Prefix):]
-		if len(file) == 0 {
-			resp.WriteHeader(http.StatusNotFound)
-			return
-		}
-		if strings.Contains(file, "\\") {
-			resp.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		file = "/" + file
-
-		var written bool
 		if opts.CorsHandler != nil {
-			written = true
+			var corsSent bool
 			opts.CorsHandler(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
-				written = false
+				corsSent = true
 			})).ServeHTTP(resp, req)
+			// If CORS is not sent, the response must have been written by other handlers
+			if !corsSent {
+				return
+			}
 		}
-		if written {
-			return
-		}
+
+		file := req.URL.Path[len(opts.Prefix):]
 
 		// custom files
 		if opts.handle(resp, req, http.Dir(custPath), file) {
@@ -102,8 +92,8 @@ func setWellKnownContentType(w http.ResponseWriter, file string) {
 }
 
 func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.FileSystem, file string) bool {
-	// use clean to keep the file is a valid path with no . or ..
-	f, err := fs.Open(path.Clean(file))
+	// actually, fs (http.FileSystem) is designed to be a safe interface, relative paths won't bypass its parent directory, it's also fine to do a clean here
+	f, err := fs.Open(util.PathJoinRelX(file))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false

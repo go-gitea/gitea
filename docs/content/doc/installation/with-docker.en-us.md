@@ -2,14 +2,14 @@
 date: "2020-03-19T19:27:00+02:00"
 title: "Installation with Docker"
 slug: "install-with-docker"
-weight: 10
+weight: 70
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "installation"
     name: "With Docker"
-    weight: 10
+    weight: 70
     identifier: "install-with-docker"
 ---
 

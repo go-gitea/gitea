@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -98,13 +99,13 @@ func TestSearchUsers(t *testing.T) {
 	}
 
 	testUserSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}},
-		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32})
+		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34})
 
 	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolFalse},
 		[]int64{9})
 
 	testUserSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
-		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32})
+		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34})
 
 	testUserSuccess(&user_model.SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
@@ -164,7 +165,7 @@ func TestEmailNotificationPreferences(t *testing.T) {
 func TestHashPasswordDeterministic(t *testing.T) {
 	b := make([]byte, 16)
 	u := &user_model.User{}
-	algos := []string{"argon2", "pbkdf2", "scrypt", "bcrypt"}
+	algos := hash.RecommendedHashAlgorithms
 	for j := 0; j < len(algos); j++ {
 		u.PasswdHashAlgo = algos[j]
 		for i := 0; i < 50; i++ {

@@ -111,7 +111,7 @@ func TestAPITeam(t *testing.T) {
 
 	// Read team.
 	teamRead := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-	assert.NoError(t, teamRead.GetUnits())
+	assert.NoError(t, teamRead.LoadUnits(db.DefaultContext))
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d?token="+token, teamID)
 	resp = MakeRequest(t, req, http.StatusOK)
 	apiTeam = api.Team{}
@@ -181,7 +181,7 @@ func TestAPITeam(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
-	assert.NoError(t, teamRead.GetUnits())
+	assert.NoError(t, teamRead.LoadUnits(db.DefaultContext))
 	checkTeamResponse(t, "ReadTeam2", &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
 		teamRead.AccessMode.String(), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
 
@@ -210,7 +210,7 @@ func checkTeamResponse(t *testing.T, testName string, apiTeam *api.Team, name, d
 
 func checkTeamBean(t *testing.T, id int64, name, description string, includesAllRepositories bool, permission string, units []string, unitsMap map[string]string) {
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: id})
-	assert.NoError(t, team.GetUnits(), "GetUnits")
+	assert.NoError(t, team.LoadUnits(db.DefaultContext), "LoadUnits")
 	apiTeam, err := convert.ToTeam(db.DefaultContext, team)
 	assert.NoError(t, err)
 	checkTeamResponse(t, fmt.Sprintf("checkTeamBean/%s_%s", name, description), apiTeam, name, description, includesAllRepositories, permission, units, unitsMap)

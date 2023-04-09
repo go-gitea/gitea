@@ -19,7 +19,7 @@ type TeamList []*Team
 
 func (t TeamList) LoadUnits(ctx context.Context) error {
 	for _, team := range t {
-		if err := team.getUnits(ctx); err != nil {
+		if err := team.LoadUnits(ctx); err != nil {
 			return err
 		}
 	}

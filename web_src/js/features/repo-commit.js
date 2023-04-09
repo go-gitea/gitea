@@ -58,7 +58,7 @@ export function initRepoCommitLastCommitLoader() {
 }
 
 export function initCommitStatuses() {
-  $('.commit-statuses-trigger').each(function () {
+  $('[data-tippy="commit-statuses"]').each(function () {
     const top = $('.repository.file.list').length > 0 || $('.repository.diff').length > 0;
 
     createTippy(this, {

@@ -3,7 +3,7 @@
     <div v-if="loading" class="ui active centered inline loader"/>
     <div v-if="!loading && issue !== null">
       <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
-      <p><svg-icon :name="icon" :class="[color]" /> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
+      <p><svg-icon :name="icon" :class="['text', color]" /> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
       <p>{{ body }}</p>
       <div>
         <div
@@ -87,7 +87,7 @@ export default {
     }
   },
   mounted() {
-    this.$refs.root.addEventListener('us-load-context-popup', (e) => {
+    this.$refs.root.addEventListener('ce-load-context-popup', (e) => {
       const data = e.detail;
       if (!this.loading && this.issue === null) {
         this.load(data);

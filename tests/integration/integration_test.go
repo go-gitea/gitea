@@ -87,8 +87,8 @@ func TestMain(m *testing.M) {
 	c = routers.NormalRoutes(context.TODO())
 
 	// integration test settings...
-	if setting.Cfg != nil {
-		testingCfg := setting.Cfg.Section("integration-tests")
+	if setting.CfgProvider != nil {
+		testingCfg := setting.CfgProvider.Section("integration-tests")
 		tests.SlowTest = testingCfg.Key("SLOW_TEST").MustDuration(tests.SlowTest)
 		tests.SlowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(tests.SlowFlush)
 	}

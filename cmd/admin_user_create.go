@@ -10,7 +10,7 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
-	pwd "code.gitea.io/gitea/modules/password"
+	pwd "code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
