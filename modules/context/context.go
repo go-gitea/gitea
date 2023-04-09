@@ -47,7 +47,7 @@ import (
 
 // Render represents a template render
 type Render interface {
-	TemplateLookup(tmpl string) *template.Template
+	TemplateLookup(tmpl string) (*template.Template, error)
 	HTML(w io.Writer, status int, name string, data interface{}) error
 }
 
@@ -228,7 +228,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 	}
 	if err := ctx.Render.HTML(ctx.Resp, status, string(name), templates.BaseVars().Merge(ctx.Data)); err != nil {
 		if status == http.StatusInternalServerError && name == base.TplName("status/500") {
-			ctx.PlainText(http.StatusInternalServerError, "Unable to find status/500 template")
+			ctx.PlainText(http.StatusInternalServerError, "Unable to find HTML templates, the template system is not initialized, or Gitea can't find your template files.")
 			return
 		}
 		if execErr, ok := err.(texttemplate.ExecError); ok {
@@ -247,7 +247,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 				if errorTemplateName != string(name) {
 					filename += " (subtemplate of " + string(name) + ")"
 				}
-				err = fmt.Errorf("%w\nin template file %s:\n%s", err, filename, templates.GetLineFromTemplate(errorTemplateName, line, target, pos))
+				err = fmt.Errorf("failed to render %s, error: %w:\n%s", filename, err, templates.GetLineFromTemplate(errorTemplateName, line, target, pos))
 			} else {
 				filename, filenameErr := templates.GetAssetFilename("templates/" + execErr.Name + ".tmpl")
 				if filenameErr != nil {
@@ -256,7 +256,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 				if execErr.Name != string(name) {
 					filename += " (subtemplate of " + string(name) + ")"
 				}
-				err = fmt.Errorf("%w\nin template file %s", err, filename)
+				err = fmt.Errorf("failed to render %s, error: %w", filename, err)
 			}
 		}
 		ctx.ServerError("Render failed", err)
