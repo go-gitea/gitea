@@ -174,6 +174,12 @@ func runViewDo(c *cli.Context) error {
 		return err
 	}
 
+	if len(assets) == 0 {
+		return fmt.Errorf("no files matched the given pattern")
+	} else if len(assets) > 1 {
+		return fmt.Errorf("too many files matched the given pattern, try to be more specific")
+	}
+
 	data, err := assets[0].Section.AssetFS.ReadFile(assets[0].Name)
 	if err != nil {
 		return fmt.Errorf("%s: %w", assets[0].Path, err)
@@ -288,7 +294,7 @@ func buildAssetList(sec *section, globs []glob.Glob, c *cli.Context) []asset {
 	files, err := sec.AssetFS.ListFiles(".", true)
 	if err != nil {
 		log.Error("Error listing files in %q: %v", sec.Path, err)
-		return results
+		return nil
 	}
 	for _, name := range files {
 		if sec.Path == "public" &&
