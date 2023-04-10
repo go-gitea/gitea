@@ -6,6 +6,7 @@ package setting
 import (
 	"path/filepath"
 	"reflect"
+	"sync"
 
 	ini "gopkg.in/ini.v1"
 )
@@ -30,20 +31,35 @@ func (s *Storage) MapTo(v interface{}) error {
 	return nil
 }
 
+const sectionName = "storage"
+
+var (
+	storageSec     *ini.Section
+	storageSecOnce sync.Once
+)
+
+func getStorageSection(rootCfg ConfigProvider) *ini.Section {
+	storageSecOnce.Do(func() {
+		storageSec = rootCfg.Section(sectionName)
+		// Global Defaults
+		storageSec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
+		storageSec.Key("MINIO_ACCESS_KEY_ID").MustString("")
+		storageSec.Key("MINIO_SECRET_ACCESS_KEY").MustString("")
+		storageSec.Key("MINIO_BUCKET").MustString("gitea")
+		storageSec.Key("MINIO_LOCATION").MustString("us-east-1")
+		storageSec.Key("MINIO_USE_SSL").MustBool(false)
+		storageSec.Key("MINIO_INSECURE_SKIP_VERIFY").MustBool(false)
+		storageSec.Key("MINIO_CHECKSUM_ALGORITHM").MustString("default")
+	})
+	return storageSec
+}
+
+// getStorage will read storage configurations from 4 possible ways
+// 1 read configurations from [$name] if the item exist
+// 2 read configurations from [storage.$name] if the item exist
+// 3 read configurations from [storage.$typ] if the item exist
+// 4 read configurations from [storage] if the item exist
 func getStorage(rootCfg ConfigProvider, name, typ string, targetSec *ini.Section) Storage {
-	const sectionName = "storage"
-	sec := rootCfg.Section(sectionName)
-
-	// Global Defaults
-	sec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
-	sec.Key("MINIO_ACCESS_KEY_ID").MustString("")
-	sec.Key("MINIO_SECRET_ACCESS_KEY").MustString("")
-	sec.Key("MINIO_BUCKET").MustString("gitea")
-	sec.Key("MINIO_LOCATION").MustString("us-east-1")
-	sec.Key("MINIO_USE_SSL").MustBool(false)
-	sec.Key("MINIO_INSECURE_SKIP_VERIFY").MustBool(false)
-	sec.Key("MINIO_CHECKSUM_ALGORITHM").MustString("default")
-
 	if targetSec == nil {
 		targetSec, _ = rootCfg.NewSection(name)
 	}
@@ -66,7 +82,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, targetSec *ini.Section
 			storage.Type = nextType // Support custom STORAGE_TYPE
 		}
 	}
-	overrides = append(overrides, sec)
+	overrides = append(overrides, getStorageSection(rootCfg))
 
 	for _, override := range overrides {
 		for _, key := range override.Keys() {
