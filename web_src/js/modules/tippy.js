@@ -36,6 +36,8 @@ export function createTippy(target, opts = {}) {
  * @returns {null|tippy}
  */
 function attachTooltip(target, content = null) {
+  switchTitleToTooltip(target);
+
   content = content ?? target.getAttribute('data-tooltip-content');
   if (!content) return null;
 
@@ -53,6 +55,15 @@ function attachTooltip(target, content = null) {
     target._tippy.setProps(props);
   }
   return target._tippy;
+}
+
+function switchTitleToTooltip(target) {
+  const title = target.getAttribute('title');
+  if (title) {
+    target.setAttribute('data-tooltip-content', title);
+    target.setAttribute('aria-label', title);
+    target.setAttribute('title', '');
+  }
 }
 
 /**
@@ -86,50 +97,34 @@ function attachChildrenLazyTooltip(target) {
   }
 }
 
-// on <relative-time> elements, swap `title` for `data-tooltip-content`. This
-// only runs once, so is only suitable for content that does not change.
-function swapTitleForTooltip(el) {
-  if (el.hasAttribute('data-tooltip-content')) return;
-  el.setAttribute('data-tooltip-content', el.getAttribute('title'));
-  el.setAttribute('data-tooltip-interactive', 'true');
-  el.setAttribute('title', '');
-}
-
 const elementNodeTypes = new Set([Node.ELEMENT_NODE, Node.DOCUMENT_FRAGMENT_NODE]);
 
 export function initGlobalTooltips() {
-  // use MutationObserver to detect new elements added to the DOM, or attributes changed
-  const observer = new MutationObserver((mutationList) => {
+  // use MutationObserver to detect new "data-tooltip-content" elements added to the DOM, or attributes changed
+  const observerConnect = (observer) => observer.observe(document, {
+    subtree: true,
+    childList: true,
+    attributeFilter: ['data-tooltip-content', 'title']
+  });
+  const observer = new MutationObserver((mutationList, observer) => {
+    observer.disconnect();
     for (const mutation of mutationList) {
       if (mutation.type === 'childList') {
         // mainly for Vue components and AJAX rendered elements
         for (const el of mutation.addedNodes) {
-          if (el.nodeName === 'RELATIVE-TIME' && el.classList.contains('time-since')) {
-            swapTitleForTooltip(el);
-          }
           if (elementNodeTypes.has(el.nodeType)) {
             attachChildrenLazyTooltip(el);
           }
         }
       } else if (mutation.type === 'attributes') {
-        // sync the tooltip content if the attributes change
         attachTooltip(mutation.target);
       }
     }
+    observerConnect(observer);
   });
-  observer.observe(document, {
-    subtree: true,
-    childList: true,
-    attributeFilter: ['data-tooltip-content'],
-  });
+  observerConnect(observer);
 
-  // init tooltips
   attachChildrenLazyTooltip(document.documentElement);
-
-  // init time elements
-  for (const el of document.querySelectorAll('relative-time.time-since')) {
-    swapTitleForTooltip(el);
-  }
 }
 
 export function showTemporaryTooltip(target, content) {

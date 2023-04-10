@@ -117,7 +117,8 @@ func timeSincePro(then, now time.Time, lang translation.Locale) string {
 // TimeSince calculates the time interval and generate user-friendly string.
 func TimeSince(then time.Time, lang translation.Locale) template.HTML {
 	timestamp := then.Format(time.RFC3339)
-	return template.HTML(fmt.Sprintf(`<relative-time class="time-since" prefix="%s" datetime="%s">%s</relative-time>`, lang.Tr("packages.versions.on"), timestamp, timestamp))
+	// declare data-tooltip-content attribute to switch from "title" tooltip to "tippy" tooltip
+	return template.HTML(fmt.Sprintf(`<relative-time class="time-since" prefix="%s" datetime="%s" data-tooltip-content data-tooltip-interactive="true">%s</relative-time>`, lang.Tr("packages.versions.on"), timestamp, timestamp))
 }
 
 // TimeSinceUnix calculates the time interval and generate user-friendly string.
