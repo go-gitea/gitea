@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -20,7 +19,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/templates/scopedtmpl"
 	"code.gitea.io/gitea/modules/watcher"
 )
 
@@ -33,8 +32,10 @@ var (
 	expectedEndError = regexp.MustCompile(`^template: (.*):([0-9]+): expected end; found (.*)`)
 )
 
+type TemplateExecutor scopedtmpl.TemplateExecutor
+
 type HTMLRender struct {
-	templates atomic.Pointer[template.Template]
+	templates atomic.Pointer[scopedtmpl.ScopedTemplate]
 }
 
 var ErrTemplateNotInitialized = errors.New("template system is not initialized, check your log for errors")
@@ -53,22 +54,20 @@ func (h *HTMLRender) HTML(w io.Writer, status int, name string, data interface{}
 	return t.Execute(w, data)
 }
 
-func (h *HTMLRender) TemplateLookup(name string) (*template.Template, error) {
+func (h *HTMLRender) TemplateLookup(name string) (TemplateExecutor, error) {
 	tmpls := h.templates.Load()
 	if tmpls == nil {
 		return nil, ErrTemplateNotInitialized
 	}
-	tmpl := tmpls.Lookup(name)
-	if tmpl == nil {
-		return nil, util.ErrNotExist
-	}
-	return tmpl, nil
+
+	return tmpls.Executor(name, NewFuncMap()[0])
 }
 
 func (h *HTMLRender) CompileTemplates() error {
 	dirPrefix := "templates/"
 	extSuffix := ".tmpl"
-	tmpls := template.New("")
+	tmpls := scopedtmpl.NewScopedTemplate()
+	tmpls.Funcs(NewFuncMap()[0])
 	for _, path := range GetTemplateAssetNames() {
 		if !strings.HasSuffix(path, extSuffix) {
 			continue
@@ -76,9 +75,6 @@ func (h *HTMLRender) CompileTemplates() error {
 		name := strings.TrimPrefix(path, dirPrefix)
 		name = strings.TrimSuffix(name, extSuffix)
 		tmpl := tmpls.New(filepath.ToSlash(name))
-		for _, fm := range NewFuncMap() {
-			tmpl.Funcs(fm)
-		}
 		buf, err := GetAsset(path)
 		if err != nil {
 			return err
@@ -87,6 +83,7 @@ func (h *HTMLRender) CompileTemplates() error {
 			return err
 		}
 	}
+	tmpls.Freeze()
 	h.templates.Store(tmpls)
 	return nil
 }
