@@ -39,7 +39,9 @@ Template Attributes:
 				<span class="markdown-toolbar-button markdown-switch-easymde">{{svg "octicon-arrow-switch"}}</span>
 			</div>
 		</markdown-toolbar>
-		<textarea class="markdown-text-editor js-quick-submit" name="{{.TextareaName}}" placeholder="{{.TextareaPlaceholder}}">{{.TextareaContent}}</textarea>
+		<text-expander keys=": @">
+			<textarea class="markdown-text-editor js-quick-submit" name="{{.TextareaName}}" placeholder="{{.TextareaPlaceholder}}">{{.TextareaContent}}</textarea>
+		</text-expander>
 	</div>
 	<div class="ui tab markup" data-tab-panel="markdown-previewer">
 		{{.locale.Tr "loading"}}
