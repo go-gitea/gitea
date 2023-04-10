@@ -129,6 +129,7 @@ func (l *LayeredFS) ListFiles(name string, fileMode ...bool) ([]string, error) {
 			} else if len(fileMode) > 1 {
 				return nil, errors.New("too many arguments")
 			}
+			include = include && !util.CommonSkip(info.Name())
 			if include {
 				fileMap[info.Name()] = true
 			}
@@ -177,6 +178,7 @@ func listAllFiles(layers []*Layer, name string, fileMode ...bool) ([]string, err
 					return errors.New("too many arguments")
 				}
 				path := util.PathJoinRelX(dir, info.Name())
+				include = include && !util.CommonSkip(info.Name())
 				if include {
 					fileMap[path] = true
 				}

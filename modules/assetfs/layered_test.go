@@ -35,6 +35,7 @@ func TestLayered(t *testing.T) {
 	mkdir(dir2, "da")
 	mkdir(dir2, "da/sub2")
 
+	write("dummy", dir1, ".DS_Store")
 	write("f1", dir1, "f1")
 	write("fa-1", dir1, "fa")
 	write("d1-f", dir1, "d1/f")
