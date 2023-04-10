@@ -64,7 +64,7 @@ func (ts TimeStamp) AsLocalTime() time.Time {
 }
 
 // AsTimeInLocation convert timestamp as time.Time in Local locale
-func (ts TimeStamp) AsTimeInLocation(loc *time.Location) (tm time.Time) {
+func (ts TimeStamp) AsTimeInLocation(loc *time.Location) time.Time {
 	return time.Unix(int64(ts), 0).In(loc)
 }
 
