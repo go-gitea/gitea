@@ -150,13 +150,13 @@ func toCommitStatus(status actions_model.Status) api.CommitStatusState {
 
 func getIndexOfJob(ctx context.Context, job *actions_model.ActionRunJob) (int, error) {
 	// TODO: store job index as a field in ActionRunJob to avoid this
-	if jobs, err := actions_model.GetRunJobsByRunID(ctx, job.RunID); err != nil {
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, job.RunID)
+	if err != nil {
 		return 0, err
-	} else {
-		for i, v := range jobs {
-			if v.ID == job.ID {
-				return i, nil
-			}
+	}
+	for i, v := range jobs {
+		if v.ID == job.ID {
+			return i, nil
 		}
 	}
 	return 0, nil
