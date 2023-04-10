@@ -196,6 +196,7 @@ help:
 	@echo " - lint                             lint everything"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-backend                     lint backend files"
+	@echo " - lint-md                          lint markdown files"
 	@echo " - checks                           run various consistency checks"
 	@echo " - checks-frontend                  check frontend files"
 	@echo " - checks-backend                   check backend files"
@@ -341,10 +342,13 @@ checks-backend: tidy-check swagger-check fmt-check misspell-check swagger-valida
 lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
-lint-frontend: node_modules
+lint-frontend: node_modules lint-md
 	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
 	npx stylelint --color --max-warnings=0 web_src/css
 	npx spectral lint -q -F hint $(SWAGGER_SPEC)
+
+.PHONY: lint-md
+lint-md: node_modules
 	npx markdownlint docs *.md
 
 .PHONY: lint-backend
