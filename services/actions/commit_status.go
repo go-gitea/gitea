@@ -88,13 +88,18 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	}
 
+	index, err := getIndexOfJob(ctx, job)
+	if err != nil {
+		return fmt.Errorf("getIndexOfJob: %w", err)
+	}
+
 	if err := git_model.NewCommitStatus(ctx, git_model.NewCommitStatusOptions{
 		Repo:    repo,
 		SHA:     sha,
 		Creator: creator,
 		CommitStatus: &git_model.CommitStatus{
 			SHA:         sha,
-			TargetURL:   run.Link(),
+			TargetURL:   fmt.Sprintf("%s/jobs/%d", run.Link(), index),
 			Description: "",
 			Context:     ctxname,
 			CreatorID:   creatorID,
@@ -120,4 +125,18 @@ func toCommitStatus(status actions_model.Status) api.CommitStatusState {
 	default:
 		return api.CommitStatusError
 	}
+}
+
+func getIndexOfJob(ctx context.Context, job *actions_model.ActionRunJob) (int, error) {
+	// TODO: store job index as a field in ActionRunJob to avoid this
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, job.RunID)
+	if err != nil {
+		return 0, err
+	}
+	for i, v := range jobs {
+		if v.ID == job.ID {
+			return i, nil
+		}
+	}
+	return 0, nil
 }
