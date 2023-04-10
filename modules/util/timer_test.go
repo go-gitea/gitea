@@ -4,6 +4,7 @@
 package util
 
 import (
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -11,19 +12,19 @@ import (
 )
 
 func TestDebounce(t *testing.T) {
-	c := 0
+	var c int64
 	d := Debounce(50 * time.Millisecond)
-	d(func() { c++ })
-	assert.EqualValues(t, 0, c)
-	d(func() { c++ })
-	d(func() { c++ })
+	d(func() { atomic.AddInt64(&c, 1) })
+	assert.EqualValues(t, 0, atomic.LoadInt64(&c))
+	d(func() { atomic.AddInt64(&c, 1) })
+	d(func() { atomic.AddInt64(&c, 1) })
 	time.Sleep(100 * time.Millisecond)
-	assert.EqualValues(t, 1, c)
-	d(func() { c++ })
-	assert.EqualValues(t, 1, c)
-	d(func() { c++ })
-	d(func() { c++ })
-	d(func() { c++ })
+	assert.EqualValues(t, 1, atomic.LoadInt64(&c))
+	d(func() { atomic.AddInt64(&c, 1) })
+	assert.EqualValues(t, 1, atomic.LoadInt64(&c))
+	d(func() { atomic.AddInt64(&c, 1) })
+	d(func() { atomic.AddInt64(&c, 1) })
+	d(func() { atomic.AddInt64(&c, 1) })
 	time.Sleep(100 * time.Millisecond)
-	assert.EqualValues(t, 2, c)
+	assert.EqualValues(t, 2, atomic.LoadInt64(&c))
 }
