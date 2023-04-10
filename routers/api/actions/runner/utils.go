@@ -9,6 +9,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	secret_model "code.gitea.io/gitea/models/secret"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	secret_module "code.gitea.io/gitea/modules/secret"
@@ -98,7 +99,7 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 		"head_ref":          "",                                                   // string, The head_ref or source branch of the pull request in a workflow run. This property is only available when the event that triggers a workflow run is either pull_request or pull_request_target.
 		"job":               fmt.Sprint(t.JobID),                                  // string, The job_id of the current job.
 		"ref":               t.Job.Run.Ref,                                        // string, The fully-formed ref of the branch or tag that triggered the workflow run. For workflows triggered by push, this is the branch or tag ref that was pushed. For workflows triggered by pull_request, this is the pull request merge branch. For workflows triggered by release, this is the release tag created. For other triggers, this is the branch or tag ref that triggered the workflow run. This is only set if a branch or tag is available for the event type. The ref given is fully-formed, meaning that for branches the format is refs/heads/<branch_name>, for pull requests it is refs/pull/<pr_number>/merge, and for tags it is refs/tags/<tag_name>. For example, refs/heads/feature-branch-1.
-		"ref_name":          t.Job.Run.Ref,                                        // string, The short ref name of the branch or tag that triggered the workflow run. This value matches the branch or tag name shown on GitHub. For example, feature-branch-1.
+		"ref_name":          git.RefEndName(t.Job.Run.Ref),                        // string, The short ref name of the branch or tag that triggered the workflow run. This value matches the branch or tag name shown on GitHub. For example, feature-branch-1.
 		"ref_protected":     false,                                                // boolean, true if branch protections are configured for the ref that triggered the workflow run.
 		"ref_type":          "",                                                   // string, The type of ref that triggered the workflow run. Valid values are branch or tag.
 		"path":              "",                                                   // string, Path on the runner to the file that sets system PATH variables from workflow commands. This file is unique to the current step and is a different file for each step in a job. For more information, see "Workflow commands for GitHub Actions."
