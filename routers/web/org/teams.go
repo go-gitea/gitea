@@ -277,8 +277,15 @@ func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_mod
 			vv, _ := strconv.Atoi(v[0])
 			if teamPermission >= perm.AccessModeAdmin {
 				unitPerms[ut] = teamPermission
+				// Don't allow `TypeExternal{Tracker,Wiki}` to influence this as they can only be set to READ perms.
+				if ut == unit.TypeExternalTracker || ut == unit.TypeExternalWiki {
+					unitPerms[ut] = perm.AccessModeRead
+				}
 			} else {
 				unitPerms[ut] = perm.AccessMode(vv)
+				if unitPerms[ut] >= perm.AccessModeAdmin {
+					unitPerms[ut] = perm.AccessModeWrite
+				}
 			}
 		}
 	}
@@ -427,8 +434,8 @@ func SearchTeam(ctx *context.Context) {
 func EditTeam(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
-	ctx.Data["team_name"] = ctx.Org.Team.Name
-	ctx.Data["desc"] = ctx.Org.Team.Description
+	ctx.Org.Team.LoadUnits(ctx)
+	ctx.Data["Team"] = ctx.Org.Team
 	ctx.Data["Units"] = unit_model.Units
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
@@ -470,19 +477,16 @@ func EditTeamPost(ctx *context.Context) {
 	}
 
 	t.Description = form.Description
-	units := make([]org_model.TeamUnit, 0, len(unitPerms))
+	units := make([]*org_model.TeamUnit, 0, len(unitPerms))
 	for tp, perm := range unitPerms {
-		units = append(units, org_model.TeamUnit{
+		units = append(units, &org_model.TeamUnit{
 			OrgID:      t.OrgID,
 			TeamID:     t.ID,
 			Type:       tp,
 			AccessMode: perm,
 		})
 	}
-	if err := org_model.UpdateTeamUnits(t, units); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateTeamUnits", err.Error())
-		return
-	}
+	t.Units = units
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplTeamNew)
