@@ -38,6 +38,7 @@ var Log struct {
 	EnableAccessLog   bool
 	AccessLogTemplate string
 	BufferLength      int64
+	RequestIDHeaders  []string
 }
 
 // GetLogDescriptions returns a race safe set of descriptions
@@ -153,6 +154,7 @@ func loadLogFrom(rootCfg ConfigProvider) {
 	Log.AccessLogTemplate = sec.Key("ACCESS_LOG_TEMPLATE").MustString(
 		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`,
 	)
+	Log.RequestIDHeaders = sec.Key("REQUEST_ID_HEADERS").Strings(",")
 	// the `MustString` updates the default value, and `log.ACCESS` is used by `generateNamedLogger("access")` later
 	_ = rootCfg.Section("log").Key("ACCESS").MustString("file")
 

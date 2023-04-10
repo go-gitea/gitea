@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strings"
 
-	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 )
@@ -27,6 +26,27 @@ func UserAssignmentWeb() func(ctx *context.Context) {
 				ctx.ServerError(title, err)
 			}
 		})
+	}
+}
+
+// UserIDAssignmentAPI returns a middleware to handle context-user assignment for api routes
+func UserIDAssignmentAPI() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		userID := ctx.ParamsInt64(":user-id")
+
+		if ctx.IsSigned && ctx.Doer.ID == userID {
+			ctx.ContextUser = ctx.Doer
+		} else {
+			var err error
+			ctx.ContextUser, err = user_model.GetUserByID(ctx, userID)
+			if err != nil {
+				if user_model.IsErrUserNotExist(err) {
+					ctx.Error(http.StatusNotFound, "GetUserByID", err)
+				} else {
+					ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
+				}
+			}
+		}
 	}
 }
 
@@ -56,14 +76,6 @@ func userAssignment(ctx *context.Context, errCb func(int, string, interface{})) 
 				}
 			} else {
 				errCb(http.StatusInternalServerError, "GetUserByName", err)
-			}
-		} else {
-			if ctx.ContextUser.IsOrganization() {
-				if ctx.Org == nil {
-					ctx.Org = &context.Organization{}
-				}
-				ctx.Org.Organization = (*org_model.Organization)(ctx.ContextUser)
-				ctx.Data["Org"] = ctx.Org.Organization
 			}
 		}
 	}

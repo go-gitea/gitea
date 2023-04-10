@@ -9,6 +9,8 @@ import (
 )
 
 func RenderUserHeader(ctx *context.Context) {
+	ctx.Data["IsProjectEnabled"] = true
+	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["ContextUser"] = ctx.ContextUser
 }

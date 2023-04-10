@@ -3,9 +3,9 @@
 		{{.locale.Tr "settings.manage_ssh_principals"}}
 		<div class="ui right">
 		{{if not .DisableSSH}}
-			<div class="ui primary tiny show-panel button" data-panel="#add-ssh-principal-panel">{{.locale.Tr "settings.add_new_principal"}}</div>
+			<button class="ui primary tiny show-panel button" data-panel="#add-ssh-principal-panel">{{.locale.Tr "settings.add_new_principal"}}</button>
 		{{else}}
-			<div class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</div>
+			<button class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</button>
 		{{end}}
 		</div>
 	</h4>
@@ -21,7 +21,7 @@
 							{{$.locale.Tr "settings.delete_key"}}
 						</button>
 					</div>
-					<i class="icon tooltip{{if .HasRecentActivity}} green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.principal_state_desc"}}"{{end}}>{{svg "octicon-key" 36}}</i>
+					<i class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.principal_state_desc"}}"{{end}}>{{svg "octicon-key" 36}}</i>
 					<div class="content">
 						<strong>{{.Name}}</strong>
 						<div class="activity meta">

@@ -179,7 +179,7 @@ func (c *Command) AddDashesAndList(list ...string) *Command {
 }
 
 // ToTrustedCmdArgs converts a list of strings (trusted as argument) to TrustedCmdArgs
-// In most cases, it shouldn't be used. Use AddXxx function instead
+// In most cases, it shouldn't be used. Use NewCommand().AddXxx() function instead
 func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
 	ret := make(TrustedCmdArgs, len(args))
 	for i, arg := range args {

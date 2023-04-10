@@ -6,7 +6,6 @@ package context
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -17,8 +16,10 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
+	texttemplate "text/template"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -40,14 +41,14 @@ import (
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 	chi "github.com/go-chi/chi/v5"
-	"github.com/unrolled/render"
+	"github.com/minio/sha256-simd"
 	"golang.org/x/crypto/pbkdf2"
 )
 
 // Render represents a template render
 type Render interface {
-	TemplateLookup(tmpl string) *template.Template
-	HTML(w io.Writer, status int, name string, binding interface{}, htmlOpt ...render.HTMLOptions) error
+	TemplateLookup(tmpl string) (*template.Template, error)
+	HTML(w io.Writer, status int, name string, data interface{}) error
 }
 
 // Context represents context of a request.
@@ -213,6 +214,8 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
+var templateExecutingErr = regexp.MustCompile(`^template: (.*):([1-9][0-9]*):([1-9][0-9]*): executing (?:"(.*)" at <(.*)>: )?`)
+
 // HTML calls Context.HTML and renders the template to HTTP response
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
@@ -225,8 +228,36 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 	}
 	if err := ctx.Render.HTML(ctx.Resp, status, string(name), templates.BaseVars().Merge(ctx.Data)); err != nil {
 		if status == http.StatusInternalServerError && name == base.TplName("status/500") {
-			ctx.PlainText(http.StatusInternalServerError, "Unable to find status/500 template")
+			ctx.PlainText(http.StatusInternalServerError, "Unable to find HTML templates, the template system is not initialized, or Gitea can't find your template files.")
 			return
+		}
+		if execErr, ok := err.(texttemplate.ExecError); ok {
+			if groups := templateExecutingErr.FindStringSubmatch(err.Error()); len(groups) > 0 {
+				errorTemplateName, lineStr, posStr := groups[1], groups[2], groups[3]
+				target := ""
+				if len(groups) == 6 {
+					target = groups[5]
+				}
+				line, _ := strconv.Atoi(lineStr) // Cannot error out as groups[2] is [1-9][0-9]*
+				pos, _ := strconv.Atoi(posStr)   // Cannot error out as groups[3] is [1-9][0-9]*
+				filename, filenameErr := templates.GetAssetFilename("templates/" + errorTemplateName + ".tmpl")
+				if filenameErr != nil {
+					filename = "(template) " + errorTemplateName
+				}
+				if errorTemplateName != string(name) {
+					filename += " (subtemplate of " + string(name) + ")"
+				}
+				err = fmt.Errorf("failed to render %s, error: %w:\n%s", filename, err, templates.GetLineFromTemplate(errorTemplateName, line, target, pos))
+			} else {
+				filename, filenameErr := templates.GetAssetFilename("templates/" + execErr.Name + ".tmpl")
+				if filenameErr != nil {
+					filename = "(template) " + execErr.Name
+				}
+				if execErr.Name != string(name) {
+					filename += " (subtemplate of " + string(name) + ")"
+				}
+				err = fmt.Errorf("failed to render %s, error: %w", filename, err)
+			}
 		}
 		ctx.ServerError("Render failed", err)
 	}
@@ -388,7 +419,7 @@ func (ctx *Context) SetServeHeaders(opts *ServeHeaderOptions) {
 	if duration == 0 {
 		duration = 5 * time.Minute
 	}
-	httpcache.AddCacheControlToHeader(header, duration)
+	httpcache.SetCacheControlInHeader(header, duration)
 
 	if !opts.LastModified.IsZero() {
 		header.Set("Last-Modified", opts.LastModified.UTC().Format(http.TimeFormat))
@@ -596,7 +627,9 @@ func (ctx *Context) Value(key interface{}) interface{} {
 	if key == git.RepositoryContextKey && ctx.Repo != nil {
 		return ctx.Repo.GitRepo
 	}
-
+	if key == translation.ContextKey && ctx.Locale != nil {
+		return ctx.Locale
+	}
 	return ctx.Req.Context().Value(key)
 }
 
@@ -753,7 +786,7 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 				}
 			}
 
-			httpcache.AddCacheControlToHeader(ctx.Resp.Header(), 0, "no-transform")
+			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 0, "no-transform")
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["CsrfToken"] = ctx.csrf.GetToken()

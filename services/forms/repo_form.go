@@ -604,7 +604,7 @@ type MergePullRequestForm struct {
 	MergeMessageField      string
 	MergeCommitID          string // only used for manually-merged
 	HeadCommitID           string `json:"head_commit_id,omitempty"`
-	ForceMerge             *bool  `json:"force_merge,omitempty"`
+	ForceMerge             bool   `json:"force_merge,omitempty"`
 	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
 	DeleteBranchAfterMerge bool   `json:"delete_branch_after_merge,omitempty"`
 }
@@ -622,7 +622,7 @@ type CodeCommentForm struct {
 	Side           string `binding:"Required;In(previous,proposed)"`
 	Line           int64
 	TreePath       string `form:"path" binding:"Required"`
-	IsReview       bool   `form:"is_review"`
+	SingleReview   bool   `form:"single_review"`
 	Reply          int64  `form:"reply"`
 	LatestCommitID string
 }
@@ -693,7 +693,7 @@ type UpdateAllowEditsForm struct {
 type NewReleaseForm struct {
 	TagName    string `binding:"Required;GitRefName;MaxSize(255)"`
 	Target     string `form:"tag_target" binding:"Required;MaxSize(255)"`
-	Title      string `binding:"Required;MaxSize(255)"`
+	Title      string `binding:"MaxSize(255)"`
 	Content    string
 	Draft      string
 	TagOnly    string
