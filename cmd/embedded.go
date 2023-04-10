@@ -291,7 +291,7 @@ func extractAsset(d string, a asset, overwrite, rename bool) error {
 
 func buildAssetList(sec *section, globs []glob.Glob, c *cli.Context) []asset {
 	results := make([]asset, 0, 64)
-	files, err := sec.AssetFS.ListFiles(".", true)
+	files, err := sec.AssetFS.ListAllFiles(".", true)
 	if err != nil {
 		log.Error("Error listing files in %q: %v", sec.Path, err)
 		return nil
