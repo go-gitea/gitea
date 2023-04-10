@@ -79,7 +79,7 @@ class ComboMarkdownEditor {
       e.preventDefault();
       const enabled = localStorage?.getItem('editor-monospace') !== 'true';
       localStorage.setItem('editor-monospace', String(enabled));
-      this.textarea.classList[enabled ? 'add' : 'remove']('gt-mono');
+      this.textarea.classList.toggle('gt-mono', enabled);
       const text = monospaceButton.getAttribute(enabled ? 'data-disable-text' : 'data-enable-text');
       monospaceButton.setAttribute('data-tooltip-content', text);
       monospaceButton.setAttribute('aria-checked', String(enabled));
