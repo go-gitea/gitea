@@ -6,7 +6,6 @@ package setting
 import (
 	"path/filepath"
 	"reflect"
-	"sync"
 
 	ini "gopkg.in/ini.v1"
 )
@@ -31,26 +30,19 @@ func (s *Storage) MapTo(v interface{}) error {
 	return nil
 }
 
-const sectionName = "storage"
-
-var (
-	storageSec     *ini.Section
-	storageSecOnce sync.Once
-)
+const storageSectionName = "storage"
 
 func getStorageSection(rootCfg ConfigProvider) *ini.Section {
-	storageSecOnce.Do(func() {
-		storageSec = rootCfg.Section(sectionName)
-		// Global Defaults
-		storageSec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
-		storageSec.Key("MINIO_ACCESS_KEY_ID").MustString("")
-		storageSec.Key("MINIO_SECRET_ACCESS_KEY").MustString("")
-		storageSec.Key("MINIO_BUCKET").MustString("gitea")
-		storageSec.Key("MINIO_LOCATION").MustString("us-east-1")
-		storageSec.Key("MINIO_USE_SSL").MustBool(false)
-		storageSec.Key("MINIO_INSECURE_SKIP_VERIFY").MustBool(false)
-		storageSec.Key("MINIO_CHECKSUM_ALGORITHM").MustString("default")
-	})
+	storageSec := rootCfg.Section(storageSectionName)
+	// Global Defaults
+	storageSec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
+	storageSec.Key("MINIO_ACCESS_KEY_ID").MustString("")
+	storageSec.Key("MINIO_SECRET_ACCESS_KEY").MustString("")
+	storageSec.Key("MINIO_BUCKET").MustString("gitea")
+	storageSec.Key("MINIO_LOCATION").MustString("us-east-1")
+	storageSec.Key("MINIO_USE_SSL").MustBool(false)
+	storageSec.Key("MINIO_INSECURE_SKIP_VERIFY").MustBool(false)
+	storageSec.Key("MINIO_CHECKSUM_ALGORITHM").MustString("default")
 	return storageSec
 }
 
@@ -69,12 +61,12 @@ func getStorage(rootCfg ConfigProvider, name, typ string, targetSec *ini.Section
 	storage.Type = typ
 
 	overrides := make([]*ini.Section, 0, 3)
-	nameSec, err := rootCfg.GetSection(sectionName + "." + name)
+	nameSec, err := rootCfg.GetSection(storageSectionName + "." + name)
 	if err == nil {
 		overrides = append(overrides, nameSec)
 	}
 
-	typeSec, err := rootCfg.GetSection(sectionName + "." + typ)
+	typeSec, err := rootCfg.GetSection(storageSectionName + "." + typ)
 	if err == nil {
 		overrides = append(overrides, typeSec)
 		nextType := typeSec.Key("STORAGE_TYPE").String()
