@@ -16,6 +16,13 @@
   user-select: none;
   padding: 5px;
   cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--color-text);
+}
+
+.combo-markdown-editor .markdown-toolbar-button:hover {
+  color: var(--color-primary);
 }
 
 .combo-markdown-editor .markdown-text-editor {

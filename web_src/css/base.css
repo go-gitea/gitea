@@ -344,11 +344,6 @@ a.muted,
   color: inherit;
 }
 
-button.muted {
-  background: none;
-  border: none;
-}
-
 a:hover,
 a.muted:hover,
 a.muted:hover [class*="color-text"],
