@@ -356,7 +356,7 @@ func TestConflictChecking(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		// Create new clean repo to test conflict checking.
-		baseRepo, err := repo_service.CreateRepository(user, user, repo_module.CreateRepoOptions{
+		baseRepo, err := repo_service.CreateRepository(db.DefaultContext, user, user, repo_module.CreateRepoOptions{
 			Name:          "conflict-checking",
 			Description:   "Tempo repo",
 			AutoInit:      true,

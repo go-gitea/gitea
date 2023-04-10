@@ -41,7 +41,7 @@ func FixLanguageStatsToSaveSize(x *xorm.Engine) error {
 
 	// Delete language stat statuses
 	truncExpr := "TRUNCATE TABLE"
-	if setting.Database.UseSQLite3 {
+	if setting.Database.Type.IsSQLite3() {
 		truncExpr = "DELETE FROM"
 	}
 

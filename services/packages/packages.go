@@ -335,6 +335,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 	switch packageType {
 	case packages_model.TypeCargo:
 		typeSpecificSize = setting.Packages.LimitSizeCargo
+	case packages_model.TypeChef:
+		typeSpecificSize = setting.Packages.LimitSizeChef
 	case packages_model.TypeComposer:
 		typeSpecificSize = setting.Packages.LimitSizeComposer
 	case packages_model.TypeConan:
@@ -359,6 +361,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizePyPI
 	case packages_model.TypeRubyGems:
 		typeSpecificSize = setting.Packages.LimitSizeRubyGems
+	case packages_model.TypeSwift:
+		typeSpecificSize = setting.Packages.LimitSizeSwift
 	case packages_model.TypeVagrant:
 		typeSpecificSize = setting.Packages.LimitSizeVagrant
 	}

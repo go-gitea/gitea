@@ -2,11 +2,11 @@
 date: "2019-11-12T16:00:00+02:00"
 title: "Chercher"
 slug: "search"
-weight: 4
+weight: 1
 toc: false
 draft: false
 sitemap:
-  priority : 0.1
+  priority : 1
 layout: "search"
 ---
 

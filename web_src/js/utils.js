@@ -30,11 +30,6 @@ export function isDarkTheme() {
   return style.getPropertyValue('--is-dark-theme').trim().toLowerCase() === 'true';
 }
 
-// removes duplicate elements in an array
-export function uniq(arr) {
-  return Array.from(new Set(arr));
-}
-
 // strip <tags> from a string
 export function stripTags(text) {
   return text.replace(/<[^>]*>?/gm, '');
@@ -57,13 +52,6 @@ export function parseIssueHref(href) {
   const path = (href || '').replace(/[#?].*$/, '');
   const [_, owner, repo, type, index] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
   return {owner, repo, type, index};
-}
-
-// pretty-print a number using locale-specific separators, e.g. 1200 -> 1,200
-export function prettyNumber(num, locale = 'en-US') {
-  if (typeof num !== 'number') return '';
-  const {format} = new Intl.NumberFormat(locale);
-  return format(num);
 }
 
 // parse a URL, either relative '/path' or absolute 'https://localhost/path'
@@ -132,4 +120,32 @@ export function convertImage(blob, mime) {
       reject(err);
     }
   });
+}
+
+export function toAbsoluteUrl(url) {
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  if (url.startsWith('//')) {
+    return `${window.location.protocol}${url}`; // it's also a somewhat absolute URL (with the current scheme)
+  }
+  if (url && !url.startsWith('/')) {
+    throw new Error('unsupported url, it should either start with / or http(s)://');
+  }
+  return `${window.location.origin}${url}`;
+}
+
+// determine if light or dark text color should be used on a given background color
+// NOTE: see models/issue_label.go for similar implementation
+export function useLightTextOnBackground(backgroundColor) {
+  if (backgroundColor[0] === '#') {
+    backgroundColor = backgroundColor.substring(1);
+  }
+  // Perceived brightness from: https://www.w3.org/TR/AERT/#color-contrast
+  // In the future WCAG 3 APCA may be a better solution.
+  const r = parseInt(backgroundColor.substring(0, 2), 16);
+  const g = parseInt(backgroundColor.substring(2, 4), 16);
+  const b = parseInt(backgroundColor.substring(4, 6), 16);
+  const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return brightness < 0.35;
 }

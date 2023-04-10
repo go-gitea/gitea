@@ -97,12 +97,12 @@ func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository
 	}
 	users := make(map[int64]*ActivityAuthorData)
 	var unknownUserID int64
-	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink()
+	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink(ctx)
 	for _, v := range code.Authors {
 		if len(v.Email) == 0 {
 			continue
 		}
-		u, err := user_model.GetUserByEmail(v.Email)
+		u, err := user_model.GetUserByEmail(ctx, v.Email)
 		if u == nil || user_model.IsErrUserNotExist(err) {
 			unknownUserID--
 			users[unknownUserID] = &ActivityAuthorData{
@@ -119,7 +119,7 @@ func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository
 			users[u.ID] = &ActivityAuthorData{
 				Name:       u.DisplayName(),
 				Login:      u.LowerName,
-				AvatarLink: u.AvatarLink(),
+				AvatarLink: u.AvatarLink(ctx),
 				HomeLink:   u.HomeLink(),
 				Commits:    v.Commits,
 			}

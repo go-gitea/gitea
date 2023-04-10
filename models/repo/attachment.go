@@ -132,6 +132,21 @@ func GetAttachmentsByIssueID(ctx context.Context, issueID int64) ([]*Attachment,
 	return attachments, db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
 }
 
+// GetAttachmentsByIssueIDImagesLatest returns the latest image attachments of an issue.
+func GetAttachmentsByIssueIDImagesLatest(ctx context.Context, issueID int64) ([]*Attachment, error) {
+	attachments := make([]*Attachment, 0, 5)
+	return attachments, db.GetEngine(ctx).Where(`issue_id = ? AND (name like '%.apng'
+		OR name like '%.avif'
+		OR name like '%.bmp'
+		OR name like '%.gif'
+		OR name like '%.jpg'
+		OR name like '%.jpeg'
+		OR name like '%.jxl'
+		OR name like '%.png'
+		OR name like '%.svg'
+		OR name like '%.webp')`, issueID).Desc("comment_id").Limit(5).Find(&attachments)
+}
+
 // GetAttachmentsByCommentID returns all attachments if comment by given ID.
 func GetAttachmentsByCommentID(ctx context.Context, commentID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)

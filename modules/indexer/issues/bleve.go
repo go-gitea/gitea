@@ -15,6 +15,7 @@ import (
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
+	"github.com/blevesearch/bleve/v2/analysis/token/camelcase"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
@@ -27,7 +28,7 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 1
+	issueIndexerLatestVersion = 2
 )
 
 // indexerID a bleve-compatible unique identifier for an integer id
@@ -134,7 +135,7 @@ func createIssueIndexer(path string, latestVersion int) (bleve.Index, error) {
 		"type":          custom.Name,
 		"char_filters":  []string{},
 		"tokenizer":     unicode.Name,
-		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
+		"token_filters": []string{unicodeNormalizeName, camelcase.Name, lowercase.Name},
 	}); err != nil {
 		return nil, err
 	}

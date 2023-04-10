@@ -268,7 +268,7 @@ func DeletePullReview(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// CreatePullReview create a review to an pull request
+// CreatePullReview create a review to a pull request
 func CreatePullReview(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews repository repoCreatePullReview
 	// ---
@@ -360,7 +360,7 @@ func CreatePullReview(ctx *context.APIContext) {
 			line,
 			c.Body,
 			c.Path,
-			true, // is review
+			true, // pending review
 			0,    // no reply
 			opts.CommitID,
 		); err != nil {
@@ -673,7 +673,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 	for _, r := range opts.Reviewers {
 		var reviewer *user_model.User
 		if strings.Contains(r, "@") {
-			reviewer, err = user_model.GetUserByEmail(r)
+			reviewer, err = user_model.GetUserByEmail(ctx, r)
 		} else {
 			reviewer, err = user_model.GetUserByName(ctx, r)
 		}

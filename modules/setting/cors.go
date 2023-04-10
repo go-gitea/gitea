@@ -27,12 +27,8 @@ var CORSConfig = struct {
 	XFrameOptions: "SAMEORIGIN",
 }
 
-func newCORSService() {
-	sec := Cfg.Section("cors")
-	if err := sec.MapTo(&CORSConfig); err != nil {
-		log.Fatal("Failed to map cors settings: %v", err)
-	}
-
+func loadCorsFrom(rootCfg ConfigProvider) {
+	mustMapSetting(rootCfg, "cors", &CORSConfig)
 	if CORSConfig.Enabled {
 		log.Info("CORS Service Enabled")
 	}

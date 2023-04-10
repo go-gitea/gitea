@@ -163,10 +163,8 @@ func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, op
 
 	envs := os.Environ()
 	u, err := url.Parse(from)
-	if err == nil && (strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https")) {
-		if proxy.Match(u.Host) {
-			envs = append(envs, fmt.Sprintf("https_proxy=%s", proxy.GetProxyURL()))
-		}
+	if err == nil {
+		envs = proxy.EnvWithProxy(u)
 	}
 
 	stderr := new(bytes.Buffer)

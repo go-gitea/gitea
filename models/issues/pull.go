@@ -498,7 +498,7 @@ func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	if err := pr.Issue.Repo.GetOwner(ctx); err != nil {
+	if err := pr.Issue.Repo.LoadOwner(ctx); err != nil {
 		return false, err
 	}
 
@@ -660,10 +660,10 @@ func GetPullRequestByIssueID(ctx context.Context, issueID int64) (*PullRequest, 
 
 // GetAllUnmergedAgitPullRequestByPoster get all unmerged agit flow pull request
 // By poster id.
-func GetAllUnmergedAgitPullRequestByPoster(uid int64) ([]*PullRequest, error) {
+func GetAllUnmergedAgitPullRequestByPoster(ctx context.Context, uid int64) ([]*PullRequest, error) {
 	pulls := make([]*PullRequest, 0, 10)
 
-	err := db.GetEngine(db.DefaultContext).
+	err := db.GetEngine(ctx).
 		Where("has_merged=? AND flow = ? AND issue.is_closed=? AND issue.poster_id=?",
 			false, PullRequestFlowAGit, false, uid).
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
@@ -759,8 +759,8 @@ func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRep
 	return prs, nil
 }
 
-// GetBaseBranchHTMLURL returns the HTML URL of the base branch
-func (pr *PullRequest) GetBaseBranchHTMLURL() string {
+// GetBaseBranchLink returns the relative URL of the base branch
+func (pr *PullRequest) GetBaseBranchLink() string {
 	if err := pr.LoadBaseRepo(db.DefaultContext); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
 		return ""
@@ -768,11 +768,11 @@ func (pr *PullRequest) GetBaseBranchHTMLURL() string {
 	if pr.BaseRepo == nil {
 		return ""
 	}
-	return pr.BaseRepo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(pr.BaseBranch)
+	return pr.BaseRepo.Link() + "/src/branch/" + util.PathEscapeSegments(pr.BaseBranch)
 }
 
-// GetHeadBranchHTMLURL returns the HTML URL of the head branch
-func (pr *PullRequest) GetHeadBranchHTMLURL() string {
+// GetHeadBranchLink returns the relative URL of the head branch
+func (pr *PullRequest) GetHeadBranchLink() string {
 	if pr.Flow == PullRequestFlowAGit {
 		return ""
 	}
@@ -784,7 +784,7 @@ func (pr *PullRequest) GetHeadBranchHTMLURL() string {
 	if pr.HeadRepo == nil {
 		return ""
 	}
-	return pr.HeadRepo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(pr.HeadBranch)
+	return pr.HeadRepo.Link() + "/src/branch/" + util.PathEscapeSegments(pr.HeadBranch)
 }
 
 // UpdateAllowEdits update if PR can be edited from maintainers

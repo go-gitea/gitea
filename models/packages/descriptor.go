@@ -5,6 +5,7 @@ package packages
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -12,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages/cargo"
+	"code.gitea.io/gitea/modules/packages/chef"
 	"code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/packages/conda"
@@ -23,7 +25,9 @@ import (
 	"code.gitea.io/gitea/modules/packages/pub"
 	"code.gitea.io/gitea/modules/packages/pypi"
 	"code.gitea.io/gitea/modules/packages/rubygems"
+	"code.gitea.io/gitea/modules/packages/swift"
 	"code.gitea.io/gitea/modules/packages/vagrant"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/hashicorp/go-version"
 )
@@ -64,7 +68,7 @@ type PackageFileDescriptor struct {
 
 // PackageWebLink returns the package web link
 func (pd *PackageDescriptor) PackageWebLink() string {
-	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HTMLURL(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
+	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HomeLink(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
 }
 
 // FullWebLink returns the package version web link
@@ -97,7 +101,11 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	}
 	creator, err := user_model.GetUserByID(ctx, pv.CreatorID)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, util.ErrNotExist) {
+			creator = user_model.NewGhostUser()
+		} else {
+			return nil, err
+		}
 	}
 	var semVer *version.Version
 	if p.SemverCompatible {
@@ -132,6 +140,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	switch p.Type {
 	case TypeCargo:
 		metadata = &cargo.Metadata{}
+	case TypeChef:
+		metadata = &chef.Metadata{}
 	case TypeComposer:
 		metadata = &composer.Metadata{}
 	case TypeConan:
@@ -156,6 +166,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &pypi.Metadata{}
 	case TypeRubyGems:
 		metadata = &rubygems.Metadata{}
+	case TypeSwift:
+		metadata = &swift.Metadata{}
 	case TypeVagrant:
 		metadata = &vagrant.Metadata{}
 	default:

@@ -1,7 +1,8 @@
 ---
 date: "2022-04-14T00:00:00+00:00"
 title: "Helm Chart Registry"
-slug: "packages/helm"
+slug: "usage/packages/helm"
+weight: 50
 draft: false
 toc: false
 menu:
@@ -42,7 +43,7 @@ helm cm-push ./{chart_file}.tgz {repo}
 | Parameter    | Description |
 | ------------ | ----------- |
 | `username`   | Your Gitea username. |
-| `password`   | Your Gitea password. If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}) instead of the password. |
+| `password`   | Your Gitea password. If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) instead of the password. |
 | `repo`       | The name for the repository. |
 | `chart_file` | The Helm Chart archive. |
 | `owner`      | The owner of the package. |

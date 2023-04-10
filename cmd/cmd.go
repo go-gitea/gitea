@@ -57,9 +57,10 @@ func confirm() (bool, error) {
 }
 
 func initDB(ctx context.Context) error {
-	setting.LoadFromExisting()
-	setting.InitDBConfig()
-	setting.NewXORMLogService(false)
+	setting.InitProviderFromExistingFile()
+	setting.LoadCommonSettings()
+	setting.LoadDBSetting()
+	setting.InitSQLLog(false)
 
 	if setting.Database.Type == "" {
 		log.Fatal(`Database settings are missing from the configuration file: %q.
