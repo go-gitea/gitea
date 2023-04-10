@@ -40,7 +40,7 @@ Template Attributes:
 			</div>
 		</markdown-toolbar>
 		<text-expander keys=": @">
-			<textarea class="markdown-text-editor js-quick-submit" name="{{.TextareaName}}" placeholder="{{.TextareaPlaceholder}}">{{.TextareaContent}}</textarea>
+			<textarea class="markdown-text-editor js-quick-submit"{{if .TextareaName}} name="{{.TextareaName}}"{{end}}{{if .TextareaPlaceholder}} placeholder="{{.TextareaPlaceholder}}"{{end}}{{if .TextareaAriaLabel}} aria-label="{{.TextareaAriaLabel}}"{{end}}>{{.TextareaContent}}</textarea>
 		</text-expander>
 	</div>
 	<div class="ui tab markup" data-tab-panel="markdown-previewer">

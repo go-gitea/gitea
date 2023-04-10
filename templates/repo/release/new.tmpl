@@ -46,7 +46,7 @@
 			</div>
 			<div class="eleven wide column gt-pt-0">
 				<div class="field {{if .Err_Title}}error{{end}}">
-					<input name="title" placeholder="{{.locale.Tr "repo.release.title"}}" value="{{.title}}" autofocus maxlength="255">
+					<input name="title" aria-label="{{.locale.Tr "repo.release.title"}}" placeholder="{{.locale.Tr "repo.release.title"}}" value="{{.title}}" autofocus maxlength="255">
 				</div>
 				<div class="field">
 					{{template "shared/combomarkdowneditor" (dict
@@ -56,6 +56,7 @@
 						"TextareaName" "content"
 						"TextareaContent" .content
 						"TextareaPlaceholder" (.locale.Tr "repo.release.message")
+						"TextareaAriaLabel" (.locale.Tr "repo.release.message")
 						"DropzoneParentContainer" "form"
 					)}}
 				</div>
