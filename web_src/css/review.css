@@ -256,7 +256,7 @@ a.blob-excerpt:hover {
 .changed-since-last-review {
   border: 1px var(--color-accent) solid;
   background-color: var(--color-small-accent);
-  border-radius: 15px;
+  border-radius: var(--border-radius);
   padding: 4px 8px;
   margin: -8px 0; /* just like other buttons in the diff box header */
   font-size: 0.857rem; /* just like .ui.tiny.button */
