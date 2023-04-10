@@ -338,6 +338,11 @@ progress::-moz-progress-bar {
   color: var(--color-primary);
 }
 
+a:hover,
+.btn-link:hover {
+  text-decoration: underline;
+}
+
 a,
 .ui.breadcrumb a,
 .btn-link {
