@@ -558,8 +558,6 @@ github.com/google/go-cmp v0.5.4/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
 github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
-github.com/google/go-github/v51 v51.0.0 h1:KCjsbgPV28VoRftdP+K2mQL16jniUsLAJknsOVKwHyU=
-github.com/google/go-github/v51 v51.0.0/go.mod h1:kZj/rn/c1lSUbr/PFWl2hhusPV7a5XNYKcwPrd5L3Us=
 github.com/google/go-github/v51 v51.0.1-0.20230409194619-521fd0d1f060 h1:GQ8Wu8+XF/acuh8loiF0xQohvlIn0ykv+RHHC024wT4=
 github.com/google/go-github/v51 v51.0.1-0.20230409194619-521fd0d1f060/go.mod h1:kZj/rn/c1lSUbr/PFWl2hhusPV7a5XNYKcwPrd5L3Us=
 github.com/google/go-querystring v1.1.0 h1:AnCroh3fv4ZBgVIf1Iwtovgjaw/GiKJo8M8yD/fhyJ8=
