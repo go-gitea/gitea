@@ -148,10 +148,10 @@ func (l *LayeredFS) ListFiles(name string, fileMode ...bool) ([]string, error) {
 // * true: only files will be returned.
 // * false: only directories will be returned.
 func (l *LayeredFS) ListAllFiles(name string, fileMode ...bool) ([]string, error) {
-	return l.listAllFiles(l.layers, name, fileMode...)
+	return listAllFiles(l.layers, name, fileMode...)
 }
 
-func (l *LayeredFS) listAllFiles(layers []*Layer, name string, fileMode ...bool) ([]string, error) {
+func listAllFiles(layers []*Layer, name string, fileMode ...bool) ([]string, error) {
 	fileMap := map[string]bool{}
 	var list func(dir string) error
 	list = func(dir string) error {
@@ -216,7 +216,7 @@ func (l *LayeredFS) WatchLocalChanges(ctx context.Context, callback func()) {
 		if layer.localPath == "" {
 			continue
 		}
-		layerDirs, err := l.listAllFiles([]*Layer{layer}, ".", false)
+		layerDirs, err := listAllFiles([]*Layer{layer}, ".", false)
 		if err != nil {
 			log.Error("Unable to list directories for asset local file-system %q: %v", layer.localPath, err)
 			continue
