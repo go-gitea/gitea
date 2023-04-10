@@ -32,16 +32,8 @@ func CustomAssets() *assetfs.Layer {
 	return assetfs.Local("custom", setting.CustomPath, "public")
 }
 
-func StaticAssets() *assetfs.Layer {
-	return assetfs.Local("static", setting.StaticRootPath, "public")
-}
-
 func AssetFS() *assetfs.LayeredFS {
-	if setting.HasBuiltinBindata {
-		return assetfs.Layered(CustomAssets(), StaticAssets(), BuiltinAssets()) // old behavior: always include StaticAssets
-	} else {
-		return assetfs.Layered(CustomAssets(), BuiltinAssets()) // now BuiltinAssets is StaticAssets
-	}
+	return assetfs.Layered(CustomAssets(), BuiltinAssets())
 }
 
 // AssetsHandlerFunc implements the static handler for serving custom or original assets.
