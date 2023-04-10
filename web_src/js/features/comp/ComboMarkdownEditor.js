@@ -191,11 +191,7 @@ class ComboMarkdownEditor {
         text: this.value(),
         wiki: this.previewWiki,
       }, (data) => {
-        $panelPreviewer.html(data);
-        initMarkupContent();
-
-        const refIssues = $panelPreviewer.find('p .ref-issue');
-        attachRefIssueContextPopup(refIssues);
+        showPreviewerWithData($panelPreviewer, data);
       });
     });
   }
@@ -380,4 +376,12 @@ export async function initComboMarkdownEditor(container, options = {}) {
   const editor = new ComboMarkdownEditor(container, options);
   await editor.init();
   return editor;
+}
+
+export function showPreviewerWithData($panelPreviewer, data) {
+  $panelPreviewer.html(data);
+  initMarkupContent();
+
+  const refIssues = $panelPreviewer.find('p .ref-issue');
+  attachRefIssueContextPopup(refIssues);
 }

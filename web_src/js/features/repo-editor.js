@@ -1,8 +1,8 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
-import {initMarkupContent} from '../markup/content.js';
 import {createCodeEditor} from './codeeditor.js';
 import {hideElem, showElem} from '../utils/dom.js';
+import {showPreviewerWithData} from './comp/ComboMarkdownEditor.js';
 
 const {csrfToken} = window.config;
 
@@ -28,8 +28,7 @@ function initEditPreviewTab($form) {
         file_path: treePathEl.val(),
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
-        $previewPanel.html(data);
-        initMarkupContent();
+        showPreviewerWithData($previewPanel, data);
       });
     });
   }
