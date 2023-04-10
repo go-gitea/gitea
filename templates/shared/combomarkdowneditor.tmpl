@@ -16,27 +16,27 @@ Template Attributes:
 	<div class="ui tab active" data-tab-panel="markdown-writer">
 		<markdown-toolbar class="gt-df">
 			<div class="markdown-toolbar-group">
-				<md-header class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.header.tooltip"}}">{{svg "octicon-heading"}}</md-header>{{- /*Get rid of spaces between the buttons*/ -}}
-				<md-bold class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.bold.tooltip"}}">{{svg "octicon-bold"}}</md-bold>{{- /*Get rid of spaces between the buttons*/ -}}
-				<md-italic class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.italic.tooltip"}}">{{svg "octicon-italic"}}</md-italic>{{- /*Get rid of spaces between the buttons*/ -}}
+				<md-header class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.buttons.heading.tooltip"}}">{{svg "octicon-heading"}}</md-header>
+				<md-bold class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.buttons.bold.tooltip"}}">{{svg "octicon-bold"}}</md-bold>
+				<md-italic class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.buttons.italic.tooltip"}}">{{svg "octicon-italic"}}</md-italic>
 			</div>
 			<div class="markdown-toolbar-group">
-				<md-quote class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.quote.tooltip"}}">{{svg "octicon-quote"}}</md-quote>{{- /*Get rid of spaces between the buttons*/ -}}
-				<md-code class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.code.tooltip"}}">{{svg "octicon-code"}}</md-code>{{- /*Get rid of spaces between the buttons*/ -}}
-				<md-link class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.link.tooltip"}}">{{svg "octicon-link"}}</md-link>{{- /*Get rid of spaces between the buttons*/ -}}
+				<md-quote class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.buttons.quote.tooltip"}}">{{svg "octicon-quote"}}</md-quote>
+				<md-code class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.buttons.code.tooltip"}}">{{svg "octicon-code"}}</md-code>
+				<md-link class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.buttons.link.tooltip"}}">{{svg "octicon-link"}}</md-link>
 			</div>
 			<div class="markdown-toolbar-group">
-				<md-unordered-list class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.list.unordered.tooltip"}}">{{svg "octicon-list-unordered"}}</md-unordered-list>{{- /*Get rid of spaces between the buttons*/ -}}
-				<md-ordered-list class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.list.ordered.tooltip"}}">{{svg "octicon-list-ordered"}}</md-ordered-list>{{- /*Get rid of spaces between the buttons*/ -}}
-				<md-task-list class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.list.task.tooltip"}}">{{svg "octicon-tasklist"}}</md-task-list>{{- /*Get rid of spaces between the buttons*/ -}}
+				<md-unordered-list class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.buttons.list.unordered.tooltip"}}">{{svg "octicon-list-unordered"}}</md-unordered-list>
+				<md-ordered-list class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.buttons.list.ordered.tooltip"}}">{{svg "octicon-list-ordered"}}</md-ordered-list>
+				<md-task-list class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.buttons.list.task.tooltip"}}">{{svg "octicon-tasklist"}}</md-task-list>
 			</div>
 			<div class="markdown-toolbar-group">
-				<md-mention class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.mention.tooltip"}}">{{svg "octicon-mention"}}</md-mention>{{- /*Get rid of spaces between the buttons*/ -}}
-				<md-ref class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.ref.tooltip"}}">{{svg "octicon-cross-reference"}}</md-ref>{{- /*Get rid of spaces between the buttons*/ -}}
+				<md-mention class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.buttons.mention.tooltip"}}">{{svg "octicon-mention"}}</md-mention>
+				<md-ref class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.buttons.ref.tooltip"}}">{{svg "octicon-cross-reference"}}</md-ref>
 			</div>
 			<div class="markdown-toolbar-group gt-f1"></div>
 			<div class="markdown-toolbar-group">
-				<button class="markdown-toolbar-button markdown-switch-easymde muted" data-tooltip-content="{{.locale.Tr "editor.switch_to_legacy.tooltip"}}" data-md-button>{{svg "octicon-arrow-switch"}}</button>{{- /*Get rid of spaces between the buttons*/ -}}
+			<button class="markdown-toolbar-button markdown-switch-easymde muted" data-tooltip-content="{{.locale.Tr "editor.buttons.switch_to_legacy.tooltip"}}" data-md-button>{{svg "octicon-arrow-switch"}}</button>
 			</div>
 		</markdown-toolbar>
 		<textarea class="markdown-text-editor js-quick-submit" name="{{.TextareaName}}" placeholder="{{.TextareaPlaceholder}}">{{.TextareaContent}}</textarea>

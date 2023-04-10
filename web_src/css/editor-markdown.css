@@ -9,7 +9,7 @@
 }
 
 .combo-markdown-editor .markdown-toolbar-group {
-  display: inline-block;
+  display: flex;
 }
 
 .combo-markdown-editor .markdown-toolbar-button {
