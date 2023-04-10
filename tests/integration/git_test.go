@@ -630,8 +630,17 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 
 		commitID := path.Base(commitURL)
 
+		addCommitStatus := func(status api.CommitStatusState) func(*testing.T) {
+			return doAPICreateCommitStatus(ctx, commitID, api.CreateStatusOption{
+				State:       status,
+				TargetURL:   "http://test.ci/",
+				Description: "",
+				Context:     "testci",
+			})
+		}
+
 		// Call API to add Pending status for commit
-		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusPending))
+		t.Run("CreateStatus", addCommitStatus(api.CommitStatusPending))
 
 		// Cancel not existing auto merge
 		ctx.ExpectedCode = http.StatusNotFound
@@ -660,7 +669,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		assert.False(t, pr.HasMerged)
 
 		// Call API to add Failure status for commit
-		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusFailure))
+		t.Run("CreateStatus", addCommitStatus(api.CommitStatusFailure))
 
 		// Check pr status
 		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
@@ -668,7 +677,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		assert.False(t, pr.HasMerged)
 
 		// Call API to add Success status for commit
-		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusSuccess))
+		t.Run("CreateStatus", addCommitStatus(api.CommitStatusSuccess))
 
 		// wait to let gitea merge stuff
 		time.Sleep(time.Second)

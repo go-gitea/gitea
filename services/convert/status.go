@@ -26,7 +26,7 @@ func ToCommitStatus(ctx context.Context, status *git_model.CommitStatus) *api.Co
 
 	if status.CreatorID != 0 {
 		creator, _ := user_model.GetUserByID(ctx, status.CreatorID)
-		apiStatus.Creator = ToUser(creator, nil)
+		apiStatus.Creator = ToUser(ctx, creator, nil)
 	}
 
 	return apiStatus

@@ -22,7 +22,7 @@
 		</div>
 	</div>
 
-	<div class="events fields ui grid" {{if not .Webhook.ChooseEvents}}style="display:none"{{end}}>
+	<div class="events fields ui grid {{if not .Webhook.ChooseEvents}}gt-hidden{{end}}">
 		<!-- Repository Events -->
 		<div class="fourteen wide column">
 			<label>{{.locale.Tr "repo.settings.event_header_repository"}}</label>

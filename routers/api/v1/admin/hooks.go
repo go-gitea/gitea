@@ -105,10 +105,7 @@ func CreateHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Hook"
 
 	form := web.GetForm(ctx).(*api.CreateHookOption)
-	// TODO in body params
-	if !utils.CheckCreateHookOption(ctx, form) {
-		return
-	}
+
 	utils.AddSystemHook(ctx, form)
 }
 

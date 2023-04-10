@@ -225,7 +225,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 			idToken.Name = user.GetDisplayName()
 			idToken.PreferredUsername = user.Name
 			idToken.Profile = user.HTMLURL()
-			idToken.Picture = user.AvatarLink()
+			idToken.Picture = user.AvatarLink(ctx)
 			idToken.Website = user.Website
 			idToken.Locale = user.Language
 			idToken.UpdatedAt = user.UpdatedUnix
@@ -286,7 +286,7 @@ func InfoOAuth(ctx *context.Context) {
 		Name:     ctx.Doer.FullName,
 		Username: ctx.Doer.Name,
 		Email:    ctx.Doer.Email,
-		Picture:  ctx.Doer.AvatarLink(),
+		Picture:  ctx.Doer.AvatarLink(ctx),
 	}
 
 	groups, err := getOAuthGroupsForUser(ctx.Doer)
@@ -578,12 +578,15 @@ func GrantApplicationOAuth(ctx *context.Context) {
 
 // OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
 func OIDCWellKnown(ctx *context.Context) {
-	t := ctx.Render.TemplateLookup("user/auth/oidc_wellknown")
+	t, err := ctx.Render.TemplateLookup("user/auth/oidc_wellknown")
+	if err != nil {
+		ctx.ServerError("unable to find template", err)
+		return
+	}
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	ctx.Data["SigningKey"] = oauth2.DefaultSigningKey
-	if err := t.Execute(ctx.Resp, ctx.Data); err != nil {
-		log.Error("%v", err)
-		ctx.Error(http.StatusInternalServerError)
+	if err = t.Execute(ctx.Resp, ctx.Data); err != nil {
+		ctx.ServerError("unable to execute template", err)
 	}
 }
 

@@ -25,11 +25,14 @@ func TestRepository_GetTags(t *testing.T) {
 		assert.NoError(t, err)
 		return
 	}
-	assert.Len(t, tags, 1)
+	assert.Len(t, tags, 2)
 	assert.Equal(t, len(tags), total)
-	assert.EqualValues(t, "test", tags[0].Name)
-	assert.EqualValues(t, "3ad28a9149a2864384548f3d17ed7f38014c9e8a", tags[0].ID.String())
+	assert.EqualValues(t, "signed-tag", tags[0].Name)
+	assert.EqualValues(t, "36f97d9a96457e2bab511db30fe2db03893ebc64", tags[0].ID.String())
 	assert.EqualValues(t, "tag", tags[0].Type)
+	assert.EqualValues(t, "test", tags[1].Name)
+	assert.EqualValues(t, "3ad28a9149a2864384548f3d17ed7f38014c9e8a", tags[1].ID.String())
+	assert.EqualValues(t, "tag", tags[1].Type)
 }
 
 func TestRepository_GetTag(t *testing.T) {

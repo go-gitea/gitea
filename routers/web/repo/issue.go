@@ -138,7 +138,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	var err error
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
-	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned", "review_requested"}
+	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned", "review_requested", "reviewed_by"}
 	if !util.SliceContainsString(types, viewType, true) {
 		viewType = "all"
 	}
@@ -148,6 +148,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		posterID          = ctx.FormInt64("poster")
 		mentionedID       int64
 		reviewRequestedID int64
+		reviewedID        int64
 		forceEmpty        bool
 	)
 
@@ -161,6 +162,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			assigneeID = ctx.Doer.ID
 		case "review_requested":
 			reviewRequestedID = ctx.Doer.ID
+		case "reviewed_by":
+			reviewedID = ctx.Doer.ID
 		}
 	}
 
@@ -208,6 +211,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			MentionedID:       mentionedID,
 			PosterID:          posterID,
 			ReviewRequestedID: reviewRequestedID,
+			ReviewedID:        reviewedID,
 			IsPull:            isPullOption,
 			IssueIDs:          issueIDs,
 		})
@@ -255,6 +259,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			PosterID:          posterID,
 			MentionedID:       mentionedID,
 			ReviewRequestedID: reviewRequestedID,
+			ReviewedID:        reviewedID,
 			MilestoneIDs:      mileIDs,
 			ProjectID:         projectID,
 			IsClosed:          util.OptionalBoolOf(isShowClosed),
@@ -298,17 +303,12 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["CommitStatuses"] = commitStatuses
 
 	// Get assignees.
-	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, repo)
+	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, repo)
 	if err != nil {
-		ctx.ServerError("GetAssignees", err)
+		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-
-	ctx.Data["Posters"], err = repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
-	if err != nil {
-		ctx.ServerError("GetIssuePosters", err)
-		return
-	}
+	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
 
 	handleTeamMentions(ctx)
 	if ctx.Written() {
@@ -332,8 +332,24 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		labels = append(labels, orgLabels...)
 	}
 
+	// Get the exclusive scope for every label ID
+	labelExclusiveScopes := make([]string, 0, len(labelIDs))
+	for _, labelID := range labelIDs {
+		foundExclusiveScope := false
+		for _, label := range labels {
+			if label.ID == labelID || label.ID == -labelID {
+				labelExclusiveScopes = append(labelExclusiveScopes, label.ExclusiveScope())
+				foundExclusiveScope = true
+				break
+			}
+		}
+		if !foundExclusiveScope {
+			labelExclusiveScopes = append(labelExclusiveScopes, "")
+		}
+	}
+
 	for _, l := range labels {
-		l.LoadSelectedLabelsAfterClick(labelIDs)
+		l.LoadSelectedLabelsAfterClick(labelIDs, labelExclusiveScopes)
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)
@@ -414,7 +430,7 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.issues")
 		ctx.Data["PageIsIssueList"] = true
-		ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
+		ctx.Data["NewIssueChooseTemplate"] = ctx.HasIssueTemplatesOrContactLinks()
 	}
 
 	issues(ctx, ctx.FormInt64("milestone"), ctx.FormInt64("project"), util.OptionalBoolOf(isPullList))
@@ -475,11 +491,12 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 		return
 	}
 
-	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, repo)
+	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, repo)
 	if err != nil {
-		ctx.ServerError("GetAssignees", err)
+		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
+	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
 
 	handleTeamMentions(ctx)
 }
@@ -585,7 +602,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			return
 		}
 
-		teamReviewers, err = repo_service.GetReviewerTeams(repo)
+		teamReviewers, err = repo_service.GetReviewerTeams(ctx, repo)
 		if err != nil {
 			ctx.ServerError("GetReviewerTeams", err)
 			return
@@ -844,8 +861,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 func NewIssue(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
-	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
-	ctx.Data["RequireTribute"] = true
+	ctx.Data["NewIssueChooseTemplate"] = ctx.HasIssueTemplatesOrContactLinks()
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	title := ctx.FormString("title")
 	ctx.Data["TitleQuery"] = title
@@ -942,11 +958,15 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 		ctx.Flash.Warning(renderErrorOfTemplates(ctx, errs), true)
 	}
 
-	if len(issueTemplates) == 0 {
+	if !ctx.HasIssueTemplatesOrContactLinks() {
 		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if no template here, just redirect to the "issues/new" page with these parameters.
 		ctx.Redirect(fmt.Sprintf("%s/issues/new?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
 		return
 	}
+
+	issueConfig, err := ctx.IssueConfigFromDefaultBranch()
+	ctx.Data["IssueConfig"] = issueConfig
+	ctx.Data["IssueConfigError"] = err // ctx.Flash.Err makes problems here
 
 	ctx.Data["milestone"] = ctx.FormInt64("milestone")
 	ctx.Data["project"] = ctx.FormInt64("project")
@@ -1082,7 +1102,7 @@ func NewIssuePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateIssueForm)
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
-	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
+	ctx.Data["NewIssueChooseTemplate"] = ctx.HasIssueTemplatesOrContactLinks()
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
@@ -1151,15 +1171,19 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
-	if ctx.FormString("redirect_after_creation") == "project" {
-		ctx.Redirect(ctx.Repo.RepoLink + "/projects/" + strconv.FormatInt(form.ProjectID, 10))
+	if ctx.FormString("redirect_after_creation") == "project" && projectID > 0 {
+		ctx.Redirect(ctx.Repo.RepoLink + "/projects/" + strconv.FormatInt(projectID, 10))
 	} else {
 		ctx.Redirect(issue.Link())
 	}
 }
 
 // roleDescriptor returns the Role Descriptor for a comment in/with the given repo, poster and issue
-func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *user_model.User, issue *issues_model.Issue) (issues_model.RoleDescriptor, error) {
+func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *user_model.User, issue *issues_model.Issue, hasOriginalAuthor bool) (issues_model.RoleDescriptor, error) {
+	if hasOriginalAuthor {
+		return issues_model.RoleDescriptorNone, nil
+	}
+
 	perm, err := access_model.GetUserRepoPermission(ctx, repo, poster)
 	if err != nil {
 		return issues_model.RoleDescriptorNone, err
@@ -1272,7 +1296,7 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 		ctx.Data["PageIsIssueList"] = true
-		ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
+		ctx.Data["NewIssueChooseTemplate"] = ctx.HasIssueTemplatesOrContactLinks()
 	}
 
 	if issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) {
@@ -1283,7 +1307,6 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Data["IssueType"] = "all"
 	}
 
-	ctx.Data["RequireTribute"] = true
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeProjects)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
@@ -1412,11 +1435,12 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	var (
-		role         issues_model.RoleDescriptor
-		ok           bool
-		marked       = make(map[int64]issues_model.RoleDescriptor)
-		comment      *issues_model.Comment
-		participants = make([]*user_model.User, 1, 10)
+		role                 issues_model.RoleDescriptor
+		ok                   bool
+		marked               = make(map[int64]issues_model.RoleDescriptor)
+		comment              *issues_model.Comment
+		participants         = make([]*user_model.User, 1, 10)
+		latestCloseCommentID int64
 	)
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if ctx.IsSigned {
@@ -1424,25 +1448,16 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["IsStopwatchRunning"] = issues_model.StopwatchExists(ctx.Doer.ID, issue.ID)
 			if !ctx.Data["IsStopwatchRunning"].(bool) {
 				var exists bool
-				var sw *issues_model.Stopwatch
-				if exists, sw, err = issues_model.HasUserStopwatch(ctx, ctx.Doer.ID); err != nil {
+				var swIssue *issues_model.Issue
+				if exists, _, swIssue, err = issues_model.HasUserStopwatch(ctx, ctx.Doer.ID); err != nil {
 					ctx.ServerError("HasUserStopwatch", err)
 					return
 				}
 				ctx.Data["HasUserStopwatch"] = exists
 				if exists {
 					// Add warning if the user has already a stopwatch
-					var otherIssue *issues_model.Issue
-					if otherIssue, err = issues_model.GetIssueByID(ctx, sw.IssueID); err != nil {
-						ctx.ServerError("GetIssueByID", err)
-						return
-					}
-					if err = otherIssue.LoadRepo(ctx); err != nil {
-						ctx.ServerError("LoadRepo", err)
-						return
-					}
 					// Add link to the issue of the already running stopwatch
-					ctx.Data["OtherStopwatchURL"] = otherIssue.Link()
+					ctx.Data["OtherStopwatchURL"] = swIssue.Link()
 				}
 			}
 			ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(issue, ctx.Doer)
@@ -1461,7 +1476,7 @@ func ViewIssue(ctx *context.Context) {
 	// check if dependencies can be created across repositories
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
 
-	if issue.ShowRole, err = roleDescriptor(ctx, repo, issue.Poster, issue); err != nil {
+	if issue.ShowRole, err = roleDescriptor(ctx, repo, issue.Poster, issue, issue.HasOriginalAuthor()); err != nil {
 		ctx.ServerError("roleDescriptor", err)
 		return
 	}
@@ -1500,7 +1515,7 @@ func ViewIssue(ctx *context.Context) {
 				continue
 			}
 
-			comment.ShowRole, err = roleDescriptor(ctx, repo, comment.Poster, issue)
+			comment.ShowRole, err = roleDescriptor(ctx, repo, comment.Poster, issue, comment.HasOriginalAuthor())
 			if err != nil {
 				ctx.ServerError("roleDescriptor", err)
 				return
@@ -1599,7 +1614,7 @@ func ViewIssue(ctx *context.Context) {
 							continue
 						}
 
-						c.ShowRole, err = roleDescriptor(ctx, repo, c.Poster, issue)
+						c.ShowRole, err = roleDescriptor(ctx, repo, c.Poster, issue, c.HasOriginalAuthor())
 						if err != nil {
 							ctx.ServerError("roleDescriptor", err)
 							return
@@ -1623,8 +1638,14 @@ func ViewIssue(ctx *context.Context) {
 			comment.Type == issues_model.CommentTypeStopTracking {
 			// drop error since times could be pruned from DB..
 			_ = comment.LoadTime()
+		} else if comment.Type == issues_model.CommentTypeClose {
+			// record ID of latest closed comment.
+			// if PR is closed, the comments whose type is CommentTypePullRequestPush(29) after latestCloseCommentID won't be rendered.
+			latestCloseCommentID = comment.ID
 		}
 	}
+
+	ctx.Data["LatestCloseCommentID"] = latestCloseCommentID
 
 	// Combine multiple label assignments into a single comment
 	combineLabelComments(issue)
@@ -1806,14 +1827,24 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	// Get Dependencies
-	ctx.Data["BlockedByDependencies"], err = issue.BlockedByDependencies(ctx)
+	blockedBy, err := issue.BlockedByDependencies(ctx, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("BlockedByDependencies", err)
 		return
 	}
-	ctx.Data["BlockingDependencies"], err = issue.BlockingDependencies(ctx)
+	ctx.Data["BlockedByDependencies"], ctx.Data["BlockedByDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blockedBy)
+	if ctx.Written() {
+		return
+	}
+
+	blocking, err := issue.BlockingDependencies(ctx)
 	if err != nil {
 		ctx.ServerError("BlockingDependencies", err)
+		return
+	}
+
+	ctx.Data["BlockingDependencies"], ctx.Data["BlockingByDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blocking)
+	if ctx.Written() {
 		return
 	}
 
@@ -1843,6 +1874,48 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, tplIssueView)
+}
+
+func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo) {
+	var lastRepoID int64
+	var lastPerm access_model.Permission
+	for i, blocker := range blockers {
+		// Get the permissions for this repository
+		perm := lastPerm
+		if lastRepoID != blocker.Repository.ID {
+			if blocker.Repository.ID == ctx.Repo.Repository.ID {
+				perm = ctx.Repo.Permission
+			} else {
+				var err error
+				perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
+				if err != nil {
+					ctx.ServerError("GetUserRepoPermission", err)
+					return
+				}
+			}
+			lastRepoID = blocker.Repository.ID
+		}
+
+		// check permission
+		if !perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
+			blockers[len(notPermitted)], blockers[i] = blocker, blockers[len(notPermitted)]
+			notPermitted = blockers[:len(notPermitted)+1]
+		}
+	}
+	blockers = blockers[len(notPermitted):]
+	sortDependencyInfo(blockers)
+	sortDependencyInfo(notPermitted)
+
+	return blockers, notPermitted
+}
+
+func sortDependencyInfo(blockers []*issues_model.DependencyInfo) {
+	sort.Slice(blockers, func(i, j int) bool {
+		if blockers[i].RepoID == blockers[j].RepoID {
+			return blockers[i].Issue.CreatedUnix < blockers[j].Issue.CreatedUnix
+		}
+		return blockers[i].RepoID < blockers[j].RepoID
+	})
 }
 
 // GetActionIssue will return the issue which is used in the context.
@@ -2170,8 +2243,8 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 		}
 		if reviewID < 0 {
 			// negative reviewIDs represent team requests
-			if err := issue.Repo.GetOwner(ctx); err != nil {
-				ctx.ServerError("issue.Repo.GetOwner", err)
+			if err := issue.Repo.LoadOwner(ctx); err != nil {
+				ctx.ServerError("issue.Repo.LoadOwner", err)
 				return
 			}
 
@@ -2421,6 +2494,9 @@ func SearchIssues(ctx *context.Context) {
 		}
 		if ctx.FormBool("review_requested") {
 			issuesOpt.ReviewRequestedID = ctxUserID
+		}
+		if ctx.FormBool("reviewed") {
+			issuesOpt.ReviewedID = ctxUserID
 		}
 
 		if issues, err = issues_model.Issues(ctx, issuesOpt); err != nil {
@@ -2950,7 +3026,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 	}
 
 	html, err := ctx.RenderToString(tplReactions, map[string]interface{}{
-		"ctx":       ctx.Data,
+		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index),
 		"Reactions": issue.Reactions.GroupByType(),
 	})
@@ -3052,7 +3128,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 	}
 
 	html, err := ctx.RenderToString(tplReactions, map[string]interface{}{
-		"ctx":       ctx.Data,
+		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID),
 		"Reactions": comment.Reactions.GroupByType(),
 	})
@@ -3174,7 +3250,7 @@ func updateAttachments(ctx *context.Context, item interface{}, files []string) e
 
 func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment, content string) string {
 	attachHTML, err := ctx.RenderToString(tplAttachment, map[string]interface{}{
-		"ctx":         ctx.Data,
+		"ctxData":     ctx.Data,
 		"Attachments": attachments,
 		"Content":     content,
 	})
@@ -3289,5 +3365,48 @@ func handleTeamMentions(ctx *context.Context) {
 
 	ctx.Data["MentionableTeams"] = teams
 	ctx.Data["MentionableTeamsOrg"] = ctx.Repo.Owner.Name
-	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.AvatarLink()
+	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.AvatarLink(ctx)
+}
+
+type userSearchInfo struct {
+	UserID     int64  `json:"user_id"`
+	UserName   string `json:"username"`
+	AvatarLink string `json:"avatar_link"`
+	FullName   string `json:"full_name"`
+}
+
+type userSearchResponse struct {
+	Results []*userSearchInfo `json:"results"`
+}
+
+// IssuePosters get posters for current repo's issues/pull requests
+func IssuePosters(ctx *context.Context) {
+	repo := ctx.Repo.Repository
+	isPullList := ctx.Params(":type") == "pulls"
+	search := strings.TrimSpace(ctx.FormString("q"))
+	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullList, search, setting.UI.DefaultShowFullName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	if search == "" && ctx.Doer != nil {
+		// the returned posters slice only contains limited number of users,
+		// to make the current user (doer) can quickly filter their own issues, always add doer to the posters slice
+		if !util.SliceContainsFunc(posters, func(user *user_model.User) bool { return user.ID == ctx.Doer.ID }) {
+			posters = append(posters, ctx.Doer)
+		}
+	}
+
+	posters = makeSelfOnTop(ctx, posters)
+
+	resp := &userSearchResponse{}
+	resp.Results = make([]*userSearchInfo, len(posters))
+	for i, user := range posters {
+		resp.Results[i] = &userSearchInfo{UserID: user.ID, UserName: user.Name, AvatarLink: user.AvatarLink(ctx)}
+		if setting.UI.DefaultShowFullName {
+			resp.Results[i].FullName = user.FullName
+		}
+	}
+	ctx.JSON(http.StatusOK, resp)
 }

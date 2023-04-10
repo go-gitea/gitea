@@ -29,7 +29,7 @@
 								{{end}}
 							</select>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="default text">{{.Repository.DefaultBranch}}</div>
-							<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
+							<div class="menu">
 								{{range .Branches}}
 									<div class="item" data-value="{{.}}">{{.}}</div>
 								{{end}}

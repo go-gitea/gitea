@@ -100,7 +100,22 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		hasProjects = true
 	}
 
-	if err := repo.GetOwner(ctx); err != nil {
+	hasReleases := false
+	if _, err := repo.GetUnit(ctx, unit_model.TypeReleases); err == nil {
+		hasReleases = true
+	}
+
+	hasPackages := false
+	if _, err := repo.GetUnit(ctx, unit_model.TypePackages); err == nil {
+		hasPackages = true
+	}
+
+	hasActions := false
+	if _, err := repo.GetUnit(ctx, unit_model.TypeActions); err == nil {
+		hasActions = true
+	}
+
+	if err := repo.LoadOwner(ctx); err != nil {
 		return nil
 	}
 
@@ -126,7 +141,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 			if err := t.LoadAttributes(ctx); err != nil {
 				log.Warn("LoadAttributes of RepoTransfer: %v", err)
 			} else {
-				transfer = ToRepoTransfer(t)
+				transfer = ToRepoTransfer(ctx, t)
 			}
 		}
 	}
@@ -140,7 +155,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 
 	return &api.Repository{
 		ID:                            repo.ID,
-		Owner:                         ToUserWithAccessMode(repo.Owner, mode),
+		Owner:                         ToUserWithAccessMode(ctx, repo.Owner, mode),
 		Name:                          repo.Name,
 		FullName:                      repo.FullName(),
 		Description:                   repo.Description,
@@ -174,6 +189,9 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		InternalTracker:               internalTracker,
 		HasWiki:                       hasWiki,
 		HasProjects:                   hasProjects,
+		HasReleases:                   hasReleases,
+		HasPackages:                   hasPackages,
+		HasActions:                    hasActions,
 		ExternalWiki:                  externalWiki,
 		HasPullRequests:               hasPullRequests,
 		IgnoreWhitespaceConflicts:     ignoreWhitespaceConflicts,
@@ -185,7 +203,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		DefaultDeleteBranchAfterMerge: defaultDeleteBranchAfterMerge,
 		DefaultMergeStyle:             string(defaultMergeStyle),
 		DefaultAllowMaintainerEdit:    defaultAllowMaintainerEdit,
-		AvatarURL:                     repo.AvatarLink(),
+		AvatarURL:                     repo.AvatarLink(ctx),
 		Internal:                      !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 		MirrorInterval:                mirrorInterval,
 		MirrorUpdated:                 mirrorUpdated,
@@ -194,12 +212,12 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 }
 
 // ToRepoTransfer convert a models.RepoTransfer to a structs.RepeTransfer
-func ToRepoTransfer(t *models.RepoTransfer) *api.RepoTransfer {
-	teams, _ := ToTeams(t.Teams, false)
+func ToRepoTransfer(ctx context.Context, t *models.RepoTransfer) *api.RepoTransfer {
+	teams, _ := ToTeams(ctx, t.Teams, false)
 
 	return &api.RepoTransfer{
-		Doer:      ToUser(t.Doer, nil),
-		Recipient: ToUser(t.Recipient, nil),
+		Doer:      ToUser(ctx, t.Doer, nil),
+		Recipient: ToUser(ctx, t.Recipient, nil),
 		Teams:     teams,
 	}
 }

@@ -620,7 +620,7 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 			return err
 		}
 
-		if err = c.Issue.Repo.GetOwner(db.DefaultContext); err != nil {
+		if err = c.Issue.Repo.LoadOwner(db.DefaultContext); err != nil {
 			return err
 		}
 
@@ -824,7 +824,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		return nil, err
 	}
 
-	if err = opts.Repo.GetOwner(ctx); err != nil {
+	if err = opts.Repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 
@@ -1243,4 +1243,9 @@ func FixCommentTypeLabelWithOutsideLabels(ctx context.Context) (int64, error) {
 	}
 
 	return res.RowsAffected()
+}
+
+// HasOriginalAuthor returns if a comment was migrated and has an original author.
+func (c *Comment) HasOriginalAuthor() bool {
+	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
 }

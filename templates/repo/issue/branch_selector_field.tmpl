@@ -39,7 +39,7 @@
 				<div class="item" data-id="refs/heads/{{.}}" data-name="{{.}}" data-id-selector="#ref_selector">{{.}}</div>
 			{{end}}
 		</div>
-		<div id="tag-list" class="scrolling menu reference-list-menu {{if not .Issue}}new-issue{{end}}" style="display: none">
+		<div id="tag-list" class="scrolling menu reference-list-menu {{if not .Issue}}new-issue{{end}} gt-hidden">
 			{{if .Reference}}
 				<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{.locale.Tr "repo.clear_ref"}}</a></strong></div>
 			{{end}}

@@ -318,7 +318,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 			return nil
 		}
 
-		if err := PushUpdateAddTag(repo, gitRepo, tagName, sha1, refname); err != nil {
+		if err := PushUpdateAddTag(db.DefaultContext, repo, gitRepo, tagName, sha1, refname); err != nil {
 			return fmt.Errorf("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
 		}
 
@@ -328,7 +328,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 }
 
 // PushUpdateAddTag must be called for any push actions to add tag
-func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagName, sha1, refname string) error {
+func PushUpdateAddTag(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, tagName, sha1, refname string) error {
 	tag, err := gitRepo.GetTagWithID(sha1, tagName)
 	if err != nil {
 		return fmt.Errorf("unable to GetTag: %w", err)
@@ -350,7 +350,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 	createdAt := time.Unix(1, 0)
 
 	if sig != nil {
-		author, err = user_model.GetUserByEmail(sig.Email)
+		author, err = user_model.GetUserByEmail(ctx, sig.Email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return fmt.Errorf("unable to GetUserByEmail for %q: %w", sig.Email, err)
 		}
