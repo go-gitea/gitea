@@ -88,7 +88,7 @@ func Routes(ctx goctx.Context) *web.Route {
 		r.Use(middle)
 	}
 
-	r.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{}), "InstallAssetsHandler"))
+	r.Use(web.WrapWithPrefix("/assets/", public.AssetsHandlerFunc("/assets/"), "AssetsHandler"))
 
 	r.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,

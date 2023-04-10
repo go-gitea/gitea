@@ -20,14 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// Options represents the available options to configure the handler.
-type Options struct {
-	CorsHandler func(http.Handler) http.Handler
-}
-
-// AssetsURLPathPrefix is the path prefix for static asset files
-const AssetsURLPathPrefix = "/assets/"
-
 func CustomAssets() *assetfs.Layer {
 	return assetfs.Local("custom", setting.CustomPath, "public")
 }
@@ -37,33 +29,22 @@ func AssetFS() *assetfs.LayeredFS {
 }
 
 // AssetsHandlerFunc implements the static handler for serving custom or original assets.
-func AssetsHandlerFunc(opts *Options) http.HandlerFunc {
+func AssetsHandlerFunc(prefix string) http.HandlerFunc {
 	assetFS := AssetFS()
-
+	prefix = strings.TrimSuffix(prefix, "/") + "/"
 	return func(resp http.ResponseWriter, req *http.Request) {
-		path := req.URL.Path
-		if !strings.HasPrefix(path, AssetsURLPathPrefix) {
+		subPath := req.URL.Path
+		if !strings.HasPrefix(subPath, prefix) {
 			return
 		}
-		path = strings.TrimPrefix(path, AssetsURLPathPrefix)
+		subPath = strings.TrimPrefix(subPath, prefix)
 
 		if req.Method != "GET" && req.Method != "HEAD" {
 			resp.WriteHeader(http.StatusNotFound)
 			return
 		}
 
-		if opts.CorsHandler != nil {
-			var corsSent bool
-			opts.CorsHandler(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
-				corsSent = true
-			})).ServeHTTP(resp, req)
-			// If CORS is not sent, the response must have been written by other handlers
-			if !corsSent {
-				return
-			}
-		}
-
-		if opts.handle(resp, req, assetFS, path) {
+		if handleRequest(resp, req, assetFS, subPath) {
 			return
 		}
 
@@ -90,7 +71,7 @@ func setWellKnownContentType(w http.ResponseWriter, file string) {
 	}
 }
 
-func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.FileSystem, file string) bool {
+func handleRequest(w http.ResponseWriter, req *http.Request, fs http.FileSystem, file string) bool {
 	// actually, fs (http.FileSystem) is designed to be a safe interface, relative paths won't bypass its parent directory, it's also fine to do a clean here
 	f, err := fs.Open(util.PathJoinRelX(file))
 	if err != nil {
