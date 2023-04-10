@@ -62,7 +62,7 @@ function switchTitleToTooltip(target) {
   if (title) {
     target.setAttribute('data-tooltip-content', title);
     target.setAttribute('aria-label', title);
-    target.setAttribute('title', '');
+    target.setAttribute('title', ''); // keep the attribute, in case there are some other "[title]" selectors.
   }
 }
 
