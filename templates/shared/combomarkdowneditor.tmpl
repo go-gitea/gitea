@@ -1,10 +1,15 @@
 {{/*
 Template Attributes:
-* locale
-* ContainerId / ContainerClasses : for the container element
-* MarkdownPreviewUrl / MarkdownPreviewContext: for the preview tab
-* TextareaName / TextareaContent / TextareaPlaceholder: for the main textarea
-* DropzoneParentContainer: for file upload (leave it empty if no upload)
+* locale: passed through for localization
+* ContainerId: id attribute for the container element
+* ContainerClasses: additional classes for the container element
+* MarkdownPreviewUrl: preview url for the preview tab
+* MarkdownPreviewContext: preview context for the preview tab
+* TextareaName: name attribute for the textarea
+* TextareaContent: content for the textarea
+* TextareaPlaceholder: placeholder attribute for the textarea
+* TextareaAriaLabel: aria-label attribute for the textarea
+* DropzoneParentContainer: container for file upload (leave it empty if no upload)
 */}}
 <div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{.ContainerClasses}}" data-dropzone-parent-container="{{.DropzoneParentContainer}}">
 	{{if .MarkdownPreviewUrl}}
