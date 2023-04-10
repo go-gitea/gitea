@@ -447,10 +447,10 @@ export function ansiLogToHTML(line) {
 }
 
 .job-artifacts-title {
-  font-size: 110%;
+  font-size: 18px;
   margin-top: 16px;
   padding: 16px 10px 0px 20px;
-  border-top: 1px dashed var(--color-secondary);
+  border-top: 1px solid var(--color-secondary);
 }
 
 .job-artifacts-item {
