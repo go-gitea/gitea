@@ -11,16 +11,53 @@ import (
 	"strings"
 	texttmpl "text/template"
 
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/watcher"
 )
 
+// mailSubjectTextFuncMap returns functions for injecting to text templates, it's only used for mail subject
+func mailSubjectTextFuncMap() texttmpl.FuncMap {
+	return texttmpl.FuncMap{
+		"dict": dict,
+		"Eval": Eval,
+
+		"EllipsisString": base.EllipsisString,
+		"AppName": func() string {
+			return setting.AppName
+		},
+		"AppDomain": func() string { // documented in mail-templates.md
+			return setting.Domain
+		},
+	}
+}
+
+func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, name string, content []byte) {
+	// Split template into subject and body
+	var subjectContent []byte
+	bodyContent := content
+	loc := mailSubjectSplit.FindIndex(content)
+	if loc != nil {
+		subjectContent = content[0:loc[0]]
+		bodyContent = content[loc[1]:]
+	}
+	if _, err := stpl.New(name).
+		Parse(string(subjectContent)); err != nil {
+		log.Warn("Failed to parse template [%s/subject]: %v", name, err)
+	}
+	if _, err := btpl.New(name).
+		Parse(string(bodyContent)); err != nil {
+		log.Warn("Failed to parse template [%s/body]: %v", name, err)
+	}
+}
+
 // Mailer provides the templates required for sending notification mails.
 func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
-	for _, funcs := range NewTextFuncMap() {
-		subjectTemplates.Funcs(funcs)
-	}
+	subjectTemplates := texttmpl.New("")
+	bodyTemplates := template.New("")
+
+	subjectTemplates.Funcs(mailSubjectTextFuncMap())
 	for _, funcs := range NewFuncMap() {
 		bodyTemplates.Funcs(funcs)
 	}
