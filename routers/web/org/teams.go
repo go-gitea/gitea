@@ -5,6 +5,7 @@
 package org
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"path"
@@ -16,6 +17,7 @@ import (
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -266,16 +268,17 @@ func NewTeam(ctx *context.Context) {
 
 func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_model.Type]perm.AccessMode {
 	unitPerms := make(map[unit_model.Type]perm.AccessMode)
-	for k, v := range forms {
-		if strings.HasPrefix(k, "unit_") {
-			t, _ := strconv.Atoi(k[5:])
-			if t > 0 {
-				vv, _ := strconv.Atoi(v[0])
-				if teamPermission >= perm.AccessModeAdmin {
-					unitPerms[unit_model.Type(t)] = teamPermission
-				} else {
-					unitPerms[unit_model.Type(t)] = perm.AccessMode(vv)
-				}
+	for _, ut := range unit.AllRepoUnitTypes {
+		// Default accessmode is none
+		unitPerms[ut] = perm.AccessModeNone
+
+		v, ok := forms[fmt.Sprintf("unit_%d", ut)]
+		if ok {
+			vv, _ := strconv.Atoi(v[0])
+			if teamPermission >= perm.AccessModeAdmin {
+				unitPerms[ut] = teamPermission
+			} else {
+				unitPerms[ut] = perm.AccessMode(vv)
 			}
 		}
 	}
