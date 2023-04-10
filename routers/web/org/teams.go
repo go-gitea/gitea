@@ -467,20 +467,18 @@ func EditTeamPost(ctx *context.Context) {
 	}
 
 	t.Description = form.Description
-	if t.AccessMode < perm.AccessModeAdmin {
-		units := make([]org_model.TeamUnit, 0, len(unitPerms))
-		for tp, perm := range unitPerms {
-			units = append(units, org_model.TeamUnit{
-				OrgID:      t.OrgID,
-				TeamID:     t.ID,
-				Type:       tp,
-				AccessMode: perm,
-			})
-		}
-		if err := org_model.UpdateTeamUnits(t, units); err != nil {
-			ctx.Error(http.StatusInternalServerError, "UpdateTeamUnits", err.Error())
-			return
-		}
+	units := make([]org_model.TeamUnit, 0, len(unitPerms))
+	for tp, perm := range unitPerms {
+		units = append(units, org_model.TeamUnit{
+			OrgID:      t.OrgID,
+			TeamID:     t.ID,
+			Type:       tp,
+			AccessMode: perm,
+		})
+	}
+	if err := org_model.UpdateTeamUnits(t, units); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateTeamUnits", err.Error())
+		return
 	}
 
 	if ctx.HasError() {
