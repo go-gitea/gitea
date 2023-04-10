@@ -109,8 +109,9 @@ export function initGlobalTooltips() {
     attributeFilter: ['data-tooltip-content', 'title']
   });
   const observer = new MutationObserver((mutationList, observer) => {
+    const pending = observer.takeRecords();
     observer.disconnect();
-    for (const mutation of mutationList) {
+    for (const mutation of [...mutationList, ...pending]) {
       if (mutation.type === 'childList') {
         // mainly for Vue components and AJAX rendered elements
         for (const el of mutation.addedNodes) {
