@@ -1,10 +1,15 @@
 {{/*
 Template Attributes:
-* locale
-* ContainerId / ContainerClasses : for the container element
-* MarkdownPreviewUrl / MarkdownPreviewContext: for the preview tab
-* TextareaName / TextareaContent / TextareaPlaceholder: for the main textarea
-* DropzoneParentContainer: for file upload (leave it empty if no upload)
+* locale: passed through for localization
+* ContainerId: id attribute for the container element
+* ContainerClasses: additional classes for the container element
+* MarkdownPreviewUrl: preview url for the preview tab
+* MarkdownPreviewContext: preview context for the preview tab
+* TextareaName: name attribute for the textarea
+* TextareaContent: content for the textarea
+* TextareaPlaceholder: placeholder attribute for the textarea
+* TextareaAriaLabel: aria-label attribute for the textarea
+* DropzoneParentContainer: container for file upload (leave it empty if no upload)
 */}}
 <div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{.ContainerClasses}}" data-dropzone-parent-container="{{.DropzoneParentContainer}}">
 	{{if .MarkdownPreviewUrl}}
@@ -40,7 +45,7 @@ Template Attributes:
 			</div>
 		</markdown-toolbar>
 		<text-expander keys=": @">
-			<textarea class="markdown-text-editor js-quick-submit" name="{{.TextareaName}}" placeholder="{{.TextareaPlaceholder}}">{{.TextareaContent}}</textarea>
+			<textarea class="markdown-text-editor js-quick-submit"{{if .TextareaName}} name="{{.TextareaName}}"{{end}}{{if .TextareaPlaceholder}} placeholder="{{.TextareaPlaceholder}}"{{end}}{{if .TextareaAriaLabel}} aria-label="{{.TextareaAriaLabel}}"{{end}}>{{.TextareaContent}}</textarea>
 		</text-expander>
 	</div>
 	<div class="ui tab markup" data-tab-panel="markdown-previewer">

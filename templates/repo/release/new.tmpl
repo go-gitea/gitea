@@ -19,7 +19,7 @@
 					{{if .PageIsEditRelease}}
 						<b>{{.tag_name}}</b><span class="at">@</span><strong>{{.tag_target}}</strong>
 					{{else}}
-						<input id="tag-name" name="tag_name" value="{{.tag_name}}" placeholder="{{.locale.Tr "repo.release.tag_name"}}" autofocus required maxlength="255">
+						<input id="tag-name" name="tag_name" value="{{.tag_name}}" aria-label="{{.locale.Tr "repo.release.tag_name"}}" placeholder="{{.locale.Tr "repo.release.tag_name"}}" autofocus required maxlength="255">
 						<input id="tag-name-editor" type="hidden" data-existing-tags={{Json .Tags}} data-tag-helper={{.locale.Tr "repo.release.tag_helper"}} data-tag-helper-new={{.locale.Tr "repo.release.tag_helper_new"}} data-tag-helper-existing={{.locale.Tr "repo.release.tag_helper_existing"}}>
 						<div id="tag-target-selector" class="gt-dib">
 							<span class="at">@</span>
@@ -39,25 +39,24 @@
 							</div>
 						</div>
 						<div>
-							<span id="tag-helper" class="help gt-mt-2">{{.locale.Tr "repo.release.tag_helper"}}</span>
+							<span id="tag-helper" class="help gt-mt-3 gt-pb-0">{{.locale.Tr "repo.release.tag_helper"}}</span>
 						</div>
 					{{end}}
 				</div>
 			</div>
-			<div class="eleven wide column">
+			<div class="eleven wide column gt-pt-0">
 				<div class="field {{if .Err_Title}}error{{end}}">
-					<label>{{.locale.Tr "repo.release.title"}}</label>
-					<input name="title" placeholder="{{.locale.Tr "repo.release.title"}}" value="{{.title}}" autofocus maxlength="255">
+					<input name="title" aria-label="{{.locale.Tr "repo.release.title"}}" placeholder="{{.locale.Tr "repo.release.title"}}" value="{{.title}}" autofocus maxlength="255">
 				</div>
 				<div class="field">
-					<label>{{.locale.Tr "repo.release.content"}}</label>
-
 					{{template "shared/combomarkdowneditor" (dict
 						"locale" $.locale
 						"MarkdownPreviewUrl" (print .Repository.Link "/markup")
 						"MarkdownPreviewContext" .RepoLink
 						"TextareaName" "content"
 						"TextareaContent" .content
+						"TextareaPlaceholder" (.locale.Tr "repo.release.message")
+						"TextareaAriaLabel" (.locale.Tr "repo.release.message")
 						"DropzoneParentContainer" "form"
 					)}}
 				</div>
