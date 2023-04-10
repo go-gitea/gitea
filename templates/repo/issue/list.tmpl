@@ -74,7 +74,8 @@
 							<a class="{{if not $.MilestoneID}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone=0&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_milestone_all"}}</a>
 							<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID -1}}active selected {{end}}{{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone=-1&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_milestone_none"}}</a>
 							{{if .OpenMilestones}}
-								<a class="item disabled"><h4>{{.locale.Tr "repo.issues.filter_milestone_open"}}</h4></a>
+								<div class="divider"></div>
+								<a class="header">{{.locale.Tr "repo.issues.filter_milestone_open"}}</a>
 								{{range .OpenMilestones}}
 								<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
 									{{svg "octicon-milestone" 16 "mr-2"}}
@@ -83,7 +84,8 @@
 								{{end}}
 							{{end}}
 							{{if .ClosedMilestones}}
-								<a class="item disabled"><h4>{{.locale.Tr "repo.issues.filter_milestone_closed"}}</h4></a>
+								<div class="divider"></div>
+								<a class="header">{{.locale.Tr "repo.issues.filter_milestone_closed"}}</a>
 								{{range .ClosedMilestones}}
 								<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
 									{{svg "octicon-milestone" 16 "mr-2"}}
