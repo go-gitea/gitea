@@ -1273,12 +1273,10 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 		applySubscribedCondition(sess, opts.SubscriberID)
 	}
 
-	if len(opts.MilestoneIDs) > 0 {
-		if len(opts.MilestoneIDs) == 1 && opts.MilestoneIDs[0] == db.NoConditionID {
-			sess.And("issue.milestone_id = 0")
-		} else {
-			sess.In("issue.milestone_id", opts.MilestoneIDs)
-		}
+	if len(opts.MilestoneIDs) == 1 && opts.MilestoneIDs[0] == db.NoConditionID {
+		sess.And("issue.milestone_id = 0")
+	} else if len(opts.MilestoneIDs) > 0 {
+		sess.In("issue.milestone_id", opts.MilestoneIDs)
 	}
 
 	if opts.UpdatedAfterUnix != 0 {
