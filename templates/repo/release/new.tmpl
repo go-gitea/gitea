@@ -39,19 +39,16 @@
 							</div>
 						</div>
 						<div>
-							<span id="tag-helper" class="help gt-mt-2">{{.locale.Tr "repo.release.tag_helper"}}</span>
+							<span id="tag-helper" class="help gt-mt-3 gt-pb-0">{{.locale.Tr "repo.release.tag_helper"}}</span>
 						</div>
 					{{end}}
 				</div>
 			</div>
-			<div class="eleven wide column">
+			<div class="eleven wide column gt-pt-0">
 				<div class="field {{if .Err_Title}}error{{end}}">
-					<label>{{.locale.Tr "repo.release.title"}}</label>
 					<input name="title" placeholder="{{.locale.Tr "repo.release.title"}}" value="{{.title}}" autofocus maxlength="255">
 				</div>
 				<div class="field">
-					<label>{{.locale.Tr "repo.release.content"}}</label>
-
 					{{template "shared/combomarkdowneditor" (dict
 						"locale" $.locale
 						"MarkdownPreviewUrl" (print .Repository.Link "/markup")
