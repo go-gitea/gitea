@@ -78,22 +78,24 @@ function lazyTooltipOnMouseHover(e) {
   attachTooltip(this);
 }
 
-/**
- * Activate the tooltip for all children elements
- * And if the element has no aria-label, use the tooltip content as aria-label
- * @param target {HTMLElement}
- */
+// Activate the tooltip for current element.
+// If the element has no aria-label, use the tooltip content as aria-label.
+function attachLazyTooltip(el) {
+  el.addEventListener('mouseover', lazyTooltipOnMouseHover, true);
+
+  // meanwhile, if the element has no aria-label, use the tooltip content as aria-label
+  if (!el.hasAttribute('aria-label')) {
+    const content = el.getAttribute('data-tooltip-content');
+    if (content) {
+      el.setAttribute('aria-label', content);
+    }
+  }
+}
+
+// Activate the tooltip for all children elements.
 function attachChildrenLazyTooltip(target) {
   for (const el of target.querySelectorAll('[data-tooltip-content]')) {
-    el.addEventListener('mouseover', lazyTooltipOnMouseHover, true);
-
-    // meanwhile, if the element has no aria-label, use the tooltip content as aria-label
-    if (!el.hasAttribute('aria-label')) {
-      const content = target.getAttribute('data-tooltip-content');
-      if (content) {
-        el.setAttribute('aria-label', content);
-      }
-    }
+    attachLazyTooltip(el);
   }
 }
 
@@ -114,6 +116,7 @@ export function initGlobalTooltips() {
         for (const el of mutation.addedNodes) {
           if (elementNodeTypes.has(el.nodeType)) {
             attachChildrenLazyTooltip(el);
+            if (el.hasAttribute('data-tooltip-content')) attachLazyTooltip(el);
           }
         }
       } else if (mutation.type === 'attributes') {
