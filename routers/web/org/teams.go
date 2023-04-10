@@ -17,7 +17,6 @@ import (
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -268,7 +267,7 @@ func NewTeam(ctx *context.Context) {
 
 func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_model.Type]perm.AccessMode {
 	unitPerms := make(map[unit_model.Type]perm.AccessMode)
-	for _, ut := range unit.AllRepoUnitTypes {
+	for _, ut := range unit_model.AllRepoUnitTypes {
 		// Default accessmode is none
 		unitPerms[ut] = perm.AccessModeNone
 
@@ -278,7 +277,7 @@ func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_mod
 			if teamPermission >= perm.AccessModeAdmin {
 				unitPerms[ut] = teamPermission
 				// Don't allow `TypeExternal{Tracker,Wiki}` to influence this as they can only be set to READ perms.
-				if ut == unit.TypeExternalTracker || ut == unit.TypeExternalWiki {
+				if ut == unit_model.TypeExternalTracker || ut == unit_model.TypeExternalWiki {
 					unitPerms[ut] = perm.AccessModeRead
 				}
 			} else {
@@ -434,7 +433,10 @@ func SearchTeam(ctx *context.Context) {
 func EditTeam(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
-	ctx.Org.Team.LoadUnits(ctx)
+	if err := ctx.Org.Team.LoadUnits(ctx); err != nil {
+		ctx.ServerError("LoadUnits", err)
+		return
+	}
 	ctx.Data["Team"] = ctx.Org.Team
 	ctx.Data["Units"] = unit_model.Units
 	ctx.HTML(http.StatusOK, tplTeamNew)
