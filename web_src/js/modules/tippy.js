@@ -81,7 +81,7 @@ function lazyTooltipOnMouseHover(e) {
 // Activate the tooltip for current element.
 // If the element has no aria-label, use the tooltip content as aria-label.
 function attachLazyTooltip(el) {
-  el.addEventListener('mouseover', lazyTooltipOnMouseHover, true);
+  el.addEventListener('mouseover', lazyTooltipOnMouseHover, {capture: true});
 
   // meanwhile, if the element has no aria-label, use the tooltip content as aria-label
   if (!el.hasAttribute('aria-label')) {
