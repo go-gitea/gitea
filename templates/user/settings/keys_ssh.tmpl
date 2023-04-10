@@ -1,13 +1,9 @@
 <h4 class="ui top attached header">
 	{{.locale.Tr "settings.manage_ssh_keys"}}
 	<div class="ui right">
-		{{if not .DisableSSH}}
-			<button id="add-ssh-button" class="ui primary tiny show-panel button" data-panel="#add-ssh-key-panel">
-				{{.locale.Tr "settings.add_key"}}
-			</button>
-		{{else}}
-			<button class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</button>
-		{{end}}
+		<button id="add-ssh-button" class="ui primary tiny show-panel button" data-panel="#add-ssh-key-panel">
+			{{.locale.Tr "settings.add_key"}}
+		</button>
 	</div>
 </h4>
 <div class="ui attached segment">
@@ -35,6 +31,11 @@
 		<div class="item">
 			{{.locale.Tr "settings.ssh_desc"}}
 		</div>
+		{{if .DisableSSH}}
+			<div class="item">
+				{{.locale.Tr "settings.ssh_signonly"}}
+			</div>
+		{{end}}
 		{{range $index, $key := .Keys}}
 			<div class="item">
 				<div class="right floated content">
