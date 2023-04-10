@@ -6,7 +6,7 @@ export function createTippy(target, opts = {}) {
     animation: false,
     allowHTML: false,
     hideOnClick: false,
-    interactiveBorder: 30,
+    interactiveBorder: 20,
     ignoreAttributes: true,
     maxWidth: 500, // increase over default 350px
     arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
@@ -62,7 +62,10 @@ function switchTitleToTooltip(target) {
   if (title) {
     target.setAttribute('data-tooltip-content', title);
     target.setAttribute('aria-label', title);
-    target.setAttribute('title', ''); // keep the attribute, in case there are some other "[title]" selectors.
+    // keep the attribute, in case there are some other "[title]" selectors
+    // and to prevent infinite loop with <relative-time> which will re-add
+    // title if it is absent
+    target.setAttribute('title', '');
   }
 }
 
@@ -117,7 +120,9 @@ export function initGlobalTooltips() {
         for (const el of mutation.addedNodes) {
           if (elementNodeTypes.has(el.nodeType)) {
             attachChildrenLazyTooltip(el);
-            if (el.hasAttribute('data-tooltip-content')) attachLazyTooltip(el);
+            if (el.hasAttribute('data-tooltip-content')) {
+              attachLazyTooltip(el);
+            }
           }
         }
       } else if (mutation.type === 'attributes') {
