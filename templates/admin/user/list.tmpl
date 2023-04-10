@@ -96,7 +96,7 @@
 							<td>{{.NumRepos}}</td>
 							<td>{{template "shared/datetime/short" (dict "Datetime" .CreatedUnix.FormatLong "Fallback" .CreatedUnix.FormatShort)}}</td>
 							{{if .LastLoginUnix}}
-								<td><span title="{{.LastLoginUnix.FormatLong}}">{{template "shared/datetime/short" (dict "Datetime" .LastLoginUnix.FormatLong "Fallback" .LastLoginUnix.FormatShort)}}</span></td>
+								<td>{{template "shared/datetime/short" (dict "Datetime" .LastLoginUnix.FormatLong "Fallback" .LastLoginUnix.FormatShort)}}</td>
 							{{else}}
 								<td><span>{{$.locale.Tr "admin.users.never_login"}}</span></td>
 							{{end}}
