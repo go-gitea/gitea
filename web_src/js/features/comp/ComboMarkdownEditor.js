@@ -73,8 +73,20 @@ class ComboMarkdownEditor {
       // upstream bug: The role code is never executed in base MarkdownButtonElement https://github.com/github/markdown-toolbar-element/issues/70
       el.setAttribute('role', 'button');
     }
-    this.switchToEasyMDEButton = this.container.querySelector('.markdown-switch-easymde');
-    this.switchToEasyMDEButton?.addEventListener('click', async (e) => {
+
+    const monospaceButton = this.container.querySelector('.markdown-switch-monospace');
+    monospaceButton?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const enabled = localStorage?.getItem('editor-monospace') !== 'true';
+      localStorage.setItem('editor-monospace', String(enabled));
+      this.textarea.classList[enabled ? 'add' : 'remove']('gt-mono');
+      const text = monospaceButton.getAttribute(enabled ? 'data-disable-text' : 'data-enable-text');
+      monospaceButton.setAttribute('data-tooltip-content', text);
+      monospaceButton.setAttribute('aria-checked', String(enabled));
+    });
+
+    const easymdeButton = this.container.querySelector('.markdown-switch-easymde');
+    easymdeButton?.addEventListener('click', async (e) => {
       e.preventDefault();
       this.userPreferredEditor = 'easymde';
       await this.switchToEasyMDE();
