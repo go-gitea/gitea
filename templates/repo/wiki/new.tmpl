@@ -14,7 +14,7 @@
 		<form class="ui form" action="{{.Link}}?action={{if .PageIsWikiEdit}}_edit{{else}}_new{{end}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
-				<input name="title" value="{{.title}}" placeholder={{.locale.Tr "repo.wiki.title"}} autofocus required>
+				<input name="title" value="{{.title}}" placeholder="{{.locale.Tr "repo.wiki.title"}}" autofocus required>
 			</div>
 			<div class="help">
 				{{.locale.Tr "repo.wiki.page_name_desc"}}
