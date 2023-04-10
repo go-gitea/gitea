@@ -100,6 +100,12 @@ func GetCheckRun(ctx *context.APIContext) {
 		return
 	}
 
+	err = checkRun.LoadOutput(ctx)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "checkRun.LoadOutput", err)
+		return
+	}
+
 	ctx.JSON(http.StatusOK, convert.ToChekckRun(ctx, checkRun))
 }
 
@@ -154,6 +160,7 @@ func UpdateCheckRun(ctx *context.APIContext) {
 		Repo:       ctx.Repo.Repository,
 		ExternalID: form.ExternalID,
 		DetailsURL: form.DetailsURL,
+		Output:     form.Output,
 	}
 	if form.Name != nil {
 		opts.Name = *form.Name

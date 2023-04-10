@@ -1,0 +1,6 @@
+-
+  id: 1
+  check_run_id: 1
+  title: test ci output
+  annotations: "[{\"title\":\"test 1\",\"message\":\"test message\",\"annotation_level\":\"warning\"},{\"title\":\"test 2\",\"message\":\"test message 2\",\"annotation_level\":\"failure\"}]"
+

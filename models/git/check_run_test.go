@@ -49,6 +49,44 @@ func TestCreateCheckRun(t *testing.T) {
 		Name:    "test 1",
 	})
 	assert.EqualValues(t, ErrCheckRunExist{RepoID: 1, HeadSHA: "1234123412341234123412341234123412341234", Name: "test 1"}, err)
+
+	title := "build output title"
+	summary := "build output summary"
+	boolTrue := true
+
+	checkRun, err := CreateCheckRun(db.DefaultContext, &NewCheckRunOptions{
+		Repo:    repo1,
+		Creator: user2,
+		HeadSHA: "1234123412341234123412341234123412341234",
+		Name:    "test with output",
+		Output: &structs.CheckRunOutput{
+			Title:   &title,
+			Summary: &summary,
+			Annotations: []structs.CheckRunAnnotation{
+				{
+					Title:           "hello world",
+					Message:         "test message",
+					AnnotationLevel: structs.CheckRunAnnotationWarning,
+				},
+				{
+					Title:           "hello world 2",
+					Message:         "test message",
+					AnnotationLevel: structs.CheckRunAnnotationWarning,
+					DeleteMark:      &boolTrue,
+				},
+			},
+		},
+	})
+	assert.NoError(t, err)
+
+	checkRun = unittest.AssertExistsAndLoadBean(t, &CheckRun{ID: checkRun.ID})
+	assert.Equal(t, "test with output", checkRun.Name)
+	assert.NoError(t, checkRun.LoadOutput(db.DefaultContext))
+	assert.NoError(t, checkRun.LoadOutput(db.DefaultContext))
+	assert.NotNil(t, checkRun.Output)
+	assert.Equal(t, 1, len(checkRun.Output.Annotations))
+	assert.EqualValues(t, "hello world", checkRun.Output.Annotations[0].Title)
+	assert.EqualValues(t, title, checkRun.Output.Title)
 }
 
 func TestNewCheckRunOptions_Vaild(t *testing.T) {
@@ -155,6 +193,10 @@ func TestGetCheckRunByID(t *testing.T) {
 	assert.EqualValues(t, "test check run", checkRun.Name)
 	assert.EqualValues(t, structs.CommitStatusSuccess, checkRun.ToStatus(nil).State)
 
+	assert.NoError(t, checkRun.LoadOutput(db.DefaultContext))
+	assert.NotNil(t, checkRun.Output)
+	assert.Equal(t, 2, len(checkRun.Output.Annotations))
+
 	_, err = GetCheckRunByRepoIDAndID(db.DefaultContext, 1, 5)
 	assert.EqualValues(t, ErrCheckRunNotExist{RepoID: 1, ID: 5}, err)
 }
@@ -244,6 +286,7 @@ func TestUpdate_Update(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	checkRun2 := unittest.AssertExistsAndLoadBean(t, &CheckRun{ID: 2})
+	checkRun1 := unittest.AssertExistsAndLoadBean(t, &CheckRun{ID: 1})
 
 	// 1. test update name
 	err := checkRun2.Update(db.DefaultContext, UpdateCheckRunOptions{
@@ -287,4 +330,42 @@ func TestUpdate_Update(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "test check run 4", checkRun2.Name)
 	assert.NotEqualValues(t, timeutil.TimeStamp(0), checkRun2.CompletedAt)
+
+	// 2. update outputs
+	assert.NoError(t, checkRun1.LoadOutput(db.DefaultContext))
+	assert.NotNil(t, checkRun1.Output)
+	assert.Equal(t, 2, len(checkRun1.Output.Annotations))
+
+	title := "test ci output changed"
+	boolTrue := true
+	err = checkRun1.Update(db.DefaultContext, UpdateCheckRunOptions{
+		Repo:    repo1,
+		Creator: user2,
+		Output: &structs.CheckRunOutput{
+			Title: &title,
+			Annotations: []structs.CheckRunAnnotation{
+				{
+					Title:      checkRun1.Output.Annotations[0].Title,
+					DeleteMark: &boolTrue, // delete first item
+				},
+				{
+					Title:      checkRun1.Output.Annotations[1].Title,
+					Message:    "test message 2 changed",
+					AppendMark: &boolTrue, // mark as appended, so willn't be changed
+				},
+				{
+					Title:           "title 3",
+					Message:         "test message 3",
+					AnnotationLevel: structs.CheckRunAnnotationLevelNotice,
+				},
+			},
+		},
+	})
+	assert.NoError(t, err)
+
+	checkRun1 = unittest.AssertExistsAndLoadBean(t, &CheckRun{ID: 1})
+	assert.NoError(t, checkRun1.LoadOutput(db.DefaultContext))
+	assert.NotNil(t, checkRun1.Output)
+	assert.Equal(t, 2, len(checkRun1.Output.Annotations))
+	assert.EqualValues(t, "title 3", checkRun1.Output.Annotations[0].Title)
 }

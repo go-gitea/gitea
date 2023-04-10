@@ -98,10 +98,116 @@ type CheckRun struct {
 	StartedAt   timeutil.TimeStamp
 	CompletedAt timeutil.TimeStamp
 
-	Output *CheckRunOutput `xorm:"-"`
+	Output       *CheckRunOutput `xorm:"-"`
+	outputLoaded bool            `xorm:"-"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+}
+
+func (c *CheckRun) LoadOutput(ctx context.Context) error {
+	if c.outputLoaded {
+		return nil
+	}
+
+	output := &CheckRunOutput{}
+	exist, err := db.GetEngine(ctx).Where("check_run_id = ?", c.ID).Get(output)
+	if err != nil {
+		return err
+	}
+
+	c.outputLoaded = true
+	if exist {
+		c.Output = output
+	}
+
+	return nil
+}
+
+func (c *CheckRun) updateOutput(ctx context.Context, output *api.CheckRunOutput) error {
+	if output == nil {
+		return nil
+	}
+
+	err := c.LoadOutput(ctx)
+	if err != nil {
+		return err
+	}
+
+	needCreate := c.Output == nil
+	if needCreate {
+		c.Output = &CheckRunOutput{
+			CheckRunID: c.ID,
+		}
+	}
+
+	if output.Title != nil {
+		c.Output.Title = *output.Title
+	}
+
+	if output.Summary != nil {
+		c.Output.Summary = *output.Summary
+	}
+
+	if output.AnnotationsURL != nil {
+		c.Output.AnnotationsURL = *output.AnnotationsURL
+	}
+
+	if output.Text != nil {
+		c.Output.Text = *output.Text
+	}
+
+	if needCreate {
+		annotations := make([]api.CheckRunAnnotation, 0, len(output.Annotations))
+
+		for _, a := range output.Annotations {
+			if a.DeleteMark != nil && *a.DeleteMark {
+				continue
+			}
+
+			a.AppendMark = nil
+			a.DeleteMark = nil
+
+			annotations = append(annotations, a)
+		}
+
+		c.Output.Annotations = annotations
+	} else {
+		annotationsMap := make(map[string]api.CheckRunAnnotation)
+		for _, a := range c.Output.Annotations {
+			annotationsMap[a.Title] = a
+		}
+
+		for _, a := range output.Annotations {
+			_, exist := annotationsMap[a.Title]
+			if exist && a.DeleteMark != nil && *a.DeleteMark {
+				delete(annotationsMap, a.Title)
+				continue
+			}
+
+			if exist && a.AppendMark != nil && *a.AppendMark {
+				continue
+			}
+
+			a.AppendMark = nil
+			a.DeleteMark = nil
+			annotationsMap[a.Title] = a
+		}
+
+		c.Output.Annotations = make([]api.CheckRunAnnotation, 0, len(annotationsMap))
+		for _, a := range annotationsMap {
+			c.Output.Annotations = append(c.Output.Annotations, a)
+		}
+	}
+
+	if needCreate {
+		_, err = db.GetEngine(ctx).Insert(c.Output)
+		return err
+	}
+
+	_, err = db.GetEngine(ctx).ID(c.Output.ID).Cols("title", "summary", "text", "annotations_url", "annotations").Update(c.Output)
+
+	return err
 }
 
 func (c *CheckRun) ToStatus(lang translation.Locale) *CommitStatus {
@@ -143,13 +249,13 @@ func (c *CheckRun) ToStatus(lang translation.Locale) *CommitStatus {
 }
 
 type CheckRunOutput struct {
-	ID             int64  `xorm:"pk autoincr"`
-	ChekRunID      int64  `xorm:"INDEX"`
-	Title          string `xorm:"TEXT"`
-	Summary        string `xorm:"TEXT"`
-	Text           string `xorm:"TEXT"`
-	AnnotationsURL string `xorm:"TEXT"`
-	Annotations    []api.CheckRunAnnotation
+	ID             int64                    `xorm:"pk autoincr"`
+	CheckRunID     int64                    `xorm:"INDEX"`
+	Title          string                   `xorm:"TEXT"`
+	Summary        string                   `xorm:"TEXT"`
+	Text           string                   `xorm:"TEXT"`
+	AnnotationsURL string                   `xorm:"TEXT"`
+	Annotations    []api.CheckRunAnnotation `xorm:"JSON TEXT"`
 }
 
 func init() {
@@ -288,9 +394,10 @@ func CreateCheckRun(ctx context.Context, opts *NewCheckRunOptions) (*CheckRun, e
 		return nil, err
 	}
 
-	// TODO: update output
-	// if opts.Output != nil {
-	// }
+	err = checkRun.updateOutput(ctx, opts.Output)
+	if err != nil {
+		return nil, err
+	}
 
 	return checkRun, committer.Commit()
 }
@@ -547,6 +654,11 @@ func (c *CheckRun) Update(ctx context.Context, opts UpdateCheckRunOptions) error
 	}
 
 	_, err = db.GetEngine(ctx).ID(c.ID).Cols("name", "name_hash", "started_at", "completed_at", "status", "conclusion", "details_url", "external_id", "updated_unix").Update(c)
+	if err != nil {
+		return err
+	}
+
+	err = c.updateOutput(ctx, opts.Output)
 	if err != nil {
 		return err
 	}

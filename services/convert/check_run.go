@@ -45,5 +45,27 @@ func ToChekckRun(ctx context.Context, checkRun *git_model.CheckRun) *api.CheckRu
 		apiCheckRun.Creator = ToUser(ctx, creator, nil)
 	}
 
+	if checkRun.Output != nil {
+		apiCheckRun.Output = &api.CheckRunOutput{
+			Annotations: checkRun.Output.Annotations,
+		}
+
+		if len(checkRun.Output.Title) > 0 {
+			apiCheckRun.Output.Title = &checkRun.Output.Title
+		}
+
+		if len(checkRun.Output.Summary) > 0 {
+			apiCheckRun.Output.Summary = &checkRun.Output.Summary
+		}
+
+		if len(checkRun.Output.Text) > 0 {
+			apiCheckRun.Output.Text = &checkRun.Output.Text
+		}
+
+		if len(checkRun.Output.AnnotationsURL) > 0 {
+			apiCheckRun.Output.AnnotationsURL = &checkRun.Output.AnnotationsURL
+		}
+	}
+
 	return apiCheckRun
 }

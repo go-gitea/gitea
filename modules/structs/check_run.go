@@ -56,16 +56,18 @@ type CheckRunAnnotation struct {
 	Message         string                  `json:"message"`
 	Title           string                  `json:"title"`
 	RawDetails      *string                 `json:"raw_details,omitempty"`
+	DeleteMark      *bool                   `json:"deleted,omitempty"`  // delete a exist annotation
+	AppendMark      *bool                   `json:"appended,omitempty"` // do not update exist annotation
 }
 
 // CheckRunOutput represents the output of a CheckRun.
 type CheckRunOutput struct {
-	Title            string                `json:"title"`
-	Summary          string                `json:"summary"`
-	Text             *string               `json:"text,omitempty"`
-	AnnotationsCount *int                  `json:"annotations_count,omitempty"`
-	AnnotationsURL   *string               `json:"annotations_url,omitempty"`
-	Annotations      []*CheckRunAnnotation `json:"annotations,omitempty"`
+	Title            *string              `json:"title,omitempty"`
+	Summary          *string              `json:"summary,omitempty"`
+	Text             *string              `json:"text,omitempty"`
+	AnnotationsCount *int                 `json:"annotations_count,omitempty"`
+	AnnotationsURL   *string              `json:"annotations_url,omitempty"`
+	Annotations      []CheckRunAnnotation `json:"annotations,omitempty"`
 }
 
 // CreateCheckRunOptions options needed to create a CheckRun.
