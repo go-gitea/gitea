@@ -3,6 +3,59 @@
 
 package actions
 
+// Github Actions Artifacts API Simple Description
+//
+// 1. Upload artifact
+// 1.1. Get upload url
+// GET: /api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts?api-version=6.0-preview
+// Response:
+// {
+// 	"fileContainerResourceUrl":"/api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts/{artifactID}/upload"
+// }
+// it accquire a upload url for upload artifact
+// 1.2. Upload artifact
+// PUT: /api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts/{artifactID}/upload?itemPath=artifact%2Ffilename
+// it upload chunk with headers:
+//    x-tfs-filelength: 1024 					// total file length
+//    content-length: 1024 						// chunk length
+//    x-actions-results-md5: md5sum 	// md5sum of chunk
+//    content-range: bytes 0-1023/1024 // chunk range
+// we save all chunks to one storage directory after md5sum check
+// 1.3. Confirm upload
+// PATCH: /api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts/{artifactID}/upload?itemPath=artifact%2Ffilename
+// it confirm upload and merge all chunks to one file, save this file to storage
+//
+// 2. Download artifact
+// 2.1 list artifacts
+// GET: /api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts?api-version=6.0-preview
+// Response:
+// {
+// 	"count": 1,
+// 	"value": [
+// 		{
+// 			"name": "artifact",
+// 			"fileContainerResourceUrl": "/api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts/{artifactID}/path"
+// 		}
+// 	]
+// }
+// 2.2 download artifact
+// GET: /api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts/{artifactID}/path?api-version=6.0-preview
+// Response:
+// {
+//   "value": [
+// 			{
+// 	 			"contentLocation": "/api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts/{artifactID}/download",
+// 				"path": "artifact/filename",
+// 				"itemType": "file"
+// 			}
+//   ]
+// }
+// 2.3 download artifact file
+// GET: /api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts/{artifactID}/download?itemPath=artifact%2Ffilename
+// Response:
+// download file
+//
+
 import (
 	"compress/gzip"
 	gocontext "context"
