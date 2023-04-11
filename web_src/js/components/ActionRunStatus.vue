@@ -9,8 +9,9 @@
 
 <script>
 import {SvgIcon} from '../svg.js';
+import {createApp} from 'vue';
 
-export default {
+const sfc = {
   components: {SvgIcon},
   props: {
     status: {
@@ -27,4 +28,19 @@ export default {
     }
   },
 };
+
+export default sfc;
+
+export function initActionRunStatus() {
+  const els = document.getElementsByClassName('action-run-status');
+  if (!els) return;
+  for (const el of els) {
+    const view = createApp(sfc, {
+      status: el.getAttribute('data-status'),
+      size: el.getAttribute('data-size'),
+      className: el.getAttribute('data-class-name'),
+    });
+    view.mount(el);
+  }
+}
 </script>
