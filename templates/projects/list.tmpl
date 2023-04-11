@@ -42,7 +42,7 @@
 					<div class="meta">
 						{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
 						{{if .IsClosed}}
-							{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate|Str2html}}
+							{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 						{{end}}
 						<span class="issue-stats">
 							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
