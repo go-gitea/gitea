@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/modules/assetfs"
@@ -88,16 +87,20 @@ var (
 		},
 	}
 
-	assets []asset
+	matchedAssetFiles []assetFile
 )
 
-type asset struct {
-	AssetFS *assetfs.LayeredFS
-	Name    string
-	Path    string
+type assetFile struct {
+	fs   *assetfs.LayeredFS
+	name string
+	path string
 }
 
 func initEmbeddedExtractor(c *cli.Context) error {
+	// FIXME: there is a bug, if the user runs `gitea embedded` with a different user or root,
+	// The setting.Init (loadRunModeFrom) will fail and do log.Fatal
+	// But the console logger has been deleted, so nothing is printed, the user sees nothing and Gitea just exits.
+
 	// Silence the console logger
 	log.DelNamedLogger("console")
 	log.DelNamedLogger(log.DEFAULT)
@@ -106,24 +109,14 @@ func initEmbeddedExtractor(c *cli.Context) error {
 	setting.InitProviderAllowEmpty()
 	setting.LoadCommonSettings()
 
-	pats, err := getPatterns(c.Args())
+	patterns, err := compileCollectPatterns(c.Args())
 	if err != nil {
 		return err
 	}
-	fss := map[string]*assetfs.LayeredFS{
-		"public":    assetfs.Layered(public.BuiltinAssets()),
-		"options":   assetfs.Layered(options.BuiltinAssets()),
-		"templates": assetfs.Layered(templates.BuiltinAssets()),
-	}
 
-	for p, fs := range fss {
-		assets = append(assets, buildAssetList(p, fs, pats, c)...)
-	}
-
-	// Sort assets
-	sort.SliceStable(assets, func(i, j int) bool {
-		return assets[i].Path < assets[j].Path
-	})
+	collectAssetFilesByPattern(c, patterns, "options", options.BuiltinAssets())
+	collectAssetFilesByPattern(c, patterns, "public", public.BuiltinAssets())
+	collectAssetFilesByPattern(c, patterns, "templates", templates.BuiltinAssets())
 
 	return nil
 }
@@ -157,8 +150,8 @@ func runListDo(c *cli.Context) error {
 		return err
 	}
 
-	for _, a := range assets {
-		fmt.Println(a.Path)
+	for _, a := range matchedAssetFiles {
+		fmt.Println(a.path)
 	}
 
 	return nil
@@ -169,19 +162,19 @@ func runViewDo(c *cli.Context) error {
 		return err
 	}
 
-	if len(assets) == 0 {
+	if len(matchedAssetFiles) == 0 {
 		return fmt.Errorf("no files matched the given pattern")
-	} else if len(assets) > 1 {
+	} else if len(matchedAssetFiles) > 1 {
 		return fmt.Errorf("too many files matched the given pattern, try to be more specific")
 	}
 
-	data, err := assets[0].AssetFS.ReadFile(assets[0].Name)
+	data, err := matchedAssetFiles[0].fs.ReadFile(matchedAssetFiles[0].name)
 	if err != nil {
-		return fmt.Errorf("%s: %w", assets[0].Path, err)
+		return fmt.Errorf("%s: %w", matchedAssetFiles[0].path, err)
 	}
 
 	if _, err = os.Stdout.Write(data); err != nil {
-		return fmt.Errorf("%s: %w", assets[0].Path, err)
+		return fmt.Errorf("%s: %w", matchedAssetFiles[0].path, err)
 	}
 
 	return nil
@@ -226,23 +219,23 @@ func runExtractDo(c *cli.Context) error {
 	overwrite := c.Bool("overwrite")
 	rename := c.Bool("rename")
 
-	for _, a := range assets {
+	for _, a := range matchedAssetFiles {
 		if err := extractAsset(destdir, a, overwrite, rename); err != nil {
 			// Non-fatal error
-			fmt.Fprintf(os.Stderr, "%s: %v", a.Path, err)
+			fmt.Fprintf(os.Stderr, "%s: %v", a.path, err)
 		}
 	}
 
 	return nil
 }
 
-func extractAsset(d string, a asset, overwrite, rename bool) error {
-	dest := filepath.Join(d, filepath.FromSlash(a.Path))
+func extractAsset(d string, a assetFile, overwrite, rename bool) error {
+	dest := filepath.Join(d, filepath.FromSlash(a.path))
 	dir := filepath.Dir(dest)
 
-	data, err := a.AssetFS.ReadFile(a.Name)
+	data, err := a.fs.ReadFile(a.name)
 	if err != nil {
-		return fmt.Errorf("%s: %w", a.Path, err)
+		return fmt.Errorf("%s: %w", a.path, err)
 	}
 
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
@@ -284,12 +277,12 @@ func extractAsset(d string, a asset, overwrite, rename bool) error {
 	return nil
 }
 
-func buildAssetList(path string, assetFS *assetfs.LayeredFS, globs []glob.Glob, c *cli.Context) []asset {
-	results := make([]asset, 0, 64)
-	files, err := assetFS.ListAllFiles(".", true)
+func collectAssetFilesByPattern(c *cli.Context, globs []glob.Glob, path string, layer *assetfs.Layer) {
+	fs := assetfs.Layered(layer)
+	files, err := fs.ListAllFiles(".", true)
 	if err != nil {
 		log.Error("Error listing files in %q: %v", path, err)
-		return nil
+		return
 	}
 	for _, name := range files {
 		if path == "public" &&
@@ -300,19 +293,14 @@ func buildAssetList(path string, assetFS *assetfs.LayeredFS, globs []glob.Glob, 
 		matchName := path + "/" + name
 		for _, g := range globs {
 			if g.Match(matchName) {
-				results = append(results, asset{
-					AssetFS: assetFS,
-					Name:    name,
-					Path:    path + "/" + name,
-				})
+				matchedAssetFiles = append(matchedAssetFiles, assetFile{fs: fs, name: name, path: path + "/" + name})
 				break
 			}
 		}
 	}
-	return results
 }
 
-func getPatterns(args []string) ([]glob.Glob, error) {
+func compileCollectPatterns(args []string) ([]glob.Glob, error) {
 	if len(args) == 0 {
 		args = []string{"**"}
 	}
