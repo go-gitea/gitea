@@ -106,6 +106,7 @@ func (l *LayeredFS) ReadLayeredFile(elems ...string) ([]byte, string, error) {
 // * omitted: all files and directories will be returned.
 // * true: only files will be returned.
 // * false: only directories will be returned.
+// The returned files are sorted by name.
 func (l *LayeredFS) ListFiles(name string, fileMode ...bool) ([]string, error) {
 	fileMap := map[string]bool{}
 	for _, layer := range l.layers {
@@ -143,11 +144,12 @@ func (l *LayeredFS) ListFiles(name string, fileMode ...bool) ([]string, error) {
 	return files, nil
 }
 
-// ListAllFiles returns files/directories  in the given directory, including subdirectories, recursively.
+// ListAllFiles returns files/directories in the given directory, including subdirectories, recursively.
 // The fileMode controls the returned files:
 // * omitted: all files and directories will be returned.
 // * true: only files will be returned.
 // * false: only directories will be returned.
+// The returned files are sorted by name.
 func (l *LayeredFS) ListAllFiles(name string, fileMode ...bool) ([]string, error) {
 	return listAllFiles(l.layers, name, fileMode...)
 }
