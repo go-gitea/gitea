@@ -17,7 +17,7 @@
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import {doLoadMoreFiles} from '../features/repo-diff.js';
 import {toggleElem} from '../utils/dom.js';
-import {store} from './DiffFileTreeStore.js';
+import {DiffTreeStore} from '../modules/stores.js';
 
 const {pageData} = window.config;
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
@@ -29,7 +29,7 @@ export default {
     pageData.diffFileInfo.fileTreeIsVisible = fileTreeIsVisible;
     return {
       ...pageData.diffFileInfo,
-      store,
+      store: DiffTreeStore,
     };
   },
   computed: {
