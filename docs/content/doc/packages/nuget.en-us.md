@@ -2,6 +2,7 @@
 date: "2021-07-20T00:00:00+00:00"
 title: "NuGet Packages Repository"
 slug: "usage/packages/nuget"
+weight: 80
 draft: false
 toc: false
 menu:

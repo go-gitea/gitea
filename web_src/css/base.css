@@ -230,10 +230,6 @@ body {
   }
 }
 
-img {
-  border-radius: 3px;
-}
-
 table {
   border-collapse: collapse;
 }
@@ -821,9 +817,7 @@ a.label,
   color: var(--color-text-dark);
 }
 
-.ui.link.menu .item:hover,
 .ui.menu .dropdown.item:hover,
-.ui.menu .link.item:hover,
 .ui.menu a.item:hover {
   color: var(--color-text);
   background: var(--color-hover);
@@ -837,8 +831,6 @@ a.label,
   background: var(--color-active);
 }
 
-.ui.link.menu .item:active,
-.ui.menu .link.item:active,
 .ui.menu a.item:active {
   color: var(--color-text);
   background: none;
@@ -883,10 +875,6 @@ a.label,
   margin-bottom: -0.25rem;
 }
 
-.ui.dropdown .menu > .item > svg.img {
-  margin-right: 0.78571429rem;
-}
-
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
 }
@@ -926,7 +914,6 @@ a.label,
 }
 
 .ui.secondary.menu .dropdown.item:hover,
-.ui.secondary.menu .link.item:hover,
 .ui.secondary.menu a.item:hover {
   color: var(--color-text);
   background: var(--color-hover);
@@ -1087,9 +1074,7 @@ a.label,
 }
 
 .ui.cards a.card:hover,
-.ui.link.cards .card:not(.icon):hover,
-a.ui.card:hover,
-.ui.link.card:hover {
+a.ui.card:hover {
   border: 1px solid var(--color-secondary);
   background: var(--color-card);
 }
@@ -1199,9 +1184,9 @@ a.ui.card:hover,
   border-color: var(--color-secondary);
 }
 
+img.ui.avatar,
 .ui.avatar img,
 .ui.avatar svg,
-.ui.avatar.img,
 .ui.cards > .card img.avatar,
 .ui.cards > .card .avatar img,
 .ui.card img.avatar,
@@ -1211,19 +1196,6 @@ a.ui.card:hover,
 
 .ui.divided.list > .item {
   border-color: var(--color-secondary);
-}
-
-.ui.link.list .item,
-.ui.link.list a.item,
-.ui.link.list .item a:not(.ui) {
-  color: var(--color-text);
-}
-
-.ui.link.list.list a.item:hover,
-.ui.link.list.list .item a:not(.ui):hover,
-.ui.link.list.list a.item:active,
-.ui.link.list.list .item a:not(.ui):active {
-  color: var(--color-text-dark);
 }
 
 .ui.error.message .header,
@@ -2410,9 +2382,10 @@ a.ui.label:hover {
 }
 
 .ui.primary.label,
-.ui.primary.labels .label {
-  background-color: var(--color-primary) !important;
-  border-color: var(--color-primary-dark-2) !important;
+.ui.primary.labels .label, 
+.ui.ui.ui.primary.label {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary-dark-2);
 }
 
 .ui.basic.labels .primary.label,
@@ -2794,7 +2767,6 @@ table th[data-sortt-desc] .svg {
 .ui.secondary.pointing.menu .active.item,
 .ui.secondary.pointing.menu .active.item:hover,
 .ui.secondary.pointing.menu .dropdown.item:hover,
-.ui.secondary.pointing.menu .link.item:hover,
 .ui.secondary.pointing.menu a.item:hover {
   color: var(--color-text-dark);
 }

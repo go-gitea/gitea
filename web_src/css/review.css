@@ -53,12 +53,6 @@
   margin-bottom: 0.5em;
 }
 
-.add-comment .lines-num,
-.add-comment .lines-escape,
-.add-comment .lines-type-marker {
-  display: none;
-}
-
 .show-outdated:hover,
 .hide-outdated:hover {
   text-decoration: underline;
@@ -160,8 +154,11 @@
   margin: 0.5em;
 }
 
+.comment-code-cloud .editor-statusbar {
+  display: none;
+}
+
 .comment-code-cloud .footer {
-  border-top: 1px solid var(--color-secondary);
   padding: 10px 0;
 }
 
@@ -224,15 +221,9 @@ a.blob-excerpt:hover {
   max-height: calc(100vh - 360px);
 }
 
-.review-box-panel .editor-toolbar,
-.review-box-panel .CodeMirror-scroll {
-  width: min(calc(100vw - 2em), 800px);
-  max-width: none;
-}
-
-.review-box-panel .combo-markdown-editor textarea {
-  width: 730px;
-  max-width: calc(100vw - 70px);
+.review-box-panel .combo-markdown-editor {
+  width: 730px; /* this width matches current EasyMDE's toolbar's width */
+  max-width: calc(100vw - 70px); /* leave enough space on left, and align the page content */
 }
 
 #review-box {
@@ -252,12 +243,12 @@ a.blob-excerpt:hover {
   display: none;
 }
 
-.pull.files.diff [id] {
+.pull.files.diff .comment {
   scroll-margin-top: 99px;
 }
 
 @media (max-width: 991px) {
-  .pull.files.diff [id] {
+  .pull.files.diff .comment {
     scroll-margin-top: 130px;
   }
 }
@@ -265,7 +256,7 @@ a.blob-excerpt:hover {
 .changed-since-last-review {
   border: 1px var(--color-accent) solid;
   background-color: var(--color-small-accent);
-  border-radius: 15px;
+  border-radius: var(--border-radius);
   padding: 4px 8px;
   margin: -8px 0; /* just like other buttons in the diff box header */
   font-size: 0.857rem; /* just like .ui.tiny.button */
