@@ -20,7 +20,7 @@
 				<div class="content">
 					<strong>{{$grant.Application.Name}}</strong>
 					<div class="activity meta">
-						<i>{{$.locale.Tr "settings.add_on"}} <span><time data-format="short-date" datetime="{{$grant.CreatedUnix.FormatLong}}">{{$grant.CreatedUnix.FormatShort}}</time></span></i>
+						<i>{{$.locale.Tr "settings.add_on"}} <span>{{template "shared/datetime/short" (dict "Datetime" $grant.CreatedUnix.FormatLong "Fallback" $grant.CreatedUnix.FormatShort)}}</span></i>
 					</div>
 				</div>
 			</div>
