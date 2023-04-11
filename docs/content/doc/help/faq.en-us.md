@@ -124,7 +124,7 @@ Gitea doesn't provide builtin Pages server. You need a dedicated domain to serve
 
 For simple usage, you can use a reverse proxy to rewrite & serve static contents from Gitea's raw file URLs.
 
-And there are already available third-party services like [pages server](https://codeberg.org/Codeberg/pages-server) that can provide the required functionality.
+And there is already available third-party services like [pages server](https://codeberg.org/Codeberg/pages-server) or a [caddy plugin](https://github.com/42wim/caddy-gitea) that can provide the required functionality.
 
 ## Active user vs login prohibited user
 

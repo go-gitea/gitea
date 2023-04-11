@@ -53,7 +53,7 @@ _Symbols used in table:_
 | Custom Theme Support                             | ✓                                                   | ✓    | ✘         | ✘         | ✘         | ✓         | ✘            |
 | Markdown support                                 | ✓                                                   | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | CSV support                                      | ✓                                                   | ✘    | ✓         | ✘         | ✘         | ✓         | ?            |
-| 'GitHub / GitLab pages'                          | [⚙️](https://codeberg.org/Codeberg/pages-server)   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| 'GitHub / GitLab pages'                          | [⚙️][gitea-pages-server], [⚙️][gitea-caddy-plugin]    | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
 | Repo-specific wiki (as a repo itself)            | ✓                                                   | ✓    | ✓         | ✓         | ✓         | /         | ✘            |
 | Deploy Tokens                                    | ✓                                                   | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Repository Tokens with write rights              | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
@@ -146,3 +146,6 @@ _Symbols used in table:_
 | Two factor authentication (2FA)                | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓         | ✘            |
 | Integration with the most common services      | ✓                                                  | /    | ⁄         | ✓         | ✓         | ⁄         | ✓            |
 | Incorporate external CI/CD                     | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+
+[gitea-caddy-plugin]: https://github.com/42wim/caddy-gitea
+[gitea-pages-server]: https://codeberg.org/Codeberg/pages-server

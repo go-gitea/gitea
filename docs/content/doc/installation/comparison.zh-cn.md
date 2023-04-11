@@ -44,7 +44,7 @@ _表格中的符号含义:_
 | 支持 Orgmode          | ✓                                                  | ✘    | ✓         | ✘         | ✘         | ✘              | ?            |
 | 支持 CSV              | ✓                                                  | ✘    | ✓         | ✘         | ✘         | ✓              | ?            |
 | 支持第三方渲染工具    | ✓                                                  | ✘    | ✘         | ✘         | ✘         | ✓              | ?            |
-| Git 驱动的静态 pages  | [⚙️](https://codeberg.org/Codeberg/pages-server)  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
+| Git 驱动的静态 pages  | [⚙️][gitea-pages-server], [⚙️][gitea-caddy-plugin]   | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
 | Git 驱动的集成化 wiki | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓ (cloud only) | ✘            |
 | 部署令牌              | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓              | ✓            |
 | 仓库写权限令牌        | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ✓            |
@@ -131,3 +131,6 @@ _表格中的符号含义:_
 | 集成 Discord               | ✓                                                  | ✓                                             | ✓         | ✓         | ✓         | ✘         | ✘            |
 | 集成 Microsoft Teams       | ✓                                                  | ✘                                             | ✓         | ✓         | ✓         | ✓         | ✘            |
 | 显示外部 CI/CD 的状态      | ✓                                                  | ✘                                             | ✓         | ✓         | ✓         | ✓         | ✓            |
+
+[gitea-caddy-plugin]: https://github.com/42wim/caddy-gitea
+[gitea-pages-server]: https://codeberg.org/Codeberg/pages-server
