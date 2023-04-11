@@ -16,7 +16,7 @@
 <script>
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import {doLoadMoreFiles} from '../features/repo-diff.js';
-import { toggleElem } from '../utils/dom.js';
+import {toggleElem} from '../utils/dom.js';
 import {setFileFolding} from '../features/file-fold.js';
 
 const {pageData} = window.config;
