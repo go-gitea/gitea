@@ -19,29 +19,28 @@ Template Attributes:
 	</div>
 	{{end}}
 	<div class="ui tab active" data-tab-panel="markdown-writer">
-		<markdown-toolbar class="gt-df">
+		<markdown-toolbar class="gt-df gt-ac gt-gap-3">
 			<div class="markdown-toolbar-group">
-				<md-header class="markdown-toolbar-button">{{svg "octicon-heading"}}</md-header>
-				<md-bold class="markdown-toolbar-button">{{svg "octicon-bold"}}</md-bold>
-				<md-italic class="markdown-toolbar-button">{{svg "octicon-italic"}}</md-italic>
+				<md-header role="button" class="markdown-toolbar-button btn-link muted" data-tooltip-content="{{.locale.Tr "editor.buttons.heading.tooltip"}}">{{svg "octicon-heading"}}</md-header>
+				<md-bold role="button" class="markdown-toolbar-button btn-link muted" data-tooltip-content="{{.locale.Tr "editor.buttons.bold.tooltip"}}">{{svg "octicon-bold"}}</md-bold>
+				<md-italic role="button" class="markdown-toolbar-button btn-link muted" data-tooltip-content="{{.locale.Tr "editor.buttons.italic.tooltip"}}">{{svg "octicon-italic"}}</md-italic>
 			</div>
 			<div class="markdown-toolbar-group">
-				<md-quote class="markdown-toolbar-button">{{svg "octicon-quote"}}</md-quote>
-				<md-code class="markdown-toolbar-button">{{svg "octicon-code"}}</md-code>
-				<md-link class="markdown-toolbar-button">{{svg "octicon-link"}}</md-link>
+				<md-quote role="button" class="markdown-toolbar-button btn-link muted" data-tooltip-content="{{.locale.Tr "editor.buttons.quote.tooltip"}}">{{svg "octicon-quote"}}</md-quote>
+				<md-code role="button" class="markdown-toolbar-button btn-link muted" data-tooltip-content="{{.locale.Tr "editor.buttons.code.tooltip"}}">{{svg "octicon-code"}}</md-code>
+				<md-link role="button" class="markdown-toolbar-button btn-link muted" data-tooltip-content="{{.locale.Tr "editor.buttons.link.tooltip"}}">{{svg "octicon-link"}}</md-link>
 			</div>
 			<div class="markdown-toolbar-group">
-				<md-unordered-list class="markdown-toolbar-button">{{svg "octicon-list-unordered"}}</md-unordered-list>
-				<md-ordered-list class="markdown-toolbar-button">{{svg "octicon-list-ordered"}}</md-ordered-list>
-				<md-task-list class="markdown-toolbar-button">{{svg "octicon-tasklist"}}</md-task-list>
+				<md-unordered-list role="button" class="markdown-toolbar-button btn-link muted" data-tooltip-content="{{.locale.Tr "editor.buttons.list.unordered.tooltip"}}">{{svg "octicon-list-unordered"}}</md-unordered-list>
+				<md-ordered-list role="button" class="markdown-toolbar-button btn-link muted" data-tooltip-content="{{.locale.Tr "editor.buttons.list.ordered.tooltip"}}">{{svg "octicon-list-ordered"}}</md-ordered-list>
+				<md-task-list role="button" class="markdown-toolbar-button btn-link muted" data-tooltip-content="{{.locale.Tr "editor.buttons.list.task.tooltip"}}">{{svg "octicon-tasklist"}}</md-task-list>
 			</div>
 			<div class="markdown-toolbar-group">
-				<md-mention class="markdown-toolbar-button">{{svg "octicon-mention"}}</md-mention>
-				<md-ref class="markdown-toolbar-button">{{svg "octicon-cross-reference"}}</md-ref>
+				<md-mention role="button" class="markdown-toolbar-button btn-link muted" data-tooltip-content="{{.locale.Tr "editor.buttons.mention.tooltip"}}">{{svg "octicon-mention"}}</md-mention>
+				<md-ref role="button" class="markdown-toolbar-button btn-link muted" data-tooltip-content="{{.locale.Tr "editor.buttons.ref.tooltip"}}">{{svg "octicon-cross-reference"}}</md-ref>
 			</div>
-			<div class="markdown-toolbar-group gt-f1"></div>
-			<div class="markdown-toolbar-group">
-				<span class="markdown-toolbar-button markdown-switch-easymde">{{svg "octicon-arrow-switch"}}</span>
+			<div class="markdown-toolbar-group gt-f1 gt-je">
+			<button class="markdown-toolbar-button markdown-switch-easymde btn-link muted" data-tooltip-content="{{.locale.Tr "editor.buttons.switch_to_legacy.tooltip"}}">{{svg "octicon-arrow-switch"}}</button>
 			</div>
 		</markdown-toolbar>
 		<text-expander keys=": @">
