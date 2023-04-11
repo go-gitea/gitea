@@ -93,7 +93,7 @@
 							<div class="meta">
 								{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
 								{{if .IsClosed}}
-									{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate|Str2html}}
+									{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 								{{else}}
 									{{svg "octicon-calendar"}}
 									{{if .DeadlineString}}
