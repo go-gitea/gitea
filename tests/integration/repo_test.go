@@ -75,7 +75,10 @@ func testViewRepo(t *testing.T) {
 			}
 		})
 
-		f.commitTime, _ = s.Find("span.time-since").Attr("data-tooltip-content")
+		// convert "2017-06-14 21:54:21 +0800" to "Wed, 14 Jun 2017 13:54:21 UTC"
+		htmlTimeString, _ := s.Find("relative-time.time-since").Attr("datetime")
+		htmlTime, _ := time.Parse(time.RFC3339, htmlTimeString)
+		f.commitTime = htmlTime.UTC().Format("Mon, 02 Jan 2006 15:04:05 UTC")
 		items = append(items, f)
 	})
 
