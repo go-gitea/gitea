@@ -2,7 +2,8 @@ import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {createCodeEditor} from './codeeditor.js';
 import {hideElem, showElem} from '../utils/dom.js';
-import {showPreviewerWithData} from './comp/ComboMarkdownEditor.js';
+import {initMarkupContent} from './../markup/content.js';
+import {attachRefIssueContextPopup} from './contextpopup.js';
 
 const {csrfToken} = window.config;
 
@@ -28,7 +29,7 @@ function initEditPreviewTab($form) {
         file_path: treePathEl.val(),
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
-        showPreviewerWithData($previewPanel, data);
+        renderPreviewPanelContent($previewPanel, data);
       });
     });
   }
@@ -189,4 +190,12 @@ export function initRepoEditor() {
       }
     });
   })();
+}
+
+export function renderPreviewPanelContent($panelPreviewer, data) {
+  $panelPreviewer.html(data);
+  initMarkupContent();
+
+  const refIssues = $panelPreviewer.find('p .ref-issue');
+  attachRefIssueContextPopup(refIssues);
 }
