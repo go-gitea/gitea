@@ -557,7 +557,7 @@ Restore-repo restore repository data from disk dir:
 Generate a new token for a runner to use to register with the server
 
 - Options:
-  - `--socpe {owner}[/{repo}]`, `-s {owner}[/{repo}]`: To limit the scope of the runner, no scope means the runner can be used for all repos, but you can also limit it to a specific repo or owner
+  - `--scope {owner}[/{repo}]`, `-s {owner}[/{repo}]`: To limit the scope of the runner, no scope means the runner can be used for all repos, but you can also limit it to a specific repo or owner
 
 To register a global runner:
 
