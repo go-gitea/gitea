@@ -44,9 +44,6 @@ const (
 
 	// UserTypeReserved reserves a (non-existing) user, i.e. to prevent a spam user from re-registering after being deleted, or to reserve the name until the user is actually created later on
 	UserTypeUserReserved
-
-	// UserTypeReserved reserves a (non-existing) organization, used with user reserved type as it allows for conversion back to a regular organization
-	UserTypeOrganizationReserved
 )
 
 const (
