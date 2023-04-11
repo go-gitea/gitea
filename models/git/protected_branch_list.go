@@ -28,12 +28,8 @@ func (rules ProtectedBranchRules) sort() {
 	sort.Slice(rules, func(i, j int) bool {
 		rules[i].loadGlob()
 		rules[j].loadGlob()
-		if rules[i].isPlainName {
-			if !rules[j].isPlainName {
-				return true
-			}
-		} else if rules[j].isPlainName {
-			return false
+		if rules[i].isPlainName != rules[j].isPlainName {
+			return rules[i].isPlainName // plain name comes first, so plan name means "less"
 		}
 		return rules[i].CreatedUnix < rules[j].CreatedUnix
 	})
