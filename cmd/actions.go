@@ -22,7 +22,7 @@ var (
 	CmdActions = cli.Command{
 		Name:        "actions",
 		Usage:       "",
-		Description: "Tasks for managing Gitea Actions",
+		Description: "Commands for managing Gitea Actions",
 		Subcommands: []cli.Command{
 			subcmdActionsGenRunnerToken,
 		},
