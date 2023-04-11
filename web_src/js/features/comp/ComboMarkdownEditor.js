@@ -70,7 +70,10 @@ class ComboMarkdownEditor {
 
     this.textareaMarkdownToolbar = this.container.querySelector('markdown-toolbar');
     this.textareaMarkdownToolbar.setAttribute('for', this.textarea.id);
-
+    for (const el of this.textareaMarkdownToolbar.querySelectorAll('.markdown-toolbar-button')) {
+      // upstream bug: The role code is never executed in base MarkdownButtonElement https://github.com/github/markdown-toolbar-element/issues/70
+      el.setAttribute('role', 'button');
+    }
     this.switchToEasyMDEButton = this.container.querySelector('.markdown-switch-easymde');
     this.switchToEasyMDEButton?.addEventListener('click', async (e) => {
       e.preventDefault();
