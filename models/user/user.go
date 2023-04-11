@@ -42,7 +42,7 @@ const (
 	// UserTypeOrganization defines an organization
 	UserTypeOrganization
 
-	// UserTypeReserved defines a reserved user, which is used for internal purposes
+	// UserTypeReserved reserves a (non-existing) user,  i.e. to prevent a spam user from re-registering after being deleted, or to reserve the name until the user is actually created later on
 	UserTypeReserved
 )
 
