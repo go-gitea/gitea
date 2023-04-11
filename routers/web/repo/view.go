@@ -58,7 +58,7 @@ const (
 //	entries == ctx.Repo.Commit.SubTree(ctx.Repo.TreePath).ListEntries()
 //
 // FIXME: There has to be a more efficient way of doing this
-func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry) (string, *git.TreeEntry, error) {
+func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, tryWellKnownDirs bool) (string, *git.TreeEntry, error) {
 	// Create a list of extensions in priority order
 	// 1. Markdown files - with and without localisation - e.g. README.en-us.md or README.md
 	// 2. Txt files - e.g. README.txt
@@ -69,7 +69,7 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry) (st
 
 	docsEntries := make([]*git.TreeEntry, 3) // (one of docs/, .gitea/ or .github/)
 	for _, entry := range entries {
-		if entry.IsDir() {
+		if tryWellKnownDirs && entry.IsDir() {
 			// as a special case for the top-level repo introduction README,
 			// fall back to subfolders, looking for e.g. docs/README.md, .gitea/README.zh-CN.txt, .github/README.txt, ...
 			// (note that docsEntries is ignored unless we are at the root)
@@ -130,7 +130,7 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry) (st
 				return "", nil, err
 			}
 
-			subfolder, readmeFile, err := findReadmeFileInEntries(ctx, childEntries)
+			subfolder, readmeFile, err := findReadmeFileInEntries(ctx, childEntries, false)
 			if err != nil && !git.IsErrNotExist(err) {
 				return "", nil, err
 			}
@@ -164,7 +164,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
-	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, entries)
+	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, entries, true)
 	if err != nil {
 		ctx.ServerError("findReadmeFileInEntries", err)
 		return
@@ -346,11 +346,18 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	if ctx.Repo.TreePath == ".editorconfig" {
-		_, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
-		ctx.Data["FileError"] = editorconfigErr
+		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
+		if editorconfigWarning != nil {
+			ctx.Data["FileWarning"] = strings.TrimSpace(editorconfigWarning.Error())
+		}
+		if editorconfigErr != nil {
+			ctx.Data["FileError"] = strings.TrimSpace(editorconfigErr.Error())
+		}
 	} else if ctx.Repo.IsIssueConfig(ctx.Repo.TreePath) {
 		_, issueConfigErr := ctx.Repo.GetIssueConfig(ctx.Repo.TreePath, ctx.Repo.Commit)
-		ctx.Data["FileError"] = issueConfigErr
+		if issueConfigErr != nil {
+			ctx.Data["FileError"] = strings.TrimSpace(issueConfigErr.Error())
+		}
 	}
 
 	isDisplayingSource := ctx.FormString("display") == "source"
@@ -704,9 +711,6 @@ func Home(ctx *context.Context) {
 			feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
 			return
 		}
-
-		ctx.Data["EnableFeed"] = true
-		ctx.Data["FeedURL"] = ctx.Repo.Repository.Link()
 	}
 
 	checkHomeCodeViewable(ctx)

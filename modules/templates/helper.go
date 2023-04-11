@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"html"
 	"html/template"
@@ -18,9 +17,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"runtime"
 	"strings"
-	texttmpl "text/template"
 	"time"
 	"unicode"
 
@@ -43,6 +40,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
+	"code.gitea.io/gitea/modules/templates/eval"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -56,12 +54,134 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
 	return []template.FuncMap{map[string]interface{}{
-		"GoVer": func() string {
-			return util.ToTitleCase(runtime.Version())
+		// -----------------------------------------------------------------
+		// html/template related functions
+		"dict":        dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
+		"Eval":        Eval,
+		"Safe":        Safe,
+		"Escape":      html.EscapeString,
+		"QueryEscape": url.QueryEscape,
+		"JSEscape":    template.JSEscapeString,
+		"Str2html":    Str2html, // TODO: rename it to SanitizeHTML
+		"URLJoin":     util.URLJoin,
+
+		"PathEscape":         url.PathEscape,
+		"PathEscapeSegments": util.PathEscapeSegments,
+
+		// -----------------------------------------------------------------
+		// string / json
+		"Join":           strings.Join,
+		"DotEscape":      DotEscape,
+		"HasPrefix":      strings.HasPrefix,
+		"EllipsisString": base.EllipsisString,
+
+		"Json": func(in interface{}) string {
+			out, err := json.Marshal(in)
+			if err != nil {
+				return ""
+			}
+			return string(out)
 		},
-		"UseHTTPS": func() bool {
-			return strings.HasPrefix(setting.AppURL, "https")
+		"JsonPrettyPrint": func(in string) string {
+			var out bytes.Buffer
+			err := json.Indent(&out, []byte(in), "", "  ")
+			if err != nil {
+				return ""
+			}
+			return out.String()
 		},
+
+		// -----------------------------------------------------------------
+		// svg / avatar / icon
+		"svg":            svg.RenderHTML,
+		"avatar":         Avatar,
+		"avatarHTML":     AvatarHTML,
+		"avatarByAction": AvatarByAction,
+		"avatarByEmail":  AvatarByEmail,
+		"repoAvatar":     RepoAvatar,
+		"EntryIcon":      base.EntryIcon,
+		"MigrationIcon":  MigrationIcon,
+		"ActionIcon":     ActionIcon,
+
+		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
+			// if needed
+			if len(normSort) == 0 || len(urlSort) == 0 {
+				return ""
+			}
+
+			if len(urlSort) == 0 && isDefault {
+				// if sort is sorted as default add arrow tho this table header
+				if isDefault {
+					return svg.RenderHTML("octicon-triangle-down", 16)
+				}
+			} else {
+				// if sort arg is in url test if it correlates with column header sort arguments
+				// the direction of the arrow should indicate the "current sort order", up means ASC(normal), down means DESC(rev)
+				if urlSort == normSort {
+					// the table is sorted with this header normal
+					return svg.RenderHTML("octicon-triangle-up", 16)
+				} else if urlSort == revSort {
+					// the table is sorted with this header reverse
+					return svg.RenderHTML("octicon-triangle-down", 16)
+				}
+			}
+			// the table is NOT sorted with this header
+			return ""
+		},
+
+		// -----------------------------------------------------------------
+		// time / number / format
+		"FileSize":      base.FileSize,
+		"LocaleNumber":  LocaleNumber,
+		"CountFmt":      base.FormatNumberSI,
+		"TimeSince":     timeutil.TimeSince,
+		"TimeSinceUnix": timeutil.TimeSinceUnix,
+		"Sec2Time":      util.SecToTime,
+		"DateFmtLong": func(t time.Time) string {
+			return t.Format(time.RFC3339)
+		},
+		"LoadTimes": func(startTime time.Time) string {
+			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
+		},
+
+		// -----------------------------------------------------------------
+		// slice
+		"containGeneric": func(arr, v interface{}) bool {
+			arrV := reflect.ValueOf(arr)
+			if arrV.Kind() == reflect.String && reflect.ValueOf(v).Kind() == reflect.String {
+				return strings.Contains(arr.(string), v.(string))
+			}
+			if arrV.Kind() == reflect.Slice {
+				for i := 0; i < arrV.Len(); i++ {
+					iV := arrV.Index(i)
+					if !iV.CanInterface() {
+						continue
+					}
+					if iV.Interface() == v {
+						return true
+					}
+				}
+			}
+			return false
+		},
+		"contain": func(s []int64, id int64) bool {
+			for i := 0; i < len(s); i++ {
+				if s[i] == id {
+					return true
+				}
+			}
+			return false
+		},
+		"Iterate": func(arg interface{}) (items []int64) {
+			count, _ := util.ToInt64(arg)
+			for i := int64(0); i < count; i++ {
+				items = append(items, i)
+			}
+			return items
+		},
+
+		// -----------------------------------------------------------------
+		// setting
 		"AppName": func() string {
 			return setting.AppName
 		},
@@ -81,10 +201,7 @@ func NewFuncMap() []template.FuncMap {
 		"AppVer": func() string {
 			return setting.AppVer
 		},
-		"AppBuiltWith": func() string {
-			return setting.AppBuiltWith
-		},
-		"AppDomain": func() string {
+		"AppDomain": func() string { // documented in mail-templates.md
 			return setting.Domain
 		},
 		"AssetVersion": func() string {
@@ -99,93 +216,12 @@ func NewFuncMap() []template.FuncMap {
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.ShowFooterTemplateLoadTime
 		},
-		"LoadTimes": func(startTime time.Time) string {
-			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
-		},
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
 		},
-		"IsShowFullName": func() bool {
-			return setting.UI.DefaultShowFullName
-		},
-		"Safe":          Safe,
-		"SafeJS":        SafeJS,
-		"JSEscape":      JSEscape,
-		"Str2html":      Str2html,
-		"TimeSince":     timeutil.TimeSince,
-		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"FileSize":      base.FileSize,
-		"LocaleNumber":  LocaleNumber,
-		"Subtract":      base.Subtract,
-		"EntryIcon":     base.EntryIcon,
-		"MigrationIcon": MigrationIcon,
-		"Add": func(a ...int) int {
-			sum := 0
-			for _, val := range a {
-				sum += val
-			}
-			return sum
-		},
-		"Mul": func(a ...int) int {
-			sum := 1
-			for _, val := range a {
-				sum *= val
-			}
-			return sum
-		},
-		"ActionIcon": ActionIcon,
-		"DateFmtLong": func(t time.Time) string {
-			return t.Format(time.RFC1123Z)
-		},
-		"DateFmtShort": func(t time.Time) string {
-			return t.Format("Jan 02, 2006")
-		},
-		"CountFmt": base.FormatNumberSI,
-		"SubStr": func(str string, start, length int) string {
-			if len(str) == 0 {
-				return ""
-			}
-			end := start + length
-			if length == -1 {
-				end = len(str)
-			}
-			if len(str) < end {
-				return str
-			}
-			return str[start:end]
-		},
-		"EllipsisString":                 base.EllipsisString,
-		"DiffTypeToStr":                  DiffTypeToStr,
-		"DiffLineTypeToStr":              DiffLineTypeToStr,
-		"ShortSha":                       base.ShortSha,
-		"ActionContent2Commits":          ActionContent2Commits,
-		"PathEscape":                     url.PathEscape,
-		"PathEscapeSegments":             util.PathEscapeSegments,
-		"URLJoin":                        util.URLJoin,
-		"RenderCommitMessage":            RenderCommitMessage,
-		"RenderCommitMessageLink":        RenderCommitMessageLink,
-		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
-		"RenderCommitBody":               RenderCommitBody,
-		"RenderCodeBlock":                RenderCodeBlock,
-		"RenderIssueTitle":               RenderIssueTitle,
-		"RenderEmoji":                    RenderEmoji,
-		"RenderEmojiPlain":               emoji.ReplaceAliases,
-		"ReactionToEmoji":                ReactionToEmoji,
-		"RenderNote":                     RenderNote,
-		"RenderMarkdownToHtml": func(ctx context.Context, input string) template.HTML {
-			output, err := markdown.RenderString(&markup.RenderContext{
-				Ctx:       ctx,
-				URLPrefix: setting.AppSubURL,
-			}, input)
-			if err != nil {
-				log.Error("RenderString: %v", err)
-			}
-			return template.HTML(output)
-		},
-		"IsMultilineCommitMessage": IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
 		},
@@ -203,6 +239,82 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"EnableTimetracking": func() bool {
 			return setting.Service.EnableTimetracking
+		},
+		"DisableGitHooks": func() bool {
+			return setting.DisableGitHooks
+		},
+		"DisableWebhooks": func() bool {
+			return setting.DisableWebhooks
+		},
+		"DisableImportLocal": func() bool {
+			return !setting.ImportLocalPaths
+		},
+		"DefaultTheme": func() string {
+			return setting.UI.DefaultTheme
+		},
+		"NotificationSettings": func() map[string]interface{} {
+			return map[string]interface{}{
+				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
+				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
+				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
+				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
+			}
+		},
+		"MermaidMaxSourceCharacters": func() int {
+			return setting.MermaidMaxSourceCharacters
+		},
+
+		// -----------------------------------------------------------------
+		// render
+		"RenderCommitMessage":            RenderCommitMessage,
+		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
+
+		"RenderCommitBody": RenderCommitBody,
+		"RenderCodeBlock":  RenderCodeBlock,
+		"RenderIssueTitle": RenderIssueTitle,
+		"RenderEmoji":      RenderEmoji,
+		"RenderEmojiPlain": emoji.ReplaceAliases,
+		"ReactionToEmoji":  ReactionToEmoji,
+		"RenderNote":       RenderNote,
+
+		"RenderMarkdownToHtml": func(ctx context.Context, input string) template.HTML {
+			output, err := markdown.RenderString(&markup.RenderContext{
+				Ctx:       ctx,
+				URLPrefix: setting.AppSubURL,
+			}, input)
+			if err != nil {
+				log.Error("RenderString: %v", err)
+			}
+			return template.HTML(output)
+		},
+		"RenderLabel": func(ctx context.Context, label *issues_model.Label) template.HTML {
+			return template.HTML(RenderLabel(ctx, label))
+		},
+		"RenderLabels": func(ctx context.Context, labels []*issues_model.Label, repoLink string) template.HTML {
+			htmlCode := `<span class="labels-list">`
+			for _, label := range labels {
+				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
+				if label == nil {
+					continue
+				}
+				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
+					repoLink, label.ID, RenderLabel(ctx, label))
+			}
+			htmlCode += "</span>"
+			return template.HTML(htmlCode)
+		},
+
+		// -----------------------------------------------------------------
+		// misc
+		"DiffLineTypeToStr":        DiffLineTypeToStr,
+		"ShortSha":                 base.ShortSha,
+		"ActionContent2Commits":    ActionContent2Commits,
+		"IsMultilineCommitMessage": IsMultilineCommitMessage,
+		"CommentMustAsDiff":        gitdiff.CommentMustAsDiff,
+		"MirrorRemoteAddress":      mirrorRemoteAddress,
+
+		"ParseDeadline": func(deadline string) []string {
+			return strings.Split(deadline, "|")
 		},
 		"FilenameIsImage": func(filename string) bool {
 			mimeType := mime.TypeByExtension(filepath.Ext(filename))
@@ -238,184 +350,6 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return path
 		},
-		"DiffStatsWidth": func(adds, dels int) string {
-			return fmt.Sprintf("%f", float64(adds)/(float64(adds)+float64(dels))*100)
-		},
-		"Json": func(in interface{}) string {
-			out, err := json.Marshal(in)
-			if err != nil {
-				return ""
-			}
-			return string(out)
-		},
-		"JsonPrettyPrint": func(in string) string {
-			var out bytes.Buffer
-			err := json.Indent(&out, []byte(in), "", "  ")
-			if err != nil {
-				return ""
-			}
-			return out.String()
-		},
-		"DisableGitHooks": func() bool {
-			return setting.DisableGitHooks
-		},
-		"DisableWebhooks": func() bool {
-			return setting.DisableWebhooks
-		},
-		"DisableImportLocal": func() bool {
-			return !setting.ImportLocalPaths
-		},
-		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
-			if len(values)%2 != 0 {
-				return nil, errors.New("invalid dict call")
-			}
-			dict := make(map[string]interface{}, len(values)/2)
-			for i := 0; i < len(values); i += 2 {
-				key, ok := values[i].(string)
-				if !ok {
-					return nil, errors.New("dict keys must be strings")
-				}
-				dict[key] = values[i+1]
-			}
-			return dict, nil
-		},
-		"Printf":   fmt.Sprintf,
-		"Escape":   Escape,
-		"Sec2Time": util.SecToTime,
-		"ParseDeadline": func(deadline string) []string {
-			return strings.Split(deadline, "|")
-		},
-		"DefaultTheme": func() string {
-			return setting.UI.DefaultTheme
-		},
-		// pass key-value pairs to a partial template which receives them as a dict
-		"dict": func(values ...interface{}) (map[string]interface{}, error) {
-			if len(values) == 0 {
-				return nil, errors.New("invalid dict call")
-			}
-
-			dict := make(map[string]interface{})
-			return util.MergeInto(dict, values...)
-		},
-		/* like dict but merge key-value pairs into the first dict and return it */
-		"mergeinto": func(root map[string]interface{}, values ...interface{}) (map[string]interface{}, error) {
-			if len(values) == 0 {
-				return nil, errors.New("invalid mergeinto call")
-			}
-
-			dict := make(map[string]interface{})
-			for key, value := range root {
-				dict[key] = value
-			}
-
-			return util.MergeInto(dict, values...)
-		},
-		"percentage": func(n int, values ...int) float32 {
-			sum := 0
-			for i := 0; i < len(values); i++ {
-				sum += values[i]
-			}
-			return float32(n) * 100 / float32(sum)
-		},
-		"CommentMustAsDiff":   gitdiff.CommentMustAsDiff,
-		"MirrorRemoteAddress": mirrorRemoteAddress,
-		"NotificationSettings": func() map[string]interface{} {
-			return map[string]interface{}{
-				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
-				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
-				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
-				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
-			}
-		},
-		"containGeneric": func(arr, v interface{}) bool {
-			arrV := reflect.ValueOf(arr)
-			if arrV.Kind() == reflect.String && reflect.ValueOf(v).Kind() == reflect.String {
-				return strings.Contains(arr.(string), v.(string))
-			}
-
-			if arrV.Kind() == reflect.Slice {
-				for i := 0; i < arrV.Len(); i++ {
-					iV := arrV.Index(i)
-					if !iV.CanInterface() {
-						continue
-					}
-					if iV.Interface() == v {
-						return true
-					}
-				}
-			}
-
-			return false
-		},
-		"contain": func(s []int64, id int64) bool {
-			for i := 0; i < len(s); i++ {
-				if s[i] == id {
-					return true
-				}
-			}
-			return false
-		},
-		"svg":            svg.RenderHTML,
-		"avatar":         Avatar,
-		"avatarHTML":     AvatarHTML,
-		"avatarByAction": AvatarByAction,
-		"avatarByEmail":  AvatarByEmail,
-		"repoAvatar":     RepoAvatar,
-		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
-			// if needed
-			if len(normSort) == 0 || len(urlSort) == 0 {
-				return ""
-			}
-
-			if len(urlSort) == 0 && isDefault {
-				// if sort is sorted as default add arrow tho this table header
-				if isDefault {
-					return svg.RenderHTML("octicon-triangle-down", 16)
-				}
-			} else {
-				// if sort arg is in url test if it correlates with column header sort arguments
-				// the direction of the arrow should indicate the "current sort order", up means ASC(normal), down means DESC(rev)
-				if urlSort == normSort {
-					// the table is sorted with this header normal
-					return svg.RenderHTML("octicon-triangle-up", 16)
-				} else if urlSort == revSort {
-					// the table is sorted with this header reverse
-					return svg.RenderHTML("octicon-triangle-down", 16)
-				}
-			}
-			// the table is NOT sorted with this header
-			return ""
-		},
-		"RenderLabel": func(ctx context.Context, label *issues_model.Label) template.HTML {
-			return template.HTML(RenderLabel(ctx, label))
-		},
-		"RenderLabels": func(ctx context.Context, labels []*issues_model.Label, repoLink string) template.HTML {
-			htmlCode := `<span class="labels-list">`
-			for _, label := range labels {
-				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
-				if label == nil {
-					continue
-				}
-				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
-					repoLink, label.ID, RenderLabel(ctx, label))
-			}
-			htmlCode += "</span>"
-			return template.HTML(htmlCode)
-		},
-		"MermaidMaxSourceCharacters": func() int {
-			return setting.MermaidMaxSourceCharacters
-		},
-		"Join":        strings.Join,
-		"QueryEscape": url.QueryEscape,
-		"DotEscape":   DotEscape,
-		"Iterate": func(arg interface{}) (items []int64) {
-			count := util.ToInt64(arg)
-			for i := int64(0); i < count; i++ {
-				items = append(items, i)
-			}
-			return items
-		},
-		"HasPrefix": strings.HasPrefix,
 		"CompareLink": func(baseRepo, repo *repo_model.Repository, branchName string) string {
 			var curBranch string
 			if repo.ID != baseRepo.ID {
@@ -429,128 +363,6 @@ func NewFuncMap() []template.FuncMap {
 				curBranch,
 			)
 		},
-		"RefShortName": func(ref string) string {
-			return git.RefName(ref).ShortName()
-		},
-	}}
-}
-
-// NewTextFuncMap returns functions for injecting to text templates
-// It's a subset of those used for HTML and other templates
-func NewTextFuncMap() []texttmpl.FuncMap {
-	return []texttmpl.FuncMap{map[string]interface{}{
-		"GoVer": func() string {
-			return util.ToTitleCase(runtime.Version())
-		},
-		"AppName": func() string {
-			return setting.AppName
-		},
-		"AppSubUrl": func() string {
-			return setting.AppSubURL
-		},
-		"AppUrl": func() string {
-			return setting.AppURL
-		},
-		"AppVer": func() string {
-			return setting.AppVer
-		},
-		"AppBuiltWith": func() string {
-			return setting.AppBuiltWith
-		},
-		"AppDomain": func() string {
-			return setting.Domain
-		},
-		"TimeSince":     timeutil.TimeSince,
-		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"DateFmtLong": func(t time.Time) string {
-			return t.Format(time.RFC1123Z)
-		},
-		"DateFmtShort": func(t time.Time) string {
-			return t.Format("Jan 02, 2006")
-		},
-		"SubStr": func(str string, start, length int) string {
-			if len(str) == 0 {
-				return ""
-			}
-			end := start + length
-			if length == -1 {
-				end = len(str)
-			}
-			if len(str) < end {
-				return str
-			}
-			return str[start:end]
-		},
-		"EllipsisString": base.EllipsisString,
-		"URLJoin":        util.URLJoin,
-		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
-			if len(values)%2 != 0 {
-				return nil, errors.New("invalid dict call")
-			}
-			dict := make(map[string]interface{}, len(values)/2)
-			for i := 0; i < len(values); i += 2 {
-				key, ok := values[i].(string)
-				if !ok {
-					return nil, errors.New("dict keys must be strings")
-				}
-				dict[key] = values[i+1]
-			}
-			return dict, nil
-		},
-		"Printf":   fmt.Sprintf,
-		"Escape":   Escape,
-		"Sec2Time": util.SecToTime,
-		"ParseDeadline": func(deadline string) []string {
-			return strings.Split(deadline, "|")
-		},
-		"dict": func(values ...interface{}) (map[string]interface{}, error) {
-			if len(values) == 0 {
-				return nil, errors.New("invalid dict call")
-			}
-
-			dict := make(map[string]interface{})
-
-			for i := 0; i < len(values); i++ {
-				switch key := values[i].(type) {
-				case string:
-					i++
-					if i == len(values) {
-						return nil, errors.New("specify the key for non array values")
-					}
-					dict[key] = values[i]
-				case map[string]interface{}:
-					m := values[i].(map[string]interface{})
-					for i, v := range m {
-						dict[i] = v
-					}
-				default:
-					return nil, errors.New("dict values must be maps")
-				}
-			}
-			return dict, nil
-		},
-		"percentage": func(n int, values ...int) float32 {
-			sum := 0
-			for i := 0; i < len(values); i++ {
-				sum += values[i]
-			}
-			return float32(n) * 100 / float32(sum)
-		},
-		"Add": func(a ...int) int {
-			sum := 0
-			for _, val := range a {
-				sum += val
-			}
-			return sum
-		},
-		"Mul": func(a ...int) int {
-			sum := 1
-			for _, val := range a {
-				sum *= val
-			}
-			return sum
-		},
-		"QueryEscape": url.QueryEscape,
 	}}
 }
 
@@ -624,24 +436,9 @@ func Safe(raw string) template.HTML {
 	return template.HTML(raw)
 }
 
-// SafeJS renders raw as JS
-func SafeJS(raw string) template.JS {
-	return template.JS(raw)
-}
-
 // Str2html render Markdown text to HTML
 func Str2html(raw string) template.HTML {
 	return template.HTML(markup.Sanitize(raw))
-}
-
-// Escape escapes a HTML string
-func Escape(raw string) string {
-	return html.EscapeString(raw)
-}
-
-// JSEscape escapes a JS string
-func JSEscape(raw string) string {
-	return template.JSEscapeString(raw)
 }
 
 // DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls
@@ -925,14 +722,6 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	return push
 }
 
-// DiffTypeToStr returns diff type name
-func DiffTypeToStr(diffType int) string {
-	diffTypes := map[int]string{
-		1: "add", 2: "modify", 3: "del", 4: "rename", 5: "copy",
-	}
-	return diffTypes[diffType]
-}
-
 // DiffLineTypeToStr returns diff line type name
 func DiffLineTypeToStr(diffType int) string {
 	switch diffType {
@@ -953,25 +742,6 @@ func MigrationIcon(hostname string) string {
 		return "octicon-mark-github"
 	default:
 		return "gitea-git"
-	}
-}
-
-func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, name string, content []byte) {
-	// Split template into subject and body
-	var subjectContent []byte
-	bodyContent := content
-	loc := mailSubjectSplit.FindIndex(content)
-	if loc != nil {
-		subjectContent = content[0:loc[0]]
-		bodyContent = content[loc[1]:]
-	}
-	if _, err := stpl.New(name).
-		Parse(string(subjectContent)); err != nil {
-		log.Warn("Failed to parse template [%s/subject]: %v", name, err)
-	}
-	if _, err := btpl.New(name).
-		Parse(string(bodyContent)); err != nil {
-		log.Warn("Failed to parse template [%s/body]: %v", name, err)
 	}
 }
 
@@ -1014,6 +784,18 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 
 // LocaleNumber renders a number with a Custom Element, browser will render it with a locale number
 func LocaleNumber(v interface{}) template.HTML {
-	num := util.ToInt64(v)
+	num, _ := util.ToInt64(v)
 	return template.HTML(fmt.Sprintf(`<gitea-locale-number data-number="%d">%d</gitea-locale-number>`, num, num))
+}
+
+// Eval the expression and return the result, see the comment of eval.Expr for details.
+// To use this helper function in templates, pass each token as a separate parameter.
+//
+//	{{ $int64 := Eval $var "+" 1 }}
+//	{{ $float64 := Eval $var "+" 1.0 }}
+//
+// Golang's template supports comparable int types, so the int64 result can be used in later statements like {{if lt $int64 10}}
+func Eval(tokens ...any) (any, error) {
+	n, err := eval.Expr(tokens...)
+	return n.Value, err
 }
