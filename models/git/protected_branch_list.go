@@ -33,7 +33,7 @@ func (rules ProtectedBranchRules) sort() {
 				return true
 			}
 		} else if rules[j].isPlainName {
-			return true
+			return false
 		}
 		return rules[i].CreatedUnix < rules[j].CreatedUnix
 	})
@@ -46,7 +46,7 @@ func FindRepoProtectedBranchRules(ctx context.Context, repoID int64) (ProtectedB
 	if err != nil {
 		return nil, err
 	}
-	rules.sort()
+	rules.sort() // to make non-glob rules have higher priority, and for same glob/non-glob rules, first created rules have higher priority
 	return rules, nil
 }
 
