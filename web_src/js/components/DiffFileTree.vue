@@ -104,19 +104,23 @@ export default {
 
     this.hashChangeListener = () => {
       this.selectedFile = window.location.hash;
-      // expand file if the selected file is collapsed
-      const box = document.querySelector(this.selectedFile);
-      const collapsed = box.getAttribute('data-folded');
-      if (collapsed) setFileFolding(box, box.querySelector('.fold-file'), false);
+      this.expandSelectedFile();
     };
     this.hashListener = window.addEventListener('hashchange', this.hashChangeListener);
     this.selectedFile = window.location.hash;
+    this.expandSelectedFile();
   },
   unmounted() {
     document.querySelector('.diff-toggle-file-tree-button').removeEventListener('click', this.toggleVisibility);
     window.removeEventListener('hashchange', this.hashChangeListener);
   },
   methods: {
+    expandSelectedFile() {
+      // expand file if the selected file is folded
+      const box = document.querySelector(this.selectedFile);
+      const folded = box.getAttribute('data-folded');
+      if (folded) setFileFolding(box, box.querySelector('.fold-file'), false);
+    },
     toggleVisibility() {
       this.updateVisibility(!this.fileTreeIsVisible);
     },
