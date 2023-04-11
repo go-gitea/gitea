@@ -295,7 +295,9 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$.locale.Tr "repo.issues.due_date_added" .Content $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.due_date_added"}}
+					{{template "shared/datetime/short" (dict "Datetime" .Content "Fallback" .Content)}}
+					{{$createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 17}}
@@ -305,7 +307,11 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 					{{$parsedDeadline := .Content | ParseDeadline}}
-					{{$.locale.Tr "repo.issues.due_date_modified" (index $parsedDeadline 0) (index $parsedDeadline 1) $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.due_date_modified_from"}}
+					{{template "shared/datetime/short" (dict "Datetime" (index $parsedDeadline 1) "Fallback" (index $parsedDeadline 1))}}
+					{{$.locale.Tr "repo.issues.due_date_modified_to"}}
+					{{template "shared/datetime/short" (dict "Datetime" (index $parsedDeadline 0) "Fallback" (index $parsedDeadline 0))}}
+					{{$createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 18}}
@@ -314,7 +320,9 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$.locale.Tr "repo.issues.due_date_remove" .Content $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.due_date_remove"}}
+					{{template "shared/datetime/short" (dict "Datetime" .Content "Fallback" .Content)}}
+					{{$createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 19}}
