@@ -478,7 +478,11 @@ var migrations = []Migration{
 	// v249 -> v250
 	NewMigration("Improve Action table indices v3", v1_20.ImproveActionTableIndices),
 	// v250 -> v251
-	NewMigration("Add action schedule table", v1_20.AddActionScheduleTable),
+	NewMigration("Change Container Metadata", v1_20.ChangeContainerMetadataMultiArch),
+	// v251 -> v252
+	NewMigration("Fix incorrect owner team unit access mode", v1_20.FixIncorrectOwnerTeamUnitAccessMode),
+  // v252 -> v253
+  NewMigration("Add action schedule table", v1_20.AddActionScheduleTable),
 }
 
 // GetCurrentDBVersion returns the current db version

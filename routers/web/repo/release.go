@@ -308,7 +308,6 @@ func LatestRelease(ctx *context.Context) {
 func NewRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
-	ctx.Data["RequireTribute"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
 	if tagName := ctx.FormString("tag"); len(tagName) > 0 {
 		rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)
@@ -334,13 +333,12 @@ func NewRelease(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
-	var err error
-	// Get assignees.
-	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
+	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {
-		ctx.ServerError("GetAssignees", err)
+		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
+	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
 
 	upload.AddUploadContext(ctx, "release")
 	ctx.HTML(http.StatusOK, tplReleaseNew)
@@ -351,7 +349,6 @@ func NewReleasePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewReleaseForm)
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
-	ctx.Data["RequireTribute"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplReleaseNew)
@@ -360,6 +357,12 @@ func NewReleasePost(ctx *context.Context) {
 
 	if !ctx.Repo.GitRepo.IsBranchExist(form.Target) {
 		ctx.RenderWithErr(ctx.Tr("form.target_branch_not_exist"), tplReleaseNew, &form)
+		return
+	}
+
+	// Title of release cannot be empty
+	if len(form.TagOnly) == 0 && len(form.Title) == 0 {
+		ctx.RenderWithErr(ctx.Tr("repo.release.title_empty"), tplReleaseNew, &form)
 		return
 	}
 
@@ -469,7 +472,6 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
-	ctx.Data["RequireTribute"] = true
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "release")
 
@@ -499,11 +501,12 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["attachments"] = rel.Attachments
 
 	// Get assignees.
-	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, rel.Repo)
+	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, rel.Repo)
 	if err != nil {
-		ctx.ServerError("GetAssignees", err)
+		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
+	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
 
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
@@ -514,7 +517,6 @@ func EditReleasePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
-	ctx.Data["RequireTribute"] = true
 
 	tagName := ctx.Params("*")
 	rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)

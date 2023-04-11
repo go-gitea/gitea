@@ -9,18 +9,16 @@
 		<input type="hidden" name="diff_start_cid">
 		<input type="hidden" name="diff_end_cid">
 		<input type="hidden" name="diff_base_cid">
-		<div class="ui top tabular menu" data-write="write" data-preview="preview">
-			<a class="active item" data-tab="write">{{$.root.locale.Tr "write"}}</a>
-			<a class="item" data-tab="preview" data-url="{{$.root.Repository.Link}}/markup" data-context="{{$.root.RepoLink}}">{{$.root.locale.Tr "preview"}}</a>
-		</div>
-		<div class="field">
-			<div class="ui active tab" data-tab="write">
-				<textarea name="content" placeholder="{{$.root.locale.Tr "repo.diff.comment.placeholder"}}"></textarea>
-			</div>
-			<div class="ui tab markup" data-tab="preview">
-			{{.locale.Tr "loading"}}
-			</div>
-		</div>
+
+		{{template "shared/combomarkdowneditor" (dict
+			"locale" $.root.locale
+			"MarkdownPreviewUrl" (print $.root.Repository.Link "/markup")
+			"MarkdownPreviewContext" $.root.RepoLink
+			"TextareaName" "content"
+			"TextareaPlaceholder" ($.locale.Tr "repo.diff.comment.placeholder")
+			"DropzoneParentContainer" "form"
+		)}}
+
 		<div class="field footer gt-mx-3">
 			<span class="markup-info">{{svg "octicon-markup"}} {{$.root.locale.Tr "repo.diff.comment.markdown_info"}}</span>
 			<div class="ui right">

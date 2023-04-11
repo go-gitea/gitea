@@ -1,6 +1,6 @@
 ---
 date: "2019-10-06T08:00:00+05:00"
-title: "Usage: Git LFS setup"
+title: "Git LFS setup"
 slug: "git-lfs-setup"
 weight: 12
 toc: false

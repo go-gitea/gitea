@@ -29,8 +29,8 @@
 							<td><a href="{{AppSubUrl}}/admin/auths/{{.ID}}">{{.Name}}</a></td>
 							<td>{{.TypeName}}</td>
 							<td>{{if .IsActive}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
-							<td><span data-tooltip-content="{{.UpdatedUnix.FormatShort}}"><time data-format="short-date" datetime="{{.UpdatedUnix.FormatLong}}">{{.UpdatedUnix.FormatShort}}</time></span></td>
-							<td><span data-tooltip-content="{{.CreatedUnix.FormatLong}}"><time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time></span></td>
+							<td>{{template "shared/datetime/short" (dict "Datetime" .UpdatedUnix.FormatLong "Fallback" .UpdatedUnix.FormatShort)}}</td>
+							<td>{{template "shared/datetime/short" (dict "Datetime" .CreatedUnix.FormatLong "Fallback" .CreatedUnix.FormatShort)}}</td>
 							<td><a href="{{AppSubUrl}}/admin/auths/{{.ID}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}

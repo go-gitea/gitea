@@ -15,24 +15,6 @@ import (
 
 // Markup render markup document to HTML
 func Markup(ctx *context.Context) {
-	// swagger:operation POST /markup miscellaneous renderMarkup
-	// ---
-	// summary: Render a markup document as HTML
-	// parameters:
-	// - name: body
-	//   in: body
-	//   schema:
-	//     "$ref": "#/definitions/MarkupOption"
-	// consumes:
-	// - application/json
-	// produces:
-	//     - text/html
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/MarkupRender"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-
 	form := web.GetForm(ctx).(*api.MarkupOption)
 
 	if ctx.HasAPIError() {
