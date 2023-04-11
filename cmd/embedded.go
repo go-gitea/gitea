@@ -91,13 +91,8 @@ var (
 	assets []asset
 )
 
-type section struct {
-	Path    string
-	AssetFS *assetfs.LayeredFS
-}
-
 type asset struct {
-	Section *section
+	AssetFS *assetfs.LayeredFS
 	Name    string
 	Path    string
 }
@@ -115,14 +110,14 @@ func initEmbeddedExtractor(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	sections := make(map[string]*section, 3)
+	fss := map[string]*assetfs.LayeredFS{
+		"public":    assetfs.Layered(public.BuiltinAssets()),
+		"options":   assetfs.Layered(options.BuiltinAssets()),
+		"templates": assetfs.Layered(templates.BuiltinAssets()),
+	}
 
-	sections["public"] = &section{Path: "public", AssetFS: assetfs.Layered(public.BuiltinAssets())}
-	sections["options"] = &section{Path: "options", AssetFS: assetfs.Layered(options.BuiltinAssets())}
-	sections["templates"] = &section{Path: "templates", AssetFS: assetfs.Layered(templates.BuiltinAssets())}
-
-	for _, sec := range sections {
-		assets = append(assets, buildAssetList(sec, pats, c)...)
+	for p, fs := range fss {
+		assets = append(assets, buildAssetList(p, fs, pats, c)...)
 	}
 
 	// Sort assets
@@ -180,7 +175,7 @@ func runViewDo(c *cli.Context) error {
 		return fmt.Errorf("too many files matched the given pattern, try to be more specific")
 	}
 
-	data, err := assets[0].Section.AssetFS.ReadFile(assets[0].Name)
+	data, err := assets[0].AssetFS.ReadFile(assets[0].Name)
 	if err != nil {
 		return fmt.Errorf("%s: %w", assets[0].Path, err)
 	}
@@ -198,7 +193,7 @@ func runExtractDo(c *cli.Context) error {
 	}
 
 	if len(c.Args()) == 0 {
-		return fmt.Errorf("A list of pattern of files to extract is mandatory (e.g. '**' for all)")
+		return fmt.Errorf("a list of pattern of files to extract is mandatory (e.g. '**' for all)")
 	}
 
 	destdir := "."
@@ -245,7 +240,7 @@ func extractAsset(d string, a asset, overwrite, rename bool) error {
 	dest := filepath.Join(d, filepath.FromSlash(a.Path))
 	dir := filepath.Dir(dest)
 
-	data, err := a.Section.AssetFS.ReadFile(a.Name)
+	data, err := a.AssetFS.ReadFile(a.Name)
 	if err != nil {
 		return fmt.Errorf("%s: %w", a.Path, err)
 	}
@@ -268,7 +263,7 @@ func extractAsset(d string, a asset, overwrite, rename bool) error {
 		return fmt.Errorf("%s already exists, but it's not a regular file", dest)
 	} else if rename {
 		if err := util.Rename(dest, dest+".bak"); err != nil {
-			return fmt.Errorf("Error creating backup for %s: %w", dest, err)
+			return fmt.Errorf("error creating backup for %s: %w", dest, err)
 		}
 		// Attempt to respect file permissions mask (even if user:group will be set anew)
 		perms = fi.Mode()
@@ -289,26 +284,26 @@ func extractAsset(d string, a asset, overwrite, rename bool) error {
 	return nil
 }
 
-func buildAssetList(sec *section, globs []glob.Glob, c *cli.Context) []asset {
+func buildAssetList(path string, assetFS *assetfs.LayeredFS, globs []glob.Glob, c *cli.Context) []asset {
 	results := make([]asset, 0, 64)
-	files, err := sec.AssetFS.ListAllFiles(".", true)
+	files, err := assetFS.ListAllFiles(".", true)
 	if err != nil {
-		log.Error("Error listing files in %q: %v", sec.Path, err)
+		log.Error("Error listing files in %q: %v", path, err)
 		return nil
 	}
 	for _, name := range files {
-		if sec.Path == "public" &&
+		if path == "public" &&
 			strings.HasPrefix(name, "vendor/") &&
 			!c.Bool("include-vendored") {
 			continue
 		}
-		matchName := sec.Path + "/" + name
+		matchName := path + "/" + name
 		for _, g := range globs {
 			if g.Match(matchName) {
 				results = append(results, asset{
-					Section: sec,
+					AssetFS: assetFS,
 					Name:    name,
-					Path:    sec.Path + "/" + name,
+					Path:    path + "/" + name,
 				})
 				break
 			}
