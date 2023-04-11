@@ -62,10 +62,10 @@ func runGenerateActionsRunnerToken(c *cli.Context) error {
 	if errors.Is(err, util.ErrNotExist) {
 		token, err = actions_model.NewRunnerToken(ctx, owner, repo)
 		if err != nil {
-			return fmt.Errorf("CreateRunnerToken: %s", err)
+			return fmt.Errorf("error while creating runner token: %w", err)
 		}
 	} else if err != nil {
-		return fmt.Errorf("GetUnactivatedRunnerToken: %s", err)
+		return fmt.Errorf("could not get unactivated runner token: %w", err)
 	}
 
 	fmt.Printf("%s", token.Token)
