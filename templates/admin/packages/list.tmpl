@@ -68,7 +68,7 @@
 							{{end}}
 							</td>
 							<td>{{FileSize .CalculateBlobSize}}</td>
-							<td><span title="{{.Version.CreatedUnix.FormatLong}}"><time data-format="short-date" datetime="{{.Version.CreatedUnix.FormatLong}}">{{.Version.CreatedUnix.FormatShort}}</time></span></td>
+							<td>{{template "shared/datetime/short" (dict "Datetime" .Version.CreatedUnix.FormatLong "Fallback" .Version.CreatedUnix.FormatShort)}}</td>
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.Version.ID}}" data-name="{{.Package.Name}}" data-data-version="{{.Version.Version}}">{{svg "octicon-trash"}}</a></td>
 						</tr>
 					{{end}}
