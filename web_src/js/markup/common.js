@@ -4,5 +4,5 @@ export function displayError(el, err) {
   errorNode.setAttribute('class', 'ui message error markup-block-error gt-mono');
   errorNode.textContent = err.str || err.message || String(err);
   el.before(errorNode);
-  el.setAttribute('data-done', 'true');
+  el.setAttribute('data-render-done', 'true');
 }

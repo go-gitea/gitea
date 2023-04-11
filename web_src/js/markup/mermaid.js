@@ -24,7 +24,7 @@ export async function renderMermaid() {
 
   for (const el of els) {
     const pre = el.closest('pre');
-    if (pre.hasAttribute('data-done')) continue;
+    if (pre.hasAttribute('data-render-done')) continue;
 
     const source = el.textContent;
     if (mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters) {

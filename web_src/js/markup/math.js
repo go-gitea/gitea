@@ -17,7 +17,7 @@ export async function renderMath() {
 
   for (const el of els) {
     const target = targetElement(el);
-    if (target.hasAttribute('data-done')) continue;
+    if (target.hasAttribute('data-render-done')) continue;
     const source = el.textContent;
     const displayMode = el.classList.contains('display');
     const nodeName = displayMode ? 'p' : 'span';
