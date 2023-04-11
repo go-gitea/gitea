@@ -115,21 +115,14 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 	}
 
 	switch triggedEvent {
-	case webhook_module.HookEventCreate,
-		webhook_module.HookEventDelete,
-		webhook_module.HookEventFork,
-		webhook_module.HookEventIssueAssign,
-		webhook_module.HookEventIssueLabel,
-		webhook_module.HookEventIssueMilestone,
-		webhook_module.HookEventPullRequestMilestone,
-		webhook_module.HookEventPullRequestComment,
-		webhook_module.HookEventPullRequestReviewApproved,
-		webhook_module.HookEventPullRequestReviewRejected,
-		webhook_module.HookEventPullRequestReviewComment,
-		webhook_module.HookEventWiki,
-		webhook_module.HookEventRepository,
-		webhook_module.HookEventRelease,
-		webhook_module.HookEventPackage:
+	case webhook_module.HookEventCreate, // no activity types
+		webhook_module.HookEventDelete, // no activity types
+		webhook_module.HookEventFork,   // no activity types
+		webhook_module.HookEventWiki,   // no activity types
+
+		webhook_module.HookEventPullRequestReviewComment, // TODO
+		webhook_module.HookEventRelease,                  // TODO
+		webhook_module.HookEventPackage:                  // TODO
 		if len(evt.Acts()) != 0 {
 			log.Warn("Ignore unsupported %s event arguments %v", triggedEvent, evt.Acts())
 		}
@@ -139,17 +132,31 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 	case webhook_module.HookEventPush:
 		return matchPushEvent(commit, payload.(*api.PushPayload), evt)
 
-	case webhook_module.HookEventIssues:
+	case // issues
+		webhook_module.HookEventIssues,
+		webhook_module.HookEventIssueAssign,
+		webhook_module.HookEventIssueLabel,
+		webhook_module.HookEventIssueMilestone:
 		return matchIssuesEvent(commit, payload.(*api.IssuePayload), evt)
 
-	case webhook_module.HookEventPullRequest,
+	case // issue_comment
+		webhook_module.HookEventIssueComment,
+		// use issue_comment for pull_request_comment
+		// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_comment-use-issue_comment
+		webhook_module.HookEventPullRequestComment:
+		return matchIssueCommentEvent(commit, payload.(*api.IssueCommentPayload), evt)
+
+	case // pull_request
+		webhook_module.HookEventPullRequest,
 		webhook_module.HookEventPullRequestSync,
 		webhook_module.HookEventPullRequestAssign,
 		webhook_module.HookEventPullRequestLabel:
 		return matchPullRequestEvent(commit, payload.(*api.PullRequestPayload), evt)
 
-	case webhook_module.HookEventIssueComment:
-		return matchIssueCommentEvent(commit, payload.(*api.IssueCommentPayload), evt)
+	case // pull_request_review
+		webhook_module.HookEventPullRequestReviewApproved,
+		webhook_module.HookEventPullRequestReviewRejected:
+		return matchPullRequestReviewEvent(commit, payload.(*api.PullRequestPayload), evt)
 
 	default:
 		log.Warn("unsupported event %q", triggedEvent)
@@ -266,8 +273,15 @@ func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *j
 	for cond, vals := range evt.Acts() {
 		switch cond {
 		case "types":
+			action := issuePayload.Action
+			switch action {
+			case api.HookIssueLabelUpdated:
+				action = "labeled"
+			case api.HookIssueLabelCleared:
+				action = "unlabeled"
+			}
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(issuePayload.Action)) {
+				if glob.MustCompile(val, '/').Match(string(action)) {
 					matchTimes++
 					break
 				}
@@ -378,6 +392,46 @@ func matchIssueCommentEvent(commit *git.Commit, issueCommentPayload *api.IssueCo
 			}
 		default:
 			log.Warn("issue comment unsupported condition %q", cond)
+		}
+	}
+	return matchTimes == len(evt.Acts())
+}
+
+func matchPullRequestReviewEvent(commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
+	// with no special filter parameters
+	if len(evt.Acts()) == 0 {
+		return true
+	}
+
+	matchTimes := 0
+	// all acts conditions should be satisfied
+	for cond, vals := range evt.Acts() {
+		switch cond {
+		case "types":
+			actions := make([]string, 0)
+			if prPayload.Action == api.HookIssueReviewed {
+				// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_review
+				actions = append(actions, "submitted", "edited")
+			}
+			// TODO: support dismissed activity type
+
+			matched := false
+			for _, val := range vals {
+				for _, action := range actions {
+					if glob.MustCompile(val, '/').Match(action) {
+						matched = true
+						break
+					}
+				}
+				if matched {
+					break
+				}
+			}
+			if matched {
+				matchTimes++
+			}
+		default:
+			log.Warn("pull request review event unsupported condition %q", cond)
 		}
 	}
 	return matchTimes == len(evt.Acts())
