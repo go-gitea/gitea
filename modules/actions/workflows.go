@@ -121,8 +121,6 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		webhook_module.HookEventIssueAssign,
 		webhook_module.HookEventIssueLabel,
 		webhook_module.HookEventIssueMilestone,
-		webhook_module.HookEventPullRequestAssign,
-		webhook_module.HookEventPullRequestLabel,
 		webhook_module.HookEventPullRequestMilestone,
 		webhook_module.HookEventPullRequestComment,
 		webhook_module.HookEventPullRequestReviewApproved,
@@ -144,7 +142,10 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 	case webhook_module.HookEventIssues:
 		return matchIssuesEvent(commit, payload.(*api.IssuePayload), evt)
 
-	case webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestSync:
+	case webhook_module.HookEventPullRequest,
+		webhook_module.HookEventPullRequestSync,
+		webhook_module.HookEventPullRequestAssign,
+		webhook_module.HookEventPullRequestLabel:
 		return matchPullRequestEvent(commit, payload.(*api.PullRequestPayload), evt)
 
 	case webhook_module.HookEventIssueComment:
@@ -281,8 +282,9 @@ func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *j
 func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
 	if len(evt.Acts()) == 0 {
-		// defaultly, only pull request opened and synchronized will trigger workflow
-		return prPayload.Action == api.HookIssueSynchronized || prPayload.Action == api.HookIssueOpened
+		// defaultly, only pull request opened, reopened and synchronized will trigger workflow
+		// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
+		return prPayload.Action == api.HookIssueSynchronized || prPayload.Action == api.HookIssueOpened || prPayload.Action == api.HookIssueReOpened
 	}
 
 	matchTimes := 0
@@ -291,8 +293,13 @@ func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload
 		switch cond {
 		case "types":
 			action := prPayload.Action
-			if prPayload.Action == api.HookIssueSynchronized {
+			switch action {
+			case api.HookIssueSynchronized:
 				action = "synchronize"
+			case api.HookIssueLabelUpdated:
+				action = "labeled"
+			case api.HookIssueLabelCleared:
+				action = "unlabeled"
 			}
 			log.Trace("matching pull_request %s with %v", action, vals)
 			for _, val := range vals {
