@@ -9,13 +9,12 @@
 }
 
 .combo-markdown-editor .markdown-toolbar-group {
-  display: inline-block;
+  display: flex;
 }
 
 .combo-markdown-editor .markdown-toolbar-button {
   user-select: none;
   padding: 5px;
-  cursor: pointer;
 }
 
 .ui.form .combo-markdown-editor textarea.markdown-text-editor,
