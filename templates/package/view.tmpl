@@ -86,7 +86,7 @@
 							{{range .LatestVersions}}
 								<div class="item">
 									<a href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
-									<span class="text small">{{$.locale.Tr "packages.versions.on"}} {{.CreatedUnix.FormatDate}}</span>
+									<span class="text small">{{$.locale.Tr "on_date"}} {{.CreatedUnix.FormatDate}}</span>
 								</div>
 							{{end}}
 							</div>

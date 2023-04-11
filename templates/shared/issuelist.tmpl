@@ -106,7 +106,7 @@
 						<span class="due-date" data-tooltip-content="{{$.locale.Tr "repo.issues.due_date"}}">
 							<span{{if .IsOverdue}} class="overdue"{{end}}>
 								{{svg "octicon-calendar" 14 "gt-mr-2"}}
-								<time data-format="short-date" datetime="{{.DeadlineUnix.FormatDate}}">{{.DeadlineUnix.FormatShort}}</time>
+								{{template "shared/datetime/short" (dict "Datetime" .DeadlineUnix.FormatDate "Fallback" .DeadlineUnix.FormatShort)}}
 							</span>
 						</span>
 					{{end}}
