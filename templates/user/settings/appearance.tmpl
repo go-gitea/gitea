@@ -70,11 +70,14 @@
 		</div>
 
 		<!-- Shown comment event types -->
-		<div class="ui header" data-tooltip-content="{{.locale.Tr "settings.hidden_comment_types_tooltip"}}" data-tooltip-placement="top">
+		<div class="ui header" data-tooltip-content="" data-tooltip-placement="top">
 			<h4 class="ui top attached header">
 				{{.locale.Tr "settings.hidden_comment_types"}}
 			</h4>
 			<div class="ui attached segment">
+				<p class="help">
+					{{.locale.Tr "settings.hidden_comment_types_tooltip"}}
+				</p>
 				<form class="ui form" action="{{.Link}}/hidden_comments" method="post">
 					{{.CsrfTokenHtml}}
 					<div class="inline field">
