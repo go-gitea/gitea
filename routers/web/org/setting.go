@@ -23,7 +23,7 @@ import (
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/org"
-	container_service "code.gitea.io/gitea/services/packages/container"
+	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -70,31 +70,23 @@ func SettingsPost(ctx *context.Context) {
 	nameChanged := org.Name != form.Name
 
 	// Check if organization name has been changed.
-	if org.LowerName != strings.ToLower(form.Name) {
-		isExist, err := user_model.IsUserExist(ctx, org.ID, form.Name)
-		if err != nil {
-			ctx.ServerError("IsUserExist", err)
-			return
-		} else if isExist {
+	if nameChanged {
+		err := org_service.RenameOrganization(ctx, org, form.Name, org.LowerName == strings.ToLower(form.Name))
+		switch {
+		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["OrgName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
 			return
-		} else if err = user_model.ChangeUserName(ctx, org.AsUser(), form.Name); err != nil {
-			switch {
-			case db.IsErrNameReserved(err):
-				ctx.Data["OrgName"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
-			case db.IsErrNamePatternNotAllowed(err):
-				ctx.Data["OrgName"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
-			default:
-				ctx.ServerError("ChangeUserName", err)
-			}
+		case db.IsErrNameReserved(err):
+			ctx.Data["OrgName"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
 			return
-		}
-
-		if err := container_service.UpdateRepositoryNames(ctx, org.AsUser(), form.Name); err != nil {
-			ctx.ServerError("UpdateRepositoryNames", err)
+		case db.IsErrNamePatternNotAllowed(err):
+			ctx.Data["OrgName"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
+			return
+		case err != nil:
+			ctx.ServerError("org_service.RenameOrganization", err)
 			return
 		}
 
