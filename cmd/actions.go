@@ -4,21 +4,15 @@
 package cmd
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/util"
-
+	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/urfave/cli"
 )
 
-// Cmdembedded represents the available extract sub-command.
 var (
+	// CmdActions represents the available actions sub-commands.
 	CmdActions = cli.Command{
 		Name:        "actions",
 		Usage:       "",
@@ -47,54 +41,15 @@ func runGenerateActionsRunnerToken(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	if err := initDB(ctx); err != nil {
-		return err
-	}
+	setting.InitProviderFromExistingFile()
+	setting.LoadCommonSettings()
 
 	scope := c.String("scope")
 
-	owner, repo, err := parseScope(ctx, scope)
-	if err != nil {
-		return err
+	respText, extra := private.GenerateActionsRunnerToken(ctx, scope)
+	if extra.HasError() {
+		return handleCliResponseExtra(extra)
 	}
-
-	token, err := actions_model.GetUnactivatedRunnerToken(ctx, owner, repo)
-	if errors.Is(err, util.ErrNotExist) {
-		token, err = actions_model.NewRunnerToken(ctx, owner, repo)
-		if err != nil {
-			return fmt.Errorf("error while creating runner token: %w", err)
-		}
-	} else if err != nil {
-		return fmt.Errorf("could not get unactivated runner token: %w", err)
-	}
-
-	fmt.Printf("%s", token.Token)
-
+	_, _ = fmt.Printf("%s\n", respText)
 	return nil
-}
-
-func parseScope(ctx context.Context, scope string) (ownerID, repoID int64, err error) {
-	ownerID = 0
-	repoID = 0
-	if scope == "" {
-		return ownerID, repoID, nil
-	}
-
-	ownerName, repoName, found := strings.Cut(scope, "/")
-
-	u, err := user_model.GetUserByName(ctx, ownerName)
-	if err != nil {
-		return ownerID, repoID, err
-	}
-
-	if !found {
-		return u.ID, repoID, nil
-	}
-
-	r, err := repo_model.GetRepositoryByName(u.ID, repoName)
-	if err != nil {
-		return ownerID, repoID, err
-	}
-	repoID = r.ID
-	return ownerID, repoID, nil
 }
