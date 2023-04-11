@@ -21,8 +21,8 @@
 						<td><button type="submit" class="ui green button" name="op" value="{{.Name}}" title="{{$.locale.Tr "admin.dashboard.operation_run"}}">{{svg "octicon-triangle-right"}}</button></td>
 						<td>{{$.locale.Tr (printf "admin.dashboard.%s" .Name)}}</td>
 						<td>{{.Spec}}</td>
-						<td>{{DateFmtLong .Next}}</td>
-						<td>{{if gt .Prev.Year 1}}{{DateFmtLong .Prev}}{{else}}N/A{{end}}</td>
+						<td>{{template "shared/datetime/full" (dict "Datetime" (DateFmtLong .Next) "Fallback" (DateFmtLong .Next) )}}</td>
+						<td>{{if gt .Prev.Year 1}}{{template "shared/datetime/full" (dict "Datetime" (DateFmtLong .Prev) "Fallback" (DateFmtLong .Prev) )}}{{else}}N/A{{end}}</td>
 						<td>{{.ExecTimes}}</td>
 						<td {{if ne .Status ""}}data-tooltip-content="{{.FormatLastMessage $.locale}}"{{end}} >{{if eq .Status ""}}—{{else if eq .Status "finished"}}{{svg "octicon-check" 16}}{{else}}{{svg "octicon-x" 16}}{{end}}</td>
 					</tr>

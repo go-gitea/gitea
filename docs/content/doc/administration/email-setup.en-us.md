@@ -1,6 +1,6 @@
 ---
 date: "2019-10-15T10:10:00+05:00"
-title: "Usage: Email setup"
+title: "Email setup"
 slug: "email-setup"
 weight: 12
 toc: false
