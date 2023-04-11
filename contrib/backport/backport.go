@@ -16,7 +16,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v51/github"
 	"github.com/urfave/cli"
 	"gopkg.in/yaml.v3"
 )

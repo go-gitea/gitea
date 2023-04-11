@@ -537,7 +537,8 @@ var (
 		"gitea-actions",
 	}
 
-	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom"}
+	// DON'T ADD ANY NEW STUFF, WE SOLVE THIS WITH `/user/{obj}` PATHS!
+	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom", "*.png"}
 )
 
 // IsUsableUsername returns an error when a username is reserved

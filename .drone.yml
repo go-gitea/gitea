@@ -12,7 +12,8 @@ trigger:
     - pull_request
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
+      - "*.md"
 
 volumes:
   - name: deps
@@ -181,7 +182,7 @@ trigger:
     - pull_request
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
 
 volumes:
   - name: deps
@@ -269,6 +270,35 @@ steps:
 ---
 kind: pipeline
 type: docker
+name: compliance-docs
+
+platform:
+  os: linux
+  arch: amd64
+
+trigger:
+  event:
+    - pull_request
+  paths:
+    include:
+      - "docs/**"
+      - "*.md"
+
+steps:
+  - name: deps-frontend
+    image: node:18
+    pull: always
+    commands:
+      - make deps-frontend
+
+  - name: lint-md
+    image: node:18
+    commands:
+      - make lint-md
+
+---
+kind: pipeline
+type: docker
 name: testing-mysql
 
 platform:
@@ -283,7 +313,7 @@ trigger:
     - pull_request
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
 
 volumes:
   - name: deps
@@ -444,7 +474,7 @@ trigger:
     - pull_request
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
 
 volumes:
   - name: deps
@@ -530,7 +560,7 @@ trigger:
     - pull_request
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
 
 volumes:
   - name: deps
@@ -616,7 +646,7 @@ trigger:
     - pull_request
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
 
 volumes:
   - name: deps
@@ -696,7 +726,7 @@ trigger:
     - pull_request
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
 
 volumes:
   - name: deps
@@ -867,7 +897,7 @@ trigger:
     - push
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
 
 depends_on:
   - testing-mysql
@@ -1125,7 +1155,7 @@ trigger:
     - pull_request
   paths:
     include:
-      - docs/**
+      - "docs/**"
 
 steps:
   - name: build-docs
@@ -1176,7 +1206,7 @@ trigger:
     - cron
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
 
 steps:
   - name: fetch-tags
@@ -1253,7 +1283,7 @@ trigger:
     - cron
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
 
 steps:
   - name: fetch-tags
@@ -1468,7 +1498,7 @@ trigger:
     - pull_request
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
 
 steps:
   - name: dryrun
@@ -1515,7 +1545,7 @@ trigger:
     - cron
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
 
 steps:
   - name: fetch-tags
@@ -1592,7 +1622,7 @@ trigger:
     - cron
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
 
 steps:
   - name: fetch-tags
@@ -1667,7 +1697,7 @@ trigger:
     - cron
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
 
 steps:
   - name: fetch-tags
@@ -1834,7 +1864,7 @@ trigger:
     - cron
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
 
 depends_on:
   - docker-linux-amd64-release-version
@@ -1884,7 +1914,7 @@ trigger:
     - cron
   paths:
     exclude:
-      - docs/**
+      - "docs/**"
 
 depends_on:
   - docker-linux-amd64-release

@@ -10,6 +10,7 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
@@ -30,6 +31,7 @@ func int64SliceToCommaSeparated(a []int64) string {
 
 func TestInitializeLabels(t *testing.T) {
 	unittest.PrepareTestEnv(t)
+	assert.NoError(t, repository.LoadRepoConfig())
 	ctx := test.MockContext(t, "user2/repo1/labels/initialize")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 2)

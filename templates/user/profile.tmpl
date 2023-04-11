@@ -30,11 +30,29 @@
 							{{if .Owner.Location}}
 								<li>{{svg "octicon-location"}} {{.Owner.Location}}</li>
 							{{end}}
-							{{if .ShowUserEmail}}
+							{{if (eq .SignedUserName .Owner.Name)}}
 								<li>
 									{{svg "octicon-mail"}}
 									<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
+									<a href="{{AppSubUrl}}/user/settings#keep-email-private">
+										{{if .ShowUserEmail}}
+											<i class="ui right" data-tooltip-content="{{.locale.Tr "user.email_visibility.limited"}}">
+												{{svg "octicon-unlock"}}
+											</i>
+										{{else}}
+											<i class="ui right" data-tooltip-content="{{.locale.Tr "user.email_visibility.private"}}">
+												{{svg "octicon-lock"}}
+											</i>
+										{{end}}
+									</a>
 								</li>
+							{{else}}
+								{{if .ShowUserEmail}}
+									<li>
+										{{svg "octicon-mail"}}
+										<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
+									</li>
+								{{end}}
 							{{end}}
 							{{if .Owner.Website}}
 								<li>
@@ -55,7 +73,7 @@
 									</li>
 								{{end}}
 							{{end}}
-							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} <time data-format="short-date" datetime="{{.Owner.CreatedUnix.FormatLong}}">{{.Owner.CreatedUnix.FormatShort}}</time></li>
+							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} {{template "shared/datetime/short" (dict "Datetime" .Owner.CreatedUnix.FormatLong "Fallback" .Owner.CreatedUnix.FormatShort)}}</li>
 							{{if and .Orgs .HasOrgsVisible}}
 							<li>
 								<ul class="user-orgs">
