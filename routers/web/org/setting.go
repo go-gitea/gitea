@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/org"
 	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 	user_service "code.gitea.io/gitea/services/user"
@@ -181,7 +180,7 @@ func SettingsDelete(ctx *context.Context) {
 			return
 		}
 
-		if err := org.DeleteOrganization(ctx.Org.Organization); err != nil {
+		if err := org_service.DeleteOrganization(ctx.Org.Organization); err != nil {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
