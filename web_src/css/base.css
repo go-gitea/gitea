@@ -328,14 +328,27 @@ progress::-moz-progress-bar {
   user-select: none;
 }
 
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+}
+
+a:hover,
+.btn-link:hover {
+  text-decoration: underline;
+}
+
 a,
-.ui.breadcrumb a {
+.ui.breadcrumb a,
+.btn-link {
   color: var(--color-primary);
   cursor: pointer;
   text-decoration-skip-ink: all;
 }
 
 a.muted,
+.btn-link.muted,
 .muted-links a {
   color: inherit;
 }
@@ -343,6 +356,7 @@ a.muted,
 a:hover,
 a.muted:hover,
 a.muted:hover [class*="color-text"],
+.btn-link.muted:hover,
 .muted-links a:hover,
 .ui.breadcrumb a:hover {
   color: var(--color-primary);
