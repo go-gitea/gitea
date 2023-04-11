@@ -98,18 +98,6 @@ func DetectWorkflows(
 		if err != nil {
 			return nil, nil, err
 		}
-		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
-		if err != nil {
-			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
-			continue
-		}
-
-		// fetch all schedule event
-		for _, e := range workflow.On() {
-			if e == "schedule" {
-				schedules[entry.Name()] = content
-			}
-		}
 
 		events, err := GetEventsFromContent(content)
 		if err != nil {
@@ -118,6 +106,9 @@ func DetectWorkflows(
 		}
 		for _, evt := range events {
 			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggedEvent)
+			if evt.IsSchedule() {
+				schedules[entry.Name()] = content
+			}
 			if detectMatched(commit, triggedEvent, payload, evt) {
 				workflows[entry.Name()] = content
 			}
