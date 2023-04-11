@@ -121,7 +121,6 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		webhook_module.HookEventWiki,   // no activity types
 
 		webhook_module.HookEventPullRequestReviewComment, // TODO
-		webhook_module.HookEventRelease,                  // TODO
 		webhook_module.HookEventPackage:                  // TODO
 		if len(evt.Acts()) != 0 {
 			log.Warn("Ignore unsupported %s event arguments %v", triggedEvent, evt.Acts())
@@ -157,6 +156,9 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		webhook_module.HookEventPullRequestReviewApproved,
 		webhook_module.HookEventPullRequestReviewRejected:
 		return matchPullRequestReviewEvent(commit, payload.(*api.PullRequestPayload), evt)
+
+	case webhook_module.HookEventRelease:
+		return matchReleaseEvent(commit, payload.(*api.ReleasePayload), evt)
 
 	default:
 		log.Warn("unsupported event %q", triggedEvent)
@@ -432,6 +434,35 @@ func matchPullRequestReviewEvent(commit *git.Commit, prPayload *api.PullRequestP
 			}
 		default:
 			log.Warn("pull request review event unsupported condition %q", cond)
+		}
+	}
+	return matchTimes == len(evt.Acts())
+}
+
+func matchReleaseEvent(commit *git.Commit, payload *api.ReleasePayload, evt *jobparser.Event) bool {
+	// with no special filter parameters
+	if len(evt.Acts()) == 0 {
+		return true
+	}
+
+	matchTimes := 0
+	// all acts conditions should be satisfied
+	for cond, vals := range evt.Acts() {
+		switch cond {
+		case "types":
+			action := payload.Action
+			switch action {
+			case api.HookReleaseUpdated:
+				action = "edited"
+			}
+			for _, val := range vals {
+				if glob.MustCompile(val, '/').Match(string(action)) {
+					matchTimes++
+					break
+				}
+			}
+		default:
+			log.Warn("release event unsupported condition %q", cond)
 		}
 	}
 	return matchTimes == len(evt.Acts())
