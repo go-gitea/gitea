@@ -2,7 +2,7 @@ import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {createCodeEditor} from './codeeditor.js';
 import {hideElem, showElem} from '../utils/dom.js';
-import {initMarkupContent} from './../markup/content.js';
+import {initMarkupContent} from '../markup/content.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
 
 const {csrfToken} = window.config;
