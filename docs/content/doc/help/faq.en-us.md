@@ -120,7 +120,10 @@ The correct path for the template(s) will be relative to the `CustomPath`
 
 ## Does Gitea have a "GitHub/GitLab pages" feature?
 
-Gitea will not implement this feature due to CSRF security concerns.
+Gitea doesn't provide builtin Pages server. You need a dedicated domain to serve static pages to avoid CSRF security risks.
+
+For simple usage, you can use a reverse proxy to rewrite & serve static contents from Gitea's raw file URLs.
+
 And there are already available third-party services like [pages server](https://codeberg.org/Codeberg/pages-server) that can provide the required functionality.
 
 ## Active user vs login prohibited user
