@@ -31,7 +31,7 @@
 			<div class="column">
 				{{$closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix $.locale}}
 				{{if .IsClosed}}
-					{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate|Str2html}}
+					{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 				{{else}}
 					{{svg "octicon-calendar"}}
 					{{if .Milestone.DeadlineString}}
