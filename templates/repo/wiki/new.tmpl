@@ -14,7 +14,7 @@
 		<form class="ui form" action="{{.Link}}?action={{if .PageIsWikiEdit}}_edit{{else}}_new{{end}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
-				<input name="title" value="{{.title}}" autofocus required>
+				<input name="title" value="{{.title}}" aria-label="{{.locale.Tr "repo.wiki.page_title"}}" placeholder="{{.locale.Tr "repo.wiki.page_title"}}" autofocus required>
 			</div>
 			<div class="help">
 				{{.locale.Tr "repo.wiki.page_name_desc"}}
@@ -29,11 +29,13 @@
 				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
 				"MarkdownPreviewContext" .RepoLink
 				"TextareaName" "content"
+				"TextareaPlaceholder" (.locale.Tr "repo.wiki.page_content")
+				"TextareaAriaLabel" (.locale.Tr "repo.wiki.page_content")
 				"TextareaContent" $content
 			)}}
 
-			<div class="field">
-				<input name="message" placeholder="{{.locale.Tr "repo.wiki.default_commit_message"}}">
+			<div class="field gt-mt-4">
+				<input name="message" aria-label="{{.locale.Tr "repo.wiki.default_commit_message"}}" placeholder="{{.locale.Tr "repo.wiki.default_commit_message"}}">
 			</div>
 			<div class="text right">
 				<button class="ui green button">
