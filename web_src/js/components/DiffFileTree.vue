@@ -16,7 +16,8 @@
 <script>
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import {doLoadMoreFiles} from '../features/repo-diff.js';
-import {toggleElem} from '../utils/dom.js';
+import { toggleElem } from '../utils/dom.js';
+import {setFileFolding} from '../features/file-fold.js';
 
 const {pageData} = window.config;
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
@@ -103,6 +104,10 @@ export default {
 
     this.hashChangeListener = () => {
       this.selectedFile = window.location.hash;
+      // expand file if the selected file is collapsed
+      const box = document.querySelector(this.selectedFile);
+      const collapsed = box.getAttribute('data-folded')
+      if (collapsed) setFileFolding(box, box.querySelector('.fold-file'), false);
     };
     this.hashListener = window.addEventListener('hashchange', this.hashChangeListener);
     this.selectedFile = window.location.hash;
