@@ -31,6 +31,8 @@ menu:
 
 - ✘ - 不支援
 
+- _⚙️ - 由第三方服務或外掛程式支援_
+
 ## 一般功能
 
 | 功能                     | Gitea                                              | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
@@ -44,7 +46,7 @@ menu:
 | 支援 Orgmode             | ✓                                                  | ✘    | ✓         | ✘         | ✘         | ✘         | ?            |
 | 支援 CSV                 | ✓                                                  | ✘    | ✓         | ✘         | ✘         | ✓         | ?            |
 | 支援第三方渲染工具       | ✓                                                  | ✘    | ✘         | ✘         | ✘         | ✓         | ?            |
-| Git 驅動的靜態頁面       | [✘](https://github.com/go-gitea/gitea/issues/302)  | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Git 驅動的靜態頁面       | [⚙️][gitea-pages-server], [⚙️][gitea-caddy-plugin]   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
 | Git 驅動的整合 wiki      | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓         | ✘            |
 | 部署 Token               | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | 有寫入權限的儲存庫 Token | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✘         | ✓            |
@@ -130,3 +132,6 @@ menu:
 | 整合 Discord              | ✓                                                | ✓    | ✓         | ✓         | ✓         | ✘         | ✘            |
 | 整合 Microsoft Teams      | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
 | 顯示外部 CI/CD 狀態       | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+
+[gitea-caddy-plugin]: https://github.com/42wim/caddy-gitea
+[gitea-pages-server]: https://codeberg.org/Codeberg/pages-server
