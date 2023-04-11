@@ -48,8 +48,8 @@ export async function renderMermaid() {
       iframe.classList.add('markup-render');
       iframe.sandbox = 'allow-scripts allow-same-origin';
       iframe.srcdoc = `<html><head><style>${iframeCss}</style></head><body>${svg}</body></html>`;
-      iframe.addEventListener('load', (e) => {
-        const height = e.target.contentWindow.document.body.clientHeight;
+      iframe.addEventListener('load', () => {
+        const height = iframe.contentWindow.document.body.clientHeight;
         iframe.style.height = `${height}px`;
       });
 
