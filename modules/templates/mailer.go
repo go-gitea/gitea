@@ -8,12 +8,12 @@ import (
 	"html/template"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"strings"
 	texttmpl "text/template"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/watcher"
 )
 
@@ -66,7 +66,7 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 			}
 
 			assetName := strings.TrimSuffix(name, ".tmpl")
-			assetName = filepath.ToSlash(assetName)
+			assetName = util.PathJoinRelX(assetName)
 			log.Trace("Adding mailer template for %s from %q", assetName, path)
 			buildSubjectBodyTemplate(subjectTemplates,
 				bodyTemplates,
