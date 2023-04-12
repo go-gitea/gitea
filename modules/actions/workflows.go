@@ -115,19 +115,19 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 	}
 
 	switch triggedEvent {
-	case webhook_module.HookEventCreate, // no activity types
-		webhook_module.HookEventDelete, // no activity types
-		webhook_module.HookEventFork,   // no activity types
-		webhook_module.HookEventWiki,   // no activity types
-
-		webhook_module.HookEventPullRequestReviewComment: // TODO
+	case // events with no activity types
+		webhook_module.HookEventCreate,
+		webhook_module.HookEventDelete,
+		webhook_module.HookEventFork,
+		webhook_module.HookEventWiki:
 		if len(evt.Acts()) != 0 {
 			log.Warn("Ignore unsupported %s event arguments %v", triggedEvent, evt.Acts())
 		}
 		// no special filter parameters for these events, just return true if name matched
 		return true
 
-	case webhook_module.HookEventPush:
+	case // push
+		webhook_module.HookEventPush:
 		return matchPushEvent(commit, payload.(*api.PushPayload), evt)
 
 	case // issues
@@ -156,10 +156,16 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		webhook_module.HookEventPullRequestReviewRejected:
 		return matchPullRequestReviewEvent(commit, payload.(*api.PullRequestPayload), evt)
 
-	case webhook_module.HookEventRelease:
+	case // pull
+		webhook_module.HookEventPullRequestReviewComment:
+		return matchPullRequestReviewCommentEvent(commit, payload.(*api.PullRequestPayload), evt)
+
+	case // release
+		webhook_module.HookEventRelease:
 		return matchReleaseEvent(commit, payload.(*api.ReleasePayload), evt)
 
-	case webhook_module.HookEventPackage:
+	case // registry_package
+		webhook_module.HookEventPackage:
 		return matchPackageEvent(commit, payload.(*api.PackagePayload), evt)
 
 	default:
@@ -442,6 +448,47 @@ func matchPullRequestReviewEvent(commit *git.Commit, prPayload *api.PullRequestP
 	return matchTimes == len(evt.Acts())
 }
 
+func matchPullRequestReviewCommentEvent(commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
+	// with no special filter parameters
+	if len(evt.Acts()) == 0 {
+		return true
+	}
+
+	matchTimes := 0
+	// all acts conditions should be satisfied
+	for cond, vals := range evt.Acts() {
+		switch cond {
+		case "types":
+			actions := make([]string, 0)
+			if prPayload.Action == api.HookIssueReviewed {
+				// the `reviewed` HookIssueAction can match the two activity types: `created` and `edited`
+				// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_review_comment
+				actions = append(actions, "created", "edited")
+			}
+			// TODO: support the `deleted` activity type
+
+			matched := false
+			for _, val := range vals {
+				for _, action := range actions {
+					if glob.MustCompile(val, '/').Match(action) {
+						matched = true
+						break
+					}
+				}
+				if matched {
+					break
+				}
+			}
+			if matched {
+				matchTimes++
+			}
+		default:
+			log.Warn("pull request review comment event unsupported condition %q", cond)
+		}
+	}
+	return matchTimes == len(evt.Acts())
+}
+
 func matchReleaseEvent(commit *git.Commit, payload *api.ReleasePayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
 	if len(evt.Acts()) == 0 {
@@ -495,7 +542,7 @@ func matchPackageEvent(commit *git.Commit, payload *api.PackagePayload, evt *job
 				}
 			}
 		default:
-			log.Warn("release event unsupported condition %q", cond)
+			log.Warn("package event unsupported condition %q", cond)
 		}
 	}
 	return matchTimes == len(evt.Acts())
