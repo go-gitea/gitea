@@ -136,7 +136,7 @@ func (l *LayeredFS) ListFiles(name string, fileMode ...bool) ([]string, error) {
 			}
 		}
 	}
-	var files []string
+	files := make([]string, 0, len(fileMap))
 	for file := range fileMap {
 		files = append(files, file)
 	}
