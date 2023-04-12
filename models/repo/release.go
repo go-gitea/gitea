@@ -7,6 +7,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -370,6 +371,34 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 			currentIndex++
 		}
 		sortedRels.Rel[currentIndex].Attachments = append(sortedRels.Rel[currentIndex].Attachments, attachment)
+	}
+
+	// Makes URL's predictable
+	for _, release := range rels {
+		// If we have no Repo, we don't need to execute this loop
+		if release.Repo == nil {
+			continue
+		}
+
+		// Check if there are two or more attachments with the same name
+		hasDuplicates := false
+		foundNames := make(map[string]bool)
+		for _, attachment := range release.Attachments {
+			_, found := foundNames[attachment.Name]
+			if found {
+				hasDuplicates = true
+				break
+			} else {
+				foundNames[attachment.Name] = true
+			}
+		}
+
+		// If the names unique, use the URL with the Name instead of the UUID
+		if !hasDuplicates {
+			for _, attachment := range release.Attachments {
+				attachment.CustomDownloadURL = release.Repo.HTMLURL() + "/releases/download/" + url.PathEscape(release.TagName) + "/" + url.PathEscape(attachment.Name)
+			}
+		}
 	}
 
 	return err

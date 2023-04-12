@@ -73,7 +73,7 @@
 									</li>
 								{{end}}
 							{{end}}
-							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} <time data-format="short-date" datetime="{{.Owner.CreatedUnix.FormatLong}}">{{.Owner.CreatedUnix.FormatShort}}</time></li>
+							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} {{template "shared/datetime/short" (dict "Datetime" .Owner.CreatedUnix.FormatLong "Fallback" .Owner.CreatedUnix.FormatShort)}}</li>
 							{{if and .Orgs .HasOrgsVisible}}
 							<li>
 								<ul class="user-orgs">
