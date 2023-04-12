@@ -157,7 +157,7 @@ func NtlmAuth(username, password string) smtp.Auth {
 	return &ntlmAuth{user, password, domain, domainNeeded}
 }
 
-// Start start SMTP ntlm auth
+// Start starts SMTP NTLM Auth
 func (a *ntlmAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
 	negotiateMessage, err := ntlmssp.NewNegotiateMessage(a.domain, "")
 	return "NTLM", negotiateMessage, err
