@@ -117,8 +117,10 @@ export default {
   methods: {
     expandSelectedFile() {
       // expand file if the selected file is folded
-      const box = document.querySelector(this.store.selectedItem);
-      setFileFolding(box, box.querySelector('.fold-file'), false);
+      if (this.store.selectedItem) {
+        const box = document.querySelector(this.store.selectedItem);
+        setFileFolding(box, box.querySelector('.fold-file'), false);
+      }
     },
     toggleVisibility() {
       this.updateVisibility(!this.fileTreeIsVisible);
