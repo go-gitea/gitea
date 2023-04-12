@@ -73,11 +73,11 @@
 					<div class="meta">
 						{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
 						{{if .IsClosed}}
-							{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate|Str2html}}
+							{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 						{{else}}
 							{{svg "octicon-calendar"}}
 							{{if .DeadlineString}}
-								<span {{if .IsOverdue}}class="overdue"{{end}}>{{.DeadlineString}}</span>
+								<span {{if .IsOverdue}}class="overdue"{{end}}>{{template "shared/datetime/short" (dict "Datetime" .DeadlineString "Fallback" .DeadlineString)}}</span>
 							{{else}}
 								{{$.locale.Tr "repo.milestones.no_due_date"}}
 							{{end}}
@@ -88,7 +88,7 @@
 							{{svg "octicon-check" 16 "gt-mr-3"}}
 							{{LocaleNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
 							{{if .TotalTrackedTime}}{{svg "octicon-clock"}} {{.TotalTrackedTime|Sec2Time}}{{end}}
-							{{if .UpdatedUnix}}{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.update_ago" (.TimeSinceUpdate|Sec2Time)}}{{end}}
+							{{if .UpdatedUnix}}{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix $.locale) | Safe}}{{end}}
 						</span>
 					</div>
 					{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
