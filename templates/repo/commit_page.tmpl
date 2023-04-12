@@ -148,7 +148,11 @@
 					{{if .Author}}
 						{{avatar $.Context .Author 28 "gt-mr-3"}}
 						{{if .Author.Name}}
-							<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}} ({{.Author.Name}})</strong></a>
+							{{if eq .Commit.Author.Name .Author.Name}}
+								<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a>
+							{{else}}
+								<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}} ({{.Author.Name}})</strong></a>
+							{{end}}
 						{{else}}
 							<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a>
 						{{end}}
