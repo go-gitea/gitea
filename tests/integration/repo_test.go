@@ -361,7 +361,7 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 	}
 	missing("sp-ace", "/user2/readme-test/src/branch/sp-ace/")
 	missing("nested-special", "/user2/readme-test/src/branch/special-subdir-nested/subproject") // the special subdirs should only trigger on the repo root
-	// missing("special-subdir-nested", "/user2/readme-test/src/branch/special-subdir-nested/") // This is currently FAILING, due to a bug introduced in https://github.com/go-gitea/gitea/pull/22177
+	missing("special-subdir-nested", "/user2/readme-test/src/branch/special-subdir-nested/")
 	missing("symlink-loop", "/user2/readme-test/src/branch/symlink-loop/")
 }
 
