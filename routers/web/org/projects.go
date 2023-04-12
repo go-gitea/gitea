@@ -13,6 +13,7 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
+	attachment_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -122,6 +123,7 @@ func canWriteProjects(ctx *context.Context) bool {
 func NewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 	ctx.Data["BoardTypes"] = project_model.GetBoardConfig()
+	ctx.Data["CardTypes"] = project_model.GetCardConfig()
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
@@ -139,6 +141,7 @@ func NewProjectPost(ctx *context.Context) {
 		ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 		ctx.Data["PageIsViewProjects"] = true
 		ctx.Data["BoardTypes"] = project_model.GetBoardConfig()
+		ctx.Data["CardTypes"] = project_model.GetCardConfig()
 		ctx.HTML(http.StatusOK, tplProjectsNew)
 		return
 	}
@@ -149,6 +152,7 @@ func NewProjectPost(ctx *context.Context) {
 		Description: form.Content,
 		CreatorID:   ctx.Doer.ID,
 		BoardType:   form.BoardType,
+		CardType:    form.CardType,
 		Type:        project_model.TypeOrganization,
 	}); err != nil {
 		ctx.ServerError("NewProject", err)
@@ -216,6 +220,8 @@ func EditProject(ctx *context.Context) {
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
+	ctx.Data["CardTypes"] = project_model.GetCardConfig()
+
 	shared_user.RenderUserHeader(ctx)
 
 	p, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
@@ -237,6 +243,7 @@ func EditProject(ctx *context.Context) {
 	ctx.Data["content"] = p.Description
 	ctx.Data["redirect"] = ctx.FormString("redirect")
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
+	ctx.Data["card_type"] = p.CardType
 
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
@@ -248,6 +255,8 @@ func EditProjectPost(ctx *context.Context) {
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
+	ctx.Data["CardTypes"] = project_model.GetCardConfig()
+
 	shared_user.RenderUserHeader(ctx)
 
 	if ctx.HasError() {
@@ -271,6 +280,7 @@ func EditProjectPost(ctx *context.Context) {
 
 	p.Title = form.Title
 	p.Description = form.Content
+	p.CardType = form.CardType
 	if err = project_model.UpdateProject(ctx, p); err != nil {
 		ctx.ServerError("UpdateProjects", err)
 		return
@@ -314,6 +324,18 @@ func ViewProject(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
+	}
+
+	if project.CardType != project_model.CardTypeTextOnly {
+		issuesAttachmentMap := make(map[int64][]*attachment_model.Attachment)
+		for _, issuesList := range issuesMap {
+			for _, issue := range issuesList {
+				if issueAttachment, err := attachment_model.GetAttachmentsByIssueIDImagesLatest(ctx, issue.ID); err == nil {
+					issuesAttachmentMap[issue.ID] = issueAttachment
+				}
+			}
+		}
+		ctx.Data["issuesAttachmentMap"] = issuesAttachmentMap
 	}
 
 	linkedPrsMap := make(map[int64][]*issues_model.Issue)
