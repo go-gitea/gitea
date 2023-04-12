@@ -119,7 +119,7 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		webhook_module.HookEventCreate,
 		webhook_module.HookEventDelete,
 		webhook_module.HookEventFork,
-		// FIXME: `wiki` event should match `gollum` event.
+		// FIXME: `wiki` event should match `gollum` event
 		// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#gollum
 		webhook_module.HookEventWiki:
 		if len(evt.Acts()) != 0 {
@@ -158,7 +158,7 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		webhook_module.HookEventPullRequestReviewRejected:
 		return matchPullRequestReviewEvent(commit, payload.(*api.PullRequestPayload), evt)
 
-	case // pull
+	case // pull_request_review_comment
 		webhook_module.HookEventPullRequestReviewComment:
 		return matchPullRequestReviewCommentEvent(commit, payload.(*api.PullRequestPayload), evt)
 
@@ -308,7 +308,7 @@ func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *j
 func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
 	if len(evt.Acts()) == 0 {
-		// defaultly, only pull request `opened`, `reopened`` and `synchronized` will trigger workflow
+		// defaultly, only pull request `opened`, `reopened` and `synchronized` will trigger workflow
 		// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
 		return prPayload.Action == api.HookIssueSynchronized || prPayload.Action == api.HookIssueOpened || prPayload.Action == api.HookIssueReOpened
 	}
