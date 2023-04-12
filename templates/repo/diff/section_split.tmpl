@@ -1,4 +1,14 @@
 {{$file := .file}}
+<colgroup>
+	<col width="50">
+	<col width="10">
+	<col width="10">
+	<col>
+	<col width="50">
+	<col width="10">
+	<col width="10">
+	<col>
+</colgroup>
 {{range $j, $section := $file.Sections}}
 	{{range $k, $line := $section.Lines}}
 		{{$hasmatch := ne $line.Match -1}}
@@ -33,7 +43,7 @@
 					<td class="lines-num lines-num-old del-code" data-line-num="{{$line.LeftIdx}}"><span rel="diff-{{$file.NameHash}}L{{$line.LeftIdx}}"></span></td>
 					<td class="lines-escape del-code lines-escape-old">{{if $line.LeftIdx}}{{if $leftDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{template "repo/diff/escape_title" dict "diff" $leftDiff "locale" $.root.locale}}"></a>{{end}}{{end}}</td>
 					<td class="lines-type-marker lines-type-marker-old del-code"><span class="gt-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
-					<td class="lines-code lines-code-old halfwidth del-code">{{/*
+					<td class="lines-code lines-code-old del-code">{{/*
 						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles}}{{/*
 							*/}}<a class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">{{/*
 								*/}}{{svg "octicon-plus"}}{{/*
@@ -48,7 +58,7 @@
 					<td class="lines-num lines-num-new add-code" data-line-num="{{if $match.RightIdx}}{{$match.RightIdx}}{{end}}"><span rel="{{if $match.RightIdx}}diff-{{$file.NameHash}}R{{$match.RightIdx}}{{end}}"></span></td>
 					<td class="lines-escape add-code lines-escape-new">{{if $match.RightIdx}}{{if $rightDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{template "repo/diff/escape_title" dict "diff" $rightDiff "locale" $.root.locale}}"></a>{{end}}{{end}}</td>
 					<td class="lines-type-marker lines-type-marker-new add-code">{{if $match.RightIdx}}<span class="gt-mono" data-type-marker="{{$match.GetLineTypeMarker}}"></span>{{end}}</td>
-					<td class="lines-code lines-code-new halfwidth add-code">{{/*
+					<td class="lines-code lines-code-new add-code">{{/*
 						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles}}{{/*
 							*/}}<a class="ui primary button add-code-comment add-code-comment-right{{if (not $match.CanComment)}} invisible{{end}}" data-side="right" data-idx="{{$match.RightIdx}}">{{/*
 								*/}}{{svg "octicon-plus"}}{{/*
@@ -65,7 +75,7 @@
 					<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$file.NameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
 					<td class="lines-escape lines-escape-old">{{if $line.LeftIdx}}{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.root.locale}}"></a>{{end}}{{end}}</td>
 					<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="gt-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
-					<td class="lines-code lines-code-old halfwidth">{{/*
+					<td class="lines-code lines-code-old">{{/*
 						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 2))}}{{/*
 							*/}}<a class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">{{/*
 								*/}}{{svg "octicon-plus"}}{{/*
@@ -80,7 +90,7 @@
 					<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$file.NameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
 					<td class="lines-escape lines-escape-new">{{if $line.RightIdx}}{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.root.locale}}"></a>{{end}}{{end}}</td>
 					<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="gt-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
-					<td class="lines-code lines-code-new halfwidth">{{/*
+					<td class="lines-code lines-code-new">{{/*
 						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 3))}}{{/*
 							*/}}<a class="ui primary button add-code-comment add-code-comment-right{{if (not $line.CanComment)}} invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">{{/*
 								*/}}{{svg "octicon-plus"}}{{/*
@@ -98,31 +108,25 @@
 				{{$match := index $section.Lines $line.Match}}
 				{{if or (gt (len $line.Comments) 0) (gt (len $match.Comments) 0)}}
 					<tr class="add-comment" data-line-type="{{DiffLineTypeToStr .GetType}}">
-						<td class="lines-num"></td>
-						<td class="lines-escape"></td>
-						<td class="lines-type-marker"></td>
 						<td class="add-comment-left" colspan="4">
 							{{if gt (len $line.Comments) 0}}
 								{{if eq $line.GetCommentSide "previous"}}
-									{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
+									{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
 								{{end}}
 							{{end}}
 							{{if gt (len $match.Comments) 0}}
 								{{if eq $match.GetCommentSide "previous"}}
-									{{template "repo/diff/conversation" mergeinto $.root "comments" $match.Comments}}
+									{{template "repo/diff/conversation" dict "." $.root "comments" $match.Comments}}
 								{{end}}
 							{{end}}
 						</td>
-						<td class="lines-num"></td>
-						<td class="lines-escape"></td>
-						<td class="lines-type-marker"></td>
 						<td class="add-comment-right" colspan="4">
 							{{if eq $line.GetCommentSide "proposed"}}
-								{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
+								{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
 							{{end}}
 							{{if gt (len $match.Comments) 0}}
 								{{if eq $match.GetCommentSide "proposed"}}
-									{{template "repo/diff/conversation" mergeinto $.root "comments" $match.Comments}}
+									{{template "repo/diff/conversation" dict "." $.root "comments" $match.Comments}}
 								{{end}}
 							{{end}}
 						</td>
@@ -130,22 +134,16 @@
 				{{end}}
 			{{else if gt (len $line.Comments) 0}}
 				<tr class="add-comment" data-line-type="{{DiffLineTypeToStr .GetType}}">
-					<td class="lines-num"></td>
-					<td class="lines-escape"></td>
-					<td class="lines-type-marker"></td>
 					<td class="add-comment-left" colspan="4">
 						{{if gt (len $line.Comments) 0}}
 							{{if eq $line.GetCommentSide "previous"}}
-								{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
+								{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
 							{{end}}
 						{{end}}
 					</td>
-					<td class="lines-num"></td>
-					<td class="lines-escape"></td>
-					<td class="lines-type-marker"></td>
 					<td class="add-comment-right" colspan="4">
 						{{if eq $line.GetCommentSide "proposed"}}
-							{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
+							{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
 						{{end}}
 					</td>
 				</tr>

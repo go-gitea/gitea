@@ -6,16 +6,21 @@ package templates
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"html/template"
+	"io"
+	"net/http"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
+	texttemplate "text/template"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/watcher"
-
-	"github.com/unrolled/render"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -27,14 +32,71 @@ var (
 	expectedEndError = regexp.MustCompile(`^template: (.*):([0-9]+): expected end; found (.*)`)
 )
 
-// HTMLRenderer returns the current html renderer for the context or creates and stores one within the context for future use
-func HTMLRenderer(ctx context.Context) (context.Context, *render.Render) {
-	rendererInterface := ctx.Value(rendererKey)
-	if rendererInterface != nil {
-		renderer, ok := rendererInterface.(*render.Render)
-		if ok {
-			return ctx, renderer
+type HTMLRender struct {
+	templates atomic.Pointer[template.Template]
+}
+
+var ErrTemplateNotInitialized = errors.New("template system is not initialized, check your log for errors")
+
+func (h *HTMLRender) HTML(w io.Writer, status int, name string, data interface{}) error {
+	if respWriter, ok := w.(http.ResponseWriter); ok {
+		if respWriter.Header().Get("Content-Type") == "" {
+			respWriter.Header().Set("Content-Type", "text/html; charset=utf-8")
 		}
+		respWriter.WriteHeader(status)
+	}
+	t, err := h.TemplateLookup(name)
+	if err != nil {
+		return texttemplate.ExecError{Name: name, Err: err}
+	}
+	return t.Execute(w, data)
+}
+
+func (h *HTMLRender) TemplateLookup(name string) (*template.Template, error) {
+	tmpls := h.templates.Load()
+	if tmpls == nil {
+		return nil, ErrTemplateNotInitialized
+	}
+	tmpl := tmpls.Lookup(name)
+	if tmpl == nil {
+		return nil, util.ErrNotExist
+	}
+	return tmpl, nil
+}
+
+func (h *HTMLRender) CompileTemplates() error {
+	extSuffix := ".tmpl"
+	tmpls := template.New("")
+	assets := AssetFS()
+	files, err := ListWebTemplateAssetNames(assets)
+	if err != nil {
+		return nil
+	}
+	for _, file := range files {
+		if !strings.HasSuffix(file, extSuffix) {
+			continue
+		}
+		name := strings.TrimSuffix(file, extSuffix)
+		tmpl := tmpls.New(filepath.ToSlash(name))
+		for _, fm := range NewFuncMap() {
+			tmpl.Funcs(fm)
+		}
+		buf, err := assets.ReadFile(file)
+		if err != nil {
+			return err
+		}
+		if _, err = tmpl.Parse(string(buf)); err != nil {
+			return err
+		}
+	}
+	h.templates.Store(tmpls)
+	return nil
+}
+
+// HTMLRenderer returns the current html renderer for the context or creates and stores one within the context for future use
+func HTMLRenderer(ctx context.Context) (context.Context, *HTMLRender) {
+	if renderer, ok := ctx.Value(rendererKey).(*HTMLRender); ok {
+		return ctx, renderer
 	}
 
 	rendererType := "static"
@@ -43,57 +105,22 @@ func HTMLRenderer(ctx context.Context) (context.Context, *render.Render) {
 	}
 	log.Log(1, log.DEBUG, "Creating "+rendererType+" HTML Renderer")
 
-	compilingTemplates := true
-	defer func() {
-		if !compilingTemplates {
-			return
-		}
-
-		panicked := recover()
-		if panicked == nil {
-			return
-		}
-
-		// OK try to handle the panic...
-		err, ok := panicked.(error)
-		if ok {
-			handlePanicError(err)
-		}
-		log.Fatal("PANIC: Unable to compile templates!\n%v\n\nStacktrace:\n%s", panicked, log.Stack(2))
-	}()
-
-	renderer := render.New(render.Options{
-		Extensions:                []string{".tmpl"},
-		Directory:                 "templates",
-		Funcs:                     NewFuncMap(),
-		Asset:                     GetAsset,
-		AssetNames:                GetTemplateAssetNames,
-		UseMutexLock:              !setting.IsProd,
-		IsDevelopment:             false,
-		DisableHTTPErrorRendering: true,
-	})
-	compilingTemplates = false
+	renderer := &HTMLRender{}
+	if err := renderer.CompileTemplates(); err != nil {
+		wrapFatal(handleNotDefinedPanicError(err))
+		wrapFatal(handleUnexpected(err))
+		wrapFatal(handleExpectedEnd(err))
+		wrapFatal(handleGenericTemplateError(err))
+		log.Fatal("HTMLRenderer error: %v", err)
+	}
 	if !setting.IsProd {
-		watcher.CreateWatcher(ctx, "HTML Templates", &watcher.CreateWatcherOpts{
-			PathsCallback: walkTemplateFiles,
-			BetweenCallback: func() {
-				defer func() {
-					if err := recover(); err != nil {
-						log.Error("PANIC: %v\n%s", err, log.Stack(2))
-					}
-				}()
-				renderer.CompileTemplates()
-			},
+		go AssetFS().WatchLocalChanges(ctx, func() {
+			if err := renderer.CompileTemplates(); err != nil {
+				log.Error("Template error: %v\n%s", err, log.Stack(2))
+			}
 		})
 	}
 	return context.WithValue(ctx, rendererKey, renderer), renderer
-}
-
-func handlePanicError(err error) {
-	wrapFatal(handleNotDefinedPanicError(err))
-	wrapFatal(handleUnexpected(err))
-	wrapFatal(handleExpectedEnd(err))
-	wrapFatal(handleGenericTemplateError(err))
 }
 
 func wrapFatal(format string, args []interface{}) {
@@ -110,14 +137,8 @@ func handleGenericTemplateError(err error) (string, []interface{}) {
 	}
 
 	templateName, lineNumberStr, message := groups[1], groups[2], groups[3]
-
-	filename, assetErr := GetAssetFilename("templates/" + templateName + ".tmpl")
-	if assetErr != nil {
-		return "", nil
-	}
-
+	filename := fmt.Sprintf("%s (provided by %s)", templateName, AssetFS().GetFileLayerName(templateName+".tmpl"))
 	lineNumber, _ := strconv.Atoi(lineNumberStr)
-
 	line := GetLineFromTemplate(templateName, lineNumber, "", -1)
 
 	return "PANIC: Unable to compile templates!\n%s in template file %s at line %d:\n\n%s\nStacktrace:\n\n%s", []interface{}{message, filename, lineNumber, log.NewColoredValue(line, log.Reset), log.Stack(2)}
@@ -130,16 +151,9 @@ func handleNotDefinedPanicError(err error) (string, []interface{}) {
 	}
 
 	templateName, lineNumberStr, functionName := groups[1], groups[2], groups[3]
-
 	functionName, _ = strconv.Unquote(`"` + functionName + `"`)
-
-	filename, assetErr := GetAssetFilename("templates/" + templateName + ".tmpl")
-	if assetErr != nil {
-		return "", nil
-	}
-
+	filename := fmt.Sprintf("%s (provided by %s)", templateName, AssetFS().GetFileLayerName(templateName+".tmpl"))
 	lineNumber, _ := strconv.Atoi(lineNumberStr)
-
 	line := GetLineFromTemplate(templateName, lineNumber, functionName, -1)
 
 	return "PANIC: Unable to compile templates!\nUndefined function %q in template file %s at line %d:\n\n%s", []interface{}{functionName, filename, lineNumber, log.NewColoredValue(line, log.Reset)}
@@ -153,14 +167,8 @@ func handleUnexpected(err error) (string, []interface{}) {
 
 	templateName, lineNumberStr, unexpected := groups[1], groups[2], groups[3]
 	unexpected, _ = strconv.Unquote(`"` + unexpected + `"`)
-
-	filename, assetErr := GetAssetFilename("templates/" + templateName + ".tmpl")
-	if assetErr != nil {
-		return "", nil
-	}
-
+	filename := fmt.Sprintf("%s (provided by %s)", templateName, AssetFS().GetFileLayerName(templateName+".tmpl"))
 	lineNumber, _ := strconv.Atoi(lineNumberStr)
-
 	line := GetLineFromTemplate(templateName, lineNumber, unexpected, -1)
 
 	return "PANIC: Unable to compile templates!\nUnexpected %q in template file %s at line %d:\n\n%s", []interface{}{unexpected, filename, lineNumber, log.NewColoredValue(line, log.Reset)}
@@ -173,14 +181,8 @@ func handleExpectedEnd(err error) (string, []interface{}) {
 	}
 
 	templateName, lineNumberStr, unexpected := groups[1], groups[2], groups[3]
-
-	filename, assetErr := GetAssetFilename("templates/" + templateName + ".tmpl")
-	if assetErr != nil {
-		return "", nil
-	}
-
+	filename := fmt.Sprintf("%s (provided by %s)", templateName, AssetFS().GetFileLayerName(templateName+".tmpl"))
 	lineNumber, _ := strconv.Atoi(lineNumberStr)
-
 	line := GetLineFromTemplate(templateName, lineNumber, unexpected, -1)
 
 	return "PANIC: Unable to compile templates!\nMissing end with unexpected %q in template file %s at line %d:\n\n%s", []interface{}{unexpected, filename, lineNumber, log.NewColoredValue(line, log.Reset)}
@@ -190,7 +192,7 @@ const dashSeparator = "---------------------------------------------------------
 
 // GetLineFromTemplate returns a line from a template with some context
 func GetLineFromTemplate(templateName string, targetLineNum int, target string, position int) string {
-	bs, err := GetAsset("templates/" + templateName + ".tmpl")
+	bs, err := AssetFS().ReadFile(templateName + ".tmpl")
 	if err != nil {
 		return fmt.Sprintf("(unable to read template file: %v)", err)
 	}
@@ -227,6 +229,12 @@ func GetLineFromTemplate(templateName string, targetLineNum int, target string, 
 		}
 	}
 
+	// FIXME: this algorithm could provide incorrect results and mislead the developers.
+	// For example: Undefined function "file" in template .....
+	//     {{Func .file.Addition file.Deletion .file.Addition}}
+	//             ^^^^          ^(the real error is here)
+	// The pointer is added to the first one, but the second one is the real incorrect one.
+	//
 	// If there is a provided target to look for in the line add a pointer to it
 	// e.g.                                                        ^^^^^^^
 	if target != "" {

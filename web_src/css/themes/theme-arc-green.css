@@ -68,8 +68,7 @@
   --color-purple: #b259d0;
   --color-pink: #d22e8b;
   --color-brown: #a47252;
-  --color-grey: #9ea2aa;
-  --color-black: #1e222e;
+  --color-black: #2e323e;
   /* light variants - produced via Sass scale-color(color, $lightness: -10%) */
   --color-red-light: #c23636;
   --color-orange-light: #b84f0b;
@@ -82,9 +81,10 @@
   --color-purple-light: #a742c9;
   --color-pink-light: #be297d;
   --color-brown-light: #94674a;
-  --color-grey-light: #8d919b;
-  --color-black-light: #1b1f29;
+  --color-black-light: #292d38;
   /* other colors */
+  --color-grey: #505665;
+  --color-grey-light: #a1a6b7;
   --color-gold: #b1983b;
   --color-white: #ffffff;
   --color-diff-removed-word-bg: #6f3333;
@@ -124,19 +124,19 @@
   --color-orange-badge-hover-bg: #f2711c4d;
   --color-git: #f05133;
   /* target-based colors */
-  --color-body: #383c4a;
+  --color-body: #373b47;
   --color-box-header: #404652;
   --color-box-body: #2a2e3a;
   --color-box-body-highlight: #353945;
   --color-text-dark: #dbe0ea;
-  --color-text: #bbc0ca;
-  --color-text-light: #a6aab5;
-  --color-text-light-1: #979ba6;
-  --color-text-light-2: #8a8e99;
-  --color-text-light-3: #707687;
+  --color-text: #cbd0da;
+  --color-text-light: #bbbfca;
+  --color-text-light-1: #aaafb9;
+  --color-text-light-2: #9a9ea9;
+  --color-text-light-3: #8a8e99;
   --color-footer: #2e323e;
   --color-timeline: #4c525e;
-  --color-input-text: #d5dbe6;
+  --color-input-text: #dfe3ec;
   --color-input-background: #232933;
   --color-input-toggle-background: #454a57;
   --color-input-border: #454a57;
@@ -159,7 +159,7 @@
   --color-secondary-bg: #2a2e3a;
   --color-text-focus: #fff;
   --color-expand-button: #3c404d;
-  --color-placeholder-text: #6a737d;
+  --color-placeholder-text: #8a8e99;
   --color-editor-line-highlight: var(--color-primary-light-5);
   --color-project-board-bg: var(--color-secondary-light-2);
   --color-caret: var(--color-text); /* should ideally be --color-text-dark, see #15651 */

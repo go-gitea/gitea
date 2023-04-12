@@ -42,14 +42,13 @@ import (
 	"gitea.com/go-chi/session"
 	chi "github.com/go-chi/chi/v5"
 	"github.com/minio/sha256-simd"
-	"github.com/unrolled/render"
 	"golang.org/x/crypto/pbkdf2"
 )
 
 // Render represents a template render
 type Render interface {
-	TemplateLookup(tmpl string) *template.Template
-	HTML(w io.Writer, status int, name string, binding interface{}, htmlOpt ...render.HTMLOptions) error
+	TemplateLookup(tmpl string) (*template.Template, error)
+	HTML(w io.Writer, status int, name string, data interface{}) error
 }
 
 // Context represents context of a request.
@@ -229,7 +228,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 	}
 	if err := ctx.Render.HTML(ctx.Resp, status, string(name), templates.BaseVars().Merge(ctx.Data)); err != nil {
 		if status == http.StatusInternalServerError && name == base.TplName("status/500") {
-			ctx.PlainText(http.StatusInternalServerError, "Unable to find status/500 template")
+			ctx.PlainText(http.StatusInternalServerError, "Unable to find HTML templates, the template system is not initialized, or Gitea can't find your template files.")
 			return
 		}
 		if execErr, ok := err.(texttemplate.ExecError); ok {
@@ -241,23 +240,19 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 				}
 				line, _ := strconv.Atoi(lineStr) // Cannot error out as groups[2] is [1-9][0-9]*
 				pos, _ := strconv.Atoi(posStr)   // Cannot error out as groups[3] is [1-9][0-9]*
-				filename, filenameErr := templates.GetAssetFilename("templates/" + errorTemplateName + ".tmpl")
-				if filenameErr != nil {
-					filename = "(template) " + errorTemplateName
-				}
+				assetLayerName := templates.AssetFS().GetFileLayerName(errorTemplateName + ".tmpl")
+				filename := fmt.Sprintf("(%s) %s", assetLayerName, errorTemplateName)
 				if errorTemplateName != string(name) {
 					filename += " (subtemplate of " + string(name) + ")"
 				}
-				err = fmt.Errorf("%w\nin template file %s:\n%s", err, filename, templates.GetLineFromTemplate(errorTemplateName, line, target, pos))
+				err = fmt.Errorf("failed to render %s, error: %w:\n%s", filename, err, templates.GetLineFromTemplate(errorTemplateName, line, target, pos))
 			} else {
-				filename, filenameErr := templates.GetAssetFilename("templates/" + execErr.Name + ".tmpl")
-				if filenameErr != nil {
-					filename = "(template) " + execErr.Name
-				}
+				assetLayerName := templates.AssetFS().GetFileLayerName(execErr.Name + ".tmpl")
+				filename := fmt.Sprintf("(%s) %s", assetLayerName, execErr.Name)
 				if execErr.Name != string(name) {
 					filename += " (subtemplate of " + string(name) + ")"
 				}
-				err = fmt.Errorf("%w\nin template file %s", err, filename)
+				err = fmt.Errorf("failed to render %s, error: %w", filename, err)
 			}
 		}
 		ctx.ServerError("Render failed", err)
@@ -628,7 +623,9 @@ func (ctx *Context) Value(key interface{}) interface{} {
 	if key == git.RepositoryContextKey && ctx.Repo != nil {
 		return ctx.Repo.GitRepo
 	}
-
+	if key == translation.ContextKey && ctx.Locale != nil {
+		return ctx.Locale
+	}
 	return ctx.Req.Context().Value(key)
 }
 

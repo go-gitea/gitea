@@ -151,7 +151,11 @@ func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
 
 // LoadUnitConfig load units from settings
 func LoadUnitConfig() {
-	DisabledRepoUnits = FindUnitTypes(setting.Repository.DisabledRepoUnits...)
+	var invalidKeys []string
+	DisabledRepoUnits, invalidKeys = FindUnitTypes(setting.Repository.DisabledRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in disabled repo units: %s", strings.Join(invalidKeys, ", "))
+	}
 	// Check that must units are not disabled
 	for i, disabledU := range DisabledRepoUnits {
 		if !disabledU.CanDisable() {
@@ -160,9 +164,15 @@ func LoadUnitConfig() {
 		}
 	}
 
-	setDefaultRepoUnits := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
+	setDefaultRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in default repo units: %s", strings.Join(invalidKeys, ", "))
+	}
 	DefaultRepoUnits = validateDefaultRepoUnits(DefaultRepoUnits, setDefaultRepoUnits)
-	setDefaultForkRepoUnits := FindUnitTypes(setting.Repository.DefaultForkRepoUnits...)
+	setDefaultForkRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultForkRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in default fork repo units: %s", strings.Join(invalidKeys, ", "))
+	}
 	DefaultForkRepoUnits = validateDefaultRepoUnits(DefaultForkRepoUnits, setDefaultForkRepoUnits)
 }
 
@@ -312,7 +322,7 @@ var (
 
 	UnitActions = Unit{
 		TypeActions,
-		"actions.actions",
+		"repo.actions",
 		"/actions",
 		"actions.unit.desc",
 		7,
@@ -334,22 +344,19 @@ var (
 	}
 )
 
-// FindUnitTypes give the unit key names and return unit
-func FindUnitTypes(nameKeys ...string) (res []Type) {
+// FindUnitTypes give the unit key names and return valid unique units and invalid keys
+func FindUnitTypes(nameKeys ...string) (res []Type, invalidKeys []string) {
+	m := map[Type]struct{}{}
 	for _, key := range nameKeys {
-		var found bool
-		for t, u := range Units {
-			if strings.EqualFold(key, u.NameKey) {
-				res = append(res, t)
-				found = true
-				break
-			}
-		}
-		if !found {
-			res = append(res, TypeInvalid)
+		t := TypeFromKey(key)
+		if t == TypeInvalid {
+			invalidKeys = append(invalidKeys, key)
+		} else if _, ok := m[t]; !ok {
+			res = append(res, t)
+			m[t] = struct{}{}
 		}
 	}
-	return res
+	return res, invalidKeys
 }
 
 // TypeFromKey give the unit key name and return unit
