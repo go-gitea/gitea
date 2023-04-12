@@ -142,6 +142,10 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		return
 	}
 
+	for _, release := range releases {
+		release.Repo = ctx.Repo.Repository
+	}
+
 	if err = repo_model.GetReleaseAttachments(ctx, releases...); err != nil {
 		ctx.ServerError("GetReleaseAttachments", err)
 		return
@@ -247,6 +251,8 @@ func SingleRelease(ctx *context.Context) {
 	} else {
 		ctx.Data["Title"] = release.Title
 	}
+
+	release.Repo = ctx.Repo.Repository
 
 	err = repo_model.GetReleaseAttachments(ctx, release)
 	if err != nil {

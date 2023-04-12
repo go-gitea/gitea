@@ -28,12 +28,8 @@ func (rules ProtectedBranchRules) sort() {
 	sort.Slice(rules, func(i, j int) bool {
 		rules[i].loadGlob()
 		rules[j].loadGlob()
-		if rules[i].isPlainName {
-			if !rules[j].isPlainName {
-				return true
-			}
-		} else if rules[j].isPlainName {
-			return true
+		if rules[i].isPlainName != rules[j].isPlainName {
+			return rules[i].isPlainName // plain name comes first, so plain name means "less"
 		}
 		return rules[i].CreatedUnix < rules[j].CreatedUnix
 	})
@@ -46,7 +42,7 @@ func FindRepoProtectedBranchRules(ctx context.Context, repoID int64) (ProtectedB
 	if err != nil {
 		return nil, err
 	}
-	rules.sort()
+	rules.sort() // to make non-glob rules have higher priority, and for same glob/non-glob rules, first created rules have higher priority
 	return rules, nil
 }
 
