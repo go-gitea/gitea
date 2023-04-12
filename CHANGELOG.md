@@ -43,7 +43,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Use actions job link as commit status URL instead of run link (#24023) (#24032)
   * Add actions support to package auth verification (#23729) (#24028)
   * Fix protected branch for API (#24013) (#24027)
-  * Fix: do not escape space between PyPI repository URL and package name… (#23981) (#24008)
+  * Do not escape space between PyPI repository URL and package name… (#23981) (#24008)
   * Fix redirect bug when creating issue from a project (#23971) (#23997)
   * Set `ref` to fully-formed of the tag when trigger event is `release` (#23944) (#23989)
   * Use Get/Set instead of Rename when regenerating session ID (#23975) (#23983)
