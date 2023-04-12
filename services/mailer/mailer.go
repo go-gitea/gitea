@@ -167,7 +167,7 @@ func (a *ntlmAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
 func (a *ntlmAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	if more {
 		if len(fromServer) == 0 {
-			return nil, fmt.Errorf("ChallengeMessage is empty. ")
+			return nil, fmt.Errorf("NTLM ChallengeMessage is empty.")
 		}
 		authenticateMessage, err := ntlmssp.ProcessChallenge(fromServer, a.username, a.password, a.domainNeeded)
 		return authenticateMessage, err
