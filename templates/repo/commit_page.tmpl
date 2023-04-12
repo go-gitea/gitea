@@ -73,7 +73,7 @@
 											<form method="GET" action="{{$.RepoLink}}/_cherrypick/{{.CommitID}}/{{if $.BranchName}}{{PathEscapeSegments $.BranchName}}{{else}}{{PathEscapeSegments $.Repository.DefaultBranch}}{{end}}" id="branch-dropdown-form">
 												<input type="hidden" name="ref" value="{{if $.BranchName}}{{$.BranchName}}{{else}}{{$.Repository.DefaultBranch}}{{end}}">
 												<input type="hidden" name="refType" value="branch">
-												<input type="hidden" id="cherry-pick-type" name="cherry-pick-type"><br/>
+												<input type="hidden" id="cherry-pick-type" name="cherry-pick-type"><br>
 												<button type="submit" id="cherry-pick-submit" class="ui green button"></button>
 											</form>
 										</div>

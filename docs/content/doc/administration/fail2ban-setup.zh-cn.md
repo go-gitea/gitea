@@ -1,6 +1,6 @@
 ---
 date: "2022-08-01T00:00:00+00:00"
-title: "使用: 设置 Fail2ban"
+title: "设置 Fail2ban"
 slug: "fail2ban-setup"
 weight: 16
 toc: false
