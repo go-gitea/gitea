@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 	texttmpl "text/template"
 
@@ -65,6 +66,7 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 			}
 
 			assetName := strings.TrimSuffix(name, ".tmpl")
+			assetName = filepath.ToSlash(assetName)
 			log.Trace("Adding mailer template for %s from %q", assetName, path)
 			buildSubjectBodyTemplate(subjectTemplates,
 				bodyTemplates,
