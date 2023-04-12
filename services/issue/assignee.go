@@ -44,7 +44,7 @@ func DeleteNotPassedAssignee(ctx context.Context, issue *issues_model.Issue, doe
 
 // ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
 func ToggleAssignee(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *issues_model.Comment, err error) {
-	removed, comment, err = issues_model.ToggleIssueAssignee(issue, doer, assigneeID)
+	removed, comment, err = issues_model.ToggleIssueAssignee(ctx, issue, doer, assigneeID)
 	if err != nil {
 		return
 	}
