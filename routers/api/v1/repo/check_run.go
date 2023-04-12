@@ -166,6 +166,12 @@ func UpdateCheckRun(ctx *context.APIContext) {
 		opts.Name = *form.Name
 	}
 
+	err = files_service.LoadPatchsForCheckRunOutput(ctx, ctx.Repo.Repository, checkRun.HeadSHA, opts.Output)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadPatchsForCheckRunOutput", err)
+		return
+	}
+
 	if form.StartedAt != nil {
 		opts.StartedAt = timeutil.TimeStamp(form.StartedAt.Unix())
 	}

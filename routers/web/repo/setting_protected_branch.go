@@ -116,6 +116,23 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.MergeWhitelistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistUserIDs), ",")
 	contexts, _ := git_model.FindRepoRecentCommitStatusContexts(c, c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
+
+	names, _ := git_model.FindRepoRecentCheckRunNames(c, c.Repo.Repository.ID, 7*24*time.Hour)
+	for _, name := range names {
+		exist := false
+
+		for _, ctx := range contexts {
+			if name == ctx {
+				exist = true
+				break
+			}
+		}
+
+		if !exist {
+			contexts = append(contexts, name)
+		}
+	}
+
 	for _, ctx := range rule.StatusCheckContexts {
 		var found bool
 		for i := range contexts {

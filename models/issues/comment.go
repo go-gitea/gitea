@@ -259,11 +259,13 @@ type Comment struct {
 	DependentIssueID int64
 	DependentIssue   *Issue `xorm:"-"`
 
-	CommitID        int64
-	Line            int64 // - previous line / + proposed line
-	TreePath        string
-	Content         string `xorm:"LONGTEXT"`
-	RenderedContent string `xorm:"-"`
+	CommitID           int64
+	Line               int64 // - previous line / + proposed line
+	TreePath           string
+	Content            string                      `xorm:"LONGTEXT"`
+	RenderedContent    string                      `xorm:"-"`
+	CheckRunAnnotation *structs.CheckRunAnnotation `xorm:"-"`
+	CheckRun           *git_model.CheckRun         `xorm:"-"`
 
 	// Path represents the 4 lines of code cemented by this comment
 	Patch       string `xorm:"-"`
@@ -491,6 +493,14 @@ func CommentHashTag(id int64) string {
 
 // HashTag returns unique hash tag for comment.
 func (c *Comment) HashTag() string {
+	if c.CheckRun != nil {
+		return fmt.Sprintf("check-run-%d", c.CheckRun.ID)
+	}
+
+	if c.CheckRunAnnotation != nil {
+		return "check-run-annotation-" + c.CheckRunAnnotation.Index
+	}
+
 	return CommentHashTag(c.ID)
 }
 

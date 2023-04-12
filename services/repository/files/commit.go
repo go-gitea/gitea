@@ -6,12 +6,15 @@ package files
 import (
 	"context"
 	"fmt"
+	"io"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/services/automerge"
@@ -114,6 +117,7 @@ func CreateCheckRun(ctx context.Context, repo *repo_model.Repository, creator *u
 		HeadSHA: opts.HeadSHA,
 		Name:    opts.Name,
 		Status:  opts.Status,
+		Output:  opts.Output,
 	}
 	if opts.Conclusion != nil {
 		opts2.Conclusion = *opts.Conclusion
@@ -130,6 +134,12 @@ func CreateCheckRun(ctx context.Context, repo *repo_model.Repository, creator *u
 	if opts.CompletedAt != nil {
 		opts2.CompletedAt = timeutil.TimeStamp(opts.CompletedAt.Unix())
 	}
+	if opts2.Output != nil {
+		err = loadPatchsForCheckRunOutput(gitRepo, opts2.HeadSHA, opts2.Output)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	checkRrun, err := git_model.CreateCheckRun(ctx, opts2)
 	if err != nil {
@@ -143,4 +153,69 @@ func CreateCheckRun(ctx context.Context, repo *repo_model.Repository, creator *u
 	}
 
 	return checkRrun, nil
+}
+
+func getPatch(gitRepo *git.Repository, treePath, commitID string, line int64) (string, error) {
+	reader, writer := io.Pipe()
+	defer func() {
+		_ = reader.Close()
+		_ = writer.Close()
+	}()
+	go func() {
+		if err := git.GetRepoRawDiffForFile(gitRepo, commitID+"~1", commitID, git.RawDiffNormal, treePath, writer); err != nil {
+			_ = writer.CloseWithError(fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %w", gitRepo.Path, commitID+"~1", commitID, treePath, err))
+			return
+		}
+		_ = writer.Close()
+	}()
+
+	return git.CutDiffAroundLine(reader, int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+}
+
+func loadPatchsForCheckRunOutput(gitRepo *git.Repository, sha string, checkRunOutput *structs.CheckRunOutput) error {
+	//  path -> line : patch
+	patchs := make(map[string]map[int64]string)
+
+	for _, a := range checkRunOutput.Annotations {
+		if a == nil || a.StartLine == nil || *a.StartLine == 0 || a.Path == nil || len(*a.Path) == 0 {
+			continue
+		}
+
+		cacheExist := false
+		if fileCache, ok := patchs[*a.Path]; ok {
+			if lineCache, ok := fileCache[int64(*a.StartLine)]; ok {
+				cacheExist = true
+				a.Patch = lineCache
+			}
+		}
+
+		if !cacheExist {
+			patch, err := getPatch(gitRepo, *a.Path, sha, int64(*a.StartLine))
+			if err != nil {
+				return err
+			}
+
+			if _, ok := patchs[*a.Path]; !ok {
+				patchs[*a.Path] = make(map[int64]string)
+			}
+
+			patchs[*a.Path][int64(*a.StartLine)] = patch
+			a.Patch = patch
+		}
+	}
+
+	return nil
+}
+
+func LoadPatchsForCheckRunOutput(ctx context.Context, repo *repo_model.Repository, sha string, checkRunOutput *structs.CheckRunOutput) error {
+	repoPath := repo.RepoPath()
+
+	// confirm that commit is exist
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	if err != nil {
+		return fmt.Errorf("OpenRepository[%s]: %w", repoPath, err)
+	}
+	defer closer.Close()
+
+	return loadPatchsForCheckRunOutput(gitRepo, sha, checkRunOutput)
 }

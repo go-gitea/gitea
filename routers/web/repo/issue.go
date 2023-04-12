@@ -292,7 +292,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
+	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues, ctx.Locale)
 	if err != nil {
 		ctx.ServerError("GetIssuesAllCommitStatus", err)
 		return
@@ -1625,6 +1625,18 @@ func ViewIssue(ctx *context.Context) {
 			// record ID of latest closed comment.
 			// if PR is closed, the comments whose type is CommentTypePullRequestPush(29) after latestCloseCommentID won't be rendered.
 			latestCloseCommentID = comment.ID
+		}
+	}
+
+	if issue.IsPull {
+		if checkRuns, ok := ctx.Data["LatestCommitCheckRuns"].([]*git_model.CheckRun); ok {
+			for _, checkRun := range checkRuns {
+				issue.Comments = append(issue.Comments, checkRunToReviewComments(ctx, checkRun, issue))
+			}
+		}
+
+		if ctx.Written() {
+			return
 		}
 	}
 

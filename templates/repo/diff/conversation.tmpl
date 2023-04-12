@@ -20,7 +20,7 @@
 			</div>
 		</div>
 	{{end}}
-	<div id="code-comments-{{(index  .comments 0).ID}}" class="field comment-code-cloud {{if $resolved}}gt-hidden{{end}}">
+	<div id="{{if (index .comments 0).CheckRunAnnotation}}check-run-annotation-{{(index .comments 0).CheckRunAnnotation.Index}}{{else}}code-comments-{{(index  .comments 0).ID}}{{end}}" class="field comment-code-cloud {{if $resolved}}gt-hidden{{end}}">
 		<div class="comment-list">
 			<ui class="ui comments">
 				{{template "repo/diff/comments" dict "root" $ "comments" .comments}}
@@ -35,7 +35,7 @@
 					{{svg "octicon-arrow-down" 12 "icon"}} {{$.locale.Tr "repo.issues.next"}}
 				</button>
 			</div>
-			{{if and $.CanMarkConversation $isNotPending}}
+			{{if and $.CanMarkConversation $isNotPending (not (index .comments 0).CheckRunAnnotation)}}
 				<button class="ui icon tiny basic button resolve-conversation" data-origin="diff" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index .comments 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
 					{{if $resolved}}
 						{{$.locale.Tr "repo.issues.review.un_resolve_conversation"}}
@@ -44,12 +44,14 @@
 					{{end}}
 				</button>
 			{{end}}
-			{{if and $.SignedUserID (not $.Repository.IsArchived)}}
+			{{if and $.SignedUserID (not $.Repository.IsArchived) (not (index .comments 0).CheckRunAnnotation)}}
 				<button class="comment-form-reply ui green tiny labeled icon button gt-ml-2 gt-mr-0">
 					{{svg "octicon-reply" 16 "reply icon gt-mr-2"}}{{$.locale.Tr "repo.diff.comment.reply"}}
 				</button>
 			{{end}}
 		</div>
-		{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index .comments 0).ReviewID "root" $ "comment" (index .comments 0)}}
-	</div>
+        {{if not (index .comments 0).CheckRunAnnotation}}
+		    {{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index .comments 0).ReviewID "root" $ "comment" (index .comments 0)}}
+        {{end}}
+    </div>
 </div>

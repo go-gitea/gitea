@@ -278,7 +278,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 		return
 	}
 
-	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
+	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues, ctx.Locale)
 	if err != nil {
 		ctx.ServerError("GetIssuesAllCommitStatus", err)
 		return
@@ -289,7 +289,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 
 	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, "")
 
-	commitStatus, err := pull_service.GetIssuesLastCommitStatus(ctx, issues)
+	commitStatus, err := pull_service.GetIssuesLastCommitStatus(ctx, issues, ctx.Locale)
 	if err != nil {
 		ctx.ServerError("GetIssuesLastCommitStatus", err)
 		return

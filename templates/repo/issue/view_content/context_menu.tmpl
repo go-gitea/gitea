@@ -15,7 +15,7 @@
 		{{if not .ctxData.UnitIssuesGlobalDisabled}}
 			<div class="item context js-aria-clickable reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{.ctxData.locale.Tr "repo.issues.context.reference_issue"}}</div>
 		{{end}}
-		{{if or .ctxData.Permission.IsAdmin .IsCommentPoster .ctxData.HasIssuesOrPullsWritePermission}}
+		{{if and (or .ctxData.Permission.IsAdmin .IsCommentPoster .ctxData.HasIssuesOrPullsWritePermission) (not .disableEdit) }}
 			<div class="divider"></div>
 			<div class="item context js-aria-clickable edit-content">{{.ctxData.locale.Tr "repo.issues.context.edit"}}</div>
 			{{if .delete}}

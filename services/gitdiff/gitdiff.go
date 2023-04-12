@@ -30,6 +30,8 @@ import (
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 
@@ -435,11 +437,32 @@ type Diff struct {
 }
 
 // LoadComments loads comments into each line
-func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, currentUser *user_model.User) error {
+func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, currentUser *user_model.User, externalComments []*issues_model.Comment) error {
 	allComments, err := issues_model.FetchCodeComments(ctx, issue, currentUser)
 	if err != nil {
 		return err
 	}
+	for _, comment := range externalComments {
+		if comment.Type != issues_model.CommentTypeCode {
+			continue
+		}
+
+		var err error
+		if comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+			Ctx:       ctx,
+			URLPrefix: issue.Repo.Link(),
+			Metas:     issue.Repo.ComposeMetas(),
+		}, comment.Content); err != nil {
+			return err
+		}
+
+		if allComments[comment.TreePath] == nil {
+			allComments[comment.TreePath] = make(map[int64][]*issues_model.Comment)
+		}
+
+		allComments[comment.TreePath][comment.Line] = append(allComments[comment.TreePath][comment.Line], comment)
+	}
+
 	for _, file := range diff.Files {
 		if lineCommits, ok := allComments[file.Name]; ok {
 			for _, section := range file.Sections {

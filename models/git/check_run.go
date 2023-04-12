@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -89,7 +90,7 @@ type CheckRun struct {
 	HeadSHA    string           `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_name)"`
 	DetailsURL string           `xorm:"TEXT"`
 	ExternalID string           `xorm:"TEXT"`
-	Summary    string           `xorm:"TEXT"` // output -> Title/Summary
+	Summary    string           `xorm:"-"` // output -> Title/Summary
 	NameHash   string           `xorm:"char(40) INDEX UNIQUE(repo_sha_name)"`
 	Name       string           `xorm:"TEXT"`
 	Creator    *user_model.User `xorm:"-"`
@@ -103,6 +104,22 @@ type CheckRun struct {
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+}
+
+func (status *CheckRun) LoadAttributes(ctx context.Context) (err error) {
+	if status.Repo == nil {
+		status.Repo, err = repo_model.GetRepositoryByID(ctx, status.RepoID)
+		if err != nil {
+			return fmt.Errorf("getRepositoryByID [%d]: %w", status.RepoID, err)
+		}
+	}
+	if status.Creator == nil && status.CreatorID > 0 {
+		status.Creator, err = user_model.GetUserByID(ctx, status.CreatorID)
+		if err != nil {
+			return fmt.Errorf("getUserByID [%d]: %w", status.CreatorID, err)
+		}
+	}
+	return nil
 }
 
 func (c *CheckRun) LoadOutput(ctx context.Context) error {
@@ -158,7 +175,7 @@ func (c *CheckRun) updateOutput(ctx context.Context, output *api.CheckRunOutput)
 	}
 
 	if needCreate {
-		annotations := make([]api.CheckRunAnnotation, 0, len(output.Annotations))
+		annotations := make([]*api.CheckRunAnnotation, 0, len(output.Annotations))
 
 		for _, a := range output.Annotations {
 			if a.DeleteMark != nil && *a.DeleteMark {
@@ -173,15 +190,15 @@ func (c *CheckRun) updateOutput(ctx context.Context, output *api.CheckRunOutput)
 
 		c.Output.Annotations = annotations
 	} else {
-		annotationsMap := make(map[string]api.CheckRunAnnotation)
+		annotationsMap := make(map[string]*api.CheckRunAnnotation)
 		for _, a := range c.Output.Annotations {
-			annotationsMap[a.Title] = a
+			annotationsMap[a.ID()] = a
 		}
 
 		for _, a := range output.Annotations {
-			_, exist := annotationsMap[a.Title]
+			_, exist := annotationsMap[a.ID()]
 			if exist && a.DeleteMark != nil && *a.DeleteMark {
-				delete(annotationsMap, a.Title)
+				delete(annotationsMap, a.ID())
 				continue
 			}
 
@@ -191,13 +208,17 @@ func (c *CheckRun) updateOutput(ctx context.Context, output *api.CheckRunOutput)
 
 			a.AppendMark = nil
 			a.DeleteMark = nil
-			annotationsMap[a.Title] = a
+			annotationsMap[a.ID()] = a
 		}
 
-		c.Output.Annotations = make([]api.CheckRunAnnotation, 0, len(annotationsMap))
+		c.Output.Annotations = make([]*api.CheckRunAnnotation, 0, len(annotationsMap))
 		for _, a := range annotationsMap {
 			c.Output.Annotations = append(c.Output.Annotations, a)
 		}
+	}
+
+	for i, a := range c.Output.Annotations {
+		c.Output.Annotations[i].Index = hashCommitStatusContext(a.Title + a.Message)
 	}
 
 	if needCreate {
@@ -249,13 +270,13 @@ func (c *CheckRun) ToStatus(lang translation.Locale) *CommitStatus {
 }
 
 type CheckRunOutput struct {
-	ID             int64                    `xorm:"pk autoincr"`
-	CheckRunID     int64                    `xorm:"INDEX"`
-	Title          string                   `xorm:"TEXT"`
-	Summary        string                   `xorm:"TEXT"`
-	Text           string                   `xorm:"TEXT"`
-	AnnotationsURL string                   `xorm:"TEXT"`
-	Annotations    []api.CheckRunAnnotation `xorm:"JSON TEXT"`
+	ID             int64                     `xorm:"pk autoincr"`
+	CheckRunID     int64                     `xorm:"INDEX"`
+	Title          string                    `xorm:"TEXT"`
+	Summary        string                    `xorm:"TEXT"`
+	Text           string                    `xorm:"TEXT"`
+	AnnotationsURL string                    `xorm:"TEXT"`
+	Annotations    []*api.CheckRunAnnotation `xorm:"JSON TEXT"`
 }
 
 func init() {
@@ -589,7 +610,7 @@ func (opts *UpdateCheckRunOptions) Vaild(ck *CheckRun) error {
 		return ErrUnVaildCheckRunOptions{Err: "request `conclusion` if staus is `completed`"}
 	}
 
-	if opts.CompletedAt == timeutil.TimeStamp(0) {
+	if opts.CompletedAt == timeutil.TimeStamp(0) && ck.CompletedAt == timeutil.TimeStamp(0) {
 		opts.CompletedAt = timeutil.TimeStampNow()
 	}
 
@@ -721,4 +742,24 @@ func listCheckRunStatement(ctx context.Context, repo *repo_model.Repository, hea
 		sess.And("conclusion = ?", toCheckRunConclusion(api.CheckRunConclusion(opts.Status)))
 	}
 	return sess
+}
+
+// FindRepoRecentCheckRunNames returns repository's recent check run names
+func FindRepoRecentCheckRunNames(ctx context.Context, repoID int64, before time.Duration) ([]string, error) {
+	start := timeutil.TimeStampNow().AddDuration(-before)
+	ids := make([]int64, 0, 10)
+	if err := db.GetEngine(ctx).Table("check_run").
+		Where("repo_id = ?", repoID).
+		And("updated_unix >= ?", start).
+		Select("max( id ) as id").
+		GroupBy("name_hash").OrderBy("max( id ) desc").
+		Find(&ids); err != nil {
+		return nil, err
+	}
+
+	names := make([]string, 0, len(ids))
+	if len(ids) == 0 {
+		return names, nil
+	}
+	return names, db.GetEngine(ctx).Select("name").Table("check_run").In("id", ids).Find(&names)
 }

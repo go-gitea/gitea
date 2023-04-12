@@ -62,16 +62,16 @@ func TestCreateCheckRun(t *testing.T) {
 		Output: &structs.CheckRunOutput{
 			Title:   &title,
 			Summary: &summary,
-			Annotations: []structs.CheckRunAnnotation{
+			Annotations: []*structs.CheckRunAnnotation{
 				{
 					Title:           "hello world",
 					Message:         "test message",
-					AnnotationLevel: structs.CheckRunAnnotationWarning,
+					AnnotationLevel: structs.CheckRunAnnotationLevelWarning,
 				},
 				{
 					Title:           "hello world 2",
 					Message:         "test message",
-					AnnotationLevel: structs.CheckRunAnnotationWarning,
+					AnnotationLevel: structs.CheckRunAnnotationLevelWarning,
 					DeleteMark:      &boolTrue,
 				},
 			},
@@ -343,7 +343,7 @@ func TestUpdate_Update(t *testing.T) {
 		Creator: user2,
 		Output: &structs.CheckRunOutput{
 			Title: &title,
-			Annotations: []structs.CheckRunAnnotation{
+			Annotations: []*structs.CheckRunAnnotation{
 				{
 					Title:      checkRun1.Output.Annotations[0].Title,
 					DeleteMark: &boolTrue, // delete first item

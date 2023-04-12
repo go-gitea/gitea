@@ -603,7 +603,7 @@ func TestDiff_LoadComments(t *testing.T) {
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	diff := setupDefaultDiff()
-	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user))
+	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user, nil))
 	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
 }
 

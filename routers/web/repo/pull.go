@@ -31,6 +31,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -413,6 +415,15 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 			ctx.ServerError("GetLatestCommitStatus", err)
 			return nil
 		}
+
+		// add check runs
+		checkRuns, _, err := git_model.GetLatestCheckRuns(ctx, ctx.Repo.Repository.ID, sha, db.ListOptions{})
+		if err != nil {
+			log.Error("GetLatestCheckRuns: %v", err)
+		}
+		commitStatuses = git_model.CheckRunAppendToCommitStatus(commitStatuses, checkRuns, ctx.Locale)
+		ctx.Data["LatestCommitCheckRuns"] = checkRuns
+
 		if len(commitStatuses) != 0 {
 			ctx.Data["LatestCommitStatuses"] = commitStatuses
 			ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(commitStatuses)
@@ -567,6 +578,15 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 		ctx.ServerError("GetLatestCommitStatus", err)
 		return nil
 	}
+
+	// add check runs
+	checkRuns, _, err := git_model.GetLatestCheckRuns(ctx, ctx.Repo.Repository.ID, sha, db.ListOptions{})
+	if err != nil {
+		log.Error("GetLatestCheckRuns: %v", err)
+	}
+	commitStatuses = git_model.CheckRunAppendToCommitStatus(commitStatuses, checkRuns, ctx.Locale)
+	ctx.Data["LatestCommitCheckRuns"] = checkRuns
+
 	if len(commitStatuses) > 0 {
 		ctx.Data["LatestCommitStatuses"] = commitStatuses
 		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(commitStatuses)
@@ -669,6 +689,126 @@ func ViewPullCommits(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplPullCommits)
 }
 
+func CheckRunToCodeComments(ctx *context.Context, checkRun *git_model.CheckRun, pull *issues_model.Issue) []*issues_model.Comment {
+	err := checkRun.LoadOutput(ctx)
+	if err != nil {
+		return []*issues_model.Comment{}
+	}
+
+	err = checkRun.LoadAttributes(ctx)
+	if err != nil {
+		return []*issues_model.Comment{}
+	}
+
+	if checkRun.Output == nil {
+		return []*issues_model.Comment{}
+	}
+
+	review := &issues_model.Review{
+		Type:        issues_model.ReviewTypeComment,
+		Reviewer:    checkRun.Creator,
+		ReviewerID:  checkRun.CreatorID,
+		Issue:       pull,
+		IssueID:     pull.ID,
+		CreatedUnix: checkRun.CreatedUnix,
+	}
+
+	comments := make([]*issues_model.Comment, 0, len(checkRun.Output.Annotations))
+	for _, a := range checkRun.Output.Annotations {
+		if a.Path == nil || len(*a.Path) == 0 || a.StartLine == nil || *a.StartLine == 0 {
+			continue
+		}
+
+		a.Title = strings.TrimSpace(a.Title)
+
+		comments = append(comments, &issues_model.Comment{
+			ID:                 -1,
+			Type:               issues_model.CommentTypeCode,
+			PosterID:           checkRun.CreatorID,
+			Poster:             checkRun.Creator,
+			IssueID:            pull.ID,
+			Issue:              pull,
+			Line:               int64(*a.StartLine),
+			Content:            a.Message,
+			TreePath:           *a.Path,
+			CheckRunAnnotation: a,
+			Review:             review,
+			Patch:              a.Patch,
+			CreatedUnix:        checkRun.UpdatedUnix,
+		})
+	}
+
+	return comments
+}
+
+func checkRunToReviewComments(ctx *context.Context, checkRun *git_model.CheckRun, pull *issues_model.Issue) *issues_model.Comment {
+	comments := CheckRunToCodeComments(ctx, checkRun, pull)
+	codeComments := make(issues_model.CodeComments)
+
+	for _, comment := range comments {
+		if comment.Type != issues_model.CommentTypeCode {
+			continue
+		}
+
+		var err error
+		if comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+			Ctx:       ctx,
+			URLPrefix: pull.Repo.Link(),
+			Metas:     pull.Repo.ComposeMetas(),
+		}, comment.Content); err != nil {
+			ctx.ServerError("RenderString", err)
+			return nil
+		}
+
+		if codeComments[comment.TreePath] == nil {
+			codeComments[comment.TreePath] = make(map[int64][]*issues_model.Comment)
+		}
+
+		codeComments[comment.TreePath][comment.Line] = append(codeComments[comment.TreePath][comment.Line], comment)
+	}
+
+	if checkRun.Output != nil {
+		checkRun.Summary = checkRun.Output.Summary
+	}
+
+	review := &issues_model.Review{
+		Type:         issues_model.ReviewTypeComment,
+		Reviewer:     checkRun.Creator,
+		ReviewerID:   checkRun.CreatorID,
+		Issue:        pull,
+		IssueID:      pull.ID,
+		Content:      checkRun.Summary,
+		CodeComments: codeComments,
+		CommitID:     checkRun.HeadSHA,
+		CreatedUnix:  checkRun.UpdatedUnix,
+	}
+
+	comment := &issues_model.Comment{
+		ID:          -1,
+		Type:        issues_model.CommentTypeReview,
+		PosterID:    checkRun.CreatorID,
+		Poster:      checkRun.Creator,
+		CheckRun:    checkRun,
+		Review:      review,
+		CreatedUnix: checkRun.UpdatedUnix,
+	}
+
+	var err error
+	comment.Content = checkRun.Summary
+	comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+		URLPrefix: ctx.Repo.RepoLink,
+		Metas:     ctx.Repo.Repository.ComposeMetas(),
+		GitRepo:   ctx.Repo.GitRepo,
+		Ctx:       ctx,
+	}, checkRun.Summary)
+	if err != nil {
+		ctx.ServerError("RenderString", err)
+		return nil
+	}
+
+	return comment
+}
+
 // ViewPullFiles render pull request changed files list page
 func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["PageIsPullList"] = true
@@ -749,7 +889,15 @@ func ViewPullFiles(ctx *context.Context) {
 		"numberOfViewedFiles": diff.NumViewedFiles,
 	}
 
-	if err = diff.LoadComments(ctx, issue, ctx.Doer); err != nil {
+	var externalComments []*issues_model.Comment
+	if checkRuns, ok := ctx.Data["LatestCommitCheckRuns"].([]*git_model.CheckRun); ok {
+		externalComments = make([]*issues_model.Comment, 0, 10)
+		for _, checkRun := range checkRuns {
+			externalComments = append(externalComments, CheckRunToCodeComments(ctx, checkRun, pull.Issue)...)
+		}
+	}
+
+	if err = diff.LoadComments(ctx, issue, ctx.Doer, externalComments); err != nil {
 		ctx.ServerError("LoadComments", err)
 		return
 	}
