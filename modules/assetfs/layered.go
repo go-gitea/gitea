@@ -5,7 +5,6 @@ package assetfs
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -102,6 +101,29 @@ func (l *LayeredFS) ReadLayeredFile(elems ...string) ([]byte, string, error) {
 	return nil, "", fs.ErrNotExist
 }
 
+func shouldInclude(info fs.FileInfo, fileMode ...bool) bool {
+	if util.CommonSkip(info.Name()) {
+		return false
+	}
+	if len(fileMode) == 0 {
+		return true
+	} else if len(fileMode) == 1 {
+		return fileMode[0] == !info.Mode().IsDir()
+	}
+	panic("too many arguments for fileMode in shouldInclude")
+}
+
+func readDir(layer *Layer, name string) ([]fs.FileInfo, error) {
+	f, err := layer.Open(name)
+	if os.IsNotExist(err) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return f.Readdir(-1)
+}
+
 // ListFiles lists files/directories in the given directory. The fileMode controls the returned files.
 // * omitted: all files and directories will be returned.
 // * true: only files will be returned.
@@ -110,28 +132,12 @@ func (l *LayeredFS) ReadLayeredFile(elems ...string) ([]byte, string, error) {
 func (l *LayeredFS) ListFiles(name string, fileMode ...bool) ([]string, error) {
 	fileMap := map[string]bool{}
 	for _, layer := range l.layers {
-		f, err := layer.Open(name)
-		if os.IsNotExist(err) {
-			continue
-		} else if err != nil {
-			return nil, err
-		}
-		infos, err := f.Readdir(-1)
-		_ = f.Close()
+		infos, err := readDir(layer, name)
 		if err != nil {
 			return nil, err
 		}
 		for _, info := range infos {
-			include := false
-			if len(fileMode) == 0 {
-				include = true
-			} else if len(fileMode) == 1 && fileMode[0] == !info.Mode().IsDir() {
-				include = true
-			} else if len(fileMode) > 1 {
-				return nil, errors.New("too many arguments")
-			}
-			include = include && !util.CommonSkip(info.Name())
-			if include {
+			if shouldInclude(info, fileMode...) {
 				fileMap[info.Name()] = true
 			}
 		}
@@ -159,29 +165,13 @@ func listAllFiles(layers []*Layer, name string, fileMode ...bool) ([]string, err
 	var list func(dir string) error
 	list = func(dir string) error {
 		for _, layer := range layers {
-			f, err := layer.Open(dir)
-			if os.IsNotExist(err) {
-				continue
-			} else if err != nil {
-				return err
-			}
-			infos, err := f.Readdir(-1)
-			_ = f.Close()
+			infos, err := readDir(layer, dir)
 			if err != nil {
 				return err
 			}
 			for _, info := range infos {
-				include := false
-				if len(fileMode) == 0 {
-					include = true
-				} else if len(fileMode) == 1 && fileMode[0] == !info.Mode().IsDir() {
-					include = true
-				} else if len(fileMode) > 1 {
-					return errors.New("too many arguments")
-				}
 				path := util.PathJoinRelX(dir, info.Name())
-				include = include && !util.CommonSkip(info.Name())
-				if include {
+				if shouldInclude(info, fileMode...) {
 					fileMap[path] = true
 				}
 				if info.IsDir() {
