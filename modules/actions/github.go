@@ -21,7 +21,6 @@ const (
 	githubEventIssueComment             = "issue_comment"
 	githubEventRelease                  = "release"
 	githubEventPullRequestComment       = "pull_request_comment"
-	githubEventGollum                   = "gollum"
 )
 
 // canGithubEventMatch check if the input Github event can match any Gitea event.
@@ -29,10 +28,6 @@ func canGithubEventMatch(eventName string, triggedEvent webhook_module.HookEvent
 	switch eventName {
 	case githubEventRegistryPackage:
 		return triggedEvent == webhook_module.HookEventPackage
-
-	case githubEventGollum:
-		// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#gollum
-		return triggedEvent == webhook_module.HookEventWiki
 
 	case githubEventIssues:
 		switch triggedEvent {
