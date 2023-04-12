@@ -76,16 +76,16 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Polyfill the window.customElements (#23592) (#23595)
   * Avoid too long names for actions (#23162) (#23190)
 * TRANSLATION
-  * Backport locales (with manual fix) (#23808)
+  * Backport locales (with manual fixes) (#23808)
   * Backport locales to 1.19 (#23634)
 * BUILD
-  * Hardcode path to docker images (#23955) (#23968)
+  * Hardcode the path to docker images (#23955) (#23968)
 * DOCS
   * Update documentation to explain which projects allow Gitea to host static pages (#23993) (#24058)
   * Merge `push to create`, `open PR from push`, and `push options` docs articles into one (#23744) (#23959)
-  * Fix codeblocks in the cheat sheet (#23664) (#23669)
+  * Fix code blocks in the cheat sheet (#23664) (#23669)
 * MISC
-  * Do not crash when parsing an invalid workflow file  (#23972) (#23976)
+  * Do not crash when parsing an invalid workflow file (#23972) (#23976)
   * Remove assertion debug code for show/hide refactoring (#23576) (#23868)
   * Add ONLY_SHOW_RELEVANT_REPOS back, fix explore page bug, make code more strict (#23766) (#23791)
   * Make minio package support legacy MD5 checksum (#23768) (#23770)
