@@ -24,8 +24,6 @@
   user-select: none;
   padding: 5px;
   cursor: pointer;
-  border: none;
-  background: none;
   color: var(--color-text);
 }
 
