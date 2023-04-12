@@ -120,7 +120,7 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		webhook_module.HookEventDelete,
 		webhook_module.HookEventFork,
 		// FIXME: `wiki` event should match `gollum` event
-		// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#gollum
+		// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#gollum
 		webhook_module.HookEventWiki:
 		if len(evt.Acts()) != 0 {
 			log.Warn("Ignore unsupported %s event arguments %v", triggedEvent, evt.Acts())
@@ -142,7 +142,7 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 	case // issue_comment
 		webhook_module.HookEventIssueComment,
 		// `pull_request_comment` is same as `issue_comment`
-		// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_comment-use-issue_comment
+		// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_comment-use-issue_comment
 		webhook_module.HookEventPullRequestComment:
 		return matchIssueCommentEvent(commit, payload.(*api.IssueCommentPayload), evt)
 
@@ -285,6 +285,15 @@ func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *j
 	for cond, vals := range evt.Acts() {
 		switch cond {
 		case "types":
+			// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#issues
+			// Actions with the same name:
+			// opened, edited, closed, reopened, assigned, unassigned, milestoned, demilestoned
+			// Actions need to be converted:
+			// label_updated -> labeled
+			// label_cleared -> unlabeled
+			// Unsupported activity types:
+			// deleted, transferred, pinned, unpinned, locked, unlocked
+
 			action := issuePayload.Action
 			switch action {
 			case api.HookIssueLabelUpdated:
@@ -309,7 +318,7 @@ func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload
 	// with no special filter parameters
 	if len(evt.Acts()) == 0 {
 		// defaultly, only pull request `opened`, `reopened` and `synchronized` will trigger workflow
-		// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
+		// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
 		return prPayload.Action == api.HookIssueSynchronized || prPayload.Action == api.HookIssueOpened || prPayload.Action == api.HookIssueReOpened
 	}
 
@@ -318,6 +327,16 @@ func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload
 	for cond, vals := range evt.Acts() {
 		switch cond {
 		case "types":
+			// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
+			// Actions with the same name:
+			// opened, edited, closed, reopened, assigned, unassigned
+			// Actions need to be converted:
+			// synchronized -> synchronize
+			// label_updated -> labeled
+			// label_cleared -> unlabeled
+			// Unsupported activity types:
+			// converted_to_draft, ready_for_review, locked, unlocked, review_requested, review_request_removed, auto_merge_enabled, auto_merge_disabled
+
 			action := prPayload.Action
 			switch action {
 			case api.HookIssueSynchronized:
@@ -396,6 +415,14 @@ func matchIssueCommentEvent(commit *git.Commit, issueCommentPayload *api.IssueCo
 	for cond, vals := range evt.Acts() {
 		switch cond {
 		case "types":
+			// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#issue_comment
+			// Actions with the same name:
+			// created, edited, deleted
+			// Actions need to be converted:
+			// NONE
+			// Unsupported activity types:
+			// NONE
+
 			for _, val := range vals {
 				if glob.MustCompile(val, '/').Match(string(issueCommentPayload.Action)) {
 					matchTimes++
@@ -420,13 +447,21 @@ func matchPullRequestReviewEvent(commit *git.Commit, prPayload *api.PullRequestP
 	for cond, vals := range evt.Acts() {
 		switch cond {
 		case "types":
+			// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_review
+			// Activity types with the same name:
+			// NONE
+			// Activity types need to be converted:
+			// reviewed -> submitted
+			// reviewed -> edited
+			// Unsupported activity types:
+			// dismissed
+
 			actions := make([]string, 0)
 			if prPayload.Action == api.HookIssueReviewed {
 				// the `reviewed` HookIssueAction can match the two activity types: `submitted` and `edited`
-				// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_review
+				// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_review
 				actions = append(actions, "submitted", "edited")
 			}
-			// TODO: support the `dismissed` activity type
 
 			matched := false
 			for _, val := range vals {
@@ -461,13 +496,21 @@ func matchPullRequestReviewCommentEvent(commit *git.Commit, prPayload *api.PullR
 	for cond, vals := range evt.Acts() {
 		switch cond {
 		case "types":
+			// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_review_comment
+			// Activity types with the same name:
+			// NONE
+			// Activity types need to be converted:
+			// reviewed -> created
+			// reviewed -> edited
+			// Unsupported activity types:
+			// deleted
+
 			actions := make([]string, 0)
 			if prPayload.Action == api.HookIssueReviewed {
 				// the `reviewed` HookIssueAction can match the two activity types: `created` and `edited`
-				// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_review_comment
+				// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_review_comment
 				actions = append(actions, "created", "edited")
 			}
-			// TODO: support the `deleted` activity type
 
 			matched := false
 			for _, val := range vals {
@@ -502,6 +545,14 @@ func matchReleaseEvent(commit *git.Commit, payload *api.ReleasePayload, evt *job
 	for cond, vals := range evt.Acts() {
 		switch cond {
 		case "types":
+			// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#release
+			// Activity types with the same name:
+			// published
+			// Activity types need to be converted:
+			// updated -> edited
+			// Unsupported activity types:
+			// unpublished, created, deleted, prereleased, released
+
 			action := payload.Action
 			switch action {
 			case api.HookReleaseUpdated:
@@ -531,11 +582,18 @@ func matchPackageEvent(commit *git.Commit, payload *api.PackagePayload, evt *job
 	for cond, vals := range evt.Acts() {
 		switch cond {
 		case "types":
+			// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#registry_package
+			// Activity types with the same name:
+			// NONE
+			// Activity types need to be converted:
+			// created -> published
+			// Unsupported activity types:
+			// updated
+
 			action := payload.Action
 			switch action {
 			case api.HookPackageCreated:
 				action = "published"
-				// TODO: support the `updated` activity type
 			}
 			for _, val := range vals {
 				if glob.MustCompile(val, '/').Match(string(action)) {
