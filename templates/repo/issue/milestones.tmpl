@@ -77,7 +77,7 @@
 						{{else}}
 							{{svg "octicon-calendar"}}
 							{{if .DeadlineString}}
-								<span {{if .IsOverdue}}class="overdue"{{end}}>{{.DeadlineString}}</span>
+								<span {{if .IsOverdue}}class="overdue"{{end}}>{{template "shared/datetime/short" (dict "Datetime" .DeadlineString "Fallback" .DeadlineString)}}</span>
 							{{else}}
 								{{$.locale.Tr "repo.milestones.no_due_date"}}
 							{{end}}
@@ -88,7 +88,7 @@
 							{{svg "octicon-check" 16 "gt-mr-3"}}
 							{{LocaleNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
 							{{if .TotalTrackedTime}}{{svg "octicon-clock"}} {{.TotalTrackedTime|Sec2Time}}{{end}}
-							{{if .UpdatedUnix}}{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.update_ago" (.TimeSinceUpdate|Sec2Time)}}{{end}}
+							{{if .UpdatedUnix}}{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.updated"}} {{TimeSinceUnix .UpdatedUnix $.locale}}{{end}}
 						</span>
 					</div>
 					{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}

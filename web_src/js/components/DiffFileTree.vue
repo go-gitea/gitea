@@ -18,6 +18,7 @@ import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import {doLoadMoreFiles} from '../features/repo-diff.js';
 import {toggleElem} from '../utils/dom.js';
 import {DiffTreeStore} from '../modules/stores.js';
+import {setFileFolding} from '../features/file-fold.js';
 
 const {pageData} = window.config;
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
@@ -104,6 +105,7 @@ export default {
 
     this.hashChangeListener = () => {
       this.store.selectedItem = window.location.hash;
+      this.expandSelectedFile();
     };
     this.hashChangeListener();
     window.addEventListener('hashchange', this.hashChangeListener);
@@ -113,6 +115,14 @@ export default {
     window.removeEventListener('hashchange', this.hashChangeListener);
   },
   methods: {
+    expandSelectedFile() {
+      // expand file if the selected file is folded
+      if (this.store.selectedItem) {
+        const box = document.querySelector(this.store.selectedItem);
+        const folded = box?.getAttribute('data-folded') === 'true';
+        if (folded) setFileFolding(box, box.querySelector('.fold-file'), false);
+      }
+    },
     toggleVisibility() {
       this.updateVisibility(!this.fileTreeIsVisible);
     },
