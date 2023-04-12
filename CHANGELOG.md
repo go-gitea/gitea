@@ -9,11 +9,11 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BREAKING
   * Rename actions unit to `repo.actions` and add docs for it (#23733) (#23881)
 * ENHANCEMENTS
-  * Add cardtype to org/user level project on creation, edit and view (#24043) (#24066)
+  * Add card type to org/user level project on creation, edit and view (#24043) (#24066)
   * Refactor commit status for Actions jobs (#23786) (#24060)
   * Show errors for KaTeX and mermaid on the preview tab (#24009) (#24019)
   * Show protected branch rule names again (#23907) (#24018)
-  * Adjust sticky pr header to cover background (#23956) (#23999)
+  * Adjust sticky PR header to cover background (#23956) (#23999)
   * Discolor pull request tab labels (#23950) (#23987)
   * Treat PRs with agit flow as fork PRs when triggering actions. (#23884) (#23967)
   * Left-align review comments (#23937)
@@ -23,7 +23,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Org pages style fixes (#23901) (#23914)
   * Fix user profile description rendering (#23882) (#23902)
   * Fix review box viewport overflow issue (#23800) (#23898)
-  * Prefill input values in oauth settings as intended (#23829) (#23871)
+  * Prefill input values in OAuth settings as intended (#23829) (#23871)
   * CSS color tweaks (#23828) (#23842)
   * Fix incorrect visibility dropdown list in add/edit user page (#23804) (#23833)
   * Add CSS rules for basic colored labels (#23774) (#23777)
