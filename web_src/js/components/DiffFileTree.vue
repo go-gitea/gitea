@@ -5,7 +5,7 @@
   >
     <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
     <div class="ui list">
-      <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item" :selected-file="selectedFile"/>
+      <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item"/>
     </div>
     <div v-if="isIncomplete" id="diff-too-many-files-stats" class="gt-pt-2">
       <span class="gt-mr-2">{{ tooManyFilesMessage }}</span><a :class="['ui', 'basic', 'tiny', 'button', isLoadingNewData === true ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ showMoreMessage }}</a>
@@ -17,6 +17,7 @@
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import {doLoadMoreFiles} from '../features/repo-diff.js';
 import {toggleElem} from '../utils/dom.js';
+import {DiffTreeStore} from '../modules/stores.js';
 import {setFileFolding} from '../features/file-fold.js';
 
 const {pageData} = window.config;
@@ -29,7 +30,7 @@ export default {
     pageData.diffFileInfo.fileTreeIsVisible = fileTreeIsVisible;
     return {
       ...pageData.diffFileInfo,
-      selectedFile: ''
+      store: DiffTreeStore,
     };
   },
   computed: {
@@ -103,12 +104,11 @@ export default {
     document.querySelector('.diff-toggle-file-tree-button').addEventListener('click', this.toggleVisibility);
 
     this.hashChangeListener = () => {
-      this.selectedFile = window.location.hash;
+      this.store.selectedItem = window.location.hash;
       this.expandSelectedFile();
     };
-    this.hashListener = window.addEventListener('hashchange', this.hashChangeListener);
-    this.selectedFile = window.location.hash;
-    this.expandSelectedFile();
+    this.hashChangeListener();
+    window.addEventListener('hashchange', this.hashChangeListener);
   },
   unmounted() {
     document.querySelector('.diff-toggle-file-tree-button').removeEventListener('click', this.toggleVisibility);
@@ -117,7 +117,7 @@ export default {
   methods: {
     expandSelectedFile() {
       // expand file if the selected file is folded
-      const box = document.querySelector(this.selectedFile);
+      const box = document.querySelector(this.store.selectedItem);
       setFileFolding(box, box.querySelector('.fold-file'), false);
     },
     toggleVisibility() {
