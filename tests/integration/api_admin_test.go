@@ -249,35 +249,35 @@ func TestAPIRenameUser(t *testing.T) {
 	urlStr := fmt.Sprintf("/api/v1/admin/users/%s/rename?token=%s", "user2", token)
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		// required
-		"new_username": "User2",
+		"new_name": "User2",
 	})
 	MakeRequest(t, req, http.StatusOK)
 
 	urlStr = fmt.Sprintf("/api/v1/admin/users/%s/rename?token=%s", "User2", token)
 	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		// required
-		"new_username": "User2-2-2",
+		"new_name": "User2-2-2",
 	})
 	MakeRequest(t, req, http.StatusOK)
 
 	urlStr = fmt.Sprintf("/api/v1/admin/users/%s/rename?token=%s", "User2", token)
 	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		// required
-		"new_username": "user1",
+		"new_name": "user1",
 	})
 	MakeRequest(t, req, http.StatusNotFound)
 
 	urlStr = fmt.Sprintf("/api/v1/admin/users/%s/rename?token=%s", "User2-2-2", token)
 	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		// required
-		"new_username": "user1",
+		"new_name": "user1",
 	})
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	urlStr = fmt.Sprintf("/api/v1/admin/users/%s/rename?token=%s", "User2-2-2", token)
 	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		// required
-		"new_username": "user2",
+		"new_name": "user2",
 	})
 	MakeRequest(t, req, http.StatusOK)
 }
