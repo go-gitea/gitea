@@ -704,10 +704,15 @@ func Routes(ctx gocontext.Context) *web.Route {
 		if setting.Federation.Enabled {
 			m.Get("/nodeinfo", misc.NodeInfo)
 			m.Group("/activitypub", func() {
+				// deprecated, remove in 1.20, use /user-id/{user-id} instead
 				m.Group("/user/{username}", func() {
 					m.Get("", activitypub.Person)
 					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
 				}, context_service.UserAssignmentAPI())
+				m.Group("/user-id/{user-id}", func() {
+					m.Get("", activitypub.Person)
+					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
+				}, context_service.UserIDAssignmentAPI())
 			})
 		}
 		m.Get("/signing-key.gpg", misc.SigningKey)

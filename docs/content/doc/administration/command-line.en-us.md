@@ -2,7 +2,7 @@
 date: "2017-01-01T16:00:00+02:00"
 title: "Usage: Command Line"
 slug: "command-line"
-weight: 10
+weight: 1
 toc: false
 draft: false
 menu:

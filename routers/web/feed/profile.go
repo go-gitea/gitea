@@ -8,6 +8,8 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 
 	"github.com/gorilla/feeds"
 )
@@ -39,10 +41,22 @@ func showUserFeed(ctx *context.Context, formatType string) {
 		return
 	}
 
+	ctxUserDescription, err := markdown.RenderString(&markup.RenderContext{
+		Ctx:       ctx,
+		URLPrefix: ctx.ContextUser.HTMLURL(),
+		Metas: map[string]string{
+			"user": ctx.ContextUser.GetDisplayName(),
+		},
+	}, ctx.ContextUser.Description)
+	if err != nil {
+		ctx.ServerError("RenderString", err)
+		return
+	}
+
 	feed := &feeds.Feed{
 		Title:       ctx.Tr("home.feed_of", ctx.ContextUser.DisplayName()),
 		Link:        &feeds.Link{Href: ctx.ContextUser.HTMLURL()},
-		Description: ctx.ContextUser.Description,
+		Description: ctxUserDescription,
 		Created:     time.Now(),
 	}
 
