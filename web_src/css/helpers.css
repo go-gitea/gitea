@@ -25,7 +25,8 @@
 .gt-overflow-x-scroll { overflow-x: scroll !important; }
 .gt-cursor-default { cursor: default !important; }
 .gt-items-start { align-items: flex-start !important; }
-.gt-whitespace-pre { white-space: pre !important }
+.gt-whitespace-pre { white-space: pre !important; }
+.gt-invisible { visibility: hidden !important; }
 
 .gt-mono {
   font-family: var(--fonts-monospace) !important;

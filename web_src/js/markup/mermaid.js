@@ -4,11 +4,9 @@ import {displayError} from './common.js';
 
 const {mermaidMaxSourceCharacters} = window.config;
 
-const iframeCss = `
-  :root {color-scheme: normal}
-  body {margin: 0; padding: 0; overflow: hidden}
-  #mermaid {display: block; margin: 0 auto}
-`;
+const iframeCss = `:root {color-scheme: normal}
+body {margin: 0; padding: 0; overflow: hidden}
+#mermaid {display: block; margin: 0 auto}`;
 
 export async function renderMermaid() {
   const els = document.querySelectorAll('.markup code.language-mermaid');
@@ -45,23 +43,28 @@ export async function renderMermaid() {
       const {svg} = await mermaid.render('mermaid', source);
 
       const iframe = document.createElement('iframe');
-      iframe.classList.add('markup-render');
-      iframe.sandbox = 'allow-scripts allow-same-origin';
+      iframe.classList.add('markup-render', 'gt-invisible');
       iframe.srcdoc = `<html><head><style>${iframeCss}</style></head><body>${svg}</body></html>`;
-      iframe.addEventListener('load', () => {
-        const height = iframe.contentWindow.document.body.clientHeight;
-        iframe.style.height = `${height}px`;
-      });
 
       const mermaidBlock = document.createElement('div');
-      mermaidBlock.classList.add('mermaid-block');
+      mermaidBlock.classList.add('mermaid-block', 'is-loading', 'gt-hidden');
       mermaidBlock.append(iframe);
 
       const btn = makeCodeCopyButton();
       btn.setAttribute('data-clipboard-text', source);
-
       mermaidBlock.append(btn);
-      pre.replaceWith(mermaidBlock);
+
+      iframe.addEventListener('load', () => {
+        pre.replaceWith(mermaidBlock);
+        mermaidBlock.classList.remove('gt-hidden');
+        iframe.style.height = `${iframe.contentWindow.document.body.clientHeight}px`;
+        setTimeout(() => { // avoid flash of iframe background
+          mermaidBlock.classList.remove('is-loading');
+          iframe.classList.remove('gt-invisible');
+        }, 0);
+      });
+
+      document.body.append(mermaidBlock);
     } catch (err) {
       displayError(pre, err);
     }
