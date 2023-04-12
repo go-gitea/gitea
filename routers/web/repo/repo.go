@@ -373,7 +373,7 @@ func RedirectDownload(ctx *context.Context) {
 			return
 		}
 		if att != nil {
-			ctx.Redirect(att.DownloadURL())
+			ServeAttachment(ctx, att.UUID)
 			return
 		}
 	}
