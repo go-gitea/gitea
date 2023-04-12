@@ -17,7 +17,17 @@ import (
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
 	"github.com/nektos/act/pkg/workflowpattern"
+	"gopkg.in/yaml.v3"
 )
+
+func init() {
+	model.OnDecodeNodeError = func(node yaml.Node, out interface{}, err error) {
+		// Log the error instead of panic or fatal.
+		// It will be a big job to refactor act/pkg/model to return decode error,
+		// so we just log the error and return empty value, and improve it later.
+		log.Error("Failed to decode node %v into %T: %v", node, out, err)
+	}
+}
 
 func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 	tree, err := commit.SubTree(".gitea/workflows")
@@ -122,8 +132,8 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		webhook_module.HookEventRepository,
 		webhook_module.HookEventRelease,
 		webhook_module.HookEventPackage:
-		if len(evt.Acts) != 0 {
-			log.Warn("Ignore unsupported %s event arguments %q", triggedEvent, evt.Acts)
+		if len(evt.Acts()) != 0 {
+			log.Warn("Ignore unsupported %s event arguments %v", triggedEvent, evt.Acts())
 		}
 		// no special filter parameters for these events, just return true if name matched
 		return true
@@ -148,7 +158,7 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 
 func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
-	if len(evt.Acts) == 0 {
+	if len(evt.Acts()) == 0 {
 		return true
 	}
 
@@ -157,7 +167,7 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 	hasTagFilter := false
 	refName := git.RefName(pushPayload.Ref)
 	// all acts conditions should be satisfied
-	for cond, vals := range evt.Acts {
+	for cond, vals := range evt.Acts() {
 		switch cond {
 		case "branches":
 			hasBranchFilter = true
@@ -241,18 +251,18 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 	if hasBranchFilter && hasTagFilter {
 		matchTimes++
 	}
-	return matchTimes == len(evt.Acts)
+	return matchTimes == len(evt.Acts())
 }
 
 func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
-	if len(evt.Acts) == 0 {
+	if len(evt.Acts()) == 0 {
 		return true
 	}
 
 	matchTimes := 0
 	// all acts conditions should be satisfied
-	for cond, vals := range evt.Acts {
+	for cond, vals := range evt.Acts() {
 		switch cond {
 		case "types":
 			for _, val := range vals {
@@ -265,19 +275,19 @@ func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *j
 			log.Warn("issue event unsupported condition %q", cond)
 		}
 	}
-	return matchTimes == len(evt.Acts)
+	return matchTimes == len(evt.Acts())
 }
 
 func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
-	if len(evt.Acts) == 0 {
+	if len(evt.Acts()) == 0 {
 		// defaultly, only pull request opened and synchronized will trigger workflow
 		return prPayload.Action == api.HookIssueSynchronized || prPayload.Action == api.HookIssueOpened
 	}
 
 	matchTimes := 0
 	// all acts conditions should be satisfied
-	for cond, vals := range evt.Acts {
+	for cond, vals := range evt.Acts() {
 		switch cond {
 		case "types":
 			action := prPayload.Action
@@ -339,18 +349,18 @@ func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload
 			log.Warn("pull request event unsupported condition %q", cond)
 		}
 	}
-	return matchTimes == len(evt.Acts)
+	return matchTimes == len(evt.Acts())
 }
 
 func matchIssueCommentEvent(commit *git.Commit, issueCommentPayload *api.IssueCommentPayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
-	if len(evt.Acts) == 0 {
+	if len(evt.Acts()) == 0 {
 		return true
 	}
 
 	matchTimes := 0
 	// all acts conditions should be satisfied
-	for cond, vals := range evt.Acts {
+	for cond, vals := range evt.Acts() {
 		switch cond {
 		case "types":
 			for _, val := range vals {
@@ -363,5 +373,5 @@ func matchIssueCommentEvent(commit *git.Commit, issueCommentPayload *api.IssueCo
 			log.Warn("issue comment unsupported condition %q", cond)
 		}
 	}
-	return matchTimes == len(evt.Acts)
+	return matchTimes == len(evt.Acts())
 }

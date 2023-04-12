@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	context_module "code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -76,6 +75,7 @@ type ViewJob struct {
 	Name     string `json:"name"`
 	Status   string `json:"status"`
 	CanRerun bool   `json:"canRerun"`
+	Duration string `json:"duration"`
 }
 
 type ViewCommit struct {
@@ -145,6 +145,7 @@ func ViewPost(ctx *context_module.Context) {
 			Name:     v.Name,
 			Status:   v.Status.String(),
 			CanRerun: v.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions),
+			Duration: v.Duration().String(),
 		})
 	}
 
@@ -264,10 +265,7 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	if err := actions_service.CreateCommitStatus(ctx, job); err != nil {
-		log.Error("Update commit status for job %v failed: %v", job.ID, err)
-		// go on
-	}
+	actions_service.CreateCommitStatus(ctx, job)
 
 	ctx.JSON(http.StatusOK, struct{}{})
 }
@@ -308,12 +306,7 @@ func Cancel(ctx *context_module.Context) {
 		return
 	}
 
-	for _, job := range jobs {
-		if err := actions_service.CreateCommitStatus(ctx, job); err != nil {
-			log.Error("Update commit status for job %v failed: %v", job.ID, err)
-			// go on
-		}
-	}
+	actions_service.CreateCommitStatus(ctx, jobs...)
 
 	ctx.JSON(http.StatusOK, struct{}{})
 }
@@ -348,6 +341,8 @@ func Approve(ctx *context_module.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	actions_service.CreateCommitStatus(ctx, jobs...)
 
 	ctx.JSON(http.StatusOK, struct{}{})
 }

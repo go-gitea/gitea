@@ -2,7 +2,7 @@
 date: "2016-12-26T16:00:00+02:00"
 title: "Config Cheat Sheet"
 slug: "config-cheat-sheet"
-weight: 20
+weight: 30
 toc: false
 draft: false
 menu:
@@ -103,8 +103,8 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH`:  **false**: Close an issue if a commit on a non default branch marks it as closed.
 - `ENABLE_PUSH_CREATE_USER`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for a user.
 - `ENABLE_PUSH_CREATE_ORG`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for an org.
-- `DISABLED_REPO_UNITS`: **_empty_**: Comma separated list of globally disabled repo units. Allowed values: \[repo.issues, repo.ext_issues, repo.pulls, repo.wiki, repo.ext_wiki, repo.projects\]
-- `DEFAULT_REPO_UNITS`: **repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects,repo.packages**: Comma separated list of default new repo units. Allowed values: \[repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki, repo.projects\]. Note: Code and Releases can currently not be deactivated. If you specify default repo units you should still list them for future compatibility. External wiki and issue tracker can't be enabled by default as it requires additional settings. Disabled repo units will not be added to new repositories regardless if it is in the default list.
+- `DISABLED_REPO_UNITS`: **_empty_**: Comma separated list of globally disabled repo units. Allowed values: \[repo.issues, repo.ext_issues, repo.pulls, repo.wiki, repo.ext_wiki, repo.projects, repo.packages, repo.actions\]
+- `DEFAULT_REPO_UNITS`: **repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects,repo.packages**: Comma separated list of default new repo units. Allowed values: \[repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki, repo.projects, repo.packages, repo.actions\]. Note: Code and Releases can currently not be deactivated. If you specify default repo units you should still list them for future compatibility. External wiki and issue tracker can't be enabled by default as it requires additional settings. Disabled repo units will not be added to new repositories regardless if it is in the default list.
 - `DEFAULT_FORK_REPO_UNITS`: **repo.code,repo.pulls**: Comma separated list of default forked repo units. The set of allowed values and rules is the same as `DEFAULT_REPO_UNITS`.
 - `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
 - `DISABLE_MIGRATIONS`: **false**: Disable migrating feature.
@@ -226,11 +226,13 @@ The following configuration set `Content-Type: application/vnd.android.package-a
     Values can be emoji alias (:smile:) or a unicode emoji.
     For custom reactions, add a tightly cropped square image to public/img/emoji/reaction_name.png
 - `CUSTOM_EMOJIS`: **gitea, codeberg, gitlab, git, github, gogs**: Additional Emojis not defined in the utf8 standard.
-    By default we support Gitea (:gitea:), to add more copy them to public/img/emoji/emoji_name.png and
+    By default, we support Gitea (:gitea:), to add more copy them to public/img/emoji/emoji_name.png and
     add it to this config.
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
 - `USE_SERVICE_WORKER`: **false**: Whether to enable a Service Worker to cache frontend assets.
+- `ONLY_SHOW_RELEVANT_REPOS`: **false** Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
+    A repo is considered irrelevant if it's a fork or if it has no metadata (no description, no icon, no topic).
 
 ### UI - Admin (`ui.admin`)
 
@@ -343,7 +345,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SSH_SERVER_MACS`: **hmac-sha2-256-etm@openssh.com, hmac-sha2-256, hmac-sha1**: For the built-in SSH server, choose the MACs to support for SSH connections, for system SSH this setting has no effect
 - `SSH_SERVER_HOST_KEYS`: **ssh/gitea.rsa, ssh/gogs.rsa**: For the built-in SSH server, choose the keypairs to offer as the host key. The private key should be at `SSH_SERVER_HOST_KEY` and the public `SSH_SERVER_HOST_KEY.pub`. Relative paths are made absolute relative to the `APP_DATA_PATH`. If no key exists a 4096 bit RSA key will be created for you.
 - `SSH_KEY_TEST_PATH`: **/tmp**: Directory to create temporary files in when testing public keys using ssh-keygen, default is the system temporary directory.
-- `SSH_KEYGEN_PATH`: **ssh-keygen**: Path to ssh-keygen, default is 'ssh-keygen' which means the shell is responsible for finding out which one to call.
+- `SSH_KEYGEN_PATH`: **\<empty\>**: Use `ssh-keygen` to parse public SSH keys. The value is passed to the shell. By default, Gitea does the parsing itself.
 - `SSH_EXPOSE_ANONYMOUS`: **false**: Enable exposure of SSH clone URL to anonymous visitors, default is false.
 - `SSH_PER_WRITE_TIMEOUT`: **30s**: Timeout for any write to the SSH connections. (Set to
   -1 to disable all timeouts.)
@@ -456,8 +458,8 @@ relation to port exhaustion.
 
 ## Indexer (`indexer`)
 
-- `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently supported: `bleve`, `db` or `elasticsearch`.
-- `ISSUE_INDEXER_CONN_STR`: ****: Issue indexer connection string, available when ISSUE_INDEXER_TYPE is elasticsearch. i.e. http://elastic:changeme@localhost:9200
+- `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently supported: `bleve`, `db`, `elasticsearch` or `meilisearch`.
+- `ISSUE_INDEXER_CONN_STR`: ****: Issue indexer connection string, available when ISSUE_INDEXER_TYPE is elasticsearch, or meilisearch. i.e. http://elastic:changeme@localhost:9200
 - `ISSUE_INDEXER_NAME`: **gitea_issues**: Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search; available when ISSUE_INDEXER_TYPE is bleve and elasticsearch. Relative paths will be made absolute against _`AppWorkPath`_.
 - The next 4 configuration values are deprecated and should be set in `queue.issue_indexer` however are kept for backwards compatibility:
