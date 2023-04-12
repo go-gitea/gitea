@@ -240,19 +240,15 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 				}
 				line, _ := strconv.Atoi(lineStr) // Cannot error out as groups[2] is [1-9][0-9]*
 				pos, _ := strconv.Atoi(posStr)   // Cannot error out as groups[3] is [1-9][0-9]*
-				filename, filenameErr := templates.GetAssetFilename("templates/" + errorTemplateName + ".tmpl")
-				if filenameErr != nil {
-					filename = "(template) " + errorTemplateName
-				}
+				assetLayerName := templates.AssetFS().GetFileLayerName(errorTemplateName + ".tmpl")
+				filename := fmt.Sprintf("(%s) %s", assetLayerName, errorTemplateName)
 				if errorTemplateName != string(name) {
 					filename += " (subtemplate of " + string(name) + ")"
 				}
 				err = fmt.Errorf("failed to render %s, error: %w:\n%s", filename, err, templates.GetLineFromTemplate(errorTemplateName, line, target, pos))
 			} else {
-				filename, filenameErr := templates.GetAssetFilename("templates/" + execErr.Name + ".tmpl")
-				if filenameErr != nil {
-					filename = "(template) " + execErr.Name
-				}
+				assetLayerName := templates.AssetFS().GetFileLayerName(execErr.Name + ".tmpl")
+				filename := fmt.Sprintf("(%s) %s", assetLayerName, execErr.Name)
 				if execErr.Name != string(name) {
 					filename += " (subtemplate of " + string(name) + ")"
 				}

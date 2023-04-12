@@ -4,10 +4,9 @@ import $ from 'jquery';
 import {attachTribute} from '../tribute.js';
 import {hideElem, showElem, autosize} from '../../utils/dom.js';
 import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
-import {initMarkupContent} from '../../markup/content.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
-import {attachRefIssueContextPopup} from '../contextpopup.js';
 import {emojiKeys, emojiString} from '../emoji.js';
+import {renderPreviewPanelContent} from '../repo-editor.js';
 
 let elementIdCounter = 0;
 const maxExpanderMatches = 6;
@@ -70,7 +69,10 @@ class ComboMarkdownEditor {
 
     this.textareaMarkdownToolbar = this.container.querySelector('markdown-toolbar');
     this.textareaMarkdownToolbar.setAttribute('for', this.textarea.id);
-
+    for (const el of this.textareaMarkdownToolbar.querySelectorAll('.markdown-toolbar-button')) {
+      // upstream bug: The role code is never executed in base MarkdownButtonElement https://github.com/github/markdown-toolbar-element/issues/70
+      el.setAttribute('role', 'button');
+    }
     this.switchToEasyMDEButton = this.container.querySelector('.markdown-switch-easymde');
     this.switchToEasyMDEButton?.addEventListener('click', async (e) => {
       e.preventDefault();
@@ -191,11 +193,7 @@ class ComboMarkdownEditor {
         text: this.value(),
         wiki: this.previewWiki,
       }, (data) => {
-        $panelPreviewer.html(data);
-        initMarkupContent();
-
-        const refIssues = $panelPreviewer.find('p .ref-issue');
-        attachRefIssueContextPopup(refIssues);
+        renderPreviewPanelContent($panelPreviewer, data);
       });
     });
   }

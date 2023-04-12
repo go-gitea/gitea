@@ -30,7 +30,7 @@ func PreloadSettings(ctx context.Context) bool {
 		}
 
 		setting.LoadSettingsForInstall()
-		svg.Init()
+		_ = svg.Init()
 	}
 
 	return !setting.InstallLock
@@ -47,6 +47,5 @@ func reloadSettings(ctx context.Context) {
 		} else {
 			log.Fatal("ORM engine initialization failed: %v", err)
 		}
-		svg.Init()
 	}
 }

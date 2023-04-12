@@ -9,7 +9,6 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -79,7 +78,7 @@ func checkConfigurationFiles(ctx context.Context, logger log.Logger, autofix boo
 		{"Log Root Path", setting.Log.RootPath, true, true, true},
 	}
 
-	if options.IsDynamic() {
+	if !setting.HasBuiltinBindata {
 		configurationFiles = append(configurationFiles, configurationFile{"Static File Root Path", setting.StaticRootPath, true, true, false})
 	}
 

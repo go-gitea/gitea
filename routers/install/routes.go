@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"html"
 	"net/http"
-	"path"
 
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
@@ -89,10 +88,7 @@ func Routes(ctx goctx.Context) *web.Route {
 		r.Use(middle)
 	}
 
-	r.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
-		Directory: path.Join(setting.StaticRootPath, "public"),
-		Prefix:    public.AssetsURLPathPrefix,
-	}), "InstallAssetsHandler"))
+	r.Use(web.WrapWithPrefix("/assets/", public.AssetsHandlerFunc("/assets/"), "AssetsHandler"))
 
 	r.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
