@@ -40,6 +40,7 @@ func Debounce(d time.Duration) func(f func()) {
 			defer db.mu.Unlock()
 			if trigger == db.t {
 				f()
+				db.t = nil
 			}
 		})
 		db.t = trigger
