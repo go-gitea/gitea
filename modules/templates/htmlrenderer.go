@@ -63,16 +63,16 @@ func (h *HTMLRender) TemplateLookup(name string) (TemplateExecutor, error) {
 }
 
 func (h *HTMLRender) CompileTemplates() error {
+	assets := AssetFS()
 	extSuffix := ".tmpl"
 	tmpls := scopedtmpl.NewScopedTemplate()
 	tmpls.Funcs(NewFuncMap()[0])
-
 	files, err := ListWebTemplateAssetNames(assets)
 	if err != nil {
 		return nil
 	}
-	for _, path := range files {
-		if !strings.HasSuffix(path, extSuffix) {
+	for _, file := range files {
+		if !strings.HasSuffix(file, extSuffix) {
 			continue
 		}
 		name := strings.TrimSuffix(file, extSuffix)
