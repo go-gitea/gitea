@@ -120,8 +120,7 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		webhook_module.HookEventFork,   // no activity types
 		webhook_module.HookEventWiki,   // no activity types
 
-		webhook_module.HookEventPullRequestReviewComment, // TODO
-		webhook_module.HookEventPackage:                  // TODO
+		webhook_module.HookEventPullRequestReviewComment: // TODO
 		if len(evt.Acts()) != 0 {
 			log.Warn("Ignore unsupported %s event arguments %v", triggedEvent, evt.Acts())
 		}
@@ -140,7 +139,7 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 
 	case // issue_comment
 		webhook_module.HookEventIssueComment,
-		// use issue_comment for pull_request_comment
+		// `pull_request_comment` is same as `issue_comment`
 		// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_comment-use-issue_comment
 		webhook_module.HookEventPullRequestComment:
 		return matchIssueCommentEvent(commit, payload.(*api.IssueCommentPayload), evt)
@@ -159,6 +158,9 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 
 	case webhook_module.HookEventRelease:
 		return matchReleaseEvent(commit, payload.(*api.ReleasePayload), evt)
+
+	case webhook_module.HookEventPackage:
+		return matchPackageEvent(commit, payload.(*api.PackagePayload), evt)
 
 	default:
 		log.Warn("unsupported event %q", triggedEvent)
@@ -298,7 +300,7 @@ func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *j
 func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
 	if len(evt.Acts()) == 0 {
-		// defaultly, only pull request opened, reopened and synchronized will trigger workflow
+		// defaultly, only pull request `opened`, `reopened`` and `synchronized` will trigger workflow
 		// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
 		return prPayload.Action == api.HookIssueSynchronized || prPayload.Action == api.HookIssueOpened || prPayload.Action == api.HookIssueReOpened
 	}
@@ -412,10 +414,11 @@ func matchPullRequestReviewEvent(commit *git.Commit, prPayload *api.PullRequestP
 		case "types":
 			actions := make([]string, 0)
 			if prPayload.Action == api.HookIssueReviewed {
+				// the `reviewed` HookIssueAction can match the two activity types: `submitted` and `edited`
 				// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_review
 				actions = append(actions, "submitted", "edited")
 			}
-			// TODO: support dismissed activity type
+			// TODO: support the `dismissed` activity type
 
 			matched := false
 			for _, val := range vals {
@@ -454,6 +457,36 @@ func matchReleaseEvent(commit *git.Commit, payload *api.ReleasePayload, evt *job
 			switch action {
 			case api.HookReleaseUpdated:
 				action = "edited"
+			}
+			for _, val := range vals {
+				if glob.MustCompile(val, '/').Match(string(action)) {
+					matchTimes++
+					break
+				}
+			}
+		default:
+			log.Warn("release event unsupported condition %q", cond)
+		}
+	}
+	return matchTimes == len(evt.Acts())
+}
+
+func matchPackageEvent(commit *git.Commit, payload *api.PackagePayload, evt *jobparser.Event) bool {
+	// with no special filter parameters
+	if len(evt.Acts()) == 0 {
+		return true
+	}
+
+	matchTimes := 0
+	// all acts conditions should be satisfied
+	for cond, vals := range evt.Acts() {
+		switch cond {
+		case "types":
+			action := payload.Action
+			switch action {
+			case api.HookPackageCreated:
+				action = "published"
+				// TODO: support the `updated` activity type
 			}
 			for _, val := range vals {
 				if glob.MustCompile(val, '/').Match(string(action)) {
