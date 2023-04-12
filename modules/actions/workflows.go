@@ -430,7 +430,7 @@ func matchIssueCommentEvent(commit *git.Commit, issueCommentPayload *api.IssueCo
 				}
 			}
 		default:
-			log.Warn("issue comment unsupported condition %q", cond)
+			log.Warn("issue comment event unsupported condition %q", cond)
 		}
 	}
 	return matchTimes == len(evt.Acts())
