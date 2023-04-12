@@ -201,7 +201,7 @@
 								<span class="ui text gt-mr-3">{{.locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:</span>
 							{{end}}
 							{{avatar $.Context .Verification.SigningUser 28 "gt-mr-3"}}
-							{{if .Verification.SigningUser.Fullname}}
+							{{if .Verification.SigningUser.FullName}}
 								<a href="{{.Verification.SigningUser.HomeLink}}"><strong> {{.Verification.SigningUser.FullName}} ({{.Verification.SigningUser.GetDisplayName}})</strong></a>
 							{{else}}
 								<a href="{{.Verification.SigningUser.HomeLink}}"><strong> ({{.Verification.SigningUser.GetDisplayName}})</strong></a>
