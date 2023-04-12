@@ -179,7 +179,7 @@ func CheckPublicKeyString(content string) (_ string, err error) {
 		keyType string
 		length  int
 	)
-	if setting.SSH.StartBuiltinServer {
+	if len(setting.SSH.KeygenPath) == 0 {
 		fnName = "SSHNativeParsePublicKey"
 		keyType, length, err = SSHNativeParsePublicKey(content)
 	} else {
@@ -285,7 +285,12 @@ func SSHKeyGenParsePublicKey(key string) (string, int, error) {
 		}
 	}()
 
-	stdout, stderr, err := process.GetManager().Exec("SSHKeyGenParsePublicKey", setting.SSH.KeygenPath, "-lf", tmpName)
+	keygenPath := setting.SSH.KeygenPath
+	if len(keygenPath) == 0 {
+		keygenPath = "ssh-keygen"
+	}
+
+	stdout, stderr, err := process.GetManager().Exec("SSHKeyGenParsePublicKey", keygenPath, "-lf", tmpName)
 	if err != nil {
 		return "", 0, fmt.Errorf("fail to parse public key: %s - %s", err, stderr)
 	}
