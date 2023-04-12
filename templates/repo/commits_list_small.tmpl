@@ -2,7 +2,7 @@
 <div class="timeline-item commits-list">
 {{range .comment.Commits}}
 	{{$tag := printf "%s-%d" $.comment.HashTag $index}}
-	{{$index = Add $index 1}}
+	{{$index = Eval $index "+" 1}}
 	<div class="singular-commit" id="{{$tag}}">
 		<span class="badge badge-commit">{{svg "octicon-git-commit"}}</span>
 		{{if .User}}

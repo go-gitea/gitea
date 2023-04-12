@@ -23,7 +23,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -190,7 +189,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 
 	// Check if label template exist
 	if len(opts.IssueLabels) > 0 {
-		if _, err := label.GetTemplateFile(opts.IssueLabels); err != nil {
+		if _, err := LoadTemplateLabelsByDisplayName(opts.IssueLabels); err != nil {
 			return nil, err
 		}
 	}
