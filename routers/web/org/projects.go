@@ -152,6 +152,7 @@ func NewProjectPost(ctx *context.Context) {
 		Description: form.Content,
 		CreatorID:   ctx.Doer.ID,
 		BoardType:   form.BoardType,
+		CardType:    form.CardType,
 		Type:        project_model.TypeOrganization,
 	}); err != nil {
 		ctx.ServerError("NewProject", err)
