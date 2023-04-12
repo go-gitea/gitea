@@ -47,10 +47,11 @@ func getStorageSection(rootCfg ConfigProvider) *ini.Section {
 }
 
 // getStorage will read storage configurations from 4 possible ways
-// 1 read configurations from [$name] if the item exist
-// 2 read configurations from [storage.$name] if the item exist
-// 3 read configurations from [storage.$typ] if the item exist
-// 4 read configurations from [storage] if the item exist
+// 1 read configurations from [$name] if the setting keys exist (eg: name="attachments")
+// 2 read configurations from [storage.$name] if the keys exist
+// 3 read configurations from [storage.$type] if the keys exist (eg: type="local" or "minio")
+// 4 read configurations from [storage] if the keys exist
+// The keys in earlier section have higher priority.
 func getStorage(rootCfg ConfigProvider, name, typ string, targetSec *ini.Section) Storage {
 	if targetSec == nil {
 		targetSec, _ = rootCfg.NewSection(name)
