@@ -48,12 +48,7 @@ Template Attributes:
 			<textarea class="markdown-text-editor js-quick-submit"{{if .TextareaName}} name="{{.TextareaName}}"{{end}}{{if .TextareaPlaceholder}} placeholder="{{.TextareaPlaceholder}}"{{end}}{{if .TextareaAriaLabel}} aria-label="{{.TextareaAriaLabel}}"{{end}}>{{.TextareaContent}}</textarea>
 		</text-expander>
 		<script>
-			const monospaceEnabled = localStorage?.getItem('editor-monospace') === 'true';
-			const btn = document.querySelector('.markdown-switch-monospace');
-			const text = btn.getAttribute(monospaceEnabled ? 'data-disable-text' : 'data-enable-text');
-			btn.setAttribute('data-tooltip-content', text);
-			btn.setAttribute('aria-checked', String(monospaceEnabled));
-			if (monospaceEnabled) {
+			if (localStorage?.getItem('editor-monospace') === 'true') {
 				document.querySelector('.markdown-text-editor').classList.add('gt-mono');
 			}
 		</script>

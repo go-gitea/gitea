@@ -75,6 +75,11 @@ class ComboMarkdownEditor {
     }
 
     const monospaceButton = this.container.querySelector('.markdown-switch-monospace');
+    const monospaceEnabled = localStorage?.getItem('editor-monospace') === 'true';
+    const monospaceText = monospaceButton.getAttribute(monospaceEnabled ? 'data-disable-text' : 'data-enable-text');
+    monospaceButton.setAttribute('data-tooltip-content', monospaceText);
+    monospaceButton.setAttribute('aria-checked', String(monospaceEnabled));
+
     monospaceButton?.addEventListener('click', (e) => {
       e.preventDefault();
       const enabled = localStorage?.getItem('editor-monospace') !== 'true';
