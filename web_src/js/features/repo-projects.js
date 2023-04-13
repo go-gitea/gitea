@@ -142,7 +142,7 @@ export function initRepoProject() {
   });
 
   $('.delete-project-board').each(function () {
-    $(this).click(function (e) {
+    $(this).on('click', function (e) {
       e.preventDefault();
 
       $.ajax({
@@ -158,7 +158,7 @@ export function initRepoProject() {
     });
   });
 
-  $('#new_board_submit').click(function (e) {
+  $('#new_board_submit').on('click', function (e) {
     e.preventDefault();
 
     const boardTitle = $('#new_board');
