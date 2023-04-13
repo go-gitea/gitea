@@ -37,6 +37,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Remove conflicting CSS rules on notifications, improve notifications table (#23565) (#23621)
   * Fix diff tree height and adjust target file style (#23616)
 * BUGFIXES
+  * Improve error logging for LFS (#24072) (#24082)
+  * Fix custom mailer template on Windows platform (#24081)
+  * Update the value of `diffEnd` when clicking the `Show More` button in the DiffFileTree (#24069) (#24078)
   * Make label templates have consistent behavior and priority (#23749)
   * Fix accidental overwriting of LDAP team memberships (#24050) (#24065)
   * Fix branch protection priority (#24045) (#24061)
@@ -76,8 +79,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Polyfill the window.customElements (#23592) (#23595)
   * Avoid too long names for actions (#23162) (#23190)
 * TRANSLATION
-  * Backport locales (with manual fixes) (#23808)
-  * Backport locales to 1.19 (#23634)
+  * Backport locales (with manual fixes) (#23808, #23634, #24083)
 * BUILD
   * Hardcode the path to docker images (#23955) (#23968)
 * DOCS
