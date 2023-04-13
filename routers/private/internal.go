@@ -38,12 +38,12 @@ func CheckInternalToken(next http.Handler) http.Handler {
 }
 
 // bind binding an obj to a handler
-func bind[T any](obj T) http.HandlerFunc {
-	return web.Wrap(func(ctx *context.PrivateContext) {
+func bind[T any](_ T) any {
+	return func(ctx *context.PrivateContext) {
 		theObj := new(T) // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)
 		web.SetForm(ctx, theObj)
-	})
+	}
 }
 
 // Routes registers all internal APIs routes to web application.
