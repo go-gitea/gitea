@@ -481,6 +481,8 @@ var migrations = []Migration{
 	NewMigration("Change Container Metadata", v1_20.ChangeContainerMetadataMultiArch),
 	// v251 -> v252
 	NewMigration("Fix incorrect owner team unit access mode", v1_20.FixIncorrectOwnerTeamUnitAccessMode),
+	// v252 -> v253
+	NewMigration("Fix incorrect admin team unit access mode", v1_20.FixIncorrectAdminTeamUnitAccessMode),
 }
 
 // GetCurrentDBVersion returns the current db version

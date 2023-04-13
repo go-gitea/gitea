@@ -23,6 +23,7 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -290,7 +291,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.
 	// Log the flash values on failure
 	if !assert.Equal(t, resp.Result().Header["Location"], []string{"/user/settings/applications"}) {
 		for _, cookie := range resp.Result().Cookies() {
-			if cookie.Name != "macaron_flash" {
+			if cookie.Name != gitea_context.CookieNameFlash {
 				continue
 			}
 			flash, _ := url.ParseQuery(cookie.Value)
