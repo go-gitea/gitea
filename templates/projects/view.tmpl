@@ -175,6 +175,13 @@
 
 					<!-- start issue card -->
 					<div class="card board-card" data-issue="{{.ID}}">
+						{{if eq $.Project.CardType 1}}{{/* Images and Text*/}}
+							<div class="card-attachment-images">
+								{{range (index $.issuesAttachmentMap .ID)}}
+									<img src="{{.DownloadURL}}" alt="{{.Name}}" />
+								{{end}}
+							</div>
+						{{end}}
 						<div class="content gt-p-0">
 							<div class="header">
 								<span class="gt-dif gt-ac gt-vm {{if .IsClosed}}red{{else}}green{{end}}">
