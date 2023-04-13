@@ -166,6 +166,21 @@ func attachTeamUnitsMap(team *organization.Team, unitsMap map[string]string) {
 	}
 }
 
+func attachAdminTeamUnits(team *organization.Team) {
+	team.Units = make([]*organization.TeamUnit, 0, len(unit_model.AllRepoUnitTypes))
+	for _, ut := range unit_model.AllRepoUnitTypes {
+		up := perm.AccessModeAdmin
+		if ut == unit_model.TypeExternalTracker || ut == unit_model.TypeExternalWiki {
+			up = perm.AccessModeRead
+		}
+		team.Units = append(team.Units, &organization.TeamUnit{
+			OrgID:      team.OrgID,
+			Type:       ut,
+			AccessMode: up,
+		})
+	}
+}
+
 // CreateTeam api for create a team
 func CreateTeam(ctx *context.APIContext) {
 	// swagger:operation POST /orgs/{org}/teams organization orgCreateTeam
@@ -213,6 +228,8 @@ func CreateTeam(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "getTeamUnits", errors.New("units permission should not be empty"))
 			return
 		}
+	} else {
+		attachAdminTeamUnits(team)
 	}
 
 	if err := models.NewTeam(team); err != nil {
@@ -300,6 +317,8 @@ func EditTeam(ctx *context.APIContext) {
 		} else if len(form.Units) > 0 {
 			attachTeamUnits(team, form.Units)
 		}
+	} else {
+		attachAdminTeamUnits(team)
 	}
 
 	if err := models.UpdateTeam(team, isAuthChanged, isIncludeAllChanged); err != nil {
