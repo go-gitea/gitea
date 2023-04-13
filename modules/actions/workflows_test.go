@@ -4,12 +4,15 @@
 package actions
 
 import (
+	"bytes"
 	"testing"
 
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
+	"github.com/nektos/act/pkg/jobparser"
+	"github.com/nektos/act/pkg/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -96,7 +99,10 @@ func TestDetectMatched(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			evts, err := GetEventsFromContent([]byte(tc.yamlOn))
+			workflow, err := model.ReadWorkflow(bytes.NewReader([]byte(tc.yamlOn)))
+			assert.NoError(t, err)
+			evts, err := jobparser.ParseRawOn(&workflow.RawOn)
+			assert.NoError(t, err)
 			assert.NoError(t, err)
 			assert.Len(t, evts, 1)
 			assert.Equal(t, tc.expected, detectMatched(tc.commit, tc.triggedEvent, tc.payload, evts[0]))
