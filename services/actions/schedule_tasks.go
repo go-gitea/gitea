@@ -59,7 +59,7 @@ func startTasks(ctx context.Context, opts actions_model.FindSpecOptions) error {
 		}
 
 		// Stop if all specs have been retrieved
-		if int(total) < pageSize {
+		if len(specs) < pageSize {
 			break
 		}
 	}
