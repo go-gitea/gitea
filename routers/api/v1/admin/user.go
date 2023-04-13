@@ -528,5 +528,5 @@ func RenameUser(ctx *context.APIContext) {
 		}
 		return
 	}
-	ctx.Status(http.StatusNoContent)
+	ctx.Status(http.StatusOK)
 }
