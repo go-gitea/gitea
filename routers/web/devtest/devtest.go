@@ -15,15 +15,16 @@ import (
 
 // List all devtest templates, they will be used for e2e tests for the UI components
 func List(ctx *context.Context) {
-	templateNames := templates.GetTemplateAssetNames()
+	templateNames, err := templates.AssetFS().ListFiles("devtest", true)
+	if err != nil {
+		ctx.ServerError("AssetFS().ListFiles", err)
+		return
+	}
 	var subNames []string
-	const prefix = "templates/devtest/"
 	for _, tmplName := range templateNames {
-		if strings.HasPrefix(tmplName, prefix) {
-			subName := strings.TrimSuffix(strings.TrimPrefix(tmplName, prefix), ".tmpl")
-			if subName != "list" {
-				subNames = append(subNames, subName)
-			}
+		subName := strings.TrimSuffix(tmplName, ".tmpl")
+		if subName != "list" {
+			subNames = append(subNames, subName)
 		}
 	}
 	ctx.Data["SubNames"] = subNames

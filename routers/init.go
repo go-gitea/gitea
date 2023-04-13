@@ -71,13 +71,6 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 	}
 }
 
-// InitGitServices init new services for git, this is also called in `contrib/pr/checkout.go`
-func InitGitServices() {
-	setting.LoadSettings()
-	mustInit(storage.Init)
-	mustInit(repo_service.Init)
-}
-
 func syncAppConfForGit(ctx context.Context) error {
 	runtimeState := new(system.RuntimeState)
 	if err := system.AppState.Get(runtimeState); err != nil {
@@ -172,7 +165,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(ssh.Init)
 
 	auth.Init()
-	svg.Init()
+	mustInit(svg.Init)
 
 	actions_service.Init()
 
