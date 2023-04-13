@@ -45,6 +45,8 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
+const CookieNameFlash = "gitea_flash"
+
 // Render represents a template render
 type Render interface {
 	TemplateLookup(tmpl string) (*template.Template, error)
@@ -676,8 +678,6 @@ func getCsrfOpts() CsrfOptions {
 		SameSite:       setting.SessionConfig.SameSite,
 	}
 }
-
-const CookieNameFlash = "gitea_flash"
 
 // Contexter initializes a classic context for a request.
 func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
