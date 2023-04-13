@@ -144,8 +144,8 @@
 										</label>
 									</div>
 									<div class="text right actions">
-										{{$DataUrl := printf "%s/%d/default" $.Link .ID}}
-										{{template "base/delete_modal_actions" (dict "." $ "ExtendedClasses" "set-default-project-board" "DataUrl" $DataUrl "ModalNoTranslationKey" "settings.cancel" "ModalYesTranslationKey" "repo.projects.column.set_default")}}
+										<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
+										<button class="ui primary button set-default-project-board" data-url="{{$.Link}}/{{.ID}}/default">{{$.locale.Tr "repo.projects.column.set_default"}}</button>
 									</div>
 								</div>
 
@@ -160,7 +160,9 @@
 									</div>
 									<div class="text right actions">
 										{{$DataUrl := printf "%s/%d" $.Link .ID}}
-										{{template "base/delete_modal_actions" (dict "." $ "ExtendedClasses" "delete-project-board" "DataUrl" $DataUrl)}}
+										{{$ModalNoText := $.locale.Tr "settings.cancel"}}
+										{{$ModalYesText := $.locale.Tr "repo.projects.column.delete"}}
+										{{template "base/delete_modal_actions" (dict "." $ "ExtendedClasses" "delete-project-board" "DataUrl" $DataUrl "ModalNoText" $ModalNoText "ModalYesText" $ModalYesText)}}
 									</div>
 								</div>
 							</div>
