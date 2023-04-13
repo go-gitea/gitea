@@ -371,7 +371,6 @@ func HandleSignOut(ctx *context.Context) {
 	ctx.DeleteSiteCookie(setting.CookieUserName)
 	ctx.DeleteSiteCookie(setting.CookieRememberName)
 	ctx.Csrf.DeleteCookie(ctx)
-	middleware.DeleteLocaleCookie(ctx.Resp)
 	middleware.DeleteRedirectToCookie(ctx.Resp)
 }
 
