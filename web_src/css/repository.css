@@ -3224,7 +3224,7 @@ td.blob-excerpt {
   position: sticky;
   padding-top: 0;
   top: 47px;
-  max-height: calc(100vh - 47px);
+  min-height: calc(100vh - 47px);
   height: 100%;
   overflow-y: auto;
 }
