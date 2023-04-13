@@ -103,11 +103,7 @@ func buildAuthGroup() *auth_service.Group {
 func Routes(ctx gocontext.Context) *web.Route {
 	routes := web.NewRoute()
 
-	routes.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
-		Directory:   path.Join(setting.StaticRootPath, "public"),
-		Prefix:      public.AssetsURLPathPrefix,
-		CorsHandler: CorsHandler(),
-	}), "AssetsHandler"))
+	routes.Use(web.WrapWithPrefix("/assets/", web.Wrap(CorsHandler(), public.AssetsHandlerFunc("/assets/")), "AssetsHandler"))
 
 	sessioner := session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
