@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.19.1](https://github.com/go-gitea/gitea/releases/tag/1.19.1) - 2023-04-12
+## [1.19.1](https://github.com/go-gitea/gitea/releases/tag/v1.19.1) - 2023-04-12
 
 * BREAKING
   * Rename actions unit to `repo.actions` and add docs for it (#23733) (#23881)
@@ -93,7 +93,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Make minio package support legacy MD5 checksum (#23768) (#23770)
   * Improve template error reporting (#23396) (#23600)
 
-## [1.19.0](https://github.com/go-gitea/gitea/releases/tag/1.19.0) - 2023-03-19
+## [1.19.0](https://github.com/go-gitea/gitea/releases/tag/v1.19.0) - 2023-03-19
 
 * BREAKING
   * Add loading yaml label template files (#22976) (#23232)
