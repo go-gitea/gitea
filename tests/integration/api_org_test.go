@@ -60,14 +60,15 @@ func TestAPIOrgCreate(t *testing.T) {
 
 		for _, ut := range unit_model.AllRepoUnitTypes {
 			// WIP: need to confirm
+			up := perm.AccessModeOwner
 			if ut == unit_model.TypeExternalTracker || ut == unit_model.TypeExternalWiki {
-				continue
+				up = perm.AccessModeRead
 			}
 			unittest.AssertExistsAndLoadBean(t, &org_model.TeamUnit{
 				OrgID:      apiOrg.ID,
 				TeamID:     ownerTeam.ID,
 				Type:       ut,
-				AccessMode: perm.AccessModeOwner,
+				AccessMode: up,
 			})
 		}
 
