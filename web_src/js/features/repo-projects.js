@@ -129,8 +129,14 @@ export function initRepoProject() {
   $('.default-project-board-modal').each(function () {
     const boardColumn = $(this).closest('.board-column');
     const showButton = $(boardColumn).find('.default-project-board-show');
+    const commitButton = $(this).find('.default-project-board-button');
 
-    $(this).find('.default-project-board-button').on('click', function (e) {
+    if ($(showButton).data('type') === 'unset_default') {
+      $(commitButton).removeClass('primary');
+      $(commitButton).addClass('red');
+    }
+
+    $(commitButton).on('click', function (e) {
       e.preventDefault();
 
       $.ajax({
