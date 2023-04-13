@@ -1,0 +1,72 @@
+# Adds namespace to all resources.
+namespace: operator-system
+
+# Value of this field is prepended to the
+# names of all resources, e.g. a deployment named
+# "wordpress" becomes "alices-wordpress".
+# Note that it should also match with the prefix (text before '-') of the namespace
+# field above.
+namePrefix: operator-
+
+# Labels to add to all resources and selectors.
+#commonLabels:
+#  someName: someValue
+
+bases:
+- ../crd
+- ../rbac
+- ../manager
+# [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in
+# crd/kustomization.yaml
+#- ../webhook
+# [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER'. 'WEBHOOK' components are required.
+#- ../certmanager
+# [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
+#- ../prometheus
+
+patchesStrategicMerge:
+# Protect the /metrics endpoint by putting it behind auth.
+# If you want your controller-manager to expose the /metrics
+# endpoint w/o any authn/z, please comment the following line.
+- manager_auth_proxy_patch.yaml
+
+
+
+# [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in
+# crd/kustomization.yaml
+#- manager_webhook_patch.yaml
+
+# [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER'.
+# Uncomment 'CERTMANAGER' sections in crd/kustomization.yaml to enable the CA injection in the admission webhooks.
+# 'CERTMANAGER' needs to be enabled to use ca injection
+#- webhookcainjection_patch.yaml
+
+# the following config is for teaching kustomize how to do var substitution
+vars:
+# [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER' prefix.
+#- name: CERTIFICATE_NAMESPACE # namespace of the certificate CR
+#  objref:
+#    kind: Certificate
+#    group: cert-manager.io
+#    version: v1
+#    name: serving-cert # this name should match the one in certificate.yaml
+#  fieldref:
+#    fieldpath: metadata.namespace
+#- name: CERTIFICATE_NAME
+#  objref:
+#    kind: Certificate
+#    group: cert-manager.io
+#    version: v1
+#    name: serving-cert # this name should match the one in certificate.yaml
+#- name: SERVICE_NAMESPACE # namespace of the service
+#  objref:
+#    kind: Service
+#    version: v1
+#    name: webhook-service
+#  fieldref:
+#    fieldpath: metadata.namespace
+#- name: SERVICE_NAME
+#  objref:
+#    kind: Service
+#    version: v1
+#    name: webhook-service

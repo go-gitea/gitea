@@ -1,0 +1,10 @@
+- op: add
+  path: /stages/0/tests/-
+  value:
+    entrypoint:
+    - scorecard-test
+    - basic-check-spec
+    image: quay.io/operator-framework/scorecard-test:v1.28.0
+    labels:
+      suite: basic
+      test: basic-check-spec-test

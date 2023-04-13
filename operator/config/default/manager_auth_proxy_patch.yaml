@@ -1,0 +1,55 @@
+# This patch inject a sidecar container which is a HTTP proxy for the
+# controller manager, it performs RBAC authorization against the Kubernetes API using SubjectAccessReviews.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+spec:
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
+                    - arm64
+                    - ppc64le
+                    - s390x
+                - key: kubernetes.io/os
+                  operator: In
+                  values:
+                    - linux
+      containers:
+      - name: kube-rbac-proxy
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - "ALL"
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.1
+        args:
+        - "--secure-listen-address=0.0.0.0:8443"
+        - "--upstream=http://127.0.0.1:8080/"
+        - "--logtostderr=true"
+        - "--v=0"
+        ports:
+        - containerPort: 8443
+          protocol: TCP
+          name: https
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 5m
+            memory: 64Mi
+      - name: manager
+        args:
+        - "--health-probe-bind-address=:8081"
+        - "--metrics-bind-address=127.0.0.1:8080"
+        - "--leader-elect"

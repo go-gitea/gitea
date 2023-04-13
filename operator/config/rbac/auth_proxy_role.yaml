@@ -1,0 +1,24 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: proxy-role
+    app.kubernetes.io/component: kube-rbac-proxy
+    app.kubernetes.io/created-by: operator
+    app.kubernetes.io/part-of: operator
+    app.kubernetes.io/managed-by: kustomize
+  name: proxy-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create

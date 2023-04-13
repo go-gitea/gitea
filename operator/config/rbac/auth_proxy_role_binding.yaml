@@ -1,0 +1,19 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrolebinding
+    app.kubernetes.io/instance: proxy-rolebinding
+    app.kubernetes.io/component: kube-rbac-proxy
+    app.kubernetes.io/created-by: operator
+    app.kubernetes.io/part-of: operator
+    app.kubernetes.io/managed-by: kustomize
+  name: proxy-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: proxy-role
+subjects:
+- kind: ServiceAccount
+  name: controller-manager
+  namespace: system
