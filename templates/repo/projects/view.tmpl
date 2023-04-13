@@ -163,8 +163,8 @@
 										</label>
 									</div>
 									<div class="text right actions">{{/* TODO: Convert to base/delete_modal_actions.tmpl? */}}
-										<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
-										<button class="ui red button delete-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">{{$.locale.Tr "repo.projects.column.delete"}}</button>
+										{{$DataUrl := printf "%s/projects/%d/%d" $.RepoLink $.Project.ID .ID}}
+										{{template "base/delete_modal_actions" (dict "." $ "ExtClass" "delete-project-board" "DataUrl" $DataUrl)}}
 									</div>
 								</div>
 							</div>

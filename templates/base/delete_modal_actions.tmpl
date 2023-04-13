@@ -3,7 +3,7 @@
 		{{svg "octicon-x"}}
 		{{.locale.Tr "modal.no"}}
 	</button>
-	<button class="ui green basic inverted ok button">
+	<button class="ui green basic inverted ok button{{if .ExtClass}} {{.ExtClass}}{{end}}" {{if .DataUrl}}data-url="{{.DataUrl}}"{{end}}>
 		{{svg "octicon-check"}}
 		{{.locale.Tr "modal.yes"}}
 	</button>
