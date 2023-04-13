@@ -10,6 +10,7 @@ import (
 	"path"
 	"testing"
 
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 
 	"github.com/stretchr/testify/assert"
@@ -52,7 +53,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 		// Check if master branch has been locked successfully
-		flashCookie := session.GetCookie("macaron_flash")
+		flashCookie := session.GetCookie(gitea_context.CookieNameFlash)
 		assert.NotNil(t, flashCookie)
 		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Brule%2B%2527master%2527%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
 
@@ -92,7 +93,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 		assert.EqualValues(t, "/user2/repo1/settings/branches", res["redirect"])
 
 		// Check if master branch has been locked successfully
-		flashCookie = session.GetCookie("macaron_flash")
+		flashCookie = session.GetCookie(gitea_context.CookieNameFlash)
 		assert.NotNil(t, flashCookie)
 		assert.EqualValues(t, "error%3DRemoving%2Bbranch%2Bprotection%2Brule%2B%25271%2527%2Bfailed.", flashCookie.Value)
 	})

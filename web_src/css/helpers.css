@@ -29,7 +29,7 @@
 
 .gt-mono {
   font-family: var(--fonts-monospace) !important;
-  font-size: .9em !important; /* compensate for monospace fonts being usually slightly larger */
+  font-size: .95em !important; /* compensate for monospace fonts being usually slightly larger */
 }
 
 .gt-bold { font-weight: 600 !important; }
