@@ -53,8 +53,7 @@ var (
 
 		// Repository editor settings
 		Editor struct {
-			LineWrapExtensions   []string
-			PreviewableFileModes []string
+			LineWrapExtensions []string
 		} `ini:"-"`
 
 		// Repository upload settings
@@ -167,11 +166,9 @@ var (
 
 		// Repository editor settings
 		Editor: struct {
-			LineWrapExtensions   []string
-			PreviewableFileModes []string
+			LineWrapExtensions []string
 		}{
-			LineWrapExtensions:   strings.Split(".txt,.md,.markdown,.mdown,.mkd,", ","),
-			PreviewableFileModes: []string{"markdown"},
+			LineWrapExtensions: strings.Split(".txt,.md,.markdown,.mdown,.mkd,", ","),
 		},
 
 		// Repository upload settings

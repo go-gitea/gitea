@@ -2,7 +2,7 @@
 date: "2017-01-20T15:00:00+08:00"
 title: "需要帮助"
 slug: "seek-help"
-weight: 10
+weight: 20
 toc: false
 draft: false
 menu:

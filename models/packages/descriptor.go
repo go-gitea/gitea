@@ -5,6 +5,7 @@ package packages
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -26,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/packages/rubygems"
 	"code.gitea.io/gitea/modules/packages/swift"
 	"code.gitea.io/gitea/modules/packages/vagrant"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/hashicorp/go-version"
 )
@@ -99,7 +101,11 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	}
 	creator, err := user_model.GetUserByID(ctx, pv.CreatorID)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, util.ErrNotExist) {
+			creator = user_model.NewGhostUser()
+		} else {
+			return nil, err
+		}
 	}
 	var semVer *version.Version
 	if p.SemverCompatible {

@@ -1,7 +1,8 @@
 ---
 date: "2023-01-10T00:00:00+00:00"
 title: "Swift Packages Repository"
-slug: "packages/swift"
+slug: "usage/packages/swift"
+weight: 95
 draft: false
 toc: false
 menu:
@@ -36,7 +37,7 @@ swift package-registry set https://gitea.example.com/api/packages/{owner}/swift 
 | ------------ | ----------- |
 | `owner`      | The owner of the package. |
 | `username`   | Your Gitea username. |
-| `password`   | Your Gitea password. If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}) instead of the password. |
+| `password`   | Your Gitea password. If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) instead of the password. |
 
 The login is optional and only needed if the package registry is private.
 
@@ -61,7 +62,7 @@ curl -X PUT --user {username}:{password} \
 | Placeholder | Description |
 | ----------- | ----------- |
 | `username`  | Your Gitea username. |
-| `password`  | Your Gitea password. If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}) instead of the password. |
+| `password`  | Your Gitea password. If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) instead of the password. |
 | `owner`     | The owner of the package. |
 | `scope`     | The package scope. |
 | `name`      | The package name. |

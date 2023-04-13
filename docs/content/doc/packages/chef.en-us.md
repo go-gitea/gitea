@@ -1,7 +1,8 @@
 ---
 date: "2023-01-20T00:00:00+00:00"
 title: "Chef Packages Repository"
-slug: "packages/chef"
+slug: "usage/packages/chef"
+weight: 5
 draft: false
 toc: false
 menu:

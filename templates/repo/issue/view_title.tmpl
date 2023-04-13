@@ -36,7 +36,7 @@
 		{{if .HeadBranchLink}}
 			{{$headHref = printf "<a href=\"%s\">%s</a>" (.HeadBranchLink | Escape) $headHref}}
 		{{end}}
-		{{$headHref = printf "%s <a class=\"tooltip\" data-content=\"%s\" data-clipboard-text=\"%s\">%s</a>" $headHref (.locale.Tr "copy_branch") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
+		{{$headHref = printf "%s <a data-tooltip-content=\"%s\" data-clipboard-text=\"%s\">%s</a>" $headHref (.locale.Tr "copy_branch") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
 		{{$baseHref := .BaseTarget|Escape}}
 		{{if .BaseBranchLink}}
 			{{$baseHref = printf "<a href=\"%s\">%s</a>" (.BaseBranchLink | Escape) $baseHref}}
