@@ -46,8 +46,8 @@
   text-overflow: ellipsis !important;
 }
 
-.gt-full-screen-width { width: 100vw !important; }
-.gt-full-screen-height { height: 100vh !important; }
+.gt-w-screen { width: 100vw !important; }
+.gt-h-screen { height: 100vh !important; }
 
 .gt-rounded { border-radius: var(--border-radius) !important; }
 .gt-rounded-top { border-radius: var(--border-radius) var(--border-radius) 0 0 !important; }
@@ -202,6 +202,7 @@
 
 .gt-shrink-0 { flex-shrink: 0 !important; }
 .gt-whitespace-nowrap { white-space: nowrap !important; }
+.gt-whitespace-pre-wrap { white-space: pre-wrap !important; }
 
 @media (max-width: 767px) {
   .gt-db-small { display: block !important; }
