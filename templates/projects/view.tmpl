@@ -145,7 +145,7 @@
 									</div>
 									<div class="text right actions">
 										{{$DataUrl := printf "%s/%d/default" $.Link .ID}}
-										{{template "base/delete_modal_actions" (dict "." $ "ExtendedClasses" "set-default-project-board" "DataUrl" $DataUrl)}}
+										{{template "base/delete_modal_actions" (dict "." $ "ExtendedClasses" "set-default-project-board" "DataUrl" $DataUrl "ModalNoTranslationKey" "settings.cancel" "ModalYesTranslationKey" "repo.projects.column.set_default")}}
 									</div>
 								</div>
 
