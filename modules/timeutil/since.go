@@ -115,13 +115,13 @@ func timeSincePro(then, now time.Time, lang translation.Locale) string {
 }
 
 // TimeSince renders relative time HTML given a time.Time
-func TimeSince(then time.Time, lang translation.Locale) template.HTML {
+func TimeSince(then time.Time, lang translation.Locale, relativeTimeOptions ...string) template.HTML {
 	timestamp := then.UTC().Format(time.RFC3339)
 	// declare data-tooltip-content attribute to switch from "title" tooltip to "tippy" tooltip
-	return template.HTML(fmt.Sprintf(`<relative-time class="time-since" prefix="%s" datetime="%s" data-tooltip-content data-tooltip-interactive="true">%s</relative-time>`, lang.Tr("on_date"), timestamp, timestamp))
+	return template.HTML(fmt.Sprintf(`<relative-time class="time-since" %s prefix="%s" datetime="%s" data-tooltip-content data-tooltip-interactive="true">%s</relative-time>`, strings.Join(relativeTimeOptions, " "), lang.Tr("on_date"), timestamp, timestamp))
 }
 
 // TimeSinceUnix renders relative time HTML given a TimeStamp
-func TimeSinceUnix(then TimeStamp, lang translation.Locale) template.HTML {
-	return TimeSince(then.AsLocalTime(), lang)
+func TimeSinceUnix(then TimeStamp, lang translation.Locale, relativeTimeOptions ...string) template.HTML {
+	return TimeSince(then.AsLocalTime(), lang, relativeTimeOptions...)
 }
