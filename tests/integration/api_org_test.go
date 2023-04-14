@@ -59,7 +59,6 @@ func TestAPIOrgCreate(t *testing.T) {
 		ownerTeam, _ := org_model.GetOwnerTeam(db.DefaultContext, apiOrg.ID)
 
 		for _, ut := range unit_model.AllRepoUnitTypes {
-			// WIP: need to confirm
 			up := perm.AccessModeOwner
 			if ut == unit_model.TypeExternalTracker || ut == unit_model.TypeExternalWiki {
 				up = perm.AccessModeRead
