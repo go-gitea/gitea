@@ -121,15 +121,12 @@ func timeSinceUnix(then, now time.Time, lang translation.Locale) template.HTML {
 	attrs := `tense="past"`
 	isFuture := now.Before(then)
 	if isFuture {
-		attrs = `format="duration" tense="future"`
+		attrs = `tense="future"`
 	}
 
 	// declare data-tooltip-content attribute to switch from "title" tooltip to "tippy" tooltip
 	htm := fmt.Sprintf(`<relative-time class="time-since" prefix="" %s datetime="%s" data-tooltip-content data-tooltip-interactive="true">%s</relative-time>`,
 		attrs, then.Format(time.RFC3339), friendlyText)
-	if isFuture {
-		return template.HTML(lang.Tr("tool.from_now", htm))
-	}
 	return template.HTML(htm)
 }
 
