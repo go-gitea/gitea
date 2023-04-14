@@ -19,6 +19,11 @@
 									<i class="check icon green"></i>
 								</span>
 							{{end}}
+							{{if not .HaveMatchingRunner}}
+								<span data-tooltip-content="{{$.locale.Tr "actions.runs.no_matching_runner_helper" (.ErrMsg)}}">
+									<i class="warning icon red"></i>
+								</span>
+							{{end}}
 						</a>
 					{{end}}
 				</div>

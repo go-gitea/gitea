@@ -11,11 +11,15 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/convert"
+
+	"github.com/nektos/act/pkg/jobparser"
 )
 
 const (
@@ -24,9 +28,10 @@ const (
 )
 
 type Workflow struct {
-	Entry     git.TreeEntry
-	IsInvalid bool
-	ErrMsg    string
+	Entry              git.TreeEntry
+	IsInvalid          bool
+	HaveMatchingRunner bool
+	ErrMsg             string
 }
 
 // MustEnableActions check if actions are enabled in settings
@@ -85,6 +90,41 @@ func List(ctx *context.Context) {
 			if err != nil {
 				workflow.IsInvalid = true
 				workflow.ErrMsg = err.Error()
+			}
+			// Check whether have matching runner
+			opts := actions_model.FindRunnerOptions{
+				RepoID:        ctx.Repo.Repository.ID,
+				WithAvailable: true,
+			}
+			runners, err := actions_model.FindRunners(ctx, opts)
+			if err != nil {
+				ctx.ServerError("FindRunners", err)
+				return
+			}
+			allRunnerLabels := make(container.Set[string])
+			for _, r := range runners {
+				allRunnerLabels.AddMultiple(r.AgentLabels...)
+				allRunnerLabels.AddMultiple(r.CustomLabels...)
+			}
+			jobs, err := jobparser.Parse(content)
+			if err != nil {
+				log.Error("jobparser.Parse: %v", err)
+				continue
+			}
+			matchRunner := true
+			for _, v := range jobs {
+				id, job := v.Job()
+				runsOnList := job.RunsOn()
+				for _, ro := range runsOnList {
+					if !allRunnerLabels.Contains(ro) {
+						matchRunner = false
+						workflow.ErrMsg = id
+						break
+					}
+				}
+			}
+			if matchRunner {
+				workflow.HaveMatchingRunner = true
 			}
 			workflows = append(workflows, workflow)
 		}
