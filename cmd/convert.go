@@ -47,7 +47,7 @@ func runConvert(ctx *cli.Context) error {
 			log.Fatal("Failed to convert database from varchar to nvarchar: %v", err)
 			return err
 		}
-		fmt.Println("Converted successfully, please confirm your database's all columns character is NVARCHAR  now")
+		fmt.Println("Converted successfully, please confirm your database's all columns character is NVARCHAR now")
 	default:
 		fmt.Println("This command can only be used with a MySQL or MSSQL database")
 	}
