@@ -2087,6 +2087,10 @@
   white-space: nowrap;
 }
 
+.repository.packages .ui.tabs.container {
+  margin-top: 0;
+}
+
 .repository.wiki.start .ui.segment {
   padding-top: 70px;
   padding-bottom: 100px;
@@ -2437,6 +2441,19 @@
   white-space: nowrap;
   width: 100%;
   border-radius: 0;
+}
+
+.repository .head .ui.header .text {
+  vertical-align: middle;
+  font-size: 1.6rem;
+  margin-left: 15px;
+}
+
+.repository .ui.secondary.stackable.pointing.menu {
+  flex-wrap: wrap;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  border-bottom: 2px solid rgba(34,36,38,.15);
 }
 
 @media (max-width: 767px) {
@@ -3626,3 +3643,4 @@ td.blob-excerpt {
 .search-fullname {
   color: var(--color-text-light-2);
 }
+
