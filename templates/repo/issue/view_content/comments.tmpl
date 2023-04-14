@@ -688,25 +688,11 @@
 							{{$.locale.Tr "repo.issues.review.add_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
 						{{end}}
 					{{else}}
-						<!-- 
-							- For new comments, the name of the team which is requested review is stored in the `content` column of the comment
-								If the team was deleted, we can parse the name from the `content` column.
-								Of course, if the team has not been deleted, we can get the name from `.AssigneeTeam` directly.
-								
-							- For comments that already exist and the row of the team has been deleted,
-								because we didn't save the name of the team in the `cotent` column of the comment before,
-								So we can only display "Unknown Team" here.
-						-->
-						{{$teamName := "Unknown Team"}}
+						<!-- If the assigned team is deleted, just displaying "Ghost Team" in the comment -->
+						{{$teamName := "Ghost Team"}}
 						{{if .AssigneeTeam}}
 							{{$teamName = .AssigneeTeam.Name}}
-						{{else if .Content}}
-							{{$teamNameFromContent := GetRequestReviewTeamName .Content}}
-							{{if not (eq $teamNameFromContent "")}}
-								{{$teamName = $teamNameFromContent}}
-							{{end}}
 						{{end}}
-
 						{{if .RemovedAssignee}}
 							{{$.locale.Tr "repo.issues.review.remove_review_request" ($teamName|Escape) $createdStr | Safe}}
 						{{else}}

@@ -313,11 +313,6 @@ type PushActionContent struct {
 	CommitIDs   []string `json:"commit_ids"`
 }
 
-// RequestTeamReviewActionContent is content of requesting or cancelling request a team to review a PR
-type RequestTeamReviewActionContent struct {
-	TeamName string `json:"team_name"`
-}
-
 // LoadIssue loads the issue reference for the comment
 func (c *Comment) LoadIssue(ctx context.Context) (err error) {
 	if c.Issue != nil {
