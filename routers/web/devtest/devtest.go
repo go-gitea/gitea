@@ -33,7 +33,6 @@ func List(ctx *context.Context) {
 }
 
 func Tmpl(ctx *context.Context) {
-
 	now := time.Now()
 	ctx.Data["TimeNow"] = now
 	ctx.Data["TimePast5s"] = now.Add(-5 * time.Second)
