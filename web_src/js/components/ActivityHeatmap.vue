@@ -1,12 +1,11 @@
 <template>
   <div id="user-heatmap">
-    <div class="total-contributions">
-      {{ sum }} contributions in the last 12 months
-    </div>
+    <!-- eslint-disable-next-line vue/no-v-html (safely generated in the backend) -->
+    <div class="total-contributions" v-html="locale.contributions_in_the_last_12_months_html"/>
     <calendar-heatmap
       :locale="locale"
       :no-data-text="locale.no_contributions"
-      :tooltip-unit="locale.contributions"
+      :tooltip-formatter="(v) => tooltipFormatter(v, locale)"
       :end-date="endDate"
       :values="values"
       :range-color="colorRange"
@@ -41,15 +40,6 @@ export default {
     ],
     endDate: new Date(),
   }),
-  computed: {
-    sum() {
-      let s = 0;
-      for (let i = 0; i < this.values.length; i++) {
-        s += this.values[i].count;
-      }
-      return s;
-    }
-  },
   mounted() {
     // work around issue with first legend color being rendered twice and legend cut off
     const legend = document.querySelector('.vch__external-legend-wrapper');
@@ -74,6 +64,16 @@ export default {
 
       const newSearch = params.toString();
       window.location.search = newSearch.length ? `?${newSearch}` : '';
+    },
+    tooltipFormatter(v, locale) {
+      // TODO: use the localized number as below (why is it throwing Uncaught DOMException: Failed to execute
+      // 'attachShadow' on 'Element': Shadow root cannot be created on a host which already hosts a shadow tree.?)
+      // const number = `<gitea-locale-number data-number="${v.count}">${v.count}</gitea-locale-number>`;
+      const number = v.count;
+      const datetime = v.date.toISOString();
+      const fallback = v.date.toLocaleDateString();
+      const date = `<relative-time format="datetime" year="numeric" month="short" day="numeric" weekday="" datetime="${datetime}">${fallback}</relative-time>`;
+      return locale.contributions_on.replace('%[1]s', number).replace('%[2]s', date);
     }
   },
 };
