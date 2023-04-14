@@ -47,18 +47,6 @@ const (
 	TypeOrganization
 )
 
-func (p Type) DisplayName(locale translation.Locale) string {
-	switch p {
-	case TypeIndividual:
-		return locale.Tr("projects.type.individual.displayname")
-	case TypeRepository:
-		return locale.Tr("projects.type.repository.displayname")
-	case TypeOrganization:
-		return locale.Tr("projects.type.organization.displayname")
-	}
-	return fmt.Sprintf("Unknown Type %d", p)
-}
-
 // ErrProjectNotExist represents a "ProjectNotExist" kind of error.
 type ErrProjectNotExist struct {
 	ID     int64
@@ -170,6 +158,21 @@ func (p *Project) IsOrganizationProject() bool {
 
 func (p *Project) IsRepositoryProject() bool {
 	return p.Type == TypeRepository
+}
+
+func (p *Project) DisplayTitleWithTooltip(locale translation.Locale) string {
+	var typeDispalyName string
+	switch p.Type {
+	case TypeIndividual:
+		typeDispalyName = locale.Tr("projects.type.individual.displayname")
+	case TypeRepository:
+		typeDispalyName = locale.Tr("projects.type.repository.displayname")
+	case TypeOrganization:
+		typeDispalyName = locale.Tr("projects.type.organization.displayname")
+	default:
+		typeDispalyName = fmt.Sprintf("Unknown project type id: %d", p.Type)
+	}
+	return fmt.Sprintf(`<span data-tooltip-content="%s"><b>%s</b></span>`, typeDispalyName, p.Title)
 }
 
 func init() {

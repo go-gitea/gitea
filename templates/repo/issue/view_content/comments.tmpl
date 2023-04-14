@@ -729,12 +729,12 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{if gt .OldProjectID 0}}
 						{{if gt .ProjectID 0}}
-							{{$.locale.Tr "repo.issues.change_project_at" (.OldProject.Type.DisplayName $.locale) (.OldProject.Title|Escape) (.Project.Type.DisplayName $.locale) (.Project.Title|Escape) $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.change_project_at" (.OldProject.DisplayTitleWithTooltip $.locale) (.Project.DisplayTitleWithTooltip $.locale) $createdStr | Safe}}
 						{{else}}
-							{{$.locale.Tr "repo.issues.remove_project_at" (.OldProject.Type.DisplayName $.locale) (.OldProject.Title|Escape) $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.remove_project_at" (.OldProject.DisplayTitleWithTooltip $.locale) $createdStr | Safe}}
 						{{end}}
 					{{else if gt .ProjectID 0}}
-						{{$.locale.Tr "repo.issues.add_project_at" (.Project.Type.DisplayName $.locale) (.Project.Title|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.add_project_at" (.Project.DisplayTitleWithTooltip $.locale) $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>
