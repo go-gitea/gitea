@@ -131,7 +131,7 @@ func NumIssuesInProjects(ctx context.Context, pl project_model.ProjectList, doer
 // NumIssuesInProject returns counter of all issues assigned to a project which doer can access
 func NumIssuesInProject(ctx context.Context, p *project_model.Project, doer *user_model.User, isClosed util.OptionalBool) (int, error) {
 	numIssuesInProject := int(0)
-	bs, err := project_model.GetBoards(ctx, p.ID)
+	bs, err := p.GetBoards(ctx)
 	if err != nil {
 		return 0, err
 	}
