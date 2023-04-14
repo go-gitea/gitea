@@ -6,6 +6,7 @@ package project
 import (
 	"context"
 	"fmt"
+	"html"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -172,7 +173,7 @@ func (p *Project) DisplayTitleWithTooltip(locale translation.Locale) string {
 	default:
 		typeDispalyName = fmt.Sprintf("Unknown project type id: %d", p.Type)
 	}
-	return fmt.Sprintf(`<span data-tooltip-content="%s"><b>%s</b></span>`, typeDispalyName, p.Title)
+	return fmt.Sprintf(`<span data-tooltip-content="%s"><b>%s</b></span>`, typeDispalyName, html.EscapeString(p.Title))
 }
 
 func init() {
