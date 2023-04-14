@@ -158,7 +158,7 @@
   margin-bottom: 0;
 }
 
-.repository .ui.tabs.container .ui.menu {
+.repository .ui.tabs.container .ui.menu:not(.pointing) {
   border-bottom: 0;
 }
 
@@ -2443,19 +2443,6 @@
   border-radius: 0;
 }
 
-.repository .head .ui.header .text {
-  vertical-align: middle;
-  font-size: 1.6rem;
-  margin-left: 15px;
-}
-
-.repository .ui.secondary.stackable.pointing.menu {
-  flex-wrap: wrap;
-  margin-top: 5px;
-  margin-bottom: 10px;
-  border-bottom: 2px solid rgba(34,36,38,.15);
-}
-
 @media (max-width: 767px) {
   .repository .repository-summary .segment.language-stats {
     display: none;
@@ -3643,4 +3630,3 @@ td.blob-excerpt {
 .search-fullname {
   color: var(--color-text-light-2);
 }
-

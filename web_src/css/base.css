@@ -2835,3 +2835,16 @@ table th[data-sortt-desc] .svg {
 .color-text-light-2 {
   color: var(--color-text-light-2);
 }
+
+.head .ui.header .text {
+  vertical-align: middle;
+  font-size: 1.6rem;
+  margin-left: 15px;
+}
+
+.repository .ui.secondary.stackable.pointing.menu, 
+.organization .ui.secondary.stackable.pointing.menu {
+  flex-wrap: wrap;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
