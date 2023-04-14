@@ -9,7 +9,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -25,7 +24,7 @@ func Search(ctx *context.Context) {
 		Keyword:     ctx.FormTrim("q"),
 		UID:         ctx.FormInt64("uid"),
 		Type:        user_model.UserTypeIndividual,
-		IsActive:    util.OptionalBoolTrue,
+		IsActive:    ctx.FormOptionalBool("a"),
 		ListOptions: listOptions,
 	})
 	if err != nil {
