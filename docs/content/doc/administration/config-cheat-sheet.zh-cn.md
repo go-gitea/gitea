@@ -265,7 +265,7 @@ test01.xls: application/vnd.ms-excel; charset=binary
 - `LEVEL`: 日志级别，默认为 `Trace`。
 - `DISABLE_ROUTER_LOG`: 关闭日志中的路由日志。
 - `ENABLE_ACCESS_LOG`: 是否开启 Access Log, 默认为 false。
-- `ACCESS_LOG_TEMPLATE`: `access.log` 输出内容的模板，默认模板：**`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`**
+- `ACCESS_LOG_TEMPLATE`: `access.log` 输出内容的模板，默认模板：**`{{.Ctx.RemoteHost}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}" "{{.Ctx.Req.UserAgent}}"`**
   模板支持以下参数:
   - `Ctx`: 请求上下文。
   - `Identity`: 登录用户名，默认: “`-`”。

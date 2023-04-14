@@ -67,7 +67,7 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 		}
 
 		if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == "POST" {
-			ctx.csrf.Validate(ctx)
+			ctx.Csrf.Validate(ctx)
 			if ctx.Written() {
 				return
 			}
@@ -89,7 +89,7 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 
 		// Redirect to log in page if auto-signin info is provided and has not signed in.
 		if !options.SignOutRequired && !ctx.IsSigned &&
-			len(ctx.GetCookie(setting.CookieUserName)) > 0 {
+			len(ctx.GetSiteCookie(setting.CookieUserName)) > 0 {
 			if ctx.Req.URL.Path != "/user/events" {
 				middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
 			}
