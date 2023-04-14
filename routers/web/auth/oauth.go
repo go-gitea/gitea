@@ -1112,7 +1112,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 
 		// Clear whatever CSRF cookie has right now, force to generate a new one
-		middleware.DeleteCSRFCookie(ctx.Resp)
+		ctx.Csrf.DeleteCookie(ctx)
 
 		// Register last login
 		u.SetLastLogin()
@@ -1148,7 +1148,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			return
 		}
 
-		if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 {
+		if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 {
 			middleware.DeleteRedirectToCookie(ctx.Resp)
 			ctx.RedirectToFirst(redirectTo)
 			return

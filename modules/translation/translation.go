@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation/i18n"
-	"code.gitea.io/gitea/modules/watcher"
 
 	"golang.org/x/text/language"
 )
@@ -58,7 +57,7 @@ func InitLocales(ctx context.Context) {
 
 	refreshLocales := func() {
 		i18n.ResetDefaultLocales()
-		localeNames, err := options.Dir("locale")
+		localeNames, err := options.AssetFS().ListFiles("locale", true)
 		if err != nil {
 			log.Fatal("Failed to list locale files: %v", err)
 		}
@@ -118,13 +117,10 @@ func InitLocales(ctx context.Context) {
 	})
 
 	if !setting.IsProd {
-		watcher.CreateWatcher(ctx, "Locales", &watcher.CreateWatcherOpts{
-			PathsCallback: options.WalkLocales,
-			BetweenCallback: func() {
-				lock.Lock()
-				defer lock.Unlock()
-				refreshLocales()
-			},
+		go options.AssetFS().WatchLocalChanges(ctx, func() {
+			lock.Lock()
+			defer lock.Unlock()
+			refreshLocales()
 		})
 	}
 }
