@@ -527,7 +527,7 @@ func (n *actionsNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Contex
 		Notify(ctx)
 }
 
-func (m *actionsNotifier) NotifyNewWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+func (n *actionsNotifier) NotifyNewWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
 	ctx = withMethod(ctx, "NotifyNewWikiPage")
 
 	newNotifyInput(repo, doer, webhook_module.HookEventWiki).WithPayload(&api.WikiPayload{
@@ -539,7 +539,7 @@ func (m *actionsNotifier) NotifyNewWikiPage(ctx context.Context, doer *user_mode
 	}).Notify(ctx)
 }
 
-func (m *actionsNotifier) NotifyEditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+func (n *actionsNotifier) NotifyEditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
 	ctx = withMethod(ctx, "NotifyEditWikiPage")
 
 	newNotifyInput(repo, doer, webhook_module.HookEventWiki).WithPayload(&api.WikiPayload{
@@ -551,7 +551,7 @@ func (m *actionsNotifier) NotifyEditWikiPage(ctx context.Context, doer *user_mod
 	}).Notify(ctx)
 }
 
-func (m *actionsNotifier) NotifyDeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page string) {
+func (n *actionsNotifier) NotifyDeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page string) {
 	ctx = withMethod(ctx, "NotifyDeleteWikiPage")
 
 	newNotifyInput(repo, doer, webhook_module.HookEventWiki).WithPayload(&api.WikiPayload{
