@@ -363,6 +363,7 @@ func NewFuncMap() []template.FuncMap {
 				curBranch,
 			)
 		},
+		"GetRequestReviewTeamName": GetRequestReviewTeamName,
 	}}
 }
 
@@ -798,4 +799,20 @@ func LocaleNumber(v interface{}) template.HTML {
 func Eval(tokens ...any) (any, error) {
 	n, err := eval.Expr(tokens...)
 	return n.Value, err
+}
+
+// If the value of commnet type is 27 and assigne_team_id not equal 0, this is a request review for a team.
+// So, we can use this func to parse the name of the team from `content` of the comment when the team is deleted.
+func GetRequestReviewTeamName(content string) string {
+	if content == "" {
+		return content
+	}
+
+	var data issues_model.RequestTeamReviewActionContent
+	if err := json.Unmarshal([]byte(content), &data); err != nil {
+		log.Error("json.Unmarshal: %s, error: %v", content, err)
+		return ""
+	}
+
+	return data.TeamName
 }

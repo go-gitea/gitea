@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -815,6 +816,14 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 		}
 	}
 
+	// record the name of team in case that we cannot get the name of team after it is deleted.
+	var content RequestTeamReviewActionContent
+	content.TeamName = reviewer.Name
+	contentJSON, err := json.Marshal(content)
+	if err != nil {
+		return nil, err
+	}
+
 	comment, err := CreateComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
@@ -823,6 +832,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 		RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
 		ReviewID:        review.ID,
+		Content:         string(contentJSON),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("CreateComment(): %w", err)
@@ -875,6 +885,14 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 		return nil, committer.Commit()
 	}
 
+	// record the name of team in case that we cannot get the name of team after it is deleted.
+	var content RequestTeamReviewActionContent
+	content.TeamName = reviewer.Name
+	contentJSON, err := json.Marshal(content)
+	if err != nil {
+		return nil, err
+	}
+
 	comment, err := CreateComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
@@ -882,6 +900,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 		Issue:           issue,
 		RemovedAssignee: true,        // Use RemovedAssignee as !isRequest
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
+		Content:         string(contentJSON),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("CreateComment(): %w", err)
