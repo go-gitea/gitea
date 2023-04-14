@@ -91,6 +91,7 @@ func TestRender_CrossReferences(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
+			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
 			URLPrefix:    setting.AppSubURL,
 			Metas:        localMetas,
@@ -135,6 +136,7 @@ func TestRender_links(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
+			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
 			URLPrefix:    TestRepoURL,
 		}, input)
@@ -234,6 +236,7 @@ func TestRender_email(t *testing.T) {
 
 	test := func(input, expected string) {
 		res, err := RenderString(&RenderContext{
+			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
 			URLPrefix:    TestRepoURL,
 		}, input)
@@ -292,6 +295,7 @@ func TestRender_emoji(t *testing.T) {
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
 		buffer, err := RenderString(&RenderContext{
+			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
 			URLPrefix:    TestRepoURL,
 		}, input)
@@ -355,11 +359,13 @@ func TestRender_ShortLinks(t *testing.T) {
 
 	test := func(input, expected, expectedWiki string) {
 		buffer, err := markdown.RenderString(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: tree,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 		buffer, err = markdown.RenderString(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 			IsWiki:    true,
@@ -461,12 +467,14 @@ func TestRender_RelativeImages(t *testing.T) {
 
 	test := func(input, expected, expectedWiki string) {
 		buffer, err := markdown.RenderString(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: tree,
 			Metas:     localMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 		buffer, err = markdown.RenderString(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 			IsWiki:    true,
@@ -501,6 +509,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 
 	var res strings.Builder
 	err := PostProcess(&RenderContext{
+		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
 	}, strings.NewReader(data), &res)
@@ -511,6 +520,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 
 	res.Reset()
 	err = PostProcess(&RenderContext{
+		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
 	}, strings.NewReader(data), &res)
@@ -531,6 +541,7 @@ func TestIssue16020(t *testing.T) {
 
 	var res strings.Builder
 	err := PostProcess(&RenderContext{
+		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
 	}, strings.NewReader(data), &res)
@@ -547,6 +558,7 @@ func BenchmarkEmojiPostprocess(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var res strings.Builder
 		err := PostProcess(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: "https://example.com",
 			Metas:     localMetas,
 		}, strings.NewReader(data), &res)
@@ -557,6 +569,7 @@ func BenchmarkEmojiPostprocess(b *testing.B) {
 func TestFuzz(t *testing.T) {
 	s := "t/l/issues/8#/../../a"
 	renderContext := RenderContext{
+		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com/go-gitea/gitea",
 		Metas: map[string]string{
 			"user": "go-gitea",
@@ -574,6 +587,7 @@ func TestIssue18471(t *testing.T) {
 
 	var res strings.Builder
 	err := PostProcess(&RenderContext{
+		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
 	}, strings.NewReader(data), &res)

@@ -2,7 +2,7 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "Installation from source"
 slug: "install-from-source"
-weight: 10
+weight: 30
 toc: false
 draft: false
 menu:
@@ -33,7 +33,7 @@ executable path, you will have to manage this yourself.
 
 **Note 2**: Go version {{< min-go-version >}} or higher is required. However, it is recommended to
 obtain the same version as our continuous integration, see the advice given in
-<a href='{{< relref "doc/developers/hacking-on-gitea.en-us.md" >}}'>Hacking on
+<a href='{{< relref "doc/development/hacking-on-gitea.en-us.md" >}}'>Hacking on
 Gitea</a>
 
 **Table of Contents**
@@ -87,7 +87,7 @@ To build from source, the following programs must be present on the system:
 
 - `go` {{< min-go-version >}} or higher, see [here](https://golang.org/dl/)
 - `node` {{< min-node-version >}} or higher with `npm`, see [here](https://nodejs.org/en/download/)
-- `make`, see [here]({{< relref "doc/developers/hacking-on-gitea.en-us.md" >}}#installing-make)
+- `make`, see [here]({{< relref "doc/development/hacking-on-gitea.en-us.md" >}}#installing-make)
 
 Various [make tasks](https://github.com/go-gitea/gitea/blob/main/Makefile)
 are provided to keep the build process as simple as possible.
@@ -159,7 +159,7 @@ using the `LDFLAGS` environment variable for `make`. The appropriate settings ar
 - For _`CustomConf`_ you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
 - For _`AppWorkPath`_ you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
 - For _`StaticRootPath`_ you should use `-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
-- To change the default PID file location use `-X \"code.gitea.io/gitea/modules/setting.PIDFile=/run/gitea.pid\"`
+- To change the default PID file location use `-X \"code.gitea.io/gitea/cmd.PIDFile=/run/gitea.pid\"`
 
 Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
 with the appropriate `TAGS` as above.

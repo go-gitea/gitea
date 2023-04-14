@@ -2,14 +2,14 @@
 date: "2017-08-23T09:00:00+02:00"
 title: "Installation avec Docker"
 slug: "install-with-docker"
-weight: 10
+weight: 70
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "installation"
     name: "Docker"
-    weight: 10
+    weight: 70
     identifier: "install-with-docker"
 ---
 

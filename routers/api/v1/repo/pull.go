@@ -904,7 +904,7 @@ func MergePullRequest(ctx *context.APIContext) {
 			}
 			defer headRepo.Close()
 		}
-		if err := repo_service.DeleteBranch(ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch); err != nil {
+		if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch); err != nil {
 			switch {
 			case git.IsErrBranchNotExist(err):
 				ctx.NotFound(err)

@@ -39,7 +39,7 @@ func TestPersistableChannelQueue(t *testing.T) {
 		Workers:      1,
 		BoostWorkers: 0,
 		MaxWorkers:   10,
-		Name:         "first",
+		Name:         "test-queue",
 	}, &testData{})
 	assert.NoError(t, err)
 
@@ -135,7 +135,7 @@ func TestPersistableChannelQueue(t *testing.T) {
 		Workers:      1,
 		BoostWorkers: 0,
 		MaxWorkers:   10,
-		Name:         "second",
+		Name:         "test-queue",
 	}, &testData{})
 	assert.NoError(t, err)
 
@@ -227,7 +227,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 		Workers:      1,
 		BoostWorkers: 0,
 		MaxWorkers:   10,
-		Name:         "first",
+		Name:         "test-queue",
 	}, &testData{})
 	assert.NoError(t, err)
 
@@ -433,7 +433,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 		Workers:      1,
 		BoostWorkers: 0,
 		MaxWorkers:   10,
-		Name:         "second",
+		Name:         "test-queue",
 	}, &testData{})
 	assert.NoError(t, err)
 	pausable, ok = queue.(Pausable)

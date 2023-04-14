@@ -100,6 +100,21 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		hasProjects = true
 	}
 
+	hasReleases := false
+	if _, err := repo.GetUnit(ctx, unit_model.TypeReleases); err == nil {
+		hasReleases = true
+	}
+
+	hasPackages := false
+	if _, err := repo.GetUnit(ctx, unit_model.TypePackages); err == nil {
+		hasPackages = true
+	}
+
+	hasActions := false
+	if _, err := repo.GetUnit(ctx, unit_model.TypeActions); err == nil {
+		hasActions = true
+	}
+
 	if err := repo.LoadOwner(ctx); err != nil {
 		return nil
 	}
@@ -174,6 +189,9 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		InternalTracker:               internalTracker,
 		HasWiki:                       hasWiki,
 		HasProjects:                   hasProjects,
+		HasReleases:                   hasReleases,
+		HasPackages:                   hasPackages,
+		HasActions:                    hasActions,
 		ExternalWiki:                  externalWiki,
 		HasPullRequests:               hasPullRequests,
 		IgnoreWhitespaceConflicts:     ignoreWhitespaceConflicts,

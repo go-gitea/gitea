@@ -189,7 +189,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 
 	// Check if label template exist
 	if len(opts.IssueLabels) > 0 {
-		if _, err := GetLabelTemplateFile(opts.IssueLabels); err != nil {
+		if _, err := LoadTemplateLabelsByDisplayName(opts.IssueLabels); err != nil {
 			return nil, err
 		}
 	}

@@ -1,6 +1,6 @@
 ---
 date: "2019-11-21T17:00:00-03:00"
-title: "Usage: Automatically Linked References"
+title: "Automatically Linked References"
 slug: "automatically-linked-references"
 weight: 15
 toc: false
@@ -96,7 +96,7 @@ Sometimes a commit or pull request may fix or bring back a problem documented
 in a particular issue. Gitea supports closing and reopening the referenced
 issues by preceding the reference with a particular _keyword_. Common keywords
 include "closes", "fixes", "reopens", etc. This list can be
-[customized]({{< ref "/doc/advanced/config-cheat-sheet.en-us.md" >}}) by the
+[customized]({{< ref "doc/administration/config-cheat-sheet.en-us.md" >}}) by the
 site administrator.
 
 Example:

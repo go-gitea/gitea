@@ -15,8 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TODO TestGetLabelTemplateFile
-
 func TestLabel_CalOpenIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})

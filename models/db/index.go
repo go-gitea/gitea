@@ -73,7 +73,7 @@ func postgresGetNextResourceIndex(ctx context.Context, tableName string, groupID
 
 // GetNextResourceIndex generates a resource index, it must run in the same transaction where the resource is created
 func GetNextResourceIndex(ctx context.Context, tableName string, groupID int64) (int64, error) {
-	if setting.Database.UsePostgreSQL {
+	if setting.Database.Type.IsPostgreSQL() {
 		return postgresGetNextResourceIndex(ctx, tableName, groupID)
 	}
 

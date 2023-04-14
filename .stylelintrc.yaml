@@ -1,12 +1,16 @@
 plugins:
   - stylelint-declaration-strict-value
 
+ignoreFiles:
+  - "**/*.go"
+
 overrides:
-  - files: ["**/*.less"]
-    customSyntax: postcss-less
   - files: ["**/chroma/*", "**/codemirror/*", "**/standalone/*", "**/console/*"]
     rules:
       scale-unlimited/declaration-strict-value: null
+  - files: ["**/chroma/*", "**/codemirror/*"]
+    rules:
+      block-no-empty: null
 
 rules:
   alpha-value-notation: null
@@ -84,6 +88,7 @@ rules:
   no-invalid-position-at-import-rule: null
   no-irregular-whitespace: true
   no-unknown-animations: null
+  no-unknown-custom-properties: null
   number-max-precision: null
   property-allowed-list: null
   property-disallowed-list: null

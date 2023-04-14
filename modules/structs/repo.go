@@ -88,6 +88,9 @@ type Repository struct {
 	ExternalWiki                  *ExternalWiki    `json:"external_wiki,omitempty"`
 	HasPullRequests               bool             `json:"has_pull_requests"`
 	HasProjects                   bool             `json:"has_projects"`
+	HasReleases                   bool             `json:"has_releases"`
+	HasPackages                   bool             `json:"has_packages"`
+	HasActions                    bool             `json:"has_actions"`
 	IgnoreWhitespaceConflicts     bool             `json:"ignore_whitespace_conflicts"`
 	AllowMerge                    bool             `json:"allow_merge_commits"`
 	AllowRebase                   bool             `json:"allow_rebase"`
@@ -168,6 +171,12 @@ type EditRepoOption struct {
 	HasPullRequests *bool `json:"has_pull_requests,omitempty"`
 	// either `true` to enable project unit, or `false` to disable them.
 	HasProjects *bool `json:"has_projects,omitempty"`
+	// either `true` to enable releases unit, or `false` to disable them.
+	HasReleases *bool `json:"has_releases,omitempty"`
+	// either `true` to enable packages unit, or `false` to disable them.
+	HasPackages *bool `json:"has_packages,omitempty"`
+	// either `true` to enable actions unit, or `false` to disable them.
+	HasActions *bool `json:"has_actions,omitempty"`
 	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace.
 	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace_conflicts,omitempty"`
 	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits.

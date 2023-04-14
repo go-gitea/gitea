@@ -71,13 +71,6 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 	}
 }
 
-// InitGitServices init new services for git, this is also called in `contrib/pr/checkout.go`
-func InitGitServices() {
-	setting.LoadSettings()
-	mustInit(storage.Init)
-	mustInit(repo_service.Init)
-}
-
 func syncAppConfForGit(ctx context.Context) error {
 	runtimeState := new(system.RuntimeState)
 	if err := system.AppState.Get(runtimeState); err != nil {
@@ -141,7 +134,7 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 support is enabled")
-	} else if setting.Database.UseSQLite3 {
+	} else if setting.Database.Type.IsSQLite3() {
 		log.Fatal("SQLite3 support is disabled, but it is used for database setting. Please get or build a Gitea release with SQLite3 support.")
 	}
 
@@ -150,7 +143,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(system.Init)
 	mustInit(oauth2.Init)
 
-	mustInit(models.Init)
+	mustInitCtx(ctx, models.Init)
 	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.
@@ -172,7 +165,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(ssh.Init)
 
 	auth.Init()
-	svg.Init()
+	mustInit(svg.Init)
 
 	actions_service.Init()
 

@@ -1,4 +1,4 @@
-<div class="ui dropdown tiny basic button icon-button tooltip" data-content="{{.locale.Tr "repo.diff.whitespace_button"}}">
+<div class="ui dropdown tiny basic button icon-button" data-tooltip-content="{{.locale.Tr "repo.diff.whitespace_button"}}">
 	{{svg "gitea-whitespace"}}
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	<div class="menu">
@@ -28,4 +28,4 @@
 		</a>
 	</div>
 </div>
-<a class="ui tiny basic toggle button icon-button tooltip" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}&whitespace={{$.WhitespaceBehavior}}" data-content="{{if .IsSplitStyle}}{{.locale.Tr "repo.diff.show_unified_view"}}{{else}}{{.locale.Tr "repo.diff.show_split_view"}}{{end}}">{{if .IsSplitStyle}}{{svg "gitea-join"}}{{else}}{{svg "gitea-split"}}{{end}}</a>
+<a class="ui tiny basic button icon-button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}&whitespace={{$.WhitespaceBehavior}}" data-tooltip-content="{{if .IsSplitStyle}}{{.locale.Tr "repo.diff.show_unified_view"}}{{else}}{{.locale.Tr "repo.diff.show_split_view"}}{{end}}">{{if .IsSplitStyle}}{{svg "gitea-join"}}{{else}}{{svg "gitea-split"}}{{end}}</a>
