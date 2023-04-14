@@ -99,7 +99,7 @@
 						<tr>
 							<td>{{(MirrorRemoteAddress $.Context .Repository .Mirror.GetRemoteName false).Address}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
-							<td><time data-format="date-time" datetime="{{.Mirror.UpdatedUnix.FormatLong}}">{{.Mirror.UpdatedUnix.AsTime}}</time></td>
+							<td>{{template "shared/datetime/full" (dict "Datetime" .Mirror.UpdatedUnix.FormatLong "Fallback" .Mirror.UpdatedUnix.AsTime)}}</td>
 							<td class="right aligned">
 								<form method="post" style="display: inline-block">
 									{{.CsrfTokenHtml}}
@@ -177,7 +177,7 @@
 							{{$address := MirrorRemoteAddress $.Context $.Repository .GetRemoteName true}}
 							<td>{{$address.Address}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
-							<td>{{if .LastUpdateUnix}}<time data-format="date-time" datetime="{{.LastUpdateUnix.FormatLong}}">{{.LastUpdateUnix.AsTime}}</time>{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
+							<td>{{if .LastUpdateUnix}}{{template "shared/datetime/full" (dict "Datetime" .LastUpdateUnix.FormatLong "Fallback" .LastUpdateUnix.AsTime)}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
 								<form method="post" style="display: inline-block">
 									{{$.CsrfTokenHtml}}
@@ -287,7 +287,7 @@
 						{{else}}
 						<div class="ui radio checkbox">
 						{{end}}
-							<input class="enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="false" data-target="#external_wiki_box" {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}checked{{end}}/>
+							<input class="enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="false" data-target="#external_wiki_box" {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.use_internal_wiki"}}</label>
 						</div>
 					</div>
@@ -297,7 +297,7 @@
 						{{else}}
 						<div class="ui radio checkbox">
 						{{end}}
-							<input class="enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalWiki}}checked{{end}}/>
+							<input class="enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalWiki}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.use_external_wiki"}}</label>
 						</div>
 					</div>
@@ -329,7 +329,7 @@
 						{{else}}
 						<div class="ui radio checkbox">
 						{{end}}
-							<input class="enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="false" data-context="#internal_issue_box" data-target="#external_issue_box" {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}checked{{end}}/>
+							<input class="enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="false" data-context="#internal_issue_box" data-target="#external_issue_box" {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.use_internal_issue_tracker"}}</label>
 						</div>
 					</div>
@@ -365,7 +365,7 @@
 						{{else}}
 						<div class="ui radio checkbox">
 						{{end}}
-							<input class="enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="true" data-context="#internal_issue_box" data-target="#external_issue_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalTracker}}checked{{end}}/>
+							<input class="enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="true" data-context="#internal_issue_box" data-target="#external_issue_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalTracker}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.use_external_issue_tracker"}}</label>
 						</div>
 					</div>

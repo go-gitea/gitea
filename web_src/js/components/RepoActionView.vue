@@ -1,7 +1,7 @@
 <template>
   <div class="action-view-container">
     <div class="action-view-header">
-      <div class="action-info-summary">
+      <div class="action-info-summary gt-ac">
         <ActionRunStatus :status="run.status" :size="20"/>
         <div class="action-title">
           {{ run.title }}
@@ -13,6 +13,15 @@
           <i class="stop circle outline icon"/>
         </button>
       </div>
+      <div class="action-commit-summary">
+        {{ run.commit.localeCommit }}
+        <a :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+        &nbsp;<span class="ui label">
+          <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
+        </span>
+        &nbsp;{{ run.commit.localePushedBy }}
+        <a :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
+      </div>
     </div>
     <div class="action-view-body">
       <div class="action-view-left">
@@ -21,8 +30,9 @@
             <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
                 <ActionRunStatus :status="job.status"/>
-                <span class="ui text">{{ job.name }}</span>
+                <span class="ui text gt-mx-3">{{ job.name }}</span>
               </a>
+              <span class="step-summary-duration">{{ job.duration }}</span>
               <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
@@ -48,7 +58,7 @@
               <ActionRunStatus :status="jobStep.status" class="gt-mr-3"/>
 
               <span class="step-summary-msg">{{ jobStep.summary }}</span>
-              <span class="step-summary-dur">{{ jobStep.duration }}</span>
+              <span class="step-summary-duration">{{ jobStep.duration }}</span>
             </div>
 
             <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
@@ -68,6 +78,8 @@ import AnsiToHTML from 'ansi-to-html';
 
 const {csrfToken} = window.config;
 
+const ansiLogRender = new AnsiToHTML({escapeXML: true});
+
 const sfc = {
   name: 'RepoActionView',
   components: {
@@ -82,8 +94,6 @@ const sfc = {
 
   data() {
     return {
-      ansiToHTML: new AnsiToHTML({escapeXML: true}),
-
       // internal state
       loading: false,
       intervalID: null,
@@ -103,8 +113,23 @@ const sfc = {
           //   name: '',
           //   status: '',
           //   canRerun: false,
+          //   duration: '',
           // },
         ],
+        commit: {
+          localeCommit: '',
+          localePushedBy: '',
+          shortSHA: '',
+          link: '',
+          pusher: {
+            displayName: '',
+            link: '',
+          },
+          branch: {
+            name: '',
+            link: '',
+          },
+        }
       },
       currentJob: {
         title: '',
@@ -191,7 +216,7 @@ const sfc = {
 
       const logMessage = document.createElement('div');
       logMessage.className = 'log-msg';
-      logMessage.innerHTML = this.ansiToHTML.toHtml(line.message);
+      logMessage.innerHTML = ansiLogToHTML(line.message);
       div.appendChild(logMessage);
 
       return div;
@@ -284,6 +309,48 @@ export function initRepositoryActionView() {
   view.mount(el);
 }
 
+// some unhandled control sequences by AnsiToHTML
+// https://man7.org/linux/man-pages/man4/console_codes.4.html
+const ansiRegexpRemove = /\x1b\[\d+[A-H]/g; // Move cursor, treat them as no-op.
+const ansiRegexpNewLine = /\x1b\[\d?[JK]/g; // Erase display/line, treat them as a Carriage Return
+
+function ansiCleanControlSequences(line) {
+  if (line.includes('\x1b')) {
+    line = line.replace(ansiRegexpRemove, '');
+    line = line.replace(ansiRegexpNewLine, '\r');
+  }
+  return line;
+}
+
+export function ansiLogToHTML(line) {
+  if (line.endsWith('\r\n')) {
+    line = line.substring(0, line.length - 2);
+  } else if (line.endsWith('\n')) {
+    line = line.substring(0, line.length - 1);
+  }
+
+  // usually we do not need to process control chars like "\033[", let AnsiToHTML do it
+  // but AnsiToHTML has bugs, so we need to clean some control sequences first
+  line = ansiCleanControlSequences(line);
+
+  if (!line.includes('\r')) {
+    return ansiLogRender.toHtml(line);
+  }
+
+  // handle "\rReading...1%\rReading...5%\rReading...100%",
+  // convert it into a multiple-line string: "Reading...1%\nReading...5%\nReading...100%"
+  const lines = [];
+  for (const part of line.split('\r')) {
+    if (part === '') continue;
+    const partHtml = ansiLogRender.toHtml(part);
+    if (partHtml !== '') {
+      lines.push(partHtml);
+    }
+  }
+  // the log message element is with "white-space: break-spaces;", so use "\n" to break lines
+  return lines.join('\n');
+}
+
 </script>
 
 <style scoped>
@@ -332,6 +399,10 @@ export function initRepositoryActionView() {
   padding: 0 5px;
 }
 
+.action-commit-summary {
+  padding: 10px 10px;
+}
+
 /* ================ */
 /* action view left */
 
@@ -377,7 +448,6 @@ export function initRepositoryActionView() {
 }
 
 .job-group-section .job-brief-list .job-brief-item .job-brief-link span {
-  margin-right: 8px;
   display: flex;
   align-items: center;
 }
@@ -424,7 +494,7 @@ export function initRepositoryActionView() {
   flex: 1;
 }
 
-.job-step-container .job-step-summary .step-summary-dur {
+.job-step-container .job-step-summary .step-summary-duration {
   margin-left: 16px;
 }
 

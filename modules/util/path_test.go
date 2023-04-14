@@ -207,6 +207,6 @@ func TestCleanPath(t *testing.T) {
 		}
 	}
 	for _, c := range cases {
-		assert.Equal(t, c.expected, FilePathJoinAbs(c.elems...), "case: %v", c.elems)
+		assert.Equal(t, c.expected, FilePathJoinAbs(c.elems[0], c.elems[1:]...), "case: %v", c.elems)
 	}
 }

@@ -29,6 +29,27 @@ func UserAssignmentWeb() func(ctx *context.Context) {
 	}
 }
 
+// UserIDAssignmentAPI returns a middleware to handle context-user assignment for api routes
+func UserIDAssignmentAPI() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		userID := ctx.ParamsInt64(":user-id")
+
+		if ctx.IsSigned && ctx.Doer.ID == userID {
+			ctx.ContextUser = ctx.Doer
+		} else {
+			var err error
+			ctx.ContextUser, err = user_model.GetUserByID(ctx, userID)
+			if err != nil {
+				if user_model.IsErrUserNotExist(err) {
+					ctx.Error(http.StatusNotFound, "GetUserByID", err)
+				} else {
+					ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
+				}
+			}
+		}
+	}
+}
+
 // UserAssignmentAPI returns a middleware to handle context-user assignment for api routes
 func UserAssignmentAPI() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {

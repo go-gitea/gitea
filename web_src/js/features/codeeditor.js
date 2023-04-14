@@ -1,4 +1,5 @@
 import {basename, extname, isObject, isDarkTheme} from '../utils.js';
+import {debounce} from 'throttle-debounce';
 
 const languagesByFilename = {};
 const languagesByExt = {};
@@ -130,23 +131,33 @@ function getFileBasedOptions(filename, lineWrapExts) {
   };
 }
 
-export async function createCodeEditor(textarea, filenameInput) {
-  const filename = basename(filenameInput.value);
-  const previewLink = document.querySelector('a[data-tab=preview]');
-  const previewableExts = (textarea.getAttribute('data-previewable-extensions') || '').split(',');
-  const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
-  const previewable = previewableExts.includes(extname(filename));
-  const editorConfig = getEditorconfig(filenameInput);
+function togglePreviewDisplay(previewable) {
+  const previewTab = document.querySelector('a[data-tab="preview"]');
+  if (!previewTab) return;
 
-  if (previewLink) {
-    if (previewable) {
-      const newUrl = (previewLink.getAttribute('data-url') || '').replace(/(.*)\/.*/i, `$1/markup`);
-      previewLink.setAttribute('data-url', newUrl);
-      previewLink.style.display = '';
-    } else {
-      previewLink.style.display = 'none';
+  if (previewable) {
+    const newUrl = (previewTab.getAttribute('data-url') || '').replace(/(.*)\/.*/i, `$1/markup`);
+    previewTab.setAttribute('data-url', newUrl);
+    previewTab.style.display = '';
+  } else {
+    previewTab.style.display = 'none';
+    // If the "preview" tab was active, user changes the filename to a non-previewable one,
+    // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
+    if (previewTab.classList.contains('active')) {
+      const writeTab = document.querySelector('a[data-tab="write"]');
+      writeTab.click();
     }
   }
+}
+
+export async function createCodeEditor(textarea, filenameInput) {
+  const filename = basename(filenameInput.value);
+  const previewableExts = new Set((textarea.getAttribute('data-previewable-extensions') || '').split(','));
+  const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
+  const previewable = previewableExts.has(extname(filename));
+  const editorConfig = getEditorconfig(filenameInput);
+
+  togglePreviewDisplay(previewable);
 
   const {monaco, editor} = await createMonaco(textarea, filename, {
     ...baseOptions,
@@ -154,10 +165,12 @@ export async function createCodeEditor(textarea, filenameInput) {
     ...getEditorConfigOptions(editorConfig),
   });
 
-  filenameInput.addEventListener('keyup', () => {
+  filenameInput.addEventListener('input', debounce(500, () => {
     const filename = filenameInput.value;
+    const previewable = previewableExts.has(extname(filename));
+    togglePreviewDisplay(previewable);
     updateEditor(monaco, editor, filename, lineWrapExts);
-  });
+  }));
 
   return editor;
 }

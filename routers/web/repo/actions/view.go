@@ -14,8 +14,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/base"
 	context_module "code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -57,6 +57,7 @@ type ViewResponse struct {
 			CanApprove bool       `json:"canApprove"` // the run needs an approval and the doer has permission to approve
 			Done       bool       `json:"done"`
 			Jobs       []*ViewJob `json:"jobs"`
+			Commit     ViewCommit `json:"commit"`
 		} `json:"run"`
 		CurrentJob struct {
 			Title  string         `json:"title"`
@@ -74,6 +75,26 @@ type ViewJob struct {
 	Name     string `json:"name"`
 	Status   string `json:"status"`
 	CanRerun bool   `json:"canRerun"`
+	Duration string `json:"duration"`
+}
+
+type ViewCommit struct {
+	LocaleCommit   string     `json:"localeCommit"`
+	LocalePushedBy string     `json:"localePushedBy"`
+	ShortSha       string     `json:"shortSHA"`
+	Link           string     `json:"link"`
+	Pusher         ViewUser   `json:"pusher"`
+	Branch         ViewBranch `json:"branch"`
+}
+
+type ViewUser struct {
+	DisplayName string `json:"displayName"`
+	Link        string `json:"link"`
+}
+
+type ViewBranch struct {
+	Name string `json:"name"`
+	Link string `json:"link"`
 }
 
 type ViewJobStep struct {
@@ -104,6 +125,10 @@ func ViewPost(ctx *context_module.Context) {
 		return
 	}
 	run := current.Run
+	if err := run.LoadAttributes(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	resp := &ViewResponse{}
 
@@ -120,7 +145,25 @@ func ViewPost(ctx *context_module.Context) {
 			Name:     v.Name,
 			Status:   v.Status.String(),
 			CanRerun: v.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions),
+			Duration: v.Duration().String(),
 		})
+	}
+
+	pusher := ViewUser{
+		DisplayName: run.TriggerUser.GetDisplayName(),
+		Link:        run.TriggerUser.HomeLink(),
+	}
+	branch := ViewBranch{
+		Name: run.PrettyRef(),
+		Link: run.RefLink(),
+	}
+	resp.State.Run.Commit = ViewCommit{
+		LocaleCommit:   ctx.Tr("actions.runs.commit"),
+		LocalePushedBy: ctx.Tr("actions.runs.pushed_by"),
+		ShortSha:       base.ShortSha(run.CommitSHA),
+		Link:           fmt.Sprintf("%s/commit/%s", run.Repo.Link(), run.CommitSHA),
+		Pusher:         pusher,
+		Branch:         branch,
 	}
 
 	var task *actions_model.ActionTask
@@ -222,10 +265,7 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	if err := actions_service.CreateCommitStatus(ctx, job); err != nil {
-		log.Error("Update commit status for job %v failed: %v", job.ID, err)
-		// go on
-	}
+	actions_service.CreateCommitStatus(ctx, job)
 
 	ctx.JSON(http.StatusOK, struct{}{})
 }
@@ -266,12 +306,7 @@ func Cancel(ctx *context_module.Context) {
 		return
 	}
 
-	for _, job := range jobs {
-		if err := actions_service.CreateCommitStatus(ctx, job); err != nil {
-			log.Error("Update commit status for job %v failed: %v", job.ID, err)
-			// go on
-		}
-	}
+	actions_service.CreateCommitStatus(ctx, jobs...)
 
 	ctx.JSON(http.StatusOK, struct{}{})
 }
@@ -306,6 +341,8 @@ func Approve(ctx *context_module.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	actions_service.CreateCommitStatus(ctx, jobs...)
 
 	ctx.JSON(http.StatusOK, struct{}{})
 }

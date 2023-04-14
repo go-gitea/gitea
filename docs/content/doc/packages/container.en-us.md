@@ -2,6 +2,7 @@
 date: "2021-07-20T00:00:00+00:00"
 title: "Container Registry"
 slug: "usage/packages/container"
+weight: 30
 draft: false
 toc: false
 menu:
