@@ -414,6 +414,7 @@ func DeleteTeam(t *organization.Team) error {
 		&organization.TeamUser{OrgID: t.OrgID, TeamID: t.ID},
 		&organization.TeamUnit{TeamID: t.ID},
 		&organization.TeamInvite{TeamID: t.ID},
+		&issues_model.Review{Type: issues_model.ReviewTypeRequest, ReviewerTeamID: t.ID}, // batch delete the binding relationship between team and PR (request review from team)
 	); err != nil {
 		return err
 	}
