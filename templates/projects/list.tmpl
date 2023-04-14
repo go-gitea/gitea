@@ -13,11 +13,11 @@
 		<div class="ui compact tiny menu">
 			<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{$.Link}}?state=open">
 				{{svg "octicon-project-symlink" 16 "gt-mr-3"}}
-				{{JsPrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
+				{{LocaleNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
 			</a>
 			<a class="item{{if .IsShowClosed}} active{{end}}" href="{{$.Link}}?state=closed">
 				{{svg "octicon-check" 16 "gt-mr-3"}}
-				{{JsPrettyNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
+				{{LocaleNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
 			</a>
 		</div>
 
@@ -38,17 +38,17 @@
 		<div class="milestone list">
 			{{range .Projects}}
 				<li class="item">
-					{{svg "octicon-project-symlink"}} <a href="{{.Link}}">{{.Title}}</a>
+					{{svg .IconName}} <a href="{{.Link}}">{{.Title}}</a>
 					<div class="meta">
 						{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
 						{{if .IsClosed}}
-							{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate|Str2html}}
+							{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 						{{end}}
 						<span class="issue-stats">
 							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
-							{{JsPrettyNumber (index $.NumOpenIssuesInProjects .ID)}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
+							{{LocaleNumber (index $.NumOpenIssuesInProjects .ID)}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
 							{{svg "octicon-check" 16 "gt-mr-3"}}
-							{{JsPrettyNumber (index $.NumClosedIssuesInProjects .ID)}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+							{{LocaleNumber (index $.NumClosedIssuesInProjects .ID)}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
 						</span>
 					</div>
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}

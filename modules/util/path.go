@@ -5,6 +5,7 @@ package util
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"os"
 	"path"
@@ -14,21 +15,91 @@ import (
 	"strings"
 )
 
-// CleanPath ensure to clean the path
-func CleanPath(p string) string {
-	if strings.HasPrefix(p, "/") {
-		return path.Clean(p)
+// PathJoinRel joins the path elements into a single path, each element is cleaned by path.Clean separately.
+// It only returns the following values (like path.Join), any redundant part (empty, relative dots, slashes) is removed.
+// It's caller's duty to make every element not bypass its own directly level, to avoid security issues.
+//
+//	empty => ``
+//	`` => ``
+//	`..` => `.`
+//	`dir` => `dir`
+//	`/dir/` => `dir`
+//	`foo\..\bar` => `foo\..\bar`
+//	{`foo`, ``, `bar`} => `foo/bar`
+//	{`foo`, `..`, `bar`} => `foo/bar`
+func PathJoinRel(elem ...string) string {
+	elems := make([]string, len(elem))
+	for i, e := range elem {
+		if e == "" {
+			continue
+		}
+		elems[i] = path.Clean("/" + e)
 	}
-	return path.Clean("/" + p)[1:]
+	p := path.Join(elems...)
+	if p == "" {
+		return ""
+	} else if p == "/" {
+		return "."
+	} else {
+		return p[1:]
+	}
 }
 
-// EnsureAbsolutePath ensure that a path is absolute, making it
-// relative to absoluteBase if necessary
-func EnsureAbsolutePath(path, absoluteBase string) string {
-	if filepath.IsAbs(path) {
-		return path
+// PathJoinRelX joins the path elements into a single path like PathJoinRel,
+// and covert all backslashes to slashes. (X means "extended", also means the combination of `\` and `/`).
+// It's caller's duty to make every element not bypass its own directly level, to avoid security issues.
+// It returns similar results as PathJoinRel except:
+//
+//	`foo\..\bar` => `bar`  (because it's processed as `foo/../bar`)
+//
+// All backslashes are handled as slashes, the result only contains slashes.
+func PathJoinRelX(elem ...string) string {
+	elems := make([]string, len(elem))
+	for i, e := range elem {
+		if e == "" {
+			continue
+		}
+		elems[i] = path.Clean("/" + strings.ReplaceAll(e, "\\", "/"))
 	}
-	return filepath.Join(absoluteBase, path)
+	return PathJoinRel(elems...)
+}
+
+const pathSeparator = string(os.PathSeparator)
+
+// FilePathJoinAbs joins the path elements into a single file path, each element is cleaned by filepath.Clean separately.
+// All slashes/backslashes are converted to path separators before cleaning, the result only contains path separators.
+// The first element must be an absolute path, caller should prepare the base path.
+// It's caller's duty to make every element not bypass its own directly level, to avoid security issues.
+// Like PathJoinRel, any redundant part (empty, relative dots, slashes) is removed.
+//
+//	{`/foo`, ``, `bar`} => `/foo/bar`
+//	{`/foo`, `..`, `bar`} => `/foo/bar`
+func FilePathJoinAbs(base string, sub ...string) string {
+	elems := make([]string, 1, len(sub)+1)
+
+	// POSIX filesystem can have `\` in file names. Windows: `\` and `/` are both used for path separators
+	// to keep the behavior consistent, we do not allow `\` in file names, replace all `\` with `/`
+	if isOSWindows() {
+		elems[0] = filepath.Clean(base)
+	} else {
+		elems[0] = filepath.Clean(strings.ReplaceAll(base, "\\", pathSeparator))
+	}
+	if !filepath.IsAbs(elems[0]) {
+		// This shouldn't happen. If there is really necessary to pass in relative path, return the full path with filepath.Abs() instead
+		panic(fmt.Sprintf("FilePathJoinAbs: %q (for path %v) is not absolute, do not guess a relative path based on current working directory", elems[0], elems))
+	}
+	for _, s := range sub {
+		if s == "" {
+			continue
+		}
+		if isOSWindows() {
+			elems = append(elems, filepath.Clean(pathSeparator+s))
+		} else {
+			elems = append(elems, filepath.Clean(pathSeparator+strings.ReplaceAll(s, "\\", pathSeparator)))
+		}
+	}
+	// the elems[0] must be an absolute path, just join them together
+	return filepath.Join(elems...)
 }
 
 // IsDir returns true if given path is a directory,

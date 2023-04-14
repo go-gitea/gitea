@@ -1,7 +1,8 @@
 ---
 date: "2022-08-23T00:00:00+00:00"
 title: "Vagrant Packages Repository"
-slug: "packages/vagrant"
+slug: "usage/packages/vagrant"
+weight: 120
 draft: false
 toc: false
 menu:
@@ -69,7 +70,7 @@ vagrant box add "https://gitea.example.com/api/packages/testuser/vagrant/test_sy
 ```
 
 This will install the latest version of the package. To add a specific version, use the `--box-version` parameter.
-If the registry is private you can pass your [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}) in the `VAGRANT_CLOUD_TOKEN` environment variable.
+If the registry is private you can pass your [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) in the `VAGRANT_CLOUD_TOKEN` environment variable.
 
 ## Supported commands
 

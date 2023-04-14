@@ -2,7 +2,7 @@
 date: "2018-05-21T15:00:00+00:00"
 title: "取得協助"
 slug: "seek-help"
-weight: 10
+weight: 20
 toc: false
 draft: false
 menu:

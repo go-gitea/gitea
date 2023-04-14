@@ -2,14 +2,14 @@
 date: "2017-07-21T12:00:00+02:00"
 title: "在 Linux 中以服務執行"
 slug: "linux-service"
-weight: 10
+weight: 40
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "installation"
     name: "Linux 服務"
-    weight: 20
+    weight: 40
     identifier: "linux-service"
 ---
 

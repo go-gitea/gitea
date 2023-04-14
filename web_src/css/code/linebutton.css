@@ -17,8 +17,8 @@
   left: 0;
   transform: translateX(-70%);
   cursor: pointer;
+}
 
-  &:hover {
-    color: var(--color-primary);
-  }
+.code-line-button:hover {
+  color: var(--color-primary);
 }

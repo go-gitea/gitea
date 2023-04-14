@@ -38,19 +38,37 @@
 							<input type="hidden" name="board_type" value="{{.type}}">
 							<div class="default text">{{.locale.Tr "repo.projects.template.desc_helper"}}</div>
 							<div class="menu">
-								{{range $element := .ProjectTypes}}
+								{{range $element := .BoardTypes}}
 									<div class="item" data-id="{{$element.BoardType}}" data-value="{{$element.BoardType}}">{{$.locale.Tr $element.Translation}}</div>
 								{{end}}
 							</div>
 						</div>
 					</div>
 				{{end}}
+
+				<div class="field">
+					<label>{{.locale.Tr "repo.projects.card_type.desc"}}</label>
+					<div class="ui selection dropdown">
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						{{range $element := .CardTypes}}
+							{{if or (eq $.card_type $element.CardType) (and (not $.PageIsEditProjects) (eq $element.CardType 1))}}
+								<input type="hidden" name="card_type" value="{{$element.CardType}}">
+								<div class="default text">{{$.locale.Tr $element.Translation}}</div>
+							{{end}}
+						{{end}}
+						<div class="menu">
+							{{range $element := .CardTypes}}
+								<div class="item" data-id="{{$element.CardType}}" data-value="{{$element.CardType}}">{{$.locale.Tr $element.Translation}}</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
 			</div>
 			<div class="ui container">
 				<div class="ui divider"></div>
 				<div class="ui left">
 					{{if .PageIsEditProjects}}
-					<a class="ui cancel button" href="{{.RepoLink}}/projects">
+					<a class="ui cancel button" href="{{$.HomeLink}}/-/projects{{if eq .redirect "project"}}/{{.projectID}}{{end}}">
 						{{.locale.Tr "repo.milestones.cancel"}}
 					</a>
 					<button class="ui primary button">

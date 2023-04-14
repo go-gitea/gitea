@@ -15,26 +15,26 @@
   padding: 0;
 }
 
-.user.profile .ui.card .extra.content ul {
+.user.profile .ui.card .extra.content > ul {
   margin: 0;
   padding: 0;
 }
 
-.user.profile .ui.card .extra.content ul li {
+.user.profile .ui.card .extra.content > ul > li {
   padding: 10px;
   list-style: none;
 }
 
-.user.profile .ui.card .extra.content ul li:not(:last-child) {
+.user.profile .ui.card .extra.content > ul > li:not(:last-child) {
   border-bottom: 1px solid var(--color-secondary);
 }
 
-.user.profile .ui.card .extra.content ul li .svg {
+.user.profile .ui.card .extra.content > ul > li .svg {
   margin-left: 1px;
   margin-right: 5px;
 }
 
-.user.profile .ui.card .extra.content ul li.follow .ui.button {
+.user.profile .ui.card .extra.content > ul > li.follow .ui.button {
   width: 100%;
 }
 
@@ -67,6 +67,11 @@
   margin-top: 25px;
 }
 
+.user.profile .ui.repository.list .repo-title .labels {
+  word-break: normal;
+  flex-shrink: 0;
+}
+
 .user.profile #loading-heatmap {
   margin-bottom: 1em;
 }
@@ -83,44 +88,6 @@
 
 .user.followers .follow .ui.button {
   padding: 8px 15px;
-}
-
-.user.notification .svg {
-  float: left;
-  font-size: 2em;
-}
-
-.user.notification .svg.green {
-  color: var(--color-green);
-}
-
-.user.notification .svg.red {
-  color: var(--color-red);
-}
-
-.user.notification .svg.purple {
-  color: var(--color-purple);
-}
-
-.user.notification .svg.blue {
-  color: var(--color-blue);
-}
-
-.user.notification .content {
-  float: left;
-  margin-left: 7px;
-}
-
-.user.notification table form {
-  display: inline-block;
-}
-
-.user.notification table button {
-  padding: 3px 3px 3px 5px;
-}
-
-.user.notification table tr {
-  cursor: pointer;
 }
 
 .user .button.adopt,
@@ -150,7 +117,7 @@
   margin: -3px !important;
 }
 
-.user-orgs li {
+.user-orgs > li {
   display: flex;
   border-bottom: 0 !important;
   padding: 3px !important;
@@ -168,6 +135,27 @@
   object-fit: contain;
 }
 
+.user.notification table button {
+  padding: 3px 3px 3px 5px;
+}
+
 #notification_div .tab.segment {
   overflow-x: auto;
+}
+
+#notification_div .tabular.menu .active.item {
+  background: var(--color-box-body);
+}
+
+#notification_table {
+  border: none;
+}
+
+#notification_table tr {
+  cursor: default;
+}
+
+#notification_table td a {
+  width: 100%;
+  display: inline-block;
 }

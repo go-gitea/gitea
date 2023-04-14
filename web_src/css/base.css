@@ -78,7 +78,6 @@
   --color-purple: #a333c8;
   --color-pink: #e03997;
   --color-brown: #a5673f;
-  --color-grey: #888888;
   --color-black: #1b1c1d;
   /* light variants - produced via Sass scale-color(color, $lightness: +25%) */
   --color-red-light: #e45e5e;
@@ -92,9 +91,10 @@
   --color-purple-light: #bb64d8;
   --color-pink-light: #e86bb1;
   --color-brown-light: #c58b66;
-  --color-grey-light: #a6a6a6;
   --color-black-light: #525558;
   /* other colors */
+  --color-grey: #707070;
+  --color-grey-light: #838383;
   --color-gold: #a1882b;
   --color-white: #ffffff;
   --color-diff-removed-word-bg: #fdb8c0;
@@ -230,12 +230,12 @@ body {
   }
 }
 
-img {
-  border-radius: 3px;
-}
-
 table {
   border-collapse: collapse;
+}
+
+button {
+  cursor: pointer;
 }
 
 details summary {
@@ -803,9 +803,7 @@ a.label,
   color: var(--color-text-dark);
 }
 
-.ui.link.menu .item:hover,
 .ui.menu .dropdown.item:hover,
-.ui.menu .link.item:hover,
 .ui.menu a.item:hover {
   color: var(--color-text);
   background: var(--color-hover);
@@ -819,8 +817,6 @@ a.label,
   background: var(--color-active);
 }
 
-.ui.link.menu .item:active,
-.ui.menu .link.item:active,
 .ui.menu a.item:active {
   color: var(--color-text);
   background: none;
@@ -865,10 +861,6 @@ a.label,
   margin-bottom: -0.25rem;
 }
 
-.ui.dropdown .menu > .item > svg.img {
-  margin-right: 0.78571429rem;
-}
-
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
 }
@@ -908,7 +900,6 @@ a.label,
 }
 
 .ui.secondary.menu .dropdown.item:hover,
-.ui.secondary.menu .link.item:hover,
 .ui.secondary.menu a.item:hover {
   color: var(--color-text);
   background: var(--color-hover);
@@ -1069,9 +1060,7 @@ a.label,
 }
 
 .ui.cards a.card:hover,
-.ui.link.cards .card:not(.icon):hover,
-a.ui.card:hover,
-.ui.link.card:hover {
+a.ui.card:hover {
   border: 1px solid var(--color-secondary);
   background: var(--color-card);
 }
@@ -1173,19 +1162,17 @@ a.ui.card:hover,
   border-color: var(--color-secondary);
 }
 
-.ui.modal > .close.inside,
-.ui.fullscreen.modal > .close {
-  top: 11px; /* align modal close icon, for example admin notices */
-  color: var(--body-color);
+.ui.modal > .close.inside {
+  color: var(--color-text);
 }
 
 .ui.basic.table > tbody > tr {
   border-color: var(--color-secondary);
 }
 
+img.ui.avatar,
 .ui.avatar img,
 .ui.avatar svg,
-.ui.avatar.img,
 .ui.cards > .card img.avatar,
 .ui.cards > .card .avatar img,
 .ui.card img.avatar,
@@ -1195,19 +1182,6 @@ a.ui.card:hover,
 
 .ui.divided.list > .item {
   border-color: var(--color-secondary);
-}
-
-.ui.link.list .item,
-.ui.link.list a.item,
-.ui.link.list .item a:not(.ui) {
-  color: var(--color-text);
-}
-
-.ui.link.list.list a.item:hover,
-.ui.link.list.list .item a:not(.ui):hover,
-.ui.link.list.list a.item:active,
-.ui.link.list.list .item a:not(.ui):active {
-  color: var(--color-text-dark);
 }
 
 .ui.error.message .header,
@@ -1231,7 +1205,7 @@ a.ui.card:hover,
 /* enable fluid page widths for medium size viewports */
 @media (min-width: 768px) and (max-width: 1200px) {
   .ui.ui.ui.container:not(.fluid) {
-    width: calc(100vw - 3em);
+    width: calc(100vw - 64px);
   }
 }
 
@@ -1285,7 +1259,14 @@ a.ui.card:hover,
 .following.bar #navbar {
   width: 100vw;
   min-height: 52px;
-  padding: 0 0.5rem;
+  padding: 0 16px;
+}
+
+@media (max-width: 767px) {
+  .following.bar #navbar {
+    padding-left: 4px;
+    padding-right: 0;
+  }
 }
 
 .following.bar #navbar .brand {
@@ -1491,7 +1472,7 @@ a.ui.card:hover,
 }
 
 .ui.container.fluid.padded {
-  padding: 0 10px;
+  padding: 0 32px;
 }
 
 .ui.form .ui.button {
@@ -1849,15 +1830,15 @@ footer .container .links > *:first-child {
 }
 
 footer .ui.language .menu {
-  max-height: 500px;
+  height: 500px;
+  max-height: calc(100vh - 60px);
   overflow-y: auto;
   margin-bottom: 7px;
 }
 
 footer .ui.language .svg {
   margin-right: 0.15em;
-  vertical-align: top;
-  margin-top: calc(2em - 16px);
+  margin-top: 1px;
 }
 
 footer .ui.left,
@@ -2382,17 +2363,120 @@ a.ui.label:hover {
   color: var(--color-text);
 }
 
+.ui.tertiary.button:focus {
+  color: var(--color-text-dark);
+}
+
 .ui.primary.label,
-.ui.primary.labels .label {
-  background-color: var(--color-primary) !important;
-  border-color: var(--color-primary-dark-2) !important;
+.ui.primary.labels .label, 
+.ui.ui.ui.primary.label {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary-dark-2);
 }
 
 .ui.basic.labels .primary.label,
 .ui.ui.ui.basic.primary.label {
-  background: transparent !important;
-  border-color: var(--color-primary) !important;
-  color: var(--color-primary) !important;
+  background: transparent;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.ui.basic.labels .secondary.label,
+.ui.ui.ui.basic.secondary.label {
+  background: transparent;
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
+}
+
+.ui.basic.labels .orange.label,
+.ui.ui.ui.basic.orange.label {
+  background: transparent;
+  border-color: var(--color-orange);
+  color: var(--color-orange);
+}
+
+.ui.basic.labels .green.label,
+.ui.ui.ui.basic.green.label {
+  background: transparent;
+  border-color: var(--color-green);
+  color: var(--color-green);
+}
+
+.ui.basic.labels .olive.label,
+.ui.ui.ui.basic.olive.label {
+  background: transparent;
+  border-color: var(--color-olive);
+  color: var(--color-olive);
+}
+
+.ui.basic.labels .teal.label,
+.ui.ui.ui.basic.teal.label {
+  background: transparent;
+  border-color: var(--color-teal);
+  color: var(--color-teal);
+}
+
+.ui.basic.labels .blue.label,
+.ui.ui.ui.basic.blue.label {
+  background: transparent;
+  border-color: var(--color-blue);
+  color: var(--color-blue);
+}
+
+.ui.basic.labels .violet.label,
+.ui.ui.ui.basic.violet.label {
+  background: transparent;
+  border-color: var(--color-violet);
+  color: var(--color-violet);
+}
+
+.ui.basic.labels .purple.label,
+.ui.ui.ui.basic.purple.label {
+  background: transparent;
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.ui.basic.labels .pink.label,
+.ui.ui.ui.basic.pink.label {
+  background: transparent;
+  border-color: var(--color-pink);
+  color: var(--color-pink);
+}
+
+.ui.basic.labels .red.label,
+.ui.ui.ui.basic.red.label {
+  background: transparent;
+  border-color: var(--color-red);
+  color: var(--color-red);
+}
+
+.ui.basic.labels .brown.label,
+.ui.ui.ui.basic.brown.label {
+  background: transparent;
+  border-color: var(--color-brown);
+  color: var(--color-brown);
+}
+
+.ui.basic.labels .yellow.label,
+.ui.ui.ui.basic.yellow.label {
+  background: transparent;
+  border-color: var(--color-yellow);
+  color: var(--color-yellow);
+}
+
+.ui.basic.labels .grey.label,
+.ui.ui.ui.basic.grey.label {
+  background: transparent;
+  border-color: var(--color-grey);
+  color: var(--color-grey);
+}
+
+.ui.basic.labels .black.label,
+.ui.ui.ui.basic.black.label {
+  background: transparent;
+  border-color: var(--color-black);
+  color: var(--color-black);
 }
 
 .ui.basic.labels .label,
@@ -2413,18 +2497,6 @@ a.ui.basic.label:hover {
   width: auto !important;
   vertical-align: middle;
   height: 2.1666em !important;
-}
-
-span.green .svg {
-  color: var(--color-green);
-}
-
-span.red .svg {
-  color: var(--color-red);
-}
-
-span.purple .svg {
-  color: var(--color-purple);
 }
 
 .migrate .svg.gitea-git {
@@ -2535,10 +2607,10 @@ table th[data-sortt-desc] .svg {
   height: auto; /* reset the ".ui.dropdown > .dropdown.icon {height}", otherwise the icon would be too small */
 }
 
-.ui.selection.dropdown > .search.icon,
-.ui.selection.dropdown > .delete.icon,
-.ui.selection.dropdown > .dropdown.icon {
-  top: 0 !important;
+.ui.selection.dropdown > .svg.search.icon,
+.ui.selection.dropdown > .svg.delete.icon,
+.ui.selection.dropdown > .svg.dropdown.icon {
+  top: 0 !important; /* reset the ".ui.selection.dropdown > .xxx.icon {top}" if the icon is svg instead of the fomantic icon */
 }
 
 .ui.dropdown.no-text > .dropdown.icon {
@@ -2556,6 +2628,10 @@ table th[data-sortt-desc] .svg {
 
 .ui.dropdown .menu .item:last-of-type {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.ui.multiple.dropdown > .label {
+  box-shadow: 0 0 0 1px var(--color-secondary) inset;
 }
 
 .text-label {
@@ -2677,7 +2753,6 @@ table th[data-sortt-desc] .svg {
 .ui.secondary.pointing.menu .active.item,
 .ui.secondary.pointing.menu .active.item:hover,
 .ui.secondary.pointing.menu .dropdown.item:hover,
-.ui.secondary.pointing.menu .link.item:hover,
 .ui.secondary.pointing.menu a.item:hover {
   color: var(--color-text-dark);
 }

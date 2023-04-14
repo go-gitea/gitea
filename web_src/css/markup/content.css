@@ -5,14 +5,6 @@
   word-wrap: break-word;
 }
 
-.markup.ui.segment {
-  padding: 3em;
-}
-
-.markup.file-view {
-  padding: 2em !important;
-}
-
 .markup > *:first-child {
   margin-top: 0 !important;
 }
@@ -310,6 +302,15 @@
   box-sizing: initial;
 }
 
+/* this background ensures images can break <hr>. We can only do this on
+   cases where the background is known and not transparent. */
+.markup.file-view img,
+.comment-body .markup img, /* regular comment */
+.comment-content .markup img, /* code comment */
+.wiki .markup img {
+  background: var(--color-box-body);
+}
+
 .markup img[align="right"] {
   padding-left: 20px;
 }
@@ -540,6 +541,7 @@
 }
 
 .markup-block-error {
+  display: block !important; /* override fomantic .ui.form .error.message {display: none} */
   border: 1px solid var(--color-error-border) !important;
   margin-bottom: 0 !important;
   border-bottom-left-radius: 0 !important;

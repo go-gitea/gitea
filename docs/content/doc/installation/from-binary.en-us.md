@@ -2,14 +2,14 @@
 date: "2017-06-19T12:00:00+02:00"
 title: "Installation from binary"
 slug: "install-from-binary"
-weight: 10
+weight: 15
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "installation"
     name: "From binary"
-    weight: 20
+    weight: 15
     identifier: "install-from-binary"
 ---
 
@@ -64,7 +64,7 @@ despite warnings like `This key is not certified with a trusted signature!`.
 
 ## Recommended server configuration
 
-**NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/advanced/environment-variables.en-us.md" >}}) as well!
+**NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/administration/environment-variables.en-us.md" >}}) as well!
 Of note, configuring `GITEA_WORK_DIR` will tell Gitea where to base its working directory, as well as ease installation.
 
 ### Prepare environment
@@ -113,7 +113,7 @@ If you don't want the web installer to be able to write to the config file, it i
 * Ensure that the `SECRET_KEY` and `INTERNAL_TOKEN` values are set. (You may want to use the `gitea generate secret` to generate these secret keys.)
 * Ensure that any other secret keys you need are set.
 
-See the [command line documentation]({{< relref "doc/usage/command-line.en-us.md" >}}) for information on using `gitea generate secret`.
+See the [command line documentation]({{< relref "doc/administration/command-line.en-us.md" >}}) for information on using `gitea generate secret`.
 
 ### Configure Gitea's working directory
 
@@ -158,7 +158,7 @@ GITEA_WORK_DIR=/var/lib/gitea/ /usr/local/bin/gitea web -c /etc/gitea/app.ini
 You can update to a new version of Gitea by stopping Gitea, replacing the binary at `/usr/local/bin/gitea` and restarting the instance.
 The binary file name should not be changed during the update to avoid problems in existing repositories.
 
-It is recommended that you make a [backup]({{< relref "doc/usage/backup-and-restore.en-us.md" >}}) before updating your installation.
+It is recommended that you make a [backup]({{< relref "doc/administration/backup-and-restore.en-us.md" >}}) before updating your installation.
 
 If you have carried out the installation steps as described above, the binary should
 have the generic name `gitea`. Do not change this, i.e. to include the version number.

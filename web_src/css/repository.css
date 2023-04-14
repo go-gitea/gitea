@@ -72,8 +72,8 @@
   max-height: 500px;
 }
 
-.repository .metas .ui.list.assignees .icon {
-  line-height: 2em;
+.repository .metas .ui.list.assignees .item {
+  line-height: 2.5em;
 }
 
 .repository .metas .ui.list.assignees .teamavatar {
@@ -143,7 +143,8 @@
 
 .repository .filter.menu .menu {
   max-height: 500px;
-  overflow-x: auto;
+  max-width: 300px;
+  overflow-x: hidden;
   right: 0 !important;
   left: auto !important;
 }
@@ -212,6 +213,10 @@
 
 .repository.file.list #repo-desc {
   font-size: 1.2em;
+}
+
+.repository.file.list .repo-path {
+  word-break: break-word;
 }
 
 .repository.file.list .repo-path .section,
@@ -537,10 +542,6 @@
 
 .repository.options .danger .ui.divider {
   margin: 0;
-}
-
-.repository .comment textarea {
-  max-height: none !important;
 }
 
 .repository.new.issue .comment.form .comment .avatar {
@@ -964,10 +965,6 @@
   max-width: 100%;
 }
 
-.repository.view.issue .comment-list .ui.comments .avatar {
-  margin-right: 0.5rem;
-}
-
 .repository.view.issue .comment-list .comment > .content > div:first-child {
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
@@ -1063,11 +1060,6 @@
   min-height: 5rem;
 }
 
-.repository.view.issue .comment-list .comment .ui.form textarea {
-  height: 200px;
-  font-family: var(--fonts-monospace);
-}
-
 .repository.view.issue .comment-list .comment .edit.buttons {
   margin-top: 10px;
 }
@@ -1095,6 +1087,14 @@
 
 .repository.view.issue .comment-list .code-comment .comment-content {
   margin-left: 36px;
+}
+
+.repository.view.issue .comment-list .comment > .avatar {
+  margin-top: 6px;
+}
+
+.repository.view.issue .comment-list .comment > .avatar ~ .content {
+  margin-left: 3em;
 }
 
 .repository.view.issue .comment-list .code-comment img.avatar,
@@ -1184,15 +1184,6 @@
   border-right-color: var(--color-box-body);
   border-width: 8px;
   margin-top: -8px;
-}
-
-.repository .comment.form .content textarea {
-  height: 200px;
-  font-family: var(--fonts-monospace);
-}
-
-.repository .comment.form .content .CodeMirror-scroll {
-  max-height: 85vh;
 }
 
 .repository .milestone.list {
@@ -1630,11 +1621,11 @@
   position: sticky;
   top: 0;
   z-index: 8;
-  border-bottom: 1px solid var(--color-secondary);
-  padding-left: 2px;
-  padding-right: 2px;
-  margin-left: -1px;
-  margin-right: -1px;
+  border-bottom: none;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin-left: -4px;
+  margin-right: -4px;
 }
 
 .repository .diff-detail-box > div::after {
@@ -1670,6 +1661,13 @@
   .repository .diff-detail-box .diff-detail-stats strong {
     font-size: 1rem;
   }
+}
+
+.diff-detail-actions {
+  /* prevent font-size from increasing element height so that .diff-detail-box comes
+     out with height of 47px (one line) and 77px (two lines), which is important for
+     position: sticky */
+  height: 33px;
 }
 
 .repository .diff-detail-box .diff-detail-actions > * {
@@ -1794,8 +1792,14 @@
   padding: 0 !important;
 }
 
-.repository .diff-file-box .code-diff tbody tr td.halfwidth {
-  width: 49%; /* halfwidth is used in split view - and in that case, 1% of each */
+.repository .diff-file-box .code-diff table {
+  table-layout: fixed;
+}
+
+.repository .diff-file-box .code-diff tbody tr td.lines-num,
+.repository .diff-file-box .code-diff tbody tr td.lines-escape,
+.repository .diff-file-box .code-diff tbody tr td.lines-type-marker {
+  white-space: nowrap;
 }
 
 .repository .diff-file-box .code-diff tbody tr td.center {
@@ -1846,10 +1850,31 @@
   padding-bottom: 5px;
 }
 
+.diff-file-box {
+  border: 1px solid transparent;
+  border-radius: var(--border-radius);
+  scroll-margin-top: 47px; /* match .repository .diff-detail-box */
+}
+
+@media (max-width: 991px) {
+  .diff-file-box {
+    scroll-margin-top: 77px; /* match .repository .diff-detail-box */
+  }
+}
+
+/* TODO: this can potentially be made "global" by removing the class prefix */
+.diff-file-box .ui.attached.header,
+.diff-file-box .ui.attached.table {
+  margin: 0; /* remove fomantic negative margins */;
+  width: initial; /* remove fomantic over 100% width */;
+  max-width: initial; /* remove fomantic over 100% width */;
+}
+
 .repository .diff-stats {
   clear: both;
   margin-bottom: 5px;
-  max-height: 400px;
+  max-height: 200px;
+  height: fit-content;
   overflow: auto;
   padding-left: 0;
 }
@@ -2049,25 +2074,6 @@
   width: 450px !important;
 }
 
-.repository.forks .list {
-  margin-top: 0;
-}
-
-.repository.forks .list .item {
-  padding-top: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--color-secondary);
-}
-
-.repository.forks .list .item .ui.avatar {
-  float: left;
-  margin-right: 5px;
-}
-
-.repository.forks .list .item .link {
-  padding-top: 5px;
-}
-
 .repository.packages .empty {
   padding-top: 70px;
   padding-bottom: 100px;
@@ -2094,22 +2100,15 @@
   margin-bottom: 15px;
 }
 
-.repository.wiki.view > .markup {
-  padding: 15px 30px;
+.file-view.markup {
+  padding: 1em 2em;
 }
 
-.repository.wiki.view > .markup h1:first-of-type,
-.repository.wiki.view > .markup h2:first-of-type,
-.repository.wiki.view > .markup h3:first-of-type,
-.repository.wiki.view > .markup h4:first-of-type,
-.repository.wiki.view > .markup h5:first-of-type,
-.repository.wiki.view > .markup h6:first-of-type {
-  margin-top: 0;
+.wiki-content-main {
+  padding: 1em 2em !important;
+  margin-left: 1em !important;
 }
 
-.repository.wiki .form .CodeMirror-scroll {
-  max-height: 85vh;
-}
 
 @media (max-width: 767px) {
   .repository.wiki .dividing.header .stackable.grid .button {
@@ -2645,7 +2644,8 @@
   filter: drop-shadow(-3px 0 0 var(--color-primary-alpha-30)) !important;
 }
 
-.code-comment:target {
+.code-comment:target,
+.diff-file-box:target {
   border-color: var(--color-primary) !important;
   border-radius: var(--border-radius) !important;
   box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
@@ -2734,6 +2734,11 @@
   width: 100% !important;
   max-width: 100% !important;
   margin: 0 !important;
+  padding: 1em;
+}
+
+.comment-body .markup {
+  border-radius: 0 0 var(--border-radius) var(--border-radius); /* don't render outside box */
 }
 
 .edit-label.modal .form .column,
@@ -3049,21 +3054,10 @@ tbody.commit-list {
   top: -2px;
 }
 
-#topic_edit {
-  margin-top: 5px;
-}
-
-#repo-topics {
-  margin-top: 5px;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.repo-topic {
-  font-weight: normal !important;
+#repo-topics .repo-topic {
+  font-weight: normal;
   cursor: pointer;
-  margin: 2px !important;
+  margin: 2px;
 }
 
 #new-dependency-drop-list.ui.selection.dropdown {
@@ -3077,18 +3071,6 @@ tbody.commit-list {
 #new-dependency-drop-list .text {
   width: 100%;
   overflow: hidden;
-}
-
-#manage_topic {
-  font-size: 12px;
-}
-
-.label + #manage_topic {
-  margin-left: 5px;
-}
-
-.ui.small.label.topic {
-  margin-bottom: 4px;
 }
 
 .repo-header {
@@ -3236,15 +3218,26 @@ td.blob-excerpt {
 }
 
 #diff-file-tree {
-  width: 20%;
+  flex: 0 0 20%;
   max-width: 380px;
   line-height: inherit;
   position: sticky;
   padding-top: 0;
   top: 47px;
-  max-height: calc(100vh - 50px);
+  max-height: calc(100vh - 47px);
   height: 100%;
   overflow-y: auto;
+}
+
+.diff-toggle-file-tree-button {
+  background: none;
+  border: none;
+  user-select: none;
+  color: inherit;
+}
+
+.diff-toggle-file-tree-button:hover {
+  color: var(--color-primary);
 }
 
 @media (max-width: 991px) {
@@ -3318,8 +3311,14 @@ td.blob-excerpt {
 
 .ui.attached.header.diff-file-header.sticky-2nd-row {
   position: sticky;
-  top: 77px;
+  top: 47px; /* match .repository .diff-detail-box */
   z-index: 7;
+}
+
+@media (max-width: 991px) {
+  .ui.attached.header.diff-file-header.sticky-2nd-row {
+    top: 77px; /* match .repository .diff-detail-box */
+  }
 }
 
 @media (max-width: 480px) {

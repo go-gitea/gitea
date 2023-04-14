@@ -865,8 +865,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				_, _, line, _ = git.ParseDiffHunkString(comment.DiffHunk)
 			}
 
-			// SECURITY: The TreePath must be cleaned!
-			comment.TreePath = util.CleanPath(comment.TreePath)
+			// SECURITY: The TreePath must be cleaned! use relative path
+			comment.TreePath = util.PathJoinRel(comment.TreePath)
 
 			var patch string
 			reader, writer := io.Pipe()

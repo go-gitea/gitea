@@ -1,22 +1,21 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
-import {initMarkupContent} from '../markup/content.js';
 import {createCodeEditor} from './codeeditor.js';
 import {hideElem, showElem} from '../utils/dom.js';
+import {initMarkupContent} from '../markup/content.js';
+import {attachRefIssueContextPopup} from './contextpopup.js';
 
 const {csrfToken} = window.config;
-let previewFileModes;
 
 function initEditPreviewTab($form) {
   const $tabMenu = $form.find('.tabular.menu');
   $tabMenu.find('.item').tab();
   const $previewTab = $tabMenu.find(`.item[data-tab="${$tabMenu.data('preview')}"]`);
   if ($previewTab.length) {
-    previewFileModes = $previewTab.data('preview-file-modes').split(',');
     $previewTab.on('click', function () {
       const $this = $(this);
       let context = `${$this.data('context')}/`;
-      const mode = $this.data('markdown-mode') || 'comment';
+      const mode = $this.data('markup-mode') || 'comment';
       const treePathEl = $form.find('input#tree_path');
       if (treePathEl.length > 0) {
         context += treePathEl.val();
@@ -27,10 +26,10 @@ function initEditPreviewTab($form) {
         mode,
         context,
         text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val(),
+        file_path: treePathEl.val(),
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
-        $previewPanel.html(data);
-        initMarkupContent();
+        renderPreviewPanelContent($previewPanel, data);
       });
     });
   }
@@ -147,7 +146,7 @@ export function initRepoEditor() {
   if (!$editArea.length) return;
 
   (async () => {
-    const editor = await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
+    const editor = await createCodeEditor($editArea[0], $editFilename[0]);
 
     // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
     // to enable or disable the commit button
@@ -191,4 +190,12 @@ export function initRepoEditor() {
       }
     });
   })();
+}
+
+export function renderPreviewPanelContent($panelPreviewer, data) {
+  $panelPreviewer.html(data);
+  initMarkupContent();
+
+  const refIssues = $panelPreviewer.find('p .ref-issue');
+  attachRefIssueContextPopup(refIssues);
 }

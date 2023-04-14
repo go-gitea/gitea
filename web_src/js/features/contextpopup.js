@@ -6,18 +6,20 @@ import {createTippy} from '../modules/tippy.js';
 
 export function initContextPopups() {
   const refIssues = $('.ref-issue');
-  if (!refIssues.length) return;
+  attachRefIssueContextPopup(refIssues);
+}
 
-  refIssues.each(function () {
-    if ($(this).hasClass('ref-external-issue')) {
+export function attachRefIssueContextPopup(refIssues) {
+  for (const refIssue of refIssues) {
+    if (refIssue.classList.contains('ref-external-issue')) {
       return;
     }
 
-    const {owner, repo, index} = parseIssueHref($(this).attr('href'));
+    const {owner, repo, index} = parseIssueHref(refIssue.getAttribute('href'));
     if (!owner) return;
 
     const el = document.createElement('div');
-    this.parentNode.insertBefore(el, this.nextSibling);
+    refIssue.parentNode.insertBefore(el, refIssue.nextSibling);
 
     const view = createApp(ContextPopup);
 
@@ -28,13 +30,14 @@ export function initContextPopups() {
       el.textContent = 'ContextPopup failed to load';
     }
 
-    createTippy(this, {
+    createTippy(refIssue, {
       content: el,
+      placement: 'top-start',
       interactive: true,
       interactiveBorder: 5,
       onShow: () => {
         el.firstChild.dispatchEvent(new CustomEvent('ce-load-context-popup', {detail: {owner, repo, index}}));
       }
     });
-  });
+  }
 }
