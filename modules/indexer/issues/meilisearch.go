@@ -6,6 +6,7 @@ package issues
 import (
 	"context"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -120,10 +121,11 @@ func (b *MeilisearchIndexer) Delete(ids ...int64) error {
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
 func (b *MeilisearchIndexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*SearchResult, error) {
-	filter := make([][]string, 0, len(repoIDs))
+	repoFilters := make([]string, 0, len(repoIDs))
 	for _, repoID := range repoIDs {
-		filter = append(filter, []string{"repo_id = " + strconv.FormatInt(repoID, 10)})
+		repoFilters = append(repoFilters, "repo_id = "+strconv.FormatInt(repoID, 10))
 	}
+	filter := strings.Join(repoFilters, " OR ")
 	searchRes, err := b.client.Index(b.indexerName).Search(keyword, &meilisearch.SearchRequest{
 		Filter: filter,
 		Limit:  int64(limit),
