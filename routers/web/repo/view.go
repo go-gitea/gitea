@@ -1012,9 +1012,44 @@ func Stars(ctx *context.Context) {
 	}, tplWatchers)
 }
 
+// ForksDropdownHelper is a little helper struct for creating dropdowns
+type ForksDropdownHelper struct {
+	Parameter string // The URL parameter
+	Text      string // The text that is displayed in the UI
+}
+
 // Forks render repository's forked users
 func Forks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repos.forks")
+
+	aviablePeriods := []ForksDropdownHelper{
+		{Parameter: "all", Text: "All"},
+		{Parameter: "1month", Text: "1 month"},
+		{Parameter: "6month", Text: "6 months"},
+		{Parameter: "1year", Text: "1 year"},
+		{Parameter: "2year", Text: "2 years"},
+		{Parameter: "5year", Text: "5 years"},
+	}
+
+	period := ctx.FormString("period")
+	if period == "" {
+		period = "all"
+	}
+
+	aviableSortTypes := []ForksDropdownHelper{
+		{Parameter: "moststars", Text: "Stars"},
+		{Parameter: "recentupdated", Text: "Recently updated"},
+		{Parameter: "leastrecentupdated", Text: "Least recently updated"},
+		{Parameter: "openissue", Text: "Open Issues"},
+		{Parameter: "openpr", Text: "Open pull requests"},
+		{Parameter: "newest", Text: "Newest"},
+		{Parameter: "oldest", Text: "Oldest"},
+	}
+
+	sortType := ctx.FormString("sort")
+	if sortType == "" {
+		sortType = "moststars"
+	}
 
 	page := ctx.FormInt("page")
 	if page <= 0 {
@@ -1024,9 +1059,13 @@ func Forks(ctx *context.Context) {
 	pager := context.NewPagination(ctx.Repo.Repository.NumForks, setting.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	forks, err := repo_model.GetForks(ctx.Repo.Repository, db.ListOptions{
-		Page:     pager.Paginater.Current(),
-		PageSize: setting.ItemsPerPage,
+	forks, err := repo_model.GetForks(ctx.Repo.Repository, repo_model.GetForksOptions{
+		ListOptions: db.ListOptions{
+			Page:     pager.Paginater.Current(),
+			PageSize: setting.ItemsPerPage,
+		},
+		SortType: sortType,
+		Period:   period,
 	})
 	if err != nil {
 		ctx.ServerError("GetForks", err)
@@ -1041,6 +1080,12 @@ func Forks(ctx *context.Context) {
 	}
 
 	ctx.Data["Forks"] = forks
+
+	ctx.Data["Period"] = period
+	ctx.Data["AviablePeriods"] = aviablePeriods
+
+	ctx.Data["SortType"] = sortType
+	ctx.Data["AviableSortTypes"] = aviableSortTypes
 
 	ctx.HTML(http.StatusOK, tplForks)
 }

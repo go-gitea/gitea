@@ -5,6 +5,7 @@ package repo
 
 import (
 	"context"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -54,15 +55,58 @@ func GetUserFork(ctx context.Context, repoID, userID int64) (*Repository, error)
 	return &forkedRepo, nil
 }
 
+// GetForksOptions represents options for GetForks
+type GetForksOptions struct {
+	ListOptions db.ListOptions
+	Period      string
+	SortType    string
+}
+
 // GetForks returns all the forks of the repository
-func GetForks(repo *Repository, listOptions db.ListOptions) ([]*Repository, error) {
-	if listOptions.Page == 0 {
-		forks := make([]*Repository, 0, repo.NumForks)
-		return forks, db.GetEngine(db.DefaultContext).Find(&forks, &Repository{ForkID: repo.ID})
+func GetForks(repo *Repository, forkOptions GetForksOptions) ([]*Repository, error) {
+	var forks []*Repository
+	var sess db.Engine
+
+	if forkOptions.ListOptions.Page == 0 {
+		forks = make([]*Repository, 0, repo.NumForks)
+		sess = db.GetEngine(db.DefaultContext)
+	} else {
+		sess = db.GetPaginatedSession(&forkOptions.ListOptions)
+		forks = make([]*Repository, 0, forkOptions.ListOptions.PageSize)
 	}
 
-	sess := db.GetPaginatedSession(&listOptions)
-	forks := make([]*Repository, 0, listOptions.PageSize)
+	switch forkOptions.Period {
+	case "1month":
+		sess.Where("repository.updated_unix >= ?", time.Now().AddDate(0, -1, 0).Unix())
+	case "6month":
+		sess.Where("repository.updated_unix >= ?", time.Now().AddDate(0, -6, 0).Unix())
+	case "1year":
+		sess.Where("repository.updated_unix >= ?", time.Now().AddDate(-1, 0, 0).Unix())
+	case "2year":
+		sess.Where("repository.updated_unix >= ?", time.Now().AddDate(-2, 0, 0).Unix())
+	case "5year":
+		sess.Where("repository.updated_unix >= ?", time.Now().AddDate(-5, 0, 0).Unix())
+	}
+
+	switch forkOptions.SortType {
+	case "moststars":
+		sess.Desc("repository.num_stars").Desc("repository.updated_unix")
+	case "recentupdated":
+		sess.Desc("repository.updated_unix")
+	case "leastrecentupdated":
+		sess.Asc("repository.updated_unix")
+	case "openissue":
+		sess.Desc("repository.num_issues").Desc("repository.updated_unix")
+	case "openpr":
+		sess.Desc("repository.num_pulls").Desc("repository.updated_unix")
+	case "newest":
+		sess.Desc("repository.created_unix")
+	case "oldest":
+		sess.Asc("repository.created_unix")
+	default:
+		sess.Desc("repository.num_stars").Desc("repository.updated_unix")
+	}
+
 	return forks, sess.Find(&forks, &Repository{ForkID: repo.ID})
 }
 

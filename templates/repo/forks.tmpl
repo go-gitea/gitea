@@ -5,12 +5,63 @@
 		<h2 class="ui dividing header">
 			{{.locale.Tr "repo.forks"}}
 		</h2>
-		{{range .Forks}}
-			<div class="gt-df gt-ac gt-py-3">
-				<span class="gt-mr-2">{{avatar $.Context .Owner}}</span>
-				<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a> / <a href="{{.Link}}">{{.Name}}</a>
+
+		<div class="ui secondary filter stackable menu labels" style="display: flex; justify-content: end;">
+			{{$Period := .Period}}
+			{{$SortType := .SortType}}
+
+			<div class="ui dropdown downward type jump item">
+				<span class="text">
+					Period
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				</span>
+				<div class="menu">
+					{{range .AviablePeriods}}
+						<a class="{{if eq $Period .Parameter}} active {{end}}item" href="{{$.Link}}?period={{.Parameter}}&sort={{$SortType}}">{{.Text}}</a>
+					{{end}}
+				</div>
 			</div>
-		{{end}}
+
+			<div class="ui dropdown downward type jump item">
+				<span class="text">
+					Sort
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				</span>
+				<div class="menu">
+					{{range .AviableSortTypes}}
+						<a class="{{if eq $SortType .Parameter}} active {{end}}item" href="{{$.Link}}?period={{$Period}}&sort={{.Parameter}}">{{.Text}}</a>
+					{{end}}
+				</div>
+			</div>
+		</div>
+
+		<div class="ui divider"></div>
+
+		<div class="ui repository list">
+			{{range .Forks}}
+				<div class="item">
+					<div class="gt-df gt-ac gt-py-3">
+						<div style="display: flex; flex: 1; flex-grow: 1;">
+							<span class="gt-mr-2">{{avatar $.Context .Owner}}</span>
+							<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a> / <a href="{{.Link}}">{{.Name}}</a>
+						</div>
+
+						<div class="metas gt-df gt-ac text grey">
+							{{if not $.DisableStars}}
+								<span class="text grey gt-df gt-ac gt-mr-3">{{svg "octicon-star" 16 "gt-mr-3"}}{{.NumStars}}</span>
+							{{end}}
+
+							<span class="text grey gt-df gt-ac gt-mr-3">{{svg "octicon-git-branch" 16 "gt-mr-3"}}{{.NumForks}}</span>
+						</div>
+					</div>
+
+					<div class="description">
+						<p class="time" style="display: inline-block;">Created {{TimeSinceUnix .CreatedUnix $.locale}}</p>
+						<p class="time" style="display: inline-block;">{{$.locale.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix $.locale}}</p>
+					</div>
+				</div>
+			{{end}}
+		</div>
 	</div>
 
 	{{template "base/paginate" .}}
