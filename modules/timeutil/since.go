@@ -114,14 +114,31 @@ func timeSincePro(then, now time.Time, lang translation.Locale) string {
 	return strings.TrimPrefix(timeStr, ", ")
 }
 
-// TimeSince renders relative time HTML given a time.Time
-func TimeSince(then time.Time, lang translation.Locale, relativeTimeOptions ...string) template.HTML {
-	timestamp := then.UTC().Format(time.RFC3339)
+func timeSinceUnix(then, now time.Time, lang translation.Locale) template.HTML {
+	friendlyText := then.Format("2006-01-02 15:04:05 +07:00")
+
+	// document: https://github.com/github/relative-time-element
+	attrs := `tense="past"`
+	isFuture := now.Before(then)
+	if isFuture {
+		attrs = `format="duration" tense="future"`
+	}
+
 	// declare data-tooltip-content attribute to switch from "title" tooltip to "tippy" tooltip
-	return template.HTML(fmt.Sprintf(`<relative-time class="time-since" %s prefix="%s" datetime="%s" data-tooltip-content data-tooltip-interactive="true">%s</relative-time>`, strings.Join(relativeTimeOptions, " "), lang.Tr("on_date"), timestamp, timestamp))
+	htm := fmt.Sprintf(`<relative-time class="time-since" prefix="" %s datetime="%s" data-tooltip-content data-tooltip-interactive="true">%s</relative-time>`,
+		attrs, then.Format(time.RFC3339), friendlyText)
+	if isFuture {
+		return template.HTML(lang.Tr("tool.from_now", htm))
+	}
+	return template.HTML(htm)
+}
+
+// TimeSince renders relative time HTML given a time.Time
+func TimeSince(then time.Time, lang translation.Locale) template.HTML {
+	return timeSinceUnix(then, time.Now(), lang)
 }
 
 // TimeSinceUnix renders relative time HTML given a TimeStamp
-func TimeSinceUnix(then TimeStamp, lang translation.Locale, relativeTimeOptions ...string) template.HTML {
-	return TimeSince(then.AsLocalTime(), lang, relativeTimeOptions...)
+func TimeSinceUnix(then TimeStamp, lang translation.Locale) template.HTML {
+	return TimeSince(then.AsLocalTime(), lang)
 }
