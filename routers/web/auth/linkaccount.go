@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 
@@ -58,7 +59,7 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["email"] = email
 
 	if len(email) != 0 {
-		u, err := user_model.GetUserByEmail(email)
+		u, err := user_model.GetUserByEmail(ctx, email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			ctx.ServerError("UserSignIn", err)
 			return
@@ -264,6 +265,12 @@ func LinkAccountPostRegister(ctx *context.Context) {
 
 	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, nil, &gothUser, false) {
 		// error already handled
+		return
+	}
+
+	source := authSource.Cfg.(*oauth2.Source)
+	if err := syncGroupsToTeams(ctx, source, &gothUser, u); err != nil {
+		ctx.ServerError("SyncGroupsToTeams", err)
 		return
 	}
 

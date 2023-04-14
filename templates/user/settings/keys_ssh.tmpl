@@ -1,17 +1,13 @@
 <h4 class="ui top attached header">
 	{{.locale.Tr "settings.manage_ssh_keys"}}
 	<div class="ui right">
-		{{if not .DisableSSH}}
-			<div id="add-ssh-button" class="ui primary tiny show-panel button" data-panel="#add-ssh-key-panel">
-				{{.locale.Tr "settings.add_key"}}
-			</div>
-		{{else}}
-			<div class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</div>
-		{{end}}
+		<button id="add-ssh-button" class="ui primary tiny show-panel button" data-panel="#add-ssh-key-panel">
+			{{.locale.Tr "settings.add_key"}}
+		</button>
 	</div>
 </h4>
 <div class="ui attached segment">
-	<div class="{{if not .HasSSHError}}hide{{end}} mb-4" id="add-ssh-key-panel">
+	<div class="{{if not .HasSSHError}}gt-hidden{{end}} gt-mb-4" id="add-ssh-key-panel">
 		<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
@@ -31,10 +27,15 @@
 			</button>
 		</form>
 	</div>
-	<div class="ui key list mt-0">
+	<div class="ui key list gt-mt-0">
 		<div class="item">
 			{{.locale.Tr "settings.ssh_desc"}}
 		</div>
+		{{if .DisableSSH}}
+			<div class="item">
+				{{.locale.Tr "settings.ssh_signonly"}}
+			</div>
+		{{end}}
 		{{range $index, $key := .Keys}}
 			<div class="item">
 				<div class="right floated content">
@@ -42,23 +43,23 @@
 						{{$.locale.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingFingerprint .Fingerprint)}}
-						<a class="ui primary tiny show-panel button" href="{{$.Link}}?verify_ssh={{.Fingerprint}}">{{$.locale.Tr "settings.ssh_key_verify"}}</a>
+						<a class="ui primary tiny button" href="{{$.Link}}?verify_ssh={{.Fingerprint}}">{{$.locale.Tr "settings.ssh_key_verify"}}</a>
 					{{end}}
 
 				</div>
 				<div class="left floated content">
-					<span class="tooltip{{if .HasRecentActivity}} green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
+					<span class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
 				</div>
 				<div class="content">
 						{{if .Verified}}
-							<span class="tooltip" data-content="{{$.locale.Tr "settings.ssh_key_verified_long"}}">{{svg "octicon-shield-check"}} <strong>{{$.locale.Tr "settings.ssh_key_verified"}}</strong></span>
+							<span data-tooltip-content="{{$.locale.Tr "settings.ssh_key_verified_long"}}">{{svg "octicon-verified"}} <strong>{{$.locale.Tr "settings.ssh_key_verified"}}</strong></span>
 						{{end}}
 						<strong>{{.Name}}</strong>
 						<div class="print meta">
 								{{.Fingerprint}}
 						</div>
 						<div class="activity meta">
-								<i>{{$.locale.Tr "settings.add_on"}} <span><time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time></span> —	{{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}><time data-format="short-date" datetime="{{.UpdatedUnix.FormatLong}}">{{.UpdatedUnix.FormatShort}}</time></span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{$.locale.Tr "settings.add_on"}} <span>{{template "shared/datetime/short" (dict "Datetime" .CreatedUnix.FormatLong "Fallback" .CreatedUnix.FormatShort)}}</span> —	{{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{template "shared/datetime/short" (dict "Datetime" .UpdatedUnix.FormatLong "Fallback" .UpdatedUnix.FormatShort)}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
 						</div>
 				</div>
 			</div>

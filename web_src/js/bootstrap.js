@@ -20,6 +20,10 @@ export function showGlobalErrorMessage(msg) {
  * @param {ErrorEvent} e
  */
 function processWindowErrorEvent(e) {
+  if (window.config.initCount > 1) {
+    // the page content has been loaded many times, the HTML/JS are totally broken, don't need to show error message
+    return;
+  }
   if (!e.error && e.lineno === 0 && e.colno === 0 && e.filename === '' && window.navigator.userAgent.includes('FxiOS/')) {
     // At the moment, Firefox (iOS) (10x) has an engine bug. See https://github.com/go-gitea/gitea/issues/20240
     // If a script inserts a newly created (and content changed) element into DOM, there will be a nonsense error event reporting: Script error: line 0, col 0.
@@ -33,7 +37,13 @@ function initGlobalErrorHandler() {
   if (!window.config) {
     showGlobalErrorMessage(`Gitea JavaScript code couldn't run correctly, please check your custom templates`);
   }
-
+  if (window.config.initCount > 1) {
+    // when a sub-templates triggers an 500 error, its parent template has been partially rendered,
+    // then the 500 page will be rendered after that partially rendered page, which will cause the initCount > 1
+    // in this case, the page is totally broken, so do not do any further error handling
+    console.error('initGlobalErrorHandler: Gitea global config system has already been initialized, there must be something else wrong');
+    return;
+  }
   // we added an event handler for window error at the very beginning of <script> of page head
   // the handler calls `_globalHandlerErrors.push` (array method) to record all errors occur before this init
   // then in this init, we can collect all error events and show them

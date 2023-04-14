@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {stripTags} from '../utils.js';
+import {hideElem, showElem} from '../utils/dom.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -8,27 +9,29 @@ const shortDateFormatter = new Intl.DateTimeFormat(lang, {year: 'numeric', month
 
 export function initRepoTopicBar() {
   const mgrBtn = $('#manage_topic');
+  if (!mgrBtn.length) return;
   const editDiv = $('#topic_edit');
   const viewDiv = $('#repo-topics');
   const saveBtn = $('#save_topic');
   const topicDropdown = $('#topic_edit .dropdown');
-  const topicForm = $('#topic_edit.ui.form');
-  const topicPrompts = getPrompts();
+  const topicForm = editDiv; // the old logic, editDiv is topicForm
+  const topicDropdownSearch = topicDropdown.find('input.search');
+  const topicPrompts = {
+    countPrompt: topicDropdown.attr('data-text-count-prompt'),
+    formatPrompt: topicDropdown.attr('data-text-format-prompt'),
+  };
 
   mgrBtn.on('click', () => {
-    viewDiv.hide();
-    editDiv.css('display', ''); // show Semantic UI Grid
+    hideElem(viewDiv);
+    showElem(editDiv);
+    topicDropdownSearch.focus();
   });
 
-  function getPrompts() {
-    const hidePrompt = $('div.hide#validate_prompt');
-    const prompts = {
-      countPrompt: hidePrompt.children('#count_prompt').text(),
-      formatPrompt: hidePrompt.children('#format_prompt').text()
-    };
-    hidePrompt.remove();
-    return prompts;
-  }
+  $('#cancel_topic_edit').on('click', () => {
+    hideElem(editDiv);
+    showElem(viewDiv);
+    mgrBtn.focus();
+  });
 
   saveBtn.on('click', () => {
     const topics = $('input[name=topics]').val();
@@ -41,17 +44,15 @@ export function initRepoTopicBar() {
         viewDiv.children('.topic').remove();
         if (topics.length) {
           const topicArray = topics.split(',');
-
-          const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
             const link = $('<a class="ui repo-topic large label topic"></a>');
             link.attr('href', `${appSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
             link.text(topicArray[i]);
-            link.insertBefore(last);
+            link.insertBefore(mgrBtn); // insert all new topics before manage button
           }
         }
-        editDiv.css('display', 'none');
-        viewDiv.show();
+        hideElem(editDiv);
+        showElem(viewDiv);
       }
     }).fail((xhr) => {
       if (xhr.status === 422) {
@@ -88,9 +89,6 @@ export function initRepoTopicBar() {
       duration: 200,
       variation: false,
     },
-    className: {
-      label: 'ui small label'
-    },
     apiSettings: {
       url: `${appSubUrl}/explore/topics/search?q={query}`,
       throttle: 500,
@@ -103,7 +101,7 @@ export function initRepoTopicBar() {
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
-        topicDropdown.find('div.label.visible.topic,a.label.visible').each((_, el) => {
+        topicDropdown.find('a.label.visible').each((_, el) => {
           current_topics.push(el.getAttribute('data-value'));
         });
 

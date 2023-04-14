@@ -86,7 +86,18 @@ func (issues IssueList) loadPosters(ctx context.Context) error {
 		return nil
 	}
 
-	posterIDs := issues.getPosterIDs()
+	posterMaps, err := getPosters(ctx, issues.getPosterIDs())
+	if err != nil {
+		return err
+	}
+
+	for _, issue := range issues {
+		issue.Poster = getPoster(issue.PosterID, posterMaps)
+	}
+	return nil
+}
+
+func getPosters(ctx context.Context, posterIDs []int64) (map[int64]*user_model.User, error) {
 	posterMaps := make(map[int64]*user_model.User, len(posterIDs))
 	left := len(posterIDs)
 	for left > 0 {
@@ -98,22 +109,26 @@ func (issues IssueList) loadPosters(ctx context.Context) error {
 			In("id", posterIDs[:limit]).
 			Find(&posterMaps)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		left -= limit
 		posterIDs = posterIDs[limit:]
 	}
+	return posterMaps, nil
+}
 
-	for _, issue := range issues {
-		if issue.PosterID <= 0 {
-			continue
-		}
-		var ok bool
-		if issue.Poster, ok = posterMaps[issue.PosterID]; !ok {
-			issue.Poster = user_model.NewGhostUser()
-		}
+func getPoster(posterID int64, posterMaps map[int64]*user_model.User) *user_model.User {
+	if posterID == user_model.ActionsUserID {
+		return user_model.NewActionsUser()
 	}
-	return nil
+	if posterID <= 0 {
+		return nil
+	}
+	poster, ok := posterMaps[posterID]
+	if !ok {
+		return user_model.NewGhostUser()
+	}
+	return poster
 }
 
 func (issues IssueList) getIssueIDs() []int64 {

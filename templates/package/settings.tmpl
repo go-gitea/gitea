@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository settings options">
+<div role="main" aria-label="{{.Title}}" class="page-content repository settings options">
 	{{template "user/overview/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -51,16 +51,13 @@
 						{{.locale.Tr "packages.settings.delete"}}
 					</div>
 					<div class="content">
-						<div class="ui warning message text left word-break">
+						<div class="ui warning message text left gt-word-break">
 							{{.locale.Tr "packages.settings.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
 						</div>
 						<form class="ui form" action="{{.Link}}" method="post">
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="action" value="delete">
-							<div class="text right actions">
-								<div class="ui cancel button">{{.locale.Tr "cancel"}}</div>
-								<button class="ui red button">{{.locale.Tr "ok"}}</button>
-							</div>
+							{{template "base/delete_modal_actions" .}}
 						</form>
 					</div>
 				</div>

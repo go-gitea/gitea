@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/auth/password/hash"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-testfixtures/testfixtures/v3"
 	"xorm.io/xorm"
@@ -64,6 +66,11 @@ func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
 		return err
 	}
 
+	// register the dummy hash algorithm function used in the test fixtures
+	_ = hash.Register("dummy", hash.NewDummyHasher)
+
+	setting.PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
+
 	return err
 }
 
@@ -115,5 +122,8 @@ func LoadFixtures(engine ...*xorm.Engine) error {
 			}
 		}
 	}
+	_ = hash.Register("dummy", hash.NewDummyHasher)
+	setting.PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
+
 	return err
 }

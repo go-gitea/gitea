@@ -23,6 +23,7 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -87,8 +88,8 @@ func TestMain(m *testing.M) {
 	c = routers.NormalRoutes(context.TODO())
 
 	// integration test settings...
-	if setting.Cfg != nil {
-		testingCfg := setting.Cfg.Section("integration-tests")
+	if setting.CfgProvider != nil {
+		testingCfg := setting.CfgProvider.Section("integration-tests")
 		tests.SlowTest = testingCfg.Key("SLOW_TEST").MustDuration(tests.SlowTest)
 		tests.SlowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(tests.SlowFlush)
 	}
@@ -290,7 +291,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.
 	// Log the flash values on failure
 	if !assert.Equal(t, resp.Result().Header["Location"], []string{"/user/settings/applications"}) {
 		for _, cookie := range resp.Result().Cookies() {
-			if cookie.Name != "macaron_flash" {
+			if cookie.Name != gitea_context.CookieNameFlash {
 				continue
 			}
 			flash, _ := url.ParseQuery(cookie.Value)

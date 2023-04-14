@@ -74,7 +74,7 @@ func Search(ctx *context.APIContext) {
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
-		"data": convert.ToUsers(ctx.Doer, users),
+		"data": convert.ToUsers(ctx, ctx.Doer, users),
 	})
 }
 
@@ -102,7 +102,7 @@ func GetInfo(ctx *context.APIContext) {
 		ctx.NotFound("GetUserByName", user_model.ErrUserNotExist{Name: ctx.Params(":username")})
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToUser(ctx.ContextUser, ctx.Doer))
+	ctx.JSON(http.StatusOK, convert.ToUser(ctx, ctx.ContextUser, ctx.Doer))
 }
 
 // GetAuthenticatedUser get current user's information
@@ -116,7 +116,7 @@ func GetAuthenticatedUser(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/User"
 
-	ctx.JSON(http.StatusOK, convert.ToUser(ctx.Doer, ctx.Doer))
+	ctx.JSON(http.StatusOK, convert.ToUser(ctx, ctx.Doer, ctx.Doer))
 }
 
 // GetUserHeatmapData is the handler to get a users heatmap
@@ -144,4 +144,61 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusOK, heatmap)
+}
+
+func ListUserActivityFeeds(ctx *context.APIContext) {
+	// swagger:operation GET /users/{username}/activities/feeds user userListActivityFeeds
+	// ---
+	// summary: List a user's activity feeds
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// - name: only-performed-by
+	//   in: query
+	//   description: if true, only show actions performed by the requested user
+	//   type: boolean
+	// - name: date
+	//   in: query
+	//   description: the date of the activities to be found
+	//   type: string
+	//   format: date
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ActivityFeedsList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	includePrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+	listOptions := utils.GetListOptions(ctx)
+
+	opts := activities_model.GetFeedsOptions{
+		RequestedUser:   ctx.ContextUser,
+		Actor:           ctx.Doer,
+		IncludePrivate:  includePrivate,
+		OnlyPerformedBy: ctx.FormBool("only-performed-by"),
+		Date:            ctx.FormString("date"),
+		ListOptions:     listOptions,
+	}
+
+	feeds, count, err := activities_model.GetFeeds(ctx, opts)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetFeeds", err)
+		return
+	}
+	ctx.SetTotalCountHeader(count)
+
+	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer))
 }

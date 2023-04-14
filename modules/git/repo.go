@@ -115,7 +115,7 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 }
 
 // CloneWithArgs original repository to target path.
-func CloneWithArgs(ctx context.Context, args []CmdArg, from, to string, opts CloneRepoOptions) (err error) {
+func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, opts CloneRepoOptions) (err error) {
 	toDir := path.Dir(to)
 	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
 		return err
@@ -163,10 +163,8 @@ func CloneWithArgs(ctx context.Context, args []CmdArg, from, to string, opts Clo
 
 	envs := os.Environ()
 	u, err := url.Parse(from)
-	if err == nil && (strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https")) {
-		if proxy.Match(u.Host) {
-			envs = append(envs, fmt.Sprintf("https_proxy=%s", proxy.GetProxyURL()))
-		}
+	if err == nil {
+		envs = proxy.EnvWithProxy(u)
 	}
 
 	stderr := new(bytes.Buffer)
@@ -211,49 +209,22 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	} else {
 		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, opts.Remote, opts.Force, opts.Mirror))
 	}
-	var outbuf, errbuf strings.Builder
 
-	if opts.Timeout == 0 {
-		opts.Timeout = -1
-	}
-
-	err := cmd.Run(&RunOpts{
-		Env:     opts.Env,
-		Timeout: opts.Timeout,
-		Dir:     repoPath,
-		Stdout:  &outbuf,
-		Stderr:  &errbuf,
-	})
+	stdout, stderr, err := cmd.RunStdString(&RunOpts{Env: opts.Env, Timeout: opts.Timeout, Dir: repoPath})
 	if err != nil {
-		if strings.Contains(errbuf.String(), "non-fast-forward") {
-			return &ErrPushOutOfDate{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
-		} else if strings.Contains(errbuf.String(), "! [remote rejected]") {
-			err := &ErrPushRejected{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
+		if strings.Contains(stderr, "non-fast-forward") {
+			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}
+		} else if strings.Contains(stderr, "! [remote rejected]") {
+			err := &ErrPushRejected{StdOut: stdout, StdErr: stderr, Err: err}
 			err.GenerateMessage()
 			return err
-		} else if strings.Contains(errbuf.String(), "matches more than one") {
-			err := &ErrMoreThanOne{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
-			return err
+		} else if strings.Contains(stderr, "matches more than one") {
+			return &ErrMoreThanOne{StdOut: stdout, StdErr: stderr, Err: err}
 		}
+		return fmt.Errorf("push failed: %w - %s\n%s", err, stderr, stdout)
 	}
 
-	if errbuf.Len() > 0 && err != nil {
-		return fmt.Errorf("%w - %s", err, errbuf.String())
-	}
-
-	return err
+	return nil
 }
 
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)

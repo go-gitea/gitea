@@ -3,9 +3,9 @@
 		{{.locale.Tr "settings.manage_ssh_principals"}}
 		<div class="ui right">
 		{{if not .DisableSSH}}
-			<div class="ui primary tiny show-panel button" data-panel="#add-ssh-principal-panel">{{.locale.Tr "settings.add_new_principal"}}</div>
+			<button class="ui primary tiny show-panel button" data-panel="#add-ssh-principal-panel">{{.locale.Tr "settings.add_new_principal"}}</button>
 		{{else}}
-			<div class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</div>
+			<button class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</button>
 		{{end}}
 		</div>
 	</h4>
@@ -21,11 +21,11 @@
 							{{$.locale.Tr "settings.delete_key"}}
 						</button>
 					</div>
-					<i class="icon tooltip{{if .HasRecentActivity}} green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.principal_state_desc"}}"{{end}}>{{svg "octicon-key" 36}}</i>
+					<i class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.principal_state_desc"}}"{{end}}>{{svg "octicon-key" 36}}</i>
 					<div class="content">
 						<strong>{{.Name}}</strong>
 						<div class="activity meta">
-							<i>{{$.locale.Tr "settings.add_on"}} <span><time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time></span> —  {{svg "octicon-info" 16}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}><time data-format="short-date" datetime="{{.UpdatedUnix.FormatLong}}">{{.UpdatedUnix.FormatShort}}</time></span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
+							<i>{{$.locale.Tr "settings.add_on"}} <span>{{template "shared/datetime/short" (dict "Datetime" .CreatedUnix.FormatLong "Fallback" .CreatedUnix.FormatShort)}}</span> —  {{svg "octicon-info" 16}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{template "shared/datetime/short" (dict "Datetime" .UpdatedUnix.FormatLong "Fallback" .UpdatedUnix.FormatShort)}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
 						</div>
 					</div>
 				</div>
@@ -34,7 +34,7 @@
 	</div>
 	<br>
 
-	<div {{if not .HasPrincipalError}}class="hide"{{end}} id="add-ssh-principal-panel">
+	<div {{if not .HasPrincipalError}}class="gt-hidden"{{end}} id="add-ssh-principal-panel">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "settings.add_new_principal"}}
 		</h4>

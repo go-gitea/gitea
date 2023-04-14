@@ -21,7 +21,7 @@ const (
 
 // Applications render manage access token page
 func Applications(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.applications")
 	ctx.Data["PageIsSettingsApplications"] = true
 
 	loadApplicationsData(ctx)

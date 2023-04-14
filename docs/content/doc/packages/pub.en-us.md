@@ -1,7 +1,8 @@
 ---
 date: "2022-07-31T00:00:00+00:00"
 title: "Pub Packages Repository"
-slug: "packages/pub"
+slug: "usage/packages/pub"
+weight: 90
 draft: false
 toc: false
 menu:
@@ -38,7 +39,7 @@ dart pub token add https://gitea.example.com/api/packages/{owner}/pub
 | ------------ | ----------- |
 | `owner`      | The owner of the package. |
 
-You need to provide your [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}).
+You need to provide your [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}).
 
 ## Publish a package
 
