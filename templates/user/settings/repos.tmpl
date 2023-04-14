@@ -77,7 +77,7 @@
 														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="delete">
-														{{template "base/delete_modal_actions" $}}
+														{{template "base/page_dimmer_buttons" $}}
 													</form>
 												</div>
 											{{end}}
@@ -139,6 +139,6 @@
 	<div class="content">
 		<p>{{.locale.Tr "settings.remove_account_link_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/page_dimmer_buttons" .}}
 </div>
 {{template "base/footer" .}}

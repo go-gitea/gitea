@@ -169,7 +169,7 @@
 	<div class="content">
 		<p>{{.locale.Tr "settings.email_deletion_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/page_dimmer_buttons" .}}
 </div>
 
 <div class="ui small basic delete modal" id="delete-account">
@@ -180,7 +180,7 @@
 	<div class="content">
 		<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/page_dimmer_buttons" .}}
 </div>
 
 {{template "base/footer" .}}

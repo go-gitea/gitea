@@ -121,7 +121,7 @@
 	<div class="content">
 		<p>{{.locale.Tr "repo.wiki.delete_page_notice_1" ($title|Escape) | Safe}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/page_dimmer_buttons" .}}
 </div>
 
 {{template "base/footer" .}}

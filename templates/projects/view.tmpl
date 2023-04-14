@@ -162,7 +162,7 @@
 										{{$DataUrl := printf "%s/%d" $.Link .ID}}
 										{{$ModalNoText := $.locale.Tr "settings.cancel"}}
 										{{$ModalYesText := $.locale.Tr "repo.projects.column.delete"}}
-										{{template "base/delete_modal_actions" (dict "." $ "ExtendedClasses" "delete-project-board" "DataUrl" $DataUrl "ModalNoText" $ModalNoText "ModalYesText" $ModalYesText)}}
+										{{template "base/page_dimmer_buttons" (dict "." $ "ExtendedClasses" "delete-project-board" "DataUrl" $DataUrl "ModalNoText" $ModalNoText "ModalYesText" $ModalYesText)}}
 									</div>
 								</div>
 							</div>
@@ -274,6 +274,6 @@
 		<div class="content">
 			<p>{{.locale.Tr "repo.projects.deletion_desc"}}</p>
 		</div>
-		{{template "base/delete_modal_actions" .}}
+		{{template "base/page_dimmer_buttons" .}}
 	</div>
 {{end}}
