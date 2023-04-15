@@ -70,7 +70,8 @@ export default {
       const datetime = v.date.toISOString();
       const fallback = v.date.toLocaleDateString();
       const date = `<relative-time format="datetime" year="numeric" month="short" day="numeric" weekday="" datetime="${datetime}">${fallback}</relative-time>`;
-      return locale.contributions_on.replace('%[1]s', number).replace('%[2]s', date);
+      const stringToFormat = v.count === 1 ? locale.contributions_on_1 : locale.contributions_on_n;
+      return stringToFormat.replace('%[2]s', number).replace('%[1]s', date);
     }
   },
 };

@@ -25,7 +25,8 @@ export function initHeatmap() {
       no_contributions: el.getAttribute('data-locale-no-contributions'),
       more: el.getAttribute('data-locale-more'),
       less: el.getAttribute('data-locale-less'),
-      contributions_on: el.getAttribute('data-locale-contributions-on'),
+      contributions_on_n: el.getAttribute('data-locale-contributions-on-n'),
+      contributions_on_1: el.getAttribute('data-locale-contributions-on-1'),
     };
 
     const View = createApp(ActivityHeatmap, {values, locale});
