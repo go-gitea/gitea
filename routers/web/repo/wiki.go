@@ -298,13 +298,13 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		ctx.Data["footerPresent"] = false
 	}
 
-	if rctx.SidebarTocTree != nil {
+	if rctx.SidebarTocNode != nil {
 		sb := &strings.Builder{}
-		err = markdown.SpecializedMarkdown().Renderer().Render(sb, nil, rctx.SidebarTocTree)
+		err = markdown.SpecializedMarkdown().Renderer().Render(sb, nil, rctx.SidebarTocNode)
 		if err != nil {
 			log.Error("Failed to render wiki sidebar TOC: %v", err)
 		} else {
-			ctx.Data["sidebarTocTree"] = sb.String()
+			ctx.Data["sidebarTocContent"] = sb.String()
 		}
 	}
 

@@ -73,7 +73,7 @@ type RenderContext struct {
 	GitRepo          *git.Repository
 	ShaExistCache    map[string]bool
 	cancelFn         func()
-	SidebarTocTree   ast.Node
+	SidebarTocNode   ast.Node
 	RenderMetaAs     RenderMetaMode
 	InStandalonePage bool // used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
 }

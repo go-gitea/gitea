@@ -210,7 +210,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			node.InsertBefore(node, firstChild, tocNode)
 		} else {
 			tocNode := createTOCNode(tocList, rc.Lang, map[string]string{"open": "open"})
-			ctx.SidebarTocTree = tocNode
+			ctx.SidebarTocNode = tocNode
 		}
 	}
 
