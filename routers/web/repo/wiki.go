@@ -302,7 +302,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		sb := &strings.Builder{}
 		err = markdown.SpecializedMarkdown().Renderer().Render(sb, nil, rctx.SidebarTocTree)
 		if err != nil {
-			log.Error("Failed to render SidebarTocTree: %v", err)
+			log.Error("Failed to render wiki sidebar TOC: %v", err)
 		} else {
 			ctx.Data["sidebarTocTree"] = sb.String()
 		}

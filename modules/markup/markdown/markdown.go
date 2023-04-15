@@ -73,6 +73,7 @@ func newParserContext(ctx *markup.RenderContext) parser.Context {
 	return pc
 }
 
+// SpecializedMarkdown sets up the Gitea specific markdown extensions
 func SpecializedMarkdown() goldmark.Markdown {
 	specMarkdownOnce.Do(func() {
 		specMarkdown = goldmark.New(
