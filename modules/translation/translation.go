@@ -151,24 +151,24 @@ func NewLocale(lang string) Locale {
 	langName := "unknown"
 	if l, ok := allLangMap[lang]; ok {
 		langName = l.Name
-	}
-
-	var msgPrinter *message.Printer
-	langTag, err := language.Parse(lang)
-	if err != nil {
-		log.Error("Failed to parse language tag from name %q: %v", lang, err)
-		msgPrinter = message.NewPrinter(language.English)
-	} else {
-		msgPrinter = message.NewPrinter(langTag)
+	} else if len(setting.Langs) > 0 {
+		lang = setting.Langs[0]
+		langName = setting.Names[0]
 	}
 
 	i18nLocale, _ := i18n.GetLocale(lang)
-	return &locale{
-		Locale:     i18nLocale,
-		Lang:       lang,
-		LangName:   langName,
-		msgPrinter: msgPrinter,
+	l := &locale{
+		Locale:   i18nLocale,
+		Lang:     lang,
+		LangName: langName,
 	}
+	if langTag, err := language.Parse(lang); err != nil {
+		log.Error("Failed to parse language tag from name %q: %v", l.Lang, err)
+		l.msgPrinter = message.NewPrinter(language.English)
+	} else {
+		l.msgPrinter = message.NewPrinter(langTag)
+	}
+	return l
 }
 
 func (l *locale) Language() string {
