@@ -21,12 +21,11 @@ export function initHeatmap() {
     const locale = {
       months: new Array(12).fill().map((_, idx) => translateMonth(idx)),
       days: new Array(7).fill().map((_, idx) => translateDay(idx)),
+      contributions: 'contributions',
       contributions_in_the_last_12_months_html: el.getAttribute('data-locale-total-contributions-html'),
       no_contributions: el.getAttribute('data-locale-no-contributions'),
       more: el.getAttribute('data-locale-more'),
       less: el.getAttribute('data-locale-less'),
-      contributions_on_n: el.getAttribute('data-locale-contributions-on-n'),
-      contributions_on_1: el.getAttribute('data-locale-contributions-on-1'),
     };
 
     const View = createApp(ActivityHeatmap, {values, locale});

@@ -5,7 +5,7 @@
     <calendar-heatmap
       :locale="locale"
       :no-data-text="locale.no_contributions"
-      :tooltip-formatter="(v) => tooltipFormatter(v, locale)"
+      :tooltip-unit="locale.contributions"
       :end-date="endDate"
       :values="values"
       :range-color="colorRange"
@@ -64,14 +64,6 @@ export default {
 
       const newSearch = params.toString();
       window.location.search = newSearch.length ? `?${newSearch}` : '';
-    },
-    tooltipFormatter(v, locale) {
-      const number = v.count.toLocaleString();
-      const datetime = v.date.toISOString();
-      const fallback = v.date.toLocaleDateString();
-      const date = `<relative-time format="datetime" year="numeric" month="short" day="numeric" weekday="" datetime="${datetime}">${fallback}</relative-time>`;
-      const stringToFormat = v.count === 1 ? locale.contributions_on_1 : locale.contributions_on_n;
-      return stringToFormat.replace('%[2]s', number).replace('%[1]s', date);
     }
   },
 };
