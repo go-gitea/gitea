@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"text/template"
@@ -67,17 +68,23 @@ func AccessLogger() func(http.Handler) http.Handler {
 				requestID = parseRequestIDFromRequestHeader(req)
 			}
 
+			reqHost, _, err := net.SplitHostPort(req.RemoteAddr)
+			if err != nil {
+				reqHost = req.RemoteAddr
+			}
+
 			next.ServeHTTP(w, r)
 			rw := w.(ResponseWriter)
 
 			buf := bytes.NewBuffer([]byte{})
-			err := logTemplate.Execute(buf, routerLoggerOptions{
+			err = logTemplate.Execute(buf, routerLoggerOptions{
 				req:            req,
 				Identity:       &identity,
 				Start:          &start,
 				ResponseWriter: rw,
 				Ctx: map[string]interface{}{
 					"RemoteAddr": req.RemoteAddr,
+					"RemoteHost": reqHost,
 					"Req":        req,
 				},
 				RequestID: &requestID,
