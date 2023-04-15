@@ -16,10 +16,8 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
-	texttemplate "text/template"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -216,7 +214,7 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
-var templateExecutingErr = regexp.MustCompile(`^template: (.*):([1-9][0-9]*):([1-9][0-9]*): executing (?:"(.*)" at <(.*)>: )?`)
+const tplStatus500 base.TplName = "status/500"
 
 // HTML calls Context.HTML and renders the template to HTTP response
 func (ctx *Context) HTML(status int, name base.TplName) {
@@ -229,34 +227,11 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 		return strconv.FormatInt(time.Since(tmplStartTime).Nanoseconds()/1e6, 10) + "ms"
 	}
 	if err := ctx.Render.HTML(ctx.Resp, status, string(name), templates.BaseVars().Merge(ctx.Data)); err != nil {
-		if status == http.StatusInternalServerError && name == base.TplName("status/500") {
+		if status == http.StatusInternalServerError && name == tplStatus500 {
 			ctx.PlainText(http.StatusInternalServerError, "Unable to find HTML templates, the template system is not initialized, or Gitea can't find your template files.")
 			return
 		}
-		if execErr, ok := err.(texttemplate.ExecError); ok {
-			if groups := templateExecutingErr.FindStringSubmatch(err.Error()); len(groups) > 0 {
-				errorTemplateName, lineStr, posStr := groups[1], groups[2], groups[3]
-				target := ""
-				if len(groups) == 6 {
-					target = groups[5]
-				}
-				line, _ := strconv.Atoi(lineStr) // Cannot error out as groups[2] is [1-9][0-9]*
-				pos, _ := strconv.Atoi(posStr)   // Cannot error out as groups[3] is [1-9][0-9]*
-				assetLayerName := templates.AssetFS().GetFileLayerName(errorTemplateName + ".tmpl")
-				filename := fmt.Sprintf("(%s) %s", assetLayerName, errorTemplateName)
-				if errorTemplateName != string(name) {
-					filename += " (subtemplate of " + string(name) + ")"
-				}
-				err = fmt.Errorf("failed to render %s, error: %w:\n%s", filename, err, templates.GetLineFromTemplate(errorTemplateName, line, target, pos))
-			} else {
-				assetLayerName := templates.AssetFS().GetFileLayerName(execErr.Name + ".tmpl")
-				filename := fmt.Sprintf("(%s) %s", assetLayerName, execErr.Name)
-				if execErr.Name != string(name) {
-					filename += " (subtemplate of " + string(name) + ")"
-				}
-				err = fmt.Errorf("failed to render %s, error: %w", filename, err)
-			}
-		}
+		err = fmt.Errorf("failed to render template: %s, error: %s", name, templates.HandleTemplateRenderingError(err))
 		ctx.ServerError("Render failed", err)
 	}
 }
@@ -324,24 +299,25 @@ func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 			return
 		}
 
-		if !setting.IsProd {
+		// it's safe to show internal error to admin users, and it helps
+		if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
 			ctx.Data["ErrorMsg"] = logErr
 		}
 	}
 
 	ctx.Data["Title"] = "Internal Server Error"
-	ctx.HTML(http.StatusInternalServerError, base.TplName("status/500"))
+	ctx.HTML(http.StatusInternalServerError, tplStatus500)
 }
 
 // NotFoundOrServerError use error check function to determine if the error
 // is about not found. It responds with 404 status code for not found error,
 // or error context description for logging purpose of 500 server error.
-func (ctx *Context) NotFoundOrServerError(logMsg string, errCheck func(error) bool, err error) {
-	if errCheck(err) {
-		ctx.notFoundInternal(logMsg, err)
+func (ctx *Context) NotFoundOrServerError(logMsg string, errCheck func(error) bool, logErr error) {
+	if errCheck(logErr) {
+		ctx.notFoundInternal(logMsg, logErr)
 		return
 	}
-	ctx.serverErrorInternal(logMsg, err)
+	ctx.serverErrorInternal(logMsg, logErr)
 }
 
 // PlainTextBytes renders bytes as plain text
