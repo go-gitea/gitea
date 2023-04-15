@@ -15,17 +15,20 @@ import (
 	"code.gitea.io/gitea/modules/translation/i18n"
 
 	"golang.org/x/text/language"
+	"golang.org/x/text/message"
+	"golang.org/x/text/number"
 )
 
 type contextKey struct{}
 
-var ContextKey interface{} = &contextKey{}
+var ContextKey any = &contextKey{}
 
 // Locale represents an interface to translation
 type Locale interface {
 	Language() string
-	Tr(string, ...interface{}) string
-	TrN(cnt interface{}, key1, keyN string, args ...interface{}) string
+	Tr(string, ...any) string
+	TrN(cnt any, key1, keyN string, args ...any) string
+	PrettyNumber(v any) string
 }
 
 // LangType represents a lang type
@@ -135,6 +138,7 @@ func Match(tags ...language.Tag) language.Tag {
 type locale struct {
 	i18n.Locale
 	Lang, LangName string // these fields are used directly in templates: .i18n.Lang
+	msgPrinter     *message.Printer
 }
 
 // NewLocale return a locale
@@ -148,11 +152,22 @@ func NewLocale(lang string) Locale {
 	if l, ok := allLangMap[lang]; ok {
 		langName = l.Name
 	}
+
+	var msgPrinter *message.Printer
+	langTag, err := language.Parse(lang)
+	if err != nil {
+		log.Error("Failed to parse language tag from name %q: %v", lang, err)
+		msgPrinter = message.NewPrinter(language.English)
+	} else {
+		msgPrinter = message.NewPrinter(langTag)
+	}
+
 	i18nLocale, _ := i18n.GetLocale(lang)
 	return &locale{
-		Locale:   i18nLocale,
-		Lang:     lang,
-		LangName: langName,
+		Locale:     i18nLocale,
+		Lang:       lang,
+		LangName:   langName,
+		msgPrinter: msgPrinter,
 	}
 }
 
@@ -199,7 +214,7 @@ var trNLangRules = map[string]func(int64) int{
 }
 
 // TrN returns translated message for plural text translation
-func (l *locale) TrN(cnt interface{}, key1, keyN string, args ...interface{}) string {
+func (l *locale) TrN(cnt any, key1, keyN string, args ...any) string {
 	var c int64
 	if t, ok := cnt.(int); ok {
 		c = int64(t)
@@ -222,4 +237,9 @@ func (l *locale) TrN(cnt interface{}, key1, keyN string, args ...interface{}) st
 		return l.Tr(key1, args...)
 	}
 	return l.Tr(keyN, args...)
+}
+
+func (l *locale) PrettyNumber(v any) string {
+	// TODO: this mechanism is not good enough, the complete solution is to switch the translation system to ICU message format
+	return l.msgPrinter.Sprintf("%v", number.Decimal(v))
 }

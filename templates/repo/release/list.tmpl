@@ -161,9 +161,9 @@
 											<li>
 												<span class="ui text middle aligned right">
 													<span class="ui text grey">{{.Size | FileSize}}</span>
-													<gitea-locale-number data-number-in-tooltip="{{dict "message" ($.locale.Tr "repo.release.download_count") "number" .DownloadCount | Json}}">
+													<span data-tooltip-content="{{$.locale.Tr "repo.release.download_count" ($.locale.PrettyNumber .DownloadCount)}}">
 														{{svg "octicon-info"}}
-													</gitea-locale-number>
+													</span>
 												</span>
 												<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
 													<strong>{{svg "octicon-package" 16 "gt-mr-2"}}{{.Name}}</strong>
