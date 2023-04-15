@@ -298,7 +298,15 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		ctx.Data["footerPresent"] = false
 	}
 
-	ctx.Data["toc"] = rctx.TableOfContents
+	if rctx.SidebarTocTree != nil {
+		sb := &strings.Builder{}
+		err = markdown.SpecializedMarkdown().Renderer().Render(sb, nil, rctx.SidebarTocTree)
+		if err != nil {
+			log.Error("Failed to render SidebarTocTree: %v", err)
+		} else {
+			ctx.Data["sidebarTocTree"] = sb.String()
+		}
+	}
 
 	// get commit count - wiki revisions
 	commitsCount, _ := wikiRepo.FileCommitsCount(wiki_service.DefaultBranch, pageFilename)
