@@ -66,10 +66,7 @@ export default {
       window.location.search = newSearch.length ? `?${newSearch}` : '';
     },
     tooltipFormatter(v, locale) {
-      // TODO: use the localized number as below (why is it throwing Uncaught DOMException: Failed to execute
-      // 'attachShadow' on 'Element': Shadow root cannot be created on a host which already hosts a shadow tree.?)
-      // const number = `<gitea-locale-number data-number="${v.count}">${v.count}</gitea-locale-number>`;
-      const number = v.count;
+      const number = v.count.toLocaleString();
       const datetime = v.date.toISOString();
       const fallback = v.date.toLocaleDateString();
       const date = `<relative-time format="datetime" year="numeric" month="short" day="numeric" weekday="" datetime="${datetime}">${fallback}</relative-time>`;
