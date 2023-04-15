@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	giturl "code.gitea.io/gitea/modules/git/url"
 	gitea_html "code.gitea.io/gitea/modules/html"
+	"code.gitea.io/gitea/modules/icon"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -99,7 +100,7 @@ func NewFuncMap() []template.FuncMap {
 		"avatarByAction": AvatarByAction,
 		"avatarByEmail":  AvatarByEmail,
 		"repoAvatar":     RepoAvatar,
-		"EntryIcon":      base.EntryIcon,
+		"EntryIcon":      icon.EntryIcon,
 		"MigrationIcon":  MigrationIcon,
 		"ActionIcon":     ActionIcon,
 

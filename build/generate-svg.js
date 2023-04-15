@@ -2,8 +2,24 @@
 import fastGlob from 'fast-glob';
 import {optimize} from 'svgo';
 import {parse} from 'node:path';
-import {readFile, writeFile, mkdir} from 'node:fs/promises';
+import {readFile, writeFile, mkdir, copyFile, rm} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
+import {execSync} from 'node:child_process';
+
+const PKIEF_VSCODE_MATERIAL_ICON_THEME_TAG = 'v4.26.0';
+
+// inspired by https://github.com/Claudiohbsantos/github-material-icons-extension/blob/ff97e50980/scripts/build-dependencies.js
+const fetchIcons = async () => {
+  // build icon map
+  execSync(`git clone --depth 1 --branch ${PKIEF_VSCODE_MATERIAL_ICON_THEME_TAG} https://github.com/PKief/vscode-material-icon-theme.git`);
+  execSync('npm install --ignore-scripts', {cwd: 'vscode-material-icon-theme'});
+  execSync('npm run build', {cwd: 'vscode-material-icon-theme'});
+
+  // copy icon map to assets
+  const src = fileURLToPath(new URL('../vscode-material-icon-theme/dist/material-icons.json', import.meta.url));
+  const dest = fileURLToPath(new URL('../assets/material-icons.json', import.meta.url));
+  await copyFile(src, dest);
+};
 
 const glob = (pattern) => fastGlob.sync(pattern, {
   cwd: fileURLToPath(new URL('..', import.meta.url)),
@@ -52,6 +68,7 @@ function processFiles(pattern, opts) {
 }
 
 async function main() {
+  await fetchIcons();
   try {
     await mkdir(fileURLToPath(new URL('../public/img/svg', import.meta.url)), {recursive: true});
   } catch {}
@@ -60,7 +77,10 @@ async function main() {
     ...processFiles('node_modules/@primer/octicons/build/svg/*-16.svg', {prefix: 'octicon'}),
     ...processFiles('web_src/svg/*.svg'),
     ...processFiles('public/img/gitea.svg', {fullName: 'gitea-gitea'}),
+    ...processFiles('vscode-material-icon-theme/icons/*.svg', {prefix: 'material'}),
   ]);
+
+  await rm('vscode-material-icon-theme', {recursive: true, force: true});
 }
 
 main().then(exit).catch(exit);

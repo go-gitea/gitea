@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/icon"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
@@ -166,6 +167,7 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	auth.Init()
 	mustInit(svg.Init)
+	mustInit(icon.Init)
 
 	actions_service.Init()
 
