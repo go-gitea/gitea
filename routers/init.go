@@ -167,7 +167,9 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	auth.Init()
 	mustInit(svg.Init)
-	mustInit(icon.Init)
+	if setting.UI.FileIcons == "file-specific" {
+		mustInit(icon.Init)
+	}
 
 	actions_service.Init()
 

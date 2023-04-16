@@ -216,6 +216,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SITEMAP_PAGING_NUM`: **20**: Number of items that are displayed in a single subsitemap.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `CODE_COMMENT_LINES`: **4**: Number of line of codes shown for a code comment.
+- `FILE_ICONS`: **file-specific**: \[file-specific, basic\]: Whether the file icons in the repo tree view should be specific to the file name (`file-specific`) or the same icon for all files and another for the folders (`basic`)
 - `DEFAULT_THEME`: **auto**: \[auto, gitea, arc-green\]: Set the default theme for the Gitea install.
 - `SHOW_USER_EMAIL`: **true**: Whether the email of the user should be shown in the Explore Users page.
 - `THEMES`:  **auto,gitea,arc-green**: All available themes. Allow users select personalized themes.

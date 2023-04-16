@@ -190,6 +190,8 @@ func TestIsLetter(t *testing.T) {
 	assert.False(t, IsLetter(0x93))
 }
 
+// TODO: Test EntryIcon
+
 func TestSetupGiteaRoot(t *testing.T) {
 	_ = os.Setenv("GITEA_ROOT", "test")
 	assert.Equal(t, "test", SetupGiteaRoot())

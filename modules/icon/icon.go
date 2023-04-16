@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 )
 
 type Map struct {
@@ -20,13 +21,6 @@ type Map struct {
 	FolderNames    map[string]string `json:"folderNames"`
 	FileExtensions map[string]string `json:"fileExtensions"`
 	LanguageIds    map[string]string `json:"languageIds"`
-	Light          Light             `json:"light"`
-}
-
-type Light struct {
-	FileNames      map[string]string `json:"fileNames"`
-	FolderNames    map[string]string `json:"folderNames"`
-	FileExtensions map[string]string `json:"fileExtensions"`
 }
 
 var iconMap = Map{
@@ -34,7 +28,6 @@ var iconMap = Map{
 	FolderNames:    make(map[string]string),
 	FileExtensions: make(map[string]string),
 	LanguageIds:    make(map[string]string),
-	Light:          Light{},
 }
 
 func Init() error {
@@ -53,15 +46,23 @@ func Init() error {
 
 // EntryIcon returns the icon for the given git entry
 func EntryIcon(entry *git.TreeEntry) string {
+	if entry.IsLink() {
+		te, err := entry.FollowLink()
+		if err != nil {
+			log.Debug(err.Error())
+			return "octicon-file-symlink-file"
+		}
+		if te.IsDir() {
+			return "octicon-file-submodule"
+		}
+		return "octicon-file-symlink-file"
+	}
 	return "material-" + lookForMaterialMatch(entry)
 }
 
 func lookForMaterialMatch(entry *git.TreeEntry) string {
 	if entry.IsSubModule() {
 		return "folder-git"
-	}
-	if entry.IsLink() {
-		return "folder-symlink"
 	}
 
 	fileName := entry.Name()

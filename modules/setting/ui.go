@@ -35,6 +35,7 @@ var UI = struct {
 	SearchRepoDescription bool
 	UseServiceWorker      bool
 	OnlyShowRelevantRepos bool
+	FileIcons             string
 
 	Notification struct {
 		MinTimeout            time.Duration
@@ -79,6 +80,7 @@ var UI = struct {
 	ReactionMaxUserNum:  10,
 	ThemeColorMetaTag:   `#6cc644`,
 	MaxDisplayFileSize:  8388608,
+	FileIcons:           "file-specific",
 	DefaultTheme:        `auto`,
 	Themes:              []string{`auto`, `gitea`, `arc-green`},
 	Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},

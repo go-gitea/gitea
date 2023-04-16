@@ -54,6 +54,10 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
+	var entryIconFunction func(entry *git.TreeEntry) string = base.EntryIcon
+	if setting.UI.FileIcons == "file-specific" {
+		entryIconFunction = icon.EntryIcon
+	}
 	return []template.FuncMap{map[string]interface{}{
 		// -----------------------------------------------------------------
 		// html/template related functions
@@ -100,7 +104,7 @@ func NewFuncMap() []template.FuncMap {
 		"avatarByAction": AvatarByAction,
 		"avatarByEmail":  AvatarByEmail,
 		"repoAvatar":     RepoAvatar,
-		"EntryIcon":      icon.EntryIcon,
+		"EntryIcon":      entryIconFunction,
 		"MigrationIcon":  MigrationIcon,
 		"ActionIcon":     ActionIcon,
 
