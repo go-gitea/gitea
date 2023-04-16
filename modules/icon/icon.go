@@ -71,17 +71,17 @@ func lookForMaterialMatch(entry *git.TreeEntry) string {
 		if iconMap.FileNames[fileName] != "" {
 			return iconMap.FileNames[fileName]
 		}
-		
+
 		lowerFileName := strings.ToLower(fileName)
 		if iconMap.FileNames[lowerFileName] != "" {
 			return iconMap.FileNames[lowerFileName]
 		}
-		
+
 		fileExtension := strings.TrimPrefix(path.Ext(fileName), ".")
 		if iconMap.FileExtensions[fileExtension] != "" {
 			return iconMap.FileExtensions[fileExtension]
 		}
-		
+
 		if iconMap.LanguageIds[fileExtension] != "" {
 			return iconMap.LanguageIds[fileExtension]
 		}
@@ -91,7 +91,7 @@ func lookForMaterialMatch(entry *git.TreeEntry) string {
 	if iconMap.FolderNames[fileName] != "" {
 		return iconMap.FolderNames[fileName]
 	}
-	
+
 	lowerFileName := strings.ToLower(fileName)
 	if iconMap.FolderNames[lowerFileName] != "" {
 		return iconMap.FolderNames[lowerFileName]
