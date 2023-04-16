@@ -143,18 +143,44 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 
 	htmlDoc := NewHTMLParser(t, rsp.Body)
 	releases := htmlDoc.Find("#release-list li.ui.grid")
-	assert.Equal(t, 2, releases.Length())
+	assert.Equal(t, 3, releases.Length())
 
-	links := make([]string, 0, 5)
+	links := make([]string, 0, 3)
+	commitsToMain := make([]string, 0, 3)
 	releases.Each(func(i int, s *goquery.Selection) {
 		link, exist := s.Find(".release-list-title a").Attr("href")
 		if !exist {
 			return
 		}
 		links = append(links, link)
+
+		commit := s.Find(".ahead > a").Text()
+		commitsToMain = append(commitsToMain, commit)
 	})
 
-	assert.EqualValues(t, []string{"/user2/repo1/releases/tag/v1.0", "/user2/repo1/releases/tag/v1.1"}, links)
+	assert.EqualValues(t, []string{
+		"/user2/repo1/releases/tag/v1.1",
+		"/user2/repo1/releases/tag/v1.0",
+		"/user2/repo1/releases/tag/v0.1",
+	}, links)
+	assert.EqualValues(t, []string{
+		"0 commits",
+		"2 commits",
+		"2 commits",
+	}, commitsToMain)
+}
+
+func TestViewSingleReleaseNoLogin(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	req := NewRequest(t, "GET", "/user2/repo1/releases/tag/v0.1")
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	// check the "number of commits to main since this release"
+	releaseList := htmlDoc.doc.Find("#release-list .ahead > a")
+	assert.EqualValues(t, 1, releaseList.Length())
+	assert.EqualValues(t, "2 commits", releaseList.First().Text())
 }
 
 func TestViewReleaseListLogin(t *testing.T) {
