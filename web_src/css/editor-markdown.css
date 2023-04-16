@@ -44,6 +44,31 @@
   max-height: calc(100vh - 200px);
 }
 
+/* use the same styles as markup/content.css */
+.combo-markdown-editor .CodeMirror-scroll .cm-header-1 {
+  font-size: 2em;
+}
+
+.combo-markdown-editor .CodeMirror-scroll .cm-header-2 {
+  font-size: 1.5em;
+}
+
+.combo-markdown-editor .CodeMirror-scroll .cm-header-3 {
+  font-size: 1.25em;
+}
+
+.combo-markdown-editor .CodeMirror-scroll .cm-header-4 {
+  font-size: 1em;
+}
+
+.combo-markdown-editor .CodeMirror-scroll .cm-header-5 {
+  font-size: 0.875em;
+}
+
+.combo-markdown-editor .CodeMirror-scroll .cm-header-6 {
+  font-size: 0.85em;
+}
+
 text-expander {
   display: block;
   position: relative;
