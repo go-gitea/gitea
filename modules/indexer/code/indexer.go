@@ -136,7 +136,7 @@ func Init() {
 
 	// Create the Queue
 	switch setting.Indexer.RepoType {
-	case "bleve", "elasticsearch":
+	case "bleve", "elasticsearch", "meilisearch":
 		handler := func(data ...queue.Data) []queue.Data {
 			idx, err := indexer.get()
 			if idx == nil || err != nil {
@@ -215,6 +215,22 @@ func Init() {
 				indexer.Close()
 				close(waitChannel)
 				log.Fatal("PID: %d Unable to initialize the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), setting.Indexer.RepoConnStr, err)
+			}
+		case "meilisearch":
+			log.Info("PID: %d Initializing Repository Indexer at: %s", os.Getpid(), setting.Indexer.RepoConnStr)
+			defer func() {
+				if err := recover(); err != nil {
+					log.Error("PANIC whilst initializing repository indexer: %v\nStacktrace: %s", err, log.Stack(2))
+					log.Error("The index might be corrupted and may need to be deleted")
+				}
+			}()
+
+			rIndexer, populate, err = NewMeilisearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoConnAuth, setting.Indexer.RepoIndexerName)
+			if err != nil {
+				cancel()
+				indexer.Close()
+				close(waitChannel)
+				log.Fatal("PID: %d Unable to initialize the meilisearch Repository Indexer connstr: %s Error: %v", os.Getpid(), setting.Indexer.RepoConnStr, err)
 			}
 		default:
 			log.Fatal("PID: %d Unknown Indexer type: %s", os.Getpid(), setting.Indexer.RepoType)
