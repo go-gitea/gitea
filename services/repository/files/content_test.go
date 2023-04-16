@@ -35,7 +35,7 @@ func getExpectedReadmeContentsResponse() *api.ContentsResponse {
 		Name:          treePath,
 		Path:          treePath,
 		SHA:           "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-		LastCommitSHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
+		LastCommitSHA: "0d653ed2b0d85ea39fefc1c193bf49c09eaac731",
 		Type:          "file",
 		Size:          30,
 		Encoding:      &encoding,
@@ -232,7 +232,7 @@ func TestGetBlobBySHA(t *testing.T) {
 	test.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 
-	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+	sha := "0d653ed2b0d85ea39fefc1c193bf49c09eaac731"
 	ctx.SetParams(":id", "1")
 	ctx.SetParams(":sha", sha)
 
@@ -245,8 +245,8 @@ func TestGetBlobBySHA(t *testing.T) {
 	expectedGBR := &api.GitBlobResponse{
 		Content:  "dHJlZSAyYTJmMWQ0NjcwNzI4YTJlMTAwNDllMzQ1YmQ3YTI3NjQ2OGJlYWI2CmF1dGhvciB1c2VyMSA8YWRkcmVzczFAZXhhbXBsZS5jb20+IDE0ODk5NTY0NzkgLTA0MDAKY29tbWl0dGVyIEV0aGFuIEtvZW5pZyA8ZXRoYW50a29lbmlnQGdtYWlsLmNvbT4gMTQ4OTk1NjQ3OSAtMDQwMAoKSW5pdGlhbCBjb21taXQK",
 		Encoding: "base64",
-		URL:      "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/65f1bf27bc3bf70f64657658635e66094edbcb4d",
-		SHA:      "65f1bf27bc3bf70f64657658635e66094edbcb4d",
+		URL:      "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/0d653ed2b0d85ea39fefc1c193bf49c09eaac731",
+		SHA:      "0d653ed2b0d85ea39fefc1c193bf49c09eaac731",
 		Size:     180,
 	}
 	assert.NoError(t, err)

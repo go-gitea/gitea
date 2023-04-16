@@ -30,7 +30,7 @@ func TestAPIReposGitNotes(t *testing.T) {
 		MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 		// check valid request
-		req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/notes/65f1bf27bc3bf70f64657658635e66094edbcb4d?token=%s", user.Name, token)
+		req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/notes/0d653ed2b0d85ea39fefc1c193bf49c09eaac731?token=%s", user.Name, token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var apiData api.Note

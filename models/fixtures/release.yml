@@ -5,7 +5,7 @@
   lower_tag_name: "v1.1"
   target: "master"
   title: "testing-release"
-  sha1: "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+  sha1: "0d653ed2b0d85ea39fefc1c193bf49c09eaac731"
   num_commits: 10
   is_draft: false
   is_prerelease: false
@@ -19,8 +19,8 @@
   lower_tag_name: "v1.1"
   target: "master"
   title: "testing-release"
-  sha1: "65f1bf27bc3bf70f64657658635e66094edbcb4d"
-  num_commits: 10
+  sha1: "0d653ed2b0d85ea39fefc1c193bf49c09eaac731"
+  num_commits: 3
   is_draft: false
   is_prerelease: false
   is_tag: false
@@ -33,7 +33,7 @@
   lower_tag_name: "delete-tag"
   target: "master"
   title: "delete-tag"
-  sha1: "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+  sha1: "0d653ed2b0d85ea39fefc1c193bf49c09eaac731"
   num_commits: 10
   is_draft: false
   is_prerelease: false
@@ -60,7 +60,7 @@
   target: "master"
   title: "pre-release"
   note: "some text for a pre release"
-  sha1: "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+  sha1: "2f58a0d23e6e6bc235613f0d53482298a0862fac"
   num_commits: 1
   is_draft: false
   is_prerelease: true

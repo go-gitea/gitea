@@ -25,7 +25,7 @@ func TestAPIReposRaw(t *testing.T) {
 	for _, ref := range [...]string{
 		"master", // Branch
 		"v1.1",   // Tag
-		"65f1bf27bc3bf70f64657658635e66094edbcb4d", // Commit
+		"0d653ed2b0d85ea39fefc1c193bf49c09eaac731", // Commit
 	} {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/raw/%s/README.md?token="+token, user.Name, ref)
 		resp := MakeRequest(t, req, http.StatusOK)

@@ -31,8 +31,8 @@ func TestGetTreeBySHA(t *testing.T) {
 	tree, err := GetTreeBySHA(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Params(":sha"), page, perPage, true)
 	assert.NoError(t, err)
 	expectedTree := &api.GitTreeResponse{
-		SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
-		URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/trees/65f1bf27bc3bf70f64657658635e66094edbcb4d",
+		SHA: "0d653ed2b0d85ea39fefc1c193bf49c09eaac731",
+		URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/trees/0d653ed2b0d85ea39fefc1c193bf49c09eaac731",
 		Entries: []api.GitEntry{
 			{
 				Path: "README.md",

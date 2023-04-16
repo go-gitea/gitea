@@ -8,7 +8,7 @@
   base_repo_id: 1
   head_branch: branch1
   base_branch: master
-  merge_base: 4a357436d925b5c974181ff12a994538ddc5a269
+  merge_base: 40587f82e2bae1309157cef04b91da7e96a7ed20
   has_merged: true
   merger_id: 2
 
@@ -22,7 +22,7 @@
   base_repo_id: 1
   head_branch: branch2
   base_branch: master
-  merge_base: 4a357436d925b5c974181ff12a994538ddc5a269
+  merge_base: 40587f82e2bae1309157cef04b91da7e96a7ed20
   has_merged: false
 
 -
@@ -61,7 +61,7 @@
   base_repo_id: 1
   head_branch: pr-to-update
   base_branch: branch2
-  merge_base: 985f0301dba5e7b34be866819cd15ad3d8f508ee
+  merge_base: a270587a5cf3bcfa12c4c58f771ff58ee9694f43
   has_merged: false
 
 -

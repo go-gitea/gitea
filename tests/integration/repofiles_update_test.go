@@ -96,8 +96,8 @@ func getExpectedFileResponseForRepofilesCreate(commitID, lastCommitSHA string) *
 			},
 			Parents: []*api.CommitMeta{
 				{
-					URL: setting.AppURL + "api/v1/repos/user2/repo1/git/commits/65f1bf27bc3bf70f64657658635e66094edbcb4d",
-					SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
+					URL: setting.AppURL + "api/v1/repos/user2/repo1/git/commits/0d653ed2b0d85ea39fefc1c193bf49c09eaac731",
+					SHA: "0d653ed2b0d85ea39fefc1c193bf49c09eaac731",
 				},
 			},
 			Message: "Updates README.md\n",
@@ -164,8 +164,8 @@ func getExpectedFileResponseForRepofilesUpdate(commitID, filename, lastCommitSHA
 			},
 			Parents: []*api.CommitMeta{
 				{
-					URL: setting.AppURL + "api/v1/repos/user2/repo1/git/commits/65f1bf27bc3bf70f64657658635e66094edbcb4d",
-					SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
+					URL: setting.AppURL + "api/v1/repos/user2/repo1/git/commits/0d653ed2b0d85ea39fefc1c193bf49c09eaac731",
+					SHA: "0d653ed2b0d85ea39fefc1c193bf49c09eaac731",
 				},
 			},
 			Message: "Updates README.md\n",

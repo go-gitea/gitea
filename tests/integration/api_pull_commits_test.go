@@ -33,8 +33,8 @@ func TestAPIPullCommits(t *testing.T) {
 		return
 	}
 
-	assert.Equal(t, "5f22f7d0d95d614d25a5b68592adb345a4b5c7fd", commits[0].SHA)
-	assert.Equal(t, "4a357436d925b5c974181ff12a994538ddc5a269", commits[1].SHA)
+	assert.Equal(t, "eee617916f575706143a8f5b76ce66d34840708a", commits[0].SHA)
+	assert.Equal(t, "40587f82e2bae1309157cef04b91da7e96a7ed20", commits[1].SHA)
 }
 
 // TODO add tests for already merged PR and closed PR

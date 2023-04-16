@@ -45,7 +45,7 @@ func getExpectedFileResponse() *api.FileResponse {
 			Name:          treePath,
 			Path:          treePath,
 			SHA:           sha,
-			LastCommitSHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
+			LastCommitSHA: "0d653ed2b0d85ea39fefc1c193bf49c09eaac731",
 			Type:          "file",
 			Size:          30,
 			Encoding:      &encoding,
@@ -62,10 +62,10 @@ func getExpectedFileResponse() *api.FileResponse {
 		},
 		Commit: &api.FileCommitResponse{
 			CommitMeta: api.CommitMeta{
-				URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/commits/65f1bf27bc3bf70f64657658635e66094edbcb4d",
-				SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
+				URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/commits/0d653ed2b0d85ea39fefc1c193bf49c09eaac731",
+				SHA: "0d653ed2b0d85ea39fefc1c193bf49c09eaac731",
 			},
-			HTMLURL: "https://try.gitea.io/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d",
+			HTMLURL: "https://try.gitea.io/user2/repo1/commit/0d653ed2b0d85ea39fefc1c193bf49c09eaac731",
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "user1",

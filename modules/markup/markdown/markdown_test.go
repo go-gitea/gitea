@@ -127,7 +127,7 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <li><a href="` + baseURLContent + `/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
 <li><a href="` + baseURLContent + `/Tips" rel="nofollow">Tips</a></li>
 </ul>
-<p>See commit <a href="http://localhost:3000/gogits/gogs/commit/65f1bf27bc" rel="nofollow"><code>65f1bf27bc</code></a></p>
+<p>See commit <a href="http://localhost:3000/gogits/gogs/commit/0d653ed7bc" rel="nofollow"><code>0d653ed7bc</code></a></p>
 <p>Ideas and codes</p>
 <ul>
 <li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/ocornut/imgui/issues/786" class="ref-issue" rel="nofollow">ocornut/imgui#786</a></li>
@@ -211,7 +211,7 @@ var sameCases = []string{
 - [[Links, Language bindings, Engine bindings|Links]]
 - [[Tips]]
 
-See commit 65f1bf27bc
+See commit 0d653ed7bc
 
 Ideas and codes
 

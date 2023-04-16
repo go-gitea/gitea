@@ -49,7 +49,7 @@ func TestRender_Commits(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
-	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+	sha := "0d653ed2b0d85ea39fefc1c193bf49c09eaac731"
 	repo := TestRepoURL
 	commit := util.URLJoin(repo, "commit", sha)
 	tree := util.URLJoin(repo, "tree", sha, "src")
@@ -61,20 +61,20 @@ func TestRender_Commits(t *testing.T) {
 	commitCompare := util.URLJoin(repo, "compare", sha+"..."+sha)
 	commitCompareWithHash := commitCompare + "#L2"
 
-	test(sha, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
-	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
-	test(sha[:39], `<p><a href="`+commit[:len(commit)-(40-39)]+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
-	test(commit, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
-	test(tree, `<p><a href="`+tree+`" rel="nofollow"><code>65f1bf27bc/src</code></a></p>`)
+	test(sha, `<p><a href="`+commit+`" rel="nofollow"><code>0d653ed7bc</code></a></p>`)
+	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow"><code>0d653ed</code></a></p>`)
+	test(sha[:39], `<p><a href="`+commit[:len(commit)-(40-39)]+`" rel="nofollow"><code>0d653ed7bc</code></a></p>`)
+	test(commit, `<p><a href="`+commit+`" rel="nofollow"><code>0d653ed7bc</code></a></p>`)
+	test(tree, `<p><a href="`+tree+`" rel="nofollow"><code>0d653ed7bc/src</code></a></p>`)
 
-	test(file, `<p><a href="`+file+`" rel="nofollow"><code>65f1bf27bc/example.txt</code></a></p>`)
-	test(fileWithExtra, `<p><a href="`+file+`" rel="nofollow"><code>65f1bf27bc/example.txt</code></a>:</p>`)
-	test(fileWithHash, `<p><a href="`+fileWithHash+`" rel="nofollow"><code>65f1bf27bc/example.txt (L2)</code></a></p>`)
-	test(fileWithHasExtra, `<p><a href="`+fileWithHash+`" rel="nofollow"><code>65f1bf27bc/example.txt (L2)</code></a>:</p>`)
-	test(commitCompare, `<p><a href="`+commitCompare+`" rel="nofollow"><code>65f1bf27bc...65f1bf27bc</code></a></p>`)
-	test(commitCompareWithHash, `<p><a href="`+commitCompareWithHash+`" rel="nofollow"><code>65f1bf27bc...65f1bf27bc (L2)</code></a></p>`)
+	test(file, `<p><a href="`+file+`" rel="nofollow"><code>0d653ed7bc/example.txt</code></a></p>`)
+	test(fileWithExtra, `<p><a href="`+file+`" rel="nofollow"><code>0d653ed7bc/example.txt</code></a>:</p>`)
+	test(fileWithHash, `<p><a href="`+fileWithHash+`" rel="nofollow"><code>0d653ed7bc/example.txt (L2)</code></a></p>`)
+	test(fileWithHasExtra, `<p><a href="`+fileWithHash+`" rel="nofollow"><code>0d653ed7bc/example.txt (L2)</code></a>:</p>`)
+	test(commitCompare, `<p><a href="`+commitCompare+`" rel="nofollow"><code>0d653ed7bc...0d653ed7bc</code></a></p>`)
+	test(commitCompareWithHash, `<p><a href="`+commitCompareWithHash+`" rel="nofollow"><code>0d653ed7bc...0d653ed7bc (L2)</code></a></p>`)
 
-	test("commit "+sha, `<p>commit <a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
+	test("commit "+sha, `<p>commit <a href="`+commit+`" rel="nofollow"><code>0d653ed7bc</code></a></p>`)
 	test("/home/gitea/"+sha, "<p>/home/gitea/"+sha+"</p>")
 	test("deadbeef", `<p>deadbeef</p>`)
 	test("d27ace93", `<p>d27ace93</p>`)

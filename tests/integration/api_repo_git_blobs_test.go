@@ -24,7 +24,7 @@ func TestAPIReposGitBlobs(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})   // public repo
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})   // public repo
 	repo16 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16}) // private repo
-	repo1ReadmeSHA := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+	repo1ReadmeSHA := "0d653ed2b0d85ea39fefc1c193bf49c09eaac731"
 	repo3ReadmeSHA := "d56a3073c1dbb7b15963110a049d50cdb5db99fc"
 	repo16ReadmeSHA := "f90451c72ef61a7645293d17b47be7a8e983da57"
 	badSHA := "0000000000000000000000000000000000000000"

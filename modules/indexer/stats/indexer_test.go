@@ -46,7 +46,7 @@ func TestRepoStatsIndex(t *testing.T) {
 
 	status, err := repo_model.GetIndexerStatus(db.DefaultContext, repo, repo_model.RepoIndexerTypeStats)
 	assert.NoError(t, err)
-	assert.Equal(t, "65f1bf27bc3bf70f64657658635e66094edbcb4d", status.CommitSha)
+	assert.Equal(t, "0d653ed2b0d85ea39fefc1c193bf49c09eaac731", status.CommitSha)
 	langs, err := repo_model.GetTopLanguageStats(repo, 5)
 	assert.NoError(t, err)
 	assert.Empty(t, langs)

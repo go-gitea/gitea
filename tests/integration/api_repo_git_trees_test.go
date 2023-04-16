@@ -21,7 +21,7 @@ func TestAPIReposGitTrees(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})   // public repo
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})   // public repo
 	repo16 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16}) // private repo
-	repo1TreeSHA := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+	repo1TreeSHA := "0d653ed2b0d85ea39fefc1c193bf49c09eaac731"
 	repo3TreeSHA := "2a47ca4b614a9f5a43abbd5ad851a54a616ffee6"
 	repo16TreeSHA := "69554a64c1e6030f051e5c3f94bfbd773cd6a324"
 	badSHA := "0000000000000000000000000000000000000000"

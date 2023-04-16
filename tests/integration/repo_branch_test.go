@@ -90,7 +90,7 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 			ExpectedStatus: http.StatusNotFound,
 		},
 		{
-			OldRefSubURL:   "commit/65f1bf27bc3bf70f64657658635e66094edbcb4d",
+			OldRefSubURL:   "commit/0d653ed2b0d85ea39fefc1c193bf49c09eaac731",
 			NewBranch:      "feature/test3",
 			ExpectedStatus: http.StatusSeeOther,
 			FlashMessage:   translation.NewLocale("en-US").Tr("repo.branch.create_success", "feature/test3"),
