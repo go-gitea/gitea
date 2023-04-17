@@ -63,6 +63,7 @@ _Symbols used in table:_
 | Interaction with other instances                 | [/](https://github.com/go-gitea/gitea/issues/18240) | ✘    | ✘         | ✘         | ✘         | ✘         | ✘            |
 | Mermaid diagrams in Markdown                     | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
 | Math syntax in Markdown                          | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| File-specific icons                          | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
 
 ## Code management
 
