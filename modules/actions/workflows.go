@@ -119,8 +119,6 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		webhook_module.HookEventCreate,
 		webhook_module.HookEventDelete,
 		webhook_module.HookEventFork,
-		// FIXME: `wiki` event should match `gollum` event
-		// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#gollum
 		webhook_module.HookEventWiki:
 		if len(evt.Acts()) != 0 {
 			log.Warn("Ignore unsupported %s event arguments %v", triggedEvent, evt.Acts())
