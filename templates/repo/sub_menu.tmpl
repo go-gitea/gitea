@@ -4,7 +4,7 @@
 		<div class="ui two horizontal center list">
 			{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo)}}
 				<div class="item{{if .PageIsCommits}} active{{end}}">
-					<a href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}">{{svg "octicon-history"}} <b>{{LocaleNumber .CommitsCount}}</b> {{.locale.TrN .CommitsCount "repo.commit" "repo.commits"}}</a>
+					<a href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}">{{svg "octicon-history"}} <b>{{.locale.PrettyNumber .CommitsCount}}</b> {{.locale.TrN .CommitsCount "repo.commit" "repo.commits"}}</a>
 				</div>
 				<div class="item{{if .PageIsBranches}} active{{end}}">
 					<a href="{{.RepoLink}}/branches">{{svg "octicon-git-branch"}} <b>{{.BranchesCount}}</b> {{.locale.TrN .BranchesCount "repo.branch" "repo.branches"}}</a>
