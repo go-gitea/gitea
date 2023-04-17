@@ -691,7 +691,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["BranchesCount"] = len(brs)
 
 	// If not branch selected, try default one.
-	// If default branch doesn't exists, fall back to some other branch.
+	// If default branch doesn't exist, fall back to some other branch.
 	if len(ctx.Repo.BranchName) == 0 {
 		if len(ctx.Repo.Repository.DefaultBranch) > 0 && gitRepo.IsBranchExist(ctx.Repo.Repository.DefaultBranch) {
 			ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch

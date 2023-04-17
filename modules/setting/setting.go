@@ -27,7 +27,7 @@ import (
 var (
 	// AppVer is the version of the current build of Gitea. It is set in main.go from main.Version.
 	AppVer string
-	// AppBuiltWith represents a human readable version go runtime build version and build tags. (See main.go formatBuiltWith().)
+	// AppBuiltWith represents a human-readable version go runtime build version and build tags. (See main.go formatBuiltWith().)
 	AppBuiltWith string
 	// AppStartTime store time gitea has started
 	AppStartTime time.Time
@@ -40,7 +40,8 @@ var (
 	// AppWorkPath is used as the base path for several other paths.
 	AppWorkPath string
 
-	// Global setting objects
+	// Other global setting objects
+
 	CfgProvider ConfigProvider
 	CustomPath  string // Custom directory path
 	CustomConf  string
@@ -48,6 +49,10 @@ var (
 	RunUser     string
 	IsProd      bool
 	IsWindows   bool
+
+	// IsInTesting indicates whether the testing is running. A lot of unreliable code causes a lot of nonsense error logs during testing
+	// TODO: this is only a temporary solution, we should make the test code more reliable
+	IsInTesting = false
 )
 
 func getAppPath() (string, error) {
@@ -117,6 +122,7 @@ func init() {
 		log.Fatal("Failed to get app path: %v", err)
 	}
 	AppWorkPath = getWorkPath(AppPath)
+	AppVer = "dev"
 }
 
 func forcePathSeparator(path string) {

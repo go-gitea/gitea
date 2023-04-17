@@ -10,6 +10,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -17,7 +19,7 @@ import (
 
 func TestEmptyRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	subpaths := []string{
+	subPaths := []string{
 		"commits/master",
 		"raw/foo",
 		"commit/1ae57b34ccf7e18373",
@@ -26,8 +28,31 @@ func TestEmptyRepo(t *testing.T) {
 	emptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
 	assert.True(t, emptyRepo.IsEmpty)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: emptyRepo.OwnerID})
-	for _, subpath := range subpaths {
-		req := NewRequestf(t, "GET", "/%s/%s/%s", owner.Name, emptyRepo.Name, subpath)
+	for _, subPath := range subPaths {
+		req := NewRequestf(t, "GET", "/%s/%s/%s", owner.Name, emptyRepo.Name, subPath)
 		MakeRequest(t, req, http.StatusNotFound)
 	}
+}
+
+func TestEmptyRepoAddFile(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user30")
+	req := NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body).Find(`input[name="commit_choice"]`)
+	assert.Equal(t, "", doc.AttrOr("checked", "_no_"))
+	req = NewRequestWithValues(t, "POST", "/user30/empty/_new/"+setting.Repository.DefaultBranch, map[string]string{
+		"_csrf":         GetCSRF(t, session, "/user/settings"),
+		"commit_choice": "direct",
+		"tree_path":     "test-file.md",
+		"content":       "newly-added-test-file",
+	})
+
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	redirect := test.RedirectURL(resp)
+	assert.Equal(t, "/user30/empty/src/branch/"+setting.Repository.DefaultBranch+"/test-file.md", redirect)
+
+	req = NewRequest(t, "GET", redirect)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "newly-added-test-file")
 }

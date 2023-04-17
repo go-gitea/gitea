@@ -1091,11 +1091,11 @@
   max_repo_creation: -1
   is_active: true
   is_admin: false
-  is_restricted: true
+  is_restricted: false
   allow_git_hook: false
   allow_import_local: false
   allow_create_organization: true
-  prohibit_login: true
+  prohibit_login: false
   avatar: avatar29
   avatar_email: user30@example.com
   use_custom_avatar: false
