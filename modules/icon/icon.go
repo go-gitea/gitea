@@ -53,7 +53,7 @@ func EntryIcon(entry *git.TreeEntry) string {
 			return "octicon-file-symlink-file"
 		}
 		if te.IsDir() {
-			return "octicon-file-submodule"
+			return "material-folder-symlink"
 		}
 		return "octicon-file-symlink-file"
 	}

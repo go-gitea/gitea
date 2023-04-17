@@ -15,6 +15,9 @@ const fetchIcons = async () => {
   execSync('npm install --ignore-scripts', {cwd: 'vscode-material-icon-theme'});
   execSync('npm run build', {cwd: 'vscode-material-icon-theme'});
 
+  // remove folder from icons as we have a custom, colorful material folder in web_src/svg
+  await rm('vscode-material-icon-theme/icons/folder.svg', {force: true});
+
   // copy icon map to assets
   const src = fileURLToPath(new URL('../vscode-material-icon-theme/dist/material-icons.json', import.meta.url));
   const dest = fileURLToPath(new URL('../assets/material-icons.json', import.meta.url));

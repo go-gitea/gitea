@@ -170,7 +170,7 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	})
 	assert.Len(t, items, 5)
 	assert.Equal(t, "a: svg material-folder", items[0])
-	assert.Equal(t, "link_b: svg octicon-file-submodule", items[1])
+	assert.Equal(t, "link_b: svg material-folder-symlink", items[1])
 	assert.Equal(t, "link_d: svg octicon-file-symlink-file", items[2])
 	assert.Equal(t, "link_hi: svg octicon-file-symlink-file", items[3])
 	assert.Equal(t, "link_link: svg octicon-file-symlink-file", items[4])
