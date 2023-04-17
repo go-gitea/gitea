@@ -1,7 +1,7 @@
 {{if .HeatmapData}}
 	<div id="user-heatmap"
 		data-heatmap-data="{{Json .HeatmapData}}"
-		data-locale-total-contributions-html="{{$.locale.Tr "heatmap.number_of_contributions_in_the_last_12_months" (LocaleNumber .HeatmapTotalContributions)}}"
+		data-locale-total-contributions="{{$.locale.Tr "heatmap.number_of_contributions_in_the_last_12_months" ($.locale.PrettyNumber .HeatmapTotalContributions)}}"
 		data-locale-no-contributions="{{.locale.Tr "heatmap.no_contributions"}}"
 		data-locale-more="{{.locale.Tr "heatmap.more"}}"
 		data-locale-less="{{.locale.Tr "heatmap.less"}}"

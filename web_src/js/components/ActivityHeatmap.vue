@@ -1,7 +1,8 @@
 <template>
   <div id="user-heatmap">
-    <!-- eslint-disable-next-line vue/no-v-html (safely generated in the backend) -->
-    <div class="total-contributions" v-html="locale.contributions_in_the_last_12_months_html"/>
+    <div class="total-contributions">
+      {{ locale.contributions_in_the_last_12_months }}
+    </div>
     <calendar-heatmap
       :locale="locale"
       :no-data-text="locale.no_contributions"

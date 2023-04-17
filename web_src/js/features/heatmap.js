@@ -23,7 +23,7 @@ export function initHeatmap() {
       months: new Array(12).fill().map((_, idx) => translateMonth(idx)),
       days: new Array(7).fill().map((_, idx) => translateDay(idx)),
       contributions: 'contributions',
-      contributions_in_the_last_12_months_html: el.getAttribute('data-locale-total-contributions-html'),
+      contributions_in_the_last_12_months: el.getAttribute('data-locale-total-contributions'),
       no_contributions: el.getAttribute('data-locale-no-contributions'),
       more: el.getAttribute('data-locale-more'),
       less: el.getAttribute('data-locale-less'),
