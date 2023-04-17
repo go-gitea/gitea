@@ -558,3 +558,29 @@
   border-top-left-radius: 0 !important;
   border-top-right-radius: 0 !important;
 }
+
+
+/* use the same styles as markup content, this is a quick backport, 1.20 has a ComboMarkdownEditor */
+.CodeMirror-scroll .cm-header-1 {
+  font-size: 2em;
+}
+
+.CodeMirror-scroll .cm-header-2 {
+  font-size: 1.5em;
+}
+
+.CodeMirror-scroll .cm-header-3 {
+  font-size: 1.25em;
+}
+
+.CodeMirror-scroll .cm-header-4 {
+  font-size: 1em;
+}
+
+.CodeMirror-scroll .cm-header-5 {
+  font-size: 0.875em;
+}
+
+.CodeMirror-scroll .cm-header-6 {
+  font-size: 0.85em;
+}
