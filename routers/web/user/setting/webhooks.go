@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/audit"
 )
 
 const (
@@ -36,13 +37,21 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
+	defer ctx.JSON(http.StatusOK, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/user/settings/hooks",
+	})
+
+	hook, err := webhook.GetWebhookByOwnerID(ctx.Doer.ID, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.Flash.Error("GetWebhookByOwnerID: " + err.Error())
+		return
+	}
+
 	if err := webhook.DeleteWebhookByOwnerID(ctx.Doer.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
+		audit.Record(audit.UserWebhookRemove, ctx.Doer, ctx.Doer, hook, "Removed webhook %s.", hook.URL)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/hooks",
-	})
 }

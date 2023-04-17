@@ -19,10 +19,12 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
@@ -195,6 +197,9 @@ func NewUserPost(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.Record(audit.UserCreate, ctx.Doer, u, u, "Created user %s.", u.Name)
+
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	// Send email notification.
@@ -286,6 +291,23 @@ func EditUserPost(ctx *context.Context) {
 		return
 	}
 
+	auditFields := struct {
+		LoginSource int64
+		// Password
+		Email        string
+		IsActive     bool
+		IsAdmin      bool
+		IsRestricted bool
+		Visibility   structs.VisibleType
+	}{
+		LoginSource:  u.LoginSource,
+		Email:        u.Email,
+		IsActive:     u.IsActive,
+		IsAdmin:      u.IsAdmin,
+		IsRestricted: u.IsRestricted,
+		Visibility:   u.Visibility,
+	}
+
 	fields := strings.Split(form.LoginType, "-")
 	if len(fields) == 2 {
 		loginType, _ := strconv.ParseInt(fields[0], 10, 0)
@@ -297,6 +319,7 @@ func EditUserPost(ctx *context.Context) {
 		}
 	}
 
+	passwordChanged := false
 	if len(form.Password) > 0 && (u.IsLocal() || u.IsOAuth2()) {
 		var err error
 		if len(form.Password) < setting.MinPasswordLength {
@@ -334,10 +357,12 @@ func EditUserPost(ctx *context.Context) {
 			ctx.ServerError("SetPassword", err)
 			return
 		}
+
+		passwordChanged = true
 	}
 
 	if len(form.UserName) != 0 && u.Name != form.UserName {
-		if err := user_setting.HandleUsernameChange(ctx, u, form.UserName); err != nil {
+		if err := user_setting.HandleUsernameChange(ctx, ctx.Doer, u, form.UserName); err != nil {
 			if ctx.Written() {
 				return
 			}
@@ -410,6 +435,26 @@ func EditUserPost(ctx *context.Context) {
 		}
 		return
 	}
+
+	if passwordChanged {
+		audit.Record(audit.UserPassword, ctx.Doer, u, u, "Password of user %s changed.", u.Name)
+	}
+	if auditFields.LoginSource != u.LoginSource {
+		audit.Record(audit.UserAuthenticationSource, ctx.Doer, u, u, "Authentication source of user %s changed.", u.Name)
+	}
+	if auditFields.Visibility != u.Visibility {
+		audit.Record(audit.UserVisibility, ctx.Doer, u, u, "Visibility of user %s changed from %s to %s.", u.Name, auditFields.Visibility.String(), u.Visibility.String())
+	}
+	if auditFields.IsActive != u.IsActive {
+		audit.Record(audit.UserActive, ctx.Doer, u, u, "Activation status of user %s changed to %s.", u.Name, audit.UserActiveString(u.IsActive))
+	}
+	if auditFields.IsAdmin != u.IsAdmin {
+		audit.Record(audit.UserAdmin, ctx.Doer, u, u, "Admin status of user %s changed to %s.", u.Name, audit.UserAdminString(u.IsAdmin))
+	}
+	if auditFields.IsRestricted != u.IsRestricted {
+		audit.Record(audit.UserRestricted, ctx.Doer, u, u, "Restricted status of user %s changed to %s.", u.Name, audit.UserRestrictedString(u.IsRestricted))
+	}
+
 	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
@@ -431,7 +476,7 @@ func DeleteUser(ctx *context.Context) {
 		return
 	}
 
-	if err = user_service.DeleteUser(ctx, u, ctx.FormBool("purge")); err != nil {
+	if err = user_service.DeleteUser(ctx, ctx.Doer, u, ctx.FormBool("purge")); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))

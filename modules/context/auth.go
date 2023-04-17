@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/audit"
 )
 
 // ToggleOptions contains required or check options
@@ -173,6 +174,8 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 					return
 				}
 				if !ok {
+					audit.Record(audit.UserAuthenticationFailTwoFactor, ctx.Doer, ctx.Doer, twofa, "Failed two-factor authentication for user %s.", ctx.Doer.Name)
+
 					ctx.JSON(http.StatusForbidden, map[string]string{
 						"message": "Only signed in user is allowed to call APIs.",
 					})

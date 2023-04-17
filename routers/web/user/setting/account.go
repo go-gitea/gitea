@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
@@ -78,6 +79,9 @@ func AccountPost(ctx *context.Context) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
+
+		audit.Record(audit.UserPassword, ctx.Doer, ctx.Doer, ctx.Doer, "Password of user %s changed.", ctx.Doer.Name)
+
 		log.Trace("User password updated: %s", ctx.Doer.Name)
 		ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
 	}
@@ -214,16 +218,27 @@ func EmailPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 	}
 
+	audit.Record(audit.UserEmailAdd, ctx.Doer, ctx.Doer, email, "Email %s added to user %s.", email.Email, ctx.Doer.Name)
+
 	log.Trace("Email address added: %s", email.Email)
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
 // DeleteEmail response for delete user's email
 func DeleteEmail(ctx *context.Context) {
-	if err := user_model.DeleteEmailAddress(&user_model.EmailAddress{ID: ctx.FormInt64("id"), UID: ctx.Doer.ID}); err != nil {
+	email, err := user_model.GetEmailAddressByID(ctx.Doer.ID, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.ServerError("GetEmailAddressByID", err)
+		return
+	}
+
+	if err := user_model.DeleteEmailAddress(email); err != nil {
 		ctx.ServerError("DeleteEmail", err)
 		return
 	}
+
+	audit.Record(audit.UserEmailRemove, ctx.Doer, ctx.Doer, email, "Email %s removed from user %s.", email.Email, ctx.Doer.Name)
+
 	log.Trace("Email address deleted: %s", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.email_deletion_success"))
@@ -248,7 +263,7 @@ func DeleteAccount(ctx *context.Context) {
 		return
 	}
 
-	if err := user.DeleteUser(ctx, ctx.Doer, false); err != nil {
+	if err := user.DeleteUser(ctx, ctx.Doer, ctx.Doer, false); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("form.still_own_repo"))

@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
@@ -24,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	webhook_service "code.gitea.io/gitea/services/webhook"
@@ -56,8 +58,8 @@ func Webhooks(ctx *context.Context) {
 }
 
 type ownerRepoCtx struct {
-	OwnerID         int64
-	RepoID          int64
+	Owner           *user_model.User
+	Repo            *repo_model.Repository
 	IsAdmin         bool
 	IsSystemWebhook bool
 	Link            string
@@ -65,11 +67,34 @@ type ownerRepoCtx struct {
 	NewTemplate     base.TplName
 }
 
+func (ctx *ownerRepoCtx) auditActionSwitch(user, org, repo, system audit.Action) audit.Action {
+	if ctx.IsAdmin {
+		return system
+	}
+	if ctx.Repo != nil {
+		return repo
+	}
+	if ctx.Owner.IsOrganization() {
+		return org
+	}
+	return user
+}
+
+func (ctx *ownerRepoCtx) auditScopeSwitch() any {
+	if ctx.IsAdmin {
+		return nil
+	}
+	if ctx.Repo != nil {
+		return ctx.Repo
+	}
+	return ctx.Owner
+}
+
 // getOwnerRepoCtx determines whether this is a repo, owner, or admin (both default and system) context.
 func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 	if is, ok := ctx.Data["IsRepositoryWebhook"]; ok && is.(bool) {
 		return &ownerRepoCtx{
-			RepoID:      ctx.Repo.Repository.ID,
+			Repo:        ctx.Repo.Repository,
 			Link:        path.Join(ctx.Repo.RepoLink, "settings/hooks"),
 			LinkNew:     path.Join(ctx.Repo.RepoLink, "settings/hooks"),
 			NewTemplate: tplHookNew,
@@ -78,7 +103,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 
 	if is, ok := ctx.Data["IsOrganizationWebhook"]; ok && is.(bool) {
 		return &ownerRepoCtx{
-			OwnerID:     ctx.ContextUser.ID,
+			Owner:       ctx.ContextUser,
 			Link:        path.Join(ctx.Org.OrgLink, "settings/hooks"),
 			LinkNew:     path.Join(ctx.Org.OrgLink, "settings/hooks"),
 			NewTemplate: tplOrgHookNew,
@@ -87,7 +112,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 
 	if is, ok := ctx.Data["IsUserWebhook"]; ok && is.(bool) {
 		return &ownerRepoCtx{
-			OwnerID:     ctx.Doer.ID,
+			Owner:       ctx.Doer,
 			Link:        path.Join(setting.AppSubURL, "/user/settings/hooks"),
 			LinkNew:     path.Join(setting.AppSubURL, "/user/settings/hooks"),
 			NewTemplate: tplUserHookNew,
@@ -225,8 +250,17 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		}
 	}
 
+	repoID := int64(0)
+	if orCtx.Repo != nil {
+		repoID = orCtx.Repo.ID
+	}
+	ownerID := int64(0)
+	if orCtx.Owner != nil {
+		ownerID = orCtx.Owner.ID
+	}
+
 	w := &webhook.Webhook{
-		RepoID:          orCtx.RepoID,
+		RepoID:          repoID,
 		URL:             params.URL,
 		HTTPMethod:      params.HTTPMethod,
 		ContentType:     params.ContentType,
@@ -235,7 +269,7 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		IsActive:        params.WebhookForm.Active,
 		Type:            params.Type,
 		Meta:            string(meta),
-		OwnerID:         orCtx.OwnerID,
+		OwnerID:         ownerID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
 	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
@@ -250,6 +284,8 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
+
+	audit.Record(orCtx.auditActionSwitch(audit.UserWebhookAdd, audit.OrganizationWebhookAdd, audit.RepositoryWebhookAdd, audit.SystemWebhookAdd), ctx.Doer, orCtx.auditScopeSwitch(), w, "Added webhook %s.", w.URL)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
 	ctx.Redirect(orCtx.Link)
@@ -302,6 +338,8 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 		ctx.ServerError("UpdateWebhook", err)
 		return
 	}
+
+	audit.Record(orCtx.auditActionSwitch(audit.UserWebhookUpdate, audit.OrganizationWebhookUpdate, audit.RepositoryWebhookUpdate, audit.SystemWebhookUpdate), ctx.Doer, orCtx.auditScopeSwitch(), w, "Updated webhook %s.", w.URL)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
@@ -585,10 +623,10 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 	ctx.Data["BaseLink"] = orCtx.Link
 
 	var w *webhook.Webhook
-	if orCtx.RepoID > 0 {
-		w, err = webhook.GetWebhookByRepoID(orCtx.RepoID, ctx.ParamsInt64(":id"))
-	} else if orCtx.OwnerID > 0 {
-		w, err = webhook.GetWebhookByOwnerID(orCtx.OwnerID, ctx.ParamsInt64(":id"))
+	if orCtx.Repo != nil {
+		w, err = webhook.GetWebhookByRepoID(orCtx.Repo.ID, ctx.ParamsInt64(":id"))
+	} else if orCtx.Owner != nil {
+		w, err = webhook.GetWebhookByOwnerID(orCtx.Owner.ID, ctx.ParamsInt64(":id"))
 	} else if orCtx.IsAdmin {
 		w, err = webhook.GetSystemOrDefaultWebhook(ctx, ctx.ParamsInt64(":id"))
 	}
@@ -721,13 +759,21 @@ func ReplayWebhook(ctx *context.Context) {
 
 // DeleteWebhook delete a webhook
 func DeleteWebhook(ctx *context.Context) {
+	defer ctx.JSON(http.StatusOK, map[string]interface{}{
+		"redirect": ctx.Repo.RepoLink + "/settings/hooks",
+	})
+
+	hook, err := webhook.GetWebhookByRepoID(ctx.Repo.Repository.ID, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.Flash.Error("GetWebhookByRepoID: " + err.Error())
+		return
+	}
+
 	if err := webhook.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByRepoID: " + err.Error())
 	} else {
+		audit.Record(audit.RepositoryWebhookRemove, ctx.Doer, ctx.Repo.Repository, hook, "Removed webhook %s.", hook.URL)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/settings/hooks",
-	})
 }

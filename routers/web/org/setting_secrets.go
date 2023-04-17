@@ -33,8 +33,9 @@ func Secrets(ctx *context.Context) {
 func SecretsPost(ctx *context.Context) {
 	shared.PerformSecretsPost(
 		ctx,
-		ctx.ContextUser.ID,
-		0,
+		ctx.Doer,
+		ctx.ContextUser,
+		nil,
 		ctx.Org.OrgLink+"/settings/secrets",
 	)
 }
@@ -43,6 +44,9 @@ func SecretsPost(ctx *context.Context) {
 func SecretsDelete(ctx *context.Context) {
 	shared.PerformSecretsDelete(
 		ctx,
+		ctx.Doer,
+		ctx.ContextUser,
+		nil,
 		ctx.Org.OrgLink+"/settings/secrets",
 	)
 }

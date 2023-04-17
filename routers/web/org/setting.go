@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/org"
 	container_service "code.gitea.io/gitea/services/packages/container"
@@ -67,6 +68,8 @@ func SettingsPost(ctx *context.Context) {
 	}
 
 	org := ctx.Org.Organization
+
+	oldName := org.Name
 	nameChanged := org.Name != form.Name
 
 	// Check if organization name has been changed.
@@ -118,7 +121,7 @@ func SettingsPost(ctx *context.Context) {
 	org.Location = form.Location
 	org.RepoAdminChangeTeamAccess = form.RepoAdminChangeTeamAccess
 
-	visibilityChanged := form.Visibility != org.Visibility
+	oldVisibility := org.Visibility
 	org.Visibility = form.Visibility
 
 	if err := user_model.UpdateUser(ctx, org.AsUser(), false); err != nil {
@@ -127,7 +130,7 @@ func SettingsPost(ctx *context.Context) {
 	}
 
 	// update forks visibility
-	if visibilityChanged {
+	if org.Visibility != oldVisibility {
 		repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
 			Actor: org.AsUser(), Private: true, ListOptions: db.ListOptions{Page: 1, PageSize: org.NumRepos},
 		})
@@ -147,6 +150,14 @@ func SettingsPost(ctx *context.Context) {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
+	}
+
+	audit.Record(audit.OrganizationUpdate, ctx.Doer, org, org, "Updated settings of organization %s.", org.Name)
+	if nameChanged {
+		audit.Record(audit.OrganizationName, ctx.Doer, org, org, "Organization name changed from %s to %s.", oldName, org.Name)
+	}
+	if org.Visibility != oldVisibility {
+		audit.Record(audit.OrganizationVisibility, ctx.Doer, org, org, "Visibility of organization %s changed from %s to %s.", org.Name, oldVisibility.String(), org.Visibility.String())
 	}
 
 	log.Trace("Organization setting updated: %s", org.Name)
@@ -189,7 +200,7 @@ func SettingsDelete(ctx *context.Context) {
 			return
 		}
 
-		if err := org.DeleteOrganization(ctx.Org.Organization); err != nil {
+		if err := org.DeleteOrganization(ctx.Doer, ctx.Org.Organization); err != nil {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
@@ -230,15 +241,23 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
+	defer ctx.JSON(http.StatusOK, map[string]interface{}{
+		"redirect": ctx.Org.OrgLink + "/settings/hooks",
+	})
+
+	hook, err := webhook.GetWebhookByOwnerID(ctx.Org.Organization.ID, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.Flash.Error("GetWebhookByOwnerID: " + err.Error())
+		return
+	}
+
 	if err := webhook.DeleteWebhookByOwnerID(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
+		audit.Record(audit.OrganizationWebhookRemove, ctx.Doer, ctx.Org.Organization, hook, "Removed webhook %s.", hook.URL)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Org.OrgLink + "/settings/hooks",
-	})
 }
 
 // Labels render organization labels page

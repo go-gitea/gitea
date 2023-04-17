@@ -16,6 +16,7 @@ import (
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/audit"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -126,22 +127,37 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			err = user_model.CreateUser(usr, overwriteDefault)
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.authSource.Name, su.Username, err)
-			}
+			} else {
+				audit.Record(audit.UserCreate, audit.NewAuthenticationSourceUser(), usr, usr, "Created user %s.", usr.Name)
 
-			if err == nil && isAttributeSSHPublicKeySet {
-				log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.authSource.Name, usr.Name)
-				if asymkey_model.AddPublicKeysBySource(usr, source.authSource, su.SSHPublicKey) {
-					sshKeysNeedUpdate = true
+				if isAttributeSSHPublicKeySet {
+					log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.authSource.Name, usr.Name)
+					if addedKeys := asymkey_model.AddPublicKeysBySource(usr, source.authSource, su.SSHPublicKey); len(addedKeys) > 0 {
+						sshKeysNeedUpdate = true
+
+						for _, key := range addedKeys {
+							audit.Record(audit.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), usr, usr, "Added SSH key %s.", key.Fingerprint)
+						}
+					}
 				}
-			}
 
-			if err == nil && len(source.AttributeAvatar) > 0 {
-				_ = user_service.UploadAvatar(usr, su.Avatar)
+				if len(source.AttributeAvatar) > 0 {
+					_ = user_service.UploadAvatar(usr, su.Avatar)
+				}
 			}
 		} else if updateExisting {
 			// Synchronize SSH Public Key if that attribute is set
-			if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(usr, source.authSource, su.SSHPublicKey) {
-				sshKeysNeedUpdate = true
+			if isAttributeSSHPublicKeySet {
+				if addedKeys, deletedKeys := asymkey_model.SynchronizePublicKeys(usr, source.authSource, su.SSHPublicKey); len(addedKeys) > 0 || len(deletedKeys) > 0 {
+					sshKeysNeedUpdate = true
+
+					for _, key := range addedKeys {
+						audit.Record(audit.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), usr, usr, "Added SSH key %s.", key.Fingerprint)
+					}
+					for _, key := range deletedKeys {
+						audit.Record(audit.UserKeySSHRemove, audit.NewAuthenticationSourceUser(), usr, usr, "Removed SSH key %s.", key.Fingerprint)
+					}
+				}
 			}
 
 			// Check if user data has changed
@@ -157,18 +173,33 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				emailChanged := usr.Email != su.Mail
 				usr.Email = su.Mail
 				// Change existing admin flag only if AdminFilter option is set
+				isAdminChanged := false
 				if len(source.AdminFilter) > 0 {
+					isAdminChanged = usr.IsAdmin != su.IsAdmin
 					usr.IsAdmin = su.IsAdmin
 				}
 				// Change existing restricted flag only if RestrictedFilter option is set
+				isRestrictedChanged := false
 				if !usr.IsAdmin && len(source.RestrictedFilter) > 0 {
+					isRestrictedChanged = usr.IsRestricted != su.IsRestricted
 					usr.IsRestricted = su.IsRestricted
 				}
+				isActiveChanged := !usr.IsActive
 				usr.IsActive = true
 
 				err = user_model.UpdateUser(ctx, usr, emailChanged, "full_name", "email", "is_admin", "is_restricted", "is_active")
 				if err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.authSource.Name, usr.Name, err)
+				}
+
+				if isActiveChanged {
+					audit.Record(audit.UserActive, audit.NewAuthenticationSourceUser(), usr, usr, "Activation status of user %s changed to %s.", usr.Name, audit.UserActiveString(usr.IsActive))
+				}
+				if isAdminChanged {
+					audit.Record(audit.UserAdmin, audit.NewAuthenticationSourceUser(), usr, usr, "Admin status of user %s changed to %s.", usr.Name, audit.UserAdminString(usr.IsAdmin))
+				}
+				if isRestrictedChanged {
+					audit.Record(audit.UserRestricted, audit.NewAuthenticationSourceUser(), usr, usr, "Restricted status of user %s changed to %s.", usr.Name, audit.UserRestrictedString(usr.IsRestricted))
 				}
 			}
 
@@ -212,9 +243,11 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.authSource.Name, usr.Name)
 
 				usr.IsActive = false
-				err = user_model.UpdateUserCols(ctx, usr, "is_active")
-				if err != nil {
+
+				if err := user_model.UpdateUserCols(ctx, usr, "is_active"); err != nil {
 					log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
+				} else {
+					audit.Record(audit.UserActive, audit.NewAuthenticationSourceUser(), usr, usr, "Activation status of user %s changed to %s.", usr.Name, audit.UserActiveString(usr.IsActive))
 				}
 			}
 		}

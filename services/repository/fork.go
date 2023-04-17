@@ -19,6 +19,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/audit"
 )
 
 // ErrForkAlreadyExist represents a "ForkAlreadyExist" kind of error.
@@ -189,7 +190,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 }
 
 // ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
-func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Repository) error {
+func ConvertForkToNormalRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) error {
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		repo, err := repo_model.GetRepositoryByID(ctx, repo.ID)
 		if err != nil {
@@ -215,6 +216,11 @@ func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Reposit
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
 
-	return err
+	audit.Record(audit.RepositoryConvertFork, doer, repo, repo, "Converted repository %s from fork to regular repository.", repo.FullName())
+
+	return nil
 }

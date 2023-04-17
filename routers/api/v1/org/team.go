@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/convert"
 	org_service "code.gitea.io/gitea/services/org"
 )
@@ -224,6 +225,8 @@ func CreateTeam(ctx *context.APIContext) {
 		return
 	}
 
+	audit.Record(audit.OrganizationTeamAdd, ctx.Doer, ctx.Org.Organization, team, "Team %s was added to organziation %s.", team.Name, ctx.Org.Organization.Name)
+
 	apiTeam, err := convert.ToTeam(ctx, team)
 	if err != nil {
 		ctx.InternalServerError(err)
@@ -275,6 +278,7 @@ func EditTeam(ctx *context.APIContext) {
 	}
 
 	isAuthChanged := false
+	oldAccessMode := team.AccessMode
 	isIncludeAllChanged := false
 	if !team.IsOwnerTeam() && len(form.Permission) != 0 {
 		// Validate permission level.
@@ -307,6 +311,11 @@ func EditTeam(ctx *context.APIContext) {
 		return
 	}
 
+	audit.Record(audit.OrganizationTeamUpdate, ctx.Doer, ctx.Org.Organization, team, "Updated settings of team %s/%s.", ctx.Org.Organization.Name, team.Name)
+	if isAuthChanged {
+		audit.Record(audit.OrganizationTeamPermission, ctx.Doer, ctx.Org.Organization, team, "Permission of team %s/%s changed from %s to %s.", ctx.Org.Organization.Name, team.Name, oldAccessMode.String(), team.AccessMode.String())
+	}
+
 	apiTeam, err := convert.ToTeam(ctx, team)
 	if err != nil {
 		ctx.InternalServerError(err)
@@ -335,6 +344,9 @@ func DeleteTeam(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "DeleteTeam", err)
 		return
 	}
+
+	audit.Record(audit.OrganizationTeamRemove, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "Team %s was removed from organziation %s.", ctx.Org.Team.Name, ctx.Org.Organization.Name)
+
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -465,6 +477,15 @@ func AddTeamMember(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "AddMember", err)
 		return
 	}
+
+	org, err := organization.GetOrgByID(ctx, ctx.Org.Team.OrgID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetOrgByID", err)
+		return
+	}
+
+	audit.Record(audit.OrganizationTeamMemberAdd, ctx.Doer, org, ctx.Org.Team, "User %s was added to team %s/%s.", u.Name, org.Name, ctx.Org.Team.Name)
+
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -502,6 +523,15 @@ func RemoveTeamMember(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "RemoveTeamMember", err)
 		return
 	}
+
+	org, err := organization.GetOrgByID(ctx, ctx.Org.Team.OrgID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetOrgByID", err)
+		return
+	}
+
+	audit.Record(audit.OrganizationTeamMemberRemove, ctx.Doer, org, ctx.Org.Team, "User %s was removed from team %s/%s.", u.Name, org.Name, ctx.Org.Team.Name)
+
 	ctx.Status(http.StatusNoContent)
 }
 

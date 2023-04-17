@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -74,6 +75,9 @@ func CreatePost(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.Record(audit.OrganizationCreate, ctx.Doer, org, org, "Organization %s was created.", org.Name)
+
 	log.Trace("Organization created: %s", org.Name)
 
 	ctx.Redirect(org.AsUser().DashboardLink())

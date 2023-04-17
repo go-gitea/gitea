@@ -14,6 +14,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -73,6 +74,8 @@ func CreateOrg(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	audit.Record(audit.OrganizationCreate, ctx.Doer, org, org, "Organization %s was created.", org.Name)
 
 	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }

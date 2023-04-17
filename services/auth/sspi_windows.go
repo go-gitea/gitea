@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/auth/source/sspi"
 	"code.gitea.io/gitea/services/mailer"
 
@@ -196,6 +197,8 @@ func (s *SSPI) newUser(username string, cfg *sspi.Source) (*user_model.User, err
 	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
 		return nil, err
 	}
+
+	audit.Record(audit.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
 
 	mailer.SendRegisterNotifyMail(user)
 

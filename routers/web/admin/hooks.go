@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/audit"
 )
 
 const (
@@ -61,13 +62,21 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 
 // DeleteDefaultOrSystemWebhook handler to delete an admin-defined system or default webhook
 func DeleteDefaultOrSystemWebhook(ctx *context.Context) {
+	defer ctx.JSON(http.StatusOK, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/admin/hooks",
+	})
+
+	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.Flash.Error("GetWebhookByOwnerID: " + err.Error())
+		return
+	}
+
 	if err := webhook.DeleteDefaultSystemWebhook(ctx, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteDefaultWebhook: " + err.Error())
 	} else {
+		audit.Record(audit.SystemWebhookRemove, ctx.Doer, nil, hook, "Removed webhook %s.", hook.URL)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/hooks",
-	})
 }

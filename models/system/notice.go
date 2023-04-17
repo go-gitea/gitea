@@ -23,6 +23,7 @@ const (
 	NoticeRepository NoticeType = iota + 1
 	// NoticeTask type
 	NoticeTask
+	NoticeAudit
 )
 
 // Notice represents a system notice for admin.

@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/audit"
 
 	"github.com/markbates/goth"
 )
@@ -50,6 +51,8 @@ func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
 	if err := user_model.LinkExternalToUser(user, externalLoginUser); err != nil {
 		return err
 	}
+
+	audit.Record(audit.UserExternalLoginAdd, user, user, externalLoginUser, "Added external login %s for user %s using provider %s.", externalLoginUser.ExternalID, user.Name, gothUser.Provider)
 
 	externalID := externalLoginUser.ExternalID
 

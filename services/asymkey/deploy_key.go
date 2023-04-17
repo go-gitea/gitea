@@ -4,10 +4,14 @@
 package asymkey
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/services/audit"
 )
 
 // DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.
@@ -18,12 +22,24 @@ func DeleteDeployKey(doer *user_model.User, id int64) error {
 	}
 	defer committer.Close()
 
+	key, err := asymkey_model.GetDeployKeyByID(ctx, id)
+	if err != nil && !asymkey_model.IsErrDeployKeyNotExist(err) {
+		return fmt.Errorf("GetDeployKeyByID: %w", err)
+	}
+
+	repo, err := repo_model.GetRepositoryByID(ctx, key.RepoID)
+	if err != nil {
+		return fmt.Errorf("GetRepositoryByID: %w", err)
+	}
+
 	if err := models.DeleteDeployKey(ctx, doer, id); err != nil {
 		return err
 	}
 	if err := committer.Commit(); err != nil {
 		return err
 	}
+
+	audit.Record(audit.RepositoryDeployKeyRemove, doer, repo, key, "Removed deploy key %s.", key.Name)
 
 	return asymkey_model.RewriteAllPublicKeys()
 }

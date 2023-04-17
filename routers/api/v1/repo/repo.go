@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/convert"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -730,6 +731,11 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRepository", err)
 		return err
+	}
+
+	audit.Record(audit.RepositoryUpdate, ctx.Doer, repo, repo, "Changed settings of repository %s.", repo.FullName())
+	if visibilityChanged {
+		audit.Record(audit.RepositoryVisibility, ctx.Doer, repo, repo, "Changed visibility of repository %s to %s.", repo.FullName(), audit.PublicString(!repo.IsPrivate))
 	}
 
 	log.Trace("Repository basic settings updated: %s/%s", owner.Name, repo.Name)

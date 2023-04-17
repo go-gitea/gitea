@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/forms"
 
 	"github.com/go-webauthn/webauthn/protocol"
@@ -97,12 +98,14 @@ func WebauthnRegisterPost(ctx *context.Context) {
 	}
 
 	// Create the credential
-	_, err = auth.CreateCredential(ctx.Doer.ID, name, cred)
+	dbCred, err = auth.CreateCredential(ctx.Doer.ID, name, cred)
 	if err != nil {
 		ctx.ServerError("CreateCredential", err)
 		return
 	}
 	_ = ctx.Session.Delete("webauthnName")
+
+	audit.Record(audit.UserWebAuthAdd, ctx.Doer, ctx.Doer, dbCred, "User %s added WebAuthn key %s.", ctx.Doer.Name, dbCred.Name)
 
 	ctx.JSON(http.StatusCreated, cred)
 }
@@ -110,10 +113,20 @@ func WebauthnRegisterPost(ctx *context.Context) {
 // WebauthnDelete deletes an security key by id
 func WebauthnDelete(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.WebauthnDeleteForm)
-	if _, err := auth.DeleteCredential(form.ID, ctx.Doer.ID); err != nil {
+
+	cred, err := auth.GetWebAuthnCredentialByID(form.ID)
+	if err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByID", err)
 		return
 	}
+
+	if ok, err := auth.DeleteCredential(form.ID, ctx.Doer.ID); err != nil {
+		ctx.ServerError("DeleteCredential", err)
+		return
+	} else if ok {
+		audit.Record(audit.UserWebAuthRemove, ctx.Doer, ctx.Doer, cred, "User %s removed WebAuthn key %s.", ctx.Doer.Name, cred.Name)
+	}
+
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/security",
 	})

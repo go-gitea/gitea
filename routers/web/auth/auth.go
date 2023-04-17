@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/audit"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/externalaccount"
@@ -545,6 +546,9 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{
 		}
 		return
 	}
+
+	audit.Record(audit.UserCreate, audit.NewAuthenticationSourceUser(), u, u, "Created user %s.", u.Name)
+
 	log.Trace("Account created: %s", u.Name)
 	return true
 }
@@ -706,6 +710,8 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		return
 	}
 
+	audit.Record(audit.UserActive, user, user, user, "Activation status of user %s changed to %s.", user.Name, audit.UserActiveString(user.IsActive))
+
 	log.Trace("User activated: %s", user.Name)
 
 	if err := updateSession(ctx, nil, map[string]interface{}{
@@ -739,7 +745,7 @@ func ActivateEmail(ctx *context.Context) {
 	emailStr := ctx.FormString("email")
 
 	// Verify code.
-	if email := user_model.VerifyActiveEmailCode(code, emailStr); email != nil {
+	if user, email := user_model.VerifyActiveEmailCode(code, emailStr); user != nil && email != nil {
 		if err := user_model.ActivateEmail(email); err != nil {
 			ctx.ServerError("ActivateEmail", err)
 		}
@@ -747,12 +753,12 @@ func ActivateEmail(ctx *context.Context) {
 		log.Trace("Email activated: %s", email.Email)
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 
-		if u, err := user_model.GetUserByID(ctx, email.UID); err != nil {
-			log.Warn("GetUserByID: %d", email.UID)
-		} else if setting.CacheService.Enabled {
+		if setting.CacheService.Enabled {
 			// Allow user to validate more emails
-			_ = ctx.Cache.Delete("MailResendLimit_" + u.LowerName)
+			_ = ctx.Cache.Delete("MailResendLimit_" + user.LowerName)
 		}
+
+		audit.Record(audit.UserEmailActivate, user, user, email, "Email %s of user %s activated.", email.Email, user.Name)
 	}
 
 	// FIXME: e-mail verification does not require the user to be logged in,

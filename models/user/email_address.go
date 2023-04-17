@@ -400,7 +400,7 @@ func MakeEmailPrimary(email *EmailAddress) error {
 }
 
 // VerifyActiveEmailCode verifies active email code when active account
-func VerifyActiveEmailCode(code, email string) *EmailAddress {
+func VerifyActiveEmailCode(code, email string) (*User, *EmailAddress) {
 	minutes := setting.Service.ActiveCodeLives
 
 	if user := GetVerifyUser(code); user != nil {
@@ -411,11 +411,11 @@ func VerifyActiveEmailCode(code, email string) *EmailAddress {
 		if base.VerifyTimeLimitCode(data, minutes, prefix) {
 			emailAddress := &EmailAddress{UID: user.ID, Email: email}
 			if has, _ := db.GetEngine(db.DefaultContext).Get(emailAddress); has {
-				return emailAddress
+				return user, emailAddress
 			}
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // SearchEmailOrderBy is used to sort the results from SearchEmails()

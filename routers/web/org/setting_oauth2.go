@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/auth"
+	organization_model "code.gitea.io/gitea/models/organization"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -19,11 +21,12 @@ const (
 	tplSettingsOAuthApplicationEdit base.TplName = "org/settings/applications_oauth2_edit"
 )
 
-func newOAuth2CommonHandlers(org *context.Organization) *user_setting.OAuth2CommonHandlers {
+func newOAuth2CommonHandlers(doer *user_model.User, org *organization_model.Organization) *user_setting.OAuth2CommonHandlers {
 	return &user_setting.OAuth2CommonHandlers{
-		OwnerID:            org.Organization.ID,
-		BasePathList:       fmt.Sprintf("%s/org/%s/settings/applications", setting.AppSubURL, org.Organization.Name),
-		BasePathEditPrefix: fmt.Sprintf("%s/org/%s/settings/applications/oauth2", setting.AppSubURL, org.Organization.Name),
+		Doer:               doer,
+		Owner:              organization_model.UserFromOrg(org),
+		BasePathList:       fmt.Sprintf("%s/org/%s/settings/applications", setting.AppSubURL, org.Name),
+		BasePathEditPrefix: fmt.Sprintf("%s/org/%s/settings/applications/oauth2", setting.AppSubURL, org.Name),
 		TplAppEdit:         tplSettingsOAuthApplicationEdit,
 	}
 }
@@ -50,7 +53,7 @@ func OAuthApplicationsPost(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsApplications"] = true
 
-	oa := newOAuth2CommonHandlers(ctx.Org)
+	oa := newOAuth2CommonHandlers(ctx.Doer, ctx.Org.Organization)
 	oa.AddApp(ctx)
 }
 
@@ -59,7 +62,7 @@ func OAuth2ApplicationShow(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsApplications"] = true
 
-	oa := newOAuth2CommonHandlers(ctx.Org)
+	oa := newOAuth2CommonHandlers(ctx.Doer, ctx.Org.Organization)
 	oa.EditShow(ctx)
 }
 
@@ -69,7 +72,7 @@ func OAuth2ApplicationEdit(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsApplications"] = true
 
-	oa := newOAuth2CommonHandlers(ctx.Org)
+	oa := newOAuth2CommonHandlers(ctx.Doer, ctx.Org.Organization)
 	oa.EditSave(ctx)
 }
 
@@ -79,13 +82,13 @@ func OAuthApplicationsRegenerateSecret(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsApplications"] = true
 
-	oa := newOAuth2CommonHandlers(ctx.Org)
+	oa := newOAuth2CommonHandlers(ctx.Doer, ctx.Org.Organization)
 	oa.RegenerateSecret(ctx)
 }
 
 // DeleteOAuth2Application deletes the given oauth2 application
 func DeleteOAuth2Application(ctx *context.Context) {
-	oa := newOAuth2CommonHandlers(ctx.Org)
+	oa := newOAuth2CommonHandlers(ctx.Doer, ctx.Org.Organization)
 	oa.DeleteApp(ctx)
 }
 

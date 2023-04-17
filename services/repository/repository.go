@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/audit"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -32,6 +33,8 @@ func CreateRepository(ctx context.Context, doer, owner *user_model.User, opts re
 	}
 
 	notification.NotifyCreateRepository(ctx, doer, owner, repo)
+
+	audit.Record(audit.RepositoryCreate, doer, repo, repo, "Created repository %s.", repo.FullName()) // owner
 
 	return repo, nil
 }
@@ -51,7 +54,13 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 		return err
 	}
 
-	return packages_model.UnlinkRepositoryFromAllPackages(ctx, repo.ID)
+	if err := packages_model.UnlinkRepositoryFromAllPackages(ctx, repo.ID); err != nil {
+		return err
+	}
+
+	audit.Record(audit.RepositoryDelete, doer, repo, repo, "Deleted repository %s.", repo.FullName()) // repo.Owner load?
+
+	return nil
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace

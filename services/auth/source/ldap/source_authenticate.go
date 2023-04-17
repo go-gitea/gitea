@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/audit"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
@@ -34,6 +35,8 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 
 	// Update User admin flag if exist
+	isAdminChanged := false
+	isRestrictedChanged := false
 	if isExist, err := user_model.IsUserExist(db.DefaultContext, 0, sr.Username); err != nil {
 		return nil, err
 	} else if isExist {
@@ -49,11 +52,15 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 				// Change existing admin flag only if AdminFilter option is set
 				user.IsAdmin = sr.IsAdmin
 				cols = append(cols, "is_admin")
+
+				isAdminChanged = true
 			}
 			if !user.IsAdmin && len(source.RestrictedFilter) > 0 && user.IsRestricted != sr.IsRestricted {
 				// Change existing restricted flag only if RestrictedFilter option is set
 				user.IsRestricted = sr.IsRestricted
 				cols = append(cols, "is_restricted")
+
+				isRestrictedChanged = true
 			}
 			if len(cols) > 0 {
 				err = user_model.UpdateUserCols(db.DefaultContext, user, cols...)
@@ -65,9 +72,25 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	}
 
 	if user != nil {
-		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(user, source.authSource, sr.SSHPublicKey) {
-			if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
-				return user, err
+		if isAdminChanged {
+			audit.Record(audit.UserAdmin, audit.NewAuthenticationSourceUser(), user, user, "Admin status of user %s changed to %s.", user.Name, audit.UserAdminString(user.IsAdmin))
+		}
+		if isRestrictedChanged {
+			audit.Record(audit.UserRestricted, audit.NewAuthenticationSourceUser(), user, user, "Restricted status of user %s changed to %s.", user.Name, audit.UserRestrictedString(user.IsRestricted))
+		}
+
+		if isAttributeSSHPublicKeySet {
+			if addedKeys, deletedKeys := asymkey_model.SynchronizePublicKeys(user, source.authSource, sr.SSHPublicKey); len(addedKeys) > 0 || len(deletedKeys) > 0 {
+				for _, key := range addedKeys {
+					audit.Record(audit.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), user, user, "Added SSH key %s.", key.Fingerprint)
+				}
+				for _, key := range deletedKeys {
+					audit.Record(audit.UserKeySSHRemove, audit.NewAuthenticationSourceUser(), user, user, "Removed SSH key %s.", key.Fingerprint)
+				}
+
+				if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
+					return user, err
+				}
 			}
 		}
 	} else {
@@ -100,11 +123,19 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 			return user, err
 		}
 
+		audit.Record(audit.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
+
 		mailer.SendRegisterNotifyMail(user)
 
-		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(user, source.authSource, sr.SSHPublicKey) {
-			if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
-				return user, err
+		if isAttributeSSHPublicKeySet {
+			if addedKeys := asymkey_model.AddPublicKeysBySource(user, source.authSource, sr.SSHPublicKey); len(addedKeys) > 0 {
+				for _, key := range addedKeys {
+					audit.Record(audit.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), user, user, "Added SSH key %s.", key.Fingerprint)
+				}
+
+				if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
+					return user, err
+				}
 			}
 		}
 		if len(source.AttributeAvatar) > 0 {

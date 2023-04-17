@@ -14,10 +14,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/audit"
 )
 
 // DeleteOrganization completely and permanently deletes everything of organization.
-func DeleteOrganization(org *organization.Organization) error {
+func DeleteOrganization(doer *user_model.User, org *organization.Organization) error {
 	ctx, commiter, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
@@ -46,6 +47,8 @@ func DeleteOrganization(org *organization.Organization) error {
 	if err := commiter.Commit(); err != nil {
 		return err
 	}
+
+	audit.Record(audit.OrganizationDelete, doer, org, org, "Organization %s was deleted.", org.Name)
 
 	// FIXME: system notice
 	// Note: There are something just cannot be roll back,

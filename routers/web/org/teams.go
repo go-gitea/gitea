@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	org_service "code.gitea.io/gitea/services/org"
@@ -70,6 +71,9 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 		err = models.AddTeamMember(ctx.Org.Team, ctx.Doer.ID)
+		if err == nil {
+			audit.Record(audit.OrganizationTeamMemberAdd, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "User %s was added to team %s/%s.", ctx.Doer.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name)
+		}
 	case "leave":
 		err = models.RemoveTeamMember(ctx.Org.Team, ctx.Doer.ID)
 		if err != nil {
@@ -83,6 +87,8 @@ func TeamsAction(ctx *context.Context) {
 				})
 				return
 			}
+		} else {
+			audit.Record(audit.OrganizationTeamMemberRemove, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "User %s was removed from team %s/%s.", ctx.Doer.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name)
 		}
 		ctx.JSON(http.StatusOK,
 			map[string]interface{}{
@@ -95,13 +101,13 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 
-		uid := ctx.FormInt64("uid")
-		if uid == 0 {
+		u, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
+		if err != nil {
 			ctx.Redirect(ctx.Org.OrgLink + "/teams")
 			return
 		}
 
-		err = models.RemoveTeamMember(ctx.Org.Team, uid)
+		err = models.RemoveTeamMember(ctx.Org.Team, u.ID)
 		if err != nil {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
@@ -113,7 +119,10 @@ func TeamsAction(ctx *context.Context) {
 				})
 				return
 			}
+		} else {
+			audit.Record(audit.OrganizationTeamMemberRemove, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "User %s was removed from team %s/%s.", u.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name)
 		}
+
 		ctx.JSON(http.StatusOK,
 			map[string]interface{}{
 				"redirect": ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName),
@@ -160,6 +169,9 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 		} else {
 			err = models.AddTeamMember(ctx.Org.Team, u.ID)
+			if err == nil {
+				audit.Record(audit.OrganizationTeamMemberAdd, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "User %s was added to team %s/%s.", u.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name)
+			}
 		}
 
 		page = "team"
@@ -214,13 +226,10 @@ func TeamsRepoAction(ctx *context.Context) {
 		return
 	}
 
-	var err error
 	action := ctx.Params(":action")
 	switch action {
 	case "add":
-		repoName := path.Base(ctx.FormString("repo_name"))
-		var repo *repo_model.Repository
-		repo, err = repo_model.GetRepositoryByName(ctx.Org.Organization.ID, repoName)
+		repo, err := repo_model.GetRepositoryByName(ctx.Org.Organization.ID, path.Base(ctx.FormString("repo_name")))
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
 				ctx.Flash.Error(ctx.Tr("org.teams.add_nonexistent_repo"))
@@ -230,19 +239,49 @@ func TeamsRepoAction(ctx *context.Context) {
 			ctx.ServerError("GetRepositoryByName", err)
 			return
 		}
-		err = org_service.TeamAddRepository(ctx.Org.Team, repo)
-	case "remove":
-		err = models.RemoveRepository(ctx.Org.Team, ctx.FormInt64("repoid"))
-	case "addall":
-		err = models.AddAllRepositories(ctx.Org.Team)
-	case "removeall":
-		err = models.RemoveAllRepositories(ctx.Org.Team)
-	}
+		if err := org_service.TeamAddRepository(ctx.Org.Team, repo); err != nil {
+			ctx.ServerError("TeamAddRepository "+ctx.Org.Team.Name, err)
+			return
+		}
 
-	if err != nil {
-		log.Error("Action(%s): '%s' %v", ctx.Params(":action"), ctx.Org.Team.Name, err)
-		ctx.ServerError("TeamsRepoAction", err)
-		return
+		audit.Record(audit.RepositoryCollaboratorTeamAdd, ctx.Doer, repo, ctx.Org.Team, "Added team %s as collaborator for %s.", ctx.Org.Team.Name, repo.FullName())
+	case "remove":
+		repo, err := repo_model.GetRepositoryByID(db.DefaultContext, ctx.FormInt64("repoid"))
+		if err != nil {
+			ctx.ServerError("GetRepositoryByID", err)
+			return
+		}
+
+		if err := models.RemoveRepository(ctx.Org.Team, repo.ID); err != nil {
+			ctx.ServerError("RemoveRepository "+ctx.Org.Team.Name, err)
+			return
+		}
+
+		audit.Record(audit.RepositoryCollaboratorTeamRemove, ctx.Doer, repo, ctx.Org.Team, "Removed team %s as collaborator from %s.", ctx.Org.Team.Name, repo.FullName())
+	case "addall":
+		added, err := models.AddAllRepositories(ctx.Org.Team)
+		if err != nil {
+			ctx.ServerError("AddAllRepositories "+ctx.Org.Team.Name, err)
+			return
+		}
+
+		for _, repo := range added {
+			audit.Record(audit.RepositoryCollaboratorTeamAdd, ctx.Doer, repo, ctx.Org.Team, "Added team %s as collaborator for %s.", ctx.Org.Team.Name, repo.FullName())
+		}
+	case "removeall":
+		if err := ctx.Org.Team.LoadRepositories(ctx); err != nil {
+			ctx.ServerError("LoadRepositories "+ctx.Org.Team.Name, err)
+			return
+		}
+
+		if err := models.RemoveAllRepositories(ctx.Org.Team); err != nil {
+			ctx.ServerError("RemoveAllRepositories "+ctx.Org.Team.Name, err)
+			return
+		}
+
+		for _, repo := range ctx.Org.Team.Repos {
+			audit.Record(audit.RepositoryCollaboratorTeamRemove, ctx.Doer, repo, ctx.Org.Team, "Removed team %s as collaborator from %s.", ctx.Org.Team.Name, repo.FullName())
+		}
 	}
 
 	if action == "addall" || action == "removeall" {
@@ -337,6 +376,9 @@ func NewTeamPost(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.Record(audit.OrganizationTeamAdd, ctx.Doer, ctx.Org.Organization, t, "Team %s was added to organziation %s.", t.Name, ctx.Org.Organization.Name)
+
 	log.Trace("Team created: %s/%s", ctx.Org.Organization.Name, t.Name)
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
 }
@@ -442,6 +484,7 @@ func EditTeamPost(ctx *context.Context) {
 	ctx.Data["Team"] = t
 	ctx.Data["Units"] = unit_model.Units
 
+	oldAccessMode := t.AccessMode
 	if !t.IsOwnerTeam() {
 		// Validate permission level.
 		newAccessMode := perm.ParseAccessMode(form.Permission)
@@ -503,6 +546,12 @@ func EditTeamPost(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.Record(audit.OrganizationTeamUpdate, ctx.Doer, ctx.Org.Organization, t, "Updated settings of team %s/%s.", ctx.Org.Organization.Name, t.Name)
+	if isAuthChanged {
+		audit.Record(audit.OrganizationTeamPermission, ctx.Doer, ctx.Org.Organization, t, "Permission of team %s/%s changed from %s to %s.", ctx.Org.Organization.Name, t.Name, oldAccessMode.String(), t.AccessMode.String())
+	}
+
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
 }
 
@@ -511,6 +560,8 @@ func DeleteTeam(ctx *context.Context) {
 	if err := models.DeleteTeam(ctx.Org.Team); err != nil {
 		ctx.Flash.Error("DeleteTeam: " + err.Error())
 	} else {
+		audit.Record(audit.OrganizationTeamRemove, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "Team %s was removed from organziation %s.", ctx.Org.Team.Name, ctx.Org.Organization.Name)
+
 		ctx.Flash.Success(ctx.Tr("org.teams.delete_team_success"))
 	}
 
@@ -556,6 +607,8 @@ func TeamInvitePost(ctx *context.Context) {
 		ctx.ServerError("AddTeamMember", err)
 		return
 	}
+
+	audit.Record(audit.OrganizationTeamMemberAdd, ctx.Doer, org, team, "User %s was added to team %s/%s.", ctx.Doer.Name, org.Name, team.Name)
 
 	if err := org_model.RemoveInviteByID(ctx, invite.ID, team.ID); err != nil {
 		log.Error("RemoveInviteByID: %v", err)

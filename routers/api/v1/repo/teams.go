@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/convert"
 	org_service "code.gitea.io/gitea/services/org"
 )
@@ -210,6 +211,12 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
+	}
+
+	if add {
+		audit.Record(audit.RepositoryCollaboratorTeamAdd, ctx.Doer, ctx.Repo.Repository, team, "Added team %s as collaborator for %s.", team.Name, ctx.Repo.Repository.FullName())
+	} else {
+		audit.Record(audit.RepositoryCollaboratorTeamRemove, ctx.Doer, ctx.Repo.Repository, team, "Removed team %s as collaborator from %s.", team.Name, ctx.Repo.Repository.FullName())
 	}
 
 	ctx.Status(http.StatusNoContent)

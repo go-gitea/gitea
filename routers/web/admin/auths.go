@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/ldap"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
@@ -304,13 +305,15 @@ func NewAuthSourcePost(ctx *context.Context) {
 		return
 	}
 
-	if err := auth.CreateSource(&auth.Source{
+	source := &auth.Source{
 		Type:          auth.Type(form.Type),
 		Name:          form.Name,
 		IsActive:      form.IsActive,
 		IsSyncEnabled: form.IsSyncEnabled,
 		Cfg:           config,
-	}); err != nil {
+	}
+
+	if err := auth.CreateSource(source); err != nil {
 		if auth.IsErrSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthNew, form)
@@ -323,6 +326,8 @@ func NewAuthSourcePost(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.Record(audit.SystemAuthenticationSourceAdd, ctx.Doer, nil, source, "Created authentication source %s [%s].", source.Name, source.Type.String())
 
 	log.Trace("Authentication created by admin(%s): %s", ctx.Doer.Name, form.Name)
 
@@ -439,6 +444,9 @@ func EditAuthSourcePost(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.Record(audit.SystemAuthenticationSourceUpdate, nil, ctx.Doer, source, "Updated authentication source %s.", source.Name)
+
 	log.Trace("Authentication changed by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.update_success"))
@@ -464,6 +472,9 @@ func DeleteAuthSource(ctx *context.Context) {
 		})
 		return
 	}
+
+	audit.Record(audit.SystemAuthenticationSourceRemove, nil, ctx.Doer, source, "Removed authentication source %s.", source.Name)
+
 	log.Trace("Authentication deleted by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.deletion_success"))

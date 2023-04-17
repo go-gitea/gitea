@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/audit"
 )
 
 // APIContext is a specific context for API service
@@ -209,6 +210,8 @@ func (ctx *APIContext) CheckForOTP() {
 		return
 	}
 	if !ok {
+		audit.Record(audit.UserAuthenticationFailTwoFactor, ctx.Context.Doer, ctx.Context.Doer, twofa, "Failed two-factor authentication for user %s.", ctx.Context.Doer.Name)
+
 		ctx.Context.Error(http.StatusUnauthorized)
 		return
 	}

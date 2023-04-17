@@ -8,10 +8,12 @@ import (
 	"net/http"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -69,6 +71,8 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
+	audit.Record(audit.UserAccessTokenAdd, ctx.Doer, ctx.Doer, t, "Added access token %s for user %s with scope %s.", t.Name, ctx.Doer.Name, t.Scope)
+
 	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
 	ctx.Flash.Info(t.Token)
 
@@ -77,15 +81,26 @@ func ApplicationsPost(ctx *context.Context) {
 
 // DeleteApplication response for delete user access token
 func DeleteApplication(ctx *context.Context) {
+	defer ctx.JSON(http.StatusOK, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/user/settings/applications",
+	})
+
+	t := &auth_model.AccessToken{UID: ctx.Doer.ID}
+	has, err := db.GetBeanByID(ctx, ctx.FormInt64("id"), t)
+	if err != nil {
+		ctx.Flash.Error("GetBeanByID: " + err.Error())
+		return
+	} else if !has {
+		return
+	}
+
 	if err := auth_model.DeleteAccessTokenByID(ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
+		audit.Record(audit.UserAccessTokenRemove, ctx.Doer, ctx.Doer, t, "Removed access token %s from user %s.", t.Name, ctx.Doer.Name)
+
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
 	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/applications",
-	})
 }
 
 func loadApplicationsData(ctx *context.Context) {

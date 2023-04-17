@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
@@ -143,6 +144,9 @@ func CreateUser(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	audit.Record(audit.UserCreate, ctx.Doer, u, u, "Created user %s.", u.Name)
+
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	// Send email notification.
@@ -179,6 +183,23 @@ func EditUser(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	auditFields := struct {
+		LoginSource int64
+		// Password
+		Email        string
+		IsActive     bool
+		IsAdmin      bool
+		IsRestricted bool
+		Visibility   api.VisibleType
+	}{
+		LoginSource:  ctx.ContextUser.LoginSource,
+		Email:        ctx.ContextUser.Email,
+		IsActive:     ctx.ContextUser.IsActive,
+		IsAdmin:      ctx.ContextUser.IsAdmin,
+		IsRestricted: ctx.ContextUser.IsRestricted,
+		Visibility:   ctx.ContextUser.Visibility,
+	}
+
 	form := web.GetForm(ctx).(*api.EditUserOption)
 
 	parseAuthSource(ctx, ctx.ContextUser, form.SourceID, form.LoginName)
@@ -186,6 +207,7 @@ func EditUser(ctx *context.APIContext) {
 		return
 	}
 
+	passwordChanged := false
 	if len(form.Password) != 0 {
 		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Error(http.StatusBadRequest, "PasswordTooShort", fmt.Errorf("password must be at least %d characters", setting.MinPasswordLength))
@@ -287,6 +309,26 @@ func EditUser(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	if passwordChanged {
+		audit.Record(audit.UserPassword, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Password of user %s changed.", ctx.ContextUser.Name)
+	}
+	if auditFields.LoginSource != ctx.ContextUser.LoginSource {
+		audit.Record(audit.UserAuthenticationSource, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Authentication source of user %s changed.", ctx.ContextUser.Name)
+	}
+	if auditFields.Visibility != ctx.ContextUser.Visibility {
+		audit.Record(audit.UserVisibility, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Visibility of user %s changed from %s to %s.", ctx.ContextUser.Name, auditFields.Visibility.String(), ctx.ContextUser.Visibility.String())
+	}
+	if auditFields.IsActive != ctx.ContextUser.IsActive {
+		audit.Record(audit.UserActive, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Activation status of user %s changed to %s.", ctx.ContextUser.Name, audit.UserActiveString(ctx.ContextUser.IsActive))
+	}
+	if auditFields.IsAdmin != ctx.ContextUser.IsAdmin {
+		audit.Record(audit.UserAdmin, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Admin status of user %s changed to %s.", ctx.ContextUser.Name, audit.UserAdminString(ctx.ContextUser.IsAdmin))
+	}
+	if auditFields.IsRestricted != ctx.ContextUser.IsRestricted {
+		audit.Record(audit.UserRestricted, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Restricted status of user %s changed to %s.", ctx.ContextUser.Name, audit.UserRestrictedString(ctx.ContextUser.IsRestricted))
+	}
+
 	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, ctx.ContextUser.Name)
 
 	ctx.JSON(http.StatusOK, convert.ToUser(ctx, ctx.ContextUser, ctx.Doer))
@@ -328,7 +370,7 @@ func DeleteUser(ctx *context.APIContext) {
 		return
 	}
 
-	if err := user_service.DeleteUser(ctx, ctx.ContextUser, ctx.FormBool("purge")); err != nil {
+	if err := user_service.DeleteUser(ctx, ctx.Doer, ctx.ContextUser, ctx.FormBool("purge")); err != nil {
 		if models.IsErrUserOwnRepos(err) ||
 			models.IsErrUserHasOrgs(err) ||
 			models.IsErrUserOwnPackages(err) {
@@ -513,7 +555,7 @@ func RenameUser(ctx *context.APIContext) {
 	}
 
 	// Check if user name has been changed
-	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName); err != nil {
+	if err := user_service.RenameUser(ctx, ctx.Doer, ctx.ContextUser, newName); err != nil {
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("form.username_been_taken"))

@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/services/audit"
 )
 
 // repoWorkingPool represents a working pool to order the parallel changes to the same repository
@@ -48,10 +49,14 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 		return err
 	}
 
+	audit.Record(audit.RepositoryTransferAccept, doer, newRepo, newRepo, "Accepted repository transfer from %s to %s.", oldOwner.Name, newRepo.FullName())
+
 	for _, team := range teams {
 		if err := models.AddRepository(ctx, team, newRepo); err != nil {
 			return err
 		}
+
+		audit.Record(audit.RepositoryCollaboratorTeamAdd, doer, newRepo, team, "Added team %s as collaborator for %s.", team.Name, newRepo.FullName())
 	}
 
 	notification.NotifyTransferRepository(ctx, doer, repo, oldOwner.Name)
@@ -77,6 +82,9 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
 	repo.Name = newRepoName
+
+	audit.Record(audit.RepositoryName, doer, repo, repo, "Repository name changed from %s to %s.", oldRepoName, newRepoName)
+
 	notification.NotifyRenameRepository(ctx, doer, repo, oldRepoName)
 
 	return nil

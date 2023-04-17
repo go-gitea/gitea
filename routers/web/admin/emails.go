@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/audit"
 )
 
 const (
@@ -122,16 +123,23 @@ func ActivateEmail(ctx *context.Context) {
 
 	log.Info("Changing activation for User ID: %d, email: %s, primary: %v to %v", uid, email, primary, activate)
 
-	if err := user_model.ActivateUserEmail(uid, email, activate); err != nil {
-		log.Error("ActivateUserEmail(%v,%v,%v): %v", uid, email, activate, err)
-		if user_model.IsErrEmailAlreadyUsed(err) {
-			ctx.Flash.Error(ctx.Tr("admin.emails.duplicate_active"))
-		} else {
-			ctx.Flash.Error(ctx.Tr("admin.emails.not_updated", err))
-		}
+	u, err := user_model.GetUserByID(ctx, uid)
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("admin.emails.not_updated", err))
 	} else {
-		log.Info("Activation for User ID: %d, email: %s, primary: %v changed to %v", uid, email, primary, activate)
-		ctx.Flash.Info(ctx.Tr("admin.emails.updated"))
+		if err := user_model.ActivateUserEmail(uid, email, activate); err != nil {
+			log.Error("ActivateUserEmail(%v,%v,%v): %v", uid, email, activate, err)
+			if user_model.IsErrEmailAlreadyUsed(err) {
+				ctx.Flash.Error(ctx.Tr("admin.emails.duplicate_active"))
+			} else {
+				ctx.Flash.Error(ctx.Tr("admin.emails.not_updated", err))
+			}
+		} else {
+			audit.Record(audit.UserEmailActivate, ctx.Doer, u, u, "Email %s of user %s activated.", email, u.Name)
+
+			log.Info("Activation for User ID: %d, email: %s, primary: %v changed to %v", uid, email, primary, activate)
+			ctx.Flash.Info(ctx.Tr("admin.emails.updated"))
+		}
 	}
 
 	redirect, _ := url.Parse(setting.AppSubURL + "/admin/emails")

@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
@@ -557,6 +558,8 @@ func SubmitInstall(ctx *context.Context) {
 			log.Info("Admin account already exist")
 			u, _ = user_model.GetUserByName(ctx, u.Name)
 		}
+
+		audit.Record(audit.UserCreate, u, u, u, "Created user %s.", u.Name)
 
 		days := 86400 * setting.LogInRememberDays
 		ctx.SetCookie(setting.CookieUserName, u.Name, days)

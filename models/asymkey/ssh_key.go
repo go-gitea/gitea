@@ -317,17 +317,17 @@ func PublicKeyIsExternallyManaged(id int64) (bool, error) {
 	return false, nil
 }
 
-// deleteKeysMarkedForDeletion returns true if ssh keys needs update
-func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
+// deleteKeysMarkedForDeletion returns the deleted keys
+func deleteKeysMarkedForDeletion(keys []string) ([]*PublicKey, error) {
 	// Start session
 	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	defer committer.Close()
 
-	// Delete keys marked for deletion
-	var sshKeysNeedUpdate bool
+	deletedKeys := make([]*PublicKey, 0, len(keys))
+
 	for _, KeyToDelete := range keys {
 		key, err := SearchPublicKeyByContent(ctx, KeyToDelete)
 		if err != nil {
@@ -338,19 +338,21 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 			log.Error("deletePublicKeys: %v", err)
 			continue
 		}
-		sshKeysNeedUpdate = true
+
+		deletedKeys = append(deletedKeys, key)
 	}
 
 	if err := committer.Commit(); err != nil {
-		return false, err
+		return nil, err
 	}
 
-	return sshKeysNeedUpdate, nil
+	return deletedKeys, nil
 }
 
-// AddPublicKeysBySource add a users public keys. Returns true if there are changes.
-func AddPublicKeysBySource(usr *user_model.User, s *auth.Source, sshPublicKeys []string) bool {
-	var sshKeysNeedUpdate bool
+// AddPublicKeysBySource add a users public keys. Returns the added keys.
+func AddPublicKeysBySource(usr *user_model.User, s *auth.Source, sshPublicKeys []string) []*PublicKey {
+	addedKeys := make([]*PublicKey, 0, len(sshPublicKeys))
+
 	for _, sshKey := range sshPublicKeys {
 		var err error
 		found := false
@@ -368,28 +370,27 @@ func AddPublicKeysBySource(usr *user_model.User, s *auth.Source, sshPublicKeys [
 			marshalled = marshalled[:len(marshalled)-1]
 			sshKeyName := fmt.Sprintf("%s-%s", s.Name, ssh.FingerprintSHA256(out))
 
-			if _, err := AddPublicKey(usr.ID, sshKeyName, marshalled, s.ID); err != nil {
+			if pubKey, err := AddPublicKey(usr.ID, sshKeyName, marshalled, s.ID); err != nil {
 				if IsErrKeyAlreadyExist(err) {
 					log.Trace("AddPublicKeysBySource[%s]: Public SSH Key %s already exists for user", sshKeyName, usr.Name)
 				} else {
 					log.Error("AddPublicKeysBySource[%s]: Error adding Public SSH Key for user %s: %v", sshKeyName, usr.Name, err)
 				}
 			} else {
+				addedKeys = append(addedKeys, pubKey)
+
 				log.Trace("AddPublicKeysBySource[%s]: Added Public SSH Key for user %s", sshKeyName, usr.Name)
-				sshKeysNeedUpdate = true
 			}
 		}
 		if !found && err != nil {
 			log.Warn("AddPublicKeysBySource[%s]: Skipping invalid Public SSH Key for user %s: %v", s.Name, usr.Name, sshKey)
 		}
 	}
-	return sshKeysNeedUpdate
+	return addedKeys
 }
 
 // SynchronizePublicKeys updates a users public keys. Returns true if there are changes.
-func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys []string) bool {
-	var sshKeysNeedUpdate bool
-
+func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys []string) ([]*PublicKey, []*PublicKey) {
 	log.Trace("synchronizePublicKeys[%s]: Handling Public SSH Key synchronization for user %s", s.Name, usr.Name)
 
 	// Get Public Keys from DB with current LDAP source
@@ -418,7 +419,7 @@ func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys [
 	// Check if Public Key sync is needed
 	if util.SliceSortedEqual(giteaKeys, providedKeys) {
 		log.Trace("synchronizePublicKeys[%s]: Public Keys are already in sync for %s (Source:%v/DB:%v)", s.Name, usr.Name, len(providedKeys), len(giteaKeys))
-		return false
+		return nil, nil
 	}
 	log.Trace("synchronizePublicKeys[%s]: Public Key needs update for user %s (Source:%v/DB:%v)", s.Name, usr.Name, len(providedKeys), len(giteaKeys))
 
@@ -429,9 +430,8 @@ func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys [
 			newKeys = append(newKeys, key)
 		}
 	}
-	if AddPublicKeysBySource(usr, s, newKeys) {
-		sshKeysNeedUpdate = true
-	}
+
+	addedKeys := AddPublicKeysBySource(usr, s, newKeys) // ToDo Audit
 
 	// Mark keys from DB that no longer exist in the source for deletion
 	var giteaKeysToDelete []string
@@ -443,13 +443,10 @@ func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys [
 	}
 
 	// Delete keys from DB that no longer exist in the source
-	needUpd, err := deleteKeysMarkedForDeletion(giteaKeysToDelete)
+	deletedKeys, err := deleteKeysMarkedForDeletion(giteaKeysToDelete)
 	if err != nil {
 		log.Error("synchronizePublicKeys[%s]: Error deleting Public Keys marked for deletion for user %s: %v", s.Name, usr.Name, err)
 	}
-	if needUpd {
-		sshKeysNeedUpdate = true
-	}
 
-	return sshKeysNeedUpdate
+	return addedKeys, deletedKeys
 }

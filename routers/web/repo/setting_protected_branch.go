@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
@@ -63,6 +64,7 @@ func SetDefaultBranchPost(ctx *context.Context) {
 			ctx.Status(http.StatusNotFound)
 			return
 		} else if repo.DefaultBranch != branch {
+			oldBranch := repo.DefaultBranch
 			repo.DefaultBranch = branch
 			if err := ctx.Repo.GitRepo.SetDefaultBranch(branch); err != nil {
 				if !git.IsErrUnsupportedVersion(err) {
@@ -74,6 +76,8 @@ func SetDefaultBranchPost(ctx *context.Context) {
 				ctx.ServerError("SetDefaultBranch", err)
 				return
 			}
+
+			audit.Record(audit.RepositoryBranchDefault, ctx.Doer, repo, repo, "Changed default branch from %s to %s.", oldBranch, branch)
 		}
 
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -269,6 +273,8 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.UnprotectedFilePatterns = f.UnprotectedFilePatterns
 	protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
 
+	isNewProtectedBranch := protectBranch.ID == 0
+
 	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
@@ -280,6 +286,12 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("UpdateProtectBranch", err)
 		return
+	}
+
+	if isNewProtectedBranch {
+		audit.Record(audit.RepositoryBranchProtectionAdd, ctx.Doer, ctx.Repo.Repository, protectBranch, "Added branch protection %s.", protectBranch.RuleName)
+	} else {
+		audit.Record(audit.RepositoryBranchProtectionUpdate, ctx.Doer, ctx.Repo.Repository, protectBranch, "Updated branch protection %s.", protectBranch.RuleName)
 	}
 
 	// FIXME: since we only need to recheck files protected rules, we could improve this
@@ -335,6 +347,8 @@ func DeleteProtectedBranchRulePost(ctx *context.Context) {
 		return
 	}
 
+	audit.Record(audit.RepositoryBranchProtectionRemove, ctx.Doer, ctx.Repo.Repository, rule, "Removed branch protection %s.", rule.RuleName)
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success", rule.RuleName))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink),
@@ -373,6 +387,8 @@ func RenameBranchPost(ctx *context.Context) {
 		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
 		return
 	}
+
+	audit.Record(audit.RepositoryBranchRename, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Repository, "Renamed branch from %s to %s.", form.From, form.To)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.rename_branch_success", form.From, form.To))
 	ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))

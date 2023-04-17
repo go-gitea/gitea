@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/org"
 )
@@ -275,6 +276,8 @@ func Create(ctx *context.APIContext) {
 		return
 	}
 
+	audit.Record(audit.OrganizationCreate, ctx.Doer, org, org, "Organization %s was created.", org.Name)
+
 	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }
 
@@ -331,6 +334,8 @@ func Edit(ctx *context.APIContext) {
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
+
+	oldVisibility := org.Visibility
 	if form.Visibility != "" {
 		org.Visibility = api.VisibilityModes[form.Visibility]
 	}
@@ -343,6 +348,11 @@ func Edit(ctx *context.APIContext) {
 	); err != nil {
 		ctx.Error(http.StatusInternalServerError, "EditOrganization", err)
 		return
+	}
+
+	audit.Record(audit.OrganizationUpdate, ctx.Doer, org, org, "Updated settings of organization %s.", org.Name)
+	if org.Visibility != oldVisibility {
+		audit.Record(audit.OrganizationVisibility, ctx.Doer, org, org, "Visibility of organization %s changed from %s to %s.", org.Name, oldVisibility.String(), org.Visibility.String())
 	}
 
 	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, org))
@@ -365,7 +375,7 @@ func Delete(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	if err := org.DeleteOrganization(ctx.Org.Organization); err != nil {
+	if err := org.DeleteOrganization(ctx.Doer, ctx.Org.Organization); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteOrganization", err)
 		return
 	}

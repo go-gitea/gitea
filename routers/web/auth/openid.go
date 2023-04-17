@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 )
@@ -301,6 +302,8 @@ func ConnectOpenIDPost(ctx *context.Context) {
 		return
 	}
 
+	audit.Record(audit.UserOpenIDAdd, u, u, userOID, "Associated OpenID %s to user %s.", userOID.URI, u.Name)
+
 	ctx.Flash.Success(ctx.Tr("settings.add_openid_success"))
 
 	remember, _ := ctx.Session.Get("openid_signin_remember").(bool)
@@ -404,6 +407,8 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		// error already handled
 		return
 	}
+
+	audit.Record(audit.UserOpenIDAdd, u, u, userOID, "Associated OpenID %s to user %s.", userOID.URI, u.Name)
 
 	remember, _ := ctx.Session.Get("openid_signin_remember").(bool)
 	log.Trace("Session stored openid-remember: %t", remember)

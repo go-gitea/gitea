@@ -38,6 +38,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 	"code.gitea.io/gitea/services/migrations"
@@ -187,6 +188,12 @@ func SettingsPost(ctx *context.Context) {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
+
+		audit.Record(audit.RepositoryUpdate, ctx.Doer, repo, repo, "Changed settings of repository %s.", repo.FullName())
+		if visibilityChanged {
+			audit.Record(audit.RepositoryVisibility, ctx.Doer, repo, repo, "Changed visibility of repository %s to %s.", repo.FullName(), audit.PublicString(!repo.IsPrivate))
+		}
+
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
@@ -323,6 +330,8 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		audit.Record(audit.RepositoryMirrorPushRemove, ctx.Doer, repo, m, "Removed push mirror for repository %s.", repo.FullName())
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
 
@@ -378,6 +387,8 @@ func SettingsPost(ctx *context.Context) {
 			ctx.ServerError("AddPushMirrorRemote", err)
 			return
 		}
+
+		audit.Record(audit.RepositoryMirrorPushAdd, ctx.Doer, repo, m, "Added push mirror for repository %s.", repo.FullName())
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -546,6 +557,9 @@ func SettingsPost(ctx *context.Context) {
 				return
 			}
 		}
+
+		audit.Record(audit.RepositoryUpdate, ctx.Doer, repo, repo, "Changed settings of repository %s.", repo.FullName())
+
 		log.Trace("Repository advanced settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
@@ -564,6 +578,8 @@ func SettingsPost(ctx *context.Context) {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
+
+			audit.Record(audit.RepositorySigningVerification, ctx.Doer, repo, repo, "Changed signing verification of repository %s to %s.", repo.FullName(), repo.TrustModel.String())
 		}
 		log.Trace("Repository signing settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
@@ -641,6 +657,9 @@ func SettingsPost(ctx *context.Context) {
 			ctx.ServerError("DeleteMirrorByRepoID", err)
 			return
 		}
+
+		audit.Record(audit.RepositoryConvertMirror, ctx.Doer, repo, repo, "Converted repository %s from mirror to regular repository.", repo.FullName())
+
 		log.Trace("Repository converted from mirror to regular: %s", repo.FullName())
 		ctx.Flash.Success(ctx.Tr("repo.settings.convert_succeed"))
 		ctx.Redirect(repo.Link())
@@ -672,7 +691,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_service.ConvertForkToNormalRepository(ctx, repo); err != nil {
+		if err := repo_service.ConvertForkToNormalRepository(ctx, ctx.Doer, repo); err != nil {
 			log.Error("Unable to convert repository %-v from fork. Error: %v", repo, err)
 			ctx.ServerError("Convert Fork", err)
 			return
@@ -722,7 +741,7 @@ func SettingsPost(ctx *context.Context) {
 			} else if models.IsErrRepoTransferInProgress(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
 			} else {
-				ctx.ServerError("TransferOwnership", err)
+				ctx.ServerError("StartRepositoryTransfer", err)
 			}
 
 			return
@@ -759,6 +778,8 @@ func SettingsPost(ctx *context.Context) {
 			ctx.ServerError("CancelRepositoryTransfer", err)
 			return
 		}
+
+		audit.Record(audit.RepositoryTransferReject, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Repository, "Rejected transfer of repository %s.", ctx.Repo.Repository.FullName())
 
 		log.Trace("Repository transfer process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_abort_success", repoTransfer.Recipient.Name))
@@ -798,10 +819,11 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		err := wiki_service.DeleteWiki(ctx, repo)
-		if err != nil {
-			log.Error("Delete Wiki: %v", err.Error())
+		if err := wiki_service.DeleteWiki(ctx, ctx.Doer, repo); err != nil {
+			ctx.ServerError("DeleteWiki", err)
+			return
 		}
+
 		log.Trace("Repository wiki deleted: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.wiki_deletion_success"))
@@ -826,6 +848,8 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		audit.Record(audit.RepositoryArchive, ctx.Doer, repo, repo, "Archived repository %s.", repo.FullName())
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
 
 		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -843,6 +867,8 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 			return
 		}
+
+		audit.Record(audit.RepositoryUnarchive, ctx.Doer, repo, repo, "Unarchived repository %s.", repo.FullName())
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
 
@@ -965,32 +991,51 @@ func CollaborationPost(ctx *context.Context) {
 		mailer.SendCollaboratorMail(u, ctx.Doer, ctx.Repo.Repository)
 	}
 
+	audit.Record(audit.RepositoryCollaboratorAdd, ctx.Doer, ctx.Repo.Repository, u, "Added user %s as collaborator.", u.Name)
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_collaborator_success"))
 	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 }
 
 // ChangeCollaborationAccessMode response for changing access of a collaboration
 func ChangeCollaborationAccessMode(ctx *context.Context) {
+	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
+	if err != nil {
+		log.Error("GetUserByID: %v", err)
+		return
+	}
+
 	if err := repo_model.ChangeCollaborationAccessMode(
 		ctx,
 		ctx.Repo.Repository,
 		ctx.FormInt64("uid"),
 		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
 		log.Error("ChangeCollaborationAccessMode: %v", err)
+		return
 	}
+
+	audit.Record(audit.RepositoryCollaboratorAccess, ctx.Doer, ctx.Repo.Repository, u, "Changed access mode of collaborator %s to %s.", u.Name, perm.AccessMode(ctx.FormInt("mode")).String())
 }
 
 // DeleteCollaboration delete a collaboration for a repository
 func DeleteCollaboration(ctx *context.Context) {
+	defer ctx.JSON(http.StatusOK, map[string]interface{}{
+		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
+	})
+
+	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.Flash.Error("GetUserByID: " + err.Error())
+		return
+	}
+
 	if err := models.DeleteCollaboration(ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteCollaboration: " + err.Error())
 	} else {
+		audit.Record(audit.RepositoryCollaboratorRemove, ctx.Doer, ctx.Repo.Repository, u, "Removed user %s as collaborator.", u.Name)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
 	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
-	})
 }
 
 // AddTeamPost response for adding a team to a repository
@@ -1035,6 +1080,8 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
+	audit.Record(audit.RepositoryCollaboratorTeamAdd, ctx.Doer, ctx.Repo.Repository, team, "Added team %s as collaborator for %s.", team.Name, ctx.Repo.Repository.FullName())
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_team_success"))
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 }
@@ -1057,6 +1104,8 @@ func DeleteTeam(ctx *context.Context) {
 		ctx.ServerError("team.RemoveRepositorys", err)
 		return
 	}
+
+	audit.Record(audit.RepositoryCollaboratorTeamRemove, ctx.Doer, ctx.Repo.Repository, team, "Removed team %s as collaborator from %s.", team.Name, ctx.Repo.Repository.FullName())
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_team_success"))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
@@ -1193,6 +1242,8 @@ func DeployKeysPost(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.Record(audit.RepositoryDeployKeyAdd, ctx.Doer, ctx.Repo.Repository, key, "Added deploy key %s.", key.Name)
 
 	log.Trace("Deploy key added: %d", ctx.Repo.Repository.ID)
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_key_success", key.Name))

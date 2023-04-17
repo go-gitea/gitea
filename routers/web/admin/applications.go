@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/auth"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -19,9 +20,10 @@ var (
 	tplSettingsOauth2ApplicationEdit base.TplName = "admin/applications/oauth2_edit"
 )
 
-func newOAuth2CommonHandlers() *user_setting.OAuth2CommonHandlers {
+func newOAuth2CommonHandlers(doer *user_model.User) *user_setting.OAuth2CommonHandlers {
 	return &user_setting.OAuth2CommonHandlers{
-		OwnerID:            0,
+		Doer:               doer,
+		Owner:              nil,
 		BasePathList:       fmt.Sprintf("%s/admin/applications", setting.AppSubURL),
 		BasePathEditPrefix: fmt.Sprintf("%s/admin/applications/oauth2", setting.AppSubURL),
 		TplAppEdit:         tplSettingsOauth2ApplicationEdit,
@@ -50,7 +52,7 @@ func ApplicationsPost(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminApplications"] = true
 
-	oa := newOAuth2CommonHandlers()
+	oa := newOAuth2CommonHandlers(ctx.Doer)
 	oa.AddApp(ctx)
 }
 
@@ -59,7 +61,7 @@ func EditApplication(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminApplications"] = true
 
-	oa := newOAuth2CommonHandlers()
+	oa := newOAuth2CommonHandlers(ctx.Doer)
 	oa.EditShow(ctx)
 }
 
@@ -69,7 +71,7 @@ func EditApplicationPost(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminApplications"] = true
 
-	oa := newOAuth2CommonHandlers()
+	oa := newOAuth2CommonHandlers(ctx.Doer)
 	oa.EditSave(ctx)
 }
 
@@ -79,13 +81,13 @@ func ApplicationsRegenerateSecret(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminApplications"] = true
 
-	oa := newOAuth2CommonHandlers()
+	oa := newOAuth2CommonHandlers(ctx.Doer)
 	oa.RegenerateSecret(ctx)
 }
 
 // DeleteApplication deletes the given oauth2 application
 func DeleteApplication(ctx *context.Context) {
-	oa := newOAuth2CommonHandlers()
+	oa := newOAuth2CommonHandlers(ctx.Doer)
 	oa.DeleteApp(ctx)
 }
 

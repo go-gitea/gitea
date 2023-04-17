@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 )
 
@@ -37,20 +38,27 @@ func Security(ctx *context.Context) {
 
 // DeleteAccountLink delete a single account link
 func DeleteAccountLink(ctx *context.Context) {
-	id := ctx.FormInt64("id")
-	if id <= 0 {
-		ctx.Flash.Error("Account link id is not given")
-	} else {
-		if _, err := user_model.RemoveAccountLink(ctx.Doer, id); err != nil {
-			ctx.Flash.Error("RemoveAccountLink: " + err.Error())
-		} else {
-			ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
-		}
-	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	defer ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/security",
 	})
+
+	elu := &user_model.ExternalLoginUser{UserID: ctx.Doer.ID, LoginSourceID: ctx.FormInt64("id")}
+	if has, err := user_model.GetExternalLogin(elu); err != nil || !has {
+		if !has {
+			err = user_model.ErrExternalLoginUserNotExist{UserID: elu.UserID, LoginSourceID: elu.LoginSourceID}
+		}
+		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
+		return
+	}
+
+	if _, err := user_model.RemoveAccountLink(ctx.Doer, elu.LoginSourceID); err != nil {
+		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
+		return
+	}
+
+	audit.Record(audit.UserExternalLoginRemove, ctx.Doer, ctx.Doer, elu, "Removed external login %s for user %s.", elu.ExternalID, ctx.Doer.Name)
+
+	ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
 }
 
 func loadSecurityData(ctx *context.Context) {

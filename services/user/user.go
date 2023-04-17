@@ -24,29 +24,37 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/audit"
+	organization_service "code.gitea.io/gitea/services/org"
 	"code.gitea.io/gitea/services/packages"
 )
 
 // RenameUser renames a user
-func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
+func RenameUser(ctx context.Context, doer, u *user_model.User, newUserName string) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
+
+	oldUserName := u.Name
+
 	if err := renameUser(ctx, u, newUserName); err != nil {
 		return err
 	}
 	if err := committer.Commit(); err != nil {
 		return err
 	}
-	return err
+
+	audit.Record(audit.UserName, doer, u, u, "User %s changed name to %s.", oldUserName, newUserName)
+
+	return nil
 }
 
 // DeleteUser completely and permanently deletes everything of a user,
 // but issues/comments/pulls will be kept and shown as someone has been deleted,
 // unless the user is younger than USER_DELETE_WITH_COMMENTS_MAX_DAYS.
-func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
+func DeleteUser(ctx context.Context, doer, u *user_model.User, purge bool) error {
 	if u.IsOrganization() {
 		return fmt.Errorf("%s is an organization not a user", u.Name)
 	}
@@ -129,7 +137,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 			for _, org := range orgs {
 				if err := models.RemoveOrgUser(org.ID, u.ID); err != nil {
 					if organization.IsErrLastOrgOwner(err) {
-						err = organization.DeleteOrganization(ctx, org)
+						err = organization_service.DeleteOrganization(doer, org)
 					}
 					if err != nil {
 						return fmt.Errorf("unable to remove user %s[%d] from org %s[%d]. Error: %w", u.Name, u.ID, org.Name, org.ID, err)
@@ -213,6 +221,8 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 	}
 
+	audit.Record(audit.UserDelete, doer, u, u, "User %s was deleted.", u.Name)
+
 	return nil
 }
 
@@ -230,7 +240,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 			return db.ErrCancelledf("Before delete inactive user %s", u.Name)
 		default:
 		}
-		if err := DeleteUser(ctx, u, false); err != nil {
+		if err := DeleteUser(ctx, user_model.NewGhostUser(), u, false); err != nil {
 			// Ignore users that were set inactive by admin.
 			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) || models.IsErrUserOwnPackages(err) {
 				continue

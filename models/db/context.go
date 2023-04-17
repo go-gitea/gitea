@@ -179,6 +179,11 @@ func GetByBean(ctx context.Context, bean interface{}) (bool, error) {
 	return GetEngine(ctx).Get(bean)
 }
 
+// GetBeanByID
+func GetBeanByID(ctx context.Context, id, bean interface{}) (bool, error) {
+	return GetEngine(ctx).ID(id).Get(bean)
+}
+
 // DeleteByBean deletes all records according non-empty fields of the bean as conditions.
 func DeleteByBean(ctx context.Context, bean interface{}) (int64, error) {
 	return GetEngine(ctx).Delete(bean)

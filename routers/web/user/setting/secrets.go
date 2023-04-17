@@ -31,8 +31,9 @@ func Secrets(ctx *context.Context) {
 func SecretsPost(ctx *context.Context) {
 	shared.PerformSecretsPost(
 		ctx,
-		ctx.Doer.ID,
-		0,
+		ctx.Doer,
+		ctx.Doer,
+		nil,
 		setting.AppSubURL+"/user/settings/secrets",
 	)
 }
@@ -40,6 +41,9 @@ func SecretsPost(ctx *context.Context) {
 func SecretsDelete(ctx *context.Context) {
 	shared.PerformSecretsDelete(
 		ctx,
+		ctx.Doer,
+		ctx.Doer,
+		nil,
 		setting.AppSubURL+"/user/settings/secrets",
 	)
 }

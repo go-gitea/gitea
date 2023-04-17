@@ -37,6 +37,7 @@ import (
 	"code.gitea.io/gitea/routers/private"
 	web_routers "code.gitea.io/gitea/routers/web"
 	actions_service "code.gitea.io/gitea/services/actions"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/automerge"
@@ -175,6 +176,8 @@ func GlobalInitInstalled(ctx context.Context) {
 	svg.Init()
 
 	actions_service.Init()
+
+	audit.Init()
 
 	// Finally start up the cron
 	cron.NewContext(ctx)

@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/forms"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -48,7 +49,7 @@ func Profile(ctx *context.Context) {
 }
 
 // HandleUsernameChange handle username changes from user settings and admin interface
-func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName string) error {
+func HandleUsernameChange(ctx *context.Context, doer, user *user_model.User, newName string) error {
 	// Non-local users are not allowed to change their username.
 	if !user.IsLocal() {
 		ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
@@ -56,7 +57,7 @@ func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName s
 	}
 
 	// rename user
-	if err := user_service.RenameUser(ctx, user, newName); err != nil {
+	if err := user_service.RenameUser(ctx, doer, user, newName); err != nil {
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
@@ -90,7 +91,7 @@ func ProfilePost(ctx *context.Context) {
 
 	if len(form.Name) != 0 && ctx.Doer.Name != form.Name {
 		log.Debug("Changing name for %s to %s", ctx.Doer.Name, form.Name)
-		if err := HandleUsernameChange(ctx, ctx.Doer, form.Name); err != nil {
+		if err := HandleUsernameChange(ctx, ctx.Doer, ctx.Doer, form.Name); err != nil {
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
 			return
 		}
@@ -104,6 +105,8 @@ func ProfilePost(ctx *context.Context) {
 	ctx.Doer.Location = form.Location
 	ctx.Doer.Description = form.Description
 	ctx.Doer.KeepActivityPrivate = form.KeepActivityPrivate
+
+	oldVisibility := ctx.Doer.Visibility
 	ctx.Doer.Visibility = form.Visibility
 	if err := user_model.UpdateUserSetting(ctx.Doer); err != nil {
 		if _, ok := err.(user_model.ErrEmailAlreadyUsed); ok {
@@ -116,6 +119,13 @@ func ProfilePost(ctx *context.Context) {
 	}
 
 	log.Trace("User settings updated: %s", ctx.Doer.Name)
+
+	audit.Record(audit.UserUpdate, ctx.Doer, ctx.Doer, ctx.Doer, "Updated settings of user %s.", ctx.Doer.Name)
+
+	if oldVisibility != ctx.Doer.Visibility {
+		audit.Record(audit.UserVisibility, ctx.Doer, ctx.Doer, ctx.Doer, "Visibility of user %s changed from %s to %s.", ctx.Doer.Name, oldVisibility.String(), ctx.Doer.Visibility.String())
+	}
+
 	ctx.Flash.Success(ctx.Tr("settings.update_profile_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }

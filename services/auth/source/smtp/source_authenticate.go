@@ -12,6 +12,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/mailer"
 )
 
@@ -81,6 +82,8 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
 		return user, err
 	}
+
+	audit.Record(audit.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
 
 	mailer.SendRegisterNotifyMail(user)
 
