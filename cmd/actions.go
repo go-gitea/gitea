@@ -32,7 +32,7 @@ var (
 			cli.StringFlag{
 				Name:  "scope, s",
 				Value: "",
-				Usage: "{owner}[/{repo}]",
+				Usage: "{owner}[/{repo}] - leave empty for a global runner",
 			},
 		},
 	}
