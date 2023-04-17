@@ -964,7 +964,7 @@ func DeleteIssue(ctx *context.Context) {
 		return
 	}
 
-	if err := issue_service.DeleteIssue(ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
+	if err := issue_service.DeleteIssue(ctx, ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
 		ctx.ServerError("DeleteIssueByID", err)
 		return
 	}
@@ -1132,7 +1132,7 @@ func NewIssuePost(ctx *context.Context) {
 		Ref:         form.Ref,
 	}
 
-	if err := issue_service.NewIssue(repo, issue, labelIDs, attachments, assigneeIDs); err != nil {
+	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
@@ -2013,7 +2013,7 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
-	if err := issue_service.ChangeTitle(issue, ctx.Doer, title); err != nil {
+	if err := issue_service.ChangeTitle(ctx, issue, ctx.Doer, title); err != nil {
 		ctx.ServerError("ChangeTitle", err)
 		return
 	}
@@ -2037,7 +2037,7 @@ func UpdateIssueRef(ctx *context.Context) {
 
 	ref := ctx.FormTrim("ref")
 
-	if err := issue_service.ChangeIssueRef(issue, ctx.Doer, ref); err != nil {
+	if err := issue_service.ChangeIssueRef(ctx, issue, ctx.Doer, ref); err != nil {
 		ctx.ServerError("ChangeRef", err)
 		return
 	}
@@ -2161,7 +2161,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	for _, issue := range issues {
 		switch action {
 		case "clear":
-			if err := issue_service.DeleteNotPassedAssignee(issue, ctx.Doer, []*user_model.User{}); err != nil {
+			if err := issue_service.DeleteNotPassedAssignee(ctx, issue, ctx.Doer, []*user_model.User{}); err != nil {
 				ctx.ServerError("ClearAssignees", err)
 				return
 			}
@@ -2182,7 +2182,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 
-			_, _, err = issue_service.ToggleAssignee(issue, ctx.Doer, assigneeID)
+			_, _, err = issue_service.ToggleAssignee(ctx, issue, ctx.Doer, assigneeID)
 			if err != nil {
 				ctx.ServerError("ToggleAssignee", err)
 				return
@@ -2269,7 +2269,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			_, err = issue_service.TeamReviewRequest(issue, ctx.Doer, team, action == "attach")
+			_, err = issue_service.TeamReviewRequest(ctx, issue, ctx.Doer, team, action == "attach")
 			if err != nil {
 				ctx.ServerError("TeamReviewRequest", err)
 				return
@@ -2307,7 +2307,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			return
 		}
 
-		_, err = issue_service.ReviewRequest(issue, ctx.Doer, reviewer, action == "attach")
+		_, err = issue_service.ReviewRequest(ctx, issue, ctx.Doer, reviewer, action == "attach")
 		if err != nil {
 			ctx.ServerError("ReviewRequest", err)
 			return
