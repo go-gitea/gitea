@@ -12,6 +12,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
@@ -184,6 +185,36 @@ func TestAPITeam(t *testing.T) {
 	assert.NoError(t, teamRead.LoadUnits(db.DefaultContext))
 	checkTeamResponse(t, "ReadTeam2", &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
 		teamRead.AccessMode.String(), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
+
+	// Delete team.
+	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d?token="+token, teamID)
+	MakeRequest(t, req, http.StatusNoContent)
+	unittest.AssertNotExistsBean(t, &organization.Team{ID: teamID})
+
+	// Create admin team
+	teamToCreate = &api.CreateTeamOption{
+		Name:                    "teamadmin",
+		Description:             "team admin",
+		IncludesAllRepositories: true,
+		Permission:              "admin",
+	}
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams?token=%s", org.Name, token), teamToCreate)
+	resp = MakeRequest(t, req, http.StatusCreated)
+	apiTeam = api.Team{}
+	DecodeJSON(t, resp, &apiTeam)
+	for _, ut := range unit.AllRepoUnitTypes {
+		up := perm.AccessModeAdmin
+		if ut == unit.TypeExternalTracker || ut == unit.TypeExternalWiki {
+			up = perm.AccessModeRead
+		}
+		unittest.AssertExistsAndLoadBean(t, &organization.TeamUnit{
+			OrgID:      org.ID,
+			TeamID:     apiTeam.ID,
+			Type:       ut,
+			AccessMode: up,
+		})
+	}
+	teamID = apiTeam.ID
 
 	// Delete team.
 	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d?token="+token, teamID)
