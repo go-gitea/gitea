@@ -30,7 +30,7 @@ func startTasks(ctx context.Context, opts actions_model.FindSpecOptions) error {
 	// Retrieve specs in pages until all specs have been retrieved
 	for page := 1; ; page++ {
 		// Retrieve the specs for the current page
-		specs, total, err := actions_model.FindSpecs(ctx, actions_model.FindSpecOptions{
+		specs, _, err := actions_model.FindSpecs(ctx, actions_model.FindSpecOptions{
 			ListOptions: db.ListOptions{
 				Page:     page,
 				PageSize: pageSize,
