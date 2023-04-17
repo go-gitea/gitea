@@ -6,6 +6,11 @@ import {readFile, writeFile, mkdir, copyFile, rm} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {execSync} from 'node:child_process';
 
+const glob = (pattern) => fastGlob.sync(pattern, {
+  cwd: fileURLToPath(new URL('..', import.meta.url)),
+  absolute: true,
+});
+
 const PKIEF_VSCODE_MATERIAL_ICON_THEME_TAG = 'v4.26.0';
 
 // inspired by https://github.com/Claudiohbsantos/github-material-icons-extension/blob/ff97e50980/scripts/build-dependencies.js
@@ -18,16 +23,14 @@ const fetchIcons = async () => {
   // remove folder from icons as we have a custom, colorful material folder in web_src/svg
   await rm('vscode-material-icon-theme/icons/folder.svg', {force: true});
 
+  // remove all icons of open folders as we don't use them anywhere
+  await Promise.all(glob('vscode-material-icon-theme/icons/folder*-open.svg').map((file) => rm(file, {force: true})));
+
   // copy icon map to assets
   const src = fileURLToPath(new URL('../vscode-material-icon-theme/dist/material-icons.json', import.meta.url));
   const dest = fileURLToPath(new URL('../assets/material-icons.json', import.meta.url));
   await copyFile(src, dest);
 };
-
-const glob = (pattern) => fastGlob.sync(pattern, {
-  cwd: fileURLToPath(new URL('..', import.meta.url)),
-  absolute: true,
-});
 
 function exit(err) {
   if (err) console.error(err);
