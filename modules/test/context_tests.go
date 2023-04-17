@@ -18,6 +18,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	chi "github.com/go-chi/chi/v5"
@@ -34,7 +35,7 @@ func MockContext(t *testing.T, path string) *context.Context {
 			Values: make(url.Values),
 		},
 		Resp:   context.NewResponse(resp),
-		Locale: &mockLocale{},
+		Locale: &translation.MockLocale{},
 	}
 	defer ctx.Close()
 
@@ -89,20 +90,6 @@ func LoadGitRepo(t *testing.T, ctx *context.Context) {
 	var err error
 	ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
-}
-
-type mockLocale struct{}
-
-func (l mockLocale) Language() string {
-	return "en"
-}
-
-func (l mockLocale) Tr(s string, _ ...interface{}) string {
-	return s
-}
-
-func (l mockLocale) TrN(_cnt interface{}, key1, _keyN string, _args ...interface{}) string {
-	return key1
 }
 
 type mockResponseWriter struct {
