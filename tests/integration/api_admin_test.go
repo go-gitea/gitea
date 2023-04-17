@@ -265,7 +265,8 @@ func TestAPIRenameUser(t *testing.T) {
 		// required
 		"new_name": "user1",
 	})
-	MakeRequest(t, req, http.StatusNotFound)
+	// the old user name still be used by with a redirect
+	MakeRequest(t, req, http.StatusTemporaryRedirect)
 
 	urlStr = fmt.Sprintf("/api/v1/admin/users/%s/rename?token=%s", "User2-2-2", token)
 	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
