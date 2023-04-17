@@ -1,6 +1,6 @@
 ---
 date: "2018-05-11T11:00:00+02:00"
-title: "Usage: Setup fail2ban"
+title: "Fail2ban Setup "
 slug: "fail2ban-setup"
 weight: 16
 toc: false

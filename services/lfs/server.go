@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -125,7 +126,6 @@ func DownloadHandler(ctx *context.Context) {
 		_, err = content.Seek(fromByte, io.SeekStart)
 		if err != nil {
 			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %v", meta.Oid, fromByte, err)
-
 			writeStatus(ctx, http.StatusInternalServerError)
 			return
 		}
@@ -333,10 +333,11 @@ func UploadHandler(ctx *context.Context) {
 			log.Error("Upload does not match LFS MetaObject [%s]. Error: %v", p.Oid, err)
 			writeStatusMessage(ctx, http.StatusUnprocessableEntity, err.Error())
 		} else {
+			log.Error("Error whilst uploadOrVerify LFS OID[%s]: %v", p.Oid, err)
 			writeStatus(ctx, http.StatusInternalServerError)
 		}
 		if _, err = git_model.RemoveLFSMetaObjectByOid(ctx, repository.ID, p.Oid); err != nil {
-			log.Error("Error whilst removing metaobject for LFS OID[%s]: %v", p.Oid, err)
+			log.Error("Error whilst removing MetaObject for LFS OID[%s]: %v", p.Oid, err)
 		}
 		return
 	}
@@ -364,6 +365,7 @@ func VerifyHandler(ctx *context.Context) {
 
 	status := http.StatusOK
 	if err != nil {
+		log.Error("Error whilst verifying LFS OID[%s]: %v", p.Oid, err)
 		status = http.StatusInternalServerError
 	} else if !ok {
 		status = http.StatusNotFound
@@ -495,10 +497,27 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		accessMode = perm.AccessModeWrite
 	}
 
+	if ctx.Data["IsActionsToken"] == true {
+		taskID := ctx.Data["ActionsTaskID"].(int64)
+		task, err := actions_model.GetTaskByID(ctx, taskID)
+		if err != nil {
+			log.Error("Unable to GetTaskByID for task[%d] Error: %v", taskID, err)
+			return false
+		}
+		if task.RepoID != repository.ID {
+			return false
+		}
+
+		if task.IsForkPullRequest {
+			return accessMode <= perm.AccessModeRead
+		}
+		return accessMode <= perm.AccessModeWrite
+	}
+
 	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
 	perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
 	if err != nil {
-		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository)
+		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository, err)
 		return false
 	}
 

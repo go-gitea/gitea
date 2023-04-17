@@ -1,6 +1,6 @@
 ---
 date: "2018-05-10T16:00:00+02:00"
-title: "Usage: Issue and Pull Request templates"
+title: "Issue and Pull Request templates"
 slug: "issue-pull-request-templates"
 weight: 15
 toc: false
@@ -49,6 +49,17 @@ Possible file names for issue templates:
 - `.github/issue_template.md`
 - `.github/issue_template.yaml`
 - `.github/issue_template.yml`
+
+Possible file names for issue config:
+
+- `.gitea/ISSUE_TEMPLATE/config.yaml`
+- `.gitea/ISSUE_TEMPLATE/config.yml`
+- `.gitea/issue_template/config.yaml`
+- `.gitea/issue_template/config.yml`
+- `.github/ISSUE_TEMPLATE/config.yaml`
+- `.github/ISSUE_TEMPLATE/config.yml`
+- `.github/issue_template/config.yaml`
+- `.github/issue_template/config.yml`
 
 Possible file names for PR templates:
 
@@ -267,3 +278,30 @@ For each value in the options array, you can set the following keys.
 |----------|------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|---------|---------|
 | label    | The identifier for the option, which is displayed in the form. Markdown is supported for bold or italic text formatting, and hyperlinks. | Required | String  | -       | -       |
 | required | Prevents form submission until element is completed.                                                                                     | Optional | Boolean | false   | -       |
+
+## Syntax for issue config
+
+This is a example for a issue config file
+
+```yaml
+blank_issues_enabled: true
+contact_links:
+  - name: Gitea
+    url: https://gitea.io
+    about: Visit the Gitea Website
+```
+
+### Possible Options
+
+| Key                  | Description                                                                                           | Type               | Default        |
+|----------------------|-------------------------------------------------------------------------------------------------------|--------------------|----------------|
+| blank_issues_enabled | If set to false, the User is forced to use a Template                                                 | Boolean            | true           |
+| contact_links        | Custom Links to show in the Choose Box                                                                | Contact Link Array | Empty Array    |
+
+### Contact Link
+
+| Key                  | Description                                                                                           | Type    | Required |
+|----------------------|-------------------------------------------------------------------------------------------------------|---------|----------|
+| name  | the name of your link                                                                                                | String  | true     |
+| url   | The URL of your Link                                                                                                 | String  | true     |
+| about | A short description of your Link                                                                                     | String  | true     |
