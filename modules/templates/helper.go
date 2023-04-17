@@ -132,7 +132,6 @@ func NewFuncMap() []template.FuncMap {
 		// -----------------------------------------------------------------
 		// time / number / format
 		"FileSize":      base.FileSize,
-		"LocaleNumber":  LocaleNumber,
 		"CountFmt":      base.FormatNumberSI,
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
@@ -780,12 +779,6 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 	a.Address = u.String()
 
 	return a
-}
-
-// LocaleNumber renders a number with a Custom Element, browser will render it with a locale number
-func LocaleNumber(v interface{}) template.HTML {
-	num, _ := util.ToInt64(v)
-	return template.HTML(fmt.Sprintf(`<gitea-locale-number data-number="%d">%d</gitea-locale-number>`, num, num))
 }
 
 // Eval the expression and return the result, see the comment of eval.Expr for details.
