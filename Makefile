@@ -20,7 +20,7 @@ IMPORT := code.gitea.io/gitea
 
 GO ?= go
 SHASUM ?= shasum -a 256
-HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
+HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO")
 COMMA := ,
 
 XGO_VERSION := go-1.20.x
