@@ -27,11 +27,6 @@
 			{{end}}
 			{{if not .ReadmeInList}}
 				<div class="ui buttons gt-mr-2">
-					{{if .EnableFeed}}
-					<a class="ui mini basic button" href="{{$.FeedURL}}/rss/{{$.BranchNameSubURL}}{{range $i, $v := .TreeNames}}/{{$v}}{{end}}">
-						{{svg "octicon-rss" 14}}
-					</a>
-					{{end}}
 					<a class="ui mini basic button" href="{{$.RawFileLink}}">{{.locale.Tr "repo.file_raw"}}</a>
 					{{if not .IsViewCommit}}
 						<a class="ui mini basic button" href="{{.RepoLink}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{.locale.Tr "repo.file_permalink"}}</a>
@@ -62,6 +57,11 @@
 			{{else if .EscapeStatus.Escaped}}
 				<a class="ui mini basic button unescape-button gt-mr-2 gt-hidden">{{.locale.Tr "repo.unescape_control_characters"}}</a>
 				<a class="ui mini basic button escape-button gt-mr-2">{{.locale.Tr "repo.escape_control_characters"}}</a>
+			{{end}}
+			{{if .EnableFeed}}
+			<a class="btn-octicon" href="{{$.FeedURL}}/rss/{{$.BranchNameSubURL}}{{range $i, $v := .TreeNames}}/{{$v}}{{end}}">
+				{{svg "octicon-rss" 14}}
+			</a>
 			{{end}}
 		</div>
 	</h4>

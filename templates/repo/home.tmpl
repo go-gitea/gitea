@@ -62,6 +62,11 @@
 				{{template "repo/branch_dropdown" dict "root" .}}
 				{{$n := len .TreeNames}}
 				{{$l := Eval $n "-" 1}}
+				{{if and .EnableFeed (eq $n 0) (ne .Repository.DefaultBranch $.BranchName)}}
+					<a role="button" class="ui compact button" href="{{$.FeedURL}}/rss/{{$.BranchNameSubURL}}">
+						{{svg "octicon-rss"}}
+					</a>
+				{{end}}
 				<!-- If home page, show new pr. If not, show breadcrumb -->
 				{{if eq $n 0}}
 					{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
@@ -93,11 +98,6 @@
 						</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					</button>
-				{{end}}
-				{{if and .EnableFeed (eq $n 0) (ne .Repository.DefaultBranch $.BranchName)}}
-					<a role="button" class="ui primary compact button" href="{{$.FeedURL}}/rss/{{$.BranchNameSubURL}}">
-						{{svg "octicon-rss"}}
-					</a>
 				{{end}}
 				{{if and (eq $n 0) (.Repository.IsTemplate)}}
 					<a role="button" class="ui primary compact button" href="{{AppSubUrl}}/repo/create?template_id={{.Repository.ID}}">
