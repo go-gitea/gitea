@@ -153,8 +153,9 @@
   padding-left: 23px;
 }
 
-/* For the pointing menu, respect its own border-bottom */
-.repository .ui.tabs.container .ui.menu:not(.pointing) {
+/* For the secondary pointing menu, respect its own border-bottom */
+/* reference: https://semantic-ui.com/collections/menu.html#pointing */
+.repository .ui.tabs.container .ui.menu:not(.secondary.pointing) {
   border-bottom: 0;
 }
 
