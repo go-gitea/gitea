@@ -51,7 +51,7 @@ const (
 	// UserTypeBot defines a bot user
 	UserTypeBot
 
-	// UserTypeRemoteUser defines a remote user for fedarated users
+	// UserTypeRemoteUser defines a remote user for federated users
 	UserTypeRemoteUser
 )
 
