@@ -88,7 +88,7 @@ steps:
     image: node:18
     commands:
       - make checks-frontend
-    depends_on: [deps-frontend, lint-frontend]
+    depends_on: [deps-frontend]
 
   - name: checks-backend
     image: gitea/test_env:linux-1.20-amd64
@@ -103,13 +103,13 @@ steps:
     image: node:18
     commands:
       - make test-frontend
-    depends_on: [checks-frontend]
+    depends_on: [lint-frontend]
 
   - name: build-frontend
     image: node:18
     commands:
       - make frontend
-    depends_on: [checks-frontend]
+    depends_on: [deps-frontend]
 
   - name: build-backend-no-gcc
     image: gitea/test_env:linux-1.19-amd64 # this step is kept as the lowest version of golang that we support

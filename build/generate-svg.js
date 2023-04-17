@@ -11,23 +11,23 @@ const glob = (pattern) => fastGlob.sync(pattern, {
   absolute: true,
 });
 
-const PKIEF_VSCODE_MATERIAL_ICON_THEME_TAG = 'v4.26.0';
-
-// inspired by https://github.com/Claudiohbsantos/github-material-icons-extension/blob/ff97e50980/scripts/build-dependencies.js
-const fetchIcons = async () => {
-  // build icon map
-  execSync(`git clone --depth 1 --branch ${PKIEF_VSCODE_MATERIAL_ICON_THEME_TAG} https://github.com/PKief/vscode-material-icon-theme.git`);
-  execSync('npm install --ignore-scripts', {cwd: 'vscode-material-icon-theme'});
-  execSync('npm run build', {cwd: 'vscode-material-icon-theme'});
-
+const removeUnwantedSvgs = () => {
   // remove folder from icons as we have a custom, colorful material folder in web_src/svg
-  await rm('vscode-material-icon-theme/icons/folder.svg', {force: true});
+  const removeFolder = rm('node_modules/material-icon-theme/icons/folder.svg', {force: true});
 
   // remove all icons of open folders as we don't use them anywhere
-  await Promise.all(glob('vscode-material-icon-theme/icons/folder*-open.svg').map((file) => rm(file, {force: true})));
+  const removeOpenFolders = glob('node_modules/material-icon-theme/icons/folder*-open.svg').map((file) => rm(file, {force: true}));
+
+  return Promise.all([removeFolder, ...removeOpenFolders]);
+};
+
+// inspired by https://github.com/Claudiohbsantos/github-material-icons-extension/blob/ff97e50980/scripts/build-dependencies.js
+const generateIconMap = async () => {
+  // build icon map
+  execSync('npm run generateJson', {cwd: 'node_modules/material-icon-theme'});
 
   // copy icon map to assets
-  const src = fileURLToPath(new URL('../vscode-material-icon-theme/dist/material-icons.json', import.meta.url));
+  const src = fileURLToPath(new URL('../node_modules/material-icon-theme/dist/material-icons.json', import.meta.url));
   const dest = fileURLToPath(new URL('../assets/material-icons.json', import.meta.url));
   await copyFile(src, dest);
 };
@@ -74,19 +74,18 @@ function processFiles(pattern, opts) {
 }
 
 async function main() {
-  await fetchIcons();
+  await removeUnwantedSvgs();
   try {
     await mkdir(fileURLToPath(new URL('../public/img/svg', import.meta.url)), {recursive: true});
   } catch {}
 
   await Promise.all([
+    generateIconMap,
+    ...processFiles('node_modules/material-icon-theme/icons/*.svg', {prefix: 'material'}),
     ...processFiles('node_modules/@primer/octicons/build/svg/*-16.svg', {prefix: 'octicon'}),
     ...processFiles('web_src/svg/*.svg'),
     ...processFiles('public/img/gitea.svg', {fullName: 'gitea-gitea'}),
-    ...processFiles('vscode-material-icon-theme/icons/*.svg', {prefix: 'material'}),
   ]);
-
-  await rm('vscode-material-icon-theme', {recursive: true, force: true});
 }
 
 main().then(exit).catch(exit);

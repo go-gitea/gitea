@@ -69,6 +69,7 @@
     "eslint-plugin-vue": "9.10.0",
     "jsdom": "21.1.1",
     "markdownlint-cli": "0.33.0",
+    "material-icon-theme": "4.26.0",
     "stylelint": "15.4.0",
     "stylelint-declaration-strict-value": "1.9.2",
     "svgo": "3.0.2",
