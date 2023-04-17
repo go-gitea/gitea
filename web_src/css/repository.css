@@ -153,11 +153,7 @@
   padding-left: 23px;
 }
 
-.repository .ui.tabs.container {
-  margin-top: 14px;
-  margin-bottom: 0;
-}
-
+/* For the pointing menu, respect its own border-bottom */
 .repository .ui.tabs.container .ui.menu:not(.pointing) {
   border-bottom: 0;
 }
@@ -2085,10 +2081,6 @@
 
 .repository.packages .file-size {
   white-space: nowrap;
-}
-
-.repository.packages .ui.tabs.container {
-  margin-top: 0;
 }
 
 .repository.wiki.start .ui.segment {
