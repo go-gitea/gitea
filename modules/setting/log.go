@@ -152,7 +152,7 @@ func loadLogFrom(rootCfg ConfigProvider) {
 	Log.EnableSSHLog = sec.Key("ENABLE_SSH_LOG").MustBool(false)
 	Log.EnableAccessLog = sec.Key("ENABLE_ACCESS_LOG").MustBool(false)
 	Log.AccessLogTemplate = sec.Key("ACCESS_LOG_TEMPLATE").MustString(
-		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`,
+		`{{.Ctx.RemoteHost}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}" "{{.Ctx.Req.UserAgent}}"`,
 	)
 	Log.RequestIDHeaders = sec.Key("REQUEST_ID_HEADERS").Strings(",")
 	// the `MustString` updates the default value, and `log.ACCESS` is used by `generateNamedLogger("access")` later

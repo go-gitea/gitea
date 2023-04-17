@@ -109,7 +109,7 @@
 													</td>
 													<td class="center aligned">
 														<div class="ui radio checkbox">
-															<input type="radio" name="unit_{{$unit.Type.Value}}" value="2"{{if (eq ($.Team.UnitAccessMode $.Context $unit.Type) 2)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{$.locale.Tr "org.teams.write_access"}}">
+															<input type="radio" name="unit_{{$unit.Type.Value}}" value="2"{{if (ge ($.Team.UnitAccessMode $.Context $unit.Type) 2)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{$.locale.Tr "org.teams.write_access"}}">
 														</div>
 													</td>
 												</tr>
@@ -137,7 +137,7 @@
 							{{else}}
 								<button class="ui green button">{{.locale.Tr "org.teams.update_settings"}}</button>
 								{{if not (eq .Team.LowerName "owners")}}
-									<button class="ui red button delete-button" data-url="{{.OrgLink}}/teams/{{.team_name | PathEscape}}/delete">{{.locale.Tr "org.teams.delete_team"}}</button>
+									<button class="ui red button delete-button" data-url="{{.OrgLink}}/teams/{{.Team.Name | PathEscape}}/delete">{{.locale.Tr "org.teams.delete_team"}}</button>
 								{{end}}
 							{{end}}
 						</div>

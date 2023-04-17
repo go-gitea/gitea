@@ -6,7 +6,6 @@ package issue
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -18,7 +17,7 @@ import (
 )
 
 // DeleteNotPassedAssignee deletes all assignees who aren't passed via the "assignees" array
-func DeleteNotPassedAssignee(issue *issues_model.Issue, doer *user_model.User, assignees []*user_model.User) (err error) {
+func DeleteNotPassedAssignee(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assignees []*user_model.User) (err error) {
 	var found bool
 	oriAssignes := make([]*user_model.User, len(issue.Assignees))
 	_ = copy(oriAssignes, issue.Assignees)
@@ -34,7 +33,7 @@ func DeleteNotPassedAssignee(issue *issues_model.Issue, doer *user_model.User, a
 
 		if !found {
 			// This function also does comments and hooks, which is why we call it separately instead of directly removing the assignees here
-			if _, _, err := ToggleAssignee(issue, doer, assignee.ID); err != nil {
+			if _, _, err := ToggleAssignee(ctx, issue, doer, assignee.ID); err != nil {
 				return err
 			}
 		}
@@ -44,25 +43,25 @@ func DeleteNotPassedAssignee(issue *issues_model.Issue, doer *user_model.User, a
 }
 
 // ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
-func ToggleAssignee(issue *issues_model.Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *issues_model.Comment, err error) {
-	removed, comment, err = issues_model.ToggleIssueAssignee(issue, doer, assigneeID)
+func ToggleAssignee(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *issues_model.Comment, err error) {
+	removed, comment, err = issues_model.ToggleIssueAssignee(ctx, issue, doer, assigneeID)
 	if err != nil {
 		return
 	}
 
-	assignee, err1 := user_model.GetUserByID(db.DefaultContext, assigneeID)
+	assignee, err1 := user_model.GetUserByID(ctx, assigneeID)
 	if err1 != nil {
 		err = err1
 		return
 	}
 
-	notification.NotifyIssueChangeAssignee(db.DefaultContext, doer, issue, assignee, removed, comment)
+	notification.NotifyIssueChangeAssignee(ctx, doer, issue, assignee, removed, comment)
 
 	return removed, comment, err
 }
 
 // ReviewRequest add or remove a review request from a user for this PR, and make comment for it.
-func ReviewRequest(issue *issues_model.Issue, doer, reviewer *user_model.User, isAdd bool) (comment *issues_model.Comment, err error) {
+func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer, reviewer *user_model.User, isAdd bool) (comment *issues_model.Comment, err error) {
 	if isAdd {
 		comment, err = issues_model.AddReviewRequest(issue, reviewer, doer)
 	} else {
@@ -74,7 +73,7 @@ func ReviewRequest(issue *issues_model.Issue, doer, reviewer *user_model.User, i
 	}
 
 	if comment != nil {
-		notification.NotifyPullReviewRequest(db.DefaultContext, doer, issue, reviewer, isAdd, comment)
+		notification.NotifyPullReviewRequest(ctx, doer, issue, reviewer, isAdd, comment)
 	}
 
 	return comment, err
@@ -229,7 +228,7 @@ func IsValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, 
 }
 
 // TeamReviewRequest add or remove a review request from a team for this PR, and make comment for it.
-func TeamReviewRequest(issue *issues_model.Issue, doer *user_model.User, reviewer *organization.Team, isAdd bool) (comment *issues_model.Comment, err error) {
+func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewer *organization.Team, isAdd bool) (comment *issues_model.Comment, err error) {
 	if isAdd {
 		comment, err = issues_model.AddTeamReviewRequest(issue, reviewer, doer)
 	} else {
@@ -245,11 +244,11 @@ func TeamReviewRequest(issue *issues_model.Issue, doer *user_model.User, reviewe
 	}
 
 	// notify all user in this team
-	if err = comment.LoadIssue(db.DefaultContext); err != nil {
+	if err = comment.LoadIssue(ctx); err != nil {
 		return
 	}
 
-	members, err := organization.GetTeamMembers(db.DefaultContext, &organization.SearchMembersOptions{
+	members, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
 		TeamID: reviewer.ID,
 	})
 	if err != nil {
@@ -261,7 +260,7 @@ func TeamReviewRequest(issue *issues_model.Issue, doer *user_model.User, reviewe
 			continue
 		}
 		comment.AssigneeID = member.ID
-		notification.NotifyPullReviewRequest(db.DefaultContext, doer, issue, member, isAdd, comment)
+		notification.NotifyPullReviewRequest(ctx, doer, issue, member, isAdd, comment)
 	}
 
 	return comment, err
