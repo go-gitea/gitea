@@ -705,9 +705,19 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	feed.RenderRepoFeed(ctx)
-	if ctx.Written() {
-		return
+	if setting.EnableFeed {
+		isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
+		if isFeed {
+			switch {
+			case ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType):
+				feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+			case ctx.Repo.TreePath == "":
+				feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
+			case ctx.Repo.TreePath != "":
+				feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
+			}
+			return
+		}
 	}
 
 	checkHomeCodeViewable(ctx)
