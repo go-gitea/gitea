@@ -35,11 +35,11 @@ func TestFind(t *testing.T) {
 	var repoUnits []repo_model.RepoUnit
 	err := db.Find(db.DefaultContext, &opts, &repoUnits)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 84, len(repoUnits))
+	assert.EqualValues(t, 89, len(repoUnits))
 
 	cnt, err := db.Count(db.DefaultContext, &opts, new(repo_model.RepoUnit))
 	assert.NoError(t, err)
-	assert.EqualValues(t, 84, cnt)
+	assert.EqualValues(t, 89, cnt)
 
 	repoUnits = make([]repo_model.RepoUnit, 0, 10)
 	newCnt, err := db.FindAndCount(db.DefaultContext, &opts, &repoUnits)
