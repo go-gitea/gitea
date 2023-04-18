@@ -62,6 +62,7 @@ func Branches(ctx *context.Context) {
 		(ctx.IsSigned && repo_model.HasForkedRepo(ctx.Doer.ID, ctx.Repo.Repository.ID))
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
+	ctx.Data["EnableFeed"] = setting.EnableFeed
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
