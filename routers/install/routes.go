@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"html"
 	"net/http"
-	"path"
 
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
@@ -64,7 +63,7 @@ func installRecovery(ctx goctx.Context) func(next http.Handler) http.Handler {
 						"SignedUserName": "",
 					}
 
-					httpcache.AddCacheControlToHeader(w.Header(), 0, "no-transform")
+					httpcache.SetCacheControlInHeader(w.Header(), 0, "no-transform")
 					w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 					if !setting.IsProd {
@@ -89,10 +88,7 @@ func Routes(ctx goctx.Context) *web.Route {
 		r.Use(middle)
 	}
 
-	r.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
-		Directory: path.Join(setting.StaticRootPath, "public"),
-		Prefix:    public.AssetsURLPathPrefix,
-	}), "InstallAssetsHandler"))
+	r.Use(web.WrapWithPrefix("/assets/", public.AssetsHandlerFunc("/assets/"), "AssetsHandler"))
 
 	r.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,

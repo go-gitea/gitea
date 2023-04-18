@@ -21,7 +21,7 @@
 							<a href="{{$.RepoLink}}/wiki/{{.SubURL}}">{{.Name}}</a>
 						</td>
 						{{$timeSince := TimeSinceUnix .UpdatedUnix $.locale}}
-						<td class="text right grey">{{$.locale.Tr "repo.wiki.last_updated" $timeSince | Safe}}</td>
+						<td class="text right">{{$.locale.Tr "repo.wiki.last_updated" $timeSince | Safe}}</td>
 					</tr>
 				{{end}}
 			</tbody>

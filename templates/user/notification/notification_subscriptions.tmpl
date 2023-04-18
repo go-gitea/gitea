@@ -66,7 +66,7 @@
 					<div class="ui divider"></div>
 					{{.locale.Tr "notification.no_subscriptions"}}
 				{{else}}
-					{{template "shared/issuelist" mergeinto . "listType" "dashboard"}}
+					{{template "shared/issuelist" dict "." . "listType" "dashboard"}}
 				{{end}}
 			{{else}}
 				{{template "explore/repo_search" .}}

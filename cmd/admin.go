@@ -7,6 +7,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -469,11 +470,19 @@ func runAddOauth(c *cli.Context) error {
 		return err
 	}
 
+	config := parseOAuth2Config(c)
+	if config.Provider == "openidConnect" {
+		discoveryURL, err := url.Parse(config.OpenIDConnectAutoDiscoveryURL)
+		if err != nil || (discoveryURL.Scheme != "http" && discoveryURL.Scheme != "https") {
+			return fmt.Errorf("invalid Auto Discovery URL: %s (this must be a valid URL starting with http:// or https://)", config.OpenIDConnectAutoDiscoveryURL)
+		}
+	}
+
 	return auth_model.CreateSource(&auth_model.Source{
 		Type:     auth_model.OAuth2,
 		Name:     c.String("name"),
 		IsActive: true,
-		Cfg:      parseOAuth2Config(c),
+		Cfg:      config,
 	})
 }
 

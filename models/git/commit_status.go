@@ -65,7 +65,7 @@ func postgresGetCommitStatusIndex(ctx context.Context, repoID int64, sha string)
 
 // GetNextCommitStatusIndex retried 3 times to generate a resource index
 func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
-	if setting.Database.UsePostgreSQL {
+	if setting.Database.Type.IsPostgreSQL() {
 		return postgresGetCommitStatusIndex(ctx, repoID, sha)
 	}
 

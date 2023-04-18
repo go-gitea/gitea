@@ -62,7 +62,8 @@ func RepositoryListOfMap(repoMap map[int64]*Repository) RepositoryList {
 	return RepositoryList(ValuesRepository(repoMap))
 }
 
-func (repos RepositoryList) loadAttributes(ctx context.Context) error {
+// LoadAttributes loads the attributes for the given RepositoryList
+func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 	if len(repos) == 0 {
 		return nil
 	}
@@ -105,11 +106,6 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// LoadAttributes loads the attributes for the given RepositoryList
-func (repos RepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(db.DefaultContext)
 }
 
 // SearchRepoOptions holds the search options
@@ -498,7 +494,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		subQueryCond := builder.NewCond()
 
 		// Topic checking. Topics are present.
-		if setting.Database.UsePostgreSQL { // postgres stores the topics as json and not as text
+		if setting.Database.Type.IsPostgreSQL() { // postgres stores the topics as json and not as text
 			subQueryCond = subQueryCond.Or(builder.And(builder.NotNull{"topics"}, builder.Neq{"(topics)::text": "[]"}))
 		} else {
 			subQueryCond = subQueryCond.Or(builder.And(builder.Neq{"topics": "null"}, builder.Neq{"topics": "[]"}))
@@ -547,7 +543,7 @@ func SearchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 	}
 
 	if loadAttributes {
-		if err := repos.loadAttributes(ctx); err != nil {
+		if err := repos.LoadAttributes(ctx); err != nil {
 			return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
 		}
 	}

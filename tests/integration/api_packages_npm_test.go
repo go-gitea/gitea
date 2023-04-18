@@ -37,6 +37,8 @@ func TestPackageNpm(t *testing.T) {
 	packageDescription := "Test Description"
 	packageBinName := "cli"
 	packageBinPath := "./cli.sh"
+	repoType := "gitea"
+	repoURL := "http://localhost:3000/gitea/test.git"
 
 	data := "H4sIAAAAAAAA/ytITM5OTE/VL4DQelnF+XkMVAYGBgZmJiYK2MRBwNDcSIHB2NTMwNDQzMwAqA7IMDUxA9LUdgg2UFpcklgEdAql5kD8ogCnhwio5lJQUMpLzE1VslJQcihOzi9I1S9JLS7RhSYIJR2QgrLUouLM/DyQGkM9Az1D3YIiqExKanFyUWZBCVQ2BKhVwQVJDKwosbQkI78IJO/tZ+LsbRykxFXLNdA+HwWjYBSMgpENACgAbtAACAAA"
 
@@ -62,6 +64,10 @@ func TestPackageNpm(t *testing.T) {
 				"dist": {
 				  "integrity": "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==",
 				  "shasum": "aaa7eaf852a948b0aa05afeda35b1badca155d90"
+				},
+				"repository": {
+					"type": "` + repoType + `",
+					"url": "` + repoURL + `"
 				}
 			  }
 			},
@@ -169,6 +175,8 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==", pmv.Dist.Integrity)
 		assert.Equal(t, "aaa7eaf852a948b0aa05afeda35b1badca155d90", pmv.Dist.Shasum)
 		assert.Equal(t, fmt.Sprintf("%s%s/-/%s/%s", setting.AppURL, root[1:], packageVersion, filename), pmv.Dist.Tarball)
+		assert.Equal(t, repoType, result.Repository.Type)
+		assert.Equal(t, repoURL, result.Repository.URL)
 	})
 
 	t.Run("AddTag", func(t *testing.T) {

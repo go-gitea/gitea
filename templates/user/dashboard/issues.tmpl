@@ -34,7 +34,7 @@
 					<div class="ui divider"></div>
 					<a class="{{if not $.RepoIDs}}ui basic primary button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}">
 						<span class="text truncate">All</span>
-						<span class="ui">{{CountFmt .TotalIssueCount}}</span>
+						<span>{{CountFmt .TotalIssueCount}}</span>
 					</a>
 					{{range .Repos}}
 						{{with $Repo := .}}
@@ -53,7 +53,7 @@
 									{{- end -}}
 									]&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}" title="{{.FullName}}">
 								<span class="text truncate">{{$Repo.FullName}}</span>
-								<span class="ui">{{CountFmt (index $.Counts $Repo.ID)}}</span>
+								<span>{{CountFmt (index $.Counts $Repo.ID)}}</span>
 							</a>
 						{{end}}
 					{{end}}
@@ -65,21 +65,21 @@
 						<div class="ui compact tiny menu">
 							<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
 								{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
-								{{JsPrettyNumber .IssueStats.OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
+								{{.locale.PrettyNumber .IssueStats.OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
 							</a>
 							<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
 								{{svg "octicon-issue-closed" 16 "gt-mr-3"}}
-								{{JsPrettyNumber .IssueStats.ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
+								{{.locale.PrettyNumber .IssueStats.ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
 							</a>
 						</div>
 					</div>
 					<div class="column center aligned">
 						<form class="ui form ignore-dirty">
 							<div class="ui search fluid action input">
-								<input type="hidden" name="type" value="{{$.ViewType}}"/>
-								<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}}%2C{{end}}]"/>
-								<input type="hidden" name="sort" value="{{$.SortType}}"/>
-								<input type="hidden" name="state" value="{{$.State}}"/>
+								<input type="hidden" name="type" value="{{$.ViewType}}">
+								<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}}%2C{{end}}]">
+								<input type="hidden" name="sort" value="{{$.SortType}}">
+								<input type="hidden" name="state" value="{{$.State}}">
 								<input name="q" value="{{$.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
 								<button class="ui primary button" type="submit">{{.locale.Tr "explore.search"}}</button>
 							</div>
@@ -88,7 +88,7 @@
 					<div class="column right aligned gt-df gt-ac gt-je">
 						<!-- Sort -->
 						<div class="ui dropdown type jump item">
-							<span class="text">
+							<span class="text gt-whitespace-nowrap">
 								{{.locale.Tr "repo.issues.filter_sort"}}
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							</span>
@@ -105,14 +105,14 @@
 						</div>
 						{{if .SingleRepoLink}}
 							{{if eq .SingleRepoAction "issue"}}
-								<a class="ui green button" href="{{.SingleRepoLink}}/issues/new/choose">{{.locale.Tr "repo.issues.new"}}</a>
+								<a class="ui green button gt-ml-4" href="{{.SingleRepoLink}}/issues/new/choose">{{.locale.Tr "repo.issues.new"}}</a>
 							{{else if eq .SingleRepoAction "pull"}}
-								<a class="ui green button" href="{{.SingleRepoLink}}/compare">{{.locale.Tr "repo.pulls.new"}}</a>
+								<a class="ui green button gt-ml-4" href="{{.SingleRepoLink}}/compare">{{.locale.Tr "repo.pulls.new"}}</a>
 							{{end}}
 						{{end}}
 					</div>
 				</div>
-				{{template "shared/issuelist" mergeinto . "listType" "dashboard"}}
+				{{template "shared/issuelist" dict "." . "listType" "dashboard"}}
 			</div>
 		</div>
 	</div>

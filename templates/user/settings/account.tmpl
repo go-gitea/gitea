@@ -151,9 +151,9 @@
 					<input id="password-confirmation" name="password" type="password" autocomplete="off" required>
 				</div>
 				<div class="field">
-					<div class="ui red button delete-button" data-modal-id="delete-account" data-type="form" data-form="#delete-form">
+					<button class="ui red button delete-button" data-modal-id="delete-account" data-type="form" data-form="#delete-form">
 						{{.locale.Tr "settings.confirm_delete_account"}}
-					</div>
+					</button>
 					<a href="{{AppSubUrl}}/user/forgot_password?email={{.Email}}">{{.locale.Tr "auth.forgot_password"}}</a>
 				</div>
 			</form>

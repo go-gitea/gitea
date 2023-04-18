@@ -134,7 +134,7 @@ func CreateIssueDependency(user *user_model.User, issue, dep *Issue) error {
 	}
 	defer committer.Close()
 
-	// Check if it aleready exists
+	// Check if it already exists
 	exists, err := issueDepExists(ctx, issue.ID, dep.ID)
 	if err != nil {
 		return err
