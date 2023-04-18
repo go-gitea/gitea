@@ -1,5 +1,5 @@
 <!-- This vue should be kept the same as templates/repo/actions/status.tmpl
-    Please also update the template file above if this template is modified.
+    Please also update the template file above if this vue is modified.
 -->
 <template>
   <SvgIcon name="octicon-check-circle-fill" class="ui text green" :size="size" :class-name="className" v-if="status === 'success'"/>
