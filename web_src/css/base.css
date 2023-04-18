@@ -9,7 +9,7 @@
   /* non-color variables */
   --border-radius: 0.28571429rem;
   --opacity-disabled: 0.55;
-  --height-loading: 12rem;
+  --height-loading: 16rem;
   /* base colors */
   --color-primary: #4183c4;
   --color-primary-contrast: #ffffff;
@@ -2368,9 +2368,10 @@ a.ui.label:hover {
 }
 
 .ui.primary.label,
-.ui.primary.labels .label {
-  background-color: var(--color-primary) !important;
-  border-color: var(--color-primary-dark-2) !important;
+.ui.primary.labels .label, 
+.ui.ui.ui.primary.label {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary-dark-2);
 }
 
 .ui.basic.labels .primary.label,

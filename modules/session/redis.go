@@ -26,7 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/nosql"
 
 	"gitea.com/go-chi/session"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 // RedisStore represents a redis session store implementation.

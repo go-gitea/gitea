@@ -50,7 +50,7 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 		return false, nil
 	}
 
-	uname := ctx.GetCookie(setting.CookieUserName)
+	uname := ctx.GetSiteCookie(setting.CookieUserName)
 	if len(uname) == 0 {
 		return false, nil
 	}
@@ -59,8 +59,8 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	defer func() {
 		if !isSucceed {
 			log.Trace("auto-login cookie cleared: %s", uname)
-			ctx.DeleteCookie(setting.CookieUserName)
-			ctx.DeleteCookie(setting.CookieRememberName)
+			ctx.DeleteSiteCookie(setting.CookieUserName)
+			ctx.DeleteSiteCookie(setting.CookieRememberName)
 		}
 	}()
 
@@ -91,7 +91,7 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 		return false, err
 	}
 
-	middleware.DeleteCSRFCookie(ctx.Resp)
+	ctx.Csrf.DeleteCookie(ctx)
 	return true, nil
 }
 
@@ -126,7 +126,7 @@ func checkAutoLogin(ctx *context.Context) bool {
 	if len(redirectTo) > 0 {
 		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
 	} else {
-		redirectTo = ctx.GetCookie("redirect_to")
+		redirectTo = ctx.GetSiteCookie("redirect_to")
 	}
 
 	if isSucceed {
@@ -292,7 +292,7 @@ func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
 func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRedirect bool) string {
 	if remember {
 		days := 86400 * setting.LogInRememberDays
-		ctx.SetCookie(setting.CookieUserName, u.Name, days)
+		ctx.SetSiteCookie(setting.CookieUserName, u.Name, days)
 		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
 			setting.CookieRememberName, u.Name, days)
 	}
@@ -331,7 +331,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	}
 
 	// Clear whatever CSRF cookie has right now, force to generate a new one
-	middleware.DeleteCSRFCookie(ctx.Resp)
+	ctx.Csrf.DeleteCookie(ctx)
 
 	// Register last login
 	u.SetLastLogin()
@@ -340,7 +340,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		return setting.AppSubURL + "/"
 	}
 
-	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
 		if obeyRedirect {
 			ctx.RedirectToFirst(redirectTo)
@@ -369,10 +369,9 @@ func getUserName(gothUser *goth.User) string {
 func HandleSignOut(ctx *context.Context) {
 	_ = ctx.Session.Flush()
 	_ = ctx.Session.Destroy(ctx.Resp, ctx.Req)
-	ctx.DeleteCookie(setting.CookieUserName)
-	ctx.DeleteCookie(setting.CookieRememberName)
-	middleware.DeleteCSRFCookie(ctx.Resp)
-	middleware.DeleteLocaleCookie(ctx.Resp)
+	ctx.DeleteSiteCookie(setting.CookieUserName)
+	ctx.DeleteSiteCookie(setting.CookieRememberName)
+	ctx.Csrf.DeleteCookie(ctx)
 	middleware.DeleteRedirectToCookie(ctx.Resp)
 }
 

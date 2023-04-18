@@ -74,6 +74,7 @@ func Profile(ctx *context.Context) {
 			return
 		}
 		ctx.Data["HeatmapData"] = data
+		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
 	}
 
 	if len(ctx.ContextUser.Description) != 0 {

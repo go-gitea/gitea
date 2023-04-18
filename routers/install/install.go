@@ -562,7 +562,7 @@ func SubmitInstall(ctx *context.Context) {
 		audit.Record(audit.UserCreate, u, u, u, "Created user %s.", u.Name)
 
 		days := 86400 * setting.LogInRememberDays
-		ctx.SetCookie(setting.CookieUserName, u.Name, days)
+		ctx.SetSiteCookie(setting.CookieUserName, u.Name, days)
 
 		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
 			setting.CookieRememberName, u.Name, days)
