@@ -130,7 +130,7 @@ class ComboMarkdownEditor {
       } else if (key === '@') {
         const matches = [];
         for (const obj of window.config.tributeValues) {
-          if (obj.key.includes(text)) {
+          if (obj.key.toLowerCase().includes(text.toLowerCase())) {
             matches.push(obj);
             if (matches.length >= maxExpanderMatches) break;
           }
