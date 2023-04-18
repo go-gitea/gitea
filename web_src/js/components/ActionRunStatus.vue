@@ -10,7 +10,7 @@
 <script>
 import {SvgIcon} from '../svg.js';
 
-export default sfc = {
+export default {
   components: {SvgIcon},
   props: {
     status: {
