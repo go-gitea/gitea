@@ -109,7 +109,6 @@ var (
 	// MustRepoUnits contains the units could not be disabled currently
 	MustRepoUnits = []Type{
 		TypeCode,
-		TypeReleases,
 	}
 
 	// DisabledRepoUnits contains the units that have been globally disabled
