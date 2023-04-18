@@ -113,8 +113,12 @@ func getWorkPath(appPath string) string {
 
 func init() {
 	IsWindows = runtime.GOOS == "windows"
+	if AppVer == "" {
+		AppVer = "dev"
+	}
+
 	// We can rely on log.CanColorStdout being set properly because modules/log/console_windows.go comes before modules/setting/setting.go lexicographically
-	// By default set this logger at Info - we'll change it later but we need to start with something.
+	// By default set this logger at Info - we'll change it later, but we need to start with something.
 	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "info", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
 
 	var err error
@@ -122,7 +126,6 @@ func init() {
 		log.Fatal("Failed to get app path: %v", err)
 	}
 	AppWorkPath = getWorkPath(AppPath)
-	AppVer = "dev"
 }
 
 func forcePathSeparator(path string) {

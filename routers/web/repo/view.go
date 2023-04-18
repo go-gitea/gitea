@@ -930,6 +930,9 @@ func renderCode(ctx *context.Context) {
 	}
 
 	checkCitationFile(ctx, entry)
+	if ctx.Written() {
+		return
+	}
 
 	renderLanguageStats(ctx)
 	if ctx.Written() {
