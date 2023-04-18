@@ -144,9 +144,7 @@ func TestAPIOrgDeny(t *testing.T) {
 func TestAPIGetAll(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrg)
-
-	req := NewRequestf(t, "GET", "/api/v1/orgs?token=%s", token)
+	req := NewRequestf(t, "GET", "/api/v1/orgs") // token not required
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiOrgList []*api.Organization

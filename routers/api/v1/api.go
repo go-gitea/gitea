@@ -1200,7 +1200,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			m.Get("/{org}/permissions", reqToken(auth_model.AccessTokenScopeReadOrg), org.GetUserOrgsPermissions)
 		}, context_service.UserAssignmentAPI())
 		m.Post("/orgs", reqToken(auth_model.AccessTokenScopeWriteOrg), bind(api.CreateOrgOption{}), org.Create)
-		m.Get("/orgs", reqToken(auth_model.AccessTokenScopeReadOrg), org.GetAll)
+		m.Get("/orgs", org.GetAll)
 		m.Group("/orgs/{org}", func() {
 			m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.Get).
 				Patch(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
