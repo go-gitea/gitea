@@ -171,13 +171,6 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"Iterate": func(arg interface{}) (items []int64) {
-			count, _ := util.ToInt64(arg)
-			for i := int64(0); i < count; i++ {
-				items = append(items, i)
-			}
-			return items
-		},
 
 		// -----------------------------------------------------------------
 		// setting
