@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -36,6 +37,10 @@ func TestEmptyRepo(t *testing.T) {
 
 func TestEmptyRepoAddFile(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+
+	err := user_model.UpdateUserCols(db.DefaultContext, &user_model.User{ID: 30, ProhibitLogin: false}, "prohibit_login")
+	assert.NoError(t, err)
+
 	session := loginUser(t, "user30")
 	req := NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
 	resp := session.MakeRequest(t, req, http.StatusOK)

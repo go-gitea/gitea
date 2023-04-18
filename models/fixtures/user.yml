@@ -1095,7 +1095,7 @@
   allow_git_hook: false
   allow_import_local: false
   allow_create_organization: true
-  prohibit_login: false
+  prohibit_login: true
   avatar: avatar29
   avatar_email: user30@example.com
   use_custom_avatar: false
