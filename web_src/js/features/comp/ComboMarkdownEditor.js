@@ -108,7 +108,7 @@ class ComboMarkdownEditor {
       if (key === ':') {
         const matches = [];
         for (const name of emojiKeys) {
-          if (name.includes(text)) {
+          if (name.toLowerCase().includes(text.toLowerCase())) {
             matches.push(name);
             if (matches.length >= maxExpanderMatches) break;
           }
