@@ -883,7 +883,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 			// assume the user is viewing the (non-existent) default branch
 			ctx.Repo.IsViewBranch = true
 			ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
-			ctx.Data["TreePath"] = ctx.Repo.BranchName
+			ctx.Data["TreePath"] = ""
 			return
 		}
 
