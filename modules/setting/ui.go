@@ -80,7 +80,7 @@ var UI = struct {
 	ReactionMaxUserNum:  10,
 	ThemeColorMetaTag:   `#6cc644`,
 	MaxDisplayFileSize:  8388608,
-	FileIcons:           "file-specific",
+	FileIcons:           `basic`,
 	DefaultTheme:        `auto`,
 	Themes:              []string{`auto`, `gitea`, `arc-green`},
 	Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
