@@ -30,8 +30,8 @@ type OrganizationPermissions struct {
 // CreateOrgOption options for creating an organization
 type CreateOrgOption struct {
 	// required: true
-	UserName    string `json:"username" binding:"Required"`
-	FullName    string `json:"full_name"`
+	UserName    string `json:"username" binding:"Required;Username;MaxSize(40)"`
+	FullName    string `json:"full_name" binding:"MaxSize(100)"`
 	Description string `json:"description" binding:"MaxSize(255)"`
 	Website     string `json:"website" binding:"ValidUrl;MaxSize(255)"`
 	Location    string `json:"location" binding:"MaxSize(50)"`
@@ -45,7 +45,7 @@ type CreateOrgOption struct {
 
 // EditOrgOption options for editing an organization
 type EditOrgOption struct {
-	FullName    string `json:"full_name"`
+	FullName    string `json:"full_name" binding:"MaxSize(100)"`
 	Description string `json:"description" binding:"MaxSize(255)"`
 	Website     string `json:"website" binding:"ValidUrl;MaxSize(255)"`
 	Location    string `json:"location" binding:"MaxSize(50)"`

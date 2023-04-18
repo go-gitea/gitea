@@ -3261,14 +3261,15 @@ td.blob-excerpt {
   display: none;
 }
 
-.wiki-content-toc > ul > li {
-  margin-bottom: 4px;
-}
-
 .wiki-content-toc ul {
   margin: 0;
   list-style: none;
-  padding-left: 1em;
+  padding: 5px 0 5px 1em;
+}
+
+.wiki-content-toc ul ul {
+  border-left:  1px var(--color-secondary);
+  border-left-style: dashed;
 }
 
 /* fomantic's last-child selector does not work with hidden last child */

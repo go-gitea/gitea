@@ -17,7 +17,7 @@ import (
 var CmdConvert = cli.Command{
 	Name:        "convert",
 	Usage:       "Convert the database",
-	Description: "A command to convert an existing MySQL database from utf8 to utf8mb4",
+	Description: "A command to convert an existing MySQL database from utf8 to utf8mb4 or MSSQL database from varchar to nvarchar",
 	Action:      runConvert,
 }
 
@@ -35,17 +35,22 @@ func runConvert(ctx *cli.Context) error {
 	log.Info("Log path: %s", setting.Log.RootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
 
-	if !setting.Database.Type.IsMySQL() {
-		fmt.Println("This command can only be used with a MySQL database")
-		return nil
+	switch {
+	case setting.Database.Type.IsMySQL():
+		if err := db.ConvertUtf8ToUtf8mb4(); err != nil {
+			log.Fatal("Failed to convert database from utf8 to utf8mb4: %v", err)
+			return err
+		}
+		fmt.Println("Converted successfully, please confirm your database's character set is now utf8mb4")
+	case setting.Database.Type.IsMSSQL():
+		if err := db.ConvertVarcharToNVarchar(); err != nil {
+			log.Fatal("Failed to convert database from varchar to nvarchar: %v", err)
+			return err
+		}
+		fmt.Println("Converted successfully, please confirm your database's all columns character is NVARCHAR now")
+	default:
+		fmt.Println("This command can only be used with a MySQL or MSSQL database")
 	}
-
-	if err := db.ConvertUtf8ToUtf8mb4(); err != nil {
-		log.Fatal("Failed to convert database from utf8 to utf8mb4: %v", err)
-		return err
-	}
-
-	fmt.Println("Converted successfully, please confirm your database's character set is now utf8mb4")
 
 	return nil
 }
