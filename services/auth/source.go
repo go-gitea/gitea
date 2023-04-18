@@ -7,10 +7,11 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/services/audit"
 )
 
 // DeleteSource deletes a AuthSource record in DB.
-func DeleteSource(source *auth.Source) error {
+func DeleteSource(doer *user_model.User, source *auth.Source) error {
 	count, err := db.GetEngine(db.DefaultContext).Count(&user_model.User{LoginSource: source.ID})
 	if err != nil {
 		return err
@@ -36,5 +37,10 @@ func DeleteSource(source *auth.Source) error {
 	}
 
 	_, err = db.GetEngine(db.DefaultContext).ID(source.ID).Delete(new(auth.Source))
+
+	if err == nil {
+		audit.Record(audit.SystemAuthenticationSourceRemove, doer, nil, source, "Removed authentication source %s.", source.Name)
+	}
+
 	return err
 }

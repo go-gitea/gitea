@@ -5,6 +5,8 @@ package audit
 
 import (
 	"fmt"
+	"os"
+	"path"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -19,6 +21,8 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util/rotating_file_writer"
 )
 
 type TypeDescriptor struct {
@@ -37,18 +41,47 @@ type Event struct {
 	Time    time.Time      `json:"time"`
 }
 
-// appender := make([]Appender, 0, 5)
-var appender = []Appender{
-	&NoticeAppender{},
-	&LogAppender{},
-}
-
-var auditQueue queue.Queue
+var (
+	appenders  = make([]Appender, 0, 5)
+	auditQueue queue.Queue
+)
 
 func Init() {
-	/*if !setting.Audit.Enabled {
+	if !setting.Audit.Enabled {
 		return
-	}*/
+	}
+
+	for name, opts := range setting.Audit.AppenderOptions {
+		var a Appender
+		switch name {
+		case "log":
+			a = &LogAppender{}
+		case "notice":
+			a = &NoticeAppender{}
+		case "file":
+			if err := os.MkdirAll(path.Dir(opts.Filename), os.ModePerm); err != nil {
+				panic(err.Error())
+			}
+
+			fa, err := NewFileAppender(opts.Filename, &rotating_file_writer.Options{
+				Rotate:           opts.Rotate,
+				MaximumSize:      opts.MaximumSize,
+				RotateDaily:      opts.RotateDaily,
+				KeepDays:         opts.KeepDays,
+				Compress:         opts.Compress,
+				CompressionLevel: opts.CompressionLevel,
+			})
+			if err != nil {
+				log.Error("Failed to create file appender: %v", err)
+				continue
+			}
+			a = fa
+		}
+
+		if a != nil {
+			appenders = append(appenders, a)
+		}
+	}
 
 	auditQueue = queue.CreateQueue(
 		"audit",
@@ -58,7 +91,7 @@ func Init() {
 			for _, d := range data {
 				e := d.(*Event)
 
-				for _, a := range appender {
+				for _, a := range appenders {
 					a.Record(ctx, e)
 				}
 			}
@@ -71,9 +104,9 @@ func Init() {
 }
 
 func Record(action Action, doer *user_model.User, scope, target any, format string, v ...interface{}) {
-	/*if !setting.Audit.Enabled {
+	if !setting.Audit.Enabled {
 		return
-	}*/
+	}
 
 	e := &Event{
 		Action:  action,
@@ -152,4 +185,18 @@ func typeToDescription(val any) TypeDescriptor {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", t))
 	}
+}
+
+func ReleaseReopen() error {
+	var accumulatedErr error
+	for _, a := range appenders {
+		if err := a.ReleaseReopen(); err != nil {
+			if accumulatedErr == nil {
+				accumulatedErr = fmt.Errorf("error reopening: %w", err)
+			} else {
+				accumulatedErr = fmt.Errorf("error reopening: %v & %w", err, accumulatedErr)
+			}
+		}
+	}
+	return accumulatedErr
 }

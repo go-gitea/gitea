@@ -461,7 +461,7 @@ func DeleteAuthSource(ctx *context.Context) {
 		return
 	}
 
-	if err = auth_service.DeleteSource(source); err != nil {
+	if err = auth_service.DeleteSource(ctx.Doer, source); err != nil {
 		if auth.IsErrSourceInUse(err) {
 			ctx.Flash.Error(ctx.Tr("admin.auths.still_in_used"))
 		} else {
@@ -472,8 +472,6 @@ func DeleteAuthSource(ctx *context.Context) {
 		})
 		return
 	}
-
-	audit.Record(audit.SystemAuthenticationSourceRemove, nil, ctx.Doer, source, "Removed authentication source %s.", source.Name)
 
 	log.Trace("Authentication deleted by admin(%s): %d", ctx.Doer.Name, source.ID)
 

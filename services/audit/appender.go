@@ -8,12 +8,15 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/system"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util/rotating_file_writer"
 )
 
 type Appender interface {
 	Record(context.Context, *Event)
-	Close()
+	Close() error
+	ReleaseReopen() error
 }
 
 // NoticeAppender creates an admin notice for every audit event
@@ -26,7 +29,12 @@ func (a *NoticeAppender) Record(ctx context.Context, e *Event) {
 	}
 }
 
-func (a *NoticeAppender) Close() {
+func (a *NoticeAppender) Close() error {
+	return nil
+}
+
+func (a *NoticeAppender) ReleaseReopen() error {
+	return nil
 }
 
 // LogAppender writes an info log entry for every audit event
@@ -36,5 +44,38 @@ func (a *LogAppender) Record(ctx context.Context, e *Event) {
 	log.Info(e.Message)
 }
 
-func (a *LogAppender) Close() {
+func (a *LogAppender) Close() error {
+	return nil
+}
+
+func (a *LogAppender) ReleaseReopen() error {
+	return nil
+}
+
+// File writes json object for every audit event
+type FileAppender struct {
+	rfw *rotating_file_writer.RotatingFileWriter
+}
+
+func NewFileAppender(filename string, opts *rotating_file_writer.Options) (*FileAppender, error) {
+	rfw, err := rotating_file_writer.Open(filename, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FileAppender{rfw}, nil
+}
+
+func (a *FileAppender) Record(ctx context.Context, e *Event) {
+	if err := json.NewEncoder(a.rfw).Encode(e); err != nil {
+		log.Error("encoding event to file failed: %v", err)
+	}
+}
+
+func (a *FileAppender) Close() error {
+	return a.rfw.Close()
+}
+
+func (a *FileAppender) ReleaseReopen() error {
+	return a.rfw.ReleaseReopen()
 }

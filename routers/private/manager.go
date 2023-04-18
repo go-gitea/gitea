@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 )
 
 // FlushQueues flushes all the Queues
@@ -61,6 +62,12 @@ func ReleaseReopenLogging(ctx *context.PrivateContext) {
 	if err := log.ReleaseReopen(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: fmt.Sprintf("Error during release and reopen: %v", err),
+		})
+		return
+	}
+	if err := audit.ReleaseReopen(); err != nil {
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: fmt.Sprintf("Error during audit release and reopen: %v", err),
 		})
 		return
 	}
