@@ -161,3 +161,8 @@
 .issue.list > .item + .item {
   border-top: 1px solid var(--color-secondary);
 }
+
+.action-run-status {
+  height: 16px;
+  width: 16px;
+}

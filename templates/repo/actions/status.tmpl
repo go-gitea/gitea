@@ -1,0 +1,13 @@
+{{if eq .status "success"}}
+    {{svg "octicon-check-circle-fill" 16 "ui text green"}}
+{{else if eq .status "skipped"}}
+    {{svg "octicon-skip" 16 "ui text grey"}}
+{{else if eq .status "waiting"}}
+    {{svg "octicon-clock" 16 "ui text yellow"}}
+{{else if eq .status "blocked"}}
+    {{svg "octicon-blocked" 16 "ui text yellow"}}
+{{else if eq .status "running"}}
+    {{svg "octicon-meter" 16 "ui text yellow job-status-rotate"}}
+{{else}}
+    {{svg "octicon-x-circle-fill" 16 "ui text red"}}
+{{end}}

@@ -77,7 +77,6 @@ import {initRepoCommentForm, initRepository} from './features/repo-legacy.js';
 import {initCopyContent} from './features/copycontent.js';
 import {initCaptcha} from './features/captcha.js';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
-import {initActionRunStatus} from './components/ActionRunStatus.vue';
 import {initGlobalTooltips} from './modules/tippy.js';
 import {initGiteaFomantic} from './modules/fomantic.js';
 import {onDomReady} from './utils/dom.js';
@@ -166,7 +165,6 @@ onDomReady(() => {
   initRepoWikiForm();
   initRepository();
   initRepositoryActionView();
-  initActionRunStatus();
 
   initCommitStatuses();
   initCaptcha();
