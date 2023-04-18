@@ -18,11 +18,11 @@
 				<div class="ui compact tiny menu">
 					<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=open&q={{$.Keyword}}">
 						{{svg "octicon-milestone" 16 "gt-mr-3"}}
-						{{LocaleNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
+						{{.locale.PrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
 					</a>
 					<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=closed&q={{$.Keyword}}">
 						{{svg "octicon-check" 16 "gt-mr-3"}}
-						{{LocaleNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
+						{{.locale.PrettyNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
 					</a>
 				</div>
 			</div>
@@ -84,9 +84,9 @@
 						{{end}}
 						<span class="issue-stats">
 							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
-							{{LocaleNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
+							{{$.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
 							{{svg "octicon-check" 16 "gt-mr-3"}}
-							{{LocaleNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+							{{$.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
 							{{if .TotalTrackedTime}}{{svg "octicon-clock"}} {{.TotalTrackedTime|Sec2Time}}{{end}}
 							{{if .UpdatedUnix}}{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix $.locale) | Safe}}{{end}}
 						</span>
