@@ -833,6 +833,10 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		}
+		for _, checkRun := range checkRuns {
+			checkRun.Repo = ctx.Repo.Repository
+			_ = checkRun.LoadAttributes(ctx)
+		}
 		statuses = git_model.CheckRunAppendToCommitStatus(statuses, checkRuns, ctx.Locale)
 
 		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)

@@ -344,6 +344,10 @@ func Diff(ctx *context.Context) {
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
+	for _, checkRun := range checkRuns {
+		checkRun.Repo = ctx.Repo.Repository
+		_ = checkRun.LoadAttributes(ctx)
+	}
 	statuses = git_model.CheckRunAppendToCommitStatus(statuses, checkRuns, ctx.Locale)
 
 	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)

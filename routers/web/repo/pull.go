@@ -421,6 +421,10 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 		if err != nil {
 			log.Error("GetLatestCheckRuns: %v", err)
 		}
+		for _, checkRun := range checkRuns {
+			checkRun.Repo = ctx.Repo.Repository
+			_ = checkRun.LoadAttributes(ctx)
+		}
 		commitStatuses = git_model.CheckRunAppendToCommitStatus(commitStatuses, checkRuns, ctx.Locale)
 		ctx.Data["LatestCommitCheckRuns"] = checkRuns
 
@@ -583,6 +587,10 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	checkRuns, _, err := git_model.GetLatestCheckRuns(ctx, ctx.Repo.Repository.ID, sha, db.ListOptions{})
 	if err != nil {
 		log.Error("GetLatestCheckRuns: %v", err)
+	}
+	for _, checkRun := range checkRuns {
+		checkRun.Repo = ctx.Repo.Repository
+		_ = checkRun.LoadAttributes(ctx)
 	}
 	commitStatuses = git_model.CheckRunAppendToCommitStatus(commitStatuses, checkRuns, ctx.Locale)
 	ctx.Data["LatestCommitCheckRuns"] = checkRuns
@@ -893,6 +901,10 @@ func ViewPullFiles(ctx *context.Context) {
 	if checkRuns, ok := ctx.Data["LatestCommitCheckRuns"].([]*git_model.CheckRun); ok {
 		externalComments = make([]*issues_model.Comment, 0, 10)
 		for _, checkRun := range checkRuns {
+			if !checkRun.HasOutputData(ctx) {
+				continue
+			}
+
 			externalComments = append(externalComments, CheckRunToCodeComments(ctx, checkRun, pull.Issue)...)
 		}
 	}

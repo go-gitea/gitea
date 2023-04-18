@@ -794,6 +794,11 @@ func getAllCommitStatus(gitRepo *git.Repository, pr *issues_model.PullRequest, l
 	if err == nil {
 		// add check runs
 		checkRuns, _, err := git_model.GetLatestCheckRuns(db.DefaultContext, pr.BaseRepo.ID, sha, db.ListOptions{})
+		for _, checkRun := range checkRuns {
+			checkRun.Repo = pr.BaseRepo
+			_ = checkRun.LoadAttributes(db.DefaultContext)
+		}
+
 		if err == nil {
 			statuses = git_model.CheckRunAppendToCommitStatus(statuses, checkRuns, lang)
 		}

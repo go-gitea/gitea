@@ -18,6 +18,10 @@ import (
 func SecToTime(duration int64) string {
 	formattedTime := ""
 
+	if duration == 0 {
+		return "0 seconds"
+	}
+
 	// The following four variables are calculated by taking
 	// into account the previously calculated variables, this avoids
 	// pitfalls when using remainders. As that could lead to incorrect

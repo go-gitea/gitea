@@ -7,8 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -19,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
+	"github.com/nektos/act/pkg/jobparser"
 	"xorm.io/xorm"
 )
 
@@ -102,6 +105,10 @@ type CheckRun struct {
 	Output       *CheckRunOutput `xorm:"-"`
 	outputLoaded bool            `xorm:"-"`
 
+	ActionRunID    int64
+	ActionRun      *actions_model.ActionRun `xorm:"-"`
+	ActionJobIndex int64
+
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
@@ -113,13 +120,39 @@ func (status *CheckRun) LoadAttributes(ctx context.Context) (err error) {
 			return fmt.Errorf("getRepositoryByID [%d]: %w", status.RepoID, err)
 		}
 	}
-	if status.Creator == nil && status.CreatorID > 0 {
+
+	if status.ActionRunID > 0 && status.Creator == nil {
+		status.Creator = user_model.NewActionsUser()
+	} else if status.Creator == nil && status.CreatorID > 0 {
 		status.Creator, err = user_model.GetUserByID(ctx, status.CreatorID)
 		if err != nil {
 			return fmt.Errorf("getUserByID [%d]: %w", status.CreatorID, err)
 		}
 	}
+
 	return nil
+}
+
+func (c *CheckRun) HasOutputData(ctx context.Context) bool {
+	_ = c.LoadOutput(ctx)
+
+	if c.Output == nil {
+		return false
+	}
+
+	if len(c.Output.Title) > 0 {
+		return true
+	}
+
+	if len(c.Output.Summary) > 0 {
+		return true
+	}
+
+	if len(c.Output.Annotations) > 0 {
+		return true
+	}
+
+	return false
 }
 
 func (c *CheckRun) LoadOutput(ctx context.Context) error {
@@ -231,6 +264,20 @@ func (c *CheckRun) updateOutput(ctx context.Context, output *api.CheckRunOutput)
 	return err
 }
 
+func (c *CheckRun) GetTargetURL() string {
+	if c.ActionRunID > 0 {
+		c.ActionRun = &actions_model.ActionRun{
+			ID:     c.ActionRunID,
+			Repo:   c.Repo,
+			RepoID: c.RepoID,
+		}
+
+		return fmt.Sprintf("%s/jobs/%d", c.ActionRun.Link(), c.ActionJobIndex)
+	}
+
+	return c.DetailsURL
+}
+
 func (c *CheckRun) ToStatus(lang translation.Locale) *CommitStatus {
 	stat := &CommitStatus{
 		ID:          c.ID,
@@ -243,7 +290,7 @@ func (c *CheckRun) ToStatus(lang translation.Locale) *CommitStatus {
 		Creator:     c.Creator,
 		CreatorID:   c.CreatorID,
 		Description: c.Summary,
-		TargetURL:   c.DetailsURL,
+		TargetURL:   c.GetTargetURL(),
 	}
 
 	if c.Status == CheckRunStatusCompleted {
@@ -562,11 +609,7 @@ func CheckRunAppendToCommitStatus(statuses []*CommitStatus, checkRuns []*CheckRu
 	}
 
 	for _, status := range statuses {
-		if otherState, ok := results[status.ContextHash]; ok {
-			if status.State.NoBetterThan(otherState.State) {
-				results[status.ContextHash] = status
-			}
-		} else {
+		if _, ok := results[status.ContextHash]; !ok {
 			results[status.ContextHash] = status
 		}
 	}
@@ -762,4 +805,121 @@ func FindRepoRecentCheckRunNames(ctx context.Context, repoID int64, before time.
 		return names, nil
 	}
 	return names, db.GetEngine(ctx).Select("name").Table("check_run").In("id", ids).Find(&names)
+}
+
+func UpdatCheckRunForAction(ctx context.Context, job *actions_model.ActionRunJob, event, sha string) error {
+	run := job.Run
+	repo := run.Repo
+
+	// TODO: store workflow name as a field in ActionRun to avoid parsing
+	runName := path.Base(run.WorkflowID)
+	if wfs, err := jobparser.Parse(job.WorkflowPayload); err == nil && len(wfs) > 0 {
+		runName = wfs[0].Name
+	}
+
+	name := fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)
+	nameHash := hashCommitStatusContext(name)
+
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	checkRun := &CheckRun{}
+	exist, err := db.GetEngine(ctx).
+		Where("repo_id = ? AND head_sha = ? AND name_hash = ?",
+			repo.ID, sha, nameHash).
+		Get(checkRun)
+	if err != nil {
+		return err
+	}
+
+	if !exist {
+		checkRun.Repo = repo
+		checkRun.RepoID = repo.ID
+		checkRun.Creator = user_model.NewActionsUser()
+		checkRun.CreatorID = checkRun.Creator.ID
+		checkRun.HeadSHA = sha
+		checkRun.Name = name
+		checkRun.NameHash = nameHash
+	}
+
+	index, err := getIndexOfJob(ctx, job)
+	if err != nil {
+		return fmt.Errorf("getIndexOfJob: %w", err)
+	}
+	checkRun.ActionRunID = job.RunID
+	checkRun.ActionJobIndex = int64(index)
+
+	checkRun.Status = actionJobToCheckRunStatus(job)
+	checkRun.Conclusion = actionJobToCheckRunConclusion(job)
+
+	if checkRun.Status == CheckRunStatusQueued {
+		checkRun.StartedAt = 0
+	} else {
+		checkRun.StartedAt = job.Started
+	}
+
+	if checkRun.Status != CheckRunStatusCompleted {
+		checkRun.CompletedAt = 0
+	} else {
+		checkRun.CompletedAt = job.Stopped
+	}
+
+	if !exist {
+		_, err = db.GetEngine(ctx).Insert(checkRun)
+	} else {
+		_, err = db.GetEngine(ctx).ID(checkRun.ID).
+			Cols("started_at", "completed_at", "status", "conclusion", "updated_unix",
+				"action_run_id", "action_job_index").
+			Update(checkRun)
+	}
+	if err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
+func getIndexOfJob(ctx context.Context, job *actions_model.ActionRunJob) (int, error) {
+	// TODO: store job index as a field in ActionRunJob to avoid this
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, job.RunID)
+	if err != nil {
+		return 0, err
+	}
+	for i, v := range jobs {
+		if v.ID == job.ID {
+			return i, nil
+		}
+	}
+	return 0, nil
+}
+
+func actionJobToCheckRunStatus(job *actions_model.ActionRunJob) CheckRunStatus {
+	switch job.Status {
+	case actions_model.StatusSuccess, actions_model.StatusSkipped, actions_model.StatusFailure, actions_model.StatusCancelled:
+		return CheckRunStatusCompleted
+	case actions_model.StatusWaiting, actions_model.StatusBlocked:
+		return CheckRunStatusQueued
+	case actions_model.StatusRunning:
+		return CheckRunStatusInProgress
+	default:
+		return CheckRunStatusQueued
+	}
+}
+
+func actionJobToCheckRunConclusion(job *actions_model.ActionRunJob) CheckRunConclusion {
+	switch job.Status {
+	case actions_model.StatusSuccess:
+		return CheckRunConclusionSuccess
+	case actions_model.StatusSkipped:
+		return CheckRunConclusionSkipped
+	case actions_model.StatusFailure:
+		return CheckRunConclusionFailure
+	case actions_model.StatusCancelled:
+		return CheckRunConclusionCancelled
+	default:
+		return CheckRunConclusionUnknow
+	}
 }

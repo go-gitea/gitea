@@ -1631,6 +1631,10 @@ func ViewIssue(ctx *context.Context) {
 	if issue.IsPull {
 		if checkRuns, ok := ctx.Data["LatestCommitCheckRuns"].([]*git_model.CheckRun); ok {
 			for _, checkRun := range checkRuns {
+				if !checkRun.HasOutputData(ctx) {
+					continue
+				}
+
 				issue.Comments = append(issue.Comments, checkRunToReviewComments(ctx, checkRun, issue))
 			}
 		}

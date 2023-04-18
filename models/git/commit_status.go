@@ -340,6 +340,11 @@ func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.Sig
 		if err2 != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		}
+		for _, checkRun := range checkRuns {
+			checkRun.Repo = repo
+			_ = checkRun.LoadAttributes(ctx)
+		}
+
 		statuses = CheckRunAppendToCommitStatus(statuses, checkRuns, lang)
 
 		if err == nil {
