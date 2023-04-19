@@ -194,8 +194,8 @@ export function initGlobalLinkActions() {
     const $this = $(this);
     const dataArray = $this.data();
     let filter = '';
-    if ($this.data('modal-id')) {
-      filter += `#${$this.data('modal-id')}`;
+    if ($this.attr('data-modal-id')) {
+      filter += `#${$this.attr('data-modal-id')}`;
     }
 
     const dialog = $(`.delete.modal${filter}`);
@@ -237,8 +237,8 @@ export function initGlobalLinkActions() {
     e.preventDefault();
     const $this = $(this);
     let filter = '';
-    if ($this.attr('id')) {
-      filter += `#${$this.attr('id')}`;
+    if ($this.attr('data-modal-id')) {
+      filter += `#${$this.attr('data-modal-id')}`;
     }
 
     const dialog = $(`.addall.modal${filter}`);
