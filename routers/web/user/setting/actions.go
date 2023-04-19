@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/base"
@@ -17,6 +18,7 @@ const (
 func Actions(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsSettingsActions"] = true
+	ctx.Data["ResetRegistrationTokenLink"] = fmt.Sprintf("%s/runners/reset_registration_token", ctx.Link)
 	GetSecrets(ctx)
 	ctx.HTML(http.StatusOK, tplSettingsActions)
 }

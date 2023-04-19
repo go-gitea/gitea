@@ -4,6 +4,7 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -25,6 +26,7 @@ func Actions(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsSettingsActions"] = true
+	ctx.Data["ResetRegistrationTokenLink"] = fmt.Sprintf("%s/runners/reset_registration_token", ctx.Link)
 
 	page := ctx.FormInt("page")
 	if page <= 1 {

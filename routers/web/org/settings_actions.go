@@ -16,17 +16,19 @@ import (
 
 // Actions render settings/actions page for organization level
 func Actions(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("actions.actions")
-	ctx.Data["PageIsOrgSettings"] = true
 	pageType := ctx.Params(":type")
-	ctx.Data["PageType"] = pageType
 	if pageType == "runners" {
 		ctx.Data["PageIsOrgSettingsRunners"] = true
 	} else if pageType == "secrets" {
 		ctx.Data["PageIsOrgSettingsSecrets"] = true
 	} else {
 		ctx.ServerError("Unknown Page Type", fmt.Errorf("Unknown Actions Settings Type: %s", pageType))
+		return
 	}
+	ctx.Data["Title"] = ctx.Tr("actions.actions")
+	ctx.Data["PageIsOrgSettings"] = true
+	ctx.Data["ResetRegistrationTokenLink"] = fmt.Sprintf("%s/reset_registration_token", ctx.Link)
+	ctx.Data["PageType"] = pageType
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
