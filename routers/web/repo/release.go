@@ -35,15 +35,10 @@ const (
 
 // calReleaseNumCommitsBehind calculates given release has how many commits behind release target.
 func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *repo_model.Release, countCache map[string]int64) error {
-	// Fast return if release target is same as default branch.
-	if repoCtx.BranchName == release.Target {
-		release.NumCommitsBehind = repoCtx.CommitsCount - release.NumCommits
-		return nil
-	}
-
 	// Get count if not exists
 	if _, ok := countCache[release.Target]; !ok {
-		if repoCtx.GitRepo.IsBranchExist(release.Target) {
+		// short-circuit for the default branch
+		if repoCtx.Repository.DefaultBranch == release.Target || repoCtx.GitRepo.IsBranchExist(release.Target) {
 			commit, err := repoCtx.GitRepo.GetBranchCommit(release.Target)
 			if err != nil {
 				return fmt.Errorf("GetBranchCommit: %w", err)
