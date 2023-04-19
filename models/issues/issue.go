@@ -743,8 +743,8 @@ func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 }
 
 // ChangeIssueTitle changes the title of this issue, as the given user.
-func ChangeIssueTitle(issue *Issue, doer *user_model.User, oldTitle string) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeIssueTitle(ctx context.Context, issue *Issue, doer *user_model.User, oldTitle string) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

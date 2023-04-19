@@ -65,28 +65,16 @@
 				<p>{{.FormatWarning}}</p>
 			</div>
 		{{end}}
-		<div class="ui gt-mt-0 {{if or .sidebarPresent .toc}}grid equal width{{end}}">
-			<div class="ui {{if or .sidebarPresent .toc}}eleven wide column{{else}}gt-ml-0{{end}} segment markup wiki-content-main">
+		<div class="ui gt-mt-0 {{if or .sidebarPresent .sidebarTocContent}}grid equal width{{end}}">
+			<div class="ui {{if or .sidebarPresent .sidebarTocContent}}eleven wide column{{else}}gt-ml-0{{end}} segment markup wiki-content-main">
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 				{{.content | Safe}}
 			</div>
-			{{if or .sidebarPresent .toc}}
-			<div class="column" style="padding-top: 0;">
-				{{if .toc}}
+			{{if or .sidebarPresent .sidebarTocContent}}
+			<div class="column gt-pt-0">
+				{{if .sidebarTocContent}}
 					<div class="ui segment wiki-content-toc">
-						<details open>
-							<summary>
-								<div class="ui header">{{.locale.Tr "toc"}}</div>
-							</summary>
-							{{$level := 0}}
-							{{range .toc}}
-								{{if lt $level .Level}}{{range Iterate (Eval .Level "-" $level)}}<ul>{{end}}{{end}}
-								{{if gt $level .Level}}{{range Iterate (Eval $level "-" .Level)}}</ul>{{end}}{{end}}
-								{{$level = .Level}}
-								<li><a href="#{{.ID}}">{{.Text}}</a></li>
-							{{end}}
-							{{range Iterate $level}}</ul>{{end}}
-						</details>
+						{{.sidebarTocContent | Safe}}
 					</div>
 				{{end}}
 				{{if .sidebarPresent}}

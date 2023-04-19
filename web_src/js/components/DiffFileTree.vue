@@ -145,6 +145,8 @@ export default {
       this.isLoadingNewData = true;
       doLoadMoreFiles(this.link, this.diffEnd, () => {
         this.isLoadingNewData = false;
+        const {pageData} = window.config;
+        this.diffEnd = pageData.diffFileInfo.diffEnd;
       });
     },
   },
