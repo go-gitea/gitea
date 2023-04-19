@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/convert"
@@ -110,7 +109,8 @@ func List(ctx *context.Context) {
 			// Check whether have matching runner
 			jobs, err := jobparser.Parse(content)
 			if err != nil {
-				log.Error("jobparser.Parse: %v", err)
+				workflow.ErrMsg = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", err.Error())
+				workflows = append(workflows, workflow)
 				continue
 			}
 			for _, v := range jobs {
