@@ -23,7 +23,7 @@ func FixLanguageStatsToSaveSize(x *xorm.Engine) error {
 
 	const (
 		// RepoIndexerTypeCode code indexer
-		RepoIndexerTypeCode RepoIndexerType = iota // 0
+		RepoIndexerTypeCode RepoIndexerType = iota // 0 //nolint:unused
 		// RepoIndexerTypeStats repository stats indexer
 		RepoIndexerTypeStats // 1
 	)
