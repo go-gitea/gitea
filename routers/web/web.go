@@ -652,7 +652,7 @@ func RegisterRoutes(m *web.Route) {
 		})
 
 		m.Group("/actions", func() {
-			m.Get("", admin.Actions)
+			m.Get("", admin.Runners)
 			m.Group("/runners", func() {
 				m.Get("/reset_registration_token", admin.ResetRunnerRegistrationToken)
 				m.Combo("/{runnerid}").Get(admin.EditRunner).Post(web.Bind(forms.EditRunnerForm{}), admin.EditRunnerPost)
@@ -1042,7 +1042,7 @@ func RegisterRoutes(m *web.Route) {
 				})
 			})
 			m.Group("/actions", func() {
-				m.Get("", repo.Actions)
+				m.Get("", repo.Secrets, repo.Runners)
 				m.Group("/runners", func() {
 					m.Combo("/{runnerid}").Get(repo.RunnersEdit).
 						Post(web.Bind(forms.EditRunnerForm{}), repo.RunnersEditPost)

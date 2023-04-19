@@ -15,12 +15,12 @@ import (
 )
 
 const (
-	tplActions    base.TplName = "admin/runners/base"
+	tplRunners    base.TplName = "admin/runners/base"
 	tplRunnerEdit base.TplName = "admin/runners/edit"
 )
 
 // Actions show all settings related to actions
-func Actions(ctx *context.Context) {
+func Runners(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsSettingsActions"] = true
@@ -39,7 +39,7 @@ func Actions(ctx *context.Context) {
 		Filter: ctx.Req.URL.Query().Get("q"),
 	}
 
-	actions_shared.RunnersList(ctx, tplActions, opts)
+	actions_shared.RunnersList(ctx, tplRunners, opts)
 }
 
 // EditRunner show editing runner page

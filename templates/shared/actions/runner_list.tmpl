@@ -33,7 +33,7 @@
 		</div>
 	</h4>
 	<div class="ui attached segment">
-		<form class="ui form ignore-dirty" id="user-list-search-form" action="{{if $.isFromOrg}}{{$.Link}}{{else}}{{$.Link}}/runners{{end}}">
+		<form class="ui form ignore-dirty" id="user-list-search-form" action="{{$.Link}}">
 			<!-- Search Text -->
 			<div class="ui fluid action input" style="max-width: 70%;">
 				<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>

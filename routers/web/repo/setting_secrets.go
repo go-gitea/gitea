@@ -4,8 +4,6 @@
 package repo
 
 import (
-	"net/http"
-
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -17,7 +15,6 @@ const (
 )
 
 func Secrets(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("secrets.secrets")
 	ctx.Data["PageIsSettingsSecrets"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
@@ -25,8 +22,6 @@ func Secrets(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-
-	ctx.HTML(http.StatusOK, tplSecrets)
 }
 
 func SecretsPost(ctx *context.Context) {

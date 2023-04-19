@@ -9,9 +9,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
 	actions_shared "code.gitea.io/gitea/routers/web/shared/actions"
-	shared "code.gitea.io/gitea/routers/web/shared/secrets"
 )
 
 const (
@@ -20,15 +18,9 @@ const (
 )
 
 // Actions show all settings related to actions
-func Actions(ctx *context.Context) {
+func Runners(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsSettingsActions"] = true
-	ctx.Data["DisableSSH"] = setting.SSH.Disabled
-
-	shared.SetSecretsContext(ctx, 0, ctx.Repo.Repository.ID)
-	if ctx.Written() {
-		return
-	}
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
