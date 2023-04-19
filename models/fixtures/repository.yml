@@ -1,3 +1,4 @@
+# don't forget to add fixtures in repo_unit.yml
 -
   id: 1
   owner_id: 2
@@ -1559,6 +1560,7 @@
   owner_name: user30
   lower_name: empty
   name: empty
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1645,5 +1647,18 @@
   is_empty: false
   is_archived: false
   is_private: true
+  status: 0
+  num_issues: 0
+
+-
+  id: 57
+  owner_id: 2
+  owner_name: user2
+  lower_name: repo-release
+  name: repo-release
+  default_branch: main
+  is_empty: false
+  is_archived: false
+  is_private: false
   status: 0
   num_issues: 0

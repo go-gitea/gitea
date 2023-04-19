@@ -301,7 +301,7 @@ func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 
 		// it's safe to show internal error to admin users, and it helps
 		if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
-			ctx.Data["ErrorMsg"] = logErr
+			ctx.Data["ErrorMsg"] = fmt.Sprintf("%s, %s", logMsg, logErr)
 		}
 	}
 

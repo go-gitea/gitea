@@ -84,6 +84,9 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(commits) == 0 {
+		return nil, ErrNotExist{ID: relpath}
+	}
 	return commits[0], nil
 }
 

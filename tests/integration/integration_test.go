@@ -124,6 +124,9 @@ func TestMain(m *testing.M) {
 		fmt.Printf("Error initializing test database: %v\n", err)
 		os.Exit(1)
 	}
+
+	// FIXME: the console logger is deleted by mistake, so if there is any `log.Fatal`, developers won't see any error message.
+	// Instead, "No tests were found",  last nonsense log is "According to the configuration, subsequent logs will not be printed to the console"
 	exitCode := m.Run()
 
 	tests.WriterCloser.Reset()
@@ -366,10 +369,12 @@ const NoExpectedStatus = -1
 func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
 	recorder := httptest.NewRecorder()
+	if req.RemoteAddr == "" {
+		req.RemoteAddr = "test-mock:12345"
+	}
 	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		if !assert.EqualValues(t, expectedStatus, recorder.Code,
-			"Request: %s %s", req.Method, req.URL.String()) {
+		if !assert.EqualValues(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, recorder)
 		}
 	}
@@ -410,8 +415,10 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 		return
 	} else if len(respBytes) < 500 {
 		// if body is short, just log the whole thing
-		t.Log("Response:", string(respBytes))
+		t.Log("Response: ", string(respBytes))
 		return
+	} else {
+		t.Log("Response length: ", len(respBytes))
 	}
 
 	// log the "flash" error message, if one exists
