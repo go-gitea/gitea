@@ -58,7 +58,7 @@ PORT_TO_REDIRECT = 3080
 
 [ACME](https://tools.ietf.org/html/rfc8555) 是一种证书颁发机构标准协议，允许您自动请求和续订 SSL/TLS 证书。[Let`s Encrypt](https://letsencrypt.org/) 是使用此标准的免费公开信任的证书颁发机构服务器。仅实施“HTTP-01”和“TLS-ALPN-01”挑战。为了使 ACME 质询通过并验证您的域所有权，“80”端口（“HTTP-01”）或“443”端口（“TLS-ALPN-01”）上 gitea 域的外部流量必须由 gitea 实例提供服务。可能需要设置 [HTTP 重定向](#设置http重定向) 和端口转发才能正确路由外部流量。否则，到端口“80”的正常流量将自动重定向到 HTTPS。**您必须同意**ACME提供商的服务条款（默认为Let's Encrypt的 [服务条款](https://letsencrypt.org/documents/LE-SA-v1.2-2017年11月15日.pdf)。
 
-实用默认 Let's Encrypt 的最小配置如下：
+使用默认 Let's Encrypt 的最小配置如下：
 
 ```ini
 [server]
@@ -92,7 +92,7 @@ ACME_EMAIL=email@example.com
 
 按照 [reverse proxy guide](../reverse-proxies) 的规则设置你的反向代理服务器
 
-然后，按照下面的想到启用 HTTPS：
+然后，按照下面的向导启用 HTTPS：
 
 - [nginx](https://nginx.org/en/docs/http/configuring_https_servers.html)
 - [apache2/httpd](https://httpd.apache.org/docs/2.4/ssl/ssl_howto.html)
