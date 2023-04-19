@@ -39,8 +39,6 @@ const (
 	tplSettingsLabels base.TplName = "org/settings/labels"
 	// tplSettingsActions template path for render actions settings
 	tplSettingsActions base.TplName = "org/settings/actions"
-	// tplSettingsRunners template path for render runners settings
-	tplSettingsRunners base.TplName = "org/settings/runners"
 	// tplSettingsRunnersEdit template path for render runners edit settings
 	tplSettingsRunnersEdit base.TplName = "org/settings/runners_edit"
 )

@@ -5,11 +5,11 @@
 		<div class="ui grid">
 			{{template "org/settings/navbar" .}}
 			<div class="ui twelve wide column content">
-				{{template "base/alert" .}}
                 {{if .IsRunnersPage}}
-		            {{template "shared/actions/runner_list" (dict "." . "isFromOrg" true)}}
+		            {{template "shared/actions/runner_list" .}}
                 {{else}}
-				    {{template "shared/secrets/add_list" (dict "." . "isFromOrg" true)}}
+					{{template "base/alert" .}}
+				    {{template "shared/secrets/add_list" .}}
                 {{end}}
 			</div>
 		</div>

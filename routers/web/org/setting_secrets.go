@@ -10,10 +10,6 @@ import (
 
 // Prepare Secrets page under org/settings/actions
 func PrepareSecrets(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("secrets.secrets")
-	ctx.Data["PageIsOrgSettings"] = true
-	ctx.Data["PageIsOrgSettingsSecrets"] = true
-
 	shared.SetSecretsContext(ctx, ctx.ContextUser.ID, 0)
 	if ctx.Written() {
 		return

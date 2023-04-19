@@ -15,11 +15,15 @@ import (
 
 // Actions render settings/actions page for organization level
 func Actions(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("org.runners")
+	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsOrgSettings"] = true
-	ctx.Data["PageIsOrgSettingsRunners"] = true
 	isRunnersPage := ctx.Params(":type") == "runners"
 	ctx.Data["IsRunnersPage"] = isRunnersPage
+	if isRunnersPage {
+		ctx.Data["PageIsOrgSettingsRunners"] = true
+	} else {
+		ctx.Data["PageIsOrgSettingsSecrets"] = true
+	}
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
