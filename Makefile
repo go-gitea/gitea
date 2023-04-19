@@ -20,7 +20,7 @@ IMPORT := code.gitea.io/gitea
 
 GO ?= go
 SHASUM ?= shasum -a 256
-HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
+HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 COMMA := ,
 
 XGO_VERSION := go-1.20.x
@@ -41,7 +41,7 @@ DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
 DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 
-ifeq ($(HAS_GO), GO)
+ifeq ($(HAS_GO), yes)
 	GOPATH ?= $(shell $(GO) env GOPATH)
 	export PATH := $(GOPATH)/bin:$(PATH)
 
