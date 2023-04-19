@@ -1014,7 +1014,7 @@ func Stars(ctx *context.Context) {
 
 // Forks render repository's forked users
 func Forks(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repos.forks")
+	ctx.Data["Title"] = ctx.Tr("repo.forks")
 
 	page := ctx.FormInt("page")
 	if page <= 0 {
