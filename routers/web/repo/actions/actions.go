@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"bytes"
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -18,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/convert"
 
-	"github.com/nektos/act/pkg/jobparser"
+	"github.com/nektos/act/pkg/model"
 )
 
 const (
@@ -100,25 +101,18 @@ func List(ctx *context.Context) {
 				ctx.Error(http.StatusInternalServerError, err.Error())
 				return
 			}
-			_, err = actions.GetEventsFromContent(content)
+			wf, err := model.ReadWorkflow(bytes.NewReader(content))
 			if err != nil {
 				workflow.ErrMsg = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", err.Error())
 				workflows = append(workflows, workflow)
 				continue
 			}
 			// Check whether have matching runner
-			jobs, err := jobparser.Parse(content)
-			if err != nil {
-				workflow.ErrMsg = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", err.Error())
-				workflows = append(workflows, workflow)
-				continue
-			}
-			for _, v := range jobs {
-				id, job := v.Job()
-				runsOnList := job.RunsOn()
+			for _, j := range wf.Jobs {
+				runsOnList := j.RunsOn()
 				for _, ro := range runsOnList {
 					if !allRunnerLabels.Contains(ro) {
-						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_runner_helper", id)
+						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_runner_helper", j.Name)
 						break
 					}
 				}
