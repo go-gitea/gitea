@@ -17,7 +17,7 @@ const (
 	tplRunnerEdit = "repo/settings/runner_edit"
 )
 
-// Actions show all settings related to actions
+// Runners render runners page
 func Runners(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsSettingsActions"] = true
