@@ -28,10 +28,8 @@ const (
 )
 
 type Workflow struct {
-	Entry              git.TreeEntry
-	IsInvalid          bool
-	HaveMatchingRunner bool
-	ErrMsg             string
+	Entry  git.TreeEntry
+	ErrMsg string
 }
 
 // MustEnableActions check if actions are enabled in settings
@@ -78,6 +76,23 @@ func List(ctx *context.Context) {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
+
+		// Get all runner labels
+		opts := actions_model.FindRunnerOptions{
+			RepoID:        ctx.Repo.Repository.ID,
+			WithAvailable: true,
+		}
+		runners, err := actions_model.FindRunners(ctx, opts)
+		if err != nil {
+			ctx.ServerError("FindRunners", err)
+			return
+		}
+		allRunnerLabels := make(container.Set[string])
+		for _, r := range runners {
+			allRunnerLabels.AddMultiple(r.AgentLabels...)
+			allRunnerLabels.AddMultiple(r.CustomLabels...)
+		}
+
 		workflows = make([]Workflow, 0, len(entries))
 		for _, entry := range entries {
 			workflow := Workflow{Entry: *entry}
@@ -88,43 +103,26 @@ func List(ctx *context.Context) {
 			}
 			_, err = actions.GetEventsFromContent(content)
 			if err != nil {
-				workflow.IsInvalid = true
-				workflow.ErrMsg = err.Error()
+				workflow.ErrMsg = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", err.Error())
 			}
 			// Check whether have matching runner
-			opts := actions_model.FindRunnerOptions{
-				RepoID:        ctx.Repo.Repository.ID,
-				WithAvailable: true,
-			}
-			runners, err := actions_model.FindRunners(ctx, opts)
-			if err != nil {
-				ctx.ServerError("FindRunners", err)
-				return
-			}
-			allRunnerLabels := make(container.Set[string])
-			for _, r := range runners {
-				allRunnerLabels.AddMultiple(r.AgentLabels...)
-				allRunnerLabels.AddMultiple(r.CustomLabels...)
-			}
 			jobs, err := jobparser.Parse(content)
 			if err != nil {
 				log.Error("jobparser.Parse: %v", err)
 				continue
 			}
-			matchRunner := true
 			for _, v := range jobs {
 				id, job := v.Job()
 				runsOnList := job.RunsOn()
 				for _, ro := range runsOnList {
 					if !allRunnerLabels.Contains(ro) {
-						matchRunner = false
-						workflow.ErrMsg = id
+						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_runner_helper", id)
 						break
 					}
 				}
-			}
-			if matchRunner {
-				workflow.HaveMatchingRunner = true
+				if workflow.ErrMsg != "" {
+					break
+				}
 			}
 			workflows = append(workflows, workflow)
 		}
