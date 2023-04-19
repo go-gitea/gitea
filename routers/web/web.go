@@ -1184,7 +1184,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/upload-file", repo.UploadFileToServer)
 				m.Post("/upload-remove", web.Bind(forms.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
 			}, repo.MustBeEditable, repo.MustBeAbleToUpload)
-		}, context.RepoRef(), canEnableEditor, context.RepoMustNotBeArchived(), repo.MustBeNotEmpty)
+		}, context.RepoRef(), canEnableEditor, context.RepoMustNotBeArchived())
 
 		m.Group("/branches", func() {
 			m.Group("/_new", func() {
