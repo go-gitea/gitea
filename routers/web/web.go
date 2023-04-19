@@ -651,12 +651,15 @@ func RegisterRoutes(m *web.Route) {
 			}
 		})
 
-		m.Group("/runners", func() {
-			m.Get("", admin.Runners)
-			m.Get("/reset_registration_token", admin.ResetRunnerRegistrationToken)
-			m.Combo("/{runnerid}").Get(admin.EditRunner).Post(web.Bind(forms.EditRunnerForm{}), admin.EditRunnerPost)
-			m.Post("/{runnerid}/delete", admin.DeleteRunnerPost)
+		m.Group("/actions", func() {
+			m.Get("", admin.Actions)
+			m.Group("/runners", func() {
+				m.Get("/reset_registration_token", admin.ResetRunnerRegistrationToken)
+				m.Combo("/{runnerid}").Get(admin.EditRunner).Post(web.Bind(forms.EditRunnerForm{}), admin.EditRunnerPost)
+				m.Post("/{runnerid}/delete", admin.DeleteRunnerPost)
+			})
 		}, actions.MustEnableActions)
+
 	}, func(ctx *context.Context) {
 		ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 		ctx.Data["EnablePackages"] = setting.Packages.Enabled

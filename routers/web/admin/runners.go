@@ -19,11 +19,11 @@ const (
 	tplRunnerEdit base.TplName = "admin/runners/edit"
 )
 
-// Runners show all the runners
-func Runners(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("actions.runners")
+// Actions show all settings related to actions
+func Actions(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsAdmin"] = true
-	ctx.Data["PageIsAdminRunners"] = true
+	ctx.Data["PageIsSettingsActions"] = true
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
@@ -46,7 +46,7 @@ func Runners(ctx *context.Context) {
 func EditRunner(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.runners.edit_runner")
 	ctx.Data["PageIsAdmin"] = true
-	ctx.Data["PageIsAdminRunners"] = true
+	ctx.Data["PageIsSettingsActions"] = true
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
@@ -60,19 +60,19 @@ func EditRunner(ctx *context.Context) {
 func EditRunnerPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.runners.edit")
 	ctx.Data["PageIsAdmin"] = true
-	ctx.Data["PageIsAdminRunners"] = true
+	ctx.Data["PageIsSettingsActions"] = true
 	actions_shared.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"), 0, 0,
-		setting.AppSubURL+"/admin/runners/"+url.PathEscape(ctx.Params(":runnerid")))
+		setting.AppSubURL+"/admin/actions/runners/"+url.PathEscape(ctx.Params(":runnerid")))
 }
 
 // DeleteRunnerPost response for deleting a runner
 func DeleteRunnerPost(ctx *context.Context) {
 	actions_shared.RunnerDeletePost(ctx, ctx.ParamsInt64(":runnerid"),
-		setting.AppSubURL+"/admin/runners/",
-		setting.AppSubURL+"/admin/runners/"+url.PathEscape(ctx.Params(":runnerid")),
+		setting.AppSubURL+"/admin/actions/",
+		setting.AppSubURL+"/admin/actions/runners/"+url.PathEscape(ctx.Params(":runnerid")),
 	)
 }
 
 func ResetRunnerRegistrationToken(ctx *context.Context) {
-	actions_shared.RunnerResetRegistrationToken(ctx, 0, 0, setting.AppSubURL+"/admin/runners/")
+	actions_shared.RunnerResetRegistrationToken(ctx, 0, 0, setting.AppSubURL+"/admin/actions")
 }
