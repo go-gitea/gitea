@@ -264,7 +264,7 @@ func (n *actionsNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 	case issues_model.ReviewTypeApprove:
 		reviewHookType = webhook_module.HookEventPullRequestReviewApproved
 	case issues_model.ReviewTypeComment:
-		reviewHookType = webhook_module.HookEventPullRequestComment
+		reviewHookType = webhook_module.HookEventPullRequestReviewComment
 	case issues_model.ReviewTypeReject:
 		reviewHookType = webhook_module.HookEventPullRequestReviewRejected
 	default:
@@ -443,17 +443,17 @@ func (n *actionsNotifier) NotifySyncDeleteRef(ctx context.Context, pusher *user_
 
 func (n *actionsNotifier) NotifyNewRelease(ctx context.Context, rel *repo_model.Release) {
 	ctx = withMethod(ctx, "NotifyNewRelease")
-	notifyRelease(ctx, rel.Publisher, rel, rel.Sha1, api.HookReleasePublished)
+	notifyRelease(ctx, rel.Publisher, rel, api.HookReleasePublished)
 }
 
 func (n *actionsNotifier) NotifyUpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 	ctx = withMethod(ctx, "NotifyUpdateRelease")
-	notifyRelease(ctx, doer, rel, rel.Sha1, api.HookReleaseUpdated)
+	notifyRelease(ctx, doer, rel, api.HookReleaseUpdated)
 }
 
 func (n *actionsNotifier) NotifyDeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 	ctx = withMethod(ctx, "NotifyDeleteRelease")
-	notifyRelease(ctx, doer, rel, rel.Sha1, api.HookReleaseDeleted)
+	notifyRelease(ctx, doer, rel, api.HookReleaseDeleted)
 }
 
 func (n *actionsNotifier) NotifyPackageCreate(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
@@ -525,4 +525,39 @@ func (n *actionsNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Contex
 		}).
 		WithPullRequest(pr).
 		Notify(ctx)
+}
+
+func (n *actionsNotifier) NotifyNewWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+	ctx = withMethod(ctx, "NotifyNewWikiPage")
+
+	newNotifyInput(repo, doer, webhook_module.HookEventWiki).WithPayload(&api.WikiPayload{
+		Action:     api.HookWikiCreated,
+		Repository: convert.ToRepo(ctx, repo, perm_model.AccessModeOwner),
+		Sender:     convert.ToUser(ctx, doer, nil),
+		Page:       page,
+		Comment:    comment,
+	}).Notify(ctx)
+}
+
+func (n *actionsNotifier) NotifyEditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+	ctx = withMethod(ctx, "NotifyEditWikiPage")
+
+	newNotifyInput(repo, doer, webhook_module.HookEventWiki).WithPayload(&api.WikiPayload{
+		Action:     api.HookWikiEdited,
+		Repository: convert.ToRepo(ctx, repo, perm_model.AccessModeOwner),
+		Sender:     convert.ToUser(ctx, doer, nil),
+		Page:       page,
+		Comment:    comment,
+	}).Notify(ctx)
+}
+
+func (n *actionsNotifier) NotifyDeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page string) {
+	ctx = withMethod(ctx, "NotifyDeleteWikiPage")
+
+	newNotifyInput(repo, doer, webhook_module.HookEventWiki).WithPayload(&api.WikiPayload{
+		Action:     api.HookWikiDeleted,
+		Repository: convert.ToRepo(ctx, repo, perm_model.AccessModeOwner),
+		Sender:     convert.ToUser(ctx, doer, nil),
+		Page:       page,
+	}).Notify(ctx)
 }

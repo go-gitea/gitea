@@ -10,13 +10,9 @@
 					<div class="divider"></div>
 					{{range .workflows}}
 						<a class="item{{if eq .Entry.Name $.CurWorkflow}} active{{end}}" href="{{$.Link}}?workflow={{.Entry.Name}}">{{.Entry.Name}}
-							{{if .IsInvalid}}
-								<span class="tooltip" data-content="{{$.locale.Tr "actions.runs.invalid_workflow_helper" (.ErrMsg)}}">
+							{{if .ErrMsg}}
+								<span data-tooltip-content="{{.ErrMsg}}">
 									<i class="warning icon red"></i>
-								</span>
-							{{else}}
-								<span class="tooltip" data-content="{{$.locale.Tr "actions.runs.valid_workflow_helper"}}">
-									<i class="check icon green"></i>
 								</span>
 							{{end}}
 						</a>

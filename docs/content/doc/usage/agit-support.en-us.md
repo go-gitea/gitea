@@ -1,6 +1,6 @@
 ---
 date: "	2022-09-01T20:50:42+0000"
-title: "Usage: Agit Setup"
+title: "Agit Setup"
 slug: "agit-setup"
 weight: 12
 toc: false

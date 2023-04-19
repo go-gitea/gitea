@@ -7,7 +7,7 @@
 			<div class="fitted item">
 				<div class="ui action input" id="citation-panel">
 					{{template "repo/cite/cite_buttons" .}}
-					<a id="goto-citation-btn" class="ui basic jump icon button tooltip" href="{{$.RepoLink}}/src/{{$.BranchName}}/CITATION.cff" data-position="top right" data-content="{{.locale.Tr "repo.find_file.go_to_file"}}">
+					<a id="goto-citation-btn" class="ui basic jump icon button" href="{{$.RepoLink}}/src/{{$.BranchName}}/CITATION.cff" data-tooltip-content="{{.locale.Tr "repo.find_file.go_to_file"}}">
 						{{svg "octicon-file-moved"}}
 					</a>
 				</div>

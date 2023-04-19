@@ -23,19 +23,27 @@
 			</div>
 		</div>
 	</div>
-	{{if .PackageDescriptor.Metadata.MultiArch}}
+	{{if .PackageDescriptor.Metadata.Manifests}}
 		<h4 class="ui top attached header">{{.locale.Tr "packages.container.multi_arch"}}</h4>
 		<div class="ui attached segment">
-			<div class="ui form">
-			{{range $arch, $digest := .PackageDescriptor.Metadata.MultiArch}}
-				<div class="field">
-					<label>{{svg "octicon-terminal"}} {{$arch}}</label>
-					{{if eq $.PackageDescriptor.Metadata.Type "oci"}}
-					<div class="markup"><pre class="code-block"><code>docker pull {{$.RegistryHost}}/{{$.PackageDescriptor.Owner.LowerName}}/{{$.PackageDescriptor.Package.LowerName}}@{{$digest}}</code></pre></div>
+			<table class="ui very basic compact table">
+				<thead>
+					<tr>
+						<th>{{.locale.Tr "packages.container.digest"}}</th>
+						<th>{{.locale.Tr "packages.container.multi_arch"}}</th>
+						<th>{{.locale.Tr "admin.packages.size"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .PackageDescriptor.Metadata.Manifests}}
+					<tr>
+						<td><a href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .Digest}}">{{.Digest}}</a></td>
+						<td>{{.Platform}}</td>
+						<td>{{FileSize .Size}}</td>
+					</tr>
 					{{end}}
-				</div>
-			{{end}}
-			</div>
+				</tbody>
+			</table>
 		</div>
 	{{end}}
 	{{if .PackageDescriptor.Metadata.Description}}

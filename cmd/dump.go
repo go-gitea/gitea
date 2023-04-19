@@ -112,6 +112,10 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Name:  "verbose, V",
 			Usage: "Show process details",
 		},
+		cli.BoolFlag{
+			Name:  "quiet, q",
+			Usage: "Only display warnings and errors",
+		},
 		cli.StringFlag{
 			Name:  "tempdir, t",
 			Value: os.TempDir(),
@@ -192,11 +196,24 @@ func runDump(ctx *cli.Context) error {
 	if _, err := setting.CfgProvider.Section("log.console").NewKey("STDERR", "true"); err != nil {
 		fatal("Setting console logger to stderr failed: %v", err)
 	}
+
+	// Set loglevel to Warn if quiet-mode is requested
+	if ctx.Bool("quiet") {
+		if _, err := setting.CfgProvider.Section("log.console").NewKey("LEVEL", "Warn"); err != nil {
+			fatal("Setting console log-level failed: %v", err)
+		}
+	}
+
 	if !setting.InstallLock {
 		log.Error("Is '%s' really the right config path?\n", setting.CustomConf)
 		return fmt.Errorf("gitea is not initialized")
 	}
 	setting.LoadSettings() // cannot access session settings otherwise
+
+	verbose := ctx.Bool("verbose")
+	if verbose && ctx.Bool("quiet") {
+		return fmt.Errorf("--quiet and --verbose cannot both be set")
+	}
 
 	stdCtx, cancel := installSignals()
 	defer cancel()
@@ -223,7 +240,6 @@ func runDump(ctx *cli.Context) error {
 		return err
 	}
 
-	verbose := ctx.Bool("verbose")
 	var iface interface{}
 	if fileName == "-" {
 		iface, err = archiver.ByExtension(fmt.Sprintf(".%s", outType))
@@ -250,6 +266,8 @@ func runDump(ctx *cli.Context) error {
 
 		if ctx.IsSet("skip-lfs-data") && ctx.Bool("skip-lfs-data") {
 			log.Info("Skip dumping LFS data")
+		} else if !setting.LFS.StartServer {
+			log.Info("LFS isn't enabled. Skip dumping LFS data")
 		} else if err := storage.LFS.IterateObjects("", func(objPath string, object storage.Object) error {
 			info, err := object.Stat()
 			if err != nil {
@@ -364,6 +382,8 @@ func runDump(ctx *cli.Context) error {
 
 	if ctx.IsSet("skip-package-data") && ctx.Bool("skip-package-data") {
 		log.Info("Skip dumping package data")
+	} else if !setting.Packages.Enabled {
+		log.Info("Packages isn't enabled. Skip dumping package data")
 	} else if err := storage.Packages.IterateObjects("", func(objPath string, object storage.Object) error {
 		info, err := object.Stat()
 		if err != nil {

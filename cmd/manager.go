@@ -4,8 +4,6 @@
 package cmd
 
 import (
-	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -103,57 +101,34 @@ func runShutdown(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.Shutdown(ctx)
-	switch statusCode {
-	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
-	}
-
-	fmt.Fprintln(os.Stdout, msg)
-	return nil
+	setup(ctx, c.Bool("debug"))
+	extra := private.Shutdown(ctx)
+	return handleCliResponseExtra(extra)
 }
 
 func runRestart(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.Restart(ctx)
-	switch statusCode {
-	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
-	}
-
-	fmt.Fprintln(os.Stdout, msg)
-	return nil
+	setup(ctx, c.Bool("debug"))
+	extra := private.Restart(ctx)
+	return handleCliResponseExtra(extra)
 }
 
 func runFlushQueues(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.FlushQueues(ctx, c.Duration("timeout"), c.Bool("non-blocking"))
-	switch statusCode {
-	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
-	}
-
-	fmt.Fprintln(os.Stdout, msg)
-	return nil
+	setup(ctx, c.Bool("debug"))
+	extra := private.FlushQueues(ctx, c.Duration("timeout"), c.Bool("non-blocking"))
+	return handleCliResponseExtra(extra)
 }
 
 func runProcesses(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.Processes(ctx, os.Stdout, c.Bool("flat"), c.Bool("no-system"), c.Bool("stacktraces"), c.Bool("json"), c.String("cancel"))
-	switch statusCode {
-	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
-	}
-
-	return nil
+	setup(ctx, c.Bool("debug"))
+	extra := private.Processes(ctx, os.Stdout, c.Bool("flat"), c.Bool("no-system"), c.Bool("stacktraces"), c.Bool("json"), c.String("cancel"))
+	return handleCliResponseExtra(extra)
 }
