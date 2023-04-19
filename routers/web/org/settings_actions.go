@@ -4,6 +4,7 @@
 package org
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -17,12 +18,14 @@ import (
 func Actions(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsOrgSettings"] = true
-	isRunnersPage := ctx.Params(":type") == "runners"
-	ctx.Data["IsRunnersPage"] = isRunnersPage
-	if isRunnersPage {
+	pageType := ctx.Params(":type")
+	ctx.Data["PageType"] = pageType
+	if pageType == "runners" {
 		ctx.Data["PageIsOrgSettingsRunners"] = true
-	} else {
+	} else if pageType == "secrets" {
 		ctx.Data["PageIsOrgSettingsSecrets"] = true
+	} else {
+		ctx.ServerError("Unknown Page Type", fmt.Errorf("Unknown Actions Settings Type: %s", pageType))
 	}
 
 	page := ctx.FormInt("page")
