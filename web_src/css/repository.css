@@ -1911,15 +1911,12 @@
   border-radius: var(--border-radius) 0 0 var(--border-radius);
 }
 
-.repository.quickstart .guide .ui.action.small.input {
-  width: 100%;
-}
-
 .repository.quickstart .guide #repo-clone-url {
   border-radius: 0;
   padding: 5px 10px;
   font-size: 1.2em;
   line-height: 1.4;
+  flex: 1
 }
 
 .repository.release #release-list {
