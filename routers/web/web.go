@@ -1023,12 +1023,6 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/delete", repo.DeleteDeployKey)
 			})
 
-			m.Group("/secrets", func() {
-				m.Get("", repo.Secrets)
-				m.Post("", web.Bind(forms.AddSecretForm{}), repo.SecretsPost)
-				m.Post("/delete", repo.DeleteSecret)
-			})
-
 			m.Group("/lfs", func() {
 				m.Get("/", repo.LFSFiles)
 				m.Get("/show/{oid}", repo.LFSFileGet)
@@ -1042,13 +1036,18 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/{lid}/unlock", repo.LFSUnlock)
 				})
 			})
-
-			m.Group("/runners", func() {
-				m.Get("", repo.Runners)
-				m.Combo("/{runnerid}").Get(repo.RunnersEdit).
-					Post(web.Bind(forms.EditRunnerForm{}), repo.RunnersEditPost)
-				m.Post("/{runnerid}/delete", repo.RunnerDeletePost)
-				m.Get("/reset_registration_token", repo.ResetRunnerRegistrationToken)
+			m.Group("/actions", func() {
+				m.Get("", repo.Actions)
+				m.Group("/runners", func() {
+					m.Combo("/{runnerid}").Get(repo.RunnersEdit).
+						Post(web.Bind(forms.EditRunnerForm{}), repo.RunnersEditPost)
+					m.Post("/{runnerid}/delete", repo.RunnerDeletePost)
+					m.Get("/reset_registration_token", repo.ResetRunnerRegistrationToken)
+				})
+				m.Group("/secrets", func() {
+					m.Post("", web.Bind(forms.AddSecretForm{}), repo.SecretsPost)
+					m.Post("/delete", repo.DeleteSecret)
+				})
 			}, actions.MustEnableActions)
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true

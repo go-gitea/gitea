@@ -34,7 +34,7 @@ func SecretsPost(ctx *context.Context) {
 		ctx,
 		0,
 		ctx.Repo.Repository.ID,
-		ctx.Repo.RepoLink+"/settings/secrets",
+		ctx.Repo.RepoLink+"/settings/actions",
 	)
 }
 
@@ -43,6 +43,6 @@ func DeleteSecret(ctx *context.Context) {
 		ctx,
 		0,
 		ctx.Repo.Repository.ID,
-		ctx.Repo.RepoLink+"/settings/secrets",
+		ctx.Repo.RepoLink+"/settings/actions",
 	)
 }

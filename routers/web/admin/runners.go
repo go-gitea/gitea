@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	tplRunners    base.TplName = "admin/runners/base"
+	tplActions    base.TplName = "admin/runners/base"
 	tplRunnerEdit base.TplName = "admin/runners/edit"
 )
 
@@ -39,7 +39,7 @@ func Runners(ctx *context.Context) {
 		Filter: ctx.Req.URL.Query().Get("q"),
 	}
 
-	actions_shared.RunnersList(ctx, tplRunners, opts)
+	actions_shared.RunnersList(ctx, tplActions, opts)
 }
 
 // EditRunner show editing runner page

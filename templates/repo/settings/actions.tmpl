@@ -1,5 +1,6 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings runners")}}
 	<div class="repo-setting-content">
 		{{template "shared/actions/runner_list" .}}
+		{{template "shared/secrets/add_list" .}}
 	</div>
 {{template "repo/settings/layout_footer" .}}
