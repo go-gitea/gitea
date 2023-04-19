@@ -12,15 +12,15 @@
 {{- end -}}
 
 {{if eq .status "success"}}
-	{{svg "octicon-check-circle-fill" $size (printf "ui text green %s" $className)}}
+	{{svg "octicon-check-circle-fill" $size (printf "text green %s" $className)}}
 {{else if eq .status "skipped"}}
-	{{svg "octicon-skip" $size (printf "ui text grey %s" $className)}}
+	{{svg "octicon-skip" $size (printf "text grey %s" $className)}}
 {{else if eq .status "waiting"}}
-	{{svg "octicon-clock" $size (printf "ui text yellow %s" $className)}}
+	{{svg "octicon-clock" $size (printf "text yellow %s" $className)}}
 {{else if eq .status "blocked"}}
-	{{svg "octicon-blocked" $size (printf "ui text yellow %s" $className)}}
+	{{svg "octicon-blocked" $size (printf "text yellow %s" $className)}}
 {{else if eq .status "running"}}
-	{{svg "octicon-meter" $size (printf "ui text yellow job-status-rotate %s" $className)}}
+	{{svg "octicon-meter" $size (printf "text yellow job-status-rotate %s" $className)}}
 {{else}}
-	{{svg "octicon-x-circle-fill" $size (printf "ui text red %s" $className)}}
+	{{svg "octicon-x-circle-fill" $size (printf "text red %s" $className)}}
 {{end}}
