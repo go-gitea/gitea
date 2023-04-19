@@ -16,7 +16,7 @@ func CurrentUsername() string {
 	if err != nil {
 		return fallbackCurrentUsername()
 	}
-	username := userinfo.Username //nolint:revive
+	username := userinfo.Username
 	if runtime.GOOS == "windows" {
 		parts := strings.Split(username, "\\")
 		username = parts[len(parts)-1]
