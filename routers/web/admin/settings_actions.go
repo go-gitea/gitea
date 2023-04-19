@@ -44,7 +44,7 @@ func Actions(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplActions)
 }
 
-// EditRunner show editing runner page
+// EditRunner renders runner edit page for admin level
 func EditRunner(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.runners.edit_runner")
 	ctx.Data["PageIsAdmin"] = true

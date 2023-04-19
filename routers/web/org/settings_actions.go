@@ -38,7 +38,7 @@ func Actions(ctx *context.Context) {
 	}
 
 	actions_shared.RunnersList(ctx, opts)
-	Secrets(ctx)
+	PrepareSecrets(ctx)
 	ctx.HTML(http.StatusOK, tplSettingsActions)
 }
 
@@ -49,7 +49,7 @@ func ResetRunnerRegistrationToken(ctx *context.Context) {
 		ctx.Org.OrgLink+"/settings/actions/runners")
 }
 
-// RunnersEdit render runner edit page
+// RunnersEdit render runner edit page for organization level
 func RunnersEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.runners.edit")
 	ctx.Data["PageIsOrgSettings"] = true

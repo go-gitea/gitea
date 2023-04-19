@@ -44,7 +44,7 @@ func Actions(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplActions)
 }
 
-// RunnersEdit render runner edit page
+// RunnersEdit renders runner edit page for repository level
 func RunnersEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.runners")
 	ctx.Data["PageIsSettingsRunners"] = true

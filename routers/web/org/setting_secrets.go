@@ -4,17 +4,12 @@
 package org
 
 import (
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	shared "code.gitea.io/gitea/routers/web/shared/secrets"
 )
 
-const (
-	tplSettingsSecrets base.TplName = "org/settings/secrets"
-)
-
-// Secrets render organization secrets page
-func Secrets(ctx *context.Context) {
+// Prepare Secrets page under org/settings/actions
+func PrepareSecrets(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("secrets.secrets")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsSecrets"] = true
@@ -23,8 +18,6 @@ func Secrets(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-
-	// ctx.HTML(http.StatusOK, tplSettingsSecrets)
 }
 
 // SecretsPost add secrets
