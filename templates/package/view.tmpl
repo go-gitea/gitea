@@ -84,9 +84,9 @@
 							<a class="ui right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{.locale.Tr "packages.versions.view_all"}}</a>
 							<div class="ui relaxed list">
 							{{range .LatestVersions}}
-								<div class="item">
-									<a href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
-									<span class="text small">{{$.locale.Tr "on_date"}} {{.CreatedUnix.FormatDate}}</span>
+								<div class="item gt-df">
+									<a class="gt-f1" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
+									<span class="text small">{{template "shared/datetime/short" (dict "Datetime" (.CreatedUnix.FormatDate) "Fallback" (.CreatedUnix.FormatDate))}}</span>
 								</div>
 							{{end}}
 							</div>
