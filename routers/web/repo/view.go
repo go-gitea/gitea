@@ -154,16 +154,6 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 	}
 
-	// Check permission to add or upload new file.
-	if ctx.Repo.CanWrite(unit_model.TypeCode) && ctx.Repo.IsViewBranch {
-		ctx.Data["CanAddFile"] = !ctx.Repo.Repository.IsArchived
-		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled && !ctx.Repo.Repository.IsArchived
-	}
-
-	if ctx.Written() {
-		return
-	}
-
 	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, entries, true)
 	if err != nil {
 		ctx.ServerError("findReadmeFileInEntries", err)
@@ -868,21 +858,25 @@ func renderRepoTopics(ctx *context.Context) {
 
 func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
+	ctx.Data["RepositoryUploadEnabled"] = setting.Repository.Upload.Enabled
 
-	if ctx.Repo.Repository.IsEmpty {
-		reallyEmpty := true
+	if ctx.Repo.Commit == nil || ctx.Repo.Repository.IsEmpty || ctx.Repo.Repository.IsBroken() {
+		showEmpty := true
 		var err error
 		if ctx.Repo.GitRepo != nil {
-			reallyEmpty, err = ctx.Repo.GitRepo.IsEmpty()
+			showEmpty, err = ctx.Repo.GitRepo.IsEmpty()
 			if err != nil {
-				ctx.ServerError("GitRepo.IsEmpty", err)
-				return
+				log.Error("GitRepo.IsEmpty: %v", err)
+				ctx.Repo.Repository.Status = repo_model.RepositoryBroken
+				showEmpty = true
+				ctx.Flash.Error(ctx.Tr("error.occurred"), true)
 			}
 		}
-		if reallyEmpty {
+		if showEmpty {
 			ctx.HTML(http.StatusOK, tplRepoEMPTY)
 			return
 		}
+
 		// the repo is not really empty, so we should update the modal in database
 		// such problem may be caused by:
 		// 1) an error occurs during pushing/receiving.  2) the user replaces an empty git repo manually
@@ -898,6 +892,14 @@ func renderCode(ctx *context.Context) {
 			ctx.ServerError("UpdateRepoSize", err)
 			return
 		}
+
+		// the repo's IsEmpty has been updated, redirect to this page to make sure middlewares can get the correct values
+		link := ctx.Link
+		if ctx.Req.URL.RawQuery != "" {
+			link += "?" + ctx.Req.URL.RawQuery
+		}
+		ctx.Redirect(link)
+		return
 	}
 
 	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
@@ -927,11 +929,9 @@ func renderCode(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.Repository.IsEmpty {
-		checkCitationFile(ctx, entry)
-		if ctx.Written() {
-			return
-		}
+	checkCitationFile(ctx, entry)
+	if ctx.Written() {
+		return
 	}
 
 	renderLanguageStats(ctx)
