@@ -385,8 +385,8 @@
 							{{template "shared/user/authorlink" .Poster}}
 						{{end}}
 
-                        {{if .CheckRun}}
-                            {{$.locale.Tr "check_runs.review.comment" $createdStr | Safe}}
+						{{if .CheckRun}}
+							{{$.locale.Tr "check_runs.review.comment" $createdStr | Safe}}
 						{{else if eq .Review.Type 1}}
 							{{$.locale.Tr "repo.issues.review.approve" $createdStr | Safe}}
 						{{else if eq .Review.Type 2}}
@@ -408,21 +408,21 @@
 							<div class="comment-header-left gt-df gt-ac">
 								<span class="text grey muted-links">
 									{{if .CheckRun}}
-                                        {{.CheckRun.Output.Title}}
-                                    {{else}}
-                                        {{if .OriginalAuthor}}
-                                            <span class="text black gt-bold">
-                                                {{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
-                                                {{.OriginalAuthor}}
-                                            </span>
-                                            <span class="text grey muted-links"> {{if $.Repository.OriginalURL}}</span>
-                                            <span class="text migrate">({{$.locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe}}){{end}}</span>
-                                        {{else}}
-                                            {{template "shared/user/authorlink" .Poster}}
-                                        {{end}}
+										{{.CheckRun.Output.Title}}
+									{{else}}
+										{{if .OriginalAuthor}}
+											<span class="text black gt-bold">
+												{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+												{{.OriginalAuthor}}
+											</span>
+											<span class="text grey muted-links"> {{if $.Repository.OriginalURL}}</span>
+											<span class="text migrate">({{$.locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe}}){{end}}</span>
+										{{else}}
+											{{template "shared/user/authorlink" .Poster}}
+										{{end}}
 
-                                        {{$.locale.Tr "repo.issues.review.left_comment" | Safe}}
-                                    {{end}}
+										{{$.locale.Tr "repo.issues.review.left_comment" | Safe}}
+									{{end}}
 								</span>
 							</div>
 							<div class="comment-header-right actions gt-df gt-ac">
@@ -441,17 +441,17 @@
 												{{$.locale.Tr "repo.issues.owner"}}
 										</div>
 									{{end}}
-                                    {{if and .CheckRun .CheckRun.GetTargetURL}}
-                                        <div class="ui basic label">
-                                            <a class="gt-ml-3" href="{{.CheckRun.GetTargetURL}}" target="_blank" rel="noopener noreferrer">{{$.locale.Tr "repo.pulls.status_checks_details"}}</a>
-                                        </div>
-                                    {{end}}
+									{{if and .CheckRun .CheckRun.GetTargetURL}}
+										<div class="ui basic label">
+											<a class="gt-ml-3" href="{{.CheckRun.GetTargetURL}}" target="_blank" rel="noopener noreferrer">{{$.locale.Tr "repo.pulls.status_checks_details"}}</a>
+										</div>
+									{{end}}
 
 									{{if not $.Repository.IsArchived}}
-                                            {{if not .CheckRun}}
-											    {{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+											{{if not .CheckRun}}
+												{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 											{{end}}
-                                            {{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" false "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID)) "disableEdit" .CheckRun}}
+											{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" false "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID)) "disableEdit" .CheckRun}}
 									{{end}}
 							</div>
 						</div>
@@ -555,29 +555,29 @@
 																		<span class="text grey muted-links"> {{if $.Repository.OriginalURL}}</span>
 																		<span class="text migrate">({{$.locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe}}){{end}}</span>
 																	{{else if .CheckRunAnnotation}}
-                                                                        {{if .CheckRunAnnotation.AnnotationLevel.IsError}}
-                                                                            {{svg "gitea-exclamation" 18 "commit-status icon text red"}}
-                                                                        {{end}}
-                                                                        {{if .CheckRunAnnotation.AnnotationLevel.IsFailure}}
-                                                                            {{svg "octicon-x" 18 "commit-status icon text red"}}
-                                                                        {{end}}
-                                                                        {{if .CheckRunAnnotation.AnnotationLevel.IsWarning}}
-                                                                            {{svg "octicon-alert" 18 "commit-status icon text yellow"}}
-                                                                        {{end}}
+																		{{if .CheckRunAnnotation.AnnotationLevel.IsError}}
+																			{{svg "gitea-exclamation" 18 "commit-status icon text red"}}
+																		{{end}}
+																		{{if .CheckRunAnnotation.AnnotationLevel.IsFailure}}
+																			{{svg "octicon-x" 18 "commit-status icon text red"}}
+																		{{end}}
+																		{{if .CheckRunAnnotation.AnnotationLevel.IsWarning}}
+																			{{svg "octicon-alert" 18 "commit-status icon text yellow"}}
+																		{{end}}
 
-                                                                        <span class="text grey">
-                                                                            {{if .CheckRunAnnotation.Title}}
-                                                                                {{.CheckRunAnnotation.Title}}
-                                                                            {{else}}
-                                                                                {{$.locale.Tr .CheckRunAnnotation.DefaultTitle}}
-                                                                            {{end}}
-                                                                        </span>
-                                                                    {{else}}
+																		<span class="text grey">
+																			{{if .CheckRunAnnotation.Title}}
+																				{{.CheckRunAnnotation.Title}}
+																			{{else}}
+																				{{$.locale.Tr .CheckRunAnnotation.DefaultTitle}}
+																			{{end}}
+																		</span>
+																	{{else}}
 																		{{template "shared/user/authorlink" .Poster}}
 																	{{end}}
-                                                                    {{if not .CheckRunAnnotation}}
-																	    {{$.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr | Safe}}
-                                                                    {{end}}
+																	{{if not .CheckRunAnnotation}}
+																		{{$.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr | Safe}}
+																	{{end}}
 																</span>
 															</div>
 															<div class="comment-header-right actions gt-df gt-ac">
@@ -597,10 +597,10 @@
 																	</div>
 																{{end}}
 																{{if not $.Repository.IsArchived}}
-                                                                    {{if not .CheckRunAnnotation}}
-																	    {{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+																	{{if not .CheckRunAnnotation}}
+																		{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 																	{{end}}
-                                                                    {{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+																	{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 																{{end}}
 															</div>
 														</div>
@@ -625,35 +625,35 @@
 												</div>
 											{{end}}
 										</div>
-                                        {{if not (index $comms 0).CheckRunAnnotation}}
-                                            <div class="code-comment-buttons gt-df gt-ac gt-fw gt-mt-3 gt-mb-2 gt-mx-3">
-                                                <div class="gt-f1">
-                                                    {{if $resolved}}
-                                                        <div class="ui grey text">
-                                                            {{svg "octicon-check" 16 "gt-mr-2"}}
-                                                            <b>{{$resolveDoer.Name}}</b> {{$.locale.Tr "repo.issues.review.resolved_by"}}
-                                                        </div>
-                                                    {{end}}
-                                                </div>
-                                                <div class="code-comment-buttons-buttons">
-                                                    {{if and $.CanMarkConversation $isNotPending}}
-                                                        <button class="ui tiny basic button resolve-conversation" data-origin="timeline" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $comms 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
-                                                            {{if $resolved}}
-                                                                {{$.locale.Tr "repo.issues.review.un_resolve_conversation"}}
-                                                            {{else}}
-                                                                {{$.locale.Tr "repo.issues.review.resolve_conversation"}}
-                                                            {{end}}
-                                                        </button>
-                                                    {{end}}
-                                                    {{if and $.SignedUserID (not $.Repository.IsArchived)}}
-                                                        <button class="comment-form-reply ui green tiny labeled icon button gt-ml-2 gt-mr-0">
-                                                            {{svg "octicon-reply" 16 "reply icon gt-mr-2"}}{{$.locale.Tr "repo.diff.comment.reply"}}
-                                                        </button>
-                                                    {{end}}
-                                                </div>
-                                            </div>
-										    {{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index $comms 0).ReviewID "root" $ "comment" (index $comms 0)}}
-                                        {{end}}
+										{{if not (index $comms 0).CheckRunAnnotation}}
+											<div class="code-comment-buttons gt-df gt-ac gt-fw gt-mt-3 gt-mb-2 gt-mx-3">
+												<div class="gt-f1">
+													{{if $resolved}}
+														<div class="ui grey text">
+															{{svg "octicon-check" 16 "gt-mr-2"}}
+															<b>{{$resolveDoer.Name}}</b> {{$.locale.Tr "repo.issues.review.resolved_by"}}
+														</div>
+													{{end}}
+												</div>
+												<div class="code-comment-buttons-buttons">
+													{{if and $.CanMarkConversation $isNotPending}}
+														<button class="ui tiny basic button resolve-conversation" data-origin="timeline" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $comms 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
+															{{if $resolved}}
+																{{$.locale.Tr "repo.issues.review.un_resolve_conversation"}}
+															{{else}}
+																{{$.locale.Tr "repo.issues.review.resolve_conversation"}}
+															{{end}}
+														</button>
+													{{end}}
+													{{if and $.SignedUserID (not $.Repository.IsArchived)}}
+														<button class="comment-form-reply ui green tiny labeled icon button gt-ml-2 gt-mr-0">
+															{{svg "octicon-reply" 16 "reply icon gt-mr-2"}}{{$.locale.Tr "repo.diff.comment.reply"}}
+														</button>
+													{{end}}
+												</div>
+											</div>
+											{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index $comms 0).ReviewID "root" $ "comment" (index $comms 0)}}
+										{{end}}
 									</div>
 								</div>
 						{{end}}

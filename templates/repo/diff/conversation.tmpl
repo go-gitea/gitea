@@ -50,8 +50,8 @@
 				</button>
 			{{end}}
 		</div>
-        {{if not (index .comments 0).CheckRunAnnotation}}
-		    {{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index .comments 0).ReviewID "root" $ "comment" (index .comments 0)}}
-        {{end}}
-    </div>
+		{{if not (index .comments 0).CheckRunAnnotation}}
+			{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index .comments 0).ReviewID "root" $ "comment" (index .comments 0)}}
+		{{end}}
+	</div>
 </div>

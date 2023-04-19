@@ -1,3 +1,6 @@
+// Copyright 2023 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package git
 
 import (
@@ -12,8 +15,9 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func TestCreateCheckRun(t *testing.T) {
@@ -294,9 +298,11 @@ func TestUpdate_Update(t *testing.T) {
 		Creator: user2,
 		Name:    "test check run",
 	})
-	assert.EqualValues(t, ErrCheckRunExist{RepoID: 1,
+	assert.EqualValues(t, ErrCheckRunExist{
+		RepoID:  1,
 		HeadSHA: "1234123412341234123412341234123412341234",
-		Name:    "test check run"}, err)
+		Name:    "test check run",
+	}, err)
 
 	err = checkRun2.Update(db.DefaultContext, UpdateCheckRunOptions{
 		Repo:    repo1,

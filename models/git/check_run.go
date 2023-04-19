@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/nektos/act/pkg/jobparser"
 	"xorm.io/xorm"
 )
@@ -59,24 +60,24 @@ const (
 	CheckRunConclusionTimedOut
 )
 
-func (c CheckRunConclusion) toCommitStatusState() api.CommitStatusState {
-	if c == CheckRunConclusionFailure {
+func (conclusion CheckRunConclusion) toCommitStatusState() api.CommitStatusState {
+	if conclusion == CheckRunConclusionFailure {
 		return api.CommitStatusFailure
 	}
 
-	if c == CheckRunConclusionNeutral {
+	if conclusion == CheckRunConclusionNeutral {
 		return api.CommitStatusNeutral
 	}
 
-	if c == CheckRunConclusionSuccess {
+	if conclusion == CheckRunConclusionSuccess {
 		return api.CommitStatusSuccess
 	}
 
-	if c == CheckRunConclusionSkipped {
+	if conclusion == CheckRunConclusionSkipped {
 		return api.CommitStatusSkipped
 	}
 
-	if c == CheckRunConclusionTimedOut {
+	if conclusion == CheckRunConclusionTimedOut {
 		return api.CommitStatusTimedOut
 	}
 
@@ -113,20 +114,20 @@ type CheckRun struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
-func (status *CheckRun) LoadAttributes(ctx context.Context) (err error) {
-	if status.Repo == nil {
-		status.Repo, err = repo_model.GetRepositoryByID(ctx, status.RepoID)
+func (c *CheckRun) LoadAttributes(ctx context.Context) (err error) {
+	if c.Repo == nil {
+		c.Repo, err = repo_model.GetRepositoryByID(ctx, c.RepoID)
 		if err != nil {
-			return fmt.Errorf("getRepositoryByID [%d]: %w", status.RepoID, err)
+			return fmt.Errorf("getRepositoryByID [%d]: %w", c.RepoID, err)
 		}
 	}
 
-	if status.ActionRunID > 0 && status.Creator == nil {
-		status.Creator = user_model.NewActionsUser()
-	} else if status.Creator == nil && status.CreatorID > 0 {
-		status.Creator, err = user_model.GetUserByID(ctx, status.CreatorID)
+	if c.ActionRunID > 0 && c.Creator == nil {
+		c.Creator = user_model.NewActionsUser()
+	} else if c.Creator == nil && c.CreatorID > 0 {
+		c.Creator, err = user_model.GetUserByID(ctx, c.CreatorID)
 		if err != nil {
-			return fmt.Errorf("getUserByID [%d]: %w", status.CreatorID, err)
+			return fmt.Errorf("getUserByID [%d]: %w", c.CreatorID, err)
 		}
 	}
 

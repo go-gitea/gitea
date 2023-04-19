@@ -1,3 +1,6 @@
+// Copyright 2023 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package structs
 
 import "time"
@@ -103,8 +106,8 @@ func (a CheckRunAnnotation) ID() string {
 	return a.Message
 }
 
-func (c CheckRunAnnotation) DefaultTitle() string {
-	return "check_runs.annotation." + c.AnnotationLevel.ToString()
+func (a CheckRunAnnotation) DefaultTitle() string {
+	return "check_runs.annotation." + a.AnnotationLevel.ToString()
 }
 
 // CheckRunOutput represents the output of a CheckRun.
