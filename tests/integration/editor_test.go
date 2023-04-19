@@ -55,7 +55,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 		// Check if master branch has been locked successfully
 		flashCookie := session.GetCookie(gitea_context.CookieNameFlash)
 		assert.NotNil(t, flashCookie)
-		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Brule%2B%2527master%2527%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
+		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Brule%2B%2522master%2522%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
 
 		// Request editor page
 		req = NewRequest(t, "GET", "/user2/repo1/_new/master/")
@@ -76,7 +76,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		// Check body for error message
-		assert.Contains(t, resp.Body.String(), "Cannot commit to protected branch &#39;master&#39;.")
+		assert.Contains(t, resp.Body.String(), "Cannot commit to protected branch &#34;master&#34;.")
 
 		// remove the protected branch
 		csrf = GetCSRF(t, session, "/user2/repo1/settings/branches")
@@ -95,7 +95,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 		// Check if master branch has been locked successfully
 		flashCookie = session.GetCookie(gitea_context.CookieNameFlash)
 		assert.NotNil(t, flashCookie)
-		assert.EqualValues(t, "error%3DRemoving%2Bbranch%2Bprotection%2Brule%2B%25271%2527%2Bfailed.", flashCookie.Value)
+		assert.EqualValues(t, "error%3DRemoving%2Bbranch%2Bprotection%2Brule%2B%25221%2522%2Bfailed.", flashCookie.Value)
 	})
 }
 

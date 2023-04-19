@@ -99,7 +99,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "DELETE", url, &deleteFileOptions)
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &fileResponse)
-		expectedMessage := "Delete '" + treePath + "'\n"
+		expectedMessage := "Delete " + treePath + "\n"
 		assert.EqualValues(t, expectedMessage, fileResponse.Commit.Message)
 
 		// Test deleting a file with the wrong SHA
