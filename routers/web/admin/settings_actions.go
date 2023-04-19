@@ -25,7 +25,7 @@ const (
 func Actions(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsAdmin"] = true
-	ctx.Data["PageIsSettingsActions"] = true
+	ctx.Data["PageIsAdminActions"] = true
 	ctx.Data["ResetRegistrationTokenLink"] = fmt.Sprintf("%s/runners/reset_registration_token", ctx.Link)
 
 	page := ctx.FormInt("page")
@@ -50,7 +50,7 @@ func Actions(ctx *context.Context) {
 func EditRunner(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.runners.edit_runner")
 	ctx.Data["PageIsAdmin"] = true
-	ctx.Data["PageIsSettingsActions"] = true
+	ctx.Data["PageIsAdminActions"] = true
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
@@ -65,7 +65,7 @@ func EditRunner(ctx *context.Context) {
 func EditRunnerPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.runners.edit")
 	ctx.Data["PageIsAdmin"] = true
-	ctx.Data["PageIsSettingsActions"] = true
+	ctx.Data["PageIsAdminActions"] = true
 	actions_shared.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"), 0, 0,
 		setting.AppSubURL+"/admin/actions/runners/"+url.PathEscape(ctx.Params(":runnerid")))
 }
