@@ -104,6 +104,8 @@ func List(ctx *context.Context) {
 			_, err = actions.GetEventsFromContent(content)
 			if err != nil {
 				workflow.ErrMsg = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", err.Error())
+				workflows = append(workflows, workflow)
+				continue
 			}
 			// Check whether have matching runner
 			jobs, err := jobparser.Parse(content)
