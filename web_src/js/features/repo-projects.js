@@ -136,7 +136,7 @@ export function initRepoProject() {
       $(commitButton).addClass('red');
     }
 
-    $(commitButton).on('click', function (e) {
+    $(commitButton).on('click', (e) => {
       e.preventDefault();
 
       $.ajax({
