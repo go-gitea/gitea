@@ -25,7 +25,7 @@
 					</div>
 					<div class="divider"></div>
 					<div class="item">
-						<a href="{{$.Link}}/runners/reset_registration_token">Reset registration token</a>
+						<a href="{{if $.isFromOrg}}{{$.Link}}/reset_registration_token{{else}}{{$.Link}}/runners/reset_registration_token{{end}}">Reset registration token</a>
 					</div>
 				</div>
 			</div>
@@ -33,7 +33,7 @@
 		</div>
 	</h4>
 	<div class="ui attached segment">
-		<form class="ui form ignore-dirty" id="user-list-search-form" action="{{$.Link}}/runners">
+		<form class="ui form ignore-dirty" id="user-list-search-form" action="{{if $.isFromOrg}}{{$.Link}}{{else}}{{$.Link}}/runners{{end}}">
 			<!-- Search Text -->
 			<div class="ui fluid action input" style="max-width: 70%;">
 				<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
@@ -72,7 +72,7 @@
 						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</td>
 						<td class="runner-ops">
 							{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}
-							<a href="{{$.Link}}/runners/{{.ID}}">{{svg "octicon-pencil"}}</a>
+							<a href="{{if $.isFromOrg}}{{$.Link}}/{{.ID}}{{else}}{{$.Link}}/runners/{{.ID}}{{end}}">{{svg "octicon-pencil"}}</a>
 							{{end}}
 						</td>
 					</tr>

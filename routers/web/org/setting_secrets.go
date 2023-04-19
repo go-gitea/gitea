@@ -35,7 +35,7 @@ func SecretsPost(ctx *context.Context) {
 		ctx,
 		ctx.ContextUser.ID,
 		0,
-		ctx.Org.OrgLink+"/settings/secrets",
+		ctx.Org.OrgLink+"/settings/actions/secrets",
 	)
 }
 
@@ -45,6 +45,6 @@ func SecretsDelete(ctx *context.Context) {
 		ctx,
 		ctx.ContextUser.ID,
 		0,
-		ctx.Org.OrgLink+"/settings/secrets",
+		ctx.Org.OrgLink+"/settings/actions/secrets",
 	)
 }

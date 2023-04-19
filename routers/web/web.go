@@ -842,19 +842,21 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/initialize", web.Bind(forms.InitializeLabelsForm{}), org.InitializeLabels)
 				})
 
-				m.Group("/runners", func() {
-					m.Get("", org.Runners)
-					m.Combo("/{runnerid}").Get(org.RunnersEdit).
-						Post(web.Bind(forms.EditRunnerForm{}), org.RunnersEditPost)
-					m.Post("/{runnerid}/delete", org.RunnerDeletePost)
-					m.Get("/reset_registration_token", org.ResetRunnerRegistrationToken)
-				}, actions.MustEnableActions)
+				m.Group("/actions", func() {
+					m.Group("/runners", func() {
+						m.Get("", org.Runners)
+						m.Combo("/{runnerid}").Get(org.RunnersEdit).
+							Post(web.Bind(forms.EditRunnerForm{}), org.RunnersEditPost)
+						m.Post("/{runnerid}/delete", org.RunnerDeletePost)
+						m.Get("/reset_registration_token", org.ResetRunnerRegistrationToken)
+					})
 
-				m.Group("/secrets", func() {
-					m.Get("", org.Secrets)
-					m.Post("", web.Bind(forms.AddSecretForm{}), org.SecretsPost)
-					m.Post("/delete", org.SecretsDelete)
-				})
+					m.Group("/secrets", func() {
+						m.Get("", org.Secrets)
+						m.Post("", web.Bind(forms.AddSecretForm{}), org.SecretsPost)
+						m.Post("/delete", org.SecretsDelete)
+					})
+				}, actions.MustEnableActions)
 
 				m.RouteMethods("/delete", "GET,POST", org.SettingsDelete)
 

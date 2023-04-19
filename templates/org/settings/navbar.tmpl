@@ -23,13 +23,13 @@
 		</a>
 		{{end}}
 		{{if .EnableActions}}
-		<div class="ui dropdown item">
+		<div class="item">
 			{{.locale.Tr "actions.actions"}}
 			<div class="menu">
-				<a class="{{if .PageIsOrgSettingsRunners}}active {{end}}item" href="{{.OrgLink}}/settings/runners">
+				<a class="{{if .PageIsOrgSettingsRunners}}active {{end}}item" href="{{.OrgLink}}/settings/actions/runners">
 					{{.locale.Tr "actions.runners"}}
 				</a>
-				<a class="{{if .PageIsOrgSettingsSecrets}}active {{end}}item" href="{{.OrgLink}}/settings/secrets">
+				<a class="{{if .PageIsOrgSettingsSecrets}}active {{end}}item" href="{{.OrgLink}}/settings/actions/secrets">
 					{{.locale.Tr "secrets.secrets"}}
 				</a>
 			</div>
