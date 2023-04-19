@@ -756,7 +756,7 @@ steps:
 
   # TODO: We should probably build all dependencies into a test image
   - name: test-e2e
-    image: mcr.microsoft.com/playwright:v1.32.3-jammy
+    image: mcr.microsoft.com/playwright:v1.32.3-focal
     commands:
       - apt-get -qq update && apt-get -qqy install jq build-essential
       - curl -fsSL "https://go.dev/dl/$(curl -s 'https://go.dev/dl/?mode=json' | jq -r '.[].version' | sort -Vr | head -1).linux-amd64.tar.gz" | tar -xz -C /usr/local
