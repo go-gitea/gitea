@@ -759,7 +759,7 @@ steps:
     image: mcr.microsoft.com/playwright:v1.32.3-jammy
     commands:
       - apt-get -qq update && apt-get -qqy install jq build-essential
-      - curl -fsSL "https://go.dev/dl/go$(curl -s 'https://go.dev/dl/?mode=json' | jq -r '.[].version' | sort -nr | cut -c 3- | grep 1.20).linux-amd64.tar.gz" | tar -xz -C /usr/local
+      - curl -fsSL "https://go.dev/dl/$(curl -s 'https://go.dev/dl/?mode=json' | jq -r '.[].version' | sort -nr | head -1).linux-amd64.tar.gz" | tar -xz -C .
       - groupadd --gid 1001 gitea && useradd -m --gid 1001 --uid 1001 gitea
       - ./build/test-env-prepare.sh
       - su gitea bash -c "export PATH=$PATH:/usr/local/go/bin && timeout -s ABRT 40m make test-e2e-sqlite"
