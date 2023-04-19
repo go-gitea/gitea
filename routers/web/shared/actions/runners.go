@@ -22,13 +22,13 @@ import (
 func RunnersList(ctx *context.Context, tplName base.TplName, opts actions_model.FindRunnerOptions) {
 	count, err := actions_model.CountRunners(ctx, opts)
 	if err != nil {
-		ctx.ServerError("AdminRunners", err)
+		ctx.ServerError("CountRunners", err)
 		return
 	}
 
 	runners, err := actions_model.FindRunners(ctx, opts)
 	if err != nil {
-		ctx.ServerError("AdminRunners", err)
+		ctx.ServerError("FindRunners", err)
 		return
 	}
 	if err := runners.LoadAttributes(ctx); err != nil {

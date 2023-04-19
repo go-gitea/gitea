@@ -82,7 +82,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	}
 
 	// Check if the filename (and additional path) is specified in the querystring
-	// (filename is a misnomer, but kept for compatibility with Github)
+	// (filename is a misnomer, but kept for compatibility with GitHub)
 	filePath, fileName := path.Split(ctx.Req.URL.Query().Get("filename"))
 	filePath = strings.Trim(filePath, "/")
 	treeNames, treePaths := getParentTreeFields(path.Join(ctx.Repo.TreePath, filePath))
@@ -325,6 +325,10 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 			}
 			ctx.RenderWithErr(flashError, tplEditFile, &form)
 		}
+	}
+
+	if ctx.Repo.Repository.IsEmpty {
+		_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
 	}
 
 	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) {
@@ -617,25 +621,25 @@ func UploadFilePost(ctx *context.Context) {
 		return
 	}
 
-	var newTreePath string
-	for _, part := range treeNames {
-		newTreePath = path.Join(newTreePath, part)
-		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(newTreePath)
-		if err != nil {
-			if git.IsErrNotExist(err) {
-				// Means there is no item with that name, so we're good
-				break
+	if !ctx.Repo.Repository.IsEmpty {
+		var newTreePath string
+		for _, part := range treeNames {
+			newTreePath = path.Join(newTreePath, part)
+			entry, err := ctx.Repo.Commit.GetTreeEntryByPath(newTreePath)
+			if err != nil {
+				if git.IsErrNotExist(err) {
+					break // Means there is no item with that name, so we're good
+				}
+				ctx.ServerError("Repo.Commit.GetTreeEntryByPath", err)
+				return
 			}
 
-			ctx.ServerError("Repo.Commit.GetTreeEntryByPath", err)
-			return
-		}
-
-		// User can only upload files to a directory.
-		if !entry.IsDir() {
-			ctx.Data["Err_TreePath"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", part), tplUploadFile, &form)
-			return
+			// User can only upload files to a directory, the directory name shouldn't be an existing file.
+			if !entry.IsDir() {
+				ctx.Data["Err_TreePath"] = true
+				ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", part), tplUploadFile, &form)
+				return
+			}
 		}
 	}
 
@@ -712,6 +716,10 @@ func UploadFilePost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.unable_to_upload_files", form.TreePath, err), tplUploadFile, &form)
 		}
 		return
+	}
+
+	if ctx.Repo.Repository.IsEmpty {
+		_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
 	}
 
 	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) {

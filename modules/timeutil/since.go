@@ -114,11 +114,25 @@ func timeSincePro(then, now time.Time, lang translation.Locale) string {
 	return strings.TrimPrefix(timeStr, ", ")
 }
 
+func timeSinceUnix(then, now time.Time, lang translation.Locale) template.HTML {
+	friendlyText := then.Format("2006-01-02 15:04:05 +07:00")
+
+	// document: https://github.com/github/relative-time-element
+	attrs := `tense="past"`
+	isFuture := now.Before(then)
+	if isFuture {
+		attrs = `tense="future"`
+	}
+
+	// declare data-tooltip-content attribute to switch from "title" tooltip to "tippy" tooltip
+	htm := fmt.Sprintf(`<relative-time class="time-since" prefix="" %s datetime="%s" data-tooltip-content data-tooltip-interactive="true">%s</relative-time>`,
+		attrs, then.Format(time.RFC3339), friendlyText)
+	return template.HTML(htm)
+}
+
 // TimeSince renders relative time HTML given a time.Time
 func TimeSince(then time.Time, lang translation.Locale) template.HTML {
-	timestamp := then.UTC().Format(time.RFC3339)
-	// declare data-tooltip-content attribute to switch from "title" tooltip to "tippy" tooltip
-	return template.HTML(fmt.Sprintf(`<relative-time class="time-since" prefix="%s" datetime="%s" data-tooltip-content data-tooltip-interactive="true">%s</relative-time>`, lang.Tr("on_date"), timestamp, timestamp))
+	return timeSinceUnix(then, time.Now(), lang)
 }
 
 // TimeSinceUnix renders relative time HTML given a TimeStamp
