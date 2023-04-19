@@ -1814,9 +1814,8 @@ footer {
 }
 
 footer .container {
-  width: 100vw !important;
   padding: 0 0.5rem;
-  max-width: calc(100vw - 1rem) !important;
+  max-width: 100%;
 }
 
 footer .container .links > * {
@@ -2368,7 +2367,7 @@ a.ui.label:hover {
 }
 
 .ui.primary.label,
-.ui.primary.labels .label, 
+.ui.primary.labels .label,
 .ui.ui.ui.primary.label {
   background-color: var(--color-primary);
   border-color: var(--color-primary-dark-2);
