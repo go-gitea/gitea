@@ -501,11 +501,15 @@ func RegisterRoutes(m *web.Route) {
 			})
 			m.Post("/chef/regenerate_keypair", user_setting.RegenerateChefKeyPair)
 		}, packagesEnabled)
-		m.Group("/secrets", func() {
+
+		m.Group("/actions", func() {
 			m.Get("", user_setting.Secrets)
-			m.Post("", web.Bind(forms.AddSecretForm{}), user_setting.SecretsPost)
-			m.Post("/delete", user_setting.SecretsDelete)
-		})
+			m.Group("/secrets", func() {
+				m.Post("", web.Bind(forms.AddSecretForm{}), user_setting.SecretsPost)
+				m.Post("/delete", user_setting.SecretsDelete)
+			})
+		}, actions.MustEnableActions)
+
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
 		m.Post("/repos/unadopted", user_setting.AdoptOrDeleteRepository)

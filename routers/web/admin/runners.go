@@ -19,7 +19,7 @@ const (
 	tplRunnerEdit base.TplName = "admin/runners/edit"
 )
 
-// Actions show all settings related to actions
+// Runners show all the runners
 func Runners(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsAdmin"] = true

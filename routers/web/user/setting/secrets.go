@@ -17,8 +17,8 @@ const (
 )
 
 func Secrets(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("secrets.secrets")
-	ctx.Data["PageIsSettingsSecrets"] = true
+	ctx.Data["Title"] = ctx.Tr("actions.actions")
+	ctx.Data["PageIsSettingsActions"] = true
 
 	shared.SetSecretsContext(ctx, ctx.Doer.ID, 0)
 	if ctx.Written() {
@@ -33,7 +33,7 @@ func SecretsPost(ctx *context.Context) {
 		ctx,
 		ctx.Doer.ID,
 		0,
-		setting.AppSubURL+"/user/settings/secrets",
+		setting.AppSubURL+"/user/settings/actions",
 	)
 }
 
@@ -42,6 +42,6 @@ func SecretsDelete(ctx *context.Context) {
 		ctx,
 		ctx.Doer.ID,
 		0,
-		setting.AppSubURL+"/user/settings/secrets",
+		setting.AppSubURL+"/user/settings/actions",
 	)
 }

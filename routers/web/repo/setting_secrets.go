@@ -15,7 +15,6 @@ const (
 )
 
 func Secrets(ctx *context.Context) {
-	ctx.Data["PageIsSettingsSecrets"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
 	shared.SetSecretsContext(ctx, 0, ctx.Repo.Repository.ID)
