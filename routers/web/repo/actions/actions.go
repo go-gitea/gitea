@@ -112,7 +112,7 @@ func List(ctx *context.Context) {
 				runsOnList := j.RunsOn()
 				for _, ro := range runsOnList {
 					if !allRunnerLabels.Contains(ro) {
-						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_runner_helper", j.Name)
+						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_runner_helper", ro)
 						break
 					}
 				}
