@@ -4,8 +4,6 @@
 package org
 
 import (
-	"net/http"
-
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	shared "code.gitea.io/gitea/routers/web/shared/secrets"
@@ -26,7 +24,7 @@ func Secrets(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(http.StatusOK, tplSettingsSecrets)
+	// ctx.HTML(http.StatusOK, tplSettingsSecrets)
 }
 
 // SecretsPost add secrets

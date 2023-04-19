@@ -4,6 +4,7 @@
 package org
 
 import (
+	"net/http"
 	"net/url"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -12,11 +13,13 @@ import (
 	actions_shared "code.gitea.io/gitea/routers/web/shared/actions"
 )
 
-// Runners render runners page
-func Runners(ctx *context.Context) {
+// Actions render settings/actions page for organization level
+func Actions(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.runners")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsRunners"] = true
+	isRunnersPage := ctx.Params(":type") == "runners"
+	ctx.Data["IsRunnersPage"] = isRunnersPage
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
@@ -34,7 +37,9 @@ func Runners(ctx *context.Context) {
 		WithAvailable: true,
 	}
 
-	actions_shared.RunnersList(ctx, tplSettingsRunners, opts)
+	actions_shared.RunnersList(ctx, opts)
+	Secrets(ctx)
+	ctx.HTML(http.StatusOK, tplSettingsActions)
 }
 
 // ResetRunnerRegistrationToken reset runner registration token
@@ -54,9 +59,11 @@ func RunnersEdit(ctx *context.Context) {
 		page = 1
 	}
 
-	actions_shared.RunnerDetails(ctx, tplSettingsRunnersEdit, page,
+	actions_shared.RunnerDetails(ctx, page,
 		ctx.ParamsInt64(":runnerid"), ctx.Org.Organization.ID, 0,
 	)
+
+	ctx.HTML(http.StatusOK, tplSettingsRunnersEdit)
 }
 
 // RunnersEditPost response for editing runner

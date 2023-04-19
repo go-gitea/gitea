@@ -503,7 +503,7 @@ func RegisterRoutes(m *web.Route) {
 		}, packagesEnabled)
 
 		m.Group("/actions", func() {
-			m.Get("", user_setting.Secrets)
+			m.Get("", user_setting.Actions)
 			m.Group("/secrets", func() {
 				m.Post("", web.Bind(forms.AddSecretForm{}), user_setting.SecretsPost)
 				m.Post("/delete", user_setting.SecretsDelete)
@@ -656,7 +656,7 @@ func RegisterRoutes(m *web.Route) {
 		})
 
 		m.Group("/actions", func() {
-			m.Get("", admin.Runners)
+			m.Get("", admin.Actions)
 			m.Group("/runners", func() {
 				m.Get("/reset_registration_token", admin.ResetRunnerRegistrationToken)
 				m.Combo("/{runnerid}").Get(admin.EditRunner).Post(web.Bind(forms.EditRunnerForm{}), admin.EditRunnerPost)
@@ -850,8 +850,8 @@ func RegisterRoutes(m *web.Route) {
 				})
 
 				m.Group("/actions", func() {
+					m.Get("/{type:runners|secrets}", org.Actions)
 					m.Group("/runners", func() {
-						m.Get("", org.Runners)
 						m.Combo("/{runnerid}").Get(org.RunnersEdit).
 							Post(web.Bind(forms.EditRunnerForm{}), org.RunnersEditPost)
 						m.Post("/{runnerid}/delete", org.RunnerDeletePost)
@@ -859,7 +859,7 @@ func RegisterRoutes(m *web.Route) {
 					})
 
 					m.Group("/secrets", func() {
-						m.Get("", org.Secrets)
+						// m.Get("", org.Secrets)
 						m.Post("", web.Bind(forms.AddSecretForm{}), org.SecretsPost)
 						m.Post("/delete", org.SecretsDelete)
 					})
@@ -1046,7 +1046,7 @@ func RegisterRoutes(m *web.Route) {
 				})
 			})
 			m.Group("/actions", func() {
-				m.Get("", repo.Secrets, repo.Runners)
+				m.Get("", repo.Actions)
 				m.Group("/runners", func() {
 					m.Combo("/{runnerid}").Get(repo.RunnersEdit).
 						Post(web.Bind(forms.EditRunnerForm{}), repo.RunnersEditPost)

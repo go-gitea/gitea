@@ -4,6 +4,7 @@
 package admin
 
 import (
+	"net/http"
 	"net/url"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -15,12 +16,12 @@ import (
 )
 
 const (
-	tplRunners    base.TplName = "admin/runners/base"
+	tplActions    base.TplName = "admin/actions"
 	tplRunnerEdit base.TplName = "admin/runners/edit"
 )
 
-// Runners show all the runners
-func Runners(ctx *context.Context) {
+// Actions render settings/actions page for admin level
+func Actions(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsSettingsActions"] = true
@@ -39,7 +40,8 @@ func Runners(ctx *context.Context) {
 		Filter: ctx.Req.URL.Query().Get("q"),
 	}
 
-	actions_shared.RunnersList(ctx, tplRunners, opts)
+	actions_shared.RunnersList(ctx, opts)
+	ctx.HTML(http.StatusOK, tplActions)
 }
 
 // EditRunner show editing runner page
@@ -53,7 +55,8 @@ func EditRunner(ctx *context.Context) {
 		page = 1
 	}
 
-	actions_shared.RunnerDetails(ctx, tplRunnerEdit, page, ctx.ParamsInt64(":runnerid"), 0, 0)
+	actions_shared.RunnerDetails(ctx, page, ctx.ParamsInt64(":runnerid"), 0, 0)
+	ctx.HTML(http.StatusOK, tplRunnerEdit)
 }
 
 // EditRunnerPost response for editing runner

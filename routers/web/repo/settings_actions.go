@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"net/http"
 	"net/url"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -17,8 +18,8 @@ const (
 	tplRunnerEdit = "repo/settings/runner_edit"
 )
 
-// Runners render runners page
-func Runners(ctx *context.Context) {
+// Actions render settings/actions page for repo level
+func Actions(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsSettingsActions"] = true
 
@@ -38,9 +39,12 @@ func Runners(ctx *context.Context) {
 		WithAvailable: true,
 	}
 
-	actions_shared.RunnersList(ctx, tplActions, opts)
+	actions_shared.RunnersList(ctx, opts)
+	GetSecrets(ctx)
+	ctx.HTML(http.StatusOK, tplActions)
 }
 
+// RunnersEdit render runner edit page
 func RunnersEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.runners")
 	ctx.Data["PageIsSettingsRunners"] = true
@@ -49,9 +53,11 @@ func RunnersEdit(ctx *context.Context) {
 		page = 1
 	}
 
-	actions_shared.RunnerDetails(ctx, tplRunnerEdit, page,
+	actions_shared.RunnerDetails(ctx, page,
 		ctx.ParamsInt64(":runnerid"), 0, ctx.Repo.Repository.ID,
 	)
+
+	ctx.HTML(http.StatusOK, tplRunnerEdit)
 }
 
 func RunnersEditPost(ctx *context.Context) {

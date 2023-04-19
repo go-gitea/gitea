@@ -4,17 +4,12 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	shared "code.gitea.io/gitea/routers/web/shared/secrets"
 )
 
-const (
-	tplSecrets base.TplName = "repo/settings/secrets"
-)
-
-func Secrets(ctx *context.Context) {
+func GetSecrets(ctx *context.Context) {
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
 	shared.SetSecretsContext(ctx, 0, ctx.Repo.Repository.ID)

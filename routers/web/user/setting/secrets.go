@@ -4,28 +4,16 @@
 package setting
 
 import (
-	"net/http"
-
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	shared "code.gitea.io/gitea/routers/web/shared/secrets"
 )
 
-const (
-	tplSettingsSecrets base.TplName = "user/settings/secrets"
-)
-
-func Secrets(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("actions.actions")
-	ctx.Data["PageIsSettingsActions"] = true
-
+func GetSecrets(ctx *context.Context) {
 	shared.SetSecretsContext(ctx, ctx.Doer.ID, 0)
 	if ctx.Written() {
 		return
 	}
-
-	ctx.HTML(http.StatusOK, tplSettingsSecrets)
 }
 
 func SecretsPost(ctx *context.Context) {
