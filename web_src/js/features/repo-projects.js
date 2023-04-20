@@ -126,19 +126,30 @@ export function initRepoProject() {
     });
   });
 
-  $(document).on('click', '.set-default-project-board', async function (e) {
-    e.preventDefault();
+  $('.default-project-board-modal').each(function () {
+    const boardColumn = $(this).closest('.board-column');
+    const showButton = $(boardColumn).find('.default-project-board-show');
+    const commitButton = $(this).find('.default-project-board-button');
 
-    await $.ajax({
-      method: 'POST',
-      url: $(this).data('url'),
-      headers: {
-        'X-Csrf-Token': csrfToken,
-      },
-      contentType: 'application/json',
+    if ($(showButton).data('type') === 'unset_default') {
+      $(commitButton).removeClass('primary');
+      $(commitButton).addClass('red');
+    }
+
+    $(commitButton).on('click', (e) => {
+      e.preventDefault();
+
+      $.ajax({
+        method: 'POST',
+        url: $(showButton).data('url'),
+        headers: {
+          'X-Csrf-Token': csrfToken,
+        },
+        contentType: 'application/json',
+      }).done(() => {
+        window.location.reload();
+      });
     });
-
-    window.location.reload();
   });
 
   $('.delete-project-board').each(function () {

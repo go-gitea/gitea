@@ -99,9 +99,26 @@
 									{{$.locale.Tr "repo.projects.column.edit"}}
 								</a>
 								{{if not .Default}}
-									<a class="item show-modal button" data-modal="#set-default-project-board-modal-{{.ID}}">
+									<a class="item show-modal button default-project-board-show"
+									data-modal="#default-project-board-modal-{{.ID}}"
+									data-modal-default-project-board-header="{{$.locale.Tr "repo.projects.column.set_default"}}"
+									data-modal-default-project-board-content="{{$.locale.Tr "repo.projects.column.set_default_desc"}}"
+									data-modal-default-project-board-submit="{{$.locale.Tr "repo.projects.column.set_default"}}"
+									data-type="set_default"
+									data-url="{{$.Link}}/{{.ID}}/default">
 										{{svg "octicon-pin"}}
 										{{$.locale.Tr "repo.projects.column.set_default"}}
+									</a>
+								{{else}}
+									<a class="item show-modal button default-project-board-show"
+									data-modal="#default-project-board-modal-{{.ID}}"
+									data-modal-default-project-board-header="{{$.locale.Tr "repo.projects.column.unset_default"}}"
+									data-modal-default-project-board-content="{{$.locale.Tr "repo.projects.column.unset_default_desc"}}"
+									data-modal-default-project-board-submit="{{$.locale.Tr "repo.projects.column.unset_default"}}"
+									data-type="unset_default"
+									data-url="{{$.Link}}/{{.ID}}/unsetdefault">
+										{{svg "octicon-pin"}}
+										{{$.locale.Tr "repo.projects.column.unset_default"}}
 									</a>
 								{{end}}
 								<a class="item show-modal button" data-modal="#delete-board-modal-{{.ID}}">
@@ -138,18 +155,16 @@
 									</div>
 								</div>
 
-								<div class="ui basic modal" id="set-default-project-board-modal-{{.ID}}">
+								<div class="ui basic modal default-project-board-modal" id="default-project-board-modal-{{.ID}}">
 									<div class="ui icon header">
-										{{$.locale.Tr "repo.projects.column.set_default"}}
+										<span id="default-project-board-header"></span>
 									</div>
 									<div class="content center">
-										<label>
-											{{$.locale.Tr "repo.projects.column.set_default_desc"}}
-										</label>
+										<label id="default-project-board-content"></label>
 									</div>
 									<div class="text right actions">
 										<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
-										<button class="ui primary button set-default-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}/default">{{$.locale.Tr "repo.projects.column.set_default"}}</button>
+										<button class="ui primary button default-project-board-button" id="default-project-board-submit"></button>
 									</div>
 								</div>
 
