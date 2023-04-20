@@ -1557,7 +1557,7 @@ func ViewIssue(ctx *context.Context) {
 					return
 				}
 			}
-		} else if comment.Type == issues_model.CommentTypeCode || comment.Type == issues_model.CommentTypeReview || comment.Type == issues_model.CommentTypeDismissReview {
+		} else if comment.Type.HasContentSupport() {
 			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 				URLPrefix: ctx.Repo.RepoLink,
 				Metas:     ctx.Repo.Repository.ComposeMetas(),
@@ -2849,7 +2849,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if comment.Type != issues_model.CommentTypeComment && comment.Type != issues_model.CommentTypeReview && comment.Type != issues_model.CommentTypeCode {
+	if !comment.Type.HasContentSupport() {
 		ctx.Error(http.StatusNoContent)
 		return
 	}
@@ -2913,7 +2913,7 @@ func DeleteComment(ctx *context.Context) {
 	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(http.StatusForbidden)
 		return
-	} else if comment.Type != issues_model.CommentTypeComment && comment.Type != issues_model.CommentTypeCode {
+	} else if !comment.Type.HasContentSupport() {
 		ctx.Error(http.StatusNoContent)
 		return
 	}
@@ -3059,7 +3059,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		return
 	}
 
-	if comment.Type != issues_model.CommentTypeComment && comment.Type != issues_model.CommentTypeCode && comment.Type != issues_model.CommentTypeReview {
+	if !comment.Type.HasContentSupport() {
 		ctx.Error(http.StatusNoContent)
 		return
 	}
@@ -3175,15 +3175,19 @@ func GetCommentAttachments(ctx *context.Context) {
 		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
 		return
 	}
+
+	if !comment.Type.HasAttachmentSupport() {
+		ctx.ServerError("GetCommentAttachments", fmt.Errorf("comment type %v does not support attachments", comment.Type))
+		return
+	}
+
 	attachments := make([]*api.Attachment, 0)
-	if comment.Type == issues_model.CommentTypeComment {
-		if err := comment.LoadAttachments(ctx); err != nil {
-			ctx.ServerError("LoadAttachments", err)
-			return
-		}
-		for i := 0; i < len(comment.Attachments); i++ {
-			attachments = append(attachments, convert.ToAttachment(comment.Attachments[i]))
-		}
+	if err := comment.LoadAttachments(ctx); err != nil {
+		ctx.ServerError("LoadAttachments", err)
+		return
+	}
+	for i := 0; i < len(comment.Attachments); i++ {
+		attachments = append(attachments, convert.ToAttachment(comment.Attachments[i]))
 	}
 	ctx.JSON(http.StatusOK, attachments)
 }

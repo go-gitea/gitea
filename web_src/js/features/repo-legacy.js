@@ -319,20 +319,20 @@ async function onEditContent(event) {
 
   const setupDropzone = async ($dropzone) => {
     if ($dropzone.length === 0) return null;
-    $dropzone.data('saved', false);
 
-    const fileUuidDict = {};
+    let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the "removedfile" event
+    let fileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
     const dz = await createDropzone($dropzone[0], {
-      url: $dropzone.data('upload-url'),
+      url: $dropzone.attr('data-upload-url'),
       headers: {'X-Csrf-Token': csrfToken},
-      maxFiles: $dropzone.data('max-file'),
-      maxFilesize: $dropzone.data('max-size'),
-      acceptedFiles: (['*/*', ''].includes($dropzone.data('accepts'))) ? null : $dropzone.data('accepts'),
+      maxFiles: $dropzone.attr('data-max-file'),
+      maxFilesize: $dropzone.attr('data-max-size'),
+      acceptedFiles: (['*/*', ''].includes($dropzone.attr('data-accepts'))) ? null : $dropzone.attr('data-accepts'),
       addRemoveLinks: true,
-      dictDefaultMessage: $dropzone.data('default-message'),
-      dictInvalidFileType: $dropzone.data('invalid-input-type'),
-      dictFileTooBig: $dropzone.data('file-too-big'),
-      dictRemoveFile: $dropzone.data('remove-file'),
+      dictDefaultMessage: $dropzone.attr('data-default-message'),
+      dictInvalidFileType: $dropzone.attr('data-invalid-input-type'),
+      dictFileTooBig: $dropzone.attr('data-file-too-big'),
+      dictRemoveFile: $dropzone.attr('data-remove-file'),
       timeout: 0,
       thumbnailMethod: 'contain',
       thumbnailWidth: 480,
@@ -345,9 +345,10 @@ async function onEditContent(event) {
           $dropzone.find('.files').append(input);
         });
         this.on('removedfile', (file) => {
+          if (disableRemovedfileEvent) return;
           $(`#${file.uuid}`).remove();
-          if ($dropzone.data('remove-url') && !fileUuidDict[file.uuid].submitted) {
-            $.post($dropzone.data('remove-url'), {
+          if ($dropzone.attr('data-remove-url') && !fileUuidDict[file.uuid].submitted) {
+            $.post($dropzone.attr('data-remove-url'), {
               file: file.uuid,
               _csrf: csrfToken,
             });
@@ -359,20 +360,25 @@ async function onEditContent(event) {
           });
         });
         this.on('reload', () => {
-          $.getJSON($editContentZone.data('attachment-url'), (data) => {
+          $.getJSON($editContentZone.attr('data-attachment-url'), (data) => {
+            // do not trigger the "removedfile" event, otherwise the attachments would be deleted from server
+            disableRemovedfileEvent = true;
             dz.removeAllFiles(true);
             $dropzone.find('.files').empty();
-            $.each(data, function () {
-              const imgSrc = `${$dropzone.data('link-url')}/${this.uuid}`;
-              dz.emit('addedfile', this);
-              dz.emit('thumbnail', this, imgSrc);
-              dz.emit('complete', this);
-              dz.files.push(this);
-              fileUuidDict[this.uuid] = {submitted: true};
+            fileUuidDict = {};
+            disableRemovedfileEvent = false;
+
+            for (const attachment of data) {
+              const imgSrc = `${$dropzone.attr('data-link-url')}/${attachment.uuid}`;
+              dz.emit('addedfile', attachment);
+              dz.emit('thumbnail', attachment, imgSrc);
+              dz.emit('complete', attachment);
+              dz.files.push(attachment);
+              fileUuidDict[attachment.uuid] = {submitted: true};
               $dropzone.find(`img[src='${imgSrc}']`).css('max-width', '100%');
-              const input = $(`<input id="${this.uuid}" name="files" type="hidden">`).val(this.uuid);
+              const input = $(`<input id="${attachment.uuid}" name="files" type="hidden">`).val(attachment.uuid);
               $dropzone.find('.files').append(input);
-            });
+            }
           });
         });
       },
@@ -395,10 +401,10 @@ async function onEditContent(event) {
     const $attachments = $dropzone.find('.files').find('[name=files]').map(function () {
       return $(this).val();
     }).get();
-    $.post($editContentZone.data('update-url'), {
+    $.post($editContentZone.attr('data-update-url'), {
       _csrf: csrfToken,
       content: comboMarkdownEditor.value(),
-      context: $editContentZone.data('context'),
+      context: $editContentZone.attr('data-context'),
       files: $attachments,
     }, (data) => {
       if (!data.content) {
