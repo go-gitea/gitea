@@ -756,11 +756,11 @@ steps:
 
   # TODO: We should probably build all dependencies into a test image
   - name: test-e2e
-    image: mcr.microsoft.com/playwright:v1.32.1-focal
+    image: mcr.microsoft.com/playwright:v1.32.3-focal
     commands:
-      - curl -sLO https://go.dev/dl/go1.20.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.20.linux-amd64.tar.gz
+      - apt-get -qq update && apt-get -qqy install jq build-essential
+      - curl -fsSL "https://go.dev/dl/$(curl -s 'https://go.dev/dl/?mode=json' | jq -r '.[].version' | sort -Vr | head -1).linux-amd64.tar.gz" | tar -xz -C /usr/local
       - groupadd --gid 1001 gitea && useradd -m --gid 1001 --uid 1001 gitea
-      - apt-get -qq update && apt-get -qqy install build-essential
       - ./build/test-env-prepare.sh
       - su gitea bash -c "export PATH=$PATH:/usr/local/go/bin && timeout -s ABRT 40m make test-e2e-sqlite"
     environment:

@@ -24,6 +24,7 @@ func Search(ctx *context.Context) {
 		Keyword:     ctx.FormTrim("q"),
 		UID:         ctx.FormInt64("uid"),
 		Type:        user_model.UserTypeIndividual,
+		IsActive:    ctx.FormOptionalBool("active"),
 		ListOptions: listOptions,
 	})
 	if err != nil {

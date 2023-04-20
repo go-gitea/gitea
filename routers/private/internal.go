@@ -77,6 +77,7 @@ func Routes() *web.Route {
 	r.Get("/manager/processes", Processes)
 	r.Post("/mail/send", SendEmail)
 	r.Post("/restore_repo", RestoreRepo)
+	r.Post("/actions/generate_actions_runner_token", GenerateActionsRunnerToken)
 
 	return r
 }

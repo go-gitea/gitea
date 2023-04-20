@@ -40,7 +40,7 @@ const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
-	name             string
+	prog             string
 	args             []string
 	parentContext    context.Context
 	desc             string
@@ -49,10 +49,28 @@ type Command struct {
 }
 
 func (c *Command) String() string {
-	if len(c.args) == 0 {
-		return c.name
+	return c.toString(false)
+}
+
+func (c *Command) toString(sanitizing bool) string {
+	// WARNING: this function is for debugging purposes only. It's much better than old code (which only joins args with space),
+	// It's impossible to make a simple and 100% correct implementation of argument quoting for different platforms.
+	debugQuote := func(s string) string {
+		if strings.ContainsAny(s, " `'\"\t\r\n") {
+			return fmt.Sprintf("%q", s)
+		}
+		return s
 	}
-	return fmt.Sprintf("%s %s", c.name, strings.Join(c.args, " "))
+	a := make([]string, 0, len(c.args)+1)
+	a = append(a, debugQuote(c.prog))
+	for _, arg := range c.args {
+		if sanitizing && (strings.Contains(arg, "://") && strings.Contains(arg, "@")) {
+			a = append(a, debugQuote(util.SanitizeCredentialURLs(arg)))
+		} else {
+			a = append(a, debugQuote(arg))
+		}
+	}
+	return strings.Join(a, " ")
 }
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
@@ -67,7 +85,7 @@ func NewCommand(ctx context.Context, args ...internal.CmdArg) *Command {
 		cargs = append(cargs, string(arg))
 	}
 	return &Command{
-		name:             GitExecutable,
+		prog:             GitExecutable,
 		args:             cargs,
 		parentContext:    ctx,
 		globalArgsLength: len(globalCommandArgs),
@@ -82,7 +100,7 @@ func NewCommandContextNoGlobals(ctx context.Context, args ...internal.CmdArg) *C
 		cargs = append(cargs, string(arg))
 	}
 	return &Command{
-		name:          GitExecutable,
+		prog:          GitExecutable,
 		args:          cargs,
 		parentContext: ctx,
 	}
@@ -193,10 +211,18 @@ type RunOpts struct {
 	Env               []string
 	Timeout           time.Duration
 	UseContextTimeout bool
-	Dir               string
-	Stdout, Stderr    io.Writer
-	Stdin             io.Reader
-	PipelineFunc      func(context.Context, context.CancelFunc) error
+
+	// Dir is the working dir for the git command, however:
+	// FIXME: this could be incorrect in many cases, for example:
+	// * /some/path/.git
+	// * /some/path/.git/gitea-data/data/repositories/user/repo.git
+	// If "user/repo.git" is invalid/broken, then running git command in it will use "/some/path/.git", and produce unexpected results
+	// The correct approach is to use `--git-dir" global argument
+	Dir string
+
+	Stdout, Stderr io.Writer
+	Stdin          io.Reader
+	PipelineFunc   func(context.Context, context.CancelFunc) error
 }
 
 func commonBaseEnvs() []string {
@@ -250,28 +276,18 @@ func (c *Command) Run(opts *RunOpts) error {
 	}
 
 	if len(opts.Dir) == 0 {
-		log.Debug("%s", c)
+		log.Debug("git.Command.Run: %s", c)
 	} else {
-		log.Debug("%s: %v", opts.Dir, c)
+		log.Debug("git.Command.RunDir(%s): %s", opts.Dir, c)
 	}
 
 	desc := c.desc
 	if desc == "" {
-		args := c.args[c.globalArgsLength:]
-		var argSensitiveURLIndexes []int
-		for i, arg := range c.args {
-			if strings.Contains(arg, "://") && strings.Contains(arg, "@") {
-				argSensitiveURLIndexes = append(argSensitiveURLIndexes, i)
-			}
+		if opts.Dir == "" {
+			desc = fmt.Sprintf("git: %s", c.toString(true))
+		} else {
+			desc = fmt.Sprintf("git(dir:%s): %s", opts.Dir, c.toString(true))
 		}
-		if len(argSensitiveURLIndexes) > 0 {
-			args = make([]string, len(c.args))
-			copy(args, c.args)
-			for _, urlArgIndex := range argSensitiveURLIndexes {
-				args[urlArgIndex] = util.SanitizeCredentialURLs(args[urlArgIndex])
-			}
-		}
-		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), opts.Dir)
 	}
 
 	var ctx context.Context
@@ -285,7 +301,7 @@ func (c *Command) Run(opts *RunOpts) error {
 	}
 	defer finished()
 
-	cmd := exec.CommandContext(ctx, c.name, c.args...)
+	cmd := exec.CommandContext(ctx, c.prog, c.args...)
 	if opts.Env == nil {
 		cmd.Env = os.Environ()
 	} else {

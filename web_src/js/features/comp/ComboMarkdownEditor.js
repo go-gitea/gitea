@@ -73,8 +73,25 @@ class ComboMarkdownEditor {
       // upstream bug: The role code is never executed in base MarkdownButtonElement https://github.com/github/markdown-toolbar-element/issues/70
       el.setAttribute('role', 'button');
     }
-    this.switchToEasyMDEButton = this.container.querySelector('.markdown-switch-easymde');
-    this.switchToEasyMDEButton?.addEventListener('click', async (e) => {
+
+    const monospaceButton = this.container.querySelector('.markdown-switch-monospace');
+    const monospaceEnabled = localStorage?.getItem('markdown-editor-monospace') === 'true';
+    const monospaceText = monospaceButton.getAttribute(monospaceEnabled ? 'data-disable-text' : 'data-enable-text');
+    monospaceButton.setAttribute('data-tooltip-content', monospaceText);
+    monospaceButton.setAttribute('aria-checked', String(monospaceEnabled));
+
+    monospaceButton?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const enabled = localStorage?.getItem('markdown-editor-monospace') !== 'true';
+      localStorage.setItem('markdown-editor-monospace', String(enabled));
+      this.textarea.classList.toggle('gt-mono', enabled);
+      const text = monospaceButton.getAttribute(enabled ? 'data-disable-text' : 'data-enable-text');
+      monospaceButton.setAttribute('data-tooltip-content', text);
+      monospaceButton.setAttribute('aria-checked', String(enabled));
+    });
+
+    const easymdeButton = this.container.querySelector('.markdown-switch-easymde');
+    easymdeButton?.addEventListener('click', async (e) => {
       e.preventDefault();
       this.userPreferredEditor = 'easymde';
       await this.switchToEasyMDE();
@@ -90,8 +107,9 @@ class ComboMarkdownEditor {
     expander?.addEventListener('text-expander-change', ({detail: {key, provide, text}}) => {
       if (key === ':') {
         const matches = [];
+        const textLowerCase = text.toLowerCase();
         for (const name of emojiKeys) {
-          if (name.includes(text)) {
+          if (name.toLowerCase().includes(textLowerCase)) {
             matches.push(name);
             if (matches.length >= maxExpanderMatches) break;
           }
@@ -112,8 +130,9 @@ class ComboMarkdownEditor {
         provide({matched: true, fragment: ul});
       } else if (key === '@') {
         const matches = [];
+        const textLowerCase = text.toLowerCase();
         for (const obj of window.config.tributeValues) {
-          if (obj.key.includes(text)) {
+          if (obj.key.toLowerCase().includes(textLowerCase)) {
             matches.push(obj);
             if (matches.length >= maxExpanderMatches) break;
           }
