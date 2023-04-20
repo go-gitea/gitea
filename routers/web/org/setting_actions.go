@@ -48,7 +48,7 @@ func Actions(ctx *context.Context) {
 	}
 
 	actions_shared.RunnersList(ctx, opts)
-	PrepareSecrets(ctx)
+	PrepareSecretsData(ctx)
 	ctx.HTML(http.StatusOK, tplSettingsActions)
 }
 
@@ -92,4 +92,8 @@ func RunnerDeletePost(ctx *context.Context) {
 		ctx.ParamsInt64(":runnerid"),
 		ctx.Org.OrgLink+"/settings/actions/runners",
 		ctx.Org.OrgLink+"/settings/actions/runners/"+url.PathEscape(ctx.Params(":runnerid")))
+}
+
+func RedirectToRunnersSettings(ctx *context.Context) {
+	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions/runners")
 }

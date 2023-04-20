@@ -849,9 +849,7 @@ func RegisterRoutes(m *web.Route) {
 				})
 
 				m.Group("/actions", func() {
-					m.Get("", func(ctx *context.Context) {
-						ctx.Redirect(ctx.Org.OrgLink + "/settings/actions/runners")
-					})
+					m.Get("", org.RedirectToRunnersSettings)
 					m.Get("/{type:runners|secrets}", org.Actions)
 					m.Group("/runners", func() {
 						m.Combo("/{runnerid}").Get(org.RunnersEdit).

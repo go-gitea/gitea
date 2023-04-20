@@ -9,7 +9,7 @@ import (
 )
 
 // Prepare Secrets page under org/settings/actions
-func PrepareSecrets(ctx *context.Context) {
+func PrepareSecretsData(ctx *context.Context) {
 	shared.SetSecretsContext(ctx, ctx.ContextUser.ID, 0)
 	if ctx.Written() {
 		return

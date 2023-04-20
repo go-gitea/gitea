@@ -9,7 +9,7 @@ import (
 	shared "code.gitea.io/gitea/routers/web/shared/secrets"
 )
 
-func prepareSecretsData(ctx *context.Context) {
+func PrepareSecretsData(ctx *context.Context) {
 	shared.SetSecretsContext(ctx, ctx.Doer.ID, 0)
 	if ctx.Written() {
 		return

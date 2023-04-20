@@ -9,7 +9,7 @@ import (
 	shared "code.gitea.io/gitea/routers/web/shared/secrets"
 )
 
-func prepareSecretsData(ctx *context.Context) {
+func PrepareSecretsData(ctx *context.Context) {
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
 	shared.SetSecretsContext(ctx, 0, ctx.Repo.Repository.ID)

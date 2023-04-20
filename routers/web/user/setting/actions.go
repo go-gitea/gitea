@@ -20,6 +20,6 @@ func Actions(ctx *context.Context) {
 	ctx.Data["PageIsSettingsActions"] = true
 	ctx.Data["RunnersBaseLink"] = fmt.Sprintf("%s/runners", ctx.Link)
 	ctx.Data["SecretsBaseLink"] = fmt.Sprintf("%s/secrets", ctx.Link)
-	prepareSecretsData(ctx)
+	PrepareSecretsData(ctx)
 	ctx.HTML(http.StatusOK, tplSettingsActions)
 }

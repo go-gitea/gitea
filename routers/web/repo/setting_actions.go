@@ -43,7 +43,7 @@ func Actions(ctx *context.Context) {
 	}
 
 	actions_shared.RunnersList(ctx, opts)
-	prepareSecretsData(ctx)
+	PrepareSecretsData(ctx)
 	ctx.HTML(http.StatusOK, tplActions)
 }
 
