@@ -2,7 +2,13 @@
   <div class="action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary">
-        {{ run.title }}
+        <SvgIcon name="octicon-check-circle-fill" size="20" class="green" v-if="run.status === 'success'"/>
+        <SvgIcon name="octicon-clock" size="20" class="ui text yellow" v-else-if="run.status === 'waiting'"/>
+        <SvgIcon name="octicon-meter" size="20" class="ui text yellow" class-name="job-status-rotate" v-else-if="run.status === 'running'"/>
+        <SvgIcon name="octicon-x-circle-fill" size="20" class="red" v-else/>
+        <div class="action-title">
+          {{ run.title }}
+        </div>
         <button class="run_cancel" @click="cancelRun()" v-if="run.canCancel">
           <i class="stop circle outline icon"/>
         </button>
@@ -95,6 +101,7 @@ const sfc = {
       run: {
         link: '',
         title: '',
+        status: '',
         canCancel: false,
         done: false,
         jobs: [
