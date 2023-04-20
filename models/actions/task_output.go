@@ -17,7 +17,7 @@ type ActionTaskOutput struct {
 	ID          int64
 	TaskID      int64  `xorm:"INDEX UNIQUE(task_id_output_key)"`
 	OutputKey   string `xorm:"VARCHAR(255) UNIQUE(task_id_output_key)"`
-	OutputValue string `xorm:"TEXT"`
+	OutputValue string `xorm:"MEDIUMTEXT"`
 }
 
 // FindTaskOutputByTaskID returns the outputs of the task.
