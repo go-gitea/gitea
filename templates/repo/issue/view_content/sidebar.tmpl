@@ -690,7 +690,7 @@
 			</div>
 		{{end}}
 
-		{{if and .Issue.IsPull .IsIssuePoster (not .Issue.IsClosed)}}
+		{{if and .Issue.IsPull .IsIssuePoster (not .Issue.IsClosed) .Issue.PullRequest.HeadRepo}}
 			{{if and (not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)) .CanWriteToHeadRepo}}
 				<div class="ui divider"></div>
 				<div class="inline field">

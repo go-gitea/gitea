@@ -107,8 +107,9 @@ class ComboMarkdownEditor {
     expander?.addEventListener('text-expander-change', ({detail: {key, provide, text}}) => {
       if (key === ':') {
         const matches = [];
+        const textLowerCase = text.toLowerCase();
         for (const name of emojiKeys) {
-          if (name.includes(text)) {
+          if (name.toLowerCase().includes(textLowerCase)) {
             matches.push(name);
             if (matches.length >= maxExpanderMatches) break;
           }
@@ -129,8 +130,9 @@ class ComboMarkdownEditor {
         provide({matched: true, fragment: ul});
       } else if (key === '@') {
         const matches = [];
+        const textLowerCase = text.toLowerCase();
         for (const obj of window.config.tributeValues) {
-          if (obj.key.includes(text)) {
+          if (obj.key.toLowerCase().includes(textLowerCase)) {
             matches.push(obj);
             if (matches.length >= maxExpanderMatches) break;
           }

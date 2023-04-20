@@ -1,8 +1,8 @@
 <div class="issue list">
 	{{range .Runs}}
 		<li class="item gt-df gt-py-3 gt-ab">
-			<div class="issue-item-left gt-df">
-				{{template "repo/actions/status" .Status}}
+			<div class="issue-item-left gt-df gt-mr-2">
+				{{template "repo/actions/status" (dict "status" .Status.String)}}
 			</div>
 			<div class="issue-item-main action-item-main gt-f1 gt-fc gt-df gt-mr-3">
 				<div class="issue-item-top-row">

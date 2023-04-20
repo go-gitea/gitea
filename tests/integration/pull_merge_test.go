@@ -187,7 +187,7 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		resultMsg := htmlDoc.doc.Find(".ui.message>p").Text()
 
-		assert.EqualValues(t, "Branch 'user1/repo1:feature/test' has been deleted.", resultMsg)
+		assert.EqualValues(t, "Branch \"user1/repo1:feature/test\" has been deleted.", resultMsg)
 	})
 }
 
