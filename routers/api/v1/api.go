@@ -634,8 +634,8 @@ func mustEnableAttachments(ctx *context.APIContext) {
 }
 
 // bind binding an obj to a func(ctx *context.APIContext)
-func bind[T any](obj T) http.HandlerFunc {
-	return web.Wrap(func(ctx *context.APIContext) {
+func bind[T any](_ T) any {
+	return func(ctx *context.APIContext) {
 		theObj := new(T) // create a new form obj for every request but not use obj directly
 		errs := binding.Bind(ctx.Req, theObj)
 		if len(errs) > 0 {
@@ -643,7 +643,7 @@ func bind[T any](obj T) http.HandlerFunc {
 			return
 		}
 		web.SetForm(ctx, theObj)
-	})
+	}
 }
 
 // The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
