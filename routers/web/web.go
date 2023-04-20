@@ -663,7 +663,6 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/{runnerid}/delete", admin.DeleteRunnerPost)
 			})
 		}, actions.MustEnableActions)
-
 	}, func(ctx *context.Context) {
 		ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 		ctx.Data["EnablePackages"] = setting.Packages.Enabled
