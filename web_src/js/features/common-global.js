@@ -68,7 +68,7 @@ export function initGlobalButtonClickOnEnter() {
 export function initGlobalCommon() {
   // Undo Safari emoji glitch fix at high enough zoom levels
   if (navigator.userAgent.match('Safari')) {
-    $(window).resize(() => {
+    $(window).on('resize', () => {
       const px = mqBinarySearch('width', 0, 4096, 1, 'px');
       const em = mqBinarySearch('width', 0, 1024, 0.01, 'em');
       if (em * 16 * 1.25 - px <= -1) {
