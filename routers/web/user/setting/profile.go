@@ -89,7 +89,6 @@ func ProfilePost(ctx *context.Context) {
 	if len(form.Name) != 0 && ctx.Doer.Name != form.Name {
 		log.Debug("Changing name for %s to %s", ctx.Doer.Name, form.Name)
 		if err := HandleUsernameChange(ctx, ctx.Doer, form.Name, ctx.Doer.LowerName == strings.ToLower(form.Name)); err != nil {
-			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
 			return
 		}
