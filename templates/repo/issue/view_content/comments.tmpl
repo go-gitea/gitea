@@ -688,10 +688,15 @@
 							{{$.locale.Tr "repo.issues.review.add_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
 						{{end}}
 					{{else}}
+						<!-- If the assigned team is deleted, just displaying "Ghost Team" in the comment -->
+						{{$teamName := "Ghost Team"}}
+						{{if .AssigneeTeam}}
+							{{$teamName = .AssigneeTeam.Name}}
+						{{end}}
 						{{if .RemovedAssignee}}
-							{{$.locale.Tr "repo.issues.review.remove_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.review.remove_review_request" ($teamName|Escape) $createdStr | Safe}}
 						{{else}}
-							{{$.locale.Tr "repo.issues.review.add_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.review.add_review_request" ($teamName|Escape) $createdStr | Safe}}
 						{{end}}
 					{{end}}
 				</span>
