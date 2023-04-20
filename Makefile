@@ -25,16 +25,15 @@ COMMA := ,
 
 XGO_VERSION := go-1.20.x
 
-AIR_PACKAGE ?= github.com/cosmtrek/air@v1.40.4
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.6.0
-ERRCHECK_PACKAGE ?= github.com/kisielk/errcheck@v1.6.2
-GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.4.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.2
-GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
+AIR_PACKAGE ?= github.com/cosmtrek/air@v1.43.0
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
+GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.5.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.52.2
+GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.4
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
-GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.5.0
+GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.6.0
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@latest
 
 DOCKER_IMAGE ?= gitea/gitea
@@ -323,11 +322,6 @@ swagger-validate:
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
 	$(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
-
-.PHONY: errcheck
-errcheck:
-	@echo "Running errcheck..."
-	$(GO) run $(ERRCHECK_PACKAGE) $(GO_PACKAGES)
 
 .PHONY: checks
 checks: checks-frontend checks-backend
@@ -843,7 +837,6 @@ deps-backend:
 deps-tools:
 	$(GO) install $(AIR_PACKAGE)
 	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE)
-	$(GO) install $(ERRCHECK_PACKAGE)
 	$(GO) install $(GOFUMPT_PACKAGE)
 	$(GO) install $(GOLANGCI_LINT_PACKAGE)
 	$(GO) install $(GXZ_PAGAGE)
