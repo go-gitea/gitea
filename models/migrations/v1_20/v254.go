@@ -12,7 +12,7 @@ func AddActionTaskOutputTable(x *xorm.Engine) error {
 		ID            int64
 		TaskID        int64  `xorm:"INDEX UNIQUE(task_id_output_key)"`
 		OutputKey     string `xorm:"VARCHAR(255)"`
-		OutputKeyHash string `xorm:"CHAR(40) UNIQUE(task_id_output_key)"`
+		OutputKeyHash string `xorm:"CHAR(32) UNIQUE(task_id_output_key)"`
 		OutputValue   string `xorm:"TEXT"`
 	}
 	return x.Sync(new(ActionTaskOutput))

@@ -5,7 +5,7 @@ package actions
 
 import (
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -19,7 +19,7 @@ type ActionTaskOutput struct {
 	ID            int64
 	TaskID        int64  `xorm:"INDEX UNIQUE(task_id_output_key)"`
 	OutputKey     string `xorm:"VARCHAR(255)"`
-	OutputKeyHash string `xorm:"CHAR(40) UNIQUE(task_id_output_key)"`
+	OutputKeyHash string `xorm:"CHAR(32) UNIQUE(task_id_output_key)"`
 	OutputValue   string `xorm:"TEXT"`
 }
 
@@ -37,7 +37,8 @@ func FindTaskOutputKeyByTaskID(ctx context.Context, taskID int64) ([]string, err
 
 // InsertTaskOutputIfNotExist inserts a new task output if it does not exist.
 func InsertTaskOutputIfNotExist(ctx context.Context, taskID int64, key, value string) error {
-	keyHash := fmt.Sprintf("%x", sha1.Sum([]byte(key)))
+	keyHash := fmt.Sprintf("%x", sha256.Sum256([]byte(key)))
+	keyHash = keyHash[:32] // 32 chars (16 bytes) is enough to avoid collision inner a task
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 		if exist, err := sess.Exist(&ActionTaskOutput{TaskID: taskID, OutputKeyHash: keyHash}); err != nil {
