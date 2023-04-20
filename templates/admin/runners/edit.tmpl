@@ -1,8 +1,12 @@
 {{template "base/head" .}}
 <div class="page-content admin runners">
-	{{template "admin/navbar" .}}
 	<div class="ui container">
-		{{template "shared/actions/runner_edit" .}}
+		<div class="ui grid">
+			{{template "admin/navbar" .}}
+			<div class="twelve wide column content">
+				{{template "shared/actions/runner_edit" .}}
+			</div>
+		</div>
 	</div>
 </div>
 {{template "base/footer" .}}

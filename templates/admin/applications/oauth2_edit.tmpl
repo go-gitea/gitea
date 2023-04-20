@@ -1,7 +1,12 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content admin config">
-	{{template "admin/navbar" .}}
-
-	{{template "user/settings/applications_oauth2_edit_form" .}}
+	<div class="ui container">
+		<div class="ui grid">
+			{{template "admin/navbar" .}}
+			<div class="twelve wide column content">
+				{{template "user/settings/applications_oauth2_edit_form" .}}
+			</div>
+		</div>
+	</div>
 </div>
 {{template "base/footer" .}}
