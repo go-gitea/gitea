@@ -25,7 +25,7 @@
 					</div>
 					<div class="divider"></div>
 					<div class="item">
-						<a href="{{.ResetRegistrationTokenLink}}">Reset registration token</a>
+						<a href="{{.RunnersBaseLink}}/reset_registration_token">Reset registration token</a>
 					</div>
 				</div>
 			</div>
@@ -72,7 +72,7 @@
 						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</td>
 						<td class="runner-ops">
 							{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}
-							<a href="{{if $.PageIsOrgSettings}}{{$.Link}}/{{.ID}}{{else}}{{$.Link}}/runners/{{.ID}}{{end}}">{{svg "octicon-pencil"}}</a>
+							<a href="{{$.RunnersBaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
 							{{end}}
 						</td>
 					</tr>

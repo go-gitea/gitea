@@ -26,7 +26,8 @@ func Actions(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminActions"] = true
-	ctx.Data["ResetRegistrationTokenLink"] = fmt.Sprintf("%s/runners/reset_registration_token", ctx.Link)
+	ctx.Data["RunnersBaseLink"] = fmt.Sprintf("%s/runners", ctx.Link)
+	ctx.Data["SecretsBaseLink"] = fmt.Sprintf("%s/secrets", ctx.Link)
 
 	page := ctx.FormInt("page")
 	if page <= 1 {

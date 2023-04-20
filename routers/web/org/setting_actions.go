@@ -27,7 +27,8 @@ func Actions(ctx *context.Context) {
 	}
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsOrgSettings"] = true
-	ctx.Data["ResetRegistrationTokenLink"] = fmt.Sprintf("%s/reset_registration_token", ctx.Link)
+	ctx.Data["RunnersBaseLink"] = ctx.Link
+	ctx.Data["SecretsBaseLink"] = ctx.Link
 	ctx.Data["PageType"] = pageType
 
 	page := ctx.FormInt("page")
