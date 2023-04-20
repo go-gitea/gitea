@@ -9,7 +9,7 @@
   /* non-color variables */
   --border-radius: 0.28571429rem;
   --opacity-disabled: 0.55;
-  --height-loading: 12rem;
+  --height-loading: 16rem;
   /* base colors */
   --color-primary: #4183c4;
   --color-primary-contrast: #ffffff;
@@ -1814,9 +1814,8 @@ footer {
 }
 
 footer .container {
-  width: 100vw !important;
   padding: 0 0.5rem;
-  max-width: calc(100vw - 1rem) !important;
+  max-width: 100%;
 }
 
 footer .container .links > * {
@@ -2368,7 +2367,7 @@ a.ui.label:hover {
 }
 
 .ui.primary.label,
-.ui.primary.labels .label, 
+.ui.primary.labels .label,
 .ui.ui.ui.primary.label {
   background-color: var(--color-primary);
   border-color: var(--color-primary-dark-2);
