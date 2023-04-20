@@ -118,15 +118,14 @@ func handleResponse(fn reflect.Value, ret []reflect.Value) goctx.CancelFunc {
 }
 
 func hasResponseBeenWritten(argsIn []reflect.Value) bool {
-	written := false
 	for _, argIn := range argsIn {
 		if statusProvider, ok := argIn.Interface().(ResponseStatusProvider); ok {
-			if written = statusProvider.Written(); written {
-				break
+			if statusProvider.Written() {
+				return true
 			}
 		}
 	}
-	return written
+	return false
 }
 
 // toHandlerProvider converts a handler to a handler provider
