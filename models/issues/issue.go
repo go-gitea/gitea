@@ -269,7 +269,7 @@ func (issue *Issue) LoadPullRequest(ctx context.Context) (err error) {
 }
 
 func (issue *Issue) loadComments(ctx context.Context) (err error) {
-	return issue.loadCommentsByType(ctx, CommentTypeUnknown)
+	return issue.loadCommentsByType(ctx, CommentTypeUndefined)
 }
 
 // LoadDiscussComments loads discuss comments
@@ -802,8 +802,8 @@ func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 }
 
 // ChangeIssueTitle changes the title of this issue, as the given user.
-func ChangeIssueTitle(issue *Issue, doer *user_model.User, oldTitle string) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeIssueTitle(ctx context.Context, issue *Issue, doer *user_model.User, oldTitle string) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

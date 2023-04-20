@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -32,5 +33,14 @@ func List(ctx *context.Context) {
 }
 
 func Tmpl(ctx *context.Context) {
+	now := time.Now()
+	ctx.Data["TimeNow"] = now
+	ctx.Data["TimePast5s"] = now.Add(-5 * time.Second)
+	ctx.Data["TimeFuture5s"] = now.Add(5 * time.Second)
+	ctx.Data["TimePast2m"] = now.Add(-2 * time.Minute)
+	ctx.Data["TimeFuture2m"] = now.Add(2 * time.Minute)
+	ctx.Data["TimePast1y"] = now.Add(-1 * 366 * 86400 * time.Second)
+	ctx.Data["TimeFuture1y"] = now.Add(1 * 366 * 86400 * time.Second)
+
 	ctx.HTML(http.StatusOK, base.TplName("devtest"+path.Clean("/"+ctx.Params("sub"))))
 }
