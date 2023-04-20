@@ -323,55 +323,53 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context
 
 // RepoRefForAPI handles repository reference names when the ref name is not explicitly given
 func RepoRefForAPI(ctx *APIContext) {
-	{
-		if ctx.Repo.GitRepo == nil {
-			ctx.InternalServerError(fmt.Errorf("no open git repo"))
+	if ctx.Repo.GitRepo == nil {
+		ctx.InternalServerError(fmt.Errorf("no open git repo"))
+		return
+	}
+
+	if ref := ctx.FormTrim("ref"); len(ref) > 0 {
+		commit, err := ctx.Repo.GitRepo.GetCommit(ref)
+		if err != nil {
+			if git.IsErrNotExist(err) {
+				ctx.NotFound()
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
+			}
 			return
 		}
+		ctx.Repo.Commit = commit
+		ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+		ctx.Repo.TreePath = ctx.Params("*")
+		return
+	}
 
-		if ref := ctx.FormTrim("ref"); len(ref) > 0 {
-			commit, err := ctx.Repo.GitRepo.GetCommit(ref)
-			if err != nil {
-				if git.IsErrNotExist(err) {
-					ctx.NotFound()
-				} else {
-					ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
-				}
-				return
-			}
-			ctx.Repo.Commit = commit
-			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			ctx.Repo.TreePath = ctx.Params("*")
+	var err error
+	refName := getRefName(ctx.Context, RepoRefAny)
+
+	if ctx.Repo.GitRepo.IsBranchExist(refName) {
+		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
+		if err != nil {
+			ctx.InternalServerError(err)
 			return
 		}
-
-		var err error
-		refName := getRefName(ctx.Context, RepoRefAny)
-
-		if ctx.Repo.GitRepo.IsBranchExist(refName) {
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
-			if err != nil {
-				ctx.InternalServerError(err)
-				return
-			}
-			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if ctx.Repo.GitRepo.IsTagExist(refName) {
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
-			if err != nil {
-				ctx.InternalServerError(err)
-				return
-			}
-			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if len(refName) == git.SHAFullLength {
-			ctx.Repo.CommitID = refName
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
-			if err != nil {
-				ctx.NotFound("GetCommit", err)
-				return
-			}
-		} else {
-			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.Params("*")))
+		ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+	} else if ctx.Repo.GitRepo.IsTagExist(refName) {
+		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
+		if err != nil {
+			ctx.InternalServerError(err)
 			return
 		}
+		ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+	} else if len(refName) == git.SHAFullLength {
+		ctx.Repo.CommitID = refName
+		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
+		if err != nil {
+			ctx.NotFound("GetCommit", err)
+			return
+		}
+	} else {
+		ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.Params("*")))
+		return
 	}
 }
