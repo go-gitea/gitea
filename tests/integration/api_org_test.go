@@ -11,6 +11,10 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	org_model "code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -50,6 +54,22 @@ func TestAPIOrgCreate(t *testing.T) {
 			LowerName: strings.ToLower(org.UserName),
 			FullName:  org.FullName,
 		})
+
+		// Check owner team permission
+		ownerTeam, _ := org_model.GetOwnerTeam(db.DefaultContext, apiOrg.ID)
+
+		for _, ut := range unit_model.AllRepoUnitTypes {
+			up := perm.AccessModeOwner
+			if ut == unit_model.TypeExternalTracker || ut == unit_model.TypeExternalWiki {
+				up = perm.AccessModeRead
+			}
+			unittest.AssertExistsAndLoadBean(t, &org_model.TeamUnit{
+				OrgID:      apiOrg.ID,
+				TeamID:     ownerTeam.ID,
+				Type:       ut,
+				AccessMode: up,
+			})
+		}
 
 		req = NewRequestf(t, "GET", "/api/v1/orgs/%s?token=%s", org.UserName, token)
 		resp = MakeRequest(t, req, http.StatusOK)

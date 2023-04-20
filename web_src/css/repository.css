@@ -2106,6 +2106,14 @@
   margin-left: 1em !important;
 }
 
+.wiki-pages-list .wiki-git-entry {
+  margin-left: 10px;
+  display: none;
+}
+
+.wiki-pages-list td:hover .wiki-git-entry {
+  display: inline-block;
+}
 
 @media (max-width: 767px) {
   .repository.wiki .dividing.header .stackable.grid .button {
