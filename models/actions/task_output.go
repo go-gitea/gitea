@@ -16,11 +16,11 @@ import (
 // the outputs of the job will be reset because the task is new.
 // It's by design, to avoid the outputs of the old task to be mixed with the new task.
 type ActionTaskOutput struct {
-	ID      int64
-	TaskID  int64  `xorm:"INDEX UNIQUE(task_id_key)"`
-	Key     string `xorm:"VARCHAR(255)"`
-	KeyHash string `xorm:"CHAR(40) UNIQUE(task_id_key)"`
-	Value   string `xorm:"TEXT"`
+	ID            int64
+	TaskID        int64  `xorm:"INDEX UNIQUE(task_id_output_key)"`
+	OutputKey     string `xorm:"VARCHAR(255)"`
+	OutputKeyHash string `xorm:"CHAR(40) UNIQUE(task_id_output_key)"`
+	OutputValue   string `xorm:"TEXT"`
 }
 
 // FindTaskOutputByTaskID returns the outputs of the task.
@@ -32,7 +32,7 @@ func FindTaskOutputByTaskID(ctx context.Context, taskID int64) ([]*ActionTaskOut
 // FindTaskOutputKeyByTaskID returns the keys of the outputs of the task.
 func FindTaskOutputKeyByTaskID(ctx context.Context, taskID int64) ([]string, error) {
 	var keys []string
-	return keys, db.GetEngine(ctx).Table(ActionTaskOutput{}).Where("task_id=?", taskID).Cols("key").Find(&keys)
+	return keys, db.GetEngine(ctx).Table(ActionTaskOutput{}).Where("task_id=?", taskID).Cols("output_key").Find(&keys)
 }
 
 // InsertTaskOutputIfNotExist inserts a new task output if it does not exist.
@@ -40,16 +40,16 @@ func InsertTaskOutputIfNotExist(ctx context.Context, taskID int64, key, value st
 	keyHash := fmt.Sprintf("%x", sha1.Sum([]byte(key)))
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
-		if exist, err := sess.Exist(&ActionTaskOutput{TaskID: taskID, KeyHash: keyHash}); err != nil {
+		if exist, err := sess.Exist(&ActionTaskOutput{TaskID: taskID, OutputKeyHash: keyHash}); err != nil {
 			return err
 		} else if exist {
 			return nil
 		}
 		_, err := sess.Insert(&ActionTaskOutput{
-			TaskID:  taskID,
-			Key:     key,
-			KeyHash: keyHash,
-			Value:   value,
+			TaskID:        taskID,
+			OutputKey:     key,
+			OutputKeyHash: keyHash,
+			OutputValue:   value,
 		})
 		return err
 	})
