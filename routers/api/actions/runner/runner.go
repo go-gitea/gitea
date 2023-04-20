@@ -97,7 +97,7 @@ func (s *Service) Register(
 // FetchTask assigns a task to the runner
 func (s *Service) FetchTask(
 	ctx context.Context,
-	req *connect.Request[runnerv1.FetchTaskRequest],
+	_ *connect.Request[runnerv1.FetchTaskRequest],
 ) (*connect.Response[runnerv1.FetchTaskResponse], error) {
 	runner := GetRunner(ctx)
 
