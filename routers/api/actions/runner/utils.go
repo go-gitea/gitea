@@ -163,12 +163,12 @@ func findTaskNeeds(ctx context.Context, task *actions_model.ActionTask) (map[str
 			continue
 		}
 		outputs := make(map[string]string)
-		if out, err := actions_model.FindTaskOutputByTaskID(ctx, job.TaskID); err != nil {
+		got, err := actions_model.FindTaskOutputByTaskID(ctx, job.TaskID)
+		if err != nil {
 			return nil, fmt.Errorf("FindTaskOutputByTaskID: %w", err)
-		} else {
-			for _, v := range out {
-				outputs[v.Key] = v.Value
-			}
+		}
+		for _, v := range got {
+			outputs[v.Key] = v.Value
 		}
 		ret[job.JobID] = &runnerv1.TaskNeed{
 			Outputs: outputs,
