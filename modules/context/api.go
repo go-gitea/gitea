@@ -322,10 +322,8 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context
 }
 
 // RepoRefForAPI handles repository reference names when the ref name is not explicitly given
-func RepoRefForAPI(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		ctx := GetAPIContext(req)
-
+func RepoRefForAPI(ctx *APIContext) {
+	{
 		if ctx.Repo.GitRepo == nil {
 			ctx.InternalServerError(fmt.Errorf("no open git repo"))
 			return
@@ -375,7 +373,5 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.Params("*")))
 			return
 		}
-
-		next.ServeHTTP(w, req)
-	})
+	}
 }
