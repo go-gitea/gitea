@@ -269,7 +269,7 @@ func (issue *Issue) LoadPullRequest(ctx context.Context) (err error) {
 }
 
 func (issue *Issue) loadComments(ctx context.Context) (err error) {
-	return issue.loadCommentsByType(ctx, CommentTypeUnknown)
+	return issue.loadCommentsByType(ctx, CommentTypeUndefined)
 }
 
 // LoadDiscussComments loads discuss comments
