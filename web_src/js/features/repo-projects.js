@@ -147,12 +147,16 @@ export function initRepoProject() {
     });
   });
 
-  $('.delete-project-board').each(function () {
-    $(this).click(function (e) {
+  $('.show-delete-column-modal').each(function () {
+    const deleteColumnModal = $(`${$(this).attr('data-modal')}`);
+    const deleteColumnButton = deleteColumnModal.find('.confirm-button');
+    const deleteUrl = $(this).attr('data-url');
+
+    deleteColumnButton.on('click', function (e) {
       e.preventDefault();
 
       $.ajax({
-        url: $(this).data('url'),
+        url: deleteUrl,
         headers: {
           'X-Csrf-Token': csrfToken,
         },
@@ -162,7 +166,7 @@ export function initRepoProject() {
         window.location.reload();
       });
     });
-  });
+  })
 
   $('#new_board_submit').click(function (e) {
     e.preventDefault();

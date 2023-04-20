@@ -115,7 +115,10 @@
 										{{$.locale.Tr "repo.projects.column.unset_default"}}
 									</a>
 								{{end}}
-								<a class="item show-modal button" data-modal="#delete-board-modal-{{.ID}}">
+								<a class="item show-modal button show-delete-column-modal" 
+									data-modal="#delete-board-modal-{{.ID}}"
+									data-url="{{$.Link}}/{{.ID}}"
+								>
 									{{svg "octicon-trash"}}
 									{{$.locale.Tr "repo.projects.column.delete"}}
 								</a>
@@ -171,12 +174,9 @@
 											{{$.locale.Tr "repo.projects.column.deletion_desc"}}
 										</label>
 									</div>
-									<div class="text right actions">
-										{{$DataUrl := printf "%s/%d" $.Link .ID}}
-										{{$ModalNoText := $.locale.Tr "settings.cancel"}}
-										{{$ModalYesText := $.locale.Tr "repo.projects.column.delete"}}
-										{{template "base/page_dimmer_buttons" (dict "." $ "ExtendedClasses" "delete-project-board" "DataUrl" $DataUrl "ModalNoText" $ModalNoText "ModalYesText" $ModalYesText)}}
-									</div>
+									{{$ModalNoText := $.locale.Tr "settings.cancel"}}
+									{{$ModalYesText := $.locale.Tr "repo.projects.column.delete"}}
+									{{template "base/page_dimmer_buttons" (dict "." $ "ModalNoText" $ModalNoText "ModalYesText" $ModalYesText)}}
 								</div>
 							</div>
 						</div>
