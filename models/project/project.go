@@ -6,7 +6,6 @@ package project
 import (
 	"context"
 	"fmt"
-	"html"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -14,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -159,21 +157,6 @@ func (p *Project) IsOrganizationProject() bool {
 
 func (p *Project) IsRepositoryProject() bool {
 	return p.Type == TypeRepository
-}
-
-func (p *Project) DisplayTitleWithTooltip(locale translation.Locale) string {
-	var typeDispalyName string
-	switch p.Type {
-	case TypeIndividual:
-		typeDispalyName = locale.Tr("projects.type.individual.displayname")
-	case TypeRepository:
-		typeDispalyName = locale.Tr("projects.type.repository.displayname")
-	case TypeOrganization:
-		typeDispalyName = locale.Tr("projects.type.organization.displayname")
-	default:
-		typeDispalyName = fmt.Sprintf("Unknown project type id: %d", p.Type)
-	}
-	return fmt.Sprintf(`<span data-tooltip-content="%s"><b>%s</b></span>`, typeDispalyName, html.EscapeString(p.Title))
 }
 
 func init() {
