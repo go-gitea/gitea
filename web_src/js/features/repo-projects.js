@@ -131,11 +131,6 @@ export function initRepoProject() {
     const showButton = $(boardColumn).find('.default-project-board-show');
     const commitButton = $(this).find('.default-project-board-button');
 
-    if ($(showButton).data('type') === 'unset_default') {
-      $(commitButton).removeClass('primary');
-      $(commitButton).addClass('red');
-    }
-
     $(commitButton).on('click', (e) => {
       e.preventDefault();
 
