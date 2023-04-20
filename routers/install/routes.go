@@ -81,14 +81,14 @@ func installRecovery(ctx goctx.Context) func(next http.Handler) http.Handler {
 	}
 }
 
-// Routes registers the install routes
+// Routes registers the installation routes
 func Routes(ctx goctx.Context) *web.Route {
 	r := web.NewRoute()
 	for _, middle := range common.Middlewares() {
 		r.Use(middle)
 	}
 
-	r.Use(web.WrapWithPrefix("/assets/", public.AssetsHandlerFunc("/assets/"), "AssetsHandler"))
+	r.Use(web.MiddlewareWithPrefix("/assets/", nil, public.AssetsHandlerFunc("/assets/")))
 
 	r.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
@@ -109,7 +109,7 @@ func Routes(ctx goctx.Context) *web.Route {
 	r.Get("/post-install", InstallDone)
 	r.Get("/api/healthz", healthcheck.Check)
 
-	r.NotFound(web.Wrap(installNotFound))
+	r.NotFound(installNotFound)
 	return r
 }
 
