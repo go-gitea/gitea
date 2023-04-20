@@ -261,7 +261,7 @@ func UserUnitAccessRepoCond(idStr string, userID int64, unitType unit.Type) buil
 	return builder.In(idStr, builder.Select("`access`.repo_id").
 		From("`access`").
 		Join("INNER", "repository", "`repository`.id = `access`.repo_id").
-		Join("INNER", "user", "`user`.id = `repository`.owner_id").
+		Join("INNER", "`user`", "`user`.id = `repository`.owner_id").
 		Where(
 			builder.And(
 				builder.Eq{"`access`.user_id": userID},
