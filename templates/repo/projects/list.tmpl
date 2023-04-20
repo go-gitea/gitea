@@ -48,9 +48,9 @@
 						{{end}}
 						<span class="issue-stats">
 							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
-							{{.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
+							{{$.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
 							{{svg "octicon-check" 16 "gt-mr-3"}}
-							{{.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+							{{$.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
 						</span>
 					</div>
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
