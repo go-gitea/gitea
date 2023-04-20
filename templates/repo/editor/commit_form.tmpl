@@ -39,6 +39,7 @@
 					</label>
 				</div>
 			</div>
+			{{if not .Repository.IsEmpty}}
 			<div class="field">
 				{{$pullRequestEnabled := .Repository.UnitEnabled $.Context $.UnitTypePullRequests}}
 				{{$prUnit := .Repository.MustGetUnit $.Context $.UnitTypePullRequests}}
@@ -65,6 +66,7 @@
 					<span class="text-muted js-quick-pull-normalization-info"></span>
 				</div>
 			</div>
+			{{end}}
 		</div>
 	</div>
 	<button id="commit-button" type="submit" class="ui green button">

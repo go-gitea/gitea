@@ -1560,6 +1560,7 @@
   owner_name: user30
   lower_name: empty
   name: empty
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0

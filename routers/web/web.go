@@ -936,6 +936,7 @@ func RegisterRoutes(m *web.Route) {
 						m.Put("", web.Bind(forms.EditProjectBoardForm{}), org.EditProjectBoard)
 						m.Delete("", org.DeleteProjectBoard)
 						m.Post("/default", org.SetDefaultProjectBoard)
+						m.Post("/unsetdefault", org.UnsetDefaultProjectBoard)
 
 						m.Post("/move", org.MoveIssues)
 					})
@@ -1184,7 +1185,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/upload-file", repo.UploadFileToServer)
 				m.Post("/upload-remove", web.Bind(forms.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
 			}, repo.MustBeEditable, repo.MustBeAbleToUpload)
-		}, context.RepoRef(), canEnableEditor, context.RepoMustNotBeArchived(), repo.MustBeNotEmpty)
+		}, context.RepoRef(), canEnableEditor, context.RepoMustNotBeArchived())
 
 		m.Group("/branches", func() {
 			m.Group("/_new", func() {
@@ -1292,6 +1293,7 @@ func RegisterRoutes(m *web.Route) {
 						m.Put("", web.Bind(forms.EditProjectBoardForm{}), repo.EditProjectBoard)
 						m.Delete("", repo.DeleteProjectBoard)
 						m.Post("/default", repo.SetDefaultProjectBoard)
+						m.Post("/unsetdefault", repo.UnSetDefaultProjectBoard)
 
 						m.Post("/move", repo.MoveIssues)
 					})
