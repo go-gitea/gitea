@@ -1,3 +1,4 @@
+# See models/unit/unit.go for the meaning of the type
 -
   id: 1
   repo_id: 1
@@ -573,5 +574,36 @@
 -
   id: 84
   repo_id: 56
+  type: 1
+  created_unix: 946684810
+-
+  id: 85
+  repo_id: 57
+  type: 1
+  created_unix: 946684810
+-
+  id: 86
+  repo_id: 57
+  type: 2
+  created_unix: 946684810
+-
+  id: 87
+  repo_id: 57
+  type: 3
+  created_unix: 946684810
+-
+  id: 88
+  repo_id: 57
+  type: 4
+  created_unix: 946684810
+-
+  id: 89
+  repo_id: 57
+  type: 5
+  created_unix: 946684810
+
+-
+  id: 90
+  repo_id: 52
   type: 1
   created_unix: 946684810
