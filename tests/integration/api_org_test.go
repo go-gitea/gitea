@@ -127,16 +127,14 @@ func TestAPIOrgDeny(t *testing.T) {
 			setting.Service.RequireSignInView = false
 		}()
 
-		token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrg)
-
 		orgName := "user1_org"
-		req := NewRequestf(t, "GET", "/api/v1/orgs/%s?token=%s", orgName, token)
+		req := NewRequestf(t, "GET", "/api/v1/orgs/%s", orgName)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos?token=%s", orgName, token)
+		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", orgName)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/members?token=%s", orgName, token)
+		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/members", orgName)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 }
