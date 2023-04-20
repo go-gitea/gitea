@@ -144,7 +144,7 @@ func newScopedTemplateSet(all *template.Template, name string) (*scopedTemplateS
 		return nil, fmt.Errorf("template %q not found", name)
 	}
 	if err := escapeTemplate(targetTmpl); err != nil {
-		return nil, fmt.Errorf("template %q has an error when escaping: %v", name, err)
+		return nil, fmt.Errorf("template %q has an error when escaping: %w", name, err)
 	}
 
 	ts := &scopedTemplateSet{
@@ -181,7 +181,7 @@ func newScopedTemplateSet(all *template.Template, name string) (*scopedTemplateS
 					} else {
 						ts.htmlTemplates[subName] = subTmpl
 						if err := escapeTemplate(subTmpl); err != nil {
-							collectErr = fmt.Errorf("template %q has an error when escaping: %v", subName, err)
+							collectErr = fmt.Errorf("template %q has an error when escaping: %w", subName, err)
 							return
 						}
 						collectTemplates(subTmpl.Tree.Root.Nodes)
