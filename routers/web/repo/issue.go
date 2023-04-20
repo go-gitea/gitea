@@ -2768,6 +2768,7 @@ func NewComment(ctx *context.Context) {
 					if !issues_model.IsErrPullRequestNotExist(err) {
 						ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
 						ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pull.Index))
+						return
 					}
 				}
 
@@ -2777,7 +2778,7 @@ func NewComment(ctx *context.Context) {
 					pull_service.AddToTaskQueue(issue.PullRequest)
 				}
 
-				// check whether the ref of PR <refs/pulls/pr_index> in base repo is consistent with the head commit of head branch in the head repo
+				// check whether the ref of PR <refs/pulls/pr_index/head> in base repo is consistent with the head commit of head branch in the head repo
 				// get head commit of PR
 				prHeadRef := pull.GetGitRefName()
 				if err := pull.LoadBaseRepo(ctx); err != nil {
@@ -2796,7 +2797,9 @@ func NewComment(ctx *context.Context) {
 					return
 				}
 				if ok := git.IsBranchExist(ctx, pull.HeadRepo.RepoPath(), pull.BaseBranch); !ok {
-					ctx.ServerError("Branch is not exist in the head repo", fmt.Errorf("Branch is not exist in the head repo, branch: %s", pull.BaseBranch))
+					// todo localize
+					ctx.Flash.Error("The origin branch is delete, cannot reopen.")
+					ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pull.Index))
 					return
 				}
 				headBranchRef := pull.GetGitHeadBranchRefName()
