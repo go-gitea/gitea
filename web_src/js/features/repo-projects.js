@@ -129,7 +129,7 @@ export function initRepoProject() {
   $('.default-project-board-modal').each(function () {
     const boardColumn = $(this).closest('.board-column');
     const showButton = $(boardColumn).find('.default-project-board-show');
-    const commitButton = $(this).find('.default-project-board-button');
+    const commitButton = $(this).find('.modal-confirm-button');
 
     $(commitButton).on('click', (e) => {
       e.preventDefault();
@@ -149,10 +149,10 @@ export function initRepoProject() {
 
   $('.show-delete-column-modal').each(function () {
     const deleteColumnModal = $(`${$(this).attr('data-modal')}`);
-    const deleteColumnButton = deleteColumnModal.find('.confirm-button');
+    const deleteColumnButton = deleteColumnModal.find('.modal-confirm-button');
     const deleteUrl = $(this).attr('data-url');
 
-    deleteColumnButton.on('click', function (e) {
+    deleteColumnButton.on('click', (e) => {
       e.preventDefault();
 
       $.ajax({
@@ -166,7 +166,7 @@ export function initRepoProject() {
         window.location.reload();
       });
     });
-  })
+  });
 
   $('#new_board_submit').click(function (e) {
     e.preventDefault();
