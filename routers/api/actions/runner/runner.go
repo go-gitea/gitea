@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/actions-proto-go/runner/v1/runnerv1connect"
 	"github.com/bufbuild/connect-go"
 	gouuid "github.com/google/uuid"
-	"github.com/nektos/act/pkg/jobparser"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -110,32 +109,11 @@ func (s *Service) FetchTask(
 		task = t
 	}
 
-	if task != nil {
-		var workflowJob *jobparser.Job
-		if gots, err := jobparser.Parse(task.WorkflowPayload); err != nil {
-			panic(err)
-		} else if len(gots) != 1 {
-			panic(err)
-		} else {
-			_, workflowJob = gots[0].Job()
-		}
-		if workflowJob.Name == "job2" {
-			task.Needs = map[string]*runnerv1.TaskNeed{
-				"job1": {
-					Outputs: debugOutputs,
-					Result:  runnerv1.Result_RESULT_SUCCESS,
-				},
-			}
-		}
-	}
-
 	res := connect.NewResponse(&runnerv1.FetchTaskResponse{
 		Task: task,
 	})
 	return res, nil
 }
-
-var debugOutputs = map[string]string{}
 
 // UpdateTask updates the task status.
 func (s *Service) UpdateTask(
@@ -165,11 +143,6 @@ func (s *Service) UpdateTask(
 	task, err = actions_model.UpdateTaskByState(ctx, req.Msg.State)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
-	}
-
-	for k, v := range req.Msg.Outputs {
-		log.Info("task %d output %s: %s", task.ID, k, v)
-		debugOutputs[k] = v
 	}
 
 	if err := task.LoadJob(ctx); err != nil {
