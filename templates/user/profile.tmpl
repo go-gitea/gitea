@@ -30,11 +30,29 @@
 							{{if .Owner.Location}}
 								<li>{{svg "octicon-location"}} {{.Owner.Location}}</li>
 							{{end}}
-							{{if .ShowUserEmail}}
+							{{if (eq .SignedUserName .Owner.Name)}}
 								<li>
 									{{svg "octicon-mail"}}
 									<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
+									<a href="{{AppSubUrl}}/user/settings#keep-email-private">
+										{{if .ShowUserEmail}}
+											<i class="ui right" data-tooltip-content="{{.locale.Tr "user.email_visibility.limited"}}">
+												{{svg "octicon-unlock"}}
+											</i>
+										{{else}}
+											<i class="ui right" data-tooltip-content="{{.locale.Tr "user.email_visibility.private"}}">
+												{{svg "octicon-lock"}}
+											</i>
+										{{end}}
+									</a>
 								</li>
+							{{else}}
+								{{if .ShowUserEmail}}
+									<li>
+										{{svg "octicon-mail"}}
+										<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
+									</li>
+								{{end}}
 							{{end}}
 							{{if .Owner.Website}}
 								<li>
@@ -55,7 +73,7 @@
 									</li>
 								{{end}}
 							{{end}}
-							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} <time data-format="short-date" datetime="{{.Owner.CreatedUnix.FormatLong}}">{{.Owner.CreatedUnix.FormatShort}}</time></li>
+							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} {{template "shared/datetime/short" (dict "Datetime" .Owner.CreatedUnix.FormatLong "Fallback" .Owner.CreatedUnix.FormatShort)}}</li>
 							{{if and .Orgs .HasOrgsVisible}}
 							<li>
 								<ul class="user-orgs">
@@ -105,6 +123,9 @@
 				<div class="ui secondary stackable pointing tight menu">
 					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "watching") (ne .TabName "projects") (ne .TabName "code")}}active {{end}}item' href="{{.Owner.HomeLink}}">
 						{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
+						{{if .Owner.NumRepos}}
+							<div class="ui small label">{{.Owner.NumRepos}}</div>
+						{{end}}
 					</a>
 					<a href="{{.Owner.HomeLink}}/-/projects" class="{{if eq .TabName "projects"}}active {{end}}item">
 						{{svg "octicon-project-symlink"}} {{.locale.Tr "user.projects"}}
@@ -126,7 +147,7 @@
 						<a class='{{if eq .TabName "stars"}}active {{end}}item' href="{{.Owner.HomeLink}}?tab=stars">
 							{{svg "octicon-star"}} {{.locale.Tr "user.starred"}}
 							{{if .Owner.NumStars}}
-								<div class="ui primary label">{{.Owner.NumStars}}</div>
+								<div class="ui small label">{{.Owner.NumStars}}</div>
 							{{end}}
 						</a>
 					{{else}}

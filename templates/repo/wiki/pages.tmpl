@@ -3,25 +3,24 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<h2 class="ui header gt-df gt-ac gt-sb">
-			<div>
-				{{.locale.Tr "repo.wiki.pages"}}
-			</div>
-			<div>
+			<span>{{.locale.Tr "repo.wiki.pages"}}</span>
+			<span>
 				{{if and .CanWriteWiki (not .IsRepositoryMirror)}}
 					<a class="ui green small button" href="{{.RepoLink}}/wiki?action=_new">{{.locale.Tr "repo.wiki.new_page_button"}}</a>
 				{{end}}
-			</div>
+			</span>
 		</h2>
-		<table class="ui table">
+		<table class="ui table wiki-pages-list">
 			<tbody>
 				{{range .Pages}}
 					<tr>
 						<td>
 							{{svg "octicon-file"}}
 							<a href="{{$.RepoLink}}/wiki/{{.SubURL}}">{{.Name}}</a>
+							<a class="wiki-git-entry" href="{{$.RepoLink}}/wiki/{{.GitEntryName | PathEscape}}" data-tooltip-content="{{$.locale.Tr "repo.wiki.original_git_entry_tooltip"}}">{{svg "octicon-chevron-right"}}</a>
 						</td>
 						{{$timeSince := TimeSinceUnix .UpdatedUnix $.locale}}
-						<td class="text right grey">{{$.locale.Tr "repo.wiki.last_updated" $timeSince | Safe}}</td>
+						<td class="text right">{{$.locale.Tr "repo.wiki.last_updated" $timeSince | Safe}}</td>
 					</tr>
 				{{end}}
 			</tbody>

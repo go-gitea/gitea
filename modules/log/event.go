@@ -82,7 +82,7 @@ func (l *ChannelledLog) Start() {
 				l.closeLogger()
 				return
 			}
-			l.loggerProvider.LogEvent(event)
+			l.loggerProvider.LogEvent(event) //nolint:errcheck
 		case _, ok := <-l.flush:
 			if !ok {
 				l.closeLogger()
@@ -119,7 +119,7 @@ func (l *ChannelledLog) emptyQueue() bool {
 			if !ok {
 				return false
 			}
-			l.loggerProvider.LogEvent(event)
+			l.loggerProvider.LogEvent(event) //nolint:errcheck
 		default:
 			return true
 		}

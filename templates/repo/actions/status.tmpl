@@ -1,12 +1,26 @@
-{{if .IsWaiting}}
-	<i class="commit-status circle icon gray"></i>
-{{end}}
-{{if .IsRunning}}
-	<i class="commit-status circle icon yellow"></i>
-{{end}}
-{{if .IsSuccess}}
-	<i class="commit-status check icon green"></i>
-{{end}}
-{{if .IsFailure}}
-	<i class="commit-status warning icon red"></i>
+<!-- This template should be kept the same as web_src/js/components/ActionRunStatus.vue
+	Please also update the vue file above if this template is modified.
+-->
+{{- $size := 16 -}}
+{{- if .size -}}
+{{- $size = .size -}}
+{{- end -}}
+
+{{- $className := "" -}}
+{{- if .className -}}
+{{- $className = .className -}}
+{{- end -}}
+
+{{if eq .status "success"}}
+	{{svg "octicon-check-circle-fill" $size (printf "text green %s" $className)}}
+{{else if eq .status "skipped"}}
+	{{svg "octicon-skip" $size (printf "text grey %s" $className)}}
+{{else if eq .status "waiting"}}
+	{{svg "octicon-clock" $size (printf "text yellow %s" $className)}}
+{{else if eq .status "blocked"}}
+	{{svg "octicon-blocked" $size (printf "text yellow %s" $className)}}
+{{else if eq .status "running"}}
+	{{svg "octicon-meter" $size (printf "text yellow job-status-rotate %s" $className)}}
+{{else}}
+	{{svg "octicon-x-circle-fill" $size (printf "text red %s" $className)}}
 {{end}}

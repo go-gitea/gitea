@@ -84,6 +84,9 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(commits) == 0 {
+		return nil, ErrNotExist{ID: relpath}
+	}
 	return commits[0], nil
 }
 
@@ -180,14 +183,6 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 	}
 
 	return repo.parsePrettyFormatLogToList(bytes.TrimSuffix(stdout, []byte{'\n'}))
-}
-
-func (repo *Repository) getFilesChanged(id1, id2 string) ([]string, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only").AddDynamicArguments(id1, id2).RunStdBytes(&RunOpts{Dir: repo.Path})
-	if err != nil {
-		return nil, err
-	}
-	return strings.Split(string(stdout), "\n"), nil
 }
 
 // FileChangedBetweenCommits Returns true if the file changed between commit IDs id1 and id2

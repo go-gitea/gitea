@@ -132,7 +132,7 @@ func Create(ctx *context.Context) {
 
 	// Give default value for template to render.
 	ctx.Data["Gitignores"] = repo_module.Gitignores
-	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 	ctx.Data["Licenses"] = repo_module.Licenses
 	ctx.Data["Readmes"] = repo_module.Readmes
 	ctx.Data["readme"] = "Default"
@@ -200,7 +200,7 @@ func CreatePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	ctx.Data["Gitignores"] = repo_module.Gitignores
-	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 	ctx.Data["Licenses"] = repo_module.Licenses
 	ctx.Data["Readmes"] = repo_module.Readmes
 
@@ -373,7 +373,7 @@ func RedirectDownload(ctx *context.Context) {
 			return
 		}
 		if att != nil {
-			ctx.Redirect(att.DownloadURL())
+			ServeAttachment(ctx, att.UUID)
 			return
 		}
 	}

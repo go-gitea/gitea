@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
@@ -27,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/auth"
+	"code.gitea.io/gitea/routers/web/devtest"
 	"code.gitea.io/gitea/routers/web/events"
 	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/routers/web/feed"
@@ -101,11 +103,7 @@ func buildAuthGroup() *auth_service.Group {
 func Routes(ctx gocontext.Context) *web.Route {
 	routes := web.NewRoute()
 
-	routes.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
-		Directory:   path.Join(setting.StaticRootPath, "public"),
-		Prefix:      public.AssetsURLPathPrefix,
-		CorsHandler: CorsHandler(),
-	}), "AssetsHandler"))
+	routes.Use(web.WrapWithPrefix("/assets/", web.Wrap(CorsHandler(), public.AssetsHandlerFunc("/assets/")), "AssetsHandler"))
 
 	sessioner := session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
@@ -672,16 +670,47 @@ func RegisterRoutes(m *web.Route) {
 			})
 			http.ServeFile(ctx.Resp, ctx.Req, path.Join(setting.StaticRootPath, "public/img/favicon.png"))
 		})
-		m.Group("/{username}", func() {
-			m.Get(".png", user.AvatarByUserName)
-			m.Get(".keys", user.ShowSSHKeys)
-			m.Get(".gpg", user.ShowGPGKeys)
-			m.Get(".rss", feedEnabled, feed.ShowUserFeedRSS)
-			m.Get(".atom", feedEnabled, feed.ShowUserFeedAtom)
-			m.Get("", user.Profile)
-		}, func(ctx *context.Context) {
-			ctx.Data["EnableFeed"] = setting.EnableFeed
-		}, context_service.UserAssignmentWeb())
+		m.Get("/{username}", func(ctx *context.Context) {
+			// WORKAROUND to support usernames with "." in it
+			// https://github.com/go-chi/chi/issues/781
+			username := ctx.Params("username")
+			reloadParam := func(suffix string) (success bool) {
+				ctx.SetParams("username", strings.TrimSuffix(username, suffix))
+				context_service.UserAssignmentWeb()(ctx)
+				return !ctx.Written()
+			}
+			switch {
+			case strings.HasSuffix(username, ".png"):
+				if reloadParam(".png") {
+					user.AvatarByUserName(ctx)
+				}
+			case strings.HasSuffix(username, ".keys"):
+				if reloadParam(".keys") {
+					user.ShowSSHKeys(ctx)
+				}
+			case strings.HasSuffix(username, ".gpg"):
+				if reloadParam(".gpg") {
+					user.ShowGPGKeys(ctx)
+				}
+			case strings.HasSuffix(username, ".rss"):
+				feedEnabled(ctx)
+				if !ctx.Written() && reloadParam(".rss") {
+					context_service.UserAssignmentWeb()(ctx)
+					feed.ShowUserFeedRSS(ctx)
+				}
+			case strings.HasSuffix(username, ".atom"):
+				feedEnabled(ctx)
+				if !ctx.Written() && reloadParam(".atom") {
+					feed.ShowUserFeedAtom(ctx)
+				}
+			default:
+				context_service.UserAssignmentWeb()(ctx)
+				if !ctx.Written() {
+					ctx.Data["EnableFeed"] = setting.EnableFeed
+					user.Profile(ctx)
+				}
+			}
+		})
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
 	}, ignSignIn)
 
@@ -907,6 +936,7 @@ func RegisterRoutes(m *web.Route) {
 						m.Put("", web.Bind(forms.EditProjectBoardForm{}), org.EditProjectBoard)
 						m.Delete("", org.DeleteProjectBoard)
 						m.Post("/default", org.SetDefaultProjectBoard)
+						m.Post("/unsetdefault", org.UnsetDefaultProjectBoard)
 
 						m.Post("/move", org.MoveIssues)
 					})
@@ -1155,7 +1185,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/upload-file", repo.UploadFileToServer)
 				m.Post("/upload-remove", web.Bind(forms.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
 			}, repo.MustBeEditable, repo.MustBeAbleToUpload)
-		}, context.RepoRef(), canEnableEditor, context.RepoMustNotBeArchived(), repo.MustBeNotEmpty)
+		}, context.RepoRef(), canEnableEditor, context.RepoMustNotBeArchived())
 
 		m.Group("/branches", func() {
 			m.Group("/_new", func() {
@@ -1227,7 +1257,10 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("", func() {
-			m.Get("/{type:issues|pulls}", repo.Issues)
+			m.Group("/{type:issues|pulls}", func() {
+				m.Get("", repo.Issues)
+				m.Get("/posters", repo.IssuePosters)
+			})
 			m.Get("/{type:issues|pulls}/{index}", repo.ViewIssue)
 			m.Group("/{type:issues|pulls}/{index}/content-history", func() {
 				m.Get("/overview", repo.GetContentHistoryOverview)
@@ -1260,6 +1293,7 @@ func RegisterRoutes(m *web.Route) {
 						m.Put("", web.Bind(forms.EditProjectBoardForm{}), repo.EditProjectBoard)
 						m.Delete("", repo.DeleteProjectBoard)
 						m.Post("/default", repo.SetDefaultProjectBoard)
+						m.Post("/unsetdefault", repo.UnSetDefaultProjectBoard)
 
 						m.Post("/move", repo.MoveIssues)
 					})
@@ -1491,6 +1525,12 @@ func RegisterRoutes(m *web.Route) {
 	if setting.API.EnableSwagger {
 		m.Get("/swagger.v1.json", SwaggerV1Json)
 	}
+
+	if !setting.IsProd {
+		m.Any("/devtest", devtest.List)
+		m.Any("/devtest/{sub}", devtest.Tmpl)
+	}
+
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.GetContext(req)
 		ctx.NotFound("", nil)

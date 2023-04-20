@@ -2,7 +2,7 @@
 date: "2020-01-25T21:00:00-03:00"
 title: "Embedded data extraction tool"
 slug: "cmd-embedded"
-weight: 40
+weight: 20
 toc: false
 draft: false
 menu:
