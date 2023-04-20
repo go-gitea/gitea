@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates/scopedtmpl"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var rendererKey interface{} = "templatesHtmlRenderer"
