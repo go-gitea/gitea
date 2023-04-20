@@ -145,6 +145,22 @@ func (s *Service) UpdateTask(
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
 	}
 
+	for k, v := range req.Msg.Outputs {
+		if len(k) > 255 {
+			log.Warn("Ignore the output of task %d because the key is too long: %q", task.ID, k)
+			continue
+		}
+		if err := actions_model.InsertTaskOutputIfNotExist(ctx, task.ID, k, v); err != nil {
+			log.Warn("Failed to insert the output %q of task %d: %v", k, task.ID, err)
+			// It's ok not to return errors, the runner will resend the outputs.
+		}
+	}
+	sentOutputs, err := actions_model.FindTaskOutputKeyByTaskID(ctx, task.ID)
+	if err != nil {
+		log.Warn("Failed to find the sent outputs of task %d: %v", task.ID, err)
+		// It's not to return errors, it can be handled when the runner resends sent outputs.
+	}
+
 	if err := task.LoadJob(ctx); err != nil {
 		return nil, status.Errorf(codes.Internal, "load job: %v", err)
 	}
@@ -162,6 +178,7 @@ func (s *Service) UpdateTask(
 			Id:     req.Msg.State.Id,
 			Result: task.Status.AsResult(),
 		},
+		SentOutputs: sentOutputs,
 	}), nil
 }
 
