@@ -1,9 +1,13 @@
 {{template "base/head" .}}
 <div class="page-content repository settings runners">
 	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
 	<div class="ui container">
-		{{template "shared/actions/runner_edit" .}}
+		<div class="ui grid">
+			{{template "repo/settings/navbar" .}}
+			<div class="twelve wide column content">
+				{{template "shared/actions/runner_edit" .}}
+			</div>
+		</div>
 	</div>
 </div>
 {{template "base/footer" .}}
