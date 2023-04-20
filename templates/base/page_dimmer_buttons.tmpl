@@ -1,9 +1,9 @@
 <div class="actions">
-	<button class="ui red basic inverted cancel button">
+	<button class="ui red cancel button">
 		{{svg "octicon-x"}}
 		{{if .ModalNoText}}{{.ModalNoText}}{{else}}{{.locale.Tr "modal.no"}}{{end}}
 	</button>
-	<button class="ui green basic inverted ok button{{if .ExtendedClasses}} {{.ExtendedClasses}}{{end}}" {{if .DataUrl}}data-url="{{.DataUrl}}"{{end}}>
+	<button class="ui green ok button{{if .ExtendedClasses}} {{.ExtendedClasses}}{{end}}" {{if .DataUrl}}data-url="{{.DataUrl}}"{{end}}>
 		{{svg "octicon-check"}}
 		{{if .ModalYesText}}{{.ModalYesText}}{{else}}{{.locale.Tr "modal.yes"}}{{end}}
 	</button>
