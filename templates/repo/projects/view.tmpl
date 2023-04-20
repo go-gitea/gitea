@@ -119,7 +119,7 @@
 										{{$.locale.Tr "repo.projects.column.unset_default"}}
 									</a>
 								{{end}}
-								<a class="item show-modal button show-delete-column-modal" 
+								<a class="item show-modal button show-delete-column-modal"
 									data-modal="#delete-board-modal-{{.ID}}"
 									data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}"
 								>
@@ -168,7 +168,7 @@
 									{{- if .Default -}}
 									{{- $ModalYesText = $.locale.Tr "repo.projects.column.unset_default" -}}
 									{{- end -}}
-									{{template "base/page_dimmer_buttons" (dict "." $ "ModalNoText" $ModalNoText "ModalYesText" $ModalYesText)}}
+									{{template "base/basic_modal_actions" (dict "." $ "ModalNoText" $ModalNoText "ModalYesText" $ModalYesText)}}
 								</div>
 
 								<div class="ui basic modal" id="delete-board-modal-{{.ID}}">
@@ -181,7 +181,7 @@
 										</label>
 									</div>
 									{{$ModalYesText := $.locale.Tr "repo.projects.column.delete"}}
-									{{template "base/page_dimmer_buttons" (dict "." $ "ModalNoText" $ModalNoText "ModalYesText" $ModalYesText)}}
+									{{template "base/basic_modal_actions" (dict "." $ "ModalNoText" $ModalNoText "ModalYesText" $ModalYesText)}}
 								</div>
 							</div>
 						</div>
@@ -292,7 +292,7 @@
 		<div class="content">
 			<p>{{.locale.Tr "repo.projects.deletion_desc"}}</p>
 		</div>
-		{{template "base/page_dimmer_buttons" .}}
+		{{template "base/basic_modal_actions" .}}
 	</div>
 {{end}}
 
