@@ -19,36 +19,36 @@ func Actions(ctx *context.Context) {
 	pageType := ctx.Params(":type")
 	if pageType == "runners" {
 		ctx.Data["PageIsOrgSettingsRunners"] = true
+		ctx.Data["RunnersBaseLink"] = ctx.Link
+		page := ctx.FormInt("page")
+		if page <= 1 {
+			page = 1
+		}
+
+		opts := actions_model.FindRunnerOptions{
+			ListOptions: db.ListOptions{
+				Page:     page,
+				PageSize: 100,
+			},
+			Sort:          ctx.Req.URL.Query().Get("sort"),
+			Filter:        ctx.Req.URL.Query().Get("q"),
+			OwnerID:       ctx.Org.Organization.ID,
+			WithAvailable: true,
+		}
+
+		actions_shared.RunnersList(ctx, opts)
 	} else if pageType == "secrets" {
 		ctx.Data["PageIsOrgSettingsSecrets"] = true
+		ctx.Data["SecretsBaseLink"] = ctx.Link
+		PrepareSecretsData(ctx)
 	} else {
 		ctx.ServerError("Unknown Page Type", fmt.Errorf("Unknown Actions Settings Type: %s", pageType))
 		return
 	}
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsOrgSettings"] = true
-	ctx.Data["RunnersBaseLink"] = ctx.Link
-	ctx.Data["SecretsBaseLink"] = ctx.Link
 	ctx.Data["PageType"] = pageType
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
-
-	opts := actions_model.FindRunnerOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: 100,
-		},
-		Sort:          ctx.Req.URL.Query().Get("sort"),
-		Filter:        ctx.Req.URL.Query().Get("q"),
-		OwnerID:       ctx.Org.Organization.ID,
-		WithAvailable: true,
-	}
-
-	actions_shared.RunnersList(ctx, opts)
-	PrepareSecretsData(ctx)
 	ctx.HTML(http.StatusOK, tplSettingsActions)
 }
 
