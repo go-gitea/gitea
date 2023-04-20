@@ -5,6 +5,7 @@ package user_test
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"strings"
 	"testing"
@@ -64,9 +65,10 @@ func TestSearchUsers(t *testing.T) {
 	testSuccess := func(opts *user_model.SearchUserOptions, expectedUserOrOrgIDs []int64) {
 		users, _, err := user_model.SearchUsers(opts)
 		assert.NoError(t, err)
-		if assert.Len(t, users, len(expectedUserOrOrgIDs), opts) {
+		cassText := fmt.Sprintf("ids: %v, opts: %v", expectedUserOrOrgIDs, opts)
+		if assert.Len(t, users, len(expectedUserOrOrgIDs), "case: %s", cassText) {
 			for i, expectedID := range expectedUserOrOrgIDs {
-				assert.EqualValues(t, expectedID, users[i].ID)
+				assert.EqualValues(t, expectedID, users[i].ID, "case: %s", cassText)
 			}
 		}
 	}
@@ -118,7 +120,7 @@ func TestSearchUsers(t *testing.T) {
 		[]int64{1})
 
 	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsRestricted: util.OptionalBoolTrue},
-		[]int64{29, 30})
+		[]int64{29})
 
 	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsProhibitLogin: util.OptionalBoolTrue},
 		[]int64{30})
