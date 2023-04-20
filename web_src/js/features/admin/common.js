@@ -21,7 +21,7 @@ export function initAdminCommon() {
         $('#login_name').removeAttr('required');
         hideElem($('.non-local'));
         showElem($('.local'));
-        $('#user_name').focus();
+        $('#user_name').trigger('focus');
 
         if ($(this).data('password') === 'required') {
           $('#password').attr('required', 'required');
@@ -33,7 +33,7 @@ export function initAdminCommon() {
         $('#login_name').attr('required', 'required');
         showElem($('.non-local'));
         hideElem($('.local'));
-        $('#login_name').focus();
+        $('#login_name').trigger('focus');
 
         $('#password').removeAttr('required');
       }

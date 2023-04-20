@@ -47,7 +47,7 @@ const CookieNameFlash = "gitea_flash"
 
 // Render represents a template render
 type Render interface {
-	TemplateLookup(tmpl string) (*template.Template, error)
+	TemplateLookup(tmpl string) (templates.TemplateExecutor, error)
 	HTML(w io.Writer, status int, name string, data interface{}) error
 }
 
