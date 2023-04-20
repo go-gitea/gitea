@@ -168,7 +168,7 @@ export function initRepoProject() {
     });
   });
 
-  $('#new_board_submit').click(function (e) {
+  $('#new_board_submit').on('click', function (e) {
     e.preventDefault();
 
     const boardTitle = $('#new_board');

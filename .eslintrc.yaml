@@ -12,6 +12,7 @@ plugins:
   - eslint-plugin-unicorn
   - eslint-plugin-import
   - eslint-plugin-jquery
+  - eslint-plugin-no-jquery
   - eslint-plugin-sonarjs
   - eslint-plugin-custom-elements
 
@@ -192,6 +193,7 @@ rules:
   jquery/no-val: [0]
   jquery/no-when: [2]
   jquery/no-wrap: [2]
+  no-jquery/no-event-shorthand: [2]
   key-spacing: [2]
   keyword-spacing: [2]
   line-comment-position: [0]

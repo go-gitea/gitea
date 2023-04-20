@@ -57,7 +57,7 @@ export function initRepoCommentForm() {
     const $selectBranch = $('.ui.select-branch');
     const $branchMenu = $selectBranch.find('.reference-list-menu');
     const $isNewIssue = $branchMenu.hasClass('new-issue');
-    $branchMenu.find('.item:not(.no-select)').click(function () {
+    $branchMenu.find('.item:not(.no-select)').on('click', function () {
       const selectedValue = $(this).data('id');
       const editMode = $('#editing_mode').val();
       $($(this).data('id-selector')).val(selectedValue);
