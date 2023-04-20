@@ -48,12 +48,13 @@ func ToWikiCommitList(commits []*git.Commit, total int64) *api.WikiCommitList {
 }
 
 // ToWikiPageMetaData converts meta information to a WikiPageMetaData
-func ToWikiPageMetaData(title string, lastCommit *git.Commit, repo *repo_model.Repository) *api.WikiPageMetaData {
-	suburl := wiki_service.NameToSubURL(title)
+func ToWikiPageMetaData(wikiName wiki_service.WebPath, lastCommit *git.Commit, repo *repo_model.Repository) *api.WikiPageMetaData {
+	subURL := string(wikiName)
+	_, title := wiki_service.WebPathToUserTitle(wikiName)
 	return &api.WikiPageMetaData{
 		Title:      title,
-		HTMLURL:    util.URLJoin(repo.HTMLURL(), "wiki", suburl),
-		SubURL:     suburl,
+		HTMLURL:    util.URLJoin(repo.HTMLURL(), "wiki", subURL),
+		SubURL:     subURL,
 		LastCommit: ToWikiCommit(lastCommit),
 	}
 }

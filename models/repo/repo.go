@@ -225,6 +225,12 @@ func (repo *Repository) IsBroken() bool {
 	return repo.Status == RepositoryBroken
 }
 
+// MarkAsBrokenEmpty marks the repo as broken and empty
+func (repo *Repository) MarkAsBrokenEmpty() {
+	repo.Status = RepositoryBroken
+	repo.IsEmpty = true
+}
+
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (repo *Repository) AfterLoad() {
 	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
@@ -729,7 +735,7 @@ func IsRepositoryExist(ctx context.Context, u *user_model.User, repoName string)
 		return false, err
 	}
 	isDir, err := util.IsDir(RepoPath(u.Name, repoName))
-	return has && isDir, err
+	return has || isDir, err
 }
 
 // GetTemplateRepo populates repo.TemplateRepo for a generated repository and
