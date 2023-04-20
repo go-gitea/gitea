@@ -165,9 +165,13 @@ func List(ctx *context.Context) {
 	if ctx.FormString("state") == "closed" {
 		opts.IsClosed = util.OptionalBoolTrue
 		ctx.Data["IsShowClosed"] = true
-	} else {
+	} else if ctx.FormString("state") == "open" || numOpenRuns != 0 || numClosedRuns == 0 {
 		opts.IsClosed = util.OptionalBoolFalse
+	} else {
+		opts.IsClosed = util.OptionalBoolTrue
+		ctx.Data["IsShowClosed"] = true
 	}
+
 	runs, total, err := actions_model.FindRuns(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
