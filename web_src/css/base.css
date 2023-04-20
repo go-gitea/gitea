@@ -2638,7 +2638,7 @@ table th[data-sortt-desc] .svg {
 
 .ui.dropdown .menu > .divider {
   border-top: 1px solid var(--color-secondary);
-  margin: 0;
+  margin: 4px 0;
 }
 
 .ui.multiple.dropdown > .label {
