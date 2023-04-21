@@ -10,8 +10,16 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	actions_shared "code.gitea.io/gitea/routers/web/shared/actions"
+)
+
+const (
+	// tplSettingsActions template path for render actions settings
+	tplSettingsActions base.TplName = "org/settings/actions"
+	// tplSettingsRunnersEdit template path for render runners edit settings
+	tplSettingsRunnersEdit base.TplName = "org/settings/runners_edit"
 )
 
 // Actions render settings/actions page for organization level
