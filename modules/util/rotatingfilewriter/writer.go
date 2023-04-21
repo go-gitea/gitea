@@ -1,7 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package rotating_file_writer
+package rotatingfilewriter
 
 import (
 	"bufio"
@@ -137,7 +137,7 @@ func (rfw *RotatingFileWriter) DoRotate() error {
 	}
 
 	if rfw.options.Compress {
-		go compressOldFile(fname, rfw.options.CompressionLevel)
+		go compressOldFile(fname, rfw.options.CompressionLevel) //nolint:errcheck
 	}
 
 	if err := rfw.open(fd.Name()); err != nil {

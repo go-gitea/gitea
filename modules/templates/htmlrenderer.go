@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -22,13 +21,16 @@ import (
 	"code.gitea.io/gitea/modules/assetfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates/scopedtmpl"
 	"code.gitea.io/gitea/modules/util"
 )
 
 var rendererKey interface{} = "templatesHtmlRenderer"
 
+type TemplateExecutor scopedtmpl.TemplateExecutor
+
 type HTMLRender struct {
-	templates atomic.Pointer[template.Template]
+	templates atomic.Pointer[scopedtmpl.ScopedTemplate]
 }
 
 var ErrTemplateNotInitialized = errors.New("template system is not initialized, check your log for errors")
@@ -47,22 +49,20 @@ func (h *HTMLRender) HTML(w io.Writer, status int, name string, data interface{}
 	return t.Execute(w, data)
 }
 
-func (h *HTMLRender) TemplateLookup(name string) (*template.Template, error) {
+func (h *HTMLRender) TemplateLookup(name string) (TemplateExecutor, error) {
 	tmpls := h.templates.Load()
 	if tmpls == nil {
 		return nil, ErrTemplateNotInitialized
 	}
-	tmpl := tmpls.Lookup(name)
-	if tmpl == nil {
-		return nil, util.ErrNotExist
-	}
-	return tmpl, nil
+
+	return tmpls.Executor(name, NewFuncMap()[0])
 }
 
 func (h *HTMLRender) CompileTemplates() error {
-	extSuffix := ".tmpl"
-	tmpls := template.New("")
 	assets := AssetFS()
+	extSuffix := ".tmpl"
+	tmpls := scopedtmpl.NewScopedTemplate()
+	tmpls.Funcs(NewFuncMap()[0])
 	files, err := ListWebTemplateAssetNames(assets)
 	if err != nil {
 		return nil
@@ -73,9 +73,6 @@ func (h *HTMLRender) CompileTemplates() error {
 		}
 		name := strings.TrimSuffix(file, extSuffix)
 		tmpl := tmpls.New(filepath.ToSlash(name))
-		for _, fm := range NewFuncMap() {
-			tmpl.Funcs(fm)
-		}
 		buf, err := assets.ReadFile(file)
 		if err != nil {
 			return err
@@ -84,6 +81,7 @@ func (h *HTMLRender) CompileTemplates() error {
 			return err
 		}
 	}
+	tmpls.Freeze()
 	h.templates.Store(tmpls)
 	return nil
 }

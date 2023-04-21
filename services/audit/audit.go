@@ -23,7 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util/rotating_file_writer"
+	"code.gitea.io/gitea/modules/util/rotatingfilewriter"
 )
 
 type TypeDescriptor struct {
@@ -64,7 +64,7 @@ func Init() {
 				panic(err.Error())
 			}
 
-			fa, err := NewFileAppender(opts.Filename, &rotating_file_writer.Options{
+			fa, err := NewFileAppender(opts.Filename, &rotatingfilewriter.Options{
 				Rotate:           opts.Rotate,
 				MaximumSize:      opts.MaximumSize,
 				RotateDaily:      opts.RotateDaily,

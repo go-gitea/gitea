@@ -154,7 +154,9 @@ func Init() {
 				log.Trace("IndexerData Process Repo: %d", indexerData.RepoID)
 
 				if err := index(ctx, indexer, indexerData.RepoID); err != nil {
-					log.Error("index: %v", err)
+					if !setting.IsInTesting {
+						log.Error("indexer index error for repo %v: %v", indexerData.RepoID, err)
+					}
 					if indexer.Ping() {
 						continue
 					}

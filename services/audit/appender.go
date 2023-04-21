@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util/rotating_file_writer"
+	"code.gitea.io/gitea/modules/util/rotatingfilewriter"
 )
 
 type Appender interface {
@@ -54,11 +54,11 @@ func (a *LogAppender) ReleaseReopen() error {
 
 // File writes json object for every audit event
 type FileAppender struct {
-	rfw *rotating_file_writer.RotatingFileWriter
+	rfw *rotatingfilewriter.RotatingFileWriter
 }
 
-func NewFileAppender(filename string, opts *rotating_file_writer.Options) (*FileAppender, error) {
-	rfw, err := rotating_file_writer.Open(filename, opts)
+func NewFileAppender(filename string, opts *rotatingfilewriter.Options) (*FileAppender, error) {
+	rfw, err := rotatingfilewriter.Open(filename, opts)
 	if err != nil {
 		return nil, err
 	}

@@ -11,7 +11,7 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/util/rotating_file_writer"
+	"code.gitea.io/gitea/modules/util/rotatingfilewriter"
 )
 
 // FileLogger implements LoggerProvider.
@@ -19,7 +19,7 @@ import (
 type FileLogger struct {
 	WriterLogger
 
-	rfw *rotating_file_writer.RotatingFileWriter
+	rfw *rotatingfilewriter.RotatingFileWriter
 
 	// The opened file
 	Filename string `json:"filename"`
@@ -71,9 +71,9 @@ func (log *FileLogger) Init(config string) error {
 		return errors.New("config must have filename")
 	}
 
-	rfw, err := rotating_file_writer.Open(
+	rfw, err := rotatingfilewriter.Open(
 		log.Filename,
-		&rotating_file_writer.Options{
+		&rotatingfilewriter.Options{
 			MaximumSize:      log.Maxsize,
 			RotateDaily:      log.Daily,
 			KeepDays:         log.Maxdays,
