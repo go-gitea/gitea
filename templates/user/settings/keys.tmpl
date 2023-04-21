@@ -1,11 +1,15 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user settings sshkeys">
-	{{template "user/settings/navbar" .}}
 	<div class="ui container">
-		{{template "base/alert" .}}
-		{{template "user/settings/keys_ssh" .}}
-		{{template "user/settings/keys_principal" .}}
-		{{template "user/settings/keys_gpg" .}}
+		<div class="ui grid">
+			{{template "user/settings/navbar" .}}
+			<div class="twelve wide column content">
+				{{template "base/alert" .}}
+				{{template "user/settings/keys_ssh" .}}
+				{{template "user/settings/keys_principal" .}}
+				{{template "user/settings/keys_gpg" .}}
+			</div>
+		</div>
 	</div>
 </div>
 
