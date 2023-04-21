@@ -24,17 +24,17 @@ func TestUpdateAssignee(t *testing.T) {
 	// Assign multiple users
 	user2, err := user_model.GetUserByID(db.DefaultContext, 2)
 	assert.NoError(t, err)
-	_, _, err = issues_model.ToggleIssueAssignee(issue, &user_model.User{ID: 1}, user2.ID)
+	_, _, err = issues_model.ToggleIssueAssignee(db.DefaultContext, issue, &user_model.User{ID: 1}, user2.ID)
 	assert.NoError(t, err)
 
 	user3, err := user_model.GetUserByID(db.DefaultContext, 3)
 	assert.NoError(t, err)
-	_, _, err = issues_model.ToggleIssueAssignee(issue, &user_model.User{ID: 1}, user3.ID)
+	_, _, err = issues_model.ToggleIssueAssignee(db.DefaultContext, issue, &user_model.User{ID: 1}, user3.ID)
 	assert.NoError(t, err)
 
 	user1, err := user_model.GetUserByID(db.DefaultContext, 1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him
 	assert.NoError(t, err)
-	_, _, err = issues_model.ToggleIssueAssignee(issue, &user_model.User{ID: 1}, user1.ID)
+	_, _, err = issues_model.ToggleIssueAssignee(db.DefaultContext, issue, &user_model.User{ID: 1}, user1.ID)
 	assert.NoError(t, err)
 
 	// Check if he got removed

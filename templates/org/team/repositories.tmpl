@@ -25,8 +25,8 @@
 						</div>
 						<div class="inline ui field right">
 							<form class="ui form" id="repo-multiple-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/repositories" method="post">
-								<button class="ui red button delete-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{.locale.Tr "remove_all"}}</button>
-								<button class="ui green button add-all-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.locale.Tr "add_all"}}</button>
+								<button class="ui red button delete-button right" data-modal-id="org-team-remove-all-repo" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{.locale.Tr "remove_all"}}</button>
+								<button class="ui green button add-all-button right" data-modal-id="org-team-add-all-repo" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.locale.Tr "add_all"}}</button>
 							</form>
 						</div>
 					</div>
@@ -64,7 +64,7 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal">
+<div class="ui small basic delete modal" id="org-team-remove-all-repo">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "org.teams.remove_all_repos_title"}}
@@ -75,7 +75,7 @@
 	{{template "base/delete_modal_actions" .}}
 </div>
 
-<div class="ui small basic addall modal">
+<div class="ui small basic addall modal" id="org-team-add-all-repo">
 	<div class="ui icon header">
 		{{svg "octicon-globe"}}
 		{{.locale.Tr "org.teams.add_all_repos_title"}}

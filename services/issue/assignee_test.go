@@ -31,7 +31,7 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	assert.True(t, isAssigned)
 
 	// Clean everyone
-	err = DeleteNotPassedAssignee(issue, user1, []*user_model.User{})
+	err = DeleteNotPassedAssignee(db.DefaultContext, issue, user1, []*user_model.User{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, len(issue.Assignees))
 

@@ -107,6 +107,7 @@ func Dashboard(ctx *context.Context) {
 			return
 		}
 		ctx.Data["HeatmapData"] = data
+		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
 	}
 
 	feeds, count, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{

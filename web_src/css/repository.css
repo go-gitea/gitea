@@ -153,12 +153,9 @@
   padding-left: 23px;
 }
 
-.repository .ui.tabs.container {
-  margin-top: 14px;
-  margin-bottom: 0;
-}
-
-.repository .ui.tabs.container .ui.menu {
+/* For the secondary pointing menu, respect its own border-bottom */
+/* style reference: https://semantic-ui.com/collections/menu.html#pointing */
+.repository .ui.tabs.container .ui.menu:not(.secondary.pointing) {
   border-bottom: 0;
 }
 
@@ -542,10 +539,6 @@
 
 .repository.options .danger .ui.divider {
   margin: 0;
-}
-
-.repository .comment textarea {
-  max-height: none !important;
 }
 
 .repository.new.issue .comment.form .comment .avatar {
@@ -969,10 +962,6 @@
   max-width: 100%;
 }
 
-.repository.view.issue .comment-list .ui.comments .avatar {
-  margin-right: 0.5rem;
-}
-
 .repository.view.issue .comment-list .comment > .content > div:first-child {
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
@@ -1068,11 +1057,6 @@
   min-height: 5rem;
 }
 
-.repository.view.issue .comment-list .comment .ui.form textarea {
-  height: 200px;
-  font-family: var(--fonts-monospace);
-}
-
 .repository.view.issue .comment-list .comment .edit.buttons {
   margin-top: 10px;
 }
@@ -1100,6 +1084,14 @@
 
 .repository.view.issue .comment-list .code-comment .comment-content {
   margin-left: 36px;
+}
+
+.repository.view.issue .comment-list .comment > .avatar {
+  margin-top: 6px;
+}
+
+.repository.view.issue .comment-list .comment > .avatar ~ .content {
+  margin-left: 3em;
 }
 
 .repository.view.issue .comment-list .code-comment img.avatar,
@@ -1189,15 +1181,6 @@
   border-right-color: var(--color-box-body);
   border-width: 8px;
   margin-top: -8px;
-}
-
-.repository .comment.form .content textarea {
-  height: 200px;
-  font-family: var(--fonts-monospace);
-}
-
-.repository .comment.form .content .CodeMirror-scroll {
-  max-height: 85vh;
 }
 
 .repository .milestone.list {
@@ -1636,10 +1619,10 @@
   top: 0;
   z-index: 8;
   border-bottom: none;
-  padding-left: 2px;
-  padding-right: 2px;
-  margin-left: -1px;
-  margin-right: -1px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin-left: -4px;
+  margin-right: -4px;
 }
 
 .repository .diff-detail-box > div::after {
@@ -1925,15 +1908,12 @@
   border-radius: var(--border-radius) 0 0 var(--border-radius);
 }
 
-.repository.quickstart .guide .ui.action.small.input {
-  width: 100%;
-}
-
 .repository.quickstart .guide #repo-clone-url {
   border-radius: 0;
   padding: 5px 10px;
   font-size: 1.2em;
   line-height: 1.4;
+  flex: 1
 }
 
 .repository.release #release-list {
@@ -2110,21 +2090,26 @@
   height: 48px;
 }
 
-.repository.wiki.view > .markup {
-  padding: 15px 30px;
+.repository.wiki.new .ui.attached.tabular.menu.previewtabs {
+  margin-bottom: 15px;
 }
 
-.repository.wiki.view > .markup h1:first-of-type,
-.repository.wiki.view > .markup h2:first-of-type,
-.repository.wiki.view > .markup h3:first-of-type,
-.repository.wiki.view > .markup h4:first-of-type,
-.repository.wiki.view > .markup h5:first-of-type,
-.repository.wiki.view > .markup h6:first-of-type {
-  margin-top: 0;
+.file-view.markup {
+  padding: 1em 2em;
 }
 
-.repository.wiki .form .CodeMirror-scroll {
-  max-height: 85vh;
+.wiki-content-main {
+  padding: 1em 2em !important;
+  margin-left: 1em !important;
+}
+
+.wiki-pages-list .wiki-git-entry {
+  margin-left: 10px;
+  display: none;
+}
+
+.wiki-pages-list td:hover .wiki-git-entry {
+  display: inline-block;
 }
 
 @media (max-width: 767px) {
@@ -2751,11 +2736,10 @@
   width: 100% !important;
   max-width: 100% !important;
   margin: 0 !important;
-  padding: 0 !important;
+  padding: 1em;
 }
 
 .comment-body .markup {
-  padding: 1em;
   border-radius: 0 0 var(--border-radius) var(--border-radius); /* don't render outside box */
 }
 
@@ -3279,14 +3263,15 @@ td.blob-excerpt {
   display: none;
 }
 
-.wiki-content-toc > ul > li {
-  margin-bottom: 4px;
-}
-
 .wiki-content-toc ul {
   margin: 0;
   list-style: none;
-  padding-left: 1em;
+  padding: 5px 0 5px 1em;
+}
+
+.wiki-content-toc ul ul {
+  border-left:  1px var(--color-secondary);
+  border-left-style: dashed;
 }
 
 /* fomantic's last-child selector does not work with hidden last child */
