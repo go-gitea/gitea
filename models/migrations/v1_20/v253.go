@@ -10,5 +10,8 @@ func AddArchivedUnixToRepository(x *xorm.Engine) error {
 		ArchivedUnix timeutil.TimeStamp `xorm:"Default 0"`
 	}
 
-	return x.Sync(new(Repository))
+	x.Sync(new(Repository))
+	
+	_, err := x.Exec("UPDATE repository SET archived_unix = 0")
+	return err
 }
