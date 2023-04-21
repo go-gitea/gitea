@@ -386,7 +386,7 @@ func NewTeamPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.OrganizationTeamAdd, ctx.Doer, ctx.Org.Organization, t, "Team %s was added to organziation %s.", t.Name, ctx.Org.Organization.Name)
+	audit.Record(audit.OrganizationTeamAdd, ctx.Doer, ctx.Org.Organization, t, "Team %s was added to organization %s.", t.Name, ctx.Org.Organization.Name)
 
 	log.Trace("Team created: %s/%s", ctx.Org.Organization.Name, t.Name)
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
@@ -565,7 +565,7 @@ func DeleteTeam(ctx *context.Context) {
 	if err := models.DeleteTeam(ctx.Org.Team); err != nil {
 		ctx.Flash.Error("DeleteTeam: " + err.Error())
 	} else {
-		audit.Record(audit.OrganizationTeamRemove, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "Team %s was removed from organziation %s.", ctx.Org.Team.Name, ctx.Org.Organization.Name)
+		audit.Record(audit.OrganizationTeamRemove, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "Team %s was removed from organization %s.", ctx.Org.Team.Name, ctx.Org.Organization.Name)
 
 		ctx.Flash.Success(ctx.Tr("org.teams.delete_team_success"))
 	}

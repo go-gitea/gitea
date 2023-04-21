@@ -93,9 +93,9 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 | `organization:delete` | Organization was deleted |
 | `organization:name` | Organization name changed |
 | `organization:visibility` | Visibility of organization changed |
-| `organization:team:add` | Team was added to organziation |
+| `organization:team:add` | Team was added to organization |
 | `organization:team:update` | Updated settings of team |
-| `organization:team:remove` | Team was removed from organziation |
+| `organization:team:remove` | Team was removed from organization |
 | `organization:team:permission` | Permission of team changed |
 | `organization:team:member:add` | User was added to team |
 | `organization:team:member:remove` | User was removed from team |

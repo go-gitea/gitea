@@ -242,7 +242,7 @@ func CreateTeam(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(audit.OrganizationTeamAdd, ctx.Doer, ctx.Org.Organization, team, "Team %s was added to organziation %s.", team.Name, ctx.Org.Organization.Name)
+	audit.Record(audit.OrganizationTeamAdd, ctx.Doer, ctx.Org.Organization, team, "Team %s was added to organization %s.", team.Name, ctx.Org.Organization.Name)
 
 	apiTeam, err := convert.ToTeam(ctx, team)
 	if err != nil {
@@ -377,7 +377,7 @@ func DeleteTeam(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(audit.OrganizationTeamRemove, ctx.Doer, org, ctx.Org.Team, "Team %s was removed from organziation %s.", ctx.Org.Team.Name, org.Name)
+	audit.Record(audit.OrganizationTeamRemove, ctx.Doer, org, ctx.Org.Team, "Team %s was removed from organization %s.", ctx.Org.Team.Name, org.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
