@@ -105,15 +105,13 @@ class ComboMarkdownEditor {
   setupExpander() {
     const expander = this.container.querySelector('text-expander');
     expander?.addEventListener('text-expander-change', ({detail: {key, provide, text}}) => {
+      const textLowerCase = text.toLowerCase();
       if (key === ':') {
-        const matches = [];
-        const textLowerCase = text.toLowerCase();
-        for (const name of emojiKeys) {
-          if (name.toLowerCase().includes(textLowerCase)) {
-            matches.push(name);
-            if (matches.length >= maxExpanderMatches) break;
-          }
-        }
+        // prioritize matches that start with the given text, then matches that contain the given text
+        const matches = emojiKeys
+          .filter((name) => name.includes(textLowerCase))
+          .sort((a, b) => b.startsWith(textLowerCase) - a.startsWith(textLowerCase))
+          .slice(0, maxExpanderMatches);
         if (!matches.length) return provide({matched: false});
 
         const ul = document.createElement('ul');
@@ -130,7 +128,6 @@ class ComboMarkdownEditor {
         provide({matched: true, fragment: ul});
       } else if (key === '@') {
         const matches = [];
-        const textLowerCase = text.toLowerCase();
         for (const obj of window.config.tributeValues) {
           if (obj.key.toLowerCase().includes(textLowerCase)) {
             matches.push(obj);
