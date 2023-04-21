@@ -2380,6 +2380,13 @@ a.ui.label:hover {
   color: var(--color-primary);
 }
 
+.ui.basic.labels a.primary.label:hover,
+a.ui.ui.ui.basic.primary.label:hover {
+  background: var(--color-hover);
+  border-color: var(--color-primary-dark-1);
+  color: var(--color-primary-dark-1);
+}
+
 .ui.basic.labels .secondary.label,
 .ui.ui.ui.basic.secondary.label {
   background: transparent;
@@ -2627,6 +2634,11 @@ table th[data-sortt-desc] .svg {
 
 .ui.dropdown .menu .item:last-of-type {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.ui.dropdown .menu > .divider {
+  border-top: 1px solid var(--color-secondary);
+  margin: 4px 0;
 }
 
 .ui.multiple.dropdown > .label {
