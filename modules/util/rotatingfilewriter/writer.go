@@ -6,7 +6,6 @@ package rotatingfilewriter
 import (
 	"bufio"
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -96,10 +95,22 @@ func (rfw *RotatingFileWriter) open(filename string) error {
 }
 
 func (rfw *RotatingFileWriter) ReleaseReopen() error {
-	return errors.Join(
+	closeErr := rfw.fd.Close()
+	openErr := rfw.open(rfw.fd.Name())
+
+	if closeErr != nil {
+		if openErr != nil {
+			return fmt.Errorf("error closing and reopening file: %v & %v", closeErr, openErr)
+		}
+		return closeErr
+	}
+	return openErr
+
+	// TODO Replace with errors.Join > Go 1.20
+	/*return errors.Join(
 		rfw.fd.Close(),
 		rfw.open(rfw.fd.Name()),
-	)
+	)*/
 }
 
 // Rotate the log file creating a backup like xx.2013-01-01.2
@@ -177,7 +188,8 @@ func compressOldFile(fname string, compressionLevel int) error {
 	if err != nil {
 		zw.Close()
 		fw.Close()
-		return errors.Join(err, util.Remove(fname+".gz"))
+		util.Remove(fname + ".gz") //nolint:errcheck
+		return err
 	}
 	reader.Close()
 
