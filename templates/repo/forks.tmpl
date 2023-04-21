@@ -41,9 +41,11 @@
 			{{range .Forks}}
 				<div class="item">
 					<div class="gt-df gt-ac gt-py-3">
-						<div style="display: flex; flex: 1; flex-grow: 1;">
+						<div class="repo-title" style="display: flex; flex: 1; flex-grow: 1;">
 							<span class="gt-mr-2">{{avatar $.Context .Owner}}</span>
-							<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a> / <a href="{{.Link}}">{{.Name}}</a>
+							<div style="display: flex; align-items: center;">
+								<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>&nbsp;/&nbsp;<a href="{{.Link}}">{{.Name}}</a>
+							</div>
 						</div>
 
 						<div class="metas gt-df gt-ac text grey">
