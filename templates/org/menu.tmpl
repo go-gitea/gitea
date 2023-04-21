@@ -2,8 +2,8 @@
 	<div class="ui secondary stackable pointing menu">
 		<a class="{{if .PageIsViewRepositories}}active {{end}}item" href="{{$.Org.HomeLink}}">
 			{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
-			{{if .Owner.NumRepos}}
-				<div class="ui small label">{{.Owner.NumRepos}}</div>
+			{{if .ContextUser.NumRepos}}
+				<div class="ui small label">{{.ContextUser.NumRepos}}</div>
 			{{end}}
 		</a>
 		{{if and .IsProjectEnabled .CanReadProjects}}
