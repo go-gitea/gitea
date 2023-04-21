@@ -59,7 +59,7 @@ func loadLFSFrom(rootCfg ConfigProvider) {
 			}
 
 			// Save secret
-			rootCfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
+			sec.Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
 			if err := rootCfg.Save(); err != nil {
 				log.Fatal("Error saving JWT Secret for custom config: %v", err)
 				return

@@ -35,15 +35,17 @@ type ConfigProvider interface {
 
 type iniFileConfigProvider struct {
 	*ini.File
-	p          string // the ini file path
+	filepath   string // the ini file path
 	newFile    bool   // whether the file exists
 	allowEmpty bool   // whether allow empty
 }
 
 // NewEmptyConfigProvider create a new empty config provider
 func NewEmptyConfigProvider() ConfigProvider {
+	cfg := ini.Empty()
+	cfg.NameMapper = ini.SnackCase
 	return &iniFileConfigProvider{
-		File:    ini.Empty(),
+		File:    cfg,
 		newFile: true,
 	}
 }
@@ -53,6 +55,7 @@ func newConfigProviderFromData(bs []byte) (ConfigProvider, error) {
 	if err != nil {
 		return nil, err
 	}
+	cfg.NameMapper = ini.SnackCase
 	return &iniFileConfigProvider{
 		File:    cfg,
 		newFile: true,
@@ -91,7 +94,7 @@ func newConfigProviderFromFile(customConf string, allowEmpty bool, extraConfig s
 	cfg.NameMapper = ini.SnackCase
 	return &iniFileConfigProvider{
 		File:       cfg,
-		p:          customConf,
+		filepath:   customConf,
 		newFile:    newFile,
 		allowEmpty: allowEmpty,
 	}, nil
@@ -116,7 +119,7 @@ func (p *iniFileConfigProvider) DeleteSection(name string) error {
 
 // Save save the content into file
 func (p *iniFileConfigProvider) Save() error {
-	if p.p == "" {
+	if p.filepath == "" {
 		if !p.allowEmpty {
 			return fmt.Errorf("custom config path must not be empty")
 		}
@@ -128,8 +131,8 @@ func (p *iniFileConfigProvider) Save() error {
 			return fmt.Errorf("failed to create '%s': %v", CustomConf, err)
 		}
 	}
-	if err := p.SaveTo(p.p); err != nil {
-		return fmt.Errorf("failed to save '%s': %v", p.p, err)
+	if err := p.SaveTo(p.filepath); err != nil {
+		return fmt.Errorf("failed to save '%s': %v", p.filepath, err)
 	}
 
 	// Change permissions to be more restrictive
