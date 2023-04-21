@@ -24,6 +24,7 @@ Audit logging is used to track security related events and provide documentary e
 ## Appenders
 
 The audit log supports different appenders:
+
 - `notice`: Log events as admin notices
 - `log`: Log events as information to the configured Gitea logging
 - `file`: Write events as JSON objects to a file
