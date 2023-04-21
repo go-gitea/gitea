@@ -378,7 +378,6 @@ func DeleteTeam(t *organization.Team) error {
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	if err := t.LoadRepositories(ctx); err != nil {
 		return err
@@ -391,7 +390,7 @@ func DeleteTeam(t *organization.Team) error {
 	// update branch protections
 	{
 		protections := make([]*git_model.ProtectedBranch, 0, 10)
-		err := sess.In("repo_id",
+		err := db.GetEngine(ctx).In("repo_id",
 			builder.Select("id").From("repository").Where(builder.Eq{"owner_id": t.OrgID})).
 			Find(&protections)
 		if err != nil {
@@ -421,7 +420,7 @@ func DeleteTeam(t *organization.Team) error {
 	}
 
 	for _, tm := range t.Members {
-		if err := removeInvaildOrgUser(ctx, sess, tm.ID, t.OrgID); err != nil {
+		if err := removeInvaildOrgUser(ctx, tm.ID, t.OrgID); err != nil {
 			return err
 		}
 	}
@@ -575,12 +574,12 @@ func removeTeamMember(ctx context.Context, team *organization.Team, userID int64
 		}
 	}
 
-	return removeInvaildOrgUser(ctx, e, userID, team.OrgID)
+	return removeInvaildOrgUser(ctx, userID, team.OrgID)
 }
 
-func removeInvaildOrgUser(ctx context.Context, sess db.Engine, userID, orgID int64) error {
+func removeInvaildOrgUser(ctx context.Context, userID, orgID int64) error {
 	// Check if the user is a member of any team in the organization.
-	if count, err := sess.Count(&organization.TeamUser{
+	if count, err := db.GetEngine(ctx).Count(&organization.TeamUser{
 		UID:   userID,
 		OrgID: orgID,
 	}); err != nil {
