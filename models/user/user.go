@@ -62,7 +62,7 @@ const (
 	EmailNotificationsOnMention = "onmention"
 	// EmailNotificationsDisabled indicates that the user would not like to be notified via email.
 	EmailNotificationsDisabled = "disabled"
-	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications and your own
+	// EmailNotificationsAndYourOwn indicates that the user would like to receive all email notifications and your own
 	EmailNotificationsAndYourOwn = "andyourown"
 )
 
