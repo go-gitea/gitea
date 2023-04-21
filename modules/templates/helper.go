@@ -74,6 +74,7 @@ func NewFuncMap() []template.FuncMap {
 		"DotEscape":      DotEscape,
 		"HasPrefix":      strings.HasPrefix,
 		"EllipsisString": base.EllipsisString,
+		"DumpVar":        dumpVar,
 
 		"Json": func(in interface{}) string {
 			out, err := json.Marshal(in)
