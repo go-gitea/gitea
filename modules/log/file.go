@@ -8,7 +8,6 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-	"os"
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util/rotatingfilewriter"
