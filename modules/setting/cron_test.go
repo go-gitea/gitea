@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	ini "gopkg.in/ini.v1"
 )
 
 func Test_getCronSettings(t *testing.T) {
@@ -27,7 +26,7 @@ Base = true
 Second = white rabbit
 Extend = true
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData([]byte(iniStr))
 	assert.NoError(t, err)
 
 	extended := &Extended{
