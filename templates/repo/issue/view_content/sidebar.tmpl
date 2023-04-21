@@ -559,16 +559,9 @@
 							{{.locale.Tr "repo.issues.dependency.issue_remove_text"}}
 						{{end}}</p>
 					</div>
-					<div class="actions">
-						<button class="ui red cancel inverted button">
-							{{svg "octicon-x"}}
-							{{.locale.Tr "repo.issues.dependency.cancel"}}
-						</button>
-						<button class="ui green ok inverted button">
-							{{svg "octicon-check"}}
-							{{.locale.Tr "repo.issues.dependency.remove"}}
-						</button>
-					</div>
+					{{$ModalNoText := .locale.Tr "repo.issues.dependency.cancel"}}
+					{{$ModalYesText := .locale.Tr "repo.issues.dependency.remove"}}
+					{{template "base/basic_modal_actions" (dict "." . "ModalNoText" $ModalNoText "ModalYesText" $ModalYesText)}}
 				</div>
 			{{end}}
 		{{end}}
