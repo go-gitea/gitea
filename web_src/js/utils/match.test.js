@@ -26,6 +26,10 @@ test('matchEmoji', () => {
     'spoon',
     'bowl_with_spoon',
   ]);
+
+  expect(matchEmoji('1st_')).toEqual([
+    '1st_place_medal',
+  ]);
 });
 
 test('matchMention', () => {

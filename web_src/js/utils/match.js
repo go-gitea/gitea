@@ -9,7 +9,7 @@ export function matchEmoji(q) {
   for (const {aliases} of emojis) {
     const mainAlias = aliases[0];
     for (const alias of aliases) {
-      const index = alias.indexOf(query);
+      const index = alias.replaceAll('_', ' ').indexOf(query);
       if (index === -1) continue;
       const existing = results.get(mainAlias);
       results.set(mainAlias, existing ? existing - index : index);
