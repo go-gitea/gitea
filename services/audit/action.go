@@ -94,7 +94,6 @@ const (
 	RepositoryCollaboratorTeamAdd    Action = "repository:collaborator:team:add"
 	RepositoryCollaboratorTeamRemove Action = "repository:collaborator:team:remove"
 	RepositoryBranchDefault          Action = "repository:branch:default"
-	RepositoryBranchRename           Action = "repository:branch:rename"
 	RepositoryBranchProtectionAdd    Action = "repository:branch:protection:add"
 	RepositoryBranchProtectionUpdate Action = "repository:branch:protection:update"
 	RepositoryBranchProtectionRemove Action = "repository:branch:protection:remove"

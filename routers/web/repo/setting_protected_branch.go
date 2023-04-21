@@ -388,8 +388,6 @@ func RenameBranchPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.RepositoryBranchRename, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Repository, "Renamed branch from %s to %s.", form.From, form.To)
-
 	ctx.Flash.Success(ctx.Tr("repo.settings.rename_branch_success", form.From, form.To))
 	ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
 }

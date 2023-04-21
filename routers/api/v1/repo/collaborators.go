@@ -180,7 +180,7 @@ func AddCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(audit.RepositoryCollaboratorAdd, ctx.Doer, ctx.Repo.Repository, collaborator, "Added user %s as collaborator.", collaborator.Name)
+	audit.Record(audit.RepositoryCollaboratorAdd, ctx.Doer, ctx.Repo.Repository, collaborator, "Added user %s as collaborator for repository %s.", collaborator.Name, ctx.Repo.Repository.FullName())
 
 	if form.Permission != nil {
 		accessMode := perm.ParseAccessMode(*form.Permission)

@@ -49,7 +49,7 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 		return err
 	}
 
-	audit.Record(audit.RepositoryTransferAccept, doer, newRepo, newRepo, "Accepted repository transfer from %s to %s.", oldOwner.Name, newRepo.FullName())
+	audit.Record(audit.RepositoryTransferAccept, doer, newRepo, newRepo, "Accepted repository transfer from %s to %s.", oldOwner.Name, newRepo.OwnerName)
 
 	for _, team := range teams {
 		if err := models.AddRepository(ctx, team, newRepo); err != nil {
@@ -132,6 +132,8 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	if err := models.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams); err != nil {
 		return err
 	}
+
+	audit.Record(audit.RepositoryTransferStart, doer, repo, repo, "Started repository transfer from %s to %s.", repo.OwnerName, newOwner.Name)
 
 	// notify users who are able to accept / reject transfer
 	notification.NotifyRepoPendingTransfer(ctx, doer, newOwner, repo)

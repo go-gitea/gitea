@@ -932,6 +932,21 @@ Default templates for project boards:
 - `RECEIVERS`: Email addresses to send to.
 - `SUBJECT`: **Diagnostic message from Gitea**
 
+## Audit Log (`audit`)
+
+- `ENABLED`: **false**: Enable logging of audit events
+- `APPENDER`: **\<empty\>**: Comma seperated list of appenders to log to (possible values: `notice`, `log` or `file`).
+
+## File Audit Log (`audit.file`)
+
+- `FILENAME`: **\<empty\>**: Set the file name for the logger. If this is a relative path this will be relative to `log.ROOT_PATH`. Defaults to `log.ROOT_PATH/audit.log`.
+- `ROTATE`: **false**: This enables automated audit log rotate, default is true
+- `MAXIMUM_SIZE`: **false**: Maximum file size in bytes before rotating takes place (format `1000`, `1 MB`, `1 GiB`)
+- `ROTATE_DAILY`: **true**: Rotate audit log daily, default is true
+- `KEEP_DAYS`: **7**: Delete the audit log file after n days, default is 7
+- `COMPRESS`: **true**: Compress audit logs with gzip
+- `COMPRESSION_LEVEL`: **-1**: Compression level see godoc for `compress/gzip`
+
 ## Cron (`cron`)
 
 - `ENABLED`: **false**: Enable to run all cron tasks periodically with default settings.

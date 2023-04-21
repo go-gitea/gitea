@@ -544,6 +544,17 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
 		return
 	}
+
+	owner, err := user_model.GetUserByID(ctx, app.UID)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
+		handleAuthorizeError(ctx, AuthorizeError{
+			State:            form.State,
+			ErrorDescription: "cannot find user",
+			ErrorCode:        ErrorCodeServerError,
+		}, form.RedirectURI)
+		return
+	}
+
 	grant, err := app.CreateGrant(ctx, ctx.Doer.ID, form.Scope)
 	if err != nil {
 		handleAuthorizeError(ctx, AuthorizeError{
@@ -553,6 +564,9 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		}, form.RedirectURI)
 		return
 	}
+
+	audit.Record(audit.UserOAuth2ApplicationGrant, ctx.Doer, owner, grant, "Granted OAuth2 access to application %s.", app.Name)
+
 	if len(form.Nonce) > 0 {
 		err := grant.SetNonce(ctx, form.Nonce)
 		if err != nil {

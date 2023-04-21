@@ -991,7 +991,7 @@ func CollaborationPost(ctx *context.Context) {
 		mailer.SendCollaboratorMail(u, ctx.Doer, ctx.Repo.Repository)
 	}
 
-	audit.Record(audit.RepositoryCollaboratorAdd, ctx.Doer, ctx.Repo.Repository, u, "Added user %s as collaborator.", u.Name)
+	audit.Record(audit.RepositoryCollaboratorAdd, ctx.Doer, ctx.Repo.Repository, u, "Added user %s as collaborator for repository %s.", u.Name, ctx.Repo.Repository.FullName())
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_collaborator_success"))
 	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())

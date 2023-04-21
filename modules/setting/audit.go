@@ -5,6 +5,7 @@ package setting
 
 import (
 	"compress/gzip"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -45,9 +46,8 @@ func loadAuditFrom(rootCfg ConfigProvider) {
 		}
 
 		opts := &AppenderOptions{
-			Filename:         filepath.Join(Log.RootPath, "audit.log"),
+			Filename:         path.Join(Log.RootPath, "audit.log"),
 			Rotate:           false,
-			MaximumSize:      1 << 28,
 			RotateDaily:      true,
 			KeepDays:         7,
 			CompressionLevel: gzip.DefaultCompression,
@@ -55,6 +55,16 @@ func loadAuditFrom(rootCfg ConfigProvider) {
 
 		if err := sec.MapTo(opts); err != nil {
 			log.Error("audit.%s: %v", name, err.Error())
+		}
+
+		forcePathSeparator(opts.Filename)
+		if !filepath.IsAbs(opts.Filename) {
+			opts.Filename = path.Join(Log.RootPath, opts.Filename)
+		}
+
+		opts.MaximumSize = mustBytes(sec, "MAXIMUM_SIZE")
+		if opts.MaximumSize <= 0 {
+			opts.MaximumSize = 1 << 28
 		}
 
 		Audit.AppenderOptions[name] = opts
