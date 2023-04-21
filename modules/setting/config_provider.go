@@ -15,6 +15,7 @@ import (
 )
 
 type ConfigSection interface {
+	Name() string
 	MapTo(interface{}) error
 	HasKey(key string) bool
 	NewKey(name, value string) (*ini.Key, error)

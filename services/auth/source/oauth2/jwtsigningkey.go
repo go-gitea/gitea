@@ -314,8 +314,7 @@ func InitSigningKey() error {
 	case "HS384":
 		fallthrough
 	case "HS512":
-		key, err = loadOrCreateSymmetricKey()
-
+		key, err = loadSymmetricKey()
 	case "RS256":
 		fallthrough
 	case "RS384":
@@ -330,7 +329,6 @@ func InitSigningKey() error {
 		fallthrough
 	case "EdDSA":
 		key, err = loadOrCreateAsymmetricKey()
-
 	default:
 		return ErrInvalidAlgorithmType{setting.OAuth2.JWTSigningAlgorithm}
 	}
@@ -349,9 +347,9 @@ func InitSigningKey() error {
 	return nil
 }
 
-// loadOrCreateSymmetricKey checks if the configured secret is valid.
-// If it is not valid a new secret is created and saved in the configuration file.
-func loadOrCreateSymmetricKey() (interface{}, error) {
+// loadSymmetricKey checks if the configured secret is valid.
+// If it is not valid, it will return an error.
+func loadSymmetricKey() (interface{}, error) {
 	key := make([]byte, 32)
 	n, err := base64.RawURLEncoding.Decode(key, []byte(setting.OAuth2.JWTSecretBase64))
 	if err != nil {
