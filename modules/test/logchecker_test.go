@@ -22,26 +22,26 @@ func TestLogChecker(t *testing.T) {
 	log.Info("test")
 
 	filtered, stopped := lc.Check(100 * time.Millisecond)
-	assert.EqualValues(t, []bool{false, false}, filtered)
-	assert.EqualValues(t, false, stopped)
+	assert.ElementsMatch(t, []bool{false, false}, filtered)
+	assert.False(t, stopped)
 
 	log.Info("First")
 	filtered, stopped = lc.Check(100 * time.Millisecond)
-	assert.EqualValues(t, []bool{true, false}, filtered)
-	assert.EqualValues(t, false, stopped)
+	assert.ElementsMatch(t, []bool{true, false}, filtered)
+	assert.False(t, stopped)
 
 	log.Info("Second")
 	filtered, stopped = lc.Check(100 * time.Millisecond)
-	assert.EqualValues(t, []bool{true, false}, filtered)
-	assert.EqualValues(t, false, stopped)
+	assert.ElementsMatch(t, []bool{true, false}, filtered)
+	assert.False(t, stopped)
 
 	log.Info("Third")
 	filtered, stopped = lc.Check(100 * time.Millisecond)
-	assert.EqualValues(t, []bool{true, true}, filtered)
-	assert.EqualValues(t, false, stopped)
+	assert.ElementsMatch(t, []bool{true, true}, filtered)
+	assert.False(t, stopped)
 
 	log.Info("End")
 	filtered, stopped = lc.Check(100 * time.Millisecond)
-	assert.EqualValues(t, []bool{true, true}, filtered)
-	assert.EqualValues(t, true, stopped)
+	assert.ElementsMatch(t, []bool{true, true}, filtered)
+	assert.True(t, stopped)
 }

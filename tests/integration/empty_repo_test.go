@@ -49,7 +49,7 @@ func TestEmptyRepoAddFile(t *testing.T) {
 	req := NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body).Find(`input[name="commit_choice"]`)
-	assert.Equal(t, "", doc.AttrOr("checked", "_no_"))
+	assert.Empty(t, doc.AttrOr("checked", "_no_"))
 	req = NewRequestWithValues(t, "POST", "/user30/empty/_new/"+setting.Repository.DefaultBranch, map[string]string{
 		"_csrf":         GetCSRF(t, session, "/user/settings"),
 		"commit_choice": "direct",
@@ -76,7 +76,7 @@ func TestEmptyRepoUploadFile(t *testing.T) {
 	req := NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body).Find(`input[name="commit_choice"]`)
-	assert.Equal(t, "", doc.AttrOr("checked", "_no_"))
+	assert.Empty(t, doc.AttrOr("checked", "_no_"))
 
 	body := &bytes.Buffer{}
 	mpForm := multipart.NewWriter(body)
