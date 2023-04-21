@@ -419,6 +419,20 @@ func DeleteTeam(t *organization.Team) error {
 		return err
 	}
 
+	for _, tm := range t.Members {
+		// Check if the user is a member of any team in the organization.
+		if count, err := db.GetEngine(ctx).Count(&organization.TeamUser{
+			UID:   tm.ID,
+			OrgID: t.OrgID,
+		}); err != nil {
+			return err
+		} else if count == 0 {
+			if err = removeOrgUser(ctx, t.OrgID, tm.ID); err != nil {
+				return err
+			}
+		}
+	}
+
 	// Update organization number of teams.
 	if _, err := db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
 		return err
