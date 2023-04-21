@@ -19,6 +19,13 @@ test('matchEmoji', () => {
     'heart_eyes',
     'heart_eyes_cat',
   ]);
+
+  expect(matchEmoji('poo')).toEqual([
+    'hankey',
+    'poodle',
+    'spoon',
+    'bowl_with_spoon',
+  ]);
 });
 
 test('matchMention', () => {
