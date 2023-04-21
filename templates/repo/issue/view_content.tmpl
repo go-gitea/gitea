@@ -78,7 +78,7 @@
 							{{end}}
 						</div>
 						<div id="issue-{{.Issue.ID}}-raw" class="raw-content gt-hidden">{{.Issue.Content}}</div>
-						<div class="edit-content-zone gt-hidden" data-write="issue-{{.Issue.ID}}-write" data-preview="issue-{{.Issue.ID}}-preview" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
+						<div class="edit-content-zone gt-hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
 						{{if .Issue.Attachments}}
 							{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Issue.Attachments "Content" .Issue.RenderedContent}}
 						{{end}}
@@ -166,13 +166,15 @@
 
 <template id="issue-comment-editor-template">
 	<div class="ui comment form">
-		{{template "shared/combomarkdowneditor" (dict
-			"locale" $.locale
-			"MarkdownPreviewUrl" (print .Repository.Link "/markup")
-			"MarkdownPreviewContext" .RepoLink
-			"TextareaName" "content"
-			"DropzoneParentContainer" ".ui.form"
-		)}}
+		<div class="field">
+			{{template "shared/combomarkdowneditor" (dict
+				"locale" $.locale
+				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
+				"MarkdownPreviewContext" .RepoLink
+				"TextareaName" "content"
+				"DropzoneParentContainer" ".ui.form"
+			)}}
+		</div>
 
 		{{if .IsAttachmentEnabled}}
 			<div class="field">
@@ -180,7 +182,7 @@
 			</div>
 		{{end}}
 
-		<div class="field footer">
+		<div class="field">
 			<div class="text right edit">
 				<button class="ui basic secondary cancel button" tabindex="3">{{.locale.Tr "repo.issues.cancel"}}</button>
 				<button class="ui primary save button" tabindex="2">{{.locale.Tr "repo.issues.save"}}</button>
