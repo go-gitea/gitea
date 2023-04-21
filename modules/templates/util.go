@@ -5,6 +5,7 @@ package templates
 
 import (
 	"fmt"
+	"html"
 	"html/template"
 	"reflect"
 
@@ -116,5 +117,5 @@ func dumpVar(v any) template.HTML {
 	} else {
 		dumpStr = fmt.Sprintf("dumpVar: unmarshalable %T\n%s", v, string(jsonBytes))
 	}
-	return template.HTML("<pre>" + dumpStr + "</pre>")
+	return template.HTML("<pre>" + html.EscapeString(dumpStr) + "</pre>")
 }
