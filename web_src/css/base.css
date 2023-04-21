@@ -1157,7 +1157,8 @@ a.ui.card:hover {
   text-align: left !important;
 }
 
-.ui.modal > .actions {
+.ui.modal > .actions,
+.ui.modal > form > .actions {
   background: var(--color-secondary-bg);
   border-color: var(--color-secondary);
   text-align: center;
@@ -1165,10 +1166,6 @@ a.ui.card:hover {
 
 .ui.modal > .close.inside {
   color: var(--color-text);
-}
-
-.ui.modal > form > .actions {
-  text-align: center;
 }
 
 .ui.basic.table > tbody > tr {
