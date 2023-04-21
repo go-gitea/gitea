@@ -64,9 +64,7 @@ func dumpVarMarshalable(v any, dumped map[uintptr]bool) (ret any, ok bool) {
 			return "[dumped]", false
 		}
 		dumped[addr] = true
-		defer func() {
-			delete(dumped, addr)
-		}()
+		defer delete(dumped, addr)
 	}
 	switch e.Kind() {
 	case reflect.Bool, reflect.String,
