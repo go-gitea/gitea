@@ -14,7 +14,6 @@ import (
 
 func TestMain(m *testing.M) {
 	setting.InitProviderAndLoadCommonSettingsForTest()
-	setting.LoadQueueSettings()
 	unittest.MainTest(m, &unittest.TestOptions{
 		GiteaRootPath: filepath.Join("..", "..", "..", ".."),
 		SetUp:         webhook_service.Init,

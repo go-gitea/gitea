@@ -189,7 +189,8 @@ func DeleteAccessToken(ctx *context.APIContext) {
 			return
 		}
 	} else {
-		_, err := db.GetBeanByID(ctx, tokenID, &t)
+		t = &auth_model.AccessToken{}
+		_, err := db.GetBeanByID(ctx, tokenID, t)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetBeanByID", err)
 			return

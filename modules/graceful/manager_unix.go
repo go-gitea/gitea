@@ -139,6 +139,7 @@ func (g *Manager) handleSignals(ctx context.Context) {
 				if err := log.ReleaseReopen(); err != nil {
 					log.Error("Error whilst releasing and reopening logs: %v", err)
 				}
+				// TODO audit.ReleaseReopen
 			case syscall.SIGUSR2:
 				log.Warn("PID %d. Received SIGUSR2. Hammering...", pid)
 				g.DoImmediateHammer()

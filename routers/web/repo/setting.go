@@ -1075,12 +1075,10 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err = org_service.TeamAddRepository(team, ctx.Repo.Repository); err != nil {
+	if err = org_service.TeamAddRepository(ctx.Doer, team, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("TeamAddRepository", err)
 		return
 	}
-
-	audit.Record(audit.RepositoryCollaboratorTeamAdd, ctx.Doer, ctx.Repo.Repository, team, "Added team %s as collaborator for %s.", team.Name, ctx.Repo.Repository.FullName())
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_team_success"))
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")

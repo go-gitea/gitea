@@ -445,7 +445,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.SystemAuthenticationSourceUpdate, nil, ctx.Doer, source, "Updated authentication source %s.", source.Name)
+	audit.Record(audit.SystemAuthenticationSourceUpdate, ctx.Doer, nil, source, "Updated authentication source %s.", source.Name)
 
 	log.Trace("Authentication changed by admin(%s): %d", ctx.Doer.Name, source.ID)
 

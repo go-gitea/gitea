@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/audit"
-	organization_service "code.gitea.io/gitea/services/org"
 	"code.gitea.io/gitea/services/packages"
 )
 
@@ -137,7 +136,7 @@ func DeleteUser(ctx context.Context, doer, u *user_model.User, purge bool) error
 			for _, org := range orgs {
 				if err := models.RemoveOrgUser(org.ID, u.ID); err != nil {
 					if organization.IsErrLastOrgOwner(err) {
-						err = organization_service.DeleteOrganization(doer, org)
+						err = organization.DeleteOrganization(ctx, org)
 					}
 					if err != nil {
 						return fmt.Errorf("unable to remove user %s[%d] from org %s[%d]. Error: %w", u.Name, u.ID, org.Name, org.ID, err)

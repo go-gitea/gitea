@@ -54,7 +54,7 @@ func loadAuditFrom(rootCfg ConfigProvider) {
 		}
 
 		if err := sec.MapTo(opts); err != nil {
-			log.Error(": %v", err.Error())
+			log.Error("audit.%s: %v", name, err.Error())
 		}
 
 		Audit.AppenderOptions[name] = opts

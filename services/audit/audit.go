@@ -4,6 +4,7 @@
 package audit
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -188,15 +189,11 @@ func typeToDescription(val any) TypeDescriptor {
 }
 
 func ReleaseReopen() error {
-	var accumulatedErr error
+	var joinedErr error
 	for _, a := range appenders {
 		if err := a.ReleaseReopen(); err != nil {
-			if accumulatedErr == nil {
-				accumulatedErr = fmt.Errorf("error reopening: %w", err)
-			} else {
-				accumulatedErr = fmt.Errorf("error reopening: %v & %w", err, accumulatedErr)
-			}
+			joinedErr = errors.Join(joinedErr, err)
 		}
 	}
-	return accumulatedErr
+	return joinedErr
 }

@@ -200,23 +200,20 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 			ctx.Error(http.StatusUnprocessableEntity, "alreadyAdded", fmt.Errorf("team '%s' is already added to repo", team.Name))
 			return
 		}
-		err = org_service.TeamAddRepository(team, ctx.Repo.Repository)
+		err = org_service.TeamAddRepository(ctx.Doer, team, ctx.Repo.Repository)
 	} else {
 		if !repoHasTeam {
 			ctx.Error(http.StatusUnprocessableEntity, "notAdded", fmt.Errorf("team '%s' was not added to repo", team.Name))
 			return
 		}
 		err = models.RemoveRepository(team, ctx.Repo.Repository.ID)
+		if err == nil {
+			audit.Record(audit.RepositoryCollaboratorTeamRemove, ctx.Doer, ctx.Repo.Repository, team, "Removed team %s as collaborator from %s.", team.Name, ctx.Repo.Repository.FullName())
+		}
 	}
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
-	}
-
-	if add {
-		audit.Record(audit.RepositoryCollaboratorTeamAdd, ctx.Doer, ctx.Repo.Repository, team, "Added team %s as collaborator for %s.", team.Name, ctx.Repo.Repository.FullName())
-	} else {
-		audit.Record(audit.RepositoryCollaboratorTeamRemove, ctx.Doer, ctx.Repo.Repository, team, "Removed team %s as collaborator from %s.", team.Name, ctx.Repo.Repository.FullName())
 	}
 
 	ctx.Status(http.StatusNoContent)

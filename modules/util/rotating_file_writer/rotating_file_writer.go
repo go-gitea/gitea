@@ -6,6 +6,7 @@ package rotating_file_writer
 import (
 	"bufio"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -52,9 +53,12 @@ func Open(filename string, options *Options) (*RotatingFileWriter, error) {
 }
 
 func (rfw *RotatingFileWriter) Write(b []byte) (int, error) {
-	if rfw.options.Rotate && ((rfw.options.MaximumSize > 0 && rfw.currentSize+int64(len(b)) >= rfw.options.MaximumSize) || (rfw.options.RotateDaily && time.Now().Day() != rfw.openDate)) {
+	if rfw.options.Rotate && ((rfw.options.MaximumSize > 0 && rfw.currentSize >= rfw.options.MaximumSize) || (rfw.options.RotateDaily && time.Now().Day() != rfw.openDate)) {
 		if err := rfw.DoRotate(); err != nil {
-			return 0, err
+			// This should be
+			// return 0, err
+			// but the old behaviour does not return. This may lead to other errors.
+			fmt.Fprintf(os.Stderr, "RotatingFileWriter: %s\n", err)
 		}
 	}
 
@@ -74,12 +78,6 @@ func (rfw *RotatingFileWriter) Close() error {
 }
 
 func (rfw *RotatingFileWriter) open(filename string) error {
-	if rfw.fd != nil {
-		if err := rfw.fd.Close(); err != nil {
-			return err
-		}
-	}
-
 	fd, err := os.OpenFile(filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o660)
 	if err != nil {
 		return err
@@ -98,7 +96,10 @@ func (rfw *RotatingFileWriter) open(filename string) error {
 }
 
 func (rfw *RotatingFileWriter) ReleaseReopen() error {
-	return rfw.open(rfw.fd.Name())
+	return errors.Join(
+		rfw.fd.Close(),
+		rfw.open(rfw.fd.Name()),
+	)
 }
 
 // Rotate the log file creating a backup like xx.2013-01-01.2
@@ -130,8 +131,6 @@ func (rfw *RotatingFileWriter) DoRotate() error {
 	if err := fd.Close(); err != nil { // close file before rename
 		return err
 	}
-
-	rfw.fd = nil
 
 	if err := util.Rename(fd.Name(), fname); err != nil {
 		return err
@@ -178,8 +177,7 @@ func compressOldFile(fname string, compressionLevel int) error {
 	if err != nil {
 		zw.Close()
 		fw.Close()
-		util.Remove(fname + ".gz")
-		return err
+		return errors.Join(err, util.Remove(fname+".gz"))
 	}
 	reader.Close()
 

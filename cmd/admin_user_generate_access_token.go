@@ -8,6 +8,7 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/services/audit"
 
 	"github.com/urfave/cli"
 )
@@ -49,6 +50,7 @@ func runGenerateAccessToken(c *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
+	audit.Init()
 
 	user, err := user_model.GetUserByName(ctx, c.String("username"))
 	if err != nil {
@@ -69,6 +71,8 @@ func runGenerateAccessToken(c *cli.Context) error {
 	if err := auth_model.NewAccessToken(t); err != nil {
 		return err
 	}
+
+	audit.Record(audit.UserAccessTokenAdd, audit.NewCLIUser(), user, t, "Added access token %s for user %s with scope %s.", t.Name, user.Name, t.Scope)
 
 	if c.Bool("raw") {
 		fmt.Printf("%s\n", t.Token)

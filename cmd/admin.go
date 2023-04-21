@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -21,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/audit"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/auth/source/smtp"
@@ -469,6 +471,7 @@ func runAddOauth(c *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
+	audit.Init()
 
 	config := parseOAuth2Config(c)
 	if config.Provider == "openidConnect" {
@@ -478,7 +481,7 @@ func runAddOauth(c *cli.Context) error {
 		}
 	}
 
-	return auth_model.CreateSource(&auth_model.Source{
+	return createSource(ctx, &auth_model.Source{
 		Type:     auth_model.OAuth2,
 		Name:     c.String("name"),
 		IsActive: true,
@@ -497,6 +500,7 @@ func runUpdateOauth(c *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
+	audit.Init()
 
 	source, err := auth_model.GetSourceByID(c.Int64("id"))
 	if err != nil {
@@ -589,7 +593,7 @@ func runUpdateOauth(c *cli.Context) error {
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
 
-	return auth_model.UpdateSource(source)
+	return updateSource(ctx, source)
 }
 
 func parseSMTPConfig(c *cli.Context, conf *smtp.Source) error {
@@ -635,6 +639,7 @@ func runAddSMTP(c *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
+	audit.Init()
 
 	if !c.IsSet("name") || len(c.String("name")) == 0 {
 		return errors.New("name must be set")
@@ -660,7 +665,7 @@ func runAddSMTP(c *cli.Context) error {
 		smtpConfig.Auth = "PLAIN"
 	}
 
-	return auth_model.CreateSource(&auth_model.Source{
+	return createSource(ctx, &auth_model.Source{
 		Type:     auth_model.SMTP,
 		Name:     c.String("name"),
 		IsActive: active,
@@ -679,6 +684,7 @@ func runUpdateSMTP(c *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
+	audit.Init()
 
 	source, err := auth_model.GetSourceByID(c.Int64("id"))
 	if err != nil {
@@ -701,7 +707,27 @@ func runUpdateSMTP(c *cli.Context) error {
 
 	source.Cfg = smtpConfig
 
-	return auth_model.UpdateSource(source)
+	return updateSource(ctx, source)
+}
+
+func createSource(ctx context.Context, source *auth_model.Source) error {
+	if err := auth_model.CreateSource(source); err != nil {
+		return err
+	}
+
+	audit.Record(audit.SystemAuthenticationSourceAdd, audit.NewCLIUser(), nil, source, "Created authentication source %s [%s].", source.Name, source.Type.String())
+
+	return nil
+}
+
+func updateSource(ctx context.Context, source *auth_model.Source) error {
+	if err := auth_model.UpdateSource(source); err != nil {
+		return err
+	}
+
+	audit.Record(audit.SystemAuthenticationSourceUpdate, audit.NewCLIUser(), nil, source, "Updated authentication source %s.", source.Name)
+
+	return nil
 }
 
 func runListAuth(c *cli.Context) error {
@@ -749,11 +775,12 @@ func runDeleteAuth(c *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
+	audit.Init()
 
 	source, err := auth_model.GetSourceByID(c.Int64("id"))
 	if err != nil {
 		return err
 	}
 
-	return auth_service.DeleteSource(source)
+	return auth_service.DeleteSource(audit.NewCLIUser(), source)
 }

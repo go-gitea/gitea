@@ -277,6 +277,13 @@ func EditTeam(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditTeamOption)
 	team := ctx.Org.Team
+
+	org, err := organization.GetOrgByID(ctx, team.OrgID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetOrgByID", err)
+		return
+	}
+
 	if err := team.LoadUnits(ctx); err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -330,9 +337,9 @@ func EditTeam(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(audit.OrganizationTeamUpdate, ctx.Doer, ctx.Org.Organization, team, "Updated settings of team %s/%s.", ctx.Org.Organization.Name, team.Name)
+	audit.Record(audit.OrganizationTeamUpdate, ctx.Doer, org, team, "Updated settings of team %s/%s.", org.Name, team.Name)
 	if isAuthChanged {
-		audit.Record(audit.OrganizationTeamPermission, ctx.Doer, ctx.Org.Organization, team, "Permission of team %s/%s changed from %s to %s.", ctx.Org.Organization.Name, team.Name, oldAccessMode.String(), team.AccessMode.String())
+		audit.Record(audit.OrganizationTeamPermission, ctx.Doer, org, team, "Permission of team %s/%s changed from %s to %s.", org.Name, team.Name, oldAccessMode.String(), team.AccessMode.String())
 	}
 
 	apiTeam, err := convert.ToTeam(ctx, team)
@@ -359,12 +366,18 @@ func DeleteTeam(ctx *context.APIContext) {
 	//   "204":
 	//     description: team deleted
 
+	org, err := organization.GetOrgByID(ctx, ctx.Org.Team.OrgID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetOrgByID", err)
+		return
+	}
+
 	if err := models.DeleteTeam(ctx.Org.Team); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteTeam", err)
 		return
 	}
 
-	audit.Record(audit.OrganizationTeamRemove, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "Team %s was removed from organziation %s.", ctx.Org.Team.Name, ctx.Org.Organization.Name)
+	audit.Record(audit.OrganizationTeamRemove, ctx.Doer, org, ctx.Org.Team, "Team %s was removed from organziation %s.", ctx.Org.Team.Name, org.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -706,7 +719,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
-	if err := org_service.TeamAddRepository(ctx.Org.Team, repo); err != nil {
+	if err := org_service.TeamAddRepository(ctx.Doer, ctx.Org.Team, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "TeamAddRepository", err)
 		return
 	}
@@ -760,6 +773,9 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "RemoveRepository", err)
 		return
 	}
+
+	audit.Record(audit.RepositoryCollaboratorTeamRemove, ctx.Doer, repo, ctx.Org.Team, "Removed team %s as collaborator from %s.", ctx.Org.Team.Name, repo.FullName())
+
 	ctx.Status(http.StatusNoContent)
 }
 

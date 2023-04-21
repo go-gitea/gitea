@@ -240,12 +240,10 @@ func TeamsRepoAction(ctx *context.Context) {
 			ctx.ServerError("GetRepositoryByName", err)
 			return
 		}
-		if err := org_service.TeamAddRepository(ctx.Org.Team, repo); err != nil {
+		if err := org_service.TeamAddRepository(ctx.Doer, ctx.Org.Team, repo); err != nil {
 			ctx.ServerError("TeamAddRepository "+ctx.Org.Team.Name, err)
 			return
 		}
-
-		audit.Record(audit.RepositoryCollaboratorTeamAdd, ctx.Doer, repo, ctx.Org.Team, "Added team %s as collaborator for %s.", ctx.Org.Team.Name, repo.FullName())
 	case "remove":
 		repo, err := repo_model.GetRepositoryByID(db.DefaultContext, ctx.FormInt64("repoid"))
 		if err != nil {

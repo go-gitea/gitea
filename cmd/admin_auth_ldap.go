@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/auth/source/ldap"
 
 	"github.com/urfave/cli"
@@ -308,58 +309,26 @@ func (a *authService) getAuthSource(c *cli.Context, authType auth.Type) (*auth.S
 
 // addLdapBindDn adds a new LDAP via Bind DN authentication source.
 func (a *authService) addLdapBindDn(c *cli.Context) error {
-	if err := argsSet(c, "name", "security-protocol", "host", "port", "user-search-base", "user-filter", "email-attribute"); err != nil {
-		return err
-	}
-
-	ctx, cancel := installSignals()
-	defer cancel()
-
-	if err := a.initDB(ctx); err != nil {
-		return err
-	}
-
-	authSource := &auth.Source{
-		Type:     auth.LDAP,
-		IsActive: true, // active by default
-		Cfg: &ldap.Source{
-			Enabled: true, // always true
-		},
-	}
-
-	parseAuthSource(c, authSource)
-	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
-		return err
-	}
-
-	return a.createAuthSource(authSource)
+	return addLdapSource(c, auth.LDAP, "name", "security-protocol", "host", "port", "user-search-base", "user-filter", "email-attribute")
 }
 
 // updateLdapBindDn updates a new LDAP via Bind DN authentication source.
 func (a *authService) updateLdapBindDn(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
-	if err := a.initDB(ctx); err != nil {
-		return err
-	}
-
-	authSource, err := a.getAuthSource(c, auth.LDAP)
-	if err != nil {
-		return err
-	}
-
-	parseAuthSource(c, authSource)
-	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
-		return err
-	}
-
-	return a.updateAuthSource(authSource)
+	return updateLdapSource(c, auth.LDAP)
 }
 
 // addLdapSimpleAuth adds a new LDAP (simple auth) authentication source.
 func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
-	if err := argsSet(c, "name", "security-protocol", "host", "port", "user-dn", "user-filter", "email-attribute"); err != nil {
+	return addLdapSource(c, auth.DLDAP, "name", "security-protocol", "host", "port", "user-dn", "user-filter", "email-attribute")
+}
+
+// updateLdapBindDn updates a new LDAP (simple auth) authentication source.
+func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
+	return updateLdapSource(c, auth.DLDAP)
+}
+
+func addLdapSource(c *cli.Context, authType auth.Type, args ...string) error {
+	if err := argsSet(c, args...); err != nil {
 		return err
 	}
 
@@ -369,9 +338,10 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 	if err := a.initDB(ctx); err != nil {
 		return err
 	}
+	audit.Init()
 
 	authSource := &auth.Source{
-		Type:     auth.DLDAP,
+		Type:     authType,
 		IsActive: true, // active by default
 		Cfg: &ldap.Source{
 			Enabled: true, // always true
@@ -383,19 +353,25 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	return a.createAuthSource(authSource)
+	if err := a.createAuthSource(authSource); err != nil {
+		return err
+	}
+
+	audit.Record(audit.SystemAuthenticationSourceAdd, audit.NewCLIUser(), nil, authSource, "Created authentication source %s [%s].", authSource.Name, authSource.Type.String())
+
+	return nil
 }
 
-// updateLdapBindDn updates a new LDAP (simple auth) authentication source.
-func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
+func updateLdapSource(c *cli.Context, authType auth.Type) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
 	if err := a.initDB(ctx); err != nil {
 		return err
 	}
+	audit.Init()
 
-	authSource, err := a.getAuthSource(c, auth.DLDAP)
+	authSource, err := a.getAuthSource(c, authType)
 	if err != nil {
 		return err
 	}
@@ -405,5 +381,11 @@ func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	return a.updateAuthSource(authSource)
+	if err := a.updateAuthSource(authSource); err != nil {
+		return err
+	}
+
+	audit.Record(audit.SystemAuthenticationSourceUpdate, audit.NewCLIUser(), nil, authSource, "Updated authentication source %s.", authSource.Name)
+
+	return nil
 }
