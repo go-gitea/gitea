@@ -1166,6 +1166,10 @@ a.ui.card:hover {
   color: var(--color-text);
 }
 
+.ui.modal > form > .actions {
+  text-align: right;
+}
+
 .ui.basic.table > tbody > tr {
   border-color: var(--color-secondary);
 }

@@ -682,10 +682,7 @@
 				</div>
 				<form action="{{.Issue.Link}}/delete" method="post">
 					{{.CsrfTokenHtml}}
-					<div class="center actions">
-						<button class="ui basic cancel inverted button">{{.locale.Tr "settings.cancel"}}</button>
-						<button class="ui basic red inverted button">{{.locale.Tr "modal.yes"}}</button>
-					</div>
+					{{template "base/basic_modal_actions" .}}
 				</form>
 			</div>
 		{{end}}
