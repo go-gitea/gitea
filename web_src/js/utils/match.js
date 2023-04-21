@@ -7,8 +7,8 @@ function sortAndReduce(map) {
   return Array.from(sortedMap.keys()).slice(0, maxMatches);
 }
 
-export function matchEmoji(q) {
-  const query = q.toLowerCase().replaceAll('_', ' ');
+export function matchEmoji(queryText) {
+  const query = queryText.toLowerCase().replaceAll('_', ' ');
 
   const results = new Map();
   for (const {aliases} of emojis) {
@@ -24,8 +24,8 @@ export function matchEmoji(q) {
   return sortAndReduce(results);
 }
 
-export function matchMention(q) {
-  const query = q.toLowerCase();
+export function matchMention(queryText) {
+  const query = queryText.toLowerCase();
 
   const results = new Map();
   for (const obj of window.config.tributeValues) {
