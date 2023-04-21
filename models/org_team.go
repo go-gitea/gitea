@@ -421,16 +421,8 @@ func DeleteTeam(t *organization.Team) error {
 	}
 
 	for _, tm := range t.Members {
-		// Check if the user is a member of any team in the organization.
-		if count, err := sess.Count(&organization.TeamUser{
-			UID:   tm.ID,
-			OrgID: t.OrgID,
-		}); err != nil {
+		if err := removeInvaildOrgUser(ctx, sess, tm.ID, t.OrgID); err != nil {
 			return err
-		} else if count == 0 {
-			if err = removeOrgUser(ctx, t.OrgID, tm.ID); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -583,16 +575,19 @@ func removeTeamMember(ctx context.Context, team *organization.Team, userID int64
 		}
 	}
 
+	return removeInvaildOrgUser(ctx, e, userID, team.OrgID)
+}
+
+func removeInvaildOrgUser(ctx context.Context, sess db.Engine, userID, orgID int64) error {
 	// Check if the user is a member of any team in the organization.
-	if count, err := e.Count(&organization.TeamUser{
+	if count, err := sess.Count(&organization.TeamUser{
 		UID:   userID,
-		OrgID: team.OrgID,
+		OrgID: orgID,
 	}); err != nil {
 		return err
 	} else if count == 0 {
-		return removeOrgUser(ctx, team.OrgID, userID)
+		return removeOrgUser(ctx, orgID, userID)
 	}
-
 	return nil
 }
 
