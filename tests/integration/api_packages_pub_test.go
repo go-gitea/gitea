@@ -119,6 +119,8 @@ description: ` + packageDescription
 		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
 		assert.NoError(t, err)
 		assert.Equal(t, int64(len(content)), pb.Size)
+
+		_ = uploadFile(t, result.URL, content, http.StatusBadRequest)
 	})
 
 	t.Run("Download", func(t *testing.T) {
