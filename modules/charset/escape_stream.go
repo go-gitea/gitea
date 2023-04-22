@@ -48,7 +48,8 @@ func (e *escapeStreamer) EscapeStatus() *EscapeStatus {
 func (e *escapeStreamer) Text(data string) error {
 	sb := &strings.Builder{}
 	var until int
-	pos, next := 0, 0
+	var next int
+	pos := 0
 	if len(data) > len(UTF8BOM) && data[:len(UTF8BOM)] == string(UTF8BOM) {
 		_, _ = sb.WriteString(data[:len(UTF8BOM)])
 		pos = len(UTF8BOM)
