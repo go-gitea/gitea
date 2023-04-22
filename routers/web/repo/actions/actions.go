@@ -162,10 +162,7 @@ func List(ctx *context.Context) {
 	ctx.Data["NumClosedActionRuns"] = numClosedRuns
 
 	opts.IsClosed = util.OptionalBoolNone
-	if ctx.FormString("state") == "closed" {
-		opts.IsClosed = util.OptionalBoolTrue
-		ctx.Data["IsShowClosed"] = true
-	} else if ctx.FormString("state") == "open" || numOpenRuns != 0 || numClosedRuns == 0 {
+	if ctx.FormString("state") == "open" || numOpenRuns != 0 || numClosedRuns == 0 {
 		opts.IsClosed = util.OptionalBoolFalse
 	} else {
 		opts.IsClosed = util.OptionalBoolTrue
