@@ -21,7 +21,7 @@
 			{{end}}
 		</h2>
 		{{template "base/alert" .}}
-		<form class="ui comment form grid" action="{{.Link}}" method="post">
+		<form class="ui form grid" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="twelve wide column">
 				<div class="field {{if .Err_Title}}error{{end}}">

@@ -2847,6 +2847,6 @@ table th[data-sortt-desc] .svg {
   width: 16px;
   height: 16px;
   display: inline-block;
-  border-radius: 3px;
+  border-radius: var(--border-radius);
   margin: 0 10px;
 }
