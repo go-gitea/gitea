@@ -59,7 +59,7 @@ steps:
   - name: lint-backend-windows
     image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
     commands:
-      - make golangci-lint-windows vet
+      - make lint-go-windows lint-go-vet
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org

@@ -195,6 +195,14 @@ help:
 	@echo " - lint                             lint everything"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-backend                     lint backend files"
+	@echo " - lint-go                          lint go files"
+	@echo " - lint-go-fix                      lint go files and fix issues"
+	@echo " - lint-go-vet                      lint go files with vet"
+	@echo " - lint-swagger                     lint swagger files"
+	@echo " - lint-js                          lint js files"
+	@echo " - lint-js-fix                      lint js files and fix issues"
+	@echo " - lint-css                         lint css files"
+	@echo " - lint-css-fix                     lint css files and fix issues"
 	@echo " - lint-md                          lint markdown files"
 	@echo " - checks                           run various consistency checks"
 	@echo " - checks-frontend                  check frontend files"
@@ -213,10 +221,7 @@ help:
 	@echo " - generate-manpage                 generate manpage"
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
-	@echo " - golangci-lint                    run golangci-lint linter"
-	@echo " - golangci-lint                    run golangci-lint linter with --fix"
 	@echo " - go-licenses                      regenerate go licenses"
-	@echo " - vet                              examines Go source code and reports suspicious constructs"
 	@echo " - tidy                             run go mod tidy"
 	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
@@ -286,12 +291,6 @@ fmt-check: fmt
 misspell-check:
 	go run $(MISSPELL_PACKAGE) -error $(GO_DIRS) $(WEB_DIRS)
 
-.PHONY: vet
-vet:
-	@echo "Running go vet..."
-	@GOOS= GOARCH= $(GO) build code.gitea.io/gitea-vet
-	@$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
-
 .PHONY: $(TAGS_EVIDENCE)
 $(TAGS_EVIDENCE):
 	@mkdir -p $(MAKE_EVIDENCE_DIR)
@@ -337,17 +336,59 @@ checks-backend: tidy-check swagger-check fmt-check misspell-check swagger-valida
 lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
-lint-frontend: node_modules lint-md
+lint-frontend: lint-js lint-css lint-md lint-swagger
+
+.PHONY: lint-backend
+lint-backend: lint-go lint-go-vet lint-editorconfig
+
+.PHONY: lint-js
+lint-js: node_modules
 	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
+
+.PHONY: lint-js-fix
+lint-js-fix: node_modules
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e --fix
+
+.PHONY: lint-css
+lint-css: node_modules
 	npx stylelint --color --max-warnings=0 web_src/css
+
+.PHONY: lint-css-fix
+lint-css-fix: node_modules
+	npx stylelint --color --max-warnings=0 web_src/css --fix
+
+.PHONY: lint-swagger
+lint-swagger: node_modules
 	npx spectral lint -q -F hint $(SWAGGER_SPEC)
 
 .PHONY: lint-md
 lint-md: node_modules
 	npx markdownlint docs *.md
 
-.PHONY: lint-backend
-lint-backend: golangci-lint vet editorconfig-checker
+.PHONY: lint-go
+lint-go:
+	$(GO) run $(GOLANGCI_LINT_PACKAGE) run
+
+.PHONY: lint-go-fix
+lint-go-fix:
+	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix
+
+# workaround step for the lint-backend-windows CI task because 'go run' can not
+# have distinct GOOS/GOARCH for its build and run steps
+.PHONY: lint-go-windows
+lint-go-windows:
+	@GOOS= GOARCH= $(GO) install $(GOLANGCI_LINT_PACKAGE)
+	golangci-lint run
+
+.PHONY: lint-go-vet
+lint-go-vet:
+	@echo "Running go vet..."
+	@GOOS= GOARCH= $(GO) build code.gitea.io/gitea-vet
+	@$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
+
+.PHONY: lint-editorconfig
+lint-editorconfig:
+	$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) templates
 
 .PHONY: watch
 watch:
@@ -935,25 +976,6 @@ generate-manpage:
 	@./gitea docs --man > man/man1/gitea.1
 	@gzip -9 man/man1/gitea.1 && echo man/man1/gitea.1.gz created
 	@#TODO A small script that formats config-cheat-sheet.en-us.md nicely for use as a config man page
-
-.PHONY: golangci-lint
-golangci-lint:
-	$(GO) run $(GOLANGCI_LINT_PACKAGE) run
-
-.PHONY: golangci-lint-fix
-golangci-lint-fix:
-	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix
-
-# workaround step for the lint-backend-windows CI task because 'go run' can not
-# have distinct GOOS/GOARCH for its build and run steps
-.PHONY: golangci-lint-windows
-golangci-lint-windows:
-	@GOOS= GOARCH= $(GO) install $(GOLANGCI_LINT_PACKAGE)
-	golangci-lint run
-
-.PHONY: editorconfig-checker
-editorconfig-checker:
-	$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) templates
 
 .PHONY: docker
 docker:
