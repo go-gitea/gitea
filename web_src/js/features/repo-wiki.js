@@ -44,6 +44,11 @@ async function initRepoWikiFormEditor() {
   renderEasyMDEPreview();
 
   editor = await initComboMarkdownEditor($editorContainer, {
+    useScene: 'wiki',
+    // EasyMDE has some problems of height definition, it has inline style height 300px by default, so we also use inline styles to override it.
+    // And another benefit is that we only need to write the style once for both editors.
+    // TODO: Move height style to CSS after EasyMDE removal.
+    editorHeights: {minHeight: '300px', height: 'calc(100vh - 600px)'},
     previewMode: 'gfm',
     previewWiki: true,
     easyMDEOptions: {

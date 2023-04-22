@@ -82,9 +82,9 @@ func TestAPISearchRepo(t *testing.T) {
 	}{
 		{
 			name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
-				nil:   {count: 31},
-				user:  {count: 31},
-				user2: {count: 31},
+				nil:   {count: 32},
+				user:  {count: 32},
+				user2: {count: 32},
 			},
 		},
 		{
@@ -183,18 +183,17 @@ func TestAPISearchRepo(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			for userToLogin, expected := range testCase.expectedResults {
-				var session *TestSession
 				var testName string
 				var userID int64
 				var token string
 				if userToLogin != nil && userToLogin.ID > 0 {
 					testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
-					session = loginUser(t, userToLogin.Name)
+					session := loginUser(t, userToLogin.Name)
 					token = getTokenForLoggedInUser(t, session)
 					userID = userToLogin.ID
 				} else {
 					testName = "AnonymousUser"
-					session = emptyTestSession(t)
+					_ = emptyTestSession(t)
 				}
 
 				t.Run(testName, func(t *testing.T) {

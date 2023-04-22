@@ -67,7 +67,7 @@ func TestPullCreate(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
 		assert.Regexp(t, "diff", resp.Body)
-		assert.Regexp(t, `Subject: \[PATCH\] Update 'README.md'`, resp.Body)
+		assert.Regexp(t, `Subject: \[PATCH\] Update README.md`, resp.Body)
 		assert.NotRegexp(t, "diff.*diff", resp.Body) // not two diffs, just one
 	})
 }

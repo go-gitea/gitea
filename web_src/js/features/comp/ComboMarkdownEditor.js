@@ -1,11 +1,13 @@
 import '@github/markdown-toolbar-element';
-import {attachTribute} from '../tribute.js';
-import {hideElem, showElem} from '../../utils/dom.js';
-import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
+import '@github/text-expander-element';
 import $ from 'jquery';
-import {initMarkupContent} from '../../markup/content.js';
+import {attachTribute} from '../tribute.js';
+import {hideElem, showElem, autosize} from '../../utils/dom.js';
+import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
-import {attachRefIssueContextPopup} from '../contextpopup.js';
+import {emojiString} from '../emoji.js';
+import {renderPreviewPanelContent} from '../repo-editor.js';
+import {matchEmoji, matchMention} from '../../utils/match.js';
 
 let elementIdCounter = 0;
 
@@ -39,31 +41,130 @@ class ComboMarkdownEditor {
   }
 
   async init() {
+    this.prepareEasyMDEToolbarActions();
+    this.setupTab();
+    this.setupDropzone();
+    this.setupTextarea();
+    this.setupExpander();
+
+    if (this.userPreferredEditor === 'easymde') {
+      await this.switchToEasyMDE();
+    }
+  }
+
+  applyEditorHeights(el, heights) {
+    if (!heights) return;
+    if (heights.minHeight) el.style.minHeight = heights.minHeight;
+    if (heights.height) el.style.height = heights.height;
+    if (heights.maxHeight) el.style.maxHeight = heights.maxHeight;
+  }
+
+  setupTextarea() {
     this.textarea = this.container.querySelector('.markdown-text-editor');
     this.textarea._giteaComboMarkdownEditor = this;
-    this.textarea.id = `_combo_markdown_editor_${String(elementIdCounter)}`;
-    this.textarea.addEventListener('input', (e) => {this.options?.onContentChanged?.(this, e)});
+    this.textarea.id = `_combo_markdown_editor_${String(elementIdCounter++)}`;
+    this.textarea.addEventListener('input', (e) => this.options?.onContentChanged?.(this, e));
+    this.applyEditorHeights(this.textarea, this.options.editorHeights);
+    this.textareaAutosize = autosize(this.textarea, {viewportMarginBottom: 130});
+
     this.textareaMarkdownToolbar = this.container.querySelector('markdown-toolbar');
     this.textareaMarkdownToolbar.setAttribute('for', this.textarea.id);
+    for (const el of this.textareaMarkdownToolbar.querySelectorAll('.markdown-toolbar-button')) {
+      // upstream bug: The role code is never executed in base MarkdownButtonElement https://github.com/github/markdown-toolbar-element/issues/70
+      el.setAttribute('role', 'button');
+    }
 
-    elementIdCounter++;
+    const monospaceButton = this.container.querySelector('.markdown-switch-monospace');
+    const monospaceEnabled = localStorage?.getItem('markdown-editor-monospace') === 'true';
+    const monospaceText = monospaceButton.getAttribute(monospaceEnabled ? 'data-disable-text' : 'data-enable-text');
+    monospaceButton.setAttribute('data-tooltip-content', monospaceText);
+    monospaceButton.setAttribute('aria-checked', String(monospaceEnabled));
 
-    this.switchToEasyMDEButton = this.container.querySelector('.markdown-switch-easymde');
-    this.switchToEasyMDEButton?.addEventListener('click', async (e) => {
+    monospaceButton?.addEventListener('click', (e) => {
       e.preventDefault();
+      const enabled = localStorage?.getItem('markdown-editor-monospace') !== 'true';
+      localStorage.setItem('markdown-editor-monospace', String(enabled));
+      this.textarea.classList.toggle('gt-mono', enabled);
+      const text = monospaceButton.getAttribute(enabled ? 'data-disable-text' : 'data-enable-text');
+      monospaceButton.setAttribute('data-tooltip-content', text);
+      monospaceButton.setAttribute('aria-checked', String(enabled));
+    });
+
+    const easymdeButton = this.container.querySelector('.markdown-switch-easymde');
+    easymdeButton?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      this.userPreferredEditor = 'easymde';
       await this.switchToEasyMDE();
     });
 
-    await attachTribute(this.textarea, {mentions: true, emoji: true});
+    if (this.dropzone) {
+      initTextareaImagePaste(this.textarea, this.dropzone);
+    }
+  }
 
+  setupExpander() {
+    const expander = this.container.querySelector('text-expander');
+    expander?.addEventListener('text-expander-change', ({detail: {key, provide, text}}) => {
+      if (key === ':') {
+        const matches = matchEmoji(text);
+        if (!matches.length) return provide({matched: false});
+
+        const ul = document.createElement('ul');
+        ul.classList.add('suggestions');
+        for (const name of matches) {
+          const emoji = emojiString(name);
+          const li = document.createElement('li');
+          li.setAttribute('role', 'option');
+          li.setAttribute('data-value', emoji);
+          li.textContent = `${emoji} ${name}`;
+          ul.append(li);
+        }
+
+        provide({matched: true, fragment: ul});
+      } else if (key === '@') {
+        const matches = matchMention(text);
+        if (!matches.length) return provide({matched: false});
+
+        const ul = document.createElement('ul');
+        ul.classList.add('suggestions');
+        for (const {value, name, fullname, avatar} of matches) {
+          const li = document.createElement('li');
+          li.setAttribute('role', 'option');
+          li.setAttribute('data-value', `${key}${value}`);
+
+          const img = document.createElement('img');
+          img.src = avatar;
+          li.append(img);
+
+          const nameSpan = document.createElement('span');
+          nameSpan.textContent = name;
+          li.append(nameSpan);
+
+          if (fullname && fullname.toLowerCase() !== name) {
+            const fullnameSpan = document.createElement('span');
+            fullnameSpan.classList.add('fullname');
+            fullnameSpan.textContent = fullname;
+            li.append(fullnameSpan);
+          }
+
+          ul.append(li);
+        }
+
+        provide({matched: true, fragment: ul});
+      }
+    });
+    expander?.addEventListener('text-expander-value', ({detail}) => {
+      if (detail?.item) {
+        detail.value = detail.item.getAttribute('data-value');
+      }
+    });
+  }
+
+  setupDropzone() {
     const dropzoneParentContainer = this.container.getAttribute('data-dropzone-parent-container');
     if (dropzoneParentContainer) {
       this.dropzone = this.container.closest(this.container.getAttribute('data-dropzone-parent-container'))?.querySelector('.dropzone');
-      initTextareaImagePaste(this.textarea, this.dropzone);
     }
-
-    this.setupTab();
-    this.prepareEasyMDEToolbarActions();
   }
 
   setupTab() {
@@ -97,11 +198,7 @@ class ComboMarkdownEditor {
         text: this.value(),
         wiki: this.previewWiki,
       }, (data) => {
-        $panelPreviewer.html(data);
-        initMarkupContent();
-
-        const refIssues = $panelPreviewer.find('p .ref-issue');
-        attachRefIssueContextPopup(refIssues);
+        renderPreviewPanelContent($panelPreviewer, data);
       });
     });
   }
@@ -134,7 +231,10 @@ class ComboMarkdownEditor {
         title: 'Add Checkbox (checked)',
       },
       'gitea-switch-to-textarea': {
-        action: this.switchToTextarea.bind(this),
+        action: () => {
+          this.userPreferredEditor = 'textarea';
+          this.switchToTextarea();
+        },
         className: 'fa fa-file',
         title: 'Revert to simple textarea',
       },
@@ -169,7 +269,7 @@ class ComboMarkdownEditor {
     return processed;
   }
 
-  async switchToTextarea() {
+  switchToTextarea() {
     showElem(this.textareaMarkdownToolbar);
     if (this.easyMDE) {
       this.easyMDE.toTextArea();
@@ -218,6 +318,7 @@ class ComboMarkdownEditor {
         }
       },
     });
+    this.applyEditorHeights(this.container.querySelector('.CodeMirror-scroll'), this.options.editorHeights);
     await attachTribute(this.easyMDE.codemirror.getInputField(), {mentions: true, emoji: true});
     initEasyMDEImagePaste(this.easyMDE, this.dropzone);
     hideElem(this.textareaMarkdownToolbar);
@@ -236,6 +337,7 @@ class ComboMarkdownEditor {
     } else {
       this.textarea.value = v;
     }
+    this.textareaAutosize.resizeToFit();
   }
 
   focus() {
@@ -253,6 +355,13 @@ class ComboMarkdownEditor {
       this.easyMDE.codemirror.focus();
       this.easyMDE.codemirror.setCursor(this.easyMDE.codemirror.lineCount(), 0);
     }
+  }
+
+  get userPreferredEditor() {
+    return window.localStorage.getItem(`markdown-editor-${this.options.useScene ?? 'default'}`);
+  }
+  set userPreferredEditor(s) {
+    window.localStorage.setItem(`markdown-editor-${this.options.useScene ?? 'default'}`, s);
   }
 }
 

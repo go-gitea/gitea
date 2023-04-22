@@ -86,7 +86,7 @@ export function initRepoIssueDue() {
   });
 }
 
-export function initRepoIssueList() {
+export function initRepoIssueSidebarList() {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
@@ -313,7 +313,7 @@ export function initRepoIssueWipTitle() {
     e.preventDefault();
 
     const $issueTitle = $('#issue_title');
-    $issueTitle.focus();
+    $issueTitle.trigger('focus');
     const value = $issueTitle.val().trim().toUpperCase();
 
     const wipPrefixes = $('.title_wip_desc').data('wip-prefixes');
@@ -573,7 +573,7 @@ export function initRepoIssueTitleEdit() {
     toggleElem($('#pull-desc-edit'));
     toggleElem($('.in-edit'));
     $('#issue-title-wrapper').toggleClass('edit-active');
-    $editInput.focus();
+    $editInput.trigger('focus');
     return false;
   };
 

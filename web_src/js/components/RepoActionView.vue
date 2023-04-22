@@ -32,6 +32,7 @@
                 <ActionRunStatus :status="job.status"/>
                 <span class="ui text gt-mx-3">{{ job.name }}</span>
               </a>
+              <span class="step-summary-duration">{{ job.duration }}</span>
               <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
@@ -57,7 +58,7 @@
               <ActionRunStatus :status="jobStep.status" class="gt-mr-3"/>
 
               <span class="step-summary-msg">{{ jobStep.summary }}</span>
-              <span class="step-summary-dur">{{ jobStep.duration }}</span>
+              <span class="step-summary-duration">{{ jobStep.duration }}</span>
             </div>
 
             <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
@@ -112,6 +113,7 @@ const sfc = {
           //   name: '',
           //   status: '',
           //   canRerun: false,
+          //   duration: '',
           // },
         ],
         commit: {
@@ -492,7 +494,7 @@ export function ansiLogToHTML(line) {
   flex: 1;
 }
 
-.job-step-container .job-step-summary .step-summary-dur {
+.job-step-container .job-step-summary .step-summary-duration {
   margin-left: 16px;
 }
 

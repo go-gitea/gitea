@@ -13,9 +13,9 @@ import (
 	"code.gitea.io/gitea/models/avatars"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/sspi"
@@ -23,7 +23,6 @@ import (
 
 	gouuid "github.com/google/uuid"
 	"github.com/quasoft/websspi"
-	"github.com/unrolled/render"
 )
 
 const (
@@ -47,9 +46,7 @@ var (
 // via the built-in SSPI module in Windows for SPNEGO authentication.
 // On successful authentication returns a valid user object.
 // Returns nil if authentication fails.
-type SSPI struct {
-	rnd *render.Render
-}
+type SSPI struct{}
 
 // Init creates a new global websspi.Authenticator object
 func (s *SSPI) Init(ctx context.Context) error {
@@ -59,7 +56,6 @@ func (s *SSPI) Init(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	_, s.rnd = templates.HTMLRenderer(ctx)
 	return nil
 }
 
@@ -102,12 +98,9 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		}
 		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 		store.GetData()["EnableSSPI"] = true
-
-		err := s.rnd.HTML(w, http.StatusUnauthorized, string(tplSignIn), templates.BaseVars().Merge(store.GetData()))
-		if err != nil {
-			log.Error("%v", err)
-		}
-
+		// in this case, the store is Gitea's web Context
+		// FIXME: it doesn't look good to render the page here, why not redirect?
+		store.(*gitea_context.Context).HTML(http.StatusUnauthorized, tplSignIn)
 		return nil, err
 	}
 	if outToken != "" {

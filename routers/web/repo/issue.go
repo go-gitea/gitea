@@ -303,17 +303,12 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["CommitStatuses"] = commitStatuses
 
 	// Get assignees.
-	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, repo)
+	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, repo)
 	if err != nil {
-		ctx.ServerError("GetAssignees", err)
+		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-
-	ctx.Data["Posters"], err = repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
-	if err != nil {
-		ctx.ServerError("GetIssuePosters", err)
-		return
-	}
+	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
 
 	handleTeamMentions(ctx)
 	if ctx.Written() {
@@ -479,11 +474,12 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 		return
 	}
 
-	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, repo)
+	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, repo)
 	if err != nil {
-		ctx.ServerError("GetAssignees", err)
+		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
+	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
 
 	handleTeamMentions(ctx)
 }
@@ -968,7 +964,7 @@ func DeleteIssue(ctx *context.Context) {
 		return
 	}
 
-	if err := issue_service.DeleteIssue(ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
+	if err := issue_service.DeleteIssue(ctx, ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
 		ctx.ServerError("DeleteIssueByID", err)
 		return
 	}
@@ -1136,7 +1132,7 @@ func NewIssuePost(ctx *context.Context) {
 		Ref:         form.Ref,
 	}
 
-	if err := issue_service.NewIssue(repo, issue, labelIDs, attachments, assigneeIDs); err != nil {
+	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
@@ -1158,8 +1154,8 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
-	if ctx.FormString("redirect_after_creation") == "project" {
-		ctx.Redirect(ctx.Repo.RepoLink + "/projects/" + strconv.FormatInt(form.ProjectID, 10))
+	if ctx.FormString("redirect_after_creation") == "project" && projectID > 0 {
+		ctx.Redirect(ctx.Repo.RepoLink + "/projects/" + strconv.FormatInt(projectID, 10))
 	} else {
 		ctx.Redirect(issue.Link())
 	}
@@ -1561,7 +1557,7 @@ func ViewIssue(ctx *context.Context) {
 					return
 				}
 			}
-		} else if comment.Type == issues_model.CommentTypeCode || comment.Type == issues_model.CommentTypeReview || comment.Type == issues_model.CommentTypeDismissReview {
+		} else if comment.Type.HasContentSupport() {
 			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 				URLPrefix: ctx.Repo.RepoLink,
 				Metas:     ctx.Repo.Repository.ComposeMetas(),
@@ -1625,8 +1621,10 @@ func ViewIssue(ctx *context.Context) {
 			comment.Type == issues_model.CommentTypeStopTracking {
 			// drop error since times could be pruned from DB..
 			_ = comment.LoadTime()
-		} else if comment.Type == issues_model.CommentTypeClose {
-			// record ID of latest closed comment.
+		}
+
+		if comment.Type == issues_model.CommentTypeClose || comment.Type == issues_model.CommentTypeMergePull {
+			// record ID of the latest closed/merged comment.
 			// if PR is closed, the comments whose type is CommentTypePullRequestPush(29) after latestCloseCommentID won't be rendered.
 			latestCloseCommentID = comment.ID
 		}
@@ -2023,7 +2021,7 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
-	if err := issue_service.ChangeTitle(issue, ctx.Doer, title); err != nil {
+	if err := issue_service.ChangeTitle(ctx, issue, ctx.Doer, title); err != nil {
 		ctx.ServerError("ChangeTitle", err)
 		return
 	}
@@ -2047,7 +2045,7 @@ func UpdateIssueRef(ctx *context.Context) {
 
 	ref := ctx.FormTrim("ref")
 
-	if err := issue_service.ChangeIssueRef(issue, ctx.Doer, ref); err != nil {
+	if err := issue_service.ChangeIssueRef(ctx, issue, ctx.Doer, ref); err != nil {
 		ctx.ServerError("ChangeRef", err)
 		return
 	}
@@ -2171,7 +2169,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	for _, issue := range issues {
 		switch action {
 		case "clear":
-			if err := issue_service.DeleteNotPassedAssignee(issue, ctx.Doer, []*user_model.User{}); err != nil {
+			if err := issue_service.DeleteNotPassedAssignee(ctx, issue, ctx.Doer, []*user_model.User{}); err != nil {
 				ctx.ServerError("ClearAssignees", err)
 				return
 			}
@@ -2192,7 +2190,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 
-			_, _, err = issue_service.ToggleAssignee(issue, ctx.Doer, assigneeID)
+			_, _, err = issue_service.ToggleAssignee(ctx, issue, ctx.Doer, assigneeID)
 			if err != nil {
 				ctx.ServerError("ToggleAssignee", err)
 				return
@@ -2279,7 +2277,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			_, err = issue_service.TeamReviewRequest(issue, ctx.Doer, team, action == "attach")
+			_, err = issue_service.TeamReviewRequest(ctx, issue, ctx.Doer, team, action == "attach")
 			if err != nil {
 				ctx.ServerError("TeamReviewRequest", err)
 				return
@@ -2317,7 +2315,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			return
 		}
 
-		_, err = issue_service.ReviewRequest(issue, ctx.Doer, reviewer, action == "attach")
+		_, err = issue_service.ReviewRequest(ctx, issue, ctx.Doer, reviewer, action == "attach")
 		if err != nil {
 			ctx.ServerError("ReviewRequest", err)
 			return
@@ -2859,7 +2857,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if comment.Type != issues_model.CommentTypeComment && comment.Type != issues_model.CommentTypeReview && comment.Type != issues_model.CommentTypeCode {
+	if !comment.Type.HasContentSupport() {
 		ctx.Error(http.StatusNoContent)
 		return
 	}
@@ -2923,7 +2921,7 @@ func DeleteComment(ctx *context.Context) {
 	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(http.StatusForbidden)
 		return
-	} else if comment.Type != issues_model.CommentTypeComment && comment.Type != issues_model.CommentTypeCode {
+	} else if !comment.Type.HasContentSupport() {
 		ctx.Error(http.StatusNoContent)
 		return
 	}
@@ -3069,7 +3067,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		return
 	}
 
-	if comment.Type != issues_model.CommentTypeComment && comment.Type != issues_model.CommentTypeCode && comment.Type != issues_model.CommentTypeReview {
+	if !comment.Type.HasContentSupport() {
 		ctx.Error(http.StatusNoContent)
 		return
 	}
@@ -3185,15 +3183,19 @@ func GetCommentAttachments(ctx *context.Context) {
 		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
 		return
 	}
+
+	if !comment.Type.HasAttachmentSupport() {
+		ctx.ServerError("GetCommentAttachments", fmt.Errorf("comment type %v does not support attachments", comment.Type))
+		return
+	}
+
 	attachments := make([]*api.Attachment, 0)
-	if comment.Type == issues_model.CommentTypeComment {
-		if err := comment.LoadAttachments(ctx); err != nil {
-			ctx.ServerError("LoadAttachments", err)
-			return
-		}
-		for i := 0; i < len(comment.Attachments); i++ {
-			attachments = append(attachments, convert.ToAttachment(comment.Attachments[i]))
-		}
+	if err := comment.LoadAttachments(ctx); err != nil {
+		ctx.ServerError("LoadAttachments", err)
+		return
+	}
+	for i := 0; i < len(comment.Attachments); i++ {
+		attachments = append(attachments, convert.ToAttachment(comment.Attachments[i]))
 	}
 	ctx.JSON(http.StatusOK, attachments)
 }
@@ -3359,4 +3361,47 @@ func handleTeamMentions(ctx *context.Context) {
 	ctx.Data["MentionableTeams"] = teams
 	ctx.Data["MentionableTeamsOrg"] = ctx.Repo.Owner.Name
 	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.AvatarLink(ctx)
+}
+
+type userSearchInfo struct {
+	UserID     int64  `json:"user_id"`
+	UserName   string `json:"username"`
+	AvatarLink string `json:"avatar_link"`
+	FullName   string `json:"full_name"`
+}
+
+type userSearchResponse struct {
+	Results []*userSearchInfo `json:"results"`
+}
+
+// IssuePosters get posters for current repo's issues/pull requests
+func IssuePosters(ctx *context.Context) {
+	repo := ctx.Repo.Repository
+	isPullList := ctx.Params(":type") == "pulls"
+	search := strings.TrimSpace(ctx.FormString("q"))
+	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullList, search, setting.UI.DefaultShowFullName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	if search == "" && ctx.Doer != nil {
+		// the returned posters slice only contains limited number of users,
+		// to make the current user (doer) can quickly filter their own issues, always add doer to the posters slice
+		if !util.SliceContainsFunc(posters, func(user *user_model.User) bool { return user.ID == ctx.Doer.ID }) {
+			posters = append(posters, ctx.Doer)
+		}
+	}
+
+	posters = makeSelfOnTop(ctx, posters)
+
+	resp := &userSearchResponse{}
+	resp.Results = make([]*userSearchInfo, len(posters))
+	for i, user := range posters {
+		resp.Results[i] = &userSearchInfo{UserID: user.ID, UserName: user.Name, AvatarLink: user.AvatarLink(ctx)}
+		if setting.UI.DefaultShowFullName {
+			resp.Results[i].FullName = user.FullName
+		}
+	}
+	ctx.JSON(http.StatusOK, resp)
 }

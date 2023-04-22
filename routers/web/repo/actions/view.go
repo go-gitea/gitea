@@ -75,6 +75,7 @@ type ViewJob struct {
 	Name     string `json:"name"`
 	Status   string `json:"status"`
 	CanRerun bool   `json:"canRerun"`
+	Duration string `json:"duration"`
 }
 
 type ViewCommit struct {
@@ -144,6 +145,7 @@ func ViewPost(ctx *context_module.Context) {
 			Name:     v.Name,
 			Status:   v.Status.String(),
 			CanRerun: v.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions),
+			Duration: v.Duration().String(),
 		})
 	}
 
