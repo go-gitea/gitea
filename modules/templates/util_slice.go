@@ -4,6 +4,7 @@
 package templates
 
 import (
+	"fmt"
 	"reflect"
 )
 
@@ -19,7 +20,7 @@ func (su *SliceUtils) Contains(s, v any) bool {
 	}
 	sv := reflect.ValueOf(s)
 	if sv.Kind() != reflect.Slice && sv.Kind() != reflect.Array {
-		panic("invalid type, expected slice or array")
+		panic(fmt.Sprintf("invalid type, expected slice or array, but got: %T", s))
 	}
 	for i := 0; i < sv.Len(); i++ {
 		it := sv.Index(i)

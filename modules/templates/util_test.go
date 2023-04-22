@@ -5,6 +5,7 @@ package templates
 
 import (
 	"html/template"
+	"io"
 	"strings"
 	"testing"
 
@@ -68,4 +69,11 @@ func TestUtils(t *testing.T) {
 
 	actual = execTmpl("{{StringUtils.Contains .String .Value}}", map[string]any{"String": "abc", "Value": "x"})
 	assert.Equal(t, "false", actual)
+
+	tmpl := template.New("test")
+	tmpl.Funcs(template.FuncMap{"SliceUtils": NewSliceUtils, "StringUtils": NewStringUtils})
+	template.Must(tmpl.Parse("{{SliceUtils.Contains .Slice .Value}}"))
+	// error is like this: `template: test:1:12: executing "test" at <SliceUtils.Contains>: error calling Contains: ...`
+	err := tmpl.Execute(io.Discard, map[string]any{"Slice": struct{}{}})
+	assert.ErrorContains(t, err, "invalid type, expected slice or array")
 }
