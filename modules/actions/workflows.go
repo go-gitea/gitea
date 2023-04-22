@@ -29,7 +29,7 @@ func init() {
 	}
 }
 
-func IsWorkFlow(path string) bool {
+func IsWorkflow(path string) bool {
 	if (!strings.HasSuffix(path, ".yaml")) && (!strings.HasSuffix(path, ".yml")) {
 		return false
 	}

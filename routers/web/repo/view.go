@@ -351,7 +351,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if issueConfigErr != nil {
 			ctx.Data["FileError"] = strings.TrimSpace(issueConfigErr.Error())
 		}
-	} else if actions.IsWorkFlow(ctx.Repo.TreePath) {
+	} else if actions.IsWorkflow(ctx.Repo.TreePath) {
 		content, err := actions.GetContentFromEntry(entry)
 		if err != nil {
 			log.Error("actions.GetContentFromEntry: %v", err)
