@@ -695,7 +695,7 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	if setting.EnableFeed {
+	if setting.Other.EnableFeed {
 		isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
 		if isFeed {
 			feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
