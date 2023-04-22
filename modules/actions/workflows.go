@@ -34,11 +34,7 @@ func IsWorkFlow(path string) bool {
 		return false
 	}
 
-	if strings.HasPrefix(path, ".gitea/workflows") {
-		return true
-	}
-
-	return strings.HasPrefix(path, ".github/workflows")
+	return strings.HasPrefix(path, ".gitea/workflows") || strings.HasPrefix(path, ".github/workflows")
 }
 
 func ListWorkflows(commit *git.Commit) (git.Entries, error) {
