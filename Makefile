@@ -193,6 +193,7 @@ help:
 	@echo " - deps-backend                     install backend dependencies"
 	@echo " - deps-tools                       install tool dependencies"
 	@echo " - lint                             lint everything"
+	@echo " - lint-fix                         lint and fix everything where fix is available"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-backend                     lint backend files"
 	@echo " - lint-go                          lint go files"
@@ -334,6 +335,9 @@ checks-backend: tidy-check swagger-check fmt-check misspell-check swagger-valida
 
 .PHONY: lint
 lint: lint-frontend lint-backend
+
+.PHONY: lint-fix
+lint-fix: lint-go-fix lint-js-fix lint-css-fix
 
 .PHONY: lint-frontend
 lint-frontend: lint-js lint-css lint-md lint-swagger
