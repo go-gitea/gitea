@@ -133,15 +133,10 @@
 			{{if .Issue.PullRequest.HasMerged}}
 				<div class="item item-section text gt-f1">
 					<div class="item-section-left">
-						{{if .Issue.PullRequest.MergedCommitID}}
-							{{$link := printf "%s/commit/%s" $.Repository.Link (.Issue.PullRequest.MergedCommitID|PathEscape)}}
-							<h3>{{$.locale.Tr "repo.pulls.merged_as"}}</h3>
-							<div class="merge-section-info">
-								{{$.locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" .HeadTarget) | Str2html}}
-							</div>
-						{{else}}
-							{{$.locale.Tr "repo.pulls.has_merged"}}
-						{{end}}
+						<h3 class="gt-mb-3">{{$.locale.Tr "repo.pulls.merged_success"}}</h3>
+						<div class="merge-section-info">
+							{{$.locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" .HeadTarget) | Str2html}}
+						</div>
 					</div>
 					{{if .IsPullBranchDeletable}}
 						<div class="item-section-right">
@@ -152,11 +147,14 @@
 			{{else if .Issue.IsClosed}}
 				<div class="item item-section text gt-f1">
 					<div class="item-section-left">
-						{{if .IsPullRequestBroken}}
-							{{$.locale.Tr "repo.pulls.cant_reopen_deleted_branch"}}
-						{{else}}
-							{{$.locale.Tr "repo.pulls.reopen_to_merge"}}
-						{{end}}
+						<h3 class="gt-mb-3">{{$.locale.Tr "repo.pulls.closed"}}</h3>
+						<div class="merge-section-info">
+							{{if .IsPullRequestBroken}}
+								{{$.locale.Tr "repo.pulls.cant_reopen_deleted_branch"}}
+							{{else}}
+								{{$.locale.Tr "repo.pulls.reopen_to_merge"}}
+							{{end}}
+						</div>
 					</div>
 					{{if and .IsPullBranchDeletable (not .IsPullRequestBroken)}}
 						<div class="item-section-right">
