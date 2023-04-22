@@ -208,7 +208,7 @@ func InitProviderFromExistingFile() {
 	var err error
 	CfgProvider, err = newConfigProviderFromFile(CustomConf, false, "")
 	if err != nil {
-		log.Fatal("%v", err)
+		log.Fatal("InitProviderFromExistingFile: %v", err)
 	}
 }
 
@@ -217,7 +217,7 @@ func InitProviderAllowEmpty() {
 	var err error
 	CfgProvider, err = newConfigProviderFromFile(CustomConf, true, "")
 	if err != nil {
-		log.Fatal("%v", err)
+		log.Fatal("InitProviderAllowEmpty: %v", err)
 	}
 }
 
@@ -226,7 +226,7 @@ func InitProviderAndLoadCommonSettingsForTest(extraConfigs ...string) {
 	var err error
 	CfgProvider, err = newConfigProviderFromFile(CustomConf, true, strings.Join(extraConfigs, "\n"))
 	if err != nil {
-		log.Fatal("%v", err)
+		log.Fatal("InitProviderAndLoadCommonSettingsForTest: %v", err)
 	}
 	loadCommonSettingsFrom(CfgProvider)
 	if err := PrepareAppDataPath(); err != nil {
