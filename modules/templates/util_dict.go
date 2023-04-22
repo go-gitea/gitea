@@ -108,7 +108,7 @@ func dumpVar(v any) template.HTML {
 		return "<pre>dumpVar: only available in dev mode</pre>"
 	}
 	m, ok := dumpVarMarshalable(v, map[uintptr]bool{})
-	dumpStr := ""
+	var dumpStr string
 	jsonBytes, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		dumpStr = fmt.Sprintf("dumpVar: unable to marshal %T: %v", v, err)
