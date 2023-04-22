@@ -165,7 +165,11 @@
 						<span class="text grey gt-mx-3">{{.locale.Tr "repo.diff.committed_by"}}</span>
 						{{if ne .Verification.CommittingUser.ID 0}}
 							{{avatar $.Context .Verification.CommittingUser 28 "gt-mx-3"}}
-							<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
+							{{if eq .Commit.Committer.Name .Verification.CommittingUser.Name}}
+								<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}} ({{.Verification.CommittingUser.Name}})</strong></a>
+							{{else}}
+								<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
+							{{end}}
 						{{else}}
 							{{avatarByEmail $.Context .Commit.Committer.Email .Commit.Committer.Name 28 "gt-mr-3"}}
 							<strong>{{.Commit.Committer.Name}}</strong>
