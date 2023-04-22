@@ -524,6 +524,7 @@ index 0000000..6bb8f39
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
+	println(result)
 
 	diff2 := `diff --git "a/A \\ B" "b/A \\ B"
 --- "a/A \\ B"
