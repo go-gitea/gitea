@@ -51,6 +51,7 @@ type ViewResponse struct {
 		Run struct {
 			Link      string     `json:"link"`
 			Title     string     `json:"title"`
+			Status    string     `json:"status"`
 			CanCancel bool       `json:"canCancel"`
 			Done      bool       `json:"done"`
 			Jobs      []*ViewJob `json:"jobs"`
@@ -109,6 +110,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.Run.CanCancel = !run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.Done = run.Status.IsDone()
 	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead fo 'null' in json
+	resp.State.Run.Status = run.Status.String()
 	for _, v := range jobs {
 		resp.State.Run.Jobs = append(resp.State.Run.Jobs, &ViewJob{
 			ID:       v.ID,
