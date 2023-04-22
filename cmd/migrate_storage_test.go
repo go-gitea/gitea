@@ -67,7 +67,7 @@ func TestMigratePackages(t *testing.T) {
 
 	entries, err := os.ReadDir(p)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 2, len(entries))
+	assert.Len(t, entries, 2)
 	assert.EqualValues(t, "01", entries[0].Name())
 	assert.EqualValues(t, "tmp", entries[1].Name())
 }
