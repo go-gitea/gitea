@@ -166,14 +166,13 @@ func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch,
 
 // IsUserOfficialReviewer check if user is official reviewer for the branch (counts towards required approvals)
 func IsUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch, user *user_model.User) (bool, error) {
-	repo, err := repo_model.GetRepositoryByID(ctx, protectBranch.RepoID)
-	if err != nil {
+	if err := protectBranch.LoadRepo(ctx); err != nil {
 		return false, err
 	}
 
 	if !protectBranch.EnableApprovalsWhitelist {
 		// Anyone with write access is considered official reviewer
-		writeAccess, err := access_model.HasAccessUnit(ctx, user, repo, unit.TypeCode, perm.AccessModeWrite)
+		writeAccess, err := access_model.HasAccessUnit(ctx, user, protectBranch.Repo, unit.TypeCode, perm.AccessModeWrite)
 		if err != nil {
 			return false, err
 		}
@@ -184,12 +183,7 @@ func IsUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch,
 		return true, nil
 	}
 
-	inTeam, err := organization.IsUserInTeams(ctx, user.ID, protectBranch.ApprovalsWhitelistTeamIDs)
-	if err != nil {
-		return false, err
-	}
-
-	return inTeam, nil
+	return organization.IsUserInTeams(ctx, user.ID, protectBranch.ApprovalsWhitelistTeamIDs)
 }
 
 // GetProtectedFilePatterns parses a semicolon separated list of protected file patterns and returns a glob.Glob slice

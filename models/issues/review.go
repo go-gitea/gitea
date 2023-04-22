@@ -259,12 +259,11 @@ type CreateReviewOptions struct {
 
 // IsOfficialReviewer check if at least one of the provided reviewers can make official reviews in issue (counts towards required approvals)
 func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_model.User) (bool, error) {
-	pr, err := GetPullRequestByIssueID(ctx, issue.ID)
-	if err != nil {
+	if err := issue.LoadPullRequest(ctx); err != nil {
 		return false, err
 	}
 
-	rule, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	rule, err := git_model.GetFirstMatchProtectedBranchRule(ctx, issue.PullRequest.BaseRepoID, issue.PullRequest.BaseBranch)
 	if err != nil {
 		return false, err
 	}

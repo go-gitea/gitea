@@ -16,6 +16,7 @@ import (
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -814,22 +815,38 @@ func HasEnoughApprovals(ctx context.Context, protectBranch *git_model.ProtectedB
 	return GetGrantedApprovalsCount(ctx, protectBranch, pr) >= protectBranch.RequiredApprovals
 }
 
+func calcGrantedApprovals(reviews []*Review) int64 {
+	var cnt int64
+	counted := make(container.Set[int64])
+	for _, review := range reviews {
+		if counted.Contains(review.ReviewerID) {
+			continue
+		}
+
+		if review.Type == ReviewTypeApprove {
+			cnt++
+		}
+		counted.Add(review.ReviewerID)
+	}
+	return cnt
+}
+
 // GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
 func GetGrantedApprovalsCount(ctx context.Context, protectBranch *git_model.ProtectedBranch, pr *PullRequest) int64 {
 	sess := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
-		And("type = ?", ReviewTypeApprove).
+		And("type = ? OR type = ?", ReviewTypeApprove, ReviewTypeReject).
 		And("official = ?", true).
 		And("dismissed = ?", false)
 	if protectBranch.DismissStaleApprovals {
 		sess = sess.And("stale = ?", false)
 	}
-	approvals, err := sess.Count(new(Review))
-	if err != nil {
+	var reviews []*Review
+	if err := sess.OrderBy("id desc").Find(&reviews); err != nil {
 		log.Error("GetGrantedApprovalsCount: %v", err)
 		return 0
 	}
 
-	return approvals
+	return calcGrantedApprovals(reviews)
 }
 
 // MergeBlockedByRejectedReview returns true if merge is blocked by rejected reviews
