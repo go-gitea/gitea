@@ -412,7 +412,7 @@ func TestAPIMirrorSyncNonMirrorRepo(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &repo)
-	assert.EqualValues(t, false, repo.Mirror)
+	assert.False(t, repo.Mirror)
 
 	req = NewRequestf(t, "POST", "/api/v1/repos/user2/repo1/mirror-sync?token=%s", token)
 	resp = MakeRequest(t, req, http.StatusBadRequest)
@@ -469,7 +469,7 @@ func testAPIRepoCreateConflict(t *testing.T, u *url.URL) {
 		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
 		respJSON := map[string]string{}
 		DecodeJSON(t, resp, &respJSON)
-		assert.Equal(t, respJSON["message"], "The repository with the same name already exists.")
+		assert.Equal(t, "The repository with the same name already exists.", respJSON["message"])
 	})
 }
 
