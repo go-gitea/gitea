@@ -92,14 +92,14 @@
 											{{if or .AllowlistUserIDs (and $.Owner.IsOrganization .AllowlistTeamIDs)}}
 												{{$userIDs := .AllowlistUserIDs}}
 												{{range $.Users}}
-													{{if contain $userIDs .ID}}
+													{{if SliceUtils.Contains $userIDs .ID}}
 														<a class="ui basic label" href="{{.HomeLink}}">{{avatar $.Context . 26}} {{.GetDisplayName}}</a>
 													{{end}}
 												{{end}}
 												{{if $.Owner.IsOrganization}}
 													{{$teamIDs := .AllowlistTeamIDs}}
 													{{range $.Teams}}
-														{{if contain $teamIDs .ID}}
+														{{if SliceUtils.Contains $teamIDs .ID}}
 															<a class="ui basic label" href="{{$.Owner.OrganisationLink}}/teams/{{PathEscape .LowerName}}">{{.Name}}</a>
 														{{end}}
 													{{end}}
