@@ -181,7 +181,7 @@ func (log *FileLogger) DoRotate() error {
 		}
 
 		if log.Compress {
-			go compressOldLogFile(fname, log.CompressionLevel)
+			go compressOldLogFile(fname, log.CompressionLevel) //nolint:errcheck
 		}
 
 		// re-start logger
@@ -216,7 +216,7 @@ func compressOldLogFile(fname string, compressionLevel int) error {
 	if err != nil {
 		zw.Close()
 		fw.Close()
-		util.Remove(fname + ".gz")
+		util.Remove(fname + ".gz") //nolint:errcheck
 		return err
 	}
 	reader.Close()
@@ -251,15 +251,6 @@ func (log *FileLogger) deleteOldLog() {
 		}
 		return returnErr
 	})
-}
-
-// Content returns the content accumulated in the content provider
-func (log *FileLogger) Content() (string, error) {
-	b, err := os.ReadFile(log.Filename)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
 }
 
 // Flush flush file logger.

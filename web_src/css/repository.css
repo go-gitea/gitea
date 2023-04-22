@@ -153,12 +153,9 @@
   padding-left: 23px;
 }
 
-.repository .ui.tabs.container {
-  margin-top: 14px;
-  margin-bottom: 0;
-}
-
-.repository .ui.tabs.container .ui.menu {
+/* For the secondary pointing menu, respect its own border-bottom */
+/* style reference: https://semantic-ui.com/collections/menu.html#pointing */
+.repository .ui.tabs.container .ui.menu:not(.secondary.pointing) {
   border-bottom: 0;
 }
 
@@ -1911,15 +1908,12 @@
   border-radius: var(--border-radius) 0 0 var(--border-radius);
 }
 
-.repository.quickstart .guide .ui.action.small.input {
-  width: 100%;
-}
-
 .repository.quickstart .guide #repo-clone-url {
   border-radius: 0;
   padding: 5px 10px;
   font-size: 1.2em;
   line-height: 1.4;
+  flex: 1
 }
 
 .repository.release #release-list {
@@ -2109,6 +2103,14 @@
   margin-left: 1em !important;
 }
 
+.wiki-pages-list .wiki-git-entry {
+  margin-left: 10px;
+  display: none;
+}
+
+.wiki-pages-list td:hover .wiki-git-entry {
+  display: inline-block;
+}
 
 @media (max-width: 767px) {
   .repository.wiki .dividing.header .stackable.grid .button {
