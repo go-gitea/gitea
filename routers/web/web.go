@@ -313,6 +313,15 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	unitEnabled := func(ut unit.Type) func(ctx *context.Context) {
+		return func(ctx *context.Context) {
+			if ut.UnitGlobalDisabled() {
+				ctx.NotFound("Code", nil)
+				return
+			}
+		}
+	}
+
 	addWebhookAddRoutes := func() {
 		m.Get("/{type}/new", repo.WebhooksNew)
 		m.Post("/gitea/new", web.Bind(forms.NewWebhookForm{}), repo.GiteaHooksNewPost)
@@ -368,7 +377,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/users", explore.Users)
 		m.Get("/users/sitemap-{idx}.xml", sitemapEnabled, explore.Users)
 		m.Get("/organizations", explore.Organizations)
-		m.Get("/code", explore.Code)
+		m.Get("/code", unitEnabled(unit.TypeCode), explore.Code)
 		m.Get("/topics/search", explore.TopicSearch)
 	}, ignExploreSignIn)
 	m.Group("/issues", func() {
@@ -950,7 +959,7 @@ func RegisterRoutes(m *web.Route) {
 		}, repo.MustEnableProjects)
 
 		m.Group("", func() {
-			m.Get("/code", user.CodeSearch)
+			m.Get("/code", unitEnabled(unit.TypeCode), user.CodeSearch)
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead))
 	}, context_service.UserAssignmentWeb(), context.OrgAssignment())
 
