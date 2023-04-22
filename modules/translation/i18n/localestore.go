@@ -72,7 +72,6 @@ func (store *localeStore) AddLocaleByIni(langName, langDesc string, source, more
 			l.idxToMsgMap[idx] = key.Value()
 		}
 	}
-	iniFile = nil
 
 	return nil
 }

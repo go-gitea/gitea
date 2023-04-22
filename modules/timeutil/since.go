@@ -23,7 +23,7 @@ const (
 )
 
 func computeTimeDiffFloor(diff int64, lang translation.Locale) (int64, string) {
-	diffStr := ""
+	var diffStr string
 	switch {
 	case diff <= 0:
 		diff = 0
