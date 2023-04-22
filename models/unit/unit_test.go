@@ -30,7 +30,7 @@ func TestLoadUnitConfig(t *testing.T) {
 		assert.NoError(t, LoadUnitConfig())
 		assert.Equal(t, []Type{TypeIssues}, DisabledRepoUnits)
 		assert.Equal(t, []Type{TypeCode, TypeReleases, TypePullRequests}, DefaultRepoUnits)
-		assert.Equal(t, []Type{TypeCode, TypeReleases}, DefaultForkRepoUnits)
+		assert.Equal(t, []Type{TypeReleases}, DefaultForkRepoUnits)
 	})
 	t.Run("invalid", func(t *testing.T) {
 		setting.Repository.DisabledRepoUnits = []string{"repo.issues", "invalid.1"}
@@ -39,7 +39,7 @@ func TestLoadUnitConfig(t *testing.T) {
 		assert.NoError(t, LoadUnitConfig())
 		assert.Equal(t, []Type{TypeIssues}, DisabledRepoUnits)
 		assert.Equal(t, []Type{TypeCode, TypeReleases, TypePullRequests}, DefaultRepoUnits)
-		assert.Equal(t, []Type{TypeCode, TypeReleases}, DefaultForkRepoUnits)
+		assert.Equal(t, []Type{TypeReleases}, DefaultForkRepoUnits)
 	})
 	t.Run("duplicate", func(t *testing.T) {
 		setting.Repository.DisabledRepoUnits = []string{"repo.issues", "repo.issues"}
@@ -48,6 +48,15 @@ func TestLoadUnitConfig(t *testing.T) {
 		assert.NoError(t, LoadUnitConfig())
 		assert.Equal(t, []Type{TypeIssues}, DisabledRepoUnits)
 		assert.Equal(t, []Type{TypeCode, TypeReleases, TypePullRequests}, DefaultRepoUnits)
-		assert.Equal(t, []Type{TypeCode, TypeReleases}, DefaultForkRepoUnits)
+		assert.Equal(t, []Type{TypeReleases}, DefaultForkRepoUnits)
+	})
+	t.Run("empty_default", func(t *testing.T) {
+		setting.Repository.DisabledRepoUnits = []string{"repo.issues", "repo.issues"}
+		setting.Repository.DefaultRepoUnits = []string{}
+		setting.Repository.DefaultForkRepoUnits = []string{"repo.releases", "repo.releases"}
+		assert.NoError(t, LoadUnitConfig())
+		assert.Equal(t, []Type{TypeIssues}, DisabledRepoUnits)
+		assert.ElementsMatch(t, []Type{TypeCode, TypePullRequests, TypeReleases, TypeWiki, TypePackages, TypeProjects}, DefaultRepoUnits)
+		assert.Equal(t, []Type{TypeReleases}, DefaultForkRepoUnits)
 	})
 }
