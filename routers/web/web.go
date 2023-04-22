@@ -103,7 +103,7 @@ func buildAuthGroup() *auth_service.Group {
 func Routes(ctx gocontext.Context) *web.Route {
 	routes := web.NewRoute()
 
-	routes.Use(web.WrapWithPrefix("/assets/", web.Wrap(CorsHandler(), public.AssetsHandlerFunc("/assets/")), "AssetsHandler"))
+	routes.Use(web.MiddlewareWithPrefix("/assets/", CorsHandler(), public.AssetsHandlerFunc("/assets/")))
 
 	sessioner := session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
@@ -123,8 +123,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 	routes.Use(Recovery(ctx))
 
 	// We use r.Route here over r.Use because this prevents requests that are not for avatars having to go through this additional handler
-	routes.Route("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
-	routes.Route("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+	routes.RouteMethods("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
+	routes.RouteMethods("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
 	// for health check - doesn't need to be passed through gzip handler
 	routes.Head("/", func(w http.ResponseWriter, req *http.Request) {
@@ -153,7 +153,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 	if setting.Service.EnableCaptcha {
 		// The captcha http.Handler should only fire on /captcha/* so we can just mount this on that url
-		routes.Route("/captcha/*", "GET,HEAD", append(common, captcha.Captchaer(context.GetImageCaptcha()))...)
+		routes.RouteMethods("/captcha/*", "GET,HEAD", append(common, captcha.Captchaer(context.GetImageCaptcha()))...)
 	}
 
 	if setting.HasRobotsTxt {
@@ -856,7 +856,7 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/delete", org.SecretsDelete)
 				})
 
-				m.Route("/delete", "GET,POST", org.SettingsDelete)
+				m.RouteMethods("/delete", "GET,POST", org.SettingsDelete)
 
 				m.Group("/packages", func() {
 					m.Get("", org.Packages)

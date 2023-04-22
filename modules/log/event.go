@@ -247,12 +247,6 @@ func (m *MultiChannelledLog) GetEventLogger(name string) EventLogger {
 	return m.loggers[name]
 }
 
-// GetEventProvider returns a sub logger provider content from this MultiChannelledLog
-func (m *MultiChannelledLog) GetLoggerProviderContent(name string) (string, error) {
-	channelledLogger := m.GetEventLogger(name).(*ChannelledLog)
-	return channelledLogger.loggerProvider.Content()
-}
-
 // GetEventLoggerNames returns a list of names
 func (m *MultiChannelledLog) GetEventLoggerNames() []string {
 	m.rwmutex.RLock()
@@ -459,4 +453,8 @@ func (m *MultiChannelledLog) ResetLevel() Level {
 // GetName gets the name of this MultiChannelledLog
 func (m *MultiChannelledLog) GetName() string {
 	return m.name
+}
+
+func (e *Event) GetMsg() string {
+	return e.msg
 }

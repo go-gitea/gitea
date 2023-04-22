@@ -5,35 +5,35 @@
 			<div class="ui five wide column">
 				<div class="ui card">
 					<div id="profile-avatar" class="content gt-df">
-					{{if eq .SignedUserName .Owner.Name}}
+					{{if eq .SignedUserName .ContextUser.Name}}
 						<a class="image" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{.locale.Tr "user.change_avatar"}}">
-							{{avatar $.Context .Owner 290}}
+							{{avatar $.Context .ContextUser 290}}
 						</a>
 					{{else}}
 						<span class="image">
-							{{avatar $.Context .Owner 290}}
+							{{avatar $.Context .ContextUser 290}}
 						</span>
 					{{end}}
 					</div>
 					<div class="content gt-word-break profile-avatar-name">
-						{{if .Owner.FullName}}<span class="header text center">{{.Owner.FullName}}</span>{{end}}
-						<span class="username text center">{{.Owner.Name}}</span>
+						{{if .ContextUser.FullName}}<span class="header text center">{{.ContextUser.FullName}}</span>{{end}}
+						<span class="username text center">{{.ContextUser.Name}}</span>
 						{{if .EnableFeed}}
-							<a href="{{.Owner.HomeLink}}.rss"><i class="ui text grey gt-ml-3" data-tooltip-content="{{.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
+							<a href="{{.ContextUser.HomeLink}}.rss"><i class="ui text grey gt-ml-3" data-tooltip-content="{{.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
 						{{end}}
 						<div class="gt-mt-3">
-							<a class="muted" href="{{.Owner.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.Owner.NumFollowers}} {{.locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.Owner.HomeLink}}?tab=following">{{.Owner.NumFollowing}} {{.locale.Tr "user.following"}}</a>
+							<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.ContextUser.NumFollowers}} {{.locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.ContextUser.NumFollowing}} {{.locale.Tr "user.following"}}</a>
 						</div>
 					</div>
 					<div class="extra content gt-word-break">
 						<ul>
-							{{if .Owner.Location}}
-								<li>{{svg "octicon-location"}} {{.Owner.Location}}</li>
+							{{if .ContextUser.Location}}
+								<li>{{svg "octicon-location"}} {{.ContextUser.Location}}</li>
 							{{end}}
-							{{if (eq .SignedUserName .Owner.Name)}}
+							{{if (eq .SignedUserName .ContextUser.Name)}}
 								<li>
 									{{svg "octicon-mail"}}
-									<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
+									<a href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
 									<a href="{{AppSubUrl}}/user/settings#keep-email-private">
 										{{if .ShowUserEmail}}
 											<i class="ui right" data-tooltip-content="{{.locale.Tr "user.email_visibility.limited"}}">
@@ -50,14 +50,14 @@
 								{{if .ShowUserEmail}}
 									<li>
 										{{svg "octicon-mail"}}
-										<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
+										<a href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
 									</li>
 								{{end}}
 							{{end}}
-							{{if .Owner.Website}}
+							{{if .ContextUser.Website}}
 								<li>
 									{{svg "octicon-link"}}
-									<a target="_blank" rel="noopener noreferrer me" href="{{.Owner.Website}}">{{.Owner.Website}}</a>
+									<a target="_blank" rel="noopener noreferrer me" href="{{.ContextUser.Website}}">{{.ContextUser.Website}}</a>
 								</li>
 							{{end}}
 							{{if $.RenderedDescription}}
@@ -73,7 +73,7 @@
 									</li>
 								{{end}}
 							{{end}}
-							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} {{template "shared/datetime/short" (dict "Datetime" .Owner.CreatedUnix.FormatLong "Fallback" .Owner.CreatedUnix.FormatShort)}}</li>
+							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} {{template "shared/datetime/short" (dict "Datetime" .ContextUser.CreatedUnix.FormatLong "Fallback" .ContextUser.CreatedUnix.FormatShort)}}</li>
 							{{if and .Orgs .HasOrgsVisible}}
 							<li>
 								<ul class="user-orgs">
@@ -100,7 +100,7 @@
 								</ul>
 							</li>
 							{{end}}
-							{{if and .IsSigned (ne .SignedUserName .Owner.Name)}}
+							{{if and .IsSigned (ne .SignedUserName .ContextUser.Name)}}
 							<li class="follow">
 								{{if $.IsFollowing}}
 									<form method="post" action="{{.Link}}?action=unfollow&redirect_to={{$.Link}}">
@@ -121,44 +121,44 @@
 			</div>
 			<div class="ui eleven wide column">
 				<div class="ui secondary stackable pointing tight menu">
-					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "watching") (ne .TabName "projects") (ne .TabName "code")}}active {{end}}item' href="{{.Owner.HomeLink}}">
+					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "watching") (ne .TabName "projects") (ne .TabName "code")}}active {{end}}item' href="{{.ContextUser.HomeLink}}">
 						{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
-						{{if .Owner.NumRepos}}
-							<div class="ui small label">{{.Owner.NumRepos}}</div>
+						{{if .ContextUser.NumRepos}}
+							<div class="ui small label">{{.ContextUser.NumRepos}}</div>
 						{{end}}
 					</a>
-					<a href="{{.Owner.HomeLink}}/-/projects" class="{{if eq .TabName "projects"}}active {{end}}item">
+					<a href="{{.ContextUser.HomeLink}}/-/projects" class="{{if eq .TabName "projects"}}active {{end}}item">
 						{{svg "octicon-project-symlink"}} {{.locale.Tr "user.projects"}}
 					</a>
 					{{if .IsPackageEnabled}}
-					<a class='{{if eq .TabName "packages"}}active {{end}}item' href="{{.Owner.HomeLink}}/-/packages">
+					<a class='{{if eq .TabName "packages"}}active {{end}}item' href="{{.ContextUser.HomeLink}}/-/packages">
 						{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
 					</a>
 					{{end}}
 					{{if .IsRepoIndexerEnabled}}
-					<a class='{{if eq .TabName "code"}}active {{end}}item' href="{{.Owner.HomeLink}}/-/code">
+					<a class='{{if eq .TabName "code"}}active {{end}}item' href="{{.ContextUser.HomeLink}}/-/code">
 						{{svg "octicon-code"}} {{.locale.Tr "user.code"}}
 					</a>
 					{{end}}
-					<a class='{{if eq .TabName "activity"}}active {{end}}item' href="{{.Owner.HomeLink}}?tab=activity">
+					<a class='{{if eq .TabName "activity"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=activity">
 						{{svg "octicon-rss"}} {{.locale.Tr "user.activity"}}
 					</a>
 					{{if not .DisableStars}}
-						<a class='{{if eq .TabName "stars"}}active {{end}}item' href="{{.Owner.HomeLink}}?tab=stars">
+						<a class='{{if eq .TabName "stars"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=stars">
 							{{svg "octicon-star"}} {{.locale.Tr "user.starred"}}
-							{{if .Owner.NumStars}}
-								<div class="ui small label">{{.Owner.NumStars}}</div>
+							{{if .ContextUser.NumStars}}
+								<div class="ui small label">{{.ContextUser.NumStars}}</div>
 							{{end}}
 						</a>
 					{{else}}
-						<a class='{{if eq .TabName "watching"}}active {{end}}item' href="{{.Owner.HomeLink}}?tab=watching">
+						<a class='{{if eq .TabName "watching"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=watching">
 							{{svg "octicon-eye"}} {{.locale.Tr "user.watched"}}
 						</a>
 					{{end}}
 				</div>
 
 				{{if eq .TabName "activity"}}
-					{{if .Owner.KeepActivityPrivate}}
+					{{if .ContextUser.KeepActivityPrivate}}
 						<div class="ui info message">
 							<p>{{.locale.Tr "user.disabled_public_activity"}}</p>
 						</div>

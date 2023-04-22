@@ -2,6 +2,7 @@
 
 @import "./animations.css";
 @import "./shared/issuelist.css";
+@import "./shared/repoorg.css";
 @import "./features/dropzone.css";
 @import "./features/gitgraph.css";
 @import "./features/heatmap.css";
