@@ -83,7 +83,7 @@
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.dashboard.server_uptime"}}</dt>
-				<dd>{{.SysStatus.Uptime}}</dd>
+				<dd><relative-time format="duration" datetime="{{.SysStatus.StartTime}}">{{.SysStatus.StartTime}}</relative-time></dd>
 				<dt>{{.locale.Tr "admin.dashboard.current_goroutine"}}</dt>
 				<dd>{{.SysStatus.NumGoroutine}}</dd>
 				<div class="ui divider"></div>

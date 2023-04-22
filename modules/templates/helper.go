@@ -132,13 +132,12 @@ func NewFuncMap() []template.FuncMap {
 		// -----------------------------------------------------------------
 		// time / number / format
 		"FileSize":      base.FileSize,
-		"LocaleNumber":  LocaleNumber,
 		"CountFmt":      base.FormatNumberSI,
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"Sec2Time":      util.SecToTime,
 		"DateFmtLong": func(t time.Time) string {
-			return t.Format(time.RFC1123Z)
+			return t.Format(time.RFC3339)
 		},
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
@@ -171,13 +170,6 @@ func NewFuncMap() []template.FuncMap {
 				}
 			}
 			return false
-		},
-		"Iterate": func(arg interface{}) (items []int64) {
-			count, _ := util.ToInt64(arg)
-			for i := int64(0); i < count; i++ {
-				items = append(items, i)
-			}
-			return items
 		},
 
 		// -----------------------------------------------------------------
@@ -780,12 +772,6 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 	a.Address = u.String()
 
 	return a
-}
-
-// LocaleNumber renders a number with a Custom Element, browser will render it with a locale number
-func LocaleNumber(v interface{}) template.HTML {
-	num, _ := util.ToInt64(v)
-	return template.HTML(fmt.Sprintf(`<gitea-locale-number data-number="%d">%d</gitea-locale-number>`, num, num))
 }
 
 // Eval the expression and return the result, see the comment of eval.Expr for details.

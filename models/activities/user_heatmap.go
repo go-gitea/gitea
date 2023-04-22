@@ -69,3 +69,12 @@ func getUserHeatmapData(user *user_model.User, team *organization.Team, doer *us
 		OrderBy("timestamp").
 		Find(&hdata)
 }
+
+// GetTotalContributionsInHeatmap returns the total number of contributions in a heatmap
+func GetTotalContributionsInHeatmap(hdata []*UserHeatmapData) int64 {
+	var total int64
+	for _, v := range hdata {
+		total += v.Contributions
+	}
+	return total
+}

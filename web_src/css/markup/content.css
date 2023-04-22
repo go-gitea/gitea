@@ -541,7 +541,8 @@
 }
 
 .markup-block-error {
-  border: 1px solid var(--color-error-border) !important;
+  display: block !important; /* override fomantic .ui.form .error.message {display: none} */
+  border: none !important;
   margin-bottom: 0 !important;
   border-bottom-left-radius: 0 !important;
   border-bottom-right-radius: 0 !important;

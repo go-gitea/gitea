@@ -86,9 +86,9 @@ func DeleteAttachment(ctx *context.Context) {
 	})
 }
 
-// GetAttachment serve attachments
-func GetAttachment(ctx *context.Context) {
-	attach, err := repo_model.GetAttachmentByUUID(ctx, ctx.Params(":uuid"))
+// GetAttachment serve attachments with the given UUID
+func ServeAttachment(ctx *context.Context, uuid string) {
+	attach, err := repo_model.GetAttachmentByUUID(ctx, uuid)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
@@ -152,4 +152,9 @@ func GetAttachment(ctx *context.Context) {
 		ctx.ServerError("ServeData", err)
 		return
 	}
+}
+
+// GetAttachment serve attachments
+func GetAttachment(ctx *context.Context) {
+	ServeAttachment(ctx, ctx.Params(":uuid"))
 }
