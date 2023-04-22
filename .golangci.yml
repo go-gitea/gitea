@@ -5,7 +5,7 @@ linters:
     - depguard
     - dupl
     - errcheck
-    - gocritic
+    # - gocritic # disabled for performance
     # - gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
     - gofmt
     - gofumpt
