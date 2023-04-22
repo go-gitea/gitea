@@ -1805,46 +1805,6 @@ img.ui.avatar,
   color: var(--color-warning-text);
 }
 
-footer {
-  background-color: var(--color-footer);
-  border-top: 1px solid var(--color-secondary);
-  width: 100%;
-  flex-basis: 40px;
-  color: var(--color-text-light);
-}
-
-footer .container {
-  padding: 0 0.5rem;
-  max-width: 100%;
-}
-
-footer .container .links > * {
-  border-left: 1px solid var(--color-secondary-dark-1);
-  padding-left: 8px;
-  margin-left: 5px;
-}
-
-footer .container .links > *:first-child {
-  border-left: 0;
-}
-
-footer .ui.language .menu {
-  height: 500px;
-  max-height: calc(100vh - 60px);
-  overflow-y: auto;
-  margin-bottom: 7px;
-}
-
-footer .ui.language .svg {
-  margin-right: 0.15em;
-  margin-top: 1px;
-}
-
-footer .ui.left,
-footer .ui.right {
-  line-height: 39px; /* there  is a border-top on the footer, so make the line-height 1px less */
-}
-
 .center:not(.popup) {
   text-align: center;
 }
