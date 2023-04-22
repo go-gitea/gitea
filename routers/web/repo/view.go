@@ -40,6 +40,7 @@ import (
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
+
 	"github.com/nektos/act/pkg/model"
 )
 
@@ -353,8 +354,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	} else if actions.IsWorkFlow(ctx.Repo.TreePath) {
 		content, err := actions.GetContentFromEntry(entry)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
-			return
+			log.Error("actions.GetContentFromEntry: %v", err)
 		}
 		_, workFlowErr := model.ReadWorkflow(bytes.NewReader(content))
 		if workFlowErr != nil {
