@@ -181,7 +181,7 @@ func NewFuncMap() []template.FuncMap {
 			return setting.UI.DefaultShowFullName
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
-			return setting.ShowFooterTemplateLoadTime
+			return setting.Other.ShowFooterTemplateLoadTime
 		},
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
