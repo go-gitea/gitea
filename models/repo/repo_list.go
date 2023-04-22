@@ -730,3 +730,21 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 	repos := make(RepositoryList, 0, opts.PageSize)
 	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
 }
+
+func GetPrimaryRepoLanguageList(ctx context.Context) (LanguageStatList, error) {
+	languageList := make(LanguageStatList, 0)
+
+	err := db.GetEngine(ctx).
+		Table("language_stat").
+		Cols("language").
+		Where(builder.Eq{"is_primary": true}).
+		Distinct("language").
+		OrderBy("language").
+		Find(&languageList)
+	if err != nil {
+		return nil, err
+	}
+
+	languageList.LoadAttributes()
+	return languageList, nil
+}

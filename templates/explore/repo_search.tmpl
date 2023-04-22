@@ -39,15 +39,15 @@
 		<span class="text">Language {{svg "octicon-triangle-down" 14 "dropdown icon"}}</span>
 		<div class="menu">
 			<a class="item" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}">Any</a>
-			{{range $lang, $color := $.Languages}}
-			<a class="{{if eq $.Language $lang}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&language={{$lang}}&sort={{$.SortType}}">
-				<span class="gt-df gt-ac gt-mr-3"><i class="color-icon gt-mr-3" style="background-color: {{$color}}"></i>{{$lang}}</span>
+			{{range .Languages}}
+			<a class="{{if eq $.Language .Language}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&language={{.Language}}&sort={{$.SortType}}">
+				<span class="gt-df gt-ac gt-mr-3"><i class="color-icon gt-mr-3" style="background-color: {{.Color}}"></i>{{.Language}}</span>
 			</a>
 			{{end}}
 		</div>
 	</div>
 </div>
-<form class="ui form ignore-dirty" style="max-width: 70%">
+<form class="ui form ignore-dirty" style="max-width: 70%; z-index: -1">
 	<input type="hidden" name="sort" value="{{$.SortType}}">
 	<input type="hidden" name="language" value="{{$.Language}}">
 	<div class="ui fluid action input">
