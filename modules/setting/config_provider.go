@@ -36,8 +36,8 @@ type ConfigProvider interface {
 type iniFileConfigProvider struct {
 	*ini.File
 	filepath   string // the ini file path
-	newFile    bool   // whether the file exists
-	allowEmpty bool   // whether allow empty
+	newFile    bool   // whether the file has not existed previously
+	allowEmpty bool   // whether not finding configuration files is allowed (only true for the tests)
 }
 
 // NewEmptyConfigProvider create a new empty config provider
