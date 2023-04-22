@@ -214,6 +214,7 @@ help:
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
+	@echo " - golangci-lint                    run golangci-lint linter with --fix"
 	@echo " - go-licenses                      regenerate go licenses"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
 	@echo " - tidy                             run go mod tidy"
@@ -938,6 +939,10 @@ generate-manpage:
 .PHONY: golangci-lint
 golangci-lint:
 	$(GO) run $(GOLANGCI_LINT_PACKAGE) run
+
+.PHONY: golangci-lint-fix
+golangci-lint-fix:
+	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix
 
 # workaround step for the lint-backend-windows CI task because 'go run' can not
 # have distinct GOOS/GOARCH for its build and run steps
