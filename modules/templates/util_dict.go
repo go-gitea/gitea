@@ -5,7 +5,12 @@ package templates
 
 import (
 	"fmt"
+	"html"
+	"html/template"
 	"reflect"
+
+	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func dictMerge(base map[string]any, arg any) bool {
@@ -44,4 +49,73 @@ func dict(args ...any) (map[string]any, error) {
 		}
 	}
 	return m, nil
+}
+
+func dumpVarMarshalable(v any, dumped map[uintptr]bool) (ret any, ok bool) {
+	if v == nil {
+		return nil, true
+	}
+	e := reflect.ValueOf(v)
+	for e.Kind() == reflect.Pointer {
+		e = e.Elem()
+	}
+	if e.CanAddr() {
+		addr := e.UnsafeAddr()
+		if dumped[addr] {
+			return "[dumped]", false
+		}
+		dumped[addr] = true
+		defer delete(dumped, addr)
+	}
+	switch e.Kind() {
+	case reflect.Bool, reflect.String,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64:
+		return e.Interface(), true
+	case reflect.Struct:
+		m := map[string]any{}
+		for i := 0; i < e.NumField(); i++ {
+			k := e.Type().Field(i).Name
+			if !e.Type().Field(i).IsExported() {
+				continue
+			}
+			v := e.Field(i).Interface()
+			m[k], _ = dumpVarMarshalable(v, dumped)
+		}
+		return m, true
+	case reflect.Map:
+		m := map[string]any{}
+		for _, k := range e.MapKeys() {
+			m[k.String()], _ = dumpVarMarshalable(e.MapIndex(k).Interface(), dumped)
+		}
+		return m, true
+	case reflect.Array, reflect.Slice:
+		var m []any
+		for i := 0; i < e.Len(); i++ {
+			v, _ := dumpVarMarshalable(e.Index(i).Interface(), dumped)
+			m = append(m, v)
+		}
+		return m, true
+	default:
+		return "[" + reflect.TypeOf(v).String() + "]", false
+	}
+}
+
+// dumpVar helps to dump a variable in a template, to help debugging and development.
+func dumpVar(v any) template.HTML {
+	if setting.IsProd {
+		return "<pre>dumpVar: only available in dev mode</pre>"
+	}
+	m, ok := dumpVarMarshalable(v, map[uintptr]bool{})
+	dumpStr := ""
+	jsonBytes, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		dumpStr = fmt.Sprintf("dumpVar: unable to marshal %T: %v", v, err)
+	} else if ok {
+		dumpStr = fmt.Sprintf("dumpVar: %T\n%s", v, string(jsonBytes))
+	} else {
+		dumpStr = fmt.Sprintf("dumpVar: unmarshalable %T\n%s", v, string(jsonBytes))
+	}
+	return template.HTML("<pre>" + html.EscapeString(dumpStr) + "</pre>")
 }

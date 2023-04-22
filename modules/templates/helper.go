@@ -77,6 +77,7 @@ func NewFuncMap() []template.FuncMap {
 		"Join":           strings.Join,
 		"DotEscape":      DotEscape,
 		"EllipsisString": base.EllipsisString,
+		"DumpVar":        dumpVar,
 
 		"Json": func(in interface{}) string {
 			out, err := json.Marshal(in)
