@@ -15,9 +15,6 @@
 		{{end}}
 	</div>
 	<div class="ui right links" role="group" aria-label="{{.locale.Tr "aria.footer.links"}}">
-		{{if .ShowFooterBranding}}
-			<a target="_blank" rel="noopener noreferrer" href="https://github.com/go-gitea/gitea">{{svg "octicon-mark-github"}}<span class="sr-only">GitHub</span></a>
-		{{end}}
 		<div class="ui dropdown upward language">
 			<span>{{svg "octicon-globe"}} {{.locale.LangName}}</span>
 			<div class="menu language-menu">

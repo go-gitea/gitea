@@ -452,7 +452,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	userName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 	repoName = strings.TrimSuffix(repoName, ".git")
-	if setting.EnableFeed {
+	if setting.Other.EnableFeed {
 		repoName = strings.TrimSuffix(repoName, ".rss")
 		repoName = strings.TrimSuffix(repoName, ".atom")
 	}
@@ -540,7 +540,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
 	ctx.Data["RepoRelPath"] = ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
 
-	if setting.EnableFeed {
+	if setting.Other.EnableFeed {
 		ctx.Data["EnableFeed"] = true
 		ctx.Data["FeedURL"] = ctx.Repo.RepoLink
 	}
