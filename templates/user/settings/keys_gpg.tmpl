@@ -68,9 +68,9 @@
 						<b>{{$.locale.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.PaddedKeyID}} {{end}}
 					</div>
 					<div class="activity meta">
-						<i>{{$.locale.Tr "settings.add_on"}} <span>{{template "shared/datetime/short" (dict "Datetime" .AddedUnix.FormatLong "Fallback" .AddedUnix.FormatShort)}}</span></i>
+						<i>{{$.locale.Tr "settings.add_on"}} <span>{{DateTime "short" .AddedUnix.FormatLong .AddedUnix.FormatShort}}</span></i>
 						-
-						<i>{{if not .ExpiredUnix.IsZero}}{{$.locale.Tr "settings.valid_until"}} <span>{{template "shared/datetime/short" (dict "Datetime" .ExpiredUnix.FormatLong "Fallback" .ExpiredUnix.FormatShort)}}</span>{{else}}{{$.locale.Tr "settings.valid_forever"}}{{end}}</i>
+						<i>{{if not .ExpiredUnix.IsZero}}{{$.locale.Tr "settings.valid_until"}} <span>{{DateTime "short" .ExpiredUnix.FormatLong .ExpiredUnix.FormatShort}}</span>{{else}}{{$.locale.Tr "settings.valid_forever"}}{{end}}</i>
 					</div>
 				</div>
 			</div>
