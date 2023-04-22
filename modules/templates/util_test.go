@@ -4,6 +4,8 @@
 package templates
 
 import (
+	"html/template"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -40,4 +42,30 @@ func TestDict(t *testing.T) {
 		_, err := dict(c.args...)
 		assert.Error(t, err)
 	}
+}
+
+func TestUtils(t *testing.T) {
+	execTmpl := func(code string, data any) string {
+		tmpl := template.New("test")
+		tmpl.Funcs(template.FuncMap{"SliceUtils": NewSliceUtils, "StringUtils": NewStringUtils})
+		template.Must(tmpl.Parse(code))
+		w := &strings.Builder{}
+		assert.NoError(t, tmpl.Execute(w, data))
+		return w.String()
+	}
+
+	actual := execTmpl("{{SliceUtils.Contains .Slice .Value}}", map[string]any{"Slice": []string{"a", "b"}, "Value": "a"})
+	assert.Equal(t, "true", actual)
+
+	actual = execTmpl("{{SliceUtils.Contains .Slice .Value}}", map[string]any{"Slice": []string{"a", "b"}, "Value": "x"})
+	assert.Equal(t, "false", actual)
+
+	actual = execTmpl("{{SliceUtils.Contains .Slice .Value}}", map[string]any{"Slice": []int64{1, 2}, "Value": int64(2)})
+	assert.Equal(t, "true", actual)
+
+	actual = execTmpl("{{StringUtils.Contains .String .Value}}", map[string]any{"String": "abc", "Value": "b"})
+	assert.Equal(t, "true", actual)
+
+	actual = execTmpl("{{StringUtils.Contains .String .Value}}", map[string]any{"String": "abc", "Value": "x"})
+	assert.Equal(t, "false", actual)
 }
