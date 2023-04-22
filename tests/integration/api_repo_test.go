@@ -183,18 +183,17 @@ func TestAPISearchRepo(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			for userToLogin, expected := range testCase.expectedResults {
-				var session *TestSession
 				var testName string
 				var userID int64
 				var token string
 				if userToLogin != nil && userToLogin.ID > 0 {
 					testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
-					session = loginUser(t, userToLogin.Name)
+					session := loginUser(t, userToLogin.Name)
 					token = getTokenForLoggedInUser(t, session)
 					userID = userToLogin.ID
 				} else {
 					testName = "AnonymousUser"
-					session = emptyTestSession(t)
+					_ = emptyTestSession(t)
 				}
 
 				t.Run(testName, func(t *testing.T) {
