@@ -9,15 +9,18 @@ function sortAndReduce(map) {
 
 export function matchEmoji(queryText) {
   const query = queryText.toLowerCase().replaceAll('_', ' ');
+  if (!query) return emojis.slice(0, maxMatches).map((e) => e.aliases[0]);
 
+  // results is a map of weights, lower is better
   const results = new Map();
   for (const {aliases} of emojis) {
     const mainAlias = aliases[0];
-    for (const alias of aliases) {
+    for (const [aliasIndex, alias] of aliases.entries()) {
       const index = alias.replaceAll('_', ' ').indexOf(query);
       if (index === -1) continue;
       const existing = results.get(mainAlias);
-      results.set(mainAlias, existing ? existing - index : index);
+      const rankedIndex = index + aliasIndex;
+      results.set(mainAlias, existing ? existing - rankedIndex : rankedIndex);
     }
   }
 
@@ -27,6 +30,7 @@ export function matchEmoji(queryText) {
 export function matchMention(queryText) {
   const query = queryText.toLowerCase();
 
+  // results is a map of weights, lower is better
   const results = new Map();
   for (const obj of window.config.tributeValues) {
     const index = obj.key.toLowerCase().indexOf(query);

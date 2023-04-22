@@ -11,6 +11,15 @@ test('matchEmoji', () => {
     '2nd_place_medal',
   ]);
 
+  expect(matchEmoji('hea')).toEqual([
+    'headphones',
+    'headstone',
+    'health_worker',
+    'hear_no_evil',
+    'heard_mcdonald_islands',
+    'heart',
+  ]);
+
   expect(matchEmoji('hear')).toEqual([
     'hear_no_evil',
     'heard_mcdonald_islands',
@@ -21,8 +30,8 @@ test('matchEmoji', () => {
   ]);
 
   expect(matchEmoji('poo')).toEqual([
-    'hankey',
     'poodle',
+    'hankey',
     'spoon',
     'bowl_with_spoon',
   ]);
