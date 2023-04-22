@@ -536,7 +536,7 @@ func SettingsPost(ctx *context.Context) {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
 		}
 
-		if len(units) <= 0 {
+		if len(units) == 0 {
 			ctx.Flash.Error(ctx.Tr("repo.settings.update_settings_no_unit"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 			return
