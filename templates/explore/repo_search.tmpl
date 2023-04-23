@@ -39,7 +39,7 @@
 		<span class="text">Language {{svg "octicon-triangle-down" 14 "dropdown icon"}}</span>
 		<div class="menu">
 			<a class="item" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}">Any</a>
-			{{range .Languages}}
+			{{range .ProgramLanguages}}
 			<a class="{{if eq $.Language .Language}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&language={{.Language}}&sort={{$.SortType}}">
 				<span class="gt-df gt-ac gt-mr-3"><i class="color-icon gt-mr-3" style="background-color: {{.Color}}"></i>{{.Language}}</span>
 			</a>
