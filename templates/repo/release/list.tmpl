@@ -184,15 +184,15 @@
 </div>
 
 {{if (and ($.Permission.CanWrite $.UnitTypeCode) .PageIsTagList)}}
-	<div class="ui small basic delete modal">
-		<div class="ui header">
-			{{svg "octicon-trash" 16 "gt-mr-2"}}
+	<div class="ui gitea-confirm-modal delete modal">
+		<div class="header">
+			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.release.delete_tag"}}
 		</div>
 		<div class="content">
 			<p>{{.locale.Tr "repo.release.deletion_tag_desc"}}</p>
 		</div>
-		{{template "base/delete_modal_actions" .}}
+		{{template "base/modal_actions_confirm" .}}
 	</div>
 {{end}}
 

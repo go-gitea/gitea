@@ -36,10 +36,10 @@ func TestGetUserEmailsByNames(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// ignore none active user email
-	assert.Equal(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user9"}))
-	assert.Equal(t, []string{"user8@example.com", "user5@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user5"}))
+	assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user9"}))
+	assert.ElementsMatch(t, []string{"user8@example.com", "user5@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user5"}))
 
-	assert.Equal(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user7"}))
+	assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user7"}))
 }
 
 func TestCanCreateOrganization(t *testing.T) {
