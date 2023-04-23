@@ -34,9 +34,17 @@
 			</a>
 		{{end}}
 		{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead $.UnitTypeActions)}}
-			<a class="{{if .PageIsSettingsActions}}active {{end}}item" href="{{.RepoLink}}/settings/actions">
-				{{.locale.Tr "actions.actions"}}
-			</a>
+		<div class="item">
+			{{.locale.Tr "actions.actions"}}
+			<div class="menu">
+				<a class="{{if .PageIsSettingsRunners}}active {{end}}item" href="{{.RepoLink}}/settings/actions/runners">
+					{{.locale.Tr "actions.runners"}}
+				</a>
+				<a class="{{if .PageIsSettingsSecrets}}active {{end}}item" href="{{.RepoLink}}/settings/actions/secrets">
+					{{.locale.Tr "secrets.secrets"}}
+				</a>
+			</div>
+		</div>
 		{{end}}
 	</div>
 </div>

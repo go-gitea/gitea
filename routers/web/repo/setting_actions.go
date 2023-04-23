@@ -21,29 +21,37 @@ const (
 
 // Actions render settings/actions page for repo level
 func Actions(ctx *context.Context) {
+	pageType := ctx.Params(":type")
+	if pageType == "runners" {
+		ctx.Data["PageIsSettingsRunners"] = true
+		ctx.Data["RunnersBaseLink"] = ctx.Link
+		page := ctx.FormInt("page")
+		if page <= 1 {
+			page = 1
+		}
+		opts := actions_model.FindRunnerOptions{
+			ListOptions: db.ListOptions{
+				Page:     page,
+				PageSize: 100,
+			},
+			Sort:          ctx.Req.URL.Query().Get("sort"),
+			Filter:        ctx.Req.URL.Query().Get("q"),
+			RepoID:        ctx.Repo.Repository.ID,
+			WithAvailable: true,
+		}
+
+		actions_shared.RunnersList(ctx, opts)
+	} else if pageType == "secrets" {
+		ctx.Data["PageIsSettingsSecrets"] = true
+		ctx.Data["SecretsBaseLink"] = ctx.Link
+		PrepareSecretsData(ctx)
+	} else {
+		ctx.ServerError("Unknown Page Type", fmt.Errorf("Unknown Actions Settings Type: %s", pageType))
+		return
+	}
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
-	ctx.Data["PageIsSettingsActions"] = true
-	ctx.Data["RunnersBaseLink"] = fmt.Sprintf("%s/runners", ctx.Link)
-	ctx.Data["SecretsBaseLink"] = fmt.Sprintf("%s/secrets", ctx.Link)
+	ctx.Data["PageType"] = pageType
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
-
-	opts := actions_model.FindRunnerOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: 100,
-		},
-		Sort:          ctx.Req.URL.Query().Get("sort"),
-		Filter:        ctx.Req.URL.Query().Get("q"),
-		RepoID:        ctx.Repo.Repository.ID,
-		WithAvailable: true,
-	}
-
-	actions_shared.RunnersList(ctx, opts)
-	PrepareSecretsData(ctx)
 	ctx.HTML(http.StatusOK, tplActions)
 }
 
@@ -74,7 +82,7 @@ func RunnersEditPost(ctx *context.Context) {
 func ResetRunnerRegistrationToken(ctx *context.Context) {
 	actions_shared.RunnerResetRegistrationToken(ctx,
 		0, ctx.Repo.Repository.ID,
-		ctx.Repo.RepoLink+"/settings/actions")
+		ctx.Repo.RepoLink+"/settings/actions/runners")
 }
 
 // RunnerDeletePost response for deleting runner
@@ -82,4 +90,8 @@ func RunnerDeletePost(ctx *context.Context) {
 	actions_shared.RunnerDeletePost(ctx, ctx.ParamsInt64(":runnerid"),
 		ctx.Repo.RepoLink+"/settings/actions",
 		ctx.Repo.RepoLink+"/settings/actions/runners/"+url.PathEscape(ctx.Params(":runnerid")))
+}
+
+func RedirectToRunnersSettings(ctx *context.Context) {
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings/actions/runners")
 }

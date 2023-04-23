@@ -1,9 +1,6 @@
-{{template "base/head" .}}
-<div class="page-content admin actions">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin config")}}
+	<div class="admin-setting-content">
 		{{template "base/alert" .}}
 		{{template "shared/actions/runner_list" .}}
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

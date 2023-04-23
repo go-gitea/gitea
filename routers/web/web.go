@@ -1045,7 +1045,8 @@ func RegisterRoutes(m *web.Route) {
 				})
 			})
 			m.Group("/actions", func() {
-				m.Get("", repo.Actions)
+				m.Get("", repo.RedirectToRunnersSettings)
+				m.Get("/{type:runners|secrets}", repo.Actions)
 				m.Group("/runners", func() {
 					m.Combo("/{runnerid}").Get(repo.RunnersEdit).
 						Post(web.Bind(forms.EditRunnerForm{}), repo.RunnersEditPost)
