@@ -1,5 +1,4 @@
 <div class="runner-container">
-	{{template "base/alert" .}}
 	<h4 class="ui top attached header">
 		{{.locale.Tr "actions.runners.runner_title"}} {{.Runner.ID}} {{.Runner.Name}}
 	</h4>
@@ -89,14 +88,14 @@
 		</table>
 		{{template "base/paginate" .}}
 	</div>
-	<div class="ui small basic delete modal" id="runner-delete-modal">
-		<div class="ui icon header">
+	<div class="ui gitea-confirm-modal delete modal" id="runner-delete-modal">
+		<div class="header">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "actions.runners.delete_runner_header"}}
 		</div>
 		<div class="content">
 			<p>{{.locale.Tr "actions.runners.delete_runner_notice" | Safe}}</p>
 		</div>
-		{{template "base/delete_modal_actions" .}}
+		{{template "base/modal_actions_confirm" .}}
 	</div>
 </div>
