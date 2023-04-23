@@ -1,6 +1,7 @@
 package variable
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -8,7 +9,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"golang.org/x/net/context"
 	"xorm.io/builder"
 )
 
