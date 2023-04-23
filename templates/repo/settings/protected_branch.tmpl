@@ -1,6 +1,5 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings branches")}}
 	<div class="repo-setting-content">
-		{{template "base/alert" .}}
 		<form class="ui form" action="{{.Link}}" method="post">
 			<h4 class="ui top attached header">
 				{{.locale.Tr "repo.settings.branch_protection" (.Rule.RuleName|Escape) | Str2html}}

@@ -1,6 +1,5 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin dashboard")}}
 	<div class="admin-setting-content">
-		{{template "base/alert" .}}
 		{{if .NeedUpdate}}
 			<div class="ui negative message flash-error">
 				<p>{{(.locale.Tr "admin.dashboard.new_version_hint" .RemoteVersion AppVer) | Str2html}}</p>

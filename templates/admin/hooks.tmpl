@@ -1,6 +1,5 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin hooks")}}
 	<div class="admin-setting-content">
-		{{template "base/alert" .}}
 
 		{{template "repo/settings/webhook/base_list" .SystemWebhooks}}
 		{{template "repo/settings/webhook/base_list" .DefaultWebhooks}}

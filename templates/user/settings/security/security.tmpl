@@ -1,6 +1,5 @@
 {{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings security")}}
 	<div class="user-setting-content">
-		{{template "base/alert" .}}
 		{{template "user/settings/security/twofa" .}}
 		{{template "user/settings/security/webauthn" .}}
 		{{template "user/settings/security/accountlinks" .}}
