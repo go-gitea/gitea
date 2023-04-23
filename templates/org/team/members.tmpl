@@ -64,14 +64,13 @@
 		</div>
 	</div>
 </div>
-<div class="ui small basic delete modal" id="remove-team-member">
-	<div class="ui icon header">
-		{{svg "octicon-x" 16 "close inside"}}
+<div class="ui gitea-confirm-modal delete modal" id="remove-team-member">
+	<div class="header">
 		{{$.locale.Tr "org.members.remove"}}
 	</div>
 	<div class="content">
 		<p>{{$.locale.Tr "org.members.remove.detail" `<span class="name"></span>` `<span class="dataTeamName"></span>` | Safe}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 {{template "base/footer" .}}
