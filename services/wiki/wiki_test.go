@@ -35,6 +35,7 @@ func TestUserTitleToWebPath(t *testing.T) {
 	}
 	for _, test := range []test{
 		{"wiki-name", "wiki name"},
+		{"title.md.-", "title.md"},
 		{"wiki-name.-", "wiki-name"},
 		{"the+wiki-name.-", "the wiki-name"},
 		{"a%2Fb", "a/b"},
