@@ -1140,32 +1140,6 @@ a.ui.card:hover {
   color: var(--color-text);
 }
 
-.ui.modal {
-  background: var(--color-body);
-}
-
-.ui.modal > .header {
-  color: var(--color-text-dark);
-  background: var(--color-secondary-bg);
-  border-color: var(--color-secondary);
-  border-top-left-radius: var(--border-radius);
-  border-top-right-radius: var(--border-radius);
-}
-
-.ui.modal > .content {
-  background: var(--color-body);
-  text-align: left !important;
-}
-
-.ui.modal > .actions {
-  background: var(--color-secondary-bg);
-  border-color: var(--color-secondary);
-}
-
-.ui.modal > .close.inside {
-  color: var(--color-text);
-}
-
 .ui.basic.table > tbody > tr {
   border-color: var(--color-secondary);
 }

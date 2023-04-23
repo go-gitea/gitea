@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # This is an update script for gitea installed via the binary distribution
-# from dl.gitea.io on linux as systemd service. It performs a backup and updates
+# from dl.gitea.com on linux as systemd service. It performs a backup and updates
 # Gitea in place.
 # NOTE: This adds the GPG Signing Key of the Gitea maintainers to the keyring.
 # Depends on: bash, curl, xz, sha256sum. optionally jq, gpg
@@ -69,7 +69,7 @@ require curl xz sha256sum "$sudocmd"
 # select version to install
 if [[ -z "${giteaversion:-}" ]]; then
   require jq
-  giteaversion=$(curl --connect-timeout 10 -sL https://dl.gitea.io/gitea/version.json | jq -r .latest.version)
+  giteaversion=$(curl --connect-timeout 10 -sL https://dl.gitea.com/gitea/version.json | jq -r .latest.version)
   echo "Latest available version is $giteaversion"
 fi
 
@@ -91,7 +91,7 @@ cd "$giteahome" # needed for gitea dump later
 
 # download new binary
 binname="gitea-${giteaversion}-${arch}"
-binurl="https://dl.gitea.io/gitea/${giteaversion}/${binname}.xz"
+binurl="https://dl.gitea.com/gitea/${giteaversion}/${binname}.xz"
 echo "Downloading $binurl..."
 curl --connect-timeout 10 --silent --show-error --fail --location -O "$binurl{,.sha256,.asc}"
 
