@@ -80,7 +80,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf, output strings.Builder
-	if err := NewCommand(repo.Ctx, "show-ref", "--head", "^HEAD$").
+	if err := NewCommand(repo.Ctx).AddOptionFormat("--git-dir=%s", repo.Path).AddArguments("show-ref", "--head", "^HEAD$").
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: &output,
@@ -209,49 +209,22 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	} else {
 		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, opts.Remote, opts.Force, opts.Mirror))
 	}
-	var outbuf, errbuf strings.Builder
 
-	if opts.Timeout == 0 {
-		opts.Timeout = -1
-	}
-
-	err := cmd.Run(&RunOpts{
-		Env:     opts.Env,
-		Timeout: opts.Timeout,
-		Dir:     repoPath,
-		Stdout:  &outbuf,
-		Stderr:  &errbuf,
-	})
+	stdout, stderr, err := cmd.RunStdString(&RunOpts{Env: opts.Env, Timeout: opts.Timeout, Dir: repoPath})
 	if err != nil {
-		if strings.Contains(errbuf.String(), "non-fast-forward") {
-			return &ErrPushOutOfDate{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
-		} else if strings.Contains(errbuf.String(), "! [remote rejected]") {
-			err := &ErrPushRejected{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
+		if strings.Contains(stderr, "non-fast-forward") {
+			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}
+		} else if strings.Contains(stderr, "! [remote rejected]") {
+			err := &ErrPushRejected{StdOut: stdout, StdErr: stderr, Err: err}
 			err.GenerateMessage()
 			return err
-		} else if strings.Contains(errbuf.String(), "matches more than one") {
-			err := &ErrMoreThanOne{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
-			return err
+		} else if strings.Contains(stderr, "matches more than one") {
+			return &ErrMoreThanOne{StdOut: stdout, StdErr: stderr, Err: err}
 		}
+		return fmt.Errorf("push failed: %w - %s\n%s", err, stderr, stdout)
 	}
 
-	if errbuf.Len() > 0 && err != nil {
-		return fmt.Errorf("%w - %s", err, errbuf.String())
-	}
-
-	return err
+	return nil
 }
 
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
