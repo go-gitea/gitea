@@ -453,6 +453,14 @@ func (comments CommentList) loadReviews(ctx context.Context) error { //nolint
 
 	for _, comment := range comments {
 		comment.Review = reviews[comment.ReviewID]
+
+		// If the comment dismisses a review, we need to load the reviewer to show whose review has been dismissed.
+		// Otherwise, the reviewer is the poster of the comment, so we don't need to load it.
+		if comment.Type == CommentTypeDismissReview {
+			if err := comment.Review.LoadReviewer(ctx); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
