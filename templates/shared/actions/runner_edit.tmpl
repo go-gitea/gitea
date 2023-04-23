@@ -89,7 +89,7 @@
 		</table>
 		{{template "base/paginate" .}}
 	</div>
-	<div class="ui small gitea-custom delete modal" id="runner-delete-modal">
+	<div class="ui gitea-confirm-modal delete modal" id="runner-delete-modal">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "actions.runners.delete_runner_header"}}
