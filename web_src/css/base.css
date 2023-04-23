@@ -1202,10 +1202,26 @@ img.ui.avatar,
   padding-bottom: 80px;
 }
 
+/* overwrite semantic container width */
+.ui.ui.ui.container:not(.fluid) {
+  width: 1280px;
+  max-width: calc(100vw - 64px);
+}
+
 /* enable fluid page widths for medium size viewports */
 @media (min-width: 768px) and (max-width: 1200px) {
   .ui.ui.ui.container:not(.fluid) {
     width: calc(100vw - 64px);
+  }
+}
+
+@media only screen and (max-width: 767.98px) {
+  .ui.ui.ui.container:not(.fluid) {
+    max-width: 100%;
+    /* copied from semantic css */
+    width: auto;
+    margin-left: 1em;
+    margin-right: 1em;
   }
 }
 
