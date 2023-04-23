@@ -80,7 +80,7 @@
 								<input name="git_content" type="checkbox" tabindex="0" {{if .git_content}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.git_content"}}</label>
 							</div>
-							<div class="ui checkbox{{if not .SignedUser.CanEditGitHook}} tooltip{{end}}"{{if not .SignedUser.CanEditGitHook}} data-content="{{.locale.Tr "repo.template.git_hooks_tooltip"}}"{{end}}>
+							<div class="ui checkbox" {{if not .SignedUser.CanEditGitHook}}data-tooltip-content="{{.locale.Tr "repo.template.git_hooks_tooltip"}}"{{end}}>
 								<input name="git_hooks" type="checkbox" tabindex="0" {{if .git_hooks}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.git_hooks"}}</label>
 							</div>
@@ -117,8 +117,8 @@
 								<div class="default text">{{.locale.Tr "repo.issue_labels_helper"}}</div>
 								<div class="menu">
 									<div class="item" data-value="">{{.locale.Tr "repo.issue_labels_helper"}}</div>
-									{{range $template, $labels := .LabelTemplates}}
-										<div class="item" data-value="{{$template}}">{{$template}}<br/><i>({{$labels}})</i></div>
+									{{range .LabelTemplateFiles}}
+										<div class="item" data-value="{{.DisplayName}}">{{.DisplayName}}<br><i>({{.Description}})</i></div>
 									{{end}}
 								</div>
 							</div>
@@ -210,7 +210,7 @@
 						</div>
 					</div>
 
-					<br/>
+					<br>
 					<div class="inline field">
 						<label></label>
 						<button class="ui green button{{if not .CanCreateRepo}} disabled{{end}}">

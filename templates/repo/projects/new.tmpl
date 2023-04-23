@@ -54,7 +54,7 @@
 					<div class="ui selection dropdown">
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						{{range $element := .CardTypes}}
-							{{if or (eq $.card_type $element.CardType) (and (not $.card_type) (eq $element.CardType 2))}}
+							{{if or (eq $.card_type $element.CardType) (and (not $.PageIsEditProjects) (eq $element.CardType 1))}}
 								<input type="hidden" name="card_type" value="{{$element.CardType}}">
 								<div class="default text">{{$.locale.Tr $element.Translation}}</div>
 							{{end}}
@@ -72,7 +72,7 @@
 				<div class="ui divider"></div>
 				<div class="ui left">
 					{{if .PageIsEditProjects}}
-					<a class="ui cancel button" href="{{.RepoLink}}/projects">
+					<a class="ui cancel button" href="{{.RepoLink}}/projects{{if eq .redirect "project"}}/{{.projectID}}{{end}}">
 						{{.locale.Tr "repo.milestones.cancel"}}
 					</a>
 					<button class="ui primary button">

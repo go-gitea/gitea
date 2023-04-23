@@ -40,14 +40,15 @@ import (
 	"gitea.com/go-chi/session"
 	chi "github.com/go-chi/chi/v5"
 	"github.com/minio/sha256-simd"
-	"github.com/unrolled/render"
 	"golang.org/x/crypto/pbkdf2"
 )
 
+const CookieNameFlash = "gitea_flash"
+
 // Render represents a template render
 type Render interface {
-	TemplateLookup(tmpl string) *template.Template
-	HTML(w io.Writer, status int, name string, binding interface{}, htmlOpt ...render.HTMLOptions) error
+	TemplateLookup(tmpl string) (templates.TemplateExecutor, error)
+	HTML(w io.Writer, status int, name string, data interface{}) error
 }
 
 // Context represents context of a request.
@@ -59,7 +60,7 @@ type Context struct {
 	Render   Render
 	translation.Locale
 	Cache   cache.Cache
-	csrf    CSRFProtector
+	Csrf    CSRFProtector
 	Flash   *middleware.Flash
 	Session session.Store
 
@@ -213,6 +214,8 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
+const tplStatus500 base.TplName = "status/500"
+
 // HTML calls Context.HTML and renders the template to HTTP response
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
@@ -224,10 +227,11 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 		return strconv.FormatInt(time.Since(tmplStartTime).Nanoseconds()/1e6, 10) + "ms"
 	}
 	if err := ctx.Render.HTML(ctx.Resp, status, string(name), templates.BaseVars().Merge(ctx.Data)); err != nil {
-		if status == http.StatusInternalServerError && name == base.TplName("status/500") {
-			ctx.PlainText(http.StatusInternalServerError, "Unable to find status/500 template")
+		if status == http.StatusInternalServerError && name == tplStatus500 {
+			ctx.PlainText(http.StatusInternalServerError, "Unable to find HTML templates, the template system is not initialized, or Gitea can't find your template files.")
 			return
 		}
+		err = fmt.Errorf("failed to render template: %s, error: %s", name, templates.HandleTemplateRenderingError(err))
 		ctx.ServerError("Render failed", err)
 	}
 }
@@ -295,24 +299,25 @@ func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 			return
 		}
 
-		if !setting.IsProd {
-			ctx.Data["ErrorMsg"] = logErr
+		// it's safe to show internal error to admin users, and it helps
+		if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
+			ctx.Data["ErrorMsg"] = fmt.Sprintf("%s, %s", logMsg, logErr)
 		}
 	}
 
 	ctx.Data["Title"] = "Internal Server Error"
-	ctx.HTML(http.StatusInternalServerError, base.TplName("status/500"))
+	ctx.HTML(http.StatusInternalServerError, tplStatus500)
 }
 
 // NotFoundOrServerError use error check function to determine if the error
 // is about not found. It responds with 404 status code for not found error,
 // or error context description for logging purpose of 500 server error.
-func (ctx *Context) NotFoundOrServerError(logMsg string, errCheck func(error) bool, err error) {
-	if errCheck(err) {
-		ctx.notFoundInternal(logMsg, err)
+func (ctx *Context) NotFoundOrServerError(logMsg string, errCheck func(error) bool, logErr error) {
+	if errCheck(logErr) {
+		ctx.notFoundInternal(logMsg, logErr)
 		return
 	}
-	ctx.serverErrorInternal(logMsg, err)
+	ctx.serverErrorInternal(logMsg, logErr)
 }
 
 // PlainTextBytes renders bytes as plain text
@@ -451,38 +456,26 @@ func (ctx *Context) Redirect(location string, status ...int) {
 	http.Redirect(ctx.Resp, ctx.Req, location, code)
 }
 
-// SetCookie convenience function to set most cookies consistently
+// SetSiteCookie convenience function to set most cookies consistently
 // CSRF and a few others are the exception here
-func (ctx *Context) SetCookie(name, value string, expiry int) {
-	middleware.SetCookie(ctx.Resp, name, value,
-		expiry,
-		setting.AppSubURL,
-		setting.SessionConfig.Domain,
-		setting.SessionConfig.Secure,
-		true,
-		middleware.SameSite(setting.SessionConfig.SameSite))
+func (ctx *Context) SetSiteCookie(name, value string, maxAge int) {
+	middleware.SetSiteCookie(ctx.Resp, name, value, maxAge)
 }
 
-// DeleteCookie convenience function to delete most cookies consistently
+// DeleteSiteCookie convenience function to delete most cookies consistently
 // CSRF and a few others are the exception here
-func (ctx *Context) DeleteCookie(name string) {
-	middleware.SetCookie(ctx.Resp, name, "",
-		-1,
-		setting.AppSubURL,
-		setting.SessionConfig.Domain,
-		setting.SessionConfig.Secure,
-		true,
-		middleware.SameSite(setting.SessionConfig.SameSite))
+func (ctx *Context) DeleteSiteCookie(name string) {
+	middleware.SetSiteCookie(ctx.Resp, name, "", -1)
 }
 
-// GetCookie returns given cookie value from request header.
-func (ctx *Context) GetCookie(name string) string {
-	return middleware.GetCookie(ctx.Req, name)
+// GetSiteCookie returns given cookie value from request header.
+func (ctx *Context) GetSiteCookie(name string) string {
+	return middleware.GetSiteCookie(ctx.Req, name)
 }
 
 // GetSuperSecureCookie returns given cookie value from request header with secret string.
 func (ctx *Context) GetSuperSecureCookie(secret, name string) (string, bool) {
-	val := ctx.GetCookie(name)
+	val := ctx.GetSiteCookie(name)
 	return ctx.CookieDecrypt(secret, val)
 }
 
@@ -503,10 +496,9 @@ func (ctx *Context) CookieDecrypt(secret, val string) (string, bool) {
 }
 
 // SetSuperSecureCookie sets given cookie value to response header with secret string.
-func (ctx *Context) SetSuperSecureCookie(secret, name, value string, expiry int) {
+func (ctx *Context) SetSuperSecureCookie(secret, name, value string, maxAge int) {
 	text := ctx.CookieEncrypt(secret, value)
-
-	ctx.SetCookie(name, text, expiry)
+	ctx.SetSiteCookie(name, text, maxAge)
 }
 
 // CookieEncrypt encrypts a given value using the provided secret
@@ -522,19 +514,19 @@ func (ctx *Context) CookieEncrypt(secret, value string) string {
 
 // GetCookieInt returns cookie result in int type.
 func (ctx *Context) GetCookieInt(name string) int {
-	r, _ := strconv.Atoi(ctx.GetCookie(name))
+	r, _ := strconv.Atoi(ctx.GetSiteCookie(name))
 	return r
 }
 
 // GetCookieInt64 returns cookie result in int64 type.
 func (ctx *Context) GetCookieInt64(name string) int64 {
-	r, _ := strconv.ParseInt(ctx.GetCookie(name), 10, 64)
+	r, _ := strconv.ParseInt(ctx.GetSiteCookie(name), 10, 64)
 	return r
 }
 
 // GetCookieFloat64 returns cookie result in float64 type.
 func (ctx *Context) GetCookieFloat64(name string) float64 {
-	v, _ := strconv.ParseFloat(ctx.GetCookie(name), 64)
+	v, _ := strconv.ParseFloat(ctx.GetSiteCookie(name), 64)
 	return v
 }
 
@@ -596,7 +588,9 @@ func (ctx *Context) Value(key interface{}) interface{} {
 	if key == git.RepositoryContextKey && ctx.Repo != nil {
 		return ctx.Repo.GitRepo
 	}
-
+	if key == translation.ContextKey && ctx.Locale != nil {
+		return ctx.Locale
+	}
 	return ctx.Req.Context().Value(key)
 }
 
@@ -630,7 +624,10 @@ func WithContext(req *http.Request, ctx *Context) *http.Request {
 
 // GetContext retrieves install context from request
 func GetContext(req *http.Request) *Context {
-	return req.Context().Value(contextKey).(*Context)
+	if ctx, ok := req.Context().Value(contextKey).(*Context); ok {
+		return ctx
+	}
+	return nil
 }
 
 // GetContextUser returns context user
@@ -697,13 +694,13 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 			ctx.Data["Context"] = &ctx
 
 			ctx.Req = WithContext(req, &ctx)
-			ctx.csrf = PrepareCSRFProtector(csrfOpts, &ctx)
+			ctx.Csrf = PrepareCSRFProtector(csrfOpts, &ctx)
 
-			// Get flash.
-			flashCookie := ctx.GetCookie("macaron_flash")
-			vals, _ := url.ParseQuery(flashCookie)
-			if len(vals) > 0 {
-				f := &middleware.Flash{
+			// Get the last flash message from cookie
+			lastFlashCookie := middleware.GetSiteCookie(ctx.Req, CookieNameFlash)
+			if vals, _ := url.ParseQuery(lastFlashCookie); len(vals) > 0 {
+				// store last Flash message into the template data, to render it
+				ctx.Data["Flash"] = &middleware.Flash{
 					DataStore:  &ctx,
 					Values:     vals,
 					ErrorMsg:   vals.Get("error"),
@@ -711,39 +708,17 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 					InfoMsg:    vals.Get("info"),
 					WarningMsg: vals.Get("warning"),
 				}
-				ctx.Data["Flash"] = f
 			}
 
-			f := &middleware.Flash{
-				DataStore:  &ctx,
-				Values:     url.Values{},
-				ErrorMsg:   "",
-				WarningMsg: "",
-				InfoMsg:    "",
-				SuccessMsg: "",
-			}
+			// prepare an empty Flash message for current request
+			ctx.Flash = &middleware.Flash{DataStore: &ctx, Values: url.Values{}}
 			ctx.Resp.Before(func(resp ResponseWriter) {
-				if flash := f.Encode(); len(flash) > 0 {
-					middleware.SetCookie(resp, "macaron_flash", flash, 0,
-						setting.SessionConfig.CookiePath,
-						middleware.Domain(setting.SessionConfig.Domain),
-						middleware.HTTPOnly(true),
-						middleware.Secure(setting.SessionConfig.Secure),
-						middleware.SameSite(setting.SessionConfig.SameSite),
-					)
-					return
+				if val := ctx.Flash.Encode(); val != "" {
+					middleware.SetSiteCookie(ctx.Resp, CookieNameFlash, val, 0)
+				} else if lastFlashCookie != "" {
+					middleware.SetSiteCookie(ctx.Resp, CookieNameFlash, "", -1)
 				}
-
-				middleware.SetCookie(ctx.Resp, "macaron_flash", "", -1,
-					setting.SessionConfig.CookiePath,
-					middleware.Domain(setting.SessionConfig.Domain),
-					middleware.HTTPOnly(true),
-					middleware.Secure(setting.SessionConfig.Secure),
-					middleware.SameSite(setting.SessionConfig.SameSite),
-				)
 			})
-
-			ctx.Flash = f
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
@@ -756,7 +731,7 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 0, "no-transform")
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
-			ctx.Data["CsrfToken"] = ctx.csrf.GetToken()
+			ctx.Data["CsrfToken"] = ctx.Csrf.GetToken()
 			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
 
 			// FIXME: do we really always need these setting? There should be someway to have to avoid having to always set these
@@ -766,8 +741,7 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 
 			ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
 			ctx.Data["ShowMilestonesDashboardPage"] = setting.Service.ShowMilestonesDashboardPage
-			ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
-			ctx.Data["ShowFooterVersion"] = setting.ShowFooterVersion
+			ctx.Data["ShowFooterVersion"] = setting.Other.ShowFooterVersion
 
 			ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
 			ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn

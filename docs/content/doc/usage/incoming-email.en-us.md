@@ -2,6 +2,7 @@
 date: "2022-12-01T00:00:00+00:00"
 title: "Incoming Email"
 slug: "incoming-email"
+weight: 13
 draft: false
 toc: false
 menu:

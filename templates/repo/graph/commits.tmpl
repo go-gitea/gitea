@@ -28,14 +28,14 @@
 							{{- end -}}
 						</a>
 					</span>
-					<span class="message gt-dib gt-ellipsis gt-mr-2">
+					<span class="message gt-dib gt-ellipsis gt-mr-3">
 						<span>{{RenderCommitMessage $.Context $commit.Subject $.RepoLink $.Repository.ComposeMetas}}</span>
 					</span>
-					<span class="tags gt-df gt-ac">
+					<span class="tags gt-df gt-ac gt-mr-2">
 						{{range $commit.Refs}}
 							{{$refGroup := .RefGroup}}
 							{{if eq $refGroup "pull"}}
-								{{if or (not $.HidePRRefs) (containGeneric $.SelectedBranches .Name)}}
+								{{if or (not $.HidePRRefs) (SliceUtils.Contains $.SelectedBranches .Name)}}
 									<!-- it's intended to use issues not pulls, if it's a pull you will get redirected -->
 									<a class="ui labelled icon button basic tiny gt-mr-2" href="{{$.RepoLink}}/{{if $.Repository.UnitEnabled $.Context $.UnitTypePullRequests}}pulls{{else}}issues{{end}}/{{.ShortName|PathEscape}}">
 										{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}#{{.ShortName}}
@@ -54,20 +54,20 @@
 									{{svg "octicon-git-branch" 16 "gt-mr-2"}}{{.ShortName}}
 								</a>
 							{{else}}
-								<!-- Unknown ref type {{.Name}} -->
+								<!-- Unknown ref type .Name -->
 							{{end}}
 						{{end}}
 					</span>
-					<span class="author gt-df gt-ac gt-mr-2">
+					<span class="author gt-df gt-ac gt-mr-3">
 						{{$userName := $commit.Commit.Author.Name}}
 						{{if $commit.User}}
 							{{if $commit.User.FullName}}
 								{{$userName = $commit.User.FullName}}
 							{{end}}
-							{{avatar $.Context $commit.User}}
+							<span class="gt-mr-2">{{avatar $.Context $commit.User}}</span>
 							<a href="{{$commit.User.HomeLink}}">{{$userName}}</a>
 						{{else}}
-							{{avatarByEmail $.Context $commit.Commit.Author.Email $userName}}
+							<span class="gt-mr-2">{{avatarByEmail $.Context $commit.Commit.Author.Email $userName}}</span>
 							{{$userName}}
 						{{end}}
 					</span>

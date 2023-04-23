@@ -5,8 +5,6 @@ package actions
 
 import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
-
-	"github.com/nektos/act/pkg/jobparser"
 )
 
 const (
@@ -23,19 +21,55 @@ const (
 	githubEventIssueComment             = "issue_comment"
 	githubEventRelease                  = "release"
 	githubEventPullRequestComment       = "pull_request_comment"
+	githubEventGollum                   = "gollum"
 )
 
-func convertFromGithubEvent(evt *jobparser.Event) string {
-	switch evt.Name {
-	case githubEventPullRequest, githubEventPullRequestTarget, githubEventPullRequestReview,
-		githubEventPullRequestReviewComment:
-		return string(webhook_module.HookEventPullRequest)
+// canGithubEventMatch check if the input Github event can match any Gitea event.
+func canGithubEventMatch(eventName string, triggedEvent webhook_module.HookEventType) bool {
+	switch eventName {
 	case githubEventRegistryPackage:
-		return string(webhook_module.HookEventPackage)
-	case githubEventCreate, githubEventDelete, githubEventFork, githubEventPush,
-		githubEventIssues, githubEventIssueComment, githubEventRelease, githubEventPullRequestComment:
-		fallthrough
+		return triggedEvent == webhook_module.HookEventPackage
+
+	// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#gollum
+	case githubEventGollum:
+		return triggedEvent == webhook_module.HookEventWiki
+
+	case githubEventIssues:
+		switch triggedEvent {
+		case webhook_module.HookEventIssues,
+			webhook_module.HookEventIssueAssign,
+			webhook_module.HookEventIssueLabel,
+			webhook_module.HookEventIssueMilestone:
+			return true
+
+		default:
+			return false
+		}
+
+	case githubEventPullRequest, githubEventPullRequestTarget:
+		switch triggedEvent {
+		case webhook_module.HookEventPullRequest,
+			webhook_module.HookEventPullRequestSync,
+			webhook_module.HookEventPullRequestAssign,
+			webhook_module.HookEventPullRequestLabel:
+			return true
+
+		default:
+			return false
+		}
+
+	case githubEventPullRequestReview:
+		switch triggedEvent {
+		case webhook_module.HookEventPullRequestReviewApproved,
+			webhook_module.HookEventPullRequestReviewComment,
+			webhook_module.HookEventPullRequestReviewRejected:
+			return true
+
+		default:
+			return false
+		}
+
 	default:
-		return evt.Name
+		return eventName == string(triggedEvent)
 	}
 }

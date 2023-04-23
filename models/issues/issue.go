@@ -189,7 +189,7 @@ func (issue *Issue) IsOverdue() bool {
 
 // LoadRepo loads issue's repository
 func (issue *Issue) LoadRepo(ctx context.Context) (err error) {
-	if issue.Repo == nil {
+	if issue.Repo == nil && issue.RepoID != 0 {
 		issue.Repo, err = repo_model.GetRepositoryByID(ctx, issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("getRepositoryByID [%d]: %w", issue.RepoID, err)
@@ -223,7 +223,7 @@ func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
 
 // LoadLabels loads labels
 func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
-	if issue.Labels == nil {
+	if issue.Labels == nil && issue.ID != 0 {
 		issue.Labels, err = GetLabelsByIssueID(ctx, issue.ID)
 		if err != nil {
 			return fmt.Errorf("getLabelsByIssueID [%d]: %w", issue.ID, err)
@@ -234,7 +234,7 @@ func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
 
 // LoadPoster loads poster
 func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
-	if issue.Poster == nil {
+	if issue.Poster == nil && issue.PosterID != 0 {
 		issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
 		if err != nil {
 			issue.PosterID = -1
@@ -252,7 +252,7 @@ func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
 // LoadPullRequest loads pull request info
 func (issue *Issue) LoadPullRequest(ctx context.Context) (err error) {
 	if issue.IsPull {
-		if issue.PullRequest == nil {
+		if issue.PullRequest == nil && issue.ID != 0 {
 			issue.PullRequest, err = GetPullRequestByIssueID(ctx, issue.ID)
 			if err != nil {
 				if IsErrPullRequestNotExist(err) {
@@ -261,13 +261,15 @@ func (issue *Issue) LoadPullRequest(ctx context.Context) (err error) {
 				return fmt.Errorf("getPullRequestByIssueID [%d]: %w", issue.ID, err)
 			}
 		}
-		issue.PullRequest.Issue = issue
+		if issue.PullRequest != nil {
+			issue.PullRequest.Issue = issue
+		}
 	}
 	return nil
 }
 
 func (issue *Issue) loadComments(ctx context.Context) (err error) {
-	return issue.loadCommentsByType(ctx, CommentTypeUnknown)
+	return issue.loadCommentsByType(ctx, CommentTypeUndefined)
 }
 
 // LoadDiscussComments loads discuss comments
@@ -741,8 +743,8 @@ func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 }
 
 // ChangeIssueTitle changes the title of this issue, as the given user.
-func ChangeIssueTitle(issue *Issue, doer *user_model.User, oldTitle string) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeIssueTitle(ctx context.Context, issue *Issue, doer *user_model.User, oldTitle string) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -2128,15 +2130,18 @@ func (issue *Issue) GetParticipantIDsByIssue(ctx context.Context) ([]int64, erro
 }
 
 // BlockedByDependencies finds all Dependencies an issue is blocked by
-func (issue *Issue) BlockedByDependencies(ctx context.Context) (issueDeps []*DependencyInfo, err error) {
-	err = db.GetEngine(ctx).
+func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptions) (issueDeps []*DependencyInfo, err error) {
+	sess := db.GetEngine(ctx).
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
 		Where("issue_id = ?", issue.ID).
 		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
-		OrderBy("CASE WHEN issue.repo_id = ? THEN 0 ELSE issue.repo_id END, issue.created_unix DESC", issue.RepoID).
-		Find(&issueDeps)
+		OrderBy("CASE WHEN issue.repo_id = ? THEN 0 ELSE issue.repo_id END, issue.created_unix DESC", issue.RepoID)
+	if opts.Page != 0 {
+		sess = db.SetSessionPagination(sess, &opts)
+	}
+	err = sess.Find(&issueDeps)
 
 	for _, depInfo := range issueDeps {
 		depInfo.Issue.Repo = &depInfo.Repository

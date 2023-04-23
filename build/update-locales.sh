@@ -17,17 +17,10 @@ fi
 
 mv ./options/locale/locale_en-US.ini ./options/
 
-# the "ini" library for locale has many quirks
-#  * `a="xx"` gets `xx` (no quote)
-#  * `a=x\"y` gets `x\"y` (no unescaping)
-#  * `a="x\"y"` gets `"x\"y"` (no unescaping, the quotes are still there)
-#  * `a='x\"y'` gets `x\"y` (no unescaping, no quote)
-#  * `a="foo` gets `"foo` (although the quote is not closed)
-#  * 'a=`foo`' works like single-quote
-# crowdin needs the strings to be quoted correctly and doesn't like incomplete quotes
-# crowdin always outputs quoted strings if there are quotes in the strings.
+# the "ini" library for locale has many quirks, its behavior is different from Crowdin.
+# see i18n_test.go for more details
 
-# this script helps to unquote the crowdin outputs for the quirky ini library
+# this script helps to unquote the Crowdin outputs for the quirky ini library
 # * find all `key="...\"..."` lines
 # * remove the leading quote
 # * remove the trailing quote

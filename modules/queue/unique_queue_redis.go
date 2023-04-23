@@ -6,7 +6,7 @@ package queue
 import (
 	"context"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 // RedisUniqueQueueType is the type for redis queue
