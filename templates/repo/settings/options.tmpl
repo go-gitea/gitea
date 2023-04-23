@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings options">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings options")}}
+	<div class="user-main-content twelve wide column">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "repo.settings.basic_settings"}}
 		</h4>
@@ -798,7 +794,7 @@
 		</div>
 		{{end}}
 	</div>
-</div>
+{{template "repo/settings/layout_footer" .}}
 
 {{if .Permission.IsOwner}}
 	{{if .Repository.IsMirror}}
@@ -993,5 +989,3 @@
 		</div>
 	{{end}}
 {{end}}
-
-{{template "base/footer" .}}
