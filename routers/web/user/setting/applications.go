@@ -86,9 +86,9 @@ func DeleteApplication(ctx *context.Context) {
 	})
 
 	t := &auth_model.AccessToken{UID: ctx.Doer.ID}
-	has, err := db.GetBeanByID(ctx, ctx.FormInt64("id"), t)
+	has, err := db.GetByID(ctx, ctx.FormInt64("id"), t)
 	if err != nil {
-		ctx.Flash.Error("GetBeanByID: " + err.Error())
+		ctx.Flash.Error("GetByID: " + err.Error())
 		return
 	} else if !has {
 		return

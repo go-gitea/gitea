@@ -51,8 +51,8 @@ func PerformSecretsDelete(ctx *context.Context, doer, owner *user_model.User, re
 	id := ctx.FormInt64("id")
 
 	s := &secret_model.Secret{}
-	if has, err := db.GetBeanByID(ctx, id, s); err != nil {
-		log.Error("GetBeanByID failed: %v", err)
+	if has, err := db.GetByID(ctx, id, s); err != nil {
+		log.Error("GetByID failed: %v", err)
 		ctx.Flash.Error(ctx.Tr("secrets.deletion.failed"))
 		return
 	} else if !has || s.OwnerID != tryGetOwnerID(owner) || s.RepoID != tryGetRepositoryID(repo) {

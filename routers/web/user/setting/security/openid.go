@@ -111,9 +111,9 @@ func settingsOpenIDVerify(ctx *context.Context) {
 // DeleteOpenID response for delete user's openid
 func DeleteOpenID(ctx *context.Context) {
 	oid := &user_model.UserOpenID{UID: ctx.Doer.ID}
-	_, err := db.GetBeanByID(ctx, ctx.FormInt64("id"), oid)
+	_, err := db.GetByID(ctx, ctx.FormInt64("id"), oid)
 	if err != nil {
-		ctx.ServerError("GetBeanByID", err)
+		ctx.ServerError("GetByID", err)
 		return
 	}
 
