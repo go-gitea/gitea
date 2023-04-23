@@ -50,7 +50,7 @@
 														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="adopt">
-														<div class="actions">{{/* TODO: Convert to base/basic_modal_actions */}}
+														<div class="actions">{{/* TODO: Convert to base/modal_actions_confirm */}}
 															<button class="ui red basic inverted cancel button">
 																{{svg "octicon-x"}}
 																{{$.locale.Tr "modal.no"}}
@@ -77,7 +77,7 @@
 														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="delete">
-														{{template "base/basic_modal_actions" $}}
+														{{template "base/modal_actions_confirm" $}}
 													</form>
 												</div>
 											{{end}}
@@ -139,6 +139,6 @@
 	<div class="content">
 		<p>{{.locale.Tr "settings.remove_account_link_desc"}}</p>
 	</div>
-	{{template "base/basic_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 {{template "base/footer" .}}

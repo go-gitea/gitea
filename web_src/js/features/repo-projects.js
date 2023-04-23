@@ -129,7 +129,7 @@ export function initRepoProject() {
   $('.default-project-board-modal').each(function () {
     const boardColumn = $(this).closest('.board-column');
     const showButton = $(boardColumn).find('.default-project-board-show');
-    const commitButton = $(this).find('.modal-confirm-button');
+    const commitButton = $(this).find('.actions > .ok.button');
 
     $(commitButton).on('click', (e) => {
       e.preventDefault();
@@ -149,7 +149,7 @@ export function initRepoProject() {
 
   $('.show-delete-column-modal').each(function () {
     const deleteColumnModal = $(`${$(this).attr('data-modal')}`);
-    const deleteColumnButton = deleteColumnModal.find('.modal-confirm-button');
+    const deleteColumnButton = deleteColumnModal.find('.actions > .ok.button');
     const deleteUrl = $(this).attr('data-url');
 
     deleteColumnButton.on('click', (e) => {

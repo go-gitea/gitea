@@ -157,12 +157,12 @@
 									<div class="content center">
 										<label id="default-project-board-content"></label>
 									</div>
-									{{$ModalNoText := $.locale.Tr "settings.cancel"}}
-									{{- $ModalYesText := $.locale.Tr "repo.projects.column.set_default" -}}
+									{{$ModalButtonCancelText := $.locale.Tr "settings.cancel"}}
+									{{- $ModalButtonOkText := $.locale.Tr "repo.projects.column.set_default" -}}
 									{{- if .Default -}}
-									{{- $ModalYesText = $.locale.Tr "repo.projects.column.unset_default" -}}
+									{{- $ModalButtonOkText = $.locale.Tr "repo.projects.column.unset_default" -}}
 									{{- end -}}
-									{{template "base/basic_modal_actions" (dict "." $ "ModalNoText" $ModalNoText "ModalYesText" $ModalYesText)}}
+									{{template "base/modal_actions_confirm" (dict "." $ "ModalButtonCancelText" $ModalButtonCancelText "ModalButtonOkText" $ModalButtonOkText)}}
 								</div>
 
 								<div class="ui basic modal" id="delete-board-modal-{{.ID}}">
@@ -174,8 +174,8 @@
 											{{$.locale.Tr "repo.projects.column.deletion_desc"}}
 										</label>
 									</div>
-									{{$ModalYesText := $.locale.Tr "repo.projects.column.delete"}}
-									{{template "base/basic_modal_actions" (dict "." $ "ModalNoText" $ModalNoText "ModalYesText" $ModalYesText)}}
+									{{$ModalButtonOkText := $.locale.Tr "repo.projects.column.delete"}}
+									{{template "base/modal_actions_confirm" (dict "." $ "ModalButtonCancelText" $ModalButtonCancelText "ModalButtonOkText" $ModalButtonOkText)}}
 								</div>
 							</div>
 						</div>
@@ -286,6 +286,6 @@
 		<div class="content">
 			<p>{{.locale.Tr "repo.projects.deletion_desc"}}</p>
 		</div>
-		{{template "base/basic_modal_actions" .}}
+		{{template "base/modal_actions_confirm" .}}
 	</div>
 {{end}}

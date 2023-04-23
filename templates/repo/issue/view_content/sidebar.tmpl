@@ -559,9 +559,9 @@
 							{{.locale.Tr "repo.issues.dependency.issue_remove_text"}}
 						{{end}}</p>
 					</div>
-					{{$ModalNoText := .locale.Tr "repo.issues.dependency.cancel"}}
-					{{$ModalYesText := .locale.Tr "repo.issues.dependency.remove"}}
-					{{template "base/basic_modal_actions" (dict "." . "ModalNoText" $ModalNoText "ModalYesText" $ModalYesText)}}
+					{{$ModalButtonCancelText := .locale.Tr "repo.issues.dependency.cancel"}}
+					{{$ModalButtonOkText := .locale.Tr "repo.issues.dependency.remove"}}
+					{{template "base/modal_actions_confirm" (dict "." . "ModalButtonCancelText" $ModalButtonCancelText "ModalButtonOkText" $ModalButtonOkText)}}
 				</div>
 			{{end}}
 		{{end}}
@@ -675,7 +675,7 @@
 				</div>
 				<form action="{{.Issue.Link}}/delete" method="post">
 					{{.CsrfTokenHtml}}
-					{{template "base/basic_modal_actions" .}}
+					{{template "base/modal_actions_confirm" .}}
 				</form>
 			</div>
 		{{end}}

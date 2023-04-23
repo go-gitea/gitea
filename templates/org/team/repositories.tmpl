@@ -72,7 +72,7 @@
 	<div class="content">
 		<p>{{.locale.Tr "org.teams.remove_all_repos_desc"}}</p>
 	</div>
-	{{template "base/basic_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
 <div class="ui small basic addall modal" id="org-team-add-all-repo">
@@ -83,7 +83,7 @@
 	<div class="content">
 		<p>{{.locale.Tr "org.teams.add_all_repos_desc"}}</p>
 	</div>
-	{{template "base/basic_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
 {{template "base/footer" .}}
