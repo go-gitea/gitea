@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin monitor">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.monitor.stacktrace"}}: {{.locale.Tr "admin.monitor.goroutines" .GoroutineCount}}
 			<div class="ui right">
@@ -17,7 +14,7 @@
 			</div>
 		</div>
 	</div>
-</div>
+
 <div class="ui gitea-confirm-modal delete modal">
 	<div class="header">
 		{{.locale.Tr "admin.monitor.process.cancel"}}
@@ -29,4 +26,4 @@
 	{{template "base/modal_actions_confirm" .}}
 </div>
 
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}
