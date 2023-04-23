@@ -7,17 +7,12 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddIsInternalColumnToPackage(x *xorm.Engine) error {
-	type Package struct {
-		ID               int64  `xorm:"pk autoincr"`
-		OwnerID          int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		RepoID           int64  `xorm:"INDEX"`
-		Type             string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Name             string `xorm:"NOT NULL"`
-		LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		SemverCompatible bool   `xorm:"NOT NULL DEFAULT false"`
-		IsInternal       bool   `xorm:"INDEX NOT NULL DEFAULT false"`
+func AddActionTaskOutputTable(x *xorm.Engine) error {
+	type ActionTaskOutput struct {
+		ID          int64
+		TaskID      int64  `xorm:"INDEX UNIQUE(task_id_output_key)"`
+		OutputKey   string `xorm:"VARCHAR(255) UNIQUE(task_id_output_key)"`
+		OutputValue string `xorm:"MEDIUMTEXT"`
 	}
-
-	return x.Sync2(new(Package))
+	return x.Sync(new(ActionTaskOutput))
 }
