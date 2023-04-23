@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin edit user">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin edit user")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.users.edit_account"}}
 		</h4>
@@ -194,7 +191,6 @@
 			</form>
 		</div>
 	</div>
-</div>
 
 <div class="ui gitea-confirm-modal delete modal" id="delete-user-modal">
 	<div class="header">
@@ -216,4 +212,5 @@
 		{{template "base/modal_actions_confirm" .}}
 	</form>
 </div>
-{{template "base/footer" .}}
+
+{{template "admin/layout_footer" .}}

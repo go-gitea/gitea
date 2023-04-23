@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings collaboration">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings collaboration")}}
+	<div class="repo-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "repo.settings.collaboration"}}
 		</h4>
@@ -110,7 +106,6 @@
 		</div>
 		{{end}}
 	</div>
-</div>
 
 <div class="ui gitea-confirm-modal delete modal">
 	<div class="header">
@@ -122,4 +117,5 @@
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>
-{{template "base/footer" .}}
+
+{{template "repo/settings/layout_footer" .}}

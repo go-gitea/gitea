@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin monitor">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.monitor.queue" .Queue.Name}}
 		</h4>
@@ -25,7 +22,7 @@
 						<td>{{.Queue.ExemplarType}}</td>
 						<td>{{$sum := .Queue.NumberOfWorkers}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
 						<td>{{if lt $sum 0}}-{{else}}{{.Queue.MaxNumberOfWorkers}}{{end}}</td>
-						<td>{{$sum := .Queue.NumberInQueue}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
+						<td>{{$sum = .Queue.NumberInQueue}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
 					</tr>
 				</tbody>
 			</table>
@@ -177,10 +174,10 @@
 			{{.locale.Tr "admin.monitor.queue.configuration"}}
 		</h4>
 		<div class="ui attached segment">
-			<pre>{{.Queue.Configuration | JsonPrettyPrint}}
+			<pre>{{.Queue.Configuration | JsonPrettyPrint}}</pre>
 		</div>
 	</div>
-</div>
+
 <div class="ui gitea-confirm-modal delete modal">
 	<div class="header">
 		{{.locale.Tr "admin.monitor.queue.pool.cancel"}}
@@ -192,4 +189,4 @@
 	{{template "base/modal_actions_confirm" .}}
 </div>
 
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}
