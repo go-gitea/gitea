@@ -1,3 +1,7 @@
+.page-content.admin.grid {
+  margin-top: 0;
+}
+
 .admin.hooks .list > .item:not(:first-child) {
   border-top: 1px solid var(--color-secondary);
   padding: 0.25rem 1rem;
