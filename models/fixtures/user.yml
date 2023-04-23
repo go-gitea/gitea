@@ -66,7 +66,7 @@
   num_followers: 2
   num_following: 1
   num_stars: 2
-  num_repos: 12
+  num_repos: 13
   num_teams: 0
   num_members: 0
   visibility: 0
@@ -1091,7 +1091,7 @@
   max_repo_creation: -1
   is_active: true
   is_admin: false
-  is_restricted: true
+  is_restricted: false
   allow_git_hook: false
   allow_import_local: false
   allow_create_organization: true
