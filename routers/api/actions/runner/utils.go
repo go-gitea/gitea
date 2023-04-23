@@ -9,6 +9,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	secret_model "code.gitea.io/gitea/models/secret"
+	variable_model "code.gitea.io/gitea/models/variable"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -36,6 +37,7 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		WorkflowPayload: t.Job.WorkflowPayload,
 		Context:         generateTaskContext(t),
 		Secrets:         getSecretsOfTask(ctx, t),
+		Vars:            getVariablesOfTask(ctx, t),
 	}
 
 	if needs, err := findTaskNeeds(ctx, t); err != nil {
@@ -86,6 +88,31 @@ func getSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[s
 	}
 
 	return secrets
+}
+
+func getVariablesOfTask(ctx context.Context, task *actions_model.ActionTask) map[string]string {
+	variables := map[string]string{}
+
+	// Org level
+	ownerVariables, err := variable_model.FindVariables(ctx, variable_model.FindVariablesOpts{OwnerID: task.Job.Run.Repo.OwnerID})
+	if err != nil {
+		log.Error("find variables of org: %d, error: %v", task.Job.Run.Repo.OwnerID, err)
+	}
+
+	// Repo level
+	repoVariables, err := variable_model.FindVariables(ctx, variable_model.FindVariablesOpts{RepoID: task.Job.Run.RepoID})
+	if err != nil {
+		log.Error("find variables of repo: %d, error: %v", task.Job.Run.RepoID, err)
+	}
+
+	//TODO: Env levl
+
+	// Level precedence: ENV > REPO > ORG
+	for _, v := range append(ownerVariables, repoVariables...) {
+		variables[v.Name] = v.Data
+	}
+
+	return variables
 }
 
 func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
