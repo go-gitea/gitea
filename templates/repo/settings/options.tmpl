@@ -702,7 +702,7 @@
 			{{if .Repository.IsMirror}}
 				<div class="item">
 					<div class="ui right">
-						<button class="ui gitea-confirm-modal red show-modal button" data-modal="#convert-mirror-repo-modal">{{.locale.Tr "repo.settings.convert"}}</button>
+						<button class="ui basic red show-modal button" data-modal="#convert-mirror-repo-modal">{{.locale.Tr "repo.settings.convert"}}</button>
 					</div>
 					<div>
 						<h5>{{.locale.Tr "repo.settings.convert"}}</h5>
@@ -714,7 +714,7 @@
 			{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
 				<div class="item">
 					<div class="ui right">
-						<button class="ui gitea-confirm-modal red show-modal button" data-modal="#convert-fork-repo-modal">{{.locale.Tr "repo.settings.convert_fork"}}</button>
+						<button class="ui basic red show-modal button" data-modal="#convert-fork-repo-modal">{{.locale.Tr "repo.settings.convert_fork"}}</button>
 					</div>
 					<div>
 						<h5>{{.locale.Tr "repo.settings.convert_fork"}}</h5>
@@ -732,7 +732,7 @@
 							<button class="ui red button">{{.locale.Tr "repo.settings.transfer_abort"}}</button>
 						</form>
 					{{else}}
-						<button class="ui gitea-confirm-modal red show-modal button" data-modal="#transfer-repo-modal">{{.locale.Tr "repo.settings.transfer"}}</button>
+						<button class="ui basic red show-modal button" data-modal="#transfer-repo-modal">{{.locale.Tr "repo.settings.transfer"}}</button>
 					{{end}}
 				</div>
 				<div>
@@ -750,7 +750,7 @@
 
 				<div class="item">
 					<div class="ui right">
-						<button class="ui gitea-confirm-modal red show-modal button" data-modal="#delete-wiki-modal">{{.locale.Tr "repo.settings.wiki_delete"}}</button>
+						<button class="ui basic red show-modal button" data-modal="#delete-wiki-modal">{{.locale.Tr "repo.settings.wiki_delete"}}</button>
 					</div>
 					<div>
 						<h5>{{.locale.Tr "repo.settings.wiki_delete"}}</h5>
@@ -763,7 +763,7 @@
 
 			<div class="item">
 				<div class="ui right">
-					<button class="ui gitea-confirm-modal red show-modal button" data-modal="#delete-repo-modal">{{.locale.Tr "repo.settings.delete"}}</button>
+					<button class="ui basic red show-modal button" data-modal="#delete-repo-modal">{{.locale.Tr "repo.settings.delete"}}</button>
 				</div>
 				<div>
 					<h5>{{.locale.Tr "repo.settings.delete"}}</h5>
@@ -776,7 +776,7 @@
 
 				<div class="item">
 					<div class="ui right">
-						<button class="ui gitea-confirm-modal red show-modal button" data-modal="#archive-repo-modal">
+						<button class="ui basic red show-modal button" data-modal="#archive-repo-modal">
 							{{if .Repository.IsArchived}}
 								{{.locale.Tr "repo.settings.unarchive.button"}}
 							{{else}}
