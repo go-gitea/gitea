@@ -1,5 +1,5 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings edit")}}
-	<div class="repo-main-content twelve wide column content">
+	<div class="repo-setting-content">
 		{{template "base/alert" .}}
 		{{if .Repository.IsArchived}}
 			<div class="ui warning message">

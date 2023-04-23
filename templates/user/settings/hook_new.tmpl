@@ -1,6 +1,6 @@
 {{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings new webhook")}}
-	<div class="user-main-content twelve wide column content">
-		<div class="user-main-content twelve wide column content">
+	<div class="user-setting-content">
+		<div class="user-setting-content">
 			{{template "base/alert" .}}
 			<h4 class="ui top attached header">
 				{{if .PageIsSettingsHooksNew}}{{.locale.Tr "repo.settings.add_webhook"}}{{else}}{{.locale.Tr "repo.settings.update_webhook"}}{{end}}

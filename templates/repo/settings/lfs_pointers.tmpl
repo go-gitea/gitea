@@ -1,5 +1,5 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings lfs")}}
-	<div class="repo-main-content twelve wide column content">
+	<div class="repo-setting-content">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
 			{{.locale.Tr "repo.settings.lfs_pointers.found" .NumPointers .NumAssociated .NumNotAssociated .NumNoExist}}
