@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 //nolint:forbidigo
-
 package main
 
 import (
