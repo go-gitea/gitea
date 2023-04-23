@@ -268,8 +268,8 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal" id="delete-token">
-	<div class="ui icon header">
+<div class="ui gitea-confirm-modal delete modal" id="delete-token">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.access_token_deletion"}}
 	</div>
@@ -277,7 +277,7 @@
 		<p>{{.locale.Tr "settings.access_token_deletion_desc"}}</p>
 	</div>
 
-	<div class="actions">{{/* TODO: Convert to base/delete_modal_actions.tmpl */}}
+	<div class="actions">{{/* TODO: Convert to base/modal_actions_confirm.tmpl */}}
 		<button class="ui green basic inverted cancel button">
 			{{svg "octicon-x"}}
 			{{.locale.Tr "settings.access_token_deletion_cancel_action"}}

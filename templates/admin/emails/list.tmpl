@@ -73,11 +73,11 @@
 
 		{{template "base/paginate" .}}
 
-		<div class="ui basic modal" id="change-email-modal">
-			<div class="ui icon header">
+		<div class="ui gitea-confirm-modal modal" id="change-email-modal">
+			<div class="header">
 				{{.locale.Tr "admin.emails.change_email_header"}}
 			</div>
-			<div class="content center">
+			<div class="content">
 				<p class="center">{{.locale.Tr "admin.emails.change_email_text"}}</p>
 
 				<form class="ui form" id="email-action-form" action="{{AppSubUrl}}/admin/emails/activate" method="post">
@@ -94,7 +94,7 @@
 					<input type="hidden" id="form-activate" name="activate" value="" required>
 
 					<div class="center">
-						{{template "base/delete_modal_actions" .}}
+						{{template "base/modal_actions_confirm" .}}
 					</div>
 				</form>
 			</div>

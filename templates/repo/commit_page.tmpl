@@ -59,11 +59,11 @@
 										data-modal-cherry-pick-header="{{$.locale.Tr "repo.commit.cherry-pick-header" (ShortSha .CommitID)}}"
 										data-modal-cherry-pick-content="{{$.locale.Tr "repo.commit.cherry-pick-content"}}"
 										data-modal-cherry-pick-submit="{{.locale.Tr "repo.commit.cherry-pick"}}">{{.locale.Tr "repo.commit.cherry-pick"}}</div>
-									<div class="ui basic modal" id="cherry-pick-modal">
-										<div class="ui icon header">
+									<div class="ui gitea-confirm-modal modal" id="cherry-pick-modal">
+										<div class="header">
 											<span id="cherry-pick-header"></span>
 										</div>
-										<div class="content center">
+										<div class="content">
 											<p id="cherry-pick-content" class="branch-dropdown"></p>
 											{{template "repo/branch_dropdown" dict "root" .
 												"noTag" true "disableCreateBranch" true
