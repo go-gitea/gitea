@@ -196,8 +196,8 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal" id="delete-user-modal">
-	<div class="ui icon header">
+<div class="ui gitea-confirm-modal delete modal" id="delete-user-modal">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.delete_account_title"}}
 	</div>
@@ -213,7 +213,7 @@
 			</div>
 			<p class="help">{{.locale.Tr "admin.users.purge_help"}}</p>
 		</div>
-		{{template "base/delete_modal_actions" .}}
+		{{template "base/modal_actions_confirm" .}}
 	</form>
 </div>
 {{template "base/footer" .}}

@@ -80,14 +80,14 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
+<div class="ui gitea-confirm-modal delete modal">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "packages.settings.delete"}}
 	</div>
 	<div class="content">
 		{{.locale.Tr "packages.settings.delete.notice" `<span class="name"></span>` `<span class="dataVersion"></span>` | Safe}}
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 {{template "base/footer" .}}
