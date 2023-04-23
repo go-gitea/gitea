@@ -109,7 +109,7 @@
 	</div>
 {{end}}
 <div class="timeline-item comment merge box">
-	<a class="timeline-avatar text  {{if .Issue.PullRequest.HasMerged}}purple
+	<a class="timeline-avatar text {{if .Issue.PullRequest.HasMerged}}purple
 	{{- else if .Issue.IsClosed}}grey
 	{{- else if .IsPullWorkInProgress}}grey
 	{{- else if .IsFilesConflicted}}grey
@@ -131,38 +131,37 @@
 		{{$showGeneralMergeForm := false}}
 		<div class="ui attached merge-section segment {{if not $.LatestCommitStatus}}no-header{{end}}">
 			{{if .Issue.PullRequest.HasMerged}}
-				<div class="item text">
-					{{if .Issue.PullRequest.MergedCommitID}}
-						{{$link := printf "%s/commit/%s" $.Repository.Link (.Issue.PullRequest.MergedCommitID|PathEscape)}}
-						{{if eq $.Issue.PullRequest.Status 3}}
-							{{$.locale.Tr "repo.pulls.manually_merged_as" ($link|Escape) (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
-						{{else}}
-							{{$.locale.Tr "repo.pulls.merged_as" ($link|Escape) (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
-						{{end}}
-					{{else}}
-						{{$.locale.Tr "repo.pulls.has_merged"}}
+				<div class="item item-section text gt-f1">
+					<div class="item-section-left">
+						<h3 class="gt-mb-3">{{$.locale.Tr "repo.pulls.merged_success"}}</h3>
+						<div class="merge-section-info">
+							{{$.locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape)) | Str2html}}
+						</div>
+					</div>
+					{{if .IsPullBranchDeletable}}
+						<div class="item-section-right">
+							<button class="delete-button ui button" data-url="{{.DeleteBranchLink}}">{{$.locale.Tr "repo.branch.delete_html"}}</button>
+						</div>
 					{{end}}
 				</div>
-				{{if .IsPullBranchDeletable}}
-					<div class="ui divider"></div>
-					<div>
-						<a class="delete-button ui red button" href="" data-url="{{.DeleteBranchLink}}">{{$.locale.Tr "repo.branch.delete" .HeadTarget}}</a>
-					</div>
-				{{end}}
 			{{else if .Issue.IsClosed}}
-				<div class="item text">
-					{{if .IsPullRequestBroken}}
-						{{$.locale.Tr "repo.pulls.cant_reopen_deleted_branch"}}
-					{{else}}
-						{{$.locale.Tr "repo.pulls.reopen_to_merge"}}
+				<div class="item item-section text gt-f1">
+					<div class="item-section-left">
+						<h3 class="gt-mb-3">{{$.locale.Tr "repo.pulls.closed"}}</h3>
+						<div class="merge-section-info">
+							{{if .IsPullRequestBroken}}
+								{{$.locale.Tr "repo.pulls.cant_reopen_deleted_branch"}}
+							{{else}}
+								{{$.locale.Tr "repo.pulls.reopen_to_merge"}}
+							{{end}}
+						</div>
+					</div>
+					{{if and .IsPullBranchDeletable (not .IsPullRequestBroken)}}
+						<div class="item-section-right">
+							<button class="delete-button ui button" data-url="{{.DeleteBranchLink}}">{{$.locale.Tr "repo.branch.delete_html"}}</button>
+						</div>
 					{{end}}
 				</div>
-				{{if and .IsPullBranchDeletable ( not .IsPullRequestBroken )}}
-					<div class="ui divider"></div>
-					<div>
-						<a class="delete-button ui red button" href="" data-url="{{.DeleteBranchLink}}">{{$.locale.Tr "repo.branch.delete" .HeadTarget}}</a>
-					</div>
-				{{end}}
 			{{else if .IsPullFilesConflicted}}
 				<div class="item text">
 					{{svg "octicon-x"}}
@@ -471,7 +470,7 @@
 				</div>
 			{{end}}
 
-			{{if and .ShowMergeInstructions .Issue.PullRequest.HeadRepo}}
+			{{if and .ShowMergeInstructions .Issue.PullRequest.HeadRepo (not .Issue.PullRequest.HasMerged) (not .Issue.IsClosed)}}
 				{{template "repo/issue/view_content/pull_merge_instruction" (dict "locale" .locale "Issue" .Issue)}}
 			{{end}}
 		</div>
