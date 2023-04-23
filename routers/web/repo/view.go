@@ -24,6 +24,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/container"
@@ -39,6 +40,8 @@ import (
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
+
+	"github.com/nektos/act/pkg/model"
 )
 
 const (
@@ -347,6 +350,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		_, issueConfigErr := ctx.Repo.GetIssueConfig(ctx.Repo.TreePath, ctx.Repo.Commit)
 		if issueConfigErr != nil {
 			ctx.Data["FileError"] = strings.TrimSpace(issueConfigErr.Error())
+		}
+	} else if actions.IsWorkflow(ctx.Repo.TreePath) {
+		content, err := actions.GetContentFromEntry(entry)
+		if err != nil {
+			log.Error("actions.GetContentFromEntry: %v", err)
+		}
+		_, workFlowErr := model.ReadWorkflow(bytes.NewReader(content))
+		if workFlowErr != nil {
+			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
 	}
 
