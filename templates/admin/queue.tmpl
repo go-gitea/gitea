@@ -23,7 +23,7 @@
 						<td>{{.Queue.ExemplarType}}</td>
 						<td>{{$sum := .Queue.NumberOfWorkers}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
 						<td>{{if lt $sum 0}}-{{else}}{{.Queue.MaxNumberOfWorkers}}{{end}}</td>
-						<td>{{$sum := .Queue.NumberInQueue}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
+						<td>{{$sum = .Queue.NumberInQueue}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
 					</tr>
 				</tbody>
 			</table>
@@ -175,10 +175,10 @@
 			{{.locale.Tr "admin.monitor.queue.configuration"}}
 		</h4>
 		<div class="ui attached segment">
-			<pre>{{.Queue.Configuration | JsonPrettyPrint}}
+			<pre>{{.Queue.Configuration | JsonPrettyPrint}}</pre>
 		</div>
 	</div>
-{{template "admin/layout_footer" .}}
+
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-x" 16 "close inside"}}
@@ -190,3 +190,5 @@
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>
+
+{{template "admin/layout_footer" .}}

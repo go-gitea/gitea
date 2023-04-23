@@ -24,7 +24,7 @@
 							<td>{{.Type}}</td>
 							<td>{{.ExemplarType}}</td>
 							<td>{{$sum := .NumberOfWorkers}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
-							<td>{{$sum := .NumberInQueue}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
+							<td>{{$sum = .NumberInQueue}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
 							<td><a href="{{$.Link}}/queue/{{.QID}}" class="button">{{if lt $sum 0}}{{$.locale.Tr "admin.monitor.queue.review"}}{{else}}{{$.locale.Tr "admin.monitor.queue.review_add"}}{{end}}</a>
 						</tr>
 					{{end}}
@@ -34,7 +34,7 @@
 
 		{{template "admin/process" .}}
 	</div>
-{{template "admin/layout_footer" .}}
+
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-x" 16 "close inside"}}
@@ -46,3 +46,5 @@
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>
+
+{{template "admin/layout_footer" .}}
