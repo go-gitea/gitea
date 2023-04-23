@@ -24,7 +24,7 @@ const (
 )
 
 // UserSearchDefaultSortType is the default sort type for user search
-const UserSearchDefaultSortType = "newest"
+const UserSearchDefaultSortType = "recentupdate"
 
 var nullByte = []byte{0x00}
 
@@ -58,10 +58,10 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 	// we can not set orderBy to `models.SearchOrderByXxx`, because there may be a JOIN in the statement, different tables may have the same name columns
 	ctx.Data["SortType"] = ctx.FormString("sort")
 	switch ctx.FormString("sort") {
+	case "newest":
+		orderBy = "`user`.id DESC"
 	case "oldest":
 		orderBy = "`user`.id ASC"
-	case "recentupdate":
-		orderBy = "`user`.updated_unix DESC"
 	case "leastupdate":
 		orderBy = "`user`.updated_unix ASC"
 	case "reversealphabetically":
@@ -75,7 +75,7 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 	case UserSearchDefaultSortType:
 		fallthrough
 	default:
-		orderBy = "`user`.id DESC"
+		orderBy = "`user`.updated_unix DESC"
 		ctx.Data["SortType"] = UserSearchDefaultSortType
 	}
 
