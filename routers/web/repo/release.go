@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -60,19 +59,15 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *repo_model
 
 // Releases render releases list page
 func Releases(ctx *context.Context) {
-	releasesOrTags(ctx, false, tplReleases)
+	releasesOrTags(ctx, false)
 }
 
 // TagsList render tags list page
 func TagsList(ctx *context.Context) {
-	if ctx.Repo.CanAccess(perm.AccessModeRead, unit.TypeReleases) {
-		releasesOrTags(ctx, true, tplReleases)
-	} else {
-		releasesOrTags(ctx, true, tplTagsList)
-	}
+	releasesOrTags(ctx, true)
 }
 
-func releasesOrTags(ctx *context.Context, isTagList bool, tpl base.TplName) {
+func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 	ctx.Data["IsViewBranch"] = false
@@ -202,7 +197,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool, tpl base.TplName) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(http.StatusOK, tpl)
+	ctx.HTML(http.StatusOK, tplReleases)
 }
 
 // ReleasesFeedRSS get feeds for releases in RSS format
