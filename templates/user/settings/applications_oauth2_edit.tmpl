@@ -1,6 +1,7 @@
 {{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings applications")}}
 	<div class="user-main-content twelve wide column content">
 		{{template "base/alert" .}}
+
 		{{template "user/settings/applications_oauth2_edit_form" .}}
 	</div>
 {{template "user/settings/layout_footer" .}}

@@ -1,6 +1,7 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin config")}}
 	<div class="admin-main-content twelve wide column content">
 		{{template "base/alert" .}}
+
 		{{template "user/settings/applications_oauth2_edit_form" .}}
 	</div>
 {{template "admin/layout_footer" .}}

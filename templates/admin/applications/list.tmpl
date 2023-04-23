@@ -1,11 +1,9 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin config")}}
 	<div class="admin-main-content twelve wide column content">
 		{{template "base/alert" .}}
-		<div class="twelve wide column content">
-			<h4 class="ui top attached header">
-					{{.locale.Tr "settings.applications"}}
-			</h4>
-			{{template "user/settings/applications_oauth2_list" .}}
-		</div>
+		<h4 class="ui top attached header">
+				{{.locale.Tr "settings.applications"}}
+		</h4>
+		{{template "user/settings/applications_oauth2_list" .}}
 	</div>
 {{template "admin/layout_footer" .}}
