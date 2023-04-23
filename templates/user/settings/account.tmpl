@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings account">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings account")}}
+	<div class="user-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "settings.password"}}
 		</h4>
@@ -159,7 +156,6 @@
 			</form>
 		</div>
 	</div>
-</div>
 
 <div class="ui gitea-confirm-modal delete modal" id="delete-email">
 	<div class="header">
@@ -183,4 +179,4 @@
 	{{template "base/modal_actions_confirm" .}}
 </div>
 
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}

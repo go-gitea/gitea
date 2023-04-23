@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin notice">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin notice")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.notices.system_notice_list"}} ({{.locale.Tr "admin.total" .Total}})
 		</h4>
@@ -69,7 +66,6 @@
 
 		{{template "base/paginate" .}}
 	</div>
-</div>
 
 <div class="ui modal admin" id="detail-modal">
 	<div class="header">{{$.locale.Tr "admin.notices.view_detail_header"}}</div>
@@ -78,4 +74,5 @@
 		<pre></pre>
 	</div>
 </div>
-{{template "base/footer" .}}
+
+{{template "admin/layout_footer" .}}

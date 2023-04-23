@@ -1,11 +1,6 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content organization settings delete">
-	{{template "org/header" .}}
-	<div class="ui container">
-		<div class="ui grid">
-			{{template "org/settings/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
+{{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings delete")}}
+
+			<div class="org-setting-content">
 				<h4 class="ui top attached error header">
 					{{.locale.Tr "org.settings.delete_account"}}
 				</h4>
@@ -25,9 +20,6 @@
 					</form>
 				</div>
 			</div>
-		</div>
-	</div>
-</div>
 
 <div class="ui gitea-confirm-modal delete modal">
 	<div class="header">
@@ -39,4 +31,5 @@
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>
-{{template "base/footer" .}}
+
+{{template "org/settings/layout_footer" .}}

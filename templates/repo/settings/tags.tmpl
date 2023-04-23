@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings edit">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings edit")}}
+	<div class="repo-setting-content">
 		{{if .Repository.IsArchived}}
 			<div class="ui warning message">
 				{{.locale.Tr "repo.settings.archive.tagsettings_unavailable"}}
@@ -127,5 +123,4 @@
 			</div>
 		{{end}}
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "repo/settings/layout_footer" .}}
