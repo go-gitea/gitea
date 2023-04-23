@@ -52,3 +52,7 @@
   background-color: var(--color-yellow);
   color: var(--color-white);
 }
+
+.runner-container > .table {
+  overflow-x: auto;
+}
