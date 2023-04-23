@@ -440,14 +440,14 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
+<div class="ui gitea-confirm-modal delete modal">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "admin.auths.delete_auth_title"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "admin.auths.delete_auth_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 {{template "base/footer" .}}

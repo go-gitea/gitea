@@ -116,15 +116,15 @@
 </div>
 
 {{if or .CanWriteIssues .CanWritePulls}}
-	<div class="ui small basic delete modal">
-		<div class="ui icon header">
+	<div class="ui gitea-confirm-modal delete modal">
+		<div class="header">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.milestones.deletion"}}
 		</div>
 		<div class="content">
 			<p>{{.locale.Tr "repo.milestones.deletion_desc"}}</p>
 		</div>
-		{{template "base/delete_modal_actions" .}}
+		{{template "base/modal_actions_confirm" .}}
 	</div>
 {{end}}
 {{template "base/footer" .}}

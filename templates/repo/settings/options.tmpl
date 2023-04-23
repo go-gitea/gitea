@@ -967,15 +967,15 @@
 	{{end}}
 
 	{{if not .Repository.IsMirror}}
-		<div class="ui basic modal" id="archive-repo-modal">
-			<div class="ui icon header">
+		<div class="ui gitea-confirm-modal modal" id="archive-repo-modal">
+			<div class="header">
 				{{if .Repository.IsArchived}}
 					{{.locale.Tr "repo.settings.unarchive.header"}}
 				{{else}}
 					{{.locale.Tr "repo.settings.archive.header"}}
 				{{end}}
 			</div>
-			<div class="content center">
+			<div class="content">
 				<p>
 					{{if .Repository.IsArchived}}
 						{{.locale.Tr "repo.settings.unarchive.text"}}
@@ -988,7 +988,7 @@
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="{{if .Repository.IsArchived}}unarchive{{else}}archive{{end}}">
 				<input type="hidden" name="repo_id" value="{{.Repository.ID}}">
-				{{template "base/delete_modal_actions" .}}
+				{{template "base/modal_actions_confirm" .}}
 			</form>
 		</div>
 	{{end}}

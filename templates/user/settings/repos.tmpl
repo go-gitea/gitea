@@ -38,8 +38,7 @@
 										<div class="right floated content">
 											{{if $.allowAdopt}}
 												<button class="ui button submit tiny green adopt show-modal" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{$.locale.Tr "repo.adopt_preexisting_label"}}</span></button>
-												<div class="ui basic modal" id="adopt-unadopted-modal-{{$dirI}}">
-													{{svg "octicon-x" 16 "close inside"}}
+												<div class="ui gitea-confirm-modal modal" id="adopt-unadopted-modal-{{$dirI}}">
 													<div class="header">
 														<span class="label">{{$.locale.Tr "repo.adopt_preexisting"}}</span>
 													</div>
@@ -50,7 +49,7 @@
 														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="adopt">
-														<div class="actions">
+														<div class="actions">{{/* TODO: Convert to base/modal_actions_confirm */}}
 															<button class="ui red basic inverted cancel button">
 																{{svg "octicon-x"}}
 																{{$.locale.Tr "modal.no"}}
@@ -65,8 +64,7 @@
 											{{end}}
 											{{if $.allowDelete}}
 												<button class="ui button submit tiny red delete show-modal" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{$.locale.Tr "repo.delete_preexisting_label"}}</span></button>
-												<div class="ui basic modal" id="delete-unadopted-modal-{{$dirI}}">
-													{{svg "octicon-x" 16 "close inside"}}
+												<div class="ui gitea-confirm-modal modal" id="delete-unadopted-modal-{{$dirI}}">
 													<div class="header">
 														<span class="label">{{$.locale.Tr "repo.delete_preexisting"}}</span>
 													</div>
@@ -77,7 +75,7 @@
 														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="delete">
-														{{template "base/delete_modal_actions" $}}
+														{{template "base/modal_actions_confirm" $}}
 													</form>
 												</div>
 											{{end}}
@@ -131,14 +129,14 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
+<div class="ui gitea-confirm-modal delete modal">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.remove_account_link"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "settings.remove_account_link_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 {{template "base/footer" .}}

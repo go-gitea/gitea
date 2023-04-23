@@ -161,26 +161,26 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal" id="delete-email">
-	<div class="ui icon header">
+<div class="ui gitea-confirm-modal delete modal" id="delete-email">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.email_deletion"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "settings.email_deletion_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
-<div class="ui small basic delete modal" id="delete-account">
-	<div class="ui icon header">
+<div class="ui gitea-confirm-modal delete modal" id="delete-account">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.delete_account_title"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
 {{template "base/footer" .}}
