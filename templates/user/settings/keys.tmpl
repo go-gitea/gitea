@@ -1,16 +1,8 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings sshkeys">
-	<div class="ui container">
-		<div class="ui grid">
-			{{template "user/settings/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				{{template "user/settings/keys_ssh" .}}
-				{{template "user/settings/keys_principal" .}}
-				{{template "user/settings/keys_gpg" .}}
-			</div>
-		</div>
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings sshkeys")}}
+	<div class="user-main-content twelve wide column content">
+		{{template "base/alert" .}}
+		{{template "user/settings/keys_ssh" .}}
+		{{template "user/settings/keys_principal" .}}
+		{{template "user/settings/keys_gpg" .}}
 	</div>
-</div>
-
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}

@@ -1,5 +1,6 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin notice")}}
-	<div class="admin-main-content">
+	<div class="admin-main-content twelve wide column content">
+		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.notices.system_notice_list"}} ({{.locale.Tr "admin.total" .Total}})
 		</h4>
