@@ -1,13 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content organization settings options">
-	<div class="ui container">
-		<div class="ui grid">
-			{{template "org/header" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
+{{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings options")}}
+			<div class="org-setting-content">
 				{{template "user/settings/applications_oauth2_edit_form" .}}
 			</div>
-		</div>
-	</div>
-</div>
-{{template "base/footer" .}}
+{{template "org/settings/layout_footer" .}}
