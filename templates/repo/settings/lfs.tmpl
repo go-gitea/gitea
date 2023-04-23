@@ -40,17 +40,17 @@
 		</table>
 		{{template "base/paginate" .}}
 		{{range .LFSFiles}}
-			<div class="ui basic modal" id="delete-{{.Oid}}">
-				<div class="ui icon header">
+			<div class="ui gitea-confirm-modal modal" id="delete-{{.Oid}}">
+				<div class="header">
 					{{$.locale.Tr "repo.settings.lfs_delete" .Oid}}
 				</div>
-				<div class="content center">
+				<div class="content">
 					<p>
 						{{$.locale.Tr "repo.settings.lfs_delete_warning"}}
 					</p>
 					<form class="ui form" action="{{$.Link}}/delete/{{.Oid}}" method="post">
 						{{$.CsrfTokenHtml}}
-						<div class="center actions">{{/* TODO: Convert to base/delete_modal_actions */}}
+						<div class="actions">{{/* TODO: Convert to base/modal_actions_confirm */}}
 							<button class="ui basic cancel inverted button">{{$.locale.Tr "settings.cancel"}}</button>
 							<button class="ui basic inverted yellow button">{{$.locale.Tr "modal.yes"}}</button>
 						</div>

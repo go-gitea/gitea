@@ -40,14 +40,13 @@
 		</div>
 	</div>
 </div>
-<div class="ui small basic delete modal" id="leave-organization">
-	<div class="ui icon header">
-		{{svg "octicon-x" 16 "close inside"}}
+<div class="ui gitea-confirm-modal delete modal" id="leave-organization">
+	<div class="header">
 		{{$.locale.Tr "org.members.leave"}}
 	</div>
 	<div class="content">
 		<p>{{$.locale.Tr "org.members.leave.detail" `<span class="dataOrganizationName"></span>` | Safe}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 {{template "base/footer" .}}

@@ -57,7 +57,7 @@
 						<form class="ui form" action="{{.Link}}" method="post">
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="action" value="delete">
-							{{template "base/delete_modal_actions" .}}
+							{{template "base/modal_actions_confirm" .}}
 						</form>
 					</div>
 				</div>
