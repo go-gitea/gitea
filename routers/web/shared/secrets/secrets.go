@@ -38,10 +38,10 @@ func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL
 	ctx.Redirect(redirectURL)
 }
 
-func PerformSecretsDelete(ctx *context.Context, redirectURL string) {
+func PerformSecretsDelete(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	id := ctx.FormInt64("id")
 
-	if _, err := db.DeleteByBean(ctx, &secret_model.Secret{ID: id}); err != nil {
+	if _, err := db.DeleteByBean(ctx, &secret_model.Secret{ID: id, OwnerID: ownerID, RepoID: repoID}); err != nil {
 		log.Error("Delete secret %d failed: %v", id, err)
 		ctx.Flash.Error(ctx.Tr("secrets.deletion.failed"))
 	} else {
