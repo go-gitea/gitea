@@ -542,8 +542,8 @@
 			{{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
 				<input type="hidden" id="crossRepoSearch" value="{{.AllowCrossRepositoryDependencies}}">
 
-				<div class="ui basic modal remove-dependency">
-					<div class="ui icon header">
+				<div class="ui gitea-confirm-modal modal remove-dependency">
+					<div class="header">
 						{{svg "octicon-trash"}}
 						{{.locale.Tr "repo.issues.dependency.remove_header"}}
 					</div>
@@ -559,16 +559,9 @@
 							{{.locale.Tr "repo.issues.dependency.issue_remove_text"}}
 						{{end}}</p>
 					</div>
-					<div class="actions">
-						<button class="ui red cancel inverted button">
-							{{svg "octicon-x"}}
-							{{.locale.Tr "repo.issues.dependency.cancel"}}
-						</button>
-						<button class="ui green ok inverted button">
-							{{svg "octicon-check"}}
-							{{.locale.Tr "repo.issues.dependency.remove"}}
-						</button>
-					</div>
+					{{$ModalButtonCancelText := .locale.Tr "repo.issues.dependency.cancel"}}
+					{{$ModalButtonOkText := .locale.Tr "repo.issues.dependency.remove"}}
+					{{template "base/modal_actions_confirm" (dict "." . "ModalButtonCancelText" $ModalButtonCancelText "ModalButtonOkText" $ModalButtonOkText)}}
 				</div>
 			{{end}}
 		{{end}}
@@ -663,15 +656,15 @@
 				{{svg "octicon-trash"}}
 				{{.locale.Tr "repo.issues.delete"}}
 			</button>
-			<div class="ui basic modal" id="delete">
-				<div class="ui icon header">
+			<div class="ui gitea-confirm-modal modal" id="delete">
+				<div class="header">
 					{{if .Issue.IsPull}}
 						{{.locale.Tr "repo.pulls.delete.title"}}
 					{{else}}
 						{{.locale.Tr "repo.issues.delete.title"}}
 					{{end}}
 				</div>
-				<div class="content center">
+				<div class="content">
 					<p>
 						{{if .Issue.IsPull}}
 							{{.locale.Tr "repo.pulls.delete.text"}}
@@ -682,10 +675,7 @@
 				</div>
 				<form action="{{.Issue.Link}}/delete" method="post">
 					{{.CsrfTokenHtml}}
-					<div class="center actions">
-						<button class="ui basic cancel inverted button">{{.locale.Tr "settings.cancel"}}</button>
-						<button class="ui basic red inverted button">{{.locale.Tr "modal.yes"}}</button>
-					</div>
+					{{template "base/modal_actions_confirm" .}}
 				</form>
 			</div>
 		{{end}}
