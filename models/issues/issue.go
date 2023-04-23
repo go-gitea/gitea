@@ -378,6 +378,16 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 	if err = CommentList(issue.Comments).loadAttributes(ctx); err != nil {
 		return err
 	}
+	for _, comment := range issue.Comments {
+		// If the comment dismisses a review, we need to load the reviewer to show whose review has been dismissed.
+		// Otherwise, the reviewer is the poster of the comment, so we don't need to load it.
+		if comment.Type == CommentTypeDismissReview {
+			if err := comment.Review.LoadReviewer(ctx); err != nil {
+				return err
+			}
+		}
+	}
+
 	if issue.IsTimetrackerEnabled(ctx) {
 		if err = issue.LoadTotalTimes(ctx); err != nil {
 			return err
