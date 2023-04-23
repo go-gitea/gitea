@@ -22,7 +22,7 @@
 					<td><a href="{{.FullWebLink}}">{{.Version.Version}}</a></td>
 					<td><a href="{{.Creator.HomeLink}}">{{.Creator.Name}}</a></td>
 					<td>{{FileSize .CalculateBlobSize}}</td>
-					<td>{{template "shared/datetime/short" (dict "Datetime" .Version.CreatedUnix.FormatLong "Fallback" .Version.CreatedUnix.FormatShort)}}</td>
+					<td>{{DateTime "short" .Version.CreatedUnix.FormatLong .Version.CreatedUnix.FormatShort}}</td>
 				</tr>
 			{{else}}
 				<tr>
