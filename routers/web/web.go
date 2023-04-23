@@ -1207,6 +1207,8 @@ func RegisterRoutes(m *web.Route) {
 		}, func(ctx *context.Context) {
 			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 		}, repo.MustBeNotEmpty, reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag, true))
+		m.Post("/tags/delete", repo.DeleteTag, reqSignIn,
+			repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoCodeWriter, context.RepoRef())
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
 
 	// Releases
@@ -1228,8 +1230,6 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/attachments", repo.UploadReleaseAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
 		}, reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, context.RepoRef())
-		m.Post("/tags/delete", repo.DeleteTag, reqSignIn,
-			repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoCodeWriter, context.RepoRef())
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)
 			m.Post("/edit/*", web.Bind(forms.EditReleaseForm{}), repo.EditReleasePost)
