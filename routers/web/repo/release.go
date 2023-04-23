@@ -65,19 +65,19 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *repo_model
 
 // Releases render releases list page
 func Releases(ctx *context.Context) {
-	releasesOrTags(ctx, false)
+	releasesOrTags(ctx, false, tplReleases)
 }
 
 // TagsList render tags list page
 func TagsList(ctx *context.Context) {
 	if ctx.Repo.CanAccess(perm.AccessModeRead, unit.TypeReleases) {
-		releasesOrTags(ctx, true)
+		releasesOrTags(ctx, true, tplReleases)
 	} else {
-		tags(ctx)
+		releasesOrTags(ctx, true, tplTagsList)
 	}
 }
 
-func releasesOrTags(ctx *context.Context, isTagList bool) {
+func releasesOrTags(ctx *context.Context, isTagList bool, tpl base.TplName) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 	ctx.Data["IsViewBranch"] = false
@@ -203,52 +203,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(http.StatusOK, tplReleases)
-}
-
-// tags render the tags list if repo's release is disabled.
-func tags(ctx *context.Context) {
-	ctx.Data["PageIsTagList"] = true
-	ctx.Data["Title"] = ctx.Tr("repo.release.tags")
-
-	listOptions := db.ListOptions{
-		Page:     ctx.FormInt("page"),
-		PageSize: ctx.FormInt("limit"),
-	}
-	if listOptions.PageSize == 0 {
-		listOptions.PageSize = setting.Repository.Release.DefaultPagingNum
-	}
-	if listOptions.PageSize > setting.API.MaxResponseItems {
-		listOptions.PageSize = setting.API.MaxResponseItems
-	}
-
-	opts := repo_model.FindReleasesOptions{
-		ListOptions:   listOptions,
-		IncludeDrafts: true,
-		IncludeTags:   true,
-		HasSha1:       util.OptionalBoolTrue,
-	}
-
-	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
-	if err != nil {
-		ctx.ServerError("GetReleasesByRepoID", err)
-		return
-	}
-
-	count, err := repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, opts)
-	if err != nil {
-		ctx.ServerError("GetReleaseCountByRepoID", err)
-		return
-	}
-
-	ctx.Data["Releases"] = releases
-	ctx.Data["ReleasesNum"] = len(releases)
-
-	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
-	ctx.Data["Page"] = pager
-
-	ctx.HTML(http.StatusOK, tplTagsList)
+	ctx.HTML(http.StatusOK, tpl)
 }
 
 // ReleasesFeedRSS get feeds for releases in RSS format
