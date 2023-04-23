@@ -1,12 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin config">
-	<div class="ui container">
-		<div class="ui grid">
-			{{template "admin/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "user/settings/applications_oauth2_edit_form" .}}
-			</div>
-		</div>
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin config")}}
+	<div class="admin-main-content">
+		{{template "user/settings/applications_oauth2_edit_form" .}}
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}
