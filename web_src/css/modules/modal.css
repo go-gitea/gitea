@@ -18,11 +18,6 @@
   display: inline-block;
 }
 
-
-.ui.modal > .close.inside {
-  color: var(--color-text);
-}
-
 /* Gitea sometimes use a form in a modal dialog, then the "positive" button could submit the form directly */
 
 .ui.modal > .content,
@@ -35,7 +30,8 @@
   background: var(--color-secondary-bg);
   border-color: var(--color-secondary);
 
-  padding: 1rem 1rem;
+  /* these styles are from Fomantic UI */
+  padding: 1rem;
   text-align: right;
 }
 
