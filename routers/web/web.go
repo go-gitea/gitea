@@ -228,11 +228,11 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 // RegisterRoutes register routes
 func RegisterRoutes(m *web.Route) {
-	reqSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: true})
-	ignSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView})
-	ignExploreSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
-	ignSignInAndCsrf := context.Toggle(&context.ToggleOptions{DisableCSRF: true})
-	reqSignOut := context.Toggle(&context.ToggleOptions{SignOutRequired: true})
+	reqSignIn := auth_service.Toggle(&auth_service.ToggleOptions{SignInRequired: true})
+	ignSignIn := auth_service.Toggle(&auth_service.ToggleOptions{SignInRequired: setting.Service.RequireSignInView})
+	ignExploreSignIn := auth_service.Toggle(&auth_service.ToggleOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
+	ignSignInAndCsrf := auth_service.Toggle(&auth_service.ToggleOptions{DisableCSRF: true})
+	reqSignOut := auth_service.Toggle(&auth_service.ToggleOptions{SignOutRequired: true})
 	validation.AddBindingRules()
 
 	linkAccountEnabled := func(ctx *context.Context) {
@@ -551,7 +551,7 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Get("/avatar/{hash}", user.AvatarByEmailHash)
 
-	adminReq := context.Toggle(&context.ToggleOptions{SignInRequired: true, AdminRequired: true})
+	adminReq := auth_service.Toggle(&auth_service.ToggleOptions{SignInRequired: true, AdminRequired: true})
 
 	// ***** START: Admin *****
 	m.Group("/admin", func() {
