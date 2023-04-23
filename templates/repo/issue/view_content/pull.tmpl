@@ -135,7 +135,7 @@
 					<div class="item-section-left">
 						<h3 class="gt-mb-3">{{$.locale.Tr "repo.pulls.merged_success"}}</h3>
 						<div class="merge-section-info">
-							{{$.locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" .HeadTarget) | Str2html}}
+							{{$.locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape)) | Str2html}}
 						</div>
 					</div>
 					{{if .IsPullBranchDeletable}}
