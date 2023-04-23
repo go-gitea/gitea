@@ -228,11 +228,11 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 // RegisterRoutes register routes
 func RegisterRoutes(m *web.Route) {
-	reqSignIn := auth_service.Toggle(&auth_service.ToggleOptions{SignInRequired: true})
-	ignSignIn := auth_service.Toggle(&auth_service.ToggleOptions{SignInRequired: setting.Service.RequireSignInView})
-	ignExploreSignIn := auth_service.Toggle(&auth_service.ToggleOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
-	ignSignInAndCsrf := auth_service.Toggle(&auth_service.ToggleOptions{DisableCSRF: true})
-	reqSignOut := auth_service.Toggle(&auth_service.ToggleOptions{SignOutRequired: true})
+	reqSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: true})
+	ignSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: setting.Service.RequireSignInView})
+	ignExploreSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
+	ignSignInAndCsrf := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{DisableCSRF: true})
+	reqSignOut := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignOutRequired: true})
 	validation.AddBindingRules()
 
 	linkAccountEnabled := func(ctx *context.Context) {
@@ -551,7 +551,7 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Get("/avatar/{hash}", user.AvatarByEmailHash)
 
-	adminReq := auth_service.Toggle(&auth_service.ToggleOptions{SignInRequired: true, AdminRequired: true})
+	adminReq := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: true, AdminRequired: true})
 
 	// ***** START: Admin *****
 	m.Group("/admin", func() {

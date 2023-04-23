@@ -62,16 +62,16 @@ func authShared(ctx *context.Context, authMethod Method) error {
 	return nil
 }
 
-// ToggleOptions contains required or check options
-type ToggleOptions struct {
+// VerifyOptions contains required or check options
+type VerifyOptions struct {
 	SignInRequired  bool
 	SignOutRequired bool
 	AdminRequired   bool
 	DisableCSRF     bool
 }
 
-// Toggle returns toggle options as middleware
-func Toggle(options *ToggleOptions) func(ctx *context.Context) {
+// Checks authentication according to options
+func VerifyAuthWithOptions(options *VerifyOptions) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
 		// Check prohibit login users.
 		if ctx.IsSigned {
@@ -155,8 +155,8 @@ func Toggle(options *ToggleOptions) func(ctx *context.Context) {
 	}
 }
 
-// ToggleAPI returns toggle options as middleware
-func ToggleAPI(options *ToggleOptions) func(ctx *context.APIContext) {
+// Checks authentication according to options
+func VerifyAuthWithOptionsAPI(options *VerifyOptions) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		// Check prohibit login users.
 		if ctx.IsSigned {
