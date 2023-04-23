@@ -68,7 +68,7 @@ func TestAPIListCommentAttachments(t *testing.T) {
 	var apiAttachments []*api.Attachment
 	DecodeJSON(t, resp, &apiAttachments)
 	expectedCount := unittest.GetCount(t, &repo_model.Attachment{CommentID: comment.ID})
-	assert.EqualValues(t, expectedCount, len(apiAttachments))
+	assert.Len(t, apiAttachments, expectedCount)
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachments[0].ID, CommentID: comment.ID})
 }
