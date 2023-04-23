@@ -295,7 +295,7 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$.locale.Tr "repo.issues.due_date_added" .Content $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.due_date_added" (DateTime "long" .Content .Content) $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 17}}
@@ -305,7 +305,9 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 					{{$parsedDeadline := .Content | ParseDeadline}}
-					{{$.locale.Tr "repo.issues.due_date_modified" (index $parsedDeadline 0) (index $parsedDeadline 1) $createdStr | Safe}}
+					{{$from := DateTime "long" (index $parsedDeadline 1) (index $parsedDeadline 1)}}
+					{{$to := DateTime "long" (index $parsedDeadline 0) (index $parsedDeadline 0)}}
+					{{$.locale.Tr "repo.issues.due_date_modified" $to $from $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 18}}
@@ -314,7 +316,7 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$.locale.Tr "repo.issues.due_date_remove" .Content $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.due_date_remove" (DateTime "long" .Content .Content) $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 19}}
