@@ -732,14 +732,22 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{if gt .OldProjectID 0}}
-						{{if gt .ProjectID 0}}
-							{{$.locale.Tr "repo.issues.change_project_at" (.OldProject.Title|Escape) (.Project.Title|Escape) $createdStr | Safe}}
-						{{else}}
-							{{$.locale.Tr "repo.issues.remove_project_at" (.OldProject.Title|Escape) $createdStr | Safe}}
-						{{end}}
+					{{$oldProjectDisplayHtml := "Unknown Project"}}
+					{{if .OldProject}}
+						{{$trKey := printf "projects.type-%d.display_name" .OldProject.Type}}
+						{{$oldProjectDisplayHtml = printf `<span data-tooltip-content="%s">%s</span>` ($.locale.Tr $trKey | Escape) (.OldProject.Title | Escape)}}
+					{{end}}
+					{{$newProjectDisplayHtml := "Unknown Project"}}
+					{{if .Project}}
+						{{$trKey := printf "projects.type-%d.display_name" .Project.Type}}
+						{{$newProjectDisplayHtml = printf `<span data-tooltip-content="%s">%s</span>` ($.locale.Tr $trKey | Escape) (.Project.Title | Escape)}}
+					{{end}}
+					{{if and (gt .OldProjectID 0) (gt .ProjectID 0)}}
+						{{$.locale.Tr "repo.issues.change_project_at" $oldProjectDisplayHtml $newProjectDisplayHtml $createdStr | Safe}}
+					{{else if gt .OldProjectID 0}}
+						{{$.locale.Tr "repo.issues.remove_project_at" $oldProjectDisplayHtml $createdStr | Safe}}
 					{{else if gt .ProjectID 0}}
-						{{$.locale.Tr "repo.issues.add_project_at" (.Project.Title|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.add_project_at" $newProjectDisplayHtml $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>

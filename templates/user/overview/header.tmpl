@@ -20,6 +20,9 @@
 	<div class="ui secondary stackable pointing menu">
 		<a class="item" href="{{.ContextUser.HomeLink}}">
 			{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
+			{{if .ContextUser.NumRepos}}
+				<div class="ui small label">{{.ContextUser.NumRepos}}</div>
+			{{end}}
 		</a>
 		{{if and .IsProjectEnabled (or .ContextUser.IsIndividual (and .ContextUser.IsOrganization .CanReadProjects))}}
 		<a href="{{.ContextUser.HomeLink}}/-/projects" class="{{if .PageIsViewProjects}}active {{end}}item">
@@ -42,13 +45,13 @@
 				<a class="item" href="{{$.OrgLink}}/members">
 					{{svg "octicon-person"}}&nbsp;{{$.locale.Tr "org.members"}}
 					{{if .NumMembers}}
-						<div class="ui primary label">{{.NumMembers}}</div>
+						<div class="ui small label">{{.NumMembers}}</div>
 					{{end}}
 				</a>
 				<a class="item" href="{{$.OrgLink}}/teams">
 					{{svg "octicon-people"}}&nbsp;{{$.locale.Tr "org.teams"}}
 					{{if .NumTeams}}
-						<div class="ui primary label">{{.NumTeams}}</div>
+						<div class="ui small label">{{.NumTeams}}</div>
 					{{end}}
 				</a>
 			{{end}}
@@ -68,7 +71,7 @@
 				<a class='{{if eq .TabName "stars"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=stars">
 					{{svg "octicon-star"}} {{.locale.Tr "user.starred"}}
 					{{if .ContextUser.NumStars}}
-						<div class="ui primary label">{{.ContextUser.NumStars}}</div>
+						<div class="ui small label">{{.ContextUser.NumStars}}</div>
 					{{end}}
 				</a>
 			{{else}}

@@ -208,7 +208,7 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 
 			mapLock.Lock()
 			assert.Equal(t, 101, len(executedInitial[name])+len(executedEmpty[name]))
-			assert.Equal(t, 0, len(hasEmpty[name]))
+			assert.Empty(t, hasEmpty[name])
 			mapLock.Unlock()
 		})
 		close(done)
