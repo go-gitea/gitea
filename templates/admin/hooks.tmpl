@@ -1,17 +1,9 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin hooks">
-	<div class="ui container">
-		<div class="ui grid">
-			{{template "admin/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin hooks")}}
+	<div class="admin-main-content">
 
-				{{template "repo/settings/webhook/base_list" .SystemWebhooks}}
-				{{template "repo/settings/webhook/base_list" .DefaultWebhooks}}
+		{{template "repo/settings/webhook/base_list" .SystemWebhooks}}
+		{{template "repo/settings/webhook/base_list" .DefaultWebhooks}}
 
-				{{template "repo/settings/webhook/delete_modal" .}}
-			</div>
-		</div>
+		{{template "repo/settings/webhook/delete_modal" .}}
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

@@ -1,101 +1,94 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin user">
-	<div class="ui container">
-		<div class="ui grid">
-			{{template "admin/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.locale.Tr "admin.repos.repo_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
-					<div class="ui right">
-						<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/repos/unadopted">{{.locale.Tr "admin.repos.unadopted"}}</a>
-					</div>
-				</h4>
-				<div class="ui attached segment">
-					{{template "admin/repo/search" .}}
-				</div>
-				<div class="ui attached table segment">
-					<table class="ui very basic striped table unstackable">
-						<thead>
-							<tr>
-								<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>
-								<th>{{.locale.Tr "admin.repos.owner"}}</th>
-								<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
-									{{.locale.Tr "admin.repos.name"}}
-									{{SortArrow "alphabetically" "reversealphabetically" $.SortType false}}
-								</th>
-								<th>{{.locale.Tr "admin.repos.watches"}}</th>
-								<th  data-sortt-asc="moststars" data-sortt-desc="feweststars">
-									{{.locale.Tr "admin.repos.stars"}}
-									{{SortArrow "moststars" "feweststars" $.SortType false}}
-								</th>
-								<th  data-sortt-asc="mostforks" data-sortt-desc="fewestforks">
-									{{.locale.Tr "admin.repos.forks"}}
-									{{SortArrow "mostforks" "fewestforks" $.SortType false}}
-								</th>
-								<th>{{.locale.Tr "admin.repos.issues"}}</th>
-								<th  data-sortt-asc="size" data-sortt-desc="reversesize">
-									{{.locale.Tr "admin.repos.size"}}
-									{{SortArrow "size" "reversesize" $.SortType false}}
-								</th>
-								<th>{{.locale.Tr "admin.users.created"}}</th>
-								<th>{{.locale.Tr "admin.notices.op"}}</th>
-							</tr>
-						</thead>
-						<tbody>
-							{{range .Repos}}
-								<tr>
-									<td>{{.ID}}</td>
-									<td>
-										<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
-										{{if .Owner.Visibility.IsPrivate}}
-											<span class="text gold">{{svg "octicon-lock"}}</span>
-										{{end}}
-									</td>
-									<td>
-										<a href="{{.Link}}">{{.Name}}</a>
-										{{if .IsArchived}}
-											<span class="ui basic mini label">{{$.locale.Tr "repo.desc.archived"}}</span>
-										{{end}}
-										{{if .IsTemplate}}
-											{{if .IsPrivate}}
-												<span class="ui basic mini label">{{$.locale.Tr "repo.desc.private_template"}}</span>
-											{{else}}
-												{{if .Owner.Visibility.IsPrivate}}
-													<span class="ui basic mini label">{{$.locale.Tr "repo.desc.internal_template"}}</span>
-												{{end}}
-											{{end}}
-										{{else}}
-											{{if .IsPrivate}}
-												<span class="ui basic mini label">{{$.locale.Tr "repo.desc.private"}}</span>
-											{{else}}
-												{{if .Owner.Visibility.IsPrivate}}
-													<span class="ui basic mini label">{{$.locale.Tr "repo.desc.internal"}}</span>
-												{{end}}
-											{{end}}
-										{{end}}
-										{{if .IsFork}}
-											{{svg "octicon-repo-forked"}}
-										{{else if .IsMirror}}
-											{{svg "octicon-mirror"}}
-										{{end}}
-									</td>
-									<td>{{.NumWatches}}</td>
-									<td>{{.NumStars}}</td>
-									<td>{{.NumForks}}</td>
-									<td>{{.NumIssues}}</td>
-									<td>{{FileSize .Size}}</td>
-									<td>{{template "shared/datetime/short" (dict "Datetime" .CreatedUnix.FormatLong "Fallback" .CreatedUnix.FormatShort)}}</td>
-									<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trash"}}</a></td>
-								</tr>
-							{{end}}
-						</tbody>
-					</table>
-				</div>
-
-				{{template "base/paginate" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+	<div class="admin-main-content">
+		<h4 class="ui top attached header">
+			{{.locale.Tr "admin.repos.repo_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
+			<div class="ui right">
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/repos/unadopted">{{.locale.Tr "admin.repos.unadopted"}}</a>
 			</div>
+		</h4>
+		<div class="ui attached segment">
+			{{template "admin/repo/search" .}}
 		</div>
+		<div class="ui attached table segment">
+			<table class="ui very basic striped table unstackable">
+				<thead>
+					<tr>
+						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>
+						<th>{{.locale.Tr "admin.repos.owner"}}</th>
+						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
+							{{.locale.Tr "admin.repos.name"}}
+							{{SortArrow "alphabetically" "reversealphabetically" $.SortType false}}
+						</th>
+						<th>{{.locale.Tr "admin.repos.watches"}}</th>
+						<th  data-sortt-asc="moststars" data-sortt-desc="feweststars">
+							{{.locale.Tr "admin.repos.stars"}}
+							{{SortArrow "moststars" "feweststars" $.SortType false}}
+						</th>
+						<th  data-sortt-asc="mostforks" data-sortt-desc="fewestforks">
+							{{.locale.Tr "admin.repos.forks"}}
+							{{SortArrow "mostforks" "fewestforks" $.SortType false}}
+						</th>
+						<th>{{.locale.Tr "admin.repos.issues"}}</th>
+						<th  data-sortt-asc="size" data-sortt-desc="reversesize">
+							{{.locale.Tr "admin.repos.size"}}
+							{{SortArrow "size" "reversesize" $.SortType false}}
+						</th>
+						<th>{{.locale.Tr "admin.users.created"}}</th>
+						<th>{{.locale.Tr "admin.notices.op"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .Repos}}
+						<tr>
+							<td>{{.ID}}</td>
+							<td>
+								<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
+								{{if .Owner.Visibility.IsPrivate}}
+									<span class="text gold">{{svg "octicon-lock"}}</span>
+								{{end}}
+							</td>
+							<td>
+								<a href="{{.Link}}">{{.Name}}</a>
+								{{if .IsArchived}}
+									<span class="ui basic mini label">{{$.locale.Tr "repo.desc.archived"}}</span>
+								{{end}}
+								{{if .IsTemplate}}
+									{{if .IsPrivate}}
+										<span class="ui basic mini label">{{$.locale.Tr "repo.desc.private_template"}}</span>
+									{{else}}
+										{{if .Owner.Visibility.IsPrivate}}
+											<span class="ui basic mini label">{{$.locale.Tr "repo.desc.internal_template"}}</span>
+										{{end}}
+									{{end}}
+								{{else}}
+									{{if .IsPrivate}}
+										<span class="ui basic mini label">{{$.locale.Tr "repo.desc.private"}}</span>
+									{{else}}
+										{{if .Owner.Visibility.IsPrivate}}
+											<span class="ui basic mini label">{{$.locale.Tr "repo.desc.internal"}}</span>
+										{{end}}
+									{{end}}
+								{{end}}
+								{{if .IsFork}}
+									{{svg "octicon-repo-forked"}}
+								{{else if .IsMirror}}
+									{{svg "octicon-mirror"}}
+								{{end}}
+							</td>
+							<td>{{.NumWatches}}</td>
+							<td>{{.NumStars}}</td>
+							<td>{{.NumForks}}</td>
+							<td>{{.NumIssues}}</td>
+							<td>{{FileSize .Size}}</td>
+							<td>{{template "shared/datetime/short" (dict "Datetime" .CreatedUnix.FormatLong "Fallback" .CreatedUnix.FormatShort)}}</td>
+							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trash"}}</a></td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+
+		{{template "base/paginate" .}}
 	</div>
 </div>
 
@@ -110,5 +103,4 @@
 		{{.locale.Tr "repo.settings.delete_notices_fork_1"}}<br>
 	</div>
 	{{template "base/delete_modal_actions" .}}
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

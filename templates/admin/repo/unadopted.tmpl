@@ -1,106 +1,97 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin user">
-	<div class="ui container">
-		<div class="ui grid">
-			{{template "admin/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.locale.Tr "admin.repos.unadopted"}}
-					<div class="ui right">
-						<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/repos">{{.locale.Tr "admin.repos.repo_manage_panel"}}</a>
-					</div>
-				</h4>
-				<div class="ui attached segment">
-					<form class="ui form ignore-dirty">
-						<div class="ui fluid action input">
-						<input name="search" value="true" type="hidden">
-						<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "repo.adopt_search"}}" autofocus>
-						<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
-						</div>
-					</form>
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+	<div class="admin-main-content">
+		<h4 class="ui top attached header">
+			{{.locale.Tr "admin.repos.unadopted"}}
+			<div class="ui right">
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/repos">{{.locale.Tr "admin.repos.repo_manage_panel"}}</a>
+			</div>
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form ignore-dirty">
+				<div class="ui fluid action input">
+				<input name="search" value="true" type="hidden">
+				<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "repo.adopt_search"}}" autofocus>
+				<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 				</div>
-				{{if .search}}
-					<div class="ui attached segment settings">
-						{{if .Dirs}}
-							<div class="ui middle aligned divided list">
-								{{range $dirI, $dir := .Dirs}}
-									<div class="item">
-										<div class="content">
-											<span class="icon">{{svg "octicon-file-directory-fill"}}</span>
-											<span class="name">{{$dir}}</span>
-											<div class="right floated content">
-												<button class="ui button submit tiny green adopt show-modal" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{$.locale.Tr "repo.adopt_preexisting_label"}}</span></button>
-												<div class="ui basic modal" id="adopt-unadopted-modal-{{$dirI}}">
-													{{svg "octicon-x" 16 "close inside"}}
-													<div class="header">
-														<span class="label">{{$.locale.Tr "repo.adopt_preexisting"}}</span>
-													</div>
-													<div class="content">
-														<p>{{$.locale.Tr "repo.adopt_preexisting_content" $dir}}</p>
-													</div>
-													<form class="ui form" method="POST" action="{{AppSubUrl}}/admin/repos/unadopted">
-														{{$.CsrfTokenHtml}}
-														<input type="hidden" name="id" value="{{$dir}}">
-														<input type="hidden" name="action" value="adopt">
-														<input type="hidden" name="q" value="{{$.Keyword}}">
-														<input type="hidden" name="page" value="{{$.CurrentPage}}">
-														<div class="actions">
-															<button class="ui red basic inverted cancel button">
-																{{svg "octicon-trash" 16 "gt-mr-2"}}
-																{{$.locale.Tr "modal.no"}}
-															</button>
-															<button class="ui green basic inverted ok button">
-																{{svg "octicon-check" 16 "gt-mr-2"}}
-																{{$.locale.Tr "modal.yes"}}
-															</button>
-														</div>
-													</form>
-												</div>
-												<button class="ui button submit tiny red delete show-modal" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{$.locale.Tr "repo.delete_preexisting_label"}}</span></button>
-												<div class="ui basic modal" id="delete-unadopted-modal-{{$dirI}}">
-													{{svg "octicon-x" 16 "close inside"}}
-													<div class="header">
-														<span class="label">{{$.locale.Tr "repo.delete_preexisting"}}</span>
-													</div>
-													<div class="content">
-														<p>{{$.locale.Tr "repo.delete_preexisting_content" $dir}}</p>
-													</div>
-													<form class="ui form" method="POST" action="{{AppSubUrl}}/admin/repos/unadopted">
-														{{$.CsrfTokenHtml}}
-														<input type="hidden" name="id" value="{{$dir}}">
-														<input type="hidden" name="action" value="delete">
-														<input type="hidden" name="q" value="{{$.Keyword}}">
-														<input type="hidden" name="page" value="{{$.CurrentPage}}">
-														<div class="actions">
-															<button class="ui red basic inverted cancel button">
-																{{svg "octicon-trash" 16 "gt-mr-2"}}
-																{{$.locale.Tr "modal.no"}}
-															</button>
-															<button class="ui green basic inverted ok button">
-																{{svg "octicon-check" 16 "gt-mr-2"}}
-																{{$.locale.Tr "modal.yes"}}
-															</button>
-														</div>
-													</form>
-												</div>
+			</form>
+		</div>
+		{{if .search}}
+			<div class="ui attached segment settings">
+				{{if .Dirs}}
+					<div class="ui middle aligned divided list">
+						{{range $dirI, $dir := .Dirs}}
+							<div class="item">
+								<div class="content">
+									<span class="icon">{{svg "octicon-file-directory-fill"}}</span>
+									<span class="name">{{$dir}}</span>
+									<div class="right floated content">
+										<button class="ui button submit tiny green adopt show-modal" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{$.locale.Tr "repo.adopt_preexisting_label"}}</span></button>
+										<div class="ui basic modal" id="adopt-unadopted-modal-{{$dirI}}">
+											{{svg "octicon-x" 16 "close inside"}}
+											<div class="header">
+												<span class="label">{{$.locale.Tr "repo.adopt_preexisting"}}</span>
 											</div>
+											<div class="content">
+												<p>{{$.locale.Tr "repo.adopt_preexisting_content" $dir}}</p>
+											</div>
+											<form class="ui form" method="POST" action="{{AppSubUrl}}/admin/repos/unadopted">
+												{{$.CsrfTokenHtml}}
+												<input type="hidden" name="id" value="{{$dir}}">
+												<input type="hidden" name="action" value="adopt">
+												<input type="hidden" name="q" value="{{$.Keyword}}">
+												<input type="hidden" name="page" value="{{$.CurrentPage}}">
+												<div class="actions">
+													<button class="ui red basic inverted cancel button">
+														{{svg "octicon-trash" 16 "gt-mr-2"}}
+														{{$.locale.Tr "modal.no"}}
+													</button>
+													<button class="ui green basic inverted ok button">
+														{{svg "octicon-check" 16 "gt-mr-2"}}
+														{{$.locale.Tr "modal.yes"}}
+													</button>
+												</div>
+											</form>
+										</div>
+										<button class="ui button submit tiny red delete show-modal" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{$.locale.Tr "repo.delete_preexisting_label"}}</span></button>
+										<div class="ui basic modal" id="delete-unadopted-modal-{{$dirI}}">
+											{{svg "octicon-x" 16 "close inside"}}
+											<div class="header">
+												<span class="label">{{$.locale.Tr "repo.delete_preexisting"}}</span>
+											</div>
+											<div class="content">
+												<p>{{$.locale.Tr "repo.delete_preexisting_content" $dir}}</p>
+											</div>
+											<form class="ui form" method="POST" action="{{AppSubUrl}}/admin/repos/unadopted">
+												{{$.CsrfTokenHtml}}
+												<input type="hidden" name="id" value="{{$dir}}">
+												<input type="hidden" name="action" value="delete">
+												<input type="hidden" name="q" value="{{$.Keyword}}">
+												<input type="hidden" name="page" value="{{$.CurrentPage}}">
+												<div class="actions">
+													<button class="ui red basic inverted cancel button">
+														{{svg "octicon-trash" 16 "gt-mr-2"}}
+														{{$.locale.Tr "modal.no"}}
+													</button>
+													<button class="ui green basic inverted ok button">
+														{{svg "octicon-check" 16 "gt-mr-2"}}
+														{{$.locale.Tr "modal.yes"}}
+													</button>
+												</div>
+											</form>
 										</div>
 									</div>
-								{{end}}
+								</div>
 							</div>
-							{{template "base/paginate" .}}
-						{{else}}
-							<div class="item">
-								{{.locale.Tr "admin.repos.unadopted.no_more"}}
-							</div>
-							{{template "base/paginate" .}}
 						{{end}}
 					</div>
+					{{template "base/paginate" .}}
+				{{else}}
+					<div class="item">
+						{{.locale.Tr "admin.repos.unadopted.no_more"}}
+					</div>
+					{{template "base/paginate" .}}
 				{{end}}
 			</div>
-		</div>
+		{{end}}
 	</div>
-</div>
-
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}
