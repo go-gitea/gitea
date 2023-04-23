@@ -150,7 +150,7 @@
 									</div>
 								</div>
 
-								<div class="ui basic modal default-project-board-modal" id="default-project-board-modal-{{.ID}}">
+								<div class="ui gitea-custom modal default-project-board-modal" id="default-project-board-modal-{{.ID}}">
 									<div class="ui icon header">
 										<span id="default-project-board-header"></span>
 									</div>
@@ -160,7 +160,7 @@
 									{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonStyle" "confirm")}}
 								</div>
 
-								<div class="ui basic modal" id="delete-board-modal-{{.ID}}">
+								<div class="ui gitea-custom modal" id="delete-board-modal-{{.ID}}">
 									<div class="ui icon header">
 										{{$.locale.Tr "repo.projects.column.delete"}}
 									</div>
@@ -272,7 +272,7 @@
 </div>
 
 {{if .CanWriteProjects}}
-	<div class="ui small basic delete modal">
+	<div class="ui small gitea-custom delete modal">
 		<div class="ui icon header">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.projects.deletion"}}

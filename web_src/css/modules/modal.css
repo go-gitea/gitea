@@ -22,7 +22,3 @@
 .ui.modal > .close.inside {
   color: var(--color-text);
 }
-
-.ui.modal > form > .actions {
-  text-align: center;
-}

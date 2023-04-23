@@ -22,7 +22,7 @@
 							</td>
 							<td class="right aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-									<button class="ui basic jump button icon show-create-branch-modal" data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}" data-branch-from="{{$.DefaultBranch}}" data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}" data-modal="#create-branch-modal">
+									<button class="ui gitea-custom jump button icon show-create-branch-modal" data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}" data-branch-from="{{$.DefaultBranch}}" data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}" data-modal="#create-branch-modal">
 										{{svg "octicon-git-branch"}}
 									</button>
 								{{end}}
@@ -109,7 +109,7 @@
 									</td>
 									<td class="three wide right aligned overflow-visible">
 										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-											<button class="ui basic jump button icon show-create-branch-modal" data-branch-from="{{.Name}}" data-branch-from-urlcomponent="{{PathEscapeSegments .Name}}" data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" .Name}}" data-modal="#create-branch-modal" data-name="{{.Name}}">
+											<button class="ui gitea-custom jump button icon show-create-branch-modal" data-branch-from="{{.Name}}" data-branch-from-urlcomponent="{{PathEscapeSegments .Name}}" data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" .Name}}" data-modal="#create-branch-modal" data-name="{{.Name}}">
 												{{svg "octicon-git-branch"}}
 											</button>
 										{{end}}
@@ -147,7 +147,7 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal">
+<div class="ui small gitea-custom delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "repo.branch.delete_html"}} <span class="name"></span>
