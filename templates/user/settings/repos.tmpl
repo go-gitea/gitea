@@ -46,16 +46,7 @@
 														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="adopt">
-														<div class="actions">{{/* TODO: Convert to base/modal_actions_confirm */}}
-															<button class="ui red basic inverted cancel button">
-																{{svg "octicon-x"}}
-																{{$.locale.Tr "modal.no"}}
-															</button>
-															<button class="ui green basic inverted ok button">
-																{{svg "octicon-check"}}
-																{{$.locale.Tr "modal.yes"}}
-															</button>
-														</div>
+														{{template "base/modal_actions_confirm" .}}
 													</form>
 												</div>
 											{{end}}

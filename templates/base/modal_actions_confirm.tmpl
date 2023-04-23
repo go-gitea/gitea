@@ -1,21 +1,43 @@
 {{/*
 Template Attributes:
 * locale
-* ModalButtonStyle: "yes" (default) or "confirm"
+
+Two buttons:
+
+* ModalButtonTypes: "yes" (default) or "confirm"
+* ModalButtonColors: "green-red" (default) / "blue" / "yellow"
 * ModalButtonCancelText
 * ModalButtonOkText
+
+Single button:
+
+* ModalButtonDangerText "This action will destroy your data"
 
 The ".ok.button" and ".cancel.button" selectors are also used by Fomantic Modal internally
 */}}
 <div class="actions">
-	{{$textNegitive := .locale.Tr "modal.no"}}
-	{{$textPositive := .locale.Tr "modal.yes"}}
-	{{if eq .ModalButtonStyle "confirm"}}
-		{{$textNegitive = .locale.Tr "modal.cancel"}}
-		{{$textPositive = .locale.Tr "modal.confirm"}}
+	{{if .ModalButtonDangerText}}
+		<button class="ui danger red ok button">{{.ModalButtonDangerText}}</button>
+	{{else}}
+		{{$textNegitive := .locale.Tr "modal.no"}}
+		{{$textPositive := .locale.Tr "modal.yes"}}
+		{{if eq .ModalButtonTypes "confirm"}}
+			{{$textNegitive = .locale.Tr "modal.cancel"}}
+			{{$textPositive = .locale.Tr "modal.confirm"}}
+		{{end}}
+		{{if .ModalButtonCancelText}}{{$textNegitive = .ModalButtonCancelText}}{{end}}
+		{{if .ModalButtonOkText}}{{$textPositive = .ModalButtonOkText}}{{end}}
+
+		{{$styleNegative := "red"}}
+		{{$stylePositive := "green"}}
+		{{if eq .ModalButtonColors "blue"}}
+			{{$styleNegative = "secondary basic"}}
+			{{$stylePositive = "blue"}}
+		{{else if eq .ModalButtonColors "yellow"}}
+			{{$styleNegative = "secondary basic"}}
+			{{$stylePositive = "yellow"}}
+		{{end}}
+		<button class="ui {{$styleNegative}} cancel button">{{svg "octicon-x"}} {{$textNegitive}}</button>
+		<button class="ui {{$stylePositive}} ok button">{{svg "octicon-check"}} {{$textPositive}}</button>
 	{{end}}
-	{{if .ModalButtonCancelText}}{{$textNegitive = .ModalButtonCancelText}}{{end}}
-	{{if .ModalButtonOkText}}{{$textPositive = .ModalButtonOkText}}{{end}}
-	<button class="ui red cancel button">{{svg "octicon-x"}} {{$textNegitive}}</button>
-	<button class="ui green ok button">{{svg "octicon-check"}} {{$textPositive}}</button>
 </div>
