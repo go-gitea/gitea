@@ -41,7 +41,7 @@
 		{{template "base/paginate" .}}
 		{{range .LFSFiles}}
 			<div class="ui gitea-custom modal" id="delete-{{.Oid}}">
-				<div class="ui icon header">
+				<div class="header">
 					{{$.locale.Tr "repo.settings.lfs_delete" .Oid}}
 				</div>
 				<div class="content">

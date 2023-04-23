@@ -151,7 +151,7 @@
 								</div>
 
 								<div class="ui gitea-custom modal default-project-board-modal" id="default-project-board-modal-{{.ID}}">
-									<div class="ui icon header">
+									<div class="header">
 										<span id="default-project-board-header"></span>
 									</div>
 									<div class="content">
@@ -161,7 +161,7 @@
 								</div>
 
 								<div class="ui gitea-custom modal" id="delete-board-modal-{{.ID}}">
-									<div class="ui icon header">
+									<div class="header">
 										{{$.locale.Tr "repo.projects.column.delete"}}
 									</div>
 									<div class="content">
@@ -273,7 +273,7 @@
 
 {{if .CanWriteProjects}}
 	<div class="ui small gitea-custom delete modal">
-		<div class="ui icon header">
+		<div class="header">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.projects.deletion"}}
 		</div>

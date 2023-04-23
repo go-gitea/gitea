@@ -543,7 +543,7 @@
 				<input type="hidden" id="crossRepoSearch" value="{{.AllowCrossRepositoryDependencies}}">
 
 				<div class="ui gitea-custom modal remove-dependency">
-					<div class="ui icon header">
+					<div class="header">
 						{{svg "octicon-trash"}}
 						{{.locale.Tr "repo.issues.dependency.remove_header"}}
 					</div>
@@ -657,7 +657,7 @@
 				{{.locale.Tr "repo.issues.delete"}}
 			</button>
 			<div class="ui gitea-custom modal" id="delete">
-				<div class="ui icon header">
+				<div class="header">
 					{{if .Issue.IsPull}}
 						{{.locale.Tr "repo.pulls.delete.title"}}
 					{{else}}
