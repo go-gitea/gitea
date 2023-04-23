@@ -1,0 +1,21 @@
+{{/*
+Template Attributes:
+* locale
+* ModalButtonStyle: "yes" (default) or "confirm"
+* ModalButtonCancelText
+* ModalButtonOkText
+
+The ".ok.button" and ".cancel.button" selectors are also used by Fomantic Modal internally
+*/}}
+<div class="actions">
+	{{$textNegitive := .locale.Tr "modal.no"}}
+	{{$textPositive := .locale.Tr "modal.yes"}}
+	{{if eq .ModalButtonStyle "confirm"}}
+		{{$textNegitive = .locale.Tr "modal.cancel"}}
+		{{$textPositive = .locale.Tr "modal.confirm"}}
+	{{end}}
+	{{if .ModalButtonCancelText}}{{$textNegitive = .ModalButtonCancelText}}{{end}}
+	{{if .ModalButtonOkText}}{{$textPositive = .ModalButtonOkText}}{{end}}
+	<button class="ui red cancel button">{{svg "octicon-x"}} {{$textNegitive}}</button>
+	<button class="ui green ok button">{{svg "octicon-check"}} {{$textPositive}}</button>
+</div>

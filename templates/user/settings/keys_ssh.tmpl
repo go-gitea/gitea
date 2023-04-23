@@ -100,13 +100,13 @@
 <br>
 <p>{{.locale.Tr "settings.ssh_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/connecting-to-github-with-ssh" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/troubleshooting-ssh" | Str2html}}</p>
 
-<div class="ui small basic delete modal" id="delete-ssh">
-	<div class="ui icon header">
+<div class="ui gitea-confirm-modal delete modal" id="delete-ssh">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.ssh_key_deletion"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "settings.ssh_key_deletion_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>

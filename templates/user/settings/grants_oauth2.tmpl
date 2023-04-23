@@ -28,13 +28,13 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal" id="revoke-gitea-oauth2-grant">
-	<div class="ui icon header">
+<div class="ui gitea-confirm-modal delete modal" id="revoke-gitea-oauth2-grant">
+	<div class="header">
 		{{svg "octicon-shield" 16 "gt-mr-2"}}
 		{{.locale.Tr "settings.revoke_oauth2_grant"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "settings.revoke_oauth2_grant_description"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
