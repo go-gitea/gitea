@@ -99,7 +99,7 @@ endif
 
 # if version = "main" then update version to "nightly"
 ifeq ($(VERSION),main)
-	VERSION := nightly
+	VERSION := main-nightly
 endif
 
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
