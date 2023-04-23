@@ -133,16 +133,9 @@
 			{{if .Issue.PullRequest.HasMerged}}
 				<div class="item item-section text gt-f1">
 					<div class="item-section-left">
-						<h3 class="gt-mb-3">
-							{{if and (eq $.Issue.PullRequest.Status 3) (.Issue.PullRequest.MergedCommitID)}}
-								{{$link := printf "%s/commit/%s" $.Repository.Link (.Issue.PullRequest.MergedCommitID | PathEscape)}}
-								{{$.locale.Tr "repo.pulls.merged_manually_success"}}
-							{{else}}
-								{{$.locale.Tr "repo.pulls.merged_success" (printf "<a rel='nofollow' class='ui sha' href='%s'>%s</a>" ($link | Escape) (ShortSha .Issue.PullRequest.MergedCommitID | Escape) | Str2html}}
-							{{end}}
-						</h3>
+						<h3 class="gt-mb-3">{{$.locale.Tr "repo.pulls.merged_success"}}</h3>
 						<div class="merge-section-info">
-							{{$.locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape) | Str2html}}
+							{{$.locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" .HeadTarget) | Str2html}}
 						</div>
 					</div>
 					{{if .IsPullBranchDeletable}}
