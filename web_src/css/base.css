@@ -9,7 +9,7 @@
   /* non-color variables */
   --border-radius: 0.28571429rem;
   --opacity-disabled: 0.55;
-  --height-loading: 12rem;
+  --height-loading: 16rem;
   /* base colors */
   --color-primary: #4183c4;
   --color-primary-contrast: #ffffff;
@@ -78,7 +78,6 @@
   --color-purple: #a333c8;
   --color-pink: #e03997;
   --color-brown: #a5673f;
-  --color-grey: #888888;
   --color-black: #1b1c1d;
   /* light variants - produced via Sass scale-color(color, $lightness: +25%) */
   --color-red-light: #e45e5e;
@@ -92,9 +91,10 @@
   --color-purple-light: #bb64d8;
   --color-pink-light: #e86bb1;
   --color-brown-light: #c58b66;
-  --color-grey-light: #a6a6a6;
   --color-black-light: #525558;
   /* other colors */
+  --color-grey: #707070;
+  --color-grey-light: #838383;
   --color-gold: #a1882b;
   --color-white: #ffffff;
   --color-diff-removed-word-bg: #fdb8c0;
@@ -230,12 +230,12 @@ body {
   }
 }
 
-img {
-  border-radius: 3px;
-}
-
 table {
   border-collapse: collapse;
+}
+
+button {
+  cursor: pointer;
 }
 
 details summary {
@@ -803,9 +803,7 @@ a.label,
   color: var(--color-text-dark);
 }
 
-.ui.link.menu .item:hover,
 .ui.menu .dropdown.item:hover,
-.ui.menu .link.item:hover,
 .ui.menu a.item:hover {
   color: var(--color-text);
   background: var(--color-hover);
@@ -819,8 +817,6 @@ a.label,
   background: var(--color-active);
 }
 
-.ui.link.menu .item:active,
-.ui.menu .link.item:active,
 .ui.menu a.item:active {
   color: var(--color-text);
   background: none;
@@ -865,10 +861,6 @@ a.label,
   margin-bottom: -0.25rem;
 }
 
-.ui.dropdown .menu > .item > svg.img {
-  margin-right: 0.78571429rem;
-}
-
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
 }
@@ -908,7 +900,6 @@ a.label,
 }
 
 .ui.secondary.menu .dropdown.item:hover,
-.ui.secondary.menu .link.item:hover,
 .ui.secondary.menu a.item:hover {
   color: var(--color-text);
   background: var(--color-hover);
@@ -1069,9 +1060,7 @@ a.label,
 }
 
 .ui.cards a.card:hover,
-.ui.link.cards .card:not(.icon):hover,
-a.ui.card:hover,
-.ui.link.card:hover {
+a.ui.card:hover {
   border: 1px solid var(--color-secondary);
   background: var(--color-card);
 }
@@ -1181,9 +1170,9 @@ a.ui.card:hover,
   border-color: var(--color-secondary);
 }
 
+img.ui.avatar,
 .ui.avatar img,
 .ui.avatar svg,
-.ui.avatar.img,
 .ui.cards > .card img.avatar,
 .ui.cards > .card .avatar img,
 .ui.card img.avatar,
@@ -1193,19 +1182,6 @@ a.ui.card:hover,
 
 .ui.divided.list > .item {
   border-color: var(--color-secondary);
-}
-
-.ui.link.list .item,
-.ui.link.list a.item,
-.ui.link.list .item a:not(.ui) {
-  color: var(--color-text);
-}
-
-.ui.link.list.list a.item:hover,
-.ui.link.list.list .item a:not(.ui):hover,
-.ui.link.list.list a.item:active,
-.ui.link.list.list .item a:not(.ui):active {
-  color: var(--color-text-dark);
 }
 
 .ui.error.message .header,
@@ -1829,47 +1805,6 @@ a.ui.card:hover,
   color: var(--color-warning-text);
 }
 
-footer {
-  background-color: var(--color-footer);
-  border-top: 1px solid var(--color-secondary);
-  width: 100%;
-  flex-basis: 40px;
-  color: var(--color-text-light);
-}
-
-footer .container {
-  width: 100vw !important;
-  padding: 0 0.5rem;
-  max-width: calc(100vw - 1rem) !important;
-}
-
-footer .container .links > * {
-  border-left: 1px solid var(--color-secondary-dark-1);
-  padding-left: 8px;
-  margin-left: 5px;
-}
-
-footer .container .links > *:first-child {
-  border-left: 0;
-}
-
-footer .ui.language .menu {
-  height: 500px;
-  max-height: calc(100vh - 60px);
-  overflow-y: auto;
-  margin-bottom: 7px;
-}
-
-footer .ui.language .svg {
-  margin-right: 0.15em;
-  margin-top: 1px;
-}
-
-footer .ui.left,
-footer .ui.right {
-  line-height: 39px; /* there  is a border-top on the footer, so make the line-height 1px less */
-}
-
 .center:not(.popup) {
   text-align: center;
 }
@@ -2392,9 +2327,10 @@ a.ui.label:hover {
 }
 
 .ui.primary.label,
-.ui.primary.labels .label {
-  background-color: var(--color-primary) !important;
-  border-color: var(--color-primary-dark-2) !important;
+.ui.primary.labels .label,
+.ui.ui.ui.primary.label {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary-dark-2);
 }
 
 .ui.basic.labels .primary.label,
@@ -2402,6 +2338,13 @@ a.ui.label:hover {
   background: transparent;
   border-color: var(--color-primary);
   color: var(--color-primary);
+}
+
+.ui.basic.labels a.primary.label:hover,
+a.ui.ui.ui.basic.primary.label:hover {
+  background: var(--color-hover);
+  border-color: var(--color-primary-dark-1);
+  color: var(--color-primary-dark-1);
 }
 
 .ui.basic.labels .secondary.label,
@@ -2653,6 +2596,15 @@ table th[data-sortt-desc] .svg {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
+.ui.dropdown .menu > .divider {
+  border-top: 1px solid var(--color-secondary);
+  margin: 4px 0;
+}
+
+.ui.multiple.dropdown > .label {
+  box-shadow: 0 0 0 1px var(--color-secondary) inset;
+}
+
 .text-label {
   display: inline-flex !important;
   align-items: center !important;
@@ -2772,7 +2724,6 @@ table th[data-sortt-desc] .svg {
 .ui.secondary.pointing.menu .active.item,
 .ui.secondary.pointing.menu .active.item:hover,
 .ui.secondary.pointing.menu .dropdown.item:hover,
-.ui.secondary.pointing.menu .link.item:hover,
 .ui.secondary.pointing.menu a.item:hover {
   color: var(--color-text-dark);
 }

@@ -4,11 +4,11 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.nuget.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>dotnet nuget add source --name Gitea --username your_username --password your_token <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/nuget/index.json"></gitea-origin-url></code></pre></div>
+				<div class="markup"><pre class="code-block"><code>dotnet nuget add source --name {{.PackageDescriptor.Owner.Name}} --username your_username --password your_token <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/nuget/index.json"></gitea-origin-url></code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.nuget.install"}}</label>
-				<div class="markup"><pre class="code-block"><code>dotnet add package --source Gitea --version {{.PackageDescriptor.Version.Version}} {{.PackageDescriptor.Package.Name}}</code></pre></div>
+				<div class="markup"><pre class="code-block"><code>dotnet add package --source {{.PackageDescriptor.Owner.Name}} --version {{.PackageDescriptor.Version.Version}} {{.PackageDescriptor.Package.Name}}</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{.locale.Tr "packages.nuget.documentation" | Safe}}</label>

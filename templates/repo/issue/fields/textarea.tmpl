@@ -2,5 +2,5 @@
 	{{template "repo/issue/fields/header" .}}
 	{{/* FIXME: preview markdown result */}}
 	{{/* FIXME: required validation for markdown editor */}}
-	<textarea name="form-field-{{.item.ID}}" placeholder="{{.item.Attributes.placeholder}}" class="edit_area {{if .item.Attributes.render}}no-easymde{{end}}" {{if and .item.Validations.required .item.Attributes.render}}required{{end}}>{{.item.Attributes.value}}</textarea>
+	<textarea name="form-field-{{.item.ID}}" placeholder="{{.item.Attributes.placeholder}}" {{if and .item.Validations.required .item.Attributes.render}}required{{end}}>{{.item.Attributes.value}}</textarea>
 </div>

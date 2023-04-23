@@ -1,4 +1,11 @@
 {{$file := .file}}
+<colgroup>
+	<col width="50">
+	<col width="50">
+	<col width="10">
+	<col width="10">
+	<col>
+</colgroup>
 {{range $j, $section := $file.Sections}}
 	{{range $k, $line := $section.Lines}}
 		<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{DiffLineTypeToStr .GetType}}">
@@ -49,9 +56,8 @@
 		</tr>
 		{{if gt (len $line.Comments) 0}}
 			<tr class="add-comment" data-line-type="{{DiffLineTypeToStr .GetType}}">
-				<td colspan="3" class="lines-num"></td>
 				<td class="add-comment-left add-comment-right" colspan="5">
-					{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
+					{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
 				</td>
 			</tr>
 		{{end}}

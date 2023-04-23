@@ -25,19 +25,19 @@
 				{{end}}
 				<div class="ui bottom attached table segment members">
 					{{range .Team.Members}}
-						<div class="item">
+						<div class="item gt-df gt-ac gt-fw">
+							<a href="{{.HomeLink}}">{{avatar $.Context . 48 "gt-mr-3 gt-mb-0"}}</a>
+							<a class="gt-f1" href="{{.HomeLink}}">
+								<strong>{{.DisplayName}}</strong>
+							</a>
 							{{if and $.IsOrganizationOwner (not (and ($.Team.IsOwnerTeam) (eq (len $.Team.Members) 1)))}}
 								<form>
-									<button class="ui red button delete-button right" data-modal-id="remove-team-member"
+									<button class="ui red button delete-button" data-modal-id="remove-team-member"
 										data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove" data-datauid="{{.ID}}"
 										data-name="{{.DisplayName}}"
 										data-data-team-name="{{$.Team.Name}}">{{$.locale.Tr "org.members.remove"}}</button>
 								</form>
 							{{end}}
-							<a href="{{.HomeLink}}">
-								{{avatar $.Context .}}
-								{{.DisplayName}}
-							</a>
 						</div>
 					{{else}}
 						<div class="item">

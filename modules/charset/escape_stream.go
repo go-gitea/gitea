@@ -47,7 +47,9 @@ func (e *escapeStreamer) EscapeStatus() *EscapeStatus {
 // Text tells the next streamer there is a text
 func (e *escapeStreamer) Text(data string) error {
 	sb := &strings.Builder{}
-	pos, until, next := 0, 0, 0
+	var until int
+	var next int
+	pos := 0
 	if len(data) > len(UTF8BOM) && data[:len(UTF8BOM)] == string(UTF8BOM) {
 		_, _ = sb.WriteString(data[:len(UTF8BOM)])
 		pos = len(UTF8BOM)
