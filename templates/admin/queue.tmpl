@@ -177,7 +177,7 @@
 			<pre>{{.Queue.Configuration | JsonPrettyPrint}}
 		</div>
 	</div>
-</div>
+{{template "admin/layout_footer" .}}
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-x" 16 "close inside"}}
@@ -188,4 +188,4 @@
 		<p>{{$.locale.Tr "admin.monitor.queue.pool.cancel_desc"}}</p>
 	</div>
 	{{template "base/delete_modal_actions" .}}
-{{template "admin/layout_footer" .}}
+</div>

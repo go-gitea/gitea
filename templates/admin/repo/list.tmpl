@@ -90,7 +90,7 @@
 
 		{{template "base/paginate" .}}
 	</div>
-</div>
+{{template "admin/layout_footer" .}}
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
@@ -103,4 +103,4 @@
 		{{.locale.Tr "repo.settings.delete_notices_fork_1"}}<br>
 	</div>
 	{{template "base/delete_modal_actions" .}}
-{{template "admin/layout_footer" .}}
+</div>

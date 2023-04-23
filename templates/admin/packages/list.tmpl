@@ -75,7 +75,7 @@
 
 		{{template "base/paginate" .}}
 	</div>
-</div>
+{{template "admin/layout_footer" .}}
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
@@ -86,4 +86,4 @@
 		{{.locale.Tr "packages.settings.delete.notice" `<span class="name"></span>` `<span class="dataVersion"></span>` | Safe}}
 	</div>
 	{{template "base/delete_modal_actions" .}}
-{{template "admin/layout_footer" .}}
+</div>

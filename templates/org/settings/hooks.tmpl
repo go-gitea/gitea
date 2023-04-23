@@ -5,6 +5,7 @@
 		<div class="ui grid">
 			{{template "org/settings/navbar" .}}
 			<div class="twelve wide column content">
+				{{template "base/alert" .}}
 				{{template "repo/settings/webhook/list" .}}
 			</div>
 		</div>
