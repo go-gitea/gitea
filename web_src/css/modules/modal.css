@@ -1,0 +1,28 @@
+.ui.modal {
+  background: var(--color-body);
+}
+
+.ui.modal > .header {
+  color: var(--color-text-dark);
+  background: var(--color-secondary-bg);
+  border-color: var(--color-secondary);
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+}
+
+.ui.modal > .content {
+  background: var(--color-body);
+}
+
+.ui.modal > .actions {
+  background: var(--color-secondary-bg);
+  border-color: var(--color-secondary);
+}
+
+.ui.modal > .close.inside {
+  color: var(--color-text);
+}
+
+.ui.modal > form > .actions {
+  text-align: center;
+}

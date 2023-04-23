@@ -157,12 +157,7 @@
 									<div class="content center">
 										<label id="default-project-board-content"></label>
 									</div>
-									{{$ModalButtonCancelText := $.locale.Tr "settings.cancel"}}
-									{{- $ModalButtonOkText := $.locale.Tr "repo.projects.column.set_default" -}}
-									{{- if .Default -}}
-									{{- $ModalButtonOkText = $.locale.Tr "repo.projects.column.unset_default" -}}
-									{{- end -}}
-									{{template "base/modal_actions_confirm" (dict "." $ "ModalButtonCancelText" $ModalButtonCancelText "ModalButtonOkText" $ModalButtonOkText)}}
+									{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonStyle" "confirm")}}
 								</div>
 
 								<div class="ui basic modal" id="delete-board-modal-{{.ID}}">
@@ -174,8 +169,7 @@
 											{{$.locale.Tr "repo.projects.column.deletion_desc"}}
 										</label>
 									</div>
-									{{$ModalButtonOkText := $.locale.Tr "repo.projects.column.delete"}}
-									{{template "base/modal_actions_confirm" (dict "." $ "ModalButtonCancelText" $ModalButtonCancelText "ModalButtonOkText" $ModalButtonOkText)}}
+									{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonStyle" "confirm")}}
 								</div>
 							</div>
 						</div>
