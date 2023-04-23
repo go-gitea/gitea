@@ -179,8 +179,8 @@ func GetByBean(ctx context.Context, bean interface{}) (bool, error) {
 	return GetEngine(ctx).Get(bean)
 }
 
-// GetBeanByID
-func GetBeanByID(ctx context.Context, id, bean interface{}) (bool, error) {
+// GetByID retrieves the bean with the given ID (given that all non-empty fields match) 
+func GetByID(ctx context.Context, id, bean interface{}) (bool, error) {
 	return GetEngine(ctx).ID(id).Get(bean)
 }
 
