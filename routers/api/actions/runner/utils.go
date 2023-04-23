@@ -105,7 +105,7 @@ func getVariablesOfTask(ctx context.Context, task *actions_model.ActionTask) map
 		log.Error("find variables of repo: %d, error: %v", task.Job.Run.RepoID, err)
 	}
 
-	//TODO: Env levl
+	// TODO: Env level
 
 	// Level precedence: ENV > REPO > ORG
 	for _, v := range append(ownerVariables, repoVariables...) {
