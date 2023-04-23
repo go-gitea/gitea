@@ -694,9 +694,9 @@
   margin-right: 5px;
 }
 
-.repository.view.issue .pull .merge.box .avatar {
-  margin-left: 10px;
-  margin-top: 10px;
+.repository.view.issue .pull .merge.box .timeline-avatar {
+  margin-top: 3px;
+  margin-left: 4px;
 }
 
 .repository.view.issue .pull .merge.box .branch-update.grid .row {
@@ -1034,6 +1034,13 @@
   border-right-color: var(--color-box-body);
   border-width: 8px;
   margin-top: -8px;
+}
+
+.merge-section-info code {
+  border: 1px solid var(--color-light-border);
+  border-radius: 4px;
+  padding: 2px 4px;
+  background: var(--color-light);
 }
 
 .repository.view.issue .comment-list .comment .markup {
