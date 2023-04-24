@@ -162,11 +162,16 @@ func List(ctx *context.Context) {
 	ctx.Data["NumClosedActionRuns"] = numClosedRuns
 
 	opts.IsClosed = util.OptionalBoolNone
-	if ctx.FormString("state") == "open" || numOpenRuns != 0 || numClosedRuns == 0 {
-		opts.IsClosed = util.OptionalBoolFalse
-	} else {
+	isShowClosed := ctx.FormString("state") == "closed"
+	if len(ctx.FormString("state")) == 0 && numOpenRuns == 0 && numClosedRuns != 0 {
+		isShowClosed = true
+	}
+
+	if isShowClosed {
 		opts.IsClosed = util.OptionalBoolTrue
 		ctx.Data["IsShowClosed"] = true
+	} else {
+		opts.IsClosed = util.OptionalBoolFalse
 	}
 
 	runs, total, err := actions_model.FindRuns(ctx, opts)
