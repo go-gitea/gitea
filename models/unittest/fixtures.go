@@ -1,6 +1,7 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+//nolint:forbidigo
 package unittest
 
 import (
@@ -17,7 +18,7 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-var fixtures *testfixtures.Loader
+var fixturesLoader *testfixtures.Loader
 
 // GetXORMEngine gets the XORM engine
 func GetXORMEngine(engine ...*xorm.Engine) (x *xorm.Engine) {
@@ -30,11 +31,11 @@ func GetXORMEngine(engine ...*xorm.Engine) (x *xorm.Engine) {
 // InitFixtures initialize test fixtures for a test database
 func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
 	e := GetXORMEngine(engine...)
-	var testfiles func(*testfixtures.Loader) error
+	var fixtureOptionFiles func(*testfixtures.Loader) error
 	if opts.Dir != "" {
-		testfiles = testfixtures.Directory(opts.Dir)
+		fixtureOptionFiles = testfixtures.Directory(opts.Dir)
 	} else {
-		testfiles = testfixtures.Files(opts.Files...)
+		fixtureOptionFiles = testfixtures.Files(opts.Files...)
 	}
 	dialect := "unknown"
 	switch e.Dialect().URI().DBType {
@@ -54,14 +55,14 @@ func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
 		testfixtures.Database(e.DB().DB),
 		testfixtures.Dialect(dialect),
 		testfixtures.DangerousSkipTestDatabaseCheck(),
-		testfiles,
+		fixtureOptionFiles,
 	}
 
 	if e.Dialect().URI().DBType == schemas.POSTGRES {
 		loaderOptions = append(loaderOptions, testfixtures.SkipResetSequences())
 	}
 
-	fixtures, err = testfixtures.New(loaderOptions...)
+	fixturesLoader, err = testfixtures.New(loaderOptions...)
 	if err != nil {
 		return err
 	}
@@ -78,11 +79,9 @@ func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
 func LoadFixtures(engine ...*xorm.Engine) error {
 	e := GetXORMEngine(engine...)
 	var err error
-	// Database transaction conflicts could occur and result in ROLLBACK
-	// As a simple workaround, we just retry 20 times.
-	for i := 0; i < 20; i++ {
-		err = fixtures.Load()
-		if err == nil {
+	// (doubt) database transaction conflicts could occur and result in ROLLBACK? just try for a few times.
+	for i := 0; i < 5; i++ {
+		if err = fixturesLoader.Load(); err == nil {
 			break
 		}
 		time.Sleep(200 * time.Millisecond)

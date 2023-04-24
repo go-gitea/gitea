@@ -227,7 +227,7 @@
 								{{end}}
 								{{$previousExclusiveScope = $exclusiveScope}}
 								<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-									{{if contain $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context .}}
+									{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context .}}
 								</div>
 							{{end}}
 						</div>

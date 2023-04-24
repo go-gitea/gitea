@@ -78,7 +78,7 @@
 							{{end}}
 						</div>
 						<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
-						<div class="edit-content-zone gt-hidden" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+						<div class="edit-content-zone gt-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 						{{if .Attachments}}
 							{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Attachments "Content" .RenderedContent}}
 						{{end}}
@@ -295,7 +295,7 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$.locale.Tr "repo.issues.due_date_added" .Content $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.due_date_added" (DateTime "long" .Content .Content) $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 17}}
@@ -305,7 +305,9 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 					{{$parsedDeadline := .Content | ParseDeadline}}
-					{{$.locale.Tr "repo.issues.due_date_modified" (index $parsedDeadline 0) (index $parsedDeadline 1) $createdStr | Safe}}
+					{{$from := DateTime "long" (index $parsedDeadline 1) (index $parsedDeadline 1)}}
+					{{$to := DateTime "long" (index $parsedDeadline 0) (index $parsedDeadline 0)}}
+					{{$.locale.Tr "repo.issues.due_date_modified" $to $from $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 18}}
@@ -314,7 +316,7 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$.locale.Tr "repo.issues.due_date_remove" .Content $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.due_date_remove" (DateTime "long" .Content .Content) $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 19}}
@@ -450,7 +452,7 @@
 								{{end}}
 							</div>
 							<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
-							<div class="edit-content-zone gt-hidden" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+							<div class="edit-content-zone gt-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 							{{if .Attachments}}
 								{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Attachments "Content" .RenderedContent}}
 							{{end}}
@@ -577,7 +579,7 @@
 															{{end}}
 															</div>
 															<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
-															<div class="edit-content-zone gt-hidden" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+															<div class="edit-content-zone gt-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 														</div>
 														{{$reactions := .Reactions.GroupByType}}
 														{{if $reactions}}
@@ -688,10 +690,15 @@
 							{{$.locale.Tr "repo.issues.review.add_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
 						{{end}}
 					{{else}}
+						<!-- If the assigned team is deleted, just displaying "Ghost Team" in the comment -->
+						{{$teamName := "Ghost Team"}}
+						{{if .AssigneeTeam}}
+							{{$teamName = .AssigneeTeam.Name}}
+						{{end}}
 						{{if .RemovedAssignee}}
-							{{$.locale.Tr "repo.issues.review.remove_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.review.remove_review_request" ($teamName|Escape) $createdStr | Safe}}
 						{{else}}
-							{{$.locale.Tr "repo.issues.review.add_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.review.add_review_request" ($teamName|Escape) $createdStr | Safe}}
 						{{end}}
 					{{end}}
 				</span>
@@ -727,14 +734,22 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{if gt .OldProjectID 0}}
-						{{if gt .ProjectID 0}}
-							{{$.locale.Tr "repo.issues.change_project_at" (.OldProject.Title|Escape) (.Project.Title|Escape) $createdStr | Safe}}
-						{{else}}
-							{{$.locale.Tr "repo.issues.remove_project_at" (.OldProject.Title|Escape) $createdStr | Safe}}
-						{{end}}
+					{{$oldProjectDisplayHtml := "Unknown Project"}}
+					{{if .OldProject}}
+						{{$trKey := printf "projects.type-%d.display_name" .OldProject.Type}}
+						{{$oldProjectDisplayHtml = printf `<span data-tooltip-content="%s">%s</span>` ($.locale.Tr $trKey | Escape) (.OldProject.Title | Escape)}}
+					{{end}}
+					{{$newProjectDisplayHtml := "Unknown Project"}}
+					{{if .Project}}
+						{{$trKey := printf "projects.type-%d.display_name" .Project.Type}}
+						{{$newProjectDisplayHtml = printf `<span data-tooltip-content="%s">%s</span>` ($.locale.Tr $trKey | Escape) (.Project.Title | Escape)}}
+					{{end}}
+					{{if and (gt .OldProjectID 0) (gt .ProjectID 0)}}
+						{{$.locale.Tr "repo.issues.change_project_at" $oldProjectDisplayHtml $newProjectDisplayHtml $createdStr | Safe}}
+					{{else if gt .OldProjectID 0}}
+						{{$.locale.Tr "repo.issues.remove_project_at" $oldProjectDisplayHtml $createdStr | Safe}}
 					{{else if gt .ProjectID 0}}
-						{{$.locale.Tr "repo.issues.add_project_at" (.Project.Title|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.add_project_at" $newProjectDisplayHtml $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>

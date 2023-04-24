@@ -37,6 +37,17 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		Context:         generateTaskContext(t),
 		Secrets:         getSecretsOfTask(ctx, t),
 	}
+
+	if needs, err := findTaskNeeds(ctx, t); err != nil {
+		log.Error("Cannot find needs for task %v: %v", t.ID, err)
+		// Go on with empty needs.
+		// If return error, the task will be wild, which means the runner will never get it when it has been assigned to the runner.
+		// In contrast, missing needs is less serious.
+		// And the task will fail and the runner will report the error in the logs.
+	} else {
+		task.Needs = needs
+	}
+
 	return task, true, nil
 }
 
@@ -123,4 +134,47 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 	})
 
 	return taskContext
+}
+
+func findTaskNeeds(ctx context.Context, task *actions_model.ActionTask) (map[string]*runnerv1.TaskNeed, error) {
+	if err := task.LoadAttributes(ctx); err != nil {
+		return nil, fmt.Errorf("LoadAttributes: %w", err)
+	}
+	if len(task.Job.Needs) == 0 {
+		return nil, nil
+	}
+	needs := map[string]struct{}{}
+	for _, v := range task.Job.Needs {
+		needs[v] = struct{}{}
+	}
+
+	jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: task.Job.RunID})
+	if err != nil {
+		return nil, fmt.Errorf("FindRunJobs: %w", err)
+	}
+
+	ret := make(map[string]*runnerv1.TaskNeed, len(needs))
+	for _, job := range jobs {
+		if _, ok := needs[job.JobID]; !ok {
+			continue
+		}
+		if job.TaskID == 0 || !job.Status.IsDone() {
+			// it shouldn't happen, or the job has been rerun
+			continue
+		}
+		outputs := make(map[string]string)
+		got, err := actions_model.FindTaskOutputByTaskID(ctx, job.TaskID)
+		if err != nil {
+			return nil, fmt.Errorf("FindTaskOutputByTaskID: %w", err)
+		}
+		for _, v := range got {
+			outputs[v.OutputKey] = v.OutputValue
+		}
+		ret[job.JobID] = &runnerv1.TaskNeed{
+			Outputs: outputs,
+			Result:  runnerv1.Result(job.Status),
+		}
+	}
+
+	return ret, nil
 }
