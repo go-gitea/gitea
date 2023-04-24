@@ -22,7 +22,7 @@ linters:
     - unconvert
     - unused
     # - varcheck # deprecated - https://github.com/golangci/golangci-lint/issues/1841
-    # - wastedassign # disabled - https://github.com/golangci/golangci-lint/issues/2649
+    - wastedassign
   enable-all: false
   disable-all: true
   fast: false

@@ -99,7 +99,6 @@
 									data-modal="#default-project-board-modal-{{.ID}}"
 									data-modal-default-project-board-header="{{$.locale.Tr "repo.projects.column.set_default"}}"
 									data-modal-default-project-board-content="{{$.locale.Tr "repo.projects.column.set_default_desc"}}"
-									data-modal-default-project-board-submit="{{$.locale.Tr "repo.projects.column.set_default"}}"
 									data-url="{{$.Link}}/{{.ID}}/default">
 										{{svg "octicon-pin"}}
 										{{$.locale.Tr "repo.projects.column.set_default"}}
@@ -109,13 +108,15 @@
 									data-modal="#default-project-board-modal-{{.ID}}"
 									data-modal-default-project-board-header="{{$.locale.Tr "repo.projects.column.unset_default"}}"
 									data-modal-default-project-board-content="{{$.locale.Tr "repo.projects.column.unset_default_desc"}}"
-									data-modal-default-project-board-submit="{{$.locale.Tr "repo.projects.column.unset_default"}}"
 									data-url="{{$.Link}}/{{.ID}}/unsetdefault">
 										{{svg "octicon-pin"}}
 										{{$.locale.Tr "repo.projects.column.unset_default"}}
 									</a>
 								{{end}}
-								<a class="item show-modal button" data-modal="#delete-board-modal-{{.ID}}">
+								<a class="item show-modal button show-delete-column-modal"
+									data-modal="#delete-board-modal-{{.ID}}"
+									data-url="{{$.Link}}/{{.ID}}"
+								>
 									{{svg "octicon-trash"}}
 									{{$.locale.Tr "repo.projects.column.delete"}}
 								</a>
@@ -149,32 +150,26 @@
 									</div>
 								</div>
 
-								<div class="ui basic modal default-project-board-modal" id="default-project-board-modal-{{.ID}}">
-									<div class="ui icon header">
+								<div class="ui gitea-confirm-modal modal default-project-board-modal" id="default-project-board-modal-{{.ID}}">
+									<div class="header">
 										<span id="default-project-board-header"></span>
 									</div>
-									<div class="content center">
+									<div class="content">
 										<label id="default-project-board-content"></label>
 									</div>
-									<div class="text right actions">
-										<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
-										<button class="ui primary button default-project-board-button" id="default-project-board-submit"></button>
-									</div>
+									{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonStyle" "confirm")}}
 								</div>
 
-								<div class="ui basic modal" id="delete-board-modal-{{.ID}}">
-									<div class="ui icon header">
+								<div class="ui gitea-confirm-modal modal" id="delete-board-modal-{{.ID}}">
+									<div class="header">
 										{{$.locale.Tr "repo.projects.column.delete"}}
 									</div>
-									<div class="content center">
+									<div class="content">
 										<label>
 											{{$.locale.Tr "repo.projects.column.deletion_desc"}}
 										</label>
 									</div>
-									<div class="text right actions">{{/* TODO: convert to base/delete_modal_actions.tmpl */}}
-										<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
-										<button class="ui red button delete-project-board" data-url="{{$.Link}}/{{.ID}}">{{$.locale.Tr "repo.projects.column.delete"}}</button>
-									</div>
+									{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonStyle" "confirm")}}
 								</div>
 							</div>
 						</div>
@@ -277,14 +272,14 @@
 </div>
 
 {{if .CanWriteProjects}}
-	<div class="ui small basic delete modal">
-		<div class="ui icon header">
+	<div class="ui gitea-confirm-modal delete modal">
+		<div class="header">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.projects.deletion"}}
 		</div>
 		<div class="content">
 			<p>{{.locale.Tr "repo.projects.deletion_desc"}}</p>
 		</div>
-		{{template "base/delete_modal_actions" .}}
+		{{template "base/modal_actions_confirm" .}}
 	</div>
 {{end}}

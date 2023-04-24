@@ -63,7 +63,7 @@ func Profile(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.ContextUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
-	ctx.Data["Owner"] = ctx.ContextUser
+	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["OpenIDs"] = openIDs
 	ctx.Data["IsFollowing"] = isFollowing
 
