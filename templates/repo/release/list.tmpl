@@ -184,7 +184,7 @@
 </div>
 
 {{if (and ($.Permission.CanWrite $.UnitTypeCode) .PageIsTagList)}}
-	<div class="ui gitea-confirm-modal delete modal">
+	<div class="ui g-modal-confirm delete modal">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.release.delete_tag"}}

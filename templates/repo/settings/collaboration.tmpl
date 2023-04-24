@@ -52,7 +52,7 @@
 		<h4 class="ui top attached header">
 			{{$.locale.Tr "repo.settings.teams"}}
 		</h4>
-		{{$allowedToChangeTeams := ( or (.Org.RepoAdminChangeTeamAccess) (.Permission.IsOwner))}}
+		{{$allowedToChangeTeams := (or (.Org.RepoAdminChangeTeamAccess) (.Permission.IsOwner))}}
 		{{if .Teams}}
 		<div class="ui attached segment collaborator list">
 			{{range $t, $team := .Teams}}
@@ -107,7 +107,7 @@
 		{{end}}
 	</div>
 
-<div class="ui gitea-confirm-modal delete modal">
+<div class="ui g-modal-confirm delete modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "repo.settings.collaborator_deletion"}}
