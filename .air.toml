@@ -12,3 +12,4 @@ exclude_dir = ["modules/git/tests", "services/gitdiff/testdata", "modules/avatar
 exclude_regex = ["_test.go$", "_gen.go$"]
 
 
+
