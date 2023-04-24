@@ -1,8 +1,9 @@
-.ui.modal.g-confirm-modal {
+.ui.modal.g-modal-confirm {
   max-width: min(800px, 90vw);
   width: fit-content;
 }
-.ui.modal.g-confirm-modal > .inside.close {
+
+.ui.modal.g-modal-confirm > .inside.close {
   padding: 0;
   width: 1em;
   height: 1em;
