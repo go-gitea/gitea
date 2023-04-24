@@ -47,7 +47,7 @@
 				<h2 class="project-title">{{$.Project.Title}}</h2>
 				<div class="content project-description">{{$.Project.RenderedContent|Str2html}}</div>
 			</div>
-			{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
+			{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
 				<div class="column right aligned">
 					<div class="ui compact right small menu">
 						<a class="item" href="{{$.RepoLink}}/projects/{{.Project.ID}}/edit?redirect=project" data-id={{$.Project.ID}} data-title={{$.Project.Title}}>
@@ -277,7 +277,7 @@
 
 </div>
 
-{{if or .CanWriteIssues .CanWritePulls}}
+{{if .CanWriteProjects}}
 	<div class="ui gitea-confirm-modal delete modal">
 		<div class="header">
 			{{svg "octicon-trash"}}
