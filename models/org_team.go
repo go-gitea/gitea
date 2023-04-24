@@ -420,7 +420,7 @@ func DeleteTeam(t *organization.Team) error {
 	}
 
 	for _, tm := range t.Members {
-		if err := removeInvaildOrgUser(ctx, tm.ID, t.OrgID); err != nil {
+		if err := removeInvalidOrgUser(ctx, tm.ID, t.OrgID); err != nil {
 			return err
 		}
 	}
@@ -574,10 +574,10 @@ func removeTeamMember(ctx context.Context, team *organization.Team, userID int64
 		}
 	}
 
-	return removeInvaildOrgUser(ctx, userID, team.OrgID)
+	return removeInvalidOrgUser(ctx, userID, team.OrgID)
 }
 
-func removeInvaildOrgUser(ctx context.Context, userID, orgID int64) error {
+func removeInvalidOrgUser(ctx context.Context, userID, orgID int64) error {
 	// Check if the user is a member of any team in the organization.
 	if count, err := db.GetEngine(ctx).Count(&organization.TeamUser{
 		UID:   userID,
