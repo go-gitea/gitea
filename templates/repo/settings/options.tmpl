@@ -165,11 +165,7 @@
 						{{range .PushMirrors}}
 						<tr>
 							{{$address := MirrorRemoteAddress $.Context $.Repository .GetRemoteName true}}
-							{{if gt (len  $address.Address) 50}}
-								<td title="{{$address.Address}}">{{slice $address.Address 0 50}}...</td>
-							{{else}}
-								<td title="{{$address.Address}}">{{$address.Address}}</td>
-							{{end}}
+							<td class="gt-word-break">{{$address.Address}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
 							<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix.FormatLong .LastUpdateUnix.AsTime}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
