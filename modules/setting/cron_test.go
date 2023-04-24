@@ -22,9 +22,9 @@ func Test_getCronSettings(t *testing.T) {
 
 	iniStr := `
 [cron.test]
-Base = true
-Second = white rabbit
-Extend = true
+BASE = true
+SECOND = white rabbit
+EXTEND = true
 `
 	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)

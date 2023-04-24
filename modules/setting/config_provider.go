@@ -59,8 +59,7 @@ func newConfigProviderFromData(configContent string) (ConfigProvider, error) {
 			return nil, err
 		}
 	}
-	// FIXME: the behaviour is different from file configprovider
-	// cfg.NameMapper = ini.SnackCase
+	cfg.NameMapper = ini.SnackCase
 	return &iniFileConfigProvider{
 		File:    cfg,
 		newFile: true,
