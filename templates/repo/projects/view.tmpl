@@ -156,7 +156,7 @@
 									</div>
 								</div>
 
-								<div class="ui gitea-confirm-modal modal default-project-board-modal" id="default-project-board-modal-{{.ID}}">
+								<div class="ui g-confirm-modal modal default-project-board-modal" id="default-project-board-modal-{{.ID}}">
 									<div class="header">
 										<span id="default-project-board-header"></span>
 									</div>
@@ -166,7 +166,7 @@
 									{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
 								</div>
 
-								<div class="ui gitea-confirm-modal modal" id="delete-board-modal-{{.ID}}">
+								<div class="ui g-confirm-modal modal" id="delete-board-modal-{{.ID}}">
 									<div class="header">
 										{{$.locale.Tr "repo.projects.column.delete"}}
 									</div>
@@ -278,7 +278,7 @@
 </div>
 
 {{if or .CanWriteIssues .CanWritePulls}}
-	<div class="ui gitea-confirm-modal delete modal">
+	<div class="ui g-confirm-modal delete modal">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.projects.deletion"}}

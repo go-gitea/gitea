@@ -1,8 +1,8 @@
-.ui.modal.gitea-confirm-modal {
+.ui.modal.g-confirm-modal {
   max-width: min(800px, 90vw);
   width: fit-content;
 }
-.ui.modal.gitea-confirm-modal > .inside.close {
+.ui.modal.g-confirm-modal > .inside.close {
   padding: 0;
   width: 1em;
   height: 1em;

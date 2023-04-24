@@ -36,7 +36,7 @@
 		</table>
 		{{template "base/paginate" .}}
 		{{range .LFSFiles}}
-			<div class="ui gitea-confirm-modal modal" id="delete-{{.Oid}}">
+			<div class="ui g-confirm-modal modal" id="delete-{{.Oid}}">
 				<div class="header">
 					{{$.locale.Tr "repo.settings.lfs_delete" .Oid}}
 				</div>
