@@ -90,6 +90,6 @@ func RunnerDeletePost(ctx *context.Context) {
 		ctx.Repo.RepoLink+"/settings/actions/runners/"+url.PathEscape(ctx.Params(":runnerid")))
 }
 
-func RedirectToRunnersSettings(ctx *context.Context) {
+func RedirectToDefaultSetting(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/actions/runners")
 }

@@ -504,7 +504,7 @@ func RegisterRoutes(m *web.Route) {
 		}, packagesEnabled)
 
 		m.Group("/actions", func() {
-			m.Get("", user_setting.RedirectToRunnersSettings)
+			m.Get("", user_setting.RedirectToDefaultSetting)
 			m.Get("/{type:secrets}", user_setting.Actions)
 			m.Group("/secrets", func() {
 				m.Post("", web.Bind(forms.AddSecretForm{}), user_setting.SecretsPost)
@@ -658,7 +658,7 @@ func RegisterRoutes(m *web.Route) {
 		})
 
 		m.Group("/actions", func() {
-			m.Get("", admin.RedirectToRunnersSettings)
+			m.Get("", admin.RedirectToDefaultSetting)
 			m.Get("/{type:runners}", admin.Actions)
 			m.Group("/runners", func() {
 				m.Get("/reset_registration_token", admin.ResetRunnerRegistrationToken)
@@ -852,7 +852,7 @@ func RegisterRoutes(m *web.Route) {
 				})
 
 				m.Group("/actions", func() {
-					m.Get("", org_setting.RedirectToRunnersSettings)
+					m.Get("", org_setting.RedirectToDefaultSetting)
 					m.Get("/{type:runners|secrets}", org_setting.Actions)
 					m.Group("/runners", func() {
 						m.Combo("/{runnerid}").Get(org_setting.RunnersEdit).
@@ -1048,7 +1048,7 @@ func RegisterRoutes(m *web.Route) {
 				})
 			})
 			m.Group("/actions", func() {
-				m.Get("", repo.RedirectToRunnersSettings)
+				m.Get("", repo.RedirectToDefaultSetting)
 				m.Get("/{type:runners|secrets}", repo.Actions)
 				m.Group("/runners", func() {
 					m.Combo("/{runnerid}").Get(repo.RunnersEdit).

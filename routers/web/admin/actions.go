@@ -88,6 +88,6 @@ func ResetRunnerRegistrationToken(ctx *context.Context) {
 	actions_shared.RunnerResetRegistrationToken(ctx, 0, 0, setting.AppSubURL+"/admin/actions/runners")
 }
 
-func RedirectToRunnersSettings(ctx *context.Context) {
+func RedirectToDefaultSetting(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/admin/actions/runners")
 }

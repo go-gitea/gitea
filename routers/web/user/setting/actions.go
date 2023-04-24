@@ -30,6 +30,6 @@ func Actions(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplSettingsActions)
 }
 
-func RedirectToRunnersSettings(ctx *context.Context) {
+func RedirectToDefaultSetting(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/actions/secrets")
 }

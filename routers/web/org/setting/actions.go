@@ -100,6 +100,6 @@ func RunnerDeletePost(ctx *context.Context) {
 		ctx.Org.OrgLink+"/settings/actions/runners/"+url.PathEscape(ctx.Params(":runnerid")))
 }
 
-func RedirectToRunnersSettings(ctx *context.Context) {
+func RedirectToDefaultSetting(ctx *context.Context) {
 	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions/runners")
 }
