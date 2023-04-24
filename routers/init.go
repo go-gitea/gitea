@@ -71,13 +71,6 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 	}
 }
 
-// InitGitServices init new services for git, this is also called in `contrib/pr/checkout.go`
-func InitGitServices() {
-	setting.LoadSettings()
-	mustInit(storage.Init)
-	mustInit(repo_service.Init)
-}
-
 func syncAppConfForGit(ctx context.Context) error {
 	runtimeState := new(system.RuntimeState)
 	if err := system.AppState.Get(runtimeState); err != nil {
@@ -115,6 +108,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	}
 
 	mustInitCtx(ctx, git.InitFull)
+	log.Info("Gitea Version: %s%s", setting.AppVer, setting.AppBuiltWith)
 	log.Info("Git Version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
 	log.Info("AppPath: %s", setting.AppPath)
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
@@ -122,7 +116,6 @@ func GlobalInitInstalled(ctx context.Context) {
 	log.Info("Log path: %s", setting.Log.RootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
 	log.Info("Run Mode: %s", util.ToTitleCase(setting.RunMode))
-	log.Info("Gitea v%s%s", setting.AppVer, setting.AppBuiltWith)
 
 	// Setup i18n
 	translation.InitLocales(ctx)
@@ -172,7 +165,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(ssh.Init)
 
 	auth.Init()
-	svg.Init()
+	mustInit(svg.Init)
 
 	actions_service.Init()
 

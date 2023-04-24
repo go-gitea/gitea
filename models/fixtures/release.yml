@@ -66,3 +66,45 @@
   is_prerelease: true
   is_tag: false
   created_unix: 946684800
+
+- id: 6
+  repo_id: 57
+  publisher_id: 2
+  tag_name: "v1.0"
+  lower_tag_name: "v1.0"
+  target: "main"
+  title: "v1.0"
+  sha1: "a8a700e8c644c783ba2c6e742bb81bf91e244bff"
+  num_commits: 3
+  is_draft: false
+  is_prerelease: false
+  is_tag: false
+  created_unix: 946684801
+
+- id: 7
+  repo_id: 57
+  publisher_id: 2
+  tag_name: "v1.1"
+  lower_tag_name: "v1.1"
+  target: "main"
+  title: "v1.1"
+  sha1: "cef06e48f2642cd0dc9597b4bea09f4b3f74aad6"
+  num_commits: 5
+  is_draft: false
+  is_prerelease: false
+  is_tag: false
+  created_unix: 946684802
+
+- id: 8
+  repo_id: 57
+  publisher_id: 2
+  tag_name: "v2.0"
+  lower_tag_name: "v2.0"
+  target: "main"
+  title: "v2.0"
+  sha1: "7197b56fdc75b453f47c9110938cb46a303579fd"
+  num_commits: 6
+  is_draft: false
+  is_prerelease: false
+  is_tag: false
+  created_unix: 946684803

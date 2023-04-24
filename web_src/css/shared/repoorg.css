@@ -1,0 +1,19 @@
+.repository .head .ui.header .text,
+.organization .head .ui.header .text {
+  vertical-align: middle;
+  font-size: 1.6rem;
+  margin-left: 15px;
+}
+
+.repository .ui.secondary.stackable.pointing.menu,
+.organization .ui.secondary.stackable.pointing.menu {
+  flex-wrap: wrap;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+.repository .ui.tabs.container,
+.organization .ui.tabs.container {
+  margin-top: 14px;
+  margin-bottom: 0;
+}

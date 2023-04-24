@@ -44,6 +44,24 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	}
 }
 
+func verifyAuth(r *web.Route, authMethods []auth.Method) {
+	if setting.Service.EnableReverseProxyAuth {
+		authMethods = append(authMethods, &auth.ReverseProxy{})
+	}
+	authGroup := auth.NewGroup(authMethods...)
+
+	r.Use(func(ctx *context.Context) {
+		var err error
+		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if err != nil {
+			log.Error("Failed to verify user: %v", err)
+			ctx.Error(http.StatusUnauthorized, "authGroup.Verify")
+			return
+		}
+		ctx.IsSigned = ctx.Doer != nil
+	})
+}
+
 // CommonRoutes provide endpoints for most package managers (except containers - see below)
 // These are mounted on `/api/packages` (not `/api/v1/packages`)
 func CommonRoutes(ctx gocontext.Context) *web.Route {
@@ -51,27 +69,12 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 
 	r.Use(context.PackageContexter(ctx))
 
-	authMethods := []auth.Method{
+	verifyAuth(r, []auth.Method{
 		&auth.OAuth2{},
 		&auth.Basic{},
 		&nuget.Auth{},
 		&conan.Auth{},
 		&chef.Auth{},
-	}
-	if setting.Service.EnableReverseProxyAuth {
-		authMethods = append(authMethods, &auth.ReverseProxy{})
-	}
-
-	authGroup := auth.NewGroup(authMethods...)
-	r.Use(func(ctx *context.Context) {
-		var err error
-		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if err != nil {
-			log.Error("Verify: %v", err)
-			ctx.Error(http.StatusUnauthorized, "authGroup.Verify")
-			return
-		}
-		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Group("/{username}", func() {
@@ -437,24 +440,9 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 
 	r.Use(context.PackageContexter(ctx))
 
-	authMethods := []auth.Method{
+	verifyAuth(r, []auth.Method{
 		&auth.Basic{},
 		&container.Auth{},
-	}
-	if setting.Service.EnableReverseProxyAuth {
-		authMethods = append(authMethods, &auth.ReverseProxy{})
-	}
-
-	authGroup := auth.NewGroup(authMethods...)
-	r.Use(func(ctx *context.Context) {
-		var err error
-		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if err != nil {
-			log.Error("Failed to verify user: %v", err)
-			ctx.Error(http.StatusUnauthorized, "Verify")
-			return
-		}
-		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)
@@ -492,7 +480,7 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 		)
 
 		// Manual mapping of routes because {image} can contain slashes which chi does not support
-		r.Route("/*", "HEAD,GET,POST,PUT,PATCH,DELETE", func(ctx *context.Context) {
+		r.RouteMethods("/*", "HEAD,GET,POST,PUT,PATCH,DELETE", func(ctx *context.Context) {
 			path := ctx.Params("*")
 			isHead := ctx.Req.Method == "HEAD"
 			isGet := ctx.Req.Method == "GET"

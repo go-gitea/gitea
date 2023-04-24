@@ -30,12 +30,12 @@
 		</style>
 	</noscript>
 {{if .PageIsUserProfile}}
-	<meta property="og:title" content="{{.Owner.DisplayName}}">
+	<meta property="og:title" content="{{.ContextUser.DisplayName}}">
 	<meta property="og:type" content="profile">
-	<meta property="og:image" content="{{.Owner.AvatarLink $.Context}}">
-	<meta property="og:url" content="{{.Owner.HTMLURL}}">
-	{{if .Owner.Description}}
-		<meta property="og:description" content="{{.Owner.Description}}">
+	<meta property="og:image" content="{{.ContextUser.AvatarLink $.Context}}">
+	<meta property="og:url" content="{{.ContextUser.HTMLURL}}">
+	{{if .ContextUser.Description}}
+		<meta property="og:description" content="{{.ContextUser.Description}}">
 	{{end}}
 {{else if .Repository}}
 	{{if .Issue}}

@@ -71,29 +71,27 @@
 					{{end}}
 					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{.locale.Tr "repo.find_file.go_to_file"}}</a>
 				{{end}}
-				{{if or .CanAddFile .CanUploadFile}}
+
+				{{if and .CanWriteCode .IsViewBranch (not .Repository.IsArchived)}}
 					<button class="ui basic compact dropdown jump icon button gt-mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
 						<span class="text">{{.locale.Tr "repo.editor.add_file"}}</span>
 						<div class="menu">
-							{{if .CanAddFile}}
-								<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-									{{.locale.Tr "repo.editor.new_file"}}
-								</a>
+							<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+								{{.locale.Tr "repo.editor.new_file"}}
+							</a>
+							{{if .RepositoryUploadEnabled}}
+							<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+								{{.locale.Tr "repo.editor.upload_file"}}
+							</a>
 							{{end}}
-							{{if .CanUploadFile}}
-								<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-									{{.locale.Tr "repo.editor.upload_file"}}
-								</a>
-							{{end}}
-							{{if .CanAddFile}}
-								<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-									{{.locale.Tr "repo.editor.patch"}}
-								</a>
-							{{end}}
+							<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+								{{.locale.Tr "repo.editor.patch"}}
+							</a>
 						</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					</button>
 				{{end}}
+
 				{{if and (eq $n 0) (.Repository.IsTemplate)}}
 					<a role="button" class="ui primary compact button" href="{{AppSubUrl}}/repo/create?template_id={{.Repository.ID}}">
 						{{.locale.Tr "repo.use_template"}}

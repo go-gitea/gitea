@@ -26,6 +26,7 @@ export default defineConfig({
     allowOnly: true,
     passWithNoTests: true,
     watch: false,
+    outputDiffLines: Infinity,
   },
   plugins: [
     stringPlugin(),

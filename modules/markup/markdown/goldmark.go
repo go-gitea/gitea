@@ -34,16 +34,17 @@ type ASTTransformer struct{}
 // Transform transforms the given AST tree.
 func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
 	firstChild := node.FirstChild()
-	createTOC := false
+	tocMode := ""
 	ctx := pc.Get(renderContextKey).(*markup.RenderContext)
 	rc := pc.Get(renderConfigKey).(*RenderConfig)
+
+	tocList := make([]markup.Header, 0, 20)
 	if rc.yamlNode != nil {
 		metaNode := rc.toMetaNode()
 		if metaNode != nil {
 			node.InsertBefore(node, firstChild, metaNode)
 		}
-		createTOC = rc.TOC
-		ctx.TableOfContents = make([]markup.Header, 0, 100)
+		tocMode = rc.TOC
 	}
 
 	attentionMarkedBlockquotes := make(container.Set[*ast.Blockquote])
@@ -59,15 +60,15 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 					v.SetAttribute(attr.Name, []byte(fmt.Sprintf("%v", attr.Value)))
 				}
 			}
-			text := n.Text(reader.Source())
+			txt := n.Text(reader.Source())
 			header := markup.Header{
-				Text:  util.BytesToReadOnlyString(text),
+				Text:  util.BytesToReadOnlyString(txt),
 				Level: v.Level,
 			}
 			if id, found := v.AttributeString("id"); found {
 				header.ID = util.BytesToReadOnlyString(id.([]byte))
 			}
-			ctx.TableOfContents = append(ctx.TableOfContents, header)
+			tocList = append(tocList, header)
 		case *ast.Image:
 			// Images need two things:
 			//
@@ -201,14 +202,15 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		return ast.WalkContinue, nil
 	})
 
-	if createTOC && len(ctx.TableOfContents) > 0 {
-		lang := rc.Lang
-		if len(lang) == 0 {
-			lang = setting.Langs[0]
-		}
-		tocNode := createTOCNode(ctx.TableOfContents, lang)
-		if tocNode != nil {
+	showTocInMain := tocMode == "true" /* old behavior, in main view */ || tocMode == "main"
+	showTocInSidebar := !showTocInMain && tocMode != "false" // not hidden, not main, then show it in sidebar
+	if len(tocList) > 0 && (showTocInMain || showTocInSidebar) {
+		if showTocInMain {
+			tocNode := createTOCNode(tocList, rc.Lang, nil)
 			node.InsertBefore(node, firstChild, tocNode)
+		} else {
+			tocNode := createTOCNode(tocList, rc.Lang, map[string]string{"open": "open"})
+			ctx.SidebarTocNode = tocNode
 		}
 	}
 
@@ -373,7 +375,11 @@ func (r *HTMLRenderer) renderDocument(w util.BufWriter, source []byte, node ast.
 func (r *HTMLRenderer) renderDetails(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	var err error
 	if entering {
-		_, err = w.WriteString("<details>")
+		if _, err = w.WriteString("<details"); err != nil {
+			return ast.WalkStop, err
+		}
+		html.RenderAttributes(w, node, nil)
+		_, err = w.WriteString(">")
 	} else {
 		_, err = w.WriteString("</details>")
 	}
