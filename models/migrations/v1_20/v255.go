@@ -16,6 +16,6 @@ func AddArchivedUnixToRepository(x *xorm.Engine) error {
 
 	x.Sync(new(Repository))
 
-	_, err := x.Exec("UPDATE repository SET archived_unix = 0")
+	_, err := x.Exec("UPDATE repository SET archived_unix = updated_unix WHERE is_archived = 1 AND archived_unix = 0")
 	return err
 }
