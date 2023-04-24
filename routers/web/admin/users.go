@@ -73,7 +73,7 @@ func Users(ctx *context.Context) {
 		IsTwoFactorEnabled: util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    util.OptionalBoolParse(statusFilterMap["is_prohibit_login"]),
 		ExtraParamStrings:  extraParamStrings,
-	}, tplUsers, "alphabetically")
+	}, tplUsers, explore.UserSearchDefaultAdminSort)
 }
 
 // NewUser render adding a new user page

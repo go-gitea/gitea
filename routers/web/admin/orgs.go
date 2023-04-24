@@ -30,5 +30,5 @@ func Organizations(ctx *context.Context) {
 			PageSize: setting.UI.Admin.OrgPagingNum,
 		},
 		Visible: []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
-	}, tplOrgs, "alphabetically")
+	}, tplOrgs, explore.UserSearchDefaultAdminSort)
 }

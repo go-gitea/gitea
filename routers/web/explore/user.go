@@ -25,6 +25,7 @@ const (
 
 // UserSearchDefaultSortType is the default sort type for user search
 const UserSearchDefaultSortType = "recentupdate"
+const UserSearchDefaultAdminSort = "alphabetically"
 
 var nullByte = []byte{0x00}
 
