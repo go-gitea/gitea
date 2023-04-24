@@ -38,7 +38,6 @@ Gitea's private styles use `g-` prefix.
 }
 
 .gt-bold { font-weight: var(--font-weight-bold) !important; }
-.gt-semibold { font-weight: var(--font-weight-semibold) !important; }
 
 .gt-word-break {
   word-wrap: break-word !important;
