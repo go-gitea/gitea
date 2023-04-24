@@ -41,6 +41,8 @@ func SecretsPost(ctx *context.Context) {
 func DeleteSecret(ctx *context.Context) {
 	shared.PerformSecretsDelete(
 		ctx,
+		0,
+		ctx.Repo.Repository.ID,
 		ctx.Repo.RepoLink+"/settings/secrets",
 	)
 }
