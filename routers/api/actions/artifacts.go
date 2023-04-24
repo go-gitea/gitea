@@ -6,15 +6,20 @@ package actions
 // Github Actions Artifacts API Simple Description
 //
 // 1. Upload artifact
-// 1.1. Get upload url
-// GET: /api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts?api-version=6.0-preview
+// 1.1. Post upload url
+// Post: /api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts?api-version=6.0-preview
+// Request:
+// {
+//  "Type": "actions_storage",
+//  "Name": "artifact"
+// }
 // Response:
 // {
-// 	"fileContainerResourceUrl":"/api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts/{artifactID}/upload"
+// 	"fileContainerResourceUrl":"/api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts/{artifactID}/upload"
 // }
 // it accquire a upload url for upload artifact
 // 1.2. Upload artifact
-// PUT: /api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts/{artifactID}/upload?itemPath=artifact%2Ffilename
+// PUT: /api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts/{artifactID}/upload?itemPath=artifact%2Ffilename
 // it upload chunk with headers:
 //    x-tfs-filelength: 1024 					// total file length
 //    content-length: 1024 						// chunk length
@@ -22,36 +27,36 @@ package actions
 //    content-range: bytes 0-1023/1024 // chunk range
 // we save all chunks to one storage directory after md5sum check
 // 1.3. Confirm upload
-// PATCH: /api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts/{artifactID}/upload?itemPath=artifact%2Ffilename
+// PATCH: /api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts/{artifactID}/upload?itemPath=artifact%2Ffilename
 // it confirm upload and merge all chunks to one file, save this file to storage
 //
 // 2. Download artifact
 // 2.1 list artifacts
-// GET: /api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts?api-version=6.0-preview
+// GET: /api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts?api-version=6.0-preview
 // Response:
 // {
 // 	"count": 1,
 // 	"value": [
 // 		{
 // 			"name": "artifact",
-// 			"fileContainerResourceUrl": "/api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts/{artifactID}/path"
+// 			"fileContainerResourceUrl": "/api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts/{artifactID}/path"
 // 		}
 // 	]
 // }
 // 2.2 download artifact
-// GET: /api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts/{artifactID}/path?api-version=6.0-preview
+// GET: /api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts/{artifactID}/path?api-version=6.0-preview
 // Response:
 // {
 //   "value": [
 // 			{
-// 	 			"contentLocation": "/api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts/{artifactID}/download",
+// 	 			"contentLocation": "/api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts/{artifactID}/download",
 // 				"path": "artifact/filename",
 // 				"itemType": "file"
 // 			}
 //   ]
 // }
 // 2.3 download artifact file
-// GET: /api/actions_pipeline/_apis/pipelines/workflows/{jobID}/artifacts/{artifactID}/download?itemPath=artifact%2Ffilename
+// GET: /api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts/{artifactID}/download?itemPath=artifact%2Ffilename
 // Response:
 // download file
 //
@@ -73,6 +78,7 @@ import (
 
 	"code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -87,7 +93,7 @@ const (
 
 // const artifactXActionsResultsCRC64Header = "x-actions-results-crc64"
 
-const artifactRouteBase = "/_apis/pipelines/workflows/{jobID}/artifacts"
+const artifactRouteBase = "/_apis/pipelines/workflows/{runID}/artifacts"
 
 func ArtifactsRoutes(goctx gocontext.Context, prefix string) *web.Route {
 	m := web.NewRoute()
@@ -112,7 +118,7 @@ func ArtifactsRoutes(goctx gocontext.Context, prefix string) *web.Route {
 }
 
 // withContexter initializes a package context for a request.
-func withContexter(ctx gocontext.Context) func(next http.Handler) http.Handler {
+func withContexter(goctx gocontext.Context) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			ctx := context.Context{
@@ -137,6 +143,14 @@ func withContexter(ctx gocontext.Context) func(next http.Handler) http.Handler {
 			}
 			ctx.Data["task"] = task
 
+			if task.Job == nil {
+				if err := task.LoadJob(goctx); err != nil {
+					log.Error("Error runner api getting job: %v", err)
+					ctx.Error(http.StatusInternalServerError, "Error runner api getting job")
+					return
+				}
+			}
+
 			ctx.Req = context.WithContext(req, &ctx)
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
@@ -149,15 +163,20 @@ type artifactRoutes struct {
 	fs     storage.ObjectStorage
 }
 
-func (ar artifactRoutes) buildArtifactURL(jobID, artifactID int64, suffix string) (string, error) {
+func (ar artifactRoutes) buildArtifactURL(runID, artifactID int64, suffix string) (string, error) {
 	uploadURL := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ar.prefix, "/") +
-		strings.ReplaceAll(artifactRouteBase, "{jobID}", strconv.FormatInt(jobID, 10)) +
+		strings.ReplaceAll(artifactRouteBase, "{runID}", strconv.FormatInt(runID, 10)) +
 		"/" + strconv.FormatInt(artifactID, 10) + "/" + suffix
 	u, err := url.Parse(uploadURL)
 	if err != nil {
 		return "", err
 	}
 	return u.String(), nil
+}
+
+type getUploadArtifactRequest struct {
+	Type string
+	Name string
 }
 
 // getUploadArtifactURL generates a URL for uploading an artifact
@@ -168,20 +187,27 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, "Error getting task in context")
 		return
 	}
-	jobID := ctx.ParamsInt64("jobID")
-	if task.JobID != jobID {
-		log.Error("Error jobID not match")
-		ctx.Error(http.StatusInternalServerError, "Error jobID not match")
+	runID := ctx.ParamsInt64("runID")
+	if task.Job.RunID != runID {
+		log.Error("Error runID not match")
+		ctx.Error(http.StatusInternalServerError, "Error runID not match")
 		return
 	}
 
-	artifact, err := actions.CreateArtifact(ctx, task)
+	var req getUploadArtifactRequest
+	if err := json.NewDecoder(ctx.Req.Body).Decode(&req); err != nil {
+		log.Error("Error decode request body: %v", err)
+		ctx.Error(http.StatusInternalServerError, "Error decode request body")
+		return
+	}
+
+	artifact, err := actions.CreateArtifact(ctx, task, req.Name)
 	if err != nil {
 		log.Error("Error creating artifact: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	url, err := ar.buildArtifactURL(jobID, artifact.ID, "upload")
+	url, err := ar.buildArtifactURL(runID, artifact.ID, "upload")
 	if err != nil {
 		log.Error("Error parsing upload URL: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -228,7 +254,7 @@ func (hr *hashReader) Match(md5Str string) bool {
 
 func (ar artifactRoutes) saveUploadChunk(ctx *context.Context,
 	artifact *actions.ActionArtifact,
-	contentSize, jobID int64,
+	contentSize, runID int64,
 ) (int64, error) {
 	contentRange := ctx.Req.Header.Get("Content-Range")
 	start, end, length := int64(0), int64(0), int64(0)
@@ -236,7 +262,7 @@ func (ar artifactRoutes) saveUploadChunk(ctx *context.Context,
 		return -1, fmt.Errorf("parse content range error: %v", err)
 	}
 
-	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d.chunk", jobID, artifact.ID, start, end)
+	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d.chunk", runID, artifact.ID, start, end)
 
 	// use hashReader to avoid reading all body to md5 sum.
 	// it writes data to hasher after reading end
@@ -292,7 +318,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
 	// itemPath is generated from upload-artifact action
 	// it's formatted as {artifact_name}/{artfict_path_in_runner}
 	itemPath := util.PathJoinRel(ctx.Req.URL.Query().Get("itemPath"))
-	jobID := ctx.ParamsInt64("jobID")
+	runID := ctx.ParamsInt64("runID")
 	artifactName := strings.Split(itemPath, "/")[0]
 	if err = checkArtifactName(artifactName); err != nil {
 		log.Error("Error checking artifact name: %v", err)
@@ -309,7 +335,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
 	}
 
 	// save chunk
-	chunkAllLength, err := ar.saveUploadChunk(ctx, artifact, contentLength, jobID)
+	chunkAllLength, err := ar.saveUploadChunk(ctx, artifact, contentLength, runID)
 	if err != nil {
 		log.Error("Error saving upload chunk: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -338,8 +364,8 @@ func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
 // comfirmUploadArtifact comfirm upload artifact.
 // if all chunks are uploaded, merge them to one file.
 func (ar artifactRoutes) comfirmUploadArtifact(ctx *context.Context) {
-	jobID := ctx.ParamsInt64("jobID")
-	if err := ar.mergeArtifactChunks(ctx, jobID); err != nil {
+	runID := ctx.ParamsInt64("runID")
+	if err := ar.mergeArtifactChunks(ctx, runID); err != nil {
 		log.Error("Error merging chunks: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -357,8 +383,8 @@ type chunkItem struct {
 	Path       string
 }
 
-func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, jobID int64) error {
-	storageDir := fmt.Sprintf("tmp%d", jobID)
+func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, runID int64) error {
+	storageDir := fmt.Sprintf("tmp%d", runID)
 	var chunks []*chunkItem
 	if err := ar.fs.IterateObjects(storageDir, func(path string, obj storage.Object) error {
 		item := chunkItem{Path: path}
@@ -427,7 +453,7 @@ func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, jobID int64) 
 		}
 
 		// save merged file
-		storagePath := fmt.Sprintf("%d/%d/%d.chunk", (jobID+artifactID)%255, artifact.FileSize%255, time.Now().UnixNano())
+		storagePath := fmt.Sprintf("%d/%d/%d.chunk", (runID+artifactID)%255, artifact.FileSize%255, time.Now().UnixNano())
 		written, err := ar.fs.Save(storagePath, mergedReader, -1)
 		if err != nil {
 			return fmt.Errorf("save merged file error: %v", err)
@@ -466,14 +492,14 @@ func (ar artifactRoutes) listArtifacts(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, "Error getting task in context")
 		return
 	}
-	jobID := ctx.ParamsInt64("jobID")
-	if task.JobID != jobID {
-		log.Error("Error jobID not match")
-		ctx.Error(http.StatusInternalServerError, "Error jobID not match")
+	runID := ctx.ParamsInt64("runID")
+	if task.Job.RunID != runID {
+		log.Error("Error runID not match")
+		ctx.Error(http.StatusInternalServerError, "Error runID not match")
 		return
 	}
 
-	artficats, err := actions.ListArtifactByJobID(ctx, task.JobID)
+	artficats, err := actions.ListArtifactByRunID(ctx, runID)
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -482,7 +508,7 @@ func (ar artifactRoutes) listArtifacts(ctx *context.Context) {
 
 	artficatsData := make([]map[string]interface{}, 0, len(artficats))
 	for _, a := range artficats {
-		url, err := ar.buildArtifactURL(jobID, a.ID, "path")
+		url, err := ar.buildArtifactURL(runID, a.ID, "path")
 		if err != nil {
 			log.Error("Error parsing artifact URL: %v", err)
 			ctx.Error(http.StatusInternalServerError, err.Error())
@@ -508,8 +534,8 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	jobID := ctx.ParamsInt64("jobID")
-	url, err := ar.buildArtifactURL(jobID, artifact.ID, "download")
+	runID := ctx.ParamsInt64("runID")
+	url, err := ar.buildArtifactURL(runID, artifact.ID, "download")
 	if err != nil {
 		log.Error("Error parsing download URL: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -535,9 +561,9 @@ func (ar artifactRoutes) downloadArtifact(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	jobID := ctx.ParamsInt64("jobID")
-	if artifact.JobID != jobID {
-		log.Error("Error dismatch jobID and artifactID, task: %v, artifact: %v", jobID, artifactID)
+	runID := ctx.ParamsInt64("runID")
+	if artifact.RunID != runID {
+		log.Error("Error dismatch runID and artifactID, task: %v, artifact: %v", runID, artifactID)
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}

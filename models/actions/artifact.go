@@ -28,7 +28,7 @@ func init() {
 // ActionArtifact is a file that is stored in the artifact storage.
 type ActionArtifact struct {
 	ID               int64 `xorm:"pk autoincr"`
-	JobID            int64 `xorm:"index"`
+	RunID            int64 `xorm:"index unique(run-id-name)"` // The run id of the artifact
 	RunnerID         int64
 	RepoID           int64 `xorm:"index"`
 	OwnerID          int64
@@ -38,16 +38,28 @@ type ActionArtifact struct {
 	FileGzipSize     int64              // The size of the artifact in bytes after gzip compression
 	ContentEncnoding string             // The content encoding of the artifact
 	ArtifactPath     string             // The path to the artifact when runner uploads it
-	ArtifactName     string             // The name of the artifact when runner uploads it
-	UploadStatus     int64              `xorm:"index"` // The status of the artifact upload
+	ArtifactName     string             `xorm:"unique(run-id-name)"` // The name of the artifact when runner uploads it
+	UploadStatus     int64              `xorm:"index"`               // The status of the artifact upload
 	Created          timeutil.TimeStamp `xorm:"created"`
 	Updated          timeutil.TimeStamp `xorm:"updated index"`
 }
 
-// CreateArtifact creates a new artifact with task info
-func CreateArtifact(ctx context.Context, t *ActionTask) (*ActionArtifact, error) {
-	artifact := &ActionArtifact{
-		JobID:        t.JobID,
+// CreateArtifact create a new artifact with task info or get same named artifact in the same run
+func CreateArtifact(ctx context.Context, t *ActionTask, artifactName string) (*ActionArtifact, error) {
+	if t.Job == nil {
+		if err := t.LoadJob(ctx); err != nil {
+			return nil, err
+		}
+	}
+	if err := t.Job.LoadRun(ctx); err != nil {
+		return nil, err
+	}
+	artifact, _ := GetArtifactByArtifactName(ctx, t.Job.RunID, artifactName)
+	if artifact != nil {
+		return artifact, nil
+	}
+	artifact = &ActionArtifact{
+		RunID:        t.Job.RunID,
 		RunnerID:     t.RunnerID,
 		RepoID:       t.RepoID,
 		OwnerID:      t.OwnerID,
@@ -58,6 +70,18 @@ func CreateArtifact(ctx context.Context, t *ActionTask) (*ActionArtifact, error)
 		return nil, err
 	}
 	return artifact, nil
+}
+
+// GetArtifactByArtifactName returns an artifact by name
+func GetArtifactByArtifactName(ctx context.Context, runID int64, name string) (*ActionArtifact, error) {
+	var art ActionArtifact
+	has, err := db.GetEngine(ctx).Where("run_id = ? AND artifact_name = ?", runID, name).Get(&art)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.NewNotExistErrorf("no ActionArtifact with name %s and run_id %d exists", name, runID)
+	}
+	return &art, nil
 }
 
 // GetArtifactByID returns an artifact by id
@@ -80,10 +104,16 @@ func UpdateArtifactByID(ctx context.Context, id int64, art *ActionArtifact) erro
 	return err
 }
 
-// ListArtifactByJobID returns all artifacts of a job
-func ListArtifactByJobID(ctx context.Context, jobID int64) ([]*ActionArtifact, error) {
+// ListArtifactByRunID returns all artifacts of a run
+func ListArtifactByRunID(ctx context.Context, runID int64) ([]*ActionArtifact, error) {
 	arts := make([]*ActionArtifact, 0, 10)
-	return arts, db.GetEngine(ctx).Where("job_id=?", jobID).Find(&arts)
+	return arts, db.GetEngine(ctx).Where("run_id=?", runID).Find(&arts)
+}
+
+// ListUploadedArtifactByRunID returns all uploaded artifacts of a run
+func ListUploadedArtifactByRunID(ctx context.Context, runID int64) ([]*ActionArtifact, error) {
+	arts := make([]*ActionArtifact, 0, 10)
+	return arts, db.GetEngine(ctx).Where("run_id=? AND upload_status=?", runID, ArtifactUploadStatusConfirmed).Find(&arts)
 }
 
 // ListArtifactsByRepoID returns all artifacts of a repo

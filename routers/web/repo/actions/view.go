@@ -395,7 +395,12 @@ type ArtifactsViewItem struct {
 
 func ArtifactsView(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
-	artifacts, err := actions_model.ListArtifactByJobID(ctx, runIndex)
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	artifacts, err := actions_model.ListUploadedArtifactByRunID(ctx, run.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -422,7 +427,12 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	if artifact.JobID != runIndex {
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	if artifact.RunID != run.ID {
 		ctx.Error(http.StatusNotFound, "artifact not found")
 		return
 	}
