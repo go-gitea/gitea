@@ -2,7 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository commits">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<h2 class="ui header">{{template "shared/datetime/long" (dict "Datetime" .DateFrom "Fallback" .DateFrom)}} - {{template "shared/datetime/long" (dict "Datetime" .DateUntil "Fallback" .DateUntil)}}
+		<h2 class="ui header">{{DateTime "long" .DateFrom .DateFrom}} - {{DateTime "long" .DateUntil .DateUntil}}
 			<div class="ui right">
 				<!-- Period -->
 				<div class="ui floating dropdown jump filter">
