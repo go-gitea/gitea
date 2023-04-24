@@ -42,7 +42,7 @@
 				<div class="item">
 					<div class="gt-df gt-ac gt-py-3">
 						<div class="repo-title" style="display: flex; flex: 1; flex-grow: 1;">
-							<span class="gt-mr-2">{{avatar $.Context .Owner}}</span>
+							<span class="gt-mr-4">{{avatar $.Context .Owner}}</span>
 							<div style="display: flex; align-items: center;">
 								<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>&nbsp;/&nbsp;<a href="{{.Link}}">{{.Name}}</a>
 							</div>
@@ -59,6 +59,7 @@
 
 					<div class="description">
 						<p class="time" style="display: inline-block;">Created {{TimeSinceUnix .CreatedUnix $.locale}}</p>
+						·
 						<p class="time" style="display: inline-block;">{{$.locale.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix $.locale}}</p>
 					</div>
 				</div>
