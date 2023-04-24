@@ -3,7 +3,11 @@
 
 package v1_20 //nolint
 
-import "xorm.io/xorm"
+import (
+	"code.gitea.io/gitea/modules/timeutil"
+
+	"xorm.io/xorm"
+)
 
 func AddArchivedUnixToRepository(x *xorm.Engine) error {
 	type Repository struct {
@@ -11,7 +15,7 @@ func AddArchivedUnixToRepository(x *xorm.Engine) error {
 	}
 
 	x.Sync(new(Repository))
-	
+
 	_, err := x.Exec("UPDATE repository SET archived_unix = 0")
 	return err
 }
