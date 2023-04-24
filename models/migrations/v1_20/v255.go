@@ -11,7 +11,7 @@ import (
 
 func AddArchivedUnixToRepository(x *xorm.Engine) error {
 	type Repository struct {
-		ArchivedUnix timeutil.TimeStamp `xorm:"Default 0"`
+		ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT 0"`
 	}
 
 	x.Sync(new(Repository))
