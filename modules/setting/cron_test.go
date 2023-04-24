@@ -26,7 +26,7 @@ Base = true
 Second = white rabbit
 Extend = true
 `
-	cfg, err := newConfigProviderFromData([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	extended := &Extended{

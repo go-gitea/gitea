@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -42,19 +43,21 @@ type iniFileConfigProvider struct {
 
 // NewEmptyConfigProvider create a new empty config provider
 func NewEmptyConfigProvider() ConfigProvider {
-	cfg := ini.Empty()
-	cfg.NameMapper = ini.SnackCase
-	return &iniFileConfigProvider{
-		File:    cfg,
-		newFile: true,
-	}
+	cp, _ := newConfigProviderFromData("")
+	return cp
 }
 
 // newConfigProviderFromData this function is only for testing
-func newConfigProviderFromData(bs []byte) (ConfigProvider, error) {
-	cfg, err := ini.Load(bs)
-	if err != nil {
-		return nil, err
+func newConfigProviderFromData(configContent string) (ConfigProvider, error) {
+	var cfg *ini.File
+	var err error
+	if configContent == "" {
+		cfg = ini.Empty()
+	} else {
+		cfg, err = ini.Load(strings.NewReader(configContent))
+		if err != nil {
+			return nil, err
+		}
 	}
 	// FIXME: the behaviour is different from file configprovider
 	// cfg.NameMapper = ini.SnackCase
