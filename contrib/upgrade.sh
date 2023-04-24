@@ -13,7 +13,7 @@
 
 
 # Check if gitea service is running
-if ! systemctl is-active gitea &> /dev/null; then
+if ! pidof gitea &> /dev/null; then
   echo "Error: gitea is not running."
   exit 1
 fi
