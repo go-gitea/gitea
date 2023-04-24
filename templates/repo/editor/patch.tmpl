@@ -36,7 +36,7 @@
 		</form>
 	</div>
 
-	<div class="ui gitea-confirm-modal modal" id="edit-empty-content-modal">
+	<div class="ui g-modal-confirm modal" id="edit-empty-content-modal">
 		<div class="header">
 			{{svg "octicon-file"}}
 			{{.locale.Tr "repo.editor.commit_empty_file_header"}}
@@ -45,11 +45,11 @@
 			<p>{{.locale.Tr "repo.editor.commit_empty_file_text"}}</p>
 		</div>
 		<div class="actions">
-			<button class="ui red basic inverted cancel button">
+			<button class="ui red cancel button">
 				{{svg "octicon-x"}}
 				{{.locale.Tr "repo.editor.cancel"}}
 			</button>
-			<button class="ui green basic inverted ok button">
+			<button class="ui green ok button">
 				{{svg "fontawesome-save"}}
 				{{.locale.Tr "repo.editor.commit_changes"}}
 			</button>

@@ -5,6 +5,7 @@ linters:
     - depguard
     - dupl
     - errcheck
+    - forbidigo
     - gocritic
     # - gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
     - gofmt
@@ -105,6 +106,9 @@ issues:
         - errcheck
         - dupl
         - gosec
+    - path: cmd
+      linters:
+        - forbidigo
     - linters:
         - dupl
       text: "webhook"

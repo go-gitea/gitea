@@ -963,7 +963,7 @@
 	{{end}}
 
 	{{if not .Repository.IsMirror}}
-		<div class="ui gitea-confirm-modal modal" id="archive-repo-modal">
+		<div class="ui g-modal-confirm modal" id="archive-repo-modal">
 			<div class="header">
 				{{if .Repository.IsArchived}}
 					{{.locale.Tr "repo.settings.unarchive.header"}}

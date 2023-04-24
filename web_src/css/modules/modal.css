@@ -1,6 +1,13 @@
-.ui.modal.gitea-confirm-modal {
+.ui.modal.g-modal-confirm {
   max-width: min(800px, 90vw);
   width: fit-content;
+}
+
+.ui.modal.g-modal-confirm > .inside.close {
+  padding: 0;
+  width: 1em;
+  height: 1em;
+  top: 1.2em;
 }
 
 .ui.modal > .header {
@@ -40,6 +47,13 @@
   display: inline-flex;
   align-items: center;
   padding: 10px 12px 10px 10px;
+}
+
+.ui.modal .actions > .ui.button.danger {
+  display: block;
+  width: 100%;
+  margin: 0 auto;
+  text-align: center;
 }
 
 .ui.modal .actions > .ui.button .svg {
