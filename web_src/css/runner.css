@@ -57,3 +57,21 @@
   overflow-x: auto;
   font-size: 13px; /* same font size as .admin .table.segment */
 }
+
+.runner-container > .table.segment:not(.striped) thead th:last-child {
+  padding-right: 5px !important;
+}
+
+.runner-container > .table.segment th {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.runner-container > .table.segment:not(.select) th:first-of-type,
+.runner-container > .table.segment:not(.select) td:first-of-type {
+  padding-left: 15px !important;
+}
+
+.runner-container > .table.segment form tbody button[type="submit"] {
+  padding: 5px 8px;
+}
