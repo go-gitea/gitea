@@ -33,7 +33,7 @@
   color: var(--color-text);
   font-size: 16px;
   min-width: 0;
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
 }
 
 .issue.list > .item .issue-item-top-row a.index {
