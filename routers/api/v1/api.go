@@ -689,7 +689,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	// Get user from session if logged in.
 	m.Use(auth.APIAuth(group))
 
-	m.Use(context.ToggleAPI(&context.ToggleOptions{
+	m.Use(auth.VerifyAuthWithOptionsAPI(&auth.VerifyOptions{
 		SignInRequired: setting.Service.RequireSignInView,
 	}))
 
