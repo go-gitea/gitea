@@ -2,15 +2,13 @@
 Template Attributes:
 * locale
 
-Two buttons:
-
+Two buttons (negative, positive):
 * ModalButtonTypes: "yes" (default) or "confirm"
-* ModalButtonColors: "green-red" (default) / "blue" / "yellow"
+* ModalButtonColors: "green" (default) / "blue" / "yellow"
 * ModalButtonCancelText
 * ModalButtonOkText
 
-Single button:
-
+Single danger button (GitHub-like):
 * ModalButtonDangerText "This action will destroy your data"
 
 The ".ok.button" and ".cancel.button" selectors are also used by Fomantic Modal internally
@@ -28,16 +26,13 @@ The ".ok.button" and ".cancel.button" selectors are also used by Fomantic Modal 
 		{{if .ModalButtonCancelText}}{{$textNegitive = .ModalButtonCancelText}}{{end}}
 		{{if .ModalButtonOkText}}{{$textPositive = .ModalButtonOkText}}{{end}}
 
-		{{$styleNegative := "red"}}
 		{{$stylePositive := "green"}}
 		{{if eq .ModalButtonColors "blue"}}
-			{{$styleNegative = "secondary basic"}}
 			{{$stylePositive = "blue"}}
 		{{else if eq .ModalButtonColors "yellow"}}
-			{{$styleNegative = "secondary basic"}}
 			{{$stylePositive = "yellow"}}
 		{{end}}
-		<button class="ui {{$styleNegative}} cancel button">{{svg "octicon-x"}} {{$textNegitive}}</button>
+		<button class="ui secondary basic cancel button">{{svg "octicon-x"}} {{$textNegitive}}</button>
 		<button class="ui {{$stylePositive}} ok button">{{svg "octicon-check"}} {{$textPositive}}</button>
 	{{end}}
 </div>

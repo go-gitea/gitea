@@ -38,7 +38,7 @@
 	<script type="module">
 		for (const el of $('.ui.modal')) {
 			const $btn = $('<button>').text(`Show ${el.id}`).on('click', () => {
-				$(el).modal('show');
+				$(el).modal({onApprove() {alert('confirmed');}}).modal('show');
 			});
 			$('.modal-buttons').append($btn);
 		}

@@ -50,7 +50,7 @@
 
 .ui.modal .actions > .ui.button.danger {
   display: block;
-  width: 80%;
+  width: 100%;
   margin: 0 auto;
   text-align: center;
 }
