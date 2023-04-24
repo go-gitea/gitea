@@ -50,12 +50,14 @@ func NewEmptyConfigProvider() ConfigProvider {
 	}
 }
 
+// newConfigProviderFromData this function is only for testing
 func newConfigProviderFromData(bs []byte) (ConfigProvider, error) {
 	cfg, err := ini.Load(bs)
 	if err != nil {
 		return nil, err
 	}
-	cfg.NameMapper = ini.SnackCase
+	// FIXME: the behaviour is different from file configprovider
+	// cfg.NameMapper = ini.SnackCase
 	return &iniFileConfigProvider{
 		File:    cfg,
 		newFile: true,
