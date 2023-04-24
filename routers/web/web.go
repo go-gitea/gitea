@@ -228,11 +228,11 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 // RegisterRoutes register routes
 func RegisterRoutes(m *web.Route) {
-	reqSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: true})
-	ignSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView})
-	ignExploreSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
-	ignSignInAndCsrf := context.Toggle(&context.ToggleOptions{DisableCSRF: true})
-	reqSignOut := context.Toggle(&context.ToggleOptions{SignOutRequired: true})
+	reqSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: true})
+	ignSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: setting.Service.RequireSignInView})
+	ignExploreSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
+	ignSignInAndCsrf := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{DisableCSRF: true})
+	reqSignOut := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignOutRequired: true})
 	validation.AddBindingRules()
 
 	linkAccountEnabled := func(ctx *context.Context) {
@@ -293,7 +293,7 @@ func RegisterRoutes(m *web.Route) {
 	}
 
 	sitemapEnabled := func(ctx *context.Context) {
-		if !setting.EnableSitemap {
+		if !setting.Other.EnableSitemap {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
@@ -307,7 +307,7 @@ func RegisterRoutes(m *web.Route) {
 	}
 
 	feedEnabled := func(ctx *context.Context) {
-		if !setting.EnableFeed {
+		if !setting.Other.EnableFeed {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
@@ -551,7 +551,7 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Get("/avatar/{hash}", user.AvatarByEmailHash)
 
-	adminReq := context.Toggle(&context.ToggleOptions{SignInRequired: true, AdminRequired: true})
+	adminReq := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: true, AdminRequired: true})
 
 	// ***** START: Admin *****
 	m.Group("/admin", func() {
@@ -706,7 +706,7 @@ func RegisterRoutes(m *web.Route) {
 			default:
 				context_service.UserAssignmentWeb()(ctx)
 				if !ctx.Written() {
-					ctx.Data["EnableFeed"] = setting.EnableFeed
+					ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 					user.Profile(ctx)
 				}
 			}
@@ -1205,7 +1205,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get(".rss", feedEnabled, repo.TagsListFeedRSS)
 			m.Get(".atom", feedEnabled, repo.TagsListFeedAtom)
 		}, func(ctx *context.Context) {
-			ctx.Data["EnableFeed"] = setting.EnableFeed
+			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 		}, repo.MustBeNotEmpty, reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag, true))
 		m.Group("/releases", func() {
 			m.Get("/", repo.Releases)
@@ -1214,7 +1214,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get(".rss", feedEnabled, repo.ReleasesFeedRSS)
 			m.Get(".atom", feedEnabled, repo.ReleasesFeedAtom)
 		}, func(ctx *context.Context) {
-			ctx.Data["EnableFeed"] = setting.EnableFeed
+			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 		}, repo.MustBeNotEmpty, reqRepoReleaseReader, context.RepoRefByType(context.RepoRefTag, true))
 		m.Get("/releases/attachments/{uuid}", repo.GetAttachment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 		m.Group("/releases", func() {

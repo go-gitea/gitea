@@ -29,6 +29,14 @@ func init() {
 	}
 }
 
+func IsWorkflow(path string) bool {
+	if (!strings.HasSuffix(path, ".yaml")) && (!strings.HasSuffix(path, ".yml")) {
+		return false
+	}
+
+	return strings.HasPrefix(path, ".gitea/workflows") || strings.HasPrefix(path, ".github/workflows")
+}
+
 func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 	tree, err := commit.SubTree(".gitea/workflows")
 	if _, ok := err.(git.ErrNotExist); ok {

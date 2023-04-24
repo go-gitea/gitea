@@ -483,5 +483,4 @@ PROXY_HOSTS = *.github.com
 
 ## Other (`other`)
 
-- `SHOW_FOOTER_BRANDING`: 为真则在页面底部显示Gitea的字样。
 - `SHOW_FOOTER_VERSION`: 为真则在页面底部显示Gitea的版本。

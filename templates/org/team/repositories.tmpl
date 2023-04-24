@@ -64,26 +64,26 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal" id="org-team-remove-all-repo">
-	<div class="ui icon header">
+<div class="ui gitea-confirm-modal delete modal" id="org-team-remove-all-repo">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "org.teams.remove_all_repos_title"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "org.teams.remove_all_repos_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
-<div class="ui small basic addall modal" id="org-team-add-all-repo">
-	<div class="ui icon header">
+<div class="ui gitea-confirm-modal addall modal" id="org-team-add-all-repo">
+	<div class="header">
 		{{svg "octicon-globe"}}
 		{{.locale.Tr "org.teams.add_all_repos_title"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "org.teams.add_all_repos_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
 {{template "base/footer" .}}
