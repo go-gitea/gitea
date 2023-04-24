@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings lfs">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container repository file list">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings lfs")}}
+	<div class="user-main-content twelve wide column content repository file list">
 		<div class="tab-size-8 non-diff-file-content">
 			<h4 class="ui top attached header">
 				<a href="{{.LFSFilesLink}}">{{.locale.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.Oid}}</span>
@@ -48,5 +44,4 @@
 			</table>
 		</div>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "repo/settings/layout_footer" .}}
