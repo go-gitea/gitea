@@ -20,9 +20,14 @@
 			{{.locale.Tr "settings.ssh_gpg_keys"}}
 		</a>
 		{{if .EnableActions}}
-		<a class="{{if .PageIsSettingsActions}}active {{end}}item" href="{{AppSubUrl}}/user/settings/actions">
+		<div class="item">
 			{{.locale.Tr "actions.actions"}}
-		</a>
+			<div class="menu">
+				<a class="{{if .PageIsSettingsSecrets}}active {{end}}item" href="{{AppSubUrl}}/user/settings/actions/secrets">
+					{{.locale.Tr "secrets.secrets"}}
+				</a>
+			</div>
+		</div>
 		{{end}}
 		{{if .EnablePackages}}
 		<a class="{{if .PageIsSettingsPackages}}active {{end}}item" href="{{AppSubUrl}}/user/settings/packages">

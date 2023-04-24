@@ -1,6 +1,7 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin config")}}
 	<div class="admin-setting-content">
-		{{template "base/alert" .}}
+	{{if eq .PageType "runners"}}
 		{{template "shared/actions/runner_list" .}}
+	{{end}}
 	</div>
 {{template "admin/layout_footer" .}}

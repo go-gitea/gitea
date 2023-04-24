@@ -21,7 +21,7 @@ func SecretsPost(ctx *context.Context) {
 		ctx,
 		ctx.Doer.ID,
 		0,
-		setting.AppSubURL+"/user/settings/actions",
+		setting.AppSubURL+"/user/settings/actions/secrets",
 	)
 }
 
@@ -30,6 +30,6 @@ func SecretsDelete(ctx *context.Context) {
 		ctx,
 		ctx.Doer.ID,
 		0,
-		setting.AppSubURL+"/user/settings/actions",
+		setting.AppSubURL+"/user/settings/actions/secrets",
 	)
 }

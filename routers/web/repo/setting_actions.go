@@ -24,7 +24,6 @@ func Actions(ctx *context.Context) {
 	pageType := ctx.Params(":type")
 	if pageType == "runners" {
 		ctx.Data["PageIsSettingsRunners"] = true
-		ctx.Data["RunnersBaseLink"] = ctx.Link
 		page := ctx.FormInt("page")
 		if page <= 1 {
 			page = 1
@@ -43,7 +42,6 @@ func Actions(ctx *context.Context) {
 		actions_shared.RunnersList(ctx, opts)
 	} else if pageType == "secrets" {
 		ctx.Data["PageIsSettingsSecrets"] = true
-		ctx.Data["SecretsBaseLink"] = ctx.Link
 		PrepareSecretsData(ctx)
 	} else {
 		ctx.ServerError("Unknown Page Type", fmt.Errorf("Unknown Actions Settings Type: %s", pageType))

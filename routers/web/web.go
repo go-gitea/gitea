@@ -504,7 +504,8 @@ func RegisterRoutes(m *web.Route) {
 		}, packagesEnabled)
 
 		m.Group("/actions", func() {
-			m.Get("", user_setting.Actions)
+			m.Get("", user_setting.RedirectToRunnersSettings)
+			m.Get("/{type:secrets}", user_setting.Actions)
 			m.Group("/secrets", func() {
 				m.Post("", web.Bind(forms.AddSecretForm{}), user_setting.SecretsPost)
 				m.Post("/delete", user_setting.SecretsDelete)
@@ -657,7 +658,8 @@ func RegisterRoutes(m *web.Route) {
 		})
 
 		m.Group("/actions", func() {
-			m.Get("", admin.Actions)
+			m.Get("", admin.RedirectToRunnersSettings)
+			m.Get("/{type:runners}", admin.Actions)
 			m.Group("/runners", func() {
 				m.Get("/reset_registration_token", admin.ResetRunnerRegistrationToken)
 				m.Combo("/{runnerid}").Get(admin.EditRunner).Post(web.Bind(forms.EditRunnerForm{}), admin.EditRunnerPost)
