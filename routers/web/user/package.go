@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -20,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -84,11 +84,13 @@ func ListPackages(ctx *context.Context) {
 		return
 	}
 
+	shared_user.RenderUserHeader(ctx)
+
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
+	ctx.Data["AvailableTypes"] = packages_model.TypeList
 	ctx.Data["HasPackages"] = hasPackages
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
@@ -155,9 +157,10 @@ func RedirectToLastVersion(ctx *context.Context) {
 func ViewPackageVersion(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
+	shared_user.RenderUserHeader(ctx)
+
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
 	var (
@@ -231,18 +234,22 @@ func ListPackageVersions(ctx *context.Context) {
 	}
 
 	query := ctx.FormTrim("q")
+	sort := ctx.FormTrim("sort")
+
+	shared_user.RenderUserHeader(ctx)
 
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = &packages_model.PackageDescriptor{
 		Package: p,
 		Owner:   ctx.Package.Owner,
 	}
 	ctx.Data["Query"] = query
+	ctx.Data["Sort"] = sort
 
 	pagerParams := map[string]string{
-		"q": query,
+		"q":    query,
+		"sort": sort,
 	}
 
 	var (
@@ -261,6 +268,7 @@ func ListPackageVersions(ctx *context.Context) {
 			PackageID: p.ID,
 			Query:     query,
 			IsTagged:  tagged == "" || tagged == "tagged",
+			Sort:      sort,
 		})
 		if err != nil {
 			ctx.ServerError("SearchImageTags", err)
@@ -275,6 +283,7 @@ func ListPackageVersions(ctx *context.Context) {
 				Value:      query,
 			},
 			IsInternal: util.OptionalBoolFalse,
+			Sort:       sort,
 		})
 		if err != nil {
 			ctx.ServerError("SearchVersions", err)
@@ -303,9 +312,10 @@ func ListPackageVersions(ctx *context.Context) {
 func PackageSettings(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
+	shared_user.RenderUserHeader(ctx)
+
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
 	repos, _, _ := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
@@ -328,7 +338,7 @@ func PackageSettingsPost(ctx *context.Context) {
 		success := func() bool {
 			repoID := int64(0)
 			if form.RepoID != 0 {
-				repo, err := repo_model.GetRepositoryByID(form.RepoID)
+				repo, err := repo_model.GetRepositoryByID(ctx, form.RepoID)
 				if err != nil {
 					log.Error("Error getting repository: %v", err)
 					return false
@@ -366,7 +376,7 @@ func PackageSettingsPost(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
 		}
 
-		ctx.Redirect(ctx.Package.Owner.HTMLURL() + "/-/packages")
+		ctx.Redirect(ctx.Package.Owner.HomeLink() + "/-/packages")
 		return
 	}
 }
@@ -393,5 +403,8 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }

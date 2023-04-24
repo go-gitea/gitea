@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import fastGlob from 'fast-glob';
 import {optimize} from 'svgo';
-import {parse} from 'path';
-import {readFile, writeFile, mkdir} from 'fs/promises';
-import {fileURLToPath} from 'url';
+import {parse} from 'node:path';
+import {readFile, writeFile, mkdir} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
 
 const glob = (pattern) => fastGlob.sync(pattern, {
   cwd: fileURLToPath(new URL('..', import.meta.url)),
@@ -25,14 +25,22 @@ async function processFile(file, {prefix, fullName} = {}) {
     if (prefix === 'octicon') name = name.replace(/-[0-9]+$/, ''); // chop of '-16' on octicons
   }
 
+  // Set the `xmlns` attribute so that the files are displayable in standalone documents
+  // The svg backend module will strip the attribute during startup for inline display
   const {data} = optimize(await readFile(file, 'utf8'), {
     plugins: [
       {name: 'preset-default'},
-      {name: 'removeXMLNS'},
       {name: 'removeDimensions'},
       {name: 'prefixIds', params: {prefix: () => name}},
       {name: 'addClassesToSVGElement', params: {classNames: ['svg', name]}},
-      {name: 'addAttributesToSVGElement', params: {attributes: [{'width': '16'}, {'height': '16'}, {'aria-hidden': 'true'}]}},
+      {
+        name: 'addAttributesToSVGElement', params: {
+          attributes: [
+            {'xmlns': 'http://www.w3.org/2000/svg'},
+            {'width': '16'}, {'height': '16'}, {'aria-hidden': 'true'},
+          ]
+        }
+      },
     ],
   });
 

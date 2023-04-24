@@ -1,6 +1,6 @@
 ---
 date: "2019-11-21T17:00:00-03:00"
-title: "Usage: Automatically Linked References"
+title: "Automatically Linked References"
 slug: "automatically-linked-references"
 weight: 15
 toc: false
@@ -24,7 +24,7 @@ in search for references. These references will be shown as links in the Issue V
 and, in some cases, produce certain _actions_.
 
 Likewise, commit messages are parsed when they are listed, and _actions_
-are can be triggered when they are pushed to the main branch.
+can be triggered when they are pushed to the main branch.
 
 To prevent the creation of unintended references, there are certain rules
 for them to be recognized. For example, they should not be included inside code
@@ -96,7 +96,7 @@ Sometimes a commit or pull request may fix or bring back a problem documented
 in a particular issue. Gitea supports closing and reopening the referenced
 issues by preceding the reference with a particular _keyword_. Common keywords
 include "closes", "fixes", "reopens", etc. This list can be
-[customized]({{< ref "/doc/advanced/config-cheat-sheet.en-us.md" >}}) by the
+[customized]({{< ref "doc/administration/config-cheat-sheet.en-us.md" >}}) by the
 site administrator.
 
 Example:

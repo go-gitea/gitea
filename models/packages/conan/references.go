@@ -1,12 +1,10 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package conan
 
 import (
 	"context"
-	"errors"
 	"strconv"
 	"strings"
 
@@ -14,13 +12,14 @@ import (
 	"code.gitea.io/gitea/models/packages"
 	conan_module "code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
 
 var (
-	ErrRecipeReferenceNotExist  = errors.New("Recipe reference does not exist")
-	ErrPackageReferenceNotExist = errors.New("Package reference does not exist")
+	ErrRecipeReferenceNotExist  = util.NewNotExistErrorf("recipe reference does not exist")
+	ErrPackageReferenceNotExist = util.NewNotExistErrorf("package reference does not exist")
 )
 
 // RecipeExists checks if a recipe exists

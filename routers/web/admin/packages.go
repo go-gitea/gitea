@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package admin
 
@@ -52,9 +51,15 @@ func Packages(ctx *context.Context) {
 		return
 	}
 
-	totalBlobSize, err := packages_model.GetTotalBlobSize()
+	totalBlobSize, err := packages_model.GetTotalBlobSize(ctx)
 	if err != nil {
 		ctx.ServerError("GetTotalBlobSize", err)
+		return
+	}
+
+	totalUnreferencedBlobSize, err := packages_model.GetTotalUnreferencedBlobSize(ctx)
+	if err != nil {
+		ctx.ServerError("CalculateBlobSize", err)
 		return
 	}
 
@@ -63,10 +68,12 @@ func Packages(ctx *context.Context) {
 	ctx.Data["PageIsAdminPackages"] = true
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
+	ctx.Data["AvailableTypes"] = packages_model.TypeList
 	ctx.Data["SortType"] = sort
 	ctx.Data["PackageDescriptors"] = pds
-	ctx.Data["Total"] = total
-	ctx.Data["TotalBlobSize"] = totalBlobSize
+	ctx.Data["TotalCount"] = total
+	ctx.Data["TotalBlobSize"] = totalBlobSize - totalUnreferencedBlobSize
+	ctx.Data["TotalUnreferencedBlobSize"] = totalUnreferencedBlobSize
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParamString("q", query)

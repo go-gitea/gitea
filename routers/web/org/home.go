@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -99,7 +98,7 @@ func Home(ctx *context.Context) {
 		count int64
 		err   error
 	)
-	repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
+	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
@@ -144,7 +143,6 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Owner"] = org
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 	ctx.Data["MembersTotal"] = membersCount
@@ -157,6 +155,7 @@ func Home(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "language", "Language")
 	ctx.Data["Page"] = pager
+	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markup
 
@@ -17,8 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/alecthomas/chroma"
-	"github.com/alecthomas/chroma/lexers"
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/niklasfasching/go-org/org"
 )
 
@@ -110,7 +109,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 
 	res, err := org.New().Silent().Parse(input, "").Write(w)
 	if err != nil {
-		return fmt.Errorf("orgmode.Render failed: %v", err)
+		return fmt.Errorf("orgmode.Render failed: %w", err)
 	}
 	_, err = io.Copy(output, strings.NewReader(res))
 	return err

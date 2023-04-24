@@ -1,6 +1,5 @@
 // Copyright 2020 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package log
 
@@ -100,6 +99,6 @@ func (l *MultiChannelledLogger) SendLog(level Level, caller, filename string, li
 		time:       time.Now(),
 		stacktrace: stack,
 	}
-	l.LogEvent(event)
+	l.LogEvent(event) //nolint:errcheck
 	return nil
 }

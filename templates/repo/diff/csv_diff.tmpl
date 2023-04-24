@@ -1,6 +1,6 @@
 <tr>
 	<td>
-		{{$result := call .root.CreateCsvDiff .file .root.BaseCommit .root.HeadCommit}}
+		{{$result := call .root.CreateCsvDiff .file .blobBase .blobHead}}
 		{{if $result.Error}}
 			<div class="ui center">{{$result.Error}}</div>
 		{{else if $result.Sections}}

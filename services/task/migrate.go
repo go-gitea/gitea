@@ -1,6 +1,5 @@
 // Copyright 2019 Gitea. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package task
 
@@ -51,7 +50,7 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 		if err == nil {
 			err = admin_model.FinishMigrateTask(t)
 			if err == nil {
-				notification.NotifyMigrateRepository(t.Doer, t.Owner, t.Repo)
+				notification.NotifyMigrateRepository(db.DefaultContext, t.Doer, t.Owner, t.Repo)
 				return
 			}
 
@@ -133,9 +132,9 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 	err = util.SanitizeErrorCredentialURLs(err)
 	if strings.Contains(err.Error(), "Authentication failed") ||
 		strings.Contains(err.Error(), "could not read Username") {
-		return fmt.Errorf("Authentication failed: %v", err.Error())
+		return fmt.Errorf("Authentication failed: %w", err)
 	} else if strings.Contains(err.Error(), "fatal:") {
-		return fmt.Errorf("Migration failed: %v", err.Error())
+		return fmt.Errorf("Migration failed: %w", err)
 	}
 
 	// do not be tempted to coalesce this line with the return

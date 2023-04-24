@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -47,8 +46,8 @@ func Activity(ctx *context.Context) {
 		ctx.Data["Period"] = "weekly"
 		timeFrom = timeUntil.Add(-time.Hour * 168)
 	}
-	ctx.Data["DateFrom"] = timeFrom.Format("January 2, 2006")
-	ctx.Data["DateUntil"] = timeUntil.Format("January 2, 2006")
+	ctx.Data["DateFrom"] = timeFrom.UTC().Format(time.RFC3339)
+	ctx.Data["DateUntil"] = timeUntil.UTC().Format(time.RFC3339)
 	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + ctx.Data["Period"].(string))
 
 	var err error

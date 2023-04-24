@@ -1,12 +1,12 @@
 {{template "base/head" .}}
 <div class="user signin webauthn-prompt">
 	<div class="ui middle centered very relaxed page grid">
-		<div class="column">
+		<div class="column center aligned">
 				<h3 class="ui top attached header">
 				{{.locale.Tr "twofa"}}
 				</h3>
 				<div class="ui attached segment">
-					<i class="huge key icon"></i>
+					{{svg "octicon-key" 56}}
 					<h3>{{.locale.Tr "webauthn_insert_key"}}</h3>
 					{{template "base/alert" .}}
 					<p>{{.locale.Tr "webauthn_sign_in"}}</p>

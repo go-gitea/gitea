@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package avatar
 
@@ -19,6 +18,8 @@ import (
 
 	"github.com/nfnt/resize"
 	"github.com/oliamb/cutter"
+
+	_ "golang.org/x/image/webp" // for processing webp images
 )
 
 // AvatarSize returns avatar's size
@@ -30,7 +31,7 @@ func RandomImageSize(size int, data []byte) (image.Image, error) {
 	// we use white as background, and use dark colors to draw blocks
 	imgMaker, err := identicon.New(size, color.White, identicon.DarkColors...)
 	if err != nil {
-		return nil, fmt.Errorf("identicon.New: %v", err)
+		return nil, fmt.Errorf("identicon.New: %w", err)
 	}
 	return imgMaker.Make(data), nil
 }
@@ -46,7 +47,7 @@ func RandomImage(data []byte) (image.Image, error) {
 func Prepare(data []byte) (*image.Image, error) {
 	imgCfg, _, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
-		return nil, fmt.Errorf("DecodeConfig: %v", err)
+		return nil, fmt.Errorf("DecodeConfig: %w", err)
 	}
 	if imgCfg.Width > setting.Avatar.MaxWidth {
 		return nil, fmt.Errorf("Image width is too large: %d > %d", imgCfg.Width, setting.Avatar.MaxWidth)
@@ -57,7 +58,7 @@ func Prepare(data []byte) (*image.Image, error) {
 
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
-		return nil, fmt.Errorf("Decode: %v", err)
+		return nil, fmt.Errorf("Decode: %w", err)
 	}
 
 	if imgCfg.Width != imgCfg.Height {

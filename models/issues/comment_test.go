@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -25,7 +24,7 @@ func TestCreateComment(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	now := time.Now().Unix()
-	comment, err := issues_model.CreateComment(&issues_model.CreateCommentOptions{
+	comment, err := issues_model.CreateComment(db.DefaultContext, &issues_model.CreateCommentOptions{
 		Type:    issues_model.CommentTypeComment,
 		Doer:    doer,
 		Repo:    repo,
@@ -62,4 +61,12 @@ func TestFetchCodeComments(t *testing.T) {
 	res, err = issues_model.FetchCodeComments(db.DefaultContext, issue, user2)
 	assert.NoError(t, err)
 	assert.Len(t, res, 1)
+}
+
+func TestAsCommentType(t *testing.T) {
+	assert.Equal(t, issues_model.CommentType(0), issues_model.CommentTypeComment)
+	assert.Equal(t, issues_model.CommentTypeUndefined, issues_model.AsCommentType(""))
+	assert.Equal(t, issues_model.CommentTypeUndefined, issues_model.AsCommentType("nonsense"))
+	assert.Equal(t, issues_model.CommentTypeComment, issues_model.AsCommentType("comment"))
+	assert.Equal(t, issues_model.CommentTypePRUnScheduledToAutoMerge, issues_model.AsCommentType("pull_cancel_scheduled_merge"))
 }

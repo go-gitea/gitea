@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -14,9 +13,9 @@ import (
 	"code.gitea.io/gitea/models/avatars"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/sspi"
@@ -24,7 +23,6 @@ import (
 
 	gouuid "github.com/google/uuid"
 	"github.com/quasoft/websspi"
-	"github.com/unrolled/render"
 )
 
 const (
@@ -48,9 +46,7 @@ var (
 // via the built-in SSPI module in Windows for SPNEGO authentication.
 // On successful authentication returns a valid user object.
 // Returns nil if authentication fails.
-type SSPI struct {
-	rnd *render.Render
-}
+type SSPI struct{}
 
 // Init creates a new global websspi.Authenticator object
 func (s *SSPI) Init(ctx context.Context) error {
@@ -60,7 +56,6 @@ func (s *SSPI) Init(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	_, s.rnd = templates.HTMLRenderer(ctx)
 	return nil
 }
 
@@ -78,15 +73,15 @@ func (s *SSPI) Free() error {
 // If authentication is successful, returns the corresponding user object.
 // If negotiation should continue or authentication fails, immediately returns a 401 HTTP
 // response code, as required by the SPNEGO protocol.
-func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
+func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	if !s.shouldAuthenticate(req) {
-		return nil
+		return nil, nil
 	}
 
 	cfg, err := s.getConfig()
 	if err != nil {
 		log.Error("could not get SSPI config: %v", err)
-		return nil
+		return nil, err
 	}
 
 	log.Trace("SSPI Authorization: Attempting to authenticate")
@@ -103,13 +98,10 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		}
 		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 		store.GetData()["EnableSSPI"] = true
-
-		err := s.rnd.HTML(w, http.StatusUnauthorized, string(tplSignIn), templates.BaseVars().Merge(store.GetData()))
-		if err != nil {
-			log.Error("%v", err)
-		}
-
-		return nil
+		// in this case, the store is Gitea's web Context
+		// FIXME: it doesn't look good to render the page here, why not redirect?
+		store.(*gitea_context.Context).HTML(http.StatusUnauthorized, tplSignIn)
+		return nil, err
 	}
 	if outToken != "" {
 		sspiAuth.AppendAuthenticateHeader(w, outToken)
@@ -117,7 +109,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 
 	username := sanitizeUsername(userInfo.Username, cfg)
 	if len(username) == 0 {
-		return nil
+		return nil, nil
 	}
 	log.Info("Authenticated as %s\n", username)
 
@@ -125,16 +117,16 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)
-			return nil
+			return nil, err
 		}
 		if !cfg.AutoCreateUsers {
 			log.Error("User '%s' not found", username)
-			return nil
+			return nil, nil
 		}
 		user, err = s.newUser(username, cfg)
 		if err != nil {
 			log.Error("CreateUser: %v", err)
-			return nil
+			return nil, err
 		}
 	}
 
@@ -144,7 +136,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	}
 
 	log.Trace("SSPI Authorization: Logged in user %-v", user)
-	return user
+	return user, nil
 }
 
 // getConfig retrieves the SSPI configuration from login sources

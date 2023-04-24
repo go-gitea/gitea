@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -10,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrRedirectNotExist represents a "RedirectNotExist" kind of error.
@@ -26,6 +26,10 @@ func IsErrRedirectNotExist(err error) bool {
 
 func (err ErrRedirectNotExist) Error() string {
 	return fmt.Sprintf("repository redirect does not exist [uid: %d, name: %s]", err.OwnerID, err.RepoName)
+}
+
+func (err ErrRedirectNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // Redirect represents that a repo name should be redirected to another

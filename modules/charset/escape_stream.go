@@ -1,13 +1,11 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package charset
 
 import (
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -21,12 +19,16 @@ import (
 var defaultWordRegexp = regexp.MustCompile(`(-?\d*\.\d\w*)|([^\` + "`" + `\~\!\@\#\$\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s\x00-\x1f]+)`)
 
 func NewEscapeStreamer(locale translation.Locale, next HTMLStreamer, allowed ...rune) HTMLStreamer {
+	allowedM := make(map[rune]bool, len(allowed))
+	for _, v := range allowed {
+		allowedM[v] = true
+	}
 	return &escapeStreamer{
 		escaped:                 &EscapeStatus{},
 		PassthroughHTMLStreamer: *NewPassthroughStreamer(next),
 		locale:                  locale,
 		ambiguousTables:         AmbiguousTablesForLocale(locale),
-		allowed:                 allowed,
+		allowed:                 allowedM,
 	}
 }
 
@@ -35,7 +37,7 @@ type escapeStreamer struct {
 	escaped         *EscapeStatus
 	locale          translation.Locale
 	ambiguousTables []*AmbiguousTable
-	allowed         []rune
+	allowed         map[rune]bool
 }
 
 func (e *escapeStreamer) EscapeStatus() *EscapeStatus {
@@ -45,7 +47,9 @@ func (e *escapeStreamer) EscapeStatus() *EscapeStatus {
 // Text tells the next streamer there is a text
 func (e *escapeStreamer) Text(data string) error {
 	sb := &strings.Builder{}
-	pos, until, next := 0, 0, 0
+	var until int
+	var next int
+	pos := 0
 	if len(data) > len(UTF8BOM) && data[:len(UTF8BOM)] == string(UTF8BOM) {
 		_, _ = sb.WriteString(data[:len(UTF8BOM)])
 		pos = len(UTF8BOM)
@@ -166,9 +170,9 @@ func (e *escapeStreamer) ambiguousRune(r, c rune) error {
 
 	if err := e.PassthroughHTMLStreamer.StartTag("span", html.Attribute{
 		Key: "class",
-		Val: "ambiguous-code-point tooltip",
+		Val: "ambiguous-code-point",
 	}, html.Attribute{
-		Key: "data-content",
+		Key: "data-tooltip-content",
 		Val: e.locale.Tr("repo.ambiguous_character", r, c),
 	}); err != nil {
 		return err
@@ -240,7 +244,7 @@ func (counts runeCountType) needsEscape() bool {
 type runeType int
 
 const (
-	basicASCIIRuneType runeType = iota //nolint // <- This is technically deadcode but its self-documenting so it should stay
+	basicASCIIRuneType runeType = iota // <- This is technically deadcode but its self-documenting so it should stay
 	brokenRuneType
 	nonBasicASCIIRuneType
 	ambiguousRuneType
@@ -257,7 +261,7 @@ func (e *escapeStreamer) runeTypes(runes ...rune) (types []runeType, confusables
 			runeCounts.numBrokenRunes++
 		case r == ' ' || r == '\t' || r == '\n':
 			runeCounts.numBasicRunes++
-		case e.isAllowed(r):
+		case e.allowed[r]:
 			if r > 0x7e || r < 0x20 {
 				types[i] = nonBasicASCIIRuneType
 				runeCounts.numNonConfusingNonBasicRunes++
@@ -282,17 +286,4 @@ func (e *escapeStreamer) runeTypes(runes ...rune) (types []runeType, confusables
 		}
 	}
 	return types, confusables, runeCounts
-}
-
-func (e *escapeStreamer) isAllowed(r rune) bool {
-	if len(e.allowed) == 0 {
-		return false
-	}
-	if len(e.allowed) == 1 {
-		return e.allowed[0] == r
-	}
-
-	return sort.Search(len(e.allowed), func(i int) bool {
-		return e.allowed[i] >= r
-	}) >= 0
 }

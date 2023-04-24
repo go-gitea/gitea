@@ -1,7 +1,8 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "PyPI Packages Repository"
-slug: "packages/pypi"
+slug: "usage/packages/pypi"
+weight: 100
 draft: false
 toc: false
 menu:
@@ -42,7 +43,7 @@ password = {password}
 | ------------ | ----------- |
 | `owner`      | The owner of the package. |
 | `username`   | Your Gitea username. |
-| `password`   | Your Gitea password. If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}) instead of the password. |
+| `password`   | Your Gitea password. If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) instead of the password. |
 
 ## Publish a package
 
@@ -76,6 +77,8 @@ For example:
 ```shell
 pip install --index-url https://testuser:password123@gitea.example.com/api/packages/testuser/pypi/simple --no-deps test_package
 ```
+
+You can use `--extra-index-url` instead of `--index-url` but that makes you vulnerable to dependency confusion attacks because `pip` checks the official PyPi repository for the package before it checks the specified custom repository. Read the `pip` docs for more information.
 
 ## Supported commands
 

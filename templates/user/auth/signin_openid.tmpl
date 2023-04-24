@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content user signin openid">
+<div role="main" aria-label="{{.Title}}" class="page-content user signin openid">
 	{{template "user/auth/signin_navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}

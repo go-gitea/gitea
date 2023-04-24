@@ -2,14 +2,14 @@
 date: "2016-12-21T15:00:00-02:00"
 title: "Register as a Windows Service"
 slug: "windows-service"
-weight: 10
+weight: 50
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "installation"
     name: "Windows Service"
-    weight: 30
+    weight: 50
     identifier: "windows-service"
 ---
 
@@ -49,9 +49,9 @@ Open "Windows Services", search for the service named "gitea", right-click it an
 "Run". If everything is OK, Gitea will be reachable on `http://localhost:3000` (or the port
 that was configured).
 
-## Adding startup dependancies
+## Adding startup dependencies
 
-To add a startup dependancy to the Gitea Windows service (eg Mysql, Mariadb), as an Administrator, then run the following command:
+To add a startup dependency to the Gitea Windows service (eg Mysql, Mariadb), as an Administrator, then run the following command:
 
 ```
 sc.exe config gitea depend= mariadb

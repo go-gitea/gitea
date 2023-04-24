@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package translation
 
@@ -14,16 +13,22 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation/i18n"
-	"code.gitea.io/gitea/modules/watcher"
 
 	"golang.org/x/text/language"
+	"golang.org/x/text/message"
+	"golang.org/x/text/number"
 )
+
+type contextKey struct{}
+
+var ContextKey any = &contextKey{}
 
 // Locale represents an interface to translation
 type Locale interface {
 	Language() string
-	Tr(string, ...interface{}) string
-	TrN(cnt interface{}, key1, keyN string, args ...interface{}) string
+	Tr(string, ...any) string
+	TrN(cnt any, key1, keyN string, args ...any) string
+	PrettyNumber(v any) string
 }
 
 // LangType represents a lang type
@@ -55,14 +60,14 @@ func InitLocales(ctx context.Context) {
 
 	refreshLocales := func() {
 		i18n.ResetDefaultLocales()
-		localeNames, err := options.Dir("locale")
+		localeNames, err := options.AssetFS().ListFiles("locale", true)
 		if err != nil {
 			log.Fatal("Failed to list locale files: %v", err)
 		}
 
-		localFiles := make(map[string]interface{}, len(localeNames))
+		localeData := make(map[string][]byte, len(localeNames))
 		for _, name := range localeNames {
-			localFiles[name], err = options.Locale(name)
+			localeData[name], err = options.Locale(name)
 			if err != nil {
 				log.Fatal("Failed to load %s locale file. %v", name, err)
 			}
@@ -75,9 +80,17 @@ func InitLocales(ctx context.Context) {
 
 		matcher = language.NewMatcher(supportedTags)
 		for i := range setting.Names {
-			key := "locale_" + setting.Langs[i] + ".ini"
+			var localeDataBase []byte
+			if i == 0 && setting.Langs[0] != "en-US" {
+				// Only en-US has complete translations. When use other language as default, the en-US should still be used as fallback.
+				localeDataBase = localeData["locale_en-US.ini"]
+				if localeDataBase == nil {
+					log.Fatal("Failed to load locale_en-US.ini file.")
+				}
+			}
 
-			if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
+			key := "locale_" + setting.Langs[i] + ".ini"
+			if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localeDataBase, localeData[key]); err != nil {
 				log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
 			}
 		}
@@ -107,13 +120,10 @@ func InitLocales(ctx context.Context) {
 	})
 
 	if !setting.IsProd {
-		watcher.CreateWatcher(ctx, "Locales", &watcher.CreateWatcherOpts{
-			PathsCallback: options.WalkLocales,
-			BetweenCallback: func() {
-				lock.Lock()
-				defer lock.Unlock()
-				refreshLocales()
-			},
+		go options.AssetFS().WatchLocalChanges(ctx, func() {
+			lock.Lock()
+			defer lock.Unlock()
+			refreshLocales()
 		})
 	}
 }
@@ -128,6 +138,7 @@ func Match(tags ...language.Tag) language.Tag {
 type locale struct {
 	i18n.Locale
 	Lang, LangName string // these fields are used directly in templates: .i18n.Lang
+	msgPrinter     *message.Printer
 }
 
 // NewLocale return a locale
@@ -140,13 +151,24 @@ func NewLocale(lang string) Locale {
 	langName := "unknown"
 	if l, ok := allLangMap[lang]; ok {
 		langName = l.Name
+	} else if len(setting.Langs) > 0 {
+		lang = setting.Langs[0]
+		langName = setting.Names[0]
 	}
+
 	i18nLocale, _ := i18n.GetLocale(lang)
-	return &locale{
+	l := &locale{
 		Locale:   i18nLocale,
 		Lang:     lang,
 		LangName: langName,
 	}
+	if langTag, err := language.Parse(lang); err != nil {
+		log.Error("Failed to parse language tag from name %q: %v", l.Lang, err)
+		l.msgPrinter = message.NewPrinter(language.English)
+	} else {
+		l.msgPrinter = message.NewPrinter(langTag)
+	}
+	return l
 }
 
 func (l *locale) Language() string {
@@ -192,7 +214,7 @@ var trNLangRules = map[string]func(int64) int{
 }
 
 // TrN returns translated message for plural text translation
-func (l *locale) TrN(cnt interface{}, key1, keyN string, args ...interface{}) string {
+func (l *locale) TrN(cnt any, key1, keyN string, args ...any) string {
 	var c int64
 	if t, ok := cnt.(int); ok {
 		c = int64(t)
@@ -215,4 +237,9 @@ func (l *locale) TrN(cnt interface{}, key1, keyN string, args ...interface{}) st
 		return l.Tr(key1, args...)
 	}
 	return l.Tr(keyN, args...)
+}
+
+func (l *locale) PrettyNumber(v any) string {
+	// TODO: this mechanism is not good enough, the complete solution is to switch the translation system to ICU message format
+	return l.msgPrinter.Sprintf("%v", number.Decimal(v))
 }

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package secret
 
@@ -16,9 +15,9 @@ func TestEncryptDecrypt(t *testing.T) {
 
 	hex, _ = EncryptSecret("foo", "baz")
 	str, _ = DecryptSecret("foo", hex)
-	assert.Equal(t, str, "baz")
+	assert.Equal(t, "baz", str)
 
 	hex, _ = EncryptSecret("bar", "baz")
 	str, _ = DecryptSecret("foo", hex)
-	assert.NotEqual(t, str, "baz")
+	assert.NotEqual(t, "baz", str)
 }

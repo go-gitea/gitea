@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package i18n
 
@@ -34,7 +33,7 @@ type LocaleStore interface {
 	// HasLang returns whether a given language is present in the store
 	HasLang(langName string) bool
 	// AddLocaleByIni adds a new language to the store
-	AddLocaleByIni(langName, langDesc string, source interface{}) error
+	AddLocaleByIni(langName, langDesc string, source, moreSource []byte) error
 }
 
 // ResetDefaultLocales resets the current default locales

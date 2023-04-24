@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pipeline
 
@@ -29,6 +28,6 @@ func NameRevStdin(ctx context.Context, shasToNameReader *io.PipeReader, nameRevS
 		Stdin:  shasToNameReader,
 		Stderr: stderr,
 	}); err != nil {
-		_ = shasToNameReader.CloseWithError(fmt.Errorf("git name-rev [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
+		_ = shasToNameReader.CloseWithError(fmt.Errorf("git name-rev [%s]: %w - %s", tmpBasePath, err, errbuf.String()))
 	}
 }

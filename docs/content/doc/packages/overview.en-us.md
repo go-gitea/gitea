@@ -1,7 +1,8 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "Package Registry"
-slug: "packages/overview"
+slug: "usage/packages/overview"
+weight: 1
 draft: false
 toc: false
 menu:
@@ -9,7 +10,7 @@ menu:
     parent: "packages"
     name: "Overview"
     weight: 1
-    identifier: "overview"
+    identifier: "packages-overview"
 ---
 
 # Package Registry
@@ -26,17 +27,21 @@ The following package managers are currently supported:
 
 | Name | Language | Package client |
 | ---- | -------- | -------------- |
+| [Cargo]({{< relref "doc/packages/cargo.en-us.md" >}}) | Rust | `cargo` |
+| [Chef]({{< relref "doc/packages/chef.en-us.md" >}}) | - | `knife` |
 | [Composer]({{< relref "doc/packages/composer.en-us.md" >}}) | PHP | `composer` |
 | [Conan]({{< relref "doc/packages/conan.en-us.md" >}}) | C++ | `conan` |
+| [Conda]({{< relref "doc/packages/conda.en-us.md" >}}) | - | `conda` |
 | [Container]({{< relref "doc/packages/container.en-us.md" >}}) | - | any OCI compliant client |
 | [Generic]({{< relref "doc/packages/generic.en-us.md" >}}) | - | any HTTP client |
 | [Helm]({{< relref "doc/packages/helm.en-us.md" >}}) | - | any HTTP client, `cm-push` |
 | [Maven]({{< relref "doc/packages/maven.en-us.md" >}}) | Java | `mvn`, `gradle` |
-| [npm]({{< relref "doc/packages/npm.en-us.md" >}}) | JavaScript | `npm`, `yarn` |
+| [npm]({{< relref "doc/packages/npm.en-us.md" >}}) | JavaScript | `npm`, `yarn`, `pnpm` |
 | [NuGet]({{< relref "doc/packages/nuget.en-us.md" >}}) | .NET | `nuget` |
 | [Pub]({{< relref "doc/packages/pub.en-us.md" >}}) | Dart | `dart`, `flutter` |
 | [PyPI]({{< relref "doc/packages/pypi.en-us.md" >}}) | Python | `pip`, `twine` |
 | [RubyGems]({{< relref "doc/packages/rubygems.en-us.md" >}}) | Ruby | `gem`, `Bundler` |
+| [Swift]({{< relref "doc/packages/rubygems.en-us.md" >}}) | Swift | `swift` |
 | [Vagrant]({{< relref "doc/packages/vagrant.en-us.md" >}}) | - | `vagrant` |
 
 **The following paragraphs only apply if Packages are not globally disabled!**
@@ -55,7 +60,7 @@ and shows a link to the repository on the package site (as well as a link to the
 
 | Package owner type | User | Organization |
 |--------------------|------|--------------|
-| **read** access    | public, if user is public too; otherwise for this user only | public, if org is public, otherwise org members only |
+| **read** access    | public, if user is public too; otherwise for this user only | public, if org is public, otherwise for org members only |
 | **write** access   | owner only | org members with admin or write access to the org |
 
 N.B.: These access restrictions are [subject to change](https://github.com/go-gitea/gitea/issues/19270), where more finegrained control will be added via a dedicated organization team permission.
@@ -83,7 +88,7 @@ To download a package from your repository:
 
 ## Delete a package
 
-You cannot edit a package after you published it in the Package Registry. Instead, you
+You cannot edit a package after you have published it in the Package Registry. Instead, you
 must delete and recreate it.
 
 To delete a package from your repository:

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package misc
 
@@ -59,6 +58,6 @@ func SigningKey(ctx *context.APIContext) {
 	}
 	_, err = ctx.Write([]byte(content))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "gpg export", fmt.Errorf("Error writing key content %v", err))
+		ctx.Error(http.StatusInternalServerError, "gpg export", fmt.Errorf("Error writing key content %w", err))
 	}
 }

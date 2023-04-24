@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package log
 
@@ -382,6 +381,13 @@ func (cv *ColoredValue) Format(s fmt.State, c rune) {
 	s.Write(*cv.colorBytes)
 	fmt.Fprintf(&protectedANSIWriter{w: s}, fmtString(s, c), *(cv.Value))
 	s.Write(*cv.resetBytes)
+}
+
+// ColorFormatAsString returns the result of the ColorFormat without the color
+func ColorFormatAsString(colorVal ColorFormatted) string {
+	s := new(strings.Builder)
+	_, _ = ColorFprintf(&protectedANSIWriter{w: s, mode: removeColor}, "%-v", colorVal)
+	return s.String()
 }
 
 // SetColorBytes will allow a user to set the colorBytes of a colored value

@@ -1,0 +1,5 @@
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings packages")}}
+	<div class="user-setting-content">
+		{{template "package/shared/cleanup_rules/edit" .}}
+	</div>
+{{template "user/settings/layout_footer" .}}

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -84,7 +83,7 @@ func TestXRef_NeuterCrossReferences(t *testing.T) {
 
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	i.Title = "title2, no mentions"
-	assert.NoError(t, issues_model.ChangeIssueTitle(i, d, title))
+	assert.NoError(t, issues_model.ChangeIssueTitle(db.DefaultContext, i, d, title))
 
 	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0})
 	assert.Equal(t, issues_model.CommentTypeIssueRef, ref.Type)
@@ -131,7 +130,11 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 	r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo})
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer})
 
-	idx, err := db.GetNextResourceIndex("issue_index", r.ID)
+	ctx, committer, err := db.TxContext(db.DefaultContext)
+	assert.NoError(t, err)
+	defer committer.Close()
+
+	idx, err := db.GetNextResourceIndex(ctx, "issue_index", r.ID)
 	assert.NoError(t, err)
 	i := &issues_model.Issue{
 		RepoID:   r.ID,
@@ -143,9 +146,6 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 		Index:    idx,
 	}
 
-	ctx, committer, err := db.TxContext()
-	assert.NoError(t, err)
-	defer committer.Close()
 	err = issues_model.NewIssueWithIndex(ctx, d, issues_model.NewIssueOptions{
 		Repo:  r,
 		Issue: i,
@@ -173,7 +173,7 @@ func testCreateComment(t *testing.T, repo, doer, issue int64, content string) *i
 	i := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue})
 	c := &issues_model.Comment{Type: issues_model.CommentTypeComment, PosterID: doer, Poster: d, IssueID: issue, Issue: i, Content: content}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	assert.NoError(t, err)
 	defer committer.Close()
 	err = db.Insert(ctx, c)

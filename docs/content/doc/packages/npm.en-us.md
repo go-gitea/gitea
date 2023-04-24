@@ -1,7 +1,8 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "npm Packages Repository"
-slug: "packages/npm"
+slug: "usage/packages/npm"
+weight: 70
 draft: false
 toc: false
 menu:
@@ -41,7 +42,7 @@ npm config set -- '//gitea.example.com/api/packages/{owner}/npm/:_authToken' "{t
 | ------------ | ----------- |
 | `scope`      | The scope of the packages. |
 | `owner`      | The owner of the package. |
-| `token`      | Your [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}). |
+| `token`      | Your [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}). |
 
 For example:
 
@@ -127,6 +128,10 @@ npm dist-tag add test_package@1.0.2 release
 
 The tag name must not be a valid version. All tag names which are parsable as a version are rejected.
 
+## Search packages
+
+The registry supports [searching](https://docs.npmjs.com/cli/v7/commands/npm-search/) but does not support special search qualifiers like `author:gitea`.
+
 ## Supported commands
 
 ```
@@ -136,4 +141,5 @@ npm publish
 npm unpublish
 npm dist-tag
 npm view
+npm search
 ```

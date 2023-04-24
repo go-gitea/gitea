@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -28,7 +27,6 @@ func TestTestHook(t *testing.T) {
 	assert.EqualValues(t, http.StatusNoContent, ctx.Resp.Status())
 
 	unittest.AssertExistsAndLoadBean(t, &webhook.HookTask{
-		RepoID: 1,
 		HookID: 1,
 	}, unittest.Cond("is_delivered=?", false))
 }
