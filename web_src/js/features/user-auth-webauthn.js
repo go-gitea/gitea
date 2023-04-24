@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {encode, decode} from 'uint8-to-base64';
+import {hideElem, showElem} from '../utils/dom.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -132,16 +133,18 @@ function webauthnRegistered(newCredential) {
 }
 
 function webAuthnError(errorType, message) {
-  $('#webauthn-error [data-webauthn-error-msg]').hide();
+  hideElem($('#webauthn-error [data-webauthn-error-msg]'));
   const $errorGeneral = $(`#webauthn-error [data-webauthn-error-msg=general]`);
   if (errorType === 'general') {
-    $errorGeneral.show().text(message || 'unknown error');
+    showElem($errorGeneral);
+    $errorGeneral.text(message || 'unknown error');
   } else {
     const $errorTyped = $(`#webauthn-error [data-webauthn-error-msg=${errorType}]`);
     if ($errorTyped.length) {
-      $errorTyped.show();
+      showElem($errorTyped);
     } else {
-      $errorGeneral.show().text(`unknown error type: ${errorType}`);
+      showElem($errorGeneral);
+      $errorGeneral.text(`unknown error type: ${errorType}`);
     }
   }
   $('#webauthn-error').modal('show');

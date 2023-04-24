@@ -1,6 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+//nolint:forbidigo
 package tests
 
 import (
@@ -10,9 +11,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
@@ -28,36 +30,51 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func exitf(format string, args ...interface{}) {
+	fmt.Printf(format+"\n", args...)
+	os.Exit(1)
+}
+
 func InitTest(requireGitea bool) {
 	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
-		fmt.Println("Environment variable $GITEA_ROOT not set")
-		os.Exit(1)
+		exitf("Environment variable $GITEA_ROOT not set")
 	}
+	setting.AppWorkPath = giteaRoot
 	if requireGitea {
 		giteaBinary := "gitea"
-		if runtime.GOOS == "windows" {
+		if setting.IsWindows {
 			giteaBinary += ".exe"
 		}
 		setting.AppPath = path.Join(giteaRoot, giteaBinary)
 		if _, err := os.Stat(setting.AppPath); err != nil {
-			fmt.Printf("Could not find gitea binary at %s\n", setting.AppPath)
-			os.Exit(1)
+			exitf("Could not find gitea binary at %s", setting.AppPath)
 		}
 	}
 
 	giteaConf := os.Getenv("GITEA_CONF")
 	if giteaConf == "" {
-		fmt.Println("Environment variable $GITEA_CONF not set")
-		os.Exit(1)
-	} else if !path.IsAbs(giteaConf) {
+		// By default, use sqlite.ini for testing, then IDE like GoLand can start the test process with debugger.
+		// It's easier for developers to debug bugs step by step with a debugger.
+		// Notice: when doing "ssh push", Gitea executes sub processes, debugger won't work for the sub processes.
+		giteaConf = "tests/sqlite.ini"
+		_ = os.Setenv("GITEA_CONF", giteaConf)
+		fmt.Printf("Environment variable $GITEA_CONF not set, use default: %s\n", giteaConf)
+		if !setting.EnableSQLite3 {
+			exitf(`Need to enable SQLite3 for sqlite.ini testing, please set: -tags "sqlite,sqlite_unlock_notify"`)
+		}
+	}
+
+	setting.IsInTesting = true
+
+	if !path.IsAbs(giteaConf) {
 		setting.CustomConf = path.Join(giteaRoot, giteaConf)
 	} else {
 		setting.CustomConf = giteaConf
 	}
 
 	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadForTest()
+	setting.InitProviderAndLoadCommonSettingsForTest()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	_ = util.RemoveAll(repo_module.LocalCopyPath())
 
@@ -65,14 +82,13 @@ func InitTest(requireGitea bool) {
 		log.Fatal("git.InitOnceWithSync: %v", err)
 	}
 
-	setting.InitDBConfig()
+	setting.LoadDBSetting()
 	if err := storage.Init(); err != nil {
-		fmt.Printf("Init storage failed: %v", err)
-		os.Exit(1)
+		exitf("Init storage failed: %v", err)
 	}
 
 	switch {
-	case setting.Database.UseMySQL:
+	case setting.Database.Type.IsMySQL():
 		connType := "tcp"
 		if len(setting.Database.Host) > 0 && setting.Database.Host[0] == '/' { // looks like a unix socket
 			connType = "unix"
@@ -87,7 +103,7 @@ func InitTest(requireGitea bool) {
 		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name)); err != nil {
 			log.Fatal("db.Exec: %v", err)
 		}
-	case setting.Database.UsePostgreSQL:
+	case setting.Database.Type.IsPostgreSQL():
 		var db *sql.DB
 		var err error
 		if setting.Database.Host[0] == '/' {
@@ -144,7 +160,7 @@ func InitTest(requireGitea bool) {
 			}
 		}
 
-	case setting.Database.UseMSSQL:
+	case setting.Database.Type.IsMSSQL():
 		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
 			host, port, "master", setting.Database.User, setting.Database.Passwd))
@@ -199,15 +215,27 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	lfsFixtures, err := storage.NewStorage("", storage.LocalStorageConfig{Path: path.Join(filepath.Dir(setting.AppPath), "tests/gitea-lfs-meta")})
 	assert.NoError(t, err)
 	assert.NoError(t, storage.Clean(storage.LFS))
-	assert.NoError(t, lfsFixtures.IterateObjects(func(path string, _ storage.Object) error {
+	assert.NoError(t, lfsFixtures.IterateObjects("", func(path string, _ storage.Object) error {
 		_, err := storage.Copy(storage.LFS, path, lfsFixtures, path)
 		return err
 	}))
 
+	// clear all package data
+	assert.NoError(t, db.TruncateBeans(db.DefaultContext,
+		&packages_model.Package{},
+		&packages_model.PackageVersion{},
+		&packages_model.PackageFile{},
+		&packages_model.PackageBlob{},
+		&packages_model.PackageProperty{},
+		&packages_model.PackageBlobUpload{},
+		&packages_model.PackageCleanupRule{},
+	))
+	assert.NoError(t, storage.Clean(storage.Packages))
+
 	return deferFn
 }
 
-// resetFixtures flushes queues, reloads fixtures and resets test repositories within a single test.
+// ResetFixtures flushes queues, reloads fixtures and resets test repositories within a single test.
 // Most tests should call defer tests.PrepareTestEnv(t)() (or have onGiteaRun do that for them) but sometimes
 // within a single test this is required
 func ResetFixtures(t *testing.T) {
@@ -244,7 +272,7 @@ func ResetFixtures(t *testing.T) {
 	lfsFixtures, err := storage.NewStorage("", storage.LocalStorageConfig{Path: path.Join(filepath.Dir(setting.AppPath), "tests/gitea-lfs-meta")})
 	assert.NoError(t, err)
 	assert.NoError(t, storage.Clean(storage.LFS))
-	assert.NoError(t, lfsFixtures.IterateObjects(func(path string, _ storage.Object) error {
+	assert.NoError(t, lfsFixtures.IterateObjects("", func(path string, _ storage.Object) error {
 		_, err := storage.Copy(storage.LFS, path, lfsFixtures, path)
 		return err
 	}))

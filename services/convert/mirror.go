@@ -24,6 +24,7 @@ func ToPushMirror(pm *repo_model.PushMirror) (*api.PushMirror, error) {
 		LastUpdateUnix: pm.LastUpdateUnix.FormatLong(),
 		LastError:      pm.LastError,
 		Interval:       pm.Interval.String(),
+		SyncOnCommit:   pm.SyncOnCommit,
 	}, nil
 }
 

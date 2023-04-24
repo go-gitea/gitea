@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/proxy"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -215,6 +216,8 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		return nil, false
 	}
 
+	envs := proxy.EnvWithProxy(remoteURL.URL)
+
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
 	if err := cmd.
@@ -222,6 +225,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		Run(&git.RunOpts{
 			Timeout: timeout,
 			Dir:     repoPath,
+			Env:     envs,
 			Stdout:  &stdoutBuilder,
 			Stderr:  &stderrBuilder,
 		}); err != nil {
@@ -493,6 +497,13 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		theCommits := repo_module.GitToPushCommits(commits)
 		if len(theCommits.Commits) > setting.UI.FeedMaxCommitNum {
 			theCommits.Commits = theCommits.Commits[:setting.UI.FeedMaxCommitNum]
+		}
+
+		if newCommit, err := gitRepo.GetCommit(newCommitID); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: unable to get commit %s: %v", m.Repo, newCommitID, err)
+			continue
+		} else {
+			theCommits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
 		}
 
 		theCommits.CompareURL = m.Repo.ComposeCompareURL(oldCommitID, newCommitID)

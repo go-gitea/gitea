@@ -25,33 +25,33 @@
 						</div>
 						<div class="inline ui field right">
 							<form class="ui form" id="repo-multiple-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/repositories" method="post">
-								<button class="ui red button delete-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{.locale.Tr "remove_all"}}</button>
-								<button class="ui green button add-all-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.locale.Tr "add_all"}}</button>
+								<button class="ui red button delete-button right" data-modal-id="org-team-remove-all-repo" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{.locale.Tr "remove_all"}}</button>
+								<button class="ui green button add-all-button right" data-modal-id="org-team-add-all-repo" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.locale.Tr "add_all"}}</button>
 							</form>
 						</div>
 					</div>
 				{{end}}
 				<div class="ui bottom attached table segment repositories">
 					{{range .Team.Repos}}
-						<div class="item">
+						<div class="item gt-df gt-ac gt-fw">
+							{{if .IsPrivate}}
+								{{svg "octicon-lock" 16 "gt-mr-3"}}
+							{{else if .IsFork}}
+								{{svg "octicon-repo-forked" 16 "gt-mr-3"}}
+							{{else if .IsMirror}}
+								{{svg "octicon-mirror" 16 "gt-mr-3"}}
+							{{else}}
+								{{svg "octicon-repo" 16 "gt-mr-3"}}
+							{{end}}
+							<a class="member gt-f1" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
+								<strong>{{$.Org.Name}}/{{.Name}}</strong>
+							</a>
 							{{if $canAddRemove}}
 								<form method="post" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/remove">
 									{{$.CsrfTokenHtml}}
 									<button type="submit" class="ui red small button right" name="repoid" value="{{.ID}}">{{$.locale.Tr "remove"}}</button>
 								</form>
 							{{end}}
-							<a class="member" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
-								{{if .IsPrivate}}
-									{{svg "octicon-lock"}}
-								{{else if .IsFork}}
-									{{svg "octicon-repo-forked"}}
-								{{else if .IsMirror}}
-									{{svg "octicon-mirror"}}
-								{{else}}
-									{{svg "octicon-repo"}}
-								{{end}}
-								<strong>{{$.Org.Name}}/{{.Name}}</strong>
-							</a>
 						</div>
 					{{else}}
 						<div class="item">
@@ -64,26 +64,26 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal" id="org-team-remove-all-repo">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "org.teams.remove_all_repos_title"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "org.teams.remove_all_repos_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
-<div class="ui small basic addall modal">
-	<div class="ui icon header">
-		<i class="globe icon"></i>
+<div class="ui g-modal-confirm addall modal" id="org-team-add-all-repo">
+	<div class="header">
+		{{svg "octicon-globe"}}
 		{{.locale.Tr "org.teams.add_all_repos_title"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "org.teams.add_all_repos_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
 {{template "base/footer" .}}

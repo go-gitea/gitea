@@ -19,9 +19,15 @@ import (
 )
 
 type (
-	// ProjectsConfig is used to identify the type of board that is being created
-	ProjectsConfig struct {
+	// BoardConfig is used to identify the type of board that is being created
+	BoardConfig struct {
 		BoardType   BoardType
+		Translation string
+	}
+
+	// CardConfig is used to identify the type of board card that is being used
+	CardConfig struct {
+		CardType    CardType
 		Translation string
 	}
 
@@ -91,6 +97,7 @@ type Project struct {
 	CreatorID   int64                  `xorm:"NOT NULL"`
 	IsClosed    bool                   `xorm:"INDEX"`
 	BoardType   BoardType
+	CardType    CardType
 	Type        Type
 
 	RenderedContent string `xorm:"-"`
@@ -137,27 +144,46 @@ func (p *Project) Link() string {
 	return ""
 }
 
+func (p *Project) IconName() string {
+	if p.IsRepositoryProject() {
+		return "octicon-project"
+	}
+	return "octicon-project-symlink"
+}
+
 func (p *Project) IsOrganizationProject() bool {
 	return p.Type == TypeOrganization
+}
+
+func (p *Project) IsRepositoryProject() bool {
+	return p.Type == TypeRepository
 }
 
 func init() {
 	db.RegisterModel(new(Project))
 }
 
-// GetProjectsConfig retrieves the types of configurations projects could have
-func GetProjectsConfig() []ProjectsConfig {
-	return []ProjectsConfig{
+// GetBoardConfig retrieves the types of configurations project boards could have
+func GetBoardConfig() []BoardConfig {
+	return []BoardConfig{
 		{BoardTypeNone, "repo.projects.type.none"},
 		{BoardTypeBasicKanban, "repo.projects.type.basic_kanban"},
 		{BoardTypeBugTriage, "repo.projects.type.bug_triage"},
 	}
 }
 
+// GetCardConfig retrieves the types of configurations project board cards could have
+func GetCardConfig() []CardConfig {
+	return []CardConfig{
+		{CardTypeTextOnly, "repo.projects.card_type.text_only"},
+		{CardTypeImagesAndText, "repo.projects.card_type.images_and_text"},
+	}
+}
+
 // IsTypeValid checks if a project type is valid
 func IsTypeValid(p Type) bool {
 	switch p {
-	case TypeRepository, TypeOrganization:
+	case TypeIndividual, TypeRepository, TypeOrganization:
 		return true
 	default:
 		return false
@@ -202,16 +228,8 @@ func CountProjects(ctx context.Context, opts SearchOptions) (int64, error) {
 
 // FindProjects returns a list of all projects that have been created in the repository
 func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
-	e := db.GetEngine(ctx)
+	e := db.GetEngine(ctx).Where(opts.toConds())
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
-	cond := opts.toConds()
-
-	count, err := e.Where(cond).Count(new(Project))
-	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %w", err)
-	}
-
-	e = e.Where(cond)
 
 	if opts.Page > 0 {
 		e = e.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
@@ -228,13 +246,18 @@ func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, e
 		e.Asc("created_unix")
 	}
 
-	return projects, count, e.Find(&projects)
+	count, err := e.FindAndCount(&projects)
+	return projects, count, err
 }
 
 // NewProject creates a new Project
 func NewProject(p *Project) error {
 	if !IsBoardTypeValid(p.BoardType) {
 		p.BoardType = BoardTypeNone
+	}
+
+	if !IsCardTypeValid(p.CardType) {
+		p.CardType = CardTypeTextOnly
 	}
 
 	if !IsTypeValid(p.Type) {
@@ -280,9 +303,14 @@ func GetProjectByID(ctx context.Context, id int64) (*Project, error) {
 
 // UpdateProject updates project properties
 func UpdateProject(ctx context.Context, p *Project) error {
+	if !IsCardTypeValid(p.CardType) {
+		p.CardType = CardTypeTextOnly
+	}
+
 	_, err := db.GetEngine(ctx).ID(p.ID).Cols(
 		"title",
 		"description",
+		"card_type",
 	).Update(p)
 	return err
 }
@@ -392,7 +420,7 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 
 func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
 	switch {
-	case setting.Database.UseSQLite3:
+	case setting.Database.Type.IsSQLite3():
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue WHERE project_issue.id IN (SELECT project_issue.id FROM project_issue INNER JOIN project WHERE project.id = project_issue.project_id AND project.repo_id = ?)", repoID); err != nil {
 			return err
 		}
@@ -402,7 +430,7 @@ func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
 		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
 			return err
 		}
-	case setting.Database.UsePostgreSQL:
+	case setting.Database.Type.IsPostgreSQL():
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue USING project WHERE project.id = project_issue.project_id AND project.repo_id = ? ", repoID); err != nil {
 			return err
 		}

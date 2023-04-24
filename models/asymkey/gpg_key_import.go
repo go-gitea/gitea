@@ -23,7 +23,7 @@ import "code.gitea.io/gitea/models/db"
 // GPGKeyImport the original import of key
 type GPGKeyImport struct {
 	KeyID   string `xorm:"pk CHAR(16) NOT NULL"`
-	Content string `xorm:"TEXT NOT NULL"`
+	Content string `xorm:"MEDIUMTEXT NOT NULL"`
 }
 
 func init() {

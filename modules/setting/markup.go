@@ -25,6 +25,20 @@ const (
 	RenderContentModeIframe      = "iframe"
 )
 
+// Markdown settings
+var Markdown = struct {
+	EnableHardLineBreakInComments  bool
+	EnableHardLineBreakInDocuments bool
+	CustomURLSchemes               []string `ini:"CUSTOM_URL_SCHEMES"`
+	FileExtensions                 []string
+	EnableMath                     bool
+}{
+	EnableHardLineBreakInComments:  true,
+	EnableHardLineBreakInDocuments: false,
+	FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd", ","),
+	EnableMath:                     true,
+}
+
 // MarkupRenderer defines the external parser configured in ini
 type MarkupRenderer struct {
 	Enabled              bool
@@ -46,12 +60,14 @@ type MarkupSanitizerRule struct {
 	AllowDataURIImages bool
 }
 
-func newMarkup() {
-	MermaidMaxSourceCharacters = Cfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(5000)
+func loadMarkupFrom(rootCfg ConfigProvider) {
+	mustMapSetting(rootCfg, "markdown", &Markdown)
+
+	MermaidMaxSourceCharacters = rootCfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(5000)
 	ExternalMarkupRenderers = make([]*MarkupRenderer, 0, 10)
 	ExternalSanitizerRules = make([]MarkupSanitizerRule, 0, 10)
 
-	for _, sec := range Cfg.Section("markup").ChildSections() {
+	for _, sec := range rootCfg.Section("markup").ChildSections() {
 		name := strings.TrimPrefix(sec.Name(), "markup.")
 		if name == "" {
 			log.Warn("name is empty, markup " + sec.Name() + "ignored")

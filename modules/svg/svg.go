@@ -6,15 +6,18 @@ package svg
 import (
 	"fmt"
 	"html/template"
+	"path"
 	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/html"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/public"
 )
 
 var (
 	// SVGs contains discovered SVGs
-	SVGs map[string]string
+	SVGs = map[string]string{}
 
 	widthRe  = regexp.MustCompile(`width="[0-9]+?"`)
 	heightRe = regexp.MustCompile(`height="[0-9]+?"`)
@@ -23,11 +26,29 @@ var (
 const defaultSize = 16
 
 // Init discovers SVGs and populates the `SVGs` variable
-func Init() {
-	SVGs = Discover()
+func Init() error {
+	files, err := public.AssetFS().ListFiles("img/svg")
+	if err != nil {
+		return err
+	}
+
+	// Remove `xmlns` because inline SVG does not need it
+	reXmlns := regexp.MustCompile(`(<svg\b[^>]*?)\s+xmlns="[^"]*"`)
+	for _, file := range files {
+		if path.Ext(file) != ".svg" {
+			continue
+		}
+		bs, err := public.AssetFS().ReadFile("img/svg", file)
+		if err != nil {
+			log.Error("Failed to read SVG file %s: %v", file, err)
+		} else {
+			SVGs[file[:len(file)-4]] = reXmlns.ReplaceAllString(string(bs), "$1")
+		}
+	}
+	return nil
 }
 
-// Render render icons - arguments icon name (string), size (int), class (string)
+// RenderHTML renders icons - arguments icon name (string), size (int), class (string)
 func RenderHTML(icon string, others ...interface{}) template.HTML {
 	size, class := html.ParseSizeAndClass(defaultSize, "", others...)
 

@@ -47,7 +47,7 @@ func SignInOpenID(ctx *context.Context) {
 	if len(redirectTo) > 0 {
 		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
 	} else {
-		redirectTo = ctx.GetCookie("redirect_to")
+		redirectTo = ctx.GetSiteCookie("redirect_to")
 	}
 
 	if isSucceed {
@@ -197,7 +197,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	log.Trace("User has email=%s and nickname=%s", email, nickname)
 
 	if email != "" {
-		u, err = user_model.GetUserByEmail(email)
+		u, err = user_model.GetUserByEmail(ctx, email)
 		if err != nil {
 			if !user_model.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{

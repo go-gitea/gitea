@@ -143,7 +143,6 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Owner"] = org
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 	ctx.Data["MembersTotal"] = membersCount
@@ -156,6 +155,7 @@ func Home(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "language", "Language")
 	ctx.Data["Page"] = pager
+	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }

@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/services/auth"
@@ -44,7 +45,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				routing.UpdateFuncInfo(req.Context(), funcInfo)
 
 				rPath := strings.TrimPrefix(req.URL.Path, "/"+prefix+"/")
-				rPath = path.Clean("/" + strings.ReplaceAll(rPath, "\\", "/"))[1:]
+				rPath = util.PathJoinRelX(rPath)
 
 				u, err := objStore.URL(rPath, path.Base(rPath))
 				if err != nil {
@@ -80,8 +81,8 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 			routing.UpdateFuncInfo(req.Context(), funcInfo)
 
 			rPath := strings.TrimPrefix(req.URL.Path, "/"+prefix+"/")
-			rPath = path.Clean("/" + strings.ReplaceAll(rPath, "\\", "/"))[1:]
-			if rPath == "" {
+			rPath = util.PathJoinRelX(rPath)
+			if rPath == "" || rPath == "." {
 				http.Error(w, "file not found", http.StatusNotFound)
 				return
 			}
@@ -142,31 +143,29 @@ func Recovery(ctx goctx.Context) func(next http.Handler) http.Handler {
 						"locale":     lc,
 					}
 
-					user := context.GetContextUser(req)
+					// TODO: this recovery handler is usually called without Gitea's web context, so we shouldn't touch that context too much
+					// Otherwise, the 500 page may cause new panics, eg: cache.GetContextWithData, it makes the developer&users couldn't find the original panic
+					user := context.GetContextUser(req) // almost always nil
 					if user == nil {
 						// Get user from session if logged in - do not attempt to sign-in
 						user = auth.SessionUser(sessionStore)
 					}
-					if user != nil {
-						store["IsSigned"] = true
-						store["SignedUser"] = user
-						store["SignedUserID"] = user.ID
-						store["SignedUserName"] = user.Name
-						store["IsAdmin"] = user.IsAdmin
-					} else {
-						store["SignedUserID"] = int64(0)
-						store["SignedUserName"] = ""
-					}
 
-					httpcache.AddCacheControlToHeader(w.Header(), 0, "no-transform")
+					httpcache.SetCacheControlInHeader(w.Header(), 0, "no-transform")
 					w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
-					if !setting.IsProd {
+					if !setting.IsProd || (user != nil && user.IsAdmin) {
 						store["ErrorMsg"] = combinedErr
 					}
+
+					defer func() {
+						if err := recover(); err != nil {
+							log.Error("HTML render in Recovery handler panics again: %v", err)
+						}
+					}()
 					err = rnd.HTML(w, http.StatusInternalServerError, "status/500", templates.BaseVars().Merge(store))
 					if err != nil {
-						log.Error("%v", err)
+						log.Error("HTML render in Recovery handler fails again: %v", err)
 					}
 				}
 			}()

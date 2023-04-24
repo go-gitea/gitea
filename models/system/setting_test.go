@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unittest"
 
@@ -20,37 +21,37 @@ func TestSettings(t *testing.T) {
 	newSetting := &system.Setting{SettingKey: keyName, SettingValue: "50"}
 
 	// create setting
-	err := system.SetSetting(newSetting)
+	err := system.SetSetting(db.DefaultContext, newSetting)
 	assert.NoError(t, err)
 	// test about saving unchanged values
-	err = system.SetSetting(newSetting)
+	err = system.SetSetting(db.DefaultContext, newSetting)
 	assert.NoError(t, err)
 
 	// get specific setting
-	settings, err := system.GetSettings([]string{keyName})
+	settings, err := system.GetSettings(db.DefaultContext, []string{keyName})
 	assert.NoError(t, err)
 	assert.Len(t, settings, 1)
 	assert.EqualValues(t, newSetting.SettingValue, settings[strings.ToLower(keyName)].SettingValue)
 
 	// updated setting
 	updatedSetting := &system.Setting{SettingKey: keyName, SettingValue: "100", Version: settings[strings.ToLower(keyName)].Version}
-	err = system.SetSetting(updatedSetting)
+	err = system.SetSetting(db.DefaultContext, updatedSetting)
 	assert.NoError(t, err)
 
-	value, err := system.GetSetting(keyName)
+	value, err := system.GetSetting(db.DefaultContext, keyName)
 	assert.NoError(t, err)
-	assert.EqualValues(t, updatedSetting.SettingValue, value)
+	assert.EqualValues(t, updatedSetting.SettingValue, value.SettingValue)
 
 	// get all settings
-	settings, err = system.GetAllSettings()
+	settings, err = system.GetAllSettings(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Len(t, settings, 3)
 	assert.EqualValues(t, updatedSetting.SettingValue, settings[strings.ToLower(updatedSetting.SettingKey)].SettingValue)
 
 	// delete setting
-	err = system.DeleteSetting(&system.Setting{SettingKey: strings.ToLower(keyName)})
+	err = system.DeleteSetting(db.DefaultContext, &system.Setting{SettingKey: strings.ToLower(keyName)})
 	assert.NoError(t, err)
-	settings, err = system.GetAllSettings()
+	settings, err = system.GetAllSettings(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Len(t, settings, 2)
 }

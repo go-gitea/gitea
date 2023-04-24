@@ -26,12 +26,15 @@
 	<input type="hidden" name="language" value="{{$.Language}}">
 	<div class="ui fluid action input">
 		<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}…" autofocus>
+		{{if .PageIsExploreRepositories}}
+			<input type="hidden" name="only_show_relevant" value="{{.OnlyShowRelevant}}">
+		{{end}}
 		<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 	</div>
 </form>
-{{if .OnlyShowRelevant}}
+{{if and .PageIsExploreRepositories .OnlyShowRelevant}}
 	<div class="ui message explore-relevancy-note">
-		<span class="ui tooltip" data-content="{{.locale.Tr "explore.relevant_repositories_tooltip"}}">{{.locale.Tr "explore.relevant_repositories" ((printf "%s%s" $.Link "?no_filter=1")|Escape) | Safe}}</span>
+		<span data-tooltip-content="{{.locale.Tr "explore.relevant_repositories_tooltip"}}">{{.locale.Tr "explore.relevant_repositories" ((printf "%s%s" $.Link "?only_show_relevant=0")|Escape) | Safe}}</span>
 	</div>
 {{end}}
 <div class="ui divider"></div>
