@@ -7,3 +7,4 @@
 /web_src/fomantic/build/** linguist-generated
 /web_src/js/vendor/** -text -eol linguist-vendored
 Dockerfile.* linguist-language=Dockerfile
+/templates/swagger/v1_json.tmpl linguist-generated
