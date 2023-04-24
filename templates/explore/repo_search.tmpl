@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <div class="ui secondary filter menu gt-ac gt-mx-0">
 	<form class="ui form ignore-dirty gt-f1">
 		<input type="hidden" name="sort" value="{{$.SortType}}">
@@ -12,6 +13,27 @@
 			<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 		</div>
 	</form>
+
+	<!-- Language -->
+	<div class="ui dropdown jump item">
+		<span class="text">
+			Language
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+		</span>
+		<div class="menu" style="max-height: 500px; overflow-y: auto;">
+			<div class="ui icon search input">
+				<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+				<input type="text" placeholder="Language">
+			</div>
+			<a class="item" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}">Any</a>
+			{{range .ProgramLanguages}}
+			<a class="{{if eq $.Language .Language}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&language={{.Language}}&sort={{$.SortType}}">
+				<span class="gt-df gt-ac gt-mr-3"><i class="color-icon gt-mr-3" style="background-color: {{.Color}}"></i>{{.Language}}</span>
+			</a>
+			{{end}}
+		</div>
+	</div>
+
 	<!-- Sort -->
 	<div class="ui dropdown type jump item gt-mr-0">
 		<span class="text">
@@ -31,26 +53,6 @@
 			{{end}}
 			<a class="{{if eq .SortType "mostforks"}}active {{end}}item" href="{{$.Link}}?sort=mostforks&q={{$.Keyword}}&language={{$.Language}}">{{.locale.Tr "repo.issues.filter_sort.mostforks"}}</a>
 			<a class="{{if eq .SortType "fewestforks"}}active {{end}}item" href="{{$.Link}}?sort=fewestforks&q={{$.Keyword}}&language={{$.Language}}">{{.locale.Tr "repo.issues.filter_sort.fewestforks"}}</a>
-		</div>
-	</div>
-
-	<!-- Language -->
-	<div class="ui dropdown jump item">
-		<span class="text">
-			Language
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-		</span>
-		<div class="menu">
-			<div class="ui icon search input">
-				<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-				<input type="text" placeholder="Language">
-			</div>
-			<a class="item" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}">Any</a>
-			{{range .ProgramLanguages}}
-			<a class="{{if eq $.Language .Language}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&language={{.Language}}&sort={{$.SortType}}">
-				<span class="gt-df gt-ac gt-mr-3"><i class="color-icon gt-mr-3" style="background-color: {{.Color}}"></i>{{.Language}}</span>
-			</a>
-			{{end}}
 		</div>
 	</div>
 </div>
