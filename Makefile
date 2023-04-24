@@ -96,6 +96,11 @@ else
 	endif
 endif
 
+# if version = "main" then update version to "nightly"
+ifeq ($(VERSION),main)
+	VERSION := main-nightly
+endif
+
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64

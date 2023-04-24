@@ -354,7 +354,6 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 
 			htmlDoc := NewHTMLParser(t, resp.Body)
 			_, exists := htmlDoc.doc.Find(".file-view").Attr("class")
-			fmt.Printf("%s", resp.Body)
 
 			assert.False(t, exists, "README should not have rendered")
 		})

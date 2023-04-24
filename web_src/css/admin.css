@@ -59,7 +59,7 @@
 }
 
 .admin dl.admin-dl-horizontal dt {
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   float: left;
   width: 285px;
   clear: left;

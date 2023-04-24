@@ -36,7 +36,7 @@
 		</table>
 		{{template "base/paginate" .}}
 		{{range .LFSFiles}}
-			<div class="ui gitea-confirm-modal modal" id="delete-{{.Oid}}">
+			<div class="ui g-modal-confirm modal" id="delete-{{.Oid}}">
 				<div class="header">
 					{{$.locale.Tr "repo.settings.lfs_delete" .Oid}}
 				</div>
@@ -46,14 +46,10 @@
 					</p>
 					<form class="ui form" action="{{$.Link}}/delete/{{.Oid}}" method="post">
 						{{$.CsrfTokenHtml}}
-						<div class="actions">{{/* TODO: Convert to base/modal_actions_confirm */}}
-							<button class="ui basic cancel inverted button">{{$.locale.Tr "settings.cancel"}}</button>
-							<button class="ui basic inverted yellow button">{{$.locale.Tr "modal.yes"}}</button>
-						</div>
+						{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonColors" "yellow")}}
 					</form>
 				</div>
 			</div>
 		{{end}}
 	</div>
-</div>
 {{template "repo/settings/layout_footer" .}}
