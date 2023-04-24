@@ -35,9 +35,16 @@
 	</div>
 
 	<!-- Language -->
-	<div class="ui right dropdown type jump item">
-		<span class="text">Language {{svg "octicon-triangle-down" 14 "dropdown icon"}}</span>
+	<div class="ui dropdown jump item">
+		<span class="text">
+			Language
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+		</span>
 		<div class="menu">
+			<div class="ui icon search input">
+				<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+				<input type="text" placeholder="Language">
+			</div>
 			<a class="item" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}">Any</a>
 			{{range .ProgramLanguages}}
 			<a class="{{if eq $.Language .Language}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&language={{.Language}}&sort={{$.SortType}}">

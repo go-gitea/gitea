@@ -139,7 +139,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 
 	languages, err := repo_model.GetPrimaryRepoLanguageList(ctx)
 	if err != nil {
-		ctx.ServerError("SearchRepository", err)
+		ctx.ServerError("GetPrimaryRepoLanguageList", err)
 		return
 	}
 
