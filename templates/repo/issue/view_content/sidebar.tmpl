@@ -542,7 +542,7 @@
 			{{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
 				<input type="hidden" id="crossRepoSearch" value="{{.AllowCrossRepositoryDependencies}}">
 
-				<div class="ui gitea-confirm-modal modal remove-dependency">
+				<div class="ui g-modal-confirm modal remove-dependency">
 					<div class="header">
 						{{svg "octicon-trash"}}
 						{{.locale.Tr "repo.issues.dependency.remove_header"}}
@@ -656,7 +656,7 @@
 				{{svg "octicon-trash"}}
 				{{.locale.Tr "repo.issues.delete"}}
 			</button>
-			<div class="ui gitea-confirm-modal modal" id="delete">
+			<div class="ui g-modal-confirm modal" id="delete">
 				<div class="header">
 					{{if .Issue.IsPull}}
 						{{.locale.Tr "repo.pulls.delete.title"}}
