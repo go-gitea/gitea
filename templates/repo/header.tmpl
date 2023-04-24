@@ -222,7 +222,7 @@
 				{{end}}
 
 				{{if .Permission.CanRead $.UnitTypeExternalWiki}}
-					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank" rel="noopener noreferrer">
+					<a class="item" href="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank" rel="noopener noreferrer">
 						{{svg "octicon-link-external"}} {{.locale.Tr "repo.wiki"}}
 					</a>
 				{{end}}
