@@ -31,7 +31,7 @@ const (
 type Printer func(trigger Event, record *requestRecord)
 
 type requestRecordsManager struct {
-	print Printer
+	print Printer //nolint:forbidigo
 
 	lock sync.Mutex
 
