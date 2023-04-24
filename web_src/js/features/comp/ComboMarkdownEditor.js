@@ -1,11 +1,13 @@
 import '@github/markdown-toolbar-element';
+import '@github/text-expander-element';
 import $ from 'jquery';
 import {attachTribute} from '../tribute.js';
 import {hideElem, showElem, autosize} from '../../utils/dom.js';
 import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
-import {initMarkupContent} from '../../markup/content.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
-import {attachRefIssueContextPopup} from '../contextpopup.js';
+import {emojiString} from '../emoji.js';
+import {renderPreviewPanelContent} from '../repo-editor.js';
+import {matchEmoji, matchMention} from '../../utils/match.js';
 
 let elementIdCounter = 0;
 
@@ -40,13 +42,10 @@ class ComboMarkdownEditor {
 
   async init() {
     this.prepareEasyMDEToolbarActions();
-
     this.setupTab();
     this.setupDropzone();
-
     this.setupTextarea();
-
-    await attachTribute(this.textarea, {mentions: true, emoji: true});
+    this.setupExpander();
 
     if (this.userPreferredEditor === 'easymde') {
       await this.switchToEasyMDE();
@@ -70,9 +69,29 @@ class ComboMarkdownEditor {
 
     this.textareaMarkdownToolbar = this.container.querySelector('markdown-toolbar');
     this.textareaMarkdownToolbar.setAttribute('for', this.textarea.id);
+    for (const el of this.textareaMarkdownToolbar.querySelectorAll('.markdown-toolbar-button')) {
+      // upstream bug: The role code is never executed in base MarkdownButtonElement https://github.com/github/markdown-toolbar-element/issues/70
+      el.setAttribute('role', 'button');
+    }
 
-    this.switchToEasyMDEButton = this.container.querySelector('.markdown-switch-easymde');
-    this.switchToEasyMDEButton?.addEventListener('click', async (e) => {
+    const monospaceButton = this.container.querySelector('.markdown-switch-monospace');
+    const monospaceEnabled = localStorage?.getItem('markdown-editor-monospace') === 'true';
+    const monospaceText = monospaceButton.getAttribute(monospaceEnabled ? 'data-disable-text' : 'data-enable-text');
+    monospaceButton.setAttribute('data-tooltip-content', monospaceText);
+    monospaceButton.setAttribute('aria-checked', String(monospaceEnabled));
+
+    monospaceButton?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const enabled = localStorage?.getItem('markdown-editor-monospace') !== 'true';
+      localStorage.setItem('markdown-editor-monospace', String(enabled));
+      this.textarea.classList.toggle('gt-mono', enabled);
+      const text = monospaceButton.getAttribute(enabled ? 'data-disable-text' : 'data-enable-text');
+      monospaceButton.setAttribute('data-tooltip-content', text);
+      monospaceButton.setAttribute('aria-checked', String(enabled));
+    });
+
+    const easymdeButton = this.container.querySelector('.markdown-switch-easymde');
+    easymdeButton?.addEventListener('click', async (e) => {
       e.preventDefault();
       this.userPreferredEditor = 'easymde';
       await this.switchToEasyMDE();
@@ -81,6 +100,64 @@ class ComboMarkdownEditor {
     if (this.dropzone) {
       initTextareaImagePaste(this.textarea, this.dropzone);
     }
+  }
+
+  setupExpander() {
+    const expander = this.container.querySelector('text-expander');
+    expander?.addEventListener('text-expander-change', ({detail: {key, provide, text}}) => {
+      if (key === ':') {
+        const matches = matchEmoji(text);
+        if (!matches.length) return provide({matched: false});
+
+        const ul = document.createElement('ul');
+        ul.classList.add('suggestions');
+        for (const name of matches) {
+          const emoji = emojiString(name);
+          const li = document.createElement('li');
+          li.setAttribute('role', 'option');
+          li.setAttribute('data-value', emoji);
+          li.textContent = `${emoji} ${name}`;
+          ul.append(li);
+        }
+
+        provide({matched: true, fragment: ul});
+      } else if (key === '@') {
+        const matches = matchMention(text);
+        if (!matches.length) return provide({matched: false});
+
+        const ul = document.createElement('ul');
+        ul.classList.add('suggestions');
+        for (const {value, name, fullname, avatar} of matches) {
+          const li = document.createElement('li');
+          li.setAttribute('role', 'option');
+          li.setAttribute('data-value', `${key}${value}`);
+
+          const img = document.createElement('img');
+          img.src = avatar;
+          li.append(img);
+
+          const nameSpan = document.createElement('span');
+          nameSpan.textContent = name;
+          li.append(nameSpan);
+
+          if (fullname && fullname.toLowerCase() !== name) {
+            const fullnameSpan = document.createElement('span');
+            fullnameSpan.classList.add('fullname');
+            fullnameSpan.textContent = fullname;
+            li.append(fullnameSpan);
+          }
+
+          ul.append(li);
+        }
+
+        provide({matched: true, fragment: ul});
+      }
+    });
+    expander?.addEventListener('text-expander-value', ({detail}) => {
+      if (detail?.item) {
+        detail.value = detail.item.getAttribute('data-value');
+      }
+    });
   }
 
   setupDropzone() {
@@ -121,11 +198,7 @@ class ComboMarkdownEditor {
         text: this.value(),
         wiki: this.previewWiki,
       }, (data) => {
-        $panelPreviewer.html(data);
-        initMarkupContent();
-
-        const refIssues = $panelPreviewer.find('p .ref-issue');
-        attachRefIssueContextPopup(refIssues);
+        renderPreviewPanelContent($panelPreviewer, data);
       });
     });
   }
