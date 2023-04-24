@@ -3,9 +3,7 @@
 
 {{if $canReadReleases}}
 	<h2 class="ui compact small menu header">
-		{{if $canReadReleases}}
-			<a class="{{if .PageIsReleaseList}}active {{end}}item" href="{{.RepoLink}}/releases">{{.locale.Tr "repo.release.releases"}}</a>
-		{{end}}
+		<a class="{{if .PageIsReleaseList}}active {{end}}item" href="{{.RepoLink}}/releases">{{.locale.Tr "repo.release.releases"}}</a>
 		{{if $canReadCode}}
 			<a class="{{if .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/tags">{{.locale.Tr "repo.release.tags"}}</a>
 		{{end}}
