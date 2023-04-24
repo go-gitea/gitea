@@ -51,7 +51,7 @@
 
 <script>
 import VueBarGraph from 'vue-bar-graph';
-import {initVueApp} from './VueComponentLoader.js';
+import {createApp} from 'vue';
 
 const sfc = {
   components: {VueBarGraph},
@@ -102,8 +102,11 @@ const sfc = {
 };
 
 export function initRepoActivityTopAuthorsChart() {
-  initVueApp('#repo-activity-top-authors-chart', sfc);
+  const el = document.getElementById('repo-activity-top-authors-chart');
+  if (el) {
+    createApp(sfc).mount(el);
+  }
 }
 
-export default sfc; // this line is necessary to activate the IDE's Vue plugin
+export default sfc; // activate the IDE's Vue plugin
 </script>

@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings branches">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings branches")}}
+	<div class="repo-setting-content">
 		<form class="ui form" action="{{.Link}}" method="post">
 			<h4 class="ui top attached header">
 				{{.locale.Tr "repo.settings.branch_protection" (.Rule.RuleName|Escape) | Str2html}}
@@ -49,8 +45,7 @@
 								<div class="menu">
 									{{range .Users}}
 										<div class="item" data-value="{{.ID}}">
-											{{avatar $.Context . 28 "mini"}}
-											{{.GetDisplayName}}
+											{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
 										</div>
 									{{end}}
 								</div>
@@ -101,8 +96,7 @@
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
-										{{avatar $.Context . 28 "mini"}}
-									{{.GetDisplayName}}
+										{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
 									</div>
 								{{end}}
 								</div>
@@ -181,8 +175,7 @@
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
-										{{avatar $.Context . 28 "mini"}}
-									{{.GetDisplayName}}
+										{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
 									</div>
 								{{end}}
 								</div>
@@ -263,5 +256,4 @@
 			</div>
 		</form>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "repo/settings/layout_footer" .}}

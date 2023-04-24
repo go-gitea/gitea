@@ -32,7 +32,7 @@
 					</div>
 					<div class="ui attached segment members">
 						{{range .Members}}
-							{{template "shared/user/avatarlink" Dict "Context" $.Context "user" .}}
+							{{template "shared/user/avatarlink" dict "Context" $.Context "user" .}}
 						{{end}}
 					</div>
 					<div class="ui bottom attached header">
@@ -43,14 +43,13 @@
 		</div>
 	</div>
 </div>
-<div class="ui small basic delete modal" id="leave-team">
-	<div class="ui icon header">
-		{{svg "octicon-x" 16 "close inside"}}
+<div class="ui g-modal-confirm delete modal" id="leave-team">
+	<div class="header">
 		{{$.locale.Tr "org.teams.leave"}}
 	</div>
 	<div class="content">
 		<p>{{$.locale.Tr "org.teams.leave.detail" `<span class="name"></span>` | Safe}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 {{template "base/footer" .}}

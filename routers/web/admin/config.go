@@ -103,7 +103,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminConfig"] = true
 
-	systemSettings, err := system_model.GetAllSettings()
+	systemSettings, err := system_model.GetAllSettings(ctx)
 	if err != nil {
 		ctx.ServerError("system_model.GetAllSettings", err)
 		return
@@ -115,6 +115,7 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["CustomConf"] = setting.CustomConf
 	ctx.Data["AppUrl"] = setting.AppURL
+	ctx.Data["AppBuiltWith"] = setting.AppBuiltWith
 	ctx.Data["Domain"] = setting.Domain
 	ctx.Data["OfflineMode"] = setting.OfflineMode
 	ctx.Data["DisableRouterLog"] = setting.Log.DisableRouterLog

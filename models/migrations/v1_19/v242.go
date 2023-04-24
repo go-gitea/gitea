@@ -17,7 +17,7 @@ func AlterPublicGPGKeyImportContentFieldToMediumText(x *xorm.Engine) error {
 		return err
 	}
 
-	if setting.Database.UseMySQL {
+	if setting.Database.Type.IsMySQL() {
 		if _, err := sess.Exec("ALTER TABLE `gpg_key_import` CHANGE `content` `content` MEDIUMTEXT"); err != nil {
 			return err
 		}

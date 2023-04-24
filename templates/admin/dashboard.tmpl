@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin dashboard">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin dashboard")}}
+	<div class="admin-setting-content">
 		{{if .NeedUpdate}}
 			<div class="ui negative message flash-error">
 				<p>{{(.locale.Tr "admin.dashboard.new_version_hint" .RemoteVersion AppVer) | Str2html}}</p>
@@ -42,12 +39,12 @@
 						</tr>
 						{{if and (not .SSH.Disabled) (not .SSH.StartBuiltinServer)}}
 							<tr>
-								<td>{{.locale.Tr "admin.dashboard.resync_all_sshkeys"}}<br/>
+								<td>{{.locale.Tr "admin.dashboard.resync_all_sshkeys"}}<br>
 								{{.locale.Tr "admin.dashboard.resync_all_sshkeys.desc"}}</td>
 								<td><button type="submit" class="ui green button" name="op" value="resync_all_sshkeys">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 							</tr>
 							<tr>
-								<td>{{.locale.Tr "admin.dashboard.resync_all_sshprincipals"}}<br/>
+								<td>{{.locale.Tr "admin.dashboard.resync_all_sshprincipals"}}<br>
 								{{.locale.Tr "admin.dashboard.resync_all_sshprincipals.desc"}}</td>
 								<td><button type="submit" class="ui green button" name="op" value="resync_all_sshprincipals">{{svg "octicon-play" 16}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 							</tr>
@@ -83,7 +80,7 @@
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.dashboard.server_uptime"}}</dt>
-				<dd>{{.SysStatus.Uptime}}</dd>
+				<dd><relative-time format="duration" datetime="{{.SysStatus.StartTime}}">{{.SysStatus.StartTime}}</relative-time></dd>
 				<dt>{{.locale.Tr "admin.dashboard.current_goroutine"}}</dt>
 				<dd>{{.SysStatus.NumGoroutine}}</dd>
 				<div class="ui divider"></div>
@@ -145,5 +142,4 @@
 			</dl>
 		</div>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

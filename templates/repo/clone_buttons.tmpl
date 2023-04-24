@@ -1,7 +1,7 @@
 <!-- there is always at least one button (by context/repo.go) -->
 {{if $.CloneButtonShowHTTPS}}
 	<button class="ui basic small compact clone button gt-no-transition" id="repo-clone-https" data-link="{{$.CloneButtonOriginLink.HTTPS}}">
-		{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
+		HTTPS
 	</button>
 {{end}}
 {{if $.CloneButtonShowSSH}}
@@ -10,6 +10,6 @@
 	</button>
 {{end}}
 <input id="repo-clone-url" size="20" class="js-clone-url gt-br-0" value="{{$.CloneButtonOriginLink.HTTPS}}" readonly>
-<button class="ui basic small compact icon button tooltip" id="clipboard-btn" data-content="{{.locale.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url" aria-label="{{.locale.Tr "copy_url"}}">
+<button class="ui basic small compact icon button" id="clipboard-btn" data-tooltip-content="{{.locale.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url" aria-label="{{.locale.Tr "copy_url"}}">
 	{{svg "octicon-copy" 14}}
 </button>

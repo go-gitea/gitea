@@ -1,20 +1,18 @@
 import $ from 'jquery';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
-import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
-import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles} from './pull-view-file.js';
-import {initTooltip} from '../modules/tippy.js';
+import {initDiffFileTree} from './repo-diff-filetree.js';
+import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.js';
+import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.js';
 
 const {csrfToken} = window.config;
 
-export function initRepoDiffReviewButton() {
+function initRepoDiffReviewButton() {
   const $reviewBox = $('#review-box');
   const $counter = $reviewBox.find('.review-comments-counter');
 
-  $(document).on('click', 'button[name="is_review"]', (e) => {
+  $(document).on('click', 'button[name="pending_review"]', (e) => {
     const $form = $(e.target).closest('form');
-    $form.append('<input type="hidden" name="is_review" value="true">');
-
     // Watch for the form's submit event.
     $form.on('submit', () => {
       const num = parseInt($counter.attr('data-pending-comment-number')) + 1 || 1;
@@ -28,7 +26,7 @@ export function initRepoDiffReviewButton() {
   });
 }
 
-export function initRepoDiffFileViewToggle() {
+function initRepoDiffFileViewToggle() {
   $('.file-view-toggle').on('click', function () {
     const $this = $(this);
     $this.parent().children().removeClass('active');
@@ -40,7 +38,7 @@ export function initRepoDiffFileViewToggle() {
   });
 }
 
-export function initRepoDiffConversationForm() {
+function initRepoDiffConversationForm() {
   $(document).on('submit', '.conversation-holder form', async (e) => {
     e.preventDefault();
 
@@ -50,13 +48,17 @@ export function initRepoDiffConversationForm() {
       return;
     }
 
-    const formDataString = String(new URLSearchParams(new FormData($form[0])));
+    const formData = new FormData($form[0]);
+
+    // if the form is submitted by a button, append the button's name and value to the form data
+    const submitter = e.originalEvent?.submitter;
+    const isSubmittedByButton = (submitter?.nodeName === 'BUTTON') || (submitter?.nodeName === 'INPUT' && submitter.type === 'submit');
+    if (isSubmittedByButton && submitter.name) {
+      formData.append(submitter.name, submitter.value);
+    }
+    const formDataString = String(new URLSearchParams(formData));
     const $newConversationHolder = $(await $.post($form.attr('action'), formDataString));
     const {path, side, idx} = $newConversationHolder.data();
-
-    $newConversationHolder.find('.tooltip').each(function () {
-      initTooltip(this);
-    });
 
     $form.closest('.conversation-holder').replaceWith($newConversationHolder);
     if ($form.closest('tr').data('line-type') === 'same') {
@@ -151,7 +153,7 @@ function loadMoreFiles(url, callback) {
   });
 }
 
-export function initRepoDiffShowMore() {
+function initRepoDiffShowMore() {
   $(document).on('click', 'a#diff-show-more-files', (e) => {
     e.preventDefault();
 
@@ -184,4 +186,16 @@ export function initRepoDiffShowMore() {
       $target.removeClass('disabled');
     });
   });
+}
+
+export function initRepoDiffView() {
+  initRepoDiffConversationForm();
+  const diffFileList = $('#diff-file-list');
+  if (diffFileList.length === 0) return;
+  initDiffFileTree();
+  initRepoDiffShowMore();
+  initRepoDiffReviewButton();
+  initRepoDiffFileViewToggle();
+  initViewedCheckboxListenerFor();
+  initExpandAndCollapseFilesButton();
 }

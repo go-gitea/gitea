@@ -5,7 +5,7 @@ export function initUserAuthOauth2() {
   const $oauth2LoginNav = $('#oauth2-login-navigator');
   if ($oauth2LoginNav.length === 0) return;
 
-  $oauth2LoginNav.find('.oauth-login-image').click(() => {
+  $oauth2LoginNav.find('.oauth-login-image').on('click', () => {
     const oauthLoader = $('#oauth2-login-loader');
     const oauthNav = $('#oauth2-login-navigator');
 

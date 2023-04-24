@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings collaboration">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings collaboration")}}
+	<div class="repo-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "repo.settings.collaboration"}}
 		</h4>
@@ -56,7 +52,7 @@
 		<h4 class="ui top attached header">
 			{{$.locale.Tr "repo.settings.teams"}}
 		</h4>
-		{{$allowedToChangeTeams := ( or (.Org.RepoAdminChangeTeamAccess) (.Permission.IsOwner))}}
+		{{$allowedToChangeTeams := (or (.Org.RepoAdminChangeTeamAccess) (.Permission.IsOwner))}}
 		{{if .Teams}}
 		<div class="ui attached segment collaborator list">
 			{{range $t, $team := .Teams}}
@@ -66,7 +62,7 @@
 							{{.Name}}
 						</a>
 					</div>
-					<div class="ui eight wide column tooltip" data-content="{{$.locale.Tr "repo.settings.change_team_permission_tip"}}">
+					<div class="ui eight wide column" data-tooltip-content="{{$.locale.Tr "repo.settings.change_team_permission_tip"}}">
 						{{svg "octicon-shield-lock"}}
 						<div class="ui inline dropdown">
 							<div class="text">{{if eq .AccessMode 1}}{{$.locale.Tr "repo.settings.collaboration.read"}}{{else if eq .AccessMode 2}}{{$.locale.Tr "repo.settings.collaboration.write"}}{{else if eq .AccessMode 3}}{{$.locale.Tr "repo.settings.collaboration.admin"}}{{else if eq .AccessMode 4}}{{$.locale.Tr "repo.settings.collaboration.owner"}}{{else}}{{$.locale.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
@@ -79,7 +75,7 @@
 						{{end}}
 					</div>
 					{{if $allowedToChangeTeams}}
-						<div class="ui two wide column {{if .IncludesAllRepositories}}tooltip{{end}}" {{if .IncludesAllRepositories}} data-content="{{$.locale.Tr "repo.settings.delete_team_tip"}}"{{end}}>
+						<div class="ui two wide column" {{if .IncludesAllRepositories}} data-tooltip-content="{{$.locale.Tr "repo.settings.delete_team_tip"}}"{{end}}>
 							<button class="ui red tiny button inline text-thin delete-button {{if .IncludesAllRepositories}}disabled{{end}}" data-url="{{$.Link}}/team/delete" data-id="{{.ID}}">
 									{{$.locale.Tr "repo.settings.delete_collaborator"}}
 							</button>
@@ -110,16 +106,16 @@
 		</div>
 		{{end}}
 	</div>
-</div>
 
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "repo.settings.collaborator_deletion"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "repo.settings.collaborator_deletion_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
-{{template "base/footer" .}}
+
+{{template "repo/settings/layout_footer" .}}

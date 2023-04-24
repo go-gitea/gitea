@@ -14,7 +14,7 @@
 					<div class="gt-mx-2">/</div>
 					<a href="{{$.RepoLink}}">{{.Name}}</a>
 					{{if $.EnableFeed}}
-						<a href="{{$.RepoLink}}.rss"><i class="ui grey icon tooltip gt-ml-3" data-content="{{$.locale.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 18}}</i></a>
+						<a href="{{$.RepoLink}}.rss"><i class="ui grey icon gt-ml-3" data-tooltip-content="{{$.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
 					{{end}}
 					<div class="labels gt-df gt-ac gt-fw">
 						{{if .IsTemplate}}
@@ -51,7 +51,7 @@
 					{{if $.RepoTransfer}}
 						<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
-							<div class="ui tooltip" data-content="{{if $.CanUserAcceptTransfer}}{{$.locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{$.locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}" data-position="bottom center">
+							<div data-tooltip-content="{{if $.CanUserAcceptTransfer}}{{$.locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{$.locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}">
 								<button type="submit" class="ui button {{if $.CanUserAcceptTransfer}}green {{end}} ok inverted small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
 									{{$.locale.Tr "repo.transfer.accept"}}
 								</button>
@@ -59,7 +59,7 @@
 						</form>
 						<form method="post" action="{{$.RepoLink}}/action/reject_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
-							<div class="ui tooltip" data-content="{{if $.CanUserAcceptTransfer}}{{$.locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{$.locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}" data-position="bottom center">
+							<div data-tooltip-content="{{if $.CanUserAcceptTransfer}}{{$.locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{$.locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}">
 								<button type="submit" class="ui button {{if $.CanUserAcceptTransfer}}red {{end}}ok inverted small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
 									{{$.locale.Tr "repo.transfer.reject"}}
 								</button>
@@ -68,7 +68,7 @@
 					{{end}}
 					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
 						{{$.CsrfTokenHtml}}
-						<div class="ui labeled button{{if not $.IsSigned}} tooltip{{end}}"{{if not $.IsSigned}} data-content="{{$.locale.Tr "repo.watch_guest_user"}}" data-position="top center"{{end}}>
+						<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{$.locale.Tr "repo.watch_guest_user"}}"{{end}}>
 							<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
 								{{if $.IsWatchingRepo}}{{svg "octicon-eye-closed" 16}}{{$.locale.Tr "repo.unwatch"}}{{else}}{{svg "octicon-eye"}}{{$.locale.Tr "repo.watch"}}{{end}}
 							</button>
@@ -80,7 +80,7 @@
 					{{if not $.DisableStars}}
 						<form method="post" action="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
 							{{$.CsrfTokenHtml}}
-							<div class="ui labeled button{{if not $.IsSigned}} tooltip{{end}}"{{if not $.IsSigned}} data-content="{{$.locale.Tr "repo.star_guest_user"}}" data-position="top center"{{end}}>
+							<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{$.locale.Tr "repo.star_guest_user"}}"{{end}}>
 								<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
 									{{if $.IsStaringRepo}}{{svg "octicon-star-fill"}}{{$.locale.Tr "repo.unstar"}}{{else}}{{svg "octicon-star"}}{{$.locale.Tr "repo.star"}}{{end}}
 								</button>
@@ -93,14 +93,14 @@
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
 						<div class="ui labeled button
 							{{if or (not $.IsSigned) (and (not $.CanSignedUserFork) (eq (len $.UserAndOrgForks) 0))}}
-								tooltip disabled
+								disabled
 							{{end}}"
 							{{if not $.IsSigned}}
-								data-content="{{$.locale.Tr "repo.fork_guest_user"}}"
+								data-tooltip-content="{{$.locale.Tr "repo.fork_guest_user"}}"
 							{{else if and (not $.CanSignedUserFork) (eq (len $.UserAndOrgForks) 0)}}
-								data-content="{{$.locale.Tr "repo.fork_from_self"}}"
+								data-tooltip-content="{{$.locale.Tr "repo.fork_from_self"}}"
 							{{end}}
-						data-position="top center">
+						>
 							<a class="ui compact{{if $.ShowForkModal}} show-modal{{end}} small basic button"
 								{{if not $.CanSignedUserFork}}
 									{{if gt (len $.UserAndOrgForks) 1}}
@@ -118,7 +118,6 @@
 								{{svg "octicon-repo-forked"}}{{$.locale.Tr "repo.fork"}}
 							</a>
 							<div class="ui small modal" id="fork-repo-modal">
-								{{svg "octicon-x" 16 "close inside"}}
 								<div class="header">
 									{{$.locale.Tr "repo.already_forked" .Name}}
 								</div>
@@ -216,9 +215,15 @@
 				</a>
 				{{end}}
 
-				{{if or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki)}}
-					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki" {{if and (.Permission.CanRead $.UnitTypeExternalWiki) (not (HasPrefix ((.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL) (.Repository.Link)))}} target="_blank" rel="noopener noreferrer" {{end}}>
+				{{if .Permission.CanRead $.UnitTypeWiki}}
+					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki">
 						{{svg "octicon-book"}} {{.locale.Tr "repo.wiki"}}
+					</a>
+				{{end}}
+
+				{{if .Permission.CanRead $.UnitTypeExternalWiki}}
+					<a class="item" href="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank" rel="noopener noreferrer">
+						{{svg "octicon-link-external"}} {{.locale.Tr "repo.wiki"}}
 					</a>
 				{{end}}
 

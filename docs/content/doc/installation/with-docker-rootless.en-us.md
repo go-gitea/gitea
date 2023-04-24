@@ -2,14 +2,14 @@
 date: "2020-02-09T20:00:00+02:00"
 title: "Installation with Docker (rootless)"
 slug: "install-with-docker-rootless"
-weight: 10
+weight: 60
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "installation"
     name: "With Docker Rootless"
-    weight: 10
+    weight: 60
     identifier: "install-with-docker-rootless"
 ---
 

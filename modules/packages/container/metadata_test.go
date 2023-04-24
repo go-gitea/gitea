@@ -33,7 +33,7 @@ func TestParseImageConfig(t *testing.T) {
 	assert.Equal(t, projectURL, metadata.ProjectURL)
 	assert.Equal(t, repositoryURL, metadata.RepositoryURL)
 	assert.Equal(t, documentationURL, metadata.DocumentationURL)
-	assert.Equal(t, []string{"do it 1", "do it 2"}, metadata.ImageLayers)
+	assert.ElementsMatch(t, []string{"do it 1", "do it 2"}, metadata.ImageLayers)
 	assert.Equal(
 		t,
 		map[string]string{
@@ -46,7 +46,7 @@ func TestParseImageConfig(t *testing.T) {
 		},
 		metadata.Labels,
 	)
-	assert.Empty(t, metadata.MultiArch)
+	assert.Empty(t, metadata.Manifests)
 
 	configHelm := `{"description":"` + description + `", "home": "` + projectURL + `", "sources": ["` + repositoryURL + `"], "maintainers":[{"name":"` + author + `"}]}`
 

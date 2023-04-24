@@ -27,6 +27,7 @@ import (
 
 func TestPackagePub(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	token := "Bearer " + getUserToken(t, user.Name)
@@ -119,7 +120,7 @@ description: ` + packageDescription
 		assert.NoError(t, err)
 		assert.Equal(t, int64(len(content)), pb.Size)
 
-		resp = uploadFile(t, result.URL, content, http.StatusBadRequest)
+		_ = uploadFile(t, result.URL, content, http.StatusBadRequest)
 	})
 
 	t.Run("Download", func(t *testing.T) {

@@ -18,11 +18,11 @@
 				<div class="ui compact tiny menu">
 					<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=open&q={{$.Keyword}}">
 						{{svg "octicon-milestone" 16 "gt-mr-3"}}
-						{{JsPrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
+						{{.locale.PrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
 					</a>
 					<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=closed&q={{$.Keyword}}">
 						{{svg "octicon-check" 16 "gt-mr-3"}}
-						{{JsPrettyNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
+						{{.locale.PrettyNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
 					</a>
 				</div>
 			</div>
@@ -31,7 +31,7 @@
 			<div class="column center aligned">
 				<form class="ui form ignore-dirty">
 					<div class="ui search fluid action input">
-						<input type="hidden" name="state" value="{{$.State}}"/>
+						<input type="hidden" name="state" value="{{$.State}}">
 						<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
 						<button class="ui primary button" type="submit">{{.locale.Tr "explore.search"}}</button>
 					</div>
@@ -73,22 +73,22 @@
 					<div class="meta">
 						{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
 						{{if .IsClosed}}
-							{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate|Str2html}}
+							{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 						{{else}}
 							{{svg "octicon-calendar"}}
 							{{if .DeadlineString}}
-								<span {{if .IsOverdue}}class="overdue"{{end}}>{{.DeadlineString}}</span>
+								<span {{if .IsOverdue}}class="overdue"{{end}}>{{DateTime "short" .DeadlineString .DeadlineString}}</span>
 							{{else}}
 								{{$.locale.Tr "repo.milestones.no_due_date"}}
 							{{end}}
 						{{end}}
 						<span class="issue-stats">
 							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
-							{{JsPrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
+							{{$.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
 							{{svg "octicon-check" 16 "gt-mr-3"}}
-							{{JsPrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+							{{$.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
 							{{if .TotalTrackedTime}}{{svg "octicon-clock"}} {{.TotalTrackedTime|Sec2Time}}{{end}}
-							{{if .UpdatedUnix}}{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.update_ago" (.TimeSinceUpdate|Sec2Time)}}{{end}}
+							{{if .UpdatedUnix}}{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix $.locale) | Safe}}{{end}}
 						</span>
 					</div>
 					{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
@@ -116,24 +116,15 @@
 </div>
 
 {{if or .CanWriteIssues .CanWritePulls}}
-	<div class="ui small basic delete modal">
-		<div class="ui icon header">
+	<div class="ui g-modal-confirm delete modal">
+		<div class="header">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.milestones.deletion"}}
 		</div>
 		<div class="content">
 			<p>{{.locale.Tr "repo.milestones.deletion_desc"}}</p>
 		</div>
-		<div class="actions">
-			<div class="ui red basic inverted cancel button">
-				<i class="remove icon"></i>
-				{{.locale.Tr "modal.no"}}
-			</div>
-			<div class="ui green basic inverted ok button">
-				<i class="checkmark icon"></i>
-				{{.locale.Tr "modal.yes"}}
-			</div>
-		</div>
+		{{template "base/modal_actions_confirm" .}}
 	</div>
 {{end}}
 {{template "base/footer" .}}

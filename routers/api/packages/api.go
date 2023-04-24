@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/pub"
 	"code.gitea.io/gitea/routers/api/packages/pypi"
 	"code.gitea.io/gitea/routers/api/packages/rubygems"
+	"code.gitea.io/gitea/routers/api/packages/swift"
 	"code.gitea.io/gitea/routers/api/packages/vagrant"
 	"code.gitea.io/gitea/services/auth"
 	context_service "code.gitea.io/gitea/services/context"
@@ -43,6 +44,24 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	}
 }
 
+func verifyAuth(r *web.Route, authMethods []auth.Method) {
+	if setting.Service.EnableReverseProxyAuth {
+		authMethods = append(authMethods, &auth.ReverseProxy{})
+	}
+	authGroup := auth.NewGroup(authMethods...)
+
+	r.Use(func(ctx *context.Context) {
+		var err error
+		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if err != nil {
+			log.Error("Failed to verify user: %v", err)
+			ctx.Error(http.StatusUnauthorized, "authGroup.Verify")
+			return
+		}
+		ctx.IsSigned = ctx.Doer != nil
+	})
+}
+
 // CommonRoutes provide endpoints for most package managers (except containers - see below)
 // These are mounted on `/api/packages` (not `/api/v1/packages`)
 func CommonRoutes(ctx gocontext.Context) *web.Route {
@@ -50,27 +69,12 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 
 	r.Use(context.PackageContexter(ctx))
 
-	authMethods := []auth.Method{
+	verifyAuth(r, []auth.Method{
 		&auth.OAuth2{},
 		&auth.Basic{},
 		&nuget.Auth{},
 		&conan.Auth{},
 		&chef.Auth{},
-	}
-	if setting.Service.EnableReverseProxyAuth {
-		authMethods = append(authMethods, &auth.ReverseProxy{})
-	}
-
-	authGroup := auth.NewGroup(authMethods...)
-	r.Use(func(ctx *context.Context) {
-		var err error
-		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if err != nil {
-			log.Error("Verify: %v", err)
-			ctx.Error(http.StatusUnauthorized, "authGroup.Verify")
-			return
-		}
-		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Group("/{username}", func() {
@@ -375,6 +379,41 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				r.Delete("/yank", rubygems.DeletePackage)
 			}, reqPackageAccess(perm.AccessModeWrite))
 		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/swift", func() {
+			r.Group("/{scope}/{name}", func() {
+				r.Group("", func() {
+					r.Get("", swift.EnumeratePackageVersions)
+					r.Get(".json", swift.EnumeratePackageVersions)
+				}, swift.CheckAcceptMediaType(swift.AcceptJSON))
+				r.Group("/{version}", func() {
+					r.Get("/Package.swift", swift.CheckAcceptMediaType(swift.AcceptSwift), swift.DownloadManifest)
+					r.Put("", reqPackageAccess(perm.AccessModeWrite), swift.CheckAcceptMediaType(swift.AcceptJSON), swift.UploadPackageFile)
+					r.Get("", func(ctx *context.Context) {
+						// Can't use normal routes here: https://github.com/go-chi/chi/issues/781
+
+						version := ctx.Params("version")
+						if strings.HasSuffix(version, ".zip") {
+							swift.CheckAcceptMediaType(swift.AcceptZip)(ctx)
+							if ctx.Written() {
+								return
+							}
+							ctx.SetParams("version", version[:len(version)-4])
+							swift.DownloadPackageFile(ctx)
+						} else {
+							swift.CheckAcceptMediaType(swift.AcceptJSON)(ctx)
+							if ctx.Written() {
+								return
+							}
+							if strings.HasSuffix(version, ".json") {
+								ctx.SetParams("version", version[:len(version)-5])
+							}
+							swift.PackageVersionMetadata(ctx)
+						}
+					})
+				})
+			})
+			r.Get("/identifiers", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.LookupPackageIdentifiers)
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/vagrant", func() {
 			r.Group("/authenticate", func() {
 				r.Get("", vagrant.CheckAuthenticate)
@@ -401,24 +440,9 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 
 	r.Use(context.PackageContexter(ctx))
 
-	authMethods := []auth.Method{
+	verifyAuth(r, []auth.Method{
 		&auth.Basic{},
 		&container.Auth{},
-	}
-	if setting.Service.EnableReverseProxyAuth {
-		authMethods = append(authMethods, &auth.ReverseProxy{})
-	}
-
-	authGroup := auth.NewGroup(authMethods...)
-	r.Use(func(ctx *context.Context) {
-		var err error
-		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if err != nil {
-			log.Error("Failed to verify user: %v", err)
-			ctx.Error(http.StatusUnauthorized, "Verify")
-			return
-		}
-		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)
@@ -456,7 +480,7 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 		)
 
 		// Manual mapping of routes because {image} can contain slashes which chi does not support
-		r.Route("/*", "HEAD,GET,POST,PUT,PATCH,DELETE", func(ctx *context.Context) {
+		r.RouteMethods("/*", "HEAD,GET,POST,PUT,PATCH,DELETE", func(ctx *context.Context) {
 			path := ctx.Params("*")
 			isHead := ctx.Req.Method == "HEAD"
 			isGet := ctx.Req.Method == "GET"

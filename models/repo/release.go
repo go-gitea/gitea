@@ -7,6 +7,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -79,7 +80,7 @@ type Release struct {
 	RenderedNote     string             `xorm:"-"`
 	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
 	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
-	IsTag            bool               `xorm:"NOT NULL DEFAULT false"`
+	IsTag            bool               `xorm:"NOT NULL DEFAULT false"` // will be true only if the record is a tag and has no related releases
 	Attachments      []*Attachment      `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
 }
@@ -253,6 +254,28 @@ func GetReleasesByRepoID(ctx context.Context, repoID int64, opts FindReleasesOpt
 	return rels, sess.Find(&rels)
 }
 
+// GetTagNamesByRepoID returns a list of release tag names of repository.
+func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
+	listOptions := db.ListOptions{
+		ListAll: true,
+	}
+	opts := FindReleasesOptions{
+		ListOptions:   listOptions,
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		HasSha1:       util.OptionalBoolTrue,
+	}
+
+	tags := make([]string, 0)
+	sess := db.GetEngine(ctx).
+		Table("release").
+		Desc("created_unix", "id").
+		Where(opts.toConds(repoID)).
+		Cols("tag_name")
+
+	return tags, sess.Find(&tags)
+}
+
 // CountReleasesByRepoID returns a number of releases matching FindReleaseOptions and RepoID.
 func CountReleasesByRepoID(repoID int64, opts FindReleasesOptions) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Where(opts.toConds(repoID)).Count(new(Release))
@@ -348,6 +371,34 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 			currentIndex++
 		}
 		sortedRels.Rel[currentIndex].Attachments = append(sortedRels.Rel[currentIndex].Attachments, attachment)
+	}
+
+	// Makes URL's predictable
+	for _, release := range rels {
+		// If we have no Repo, we don't need to execute this loop
+		if release.Repo == nil {
+			continue
+		}
+
+		// Check if there are two or more attachments with the same name
+		hasDuplicates := false
+		foundNames := make(map[string]bool)
+		for _, attachment := range release.Attachments {
+			_, found := foundNames[attachment.Name]
+			if found {
+				hasDuplicates = true
+				break
+			} else {
+				foundNames[attachment.Name] = true
+			}
+		}
+
+		// If the names unique, use the URL with the Name instead of the UUID
+		if !hasDuplicates {
+			for _, attachment := range release.Attachments {
+				attachment.CustomDownloadURL = release.Repo.HTMLURL() + "/releases/download/" + url.PathEscape(release.TagName) + "/" + url.PathEscape(attachment.Name)
+			}
+		}
 	}
 
 	return err

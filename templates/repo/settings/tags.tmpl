@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings edit">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings edit")}}
+	<div class="repo-setting-content">
 		{{if .Repository.IsArchived}}
 			<div class="ui warning message">
 				{{.locale.Tr "repo.settings.archive.tagsettings_unavailable"}}
@@ -36,8 +32,7 @@
 										<div class="menu">
 											{{range .Users}}
 												<div class="item" data-value="{{.ID}}">
-													{{avatar $.Context . 28 "mini"}}
-													{{.GetDisplayName}}
+													{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
 												</div>
 											{{end}}
 										</div>
@@ -93,14 +88,14 @@
 											{{if or .AllowlistUserIDs (and $.Owner.IsOrganization .AllowlistTeamIDs)}}
 												{{$userIDs := .AllowlistUserIDs}}
 												{{range $.Users}}
-													{{if contain $userIDs .ID}}
+													{{if SliceUtils.Contains $userIDs .ID}}
 														<a class="ui basic label" href="{{.HomeLink}}">{{avatar $.Context . 26}} {{.GetDisplayName}}</a>
 													{{end}}
 												{{end}}
 												{{if $.Owner.IsOrganization}}
 													{{$teamIDs := .AllowlistTeamIDs}}
 													{{range $.Teams}}
-														{{if contain $teamIDs .ID}}
+														{{if SliceUtils.Contains $teamIDs .ID}}
 															<a class="ui basic label" href="{{$.Owner.OrganisationLink}}/teams/{{PathEscape .LowerName}}">{{.Name}}</a>
 														{{end}}
 													{{end}}
@@ -113,7 +108,7 @@
 											<a class="ui tiny primary button" href="{{$.RepoLink}}/settings/tags/{{.ID}}">{{$.locale.Tr "edit"}}</a>
 											<form class="gt-dib" action="{{$.RepoLink}}/settings/tags/delete" method="post">
 												{{$.CsrfTokenHtml}}
-												<input type="hidden" name="id" value="{{.ID}}" />
+												<input type="hidden" name="id" value="{{.ID}}">
 												<button class="ui tiny red button">{{$.locale.Tr "remove"}}</button>
 											</form>
 										</td>
@@ -128,5 +123,4 @@
 			</div>
 		{{end}}
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "repo/settings/layout_footer" .}}

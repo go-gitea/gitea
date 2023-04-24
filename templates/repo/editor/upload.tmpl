@@ -10,12 +10,12 @@
 					<div class="ui breadcrumb field {{if .Err_TreePath}}error{{end}}">
 						<a class="section" href="{{$.BranchLink}}">{{.Repository.Name}}</a>
 						{{$n := len .TreeNames}}
-						{{$l := Subtract $n 1}}
+						{{$l := Eval $n "-" 1}}
 						{{range $i, $v := .TreeNames}}
 							<div class="divider"> / </div>
 							{{if eq $i $l}}
 								<input type="text" id="file-name" value="{{$v}}" placeholder="{{$.locale.Tr "repo.editor.add_subdir"}}" autofocus>
-								<span class="tooltip" data-content="{{$.locale.Tr "repo.editor.filename_help"}}" data-position="bottom center">{{svg "octicon-info"}}</span>
+								<span data-tooltip-content="{{$.locale.Tr "repo.editor.filename_help"}}">{{svg "octicon-info"}}</span>
 							{{else}}
 								<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
 							{{end}}

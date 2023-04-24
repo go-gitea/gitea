@@ -26,7 +26,7 @@ import (
 )
 
 // AdoptRepository adopts pre-existing repository files for the user/organization.
-func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOptions) (*repo_model.Repository, error) {
+func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts repo_module.CreateRepoOptions) (*repo_model.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,
@@ -53,7 +53,7 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 		IsEmpty:                         !opts.AutoInit,
 	}
 
-	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		repoPath := repo_model.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {
@@ -95,7 +95,7 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(db.DefaultContext, doer, u, repo)
+	notification.NotifyCreateRepository(ctx, doer, u, repo)
 
 	return repo, nil
 }
@@ -188,7 +188,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 }
 
 // DeleteUnadoptedRepository deletes unadopted repository files from the filesystem
-func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error {
+func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, repoName string) error {
 	if err := repo_model.IsUsableRepoName(repoName); err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error 
 		}
 	}
 
-	if exist, err := repo_model.IsRepositoryExist(db.DefaultContext, u, repoName); err != nil {
+	if exist, err := repo_model.IsRepositoryExist(ctx, u, repoName); err != nil {
 		return err
 	} else if exist {
 		return repo_model.ErrRepoAlreadyExist{
@@ -232,11 +232,11 @@ func (unadopted *unadoptedRepositories) add(repository string) {
 	unadopted.index++
 }
 
-func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unadopted *unadoptedRepositories) error {
+func checkUnadoptedRepositories(ctx context.Context, userName string, repoNamesToCheck []string, unadopted *unadoptedRepositories) error {
 	if len(repoNamesToCheck) == 0 {
 		return nil
 	}
-	ctxUser, err := user_model.GetUserByName(db.DefaultContext, userName)
+	ctxUser, err := user_model.GetUserByName(ctx, userName)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			log.Debug("Missing user: %s", userName)
@@ -271,7 +271,7 @@ func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unad
 }
 
 // ListUnadoptedRepositories lists all the unadopted repositories that match the provided query
-func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, int, error) {
+func ListUnadoptedRepositories(ctx context.Context, query string, opts *db.ListOptions) ([]string, int, error) {
 	globUser, _ := glob.Compile("*")
 	globRepo, _ := glob.Compile("*")
 
@@ -315,7 +315,7 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 
 		if !strings.ContainsRune(path[len(root)+1:], filepath.Separator) {
 			// Got a new user
-			if err = checkUnadoptedRepositories(userName, repoNamesToCheck, unadopted); err != nil {
+			if err = checkUnadoptedRepositories(ctx, userName, repoNamesToCheck, unadopted); err != nil {
 				return err
 			}
 			repoNamesToCheck = repoNamesToCheck[:0]
@@ -338,7 +338,7 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 
 		repoNamesToCheck = append(repoNamesToCheck, name)
 		if len(repoNamesToCheck) >= setting.Database.IterateBufferSize {
-			if err = checkUnadoptedRepositories(userName, repoNamesToCheck, unadopted); err != nil {
+			if err = checkUnadoptedRepositories(ctx, userName, repoNamesToCheck, unadopted); err != nil {
 				return err
 			}
 			repoNamesToCheck = repoNamesToCheck[:0]
@@ -349,7 +349,7 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 		return nil, 0, err
 	}
 
-	if err := checkUnadoptedRepositories(userName, repoNamesToCheck, unadopted); err != nil {
+	if err := checkUnadoptedRepositories(ctx, userName, repoNamesToCheck, unadopted); err != nil {
 		return nil, 0, err
 	}
 
