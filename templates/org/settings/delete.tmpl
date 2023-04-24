@@ -1,11 +1,6 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content organization settings delete">
-	{{template "org/header" .}}
-	<div class="ui container">
-		<div class="ui grid">
-			{{template "org/settings/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
+{{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings delete")}}
+
+			<div class="org-setting-content">
 				<h4 class="ui top attached error header">
 					{{.locale.Tr "org.settings.delete_account"}}
 				</h4>
@@ -25,18 +20,16 @@
 					</form>
 				</div>
 			</div>
-		</div>
-	</div>
-</div>
 
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "org.settings.delete_org_title"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "org.settings.delete_org_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
-{{template "base/footer" .}}
+
+{{template "org/settings/layout_footer" .}}

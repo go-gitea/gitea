@@ -51,8 +51,8 @@ sub = Changed Sub String
 	assert.Equal(t, `test value; <span style="color: red; background: none;">more text</span>`, result)
 
 	langs, descs := ls.ListLangNameDesc()
-	assert.Equal(t, []string{"lang1", "lang2"}, langs)
-	assert.Equal(t, []string{"Lang1", "Lang2"}, descs)
+	assert.ElementsMatch(t, []string{"lang1", "lang2"}, langs)
+	assert.ElementsMatch(t, []string{"Lang1", "Lang2"}, descs)
 
 	found := ls.Has("lang1", "no-such")
 	assert.False(t, found)

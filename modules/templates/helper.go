@@ -15,7 +15,6 @@ import (
 	"mime"
 	"net/url"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -68,12 +67,17 @@ func NewFuncMap() []template.FuncMap {
 		"PathEscape":         url.PathEscape,
 		"PathEscapeSegments": util.PathEscapeSegments,
 
+		// utils
+		"StringUtils": NewStringUtils,
+		"SliceUtils":  NewSliceUtils,
+
 		// -----------------------------------------------------------------
 		// string / json
+		// TODO: move string helper functions to StringUtils
 		"Join":           strings.Join,
 		"DotEscape":      DotEscape,
-		"HasPrefix":      strings.HasPrefix,
 		"EllipsisString": base.EllipsisString,
+		"DumpVar":        dumpVar,
 
 		"Json": func(in interface{}) string {
 			out, err := json.Marshal(in)
@@ -135,41 +139,13 @@ func NewFuncMap() []template.FuncMap {
 		"CountFmt":      base.FormatNumberSI,
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
+		"DateTime":      timeutil.DateTime,
 		"Sec2Time":      util.SecToTime,
 		"DateFmtLong": func(t time.Time) string {
 			return t.Format(time.RFC3339)
 		},
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
-		},
-
-		// -----------------------------------------------------------------
-		// slice
-		"containGeneric": func(arr, v interface{}) bool {
-			arrV := reflect.ValueOf(arr)
-			if arrV.Kind() == reflect.String && reflect.ValueOf(v).Kind() == reflect.String {
-				return strings.Contains(arr.(string), v.(string))
-			}
-			if arrV.Kind() == reflect.Slice {
-				for i := 0; i < arrV.Len(); i++ {
-					iV := arrV.Index(i)
-					if !iV.CanInterface() {
-						continue
-					}
-					if iV.Interface() == v {
-						return true
-					}
-				}
-			}
-			return false
-		},
-		"contain": func(s []int64, id int64) bool {
-			for i := 0; i < len(s); i++ {
-				if s[i] == id {
-					return true
-				}
-			}
-			return false
 		},
 
 		// -----------------------------------------------------------------
@@ -206,7 +182,7 @@ func NewFuncMap() []template.FuncMap {
 			return setting.UI.DefaultShowFullName
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
-			return setting.ShowFooterTemplateLoadTime
+			return setting.Other.ShowFooterTemplateLoadTime
 		},
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions

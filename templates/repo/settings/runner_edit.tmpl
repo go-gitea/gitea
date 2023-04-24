@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div class="page-content repository settings runners">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container">
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings runners")}}
+	<div class="repo-setting-content">
 		{{template "shared/actions/runner_edit" .}}
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "repo/settings/layout_footer" .}}
