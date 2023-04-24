@@ -39,7 +39,7 @@
       <div class="scrolling menu" ref="scrollContainer">
         <div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active === index}" @click="selectItem(item)" :ref="'listItem' + index">
           {{ item.name }}
-          <a v-if="mode === 'branches'" role="button" class="ui compact menu-scrolling-rss-button" :href="(branchURLPrefix + item.url).replace('src', 'rss')">
+          <a v-if="mode === 'branches'" role="button" class="ui compact muted menu-scrolling-rss-button" :href="(branchURLPrefix + item.url).replace('src', 'rss')">
             <svg-icon name="octicon-rss" :size="14"/>
           </a>
         </div>
