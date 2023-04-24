@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin monitor">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
+	<div class="admin-setting-content">
 		{{template "admin/cron" .}}
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.monitor.queues"}}
@@ -26,7 +23,7 @@
 							<td>{{.Type}}</td>
 							<td>{{.ExemplarType}}</td>
 							<td>{{$sum := .NumberOfWorkers}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
-							<td>{{$sum := .NumberInQueue}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
+							<td>{{$sum = .NumberInQueue}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
 							<td><a href="{{$.Link}}/queue/{{.QID}}" class="button">{{if lt $sum 0}}{{$.locale.Tr "admin.monitor.queue.review"}}{{else}}{{$.locale.Tr "admin.monitor.queue.review_add"}}{{end}}</a>
 						</tr>
 					{{end}}
@@ -36,16 +33,16 @@
 
 		{{template "admin/process" .}}
 	</div>
-</div>
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
-		{{svg "octicon-x" 16 "close inside"}}
+
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
 		{{.locale.Tr "admin.monitor.process.cancel"}}
 	</div>
 	<div class="content">
 		<p>{{$.locale.Tr "admin.monitor.process.cancel_notices" `<span class="name"></span>` | Safe}}</p>
 		<p>{{$.locale.Tr "admin.monitor.process.cancel_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
-{{template "base/footer" .}}
+
+{{template "admin/layout_footer" .}}

@@ -1,10 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content organization settings labels">
-	{{template "org/header" .}}
-	<div class="ui container">
-		<div class="ui grid">
-			{{template "org/settings/navbar" .}}
-				<div class="ui twelve wide column content">
+{{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings labels")}}
+				<div class="org-setting-content">
 					<div class="ui grid">
 						<div class="left floated twelve wide column">
 							{{$.locale.Tr "org.settings.labels_desc" | Str2html}}
@@ -17,13 +12,8 @@
 					</div>
 					<div class="ui divider"></div>
 					{{template "repo/issue/labels/label_new" .}}
-					{{template "base/alert" .}}
 					{{template "repo/issue/labels/label_list" .}}
 				</div>
-			</div>
-		</div>
-	</div>
-</div>
-
 {{template "repo/issue/labels/edit_delete_label" .}}
-{{template "base/footer" .}}
+{{template "org/settings/layout_footer" .}}
+
