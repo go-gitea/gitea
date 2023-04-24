@@ -26,6 +26,9 @@ func loadActionsFrom(rootCfg ConfigProvider) {
 		log.Fatal("Failed to map Actions settings: %v", err)
 	}
 
+	actionsSec := rootCfg.Section("actions.artifacts")
+	storageType := actionsSec.Key("STORAGE_TYPE").MustString("")
+
 	Actions.Storage = getStorage(rootCfg, "actions_log", "", nil)
-	Actions.Artifacts = getStorage(rootCfg, "actions_artifacts", "", nil)
+	Actions.Artifacts = getStorage(rootCfg, "actions_artifacts", storageType, nil)
 }
