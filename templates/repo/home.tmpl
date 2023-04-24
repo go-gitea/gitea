@@ -56,7 +56,7 @@
 				{{if .Repository.ArchivedUnix.IsZero}}
 					{{.locale.Tr "repo.archive.title"}}
 				{{else}}
-					<span id="archive-date-text" date={{.Repository.ArchivedUnix.FormatLong}} text={{.locale.Tr "repo.archive.title_date"}}>{{.locale.Tr "repo.archive.title_date" .Repository.ArchivedUnix.FormatShort}}</span>
+					{{.locale.Tr "repo.archive.title_date" (DateTime "short" .Repository.ArchivedUnix.FormatLong .Repository.ArchivedUnix.FormatShort) | Safe}}
 				{{end}}
 			</div>
 		{{end}}
