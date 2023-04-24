@@ -34,6 +34,11 @@ func isKeywordValid(keyword string) bool {
 
 // RenderUserSearch render user search page
 func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, tplName base.TplName) {
+	RenderUserSearchWithSort(ctx, opts, tplName, UserSearchDefaultSortType)
+}
+
+// RenderUserSearchWithSort render user search page with specific default sort
+func RenderUserSearchWithSort(ctx *context.Context, opts *user_model.SearchUserOptions, tplName base.TplName, defaultSort string) {
 	// Sitemap index for sitemap paths
 	opts.Page = int(ctx.ParamsInt64("idx"))
 	isSitemap := ctx.Params("idx") != ""
@@ -56,8 +61,13 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 	)
 
 	// we can not set orderBy to `models.SearchOrderByXxx`, because there may be a JOIN in the statement, different tables may have the same name columns
-	ctx.Data["SortType"] = ctx.FormString("sort")
-	switch ctx.FormString("sort") {
+
+	sortType := ctx.FormString("sort")
+	if sortType == "" {
+		sortType = defaultSort
+	}
+	ctx.Data["SortType"] = sortType
+	switch sortType {
 	case "newest":
 		orderBy = "`user`.id DESC"
 	case "oldest":
@@ -72,11 +82,12 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 		orderBy = "`user`.last_login_unix DESC"
 	case "alphabetically":
 		orderBy = "`user`.name ASC"
-	case UserSearchDefaultSortType:
+	case "recentupdate":
 		fallthrough
 	default:
+		// in case the sortType is not valid, we set it to recentupdate
+		ctx.Data["SortType"] = "recentupdate"
 		orderBy = "`user`.updated_unix DESC"
-		ctx.Data["SortType"] = UserSearchDefaultSortType
 	}
 
 	opts.Keyword = ctx.FormTrim("q")
