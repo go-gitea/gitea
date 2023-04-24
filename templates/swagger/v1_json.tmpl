@@ -223,6 +223,31 @@
           }
         }
       },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete a hook",
+        "operationId": "adminDeleteHook",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the hook to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
       "patch": {
         "consumes": [
           "application/json"
@@ -727,33 +752,6 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
-          }
-        }
-      }
-    },
-    "/amdin/hooks/{id}": {
-      "delete": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Delete a hook",
-        "operationId": "adminDeleteHook",
-        "parameters": [
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the hook to delete",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
           }
         }
       }
