@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Shows a list of all Gitignore templates
@@ -22,7 +23,13 @@ func ListGitignoresTemplates(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GitignoreTemplateList"
-	ctx.JSON(http.StatusOK, repo_module.Gitignores)
+	gitignoreList := make([]string, len(repo_module.Gitignores))
+
+	for position, currentGitignore := range repo_module.Gitignores {
+		gitignoreList[position] = util.PathJoinRelX(currentGitignore)
+	}
+
+	ctx.JSON(http.StatusOK, gitignoreList)
 }
 
 // SHows information about a gitignore template
@@ -43,7 +50,7 @@ func GetGitignoreTemplateInfo(ctx *context.APIContext) {
 	//     "$ref": "#/responses/GitignoreTemplateInfo"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	name := ctx.Params("name")
+	name := util.PathJoinRelX(ctx.Params("name"))
 
 	text, err := options.Gitignore(name)
 	if err != nil {
