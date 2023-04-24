@@ -52,7 +52,7 @@
 		<h4 class="ui top attached header">
 			{{$.locale.Tr "repo.settings.teams"}}
 		</h4>
-		{{$allowedToChangeTeams := ( or (.Org.RepoAdminChangeTeamAccess) (.Permission.IsOwner))}}
+		{{$allowedToChangeTeams := (or (.Org.RepoAdminChangeTeamAccess) (.Permission.IsOwner))}}
 		{{if .Teams}}
 		<div class="ui attached segment collaborator list">
 			{{range $t, $team := .Teams}}
