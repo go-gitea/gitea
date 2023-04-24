@@ -278,8 +278,12 @@ clean:
 fmt:
 	GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
-	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it
-	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
+	@# strip whitespace after '{{' or '(' and before '}}' or ')' unless there is only
+	@# whitespace before it
+	@$(SED_INPLACE) \
+		-e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' \
+	  -e 's/([ 	]\{1,\}/(/g' -e '/^[ 	]\{1,\})/! s/[ 	]\{1,\})/)/g' \
+	  $(TEMPLATES)
 
 .PHONY: fmt-check
 fmt-check: fmt
