@@ -23,13 +23,7 @@ func ListGitignoresTemplates(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GitignoreTemplateList"
-	gitignoreList := make([]string, len(repo_module.Gitignores))
-
-	for position, currentGitignore := range repo_module.Gitignores {
-		gitignoreList[position] = util.PathJoinRelX(currentGitignore)
-	}
-
-	ctx.JSON(http.StatusOK, gitignoreList)
+	ctx.JSON(http.StatusOK, repo_module.Gitignores)
 }
 
 // SHows information about a gitignore template
