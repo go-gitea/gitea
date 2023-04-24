@@ -38,6 +38,7 @@ import (
 	org_setting "code.gitea.io/gitea/routers/web/org/setting"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
+	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
@@ -1048,17 +1049,17 @@ func RegisterRoutes(m *web.Route) {
 				})
 			})
 			m.Group("/actions", func() {
-				m.Get("", repo.RedirectToDefaultSetting)
-				m.Get("/{type:runners|secrets}", repo.Actions)
+				m.Get("", repo_setting.RedirectToDefaultSetting)
+				m.Get("/{type:runners|secrets}", repo_setting.Actions)
 				m.Group("/runners", func() {
-					m.Combo("/{runnerid}").Get(repo.RunnersEdit).
-						Post(web.Bind(forms.EditRunnerForm{}), repo.RunnersEditPost)
-					m.Post("/{runnerid}/delete", repo.RunnerDeletePost)
-					m.Get("/reset_registration_token", repo.ResetRunnerRegistrationToken)
+					m.Combo("/{runnerid}").Get(repo_setting.RunnersEdit).
+						Post(web.Bind(forms.EditRunnerForm{}), repo_setting.RunnersEditPost)
+					m.Post("/{runnerid}/delete", repo_setting.RunnerDeletePost)
+					m.Get("/reset_registration_token", repo_setting.ResetRunnerRegistrationToken)
 				})
 				m.Group("/secrets", func() {
-					m.Post("", web.Bind(forms.AddSecretForm{}), repo.SecretsPost)
-					m.Post("/delete", repo.DeleteSecret)
+					m.Post("", web.Bind(forms.AddSecretForm{}), repo_setting.SecretsPost)
+					m.Post("/delete", repo_setting.DeleteSecret)
 				})
 			}, actions.MustEnableActions)
 		}, func(ctx *context.Context) {
