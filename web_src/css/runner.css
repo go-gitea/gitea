@@ -53,6 +53,7 @@
   color: var(--color-white);
 }
 
-.runner-container > .table {
+.runner-container > .table.segment {
   overflow-x: auto;
+  font-size: 13px; /* same font size as .admin .table.segment */
 }

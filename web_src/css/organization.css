@@ -232,6 +232,12 @@
   height: 60px;
 }
 
+@media (max-width: 767px) {
+  .organization.teams #repo-top-segment {
+    height: 100px;
+  }
+}
+
 .org-team-navbar .active.item {
   background: var(--color-box-body) !important;
 }
