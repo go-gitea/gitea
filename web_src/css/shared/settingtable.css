@@ -1,5 +1,5 @@
 /* This css is for table elements inside admin, organization, and repository settings 
-  TODO: Right now there is no table inside user settings, but in the future there is table
+  TODO: Right now there is no table inside user settings, but in the future if there is table
   in user settings, should also use this common style here.
 */
 .admin .table.segment,
