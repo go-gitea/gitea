@@ -24,6 +24,7 @@ const (
 // Runners render settings/actions/runners page for organization level
 func Runners(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettingsRunners"] = true
+
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageType"] = "runners"

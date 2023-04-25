@@ -20,10 +20,12 @@ func Secrets(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageType"] = "secrets"
 	ctx.Data["PageIsSettingsSecrets"] = true
+
 	shared.SetSecretsContext(ctx, ctx.Doer.ID, 0)
 	if ctx.Written() {
 		return
 	}
+
 	ctx.HTML(http.StatusOK, tplSettingsActions)
 }
 

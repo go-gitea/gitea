@@ -23,10 +23,12 @@ func Runners(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageType"] = "runners"
 	ctx.Data["PageIsSettingsRunners"] = true
+
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
+
 	opts := actions_model.FindRunnerOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,

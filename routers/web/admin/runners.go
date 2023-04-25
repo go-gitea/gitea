@@ -23,6 +23,7 @@ const (
 // Runners render settings/actions/runners page for admin level
 func Runners(ctx *context.Context) {
 	ctx.Data["PageIsAdminRunners"] = true
+
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1

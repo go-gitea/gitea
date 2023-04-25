@@ -57,6 +57,7 @@ func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions) {
 	ctx.Data["RunnerRepoID"] = opts.RepoID
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+
 	ctx.Data["Page"] = pager
 }
 

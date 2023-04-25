@@ -16,10 +16,12 @@ func Secrets(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageType"] = "secrets"
 	ctx.Data["PageIsOrgSettingsSecrets"] = true
+
 	shared.SetSecretsContext(ctx, ctx.ContextUser.ID, 0)
 	if ctx.Written() {
 		return
 	}
+
 	ctx.HTML(http.StatusOK, tplSettingsActions)
 }
 

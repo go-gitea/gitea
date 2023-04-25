@@ -21,6 +21,7 @@ func Secrets(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+
 	ctx.HTML(http.StatusOK, tplActions)
 }
 
