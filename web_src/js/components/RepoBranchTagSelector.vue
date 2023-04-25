@@ -76,6 +76,15 @@
   </div>
 </template>
 
+<style scoped>
+.menu .item a {
+  display: none; /* only show RSS icon on hover */
+}
+.menu .item:hover a {
+  display: inline-block;
+}
+</style>
+
 <script>
 import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
