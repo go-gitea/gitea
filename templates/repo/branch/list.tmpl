@@ -26,6 +26,11 @@
 										{{svg "octicon-git-branch"}}
 									</button>
 								{{end}}
+								{{if .EnableFeed}}
+									<a role="button" class="ui basic button icon" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranch}}">
+										{{svg "octicon-rss"}}
+									</a>
+								{{end}}
 								{{if not $.DisableDownloadSourceArchives}}
 									<button class="ui basic jump dropdown icon button" data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranch)}}">
 										{{svg "octicon-download"}}
@@ -113,6 +118,11 @@
 												{{svg "octicon-git-branch"}}
 											</button>
 										{{end}}
+										{{if $.EnableFeed}}
+											<a role="button" class="ui basic button icon" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .Name}}">
+												{{svg "octicon-rss"}}
+											</a>
+										{{end}}
 										{{if and (not .IsDeleted) (not $.DisableDownloadSourceArchives)}}
 											<button class="ui basic jump dropdown icon button" data-tooltip-content="{{$.locale.Tr "repo.branch.download" (.Name)}}">
 												{{svg "octicon-download"}}
@@ -147,7 +157,7 @@
 	</div>
 </div>
 
-<div class="ui gitea-confirm-modal delete modal">
+<div class="ui g-modal-confirm delete modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "repo.branch.delete_html"}} <span class="name"></span>

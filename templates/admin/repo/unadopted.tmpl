@@ -26,7 +26,7 @@
 									<span class="name">{{$dir}}</span>
 									<div class="right floated content">
 										<button class="ui button submit tiny green adopt show-modal" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{$.locale.Tr "repo.adopt_preexisting_label"}}</span></button>
-										<div class="ui gitea-confirm-modal modal" id="adopt-unadopted-modal-{{$dirI}}">
+										<div class="ui g-modal-confirm modal" id="adopt-unadopted-modal-{{$dirI}}">
 											<div class="header">
 												<span class="label">{{$.locale.Tr "repo.adopt_preexisting"}}</span>
 											</div>
@@ -39,20 +39,11 @@
 												<input type="hidden" name="action" value="adopt">
 												<input type="hidden" name="q" value="{{$.Keyword}}">
 												<input type="hidden" name="page" value="{{$.CurrentPage}}">
-												<div class="actions">{{/* TODO: Convert to base/modal_actions_confirm */}}
-													<button class="ui red basic inverted cancel button">
-														{{svg "octicon-trash" 16 "gt-mr-2"}}
-														{{$.locale.Tr "modal.no"}}
-													</button>
-													<button class="ui green basic inverted ok button">
-														{{svg "octicon-check" 16 "gt-mr-2"}}
-														{{$.locale.Tr "modal.yes"}}
-													</button>
-												</div>
+												{{template "base/modal_actions_confirm" (dict "locale" $.locale)}}
 											</form>
 										</div>
 										<button class="ui button submit tiny red delete show-modal" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{$.locale.Tr "repo.delete_preexisting_label"}}</span></button>
-										<div class="ui gitea-confirm-modal modal" id="delete-unadopted-modal-{{$dirI}}">
+										<div class="ui g-modal-confirm modal" id="delete-unadopted-modal-{{$dirI}}">
 											<div class="header">
 												<span class="label">{{$.locale.Tr "repo.delete_preexisting"}}</span>
 											</div>
@@ -65,16 +56,7 @@
 												<input type="hidden" name="action" value="delete">
 												<input type="hidden" name="q" value="{{$.Keyword}}">
 												<input type="hidden" name="page" value="{{$.CurrentPage}}">
-												<div class="actions">{{/* TODO: Convert to base/modal_actions_confirm */}}
-													<button class="ui red basic inverted cancel button">
-														{{svg "octicon-trash" 16 "gt-mr-2"}}
-														{{$.locale.Tr "modal.no"}}
-													</button>
-													<button class="ui green basic inverted ok button">
-														{{svg "octicon-check" 16 "gt-mr-2"}}
-														{{$.locale.Tr "modal.yes"}}
-													</button>
-												</div>
+												{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonColors" "yellow")}}
 											</form>
 										</div>
 									</div>

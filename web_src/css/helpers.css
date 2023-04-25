@@ -1,3 +1,7 @@
+/*
+Gitea's tailwind-style CSS helper classes have `gt-` prefix.
+Gitea's private styles use `g-` prefix.
+*/
 .gt-df { display: flex !important; }
 .gt-di { display: inline !important; }
 .gt-dif { display: inline-flex !important; }
@@ -33,7 +37,7 @@
   font-size: .95em !important; /* compensate for monospace fonts being usually slightly larger */
 }
 
-.gt-bold { font-weight: 600 !important; }
+.gt-bold { font-weight: var(--font-weight-bold) !important; }
 
 .gt-word-break {
   word-wrap: break-word !important;

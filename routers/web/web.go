@@ -228,11 +228,11 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 // RegisterRoutes register routes
 func RegisterRoutes(m *web.Route) {
-	reqSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: true})
-	ignSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView})
-	ignExploreSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
-	ignSignInAndCsrf := context.Toggle(&context.ToggleOptions{DisableCSRF: true})
-	reqSignOut := context.Toggle(&context.ToggleOptions{SignOutRequired: true})
+	reqSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: true})
+	ignSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: setting.Service.RequireSignInView})
+	ignExploreSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
+	ignSignInAndCsrf := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{DisableCSRF: true})
+	reqSignOut := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignOutRequired: true})
 	validation.AddBindingRules()
 
 	linkAccountEnabled := func(ctx *context.Context) {
@@ -551,7 +551,7 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Get("/avatar/{hash}", user.AvatarByEmailHash)
 
-	adminReq := context.Toggle(&context.ToggleOptions{SignInRequired: true, AdminRequired: true})
+	adminReq := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: true, AdminRequired: true})
 
 	// ***** START: Admin *****
 	m.Group("/admin", func() {
@@ -1453,6 +1453,9 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/commit/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 			m.Get("/cherry-pick/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.CherryPick)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
+
+		m.Get("/rss/branch/*", context.RepoRefByType(context.RepoRefBranch), feed.RenderBranchFeed)
+		m.Get("/atom/branch/*", context.RepoRefByType(context.RepoRefBranch), feed.RenderBranchFeed)
 
 		m.Group("/src", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.Home)

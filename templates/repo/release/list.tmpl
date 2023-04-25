@@ -126,4 +126,17 @@
 	</div>
 </div>
 
+{{if (and ($.Permission.CanWrite $.UnitTypeCode) .PageIsTagList)}}
+	<div class="ui g-modal-confirm delete modal">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{.locale.Tr "repo.release.delete_tag"}}
+		</div>
+		<div class="content">
+			<p>{{.locale.Tr "repo.release.deletion_tag_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
+	</div>
+{{end}}
+
 {{template "base/footer" .}}
