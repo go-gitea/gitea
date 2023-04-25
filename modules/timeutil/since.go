@@ -115,7 +115,7 @@ func timeSincePro(then, now time.Time, lang translation.Locale) string {
 }
 
 func timeSinceUnix(then, now time.Time, lang translation.Locale) template.HTML {
-	friendlyText := then.Format("2006-01-02 15:04:05 +07:00")
+	friendlyText := then.Format("2006-01-02 15:04:05 -07:00")
 
 	// document: https://github.com/github/relative-time-element
 	attrs := `tense="past"`
