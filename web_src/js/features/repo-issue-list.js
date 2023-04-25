@@ -56,7 +56,7 @@ function initRepoIssueListCheckboxes() {
     ).then(() => {
       window.location.reload();
     }).catch((reason) => {
-      alert(reason.responseJSON.error)
+      alert(reason.responseJSON.error);
     });
   });
 }
