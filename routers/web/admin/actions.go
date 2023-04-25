@@ -4,7 +4,6 @@
 package admin
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -21,33 +20,28 @@ const (
 	tplRunnerEdit base.TplName = "admin/runners/edit"
 )
 
-// Actions render settings/actions page for admin level
-func Actions(ctx *context.Context) {
-	pageType := ctx.Params(":type")
-	if pageType == "runners" {
-		ctx.Data["PageIsAdminRunners"] = true
-		page := ctx.FormInt("page")
-		if page <= 1 {
-			page = 1
-		}
-
-		opts := actions_model.FindRunnerOptions{
-			ListOptions: db.ListOptions{
-				Page:     page,
-				PageSize: 100,
-			},
-			Sort:   ctx.Req.URL.Query().Get("sort"),
-			Filter: ctx.Req.URL.Query().Get("q"),
-		}
-
-		actions_shared.RunnersList(ctx, opts)
-	} else {
-		ctx.ServerError("Unknown Page Type", fmt.Errorf("Unknown Actions Settings Type: %s", pageType))
-		return
+// Runners render settings/actions/runners page for admin level
+func Runners(ctx *context.Context) {
+	ctx.Data["PageIsAdminRunners"] = true
+	page := ctx.FormInt("page")
+	if page <= 1 {
+		page = 1
 	}
+
+	opts := actions_model.FindRunnerOptions{
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: 100,
+		},
+		Sort:   ctx.Req.URL.Query().Get("sort"),
+		Filter: ctx.Req.URL.Query().Get("q"),
+	}
+
+	actions_shared.RunnersList(ctx, opts)
+
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsAdmin"] = true
-	ctx.Data["PageType"] = pageType
+	ctx.Data["PageType"] = "runners"
 
 	ctx.HTML(http.StatusOK, tplActions)
 }

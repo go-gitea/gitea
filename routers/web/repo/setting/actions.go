@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -19,37 +18,27 @@ const (
 	tplRunnerEdit = "repo/settings/runner_edit"
 )
 
-// Actions render settings/actions page for repo level
-func Actions(ctx *context.Context) {
-	pageType := ctx.Params(":type")
-	if pageType == "runners" {
-		ctx.Data["PageIsSettingsRunners"] = true
-		page := ctx.FormInt("page")
-		if page <= 1 {
-			page = 1
-		}
-		opts := actions_model.FindRunnerOptions{
-			ListOptions: db.ListOptions{
-				Page:     page,
-				PageSize: 100,
-			},
-			Sort:          ctx.Req.URL.Query().Get("sort"),
-			Filter:        ctx.Req.URL.Query().Get("q"),
-			RepoID:        ctx.Repo.Repository.ID,
-			WithAvailable: true,
-		}
-
-		actions_shared.RunnersList(ctx, opts)
-	} else if pageType == "secrets" {
-		ctx.Data["PageIsSettingsSecrets"] = true
-		PrepareSecretsData(ctx)
-	} else {
-		ctx.ServerError("Unknown Page Type", fmt.Errorf("Unknown Actions Settings Type: %s", pageType))
-		return
-	}
+// Runners render settings/actions/runners page for repo level
+func Runners(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
-	ctx.Data["PageType"] = pageType
+	ctx.Data["PageType"] = "runners"
+	ctx.Data["PageIsSettingsRunners"] = true
+	page := ctx.FormInt("page")
+	if page <= 1 {
+		page = 1
+	}
+	opts := actions_model.FindRunnerOptions{
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: 100,
+		},
+		Sort:          ctx.Req.URL.Query().Get("sort"),
+		Filter:        ctx.Req.URL.Query().Get("q"),
+		RepoID:        ctx.Repo.Repository.ID,
+		WithAvailable: true,
+	}
 
+	actions_shared.RunnersList(ctx, opts)
 	ctx.HTML(http.StatusOK, tplActions)
 }
 

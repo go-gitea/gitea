@@ -4,16 +4,23 @@
 package setting
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/modules/context"
 	shared "code.gitea.io/gitea/routers/web/shared/secrets"
 )
 
-// Prepare Secrets page under org/settings/actions
-func PrepareSecretsData(ctx *context.Context) {
+// Secrets render settings/actions/secrets page for organization level
+func Secrets(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("actions.actions")
+	ctx.Data["PageIsOrgSettings"] = true
+	ctx.Data["PageType"] = "secrets"
+	ctx.Data["PageIsOrgSettingsSecrets"] = true
 	shared.SetSecretsContext(ctx, ctx.ContextUser.ID, 0)
 	if ctx.Written() {
 		return
 	}
+	ctx.HTML(http.StatusOK, tplSettingsActions)
 }
 
 // SecretsPost add secrets
