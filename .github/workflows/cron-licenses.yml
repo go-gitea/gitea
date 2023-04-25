@@ -1,7 +1,7 @@
 on:
   cron:
-    # weekly on Monday at 10:00 UTC
-    - cron: "0 10 * * 1"
+    # weekly on Monday at 0:07 UTC
+    - cron: "7 0 * * 1"
 
 name: Update licenses and gitignores
 
