@@ -5,6 +5,7 @@ package repo
 
 import (
 	"bufio"
+	"bytes"
 	gocontext "context"
 	"encoding/csv"
 	"errors"
@@ -27,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
@@ -929,8 +931,21 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
-	scanner := bufio.NewScanner(reader)
+
+	content, err := io.ReadAll(reader)
+	_ = reader.Close()
+	if err != nil {
+		log.Error("io.ReadAll: %v", err)
+		return nil, err
+	}
+
+	highlightedContent, _, err := highlight.File(filePath, "", content)
+	if err != nil {
+		log.Error("highlight.File: %v", err)
+		return nil, err
+	}
+
+	scanner := bufio.NewScanner(bytes.NewBuffer(content))
 	var diffLines []*gitdiff.DiffLine
 	for line := 0; line < idxRight+chunkSize; line++ {
 		if ok := scanner.Scan(); !ok {
@@ -941,10 +956,12 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 		}
 		lineText := scanner.Text()
 		diffLine := &gitdiff.DiffLine{
-			LeftIdx:  idxLeft + (line - idxRight) + 1,
-			RightIdx: line + 1,
-			Type:     gitdiff.DiffLinePlain,
-			Content:  " " + lineText,
+			LeftIdx:             idxLeft + (line - idxRight) + 1,
+			RightIdx:            line + 1,
+			Type:                gitdiff.DiffLinePlain,
+			Content:             " " + lineText,
+			HighlightContent:    highlightedContent[line],
+			HasHighlightContent: true,
 		}
 		diffLines = append(diffLines, diffLine)
 	}
