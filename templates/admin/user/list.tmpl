@@ -91,9 +91,9 @@
 							<td>{{if .IsRestricted}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if index $.UsersTwoFaStatus .ID}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{.NumRepos}}</td>
-							<td>{{DateTime "short" .CreatedUnix.FormatLong .CreatedUnix.FormatShort}}</td>
+							<td>{{DateTime "short" .CreatedUnix}}</td>
 							{{if .LastLoginUnix}}
-								<td>{{DateTime "short" .LastLoginUnix.FormatLong .LastLoginUnix.FormatShort}}</td>
+								<td>{{DateTime "short" .LastLoginUnix}}</td>
 							{{else}}
 								<td><span>{{$.locale.Tr "admin.users.never_login"}}</span></td>
 							{{end}}
