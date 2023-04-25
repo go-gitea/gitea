@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gorilla/feeds"
 )
@@ -27,7 +28,8 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 	}
 
 	title := fmt.Sprintf("Latest commits for file %s", ctx.Repo.TreePath)
-	link := &feeds.Link{Href: repo.HTMLURL() + "/" + ctx.Repo.BranchNameSubURL() + "/" + ctx.Repo.TreePath}
+
+	link := &feeds.Link{Href: repo.HTMLURL() + "/" + ctx.Repo.BranchNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)}
 
 	feed := &feeds.Feed{
 		Title:       title,
