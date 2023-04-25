@@ -10,8 +10,6 @@
 #   upgrade.sh 1.15.10
 #   giteahome=/opt/gitea giteaconf=$giteahome/app.ini upgrade.sh
 
-
-
 # Check if gitea service is running
 if ! pidof gitea &> /dev/null; then
   echo "Error: gitea is not running."
