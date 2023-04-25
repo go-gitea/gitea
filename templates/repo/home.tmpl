@@ -63,12 +63,12 @@
 				{{$n := len .TreeNames}}
 				{{$l := Eval $n "-" 1}}
 				<!-- If home page, show new pr. If not, show breadcrumb -->
+				{{if and (eq $n 0) .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
+					<a href="{{CompareLink .BaseRepo .Repository .BranchName}}">
+						<button id="new-pull-request" class="ui compact basic button" data-tooltip-content="{{if .PullRequestCtx.Allowed}}{{.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{.locale.Tr "action.compare_branch"}}{{end}}"><span class="text">{{svg "octicon-git-pull-request"}}</span></button>
+					</a>
+				{{end}}
 				{{if eq $n 0}}
-					{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
-						<a href="{{CompareLink .BaseRepo .Repository .BranchName}}">
-							<button id="new-pull-request" class="ui compact basic button" data-tooltip-content="{{if .PullRequestCtx.Allowed}}{{.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{.locale.Tr "action.compare_branch"}}{{end}}"><span class="text">{{svg "octicon-git-pull-request"}}</span></button>
-						</a>
-					{{end}}
 					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{.locale.Tr "repo.find_file.go_to_file"}}</a>
 				{{end}}
 

@@ -49,6 +49,7 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 9. Avoid unnecessary `!important` in CSS, add comments to explain why it's necessary if it can't be avoided.
 10. Avoid mixing different events in one event listener, prefer to use individual event listeners for every event.
 11. Custom event names are recommended to use `ce-` prefix.
+12. Gitea's tailwind-style CSS classes use `gt-` prefix (`gt-relative`), while Gitea's own private framework-level CSS classes use `g-` prefix (`g-modal-confirm`).
 
 ### Accessibility / ARIA
 

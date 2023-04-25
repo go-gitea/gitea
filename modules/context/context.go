@@ -47,7 +47,7 @@ const CookieNameFlash = "gitea_flash"
 
 // Render represents a template render
 type Render interface {
-	TemplateLookup(tmpl string) (*template.Template, error)
+	TemplateLookup(tmpl string) (templates.TemplateExecutor, error)
 	HTML(w io.Writer, status int, name string, data interface{}) error
 }
 
@@ -741,8 +741,7 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 
 			ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
 			ctx.Data["ShowMilestonesDashboardPage"] = setting.Service.ShowMilestonesDashboardPage
-			ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
-			ctx.Data["ShowFooterVersion"] = setting.ShowFooterVersion
+			ctx.Data["ShowFooterVersion"] = setting.Other.ShowFooterVersion
 
 			ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
 			ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn

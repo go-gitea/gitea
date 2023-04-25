@@ -48,5 +48,5 @@ func TestAPIReposValidateDefaultIssueConfig(t *testing.T) {
 	DecodeJSON(t, resp, &issueConfigValidation)
 
 	assert.True(t, issueConfigValidation.Valid)
-	assert.Equal(t, issueConfigValidation.Message, "")
+	assert.Empty(t, issueConfigValidation.Message)
 }
