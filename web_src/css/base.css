@@ -797,6 +797,10 @@ a.label,
   color: var(--color-text-light-2);
 }
 
+.ui.vertical.menu .item .menu a.item {
+  text-indent: 16px;
+}
+
 .ui.vertical.menu .item .menu .item:hover,
 .ui.vertical.menu .item .menu a.item:hover {
   color: var(--color-text-light-1);
