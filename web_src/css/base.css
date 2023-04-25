@@ -1487,6 +1487,10 @@ img.ui.avatar,
   box-shadow: none;
 }
 
+.ui.vertical.menu .item > .menu {
+  margin-left: 0;
+}
+
 /* Override semantic selector '.ui.menu:not(.vertical) .item > .button' */
 /* This fixes the commit graph button on the commits page */
 /* modal svg icons, copied from fomantic except width and height */
