@@ -25,7 +25,7 @@
 }
 
 .admin dl.admin-dl-horizontal dd {
-  margin-left: 285px; /* same as width of .admin dl.admin-dl-horizontal dt */
+  margin-left: 275px;
 }
 
 @media (max-width: 767px) {
