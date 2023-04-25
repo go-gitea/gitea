@@ -86,9 +86,16 @@ func TeamsAction(ctx *context.Context) {
 				return
 			}
 		}
+
+		redirect := ctx.Org.OrgLink + "/teams/"
+		if isOrgMember, err := org_model.IsOrganizationMember(ctx, ctx.Org.Organization.ID, ctx.Doer.ID); err != nil {
+			ctx.ServerError("IsOrganizationMember", err)
+		} else if !isOrgMember {
+			redirect = setting.AppURL
+		}
 		ctx.JSON(http.StatusOK,
 			map[string]interface{}{
-				"redirect": ctx.Org.OrgLink + "/teams/",
+				"redirect": redirect,
 			})
 		return
 	case "remove":
