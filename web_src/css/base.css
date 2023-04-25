@@ -795,9 +795,6 @@ a.label,
 
 .ui.vertical.menu .item .menu .item {
   color: var(--color-text-light-2);
-}
-
-.ui.vertical.menu .item .menu a.item {
   text-indent: 16px;
 }
 
