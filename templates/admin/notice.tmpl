@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin notice">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin notice")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.notices.system_notice_list"}} ({{.locale.Tr "admin.total" .Total}})
 		</h4>
@@ -29,7 +26,7 @@
 							<td>{{.ID}}</td>
 							<td>{{$.locale.Tr .TrStr}}</td>
 							<td class="view-detail"><span class="notice-description text truncate">{{.Description}}</span></td>
-							<td>{{template "shared/datetime/short" (dict "Datetime" .CreatedUnix.FormatLong "Fallback" .CreatedUnix.FormatShort)}}</td>
+							<td>{{DateTime "short" .CreatedUnix.FormatLong .CreatedUnix.FormatShort}}</td>
 							<td><a href="#">{{svg "octicon-note" 16 "view-detail"}}</a></td>
 						</tr>
 					{{end}}
@@ -69,14 +66,13 @@
 
 		{{template "base/paginate" .}}
 	</div>
-</div>
 
 <div class="ui modal admin" id="detail-modal">
-	{{svg "octicon-x" 16 "close inside"}}
 	<div class="header">{{$.locale.Tr "admin.notices.view_detail_header"}}</div>
 	<div class="content">
 		<div class="sub header"></div>
 		<pre></pre>
 	</div>
 </div>
-{{template "base/footer" .}}
+
+{{template "admin/layout_footer" .}}

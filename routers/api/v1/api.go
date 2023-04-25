@@ -634,8 +634,8 @@ func mustEnableAttachments(ctx *context.APIContext) {
 }
 
 // bind binding an obj to a func(ctx *context.APIContext)
-func bind[T any](obj T) http.HandlerFunc {
-	return web.Wrap(func(ctx *context.APIContext) {
+func bind[T any](_ T) any {
+	return func(ctx *context.APIContext) {
 		theObj := new(T) // create a new form obj for every request but not use obj directly
 		errs := binding.Bind(ctx.Req, theObj)
 		if len(errs) > 0 {
@@ -643,7 +643,7 @@ func bind[T any](obj T) http.HandlerFunc {
 			return
 		}
 		web.SetForm(ctx, theObj)
-	})
+	}
 }
 
 // The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
@@ -689,7 +689,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	// Get user from session if logged in.
 	m.Use(auth.APIAuth(group))
 
-	m.Use(context.ToggleAPI(&context.ToggleOptions{
+	m.Use(auth.VerifyAuthWithOptionsAPI(&auth.VerifyOptions{
 		SignInRequired: setting.Service.RequireSignInView,
 	}))
 
@@ -1207,12 +1207,12 @@ func Routes(ctx gocontext.Context) *web.Route {
 			m.Get("/{org}/permissions", reqToken(auth_model.AccessTokenScopeReadOrg), org.GetUserOrgsPermissions)
 		}, context_service.UserAssignmentAPI())
 		m.Post("/orgs", reqToken(auth_model.AccessTokenScopeWriteOrg), bind(api.CreateOrgOption{}), org.Create)
-		m.Get("/orgs", reqToken(auth_model.AccessTokenScopeReadOrg), org.GetAll)
+		m.Get("/orgs", org.GetAll)
 		m.Group("/orgs/{org}", func() {
-			m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.Get).
+			m.Combo("").Get(org.Get).
 				Patch(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
 				Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.Delete)
-			m.Combo("/repos").Get(reqToken(auth_model.AccessTokenScopeReadOrg), user.ListOrgRepos).
+			m.Combo("/repos").Get(user.ListOrgRepos).
 				Post(reqToken(auth_model.AccessTokenScopeWriteOrg), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
 			m.Group("/members", func() {
 				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListMembers)
@@ -1220,8 +1220,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.DeleteMember)
 			})
 			m.Group("/public_members", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListPublicMembers)
-				m.Combo("/{username}").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.IsPublicMember).
+				m.Get("", org.ListPublicMembers)
+				m.Combo("/{username}").Get(org.IsPublicMember).
 					Put(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgMembership(), org.PublicizeMember).
 					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgMembership(), org.ConcealMember)
 			})
@@ -1231,7 +1231,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Get("/search", reqToken(auth_model.AccessTokenScopeReadOrg), org.SearchTeam)
 			}, reqOrgMembership())
 			m.Group("/labels", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListLabels)
+				m.Get("", org.ListLabels)
 				m.Post("", reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.CreateLabelOption{}), org.CreateLabel)
 				m.Combo("/{id}").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetLabel).
 					Patch(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.EditLabelOption{}), org.EditLabel).
