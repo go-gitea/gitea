@@ -17,7 +17,7 @@ jobs:
       - name: update licenses and gitignores
         run: timeout -s ABRT 40m make generate-license generate-gitignore
       - name: push translations to repo
-        uses: appleboy/git-push-action@main
+        uses: appleboy/git-push-action@v0.0.2
         with:
           author_email: "teabot@gitea.io"
           author_name: GiteaBot
