@@ -7,11 +7,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	ini "gopkg.in/ini.v1"
 )
 
 func Test_loadMailerFrom(t *testing.T) {
-	iniFile := ini.Empty()
+	iniFile := NewEmptyConfigProvider()
 	kases := map[string]*Mailer{
 		"smtp.mydomain.com": {
 			SMTPAddr: "smtp.mydomain.com",
