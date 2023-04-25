@@ -20,7 +20,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"xorm.io/xorm"
@@ -306,10 +305,14 @@ func (c *CheckRun) ToStatus(lang translation.Locale) *CommitStatus {
 		return stat
 	}
 
+	if c.CompletedAt-c.StartedAt == 0 {
+		c.CompletedAt = c.StartedAt + 1 // at least one second to prevent `now` message
+	}
+
 	if c.Status == CheckRunStatusCompleted {
-		stat.Description = lang.Tr("check_runs.conclusion."+string(c.Conclusion.ToAPI()), util.SecToTime(int64(c.CompletedAt-c.StartedAt)))
+		stat.Description = lang.Tr("check_runs.conclusion."+string(c.Conclusion.ToAPI()), timeutil.SecondsToFriendly(int(c.CompletedAt-c.StartedAt), lang))
 	} else if c.Status == CheckRunStatusInProgress {
-		stat.Description = lang.Tr("check_runs.status.runing", util.SecToTime(int64(timeutil.TimeStampNow()-c.StartedAt)))
+		stat.Description = lang.Tr("check_runs.status.runing", timeutil.SecondsToFriendly(int(timeutil.TimeStampNow()-c.StartedAt), lang))
 	} else {
 		stat.Description = lang.Tr("check_runs.status.pending")
 	}

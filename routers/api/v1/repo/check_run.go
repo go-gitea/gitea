@@ -58,7 +58,7 @@ func CreateCheckRun(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToChekckRun(ctx, checkRun))
+	ctx.JSON(http.StatusCreated, convert.ToCheckRun(ctx, checkRun))
 }
 
 // GetCheckRun Get a check run
@@ -109,7 +109,7 @@ func GetCheckRun(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToChekckRun(ctx, checkRun))
+	ctx.JSON(http.StatusOK, convert.ToCheckRun(ctx, checkRun))
 }
 
 // UpdateCheckRun Update a check run
@@ -202,7 +202,7 @@ func UpdateCheckRun(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToChekckRun(ctx, checkRun))
+	ctx.JSON(http.StatusOK, convert.ToCheckRun(ctx, checkRun))
 }
 
 // ListCheckRun List check runs for a Git reference
@@ -289,7 +289,7 @@ func getCommitCheckRuns(ctx *context.APIContext, sha string) {
 
 	apiCheckRuns := make([]*api.CheckRun, 0, len(checkRuns))
 	for _, checkRun := range checkRuns {
-		apiCheckRuns = append(apiCheckRuns, convert.ToChekckRun(ctx, checkRun))
+		apiCheckRuns = append(apiCheckRuns, convert.ToCheckRun(ctx, checkRun))
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)

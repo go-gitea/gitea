@@ -12,7 +12,7 @@ import (
 )
 
 // ToCommitStatus converts git_model.CheckRun to api.CheckRun
-func ToChekckRun(ctx context.Context, checkRun *git_model.CheckRun) *api.CheckRun {
+func ToCheckRun(ctx context.Context, checkRun *git_model.CheckRun) *api.CheckRun {
 	status := checkRun.Status.ToAPI()
 
 	apiCheckRun := &api.CheckRun{

@@ -87,6 +87,13 @@ func MinutesToFriendly(minutes int, lang translation.Locale) string {
 	return TimeSincePro(time.Now().Add(-duration), lang)
 }
 
+// SecondsToFriendly returns a user friendly string with number of seconds
+// converted to hours and minutes.
+func SecondsToFriendly(seconds int, lang translation.Locale) string {
+	duration := time.Duration(seconds) * time.Second
+	return TimeSincePro(time.Now().Add(-duration), lang)
+}
+
 // TimeSincePro calculates the time interval and generate full user-friendly string.
 func TimeSincePro(then time.Time, lang translation.Locale) string {
 	return timeSincePro(then, time.Now(), lang)
