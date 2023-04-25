@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
-	"strings"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web/routing"
@@ -174,27 +173,4 @@ func toHandlerProvider(handler any) func(next http.Handler) http.Handler {
 
 	provider(nil).ServeHTTP(nil, nil) // do a pre-check to make sure all arguments and return values are supported
 	return provider
-}
-
-// MiddlewareWithPrefix wraps a handler function at a prefix, and make it as a middleware
-// TODO: this design is incorrect, the asset handler should not be a middleware
-func MiddlewareWithPrefix(pathPrefix string, middleware func(handler http.Handler) http.Handler, handlerFunc http.HandlerFunc) func(next http.Handler) http.Handler {
-	funcInfo := routing.GetFuncInfo(handlerFunc)
-	handler := http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		routing.UpdateFuncInfo(req.Context(), funcInfo)
-		handlerFunc(resp, req)
-	})
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			if !strings.HasPrefix(req.URL.Path, pathPrefix) {
-				next.ServeHTTP(resp, req)
-				return
-			}
-			if middleware != nil {
-				middleware(handler).ServeHTTP(resp, req)
-			} else {
-				handler.ServeHTTP(resp, req)
-			}
-		})
-	}
 }
