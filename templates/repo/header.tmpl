@@ -215,9 +215,15 @@
 				</a>
 				{{end}}
 
-				{{if or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki)}}
-					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki" {{if and (.Permission.CanRead $.UnitTypeExternalWiki) (not (StringUtils.HasPrefix ((.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL) (.Repository.Link)))}} target="_blank" rel="noopener noreferrer" {{end}}>
+				{{if .Permission.CanRead $.UnitTypeWiki}}
+					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki">
 						{{svg "octicon-book"}} {{.locale.Tr "repo.wiki"}}
+					</a>
+				{{end}}
+
+				{{if .Permission.CanRead $.UnitTypeExternalWiki}}
+					<a class="item" href="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank" rel="noopener noreferrer">
+						{{svg "octicon-link-external"}} {{.locale.Tr "repo.wiki"}}
 					</a>
 				{{end}}
 

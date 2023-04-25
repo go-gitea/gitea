@@ -70,7 +70,7 @@
 .markup h6 {
   margin-top: 24px;
   margin-bottom: 16px;
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   line-height: 1.25;
 }
 
@@ -248,7 +248,7 @@
   margin-top: 16px;
   font-size: 1em;
   font-style: italic;
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
 }
 
 .markup dl dd {
@@ -280,7 +280,7 @@
 }
 
 .markup table th {
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
 }
 
 .markup table th,

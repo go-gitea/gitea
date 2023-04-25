@@ -1369,7 +1369,7 @@ steps:
     pull: always
     settings:
       auto_tag: false
-      tags: dev-linux-amd64
+      tags: nightly-linux-amd64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1391,7 +1391,7 @@ steps:
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
-      tags: dev-linux-amd64-rootless
+      tags: nightly-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1711,7 +1711,7 @@ steps:
     pull: always
     settings:
       auto_tag: false
-      tags: dev-linux-arm64
+      tags: nightly-linux-arm64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1733,7 +1733,7 @@ steps:
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
-      tags: dev-linux-arm64-rootless
+      tags: nightly-linux-arm64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
