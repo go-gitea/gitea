@@ -1,39 +1,24 @@
-/* This css is for table elements inside admin, organization, and repository settings 
-  TODO: Right now there is no table inside user settings, but in the future if there is table
-  in user settings, should also use this common style here.
-*/
-.admin .table.segment,
-.repository.settings .table.segment,
-.organization.settings .table.segment {
+/* This css is for table elements inside all levels settings pages */
+.g-grid-setting-right .table.segment {
   padding: 0;
-  font-size: 13px;
+  font-size: 0.9em;
   overflow-x: auto;
 }
 
-.admin .table.segment:not(.striped) thead th:last-child,
-.repository.settings .table.segment:not(.striped) thead th:last-child,
-.organization.settings .table.segment:not(.striped) thead th:last-child {
+.g-grid-setting-right .table.segment:not(.striped) thead th:last-child {
   padding-right: 5px !important;
 }
 
-.admin .table.segment th,
-.repository.settings .table.segment th,
-.organization.settings .table.segment th {
+.g-grid-setting-right .table.segment th {
   padding-top: 5px;
   padding-bottom: 5px;
 }
 
-.admin .table.segment:not(.select) th:first-of-type,
-.admin .table.segment:not(.select) td:first-of-type,
-.repository.settings .table.segment:not(.select) th:first-of-type,
-.repository.settings .table.segment:not(.select) td:first-of-type,
-.organization.settings .table.segment:not(.select) th:first-of-type,
-.organization.settings .table.segment:not(.select) td:first-of-type {
+.g-grid-setting-right .table.segment:not(.select) th:first-of-type,
+.g-grid-setting-right .table.segment:not(.select) td:first-of-type {
   padding-left: 15px !important;
 }
 
-.admin .table.segment form tbody button[type="submit"],
-.repository.settings .table.segment form tbody button[type="submit"],
-.organization.settings .table.segment form tbody button[type="submit"] {
+.g-grid-setting-right .table.segment form tbody button[type="submit"] {
   padding: 5px 8px;
 }
