@@ -26,6 +26,11 @@
 										{{svg "octicon-git-branch"}}
 									</button>
 								{{end}}
+								{{if .EnableFeed}}
+									<a role="button" class="ui basic button icon" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranch}}">
+										{{svg "octicon-rss"}}
+									</a>
+								{{end}}
 								{{if not $.DisableDownloadSourceArchives}}
 									<button class="ui basic jump dropdown icon button" data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranch)}}">
 										{{svg "octicon-download"}}
@@ -112,6 +117,11 @@
 											<button class="ui basic jump button icon show-create-branch-modal" data-branch-from="{{.Name}}" data-branch-from-urlcomponent="{{PathEscapeSegments .Name}}" data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" .Name}}" data-modal="#create-branch-modal" data-name="{{.Name}}">
 												{{svg "octicon-git-branch"}}
 											</button>
+										{{end}}
+										{{if $.EnableFeed}}
+											<a role="button" class="ui basic button icon" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .Name}}">
+												{{svg "octicon-rss"}}
+											</a>
 										{{end}}
 										{{if and (not .IsDeleted) (not $.DisableDownloadSourceArchives)}}
 											<button class="ui basic jump dropdown icon button" data-tooltip-content="{{$.locale.Tr "repo.branch.download" (.Name)}}">
