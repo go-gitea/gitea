@@ -165,7 +165,7 @@
 						{{range .PushMirrors}}
 						<tr>
 							{{$address := MirrorRemoteAddress $.Context $.Repository .GetRemoteName true}}
-							<td>{{$address.Address}}</td>
+							<td class="gt-word-break">{{$address.Address}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
 							<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix.FormatLong .LastUpdateUnix.AsTime}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
@@ -963,7 +963,7 @@
 	{{end}}
 
 	{{if not .Repository.IsMirror}}
-		<div class="ui gitea-confirm-modal modal" id="archive-repo-modal">
+		<div class="ui g-modal-confirm modal" id="archive-repo-modal">
 			<div class="header">
 				{{if .Repository.IsArchived}}
 					{{.locale.Tr "repo.settings.unarchive.header"}}

@@ -1561,7 +1561,7 @@
 }
 
 .repository .data-table th {
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   background: var(--color-box-header);
   border-top: 0;
 }

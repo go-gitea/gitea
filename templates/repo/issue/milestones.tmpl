@@ -116,7 +116,7 @@
 </div>
 
 {{if or .CanWriteIssues .CanWritePulls}}
-	<div class="ui gitea-confirm-modal delete modal">
+	<div class="ui g-modal-confirm delete modal">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.milestones.deletion"}}
