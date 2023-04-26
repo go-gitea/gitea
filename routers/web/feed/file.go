@@ -23,7 +23,7 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 	}
 	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(ctx.Repo.RefName, fileName, 1)
 	if err != nil {
-		ctx.ServerError("ShowBranchFeed %s", err)
+		ctx.ServerError("ShowBranchFeed", err)
 		return
 	}
 

@@ -43,9 +43,7 @@
 				<a download href="{{$.RawFileLink}}"><span class="btn-octicon" data-tooltip-content="{{.locale.Tr "repo.download_file"}}">{{svg "octicon-download"}}</span></a>
 				<a id="copy-content" class="btn-octicon {{if not .CanCopyContent}} disabled{{end}}"{{if or .IsImageFile (and .HasSourceRenderedToggle (not .IsDisplayingSource))}} data-link="{{$.RawFileLink}}"{{end}} data-tooltip-content="{{if .CanCopyContent}}{{.locale.Tr "copy_content"}}{{else}}{{.locale.Tr "copy_type_unsupported"}}{{end}}">{{svg "octicon-copy" 14}}</a>
 				{{if .EnableFeed}}
-				<a class="btn-octicon" href="{{$.FeedURL}}/rss/{{$.BranchNameSubURL}}{{range $i, $v := .TreeNames}}/{{$v}}{{end}}">
-					{{svg "octicon-rss" 14}}
-				</a>
+				<a class="btn-octicon" href="{{$.FeedURL}}/rss/{{$.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{svg "octicon-rss" 14}}</a>
 				{{end}}
 				{{if .Repository.CanEnableEditor}}
 					{{if .CanEditFile}}
