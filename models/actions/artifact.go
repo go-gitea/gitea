@@ -54,7 +54,10 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName string) (*A
 	if err := t.Job.LoadRun(ctx); err != nil {
 		return nil, err
 	}
-	artifact, _ := GetArtifactByArtifactName(ctx, t.Job.RunID, artifactName)
+	artifact, err := GetArtifactByArtifactName(ctx, t.Job.RunID, artifactName)
+	if err != nil {
+		return nil, err
+	}
 	if artifact != nil {
 		return artifact, nil
 	}
@@ -79,7 +82,7 @@ func GetArtifactByArtifactName(ctx context.Context, runID int64, name string) (*
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, util.NewNotExistErrorf("no ActionArtifact with name %s and run_id %d exists", name, runID)
+		return nil, nil
 	}
 	return &art, nil
 }

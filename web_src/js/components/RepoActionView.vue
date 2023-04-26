@@ -165,9 +165,12 @@ const sfc = {
   mounted() {
     // load job data and then auto-reload periodically
     this.loadJob();
-    this.intervalID = setInterval(this.loadJob, 1000);
     // load artifactss list once
     this.loadArtifacts();
+    this.intervalID = setInterval(() => {
+      this.loadJob();
+      this.loadArtifacts();
+    }, 1000);
   },
 
   methods: {
