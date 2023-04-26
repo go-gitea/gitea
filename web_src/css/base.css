@@ -1183,8 +1183,8 @@ img.ui.avatar,
   padding-bottom: 80px;
 }
 
-/* overwrite semantic container width */
-.ui.ui.ui.container:not(.fluid) {
+/* overwrite semantic container width inside the div with role="main" */
+.page-content .ui.ui.ui.container:not(.fluid) {
   width: 1280px;
   max-width: calc(100vw - 64px);
 }
