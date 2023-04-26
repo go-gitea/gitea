@@ -54,8 +54,5 @@
 }
 
 .runner-container .runner-tags {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
     width: 200px;
 }
