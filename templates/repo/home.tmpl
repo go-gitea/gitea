@@ -64,8 +64,9 @@
 				{{$l := Eval $n "-" 1}}
 				<!-- If home page, show new pr. If not, show breadcrumb -->
 				{{if and (eq $n 0) .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
-					<a href="{{CompareLink .BaseRepo .Repository .BranchName}}">
-						<button id="new-pull-request" class="ui compact basic button" data-tooltip-content="{{if .PullRequestCtx.Allowed}}{{.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{.locale.Tr "action.compare_branch"}}{{end}}"><span class="text">{{svg "octicon-git-pull-request"}}</span></button>
+					<a id="new-pull-request" role="button" class="ui compact basic button" href="{{CompareLink .BaseRepo .Repository .BranchName}}"
+						data-tooltip-content="{{if .PullRequestCtx.Allowed}}{{.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{.locale.Tr "action.compare_branch"}}{{end}}">
+						{{svg "octicon-git-pull-request"}}
 					</a>
 				{{end}}
 				{{if eq $n 0}}
