@@ -122,7 +122,7 @@
 			<div class="ui eleven wide column">
 				<div class="ui secondary stackable pointing tight menu">
 					{{if .ProfileReadme}}
-						<a class='{{if and (ne .TabName "repositories") (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "watching") (ne .TabName "projects") (ne .TabName "code")}}active {{end}}item' href="{{.Owner.HomeLink}}">
+						<a class='{{if and (ne .TabName "repositories") (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "watching") (ne .TabName "projects") (ne .TabName "code")}}active {{end}}item' href="{{.Owner.HomeLink}}?tab=overview">
 							{{svg "octicon-info"}} {{.locale.Tr "user.overview"}}
 						</a>
 					{{end}}
@@ -182,13 +182,12 @@
 					{{template "repo/user_cards" .}}
 				{{else if eq .TabName "followers"}}
 					{{template "repo/user_cards" .}}
-        		{{else if .ProfileReadme}}
-					<div id="readme_profile" class="render-content markup"> {{$.ProfileReadme|Str2html}} </div>
-				{{else}}
+				{{else if or (eq .TabName "repositories") (not .ProfileReadme)}}
 					{{template "explore/repo_search" .}}
 					{{template "explore/repo_list" .}}
 					{{template "base/paginate" .}}
-				
+				{{else if .ProfileReadme}}
+					<div id="readme_profile" class="render-content markup"> {{$.ProfileReadme|Str2html}} </div>
 				{{end}}
 			</div>
 		</div>
