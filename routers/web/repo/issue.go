@@ -980,7 +980,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["IssueConfigError"] = err // ctx.Flash.Err makes problems here
 
 	ctx.Data["milestone"] = ctx.FormInt64("milestone")
-	// TODO: invaild projectid check?
+	// TODO: invalid projectid check?
 	ctx.Data["project"] = ctx.FormInt64("project")
 
 	ctx.HTML(http.StatusOK, tplIssueChoose)
@@ -2474,7 +2474,7 @@ func SearchIssues(ctx *context.Context) {
 		includedMilestones = strings.Split(milestones, ",")
 	}
 
-	// TODO:invaild projectid check?
+	// TODO:invalid projectid check?
 	projectID := ctx.FormInt64("project")
 
 	// this api is also used in UI,
@@ -2640,7 +2640,7 @@ func ListIssues(ctx *context.Context) {
 		}
 	}
 
-	// TODO: invaild projectid check?
+	// TODO: invalid projectid check?
 	projectID := ctx.FormInt64("project")
 
 	listOptions := db.ListOptions{
