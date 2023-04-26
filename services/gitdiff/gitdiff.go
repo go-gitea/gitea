@@ -1116,7 +1116,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 			return nil, ""
 		}
 
-		if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize/2 {
+		if entry.Blob().Size() >= setting.Git.MaxDiffHighlightFileSize {
 			return nil, ""
 		}
 

@@ -1081,6 +1081,7 @@ Default templates for project boards:
 - `HOME_PATH`: **%(APP_DATA_PATH)s/home**: The HOME directory for Git.
    This directory will be used to contain the `.gitconfig` and possible `.gnupg` directories that Gitea's git calls will use. If you can confirm Gitea is the only application running in this environment, you can set it to the normal home directory for Gitea user.
 - `DISABLE_DIFF_HIGHLIGHT`: **false**: Disables highlight of added and removed changes.
+- `MAX_DIFF_HIGHLIGHT_FILE_SIZE`: **5120** max size of one file that can be full highlight on git diff ui.
 - `MAX_GIT_DIFF_LINES`: **1000**: Max number of lines allowed of a single file in diff view.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.

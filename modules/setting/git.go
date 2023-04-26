@@ -40,6 +40,7 @@ var Git = struct {
 		Pull    int
 		GC      int `ini:"GC"`
 	} `ini:"git.timeout"`
+	MaxDiffHighlightFileSize int64
 }{
 	Reflog: struct {
 		Enabled    bool
@@ -76,6 +77,7 @@ var Git = struct {
 		Pull:    300,
 		GC:      60,
 	},
+	MaxDiffHighlightFileSize: 5 * 1024,
 }
 
 func loadGitFrom(rootCfg ConfigProvider) {

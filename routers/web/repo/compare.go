@@ -932,20 +932,31 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 		return nil, err
 	}
 
-	content, err := io.ReadAll(reader)
-	_ = reader.Close()
-	if err != nil {
-		log.Error("io.ReadAll: %v", err)
-		return nil, err
+	var (
+		scanner             *bufio.Scanner
+		highlightedContent []string
+	)
+
+	if blob.Size() >= setting.Git.MaxDiffHighlightFileSize {
+		defer reader.Close()
+		scanner = bufio.NewScanner(reader)
+	} else {
+		content, err := io.ReadAll(reader)
+		_ = reader.Close()
+		if err != nil {
+			log.Error("io.ReadAll: %v", err)
+			return nil, err
+		}
+
+		highlightedContent, _, err = highlight.File(filePath, "", content)
+		if err != nil {
+			log.Error("highlight.File: %v", err)
+			return nil, err
+		}
+
+		scanner = bufio.NewScanner(bytes.NewBuffer(content))
 	}
 
-	highlightedContent, _, err := highlight.File(filePath, "", content)
-	if err != nil {
-		log.Error("highlight.File: %v", err)
-		return nil, err
-	}
-
-	scanner := bufio.NewScanner(bytes.NewBuffer(content))
 	var diffLines []*gitdiff.DiffLine
 	for line := 0; line < idxRight+chunkSize; line++ {
 		if ok := scanner.Scan(); !ok {
@@ -960,9 +971,13 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 			RightIdx:            line + 1,
 			Type:                gitdiff.DiffLinePlain,
 			Content:             " " + lineText,
-			HighlightContent:    highlightedContent[line],
-			HasHighlightContent: true,
 		}
+
+		if highlightedContent != nil {
+			diffLine.HighlightContent = highlightedContent[line]
+			diffLine.HasHighlightContent = true
+		}
+
 		diffLines = append(diffLines, diffLine)
 	}
 	return diffLines, nil
