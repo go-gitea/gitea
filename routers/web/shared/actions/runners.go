@@ -56,6 +56,7 @@ func RunnersList(ctx *context.Context, tplName base.TplName, opts actions_model.
 	ctx.Data["RegistrationToken"] = token.Token
 	ctx.Data["RunnerOnwerID"] = opts.OwnerID
 	ctx.Data["RunnerRepoID"] = opts.RepoID
+	ctx.Data["SortType"] = opts.Sort
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	ctx.Data["Page"] = pager

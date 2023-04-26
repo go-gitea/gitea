@@ -52,3 +52,10 @@
   background-color: var(--color-yellow);
   color: var(--color-white);
 }
+
+.runner-container .runner-tags {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 200px;
+}
