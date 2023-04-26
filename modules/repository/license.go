@@ -59,8 +59,8 @@ type licensePlaceholder struct {
 }
 
 func getLicensePlaceholder(name string) *licensePlaceholder {
-	// Some universal placeholders
-	// Make sure you have check it by `grep -r 'NEW_WORD' options/license` before adding it here
+	// Some universal placeholders.
+	// If you want to add a new one, make sure you have check it by `grep -r 'NEW_WORD' options/license` and all of them are placeholders.
 	ret := &licensePlaceholder{
 		Owner: []string{
 			"<name of author>",
@@ -101,6 +101,8 @@ func getLicensePlaceholder(name string) *licensePlaceholder {
 			Year:      []string{"YEAR"},
 			MatchLine: regexp.MustCompile(`Copyright \(C\) YEAR by AUTHOR EMAIL`), // there is another AUTHOR in the file, but it's not a placeholder
 		}
+
+		// Other special placeholders can be added here.
 	}
 	return ret
 }
