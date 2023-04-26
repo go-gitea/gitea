@@ -23,15 +23,6 @@ Gitea's private styles use `g-` prefix.
 .gt-h-100 { height: 100% !important; }
 .gt-br-0 { border-radius: 0 !important; }
 
-/* below class names match Tailwind CSS */
-.gt-pointer-events-none { pointer-events: none !important; }
-.gt-relative { position: relative !important; }
-.gt-overflow-x-scroll { overflow-x: scroll !important; }
-.gt-cursor-default { cursor: default !important; }
-.gt-items-start { align-items: flex-start !important; }
-.gt-whitespace-pre { white-space: pre !important; }
-.gt-invisible { visibility: hidden !important; }
-
 .gt-mono {
   font-family: var(--fonts-monospace) !important;
   font-size: .95em !important; /* compensate for monospace fonts being usually slightly larger */
@@ -50,6 +41,19 @@ Gitea's private styles use `g-` prefix.
   white-space: nowrap !important;
   text-overflow: ellipsis !important;
 }
+
+/* below class names match Tailwind CSS */
+.gt-break-all { word-break: break-all !important; }
+.gt-content-center { align-content: center !important; }
+.gt-cursor-default { cursor: default !important; }
+.gt-invisible { visibility: hidden !important; }
+.gt-items-start { align-items: flex-start !important; }
+.gt-overflow-x-scroll { overflow-x: scroll !important; }
+.gt-pointer-events-none { pointer-events: none !important; }
+.gt-relative { position: relative !important; }
+.gt-whitespace-nowrap { white-space: nowrap !important; }
+.gt-whitespace-pre { white-space: pre !important; }
+.gt-whitespace-pre-wrap { white-space: pre-wrap !important; }
 
 .gt-w-screen { width: 100vw !important; }
 .gt-h-screen { height: 100vh !important; }
@@ -203,11 +207,7 @@ Gitea's private styles use `g-` prefix.
 .gt-gap-y-4 { row-gap: 1rem !important; }
 .gt-gap-y-5 { row-gap: 2rem !important; }
 
-.gt-content-center { align-content: center !important; }
-
 .gt-shrink-0 { flex-shrink: 0 !important; }
-.gt-whitespace-nowrap { white-space: nowrap !important; }
-.gt-whitespace-pre-wrap { white-space: pre-wrap !important; }
 
 @media (max-width: 767px) {
   .gt-db-small { display: block !important; }

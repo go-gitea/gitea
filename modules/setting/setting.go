@@ -18,9 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
-	"code.gitea.io/gitea/modules/util"
-
-	ini "gopkg.in/ini.v1"
 )
 
 // settings
@@ -208,17 +205,29 @@ func PrepareAppDataPath() error {
 
 // InitProviderFromExistingFile initializes config provider from an existing config file (app.ini)
 func InitProviderFromExistingFile() {
-	CfgProvider = newFileProviderFromConf(CustomConf, false, "")
+	var err error
+	CfgProvider, err = newConfigProviderFromFile(CustomConf, false, "")
+	if err != nil {
+		log.Fatal("InitProviderFromExistingFile: %v", err)
+	}
 }
 
 // InitProviderAllowEmpty initializes config provider from file, it's also fine that if the config file (app.ini) doesn't exist
 func InitProviderAllowEmpty() {
-	CfgProvider = newFileProviderFromConf(CustomConf, true, "")
+	var err error
+	CfgProvider, err = newConfigProviderFromFile(CustomConf, true, "")
+	if err != nil {
+		log.Fatal("InitProviderAllowEmpty: %v", err)
+	}
 }
 
 // InitProviderAndLoadCommonSettingsForTest initializes config provider and load common setttings for tests
 func InitProviderAndLoadCommonSettingsForTest(extraConfigs ...string) {
-	CfgProvider = newFileProviderFromConf(CustomConf, true, strings.Join(extraConfigs, "\n"))
+	var err error
+	CfgProvider, err = newConfigProviderFromFile(CustomConf, true, strings.Join(extraConfigs, "\n"))
+	if err != nil {
+		log.Fatal("InitProviderAndLoadCommonSettingsForTest: %v", err)
+	}
 	loadCommonSettingsFrom(CfgProvider)
 	if err := PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
@@ -227,33 +236,6 @@ func InitProviderAndLoadCommonSettingsForTest(extraConfigs ...string) {
 	_ = hash.Register("dummy", hash.NewDummyHasher)
 
 	PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
-}
-
-// newFileProviderFromConf initializes configuration context.
-// NOTE: do not print any log except error.
-func newFileProviderFromConf(customConf string, allowEmpty bool, extraConfig string) *ini.File {
-	cfg := ini.Empty()
-
-	isFile, err := util.IsFile(customConf)
-	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", customConf, err)
-	}
-	if isFile {
-		if err := cfg.Append(customConf); err != nil {
-			log.Fatal("Failed to load custom conf '%s': %v", customConf, err)
-		}
-	} else if !allowEmpty {
-		log.Fatal("Unable to find configuration file: %q.\nEnsure you are running in the correct environment or set the correct configuration file with -c.", CustomConf)
-	} // else: no config file, a config file might be created at CustomConf later (might not)
-
-	if extraConfig != "" {
-		if err = cfg.Append([]byte(extraConfig)); err != nil {
-			log.Fatal("Unable to append more config: %v", err)
-		}
-	}
-
-	cfg.NameMapper = ini.SnackCase
-	return cfg
 }
 
 // LoadCommonSettings loads common configurations from a configuration provider.
@@ -316,51 +298,6 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 			log.Fatal("Gitea is not supposed to be run as root. Sorry. If you need to use privileged TCP ports please instead use setcap and the `cap_net_bind_service` permission")
 		}
 		log.Critical("You are running Gitea using the root user, and have purposely chosen to skip built-in protections around this. You have been warned against this.")
-	}
-}
-
-// CreateOrAppendToCustomConf creates or updates the custom config.
-// Use the callback to set individual values.
-func CreateOrAppendToCustomConf(purpose string, callback func(cfg *ini.File)) {
-	if CustomConf == "" {
-		log.Error("Custom config path must not be empty")
-		return
-	}
-
-	cfg := ini.Empty()
-	isFile, err := util.IsFile(CustomConf)
-	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
-	}
-	if isFile {
-		if err := cfg.Append(CustomConf); err != nil {
-			log.Error("failed to load custom conf %s: %v", CustomConf, err)
-			return
-		}
-	}
-
-	callback(cfg)
-
-	if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-		log.Fatal("failed to create '%s': %v", CustomConf, err)
-		return
-	}
-	if err := cfg.SaveTo(CustomConf); err != nil {
-		log.Fatal("error saving to custom config: %v", err)
-	}
-	log.Info("Settings for %s saved to: %q", purpose, CustomConf)
-
-	// Change permissions to be more restrictive
-	fi, err := os.Stat(CustomConf)
-	if err != nil {
-		log.Error("Failed to determine current conf file permissions: %v", err)
-		return
-	}
-
-	if fi.Mode().Perm() > 0o600 {
-		if err = os.Chmod(CustomConf, 0o600); err != nil {
-			log.Warn("Failed changing conf file permissions to -rw-------. Consider changing them manually.")
-		}
 	}
 }
 

@@ -864,6 +864,9 @@ a.label,
   margin-top: -0.25rem;
   margin-bottom: -0.25rem;
 }
+.ui.dropdown .menu > .item > svg {
+  margin-right: .78rem; /* use the same margin as for <img> */
+}
 
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
