@@ -55,6 +55,7 @@ type ViewResponse struct {
 			Status     string     `json:"status"`
 			CanCancel  bool       `json:"canCancel"`
 			CanApprove bool       `json:"canApprove"` // the run needs an approval and the doer has permission to approve
+			CanRerun   bool       `json:"canRerun"`
 			Done       bool       `json:"done"`
 			Jobs       []*ViewJob `json:"jobs"`
 			Commit     ViewCommit `json:"commit"`
@@ -136,6 +137,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.Run.Link = run.Link()
 	resp.State.Run.CanCancel = !run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.CanApprove = run.NeedApproval && ctx.Repo.CanWrite(unit.TypeActions)
+	resp.State.Run.CanRerun = run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.Done = run.Status.IsDone()
 	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead fo 'null' in json
 	resp.State.Run.Status = run.Status.String()
@@ -242,30 +244,40 @@ func Rerun(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
 	jobIndex := ctx.ParamsInt64("job")
 
-	job, _ := getRunJobs(ctx, runIndex, jobIndex)
+	targetJob, allJobs := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
 		return
 	}
-	status := job.Status
-	if !status.IsDone() {
-		ctx.JSON(http.StatusOK, struct{}{})
-		return
+
+	var rerunJobs []*actions_model.ActionRunJob
+	if jobIndex == -1 {
+		rerunJobs = allJobs
+	} else {
+		rerunJobs = append(rerunJobs, targetJob)
 	}
 
-	job.TaskID = 0
-	job.Status = actions_model.StatusWaiting
-	job.Started = 0
-	job.Stopped = 0
+	for _, job := range rerunJobs {
+		status := job.Status
+		if !status.IsDone() {
+			ctx.JSON(http.StatusOK, struct{}{})
+			return
+		}
 
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped")
-		return err
-	}); err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
+		job.TaskID = 0
+		job.Status = actions_model.StatusWaiting
+		job.Started = 0
+		job.Stopped = 0
+
+		if err := db.WithTx(ctx, func(ctx context.Context) error {
+			_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped")
+			return err
+		}); err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		actions_service.CreateCommitStatus(ctx, job)
 	}
-
-	actions_service.CreateCommitStatus(ctx, job)
 
 	ctx.JSON(http.StatusOK, struct{}{})
 }

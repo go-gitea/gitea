@@ -12,6 +12,9 @@
         <button class="run_cancel" @click="cancelRun()" v-else-if="run.canCancel">
           <i class="stop circle outline icon"/>
         </button>
+        <button class="run_rerun" @click="rerun()" v-else-if="run.canRerun">
+          <i class="redo icon"/>
+        </button>
       </div>
       <div class="action-commit-summary">
         {{ run.commit.localeCommit }}
@@ -106,6 +109,7 @@ const sfc = {
         status: '',
         canCancel: false,
         canApprove: false,
+        canRerun: false,
         done: false,
         jobs: [
           // {
@@ -192,6 +196,11 @@ const sfc = {
       const jobLink = `${this.run.link}/jobs/${idx}`;
       await this.fetchPost(`${jobLink}/rerun`);
       window.location.href = jobLink;
+    },
+    // rerun workflow
+    rerun() {
+      this.fetchPost(`${this.run.link}/jobs/-1/rerun`);
+      window.location.href = `${this.run.link}`;
     },
     // cancel a run
     cancelRun() {
@@ -384,8 +393,18 @@ export function ansiLogToHTML(line) {
   transition: transform 0.2s;
 }
 
+.action-view-header .run_rerun {
+  border: none;
+  color: var(--color-green);
+  background-color: transparent;
+  outline: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
 .action-view-header .run_cancel:hover,
-.action-view-header .run_approve:hover {
+.action-view-header .run_approve:hover,
+.action-view-header .run_rerun:hover {
   transform: scale(130%);
 }
 
