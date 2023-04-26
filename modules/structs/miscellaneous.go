@@ -72,6 +72,22 @@ type ServerVersion struct {
 	Version string `json:"version"`
 }
 
+// LicensesListEntry is used for the API
+type LicensesTemplateListEntry struct {
+	Key  string `json:"key"`
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
+// LicensesInfo contains information about a License
+type LicenseTemplateInfo struct {
+	Key            string `json:"key"`
+	Name           string `json:"name"`
+	URL            string `json:"url"`
+	Implementation string `json:"implementation"`
+	Body           string `json:"body"`
+}
+
 // APIError is an api error with a message
 type APIError struct {
 	Message string `json:"message"`
