@@ -250,7 +250,7 @@ func Rerun(ctx *context_module.Context) {
 	}
 
 	var rerunJobs []*actions_model.ActionRunJob
-	if jobIndex == -1 {
+	if jobIndex < 0 {
 		rerunJobs = allJobs
 	} else {
 		rerunJobs = append(rerunJobs, targetJob)
