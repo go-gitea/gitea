@@ -39,7 +39,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
 		if ctx.Data["IsApiToken"] == true {
 			scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-			if ok { // it's peronsall access token but not oauth2 token
+			if ok { // it's a personal access token but not oauth2 token
 				scopeMatched := false
 				var err error
 				if accessMode == perm.AccessModeRead {
