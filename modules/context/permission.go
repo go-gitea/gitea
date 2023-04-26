@@ -120,7 +120,7 @@ func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository) {
 	var err error
 	scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
 	if ok { // it's a personal access token but not oauth2 token
-		scopeMatched := false
+		var scopeMatched bool
 		scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeRepo)
 		if err != nil {
 			ctx.ServerError("HasScope", err)
