@@ -17,7 +17,7 @@
 					<input type="hidden" name="action" value="default_branch">
 					{{if not .Repository.IsEmpty}}
 					<div class="required inline field">
-						<div class="ui dropdown selection" tabindex="0">
+						<div class="ui dropdown selection update-default-branch-dropdown" tabindex="0">
 							<select name="branch">
 								<option value="{{.Repository.DefaultBranch}}">{{.Repository.DefaultBranch}}</option>
 								{{range .Branches}}

@@ -2031,12 +2031,11 @@
 }
 
 .repository.settings.branches .branch-protection .fields {
-  margin-left: 20px;
   display: block;
 }
 
-.repository.settings.branches .branch-protection .whitelist {
-  margin-left: 26px;
+.repository.settings.branches .branch-protection .whitelist, #statuscheck_contexts_box {
+  padding-left: 26px;
 }
 
 .repository.settings.branches .branch-protection .whitelist .dropdown img {
@@ -3484,4 +3483,14 @@ td.blob-excerpt {
 
 .search-fullname {
   color: var(--color-text-light-2);
+}
+
+.ui.form > .inline.field > .ui.dropdown.update-default-branch-dropdown {
+  width: 30%;
+}
+
+@media (max-width: 767px) {
+  .ui.form > .inline.field > .ui.dropdown.update-default-branch-dropdown {
+    width: 40%;
+  }
 }
