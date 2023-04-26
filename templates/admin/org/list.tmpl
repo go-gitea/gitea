@@ -41,7 +41,7 @@
 							<td>{{.NumTeams}}</td>
 							<td>{{.NumMembers}}</td>
 							<td>{{.NumRepos}}</td>
-							<td>{{DateTime "short" .CreatedUnix.FormatLong .CreatedUnix.FormatShort}}</td>
+							<td>{{DateTime "short" .CreatedUnix}}</td>
 							<td><a href="{{.OrganisationLink}}/settings">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}

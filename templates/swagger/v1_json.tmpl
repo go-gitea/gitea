@@ -884,6 +884,7 @@
       }
     },
     "/gitignore/templates": {
+    "/licenses": {
       "get": {
         "produces": [
           "application/json"
@@ -896,32 +897,15 @@
         "responses": {
           "200": {
             "$ref": "#/responses/GitignoreTemplateList"
+        "summary": "Returns a list of all license templates",
+        "operationId": "listLicenseTemplates",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/LicenseTemplateList"
           }
         }
       }
     },
-    "/gitignore/templates/{name}": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "miscellaneous"
-        ],
-        "summary": "Returns information about a gitignore template",
-        "operationId": "getGitignoreTemplateInfo",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "name of the template",
-            "name": "name",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/GitignoreTemplateInfo"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -18765,6 +18749,52 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "LicenseTemplateInfo": {
+      "description": "LicensesInfo contains information about a License",
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "implementation": {
+          "type": "string",
+          "x-go-name": "Implementation"
+        },
+        "key": {
+          "type": "string",
+          "x-go-name": "Key"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "LicensesTemplateListEntry": {
+      "description": "LicensesListEntry is used for the API",
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "x-go-name": "Key"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "MarkdownOption": {
       "description": "MarkdownOption markdown options",
       "type": "object",
@@ -21660,6 +21690,21 @@
         "additionalProperties": {
           "type": "integer",
           "format": "int64"
+        }
+      }
+    },
+    "LicenseTemplateInfo": {
+      "description": "LicenseTemplateInfo",
+      "schema": {
+        "$ref": "#/definitions/LicenseTemplateInfo"
+      }
+    },
+    "LicenseTemplateList": {
+      "description": "LicenseTemplateList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/LicensesTemplateListEntry"
         }
       }
     },

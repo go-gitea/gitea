@@ -63,13 +63,13 @@ git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
-							{{template "repo/clone_script" .}}
 						{{end}}
 					{{else}}
 						<div class="ui segment center">
 							{{.locale.Tr "repo.empty_message"}}
 						</div>
 					{{end}}
+					{{template "repo/clone_script" .}}
 				</div>
 			</div>
 		</div>

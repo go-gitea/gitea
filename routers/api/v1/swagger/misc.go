@@ -28,6 +28,20 @@ type swaggerResponseGitignoreTemplateInfo struct {
 	Body api.GitignoreTemplateInfo `json:"body"`
 }
 
+// LicenseTemplateList
+// swagger:response LicenseTemplateList
+type swaggerResponseLicensesTemplateList struct {
+	// in:body
+	Body []api.LicensesTemplateListEntry `json:"body"`
+}
+
+// LicenseTemplateInfo
+// swagger:response LicenseTemplateInfo
+type swaggerResponseLicenseTemplateInfo struct {
+	// in:body
+	Body api.LicenseTemplateInfo `json:"body"`
+}
+
 // StringSlice
 // swagger:response StringSlice
 type swaggerResponseStringSlice struct {

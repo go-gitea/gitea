@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-
-	"gopkg.in/ini.v1"
 )
 
 // ExternalMarkupRenderers represents the external markup renderers
@@ -82,7 +80,7 @@ func loadMarkupFrom(rootCfg ConfigProvider) {
 	}
 }
 
-func newMarkupSanitizer(name string, sec *ini.Section) {
+func newMarkupSanitizer(name string, sec ConfigSection) {
 	rule, ok := createMarkupSanitizerRule(name, sec)
 	if ok {
 		if strings.HasPrefix(name, "sanitizer.") {
@@ -99,7 +97,7 @@ func newMarkupSanitizer(name string, sec *ini.Section) {
 	}
 }
 
-func createMarkupSanitizerRule(name string, sec *ini.Section) (MarkupSanitizerRule, bool) {
+func createMarkupSanitizerRule(name string, sec ConfigSection) (MarkupSanitizerRule, bool) {
 	var rule MarkupSanitizerRule
 
 	ok := false
@@ -141,7 +139,7 @@ func createMarkupSanitizerRule(name string, sec *ini.Section) (MarkupSanitizerRu
 	return rule, true
 }
 
-func newMarkupRenderer(name string, sec *ini.Section) {
+func newMarkupRenderer(name string, sec ConfigSection) {
 	extensionReg := regexp.MustCompile(`\.\w`)
 
 	extensions := sec.Key("FILE_EXTENSIONS").Strings(",")
