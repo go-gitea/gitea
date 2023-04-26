@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	ini "gopkg.in/ini.v1"
 )
 
 func Test_getStorageCustomType(t *testing.T) {
@@ -20,7 +19,7 @@ MINIO_BUCKET = gitea-attachment
 STORAGE_TYPE = minio
 MINIO_ENDPOINT = my_minio:9000
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	sec := cfg.Section("attachment")
@@ -43,7 +42,7 @@ MINIO_BUCKET = gitea-attachment
 [storage.minio]
 MINIO_BUCKET = gitea
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	sec := cfg.Section("attachment")
@@ -65,7 +64,7 @@ MINIO_BUCKET = gitea-minio
 [storage]
 MINIO_BUCKET = gitea
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	sec := cfg.Section("attachment")
@@ -88,7 +87,7 @@ MINIO_BUCKET = gitea
 [storage]
 STORAGE_TYPE = local
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	sec := cfg.Section("attachment")
@@ -100,7 +99,7 @@ STORAGE_TYPE = local
 }
 
 func Test_getStorageGetDefaults(t *testing.T) {
-	cfg, err := ini.Load([]byte(""))
+	cfg, err := newConfigProviderFromData("")
 	assert.NoError(t, err)
 
 	sec := cfg.Section("attachment")
@@ -121,7 +120,7 @@ MINIO_BUCKET = gitea-attachment
 [storage]
 MINIO_BUCKET = gitea-storage
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	{
@@ -155,7 +154,7 @@ STORAGE_TYPE = lfs
 [storage.lfs]
 MINIO_BUCKET = gitea-storage
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	{
@@ -179,7 +178,7 @@ func Test_getStorageInheritStorageType(t *testing.T) {
 [storage]
 STORAGE_TYPE = minio
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	sec := cfg.Section("attachment")
@@ -194,7 +193,7 @@ func Test_getStorageInheritNameSectionType(t *testing.T) {
 [storage.attachments]
 STORAGE_TYPE = minio
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	sec := cfg.Section("attachment")

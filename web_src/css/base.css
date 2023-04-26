@@ -864,6 +864,9 @@ a.label,
   margin-top: -0.25rem;
   margin-bottom: -0.25rem;
 }
+.ui.dropdown .menu > .item > svg {
+  margin-right: .78rem; /* use the same margin as for <img> */
+}
 
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
@@ -2488,6 +2491,12 @@ a.ui.basic.label:hover {
 .ui.attached.header .right .button {
   padding: 8px 10px;
   font-weight: normal;
+}
+
+/* reduce height of buttons with dropdown icon */
+.ui.attached.header .right .button:has(.dropdown.icon) {
+  padding-top: 7px;
+  padding-bottom: 7px;
 }
 
 /* fix misaligned right buttons on box headers */
