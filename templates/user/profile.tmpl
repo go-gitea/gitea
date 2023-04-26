@@ -182,7 +182,7 @@
 					{{template "repo/user_cards" .}}
 				{{else if eq .TabName "followers"}}
 					{{template "repo/user_cards" .}}
-        {{else if .ProfileReadme}}
+        		{{else if .ProfileReadme}}
 					<div id="readme_profile" class="render-content markup"> {{$.ProfileReadme|Str2html}} </div>
 				{{else}}
 					{{template "explore/repo_search" .}}
