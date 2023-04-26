@@ -1091,7 +1091,7 @@ func registerRoutes(m *web.Route) {
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
 
-	// Releases
+	// Tags
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/tags", func() {
 			m.Get("", repo.TagsList)
@@ -1100,6 +1100,12 @@ func registerRoutes(m *web.Route) {
 		}, func(ctx *context.Context) {
 			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 		}, repo.MustBeNotEmpty, reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag, true))
+		m.Post("/tags/delete", repo.DeleteTag, reqSignIn,
+			repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoCodeWriter, context.RepoRef())
+	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
+
+	// Releases
+	m.Group("/{username}/{reponame}", func() {
 		m.Group("/releases", func() {
 			m.Get("/", repo.Releases)
 			m.Get("/tag/*", repo.SingleRelease)
@@ -1117,8 +1123,6 @@ func registerRoutes(m *web.Route) {
 			m.Post("/attachments", repo.UploadReleaseAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
 		}, reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, context.RepoRef())
-		m.Post("/tags/delete", repo.DeleteTag, reqSignIn,
-			repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoCodeWriter, context.RepoRef())
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)
 			m.Post("/edit/*", web.Bind(forms.EditReleaseForm{}), repo.EditReleasePost)
@@ -1321,6 +1325,9 @@ func registerRoutes(m *web.Route) {
 			m.Get("/cherry-pick/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.CherryPick)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
+		m.Get("/rss/branch/*", context.RepoRefByType(context.RepoRefBranch), feedEnabled, feed.RenderBranchFeed)
+		m.Get("/atom/branch/*", context.RepoRefByType(context.RepoRefBranch), feedEnabled, feed.RenderBranchFeed)
+
 		m.Group("/src", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.Home)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.Home)
@@ -1378,7 +1385,7 @@ func registerRoutes(m *web.Route) {
 				m.GetOptions("/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38}}", repo.GetLooseObject)
 				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.pack", repo.GetPackFile)
 				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.idx", repo.GetIdxFile)
-			}, ignSignInAndCsrf, context_service.UserAssignmentWeb())
+			}, ignSignInAndCsrf, repo.HTTPGitEnabledHandler, repo.CorsHandler(), context_service.UserAssignmentWeb())
 		})
 	})
 	// ***** END: Repository *****

@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/dustin/go-humanize"
-	ini "gopkg.in/ini.v1"
 )
 
 // Package registry settings
@@ -86,7 +85,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) {
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")
 }
 
-func mustBytes(section *ini.Section, key string) int64 {
+func mustBytes(section ConfigSection, key string) int64 {
 	const noLimit = "-1"
 
 	value := section.Key(key).MustString(noLimit)
