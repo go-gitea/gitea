@@ -1081,11 +1081,42 @@ type DiffOptions struct {
 // Passing the empty string as beforeCommitID returns a diff from the parent commit.
 // The whitespaceBehavior is either an empty string or a git flag
 func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
+	preRenderAddOrDeletedFile := func(diffFile *DiffFile, path, lang string) ([]string, string) {
+		content := ""
+
+		if len(diffFile.Sections) != 1 {
+			return nil, ""
+		}
+
+		for index, diffLine := range diffFile.Sections[0].Lines {
+			if diffLine.Type == DiffLineSection && index == 0 {
+				continue
+			}
+
+			if diffLine.Type != DiffLineAdd && diffLine.Type != DiffLineDel {
+				return nil, ""
+			}
+
+			content += diffLine.Content[1:] + "\n"
+		}
+
+		highlightedContent, lang, err := highlight.File(path, lang, []byte(content))
+		if err != nil {
+			log.Error("highlight.File: %v", err)
+			return nil, ""
+		}
+
+		return highlightedContent, lang
+	}
 
 	loadCommitFileContent := func(commit *git.Commit, path, lang string) ([]string, string) {
 		entry, err := commit.GetTreeEntryByPath(path)
 		if err != nil {
 			log.Error("GetTreeEntryByPath: %v", err)
+			return nil, ""
+		}
+
+		if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize/2 {
 			return nil, ""
 		}
 
@@ -1095,7 +1126,6 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 			return nil, ""
 		}
 
-		// TODO: maybe should limit file size?
 		content, err := io.ReadAll(f)
 		_ = f.Close()
 		if err != nil {
@@ -1229,14 +1259,25 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
 
-		// render full file for edited file
-		if diffFile.Type != DiffFileChange || beforeCommit == nil {
+		var (
+			oldContent []string
+			newContent []string
+		)
+
+		if diffFile.IsBin {
 			continue
 		}
 
-		var newContent []string
-		oldContent, _ := loadCommitFileContent(beforeCommit, diffFile.OldName, diffFile.Language)
-		newContent, diffFile.Language = loadCommitFileContent(commit, diffFile.Name, diffFile.Language)
+		if diffFile.Type == DiffFileDel {
+			oldContent, diffFile.Language = preRenderAddOrDeletedFile(diffFile, diffFile.OldName, diffFile.Language)
+		} else if diffFile.Type == DiffFileAdd {
+			newContent, diffFile.Language = preRenderAddOrDeletedFile(diffFile, diffFile.Name, diffFile.Language)
+		} else if diffFile.Type == DiffFileChange && beforeCommit != nil {
+			oldContent, _ = loadCommitFileContent(beforeCommit, diffFile.OldName, diffFile.Language)
+			newContent, diffFile.Language = loadCommitFileContent(commit, diffFile.Name, diffFile.Language)
+		} else {
+			continue
+		}
 
 		for _, diffSection := range diffFile.Sections {
 			for _, diffLine := range diffSection.Lines {
