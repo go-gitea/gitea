@@ -89,7 +89,7 @@
 						<tr>
 							<td>{{(MirrorRemoteAddress $.Context .Repository .Mirror.GetRemoteName false).Address}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
-							<td>{{DateTime "full" .Mirror.UpdatedUnix.FormatLong .Mirror.UpdatedUnix.AsTime}}</td>
+							<td>{{DateTime "full" .Mirror.UpdatedUnix}}</td>
 							<td class="right aligned">
 								<form method="post" style="display: inline-block">
 									{{.CsrfTokenHtml}}
@@ -167,7 +167,7 @@
 							{{$address := MirrorRemoteAddress $.Context $.Repository .GetRemoteName true}}
 							<td class="gt-word-break">{{$address.Address}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
-							<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix.FormatLong .LastUpdateUnix.AsTime}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
+							<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
 								<form method="post" style="display: inline-block">
 									{{$.CsrfTokenHtml}}

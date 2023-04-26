@@ -155,8 +155,8 @@
 					{{range .Queue.Workers}}
 					<tr>
 						<td>{{.Workers}}{{if .IsFlusher}}<span title="{{$.locale.Tr "admin.monitor.queue.flush"}}">{{svg "octicon-sync"}}</span>{{end}}</td>
-						<td>{{DateTime "full" (DateFmtLong .Start) (DateFmtLong .Start)}}</td>
-						<td>{{if .HasTimeout}}{{DateTime "full" (DateFmtLong .Timeout) (DateFmtLong .Timeout)}}{{else}}-{{end}}</td>
+						<td>{{DateTime "full" .Start}}</td>
+						<td>{{if .HasTimeout}}{{DateTime "full" .Timeout}}{{else}}-{{end}}</td>
 						<td>
 							<a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Workers}}" title="{{$.locale.Tr "remove"}}">{{svg "octicon-trash"}}</a>
 						</td>

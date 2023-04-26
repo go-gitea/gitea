@@ -74,7 +74,7 @@
             <a class="repo-list-link gt-df gt-ac gt-sb" :href="repo.link">
               <div class="item-name gt-df gt-ac gt-f1">
                 <svg-icon :name="repoIcon(repo)" :size="16" class-name="gt-mr-2"/>
-                <div class="text truncate gt-ml-1">{{ repo.full_name }}</div>
+                <div class="text gt-bold truncate gt-ml-1">{{ repo.full_name }}</div>
                 <span v-if="repo.archived">
                   <svg-icon name="octicon-archive" :size="16" class-name="gt-ml-2"/>
                 </span>
