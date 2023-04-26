@@ -8,9 +8,9 @@
 				{{if .Repository.IsArchived}}
 					<div class="ui warning message">
 						{{if .Repository.ArchivedUnix.IsZero}}
-							{{.locale.Tr "repo.archive.title_no_date"}}
+							{{.locale.Tr "repo.archive.title"}}
 						{{else}}
-							{{.locale.Tr "repo.archive.title_date" (DateTime "long" .Repository.ArchivedUnix.FormatLong .Repository.ArchivedUnix.FormatShort) | Safe}}
+							{{.locale.Tr "repo.archive.title_date" (DateTime "long" .Repository.ArchivedUnix) | Safe}}
 						{{end}}
 					</div>
 				{{end}}
