@@ -1,5 +1,5 @@
 on:
-  cron:
+  schedule:
     - cron: "7 0 * * *" # every day at 0:07 UTC
 
 name: Pull translations from Crowdin
