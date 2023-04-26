@@ -130,14 +130,20 @@ func hasResponseBeenWritten(argsIn []reflect.Value) bool {
 // toHandlerProvider converts a handler to a handler provider
 // A handler provider is a function that takes a "next" http.Handler, it can be used as a middleware
 func toHandlerProvider(handler any) func(next http.Handler) http.Handler {
-	if hp, ok := handler.(func(next http.Handler) http.Handler); ok {
-		return hp
-	}
-
 	funcInfo := routing.GetFuncInfo(handler)
 	fn := reflect.ValueOf(handler)
 	if fn.Type().Kind() != reflect.Func {
 		panic(fmt.Sprintf("handler must be a function, but got %s", fn.Type()))
+	}
+
+	if hp, ok := handler.(func(next http.Handler) http.Handler); ok {
+		return func(next http.Handler) http.Handler {
+			h := hp(next) // this handle could be dynamically generated, so we can't use it for debug info
+			return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+				routing.UpdateFuncInfo(req.Context(), funcInfo)
+				h.ServeHTTP(resp, req)
+			})
+		}
 	}
 
 	provider := func(next http.Handler) http.Handler {
