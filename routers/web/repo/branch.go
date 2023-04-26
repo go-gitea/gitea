@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
-	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/services/forms"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -339,11 +338,6 @@ func getDeletedBranches(ctx *context.Context) ([]*Branch, error) {
 	}
 
 	return branches, nil
-}
-
-// BranchFeedRSS get feeds for tags in RSS format
-func BranchFeedRSS(ctx *context.Context) {
-	feed.ShowBranchFeed(ctx, ctx.Repo.Repository, "rss")
 }
 
 // CreateBranch creates new branch in repository
