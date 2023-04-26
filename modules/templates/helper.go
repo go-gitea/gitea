@@ -141,9 +141,6 @@ func NewFuncMap() []template.FuncMap {
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"DateTime":      timeutil.DateTime,
 		"Sec2Time":      util.SecToTime,
-		"DateFmtLong": func(t time.Time) string {
-			return t.Format(time.RFC3339)
-		},
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
