@@ -101,9 +101,9 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 	refPrefix, refName := git.SplitRefName(t.Job.Run.Ref)
 	refType := ""
 	switch refPrefix {
-	case git.BranchPrefix
+	case git.BranchPrefix:
 		refType = "branch"
-	case git.TagPrefix
+	case git.TagPrefix:
 		refType = "tag"
 	}
 
