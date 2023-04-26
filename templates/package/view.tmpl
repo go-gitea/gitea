@@ -86,7 +86,7 @@
 							{{range .LatestVersions}}
 								<div class="item gt-df">
 									<a class="gt-f1" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
-									<span class="text small">{{DateTime "short" (.CreatedUnix.FormatDate) (.CreatedUnix.FormatDate)}}</span>
+									<span class="text small">{{DateTime "short" .CreatedUnix}}</span>
 								</div>
 							{{end}}
 							</div>

@@ -77,7 +77,7 @@
 						{{else}}
 							{{svg "octicon-calendar"}}
 							{{if .DeadlineString}}
-								<span {{if .IsOverdue}}class="overdue"{{end}}>{{DateTime "short" .DeadlineString .DeadlineString}}</span>
+								<span {{if .IsOverdue}}class="overdue"{{end}}>{{DateTime "short" .DeadlineString}}</span>
 							{{else}}
 								{{$.locale.Tr "repo.milestones.no_due_date"}}
 							{{end}}
