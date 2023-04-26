@@ -446,6 +446,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("", user_setting.Appearance)
 			m.Post("/language", web.Bind(forms.UpdateLanguageForm{}), user_setting.UpdateUserLang)
 			m.Post("/hidden_comments", user_setting.UpdateUserHiddenComments)
+			m.Post("/timestamps", user_setting.UpdateUserTimestamps)
 			m.Post("/theme", web.Bind(forms.UpdateThemeForm{}), user_setting.UpdateUIThemePost)
 		})
 		m.Group("/security", func() {

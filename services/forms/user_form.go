@@ -261,6 +261,11 @@ type UpdateLanguageForm struct {
 	Language string
 }
 
+// UpdateTimestampsForm form for updating profile
+type UpdateTimestampsForm struct {
+	ForceAbsoluteTimestamps bool
+}
+
 // Validate validates the fields
 func (f *UpdateLanguageForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)

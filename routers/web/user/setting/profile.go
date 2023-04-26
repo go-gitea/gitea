@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -350,6 +351,14 @@ func Appearance(ctx *context.Context) {
 		return forms.IsUserHiddenCommentTypeGroupChecked(commentTypeGroup, hiddenCommentTypes)
 	}
 
+	val, err = user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsForceAbsoluteTimestamps)
+	if err != nil {
+		ctx.ServerError("GetUserSetting", err)
+		return
+	}
+	forceAbsoluteTimestamps, _ := strconv.ParseBool(val) // we can safely ignore the failed conversion here
+	ctx.Data["ForceAbsoluteTimestamps"] = forceAbsoluteTimestamps
+
 	ctx.HTML(http.StatusOK, tplSettingsAppearance)
 }
 
@@ -412,6 +421,19 @@ func UpdateUserLang(ctx *context.Context) {
 // UpdateUserHiddenComments update a user's shown comment types
 func UpdateUserHiddenComments(ctx *context.Context) {
 	err := user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes, forms.UserHiddenCommentTypesFromRequest(ctx).String())
+	if err != nil {
+		ctx.ServerError("SetUserSetting", err)
+		return
+	}
+
+	log.Trace("User settings updated: %s", ctx.Doer.Name)
+	ctx.Flash.Success(ctx.Tr("settings.saved_successfully"))
+	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
+}
+
+// UpdateUserTimestamps update a user's timestamp preferences
+func UpdateUserTimestamps(ctx *context.Context) {
+	err := user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsForceAbsoluteTimestamps, strconv.FormatBool(forms.UserTimestampsFromRequest(ctx).ForceAbsoluteTimestamps))
 	if err != nil {
 		ctx.ServerError("SetUserSetting", err)
 		return

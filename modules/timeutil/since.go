@@ -132,6 +132,9 @@ func timeSinceUnix(then, now time.Time, lang translation.Locale) template.HTML {
 
 // TimeSince renders relative time HTML given a time.Time
 func TimeSince(then time.Time, lang translation.Locale) template.HTML {
+	// if user forces absolute timestamps, use the full time
+	// (how can I get the context here? I want to run `user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsForceAbsoluteTimestamps)`)
+	// return DateTime("full", then)
 	return timeSinceUnix(then, time.Now(), lang)
 }
 
