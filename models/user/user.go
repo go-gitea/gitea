@@ -1223,7 +1223,7 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 				Where(builder.Eq{"`t2`.uid": viewer.ID})),
 		builder.In("`user`.id",
 			builder.
-				Select("`team_user`.uid").
+				Select("`team_user`.org_id").
 				From("team_user").
 				Join("INNER", "`team_user` AS t2", "`team_user`.org_id = `t2`.org_id").
 				Where(builder.Eq{"`t2`.uid": viewer.ID})))
