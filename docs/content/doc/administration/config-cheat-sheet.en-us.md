@@ -220,7 +220,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SHOW_USER_EMAIL`: **true**: Whether the email of the user should be shown in the Explore Users page.
 - `THEMES`:  **auto,gitea,arc-green**: All available themes. Allow users select personalized themes.
   regardless of the value of `DEFAULT_THEME`.
-- `THEME_COLOR_META_TAG`: **#6cc644**:  Value of `theme-color` meta tag, used by Android >= 5.0. An invalid color like "none" or "disable" will have the default style.  More info: https://developers.google.com/web/updates/2014/11/Support-for-theme-color-in-Chrome-39-for-Android
+- `THEME_COLOR_META_TAG`: **\<empty\>**: Value of `theme-color` meta tag, used by some mobile browers for chrome and out-of-viewport areas. Default is unset which uses body color.
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
     Values can be emoji alias (:smile:) or a unicode emoji.

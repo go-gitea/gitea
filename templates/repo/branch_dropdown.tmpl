@@ -42,6 +42,8 @@
 		'branches': {{.root.Branches}},
 		'tags': {{.root.Tags}},
 		'defaultBranch': {{$defaultBranch}},
+		'enableFeed': {{.root.EnableFeed}},
+		'rssURLPrefix': '{{$.root.RepoLink}}/rss/branch/',
 		'branchURLPrefix': '{{if .branchURLPrefix}}{{.branchURLPrefix}}{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/branch/{{end}}',
 		'branchURLSuffix': '{{if .branchURLSuffix}}{{.branchURLSuffix}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}',
 		'tagURLPrefix': '{{if .tagURLPrefix}}{{.tagURLPrefix}}{{else if .release}}{{$.root.RepoLink}}/compare/{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{end}}',

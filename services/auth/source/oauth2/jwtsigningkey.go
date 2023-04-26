@@ -18,14 +18,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/minio/sha256-simd"
-	ini "gopkg.in/ini.v1"
 )
 
 // ErrInvalidAlgorithmType represents an invalid algorithm error.
@@ -316,8 +314,7 @@ func InitSigningKey() error {
 	case "HS384":
 		fallthrough
 	case "HS512":
-		key, err = loadOrCreateSymmetricKey()
-
+		key, err = loadSymmetricKey()
 	case "RS256":
 		fallthrough
 	case "RS384":
@@ -332,7 +329,6 @@ func InitSigningKey() error {
 		fallthrough
 	case "EdDSA":
 		key, err = loadOrCreateAsymmetricKey()
-
 	default:
 		return ErrInvalidAlgorithmType{setting.OAuth2.JWTSigningAlgorithm}
 	}
@@ -351,22 +347,16 @@ func InitSigningKey() error {
 	return nil
 }
 
-// loadOrCreateSymmetricKey checks if the configured secret is valid.
-// If it is not valid a new secret is created and saved in the configuration file.
-func loadOrCreateSymmetricKey() (interface{}, error) {
+// loadSymmetricKey checks if the configured secret is valid.
+// If it is not valid, it will return an error.
+func loadSymmetricKey() (interface{}, error) {
 	key := make([]byte, 32)
 	n, err := base64.RawURLEncoding.Decode(key, []byte(setting.OAuth2.JWTSecretBase64))
-	if err != nil || n != 32 {
-		key, err = generate.NewJwtSecret()
-		if err != nil {
-			log.Fatal("error generating JWT secret: %v", err)
-			return nil, err
-		}
-
-		setting.CreateOrAppendToCustomConf("oauth2.JWT_SECRET", func(cfg *ini.File) {
-			secretBase64 := base64.RawURLEncoding.EncodeToString(key)
-			cfg.Section("oauth2").Key("JWT_SECRET").SetValue(secretBase64)
-		})
+	if err != nil {
+		return nil, err
+	}
+	if n != 32 {
+		return nil, fmt.Errorf("JWT secret must be 32 bytes long")
 	}
 
 	return key, nil
