@@ -90,8 +90,7 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 
 // UpdateComment updates information of comment.
 func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_model.User, oldContent string) error {
-	needsContentHistory := c.Content != oldContent &&
-		(c.Type == issues_model.CommentTypeComment || c.Type == issues_model.CommentTypeReview || c.Type == issues_model.CommentTypeCode)
+	needsContentHistory := c.Content != oldContent && c.Type.HasContentSupport()
 	if needsContentHistory {
 		hasContentHistory, err := issues_model.HasIssueContentHistory(ctx, c.IssueID, c.ID)
 		if err != nil {
