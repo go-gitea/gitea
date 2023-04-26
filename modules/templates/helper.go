@@ -72,9 +72,6 @@ func NewFuncMap() []template.FuncMap {
 		"AppUrl": func() string {
 			return setting.AppURL
 		},
-		"GiteaRepoName": func() string {
-			return setting.Domain
-		},
 		"AppVer": func() string {
 			return setting.AppVer
 		},

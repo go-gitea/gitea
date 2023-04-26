@@ -4,12 +4,12 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.helm.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>helm repo add {{GiteaRepoName}} {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/helm
+				<div class="markup"><pre class="code-block"><code>helm repo add {{AppDomain}} {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/helm
 helm repo update</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.helm.install"}}</label>
-				<div class="markup"><pre class="code-block"><code>helm install {{.PackageDescriptor.Package.Name}} {{GiteaRepoName}}/{{.PackageDescriptor.Package.Name}}</code></pre></div>
+				<div class="markup"><pre class="code-block"><code>helm install {{.PackageDescriptor.Package.Name}} {{AppDomain}}/{{.PackageDescriptor.Package.Name}}</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{.locale.Tr "packages.helm.documentation" | Safe}}</label>
