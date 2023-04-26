@@ -92,7 +92,7 @@ func TeamsAction(ctx *context.Context) {
 			ctx.ServerError("IsOrganizationMember", err)
 			return
 		} else if !isOrgMember {
-			redirect = setting.AppURL
+			redirect = setting.AppSubURL + "/"
 		}
 		ctx.JSON(http.StatusOK,
 			map[string]interface{}{
