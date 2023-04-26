@@ -492,17 +492,17 @@ func (issues IssueList) FilterValidByDoer(ctx context.Context, doer *user_model.
 
 	issueList := issues[:0]
 	for _, issue := range issues {
-		if canRetrievedByDoer, err := issue.canRetrievedByDoer(ctx, doer); err != nil {
+		if isIssueVisibleToDoer, err := issue.isIssueVisibleToDoer(ctx, doer); err != nil {
 			return nil, err
-		} else if canRetrievedByDoer {
+		} else if isIssueVisibleToDoer {
 			issueList = append(issueList, issue)
 		}
 	}
 	return issueList, nil
 }
 
-// canRetrievedByDoer returns whether doer can retrieve the issue
-func (issue *Issue) canRetrievedByDoer(ctx context.Context, doer *user_model.User) (bool, error) {
+// isIssueVisibleToDoer returns whether doer can view the issue
+func (issue *Issue) isIssueVisibleToDoer(ctx context.Context, doer *user_model.User) (bool, error) {
 	if perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer); err != nil {
 		return false, err
 	} else if !perm.HasAccess() {
