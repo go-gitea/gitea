@@ -346,7 +346,6 @@ func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListO
 		Select("`user`.*").
 		Join("LEFT", "follow", "`user`.id=follow.follow_id").
 		Where("follow.user_id=?", u.ID).
-		And("`user`.type=?", UserTypeIndividual).
 		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page != 0 {

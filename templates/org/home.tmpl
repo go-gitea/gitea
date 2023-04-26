@@ -12,6 +12,19 @@
 					{{if .Org.Visibility.IsLimited}}<div class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
 					{{if .Org.Visibility.IsPrivate}}<div class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
 				</span>
+				<div class="follow">
+					{{if $.IsFollowing}}
+						<form method="post" action="{{.Link}}?action=unfollow&redirect_to={{$.Link}}">
+							{{$.CsrfTokenHtml}}
+							<button type="submit" class="ui basic red button">{{svg "octicon-organization"}} {{.locale.Tr "user.unfollow"}}</button>
+						</form>
+					{{else}}
+						<form method="post" action="{{.Link}}?action=follow&redirect_to={{$.Link}}">
+							{{$.CsrfTokenHtml}}
+								<button type="submit" class="ui basic green button">{{svg "octicon-organization"}} {{.locale.Tr "user.follow"}}</button>
+						</form>
+					{{end}}
+				</div>
 			</div>
 			{{if $.RenderedDescription}}<div class="render-content markup">{{$.RenderedDescription|Str2html}}</div>{{end}}
 			<div class="text grey meta">
