@@ -1183,10 +1183,23 @@ img.ui.avatar,
   padding-bottom: 80px;
 }
 
+/* overwrite semantic width of containers inside the main page content div (div with class "page-content") */
+.page-content .ui.ui.ui.container:not(.fluid) {
+  width: 1280px;
+  max-width: calc(100vw - 64px);
+}
+
 /* enable fluid page widths for medium size viewports */
 @media (min-width: 768px) and (max-width: 1200px) {
   .ui.ui.ui.container:not(.fluid) {
     width: calc(100vw - 64px);
+  }
+}
+
+@media only screen and (max-width: 767px) {
+  .page-content .ui.ui.ui.container:not(.fluid) {
+    width: auto; /* copied from semantic css */
+    max-width: 100%;
   }
 }
 
@@ -2638,10 +2651,6 @@ table th[data-sortt-desc] .svg {
 }
 
 .labelspage .item {
-  margin-top: 0;
-  margin-right: -14px;
-  margin-left: -14px;
-  padding: 10px;
   border-bottom: 1px solid var(--color-secondary);
   border-top: none;
 }
