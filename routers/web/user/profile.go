@@ -100,15 +100,9 @@ func Profile(ctx *context.Context) {
 			return
 		}
 		defer gitRepo.Close()
-		defaultBranch := repo.DefaultBranch
-		commitID, err := gitRepo.GetBranchCommitID(defaultBranch)
+		commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
 		if err != nil {
-			ctx.ServerError("GetBranchCommitID", err)
-			return
-		}
-		commit, err := gitRepo.GetCommit(commitID)
-		if err != nil {
-			ctx.ServerError("GetCommit", err)
+			ctx.ServerError("GetBranchCommit", err)
 			return
 		}
 		tree, err := commit.SubTree("")
