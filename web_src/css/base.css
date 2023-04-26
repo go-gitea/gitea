@@ -1197,7 +1197,7 @@ img.ui.avatar,
 }
 
 @media only screen and (max-width: 767.98px) {
-  .ui.ui.ui.container:not(.fluid) {
+  .page-content .ui.ui.ui.container:not(.fluid) {
     width: auto; /* copied from semantic css */
     max-width: 100%;
   }
