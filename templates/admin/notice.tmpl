@@ -3,30 +3,26 @@
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.notices.system_notice_list"}} ({{.locale.Tr "admin.total" .Total}})
 		</h4>
-		<table id="notice-table" class="ui attached basic select selectable table unstackable">
+		<table class="ui attached basic select selectable table unstackable g-table-auto-ellipsis">
 			<thead>
 				<tr>
 					<th></th>
 					<th>ID</th>
 					<th>{{.locale.Tr "admin.notices.type"}}</th>
 					<th>{{.locale.Tr "admin.notices.desc"}}</th>
-					<th width="100px">{{.locale.Tr "admin.users.created"}}</th>
+					<th>{{.locale.Tr "admin.users.created"}}</th>
 					<th>{{.locale.Tr "admin.notices.op"}}</th>
 				</tr>
 			</thead>
 			<tbody>
 				{{range .Notices}}
 					<tr>
-						<td class="collapsing">
-							<div class="ui fitted checkbox" data-id="{{.ID}}">
-								<input type="checkbox">
-							</div>
-						</td>
+						<td><div class="ui checkbox gt-db" data-id="{{.ID}}"><input type="checkbox"></div></td>
 						<td>{{.ID}}</td>
 						<td>{{$.locale.Tr .TrStr}}</td>
-						<td class="view-detail"><span class="notice-description text">{{.Description}}</span></td>
-						<td>{{DateTime "short" .CreatedUnix}}</td>
-						<td><a href="#">{{svg "octicon-note" 16 "view-detail"}}</a></td>
+						<td class="view-detail auto-ellipsis" style="width: 80%;"><span class="notice-description">{{.Description}}</span></td>
+						<td nowrap>{{DateTime "short" .CreatedUnix}}</td>
+						<td class="view-detail"><a href="#">{{svg "octicon-note" 16}}</a></td>
 					</tr>
 				{{end}}
 			</tbody>

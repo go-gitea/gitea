@@ -60,27 +60,3 @@
   white-space: pre-wrap;
   word-wrap: break-word;
 }
-
-@media (max-width: 767px) {
-  .admin #notice-table .notice-description {
-    max-width: 80vw;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 991px) {
-  .admin #notice-table .notice-description {
-    max-width: 360px;
-  }
-}
-
-@media (min-width: 992px) and (max-width: 1200px) {
-  .admin #notice-table .notice-description {
-    max-width: 510px;
-  }
-}
-
-@media (min-width: 1201px) {
-  .admin #notice-table .notice-description {
-    max-width: 640px;
-  }
-}
