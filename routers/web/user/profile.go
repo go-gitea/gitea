@@ -105,13 +105,7 @@ func Profile(ctx *context.Context) {
 			ctx.ServerError("GetBranchCommit", err)
 			return
 		}
-		tree, err := commit.SubTree("")
-
-		if err != nil || tree == nil {
-			ctx.ServerError("SubTree", err)
-			return
-		}
-		blob, err := tree.GetBlobByPath("README.md")
+		blob, err := commit.GetBlobByPath("README.md")
 		if err == nil {
 			bytes, err := blob.GetBlobContent()
 			if err != nil {
