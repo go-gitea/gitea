@@ -719,6 +719,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 		m.Post("/markup", bind(api.MarkupOption{}), misc.Markup)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
+		m.Get("/licenses", misc.ListLicenseTemplates)
+		m.Get("/licenses/{name}", misc.GetLicenseTemplateInfo)
 		m.Group("/settings", func() {
 			m.Get("/ui", settings.GetGeneralUISettings)
 			m.Get("/api", settings.GetGeneralAPISettings)
