@@ -5,10 +5,21 @@
 				{{.locale.Tr "repo.settings.branch_protection" (.Rule.RuleName|Escape) | Str2html}}
 			</h4>
 			<div class="ui attached segment branch-protection">
+				<h4 class="ui dividing header">{{.locale.Tr "repo.settings.protect_patterns"}}</h4>
 				<div class="field">
 					<label for="protected_file_patterns">{{.locale.Tr "repo.settings.protect_branch_name_pattern"}}</label>
 					<input name="rule_name" type="text" value="{{.Rule.RuleName}}">
 					<input name="rule_id" type="hidden" value="{{.Rule.ID}}">
+				</div>
+				<div class="field">
+					<label for="protected_file_patterns">{{.locale.Tr "repo.settings.protect_protected_file_patterns"}}</label>
+					<input name="protected_file_patterns" id="protected_file_patterns" type="text" value="{{.Rule.ProtectedFilePatterns}}">
+					<p class="help gt-ml-0">{{.locale.Tr "repo.settings.protect_protected_file_patterns_desc" | Safe}}</p>
+				</div>
+				<div class="field">
+					<label for="unprotected_file_patterns">{{.locale.Tr "repo.settings.protect_unprotected_file_patterns"}}</label>
+					<input name="unprotected_file_patterns" id="unprotected_file_patterns" type="text" value="{{.Rule.UnprotectedFilePatterns}}">
+					<p class="help gt-ml-0">{{.locale.Tr "repo.settings.protect_unprotected_file_patterns_desc" | Safe}}</p>
 				</div>
 
 				{{.CsrfTokenHtml}}
@@ -74,36 +85,6 @@
 								<label for="whitelist_deploy_keys">{{.locale.Tr "repo.settings.protect_whitelist_deploy_keys"}}</label>
 							</div>
 						</div>
-					</div>
-
-					<h4 class="ui dividing header">{{.locale.Tr "repo.settings.protect_check_status"}}</h4>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-statuscheck" name="enable_status_check" type="checkbox" data-target="#statuscheck_contexts_box" {{if eq (len .branch_status_check_contexts) 0}}disabled{{end}} {{if .Rule.EnableStatusCheck}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.protect_check_status_contexts"}}</label>
-							<p class="help">{{.locale.Tr "repo.settings.protect_check_status_contexts_desc"}}</p>
-						</div>
-					</div>
-					<div id="statuscheck_contexts_box" class="field {{if not .Rule.EnableStatusCheck}}disabled{{end}}">
-						<table class="ui celled table six column">
-							<thead>
-								<tr><th>
-									{{.locale.Tr "repo.settings.protect_check_status_contexts_list"}}
-								</th>
-								</tr>
-							</thead>
-							<tbody>
-							{{range $.branch_status_check_contexts}}
-								<tr><td>
-									<span class="ui checkbox">
-										<input class="enable-whitelist" name="status_check_contexts" value="{{.}}" type="checkbox" {{if $.is_context_required}}{{if call $.is_context_required .}}checked{{end}}{{end}}>
-									</span>
-									{{.}}
-									{{if $.is_context_required}}{{if call $.is_context_required .}}<div class="ui label right">Required</div>{{end}}{{end}}
-								</td></tr>
-							{{end}}
-							</tbody>
-						</table>
 					</div>
 
 					<h4 class="ui dividing header">{{.locale.Tr "repo.settings.event_pull_request"}}</h4>
@@ -230,17 +211,33 @@
 							<p class="help">{{.locale.Tr "repo.settings.block_outdated_branch_desc"}}</p>
 						</div>
 					</div>
-
-					<h4 class="ui dividing header">{{.locale.Tr "repo.settings.protect_file_patterns"}}</h4>
 					<div class="field">
-						<label for="protected_file_patterns">{{.locale.Tr "repo.settings.protect_protected_file_patterns"}}</label>
-						<input name="protected_file_patterns" id="protected_file_patterns" type="text" value="{{.Rule.ProtectedFilePatterns}}">
-						<p class="help gt-ml-0">{{.locale.Tr "repo.settings.protect_protected_file_patterns_desc" | Safe}}</p>
+						<div class="ui checkbox">
+							<input class="enable-statuscheck" name="enable_status_check" type="checkbox" data-target="#statuscheck_contexts_box" {{if eq (len .branch_status_check_contexts) 0}}disabled{{end}} {{if .Rule.EnableStatusCheck}}checked{{end}}>
+							<label>{{.locale.Tr "repo.settings.protect_check_status_contexts"}}</label>
+							<p class="help">{{.locale.Tr "repo.settings.protect_check_status_contexts_desc"}}</p>
+						</div>
 					</div>
-					<div class="field">
-						<label for="unprotected_file_patterns">{{.locale.Tr "repo.settings.protect_unprotected_file_patterns"}}</label>
-						<input name="unprotected_file_patterns" id="unprotected_file_patterns" type="text" value="{{.Rule.UnprotectedFilePatterns}}">
-						<p class="help gt-ml-0">{{.locale.Tr "repo.settings.protect_unprotected_file_patterns_desc" | Safe}}</p>
+					<div id="statuscheck_contexts_box" class="field {{if not .Rule.EnableStatusCheck}}disabled{{end}}">
+						<table class="ui celled table six column">
+							<thead>
+								<tr><th>
+									{{.locale.Tr "repo.settings.protect_check_status_contexts_list"}}
+								</th>
+								</tr>
+							</thead>
+							<tbody>
+							{{range $.branch_status_check_contexts}}
+								<tr><td>
+									<span class="ui checkbox">
+										<input class="enable-whitelist" name="status_check_contexts" value="{{.}}" type="checkbox" {{if $.is_context_required}}{{if call $.is_context_required .}}checked{{end}}{{end}}>
+									</span>
+									{{.}}
+									{{if $.is_context_required}}{{if call $.is_context_required .}}<div class="ui label right">Required</div>{{end}}{{end}}
+								</td></tr>
+							{{end}}
+							</tbody>
+						</table>
 					</div>
 				</div>
 
