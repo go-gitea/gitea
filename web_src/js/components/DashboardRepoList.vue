@@ -10,7 +10,7 @@
           {{ textMyRepos }}
           <span class="ui grey label gt-ml-3">{{ reposTotalCount }}</span>
         </div>
-        <a :href="subUrl + '/repo/create'" :data-tooltip-content="textNewRepo">
+        <a :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
           <svg-icon name="octicon-plus"/>
           <span class="sr-only">{{ textNewRepo }}</span>
         </a>
@@ -74,7 +74,7 @@
             <a class="repo-list-link gt-df gt-ac gt-sb" :href="repo.link">
               <div class="item-name gt-df gt-ac gt-f1">
                 <svg-icon :name="repoIcon(repo)" :size="16" class-name="gt-mr-2"/>
-                <div class="text truncate gt-ml-1">{{ repo.full_name }}</div>
+                <div class="text gt-bold truncate gt-ml-1">{{ repo.full_name }}</div>
                 <span v-if="repo.archived">
                   <svg-icon name="octicon-archive" :size="16" class-name="gt-ml-2"/>
                 </span>
@@ -199,6 +199,7 @@ const sfc = {
       isOrganization: true,
       canCreateOrganization: false,
       organizationsTotalCount: 0,
+      organizationId: 0,
 
       subUrl: appSubUrl,
       ...pageData.dashboardRepoList,
