@@ -2651,10 +2651,6 @@ table th[data-sortt-desc] .svg {
 }
 
 .labelspage .item {
-  margin-top: 0;
-  margin-right: -14px;
-  margin-left: -14px;
-  padding: 10px;
   border-bottom: 1px solid var(--color-secondary);
   border-top: none;
 }
