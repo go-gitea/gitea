@@ -86,12 +86,17 @@ func (hcd *highlightCodeDiff) collectUsedRunes(code string) {
 	}
 }
 
-func (hcd *highlightCodeDiff) diffWithHighlight(filename, language, codeA, codeB string) []diffmatchpatch.Diff {
+func (hcd *highlightCodeDiff) diffWithHighlight(filename, language, codeA, highlightCodeA, codeB, highlightCodeB string) []diffmatchpatch.Diff {
 	hcd.collectUsedRunes(codeA)
 	hcd.collectUsedRunes(codeB)
 
-	highlightCodeA, _ := highlight.Code(filename, language, codeA)
-	highlightCodeB, _ := highlight.Code(filename, language, codeB)
+	if len(highlightCodeA) == 0 {
+		highlightCodeA, _ = highlight.Code(filename, language, codeA)
+	}
+
+	if len(highlightCodeB) == 0 {
+		highlightCodeB, _ = highlight.Code(filename, language, codeB)
+	}
 
 	highlightCodeA = hcd.convertToPlaceholders(highlightCodeA)
 	highlightCodeB = hcd.convertToPlaceholders(highlightCodeB)

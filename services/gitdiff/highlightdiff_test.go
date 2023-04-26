@@ -16,8 +16,8 @@ func TestDiffWithHighlight(t *testing.T) {
 	hcd := newHighlightCodeDiff()
 	diffs := hcd.diffWithHighlight(
 		"main.v", "",
-		"		run('<>')\n",
-		"		run(db)\n",
+		"		run('<>')\n", "",
+		"		run(db)\n", "",
 	)
 
 	expected := `		<span class="n">run</span><span class="o">(</span><span class="removed-code"><span class="k">&#39;</span><span class="o">&lt;</span><span class="o">&gt;</span><span class="k">&#39;</span></span><span class="o">)</span>`
@@ -50,8 +50,8 @@ func TestDiffWithHighlightPlaceholder(t *testing.T) {
 	hcd := newHighlightCodeDiff()
 	diffs := hcd.diffWithHighlight(
 		"main.js", "",
-		"a='\U00100000'",
-		"a='\U0010FFFD''",
+		"a='\U00100000'", "",
+		"a='\U0010FFFD''", "",
 	)
 	assert.Equal(t, "", hcd.placeholderTokenMap[0x00100000])
 	assert.Equal(t, "", hcd.placeholderTokenMap[0x0010FFFD])
@@ -63,8 +63,8 @@ func TestDiffWithHighlightPlaceholder(t *testing.T) {
 	hcd = newHighlightCodeDiff()
 	diffs = hcd.diffWithHighlight(
 		"main.js", "",
-		"a='\U00100000'",
-		"a='\U0010FFFD'",
+		"a='\U00100000'", "",
+		"a='\U0010FFFD'", "",
 	)
 	expected = fmt.Sprintf(`<span class="nx">a</span><span class="o">=</span><span class="s1">&#39;</span><span class="added-code">%s</span>&#39;`, "\U0010FFFD")
 	output = diffToHTML(nil, diffs, DiffLineAdd)
@@ -76,8 +76,8 @@ func TestDiffWithHighlightPlaceholderExhausted(t *testing.T) {
 	hcd.placeholderMaxCount = 0
 	diffs := hcd.diffWithHighlight(
 		"main.js", "",
-		"'",
-		``,
+		"'", "",
+		``, "",
 	)
 	output := diffToHTML(nil, diffs, DiffLineDel)
 	expected := fmt.Sprintf(`<span class="removed-code">%s#39;</span>`, "\uFFFD")
@@ -87,8 +87,8 @@ func TestDiffWithHighlightPlaceholderExhausted(t *testing.T) {
 	hcd.placeholderMaxCount = 0
 	diffs = hcd.diffWithHighlight(
 		"main.js", "",
-		"a < b",
-		"a > b",
+		"a < b", "",
+		"a > b", "",
 	)
 	output = diffToHTML(nil, diffs, DiffLineDel)
 	expected = fmt.Sprintf(`a %s<span class="removed-code">l</span>t; b`, "\uFFFD")
@@ -106,8 +106,8 @@ func TestDiffWithHighlightTagMatch(t *testing.T) {
 		hcd.placeholderMaxCount = i
 		diffs := hcd.diffWithHighlight(
 			"main.js", "",
-			"a='1'",
-			"b='2'",
+			"a='1'", "",
+			"b='2'", "",
 		)
 		totalOverflow += hcd.placeholderOverflowCount
 

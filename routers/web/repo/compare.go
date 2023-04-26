@@ -933,7 +933,7 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 	}
 
 	var (
-		scanner             *bufio.Scanner
+		scanner            *bufio.Scanner
 		highlightedContent []string
 	)
 
@@ -967,10 +967,10 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 		}
 		lineText := scanner.Text()
 		diffLine := &gitdiff.DiffLine{
-			LeftIdx:             idxLeft + (line - idxRight) + 1,
-			RightIdx:            line + 1,
-			Type:                gitdiff.DiffLinePlain,
-			Content:             " " + lineText,
+			LeftIdx:  idxLeft + (line - idxRight) + 1,
+			RightIdx: line + 1,
+			Type:     gitdiff.DiffLinePlain,
+			Content:  " " + lineText,
 		}
 
 		if highlightedContent != nil {

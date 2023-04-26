@@ -294,8 +294,8 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 
 	var (
 		compareDiffLine *DiffLine
-		diff1           string
-		diff2           string
+		diff1           *DiffLine
+		diff2           *DiffLine
 	)
 
 	language := ""
@@ -308,29 +308,29 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 	case DiffLineSection:
 		return getLineContent(diffLine.Content[1:], locale)
 	case DiffLineAdd:
-		if diffLine.HasHighlightContent {
-			status, content := charset.EscapeControlHTML(diffLine.HighlightContent, locale)
-			return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
-		}
-
 		compareDiffLine = diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
 		if compareDiffLine == nil {
+			if diffLine.HasHighlightContent {
+				status, content := charset.EscapeControlHTML(diffLine.HighlightContent, locale)
+				return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
+			}
+
 			return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content[1:], locale)
 		}
-		diff1 = compareDiffLine.Content
-		diff2 = diffLine.Content
+		diff1 = compareDiffLine
+		diff2 = diffLine
 	case DiffLineDel:
-		if diffLine.HasHighlightContent {
-			status, content := charset.EscapeControlHTML(diffLine.HighlightContent, locale)
-			return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
-		}
-
 		compareDiffLine = diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
 		if compareDiffLine == nil {
+			if diffLine.HasHighlightContent {
+				status, content := charset.EscapeControlHTML(diffLine.HighlightContent, locale)
+				return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
+			}
+
 			return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content[1:], locale)
 		}
-		diff1 = diffLine.Content
-		diff2 = compareDiffLine.Content
+		diff1 = diffLine
+		diff2 = compareDiffLine
 	default:
 		if strings.IndexByte(" +-", diffLine.Content[0]) > -1 {
 			if diffLine.HasHighlightContent {
@@ -344,7 +344,7 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 	}
 
 	hcd := newHighlightCodeDiff()
-	diffRecord := hcd.diffWithHighlight(diffSection.FileName, language, diff1[1:], diff2[1:])
+	diffRecord := hcd.diffWithHighlight(diffSection.FileName, language, diff1.Content[1:], diff1.HighlightContent, diff2.Content[1:], diff2.HighlightContent)
 	// it seems that Gitea doesn't need the line wrapper of Chroma, so do not add them back
 	// if the line wrappers are still needed in the future, it can be added back by "diffToHTML(hcd.lineWrapperTags. ...)"
 	diffHTML := diffToHTML(nil, diffRecord, diffLine.Type)
