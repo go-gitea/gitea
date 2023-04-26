@@ -2493,6 +2493,12 @@ a.ui.basic.label:hover {
   font-weight: normal;
 }
 
+/* reduce height of buttons with dropdown icon */
+.ui.attached.header .right .button:has(.dropdown.icon) {
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
 /* fix misaligned right buttons on box headers */
 .ui.attached.header .right:not(.dropdown) {
   position: absolute;
