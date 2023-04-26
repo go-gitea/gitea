@@ -1,5 +1,5 @@
 on:
-  cron:
+  schedule:
     # weekly on Monday at 0:07 UTC
     - cron: "7 0 * * 1"
 
