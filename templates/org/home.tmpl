@@ -23,12 +23,12 @@
 			{{if $.IsFollowing}}
 				<form method="post" action="{{.Link}}?action=unfollow&redirect_to={{$.Link}}">
 					{{$.CsrfTokenHtml}}
-					<button type="submit" class="ui basic red button">{{svg "octicon-organization"}} {{.locale.Tr "user.unfollow"}}</button>
+					<button type="submit" class="ui basic button">{{.locale.Tr "user.unfollow"}}</button>
 				</form>
 			{{else}}
 				<form method="post" action="{{.Link}}?action=follow&redirect_to={{$.Link}}">
 					{{$.CsrfTokenHtml}}
-					<button type="submit" class="ui basic green button">{{svg "octicon-organization"}} {{.locale.Tr "user.follow"}}</button>
+					<button type="submit" class="ui basic button">{{.locale.Tr "user.follow"}}</button>
 				</form>
 			{{end}}
 		</div>
