@@ -18,7 +18,7 @@
 					{{else if .Location}}
 						{{svg "octicon-location"}} {{.Location}}
 					{{else}}
-						{{svg "octicon-clock"}} {{$.locale.Tr "user.join_on"}} <time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time>
+						{{svg "octicon-clock"}} {{$.locale.Tr "user.join_on"}} {{DateTime "short" .CreatedUnix}}
 					{{end}}
 				</div>
 			</li>

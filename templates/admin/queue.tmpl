@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin monitor">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.monitor.queue" .Queue.Name}}
 		</h4>
@@ -25,7 +22,7 @@
 						<td>{{.Queue.ExemplarType}}</td>
 						<td>{{$sum := .Queue.NumberOfWorkers}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
 						<td>{{if lt $sum 0}}-{{else}}{{.Queue.MaxNumberOfWorkers}}{{end}}</td>
-						<td>{{$sum := .Queue.NumberInQueue}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
+						<td>{{$sum = .Queue.NumberInQueue}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
 					</tr>
 				</tbody>
 			</table>
@@ -158,8 +155,8 @@
 					{{range .Queue.Workers}}
 					<tr>
 						<td>{{.Workers}}{{if .IsFlusher}}<span title="{{$.locale.Tr "admin.monitor.queue.flush"}}">{{svg "octicon-sync"}}</span>{{end}}</td>
-						<td>{{DateFmtLong .Start}}</td>
-						<td>{{if .HasTimeout}}{{DateFmtLong .Timeout}}{{else}}-{{end}}</td>
+						<td>{{DateTime "full" .Start}}</td>
+						<td>{{if .HasTimeout}}{{DateTime "full" .Timeout}}{{else}}-{{end}}</td>
 						<td>
 							<a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Workers}}" title="{{$.locale.Tr "remove"}}">{{svg "octicon-trash"}}</a>
 						</td>
@@ -177,20 +174,19 @@
 			{{.locale.Tr "admin.monitor.queue.configuration"}}
 		</h4>
 		<div class="ui attached segment">
-			<pre>{{.Queue.Configuration | JsonPrettyPrint}}
+			<pre>{{.Queue.Configuration | JsonPrettyPrint}}</pre>
 		</div>
 	</div>
-</div>
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
-		{{svg "octicon-x" 16 "close inside"}}
+
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
 		{{.locale.Tr "admin.monitor.queue.pool.cancel"}}
 	</div>
 	<div class="content">
 		<p>{{$.locale.Tr "admin.monitor.queue.pool.cancel_notices" `<span class="name"></span>` | Safe}}</p>
 		<p>{{$.locale.Tr "admin.monitor.queue.pool.cancel_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

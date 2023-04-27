@@ -6,15 +6,13 @@ package setting
 import (
 	"path/filepath"
 	"reflect"
-
-	ini "gopkg.in/ini.v1"
 )
 
 // Storage represents configuration of storages
 type Storage struct {
 	Type        string
 	Path        string
-	Section     *ini.Section
+	Section     ConfigSection
 	ServeDirect bool
 }
 
@@ -32,7 +30,7 @@ func (s *Storage) MapTo(v interface{}) error {
 
 const storageSectionName = "storage"
 
-func getStorageSection(rootCfg ConfigProvider) *ini.Section {
+func getStorageSection(rootCfg ConfigProvider) ConfigSection {
 	storageSec := rootCfg.Section(storageSectionName)
 	// Global Defaults
 	storageSec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
@@ -51,7 +49,7 @@ func getStorageSection(rootCfg ConfigProvider) *ini.Section {
 // 2 read configurations from [storage.$name] if the item exist
 // 3 read configurations from [storage.$typ] if the item exist
 // 4 read configurations from [storage] if the item exist
-func getStorage(rootCfg ConfigProvider, name, typ string, targetSec *ini.Section) Storage {
+func getStorage(rootCfg ConfigProvider, name, typ string, targetSec ConfigSection) Storage {
 	if targetSec == nil {
 		targetSec, _ = rootCfg.NewSection(name)
 	}
@@ -60,7 +58,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, targetSec *ini.Section
 	storage.Section = targetSec
 	storage.Type = typ
 
-	overrides := make([]*ini.Section, 0, 3)
+	overrides := make([]ConfigSection, 0, 3)
 	nameSec, err := rootCfg.GetSection(storageSectionName + "." + name)
 	if err == nil {
 		overrides = append(overrides, nameSec)

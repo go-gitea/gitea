@@ -20,7 +20,7 @@
 				<div class="content">
 					<strong>{{$grant.Application.Name}}</strong>
 					<div class="activity meta">
-						<i>{{$.locale.Tr "settings.add_on"}} <span><time data-format="short-date" datetime="{{$grant.CreatedUnix.FormatLong}}">{{$grant.CreatedUnix.FormatShort}}</time></span></i>
+						<i>{{$.locale.Tr "settings.add_on"}} <span>{{DateTime "short" $grant.CreatedUnix}}</span></i>
 					</div>
 				</div>
 			</div>
@@ -28,13 +28,13 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal" id="revoke-gitea-oauth2-grant">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal" id="revoke-gitea-oauth2-grant">
+	<div class="header">
 		{{svg "octicon-shield" 16 "gt-mr-2"}}
 		{{.locale.Tr "settings.revoke_oauth2_grant"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "settings.revoke_oauth2_grant_description"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>

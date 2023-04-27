@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	ini "gopkg.in/ini.v1"
 )
 
 func Test_getStorageMultipleName(t *testing.T) {
@@ -21,7 +20,7 @@ MINIO_BUCKET = gitea-attachment
 [storage]
 MINIO_BUCKET = gitea-storage
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadAttachmentFrom(cfg))
@@ -42,7 +41,7 @@ STORAGE_TYPE = lfs
 [storage.lfs]
 MINIO_BUCKET = gitea-storage
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadAttachmentFrom(cfg))
@@ -57,7 +56,7 @@ func Test_getStorageInheritStorageType(t *testing.T) {
 [storage]
 STORAGE_TYPE = minio
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadAttachmentFrom(cfg))

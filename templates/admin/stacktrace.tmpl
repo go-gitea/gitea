@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin monitor">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.monitor.stacktrace"}}: {{.locale.Tr "admin.monitor.goroutines" .GoroutineCount}}
 			<div class="ui right">
@@ -17,17 +14,16 @@
 			</div>
 		</div>
 	</div>
-</div>
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
-		{{svg "octicon-x" 16 "close inside"}}
+
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
 		{{.locale.Tr "admin.monitor.process.cancel"}}
 	</div>
 	<div class="content">
 		<p>{{$.locale.Tr "admin.monitor.process.cancel_notices" `<span class="name"></span>` | Safe}}</p>
 		<p>{{$.locale.Tr "admin.monitor.process.cancel_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

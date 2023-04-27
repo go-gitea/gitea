@@ -4,6 +4,7 @@
 // This is primarily coped from /tests/integration/integration_test.go
 //   TODO: Move common functions to shared file
 
+//nolint:forbidigo
 package e2e
 
 import (

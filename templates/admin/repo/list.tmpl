@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin user">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.repos.repo_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 			<div class="ui right">
@@ -83,7 +80,7 @@
 							<td>{{.NumForks}}</td>
 							<td>{{.NumIssues}}</td>
 							<td>{{FileSize .Size}}</td>
-							<td><span title="{{.CreatedUnix.FormatLong}}"><time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time></span></td>
+							<td>{{DateTime "short" .CreatedUnix}}</td>
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trash"}}</a></td>
 						</tr>
 					{{end}}
@@ -93,10 +90,9 @@
 
 		{{template "base/paginate" .}}
 	</div>
-</div>
 
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "repo.settings.delete"}}
 	</div>
@@ -105,6 +101,7 @@
 		{{.locale.Tr "repo.settings.delete_notices_2" `<span class="name"></span>` | Safe}}<br>
 		{{.locale.Tr "repo.settings.delete_notices_fork_1"}}<br>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
-{{template "base/footer" .}}
+
+{{template "admin/layout_footer" .}}

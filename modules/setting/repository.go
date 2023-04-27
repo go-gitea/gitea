@@ -168,7 +168,7 @@ var (
 		Editor: struct {
 			LineWrapExtensions []string
 		}{
-			LineWrapExtensions: strings.Split(".txt,.md,.markdown,.mdown,.mkd,", ","),
+			LineWrapExtensions: strings.Split(".txt,.md,.markdown,.mdown,.mkd,.livemd,", ","),
 		},
 
 		// Repository upload settings

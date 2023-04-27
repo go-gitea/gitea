@@ -1,0 +1,61 @@
+.ui.modal.g-modal-confirm {
+  max-width: min(800px, 90vw);
+  width: fit-content;
+}
+
+.ui.modal.g-modal-confirm > .inside.close {
+  padding: 0;
+  width: 1em;
+  height: 1em;
+  top: 1.2em;
+}
+
+.ui.modal > .header {
+  /* can't use display:flex, because some headers have space-separated elements, eg: delete branch modal */
+  color: var(--color-text-dark);
+  background: var(--color-body);
+  border-color: var(--color-secondary);
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+  vertical-align: middle;
+}
+
+.ui.modal > .header .svg {
+  vertical-align: middle;
+  display: inline-block;
+}
+
+/* Gitea sometimes use a form in a modal dialog, then the "positive" button could submit the form directly */
+
+.ui.modal > .content,
+.ui.modal > form > .content {
+  background: var(--color-body);
+}
+
+.ui.modal > .actions,
+.ui.modal > form > .actions {
+  background: var(--color-secondary-bg);
+  border-color: var(--color-secondary);
+
+  /* these styles are from Fomantic UI */
+  padding: 1rem;
+  text-align: right;
+}
+
+/* positive/negative action buttons */
+.ui.modal .actions > .ui.button {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 12px 10px 10px;
+}
+
+.ui.modal .actions > .ui.button.danger {
+  display: block;
+  width: 100%;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.ui.modal .actions > .ui.button .svg {
+  margin-right: 5px;
+}

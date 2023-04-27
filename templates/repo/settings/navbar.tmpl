@@ -1,5 +1,6 @@
-<div class="ui secondary pointing tabular top attached borderless menu stackable new-menu navbar shadow-body">
-	<div class="new-menu-inner">
+<div class="four wide column">
+	<div class="ui fluid vertical menu">
+		<div class="header item">{{.locale.Tr "org.settings"}}</div>
 		<a class="{{if .PageIsSettingsOptions}}active {{end}}item" href="{{.RepoLink}}/settings">
 			{{.locale.Tr "repo.settings.options"}}
 		</a>

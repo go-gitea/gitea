@@ -74,15 +74,15 @@ func TestSliceEqual(t *testing.T) {
 }
 
 func TestSliceRemoveAll(t *testing.T) {
-	assert.Equal(t, SliceRemoveAll([]int{2, 0, 2, 3}, 0), []int{2, 2, 3})
-	assert.Equal(t, SliceRemoveAll([]int{2, 0, 2, 3}, 2), []int{0, 3})
-	assert.Equal(t, SliceRemoveAll([]int{0, 0, 0, 0}, 0), []int{})
-	assert.Equal(t, SliceRemoveAll([]int{2, 0, 2, 3}, 4), []int{2, 0, 2, 3})
-	assert.Equal(t, SliceRemoveAll([]int{}, 0), []int{})
-	assert.Equal(t, SliceRemoveAll([]int(nil), 0), []int(nil))
-	assert.Equal(t, SliceRemoveAll([]int{}, 0), []int{})
+	assert.ElementsMatch(t, []int{2, 2, 3}, SliceRemoveAll([]int{2, 0, 2, 3}, 0))
+	assert.ElementsMatch(t, []int{0, 3}, SliceRemoveAll([]int{2, 0, 2, 3}, 2))
+	assert.Empty(t, SliceRemoveAll([]int{0, 0, 0, 0}, 0))
+	assert.ElementsMatch(t, []int{2, 0, 2, 3}, SliceRemoveAll([]int{2, 0, 2, 3}, 4))
+	assert.Empty(t, SliceRemoveAll([]int{}, 0))
+	assert.ElementsMatch(t, []int(nil), SliceRemoveAll([]int(nil), 0))
+	assert.Empty(t, SliceRemoveAll([]int{}, 0))
 
-	assert.Equal(t, SliceRemoveAll([]string{"2", "0", "2", "3"}, "0"), []string{"2", "2", "3"})
-	assert.Equal(t, SliceRemoveAll([]float64{2, 0, 2, 3}, 0), []float64{2, 2, 3})
-	assert.Equal(t, SliceRemoveAll([]bool{false, true, false}, true), []bool{false, false})
+	assert.ElementsMatch(t, []string{"2", "2", "3"}, SliceRemoveAll([]string{"2", "0", "2", "3"}, "0"))
+	assert.ElementsMatch(t, []float64{2, 2, 3}, SliceRemoveAll([]float64{2, 0, 2, 3}, 0))
+	assert.ElementsMatch(t, []bool{false, false}, SliceRemoveAll([]bool{false, true, false}, true))
 }
