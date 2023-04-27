@@ -52,14 +52,40 @@ type ActionRunner struct {
 	Deleted timeutil.TimeStamp `xorm:"deleted"`
 }
 
-func (r *ActionRunner) OwnType() string {
+// RunnerType defines the runner type
+type RunnerType int //revive:disable-line:exported
+
+const (
+	// RunnerTypeGlobal defines a global runner
+	RunnerTypeGlobal RunnerType = iota
+
+	// RunnerTypeOrganization defines an organization runner
+	RunnerTypeOrganization
+
+	// RunnerTypeRepository defines a repository runner
+	RunnerTypeRepository
+)
+
+func (r *ActionRunner) Type() RunnerType {
 	if r.RepoID != 0 {
-		return fmt.Sprintf("Repo(%s)", r.Repo.FullName())
+		return RunnerTypeRepository
 	}
 	if r.OwnerID != 0 {
-		return fmt.Sprintf("Org(%s)", r.Owner.Name)
+		return RunnerTypeOrganization
 	}
-	return "Global"
+	return RunnerTypeGlobal
+}
+
+func (r RunnerType) String() string {
+	switch r {
+	case RunnerTypeGlobal:
+		return "Global"
+	case RunnerTypeOrganization:
+		return "Organization"
+	case RunnerTypeRepository:
+		return "Repository"
+	}
+	return fmt.Sprintf("Unknown Type %d", r)
 }
 
 func (r *ActionRunner) Status() runnerv1.RunnerStatus {

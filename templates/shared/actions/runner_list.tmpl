@@ -65,7 +65,7 @@
 						<td>{{.ID}}</td>
 						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
 						<td>{{.Version}}</td>
-						<td>{{.OwnType}}</td>
+						<td>{{.Type.String}}</td>
 						<td class="runner-tags">
 							{{range .AllLabels}}<span class="ui label">{{.}}</span>{{end}}
 						</td>
