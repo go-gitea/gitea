@@ -344,6 +344,24 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/packagist/{id}", web.Bind(forms.NewPackagistHookForm{}), repo.PackagistHooksEditPost)
 	}
 
+	addSettingsSecretsRoutes := func() {
+		m.Group("/secrets", func() {
+			m.Get("", repo_setting.Secrets)
+			m.Post("", web.Bind(forms.AddSecretForm{}), repo_setting.SecretsPost)
+			m.Post("/delete", repo_setting.SecretsDelete)
+		})
+	}
+
+	addSettingsRunnersRoutes := func() {
+		m.Group("/runners", func() {
+			m.Get("", repo_setting.Runners)
+			m.Combo("/{runnerid}").Get(repo_setting.RunnersEdit).
+				Post(web.Bind(forms.EditRunnerForm{}), repo_setting.RunnersEditPost)
+			m.Post("/{runnerid}/delete", repo_setting.RunnerDeletePost)
+			m.Get("/reset_registration_token", repo_setting.ResetRunnerRegistrationToken)
+		})
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
@@ -506,12 +524,10 @@ func RegisterRoutes(m *web.Route) {
 
 		m.Group("/actions", func() {
 			m.Get("", user_setting.RedirectToDefaultSetting)
-			m.Group("/secrets", func() {
-				m.Get("", user_setting.Secrets)
-				m.Post("", web.Bind(forms.AddSecretForm{}), user_setting.SecretsPost)
-				m.Post("/delete", user_setting.SecretsDelete)
-			})
-		}, actions.MustEnableActions)
+			addSettingsSecretsRoutes()
+		}, actions.MustEnableActions, func(ctx *context.Context) {
+			ctx.Data["IsUserSettings"] = true
+		})
 
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
@@ -660,13 +676,10 @@ func RegisterRoutes(m *web.Route) {
 
 		m.Group("/actions", func() {
 			m.Get("", admin.RedirectToDefaultSetting)
-			m.Group("/runners", func() {
-				m.Get("", admin.Runners)
-				m.Get("/reset_registration_token", admin.ResetRunnerRegistrationToken)
-				m.Combo("/{runnerid}").Get(admin.EditRunner).Post(web.Bind(forms.EditRunnerForm{}), admin.EditRunnerPost)
-				m.Post("/{runnerid}/delete", admin.DeleteRunnerPost)
-			})
-		}, actions.MustEnableActions)
+			addSettingsRunnersRoutes()
+		}, actions.MustEnableActions, func(ctx *context.Context) {
+			ctx.Data["IsAdminSettings"] = true
+		})
 	}, func(ctx *context.Context) {
 		ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 		ctx.Data["EnablePackages"] = setting.Packages.Enabled
@@ -854,20 +867,11 @@ func RegisterRoutes(m *web.Route) {
 
 				m.Group("/actions", func() {
 					m.Get("", org_setting.RedirectToDefaultSetting)
-					m.Group("/runners", func() {
-						m.Get("", org_setting.Runners)
-						m.Combo("/{runnerid}").Get(org_setting.RunnersEdit).
-							Post(web.Bind(forms.EditRunnerForm{}), org_setting.RunnersEditPost)
-						m.Post("/{runnerid}/delete", org_setting.RunnerDeletePost)
-						m.Get("/reset_registration_token", org_setting.ResetRunnerRegistrationToken)
-					})
-
-					m.Group("/secrets", func() {
-						m.Get("", org_setting.Secrets)
-						m.Post("", web.Bind(forms.AddSecretForm{}), org_setting.SecretsPost)
-						m.Post("/delete", org_setting.SecretsDelete)
-					})
-				}, actions.MustEnableActions)
+					addSettingsRunnersRoutes()
+					addSettingsSecretsRoutes()
+				}, actions.MustEnableActions, func(ctx *context.Context) {
+					ctx.Data["IsOrgSettings"] = true
+				})
 
 				m.RouteMethods("/delete", "GET,POST", org.SettingsDelete)
 
@@ -1051,19 +1055,11 @@ func RegisterRoutes(m *web.Route) {
 			})
 			m.Group("/actions", func() {
 				m.Get("", repo_setting.RedirectToDefaultSetting)
-				m.Group("/runners", func() {
-					m.Get("", repo_setting.Runners)
-					m.Combo("/{runnerid}").Get(repo_setting.RunnersEdit).
-						Post(web.Bind(forms.EditRunnerForm{}), repo_setting.RunnersEditPost)
-					m.Post("/{runnerid}/delete", repo_setting.RunnerDeletePost)
-					m.Get("/reset_registration_token", repo_setting.ResetRunnerRegistrationToken)
-				})
-				m.Group("/secrets", func() {
-					m.Get("", repo_setting.Secrets)
-					m.Post("", web.Bind(forms.AddSecretForm{}), repo_setting.SecretsPost)
-					m.Post("/delete", repo_setting.DeleteSecret)
-				})
-			}, actions.MustEnableActions)
+				addSettingsRunnersRoutes()
+				addSettingsSecretsRoutes()
+			}, actions.MustEnableActions, func(ctx *context.Context) {
+				ctx.Data["IsRepoSettings"] = true
+			})
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
 			ctx.Data["LFSStartServer"] = setting.LFS.StartServer
