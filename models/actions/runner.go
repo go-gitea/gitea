@@ -119,7 +119,7 @@ func (r *ActionRunner) AllLabels() []string {
 }
 
 // Editable checks if the runner is editable by the user
-func (r *ActionRunner) Editable(doer *user_model.User, owner *user_model.User, repo *repo_model.Repository) (bool, error) {
+func (r *ActionRunner) Editable(doer, owner *user_model.User, repo *repo_model.Repository) (bool, error) {
 	if doer == nil {
 		return false, nil
 	}
