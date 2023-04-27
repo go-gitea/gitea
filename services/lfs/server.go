@@ -86,6 +86,11 @@ func DownloadHandler(ctx *context.Context) {
 		return
 	}
 
+	repository := getAuthenticatedRepository(ctx, rc, true)
+	if repository == nil {
+		return
+	}
+
 	// Support resume download using Range header
 	var fromByte, toByte int64
 	toByte = meta.Size - 1
@@ -360,6 +365,11 @@ func VerifyHandler(ctx *context.Context) {
 		return
 	}
 
+	repository := getAuthenticatedRepository(ctx, rc, true)
+	if repository == nil {
+		return
+	}
+
 	contentStore := lfs_module.NewContentStore()
 	ok, err := contentStore.Verify(meta.Pointer)
 
@@ -420,6 +430,11 @@ func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requir
 
 	if !authenticate(ctx, repository, rc.Authorization, false, requireWrite) {
 		requireAuth(ctx)
+		return nil
+	}
+
+	context.CheckRepoScopedToken(ctx, repository)
+	if ctx.Written() {
 		return nil
 	}
 

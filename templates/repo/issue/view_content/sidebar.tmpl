@@ -385,7 +385,7 @@
 					<div class="gt-df gt-sb gt-ac">
 						<div class="due-date {{if .Issue.IsOverdue}}text red{{end}}" {{if .Issue.IsOverdue}}data-tooltip-content="{{.locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
 							{{svg "octicon-calendar" 16 "gt-mr-3"}}
-							{{DateTime "long" .Issue.DeadlineUnix.FormatDate .Issue.DeadlineUnix.FormatDate}}
+							{{DateTime "long" .Issue.DeadlineUnix}}
 						</div>
 						<div>
 							{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
