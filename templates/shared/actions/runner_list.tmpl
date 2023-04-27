@@ -73,6 +73,8 @@
 						<td class="runner-ops">
 							{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}
 							<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
+							{{else}}
+							<div data-tooltip-content="{{$.locale.Tr "actions.runners.no_permission_to_edit"}}">{{svg "octicon-x"}}</div>
 							{{end}}
 						</td>
 					</tr>
