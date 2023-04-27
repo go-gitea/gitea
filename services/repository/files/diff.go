@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
@@ -38,5 +39,32 @@ func GetDiffPreview(ctx context.Context, repo *repo_model.Repository, branch, tr
 	if err := t.AddObjectToIndex("100644", objectHash, treePath); err != nil {
 		return nil, err
 	}
-	return t.DiffIndex()
+	diff, err := t.DiffIndex()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(diff.Files) != 1 {
+		return diff, nil
+	}
+	if diff.Files[0].Type == gitdiff.DiffFileAdd {
+		diff.Files[0].FullFileHiglight(nil, nil, nil, []byte(content))
+		return diff, nil
+	}
+
+	commitID, err := t.GetLastCommit()
+	if err != nil {
+		log.Error("GetLastCommit: %v", err)
+		return diff, nil
+	}
+
+	commit, err := t.GetCommit(commitID)
+	if err != nil {
+		log.Error("GetCommit: %v", err)
+		return diff, nil
+	}
+
+	diff.Files[0].FullFileHiglight(commit, nil, nil, []byte(content))
+
+	return diff, nil
 }

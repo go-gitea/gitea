@@ -382,6 +382,115 @@ func (diffFile *DiffFile) GetType() int {
 	return int(diffFile.Type)
 }
 
+func (diffFile *DiffFile) FullFileHiglight(beforeCommit, commit *git.Commit, beforeContent, content []byte) {
+	if diffFile.IsBin {
+		return
+	}
+
+	preRenderAddOrDeletedFile := func(path, lang string) ([]string, string) {
+		content := ""
+
+		if len(diffFile.Sections) != 1 {
+			return nil, ""
+		}
+
+		for index, diffLine := range diffFile.Sections[0].Lines {
+			if diffLine.Type == DiffLineSection && index == 0 {
+				continue
+			}
+
+			if diffLine.Type != DiffLineAdd && diffLine.Type != DiffLineDel {
+				return nil, ""
+			}
+
+			content += diffLine.Content[1:] + "\n"
+		}
+
+		highlightedContent, lang, err := highlight.File(path, lang, []byte(content))
+		if err != nil {
+			log.Error("highlight.File: %v", err)
+			return nil, ""
+		}
+
+		return highlightedContent, lang
+	}
+
+	loadCommitFileContent := func(commit *git.Commit, path, lang string, content []byte) ([]string, string) {
+		if commit == nil && len(content) == 0 {
+			return nil, ""
+		}
+
+		if len(content) == 0 {
+			entry, err := commit.GetTreeEntryByPath(path)
+			if err != nil {
+				log.Error("GetTreeEntryByPath: %v", err)
+				return nil, ""
+			}
+
+			if entry.Blob().Size() >= setting.Git.MaxDiffHighlightFileSize {
+				return nil, ""
+			}
+
+			f, err := entry.Blob().DataAsync()
+			if err != nil {
+				log.Error("Blob.DataAsync: %v", err)
+				return nil, ""
+			}
+
+			content, err = io.ReadAll(f)
+			_ = f.Close()
+			if err != nil {
+				log.Error("io.ReadAll: %v", err)
+				return nil, ""
+			}
+		}
+
+		highlightedContent, lang, err := highlight.File(path, lang, content)
+		if err != nil {
+			log.Error("highlight.File: %v", err)
+			return nil, ""
+		}
+
+		return highlightedContent, lang
+	}
+
+	var (
+		oldContent []string
+		newContent []string
+	)
+
+	if diffFile.Type == DiffFileDel {
+		oldContent, diffFile.Language = preRenderAddOrDeletedFile(diffFile.OldName, diffFile.Language)
+	} else if diffFile.Type == DiffFileAdd {
+		newContent, diffFile.Language = preRenderAddOrDeletedFile(diffFile.Name, diffFile.Language)
+	} else if diffFile.Type == DiffFileChange {
+		oldContent, _ = loadCommitFileContent(beforeCommit, diffFile.OldName, diffFile.Language, beforeContent)
+		newContent, diffFile.Language = loadCommitFileContent(commit, diffFile.Name, diffFile.Language, content)
+	} else {
+		return
+	}
+
+	for _, diffSection := range diffFile.Sections {
+		for _, diffLine := range diffSection.Lines {
+			switch diffLine.Type {
+			case DiffLineAdd:
+				fallthrough
+			case DiffLinePlain:
+				if diffLine.RightIdx > 0 && diffLine.RightIdx <= len(newContent) {
+					diffLine.HighlightContent = newContent[diffLine.RightIdx-1]
+					diffLine.HasHighlightContent = true
+				}
+
+			case DiffLineDel:
+				if diffLine.LeftIdx > 0 && diffLine.LeftIdx <= len(oldContent) {
+					diffLine.HighlightContent = oldContent[diffLine.LeftIdx-1]
+					diffLine.HasHighlightContent = true
+				}
+			}
+		}
+	}
+}
+
 // GetTailSection creates a fake DiffLineSection if the last section is not the end of the file
 func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommitID, rightCommitID string) *DiffSection {
 	if len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange || diffFile.IsBin || diffFile.IsLFSFile {
@@ -1081,67 +1190,6 @@ type DiffOptions struct {
 // Passing the empty string as beforeCommitID returns a diff from the parent commit.
 // The whitespaceBehavior is either an empty string or a git flag
 func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
-	preRenderAddOrDeletedFile := func(diffFile *DiffFile, path, lang string) ([]string, string) {
-		content := ""
-
-		if len(diffFile.Sections) != 1 {
-			return nil, ""
-		}
-
-		for index, diffLine := range diffFile.Sections[0].Lines {
-			if diffLine.Type == DiffLineSection && index == 0 {
-				continue
-			}
-
-			if diffLine.Type != DiffLineAdd && diffLine.Type != DiffLineDel {
-				return nil, ""
-			}
-
-			content += diffLine.Content[1:] + "\n"
-		}
-
-		highlightedContent, lang, err := highlight.File(path, lang, []byte(content))
-		if err != nil {
-			log.Error("highlight.File: %v", err)
-			return nil, ""
-		}
-
-		return highlightedContent, lang
-	}
-
-	loadCommitFileContent := func(commit *git.Commit, path, lang string) ([]string, string) {
-		entry, err := commit.GetTreeEntryByPath(path)
-		if err != nil {
-			log.Error("GetTreeEntryByPath: %v", err)
-			return nil, ""
-		}
-
-		if entry.Blob().Size() >= setting.Git.MaxDiffHighlightFileSize {
-			return nil, ""
-		}
-
-		f, err := entry.Blob().DataAsync()
-		if err != nil {
-			log.Error("Blob.DataAsync: %v", err)
-			return nil, ""
-		}
-
-		content, err := io.ReadAll(f)
-		_ = f.Close()
-		if err != nil {
-			log.Error("io.ReadAll: %v", err)
-			return nil, ""
-		}
-
-		highlightedContent, lang, err := highlight.File(path, lang, content)
-		if err != nil {
-			log.Error("highlight.File: %v", err)
-			return nil, ""
-		}
-
-		return highlightedContent, lang
-	}
-
 	repoPath := gitRepo.Path
 
 	commit, err := gitRepo.GetCommit(opts.AfterCommitID)
@@ -1259,45 +1307,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
 
-		var (
-			oldContent []string
-			newContent []string
-		)
-
-		if diffFile.IsBin {
-			continue
-		}
-
-		if diffFile.Type == DiffFileDel {
-			oldContent, diffFile.Language = preRenderAddOrDeletedFile(diffFile, diffFile.OldName, diffFile.Language)
-		} else if diffFile.Type == DiffFileAdd {
-			newContent, diffFile.Language = preRenderAddOrDeletedFile(diffFile, diffFile.Name, diffFile.Language)
-		} else if diffFile.Type == DiffFileChange && beforeCommit != nil {
-			oldContent, _ = loadCommitFileContent(beforeCommit, diffFile.OldName, diffFile.Language)
-			newContent, diffFile.Language = loadCommitFileContent(commit, diffFile.Name, diffFile.Language)
-		} else {
-			continue
-		}
-
-		for _, diffSection := range diffFile.Sections {
-			for _, diffLine := range diffSection.Lines {
-				switch diffLine.Type {
-				case DiffLineAdd:
-					fallthrough
-				case DiffLinePlain:
-					if diffLine.RightIdx > 0 && diffLine.RightIdx <= len(newContent) {
-						diffLine.HighlightContent = newContent[diffLine.RightIdx-1]
-						diffLine.HasHighlightContent = true
-					}
-
-				case DiffLineDel:
-					if diffLine.LeftIdx > 0 && diffLine.LeftIdx <= len(oldContent) {
-						diffLine.HighlightContent = oldContent[diffLine.LeftIdx-1]
-						diffLine.HasHighlightContent = true
-					}
-				}
-			}
-		}
+		diffFile.FullFileHiglight(beforeCommit, commit, nil, nil)
 	}
 
 	separator := "..."
