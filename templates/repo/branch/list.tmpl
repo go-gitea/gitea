@@ -5,11 +5,11 @@
 		{{template "base/alert" .}}
 		{{template "repo/sub_menu" .}}
 		{{if .DefaultBranchBranch}}
-			<h4 class="ui top attached header gt-mt-4">
+			<h4 class="ui top attached header gt-mt-4 gt-df gt-ac gt-sb">
 				{{.locale.Tr "repo.default_branch"}}
 				{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-				<a role="button" class="right" href="{{.RepoLink}}/settings/branches" data-tooltip-content="{{.locale.Tr "repo.settings.branches.switch_default_branch"}}">
-					{{svg "octicon-arrow-switch" 16 "gt-h-100"}}
+				<a role="button" href="{{.RepoLink}}/settings/branches" data-tooltip-content="{{.locale.Tr "repo.settings.branches.switch_default_branch"}}">
+					{{svg "octicon-arrow-switch"}}
 				</a>
 				{{end}}
 			</h4>
