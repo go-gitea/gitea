@@ -28,6 +28,7 @@
 @import "./install.css";
 @import "./form.css";
 @import "./repository.css";
+@import "./repository-release-tag.css";
 @import "./editor.css";
 @import "./organization.css";
 @import "./user.css";
