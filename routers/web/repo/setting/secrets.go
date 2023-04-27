@@ -31,7 +31,7 @@ type secretsCtx struct {
 }
 
 func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
-	if is, ok := ctx.Data["IsRepoSettings"]; ok && is.(bool) {
+	if ctx.Data["IsRepoSettings"] == true {
 		return &secretsCtx{
 			OwnerID:         0,
 			RepoID:          ctx.Repo.Repository.ID,
@@ -41,7 +41,7 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 		}, nil
 	}
 
-	if is, ok := ctx.Data["IsOrgSettings"]; ok && is.(bool) {
+	if ctx.Data["IsOrgSettings"] == true {
 		return &secretsCtx{
 			OwnerID:         ctx.ContextUser.ID,
 			RepoID:          0,
@@ -51,7 +51,7 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 		}, nil
 	}
 
-	if is, ok := ctx.Data["IsUserSettings"]; ok && is.(bool) {
+	if ctx.Data["IsUserSettings"] == true {
 		return &secretsCtx{
 			OwnerID:         ctx.Doer.ID,
 			RepoID:          0,

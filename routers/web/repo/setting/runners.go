@@ -38,7 +38,7 @@ type runnersCtx struct {
 }
 
 func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
-	if is, ok := ctx.Data["IsRepoSettings"]; ok && is.(bool) {
+	if ctx.Data["IsRepoSettings"] == true {
 		return &runnersCtx{
 			RepoID:             ctx.Repo.Repository.ID,
 			OwnerID:            0,
@@ -49,7 +49,7 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 		}, nil
 	}
 
-	if is, ok := ctx.Data["IsOrgSettings"]; ok && is.(bool) {
+	if ctx.Data["IsOrgSettings"] == true {
 		return &runnersCtx{
 			RepoID:             0,
 			OwnerID:            ctx.Org.Organization.ID,
@@ -60,7 +60,7 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 		}, nil
 	}
 
-	if is, ok := ctx.Data["IsAdminSettings"]; ok && is.(bool) {
+	if ctx.Data["IsAdminSettings"] == true {
 		return &runnersCtx{
 			RepoID:             0,
 			OwnerID:            0,
