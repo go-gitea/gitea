@@ -2,6 +2,7 @@
 Gitea's tailwind-style CSS helper classes have `gt-` prefix.
 Gitea's private styles use `g-` prefix.
 */
+.gt-db { display: block !important; }
 .gt-df { display: flex !important; }
 .gt-di { display: inline !important; }
 .gt-dif { display: inline-flex !important; }
@@ -40,6 +41,23 @@ Gitea's private styles use `g-` prefix.
   overflow: hidden !important;
   white-space: nowrap !important;
   text-overflow: ellipsis !important;
+}
+
+
+.g-table-auto-ellipsis td.auto-ellipsis {
+  position: relative;
+}
+
+.g-table-auto-ellipsis td.auto-ellipsis span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  padding: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* below class names match Tailwind CSS */

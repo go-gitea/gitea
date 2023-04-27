@@ -13,7 +13,7 @@
 				</div>
 				<div class="field gt-dib gt-mr-4 disabled">
 					<label>{{.locale.Tr "actions.runners.last_online"}}</label>
-					<span>{{TimeSinceUnix .Runner.LastOnline $.locale}}</span>
+					<span>{{if .LastOnline}}{{TimeSinceUnix .LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</span>
 				</div>
 				<div class="field gt-dib gt-mr-4 disabled">
 					<label>{{.locale.Tr "actions.runners.agent_labels"}}</label>
