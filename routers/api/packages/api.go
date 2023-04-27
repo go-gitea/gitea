@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -36,6 +37,32 @@ import (
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
+		if ctx.Data["IsApiToken"] == true {
+			scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+			if ok { // it's a personal access token but not oauth2 token
+				scopeMatched := false
+				var err error
+				if accessMode == perm.AccessModeRead {
+					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeReadPackage)
+					if err != nil {
+						ctx.Error(http.StatusInternalServerError, "HasScope", err.Error())
+						return
+					}
+				} else if accessMode == perm.AccessModeWrite {
+					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeWritePackage)
+					if err != nil {
+						ctx.Error(http.StatusInternalServerError, "HasScope", err.Error())
+						return
+					}
+				}
+				if !scopeMatched {
+					ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
+					ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
+					return
+				}
+			}
+		}
+
 		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
 			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
 			ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
