@@ -10,8 +10,14 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Require repo scope for PATs for private repos and basic authentication (#24362) (#24364)
   * Only delete secrets belonging to its owner (#24284) (#24286)
 * API
+  * Fix typo in API route (#24310) (#24332)
   * Fix access token issue on some public endpoints (#24194) (#24259)
 * ENHANCEMENTS
+  * Fix broken clone script on an empty archived repo (#24339) (#24348)
+  * Fix Monaco IOS keyboard button (#24341) (#24347)
+  * Don't set meta `theme-color` by default (#24340) (#24346)
+  * Wrap too long push mirror addresses (#21120) (#24334)
+  * Add --font-weight-bold and set previous bold to 601 (#24307) (#24331)
   * Unify nightly naming across binaries and docker images (#24116) (#24308)
   * Fix footer display (#24251) (#24269)
   * Fix label color, fix divider in dropdown (#24215) (#24244)
@@ -20,6 +26,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Sort repo topic labels by name (#24123) (#24153)
   * Highlight selected file in the PR file tree (#23947) (#24126)
 * BUGFIXES
+  * Fix wrong error info in RepoRefForAPI (#24344) (#24351)
+  * Fix no edit/close/delete button in org repo project view page (#24349)
+  * Respect the REGISTER_MANUAL_CONFIRM setting when registering via OIDC (#24035) (#24333)
   * Remove org users who belong to no teams (#24247) (#24313)
   * Fix bug when deleting wiki with no code write permission (#24274) (#24295)
   * Handle canceled workflow as a warning instead of a fail (#24282) (#24292)
