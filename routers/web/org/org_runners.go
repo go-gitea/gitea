@@ -34,7 +34,7 @@ func Runners(ctx *context.Context) {
 		WithAvailable: true,
 	}
 
-	actions_shared.RunnersList(ctx, tplSettingsRunners, opts)
+	actions_shared.RunnersList(ctx, tplSettingsRunners, opts, ctx.Org.Organization.AsUser(), nil)
 }
 
 // ResetRunnerRegistrationToken reset runner registration token
@@ -54,9 +54,7 @@ func RunnersEdit(ctx *context.Context) {
 		page = 1
 	}
 
-	actions_shared.RunnerDetails(ctx, tplSettingsRunnersEdit, page,
-		ctx.ParamsInt64(":runnerid"), ctx.Org.Organization.ID, 0,
-	)
+	actions_shared.RunnerDetails(ctx, tplSettingsRunnersEdit, page, ctx.ParamsInt64(":runnerid"), ctx.Org.Organization.AsUser(), nil)
 }
 
 // RunnersEditPost response for editing runner
@@ -65,8 +63,7 @@ func RunnersEditPost(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsRunners"] = true
 	actions_shared.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"),
-		ctx.Org.Organization.ID, 0,
-		ctx.Org.OrgLink+"/settings/runners/"+url.PathEscape(ctx.Params(":runnerid")))
+		ctx.Org.OrgLink+"/settings/runners/"+url.PathEscape(ctx.Params(":runnerid")), ctx.Org.Organization.AsUser(), nil)
 }
 
 // RunnerDeletePost response for deleting runner

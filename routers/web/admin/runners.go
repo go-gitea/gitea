@@ -39,7 +39,7 @@ func Runners(ctx *context.Context) {
 		Filter: ctx.Req.URL.Query().Get("q"),
 	}
 
-	actions_shared.RunnersList(ctx, tplRunners, opts)
+	actions_shared.RunnersList(ctx, tplRunners, opts, nil, nil)
 }
 
 // EditRunner show editing runner page
@@ -53,7 +53,7 @@ func EditRunner(ctx *context.Context) {
 		page = 1
 	}
 
-	actions_shared.RunnerDetails(ctx, tplRunnerEdit, page, ctx.ParamsInt64(":runnerid"), 0, 0)
+	actions_shared.RunnerDetails(ctx, tplRunnerEdit, page, ctx.ParamsInt64(":runnerid"), nil, nil)
 }
 
 // EditRunnerPost response for editing runner
@@ -61,8 +61,8 @@ func EditRunnerPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.runners.edit")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRunners"] = true
-	actions_shared.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"), 0, 0,
-		setting.AppSubURL+"/admin/runners/"+url.PathEscape(ctx.Params(":runnerid")))
+	actions_shared.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"),
+		setting.AppSubURL+"/admin/runners/"+url.PathEscape(ctx.Params(":runnerid")), nil, nil)
 }
 
 // DeleteRunnerPost response for deleting a runner

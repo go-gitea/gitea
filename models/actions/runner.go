@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -50,6 +51,30 @@ type ActionRunner struct {
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
 	Deleted timeutil.TimeStamp `xorm:"deleted"`
+}
+
+// RunnerType defines the runner type
+type RunnerType int //revive:disable-line:exported
+
+const (
+	// RunnerTypeGlobal defines a global runner
+	RunnerTypeGlobal RunnerType = iota
+
+	// RunnerTypeOrganization defines an organization runner
+	RunnerTypeOrganization
+
+	// RunnerTypeRepository defines a repository runner
+	RunnerTypeRepository
+)
+
+func (r *ActionRunner) Type() RunnerType {
+	if r.RepoID != 0 {
+		return RunnerTypeRepository
+	}
+	if r.OwnerID != 0 {
+		return RunnerTypeOrganization
+	}
+	return RunnerTypeRepository
 }
 
 func (r *ActionRunner) OwnType() string {
@@ -94,14 +119,40 @@ func (r *ActionRunner) AllLabels() []string {
 }
 
 // Editable checks if the runner is editable by the user
-func (r *ActionRunner) Editable(ownerID, repoID int64) bool {
-	if ownerID == 0 && repoID == 0 {
-		return true
+func (r *ActionRunner) Editable(doer *user_model.User, owner *user_model.User, repo *repo_model.Repository) (bool, error) {
+	if doer == nil {
+		return false, nil
 	}
-	if ownerID > 0 && r.OwnerID == ownerID {
-		return true
+
+	// global runner in admin settings
+	if doer.IsAdmin {
+		return true, nil
 	}
-	return repoID > 0 && r.RepoID == repoID
+
+	if repo != nil {
+		// repo runner in repo runners list
+		if r.Type() == RunnerTypeRepository && r.RepoID == repo.ID {
+			return true, nil
+		}
+
+		if err := repo.LoadOwner(db.DefaultContext); err != nil {
+			return false, err
+		}
+		// org runner in repo runners list
+		if r.Type() == RunnerTypeOrganization && repo.Owner.IsOrganization() {
+			isOrgOwner, err := (*organization.Organization)(repo.Owner).IsOwnedBy(doer.ID)
+			if err != nil {
+				return false, err
+			}
+			return repo.OwnerID == r.OwnerID && isOrgOwner, nil
+		}
+	}
+
+	if owner == nil {
+		return false, nil
+	}
+	// org runner in org runners list
+	return r.Type() == RunnerTypeOrganization && r.OwnerID == owner.ID && owner.IsOrganization(), nil
 }
 
 // LoadAttributes loads the attributes of the runner

@@ -38,7 +38,7 @@ func Runners(ctx *context.Context) {
 		WithAvailable: true,
 	}
 
-	actions_shared.RunnersList(ctx, tplRunners, opts)
+	actions_shared.RunnersList(ctx, tplRunners, opts, nil, ctx.Repo.Repository)
 }
 
 func RunnersEdit(ctx *context.Context) {
@@ -49,17 +49,14 @@ func RunnersEdit(ctx *context.Context) {
 		page = 1
 	}
 
-	actions_shared.RunnerDetails(ctx, tplRunnerEdit, page,
-		ctx.ParamsInt64(":runnerid"), 0, ctx.Repo.Repository.ID,
-	)
+	actions_shared.RunnerDetails(ctx, tplRunnerEdit, page, ctx.ParamsInt64(":runnerid"), nil, ctx.Repo.Repository)
 }
 
 func RunnersEditPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.runners")
 	ctx.Data["PageIsSettingsRunners"] = true
 	actions_shared.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"),
-		0, ctx.Repo.Repository.ID,
-		ctx.Repo.RepoLink+"/settings/runners/"+url.PathEscape(ctx.Params(":runnerid")))
+		ctx.Repo.RepoLink+"/settings/runners/"+url.PathEscape(ctx.Params(":runnerid")), nil, ctx.Repo.Repository)
 }
 
 func ResetRunnerRegistrationToken(ctx *context.Context) {

@@ -10,6 +10,8 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -19,7 +21,7 @@ import (
 )
 
 // RunnersList render common runners list page
-func RunnersList(ctx *context.Context, tplName base.TplName, opts actions_model.FindRunnerOptions) {
+func RunnersList(ctx *context.Context, tplName base.TplName, opts actions_model.FindRunnerOptions, owner *user.User, repo *repo.Repository) {
 	count, err := actions_model.CountRunners(ctx, opts)
 	if err != nil {
 		ctx.ServerError("CountRunners", err)
@@ -54,8 +56,8 @@ func RunnersList(ctx *context.Context, tplName base.TplName, opts actions_model.
 	ctx.Data["Runners"] = runners
 	ctx.Data["Total"] = count
 	ctx.Data["RegistrationToken"] = token.Token
-	ctx.Data["RunnerOnwerID"] = opts.OwnerID
-	ctx.Data["RunnerRepoID"] = opts.RepoID
+	ctx.Data["RunnerOwner"] = owner
+	ctx.Data["RunnerRepo"] = repo
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	ctx.Data["Page"] = pager
@@ -64,7 +66,7 @@ func RunnersList(ctx *context.Context, tplName base.TplName, opts actions_model.
 }
 
 // RunnerDetails render runner details page
-func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerID, ownerID, repoID int64) {
+func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerID int64, owner *user.User, repo *repo.Repository) {
 	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
 	if err != nil {
 		ctx.ServerError("GetRunnerByID", err)
@@ -74,7 +76,10 @@ func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerI
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
-	if !runner.Editable(ownerID, repoID) {
+	if editable, err := runner.Editable(ctx.Doer, owner, repo); err != nil {
+		ctx.ServerError("Editable", err)
+		return
+	} else if !editable {
 		err = errors.New("no permission to edit this runner")
 		ctx.NotFound("RunnerDetails", err)
 		return
@@ -116,14 +121,17 @@ func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerI
 }
 
 // RunnerDetailsEditPost response for edit runner details
-func RunnerDetailsEditPost(ctx *context.Context, runnerID, ownerID, repoID int64, redirectTo string) {
+func RunnerDetailsEditPost(ctx *context.Context, runnerID int64, redirectTo string, owner *user.User, repo *repo.Repository) {
 	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
 	if err != nil {
 		log.Warn("RunnerDetailsEditPost.GetRunnerByID failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.ServerError("RunnerDetailsEditPost.GetRunnerByID", err)
 		return
 	}
-	if !runner.Editable(ownerID, repoID) {
+	if editable, err := runner.Editable(ctx.Doer, owner, repo); err != nil {
+		ctx.ServerError("Editable", err)
+		return
+	} else if !editable {
 		ctx.NotFound("RunnerDetailsEditPost.Editable", util.NewPermissionDeniedErrorf("no permission to edit this runner"))
 		return
 	}
