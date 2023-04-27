@@ -40,6 +40,11 @@
 										</div>
 									</button>
 								{{end}}
+								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not .IsProtected)}}
+									<button class="ui basic jump button icon show-rename-branch-modal" data-tooltip-content="{{$.locale.Tr "repo.branch.rename" ($.DefaultBranch)}}" data-old-branch-name="{{$.DefaultBranch}}">
+										{{svg "octicon-pencil"}}
+									</button>
+								{{end}}
 							</td>
 						</tr>
 					</tbody>
@@ -132,6 +137,11 @@
 												</div>
 											</button>
 										{{end}}
+										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not .IsProtected)}}
+											<button class="ui basic jump button icon show-rename-branch-modal" data-tooltip-content="{{$.locale.Tr "repo.branch.rename" (.Name)}}" data-old-branch-name="{{.Name}}">
+												{{svg "octicon-pencil"}}
+											</button>
+										{{end}}
 										{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
 											{{if .IsDeleted}}
 												<button class="ui basic jump button icon undo-button" data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID}}&name={{.DeletedBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.restore" (.Name)}}">
@@ -189,6 +199,31 @@
 			<div class="text right actions">
 				<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
 				<button class="ui green button">{{.locale.Tr "repo.branch.confirm_create_branch"}}</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<div class="ui small modal" id="rename-branch-modal">
+	<div class="header">
+		{{.locale.Tr "repo.settings.rename_branch"}}
+	</div>
+	<div class="content">
+		<form class="ui form" id="rename-branch-form" action="{{$.Repository.Link}}/settings/rename_branch" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="field">
+				<label>
+					<span class="text" id="modal-rename-branch-to-span"></span>
+				</label>
+			</div>
+			<input id="from" name="from" value="" type="hidden" required>
+			<div class="required field{{if .Err_BranchName}} error{{end}}">
+				<input id="to" name="to" required>
+			</div>
+
+			<div class="text right actions">
+				<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
+				<button class="ui green button">{{.locale.Tr "repo.branch.confirm_rename_branch"}}</button>
 			</div>
 		</form>
 	</div>
