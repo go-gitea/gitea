@@ -41,17 +41,18 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 	return pointer.Oid
 }
 
-func storeAndGetLfsToken(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStatus int) *httptest.ResponseRecorder {
+func storeAndGetLfsToken(t *testing.T, ts auth.AccessTokenScope, content *[]byte, extraHeader *http.Header, expectedStatus int) *httptest.ResponseRecorder {
 	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "repo1")
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)
 	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
 
-	token := getUserToken(t, "user2", auth.AccessTokenScope(auth.AccessTokenScopePublicRepo))
+	token := getUserToken(t, "user2", ts)
 
 	// Request OID
-	req := NewRequest(t, "GET", "/user2/repo1.git/info/lfs/objects/"+oid+"/test?token="+token)
+	req := NewRequest(t, "GET", "/user2/repo1.git/info/lfs/objects/"+oid+"/test")
 	req.Header.Set("Accept-Encoding", "gzip")
+	req.SetBasicAuth("user2", token)
 	if extraHeader != nil {
 		for key, values := range *extraHeader {
 			for _, value := range values {
@@ -118,8 +119,15 @@ func TestGetLFSSmallToken(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	content := []byte("A very small file\n")
 
-	resp := storeAndGetLfsToken(t, &content, nil, http.StatusOK)
+	resp := storeAndGetLfsToken(t, auth.AccessTokenScope(auth.AccessTokenScopePublicRepo), &content, nil, http.StatusOK)
 	checkResponseTestContentEncoding(t, &content, resp, false)
+}
+
+func TestGetLFSSmallTokenFail(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	content := []byte("A very small file\n")
+
+	storeAndGetLfsToken(t, auth.AccessTokenScope(auth.AccessTokenScopeNotification), &content, nil, http.StatusForbidden)
 }
 
 func TestGetLFSLarge(t *testing.T) {
