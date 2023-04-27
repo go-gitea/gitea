@@ -30,5 +30,5 @@ func loadActionsFrom(rootCfg ConfigProvider) {
 	storageType := actionsSec.Key("STORAGE_TYPE").MustString("")
 
 	Actions.Storage = getStorage(rootCfg, "actions_log", "", nil)
-	Actions.Artifacts = getStorage(rootCfg, "actions_artifacts", storageType, nil)
+	Actions.Artifacts = getStorage(rootCfg, "actions_artifacts", storageType, actionsSec)
 }

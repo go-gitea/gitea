@@ -1,4 +1,4 @@
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 // This artifact server is inspired by https://github.com/nektos/act/blob/master/pkg/artifacts/server.go.
@@ -38,8 +38,8 @@ type ActionArtifact struct {
 	FileGzipSize     int64              // The size of the artifact in bytes after gzip compression
 	ContentEncnoding string             // The content encoding of the artifact
 	ArtifactPath     string             // The path to the artifact when runner uploads it
-	ArtifactName     string             `xorm:"unique(run-id-name)"` // The name of the artifact when runner uploads it
-	UploadStatus     int64              `xorm:"index"`               // The status of the artifact upload
+	ArtifactName     string             `xorm:"UNIQUE(runid_name)"` // The name of the artifact when runner uploads it
+	UploadStatus     int64              `xorm:"index"`              // The status of the artifact upload
 	Created          timeutil.TimeStamp `xorm:"created"`
 	Updated          timeutil.TimeStamp `xorm:"updated index"`
 }
