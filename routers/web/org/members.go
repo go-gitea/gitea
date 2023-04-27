@@ -62,6 +62,7 @@ func Members(ctx *context.Context) {
 	}
 	ctx.Data["Page"] = pager
 	ctx.Data["Members"] = members
+	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["MembersIsPublicMember"] = membersIsPublic
 	ctx.Data["MembersIsUserOrgOwner"] = organization.IsUserOrgOwner(members, org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus()

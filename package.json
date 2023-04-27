@@ -65,6 +65,7 @@
     "eslint-plugin-import": "2.27.5",
     "eslint-plugin-jquery": "1.5.1",
     "eslint-plugin-no-jquery": "2.7.0",
+    "eslint-plugin-regexp": "1.14.0",
     "eslint-plugin-sonarjs": "0.19.0",
     "eslint-plugin-unicorn": "46.0.0",
     "eslint-plugin-vue": "9.11.0",

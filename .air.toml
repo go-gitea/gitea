@@ -4,6 +4,7 @@ tmp_dir = ".air"
 [build]
 cmd = "make backend"
 bin = "gitea"
+delay = 1000
 include_ext = ["go", "tmpl"]
 include_file = ["main.go"]
 include_dir = ["cmd", "models", "modules", "options", "routers", "services"]

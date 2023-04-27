@@ -139,10 +139,8 @@ func NewFuncMap() []template.FuncMap {
 		"CountFmt":      base.FormatNumberSI,
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
+		"DateTime":      timeutil.DateTime,
 		"Sec2Time":      util.SecToTime,
-		"DateFmtLong": func(t time.Time) string {
-			return t.Format(time.RFC3339)
-		},
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
@@ -181,7 +179,7 @@ func NewFuncMap() []template.FuncMap {
 			return setting.UI.DefaultShowFullName
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
-			return setting.ShowFooterTemplateLoadTime
+			return setting.Other.ShowFooterTemplateLoadTime
 		},
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions

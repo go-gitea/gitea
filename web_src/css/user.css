@@ -1,6 +1,6 @@
 .user.profile .ui.card .header {
   display: block;
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   font-size: 1.3rem;
   margin-top: -0.2rem;
   line-height: 1.3rem;

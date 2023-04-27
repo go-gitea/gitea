@@ -4,12 +4,12 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.helm.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>helm repo add gitea <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/helm"></gitea-origin-url>
+				<div class="markup"><pre class="code-block"><code>helm repo add {{AppDomain}} <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/helm"></gitea-origin-url>
 helm repo update</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.helm.install"}}</label>
-				<div class="markup"><pre class="code-block"><code>helm install {{.PackageDescriptor.Package.Name}} gitea/{{.PackageDescriptor.Package.Name}}</code></pre></div>
+				<div class="markup"><pre class="code-block"><code>helm install {{.PackageDescriptor.Package.Name}} {{AppDomain}}/{{.PackageDescriptor.Package.Name}}</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{.locale.Tr "packages.helm.documentation" | Safe}}</label>

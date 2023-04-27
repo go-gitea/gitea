@@ -26,7 +26,7 @@
 }
 
 .image-diff-container .diff-side-by-side .side .side-header {
-  font-weight: bold;
+  font-weight: var(--font-weight-bold);
 }
 
 .image-diff-container .diff-swipe {
