@@ -8,6 +8,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 * SECURITY
   * Require repo scope for PATs for private repos and basic authentication (#24362) (#24364)
+  * Only delete secrets belonging to its owner (#24284) (#24286)
 * API
   * Fix access token issue on some public endpoints (#24194) (#24259)
 * ENHANCEMENTS
@@ -23,7 +24,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix bug when deleting wiki with no code write permission (#24274) (#24295)
   * Handle canceled workflow as a warning instead of a fail (#24282) (#24292)
   * Load reviewer for comments when dismissing a review (#24281) (#24288)
-  * Only delete secrets belonging to its owner (#24284) (#24286)
   * Show commit history for closed/merged PRs (#24238) (#24261)
   * Fix owner team access mode value in team_unit table (#24224)
   * Fix issue attachment handling (#24202) (#24221)
@@ -39,9 +39,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix mismatch between hook events and github event types (#24048) (#24091)
 * BUILD
   * Support converting varchar to nvarchar for mssql database (#24105) (#24168)
-* MISC
-  * Upgrade act (#24298) (#24300)
-  * Set EasyMDE heading font-size to the same size as the resulting markdown (#24151) (#24152)
 
 ## [1.19.1](https://github.com/go-gitea/gitea/releases/tag/v1.19.1) - 2023-04-12
 
