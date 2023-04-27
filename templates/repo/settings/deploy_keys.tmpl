@@ -60,7 +60,7 @@
 									{{.Fingerprint}}
 								</div>
 								<div class="activity meta">
-									<i>{{$.locale.Tr "settings.add_on"}} <span>{{DateTime "short" .CreatedUnix}}</span> —  {{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateTime "short" .UpdatedUnix.FormatLong .UpdatedUnix.FormatShort}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}} - <span>{{$.locale.Tr "settings.can_read_info"}}{{if not .IsReadOnly}} / {{$.locale.Tr "settings.can_write_info"}} {{end}}</span></i>
+									<i>{{$.locale.Tr "settings.add_on"}} <span>{{DateTime "short" .CreatedUnix}}</span> —  {{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}} - <span>{{$.locale.Tr "settings.can_read_info"}}{{if not .IsReadOnly}} / {{$.locale.Tr "settings.can_write_info"}} {{end}}</span></i>
 								</div>
 							</div>
 						</div>

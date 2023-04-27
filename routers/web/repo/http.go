@@ -19,7 +19,7 @@ import (
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/auth"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -152,13 +152,18 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			return
 		}
 
+		context.CheckRepoScopedToken(ctx, repo)
+		if ctx.Written() {
+			return
+		}
+
 		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true && ctx.Data["IsActionsToken"] != true {
-			_, err = auth.GetTwoFactorByUID(ctx.Doer.ID)
+			_, err = auth_model.GetTwoFactorByUID(ctx.Doer.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
 				ctx.PlainText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
 				return
-			} else if !auth.IsErrTwoFactorNotEnrolled(err) {
+			} else if !auth_model.IsErrTwoFactorNotEnrolled(err) {
 				ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
 				return
 			}
