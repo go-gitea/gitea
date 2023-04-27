@@ -14,6 +14,20 @@ type swaggerResponseServerVersion struct {
 	Body api.ServerVersion `json:"body"`
 }
 
+// GitignoreTemplateList
+// swagger:response GitignoreTemplateList
+type swaggerResponseGitignoreTemplateList struct {
+	// in:body
+	Body []string `json:"body"`
+}
+
+// GitignoreTemplateInfo
+// swagger:response GitignoreTemplateInfo
+type swaggerResponseGitignoreTemplateInfo struct {
+	// in:body
+	Body api.GitignoreTemplateInfo `json:"body"`
+}
+
 // LicenseTemplateList
 // swagger:response LicenseTemplateList
 type swaggerResponseLicensesTemplateList struct {

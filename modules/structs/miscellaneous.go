@@ -72,6 +72,12 @@ type ServerVersion struct {
 	Version string `json:"version"`
 }
 
+// GitignoreTemplateInfo name and text of a gitignore template
+type GitignoreTemplateInfo struct {
+	Name   string `json:"name"`
+	Source string `json:"source"`
+}
+
 // LicensesListEntry is used for the API
 type LicensesTemplateListEntry struct {
 	Key  string `json:"key"`
