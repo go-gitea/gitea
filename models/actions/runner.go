@@ -74,7 +74,7 @@ func (r *ActionRunner) Type() RunnerType {
 	if r.OwnerID != 0 {
 		return RunnerTypeOrganization
 	}
-	return RunnerTypeRepository
+	return RunnerTypeGlobal
 }
 
 func (r *ActionRunner) OwnType() string {
