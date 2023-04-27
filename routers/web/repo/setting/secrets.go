@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	// TODO: Separate secrets from runners when layout is ready
 	tplRepoSecrets base.TplName = "repo/settings/actions"
 	tplOrgSecrets  base.TplName = "org/settings/actions"
 	tplUserSecrets base.TplName = "user/settings/actions"
