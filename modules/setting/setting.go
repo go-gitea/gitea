@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 )
@@ -213,23 +212,6 @@ func Init(opts *Options) {
 	if err != nil {
 		log.Fatal("Init[%v]: %v", opts, err)
 	}
-}
-
-// InitProviderAndLoadCommonSettingsForTest initializes config provider and load common setttings for tests
-func InitProviderAndLoadCommonSettingsForTest(extraConfigs ...string) {
-	Init(&Options{
-		AllowEmpty:  true,
-		ExtraConfig: strings.Join(extraConfigs, "\n"),
-	})
-
-	loadCommonSettingsFrom(CfgProvider)
-	if err := PrepareAppDataPath(); err != nil {
-		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
-	}
-	// register the dummy hash algorithm function used in the test fixtures
-	_ = hash.Register("dummy", hash.NewDummyHasher)
-
-	PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
 }
 
 // LoadCommonSettings loads common configurations from a configuration provider.
