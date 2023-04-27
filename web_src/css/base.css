@@ -793,15 +793,6 @@ a.label,
   user-select: auto;
 }
 
-.ui.vertical.menu .item .menu.g-settings-submenu .item {
-  color: var(--color-text-light-2);
-  text-indent: 16px;
-}
-
-.ui.vertical.menu .item .menu.g-settings-submenu .item:hover {
-  color: var(--color-text-light-1);
-}
-
 .ui.menu .item > .svg {
   margin-right: 0.35em;
 }
@@ -830,9 +821,7 @@ a.label,
   background: var(--color-active);
 }
 
-.ui.menu a.item:active,
-.ui.vertical.menu .item .menu.g-settings-submenu .active.item,
-.ui.vertical.menu .item .menu.g-settings-submenu .active.item:hover {
+.ui.menu a.item:active {
   color: var(--color-text);
   background: none;
 }
