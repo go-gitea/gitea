@@ -36,7 +36,7 @@
 		{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead $.UnitTypeActions)}}
 		<div class="item">
 			{{.locale.Tr "actions.actions"}}
-			<div class="menu gt-pl-4">
+			<div class="menu">
 				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{.RepoLink}}/settings/actions/runners">
 					{{.locale.Tr "actions.runners"}}
 				</a>
