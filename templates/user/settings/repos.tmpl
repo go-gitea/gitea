@@ -46,7 +46,7 @@
 														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="adopt">
-														{{template "base/modal_actions_confirm" .}}
+														{{template "base/modal_actions_confirm" $}}
 													</form>
 												</div>
 											{{end}}

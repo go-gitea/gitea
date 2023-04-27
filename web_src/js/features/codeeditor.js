@@ -136,7 +136,7 @@ function togglePreviewDisplay(previewable) {
   if (!previewTab) return;
 
   if (previewable) {
-    const newUrl = (previewTab.getAttribute('data-url') || '').replace(/(.*)\/.*/i, `$1/markup`);
+    const newUrl = (previewTab.getAttribute('data-url') || '').replace(/(.*)\/.*/, `$1/markup`);
     previewTab.setAttribute('data-url', newUrl);
     previewTab.style.display = '';
   } else {
