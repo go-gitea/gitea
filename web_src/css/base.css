@@ -793,13 +793,12 @@ a.label,
   user-select: auto;
 }
 
-.ui.vertical.menu .item .menu .item {
+.ui.vertical.menu .item .menu.g-settings-submenu .item {
   color: var(--color-text-light-2);
   text-indent: 16px;
 }
 
-.ui.vertical.menu .item .menu .item:hover,
-.ui.vertical.menu .item .menu a.item:hover {
+.ui.vertical.menu .item .menu.g-settings-submenu .item:hover {
   color: var(--color-text-light-1);
 }
 
@@ -832,8 +831,8 @@ a.label,
 }
 
 .ui.menu a.item:active,
-.ui.vertical.menu .item .menu .active.item,
-.ui.vertical.menu .item .menu .active.item:hover {
+.ui.vertical.menu .item .menu.g-settings-submenu .active.item,
+.ui.vertical.menu .item .menu.g-settings-submenu .active.item:hover {
   color: var(--color-text);
   background: none;
 }
