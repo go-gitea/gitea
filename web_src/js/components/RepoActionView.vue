@@ -6,13 +6,13 @@
         <div class="action-title">
           {{ run.title }}
         </div>
-        <button class="run-action-button green" @click="approveRun()" v-if="run.canApprove">
+        <button class="action-control-button green" @click="approveRun()" v-if="run.canApprove">
           <SvgIcon name="octicon-play" :size="20"/>
         </button>
-        <button class="run-action-button red" @click="cancelRun()" v-else-if="run.canCancel">
+        <button class="action-control-button red" @click="cancelRun()" v-else-if="run.canCancel">
           <SvgIcon name="octicon-x-circle-fill" :size="20"/>
         </button>
-        <button class="run-action-button green" @click="rerun()" v-else-if="run.canRerun">
+        <button class="action-control-button green" @click="rerun()" v-else-if="run.canRerun">
           <SvgIcon name="octicon-sync" :size="20"/>
         </button>
       </div>
@@ -375,7 +375,7 @@ export function ansiLogToHTML(line) {
   margin: 0 20px 20px 20px;
 }
 
-.action-view-header .run-action-button {
+.action-view-header .action-control-button {
   border: none;
   background-color: transparent;
   outline: none;
@@ -392,7 +392,7 @@ export function ansiLogToHTML(line) {
   color: var(--color-red);
 }
 
-.action-view-header .run-action-button:hover {
+.action-view-header .action-control-button:hover {
   transform: scale(130%);
 }
 
