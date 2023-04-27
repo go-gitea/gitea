@@ -37,10 +37,10 @@
 		<div class="item">
 			{{.locale.Tr "actions.actions"}}
 			<div class="menu g-settings-submenu">
-				<a class="{{if .PageIsSettingsRunners}}active {{end}}item" href="{{.RepoLink}}/settings/actions/runners">
+				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{.RepoLink}}/settings/actions/runners">
 					{{.locale.Tr "actions.runners"}}
 				</a>
-				<a class="{{if .PageIsSettingsSecrets}}active {{end}}item" href="{{.RepoLink}}/settings/actions/secrets">
+				<a class="{{if .PageIsSharedSettingsSecrets}}active {{end}}item" href="{{.RepoLink}}/settings/actions/secrets">
 					{{.locale.Tr "secrets.secrets"}}
 				</a>
 			</div>

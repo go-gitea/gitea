@@ -38,7 +38,7 @@ type runnersCtx struct {
 }
 
 func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
-	if ctx.Data["IsRepoSettings"] == true {
+	if ctx.Data["PageIsRepoSettings"] == true {
 		return &runnersCtx{
 			RepoID:             ctx.Repo.Repository.ID,
 			OwnerID:            0,
@@ -49,7 +49,7 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 		}, nil
 	}
 
-	if ctx.Data["IsOrgSettings"] == true {
+	if ctx.Data["PageIsOrgSettings"] == true {
 		return &runnersCtx{
 			RepoID:             0,
 			OwnerID:            ctx.Org.Organization.ID,
@@ -60,7 +60,7 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 		}, nil
 	}
 
-	if ctx.Data["IsAdminSettings"] == true {
+	if ctx.Data["PageIsAdmin"] == true {
 		return &runnersCtx{
 			RepoID:             0,
 			OwnerID:            0,
@@ -74,21 +74,9 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 	return nil, errors.New("unable to set Runners context")
 }
 
-// preparePageData set data that will be used by frontend navbar templates
-func preparePageData(ctx *context.Context, rCtx *runnersCtx) {
-	if rCtx.IsRepo {
-		ctx.Data["PageIsSettingsRunners"] = true
-	} else if rCtx.IsOrg {
-		ctx.Data["PageIsOrgSettings"] = true
-		ctx.Data["PageIsOrgSettingsRunners"] = true
-	} else {
-		ctx.Data["PageIsAdminRunners"] = true
-		ctx.Data["PageIsAdmin"] = true
-	}
-}
-
 // Runners render settings/actions/runners page for repo level
 func Runners(ctx *context.Context) {
+	ctx.Data["PageIsSharedSettingsRunners"] = true
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageType"] = "runners"
 
@@ -120,12 +108,12 @@ func Runners(ctx *context.Context) {
 	}
 	actions_shared.RunnersList(ctx, opts)
 
-	preparePageData(ctx, rCtx)
 	ctx.HTML(http.StatusOK, rCtx.RunnersTemplate)
 }
 
 // RunnersEdit renders runner edit page for repository level
 func RunnersEdit(ctx *context.Context) {
+	ctx.Data["PageIsSharedSettingsRunners"] = true
 	ctx.Data["Title"] = ctx.Tr("actions.runners.edit_runner")
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
@@ -141,7 +129,6 @@ func RunnersEdit(ctx *context.Context) {
 	actions_shared.RunnerDetails(ctx, page,
 		ctx.ParamsInt64(":runnerid"), rCtx.OwnerID, rCtx.RepoID,
 	)
-	preparePageData(ctx, rCtx)
 	ctx.HTML(http.StatusOK, rCtx.RunnerEditTemplate)
 }
 

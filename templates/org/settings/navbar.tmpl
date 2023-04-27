@@ -26,10 +26,10 @@
 		<div class="item">
 			{{.locale.Tr "actions.actions"}}
 			<div class="menu g-settings-submenu">
-				<a class="{{if .PageIsOrgSettingsRunners}}active {{end}}item" href="{{.OrgLink}}/settings/actions/runners">
+				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{.OrgLink}}/settings/actions/runners">
 					{{.locale.Tr "actions.runners"}}
 				</a>
-				<a class="{{if .PageIsOrgSettingsSecrets}}active {{end}}item" href="{{.OrgLink}}/settings/actions/secrets">
+				<a class="{{if .PageIsSharedSettingsSecrets}}active {{end}}item" href="{{.OrgLink}}/settings/actions/secrets">
 					{{.locale.Tr "secrets.secrets"}}
 				</a>
 			</div>

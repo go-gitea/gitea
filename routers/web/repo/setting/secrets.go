@@ -31,7 +31,7 @@ type secretsCtx struct {
 }
 
 func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
-	if ctx.Data["IsRepoSettings"] == true {
+	if ctx.Data["PageIsRepoSettings"] == true {
 		return &secretsCtx{
 			OwnerID:         0,
 			RepoID:          ctx.Repo.Repository.ID,
@@ -41,7 +41,7 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 		}, nil
 	}
 
-	if ctx.Data["IsOrgSettings"] == true {
+	if ctx.Data["PageIsOrgSettings"] == true {
 		return &secretsCtx{
 			OwnerID:         ctx.ContextUser.ID,
 			RepoID:          0,
@@ -51,7 +51,7 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 		}, nil
 	}
 
-	if ctx.Data["IsUserSettings"] == true {
+	if ctx.Data["PageIsUserSettings"] == true {
 		return &secretsCtx{
 			OwnerID:         ctx.Doer.ID,
 			RepoID:          0,
@@ -67,6 +67,7 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 func Secrets(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageType"] = "secrets"
+	ctx.Data["PageIsSharedSettingsSecrets"] = true
 
 	sCtx, err := getSecretsCtx(ctx)
 	if err != nil {
@@ -75,13 +76,7 @@ func Secrets(ctx *context.Context) {
 	}
 
 	if sCtx.IsRepo {
-		ctx.Data["PageIsSettingsSecrets"] = true
 		ctx.Data["DisableSSH"] = setting.SSH.Disabled
-	} else if sCtx.IsOrg {
-		ctx.Data["PageIsOrgSettings"] = true
-		ctx.Data["PageIsOrgSettingsSecrets"] = true
-	} else {
-		ctx.Data["PageIsSettingsSecrets"] = true
 	}
 
 	shared.SetSecretsContext(ctx, sCtx.OwnerID, sCtx.RepoID)

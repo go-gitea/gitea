@@ -95,6 +95,14 @@ func buildAuthGroup() *auth_service.Group {
 	return group
 }
 
+func ctxDataSet(args ...any) func(ctx *context.Context) {
+	return func(ctx *context.Context) {
+		for i := 0; i < len(args); i += 2 {
+			ctx.Data[args[i].(string)] = args[i+1]
+		}
+	}
+}
+
 // Routes returns all web routes
 func Routes(ctx gocontext.Context) *web.Route {
 	routes := web.NewRoute()
@@ -465,9 +473,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("/actions", func() {
 			m.Get("", user_setting.RedirectToDefaultSetting)
 			addSettingsSecretsRoutes()
-		}, actions.MustEnableActions, func(ctx *context.Context) {
-			ctx.Data["IsUserSettings"] = true
-		})
+		}, actions.MustEnableActions)
 
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
@@ -482,14 +488,8 @@ func registerRoutes(m *web.Route) {
 				m.Post("/replay/{uuid}", repo.ReplayWebhook)
 			})
 			addWebhookEditRoutes()
-		}, webhooksEnabled, func(ctx *context.Context) {
-			ctx.Data["IsUserWebhook"] = true
-		})
-	}, reqSignIn, func(ctx *context.Context) {
-		ctx.Data["PageIsUserSettings"] = true
-		ctx.Data["AllThemes"] = setting.UI.Themes
-		ctx.Data["EnablePackages"] = setting.Packages.Enabled
-	})
+		}, webhooksEnabled)
+	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "AllThemes", setting.UI.Themes, "EnablePackages", setting.Packages.Enabled))
 
 	m.Group("/user", func() {
 		// r.Get("/feeds", binding.Bind(auth.FeedsForm{}), user.Feeds)
@@ -617,13 +617,8 @@ func registerRoutes(m *web.Route) {
 		m.Group("/actions", func() {
 			m.Get("", admin.RedirectToDefaultSetting)
 			addSettingsRunnersRoutes()
-		}, actions.MustEnableActions, func(ctx *context.Context) {
-			ctx.Data["IsAdminSettings"] = true
 		})
-	}, func(ctx *context.Context) {
-		ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
-		ctx.Data["EnablePackages"] = setting.Packages.Enabled
-	}, adminReq)
+	}, adminReq, ctxDataSet("EnableOAuth2", setting.OAuth2.Enable, "EnablePackages", setting.Packages.Enabled))
 	// ***** END: Admin *****
 
 	m.Group("", func() {
@@ -747,9 +742,7 @@ func registerRoutes(m *web.Route) {
 						m.Post("/replay/{uuid}", repo.ReplayWebhook)
 					})
 					addWebhookEditRoutes()
-				}, webhooksEnabled, func(ctx *context.Context) {
-					ctx.Data["IsOrganizationWebhook"] = true
-				})
+				}, webhooksEnabled)
 
 				m.Group("/labels", func() {
 					m.Get("", org.RetrieveLabels, org.Labels)
@@ -763,9 +756,7 @@ func registerRoutes(m *web.Route) {
 					m.Get("", org_setting.RedirectToDefaultSetting)
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
-				}, actions.MustEnableActions, func(ctx *context.Context) {
-					ctx.Data["IsOrgSettings"] = true
-				})
+				}, actions.MustEnableActions)
 
 				m.RouteMethods("/delete", "GET,POST", org.SettingsDelete)
 
@@ -787,10 +778,7 @@ func registerRoutes(m *web.Route) {
 						m.Post("/rebuild", org.RebuildCargoIndex)
 					})
 				}, packagesEnabled)
-			}, func(ctx *context.Context) {
-				ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
-				ctx.Data["EnablePackages"] = setting.Packages.Enabled
-			})
+			}, ctxDataSet("EnableOAuth2", setting.OAuth2.Enable, "EnablePackages", setting.Packages.Enabled, "PageIsOrgSettings", true))
 		}, context.OrgAssignment(true, true))
 	}, reqSignIn)
 	// ***** END: Organization *****
@@ -924,9 +912,7 @@ func registerRoutes(m *web.Route) {
 					m.Post("/replay/{uuid}", repo.ReplayWebhook)
 				})
 				addWebhookEditRoutes()
-			}, webhooksEnabled, func(ctx *context.Context) {
-				ctx.Data["IsRepositoryWebhook"] = true
-			})
+			}, webhooksEnabled)
 
 			m.Group("/keys", func() {
 				m.Combo("").Get(repo.DeployKeys).
@@ -951,13 +937,8 @@ func registerRoutes(m *web.Route) {
 				m.Get("", repo_setting.RedirectToDefaultSetting)
 				addSettingsRunnersRoutes()
 				addSettingsSecretsRoutes()
-			}, actions.MustEnableActions, func(ctx *context.Context) {
-				ctx.Data["IsRepoSettings"] = true
-			})
-		}, func(ctx *context.Context) {
-			ctx.Data["PageIsSettings"] = true
-			ctx.Data["LFSStartServer"] = setting.LFS.StartServer
-		})
+			}, actions.MustEnableActions)
+		}, ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer))
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 
 	m.Post("/{username}/{reponame}/action/{action}", reqSignIn, context.RepoAssignment, context.UnitTypes(), repo.Action)
@@ -1108,9 +1089,8 @@ func registerRoutes(m *web.Route) {
 			m.Get("", repo.TagsList)
 			m.Get(".rss", feedEnabled, repo.TagsListFeedRSS)
 			m.Get(".atom", feedEnabled, repo.TagsListFeedAtom)
-		}, func(ctx *context.Context) {
-			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
-		}, repo.MustBeNotEmpty, reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag, true))
+		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
+			repo.MustBeNotEmpty, reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag, true))
 		m.Post("/tags/delete", repo.DeleteTag, reqSignIn,
 			repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoCodeWriter, context.RepoRef())
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
@@ -1123,9 +1103,8 @@ func registerRoutes(m *web.Route) {
 			m.Get("/latest", repo.LatestRelease)
 			m.Get(".rss", feedEnabled, repo.ReleasesFeedRSS)
 			m.Get(".atom", feedEnabled, repo.ReleasesFeedAtom)
-		}, func(ctx *context.Context) {
-			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
-		}, repo.MustBeNotEmpty, reqRepoReleaseReader, context.RepoRefByType(context.RepoRefTag, true))
+		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
+			repo.MustBeNotEmpty, reqRepoReleaseReader, context.RepoRefByType(context.RepoRefTag, true))
 		m.Get("/releases/attachments/{uuid}", repo.GetAttachment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
