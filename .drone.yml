@@ -183,6 +183,7 @@ trigger:
   paths:
     exclude:
       - "docs/**"
+      - "*.md"
 
 volumes:
   - name: deps
@@ -314,6 +315,7 @@ trigger:
   paths:
     exclude:
       - "docs/**"
+      - "*.md"
 
 volumes:
   - name: deps
@@ -475,6 +477,7 @@ trigger:
   paths:
     exclude:
       - "docs/**"
+      - "*.md"
 
 volumes:
   - name: deps
@@ -561,6 +564,7 @@ trigger:
   paths:
     exclude:
       - "docs/**"
+      - "*.md"
 
 volumes:
   - name: deps
@@ -647,6 +651,7 @@ trigger:
   paths:
     exclude:
       - "docs/**"
+      - "*.md"
 
 volumes:
   - name: deps
@@ -727,6 +732,7 @@ trigger:
   paths:
     exclude:
       - "docs/**"
+      - "*.md"
 
 volumes:
   - name: deps
@@ -795,6 +801,7 @@ trigger:
   paths:
     exclude:
       - "docs/**"
+      - "*.md"
 
 depends_on:
   - testing-mysql
@@ -1104,6 +1111,7 @@ trigger:
   paths:
     exclude:
       - "docs/**"
+      - "*.md"
 
 steps:
   - name: fetch-tags
@@ -1181,6 +1189,7 @@ trigger:
   paths:
     exclude:
       - "docs/**"
+      - "*.md"
 
 steps:
   - name: fetch-tags
@@ -1396,6 +1405,7 @@ trigger:
   paths:
     exclude:
       - "docs/**"
+      - "*.md"
 
 steps:
   - name: dryrun
@@ -1443,6 +1453,7 @@ trigger:
   paths:
     exclude:
       - "docs/**"
+      - "*.md"
 
 steps:
   - name: fetch-tags
@@ -1520,6 +1531,7 @@ trigger:
   paths:
     exclude:
       - "docs/**"
+      - "*.md"
 
 steps:
   - name: fetch-tags
@@ -1595,6 +1607,7 @@ trigger:
   paths:
     exclude:
       - "docs/**"
+      - "*.md"
 
 steps:
   - name: fetch-tags
@@ -1762,6 +1775,7 @@ trigger:
   paths:
     exclude:
       - "docs/**"
+      - "*.md"
 
 depends_on:
   - docker-linux-amd64-release-version
@@ -1812,6 +1826,7 @@ trigger:
   paths:
     exclude:
       - "docs/**"
+      - "*.md"
 
 depends_on:
   - docker-linux-amd64-release
