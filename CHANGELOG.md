@@ -26,6 +26,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Sort repo topic labels by name (#24123) (#24153)
   * Highlight selected file in the PR file tree (#23947) (#24126)
 * BUGFIXES
+  * Fix auth check bug (#24382) (#24387)
+  * Add tags list for repos whose release setting is disabled (#23465) (#24369)
   * Fix wrong error info in RepoRefForAPI (#24344) (#24351)
   * Fix no edit/close/delete button in org repo project view page (#24349)
   * Respect the REGISTER_MANUAL_CONFIRM setting when registering via OIDC (#24035) (#24333)
