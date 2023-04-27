@@ -185,7 +185,7 @@ func runDump(ctx *cli.Context) error {
 		}
 		fileName += "." + outType
 	}
-	setting.InitProviderFromExistingFile()
+	setting.Init(&setting.Options{})
 	setting.LoadCommonSettings()
 
 	// make sure we are logging to the console no matter what the configuration tells us do to

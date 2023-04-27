@@ -39,13 +39,14 @@ var (
 
 	// Other global setting objects
 
-	CfgProvider ConfigProvider
-	CustomPath  string // Custom directory path
-	CustomConf  string
-	RunMode     string
-	RunUser     string
-	IsProd      bool
-	IsWindows   bool
+	CfgProvider        ConfigProvider
+	CustomPath         string // Custom directory path
+	CustomConf         string
+	RunMode            string
+	RunUser            string
+	IsProd             bool
+	IsWindows          bool
+	ignoreCheckRunUser bool
 
 	// IsInTesting indicates whether the testing is running. A lot of unreliable code causes a lot of nonsense error logs during testing
 	// TODO: this is only a temporary solution, we should make the test code more reliable
@@ -136,7 +137,7 @@ func forcePathSeparator(path string) {
 // This check is ignored under Windows since SSH remote login is not the main
 // method to login on Windows.
 func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
-	if IsWindows || SSH.StartBuiltinServer {
+	if IsWindows || SSH.StartBuiltinServer || ignoreCheckRunUser {
 		return "", true
 	}
 
@@ -203,31 +204,24 @@ func PrepareAppDataPath() error {
 	return nil
 }
 
-// InitProviderFromExistingFile initializes config provider from an existing config file (app.ini)
-func InitProviderFromExistingFile() {
-	var err error
-	CfgProvider, err = newConfigProviderFromFile(CustomConf, false, "")
-	if err != nil {
-		log.Fatal("InitProviderFromExistingFile: %v", err)
+func Init(opts *Options) {
+	if opts.CustomConf == "" {
+		opts.CustomConf = CustomConf
 	}
-}
-
-// InitProviderAllowEmpty initializes config provider from file, it's also fine that if the config file (app.ini) doesn't exist
-func InitProviderAllowEmpty() {
 	var err error
-	CfgProvider, err = newConfigProviderFromFile(CustomConf, true, "")
+	CfgProvider, err = newConfigProviderFromFile(opts)
 	if err != nil {
-		log.Fatal("InitProviderAllowEmpty: %v", err)
+		log.Fatal("Init[%v]: %v", opts, err)
 	}
 }
 
 // InitProviderAndLoadCommonSettingsForTest initializes config provider and load common setttings for tests
 func InitProviderAndLoadCommonSettingsForTest(extraConfigs ...string) {
-	var err error
-	CfgProvider, err = newConfigProviderFromFile(CustomConf, true, strings.Join(extraConfigs, "\n"))
-	if err != nil {
-		log.Fatal("InitProviderAndLoadCommonSettingsForTest: %v", err)
-	}
+	Init(&Options{
+		AllowEmpty:  true,
+		ExtraConfig: strings.Join(extraConfigs, "\n"),
+	})
+
 	loadCommonSettingsFrom(CfgProvider)
 	if err := PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)

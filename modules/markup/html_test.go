@@ -28,7 +28,9 @@ var localMetas = map[string]string{
 }
 
 func TestMain(m *testing.M) {
-	setting.InitProviderAllowEmpty()
+	setting.Init(&setting.Options{
+		AllowEmpty: true,
+	})
 	setting.LoadCommonSettings()
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)

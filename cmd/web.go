@@ -177,7 +177,7 @@ func runWeb(ctx *cli.Context) error {
 
 	log.Info("Global init")
 	// Perform global initialization
-	setting.InitProviderFromExistingFile()
+	setting.Init(&setting.Options{})
 	setting.LoadCommonSettings()
 	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 
