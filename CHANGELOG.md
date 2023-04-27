@@ -7,7 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.19.2](https://github.com/go-gitea/gitea/releases/tag/1.19.2) - 2023-04-26
 
 * SECURITY
-  * Require repo scope for PATs for private repos and basic authentication (#24362)
+  * Require repo scope for PATs for private repos and basic authentication (#24362) (#24364)
 * API
   * Fix access token issue on some public endpoints (#24194) (#24259)
 * ENHANCEMENTS
