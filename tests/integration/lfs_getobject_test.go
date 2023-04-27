@@ -119,7 +119,7 @@ func TestGetLFSSmallToken(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	content := []byte("A very small file\n")
 
-	resp := storeAndGetLfsToken(t, auth.AccessTokenScope(auth.AccessTokenScopePublicRepo), &content, nil, http.StatusOK)
+	resp := storeAndGetLfsToken(t, auth.AccessTokenScopePublicRepo, &content, nil, http.StatusOK)
 	checkResponseTestContentEncoding(t, &content, resp, false)
 }
 
@@ -127,7 +127,7 @@ func TestGetLFSSmallTokenFail(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	content := []byte("A very small file\n")
 
-	storeAndGetLfsToken(t, auth.AccessTokenScope(auth.AccessTokenScopeNotification), &content, nil, http.StatusForbidden)
+	storeAndGetLfsToken(t, auth.AccessTokenScopeNotification, &content, nil, http.StatusForbidden)
 }
 
 func TestGetLFSLarge(t *testing.T) {
