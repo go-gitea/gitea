@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -38,6 +39,30 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 		assert.NoError(t, err)
 	}
 	return pointer.Oid
+}
+
+func storeAndGetLfsToken(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStatus int) *httptest.ResponseRecorder {
+	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "repo1")
+	assert.NoError(t, err)
+	oid := storeObjectInRepo(t, repo.ID, content)
+	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
+
+	token := getUserToken(t, "user2", auth.AccessTokenScope(auth.AccessTokenScopePublicRepo))
+
+	// Request OID
+	req := NewRequest(t, "GET", "/user2/repo1.git/info/lfs/objects/"+oid+"/test?token="+token)
+	req.Header.Set("Accept-Encoding", "gzip")
+	if extraHeader != nil {
+		for key, values := range *extraHeader {
+			for _, value := range values {
+				req.Header.Add(key, value)
+			}
+		}
+	}
+
+	resp := MakeRequest(t, req, expectedStatus)
+
+	return resp
 }
 
 func storeAndGetLfs(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStatus int) *httptest.ResponseRecorder {
@@ -86,6 +111,14 @@ func TestGetLFSSmall(t *testing.T) {
 	content := []byte("A very small file\n")
 
 	resp := storeAndGetLfs(t, &content, nil, http.StatusOK)
+	checkResponseTestContentEncoding(t, &content, resp, false)
+}
+
+func TestGetLFSSmallToken(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	content := []byte("A very small file\n")
+
+	resp := storeAndGetLfsToken(t, &content, nil, http.StatusOK)
 	checkResponseTestContentEncoding(t, &content, resp, false)
 }
 
