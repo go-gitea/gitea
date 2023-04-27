@@ -137,7 +137,7 @@ func (log *FileLogger) docheck(size int) {
 
 func (log *FileLogger) createLogFile() (*os.File, error) {
 	// Open the log file
-	return os.OpenFile(log.Filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o660)
+	return os.OpenFile(log.Filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o664)
 }
 
 func (log *FileLogger) initFd() error {
