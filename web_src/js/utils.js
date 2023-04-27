@@ -32,7 +32,7 @@ export function isDarkTheme() {
 
 // strip <tags> from a string
 export function stripTags(text) {
-  return text.replace(/<[^>]*>?/gm, '');
+  return text.replace(/<[^>]*>?/g, '');
 }
 
 // searches the inclusive range [minValue, maxValue].

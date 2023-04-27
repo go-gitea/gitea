@@ -11,8 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
-
-	ini "gopkg.in/ini.v1"
 )
 
 var (
@@ -43,7 +41,7 @@ var (
 
 // loadSecret load the secret from ini by uriKey or verbatimKey, only one of them could be set
 // If the secret is loaded from uriKey (file), the file should be non-empty, to guarantee the behavior stable and clear.
-func loadSecret(sec *ini.Section, uriKey, verbatimKey string) string {
+func loadSecret(sec ConfigSection, uriKey, verbatimKey string) string {
 	// don't allow setting both URI and verbatim string
 	uri := sec.Key(uriKey).String()
 	verbatim := sec.Key(verbatimKey).String()
@@ -84,16 +82,17 @@ func loadSecret(sec *ini.Section, uriKey, verbatimKey string) string {
 }
 
 // generateSaveInternalToken generates and saves the internal token to app.ini
-func generateSaveInternalToken() {
+func generateSaveInternalToken(rootCfg ConfigProvider) {
 	token, err := generate.NewInternalToken()
 	if err != nil {
 		log.Fatal("Error generate internal token: %v", err)
 	}
 
 	InternalToken = token
-	CreateOrAppendToCustomConf("security.INTERNAL_TOKEN", func(cfg *ini.File) {
-		cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
-	})
+	rootCfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
+	if err := rootCfg.Save(); err != nil {
+		log.Fatal("Error saving internal token: %v", err)
+	}
 }
 
 func loadSecurityFrom(rootCfg ConfigProvider) {
@@ -141,7 +140,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	if InstallLock && InternalToken == "" {
 		// if Gitea has been installed but the InternalToken hasn't been generated (upgrade from an old release), we should generate
 		// some users do cluster deployment, they still depend on this auto-generating behavior.
-		generateSaveInternalToken()
+		generateSaveInternalToken(rootCfg)
 	}
 
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")

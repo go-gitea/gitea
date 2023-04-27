@@ -10,6 +10,7 @@
 @import "./features/codeeditor.css";
 @import "./features/projects.css";
 @import "./modules/tippy.css";
+@import "./modules/modal.css";
 @import "./code/linebutton.css";
 @import "./markup/content.css";
 @import "./markup/codecopy.css";
@@ -29,6 +30,7 @@
 @import "./install.css";
 @import "./form.css";
 @import "./repository.css";
+@import "./repository-release-tag.css";
 @import "./editor.css";
 @import "./editor-markdown.css";
 @import "./organization.css";

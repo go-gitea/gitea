@@ -689,7 +689,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	// Get user from session if logged in.
 	m.Use(auth.APIAuth(group))
 
-	m.Use(context.ToggleAPI(&context.ToggleOptions{
+	m.Use(auth.VerifyAuthWithOptionsAPI(&auth.VerifyOptions{
 		SignInRequired: setting.Service.RequireSignInView,
 	}))
 
@@ -719,6 +719,10 @@ func Routes(ctx gocontext.Context) *web.Route {
 		m.Post("/markup", bind(api.MarkupOption{}), misc.Markup)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
+		m.Get("/gitignore/templates", misc.ListGitignoresTemplates)
+		m.Get("/gitignore/templates/{name}", misc.GetGitignoreTemplateInfo)
+		m.Get("/licenses", misc.ListLicenseTemplates)
+		m.Get("/licenses/{name}", misc.GetLicenseTemplateInfo)
 		m.Group("/settings", func() {
 			m.Get("/ui", settings.GetGeneralUISettings)
 			m.Get("/api", settings.GetGeneralAPISettings)
