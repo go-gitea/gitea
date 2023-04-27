@@ -4,18 +4,7 @@
   margin: 12px -1rem -1rem;
 }
 
-.admin .settings .button.adopt,
-.admin .settings .button.delete {
-  margin-top: -15px;
-  margin-bottom: -15px;
-}
-
-.admin .settings .button.adopt .label,
-.admin .settings .button.delete .label {
-  vertical-align: middle;
-}
-
-.admin.user .email {
+.admin.user table.table .email {
   max-width: 200px;
 }
 
@@ -49,10 +38,6 @@
     width: auto;
     margin-right: 0.5em;
   }
-}
-
-.admin.config #test-mail-btn {
-  margin-left: 5px;
 }
 
 .admin code,
