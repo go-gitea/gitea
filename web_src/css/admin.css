@@ -60,3 +60,7 @@
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+
+.admin .ui.table.segment {
+  overflow-x: auto; /* if the screen width is small, many wide tables (eg: user list) need scroll bars */
+}
