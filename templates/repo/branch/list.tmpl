@@ -7,9 +7,11 @@
 		{{if .DefaultBranchBranch}}
 			<h4 class="ui top attached header gt-mt-4">
 				{{.locale.Tr "repo.default_branch"}}
+				{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
 				<a role="button" class="right" href="{{.RepoLink}}/settings/branches" data-tooltip-content="{{.locale.Tr "repo.settings.branches.switch_default_branch"}}">
 					{{svg "octicon-arrow-switch" 16 "gt-h-100"}}
 				</a>
+				{{end}}
 			</h4>
 
 			<div class="ui attached table segment">
