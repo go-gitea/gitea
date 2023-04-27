@@ -6,14 +6,14 @@
         <div class="action-title">
           {{ run.title }}
         </div>
-        <button class="run_approve" @click="approveRun()" v-if="run.canApprove">
-          <i class="play circle outline icon"/>
+        <button class="run-action-button green" @click="approveRun()" v-if="run.canApprove">
+          <SvgIcon name="octicon-play" :size="20"/>
         </button>
-        <button class="run_cancel" @click="cancelRun()" v-else-if="run.canCancel">
-          <i class="stop circle outline icon"/>
+        <button class="run-action-button red" @click="cancelRun()" v-else-if="run.canCancel">
+          <SvgIcon name="octicon-x-circle-fill" :size="20"/>
         </button>
-        <button class="run_rerun" @click="rerun()" v-else-if="run.canRerun">
-          <i class="redo icon"/>
+        <button class="run-action-button green" @click="rerun()" v-else-if="run.canRerun">
+          <SvgIcon name="octicon-sync" :size="20"/>
         </button>
       </div>
       <div class="action-commit-summary">
@@ -375,36 +375,24 @@ export function ansiLogToHTML(line) {
   margin: 0 20px 20px 20px;
 }
 
-.action-view-header .run_cancel {
+.action-view-header .run-action-button {
   border: none;
+  background-color: transparent;
+  outline: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+  display: flex;
+}
+
+.action-view-header .green {
+  color: var(--color-green);
+}
+
+.action-view-header .red {
   color: var(--color-red);
-  background-color: transparent;
-  outline: none;
-  cursor: pointer;
-  transition: transform 0.2s;
 }
 
-.action-view-header .run_approve {
-  border: none;
-  color: var(--color-green);
-  background-color: transparent;
-  outline: none;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.action-view-header .run_rerun {
-  border: none;
-  color: var(--color-green);
-  background-color: transparent;
-  outline: none;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.action-view-header .run_cancel:hover,
-.action-view-header .run_approve:hover,
-.action-view-header .run_rerun:hover {
+.action-view-header .run-action-button:hover {
   transform: scale(130%);
 }
 
