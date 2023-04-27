@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -61,6 +62,8 @@ func Milestones(ctx *context.Context) {
 		state = structs.StateClosed
 	}
 
+	selectLabels := ctx.FormString("labels")
+
 	miles, total, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		ListOptions: db.ListOptions{
 			Page:     page,
@@ -70,6 +73,7 @@ func Milestones(ctx *context.Context) {
 		State:    state,
 		SortType: sortType,
 		Name:     keyword,
+		Labels:   selectLabels,
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
@@ -174,15 +178,6 @@ func NewMilestone(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplMilestoneNew)
 }
 
-// Int64sToMap converts a slice of int64 to a int64 map.
-func Int64sToMap(ints []int64) map[int64]bool {
-	m := make(map[int64]bool)
-	for _, i := range ints {
-		m[i] = true
-	}
-	return m
-}
-
 // NewMilestonePost response for creating milestone
 func NewMilestonePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateMilestoneForm)
@@ -218,10 +213,13 @@ func NewMilestonePost(ctx *context.Context) {
 		if err != nil {
 			return
 		}
-		labelIDMark := Int64sToMap(labelIDs)
+		labelIDMark := make(container.Set[int64], len(labelIDs))
+		for _, labelID := range labelIDs {
+			labelIDMark.Add(labelID)
+		}
 
 		for i := range labels {
-			if labelIDMark[labels[i].ID] {
+			if labelIDMark.Contains(labels[i].ID) {
 				labels[i].IsChecked = true
 				hasSelected = true
 				selectLabels = append(selectLabels, labels[i])
@@ -368,10 +366,13 @@ func EditMilestonePost(ctx *context.Context) {
 		if err != nil {
 			return
 		}
-		labelIDMark := Int64sToMap(labelIDs)
+		labelIDMark := make(container.Set[int64], len(labelIDs))
+		for _, labelID := range labelIDs {
+			labelIDMark.Add(labelID)
+		}
 
 		for i := range labels {
-			if labelIDMark[labels[i].ID] {
+			if labelIDMark.Contains(labels[i].ID) {
 				labels[i].IsChecked = true
 				hasSelected = true
 				selectLabels = append(selectLabels, labels[i])

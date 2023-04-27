@@ -487,7 +487,7 @@ var migrations = []Migration{
 	NewMigration("Fix ExternalTracker and ExternalWiki accessMode in owner and admin team", v1_20.FixExternalTrackerAndExternalWikiAccessModeInOwnerAndAdminTeam),
 	// v254 -> v255
 	NewMigration("Add ActionTaskOutput table", v1_20.AddActionTaskOutputTable),
-	// v255 -> v256
+	// v256 -> v257
 	NewMigration("Add milestone labels", v1_20.AddMilestoneLabels),
 }
 

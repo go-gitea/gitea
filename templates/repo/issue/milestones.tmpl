@@ -116,6 +116,7 @@
 										id="label_{{.ID}}"
 										style="color: white; background-color: {{.Color}}"
 										title="{{.Description | RenderEmojiPlain}}"
+										href="{{$.RepoLink}}/milestones?labels={{.ID}}"
 									>
 										{{.Name | RenderEmoji $.Context}}
 									</a>

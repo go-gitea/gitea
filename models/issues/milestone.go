@@ -10,6 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -404,6 +406,7 @@ type GetMilestonesOption struct {
 	State    api.StateType
 	Name     string
 	SortType string
+	Labels   string
 }
 
 func (opts GetMilestonesOption) toCond() builder.Cond {
@@ -435,6 +438,22 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
 
 	if opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, &opts)
+	}
+
+	if len(opts.Labels) > 0 && opts.Labels != "0" {
+		labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
+		if err != nil {
+			log.Warn("Malformed Labels argument: %s", opts.Labels)
+		} else {
+			for i, labelID := range labelIDs {
+				if labelID > 0 {
+					sess.Join("INNER", fmt.Sprintf("milestone_label il%d", i),
+						fmt.Sprintf("milestone.id = il%[1]d.milestone_id AND il%[1]d.label_id = %[2]d", i, labelID))
+				} else {
+					sess.Where("milestone.id NOT IN (SELECT milestone_id FROM milestone_label WHERE milestone_id = ?)", -labelID)
+				}
+			}
+		}
 	}
 
 	switch opts.SortType {
