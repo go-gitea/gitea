@@ -86,11 +86,6 @@ func DownloadHandler(ctx *context.Context) {
 		return
 	}
 
-	repository := getAuthenticatedRepository(ctx, rc, true)
-	if repository == nil {
-		return
-	}
-
 	// Support resume download using Range header
 	var fromByte, toByte int64
 	toByte = meta.Size - 1
@@ -362,11 +357,6 @@ func VerifyHandler(ctx *context.Context) {
 
 	meta := getAuthenticatedMeta(ctx, rc, p, true)
 	if meta == nil {
-		return
-	}
-
-	repository := getAuthenticatedRepository(ctx, rc, true)
-	if repository == nil {
 		return
 	}
 

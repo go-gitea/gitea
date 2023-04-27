@@ -44,23 +44,13 @@ type Route struct {
 // NewRoute creates a new route
 func NewRoute() *Route {
 	r := chi.NewRouter()
-	return &Route{
-		R:              r,
-		curGroupPrefix: "",
-		curMiddlewares: []interface{}{},
-	}
+	return &Route{R: r}
 }
 
 // Use supports two middlewares
 func (r *Route) Use(middlewares ...interface{}) {
-	if r.curGroupPrefix != "" {
-		// FIXME: this behavior is incorrect, should use "With" instead
-		r.curMiddlewares = append(r.curMiddlewares, middlewares...)
-	} else {
-		// FIXME: another misuse, the "Use" with empty middlewares is called after "Mount"
-		for _, m := range middlewares {
-			r.R.Use(toHandlerProvider(m))
-		}
+	for _, m := range middlewares {
+		r.R.Use(toHandlerProvider(m))
 	}
 }
 
@@ -116,9 +106,7 @@ func (r *Route) Methods(method, pattern string, h []any) {
 
 // Mount attaches another Route along ./pattern/*
 func (r *Route) Mount(pattern string, subR *Route) {
-	middlewares := make([]interface{}, len(r.curMiddlewares))
-	copy(middlewares, r.curMiddlewares)
-	subR.Use(middlewares...)
+	subR.Use(r.curMiddlewares...)
 	r.R.Mount(r.getPattern(pattern), subR.R)
 }
 
