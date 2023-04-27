@@ -76,8 +76,8 @@ func (r *ActionRunner) Type() RunnerType {
 	return RunnerTypeGlobal
 }
 
-func (r RunnerType) String() string {
-	switch r {
+func (rt RunnerType) String() string {
+	switch rt {
 	case RunnerTypeGlobal:
 		return "Global"
 	case RunnerTypeOrganization:
@@ -85,7 +85,17 @@ func (r RunnerType) String() string {
 	case RunnerTypeRepository:
 		return "Repository"
 	}
-	return fmt.Sprintf("Unknown Type %d", r)
+	return fmt.Sprintf("Unknown Type %d", rt)
+}
+
+func (r *ActionRunner) BelongsTo() string {
+	if r.RepoID != 0 {
+		return r.Repo.FullName()
+	}
+	if r.OwnerID != 0 {
+		return r.Owner.Name
+	}
+	return ""
 }
 
 func (r *ActionRunner) Status() runnerv1.RunnerStatus {
