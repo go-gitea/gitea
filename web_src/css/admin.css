@@ -4,30 +4,6 @@
   margin: 12px -1rem -1rem;
 }
 
-.admin .table.segment {
-  padding: 0;
-  font-size: 13px;
-  overflow-x: auto;
-}
-
-.admin .table.segment:not(.striped) thead th:last-child {
-  padding-right: 5px !important;
-}
-
-.admin .table.segment th {
-  padding-top: 5px;
-  padding-bottom: 5px;
-}
-
-.admin .table.segment:not(.select) th:first-of-type,
-.admin .table.segment:not(.select) td:first-of-type {
-  padding-left: 15px !important;
-}
-
-.admin .table.segment form tbody button[type="submit"] {
-  padding: 5px 8px;
-}
-
 .admin .settings .button.adopt,
 .admin .settings .button.delete {
   margin-top: -15px;
@@ -44,7 +20,7 @@
 }
 
 .admin dl.admin-dl-horizontal {
-  padding: 20px;
+  padding: 1em;
   margin: 0;
 }
 
@@ -83,28 +59,4 @@
 .admin pre {
   white-space: pre-wrap;
   word-wrap: break-word;
-}
-
-@media (max-width: 767px) {
-  .admin #notice-table .notice-description {
-    max-width: 80vw;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 991px) {
-  .admin #notice-table .notice-description {
-    max-width: 360px;
-  }
-}
-
-@media (min-width: 992px) and (max-width: 1200px) {
-  .admin #notice-table .notice-description {
-    max-width: 510px;
-  }
-}
-
-@media (min-width: 1201px) {
-  .admin #notice-table .notice-description {
-    max-width: 640px;
-  }
 }
