@@ -2012,19 +2012,6 @@
   margin-top: -3px;
 }
 
-.repository.settings.branches .protected-branches .selection.dropdown {
-  width: 300px;
-}
-
-.repository.settings.branches .protected-branches .item {
-  border: 1px solid var(--color-secondary);
-  padding: 10px 15px;
-}
-
-.repository.settings.branches .protected-branches .item:not(:last-child) {
-  border-bottom: 0;
-}
-
 .repository.settings.branches .branch-protection .help {
   margin-left: 26px;
   padding-top: 0;

@@ -75,7 +75,6 @@ export function initRepoSettingGitHook() {
 export function initRepoSettingBranches() {
   // Branches
   if ($('.repository.settings.branches').length > 0) {
-    initRepoCommonFilterSearchDropdown('.protected-branches .dropdown');
     $('.enable-protection, .enable-whitelist, .enable-statuscheck').on('change', function () {
       if (this.checked) {
         $($(this).attr('data-target')).removeClass('disabled');
