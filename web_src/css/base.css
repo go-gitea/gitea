@@ -2766,21 +2766,16 @@ table th[data-sortt-desc] .svg {
   height: 15px;
 }
 
-@media (max-width: 767px) {
-  .ui.stackable.menu:not(.no-vertical-tabs) {
-    overflow-y: hidden;
-    overflow-x: auto;
-    flex-direction: row;
-    flex-wrap: nowrap !important;
-  }
-  .ui.stackable.menu:not(.no-vertical-tabs) .item {
-    width: initial !important;
-  }
-  .ui.stackable.menu:not(.no-vertical-tabs) > .dropdown.item {
-    position: initial;
-  }
-  .ui.stackable.menu:not(.no-vertical-tabs) .menu {
-    flex-direction: row;
+.g-menu-stackable-scrollable {
+  overflow-y: hidden;
+  overflow-x: auto;
+}
+
+@media only screen and (max-width: 767.98px) {
+  /* also respect Fomantic's "stackable" definition */
+  .g-menu-stackable-scrollable {
+    overflow-x: unset;
+    overflow-y: unset;
   }
 }
 
