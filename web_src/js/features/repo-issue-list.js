@@ -124,28 +124,28 @@ function pinMoveEnd(event) {
   const url = event.item.getAttribute('data-move-url');
   const id = Number(event.item.getAttribute('data-issue-id'));
   $.ajax({
-    url: url,
-    data: JSON.stringify({"id": id, "position": event.newIndex + 1}),
+    url,
+    data: JSON.stringify({id, position: event.newIndex + 1}),
     headers: {
       'X-Csrf-Token': window.config.csrfToken,
     },
     contentType: 'application/json',
     type: 'POST',
-    error: function(xhr) {
+    error: (xhr) => {
       throw new Error(xhr.responseText);
     }
   });
 }
 
 function initIssuePinSort() {
-  const pinDiv = document.getElementById("issue-pin-div");
+  const pinDiv = document.getElementById('issue-pin-div');
 
   if (pinDiv === null) {
     return;
   }
 
   // If the User is not a Repo Admin or only one issue pinned, we don't need to make this Sortable
-  if (!pinDiv.hasAttribute("data-is-repo-admin") || pinDiv.children.length < 2) {
+  if (!pinDiv.hasAttribute('data-is-repo-admin') || pinDiv.children.length < 2) {
     return;
   }
 
