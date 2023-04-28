@@ -30,11 +30,11 @@
 		{{range .Labels}}
 			<li class="item">
 			<div class="ui grid middle aligned">
-				<div class="nine wide column">
+				<div class="eight wide column">
 					{{RenderLabel $.Context .}}
 					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 				</div>
-				<div class="four wide column">
+				<div class="five wide column">
 					{{if $.PageIsOrgSettingsLabels}}
 						<a class="ui left open-issues" href="{{AppSubUrl}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.locale.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
 					{{else}}

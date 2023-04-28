@@ -2689,7 +2689,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 			if err := issue_service.ChangeStatus(issue, ctx.Doer, "", isClosed); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
 					ctx.JSON(http.StatusPreconditionFailed, map[string]interface{}{
-						"error": "cannot close this issue because it still has open dependencies",
+						"error": ctx.Tr("repo.issues.dependency.issue_batch_close_blocked", issue.Index),
 					})
 					return
 				}

@@ -9,8 +9,6 @@ import (
 
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
-
-	ini "gopkg.in/ini.v1"
 )
 
 // LFS represents the configuration for Git LFS
@@ -38,8 +36,7 @@ func loadLFSFrom(rootCfg ConfigProvider) {
 	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
 	// if these are removed, the warning will not be shown
 	deprecatedSetting(rootCfg, "server", "LFS_CONTENT_PATH", "lfs", "PATH", "v1.19.0")
-	lfsSec.Key("PATH").MustString(
-		sec.Key("LFS_CONTENT_PATH").String())
+	lfsSec.Key("PATH").MustString(sec.Key("LFS_CONTENT_PATH").String())
 
 	LFS.Storage = getStorage(rootCfg, "lfs", storageType, lfsSec)
 
@@ -62,9 +59,11 @@ func loadLFSFrom(rootCfg ConfigProvider) {
 			}
 
 			// Save secret
-			CreateOrAppendToCustomConf("server.LFS_JWT_SECRET", func(cfg *ini.File) {
-				cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
-			})
+			sec.Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
+			if err := rootCfg.Save(); err != nil {
+				log.Fatal("Error saving JWT Secret for custom config: %v", err)
+				return
+			}
 		}
 	}
 }

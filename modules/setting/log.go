@@ -15,8 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
-
-	ini "gopkg.in/ini.v1"
 )
 
 var (
@@ -131,12 +129,12 @@ type LogDescription struct {
 	SubLogDescriptions []SubLogDescription
 }
 
-func getLogLevel(section *ini.Section, key string, defaultValue log.Level) log.Level {
+func getLogLevel(section ConfigSection, key string, defaultValue log.Level) log.Level {
 	value := section.Key(key).MustString(defaultValue.String())
 	return log.FromString(value)
 }
 
-func getStacktraceLogLevel(section *ini.Section, key, defaultValue string) string {
+func getStacktraceLogLevel(section ConfigSection, key, defaultValue string) string {
 	value := section.Key(key).MustString(defaultValue)
 	return log.FromString(value).String()
 }
@@ -165,7 +163,7 @@ func loadLogFrom(rootCfg ConfigProvider) {
 	Log.EnableXORMLog = rootCfg.Section("log").Key("ENABLE_XORM_LOG").MustBool(true)
 }
 
-func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
+func generateLogConfig(sec ConfigSection, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
 	level := getLogLevel(sec, "LEVEL", Log.Level)
 	levelName = level.String()
 	stacktraceLevelName := getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", Log.StacktraceLogLevel)

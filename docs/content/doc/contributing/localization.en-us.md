@@ -5,6 +5,8 @@ slug: "localization"
 weight: 10
 toc: false
 draft: false
+aliases:
+  - /en-us/localization
 menu:
   sidebar:
     parent: "contributing"

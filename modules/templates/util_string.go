@@ -18,3 +18,7 @@ func (su *StringUtils) HasPrefix(s, prefix string) bool {
 func (su *StringUtils) Contains(s, substr string) bool {
 	return strings.Contains(s, substr)
 }
+
+func (su *StringUtils) Split(s, sep string) []string {
+	return strings.Split(s, sep)
+}
