@@ -2,14 +2,14 @@
 date: "2023-04-27T15:00:00+08:00"
 title: "Design of Gitea Actions"
 slug: "usage/actions/design"
-weight: 30
+weight: 40
 draft: false
 toc: false
 menu:
   sidebar:
     parent: "actions"
     name: "Design"
-    weight: 30
+    weight: 40
     identifier: "actions-design"
 ---
 
