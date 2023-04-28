@@ -88,8 +88,8 @@
 				</div>
 				<h5 class="ui dividing header">{{.locale.Tr "repo.settings.event_pull_request"}}</h5>
 				<div class="field">
-					<label for="required-approvals">{{.locale.Tr "repo.settings.protect_required_approvals"}}</label>
-					<input name="required_approvals" id="required-approvals" type="number" value="{{.Rule.RequiredApprovals}}">
+					<label>{{.locale.Tr "repo.settings.protect_required_approvals"}}</label>
+					<input name="required_approvals" type="number" value="{{.Rule.RequiredApprovals}}">
 					<p class="help gt-ml-0">{{.locale.Tr "repo.settings.protect_required_approvals_desc"}}</p>
 				</div>
 				<div class="grouped fields">
