@@ -16,7 +16,6 @@ import (
 	_ "code.gitea.io/gitea/models"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/ini.v1"
 )
 
 func TestMain(m *testing.M) {
@@ -27,11 +26,11 @@ func TestMain(m *testing.M) {
 
 func TestBleveSearchIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	setting.Cfg = ini.Empty()
+	setting.CfgProvider = setting.NewEmptyConfigProvider()
 
 	tmpIndexerDir := t.TempDir()
 
-	setting.Cfg.Section("queue.issue_indexer").Key("DATADIR").MustString(path.Join(tmpIndexerDir, "issues.queue"))
+	setting.CfgProvider.Section("queue.issue_indexer").Key("DATADIR").MustString(path.Join(tmpIndexerDir, "issues.queue"))
 
 	oldIssuePath := setting.Indexer.IssuePath
 	setting.Indexer.IssuePath = path.Join(tmpIndexerDir, "issues.queue")
@@ -40,7 +39,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	}()
 
 	setting.Indexer.IssueType = "bleve"
-	setting.NewQueueService()
+	setting.LoadQueueSettings()
 	InitIssueIndexer(true)
 	defer func() {
 		indexer := holder.get()

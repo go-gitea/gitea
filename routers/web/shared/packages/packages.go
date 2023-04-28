@@ -13,9 +13,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
+	cargo_service "code.gitea.io/gitea/services/packages/cargo"
 	container_service "code.gitea.io/gitea/services/packages/container"
 )
 
@@ -222,4 +224,24 @@ func getCleanupRuleByContext(ctx *context.Context, owner *user_model.User) *pack
 	ctx.NotFound("", fmt.Errorf("PackageCleanupRule[%v] not associated to owner %v", id, owner))
 
 	return nil
+}
+
+func InitializeCargoIndex(ctx *context.Context, owner *user_model.User) {
+	err := cargo_service.InitializeIndexRepository(ctx, owner, owner)
+	if err != nil {
+		log.Error("InitializeIndexRepository failed: %v", err)
+		ctx.Flash.Error(ctx.Tr("packages.owner.settings.cargo.initialize.error", err))
+	} else {
+		ctx.Flash.Success(ctx.Tr("packages.owner.settings.cargo.initialize.success"))
+	}
+}
+
+func RebuildCargoIndex(ctx *context.Context, owner *user_model.User) {
+	err := cargo_service.RebuildIndex(ctx, owner, owner)
+	if err != nil {
+		log.Error("RebuildIndex failed: %v", err)
+		ctx.Flash.Error(ctx.Tr("packages.owner.settings.cargo.rebuild.error", err))
+	} else {
+		ctx.Flash.Success(ctx.Tr("packages.owner.settings.cargo.rebuild.success"))
+	}
 }

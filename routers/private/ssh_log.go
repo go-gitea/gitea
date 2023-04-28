@@ -15,7 +15,7 @@ import (
 
 // SSHLog hook to response ssh log
 func SSHLog(ctx *context.PrivateContext) {
-	if !setting.EnableSSHLog {
+	if !setting.Log.EnableSSHLog {
 		ctx.Status(http.StatusOK)
 		return
 	}

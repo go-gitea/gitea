@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/webauthn"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
@@ -91,5 +92,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	middleware.SetLocaleCookie(resp, user.Language, 0)
 
 	// Clear whatever CSRF has right now, force to generate a new one
-	middleware.DeleteCSRFCookie(resp)
+	if ctx := gitea_context.GetContext(req); ctx != nil {
+		ctx.Csrf.DeleteCookie(ctx)
+	}
 }

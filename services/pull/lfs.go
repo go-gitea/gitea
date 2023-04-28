@@ -116,7 +116,7 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		}
 
 		// Then we need to check that this pointer is in the db
-		if _, err := git_model.GetLFSMetaObjectByOid(db.DefaultContext, pr.HeadRepo.ID, pointer.Oid); err != nil {
+		if _, err := git_model.GetLFSMetaObjectByOid(db.DefaultContext, pr.HeadRepoID, pointer.Oid); err != nil {
 			if err == git_model.ErrLFSObjectNotExist {
 				log.Warn("During merge of: %d in %-v, there is a pointer to LFS Oid: %s which although present in the LFS store is not associated with the head repo %-v", pr.Index, pr.BaseRepo, pointer.Oid, pr.HeadRepo)
 				continue

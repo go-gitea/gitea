@@ -174,8 +174,9 @@ type Repository struct {
 	// Avatar: ID(10-20)-md5(32) - must fit into 64 symbols
 	Avatar string `xorm:"VARCHAR(64)"`
 
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
+	ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT 0"`
 }
 
 func init() {
@@ -225,13 +226,14 @@ func (repo *Repository) IsBroken() bool {
 	return repo.Status == RepositoryBroken
 }
 
+// MarkAsBrokenEmpty marks the repo as broken and empty
+func (repo *Repository) MarkAsBrokenEmpty() {
+	repo.Status = RepositoryBroken
+	repo.IsEmpty = true
+}
+
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (repo *Repository) AfterLoad() {
-	// FIXME: use models migration to solve all at once.
-	if len(repo.DefaultBranch) == 0 {
-		repo.DefaultBranch = setting.Repository.DefaultBranch
-	}
-
 	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
 	repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
 	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
@@ -242,7 +244,7 @@ func (repo *Repository) AfterLoad() {
 // LoadAttributes loads attributes of the repository.
 func (repo *Repository) LoadAttributes(ctx context.Context) error {
 	// Load owner
-	if err := repo.GetOwner(ctx); err != nil {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return fmt.Errorf("load owner: %w", err)
 	}
 
@@ -279,7 +281,7 @@ func (repo *Repository) CommitLink(commitID string) (result string) {
 	if commitID == "" || commitID == "0000000000000000000000000000000000000000" {
 		result = ""
 	} else {
-		result = repo.HTMLURL() + "/commit/" + url.PathEscape(commitID)
+		result = repo.Link() + "/commit/" + url.PathEscape(commitID)
 	}
 	return result
 }
@@ -378,8 +380,8 @@ func (repo *Repository) GetUnit(ctx context.Context, tp unit.Type) (*RepoUnit, e
 	return nil, ErrUnitTypeNotExist{tp}
 }
 
-// GetOwner returns the repository owner
-func (repo *Repository) GetOwner(ctx context.Context) (err error) {
+// LoadOwner loads owner user
+func (repo *Repository) LoadOwner(ctx context.Context) (err error) {
 	if repo.Owner != nil {
 		return nil
 	}
@@ -393,7 +395,7 @@ func (repo *Repository) GetOwner(ctx context.Context) (err error) {
 // It creates a fake object that contains error details
 // when error occurs.
 func (repo *Repository) MustOwner(ctx context.Context) *user_model.User {
-	if err := repo.GetOwner(ctx); err != nil {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return &user_model.User{
 			Name:     "error",
 			FullName: err.Error(),
@@ -485,7 +487,7 @@ func (repo *Repository) RepoPath() string {
 	return RepoPath(repo.OwnerName, repo.Name)
 }
 
-// Link returns the repository link
+// Link returns the repository relative url
 func (repo *Repository) Link() string {
 	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
 }
@@ -663,6 +665,49 @@ func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
 	return repo, err
 }
 
+// getRepositoryURLPathSegments returns segments (owner, reponame) extracted from a url
+func getRepositoryURLPathSegments(repoURL string) []string {
+	if strings.HasPrefix(repoURL, setting.AppURL) {
+		return strings.Split(strings.TrimPrefix(repoURL, setting.AppURL), "/")
+	}
+
+	sshURLVariants := [4]string{
+		setting.SSH.Domain + ":",
+		setting.SSH.User + "@" + setting.SSH.Domain + ":",
+		"git+ssh://" + setting.SSH.Domain + "/",
+		"git+ssh://" + setting.SSH.User + "@" + setting.SSH.Domain + "/",
+	}
+
+	for _, sshURL := range sshURLVariants {
+		if strings.HasPrefix(repoURL, sshURL) {
+			return strings.Split(strings.TrimPrefix(repoURL, sshURL), "/")
+		}
+	}
+
+	return nil
+}
+
+// GetRepositoryByURL returns the repository by given url
+func GetRepositoryByURL(ctx context.Context, repoURL string) (*Repository, error) {
+	// possible urls for git:
+	//  https://my.domain/sub-path/<owner>/<repo>.git
+	//  https://my.domain/sub-path/<owner>/<repo>
+	//  git+ssh://user@my.domain/<owner>/<repo>.git
+	//  git+ssh://user@my.domain/<owner>/<repo>
+	//  user@my.domain:<owner>/<repo>.git
+	//  user@my.domain:<owner>/<repo>
+
+	pathSegments := getRepositoryURLPathSegments(repoURL)
+
+	if len(pathSegments) != 2 {
+		return nil, fmt.Errorf("unknown or malformed repository URL")
+	}
+
+	ownerName := pathSegments[0]
+	repoName := strings.TrimSuffix(pathSegments[1], ".git")
+	return GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
+}
+
 // GetRepositoryByID returns the repository by given id if exists.
 func GetRepositoryByID(ctx context.Context, id int64) (*Repository, error) {
 	repo := new(Repository)
@@ -691,7 +736,7 @@ func IsRepositoryExist(ctx context.Context, u *user_model.User, repoName string)
 		return false, err
 	}
 	isDir, err := util.IsDir(RepoPath(u.Name, repoName))
-	return has && isDir, err
+	return has || isDir, err
 }
 
 // GetTemplateRepo populates repo.TemplateRepo for a generated repository and

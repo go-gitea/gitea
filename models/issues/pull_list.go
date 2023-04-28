@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 )
@@ -51,13 +52,16 @@ func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xor
 
 // GetUnmergedPullRequestsByHeadInfo returns all pull requests that are open and has not been merged
 // by given head information (repo and branch).
-func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequest, error) {
+// arg `includeClosed` controls whether the SQL returns closed PRs
+func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string, includeClosed bool) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
-	return prs, db.GetEngine(db.DefaultContext).
-		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?",
-			repoID, branch, false, false, PullRequestFlowGithub).
+	sess := db.GetEngine(db.DefaultContext).
 		Join("INNER", "issue", "issue.id = pull_request.issue_id").
-		Find(&prs)
+		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND flow = ?", repoID, branch, false, PullRequestFlowGithub)
+	if !includeClosed {
+		sess.Where("issue.is_closed = ?", false)
+	}
+	return prs, sess.Find(&prs)
 }
 
 // CanMaintainerWriteToBranch check whether user is a maintainer and could write to the branch
@@ -70,7 +74,7 @@ func CanMaintainerWriteToBranch(p access_model.Permission, branch string, user *
 		return false
 	}
 
-	prs, err := GetUnmergedPullRequestsByHeadInfo(p.Units[0].RepoID, branch)
+	prs, err := GetUnmergedPullRequestsByHeadInfo(p.Units[0].RepoID, branch, false)
 	if err != nil {
 		return false
 	}
@@ -110,6 +114,7 @@ func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequ
 	return prs, db.GetEngine(db.DefaultContext).
 		Where("base_repo_id=? AND base_branch=? AND has_merged=? AND issue.is_closed=?",
 			repoID, branch, false, false).
+		OrderBy("issue.updated_unix DESC").
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
 		Find(&prs)
 }
@@ -173,8 +178,20 @@ func (prs PullRequestList) loadAttributes(ctx context.Context) error {
 	for i := range issues {
 		set[issues[i].ID] = issues[i]
 	}
-	for i := range prs {
-		prs[i].Issue = set[prs[i].IssueID]
+	for _, pr := range prs {
+		pr.Issue = set[pr.IssueID]
+		/*
+			Old code:
+			pr.Issue.PullRequest = pr // panic here means issueIDs and prs are not in sync
+
+			It's worth panic because it's almost impossible to happen under normal use.
+			But in integration testing, an asynchronous task could read a database that has been reset.
+			So returning an error would make more sense, let the caller has a choice to ignore it.
+		*/
+		if pr.Issue == nil {
+			return fmt.Errorf("issues and prs may be not in sync: cannot find issue %v for pr %v: %w", pr.IssueID, pr.ID, util.ErrNotExist)
+		}
+		pr.Issue.PullRequest = pr
 	}
 	return nil
 }

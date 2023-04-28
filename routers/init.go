@@ -71,13 +71,6 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 	}
 }
 
-// InitGitServices init new services for git, this is also called in `contrib/pr/checkout.go`
-func InitGitServices() {
-	setting.NewServices()
-	mustInit(storage.Init)
-	mustInit(repo_service.Init)
-}
-
 func syncAppConfForGit(ctx context.Context) error {
 	runtimeState := new(system.RuntimeState)
 	if err := system.AppState.Get(runtimeState); err != nil {
@@ -115,19 +108,19 @@ func GlobalInitInstalled(ctx context.Context) {
 	}
 
 	mustInitCtx(ctx, git.InitFull)
+	log.Info("Gitea Version: %s%s", setting.AppVer, setting.AppBuiltWith)
 	log.Info("Git Version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
 	log.Info("AppPath: %s", setting.AppPath)
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)
-	log.Info("Log path: %s", setting.LogRootPath)
+	log.Info("Log path: %s", setting.Log.RootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
 	log.Info("Run Mode: %s", util.ToTitleCase(setting.RunMode))
-	log.Info("Gitea v%s%s", setting.AppVer, setting.AppBuiltWith)
 
 	// Setup i18n
 	translation.InitLocales(ctx)
 
-	setting.NewServices()
+	setting.LoadSettings()
 	mustInit(storage.Init)
 
 	mailer.NewContext(ctx)
@@ -141,7 +134,7 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 support is enabled")
-	} else if setting.Database.UseSQLite3 {
+	} else if setting.Database.Type.IsSQLite3() {
 		log.Fatal("SQLite3 support is disabled, but it is used for database setting. Please get or build a Gitea release with SQLite3 support.")
 	}
 
@@ -150,7 +143,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(system.Init)
 	mustInit(oauth2.Init)
 
-	mustInit(models.Init)
+	mustInitCtx(ctx, models.Init)
 	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.
@@ -172,7 +165,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(ssh.Init)
 
 	auth.Init()
-	svg.Init()
+	mustInit(svg.Init)
 
 	actions_service.Init()
 
@@ -184,20 +177,15 @@ func GlobalInitInstalled(ctx context.Context) {
 func NormalRoutes(ctx context.Context) *web.Route {
 	ctx, _ = templates.HTMLRenderer(ctx)
 	r := web.NewRoute()
-	for _, middle := range common.Middlewares() {
-		r.Use(middle)
-	}
+	r.Use(common.ProtocolMiddlewares()...)
 
 	r.Mount("/", web_routers.Routes(ctx))
 	r.Mount("/api/v1", apiv1.Routes(ctx))
 	r.Mount("/api/internal", private.Routes())
 
 	if setting.Packages.Enabled {
-		// Add endpoints to match common package manager APIs
-
 		// This implements package support for most package managers
 		r.Mount("/api/packages", packages_router.CommonRoutes(ctx))
-
 		// This implements the OCI API (Note this is not preceded by /api but is instead /v2)
 		r.Mount("/v2", packages_router.ContainerRoutes(ctx))
 	}

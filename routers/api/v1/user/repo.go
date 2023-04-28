@@ -31,7 +31,7 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 		return
 	}
 
-	if err := repos.LoadAttributes(); err != nil {
+	if err := repos.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "RepositoryList.LoadAttributes", err)
 		return
 	}
@@ -119,8 +119,8 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
-		if err = repo.GetOwner(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetOwner", err)
+		if err = repo.LoadOwner(ctx); err != nil {
+			ctx.Error(http.StatusInternalServerError, "LoadOwner", err)
 			return
 		}
 		accessMode, err := access_model.AccessLevel(ctx, ctx.Doer, repo)

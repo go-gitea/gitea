@@ -53,7 +53,7 @@ export async function save_visual(page) {
       timeout: 20000,
       mask: [
         page.locator('.dashboard-navbar span>img.ui.avatar'),
-        page.locator('.ui.dropdown.jump.item.tooltip span>img.ui.avatar'),
+        page.locator('.ui.dropdown.jump.item span>img.ui.avatar'),
       ],
     });
   }

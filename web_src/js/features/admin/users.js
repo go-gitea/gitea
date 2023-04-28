@@ -16,19 +16,19 @@ export function initAdminUserListSearchForm() {
     }
   }
 
-  $form.find(`input[type=radio]`).click(() => {
-    $form.submit();
+  $form.find(`input[type=radio]`).on('click', () => {
+    $form.trigger('submit');
     return false;
   });
 
-  $form.find('.j-reset-status-filter').click(() => {
+  $form.find('.j-reset-status-filter').on('click', () => {
     $form.find(`input[type=radio]`).each((_, e) => {
       const $e = $(e);
       if ($e.attr('name').startsWith('status_filter[')) {
         $e.prop('checked', false);
       }
     });
-    $form.submit();
+    $form.trigger('submit');
     return false;
   });
 }

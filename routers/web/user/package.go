@@ -376,7 +376,7 @@ func PackageSettingsPost(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
 		}
 
-		ctx.Redirect(ctx.Package.Owner.HTMLURL() + "/-/packages")
+		ctx.Redirect(ctx.Package.Owner.HomeLink() + "/-/packages")
 		return
 	}
 }

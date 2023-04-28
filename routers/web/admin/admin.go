@@ -18,8 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/updatechecker"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/cron"
@@ -34,7 +32,7 @@ const (
 )
 
 var sysStatus struct {
-	Uptime       string
+	StartTime    string
 	NumGoroutine int
 
 	// General statistics.
@@ -75,7 +73,7 @@ var sysStatus struct {
 }
 
 func updateSystemStatus() {
-	sysStatus.Uptime = timeutil.TimeSincePro(setting.AppStartTime, translation.NewLocale("en-US"))
+	sysStatus.StartTime = setting.AppStartTime.Format(time.RFC3339)
 
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)
@@ -115,7 +113,6 @@ func updateSystemStatus() {
 // Dashboard show admin panel dashboard
 func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
 	ctx.Data["Stats"] = activities_model.GetStatistic()
 	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate()
@@ -131,7 +128,6 @@ func Dashboard(ctx *context.Context) {
 func DashboardPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AdminDashboardForm)
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
 	ctx.Data["Stats"] = activities_model.GetStatistic()
 	updateSystemStatus()
@@ -157,7 +153,6 @@ func DashboardPost(ctx *context.Context) {
 // Monitor show admin monitor page
 func Monitor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
 	ctx.Data["Processes"], ctx.Data["ProcessCount"] = process.GetManager().Processes(false, true)
 	ctx.Data["Entries"] = cron.ListTasks()
@@ -169,7 +164,6 @@ func Monitor(ctx *context.Context) {
 // GoroutineStacktrace show admin monitor goroutines page
 func GoroutineStacktrace(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
 
 	processStacks, processCount, goroutineCount, err := process.GetManager().ProcessStacktraces(false, false)
@@ -204,7 +198,6 @@ func Queue(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Title"] = ctx.Tr("admin.monitor.queue", mq.Name)
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
 	ctx.Data["Queue"] = mq
 	ctx.HTML(http.StatusOK, tplQueue)

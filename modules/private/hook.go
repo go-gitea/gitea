@@ -5,14 +5,11 @@ package private
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strconv"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -99,126 +96,47 @@ type HookProcReceiveRefResult struct {
 }
 
 // HookPreReceive check whether the provided commits are allowed
-func HookPreReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (int, string) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s",
-		url.PathEscape(ownerName),
-		url.PathEscape(repoName),
-	)
-	req := newInternalRequest(ctx, reqURL, "POST")
-	req = req.Header("Content-Type", "application/json")
-	jsonBytes, _ := json.Marshal(opts)
-	req.Body(jsonBytes)
-	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
-	resp, err := req.Response()
-	if err != nil {
-		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return resp.StatusCode, decodeJSONError(resp).Err
-	}
-
-	return http.StatusOK, ""
+func HookPreReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) ResponseExtra {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s", url.PathEscape(ownerName), url.PathEscape(repoName))
+	req := newInternalRequest(ctx, reqURL, "POST", opts)
+	req.SetReadWriteTimeout(time.Duration(60+len(opts.OldCommitIDs)) * time.Second)
+	_, extra := requestJSONResp(req, &responseText{})
+	return extra
 }
 
 // HookPostReceive updates services and users
-func HookPostReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (*HookPostReceiveResult, string) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/post-receive/%s/%s",
-		url.PathEscape(ownerName),
-		url.PathEscape(repoName),
-	)
-
-	req := newInternalRequest(ctx, reqURL, "POST")
-	req = req.Header("Content-Type", "application/json")
-	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
-	jsonBytes, _ := json.Marshal(opts)
-	req.Body(jsonBytes)
-	resp, err := req.Response()
-	if err != nil {
-		return nil, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, decodeJSONError(resp).Err
-	}
-	res := &HookPostReceiveResult{}
-	_ = json.NewDecoder(resp.Body).Decode(res)
-
-	return res, ""
+func HookPostReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (*HookPostReceiveResult, ResponseExtra) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/post-receive/%s/%s", url.PathEscape(ownerName), url.PathEscape(repoName))
+	req := newInternalRequest(ctx, reqURL, "POST", opts)
+	req.SetReadWriteTimeout(time.Duration(60+len(opts.OldCommitIDs)) * time.Second)
+	return requestJSONResp(req, &HookPostReceiveResult{})
 }
 
 // HookProcReceive proc-receive hook
-func HookProcReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (*HookProcReceiveResult, error) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/proc-receive/%s/%s",
-		url.PathEscape(ownerName),
-		url.PathEscape(repoName),
-	)
+func HookProcReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (*HookProcReceiveResult, ResponseExtra) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/proc-receive/%s/%s", url.PathEscape(ownerName), url.PathEscape(repoName))
 
-	req := newInternalRequest(ctx, reqURL, "POST")
-	req = req.Header("Content-Type", "application/json")
-	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
-	jsonBytes, _ := json.Marshal(opts)
-	req.Body(jsonBytes)
-	resp, err := req.Response()
-	if err != nil {
-		return nil, fmt.Errorf("Unable to contact gitea: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(decodeJSONError(resp).Err)
-	}
-	res := &HookProcReceiveResult{}
-	_ = json.NewDecoder(resp.Body).Decode(res)
-
-	return res, nil
+	req := newInternalRequest(ctx, reqURL, "POST", opts)
+	req.SetReadWriteTimeout(time.Duration(60+len(opts.OldCommitIDs)) * time.Second)
+	return requestJSONResp(req, &HookProcReceiveResult{})
 }
 
 // SetDefaultBranch will set the default branch to the provided branch for the provided repository
-func SetDefaultBranch(ctx context.Context, ownerName, repoName, branch string) error {
+func SetDefaultBranch(ctx context.Context, ownerName, repoName, branch string) ResponseExtra {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/set-default-branch/%s/%s/%s",
 		url.PathEscape(ownerName),
 		url.PathEscape(repoName),
 		url.PathEscape(branch),
 	)
 	req := newInternalRequest(ctx, reqURL, "POST")
-	req = req.Header("Content-Type", "application/json")
-
-	req.SetTimeout(60*time.Second, 60*time.Second)
-	resp, err := req.Response()
-	if err != nil {
-		return fmt.Errorf("Unable to contact gitea: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Error returned from gitea: %v", decodeJSONError(resp).Err)
-	}
-	return nil
+	_, extra := requestJSONResp(req, &responseText{})
+	return extra
 }
 
 // SSHLog sends ssh error log response
 func SSHLog(ctx context.Context, isErr bool, msg string) error {
 	reqURL := setting.LocalURL + "api/internal/ssh/log"
-	req := newInternalRequest(ctx, reqURL, "POST")
-	req = req.Header("Content-Type", "application/json")
-
-	jsonBytes, _ := json.Marshal(&SSHLogOption{
-		IsError: isErr,
-		Message: msg,
-	})
-	req.Body(jsonBytes)
-
-	req.SetTimeout(60*time.Second, 60*time.Second)
-	resp, err := req.Response()
-	if err != nil {
-		return fmt.Errorf("unable to contact gitea: %w", err)
-	}
-
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Error returned from gitea: %v", decodeJSONError(resp).Err)
-	}
-	return nil
+	req := newInternalRequest(ctx, reqURL, "POST", &SSHLogOption{IsError: isErr, Message: msg})
+	_, extra := requestJSONResp(req, &responseText{})
+	return extra.Error
 }

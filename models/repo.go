@@ -39,9 +39,9 @@ import (
 var ItemsPerPage = 40
 
 // Init initialize model
-func Init() error {
+func Init(ctx context.Context) error {
 	unit.LoadUnitConfig()
-	return system_model.Init()
+	return system_model.Init(ctx)
 }
 
 // DeleteRepository deletes a repository for a user or organization.

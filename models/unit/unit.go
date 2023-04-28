@@ -94,6 +94,12 @@ var (
 		TypePackages,
 	}
 
+	// ForkRepoUnits contains the default unit types for forks
+	DefaultForkRepoUnits = []Type{
+		TypeCode,
+		TypePullRequests,
+	}
+
 	// NotAllowedDefaultRepoUnits contains units that can't be default
 	NotAllowedDefaultRepoUnits = []Type{
 		TypeExternalWiki,
@@ -110,27 +116,46 @@ var (
 	DisabledRepoUnits = []Type{}
 )
 
-// LoadUnitConfig load units from settings
-func LoadUnitConfig() {
-	setDefaultRepoUnits := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
-	// Default repo units set if setting is not empty
-	if len(setDefaultRepoUnits) > 0 {
+// Get valid set of default repository units from settings
+func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
+	units := defaultUnits
+
+	// Use setting if not empty
+	if len(settingDefaultUnits) > 0 {
 		// MustRepoUnits required as default
-		DefaultRepoUnits = make([]Type, len(MustRepoUnits))
-		copy(DefaultRepoUnits, MustRepoUnits)
-		for _, defaultU := range setDefaultRepoUnits {
-			if !defaultU.CanBeDefault() {
-				log.Warn("Not allowed as default unit: %s", defaultU.String())
+		units = make([]Type, len(MustRepoUnits))
+		copy(units, MustRepoUnits)
+		for _, settingUnit := range settingDefaultUnits {
+			if !settingUnit.CanBeDefault() {
+				log.Warn("Not allowed as default unit: %s", settingUnit.String())
 				continue
 			}
 			// MustRepoUnits already added
-			if defaultU.CanDisable() {
-				DefaultRepoUnits = append(DefaultRepoUnits, defaultU)
+			if settingUnit.CanDisable() {
+				units = append(units, settingUnit)
 			}
 		}
 	}
 
-	DisabledRepoUnits = FindUnitTypes(setting.Repository.DisabledRepoUnits...)
+	// Remove disabled units
+	for _, disabledUnit := range DisabledRepoUnits {
+		for i, unit := range units {
+			if unit == disabledUnit {
+				units = append(units[:i], units[i+1:]...)
+			}
+		}
+	}
+
+	return units
+}
+
+// LoadUnitConfig load units from settings
+func LoadUnitConfig() {
+	var invalidKeys []string
+	DisabledRepoUnits, invalidKeys = FindUnitTypes(setting.Repository.DisabledRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in disabled repo units: %s", strings.Join(invalidKeys, ", "))
+	}
 	// Check that must units are not disabled
 	for i, disabledU := range DisabledRepoUnits {
 		if !disabledU.CanDisable() {
@@ -138,14 +163,17 @@ func LoadUnitConfig() {
 			DisabledRepoUnits = append(DisabledRepoUnits[:i], DisabledRepoUnits[i+1:]...)
 		}
 	}
-	// Remove disabled units from default units
-	for _, disabledU := range DisabledRepoUnits {
-		for i, defaultU := range DefaultRepoUnits {
-			if defaultU == disabledU {
-				DefaultRepoUnits = append(DefaultRepoUnits[:i], DefaultRepoUnits[i+1:]...)
-			}
-		}
+
+	setDefaultRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in default repo units: %s", strings.Join(invalidKeys, ", "))
 	}
+	DefaultRepoUnits = validateDefaultRepoUnits(DefaultRepoUnits, setDefaultRepoUnits)
+	setDefaultForkRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultForkRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in default fork repo units: %s", strings.Join(invalidKeys, ", "))
+	}
+	DefaultForkRepoUnits = validateDefaultRepoUnits(DefaultForkRepoUnits, setDefaultForkRepoUnits)
 }
 
 // UnitGlobalDisabled checks if unit type is global disabled
@@ -294,7 +322,7 @@ var (
 
 	UnitActions = Unit{
 		TypeActions,
-		"actions.actions",
+		"repo.actions",
 		"/actions",
 		"actions.unit.desc",
 		7,
@@ -316,22 +344,19 @@ var (
 	}
 )
 
-// FindUnitTypes give the unit key names and return unit
-func FindUnitTypes(nameKeys ...string) (res []Type) {
+// FindUnitTypes give the unit key names and return valid unique units and invalid keys
+func FindUnitTypes(nameKeys ...string) (res []Type, invalidKeys []string) {
+	m := map[Type]struct{}{}
 	for _, key := range nameKeys {
-		var found bool
-		for t, u := range Units {
-			if strings.EqualFold(key, u.NameKey) {
-				res = append(res, t)
-				found = true
-				break
-			}
-		}
-		if !found {
-			res = append(res, TypeInvalid)
+		t := TypeFromKey(key)
+		if t == TypeInvalid {
+			invalidKeys = append(invalidKeys, key)
+		} else if _, ok := m[t]; !ok {
+			res = append(res, t)
+			m[t] = struct{}{}
 		}
 	}
-	return res
+	return res, invalidKeys
 }
 
 // TypeFromKey give the unit key name and return unit

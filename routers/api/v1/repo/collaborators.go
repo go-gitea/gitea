@@ -65,7 +65,7 @@ func ListCollaborators(ctx *context.APIContext) {
 
 	users := make([]*api.User, len(collaborators))
 	for i, collaborator := range collaborators {
-		users[i] = convert.ToUser(collaborator.User, ctx.Doer)
+		users[i] = convert.ToUser(ctx, collaborator.User, ctx.Doer)
 	}
 
 	ctx.SetTotalCountHeader(count)
@@ -287,7 +287,7 @@ func GetRepoPermissions(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToUserAndPermission(collaborator, ctx.ContextUser, permission.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToUserAndPermission(ctx, collaborator, ctx.ContextUser, permission.AccessMode))
 }
 
 // GetReviewers return all users that can be requested to review in this repo
@@ -317,7 +317,7 @@ func GetReviewers(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToUsers(ctx.Doer, reviewers))
+	ctx.JSON(http.StatusOK, convert.ToUsers(ctx, ctx.Doer, reviewers))
 }
 
 // GetAssignees return all users that have write access and can be assigned to issues
@@ -347,5 +347,5 @@ func GetAssignees(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToUsers(ctx.Doer, assignees))
+	ctx.JSON(http.StatusOK, convert.ToUsers(ctx, ctx.Doer, assignees))
 }

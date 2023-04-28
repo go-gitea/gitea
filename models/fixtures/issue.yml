@@ -287,3 +287,20 @@
   created_unix: 1602935696
   updated_unix: 1602935696
   is_locked: false
+
+-
+  id: 18
+  repo_id: 55
+  index: 1
+  poster_id: 2
+  original_author_id: 0
+  name: issue for scoped labels
+  content: content
+  milestone_id: 0
+  priority: 0
+  is_closed: false
+  is_pull: false
+  num_comments: 0
+  created_unix: 946684830
+  updated_unix: 978307200
+  is_locked: false

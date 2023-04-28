@@ -1,36 +1,30 @@
 <footer role="group" aria-label="{{.locale.Tr "aria.footer"}}">
-	<div class="ui container">
-		<div class="ui left" role="contentinfo" aria-label="{{.locale.Tr "aria.footer.software"}}">
-			<a target="_blank" rel="noopener noreferrer" href="https://gitea.io">{{.locale.Tr "powered_by" "Gitea"}}</a>
-			{{if (or .ShowFooterVersion .PageIsAdmin)}}
-				{{.locale.Tr "version"}}:
-				{{if .IsAdmin}}
-					<a href="{{AppSubUrl}}/admin/config">{{AppVer}}</a>
-				{{else}}
-					{{AppVer}}
+	<div class="ui left" role="contentinfo" aria-label="{{.locale.Tr "aria.footer.software"}}">
+		<a target="_blank" rel="noopener noreferrer" href="https://gitea.io">{{.locale.Tr "powered_by" "Gitea"}}</a>
+		{{if (or .ShowFooterVersion .PageIsAdmin)}}
+			{{.locale.Tr "version"}}:
+			{{if .IsAdmin}}
+				<a href="{{AppSubUrl}}/admin/config">{{AppVer}}</a>
+			{{else}}
+				{{AppVer}}
+			{{end}}
+		{{end}}
+		{{if and .TemplateLoadTimes ShowFooterTemplateLoadTime}}
+			{{.locale.Tr "page"}}: <strong>{{LoadTimes .PageStartTime}}</strong>
+			{{.locale.Tr "template"}}{{if .TemplateName}} {{.TemplateName}}{{end}}: <strong>{{call .TemplateLoadTimes}}</strong>
+		{{end}}
+	</div>
+	<div class="ui right links" role="group" aria-label="{{.locale.Tr "aria.footer.links"}}">
+		<div class="ui dropdown upward language">
+			<span>{{svg "octicon-globe"}} {{.locale.LangName}}</span>
+			<div class="menu language-menu">
+				{{range .AllLangs}}
+					<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq $.locale.Lang .Lang}}active selected{{end}}">{{.Name}}</a>
 				{{end}}
-			{{end}}
-			{{if and .TemplateLoadTimes ShowFooterTemplateLoadTime}}
-				{{.locale.Tr "page"}}: <strong>{{LoadTimes .PageStartTime}}</strong>
-				{{.locale.Tr "template"}}{{if .TemplateName}} {{.TemplateName}}{{end}}: <strong>{{call .TemplateLoadTimes}}</strong>
-			{{end}}
-		</div>
-		<div class="ui right links" role="group" aria-label="{{.locale.Tr "aria.footer.links"}}">
-			{{if .ShowFooterBranding}}
-				<a target="_blank" rel="noopener noreferrer" href="https://github.com/go-gitea/gitea">{{svg "octicon-mark-github"}}<span class="sr-only">GitHub</span></a>
-			{{end}}
-			<div class="ui language bottom floating slide up dropdown link item">
-				{{svg "octicon-globe"}}
-				<div class="text">{{.locale.LangName}}</div>
-				<div class="menu language-menu">
-					{{range .AllLangs}}
-						<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq $.locale.Lang .Lang}}active selected{{end}}">{{.Name}}</a>
-					{{end}}
-				</div>
 			</div>
-			<a href="{{AssetUrlPrefix}}/js/licenses.txt">{{.locale.Tr "licenses"}}</a>
-			{{if .EnableSwagger}}<a href="{{AppSubUrl}}/api/swagger">API</a>{{end}}
-			{{template "custom/extra_links_footer" .}}
 		</div>
+		<a href="{{AssetUrlPrefix}}/js/licenses.txt">{{.locale.Tr "licenses"}}</a>
+		{{if .EnableSwagger}}<a href="{{AppSubUrl}}/api/swagger">API</a>{{end}}
+		{{template "custom/extra_links_footer" .}}
 	</div>
 </footer>
