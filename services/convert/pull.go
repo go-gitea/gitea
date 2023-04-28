@@ -72,6 +72,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		Deadline:  apiIssue.Deadline,
 		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
+		Pin:       apiIssue.Pin,
 
 		AllowMaintainerEdit: pr.AllowMaintainerEdit,
 

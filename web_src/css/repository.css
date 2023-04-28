@@ -3636,3 +3636,14 @@ td.blob-excerpt {
 .search-fullname {
   color: var(--color-text-light-2);
 }
+
+.pinned-issue-card {
+  margin: 4px 2px !important;
+  border-radius: 5px !important;
+  width: calc(100% - 4px) !important;
+  padding: 0.5rem !important;
+  min-height: auto !important;
+  max-width: calc(100% * (1/3) - 10px - 1px);
+  border-style: solid;
+  border-color: var(--color-input-border);
+}

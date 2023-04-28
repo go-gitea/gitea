@@ -2,6 +2,7 @@ import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
 import {toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
+import {Sortable} from 'sortablejs';
 
 function initRepoIssueListCheckboxes() {
   const $issueSelectAll = $('.issue-checkbox-all');
@@ -117,8 +118,46 @@ function initRepoIssueListAuthorDropdown() {
   };
 }
 
+function pinMoveEnd(event) {
+  const url = event.item.getAttribute('data-move-url');
+  const id = Number(event.item.getAttribute('data-issue-id'));
+  $.ajax({
+    url: url,
+    data: JSON.stringify({"id": id, "position": event.newIndex + 1}),
+    headers: {
+      'X-Csrf-Token': window.config.csrfToken,
+    },
+    contentType: 'application/json',
+    type: 'POST',
+    error: function(xhr) {
+      throw new Error(xhr.responseText);
+    }
+  });
+}
+
+function initIssuePinSort() {
+  const pinDiv = document.getElementById("issue-pin-div");
+
+  if (pinDiv === null) {
+    return;
+  }
+
+  // If the User is not a Repo Admin or only one issue pinned, we don't need to make this Sortable
+  if (!pinDiv.hasAttribute("data-is-repo-admin") || pinDiv.children.length < 2) {
+    return;
+  }
+
+  new Sortable(pinDiv, {
+    group: 'shared',
+    animation: 150,
+    ghostClass: 'card-ghost',
+    onEnd: pinMoveEnd
+  });
+}
+
 export function initRepoIssueList() {
   if (!document.querySelectorAll('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list').length) return;
   initRepoIssueListCheckboxes();
   initRepoIssueListAuthorDropdown();
+  initIssuePinSort();
 }

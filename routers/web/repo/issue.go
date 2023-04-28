@@ -384,6 +384,14 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return
 	}
 
+	pinned, err := issues_model.GetPinnedIssues(repo.ID, isPullOption.IsTrue())
+	if err != nil {
+		ctx.ServerError("GetPinnedIssues", err)
+		return
+	}
+
+	ctx.Data["PinnedIssues"] = pinned
+	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["SelLabelIDs"] = labelIDs
 	ctx.Data["SelectLabels"] = selectLabels

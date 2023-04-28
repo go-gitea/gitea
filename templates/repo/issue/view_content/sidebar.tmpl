@@ -577,6 +577,25 @@
 
 		{{if and .IsRepoAdmin (not .Repository.IsArchived)}}
 			<div class="ui divider"></div>
+
+			{{if not .Repository.IsArchived}}
+				<div class="ui watching">
+					<div class="gt-mt-3">
+						<form method="POST" action="{{.Issue.Link}}/pin">
+							{{$.CsrfTokenHtml}}
+							<button class="fluid ui button gt-df gt-jc">
+								{{svg "octicon-pin" 16 "gt-mr-3"}}
+								{{if eq .Issue.Pin 0}}
+									{{.locale.Tr "repo.issues.pin"}}
+								{{else}}
+									{{.locale.Tr "repo.issues.unpin"}}
+								{{end}}
+							</button>
+						</form>
+					</div>
+				</div>
+			{{end}}
+
 			<div class="ui watching">
 				<button class="fluid ui show-modal button {{if .Issue.IsLocked}} negative {{end}}" data-modal="#lock">
 					{{if .Issue.IsLocked}}

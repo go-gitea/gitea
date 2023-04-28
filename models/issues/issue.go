@@ -127,6 +127,7 @@ type Issue struct {
 	PullRequest      *PullRequest     `xorm:"-"`
 	NumComments      int
 	Ref              string
+	Pin              int `xorm:"DEFAULT 0"`
 
 	DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`
 
@@ -2502,4 +2503,128 @@ func DeleteOrphanedIssues(ctx context.Context) error {
 // HasOriginalAuthor returns if an issue was migrated and has an original author.
 func (issue *Issue) HasOriginalAuthor() bool {
 	return issue.OriginalAuthor != "" && issue.OriginalAuthorID != 0
+}
+
+// PinIssue pins a Issue
+func (issue *Issue) PinIssue() error {
+	// If the Issue is already pinned, we don't need to pin it twice
+	if issue.Pin > 0 {
+		return nil
+	}
+
+	var maxPin int
+	_, err := db.GetEngine(db.DefaultContext).SQL("SELECT MAX(pin) FROM issue WHERE repo_id = ? AND is_pull = ?", issue.RepoID, issue.IsPull).Get(&maxPin)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetEngine(db.DefaultContext).Table("issue").
+		Where("id = ?", issue.ID).
+		Update(map[string]interface{}{
+			"pin": maxPin + 1,
+		})
+
+	return err
+}
+
+// UnpinIssue unpins a Issue
+func (issue *Issue) UnpinIssue() error {
+	// If the Issue is not pinned, we don't need to unpin it
+	if issue.Pin == 0 {
+		return nil
+	}
+
+	// This sets the Pin for all Issues that come after the unpined Issue to the correct value
+	_, err := db.GetEngine(db.DefaultContext).Exec("UPDATE issue SET pin = pin - 1 WHERE repo_id = ? AND is_pull = ? AND pin > ?", issue.RepoID, issue.IsPull, issue.Pin)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetEngine(db.DefaultContext).Table("issue").
+		Where("id = ?", issue.ID).
+		Update(map[string]interface{}{
+			"pin": 0,
+		})
+
+	return err
+}
+
+// PinOrUnpin pins or unpins a Issue
+func (issue *Issue) PinOrUnpin() error {
+	if issue.Pin == 0 {
+		return issue.PinIssue()
+	} else {
+		return issue.UnpinIssue()
+	}
+}
+
+// MovePin moves a Pinned Issue to a new Position
+func (issue *Issue) MovePin(newPosition int) error {
+	// If the Issue is not pinned, we can't move them
+	if issue.Pin == 0 {
+		return nil
+	}
+
+	if newPosition < 1 {
+		return fmt.Errorf("The Position can't be lower than 1")
+	}
+
+	var (
+		err    error
+		maxPin int
+	)
+
+	_, err = db.GetEngine(db.DefaultContext).SQL("SELECT MAX(pin) FROM issue WHERE repo_id = ? AND is_pull = ?", issue.RepoID, issue.IsPull).Get(&maxPin)
+
+	if err != nil {
+		return err
+	}
+
+	// If the new Position bigger than the current Maximum, set it to the Maximum
+	if newPosition > maxPin+1 {
+		newPosition = maxPin + 1
+	}
+
+	// TODO: Run the follwoing commands in a Transaction and Rollback, if one fails
+
+	// Lower the Position of all Pinned Issue that came after the current Position
+	_, err = db.GetEngine(db.DefaultContext).Exec("UPDATE issue SET pin = pin - 1 WHERE repo_id = ? AND is_pull = ? AND pin > ?", issue.RepoID, issue.IsPull, issue.Pin)
+	log.Error("Hallo %d", issue.Pin)
+	if err != nil {
+		return err
+	}
+
+	// Higher the Position of all Pinned Issues that comes after the new Position
+	_, err = db.GetEngine(db.DefaultContext).Exec("UPDATE issue SET pin = pin + 1 WHERE repo_id = ? AND is_pull = ? AND pin >= ?", issue.RepoID, issue.IsPull, newPosition)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetEngine(db.DefaultContext).Table("issue").
+		Where("id = ?", issue.ID).
+		Update(map[string]interface{}{
+			"pin": newPosition,
+		})
+
+	return err
+}
+
+// GetPinnedIssues returns the pinned Issues for the given Repo and type
+func GetPinnedIssues(RepoID int64, isPull bool) ([]*Issue, error) {
+	issues := make([]*Issue, 0)
+
+	err := db.GetEngine(db.DefaultContext).
+		Table("issue").
+		Where("repo_id = ?", RepoID).
+		And("is_pull = ?", isPull).
+		And("pin > 0").
+		OrderBy("pin").
+		Find(&issues)
+	if err != nil {
+		return nil, err
+	}
+
+	IssueList(issues).LoadAttributes()
+
+	return issues, nil
 }

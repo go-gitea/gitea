@@ -961,6 +961,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
 						Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
+					m.Get("/pinned", repo.ListPinnedIssues)
 					m.Group("/comments", func() {
 						m.Get("", repo.ListRepoIssueComments)
 						m.Group("/{id}", func() {
@@ -1041,6 +1042,12 @@ func Routes(ctx gocontext.Context) *web.Route {
 							Get(repo.GetIssueBlocks).
 							Post(reqToken(auth_model.AccessTokenScopeRepo), bind(api.IssueMeta{}), repo.CreateIssueBlocking).
 							Delete(reqToken(auth_model.AccessTokenScopeRepo), bind(api.IssueMeta{}), repo.RemoveIssueBlocking)
+						m.Group("/pin", func() {
+							m.Combo("").
+								Post(reqToken(auth_model.AccessTokenScopeRepo), reqAdmin(), repo.PinIssue).
+								Delete(reqToken(auth_model.AccessTokenScopeRepo), reqAdmin(), repo.UnpinIssue)
+							m.Patch("/{position}", reqToken(auth_model.AccessTokenScopeRepo), reqAdmin(), repo.MoveIssuePin)
+						})
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
@@ -1103,6 +1110,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Group("/pulls", func() {
 					m.Combo("").Get(repo.ListPullRequests).
 						Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
+					m.Get("/pinned", repo.ListPinnedPullRequests)
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetPullRequest).
 							Patch(reqToken(auth_model.AccessTokenScopeRepo), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
