@@ -2444,7 +2444,7 @@
 
 .settings.webhooks .list > .item:not(:first-child),
 .settings.githooks .list > .item:not(:first-child),
-.settings.runners .list > .item:not(:first-child) {
+.settings.actions .list > .item:not(:first-child) {
   padding: 0.25rem 1rem;
   margin: 12px -1rem -1rem;
 }
