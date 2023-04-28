@@ -85,6 +85,14 @@ See [Workflow syntax for GitHub Actions](https://docs.github.com/en/actions/usin
 
 It's ignored by Gitea Actions now.
 
+### `hashFiles` expression
+
+See [Expressions](https://docs.github.com/en/actions/learn-github-actions/expressions#hashfiles)
+
+Gitea Actions doesn't support it now, if you use it, the result will always be empty string.
+
+As a workaround, you can use [go-hashfiles](https://gitea.com/actions/go-hashfiles) instead.
+
 ## Missing features
 
 ### Variables
