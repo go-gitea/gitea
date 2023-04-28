@@ -123,6 +123,8 @@ See [Context availability](https://docs.github.com/en/actions/learn-github-actio
 
 ### `docker/build-push-action@v4`
 
+See [act_runner#119](https://gitea.com/gitea/act_runner/issues/119#issuecomment-738294).
+
 `ACTIONS_RUNTIME_TOKEN` is a random string in Gitea Actions, not a JWT.
 But the `docker/build-push-action@v4` tries to parse the token as JWT and doesn't handle the error, so the job fails.
 
