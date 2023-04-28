@@ -93,7 +93,7 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 func (repo *Repository) commitsByRange(id SHA1, page, pageSize int, not string) ([]*Commit, error) {
 	cmd := NewCommand(repo.Ctx, "log")
 	if not != "" {
-		cmd.AddOptionFormat("--not=%s", not)
+		cmd.AddOptionFormat("--not %s", not)
 	}
 
 	cmd.AddOptionFormat("--skip=%d", (page-1)*pageSize).
