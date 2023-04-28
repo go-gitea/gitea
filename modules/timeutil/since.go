@@ -156,7 +156,7 @@ func TimeSince(ctx context.Context, then time.Time, lang translation.Locale) tem
 	}
 	forceAbsoluteTimestamps, _ := strconv.ParseBool(val) // we can safely ignore the failed conversion here
 	if forceAbsoluteTimestamps {
-		return DateTime("full", then)
+		return DateTime("full", then, `class="time-since"`)
 	}
 
 	return timeSinceUnix(then, time.Now(), lang)
