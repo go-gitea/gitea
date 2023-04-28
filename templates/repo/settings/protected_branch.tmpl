@@ -148,6 +148,25 @@
 						<p class="help">{{.locale.Tr "repo.settings.dismiss_stale_approvals_desc"}}</p>
 					</div>
 				</div>
+				<div class="grouped fields">
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="enable_status_check" type="checkbox" class="toggle-target-enabled" data-target="#statuscheck_contexts_box" {{if .Rule.EnableStatusCheck}}checked{{end}}>
+							<label>{{.locale.Tr "repo.settings.protect_check_status_contexts"}}</label>
+							<p class="help">{{.locale.Tr "repo.settings.protect_check_status_contexts_desc"}}</p>
+						</div>
+					</div>
+					<div id="statuscheck_contexts_box" class="field {{if not .Rule.EnableStatusCheck}}disabled{{end}}">
+						{{.locale.Tr "repo.settings.protect_check_status_contexts_list"}}
+						{{range $.branch_status_check_contexts}}
+						<label class="gt-db gt-m-0 gt-pl-5 gt-py-2">
+							<input class="gt-vm" name="status_check_contexts" value="{{.}}" type="checkbox" {{if SliceUtils.Contains $.Rule.StatusCheckContexts .}}checked{{end}}>
+							{{.}}
+						</label>
+						{{else}}N/A
+						{{end}}
+					</div>
+				</div>
 				<h5 class="ui dividing header">{{.locale.Tr "repo.settings.event_pull_request_merge"}}</h5>
 				<div class="grouped fields">
 					<div class="field">
@@ -217,25 +236,6 @@
 						<input name="block_on_outdated_branch" type="checkbox" {{if .Rule.BlockOnOutdatedBranch}}checked{{end}}>
 						<label>{{.locale.Tr "repo.settings.block_outdated_branch"}}</label>
 						<p class="help">{{.locale.Tr "repo.settings.block_outdated_branch_desc"}}</p>
-					</div>
-				</div>
-				<div class="grouped fields">
-					<div class="field">
-						<div class="ui checkbox">
-							<input name="enable_status_check" type="checkbox" class="toggle-target-enabled" data-target="#statuscheck_contexts_box" {{if .Rule.EnableStatusCheck}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.protect_check_status_contexts"}}</label>
-							<p class="help">{{.locale.Tr "repo.settings.protect_check_status_contexts_desc"}}</p>
-						</div>
-					</div>
-					<div id="statuscheck_contexts_box" class="field {{if not .Rule.EnableStatusCheck}}disabled{{end}}">
-						{{.locale.Tr "repo.settings.protect_check_status_contexts_list"}}
-						{{range $.branch_status_check_contexts}}
-						<label class="gt-db gt-m-0 gt-pl-5 gt-py-2">
-							<input class="gt-vm" name="status_check_contexts" value="{{.}}" type="checkbox" {{if SliceUtils.Contains $.Rule.StatusCheckContexts .}}checked{{end}}>
-							{{.}}
-						</label>
-						{{else}}N/A
-						{{end}}
 					</div>
 				</div>
 				<div class="ui divider"></div>
