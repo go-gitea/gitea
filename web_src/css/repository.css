@@ -3484,13 +3484,3 @@ td.blob-excerpt {
 .search-fullname {
   color: var(--color-text-light-2);
 }
-
-.ui.form > .inline.field > .ui.dropdown.update-default-branch-dropdown {
-  width: 30%;
-}
-
-@media (max-width: 767px) {
-  .ui.form > .inline.field > .ui.dropdown.update-default-branch-dropdown {
-    width: 40%;
-  }
-}
