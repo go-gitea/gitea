@@ -35,9 +35,14 @@
 			</a>
 		{{end}}
 		{{if .EnableActions}}
-		<a class="{{if .PageIsAdminRunners}}active {{end}}item" href="{{AppSubUrl}}/admin/runners">
-			{{.locale.Tr "actions.runners"}}
-		</a>
+		<div class="item">
+			{{.locale.Tr "actions.actions"}}
+			<div class="menu">
+				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{AppSubUrl}}/admin/actions/runners">
+					{{.locale.Tr "actions.runners"}}
+				</a>
+			</div>
+		</div>
 		{{end}}
 		<a class="{{if .PageIsAdminConfig}}active {{end}}item" href="{{AppSubUrl}}/admin/config">
 			{{.locale.Tr "admin.config"}}
