@@ -28,18 +28,23 @@
 		<a class="{{if .PageIsSettingsKeys}}active {{end}}item" href="{{.RepoLink}}/settings/keys">
 			{{.locale.Tr "repo.settings.deploy_keys"}}
 		</a>
-		<a class="{{if .PageIsSettingsSecrets}}active {{end}}item" href="{{.RepoLink}}/settings/secrets">
-			{{.locale.Tr "secrets.secrets"}}
-		</a>
 		{{if .LFSStartServer}}
 			<a class="{{if .PageIsSettingsLFS}}active {{end}}item" href="{{.RepoLink}}/settings/lfs">
 				{{.locale.Tr "repo.settings.lfs"}}
 			</a>
 		{{end}}
 		{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead $.UnitTypeActions)}}
-			<a class="{{if .PageIsSettingsRunners}}active {{end}}item" href="{{.RepoLink}}/settings/runners">
-				{{.locale.Tr "actions.runners"}}
-			</a>
+		<div class="item">
+			{{.locale.Tr "actions.actions"}}
+			<div class="menu">
+				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{.RepoLink}}/settings/actions/runners">
+					{{.locale.Tr "actions.runners"}}
+				</a>
+				<a class="{{if .PageIsSharedSettingsSecrets}}active {{end}}item" href="{{.RepoLink}}/settings/actions/secrets">
+					{{.locale.Tr "secrets.secrets"}}
+				</a>
+			</div>
+		</div>
 		{{end}}
 	</div>
 </div>
