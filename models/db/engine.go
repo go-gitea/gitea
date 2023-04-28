@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
@@ -147,6 +148,25 @@ func InitEngine(ctx context.Context) error {
 	return nil
 }
 
+func checkCharset(ctx context.Context) error {
+	if !setting.Database.Type.IsMySQL() {
+		return nil
+	}
+	var dbCharset string
+	_, err := GetEngine(ctx).SQL("SELECT default_character_set_name FROM information_schema.SCHEMATA WHERE schema_name = ?",
+		setting.Database.Name).Get(&dbCharset)
+	if err != nil {
+		return err
+	}
+	if dbCharset != setting.Database.Charset {
+		return fmt.Errorf("database setting charset is %s but in fact it's %s", setting.Database.Charset, dbCharset)
+	}
+	if dbCharset == "utf8" {
+		log.Error("database charset is utf8 which is deprecated, please convert it to utf8mb4 and change your app.ini [database]charset")
+	}
+	return nil
+}
+
 // SetDefaultEngine sets the default engine for db
 func SetDefaultEngine(ctx context.Context, eng *xorm.Engine) {
 	x = eng
@@ -179,6 +199,10 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 	}
 
 	if err = x.Ping(); err != nil {
+		return err
+	}
+
+	if err := checkCharset(ctx); err != nil {
 		return err
 	}
 
