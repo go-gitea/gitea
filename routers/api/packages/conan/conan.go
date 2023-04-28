@@ -318,7 +318,7 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		defer upload.Close()
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -648,7 +648,10 @@ func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeRef
 	}
 
 	for _, pf := range pfs {
-		if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
+		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
+			return err
+		}
+		if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
 			return err
 		}
 	}
@@ -661,7 +664,11 @@ func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeRef
 	if !has {
 		versionDeleted = true
 
-		if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
+		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeVersion, pv.ID); err != nil {
+			return err
+		}
+
+		if err := packages_model.DeleteVersionByID(ctx, pv.ID); err != nil {
 			return err
 		}
 	}
