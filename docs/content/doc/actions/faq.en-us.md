@@ -26,6 +26,15 @@ This page contains some common questions and answers about Gitea Actions.
 We know it's annoying to enable Actions for the whole instance and each repository one by one, but not everyone likes or needs this feature.
 We believe that more work needs to be done to improve Gitea Actions before it deserves any further special treatment.
 
+## Is it possible to enable Actions for new repositories by default for my own instance?
+
+Yes, when you enable Actions for the instance, you can choose to enable the `actions` unit for all new repositories by default.
+
+```ini
+[repository]
+DEFAULT_REPO_UNITS = ...,repo.actions
+```
+
 ## Should we use `${{ github.xyz }}` or `${{ gitea.xyz }}`  in workflow files?
 
 You can use `github.xyz` and Gitea will work fine.
