@@ -5,6 +5,8 @@ slug: "integrations"
 weight: 65
 toc: false
 draft: false
+aliases:
+  - /zh-tw/integrations
 menu:
   sidebar:
     parent: "development"
