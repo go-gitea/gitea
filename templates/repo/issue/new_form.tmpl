@@ -29,6 +29,8 @@
 								{{template "repo/issue/fields/dropdown" dict "Context" $.Context "item" .}}
 							{{else if eq .Type "checkboxes"}}
 								{{template "repo/issue/fields/checkboxes" dict "Context" $.Context "item" .}}
+							{{else if eq .Type "markdowneditor"}}
+								{{template "repo/issue/fields/markdowneditor" dict "Context" $.Context "item" $}}
 							{{end}}
 						{{end}}
 						{{if .IsAttachmentEnabled}}
