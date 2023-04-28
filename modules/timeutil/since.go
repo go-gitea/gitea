@@ -4,13 +4,12 @@
 package timeutil
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"strconv"
 	"strings"
 	"time"
-
-	"context"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/translation"
