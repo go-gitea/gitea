@@ -165,12 +165,16 @@ const sfc = {
   mounted() {
     // load job data and then auto-reload periodically
     this.loadJob();
-    // load artifactss list once
-    this.loadArtifacts();
-    this.intervalID = setInterval(() => {
-      this.loadJob();
-      this.loadArtifacts();
-    }, 1000);
+    this.intervalID = setInterval(this.loadJob, 1000);
+  },
+
+  unmounted() {
+    // clear the interval timer when the component is unmounted
+    // even our page is rendered once, not spa style
+    if (this.intervalID) {
+      clearInterval(this.intervalID)
+      this.intervalID = null;
+    }
   },
 
   methods: {
@@ -271,6 +275,11 @@ const sfc = {
       try {
         this.loading = true;
 
+        // refresh artitfact list if upload-artifact step done
+        const resp = await this.fetchPost(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
+        const artifacts = await resp.json();
+        this.artifacts = artifacts['artifacts'] || [];
+
         const response = await this.fetchJob();
 
         // save the state to Vue data, then the UI will be updated
@@ -299,12 +308,6 @@ const sfc = {
       }
     },
 
-
-    async loadArtifacts() {
-      const resp = await this.fetchPost(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
-      const artifacts = await resp.json();
-      this.artifacts = artifacts['artifacts'] || [];
-    },
 
     fetchPost(url, body) {
       return fetch(url, {
