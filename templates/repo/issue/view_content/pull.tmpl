@@ -133,10 +133,19 @@
 			{{if .Issue.PullRequest.HasMerged}}
 				<div class="item item-section text gt-f1">
 					<div class="item-section-left">
-						<h3 class="gt-mb-3">{{$.locale.Tr "repo.pulls.merged_success"}}</h3>
-						<div class="merge-section-info">
-							{{$.locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape)) | Str2html}}
-						</div>
+						<h3 class="gt-mb-3">
+							{{if .Issue.PullRequest.MergedCommitID}}
+								{{$link := printf "%s/commit/%s" $.Repository.Link (.Issue.PullRequest.MergedCommitID|PathEscape)}}
+								{{$.locale.Tr "repo.pulls.merged_as" (printf "<a rel='nofollow' class='ui sha' href='%s'><code>%s</code></a>" ($link|Escape) (ShortSha .Issue.PullRequest.MergedCommitID)) | Str2html}}
+							{{else}}
+								{{$.locale.Tr "repo.pulls.merged_success"}}
+							{{end}}
+						</h3>
+						{{if .IsPullBranchDeletable}}
+							<div class="merge-section-info">
+								{{$.locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape)) | Str2html}}
+							</div>
+						{{end}}
 					</div>
 					{{if .IsPullBranchDeletable}}
 						<div class="item-section-right">
