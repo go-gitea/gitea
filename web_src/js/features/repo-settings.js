@@ -74,18 +74,17 @@ export function initRepoSettingGitHook() {
 
 export function initRepoSettingBranches() {
   // Branches
-  if ($('.repository.settings.branches').length > 0) {
-    $('.enable-protection, .enable-whitelist, .enable-statuscheck').on('change', function () {
-      if (this.checked) {
-        $($(this).attr('data-target')).removeClass('disabled');
-      } else {
-        $($(this).attr('data-target')).addClass('disabled');
-      }
-    });
-    $('.disable-whitelist').on('change', function () {
-      if (this.checked) {
-        $($(this).attr('data-target')).addClass('disabled');
-      }
-    });
-  }
+  if (!$('.repository.settings.branches').length) return;
+  $('.enable-whitelist, .enable-statuscheck').on('change', function () {
+    if (this.checked) {
+      $($(this).attr('data-target')).removeClass('disabled');
+    } else {
+      $($(this).attr('data-target')).addClass('disabled');
+    }
+  });
+  $('.disable-whitelist').on('change', function () {
+    if (this.checked) {
+      $($(this).attr('data-target')).addClass('disabled');
+    }
+  });
 }

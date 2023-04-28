@@ -222,31 +222,20 @@
 				<div class="grouped fields">
 					<div class="field">
 						<div class="ui checkbox">
-							<input class="enable-statuscheck" name="enable_status_check" type="checkbox" data-target="#statuscheck_contexts_box" {{if eq (len .branch_status_check_contexts) 0}}disabled{{end}} {{if .Rule.EnableStatusCheck}}checked{{end}}>
+							<input class="enable-statuscheck" name="enable_status_check" type="checkbox" data-target="#statuscheck_contexts_box" {{if .Rule.EnableStatusCheck}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.protect_check_status_contexts"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.protect_check_status_contexts_desc"}}</p>
 						</div>
 					</div>
 					<div id="statuscheck_contexts_box" class="field {{if not .Rule.EnableStatusCheck}}disabled{{end}}">
-						<table class="ui celled table six column">
-							<thead>
-								<tr><th>
-									{{.locale.Tr "repo.settings.protect_check_status_contexts_list"}}
-								</th>
-								</tr>
-							</thead>
-							<tbody>
-							{{range $.branch_status_check_contexts}}
-								<tr><td>
-									<span class="ui checkbox">
-										<input class="enable-whitelist" name="status_check_contexts" value="{{.}}" type="checkbox" {{if $.is_context_required}}{{if call $.is_context_required .}}checked{{end}}{{end}}>
-									</span>
-									{{.}}
-									{{if $.is_context_required}}{{if call $.is_context_required .}}<div class="ui label right">Required</div>{{end}}{{end}}
-								</td></tr>
-							{{end}}
-							</tbody>
-						</table>
+						{{.locale.Tr "repo.settings.protect_check_status_contexts_list"}}
+						{{range $.branch_status_check_contexts}}
+						<label class="gt-db gt-m-0 gt-pl-4 gt-py-2">
+							<input class="enable-whitelist gt-vm" name="status_check_contexts" value="{{.}}" type="checkbox" {{if SliceUtils.Contains $.Rule.StatusCheckContexts .}}checked{{end}}>
+							{{.}}
+						</label>
+						{{else}}N/A
+						{{end}}
 					</div>
 				</div>
 				<div class="ui divider"></div>
