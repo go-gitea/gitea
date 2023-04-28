@@ -830,6 +830,21 @@ a.label,
   color: var(--color-text-light-3);
 }
 
+/* sub menu of vertical menu */
+.ui.vertical.menu .item .menu .item {
+  color: var(--color-text-light-2);
+  text-indent: 16px;
+}
+
+.ui.vertical.menu .item .menu .item:hover,
+.ui.vertical.menu .item .menu a.item:hover {
+  color: var(--color-text-light-1);
+}
+
+.ui.vertical.menu .item .menu .active.item {
+  color: var(--color-text);
+}
+
 /* slightly more contrast for filters on issue list */
 .ui.ui.menu .dropdown.item.disabled {
   color: var(--color-text-light-2);

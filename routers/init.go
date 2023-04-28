@@ -177,20 +177,15 @@ func GlobalInitInstalled(ctx context.Context) {
 func NormalRoutes(ctx context.Context) *web.Route {
 	ctx, _ = templates.HTMLRenderer(ctx)
 	r := web.NewRoute()
-	for _, middle := range common.Middlewares() {
-		r.Use(middle)
-	}
+	r.Use(common.ProtocolMiddlewares()...)
 
 	r.Mount("/", web_routers.Routes(ctx))
 	r.Mount("/api/v1", apiv1.Routes(ctx))
 	r.Mount("/api/internal", private.Routes())
 
 	if setting.Packages.Enabled {
-		// Add endpoints to match common package manager APIs
-
 		// This implements package support for most package managers
 		r.Mount("/api/packages", packages_router.CommonRoutes(ctx))
-
 		// This implements the OCI API (Note this is not preceded by /api but is instead /v2)
 		r.Mount("/v2", packages_router.ContainerRoutes(ctx))
 	}
