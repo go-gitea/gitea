@@ -17,7 +17,7 @@
 				<div class="item">
 					{{$fileSizeFormatted := FileSize .Repository.Size}}{{/* the formatted string is always "{val} {unit}" */}}
 					{{$fileSizeFields := StringUtils.Split $fileSizeFormatted " "}}
-					<span>{{svg "octicon-database"}} <b>{{index $fileSizeFields 0}}</b> {{index $fileSizeFields 1}}</span>
+					<span>{{svg "octicon-database"}} <b>{{.locale.PrettyNumber (index $fileSizeFields 0)}}</b> {{index $fileSizeFields 1}}</span>
 				</div>
 			{{end}}
 		</div>
