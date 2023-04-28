@@ -5,6 +5,8 @@ slug: "guidelines-frontend"
 weight: 20
 toc: false
 draft: false
+aliases:
+  - /en-us/guidelines-frontend
 menu:
   sidebar:
     parent: "contributing"
