@@ -830,6 +830,21 @@ a.label,
   color: var(--color-text-light-3);
 }
 
+/* sub menu of vertical menu */
+.ui.vertical.menu .item .menu .item {
+  color: var(--color-text-light-2);
+  text-indent: 16px;
+}
+
+.ui.vertical.menu .item .menu .item:hover,
+.ui.vertical.menu .item .menu a.item:hover {
+  color: var(--color-text-light-1);
+}
+
+.ui.vertical.menu .item .menu .active.item {
+  color: var(--color-text);
+}
+
 /* slightly more contrast for filters on issue list */
 .ui.ui.menu .dropdown.item.disabled {
   color: var(--color-text-light-2);
@@ -863,6 +878,9 @@ a.label,
 .ui.dropdown .menu > .item > img {
   margin-top: -0.25rem;
   margin-bottom: -0.25rem;
+}
+.ui.dropdown .menu > .item > svg {
+  margin-right: .78rem; /* use the same margin as for <img> */
 }
 
 .ui.selection.dropdown .menu > .item {
@@ -1180,10 +1198,23 @@ img.ui.avatar,
   padding-bottom: 80px;
 }
 
+/* overwrite semantic width of containers inside the main page content div (div with class "page-content") */
+.page-content .ui.ui.ui.container:not(.fluid) {
+  width: 1280px;
+  max-width: calc(100vw - 64px);
+}
+
 /* enable fluid page widths for medium size viewports */
 @media (min-width: 768px) and (max-width: 1200px) {
   .ui.ui.ui.container:not(.fluid) {
     width: calc(100vw - 64px);
+  }
+}
+
+@media only screen and (max-width: 767px) {
+  .page-content .ui.ui.ui.container:not(.fluid) {
+    width: auto; /* copied from semantic css */
+    max-width: 100%;
   }
 }
 
@@ -2490,6 +2521,12 @@ a.ui.basic.label:hover {
   font-weight: normal;
 }
 
+/* reduce height of buttons with dropdown icon */
+.ui.attached.header .right .button:has(.dropdown.icon) {
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
 /* fix misaligned right buttons on box headers */
 .ui.attached.header .right:not(.dropdown) {
   position: absolute;
@@ -2629,10 +2666,6 @@ table th[data-sortt-desc] .svg {
 }
 
 .labelspage .item {
-  margin-top: 0;
-  margin-right: -14px;
-  margin-left: -14px;
-  padding: 10px;
   border-bottom: 1px solid var(--color-secondary);
   border-top: none;
 }

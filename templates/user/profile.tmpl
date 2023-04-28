@@ -73,7 +73,7 @@
 									</li>
 								{{end}}
 							{{end}}
-							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} {{DateTime "short" .ContextUser.CreatedUnix.FormatLong .ContextUser.CreatedUnix.FormatShort}}</li>
+							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} {{DateTime "short" .ContextUser.CreatedUnix}}</li>
 							{{if and .Orgs .HasOrgsVisible}}
 							<li>
 								<ul class="user-orgs">

@@ -3,7 +3,7 @@
 	{{template "repo/header" .}}
 
 	<div class="ui container">
-		<div class="ui grid">
+		<div class="ui stackable grid">
 			<div class="four wide column">
 				<div class="ui fluid vertical menu">
 					<a class="item{{if not $.CurWorkflow}} active{{end}}" href="{{$.Link}}">{{.locale.Tr "actions.runs.all_workflows"}}</a>
