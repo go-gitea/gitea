@@ -76,7 +76,7 @@ type Issue struct {
 	PullRequest *PullRequestMeta `json:"pull_request"`
 	Repo        *RepositoryMeta  `json:"repository"`
 
-	Pin int `json:"pin"`
+	PinOrder int `json:"pin_order"`
 }
 
 // CreateIssueOption options to create one issue
