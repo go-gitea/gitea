@@ -575,7 +575,6 @@ func WikiPages(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.pages")
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
-	ctx.Data["IsRepositoryMirror"] = ctx.Repo.Repository.IsMirror
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
