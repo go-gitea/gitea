@@ -28,7 +28,7 @@ func init() {
 // ActionArtifact is a file that is stored in the artifact storage.
 type ActionArtifact struct {
 	ID               int64 `xorm:"pk autoincr"`
-	RunID            int64 `xorm:"index unique(run-id-name)"` // The run id of the artifact
+	RunID            int64 `xorm:"index UNIQUE(runid_name)"` // The run id of the artifact
 	RunnerID         int64
 	RepoID           int64 `xorm:"index"`
 	OwnerID          int64
