@@ -73,18 +73,13 @@ export function initRepoSettingGitHook() {
 }
 
 export function initRepoSettingBranches() {
-  // Branches
   if (!$('.repository.settings.branches').length) return;
-  $('.enable-whitelist, .enable-statuscheck').on('change', function () {
-    if (this.checked) {
-      $($(this).attr('data-target')).removeClass('disabled');
-    } else {
-      $($(this).attr('data-target')).addClass('disabled');
-    }
+  $('.toggle-target-enabled').on('change', function () {
+    const $t = $($(this).attr('data-target'));
+    $t.toggleClass('disabled', !this.checked);
   });
-  $('.disable-whitelist').on('change', function () {
-    if (this.checked) {
-      $($(this).attr('data-target')).addClass('disabled');
-    }
+  $('.toggle-target-disabled').on('change', function () {
+    const $t = $($(this).attr('data-target'));
+    if (this.checked) $t.addClass('disabled'); // only disable, do not auto enable
   });
 }
