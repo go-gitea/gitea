@@ -2021,7 +2021,7 @@
   display: block;
 }
 
-.repository.settings.branches .branch-protection .whitelist, #statuscheck_contexts_box {
+.repository.settings.branches .branch-protection .whitelist {
   padding-left: 26px;
 }
 

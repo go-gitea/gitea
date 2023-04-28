@@ -230,7 +230,7 @@
 					<div id="statuscheck_contexts_box" class="field {{if not .Rule.EnableStatusCheck}}disabled{{end}}">
 						{{.locale.Tr "repo.settings.protect_check_status_contexts_list"}}
 						{{range $.branch_status_check_contexts}}
-						<label class="gt-db gt-m-0 gt-pl-4 gt-py-2">
+						<label class="gt-db gt-m-0 gt-pl-5 gt-py-2">
 							<input class="gt-vm" name="status_check_contexts" value="{{.}}" type="checkbox" {{if SliceUtils.Contains $.Rule.StatusCheckContexts .}}checked{{end}}>
 							{{.}}
 						</label>
