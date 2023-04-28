@@ -17,7 +17,6 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 	cargo_service "code.gitea.io/gitea/services/packages/cargo"
 	container_service "code.gitea.io/gitea/services/packages/container"
-	debian_service "code.gitea.io/gitea/services/packages/debian"
 )
 
 // Cleanup removes expired package data
@@ -46,7 +45,6 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 			return fmt.Errorf("CleanupRule [%d]: GetPackagesByType failed: %w", pcr.ID, err)
 		}
 
-		anyVersionDeleted := false
 		for _, p := range packages {
 			pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 				PackageID:  p.ID,
@@ -93,7 +91,6 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 				}
 
 				versionDeleted = true
-				anyVersionDeleted = true
 			}
 
 			if versionDeleted {
@@ -105,14 +102,6 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 					if err := cargo_service.AddOrUpdatePackageIndex(ctx, owner, owner, p.ID); err != nil {
 						return fmt.Errorf("CleanupRule [%d]: cargo.AddOrUpdatePackageIndex failed: %w", pcr.ID, err)
 					}
-				}
-			}
-		}
-
-		if anyVersionDeleted {
-			if pcr.Type == packages_model.TypeDebian {
-				if err := debian_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
-					return fmt.Errorf("CleanupRule [%d]: debian.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
 				}
 			}
 		}

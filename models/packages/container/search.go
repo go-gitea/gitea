@@ -101,7 +101,16 @@ func getContainerBlobsLimit(ctx context.Context, opts *BlobSearchOptions, limit 
 		return nil, err
 	}
 
-	return packages.GetPackageFileDescriptors(ctx, pfs)
+	pfds := make([]*packages.PackageFileDescriptor, 0, len(pfs))
+	for _, pf := range pfs {
+		pfd, err := packages.GetPackageFileDescriptor(ctx, pf)
+		if err != nil {
+			return nil, err
+		}
+		pfds = append(pfds, pfd)
+	}
+
+	return pfds, nil
 }
 
 // GetManifestVersions gets all package versions representing the matching manifest
