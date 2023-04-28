@@ -83,9 +83,8 @@ func main() {
 	}
 
 	// Ensure file has a final newline
-	newline := []byte("\n")[0]
-	if jsonBytes[len(jsonBytes)-1] != newline {
-		jsonBytes = append(jsonBytes, newline)
+	if jsonBytes[len(jsonBytes)-1] != '\n' {
+		jsonBytes = append(jsonBytes, '\n')
 	}
 
 	err = os.WriteFile(out, jsonBytes, 0o644)
