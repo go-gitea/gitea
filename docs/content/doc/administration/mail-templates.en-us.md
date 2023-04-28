@@ -5,6 +5,8 @@ slug: "mail-templates"
 weight: 45
 toc: false
 draft: false
+aliases:
+  - /en-us/mail-templates
 menu:
   sidebar:
     parent: "administration"
