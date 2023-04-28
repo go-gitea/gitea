@@ -10,10 +10,24 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
+	"context"
+
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/translation"
 )
+
+type PreferenceHelper struct {
+	GetSetting                      func(ctx context.Context, key string, def ...string) (string, error)
+	SettingsForceAbsoluteTimestamps string
+}
+
+var preferenceHelper PreferenceHelper
+
+func Init(ph *PreferenceHelper) {
+	if ph != nil {
+		preferenceHelper = *ph
+	}
+}
 
 // Seconds-based time units
 const (
@@ -136,9 +150,9 @@ func timeSinceUnix(then, now time.Time, lang translation.Locale) template.HTML {
 // TimeSince renders relative time HTML given a time.Time
 func TimeSince(ctx context.Context, then time.Time, lang translation.Locale) template.HTML {
 	// if user forces absolute timestamps, use the full time
-	val, err := user.GetUserSetting(ctx.Doer.ID, user.SettingsForceAbsoluteTimestamps, "false")
+	val, err := preferenceHelper.GetSetting(ctx, preferenceHelper.SettingsForceAbsoluteTimestamps, "false")
 	if err != nil {
-		ctx.ServerError("GetUserSetting", err)
+		log.Error("GetSetting %w", err)
 	}
 	forceAbsoluteTimestamps, _ := strconv.ParseBool(val) // we can safely ignore the failed conversion here
 	if forceAbsoluteTimestamps {

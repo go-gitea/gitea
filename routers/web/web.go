@@ -44,6 +44,7 @@ import (
 	context_service "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/lfs"
+	user_service "code.gitea.io/gitea/services/user"
 
 	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 
@@ -429,6 +430,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Get("/login/oauth/keys", ignSignInAndCsrf, auth.OIDCKeys)
 	m.Post("/login/oauth/introspect", CorsHandler(), web.Bind(forms.IntrospectTokenForm{}), ignSignInAndCsrf, auth.IntrospectOAuth)
 
+	user_service.Init()
 	m.Group("/user/settings", func() {
 		m.Get("", user_setting.Profile)
 		m.Post("", web.Bind(forms.UpdateProfileForm{}), user_setting.ProfilePost)

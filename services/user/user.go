@@ -19,10 +19,12 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/packages"
 )
@@ -289,4 +291,19 @@ func DeleteAvatar(u *user_model.User) error {
 		return fmt.Errorf("UpdateUser: %w", err)
 	}
 	return nil
+}
+
+func Init() {
+	timeutil.Init(&timeutil.PreferenceHelper{
+		GetSetting: func(ctx context.Context, key string, def ...string) (string, error) {
+			giteaCtx, ok := ctx.(*gitea_context.Context)
+
+			// this casting should always be ok but if it fails we have to provide a fallback
+			if !ok {
+				return "false", nil
+			}
+			return user_model.GetUserSetting(giteaCtx.Doer.ID, key, def...)
+		},
+		SettingsForceAbsoluteTimestamps: user_model.SettingsForceAbsoluteTimestamps,
+	})
 }
