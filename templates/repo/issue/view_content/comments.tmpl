@@ -127,7 +127,7 @@
 					{{if eq $.Issue.PullRequest.Status 3}}
 						{{$.locale.Tr "repo.issues.comment_manually_pull_merged_at" (printf "<a class='ui sha' href='%[1]s'><b>%[2]s</b></a>" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
 					{{else}}
-						{{$.locale.Tr "repo.issues.comment_pull_merged_at" (printf "<a class='ui sha' href='%[1]s'><b>%[2]s</b></a>" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b> %[2]s" ($.BaseTarget|Escape) $createdStr) | Safe}}
+						{{$.locale.Tr "repo.issues.comment_pull_merged_at" (printf "<a class='ui sha' href='%[1]s'><b>%[2]s</b></a>" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>
