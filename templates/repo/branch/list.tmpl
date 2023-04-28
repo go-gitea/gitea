@@ -46,7 +46,7 @@
 										</div>
 									</div>
 								{{end}}
-								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not .IsProtected)}}
+								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not $.IsMirror)}}
 									<a role="button"
 										class="muted show-modal show-rename-branch-modal gt-mx-3"
 										data-modal="#rename-branch-modal"
@@ -154,7 +154,7 @@
 												</div>
 											</div>
 										{{end}}
-										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not .IsProtected)}}
+										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not $.IsMirror)}}
 											<a role="button"
 												class="muted show-modal show-rename-branch-modal gt-mx-3"
 												data-old-branch-name="{{.Name}}"
