@@ -44,7 +44,6 @@
 }
 
 .page-footer {
-  width: 100vw;
   display: flex;
   background-color: var(--color-footer);
   border-top: 1px solid var(--color-secondary);
