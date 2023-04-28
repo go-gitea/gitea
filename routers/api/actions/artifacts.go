@@ -69,7 +69,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -163,20 +162,20 @@ type artifactRoutes struct {
 	fs     storage.ObjectStorage
 }
 
-func (ar artifactRoutes) buildArtifactURL(runID, artifactID int64, suffix string) (string, error) {
+func (ar artifactRoutes) buildArtifactURL(runID, artifactID int64, suffix string) string {
 	uploadURL := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ar.prefix, "/") +
 		strings.ReplaceAll(artifactRouteBase, "{runID}", strconv.FormatInt(runID, 10)) +
 		"/" + strconv.FormatInt(artifactID, 10) + "/" + suffix
-	u, err := url.Parse(uploadURL)
-	if err != nil {
-		return "", err
-	}
-	return u.String(), nil
+	return uploadURL
 }
 
 type getUploadArtifactRequest struct {
 	Type string
 	Name string
+}
+
+type getUploadArtifactResponse struct {
+	FileContainerResourceURL string `json:"fileContainerResourceUrl"`
 }
 
 // getUploadArtifactURL generates a URL for uploading an artifact
@@ -207,18 +206,11 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	url, err := ar.buildArtifactURL(runID, artifact.ID, "upload")
-	if err != nil {
-		log.Error("Error parsing upload URL: %v", err)
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
+	resp := getUploadArtifactResponse{
+		FileContainerResourceURL: ar.buildArtifactURL(runID, artifact.ID, "upload"),
 	}
-
-	log.Debug("[artifact] get upload url: %s, artifact id: %d", url, artifact.ID)
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"fileContainerResourceUrl": url,
-	})
+	log.Debug("[artifact] get upload url: %s, artifact id: %d", resp.FileContainerResourceURL, artifact.ID)
+	ctx.JSON(http.StatusOK, resp)
 }
 
 // getUploadFileSize returns the size of the file to be uploaded.
@@ -407,12 +399,14 @@ func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, runID int64) 
 
 		// use multiReader
 		readers := make([]io.Reader, 0, len(allChunks))
+		readerClosers := make([]io.Closer, 0, len(allChunks))
 		for _, c := range allChunks {
 			reader, err := ar.fs.Open(c.Path)
 			if err != nil {
 				return fmt.Errorf("open chunk error: %v, %s", err, c.Path)
 			}
 			readers = append(readers, reader)
+			readerClosers = append(readerClosers, reader)
 		}
 		mergedReader := io.MultiReader(readers...)
 
@@ -426,7 +420,7 @@ func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, runID int64) 
 		}
 
 		// save merged file
-		storagePath := fmt.Sprintf("%d/%d/%d.chunk", (runID+artifactID)%255, artifact.FileSize%255, time.Now().UnixNano())
+		storagePath := fmt.Sprintf("%d/%d/%d.chunk", runID%255, artifactID%255, time.Now().UnixNano())
 		written, err := ar.fs.Save(storagePath, mergedReader, -1)
 		if err != nil {
 			return fmt.Errorf("save merged file error: %v", err)
@@ -436,8 +430,8 @@ func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, runID int64) 
 		}
 
 		// close readers
-		for _, r := range readers {
-			r.(io.Closer).Close()
+		for _, r := range readerClosers {
+			r.Close()
 		}
 
 		// save storage path to artifact
@@ -492,15 +486,9 @@ func (ar artifactRoutes) listArtifacts(ctx *context.Context) {
 
 	artficatsData := make([]listArtifactsResponseItem, 0, len(artficats))
 	for _, a := range artficats {
-		url, err := ar.buildArtifactURL(runID, a.ID, "path")
-		if err != nil {
-			log.Error("Error parsing artifact URL: %v", err)
-			ctx.Error(http.StatusInternalServerError, err.Error())
-			return
-		}
 		artficatsData = append(artficatsData, listArtifactsResponseItem{
 			Name:                     a.ArtifactName,
-			FileContainerResourceURL: url,
+			FileContainerResourceURL: ar.buildArtifactURL(runID, a.ID, "path"),
 		})
 	}
 	respData := listArtifactsResponse{
@@ -530,18 +518,13 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *context.Context) {
 		return
 	}
 	runID := ctx.ParamsInt64("runID")
-	url, err := ar.buildArtifactURL(runID, artifact.ID, "download")
-	if err != nil {
-		log.Error("Error parsing download URL: %v", err)
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
-	}
+	downloadURL := ar.buildArtifactURL(runID, artifact.ID, "download")
 	itemPath := util.PathJoinRel(ctx.Req.URL.Query().Get("itemPath"))
 	respData := downloadArtifactResponse{
 		Value: []downloadArtifactResponseItem{{
 			Path:            util.PathJoinRel(itemPath, artifact.ArtifactPath),
 			ItemType:        "file",
-			ContentLocation: url,
+			ContentLocation: downloadURL,
 		}},
 	}
 	ctx.JSON(http.StatusOK, respData)
