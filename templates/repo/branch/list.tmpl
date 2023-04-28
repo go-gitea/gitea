@@ -27,12 +27,12 @@
 							</td>
 							<td class="right aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-									<a role="button" 
-										class="muted show-modal show-create-branch-modal gt-mx-3" 
+									<a role="button"
+										class="muted show-modal show-create-branch-modal gt-mx-3"
 										data-modal="#create-branch-modal"
 										data-branch-from="{{$.DefaultBranch}}"
-										data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}" 
-										data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}" 
+										data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}"
+										data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}"
 									>
 										{{svg "octicon-git-branch"}}
 									</a>
@@ -52,8 +52,8 @@
 									</div>
 								{{end}}
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not .IsProtected)}}
-									<a role="button" 
-										class="muted show-modal show-rename-branch-modal gt-mx-3" 
+									<a role="button"
+										class="muted show-modal show-rename-branch-modal gt-mx-3"
 										data-modal="#rename-branch-modal"
 										data-old-branch-name="{{$.DefaultBranch}}"
 										data-tooltip-content="{{$.locale.Tr "repo.branch.rename" ($.DefaultBranch)}}"
@@ -135,12 +135,12 @@
 									</td>
 									<td class="three wide right aligned overflow-visible">
 										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-											<a role="button" 
-												 class="muted show-modal show-create-branch-modal gt-mx-3" 
-												 data-branch-from="{{.Name}}" 
-												 data-branch-from-urlcomponent="{{PathEscapeSegments .Name}}"
-												 data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" .Name}}" 
-												 data-modal="#create-branch-modal" data-name="{{.Name}}"
+											<a role="button"
+												class="muted show-modal show-create-branch-modal gt-mx-3"
+												data-branch-from="{{.Name}}"
+												data-branch-from-urlcomponent="{{PathEscapeSegments .Name}}"
+												data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" .Name}}"
+												data-modal="#create-branch-modal" data-name="{{.Name}}"
 											>
 												{{svg "octicon-git-branch"}}
 											</a>
@@ -161,10 +161,10 @@
 										{{end}}
 										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not .IsProtected)}}
 											<a role="button"
-												 class="muted show-modal show-rename-branch-modal gt-mx-3" 
-												 data-old-branch-name="{{.Name}}"
-												 data-modal="#rename-branch-modal"
-												 data-tooltip-content="{{$.locale.Tr "repo.branch.rename" (.Name)}}" 
+												class="muted show-modal show-rename-branch-modal gt-mx-3"
+												data-old-branch-name="{{.Name}}"
+												data-modal="#rename-branch-modal"
+												data-tooltip-content="{{$.locale.Tr "repo.branch.rename" (.Name)}}"
 											>
 												{{svg "octicon-pencil"}}
 											</button>
@@ -247,7 +247,6 @@
 			<div class="required field">
 				<input id="to" name="to" required>
 			</div>
-			
 			<div class="center">
 				{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
 			</div>

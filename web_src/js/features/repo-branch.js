@@ -29,7 +29,6 @@ function initRepoRenameBranchButton() {
   $('.show-rename-branch-modal').on('click', function () {
     const oldBranchName = $(this).attr('data-old-branch-name');
     $(renameBranchFromInputSelector)?.val(oldBranchName);
-    console.log('config', i18n_branch, window.config.i18n_branch)
     $(renameBranchToSpanSelector).text(i18n_branch.rename_branch_to.replace('%s', oldBranchName));
   });
 }
