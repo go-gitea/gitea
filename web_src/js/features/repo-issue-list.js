@@ -120,6 +120,32 @@ function initRepoIssueListAuthorDropdown() {
   };
 }
 
+function initPinRemoveButton() {
+  for (const button of document.getElementsByName('issue-unpin-button')) {
+    button.addEventListener('click', (event) => {
+      const elem = event.currentTarget;
+      const id = Number(elem.getAttribute('data-issue-id'));
+
+      // Send the unpin request
+      $.ajax({
+        url: elem.getAttribute('data-unpin-url'),
+        headers: {
+          'X-Csrf-Token': window.config.csrfToken,
+        },
+        contentType: 'application/json',
+        type: 'DELETE',
+        error: (xhr) => {
+          throw new Error(xhr.responseText);
+        },
+        success: () => {
+          // Remove the Card
+          document.querySelector(`div[data-issue-id="${id}"]`).remove();
+        }
+      });
+    });
+  }
+}
+
 function pinMoveEnd(event) {
   const url = event.item.getAttribute('data-move-url');
   const id = Number(event.item.getAttribute('data-issue-id'));
@@ -135,6 +161,7 @@ function pinMoveEnd(event) {
       throw new Error(xhr.responseText);
     }
   });
+  initPinRemoveButton();
 }
 
 function initIssuePinSort() {
@@ -144,8 +171,15 @@ function initIssuePinSort() {
     return;
   }
 
-  // If the User is not a Repo Admin or only one issue pinned, we don't need to make this Sortable
-  if (!pinDiv.hasAttribute('data-is-repo-admin') || pinDiv.children.length < 2) {
+  // If the User is not a Repo Admin, we don't need to proceed
+  if (!pinDiv.hasAttribute('data-is-repo-admin')) {
+    return;
+  }
+
+  initPinRemoveButton();
+
+  // If only one issue pinned, we don't need to make this Sortable
+  if (pinDiv.children.length < 2) {
     return;
   }
 

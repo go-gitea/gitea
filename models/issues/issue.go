@@ -2540,7 +2540,7 @@ func (issue *Issue) Unpin() error {
 	}
 
 	// This sets the Pin for all Issues that come after the unpined Issue to the correct value
-	_, err := db.GetEngine(db.DefaultContext).Exec("UPDATE issue SET pin = pin - 1 WHERE repo_id = ? AND is_pull = ? AND pin > ?", issue.RepoID, issue.IsPull, issue.PinOrder)
+	_, err := db.GetEngine(db.DefaultContext).Exec("UPDATE issue SET pin_order = pin_order - 1 WHERE repo_id = ? AND is_pull = ? AND pin_order > ?", issue.RepoID, issue.IsPull, issue.PinOrder)
 	if err != nil {
 		return err
 	}
@@ -2548,7 +2548,7 @@ func (issue *Issue) Unpin() error {
 	_, err = db.GetEngine(db.DefaultContext).Table("issue").
 		Where("id = ?", issue.ID).
 		Update(map[string]interface{}{
-			"pin": 0,
+			"pin_order": 0,
 		})
 
 	return err

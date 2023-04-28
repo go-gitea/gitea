@@ -6,9 +6,8 @@
 	{{if .PinnedIssues}}
 		<div id="issue-pin-div" {{if .IsRepoAdmin}}data-is-repo-admin{{end}} style="display: flex; flex-grow: 1; flex-wrap: wrap;">
 			{{range .PinnedIssues}}
-		<!-- start issue card -->
 				<div class="card pinned-issue-card" data-move-url="{{$.Link}}/pin_move" data-issue-id="{{.ID}}">
-					{{if eq $.Project.CardType 1}}{{/* Images and Text*/}}
+					{{if eq $.Project.CardType 1}}
 						<div class="card-attachment-images">
 							{{range (index $.issuesAttachmentMap .ID)}}
 								<img src="{{.DownloadURL}}" alt="{{.Name}}">
@@ -39,6 +38,11 @@
 							<a class="project-board-title gt-vm" href="{{.Link}}">
 								{{.Title}}
 							</a>
+							{{if $.IsRepoAdmin}}
+								<span name="issue-unpin-button" style="float: right;" data-tooltip-content={{$.locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Link}}/unpin/{{.ID}}">
+									{{svg "octicon-x" 16 "gt-mr-3"}}
+								</span>
+							{{end}}
 						</div>
 						<div class="meta gt-my-2">
 							<span class="text light grey">
@@ -76,7 +80,6 @@
 					</div>
 					{{end}}
 				</div>
-		<!-- stop issue card -->
 			{{end}}
 		</div>
 	{{end}}

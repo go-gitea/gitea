@@ -11,8 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/json"
 )
 
-// IssuePin pin or unpin a Issue
-func IssuePin(ctx *context.Context) {
+// IssuePinOrUnpin pin or unpin a Issue
+func IssuePinOrUnpin(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	err := issue.PinOrUnpin()
 	if err != nil {
@@ -21,6 +21,21 @@ func IssuePin(ctx *context.Context) {
 	}
 
 	ctx.Redirect(issue.Link())
+}
+
+// IssueUnpin unpins a Issue
+func IssueUnpin(ctx *context.Context) {
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	err = issue.Unpin()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
 
 // IssuePinMove moves a pinned Issue
@@ -37,7 +52,7 @@ func IssuePinMove(ctx *context.Context) {
 
 	form := &movePinIssueForm{}
 	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, err.Error())
 	}
 
 	issue, err := issues_model.GetIssueByID(ctx, form.ID)

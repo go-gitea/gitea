@@ -3495,4 +3495,5 @@ td.blob-excerpt {
   max-width: calc(100% * (1/3) - 10px - 1px);
   border-style: solid;
   border-color: var(--color-input-border);
+  border-width: 1px;
 }
