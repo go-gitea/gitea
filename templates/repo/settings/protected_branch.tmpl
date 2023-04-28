@@ -157,14 +157,24 @@
 						</div>
 					</div>
 					<div id="statuscheck_contexts_box" class="field {{if not .Rule.EnableStatusCheck}}disabled{{end}}">
-						{{.locale.Tr "repo.settings.protect_check_status_contexts_list"}}
-						{{range $.branch_status_check_contexts}}
-						<label class="gt-db gt-m-0 gt-pl-5 gt-py-2">
-							<input class="gt-vm" name="status_check_contexts" value="{{.}}" type="checkbox" {{if SliceUtils.Contains $.Rule.StatusCheckContexts .}}checked{{end}}>
-							{{.}}
-						</label>
-						{{else}}N/A
-						{{end}}
+						<table class="ui celled table six column">
+							<thead>
+								<tr><th>
+									{{.locale.Tr "repo.settings.protect_check_status_contexts_list"}}
+								</th>
+								</tr>
+							</thead>
+							<tbody>
+							{{range $.branch_status_check_contexts}}
+								<tr><td>
+									<span class="ui checkbox">
+										<input class="enable-whitelist" name="status_check_contexts" value="{{.}}" type="checkbox" {{if SliceUtils.Contains $.Rule.StatusCheckContexts .}}checked{{end}}>
+									</span>
+									{{.}}
+								</td></tr>
+							{{end}}
+							</tbody>
+						</table>
 					</div>
 				</div>
 				<h5 class="ui dividing header">{{.locale.Tr "repo.settings.event_pull_request_merge"}}</h5>
