@@ -172,7 +172,7 @@ const sfc = {
     // clear the interval timer when the component is unmounted
     // even our page is rendered once, not spa style
     if (this.intervalID) {
-      clearInterval(this.intervalID)
+      clearInterval(this.intervalID);
       this.intervalID = null;
     }
   },

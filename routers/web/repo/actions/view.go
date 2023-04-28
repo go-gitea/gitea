@@ -397,6 +397,10 @@ func ArtifactsView(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, err.Error())
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -429,6 +433,10 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	}
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, err.Error())
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
