@@ -2415,6 +2415,7 @@
               "conan",
               "conda",
               "container",
+              "debian",
               "generic",
               "helm",
               "maven",
@@ -3803,6 +3804,12 @@
             "description": "page size of results (ignored if used with 'path')",
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "commits that match the given specifier will not be listed.",
+            "name": "not",
+            "in": "query"
           }
         ],
         "responses": {
@@ -3860,12 +3867,6 @@
             "type": "integer",
             "description": "page size of results",
             "name": "limit",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "commits that match the given specifier will not be listed.",
-            "name": "not",
             "in": "query"
           }
         ],
@@ -15600,6 +15601,10 @@
           "type": "string",
           "x-go-name": "Filename"
         },
+        "has_conflict": {
+          "type": "boolean",
+          "x-go-name": "HasConflict"
+        },
         "html_url": {
           "type": "string",
           "x-go-name": "HTMLURL"
@@ -15755,6 +15760,10 @@
         },
         "stats": {
           "$ref": "#/definitions/CommitStats"
+        },
+        "string": {
+          "type": "string",
+          "x-go-name": "Branch"
         },
         "url": {
           "type": "string",
@@ -18951,6 +18960,13 @@
           "type": "string",
           "x-go-name": "HeadCommitID"
         },
+        "merge_strategy": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/MergeStrategy"
+          },
+          "x-go-name": "Strategy"
+        },
         "merge_when_checks_succeed": {
           "type": "boolean",
           "x-go-name": "MergeWhenChecksSucceed"
@@ -18958,6 +18974,20 @@
       },
       "x-go-name": "MergePullRequestForm",
       "x-go-package": "code.gitea.io/gitea/services/forms"
+    },
+    "MergeStrategy": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "strategy": {
+          "type": "string",
+          "x-go-name": "Strategy"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "MigrateRepoOptions": {
       "description": "MigrateRepoOptions options for migrating repository's\nthis is used to interact with api v1",
