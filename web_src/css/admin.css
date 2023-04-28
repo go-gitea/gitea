@@ -4,18 +4,7 @@
   margin: 12px -1rem -1rem;
 }
 
-.admin .settings .button.adopt,
-.admin .settings .button.delete {
-  margin-top: -15px;
-  margin-bottom: -15px;
-}
-
-.admin .settings .button.adopt .label,
-.admin .settings .button.delete .label {
-  vertical-align: middle;
-}
-
-.admin.user .email {
+.admin.user table.table .email {
   max-width: 200px;
 }
 
@@ -51,12 +40,12 @@
   }
 }
 
-.admin.config #test-mail-btn {
-  margin-left: 5px;
-}
-
 .admin code,
 .admin pre {
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+.admin .ui.table.segment {
+  overflow-x: auto; /* if the screen width is small, many wide tables (eg: user list) need scroll bars */
 }
