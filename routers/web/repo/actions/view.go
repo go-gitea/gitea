@@ -240,7 +240,7 @@ func ViewPost(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func RerunJob(ctx *context_module.Context) {
+func RerunOne(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
 	jobIndex := ctx.ParamsInt64("job")
 
@@ -249,7 +249,7 @@ func RerunJob(ctx *context_module.Context) {
 		return
 	}
 
-	if err := rerun(ctx, job); err != nil {
+	if err := rerunJob(ctx, job); err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -257,7 +257,7 @@ func RerunJob(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, struct{}{})
 }
 
-func RerunAllJobs(ctx *context_module.Context) {
+func RerunAll(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
 
 	_, jobs := getRunJobs(ctx, runIndex, 0)
@@ -266,7 +266,7 @@ func RerunAllJobs(ctx *context_module.Context) {
 	}
 
 	for _, j := range jobs {
-		if err := rerun(ctx, j); err != nil {
+		if err := rerunJob(ctx, j); err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -275,7 +275,7 @@ func RerunAllJobs(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, struct{}{})
 }
 
-func rerun(ctx *context_module.Context, job *actions_model.ActionRunJob) error {
+func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob) error {
 	status := job.Status
 	if !status.IsDone() {
 		return nil
