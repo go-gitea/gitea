@@ -52,11 +52,11 @@ footer {
   padding: 0 20px;
 }
 
-footer .right.links {
+footer .right-links {
   min-width: 180px; /* make sure the menu dropdown doesn't overflow horizontally when language name is short */
 }
 
-footer .right.links > a {
+footer .right-links > a {
   border-left: 1px solid var(--color-secondary-dark-1);
   padding-left: 8px;
   margin-left: 5px;
@@ -71,8 +71,8 @@ footer .ui.dropdown.language .menu {
 
 
 @media (max-width: 880px) {
-  footer .ui.left,
-  footer .ui.right {
+  footer .left-links,
+  footer .right-right {
     width: 100%;
     display: block;
     text-align: center;

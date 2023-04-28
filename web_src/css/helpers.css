@@ -76,6 +76,9 @@ Gitea's private styles use `g-` prefix.
 .gt-w-screen { width: 100vw !important; }
 .gt-h-screen { height: 100vh !important; }
 
+.gt-float-left { float: left !important; }
+.gt-float-right { float: right !important; }
+
 .gt-rounded { border-radius: var(--border-radius) !important; }
 .gt-rounded-top { border-radius: var(--border-radius) var(--border-radius) 0 0 !important; }
 .gt-rounded-bottom { border-radius: 0 0 var(--border-radius) var(--border-radius) !important; }
