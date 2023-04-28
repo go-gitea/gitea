@@ -26,13 +26,13 @@
 
 	<div>
 		<h1>TimeSince</h1>
-		<div>Now: {{TimeSince .TimeNow $.locale}}</div>
-		<div>5s past: {{TimeSince .TimePast5s $.locale}}</div>
-		<div>5s future: {{TimeSince .TimeFuture5s $.locale}}</div>
-		<div>2m past: {{TimeSince .TimePast2m $.locale}}</div>
-		<div>2m future: {{TimeSince .TimeFuture2m $.locale}}</div>
-		<div>1y past: {{TimeSince .TimePast1y $.locale}}</div>
-		<div>1y future: {{TimeSince .TimeFuture1y $.locale}}</div>
+		<div>Now: {{TimeSince $.Context .TimeNow $.locale}}</div>
+		<div>5s past: {{TimeSince $.Context .TimePast5s $.locale}}</div>
+		<div>5s future: {{TimeSince $.Context .TimeFuture5s $.locale}}</div>
+		<div>2m past: {{TimeSince $.Context .TimePast2m $.locale}}</div>
+		<div>2m future: {{TimeSince $.Context .TimeFuture2m $.locale}}</div>
+		<div>1y past: {{TimeSince $.Context .TimePast1y $.locale}}</div>
+		<div>1y future: {{TimeSince $.Context .TimeFuture1y $.locale}}</div>
 	</div>
 
 	<div>

@@ -42,7 +42,7 @@
 				<li class="item">
 					{{svg .IconName}} <a href="{{.Link}}">{{.Title}}</a>
 					<div class="meta">
-						{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
+						{{$closedDate:= TimeSinceUnix $.Context .ClosedDateUnix $.locale}}
 						{{if .IsClosed}}
 							{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 						{{end}}
