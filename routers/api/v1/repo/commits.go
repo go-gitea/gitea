@@ -9,10 +9,12 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -69,7 +71,12 @@ func getCommit(ctx *context.APIContext, identifier string) {
 		return
 	}
 
-	json, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil, true)
+	stat := ctx.FormString("stat") == "" || ctx.FormBool("stat")
+	files := ctx.FormString("files") == "" || ctx.FormBool("files")
+	parents := ctx.FormString("parents") == "" || ctx.FormBool("parents")
+	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
+	json, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil, stat, files, parents, verification)
+
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "toCommit", err)
 		return
@@ -150,6 +157,8 @@ func GetAllCommits(ctx *context.APIContext) {
 	)
 
 	if len(path) == 0 {
+		time1a := time.Now()
+
 		var baseCommit *git.Commit
 		if len(sha) == 0 {
 			// no sha supplied - use default branch
@@ -158,6 +167,7 @@ func GetAllCommits(ctx *context.APIContext) {
 				ctx.Error(http.StatusInternalServerError, "GetHEADBranch", err)
 				return
 			}
+			log.Warn("Time 1a-first took %v", time.Since((time1a)))
 
 			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(head.Name)
 			if err != nil {
@@ -181,7 +191,8 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Query commits
-		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize)
+		not := ctx.FormString("not")
+		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize, not)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CommitsByRange", err)
 			return
@@ -208,16 +219,17 @@ func GetAllCommits(ctx *context.APIContext) {
 	}
 
 	pageCount := int(math.Ceil(float64(commitsCountTotal) / float64(listOptions.PageSize)))
-
 	userCache := make(map[string]*user_model.User)
-
 	apiCommits := make([]*api.Commit, len(commits))
 
 	stat := ctx.FormString("stat") == "" || ctx.FormBool("stat")
+	files := ctx.FormString("files") == "" || ctx.FormBool("files")
+	parents := ctx.FormString("parents") == "" || ctx.FormBool("parents")
+	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
 
 	for i, commit := range commits {
 		// Create json struct
-		apiCommits[i], err = convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, userCache, stat)
+		apiCommits[i], err = convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, userCache, stat, files, parents, verification)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "toCommit", err)
 			return

@@ -73,11 +73,10 @@ func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, c *git.Co
 }
 
 // ToCommit convert a git.Commit to api.Commit
-func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User, stat bool) (*api.Commit, error) {
+func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User, stat bool, file bool, parent bool, verification bool) (*api.Commit, error) {
 	var apiAuthor, apiCommitter *api.User
 
 	// Retrieve author and committer information
-
 	var cacheAuthor *user_model.User
 	var ok bool
 	if userCache == nil {
@@ -123,16 +122,6 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		}
 	}
 
-	// Retrieve parent(s) of the commit
-	apiParents := make([]*api.CommitMeta, commit.ParentCount())
-	for i := 0; i < commit.ParentCount(); i++ {
-		sha, _ := commit.ParentID(i)
-		apiParents[i] = &api.CommitMeta{
-			URL: repo.APIURL() + "/git/commits/" + url.PathEscape(sha.String()),
-			SHA: sha.String(),
-		}
-	}
-
 	res := &api.Commit{
 		CommitMeta: &api.CommitMeta{
 			URL:     repo.APIURL() + "/git/commits/" + url.PathEscape(commit.ID.String()),
@@ -162,19 +151,38 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 				SHA:     commit.ID.String(),
 				Created: commit.Committer.When,
 			},
-			Verification: ToVerification(ctx, commit),
 		},
+		Branch:    commit.Branch,
 		Author:    apiAuthor,
 		Committer: apiCommitter,
-		Parents:   apiParents,
+	}
+
+	if parent {
+		// Retrieve parent(s) of the commit
+		apiParents := make([]*api.CommitMeta, commit.ParentCount())
+		for i := 0; i < commit.ParentCount(); i++ {
+			sha, _ := commit.ParentID(i)
+			apiParents[i] = &api.CommitMeta{
+				URL: repo.APIURL() + "/git/commits/" + url.PathEscape(sha.String()),
+				SHA: sha.String(),
+			}
+		}
+
+		res.Parents = apiParents
+	}
+
+	// Set verification for commit
+	if verification {
+		res.RepoCommit.Verification = ToVerification(ctx, commit)
 	}
 
 	// Retrieve files affected by the commit
-	if stat {
+	if file {
 		fileStatus, err := git.GetCommitFileStatus(gitRepo.Ctx, repo.RepoPath(), commit.ID.String())
 		if err != nil {
 			return nil, err
 		}
+
 		affectedFileList := make([]*api.CommitAffectedFiles, 0, len(fileStatus.Added)+len(fileStatus.Removed)+len(fileStatus.Modified))
 		for _, files := range [][]string{fileStatus.Added, fileStatus.Removed, fileStatus.Modified} {
 			for _, filename := range files {
@@ -184,6 +192,11 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 			}
 		}
 
+		res.Files = affectedFileList
+	}
+
+	// Get stats for commit
+	if stat {
 		diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
 			AfterCommitID: commit.ID.String(),
 		})
@@ -191,7 +204,6 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 			return nil, err
 		}
 
-		res.Files = affectedFileList
 		res.Stats = &api.CommitStats{
 			Total:     diff.TotalAddition + diff.TotalDeletion,
 			Additions: diff.TotalAddition,
