@@ -6,16 +6,10 @@ package web
 import (
 	gocontext "context"
 	"net/http"
-	"os"
-	"path"
-	"strings"
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/public"
@@ -26,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/routing"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/auth"
 	"code.gitea.io/gitea/routers/web/devtest"
@@ -35,8 +30,10 @@ import (
 	"code.gitea.io/gitea/routers/web/healthcheck"
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
+	org_setting "code.gitea.io/gitea/routers/web/org/setting"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
+	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
@@ -48,7 +45,6 @@ import (
 	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 
 	"gitea.com/go-chi/captcha"
-	"gitea.com/go-chi/session"
 	"github.com/NYTimes/gziphandler"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -99,49 +95,30 @@ func buildAuthGroup() *auth_service.Group {
 	return group
 }
 
+func ctxDataSet(args ...any) func(ctx *context.Context) {
+	return func(ctx *context.Context) {
+		for i := 0; i < len(args); i += 2 {
+			ctx.Data[args[i].(string)] = args[i+1]
+		}
+	}
+}
+
 // Routes returns all web routes
 func Routes(ctx gocontext.Context) *web.Route {
 	routes := web.NewRoute()
 
-	routes.Use(web.MiddlewareWithPrefix("/assets/", CorsHandler(), public.AssetsHandlerFunc("/assets/")))
-
-	sessioner := session.Sessioner(session.Options{
-		Provider:       setting.SessionConfig.Provider,
-		ProviderConfig: setting.SessionConfig.ProviderConfig,
-		CookieName:     setting.SessionConfig.CookieName,
-		CookiePath:     setting.SessionConfig.CookiePath,
-		Gclifetime:     setting.SessionConfig.Gclifetime,
-		Maxlifetime:    setting.SessionConfig.Maxlifetime,
-		Secure:         setting.SessionConfig.Secure,
-		SameSite:       setting.SessionConfig.SameSite,
-		Domain:         setting.SessionConfig.Domain,
-	})
-	routes.Use(sessioner)
-
-	ctx, _ = templates.HTMLRenderer(ctx)
-
-	routes.Use(Recovery(ctx))
-
-	// We use r.Route here over r.Use because this prevents requests that are not for avatars having to go through this additional handler
+	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
+	routes.RouteMethods("/assets/*", "GET, HEAD", CorsHandler(), public.AssetsHandlerFunc("/assets/"))
 	routes.RouteMethods("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.RouteMethods("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+	routes.RouteMethods("/apple-touch-icon.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
+	routes.RouteMethods("/favicon.ico", "GET, HEAD", misc.StaticRedirect("/assets/img/favicon.png"))
 
-	// for health check - doesn't need to be passed through gzip handler
-	routes.Head("/", func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	// this png is very likely to always be below the limit for gzip so it doesn't need to pass through gzip
-	routes.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/apple-touch-icon.png"), http.StatusPermanentRedirect)
-	})
-
-	// redirect default favicon to the path of the custom favicon with a default as a fallback
-	routes.Get("/favicon.ico", func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/favicon.png"), http.StatusMovedPermanently)
-	})
-
-	common := []interface{}{}
+	ctx, _ = templates.HTMLRenderer(ctx)
+	common := []any{
+		common.Sessioner(),
+		RecoveryWith500Page(ctx),
+	}
 
 	if setting.EnableGzip {
 		h, err := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(GzipMinSize))
@@ -157,42 +134,18 @@ func Routes(ctx gocontext.Context) *web.Route {
 	}
 
 	if setting.HasRobotsTxt {
-		routes.Get("/robots.txt", append(common, func(w http.ResponseWriter, req *http.Request) {
-			filePath := path.Join(setting.CustomPath, "robots.txt")
-			fi, err := os.Stat(filePath)
-			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
-				return
-			}
-			http.ServeFile(w, req, filePath)
-		})...)
+		routes.Get("/robots.txt", append(common, misc.RobotsTxt)...)
 	}
 
 	// prometheus metrics endpoint - do not need to go through contexter
 	if setting.Metrics.Enabled {
-		c := metrics.NewCollector()
-		prometheus.MustRegister(c)
-
+		prometheus.MustRegister(metrics.NewCollector())
 		routes.Get("/metrics", append(common, Metrics)...)
 	}
 
-	routes.Get("/ssh_info", func(rw http.ResponseWriter, req *http.Request) {
-		if !git.SupportProcReceive {
-			rw.WriteHeader(http.StatusNotFound)
-			return
-		}
-		rw.Header().Set("content-type", "text/json;charset=UTF-8")
-		_, err := rw.Write([]byte(`{"type":"gitea","version":1}`))
-		if err != nil {
-			log.Error("fail to write result: err: %v", err)
-			rw.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		rw.WriteHeader(http.StatusOK)
-	})
-
+	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
-	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary
 	common = append(common, context.Contexter(ctx))
 
 	group := buildAuthGroup()
@@ -207,7 +160,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	common = append(common, middleware.GetHead)
 
 	if setting.API.EnableSwagger {
-		// Note: The route moved from apiroutes because it's in fact want to render a web page
+		// Note: The route is here but no in API routes because it renders a web page
 		routes.Get("/api/swagger", append(common, misc.Swagger)...) // Render V1 by default
 	}
 
@@ -217,17 +170,14 @@ func Routes(ctx gocontext.Context) *web.Route {
 	common = append(common, goGet)
 
 	others := web.NewRoute()
-	for _, middle := range common {
-		others.Use(middle)
-	}
-
-	RegisterRoutes(others)
+	others.Use(common...)
+	registerRoutes(others)
 	routes.Mount("", others)
 	return routes
 }
 
-// RegisterRoutes register routes
-func RegisterRoutes(m *web.Route) {
+// registerRoutes register routes
+func registerRoutes(m *web.Route) {
 	reqSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: true})
 	ignSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: setting.Service.RequireSignInView})
 	ignExploreSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
@@ -342,6 +292,24 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/packagist/{id}", web.Bind(forms.NewPackagistHookForm{}), repo.PackagistHooksEditPost)
 	}
 
+	addSettingsSecretsRoutes := func() {
+		m.Group("/secrets", func() {
+			m.Get("", repo_setting.Secrets)
+			m.Post("", web.Bind(forms.AddSecretForm{}), repo_setting.SecretsPost)
+			m.Post("/delete", repo_setting.SecretsDelete)
+		})
+	}
+
+	addSettingsRunnersRoutes := func() {
+		m.Group("/runners", func() {
+			m.Get("", repo_setting.Runners)
+			m.Combo("/{runnerid}").Get(repo_setting.RunnersEdit).
+				Post(web.Bind(forms.EditRunnerForm{}), repo_setting.RunnersEditPost)
+			m.Post("/{runnerid}/delete", repo_setting.RunnerDeletePost)
+			m.Get("/reset_registration_token", repo_setting.ResetRunnerRegistrationToken)
+		})
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
@@ -354,8 +322,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/nodeinfo", NodeInfoLinks)
 			m.Get("/webfinger", WebfingerQuery)
 		}, federationEnabled)
-		m.Get("/change-password", func(w http.ResponseWriter, req *http.Request) {
-			http.Redirect(w, req, "/user/settings/account", http.StatusTemporaryRedirect)
+		m.Get("/change-password", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		})
 	})
 
@@ -501,11 +469,12 @@ func RegisterRoutes(m *web.Route) {
 			})
 			m.Post("/chef/regenerate_keypair", user_setting.RegenerateChefKeyPair)
 		}, packagesEnabled)
-		m.Group("/secrets", func() {
-			m.Get("", user_setting.Secrets)
-			m.Post("", web.Bind(forms.AddSecretForm{}), user_setting.SecretsPost)
-			m.Post("/delete", user_setting.SecretsDelete)
-		})
+
+		m.Group("/actions", func() {
+			m.Get("", user_setting.RedirectToDefaultSetting)
+			addSettingsSecretsRoutes()
+		}, actions.MustEnableActions)
+
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
 		m.Post("/repos/unadopted", user_setting.AdoptOrDeleteRepository)
@@ -519,14 +488,8 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/replay/{uuid}", repo.ReplayWebhook)
 			})
 			addWebhookEditRoutes()
-		}, webhooksEnabled, func(ctx *context.Context) {
-			ctx.Data["IsUserWebhook"] = true
-		})
-	}, reqSignIn, func(ctx *context.Context) {
-		ctx.Data["PageIsUserSettings"] = true
-		ctx.Data["AllThemes"] = setting.UI.Themes
-		ctx.Data["EnablePackages"] = setting.Packages.Enabled
-	})
+		}, webhooksEnabled)
+	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "AllThemes", setting.UI.Themes, "EnablePackages", setting.Packages.Enabled))
 
 	m.Group("/user", func() {
 		// r.Get("/feeds", binding.Bind(auth.FeedsForm{}), user.Feeds)
@@ -651,66 +614,15 @@ func RegisterRoutes(m *web.Route) {
 			}
 		})
 
-		m.Group("/runners", func() {
-			m.Get("", admin.Runners)
-			m.Get("/reset_registration_token", admin.ResetRunnerRegistrationToken)
-			m.Combo("/{runnerid}").Get(admin.EditRunner).Post(web.Bind(forms.EditRunnerForm{}), admin.EditRunnerPost)
-			m.Post("/{runnerid}/delete", admin.DeleteRunnerPost)
-		}, actions.MustEnableActions)
-	}, func(ctx *context.Context) {
-		ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
-		ctx.Data["EnablePackages"] = setting.Packages.Enabled
-	}, adminReq)
+		m.Group("/actions", func() {
+			m.Get("", admin.RedirectToDefaultSetting)
+			addSettingsRunnersRoutes()
+		})
+	}, adminReq, ctxDataSet("EnableOAuth2", setting.OAuth2.Enable, "EnablePackages", setting.Packages.Enabled))
 	// ***** END: Admin *****
 
 	m.Group("", func() {
-		m.Get("/favicon.ico", func(ctx *context.Context) {
-			ctx.SetServeHeaders(&context.ServeHeaderOptions{
-				Filename: "favicon.png",
-			})
-			http.ServeFile(ctx.Resp, ctx.Req, path.Join(setting.StaticRootPath, "public/img/favicon.png"))
-		})
-		m.Get("/{username}", func(ctx *context.Context) {
-			// WORKAROUND to support usernames with "." in it
-			// https://github.com/go-chi/chi/issues/781
-			username := ctx.Params("username")
-			reloadParam := func(suffix string) (success bool) {
-				ctx.SetParams("username", strings.TrimSuffix(username, suffix))
-				context_service.UserAssignmentWeb()(ctx)
-				return !ctx.Written()
-			}
-			switch {
-			case strings.HasSuffix(username, ".png"):
-				if reloadParam(".png") {
-					user.AvatarByUserName(ctx)
-				}
-			case strings.HasSuffix(username, ".keys"):
-				if reloadParam(".keys") {
-					user.ShowSSHKeys(ctx)
-				}
-			case strings.HasSuffix(username, ".gpg"):
-				if reloadParam(".gpg") {
-					user.ShowGPGKeys(ctx)
-				}
-			case strings.HasSuffix(username, ".rss"):
-				feedEnabled(ctx)
-				if !ctx.Written() && reloadParam(".rss") {
-					context_service.UserAssignmentWeb()(ctx)
-					feed.ShowUserFeedRSS(ctx)
-				}
-			case strings.HasSuffix(username, ".atom"):
-				feedEnabled(ctx)
-				if !ctx.Written() && reloadParam(".atom") {
-					feed.ShowUserFeedAtom(ctx)
-				}
-			default:
-				context_service.UserAssignmentWeb()(ctx)
-				if !ctx.Written() {
-					ctx.Data["EnableFeed"] = setting.Other.EnableFeed
-					user.Profile(ctx)
-				}
-			}
-		})
+		m.Get("/{username}", user.UsernameSubRoute)
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
 	}, ignSignIn)
 
@@ -830,9 +742,7 @@ func RegisterRoutes(m *web.Route) {
 						m.Post("/replay/{uuid}", repo.ReplayWebhook)
 					})
 					addWebhookEditRoutes()
-				}, webhooksEnabled, func(ctx *context.Context) {
-					ctx.Data["IsOrganizationWebhook"] = true
-				})
+				}, webhooksEnabled)
 
 				m.Group("/labels", func() {
 					m.Get("", org.RetrieveLabels, org.Labels)
@@ -842,19 +752,11 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/initialize", web.Bind(forms.InitializeLabelsForm{}), org.InitializeLabels)
 				})
 
-				m.Group("/runners", func() {
-					m.Get("", org.Runners)
-					m.Combo("/{runnerid}").Get(org.RunnersEdit).
-						Post(web.Bind(forms.EditRunnerForm{}), org.RunnersEditPost)
-					m.Post("/{runnerid}/delete", org.RunnerDeletePost)
-					m.Get("/reset_registration_token", org.ResetRunnerRegistrationToken)
+				m.Group("/actions", func() {
+					m.Get("", org_setting.RedirectToDefaultSetting)
+					addSettingsRunnersRoutes()
+					addSettingsSecretsRoutes()
 				}, actions.MustEnableActions)
-
-				m.Group("/secrets", func() {
-					m.Get("", org.Secrets)
-					m.Post("", web.Bind(forms.AddSecretForm{}), org.SecretsPost)
-					m.Post("/delete", org.SecretsDelete)
-				})
 
 				m.RouteMethods("/delete", "GET,POST", org.SettingsDelete)
 
@@ -876,10 +778,7 @@ func RegisterRoutes(m *web.Route) {
 						m.Post("/rebuild", org.RebuildCargoIndex)
 					})
 				}, packagesEnabled)
-			}, func(ctx *context.Context) {
-				ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
-				ctx.Data["EnablePackages"] = setting.Packages.Enabled
-			})
+			}, ctxDataSet("EnableOAuth2", setting.OAuth2.Enable, "EnablePackages", setting.Packages.Enabled, "PageIsOrgSettings", true))
 		}, context.OrgAssignment(true, true))
 	}, reqSignIn)
 	// ***** END: Organization *****
@@ -1013,20 +912,12 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/replay/{uuid}", repo.ReplayWebhook)
 				})
 				addWebhookEditRoutes()
-			}, webhooksEnabled, func(ctx *context.Context) {
-				ctx.Data["IsRepositoryWebhook"] = true
-			})
+			}, webhooksEnabled)
 
 			m.Group("/keys", func() {
 				m.Combo("").Get(repo.DeployKeys).
 					Post(web.Bind(forms.AddKeyForm{}), repo.DeployKeysPost)
 				m.Post("/delete", repo.DeleteDeployKey)
-			})
-
-			m.Group("/secrets", func() {
-				m.Get("", repo.Secrets)
-				m.Post("", web.Bind(forms.AddSecretForm{}), repo.SecretsPost)
-				m.Post("/delete", repo.DeleteSecret)
 			})
 
 			m.Group("/lfs", func() {
@@ -1042,18 +933,12 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/{lid}/unlock", repo.LFSUnlock)
 				})
 			})
-
-			m.Group("/runners", func() {
-				m.Get("", repo.Runners)
-				m.Combo("/{runnerid}").Get(repo.RunnersEdit).
-					Post(web.Bind(forms.EditRunnerForm{}), repo.RunnersEditPost)
-				m.Post("/{runnerid}/delete", repo.RunnerDeletePost)
-				m.Get("/reset_registration_token", repo.ResetRunnerRegistrationToken)
+			m.Group("/actions", func() {
+				m.Get("", repo_setting.RedirectToDefaultSetting)
+				addSettingsRunnersRoutes()
+				addSettingsSecretsRoutes()
 			}, actions.MustEnableActions)
-		}, func(ctx *context.Context) {
-			ctx.Data["PageIsSettings"] = true
-			ctx.Data["LFSStartServer"] = setting.LFS.StartServer
-		})
+		}, ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer))
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 
 	m.Post("/{username}/{reponame}/action/{action}", reqSignIn, context.RepoAssignment, context.UnitTypes(), repo.Action)
@@ -1204,9 +1089,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("", repo.TagsList)
 			m.Get(".rss", feedEnabled, repo.TagsListFeedRSS)
 			m.Get(".atom", feedEnabled, repo.TagsListFeedAtom)
-		}, func(ctx *context.Context) {
-			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
-		}, repo.MustBeNotEmpty, reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag, true))
+		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
+			repo.MustBeNotEmpty, reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag, true))
 		m.Post("/tags/delete", repo.DeleteTag, reqSignIn,
 			repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoCodeWriter, context.RepoRef())
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
@@ -1219,9 +1103,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/latest", repo.LatestRelease)
 			m.Get(".rss", feedEnabled, repo.ReleasesFeedRSS)
 			m.Get(".atom", feedEnabled, repo.ReleasesFeedAtom)
-		}, func(ctx *context.Context) {
-			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
-		}, repo.MustBeNotEmpty, reqRepoReleaseReader, context.RepoRefByType(context.RepoRefTag, true))
+		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
+			repo.MustBeNotEmpty, reqRepoReleaseReader, context.RepoRefByType(context.RepoRefTag, true))
 		m.Get("/releases/attachments/{uuid}", repo.GetAttachment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
@@ -1233,21 +1116,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)
 			m.Post("/edit/*", web.Bind(forms.EditReleaseForm{}), repo.EditReleasePost)
-		}, reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, func(ctx *context.Context) {
-			var err error
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-			if err != nil {
-				ctx.ServerError("GetBranchCommit", err)
-				return
-			}
-			ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
-			if err != nil {
-				ctx.ServerError("GetCommitsCount", err)
-				return
-			}
-			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
-			ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
-		})
+		}, reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, repo.CommitInfoCache)
 	}, ignSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoReleaseReader)
 
 	// to maintain compatibility with old attachments
@@ -1326,18 +1195,10 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/wiki", func() {
 			m.Combo("/").
 				Get(repo.Wiki).
-				Post(context.RepoMustNotBeArchived(),
-					reqSignIn,
-					reqRepoWikiWriter,
-					web.Bind(forms.NewWikiForm{}),
-					repo.WikiPost)
+				Post(context.RepoMustNotBeArchived(), reqSignIn, reqRepoWikiWriter, web.Bind(forms.NewWikiForm{}), repo.WikiPost)
 			m.Combo("/*").
 				Get(repo.Wiki).
-				Post(context.RepoMustNotBeArchived(),
-					reqSignIn,
-					reqRepoWikiWriter,
-					web.Bind(forms.NewWikiForm{}),
-					repo.WikiPost)
+				Post(context.RepoMustNotBeArchived(), reqSignIn, reqRepoWikiWriter, web.Bind(forms.NewWikiForm{}), repo.WikiPost)
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{ext:patch|diff}", repo.RawDiff)
 		}, repo.MustEnableWiki, func(ctx *context.Context) {
@@ -1468,8 +1329,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("", func() {
 			m.Get("/forks", repo.Forks)
 		}, context.RepoRef(), reqRepoCodeReader)
-		m.Get("/commit/{sha:([a-f0-9]{7,40})}.{ext:patch|diff}",
-			repo.MustBeNotEmpty, reqRepoCodeReader, repo.RawDiff)
+		m.Get("/commit/{sha:([a-f0-9]{7,40})}.{ext:patch|diff}", repo.MustBeNotEmpty, reqRepoCodeReader, repo.RawDiff)
 	}, ignSignIn, context.RepoAssignment, context.UnitTypes())
 
 	m.Post("/{username}/{reponame}/lastcommit/*", ignSignInAndCsrf, context.RepoAssignment, context.UnitTypes(), context.RepoRefByType(context.RepoRefCommit), reqRepoCodeReader, repo.LastCommit)

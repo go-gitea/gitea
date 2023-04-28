@@ -237,7 +237,7 @@
 
 				{{if .Permission.IsAdmin}}
 					<div class="right menu">
-						<a class="{{if .PageIsSettings}}active {{end}}item" href="{{.RepoLink}}/settings">
+						<a class="{{if .PageIsRepoSettings}}active {{end}}item" href="{{.RepoLink}}/settings">
 							{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
 						</a>
 					</div>
@@ -246,7 +246,7 @@
 		{{else if .Permission.IsAdmin}}
 			<div class="ui tabular stackable menu navbar">
 				<div class="right menu">
-					<a class="{{if .PageIsSettings}}active {{end}}item" href="{{.RepoLink}}/settings">
+					<a class="{{if .PageIsRepoSettings}}active {{end}}item" href="{{.RepoLink}}/settings">
 						{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
 					</a>
 				</div>

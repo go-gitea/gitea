@@ -5,6 +5,8 @@ slug: "labels"
 weight: 13
 toc: false
 draft: false
+aliases:
+  - /en-us/labels
 menu:
   sidebar:
     parent: "usage"
