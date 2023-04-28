@@ -5,6 +5,8 @@ slug: "fail2ban-setup"
 weight: 16
 toc: false
 draft: false
+aliases:
+  - /en-us/fail2ban-setup
 menu:
   sidebar:
     parent: "administration"
