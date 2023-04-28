@@ -14,8 +14,10 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -163,6 +165,32 @@ func ViewPackageVersion(ctx *context.Context) {
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
 
+	switch pd.Package.Type {
+	case packages_model.TypeContainer:
+		ctx.Data["RegistryHost"] = setting.Packages.RegistryHost
+	case packages_model.TypeDebian:
+		distributions := make(container.Set[string])
+		components := make(container.Set[string])
+		architectures := make(container.Set[string])
+
+		for _, f := range pd.Files {
+			for _, pp := range f.Properties {
+				switch pp.Name {
+				case debian_module.PropertyDistribution:
+					distributions.Add(pp.Value)
+				case debian_module.PropertyComponent:
+					components.Add(pp.Value)
+				case debian_module.PropertyArchitecture:
+					architectures.Add(pp.Value)
+				}
+			}
+		}
+
+		ctx.Data["Distributions"] = distributions.Values()
+		ctx.Data["Components"] = components.Values()
+		ctx.Data["Architectures"] = architectures.Values()
+	}
+
 	var (
 		total int64
 		pvs   []*packages_model.PackageVersion
@@ -170,8 +198,6 @@ func ViewPackageVersion(ctx *context.Context) {
 	)
 	switch pd.Package.Type {
 	case packages_model.TypeContainer:
-		ctx.Data["RegistryHost"] = setting.Packages.RegistryHost
-
 		pvs, total, err = container_model.SearchImageTags(ctx, &container_model.ImageTagsSearchOptions{
 			Paginator: db.NewAbsoluteListOptions(0, 5),
 			PackageID: pd.Package.ID,
@@ -183,10 +209,6 @@ func ViewPackageVersion(ctx *context.Context) {
 			PackageID:  pd.Package.ID,
 			IsInternal: util.OptionalBoolFalse,
 		})
-		if err != nil {
-			ctx.ServerError("SearchVersions", err)
-			return
-		}
 	}
 	if err != nil {
 		ctx.ServerError("", err)
