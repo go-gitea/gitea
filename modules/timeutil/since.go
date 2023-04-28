@@ -6,9 +6,12 @@ package timeutil
 import (
 	"fmt"
 	"html/template"
+	"strconv"
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/translation"
 )
 
@@ -131,14 +134,21 @@ func timeSinceUnix(then, now time.Time, lang translation.Locale) template.HTML {
 }
 
 // TimeSince renders relative time HTML given a time.Time
-func TimeSince(then time.Time, lang translation.Locale) template.HTML {
+func TimeSince(ctx context.Context, then time.Time, lang translation.Locale) template.HTML {
 	// if user forces absolute timestamps, use the full time
-	// (how can I get the context here? I want to run `user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsForceAbsoluteTimestamps)`)
-	// return DateTime("full", then)
+	val, err := user.GetUserSetting(ctx.Doer.ID, user.SettingsForceAbsoluteTimestamps, "false")
+	if err != nil {
+		ctx.ServerError("GetUserSetting", err)
+	}
+	forceAbsoluteTimestamps, _ := strconv.ParseBool(val) // we can safely ignore the failed conversion here
+	if forceAbsoluteTimestamps {
+		return DateTime("full", then)
+	}
+
 	return timeSinceUnix(then, time.Now(), lang)
 }
 
 // TimeSinceUnix renders relative time HTML given a TimeStamp
-func TimeSinceUnix(then TimeStamp, lang translation.Locale) template.HTML {
-	return TimeSince(then.AsLocalTime(), lang)
+func TimeSinceUnix(ctx context.Context, then TimeStamp, lang translation.Locale) template.HTML {
+	return TimeSince(ctx, then.AsLocalTime(), lang)
 }

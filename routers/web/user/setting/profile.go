@@ -351,7 +351,7 @@ func Appearance(ctx *context.Context) {
 		return forms.IsUserHiddenCommentTypeGroupChecked(commentTypeGroup, hiddenCommentTypes)
 	}
 
-	val, err = user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsForceAbsoluteTimestamps)
+	val, err = user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsForceAbsoluteTimestamps, "false")
 	if err != nil {
 		ctx.ServerError("GetUserSetting", err)
 		return
