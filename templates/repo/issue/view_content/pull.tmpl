@@ -108,6 +108,9 @@
 		</div>
 	</div>
 {{end}}
+{{if and .Issue.PullRequest.HasMerged (not .IsPullBranchDeletable)}}
+{{/* Then the merge box will not be displayed */}}
+{{else}}
 <div class="timeline-item comment merge box">
 	<a class="timeline-avatar text {{if .Issue.PullRequest.HasMerged}}purple
 	{{- else if .Issue.IsClosed}}grey
@@ -131,28 +134,21 @@
 		{{$showGeneralMergeForm := false}}
 		<div class="ui attached merge-section segment {{if not $.LatestCommitStatus}}no-header{{end}}">
 			{{if .Issue.PullRequest.HasMerged}}
-				<div class="item item-section text gt-f1">
-					<div class="item-section-left">
-						<h3 class="gt-mb-3">
-							{{if .Issue.PullRequest.MergedCommitID}}
-								{{$link := printf "%s/commit/%s" $.Repository.Link (.Issue.PullRequest.MergedCommitID|PathEscape)}}
-								{{$.locale.Tr "repo.pulls.merged_as" (printf "<a rel='nofollow' class='ui sha' href='%s'><code>%s</code></a>" ($link|Escape) (ShortSha .Issue.PullRequest.MergedCommitID)) | Str2html}}
-							{{else}}
-								{{$.locale.Tr "repo.pulls.merged_success"}}
-							{{end}}
-						</h3>
-						{{if .IsPullBranchDeletable}}
+				{{if .IsPullBranchDeletable}}
+					<div class="item item-section text gt-f1">
+						<div class="item-section-left">
+							<h3 class="gt-mb-3">
+									{{$.locale.Tr "repo.pulls.merged_success"}}
+							</h3>
 							<div class="merge-section-info">
 								{{$.locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape)) | Str2html}}
 							</div>
-						{{end}}
-					</div>
-					{{if .IsPullBranchDeletable}}
+						</div>
 						<div class="item-section-right">
 							<button class="delete-button ui button" data-url="{{.DeleteBranchLink}}">{{$.locale.Tr "repo.branch.delete_html"}}</button>
 						</div>
-					{{end}}
-				</div>
+					</div>
+				{{end}}
 			{{else if .Issue.IsClosed}}
 				<div class="item item-section text gt-f1">
 					<div class="item-section-left">
@@ -494,3 +490,4 @@
 		</div>
 	</div>
 </div>
+{{end}}
