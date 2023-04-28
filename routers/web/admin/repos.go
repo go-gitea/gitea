@@ -133,7 +133,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	repoName := dirSplit[1]
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, repoName)
+	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, repoName)
 	if err != nil {
 		ctx.ServerError("IsRepositoryExist", err)
 		return
