@@ -86,6 +86,13 @@
 						</div>
 					</div>
 				</div>
+				<div class="field">
+					<div class="ui checkbox">
+						<input name="require_signed_commits" type="checkbox" {{if .Rule.RequireSignedCommits}}checked{{end}}>
+						<label for="require_signed_commits">{{.locale.Tr "repo.settings.require_signed_commits"}}</label>
+						<p class="help">{{.locale.Tr "repo.settings.require_signed_commits_desc"}}</p>
+					</div>
+				</div>
 				<h5 class="ui dividing header">{{.locale.Tr "repo.settings.event_pull_request"}}</h5>
 				<div class="field">
 					<label>{{.locale.Tr "repo.settings.protect_required_approvals"}}</label>
@@ -195,13 +202,6 @@
 						<input name="dismiss_stale_approvals" type="checkbox" {{if .Rule.DismissStaleApprovals}}checked{{end}}>
 						<label for="dismiss_stale_approvals">{{.locale.Tr "repo.settings.dismiss_stale_approvals"}}</label>
 						<p class="help">{{.locale.Tr "repo.settings.dismiss_stale_approvals_desc"}}</p>
-					</div>
-				</div>
-				<div class="field">
-					<div class="ui checkbox">
-						<input name="require_signed_commits" type="checkbox" {{if .Rule.RequireSignedCommits}}checked{{end}}>
-						<label for="require_signed_commits">{{.locale.Tr "repo.settings.require_signed_commits"}}</label>
-						<p class="help">{{.locale.Tr "repo.settings.require_signed_commits_desc"}}</p>
 					</div>
 				</div>
 				<div class="field">
