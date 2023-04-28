@@ -1,4 +1,4 @@
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package v1_20 //nolint
@@ -9,16 +9,15 @@ import (
 	"xorm.io/xorm"
 )
 
-func CreateVariableTable(x *xorm.Engine) error {
-	type Variable struct {
-		ID          int64              `xorm:"pk autoincr"`
-		OwnerID     int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
-		RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
-		Name        string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
-		Data        string             `xorm:"LONGTEXT NOT NULL"`
-		CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+func AddArchivedUnixToRepository(x *xorm.Engine) error {
+	type Repository struct {
+		ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT 0"`
 	}
 
-	return x.Sync(new(Variable))
+	if err := x.Sync(new(Repository)); err != nil {
+		return err
+	}
+
+	_, err := x.Exec("UPDATE repository SET archived_unix = updated_unix WHERE is_archived = ? AND archived_unix = 0", true)
+	return err
 }

@@ -488,6 +488,8 @@ var migrations = []Migration{
 	// v254 -> v255
 	NewMigration("Add ActionTaskOutput table", v1_20.AddActionTaskOutputTable),
 	// v255 -> v256
+	NewMigration("Add ArchivedUnix Column", v1_20.AddArchivedUnixToRepository),
+	// v256 -> v257
 	NewMigration("Add varibale table", v1_20.CreateVariableTable),
 }
 

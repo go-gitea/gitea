@@ -118,7 +118,6 @@
 								{{svg "octicon-repo-forked"}}{{$.locale.Tr "repo.fork"}}
 							</a>
 							<div class="ui small modal" id="fork-repo-modal">
-								{{svg "octicon-x" 16 "close inside"}}
 								<div class="header">
 									{{$.locale.Tr "repo.already_forked" .Name}}
 								</div>
@@ -216,9 +215,15 @@
 				</a>
 				{{end}}
 
-				{{if or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki)}}
-					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki" {{if and (.Permission.CanRead $.UnitTypeExternalWiki) (not (StringUtils.HasPrefix ((.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL) (.Repository.Link)))}} target="_blank" rel="noopener noreferrer" {{end}}>
+				{{if .Permission.CanRead $.UnitTypeWiki}}
+					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki">
 						{{svg "octicon-book"}} {{.locale.Tr "repo.wiki"}}
+					</a>
+				{{end}}
+
+				{{if .Permission.CanRead $.UnitTypeExternalWiki}}
+					<a class="item" href="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank" rel="noopener noreferrer">
+						{{svg "octicon-link-external"}} {{.locale.Tr "repo.wiki"}}
 					</a>
 				{{end}}
 
@@ -232,7 +237,7 @@
 
 				{{if .Permission.IsAdmin}}
 					<div class="right menu">
-						<a class="{{if .PageIsSettings}}active {{end}}item" href="{{.RepoLink}}/settings">
+						<a class="{{if .PageIsRepoSettings}}active {{end}}item" href="{{.RepoLink}}/settings">
 							{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
 						</a>
 					</div>
@@ -241,7 +246,7 @@
 		{{else if .Permission.IsAdmin}}
 			<div class="ui tabular stackable menu navbar">
 				<div class="right menu">
-					<a class="{{if .PageIsSettings}}active {{end}}item" href="{{.RepoLink}}/settings">
+					<a class="{{if .PageIsRepoSettings}}active {{end}}item" href="{{.RepoLink}}/settings">
 						{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
 					</a>
 				</div>
