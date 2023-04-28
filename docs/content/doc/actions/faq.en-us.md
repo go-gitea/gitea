@@ -47,7 +47,6 @@ Still, this is completely optional since both options have the same effect at th
 Not yet.
 It is technically possible to implement, but we need to discuss whether it is necessary.
 
-
 ## Where will the runner download scripts when using actions such as `actions/checkout@v3`?
 
 You may be aware that there are tens of thousands of [marketplace actions](https://github.com/marketplace?type=actions) in GitHub.
@@ -120,7 +119,6 @@ Furthermore, Actions is not only a CI/CD system but also an automation tool.
 There have also been numerous [marketplace actions](https://github.com/marketplace?type=actions) implemented in the open-source world.
 It is exciting to be able to reuse them.
 
-
 ## What if it runs on multiple labels, such as `runs-on: [label_a, label_b]`?
 
 This is valid syntax.
@@ -166,7 +164,4 @@ Although we would like to provide more options, our limited manpower means that 
 However, both Gitea and act runner are completely open source, so anyone can create a new/better implementation.
 We support your choice, no matter how you decide.
 In case you fork act runner to create your own version: Please contribute the changes back if you can and if you think your changes will help others as well.
-
-
-
 

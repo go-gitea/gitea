@@ -15,8 +15,7 @@ menu:
 
 # Design of Gitea Actions
 
-Gitea Actions has multiple parts.
-Let's explain them one by one.
+Gitea Actions has multiple components. This document describes them individually.
 
 **Table of Contents**
 
@@ -27,7 +26,7 @@ Let's explain them one by one.
 The [nektos/act](https://github.com/nektos/act) project is an excellent tool that allows you to run your GitHub Actions locally.
 We were inspired by this and wondered if it would be possible to run actions for Gitea.
 
-However, while [nektos/act](https://github.com/nektos/act) is designed as a command line tool, what we actually need is a Go library with adjustments for Gitea.
+However, while [nektos/act](https://github.com/nektos/act) is designed as a command line tool, what we actually needed was a Go library with modifications specifically for Gitea.
 So we forked it as [gitea/act](https://gitea.com/gitea/act).
 
 This is a soft fork that will periodically follow the upstream.

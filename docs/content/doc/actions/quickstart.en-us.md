@@ -75,7 +75,7 @@ This file stores the registration information.
 Please do not edit it manually.
 If this file is missing or corrupted, you can simply remove it and register again.
 
-Finally, it's time to start the runner.
+Finally, it's time to start the runner:
 
 ```bash
 ./act_runner daemon
@@ -100,11 +100,11 @@ You will need to study [the workflow syntax](https://docs.github.com/en/actions/
 
 However, we can just start from a simple demo:
 
-
 ```yaml
 name: Gitea Actions Demo
 run-name: ${{ gitea.actor }} is testing out Gitea Actions 🚀
 on: [push]
+
 jobs:
   Explore-Gitea-Actions:
     runs-on: ubuntu-latest
@@ -137,6 +137,7 @@ Alternatively, you can use this demo without emojis:
 name: Gitea Actions Demo
 run-name: ${{ gitea.actor }} is testing out Gitea Actions
 on: [push]
+
 jobs:
   Explore-Gitea-Actions:
     runs-on: ubuntu-latest
@@ -158,6 +159,5 @@ The line `on: [push]` indicates that the workflow will be triggered when you pus
 However, when you upload the YAML file, it also pushes a commit, so you should see a new task in the Actions tab.
 
 ![view job](/images/usage/actions/view-job.png)
-
 
 Great job! You have successfully started working with Actions.

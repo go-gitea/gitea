@@ -15,7 +15,7 @@ menu:
 
 # Compared to GitHub Actions
 
-Although Gitea Actions is designed to be compatible with GitHub Actions, there are still some differences between them.
+Even though Gitea Actions is designed to be compatible with GitHub Actions, there are some differences between them.
 
 **Table of Contents**
 
@@ -23,9 +23,9 @@ Although Gitea Actions is designed to be compatible with GitHub Actions, there a
 
 ## Additional features
 
-### Use absolute actions
+### Absolute action URLs
 
-Gitea Actions supports using absolute actions, which means that you can use actions from any git repository.
+Gitea Actions supports defining actions via absolute URL, which means that you can use actions from any git repository.
 Like `uses: https://github.com/actions/checkout@v3` or `uses: http://your_gitea.com/owner/repo@branch`.
 
 ### Actions written in Go
@@ -99,7 +99,7 @@ As a workaround, you can use [go-hashfiles](https://gitea.com/actions/go-hashfil
 
 See [Variables](https://docs.github.com/en/actions/learn-github-actions/variables).
 
-It is under development.
+It's under development.
 
 ### Problem Matchers
 
@@ -118,7 +118,7 @@ It's ignored by Gitea Actions now.
 
 ### Pre and Post steps 
 
-Pre and Post steps don't have their own section in the job log ui.
+Pre and Post steps don't have their own section in the job log user interface.
 
 ## Different behavior
 
@@ -127,7 +127,7 @@ Pre and Post steps don't have their own section in the job log ui.
 Context availability is not checked, so you can use the env context on more places.
 See [Context availability](https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability).
 
-## Known issues with some actions
+## Known issues
 
 ### `docker/build-push-action@v4`
 

@@ -26,7 +26,7 @@ This page will introduce the [act runner](https://gitea.com/gitea/act_runner) in
 It is recommended to run jobs in a docker container, so you need to install docker first.
 And make sure that the docker daemon is running.
 
-Other container engines which is compatible with docker API should also work, but it is not tested yet.
+Other OCI container engines which are compatible with Docker's API should also work, but are untested.
 
 However, if you are sure that you want to run jobs directly on the host only, then docker is not required.
 
@@ -61,9 +61,7 @@ docker pull gitea/act_runner:nightly # for the latest nightly build
 
 ## Configuration
 
-The act runner can be configured by a configuration file.
-It is optional, act runner will use the default configuration if you don't specify a configuration file.
-But at least we need to know how to do it when we want to change some behavior of the act runner.
+Configuration is done via a configuration file. It is optional, and the default configuration will be used when no configuration file is specified.
 
 You can generate a configuration file by running the following command:
 
@@ -78,8 +76,7 @@ The default configuration is safe to use without any modification, so you can ju
 ./act_runner --config config.yaml [command]
 ```
 
-When you are using the docker image, you can specify the configuration file by using the `CONFIG_FILE` environment variable.
-And please make sure that the configuration file is mounted in the container.
+When you are using the docker image, you can specify the configuration file by using the `CONFIG_FILE` environment variable. Make sure that the file is mounted into the container as a volume:
 
 ```bash
 docker run -v $(pwd)/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
@@ -101,8 +98,7 @@ You can register a runner in different levels, it can be:
 - Organization level: The runner will run jobs for all repositories in the organization.
 - Repository level: The runner will run jobs for the repository it belongs to.
 
-Please note that the repository may still use instance-level or organization-level runners even if it has its own repository-level runners.
-We may provide options to control this in the future.
+Note that the repository may still use instance-level or organization-level runners even if it has its own repository-level runners. A future release may provide an option to allow more control over this.
 
 ### Obtain a registration token
 
@@ -114,7 +110,7 @@ The level of the runner determines where to obtain the registration token.
 
 If you cannot see the settings page, please make sure that you have the right permissions and that Actions have been enabled.
 
-The format of the registration token is something like `D0gvfu2iHfUjNqCYVljVyRV14fISpJxxxxxxxxxx`.
+The format of the registration token is a random string `D0gvfu2iHfUjNqCYVljVyRV14fISpJxxxxxxxxxx`.
 
 ### Register the runner
 
@@ -124,19 +120,20 @@ The act runner can be registered by running the following command:
 ./act_runner register
 ```
 
-Or you can use the `--config` option to specify the configuration file, which is mentioned in the previous section.
+Alternatively, you can use the `--config` option to specify the configuration file mentioned in the previous section.
+
 ```bash
 ./act_runner --config config.yaml register
 ```
 
-And you will be asked to input the registration information step by step. Includes:
+You will be asked to input the registration information step by step. Includes:
 
 - The Gitea instance URL, like `https://gitea.com/` or `http://192.168.8.8:3000/`.
 - The registration token.
 - The runner name, which is optional. If you leave it blank, the hostname will be used.
 - The runner labels, which is optional. If you leave it blank, the default labels will be used.
 
-You may confuse about the runner labels, we will explain it later.
+You may be confused about the runner labels, which will be explained later.
 
 If you want to register the runner in a non-interactive way, you can use arguments to do it.
 
@@ -154,8 +151,7 @@ and don't forget to specify the `--config` option.
 
 ### Register the runner with docker
 
-If you are using the docker image, the things are a little different.
-Registration and running are combined into one step, so you need to specify the registration information when running the act runner.
+If you are using the docker image, behaviour will be slightly different. Registration and running are combined into one step in this case, so you need to specify the registration information when running the act runner.
 
 ```bash
 docker run \
