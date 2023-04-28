@@ -91,15 +91,15 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 }
 
 func (repo *Repository) commitsByRange(id SHA1, page, pageSize int, not string) ([]*Commit, error) {
-	cmd := NewCommand(repo.Ctx, "log")
+	cmd := NewCommand(repo.Ctx, "log").
+	AddOptionFormat("--skip=%d", (page-1)*pageSize).
+	AddOptionFormat("--max-count=%d", pageSize).
+	AddArguments(prettyLogFormat).
+	AddDynamicArguments(id.String())
+
 	if not != "" {
 		cmd.AddOptionFormat("--not %s", not)
 	}
-
-	cmd.AddOptionFormat("--skip=%d", (page-1)*pageSize).
-		AddOptionFormat("--max-count=%d", pageSize).
-		AddArguments(prettyLogFormat).
-		AddDynamicArguments(id.String())
 
 	stdout, _, err := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
 	if err != nil {
