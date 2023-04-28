@@ -93,53 +93,11 @@
 						<p class="help">{{.locale.Tr "repo.settings.require_signed_commits_desc"}}</p>
 					</div>
 				</div>
-				<h5 class="ui dividing header">{{.locale.Tr "repo.settings.event_pull_request"}}</h5>
+				<h5 class="ui dividing header">{{.locale.Tr "repo.settings.event_pull_request_approvals"}}</h5>
 				<div class="field">
 					<label>{{.locale.Tr "repo.settings.protect_required_approvals"}}</label>
 					<input name="required_approvals" type="number" value="{{.Rule.RequiredApprovals}}">
 					<p class="help gt-ml-0">{{.locale.Tr "repo.settings.protect_required_approvals_desc"}}</p>
-				</div>
-				<div class="grouped fields">
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-whitelist" name="enable_merge_whitelist" type="checkbox" data-target="#merge_whitelist_box" {{if .Rule.EnableMergeWhitelist}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_committers"}}</label>
-							<p class="help">{{.locale.Tr "repo.settings.protect_merge_whitelist_committers_desc"}}</p>
-						</div>
-					</div>
-					<div id="merge_whitelist_box" class="grouped fields {{if not .Rule.EnableMergeWhitelist}}disabled{{end}}">
-						<div class="whitelist field">
-							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_users"}}</label>
-							<div class="ui multiple search selection dropdown">
-								<input type="hidden" name="merge_whitelist_users" value="{{.merge_whitelist_users}}">
-								<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
-								<div class="menu">
-								{{range .Users}}
-									<div class="item" data-value="{{.ID}}">
-										{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
-									</div>
-								{{end}}
-								</div>
-							</div>
-						</div>
-					{{if .Owner.IsOrganization}}
-						<div class="whitelist field">
-							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_teams"}}</label>
-							<div class="ui multiple search selection dropdown">
-								<input type="hidden" name="merge_whitelist_teams" value="{{.merge_whitelist_teams}}">
-								<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
-								<div class="menu">
-								{{range .Teams}}
-									<div class="item" data-value="{{.ID}}">
-										{{svg "octicon-people"}}
-									{{.Name}}
-									</div>
-								{{end}}
-								</div>
-							</div>
-						</div>
-					{{end}}
-					</div>
 				</div>
 				<div class="grouped fields">
 					<div class="field">
@@ -185,6 +143,63 @@
 				</div>
 				<div class="field">
 					<div class="ui checkbox">
+						<input name="dismiss_stale_approvals" type="checkbox" {{if .Rule.DismissStaleApprovals}}checked{{end}}>
+						<label for="dismiss_stale_approvals">{{.locale.Tr "repo.settings.dismiss_stale_approvals"}}</label>
+						<p class="help">{{.locale.Tr "repo.settings.dismiss_stale_approvals_desc"}}</p>
+					</div>
+				</div>
+				<h5 class="ui dividing header">{{.locale.Tr "repo.settings.event_pull_request_merge"}}</h5>
+				<div class="grouped fields">
+					<div class="field">
+						<div class="ui radio checkbox">
+							<input class="disable-whitelist" name="enable_merge_whitelist" type="radio" value="false" data-target="#merge_whitelist_box" {{if not .Rule.EnableMergeWhitelist}}checked{{end}}>
+							<label>{{.locale.Tr "repo.settings.protect_enable_merge"}}</label>
+							<p class="help">{{.locale.Tr "repo.settings.protect_enable_merge_desc"}}</p>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui radio checkbox">
+							<input class="enable-whitelist" name="enable_merge_whitelist" type="radio" value="true" data-target="#merge_whitelist_box" {{if .Rule.EnableMergeWhitelist}}checked{{end}}>
+							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_committers"}}</label>
+							<p class="help">{{.locale.Tr "repo.settings.protect_merge_whitelist_committers_desc"}}</p>
+						</div>
+					</div>
+					<div id="merge_whitelist_box" class="grouped fields {{if not .Rule.EnableMergeWhitelist}}disabled{{end}}">
+						<div class="whitelist field">
+							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_users"}}</label>
+							<div class="ui multiple search selection dropdown">
+								<input type="hidden" name="merge_whitelist_users" value="{{.merge_whitelist_users}}">
+								<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
+								<div class="menu">
+								{{range .Users}}
+									<div class="item" data-value="{{.ID}}">
+										{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
+									</div>
+								{{end}}
+								</div>
+							</div>
+						</div>
+					{{if .Owner.IsOrganization}}
+						<div class="whitelist field">
+							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_teams"}}</label>
+							<div class="ui multiple search selection dropdown">
+								<input type="hidden" name="merge_whitelist_teams" value="{{.merge_whitelist_teams}}">
+								<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+								<div class="menu">
+								{{range .Teams}}
+									<div class="item" data-value="{{.ID}}">
+										{{svg "octicon-people"}}
+									{{.Name}}
+									</div>
+								{{end}}
+								</div>
+							</div>
+						</div>
+					{{end}}
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui checkbox">
 						<input name="block_on_rejected_reviews" type="checkbox" {{if .Rule.BlockOnRejectedReviews}}checked{{end}}>
 						<label for="block_on_rejected_reviews">{{.locale.Tr "repo.settings.block_rejected_reviews"}}</label>
 						<p class="help">{{.locale.Tr "repo.settings.block_rejected_reviews_desc"}}</p>
@@ -195,13 +210,6 @@
 						<input name="block_on_official_review_requests" type="checkbox" {{if .Rule.BlockOnOfficialReviewRequests}}checked{{end}}>
 						<label for="block_on_official_review_requests">{{.locale.Tr "repo.settings.block_on_official_review_requests"}}</label>
 						<p class="help">{{.locale.Tr "repo.settings.block_on_official_review_requests_desc"}}</p>
-					</div>
-				</div>
-				<div class="field">
-					<div class="ui checkbox">
-						<input name="dismiss_stale_approvals" type="checkbox" {{if .Rule.DismissStaleApprovals}}checked{{end}}>
-						<label for="dismiss_stale_approvals">{{.locale.Tr "repo.settings.dismiss_stale_approvals"}}</label>
-						<p class="help">{{.locale.Tr "repo.settings.dismiss_stale_approvals_desc"}}</p>
 					</div>
 				</div>
 				<div class="field">
