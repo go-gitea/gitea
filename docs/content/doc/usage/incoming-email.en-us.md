@@ -5,6 +5,8 @@ slug: "incoming-email"
 weight: 13
 draft: false
 toc: false
+aliases:
+  - /en-us/incoming-email
 menu:
   sidebar:
     parent: "usage"

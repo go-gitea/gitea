@@ -2,6 +2,10 @@
   padding-bottom: 30px;
 }
 
+.runner-container .ui.table.segment {
+  overflow-x: auto;
+}
+
 .runner-container .runner-ops > a {
   margin-left: 0.5em;
 }

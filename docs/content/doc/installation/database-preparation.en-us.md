@@ -5,6 +5,8 @@ slug: "database-prep"
 weight: 10
 toc: false
 draft: false
+aliases:
+  - /en-us/database-prep
 menu:
   sidebar:
     parent: "installation"

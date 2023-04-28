@@ -1,0 +1,17 @@
+{{$canReadReleases := $.Permission.CanRead $.UnitTypeReleases}}
+{{$canReadCode := $.Permission.CanRead $.UnitTypeCode}}
+
+{{if $canReadReleases}}
+	<h2 class="ui compact small menu header">
+		<a class="{{if .PageIsReleaseList}}active {{end}}item" href="{{.RepoLink}}/releases">{{.locale.Tr "repo.release.releases"}}</a>
+		{{if $canReadCode}}
+			<a class="{{if .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/tags">{{.locale.Tr "repo.release.tags"}}</a>
+		{{end}}
+	</h2>
+
+	{{if .EnableFeed}}
+		<a href="{{.RepoLink}}/{{if .PageIsTagList}}tags{{else}}releases{{end}}.rss"><i class="ui grey icon gt-ml-3" data-tooltip-content="{{.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
+	{{end}}
+{{else if $canReadCode}}
+	{{template "repo/sub_menu" .}}
+{{end}}

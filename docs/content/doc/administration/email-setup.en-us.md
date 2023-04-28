@@ -5,6 +5,8 @@ slug: "email-setup"
 weight: 12
 toc: false
 draft: false
+aliases:
+  - /en-us/email-setup
 menu:
   sidebar:
     parent: "administration"

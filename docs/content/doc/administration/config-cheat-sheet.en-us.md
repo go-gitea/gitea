@@ -5,6 +5,8 @@ slug: "config-cheat-sheet"
 weight: 30
 toc: false
 draft: false
+aliases:
+  - /en-us/config-cheat-sheet
 menu:
   sidebar:
     parent: "administration"
@@ -117,7 +119,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 
 ### Repository - Editor (`repository.editor`)
 
-- `LINE_WRAP_EXTENSIONS`: **.txt,.md,.markdown,.mdown,.mkd,**: List of file extensions for which lines should be wrapped in the Monaco editor. Separate extensions with a comma. To line wrap files without an extension, just put a comma
+- `LINE_WRAP_EXTENSIONS`: **.txt,.md,.markdown,.mdown,.mkd,.livemd,**: List of file extensions for which lines should be wrapped in the Monaco editor. Separate extensions with a comma. To line wrap files without an extension, just put a comma
 - `PREVIEWABLE_FILE_MODES`: **markdown**: Valid file modes that have a preview API associated with them, such as `api/v1/markdown`. Separate the values by commas. The preview tab in edit mode won't be displayed if the file extension doesn't match.
 
 ### Repository - Pull Request (`repository.pull-request`)
@@ -220,7 +222,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SHOW_USER_EMAIL`: **true**: Whether the email of the user should be shown in the Explore Users page.
 - `THEMES`:  **auto,gitea,arc-green**: All available themes. Allow users select personalized themes.
   regardless of the value of `DEFAULT_THEME`.
-- `THEME_COLOR_META_TAG`: **#6cc644**:  Value of `theme-color` meta tag, used by Android >= 5.0. An invalid color like "none" or "disable" will have the default style.  More info: https://developers.google.com/web/updates/2014/11/Support-for-theme-color-in-Chrome-39-for-Android
+- `THEME_COLOR_META_TAG`: **\<empty\>**: Value of `theme-color` meta tag, used by some mobile browers for chrome and out-of-viewport areas. Default is unset which uses body color.
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
     Values can be emoji alias (:smile:) or a unicode emoji.
@@ -277,6 +279,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `CUSTOM_URL_SCHEMES`: Use a comma separated list (ftp,git,svn) to indicate additional
   URL hyperlinks to be rendered in Markdown. URLs beginning in http and https are
   always displayed
+- `FILE_EXTENSIONS`: **.md,.markdown,.mdown,.mkd,.livemd**: List of file extensions that should be rendered/edited as Markdown. Separate the extensions with a comma. To render files without any extension as markdown, just put a comma.
 - `ENABLE_MATH`: **true**: Enables detection of `\(...\)`, `\[...\]`, `$...$` and `$$...$$` blocks as math blocks.
 
 ## Server (`server`)

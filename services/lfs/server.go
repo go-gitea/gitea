@@ -423,6 +423,11 @@ func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requir
 		return nil
 	}
 
+	context.CheckRepoScopedToken(ctx, repository)
+	if ctx.Written() {
+		return nil
+	}
+
 	return repository
 }
 

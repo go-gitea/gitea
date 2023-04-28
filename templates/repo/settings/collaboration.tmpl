@@ -13,7 +13,7 @@
 							{{.DisplayName}}
 						</a>
 					</div>
-					<div class="ui eight wide column">
+					<div class="ui eight wide computer five wide mobile column">
 						{{svg "octicon-shield-lock"}}
 						<div class="ui inline dropdown access-mode" data-url="{{$.Link}}/access_mode" data-uid="{{.ID}}" data-last-value="{{printf "%d" .Collaboration.Mode}}">
 							<div class="text">{{if eq .Collaboration.Mode 1}}{{$.locale.Tr "repo.settings.collaboration.read"}}{{else if eq .Collaboration.Mode 2}}{{$.locale.Tr "repo.settings.collaboration.write"}}{{else if eq .Collaboration.Mode 3}}{{$.locale.Tr "repo.settings.collaboration.admin"}}{{else}}{{$.locale.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
@@ -62,7 +62,7 @@
 							{{.Name}}
 						</a>
 					</div>
-					<div class="ui eight wide column" data-tooltip-content="{{$.locale.Tr "repo.settings.change_team_permission_tip"}}">
+					<div class="ui eight wide computer five wide mobile column" data-tooltip-content="{{$.locale.Tr "repo.settings.change_team_permission_tip"}}">
 						{{svg "octicon-shield-lock"}}
 						<div class="ui inline dropdown">
 							<div class="text">{{if eq .AccessMode 1}}{{$.locale.Tr "repo.settings.collaboration.read"}}{{else if eq .AccessMode 2}}{{$.locale.Tr "repo.settings.collaboration.write"}}{{else if eq .AccessMode 3}}{{$.locale.Tr "repo.settings.collaboration.admin"}}{{else if eq .AccessMode 4}}{{$.locale.Tr "repo.settings.collaboration.owner"}}{{else}}{{$.locale.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>

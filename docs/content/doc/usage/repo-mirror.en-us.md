@@ -5,6 +5,8 @@ slug: "repo-mirror"
 weight: 45
 toc: false
 draft: false
+aliases:
+  - /en-us/repo-mirror
 menu:
   sidebar:
     parent: "usage"
