@@ -1,6 +1,6 @@
 import $ from 'jquery';
 
-const {i18n} = window.config;
+const {i18n_branch} = window.config;
 const renameBranchFromInputSelector = 'input#from';
 const renameBranchModalSelector = '#rename-branch-modal';
 const renameBranchToSpanSelector = '#modal-rename-branch-to-span';
@@ -37,7 +37,7 @@ function initRepoRenameBranchButton() {
   $('.show-rename-branch-modal').on('click', function () {
     const oldBranchName = $(this).attr('data-old-branch-name');
     $(renameBranchFromInputSelector)?.val(oldBranchName);
-    $(renameBranchToSpanSelector).text(i18n.rename_branch_to.replace('%s', oldBranchName));
+    $(renameBranchToSpanSelector).text(i18n_branch.rename_branch_to.replace('%s', oldBranchName));
     $(renameBranchModalSelector).modal('show');
   });
 }

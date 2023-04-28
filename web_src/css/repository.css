@@ -1332,6 +1332,15 @@
   left: 0;
 }
 
+.repository.branches .table a:hover {
+  text-decoration: none;
+}
+
+.repository.branches .table .ui.dropdown:hover {
+  color: var(--color-primary);
+}
+
+
 .repository.commits .header .search input {
   font-weight: normal;
   padding: 5px 10px;
