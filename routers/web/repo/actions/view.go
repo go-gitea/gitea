@@ -240,46 +240,61 @@ func ViewPost(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func Rerun(ctx *context_module.Context) {
+func RerunJob(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
 	jobIndex := ctx.ParamsInt64("job")
 
-	targetJob, allJobs := getRunJobs(ctx, runIndex, jobIndex)
+	job, _ := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
 		return
 	}
 
-	var rerunJobs []*actions_model.ActionRunJob
-	if jobIndex < 0 {
-		rerunJobs = allJobs
-	} else {
-		rerunJobs = append(rerunJobs, targetJob)
-	}
-
-	for _, job := range rerunJobs {
-		status := job.Status
-		if !status.IsDone() {
-			ctx.JSON(http.StatusOK, struct{}{})
-			return
-		}
-
-		job.TaskID = 0
-		job.Status = actions_model.StatusWaiting
-		job.Started = 0
-		job.Stopped = 0
-
-		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped")
-			return err
-		}); err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		actions_service.CreateCommitStatus(ctx, job)
+	if err := rerun(ctx, job); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	ctx.JSON(http.StatusOK, struct{}{})
+}
+
+func RerunAllJobs(ctx *context_module.Context) {
+	runIndex := ctx.ParamsInt64("run")
+
+	_, jobs := getRunJobs(ctx, runIndex, 0)
+	if ctx.Written() {
+		return
+	}
+
+	for _, j := range jobs {
+		if err := rerun(ctx, j); err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	ctx.JSON(http.StatusOK, struct{}{})
+}
+
+func rerun(ctx *context_module.Context, job *actions_model.ActionRunJob) error {
+	status := job.Status
+	if !status.IsDone() {
+		return nil
+	}
+
+	job.TaskID = 0
+	job.Status = actions_model.StatusWaiting
+	job.Started = 0
+	job.Stopped = 0
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped")
+		return err
+	}); err != nil {
+		return err
+	}
+
+	actions_service.CreateCommitStatus(ctx, job)
+	return nil
 }
 
 func Cancel(ctx *context_module.Context) {
