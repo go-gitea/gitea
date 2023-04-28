@@ -13,24 +13,199 @@ menu:
     identifier: "actions-runner"
 ---
 
-#### Is it possible to register runners for a specific organization or a repository?
+# Act Runner
 
-Yes, it depends on where you obtain the registration token.
+This page will introduce the [act runner](https://gitea.com/gitea/act_runner) in detail, which is the runner of Gitea Actions.
 
-- `/admin/runners`: This is for instance-level runners, which will run jobs for all repositories in the instance.
-- `/org/<org>/settings/runners`: This is for organization-level runners, which will run jobs for all repositories in the organization.
-- `/<owner>/<repo>/settings/runners`: This is for repository-level runners, which will run jobs for the repository they belong to.
+**Table of Contents**
 
-If you cannot see the settings page, please make sure that you have the right permissions and that Actions have been enabled.
+{{< toc >}}
+
+## Requirements
+
+It is recommended to run jobs in a docker container, so you need to install docker first.
+And make sure that the docker daemon is running.
+
+Other container engines which is compatible with docker API should also work, but it is not tested yet.
+
+However, if you are sure that you want to run jobs directly on the host only, then docker is not required.
+
+## Installation
+
+There are multiple ways to install the act runner.
+
+### Download the binary
+
+You can download the binary from the [release page](https://gitea.com/gitea/act_runner/releases).
+However, if you want to use the latest nightly build, you can download it from the [download page](https://dl.gitea.com/act_runner/).
+
+When you download the binary, please make sure that you have downloaded the correct one for your platform.
+You can check it by running the following command:
+
+```bash
+chmod +x act_runner
+./act_runner --version
+```
+
+If you see the version information, it means that you have downloaded the correct binary.
+
+### Use the docker image
+
+You can use the docker image from the [docker hub](https://hub.docker.com/r/gitea/act_runner/tags).
+Just like the binary, you can use the latest nightly build by using the `nightly` tag, while the `latest` tag is the latest stable release.
+
+```bash
+docker pull gitea/act_runner:latest # for the latest stable release
+docker pull gitea/act_runner:nightly # for the latest nightly build
+```
+
+## Configuration
+
+The act runner can be configured by a configuration file.
+It is optional, act runner will use the default configuration if you don't specify a configuration file.
+But at least we need to know how to do it when we want to change some behavior of the act runner.
+
+You can generate a configuration file by running the following command:
+
+```bash
+./act_runner generate-config
+```
+
+The default configuration is safe to use without any modification, so you can just use it directly.
+
+```bash
+./act_runner generate-config > config.yaml
+./act_runner --config config.yaml [command]
+```
+
+When you are using the docker image, you can specify the configuration file by using the `CONFIG_FILE` environment variable.
+And please make sure that the configuration file is mounted in the container.
+
+```bash
+docker run -v $(pwd)/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
+```
+
+You may notice the commands above are both incomplete, because it is not the time to run the act runner yet.
+Before running the act runner, we need to register it to your Gitea instance first.
+
+## Registration
+
+Registration is required before running the act runner, because the runner needs to know where to get jobs from.
+And it is also important to Gitea instance to identify the runner.
+
+### Runner levels
+
+You can register a runner in different levels, it can be:
+
+- Instance level: The runner will run jobs for all repositories in the instance.
+- Organization level: The runner will run jobs for all repositories in the organization.
+- Repository level: The runner will run jobs for the repository it belongs to.
 
 Please note that the repository may still use instance-level or organization-level runners even if it has its own repository-level runners.
 We may provide options to control this in the future.
 
+### Obtain a registration token
 
-#### What are the labels for runners used for?
+The level of the runner determines where to obtain the registration token.
 
-You may have noticed that every runner has labels such as `ubuntu-latest`, `ubuntu-22.04`, `ubuntu-20.04`, and `ubuntu-18.04`.
-These labels are used for job matching.
+- Instance level: The admin settings page, like `<your_gitea.com>/admin/runners`.
+- Organization level: The organization settings page, like `<your_gitea.com>/<org>/settings/runners`.
+- Repository level: The repository settings page, like `<your_gitea.com>/<owner>/<repo>/settings/runners`.
 
-For example, `runs-on: ubuntu-latest` in a workflow file means that the job will be run on a runner with the `ubuntu-latest` label.
-You can also add custom labels to a runner when registering it, which we will discuss later.
+If you cannot see the settings page, please make sure that you have the right permissions and that Actions have been enabled.
+
+The format of the registration token is something like `D0gvfu2iHfUjNqCYVljVyRV14fISpJxxxxxxxxxx`.
+
+### Register the runner
+
+The act runner can be registered by running the following command:
+
+```bash
+./act_runner register
+```
+
+Or you can use the `--config` option to specify the configuration file, which is mentioned in the previous section.
+```bash
+./act_runner --config config.yaml register
+```
+
+And you will be asked to input the registration information step by step. Includes:
+
+- The Gitea instance URL, like `https://gitea.com/` or `http://192.168.8.8:3000/`.
+- The registration token.
+- The runner name, which is optional. If you leave it blank, the hostname will be used.
+- The runner labels, which is optional. If you leave it blank, the default labels will be used.
+
+You may confuse about the runner labels, we will explain it later.
+
+If you want to register the runner in a non-interactive way, you can use arguments to do it.
+
+```bash
+./act_runner register --no-interactive --instance <intance_url> --token <registration_token> --name <runner_name> --labels <runner_labels>
+```
+
+When you have registered the runner, you can find a new file named `.runner` in the current directory.
+This file stores the registration information.
+Please do not edit it manually.
+If this file is missing or corrupted, you can simply remove it and register again.
+
+If you want to store the registration information in another place, you can specify it in the configuration file,
+and don't forget to specify the `--config` option.
+
+### Register the runner with docker
+
+If you are using the docker image, the things are a little different.
+Registration and running are combined into one step, so you need to specify the registration information when running the act runner.
+
+```bash
+docker run \
+    -v $(pwd)/config.yaml:/config.yaml \
+    -v $(pwd)/data:/data \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -e CONFIG_FILE=/config.yaml \
+    -e GITEA_INSTANCE_URL=<instance_url> \
+    -e GITEA_RUNNER_REGISTRATION_TOKEN=<registration_token> \
+    -e GITEA_RUNNER_NAME=<runner_name> \
+    -e GITEA_RUNNER_LABELS=<runner_labels> \
+    --name my_runner \
+    -d gitea/act_runner:nightly
+```
+
+You may notice that we have mounted the `/var/run/docker.sock` into the container.
+It is because the act runner will run jobs in docker containers, so it needs to communicate with the docker daemon.
+As mentioned, you can remove it if you want to run jobs in the host directly.
+To be clear, the "host" actually means the container which is running the act runner now, instead of the host machine.
+
+### Labels
+
+The labels of a runner are used to determine which jobs the runner can run, and how to run them.
+
+The default labels are `ubuntu-latest:docker://node:16-bullseye,ubuntu-22.04:docker://node:16-bullseye,ubuntu-20.04:docker://node:16-bullseye,ubuntu-18.04:docker://node:16-buster`.
+It is a comma-separated list, and each item is a label.
+
+Let's take `ubuntu-22.04:docker://node:16-bullseye` as an example.
+It means that the runner can run jobs with `runs-on: ubuntu-22.04`, and the job will be run in a docker container with the image `node:16-bullseye`.
+
+If you think the image is too poor, and you have enough disk space to use a better and bigger one, you can change it to `ubuntu-22.04:docker://<the image you like>`.
+You can find more useful images on [act images](https://github.com/nektos/act/blob/master/IMAGES.md).
+
+If you want to run jobs in the host directly, you can change it to `ubuntu-22.04:host` or just `ubuntu-22.04`, the `:host` is optional.
+However, we suggest you to use a special name like `linux_amd64:host` or `windows:host` to avoid misusing it.
+
+One more thing is that it is recommended to register the runner if you want to change the labels.
+It may be annoying to do this, so we may provide a better way to do it in the future.
+
+## Running
+
+After you have registered the runner, you can run it by running the following command:
+
+```bash
+./act_runner daemon
+# or
+./act_runner daemon --config config.yaml
+```
+
+The runner will fetch jobs from the Gitea instance and run them automatically.
+
+Since act runner is still in development, it is recommended to check the latest version and upgrade it regularly.
+

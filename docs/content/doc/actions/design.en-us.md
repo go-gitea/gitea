@@ -119,7 +119,7 @@ In fact, your Gitea instance can serve as both the actions marketplace and the i
 You can mirror actions repositories from GitHub to your Gitea instance, and use them as normal.
 And [Gitea Container Registry](https://docs.gitea.io/en-us/usage/packages/container/) can be used as a Docker image registry.
 
-### Connection 4,  job containers to internet
+### Connection 4, job containers to internet
 
 When using actions such as `actions/setup-go@v4`, it may be necessary to download resources from the internet to set up the Go language environment in job containers.
 Therefore, access to the internet is required for the successful completion of these actions.
