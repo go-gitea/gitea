@@ -19,9 +19,16 @@
 		<a class="{{if .PageIsSettingsKeys}}active {{end}}item" href="{{AppSubUrl}}/user/settings/keys">
 			{{.locale.Tr "settings.ssh_gpg_keys"}}
 		</a>
-		<a class="{{if .PageIsSettingsSecrets}}active {{end}}item" href="{{AppSubUrl}}/user/settings/secrets">
-			{{.locale.Tr "secrets.secrets"}}
-		</a>
+		{{if .EnableActions}}
+		<div class="item">
+			{{.locale.Tr "actions.actions"}}
+			<div class="menu">
+				<a class="{{if .PageIsSharedSettingsSecrets}}active {{end}}item" href="{{AppSubUrl}}/user/settings/actions/secrets">
+					{{.locale.Tr "secrets.secrets"}}
+				</a>
+			</div>
+		</div>
+		{{end}}
 		{{if .EnablePackages}}
 		<a class="{{if .PageIsSettingsPackages}}active {{end}}item" href="{{AppSubUrl}}/user/settings/packages">
 			{{.locale.Tr "packages.title"}}

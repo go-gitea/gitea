@@ -43,6 +43,7 @@ import octiconChevronLeft from '../../public/img/svg/octicon-chevron-left.svg';
 import octiconOrganization from '../../public/img/svg/octicon-organization.svg';
 import octiconTag from '../../public/img/svg/octicon-tag.svg';
 import octiconGitBranch from '../../public/img/svg/octicon-git-branch.svg';
+import octiconRss from '../../public/img/svg/octicon-rss.svg';
 
 const svgs = {
   'octicon-blocked': octiconBlocked,
@@ -89,6 +90,7 @@ const svgs = {
   'octicon-organization': octiconOrganization,
   'octicon-tag': octiconTag,
   'octicon-git-branch': octiconGitBranch,
+  'octicon-rss': octiconRss,
 };
 
 // TODO: use a more general approach to access SVG icons.

@@ -1,4 +1,4 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.repos.repo_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
@@ -80,7 +80,7 @@
 							<td>{{.NumForks}}</td>
 							<td>{{.NumIssues}}</td>
 							<td>{{FileSize .Size}}</td>
-							<td>{{template "shared/datetime/short" (dict "Datetime" .CreatedUnix.FormatLong "Fallback" .CreatedUnix.FormatShort)}}</td>
+							<td>{{DateTime "short" .CreatedUnix}}</td>
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trash"}}</a></td>
 						</tr>
 					{{end}}
@@ -91,7 +91,7 @@
 		{{template "base/paginate" .}}
 	</div>
 
-<div class="ui gitea-confirm-modal delete modal">
+<div class="ui g-modal-confirm delete modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "repo.settings.delete"}}

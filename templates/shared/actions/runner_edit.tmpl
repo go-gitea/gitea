@@ -13,7 +13,7 @@
 				</div>
 				<div class="field gt-dib gt-mr-4 disabled">
 					<label>{{.locale.Tr "actions.runners.last_online"}}</label>
-					<span>{{TimeSinceUnix .Runner.LastOnline $.locale}}</span>
+					<span>{{if .LastOnline}}{{TimeSinceUnix .LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</span>
 				</div>
 				<div class="field gt-dib gt-mr-4 disabled">
 					<label>{{.locale.Tr "actions.runners.agent_labels"}}</label>
@@ -88,7 +88,7 @@
 		</table>
 		{{template "base/paginate" .}}
 	</div>
-	<div class="ui gitea-confirm-modal delete modal" id="runner-delete-modal">
+	<div class="ui g-modal-confirm delete modal" id="runner-delete-modal">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "actions.runners.delete_runner_header"}}

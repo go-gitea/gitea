@@ -385,7 +385,7 @@
 					<div class="gt-df gt-sb gt-ac">
 						<div class="due-date {{if .Issue.IsOverdue}}text red{{end}}" {{if .Issue.IsOverdue}}data-tooltip-content="{{.locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
 							{{svg "octicon-calendar" 16 "gt-mr-3"}}
-							{{template "shared/datetime/long" (dict "Datetime" .Issue.DeadlineUnix.FormatDate "Fallback" .Issue.DeadlineUnix.FormatDate)}}
+							{{DateTime "long" .Issue.DeadlineUnix}}
 						</div>
 						<div>
 							{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
@@ -542,7 +542,7 @@
 			{{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
 				<input type="hidden" id="crossRepoSearch" value="{{.AllowCrossRepositoryDependencies}}">
 
-				<div class="ui gitea-confirm-modal modal remove-dependency">
+				<div class="ui g-modal-confirm modal remove-dependency">
 					<div class="header">
 						{{svg "octicon-trash"}}
 						{{.locale.Tr "repo.issues.dependency.remove_header"}}
@@ -656,7 +656,7 @@
 				{{svg "octicon-trash"}}
 				{{.locale.Tr "repo.issues.delete"}}
 			</button>
-			<div class="ui gitea-confirm-modal modal" id="delete">
+			<div class="ui g-modal-confirm modal" id="delete">
 				<div class="header">
 					{{if .Issue.IsPull}}
 						{{.locale.Tr "repo.pulls.delete.title"}}

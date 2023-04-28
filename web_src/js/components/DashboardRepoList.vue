@@ -10,7 +10,7 @@
           {{ textMyRepos }}
           <span class="ui grey label gt-ml-3">{{ reposTotalCount }}</span>
         </div>
-        <a :href="subUrl + '/repo/create'" :data-tooltip-content="textNewRepo">
+        <a :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
           <svg-icon name="octicon-plus"/>
           <span class="sr-only">{{ textNewRepo }}</span>
         </a>
@@ -199,6 +199,7 @@ const sfc = {
       isOrganization: true,
       canCreateOrganization: false,
       organizationsTotalCount: 0,
+      organizationId: 0,
 
       subUrl: appSubUrl,
       ...pageData.dashboardRepoList,

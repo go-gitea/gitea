@@ -47,7 +47,7 @@
 				<h2 class="project-title">{{$.Project.Title}}</h2>
 				<div class="content project-description">{{$.Project.RenderedContent|Str2html}}</div>
 			</div>
-			{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
+			{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
 				<div class="column right aligned">
 					<div class="ui compact right small menu">
 						<a class="item" href="{{$.RepoLink}}/projects/{{.Project.ID}}/edit?redirect=project" data-id={{$.Project.ID}} data-title={{$.Project.Title}}>
@@ -156,17 +156,17 @@
 									</div>
 								</div>
 
-								<div class="ui gitea-confirm-modal modal default-project-board-modal" id="default-project-board-modal-{{.ID}}">
+								<div class="ui g-modal-confirm modal default-project-board-modal" id="default-project-board-modal-{{.ID}}">
 									<div class="header">
 										<span id="default-project-board-header"></span>
 									</div>
 									<div class="content">
 										<label id="default-project-board-content"></label>
 									</div>
-									{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonStyle" "confirm")}}
+									{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
 								</div>
 
-								<div class="ui gitea-confirm-modal modal" id="delete-board-modal-{{.ID}}">
+								<div class="ui g-modal-confirm modal" id="delete-board-modal-{{.ID}}">
 									<div class="header">
 										{{$.locale.Tr "repo.projects.column.delete"}}
 									</div>
@@ -175,7 +175,7 @@
 											{{$.locale.Tr "repo.projects.column.deletion_desc"}}
 										</label>
 									</div>
-									{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonStyle" "confirm")}}
+									{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
 								</div>
 							</div>
 						</div>
@@ -277,8 +277,8 @@
 
 </div>
 
-{{if or .CanWriteIssues .CanWritePulls}}
-	<div class="ui gitea-confirm-modal delete modal">
+{{if .CanWriteProjects}}
+	<div class="ui g-modal-confirm delete modal">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.projects.deletion"}}
