@@ -1,4 +1,9 @@
 {{template "base/head" .}}
+<script>
+	window.config.i18n_branch = {
+		rename_branch_to: '{{.locale.Tr "repo.branch.rename_branch_to"}}',
+	}
+</script>
 <div role="main" aria-label="{{.Title}}" class="page-content ui repository branches">
 	{{template "repo/header" .}}
 	<div class="ui container">
@@ -22,7 +27,13 @@
 							</td>
 							<td class="right aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-									<a role="button" class="muted show-create-branch-modal gt-mx-3" data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}" data-branch-from="{{$.DefaultBranch}}" data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}" data-modal="#create-branch-modal">
+									<a role="button" 
+										class="muted show-modal show-create-branch-modal gt-mx-3" 
+										data-modal="#create-branch-modal"
+										data-branch-from="{{$.DefaultBranch}}"
+										data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}" 
+										data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}" 
+									>
 										{{svg "octicon-git-branch"}}
 									</a>
 								{{end}}
@@ -41,7 +52,12 @@
 									</div>
 								{{end}}
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not .IsProtected)}}
-									<a role="button" class="muted show-rename-branch-modal gt-mx-3" data-tooltip-content="{{$.locale.Tr "repo.branch.rename" ($.DefaultBranch)}}" data-old-branch-name="{{$.DefaultBranch}}">
+									<a role="button" 
+										class="muted show-modal show-rename-branch-modal gt-mx-3" 
+										data-modal="#rename-branch-modal"
+										data-old-branch-name="{{$.DefaultBranch}}"
+										data-tooltip-content="{{$.locale.Tr "repo.branch.rename" ($.DefaultBranch)}}"
+									>
 										{{svg "octicon-pencil"}}
 									</a>
 								{{end}}
@@ -119,7 +135,13 @@
 									</td>
 									<td class="three wide right aligned overflow-visible">
 										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-											<a role="button" class="muted show-create-branch-modal gt-mx-3" data-branch-from="{{.Name}}" data-branch-from-urlcomponent="{{PathEscapeSegments .Name}}" data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" .Name}}" data-modal="#create-branch-modal" data-name="{{.Name}}">
+											<a role="button" 
+												 class="muted show-modal show-create-branch-modal gt-mx-3" 
+												 data-branch-from="{{.Name}}" 
+												 data-branch-from-urlcomponent="{{PathEscapeSegments .Name}}"
+												 data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" .Name}}" 
+												 data-modal="#create-branch-modal" data-name="{{.Name}}"
+											>
 												{{svg "octicon-git-branch"}}
 											</a>
 										{{end}}
@@ -138,7 +160,12 @@
 											</div>
 										{{end}}
 										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not .IsProtected)}}
-											<a role="button" class="muted show-rename-branch-modal gt-mx-3" data-tooltip-content="{{$.locale.Tr "repo.branch.rename" (.Name)}}" data-old-branch-name="{{.Name}}">
+											<a role="button"
+												 class="muted show-modal show-rename-branch-modal gt-mx-3" 
+												 data-old-branch-name="{{.Name}}"
+												 data-modal="#rename-branch-modal"
+												 data-tooltip-content="{{$.locale.Tr "repo.branch.rename" (.Name)}}" 
+											>
 												{{svg "octicon-pencil"}}
 											</button>
 										{{end}}
@@ -228,9 +255,3 @@
 	</div>
 </div>
 {{template "base/footer" .}}
-
-<script>
-	window.config.i18n_branch = {
-		rename_branch_to: '{{.locale.Tr "repo.branch.rename_branch_to"}}',
-	}
-</script>
