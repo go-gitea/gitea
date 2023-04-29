@@ -32,6 +32,7 @@ export function initRepoSettingsCollaboration() {
           if ($item) {
             $dropdown.dropdown('set selected', $dropdown.attr('data-last-value'));
           } else {
+            // TODO: should use the localized key "short_not_available"
             $text.text('(N/A)'); // prevent from misleading users when the access mode is undefined
           }
         }, 0);
