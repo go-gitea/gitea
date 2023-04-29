@@ -725,6 +725,18 @@ a.label,
   background: var(--color-hover);
 }
 
+/* fix button enlarged vertically by svg icon */
+.ui.action.input .button:has(svg),
+.ui.search.input .button:has(svg) {
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
+}
+
+/* fix fomantic bug with visible border-right on hover */
+.ui.action.input:not([class*="left action"]) > input:hover {
+  border-right-color: transparent;
+}
+
 .issue-title code {
   padding: 2px 4px;
   border-radius: 6px;
