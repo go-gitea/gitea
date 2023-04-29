@@ -9,12 +9,10 @@ import (
 	"math"
 	"net/http"
 	"strconv"
-	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -160,8 +158,6 @@ func GetAllCommits(ctx *context.APIContext) {
 	)
 
 	if len(path) == 0 {
-		time1a := time.Now()
-
 		var baseCommit *git.Commit
 		if len(sha) == 0 {
 			// no sha supplied - use default branch
@@ -170,7 +166,6 @@ func GetAllCommits(ctx *context.APIContext) {
 				ctx.Error(http.StatusInternalServerError, "GetHEADBranch", err)
 				return
 			}
-			log.Warn("Time 1a-first took %v", time.Since((time1a)))
 
 			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(head.Name)
 			if err != nil {

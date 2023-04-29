@@ -51,7 +51,6 @@ type Commit struct {
 	*CommitMeta
 	HTMLURL    string                 `json:"html_url"`
 	RepoCommit *RepoCommit            `json:"commit"`
-	Branch     string                 `json:"string"`
 	Author     *User                  `json:"author"`
 	Committer  *User                  `json:"committer"`
 	Parents    []*CommitMeta          `json:"parents"`
