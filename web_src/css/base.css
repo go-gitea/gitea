@@ -778,6 +778,10 @@ a.label,
   border-right-color: transparent;
 }
 
+.ui.action.input:not([class*="left action"]) > input:hover {
+  border-right-color: transparent;
+}
+
 .ui.action.input:not([class*="left action"]) > input:focus {
   border-right-color: var(--color-primary);
 }
@@ -787,11 +791,6 @@ a.label,
 .ui.action.input .small.button:has(svg) {
   padding-top: 7px !important;
   padding-bottom: 7px !important;
-}
-
-/* fix fomantic bug with visible border-right on hover */
-.ui.action.input:not([class*="left action"]) > input:hover {
-  border-right-color: transparent;
 }
 
 .ui.menu,
