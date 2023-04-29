@@ -90,14 +90,22 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 	return commits[0], nil
 }
 
-func (repo *Repository) commitsByRange(id SHA1, page, pageSize int) ([]*Commit, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "log").
-		AddOptionFormat("--skip=%d", (page-1)*pageSize).AddOptionFormat("--max-count=%d", pageSize).AddArguments(prettyLogFormat).
-		AddDynamicArguments(id.String()).
-		RunStdBytes(&RunOpts{Dir: repo.Path})
+func (repo *Repository) commitsByRange(id SHA1, page, pageSize int, not string) ([]*Commit, error) {
+	cmd := NewCommand(repo.Ctx, "log").
+		AddOptionFormat("--skip=%d", (page-1)*pageSize).
+		AddOptionFormat("--max-count=%d", pageSize).
+		AddArguments(prettyLogFormat).
+		AddDynamicArguments(id.String())
+
+	if not != "" {
+		cmd.AddOptionValues("--not", not)
+	}
+
+	stdout, _, err := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}
+
 	return repo.parsePrettyFormatLogToList(stdout)
 }
 
