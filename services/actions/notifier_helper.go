@@ -171,15 +171,6 @@ func handleSchedules(
 		return nil
 	}
 
-	for _, cron := range crons {
-		for _, spec := range cron.Specs {
-			err := CreateScheduleTask(ctx, cron, spec)
-			if err != nil {
-				continue
-			}
-		}
-	}
-
 	return actions_model.CreateScheduleTask(ctx, crons)
 }
 
