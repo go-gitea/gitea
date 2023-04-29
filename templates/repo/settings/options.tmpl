@@ -67,7 +67,7 @@
 
 		</div>
 
-		{{if and .MirrorsEnabled (or (or .PullMirrors .PushMirrors) .Repository.IsMirror)}}
+		{{if or (or .PullMirrors .PushMirrors) .Repository.IsMirror}}
 			<h4 class="ui top attached header">
 				{{.locale.Tr "repo.settings.mirror_settings"}}
 			</h4>
