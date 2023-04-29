@@ -18,12 +18,12 @@ import (
 
 // StartScheduleTasks start the task
 func StartScheduleTasks(ctx context.Context) error {
-	return startTasks(ctx, actions_model.FindSpecOptions{})
+	return startTasks(ctx)
 }
 
 // startTasks retrieves all specs in pages of size 50 and creates a schedule task for each spec
 // whose schedule is due at the current minute.
-func startTasks(ctx context.Context, opts actions_model.FindSpecOptions) error {
+func startTasks(ctx context.Context) error {
 	// Set the page size
 	pageSize := 50
 
