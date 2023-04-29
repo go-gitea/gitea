@@ -9,10 +9,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-var (
-	// UILocation is the location on the UI, so that we can display the time on UI.
-	DefaultUILocation = time.Local
-)
+// UILocation is the location on the UI, so that we can display the time on UI.
+var DefaultUILocation = time.Local
 
 func loadTimeFrom(rootCfg ConfigProvider) {
 	zone := rootCfg.Section("time").Key("DEFAULT_UI_LOCATION").String()
