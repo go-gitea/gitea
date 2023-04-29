@@ -20,17 +20,16 @@
 			</div>
 		</div>
 		<div class="right stackable menu">
-			{{if $.IsFollowing}}
-				<form method="post" action="{{.Link}}?action=unfollow&redirect_to={{$.Link}}">
-					{{$.CsrfTokenHtml}}
-					<button type="submit" class="ui basic button">{{.locale.Tr "user.unfollow"}}</button>
-				</form>
-			{{else}}
-				<form method="post" action="{{.Link}}?action=follow&redirect_to={{$.Link}}">
-					{{$.CsrfTokenHtml}}
-					<button type="submit" class="ui basic button">{{.locale.Tr "user.follow"}}</button>
-				</form>
-			{{end}}
+			<form method="post" action="{{.Link}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}&redirect_to={{$.Link}}">
+				{{$.CsrfTokenHtml}}
+				<button type="submit" class="ui basic button gt-mr-0">
+					{{if $.IsFollowing}}
+						{{.locale.Tr "user.unfollow"}}
+					{{else}}
+						{{.locale.Tr "user.follow"}}
+					{{end}}
+					</button>
+			</form>
 		</div>
 	</div>
 
