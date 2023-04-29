@@ -842,6 +842,10 @@ a.label,
   color: var(--color-text-light-3);
 }
 
+.ui.menu .item::before {
+  background: var(--color-secondary);
+}
+
 /* sub menu of vertical menu */
 .ui.vertical.menu .item .menu .item {
   color: var(--color-text-light-2);
