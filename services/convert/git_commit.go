@@ -152,7 +152,6 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 				Created: commit.Committer.When,
 			},
 		},
-		Branch:    commit.Branch,
 		Author:    apiAuthor,
 		Committer: apiCommitter,
 	}
