@@ -5,7 +5,6 @@
 package templates
 
 import (
-	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -53,6 +52,8 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
 	return []template.FuncMap{map[string]interface{}{
+		"DumpVar": dumpVar,
+
 		// -----------------------------------------------------------------
 		// html/template related functions
 		"dict":        dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
@@ -63,6 +64,7 @@ func NewFuncMap() []template.FuncMap {
 		"JSEscape":    template.JSEscapeString,
 		"Str2html":    Str2html, // TODO: rename it to SanitizeHTML
 		"URLJoin":     util.URLJoin,
+		"DotEscape":   DotEscape,
 
 		"PathEscape":         url.PathEscape,
 		"PathEscapeSegments": util.PathEscapeSegments,
@@ -70,30 +72,7 @@ func NewFuncMap() []template.FuncMap {
 		// utils
 		"StringUtils": NewStringUtils,
 		"SliceUtils":  NewSliceUtils,
-
-		// -----------------------------------------------------------------
-		// string / json
-		// TODO: move string helper functions to StringUtils
-		"Join":           strings.Join,
-		"DotEscape":      DotEscape,
-		"EllipsisString": base.EllipsisString,
-		"DumpVar":        dumpVar,
-
-		"Json": func(in interface{}) string {
-			out, err := json.Marshal(in)
-			if err != nil {
-				return ""
-			}
-			return string(out)
-		},
-		"JsonPrettyPrint": func(in string) string {
-			var out bytes.Buffer
-			err := json.Indent(&out, []byte(in), "", "  ")
-			if err != nil {
-				return ""
-			}
-			return out.String()
-		},
+		"JsonUtils":   NewJsonUtils,
 
 		// -----------------------------------------------------------------
 		// svg / avatar / icon

@@ -3,7 +3,11 @@
 
 package templates
 
-import "strings"
+import (
+	"strings"
+
+	"code.gitea.io/gitea/modules/base"
+)
 
 type StringUtils struct{}
 
@@ -21,4 +25,12 @@ func (su *StringUtils) Contains(s, substr string) bool {
 
 func (su *StringUtils) Split(s, sep string) []string {
 	return strings.Split(s, sep)
+}
+
+func (su *StringUtils) Join(a []string, sep string) string {
+	return strings.Join(a, sep)
+}
+
+func (su *StringUtils) EllipsisString(s string, max int) string {
+	return base.EllipsisString(s, max)
 }
