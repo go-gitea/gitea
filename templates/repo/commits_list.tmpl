@@ -1,87 +1,74 @@
-<div class="ui attached table segment commit-table">
-		<table class="ui very basic striped table unstackable fixed" id="commits-table">
-			<thead>
-				<tr>
-					<th class="three wide">{{.locale.Tr "repo.commits.author"}}</th>
-					<th class="two wide sha">SHA1</th>
-					<th class="nine wide message">{{.locale.Tr "repo.commits.message"}}</th>
-					<th class="two wide right aligned">{{.locale.Tr "repo.commits.date"}}</th>
-				</tr>
-			</thead>
-			<tbody class="commit-list">
-				{{$commitRepoLink := $.RepoLink}}{{if $.CommitRepoLink}}{{$commitRepoLink = $.CommitRepoLink}}{{end}}
-				{{range .Commits}}
-					<tr>
-						<td class="author">
-							{{$userName := .Author.Name}}
-							{{if .User}}
-								{{if .User.FullName}}
-									{{$userName = .User.FullName}}
-								{{end}}
-								{{avatar $.Context .User 28 "gt-mr-2"}}<a href="{{.User.HomeLink}}">{{$userName}}</a>
+<div class="ui attached table segment commits-list">
+	{{$commitRepoLink := $.RepoLink}}{{if $.CommitRepoLink}}{{$commitRepoLink = $.CommitRepoLink}}{{end}}
+	{{range .Commits}}
+		<div class="commits-list-row gt-df gt-ac gt-px-4 gt-py-2">
+			<div class="commits-list-left gt-df gt-fc gt-f1">
+				<div class="commits-list-top-row">
+					<span class="message-wrapper">
+					{{if $.PageIsWiki}}
+						<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | RenderEmoji $.Context}}</span>
+					{{else}}
+						{{$commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
+						<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.Context .Message $commitRepoLink $commitLink $.Repository.ComposeMetas}}</span>
+					{{end}}
+					</span>
+					{{if IsMultilineCommitMessage .Message}}
+						<button class="ui button ellipsis-button" aria-expanded="false">...</button>
+					{{end}}
+					{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $}}
+					{{if IsMultilineCommitMessage .Message}}
+						<pre class="commit-body gt-hidden">{{RenderCommitBody $.Context .Message $commitRepoLink $.Repository.ComposeMetas}}</pre>
+					{{end}}
+				</div>
+				<div class="commits-list-bottom-row gt-df gt-ac gt-fw gt-my-1">
+					{{if .User}}
+						{{avatar $.Context .User 16 "gt-mr-2"}}
+					{{else}}
+						{{avatarByEmail $.Context .Author.Email .Author.Name 16 "gt-mr-2"}}
+					{{end}}
+					<div class="gt-dib">
+						{{$.locale.Tr "repo.user_committed_date"
+							(printf "<a href='%s'>%s</a>" (.User.HomeLink | Escape) (.Author.Name | Escape))
+							(TimeSince .Committer.When $.locale) | Safe}}
+					</div>
+				</div>
+			</div>
+			<div class="commits-list-right gt-df gt-ac">
+				<div class="sha gt-df">
+					<button class="ui button copy-commit-sha gt-df gt-ac" data-clipboard-text="{{.ID}}">{{svg "octicon-copy" 14}}</button>
+					{{$class := "ui sha label"}}
+					{{if .Signature}}
+						{{$class = (printf "%s%s" $class " isSigned")}}
+						{{if .Verification.Verified}}
+							{{if eq .Verification.TrustStatus "trusted"}}
+								{{$class = (printf "%s%s" $class " isVerified")}}
+							{{else if eq .Verification.TrustStatus "untrusted"}}
+								{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
 							{{else}}
-								{{avatarByEmail $.Context .Author.Email .Author.Name 28 "gt-mr-2"}}
-								{{$userName}}
+								{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
 							{{end}}
-						</td>
-						<td class="sha gt-df">
-							<button class="ui button copy-commit-sha gt-df gt-ac" data-clipboard-text="{{.ID}}">{{svg "octicon-copy" 14}}</button>
-							{{$class := "ui sha label"}}
-							{{if .Signature}}
-								{{$class = (printf "%s%s" $class " isSigned")}}
-								{{if .Verification.Verified}}
-									{{if eq .Verification.TrustStatus "trusted"}}
-										{{$class = (printf "%s%s" $class " isVerified")}}
-									{{else if eq .Verification.TrustStatus "untrusted"}}
-										{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
-									{{else}}
-										{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
-									{{end}}
-								{{else if .Verification.Warning}}
-									{{$class = (printf "%s%s" $class " isWarning")}}
-								{{end}}
-							{{end}}
-							{{if $.PageIsWiki}}
-								<a href="{{$commitRepoLink}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
-							{{else if $.Reponame}}
-								<a href="{{$commitRepoLink}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
-							{{else}}
-								<span class="{{$class}}">
-							{{end}}
-								<span class="shortsha">{{ShortSha .ID.String}}</span>
-								{{if .Signature}}
-									{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
-								{{end}}
-							{{if $.Reponame}}
-								</a>
-							{{else}}
-								</span>
-							{{end}}
-						</td>
-						<td class="message">
-							<span class="message-wrapper">
-							{{if $.PageIsWiki}}
-								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | RenderEmoji $.Context}}</span>
-							{{else}}
-								{{$commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
-								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.Context .Message $commitRepoLink $commitLink $.Repository.ComposeMetas}}</span>
-							{{end}}
-							</span>
-							{{if IsMultilineCommitMessage .Message}}
-							<button class="ui button ellipsis-button" aria-expanded="false">...</button>
-							{{end}}
-							{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $}}
-							{{if IsMultilineCommitMessage .Message}}
-							<pre class="commit-body gt-hidden">{{RenderCommitBody $.Context .Message $commitRepoLink $.Repository.ComposeMetas}}</pre>
-							{{end}}
-						</td>
-						{{if .Committer}}
-							<td class="text right aligned">{{TimeSince .Committer.When $.locale}}</td>
-						{{else}}
-							<td class="text right aligned">{{TimeSince .Author.When $.locale}}</td>
+						{{else if .Verification.Warning}}
+							{{$class = (printf "%s%s" $class " isWarning")}}
 						{{end}}
-					</tr>
-				{{end}}
-			</tbody>
-		</table>
-	</div>
+					{{end}}
+					{{if $.PageIsWiki}}
+						<a href="{{$commitRepoLink}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+					{{else if $.Reponame}}
+						<a href="{{$commitRepoLink}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+					{{else}}
+						<span class="{{$class}}">
+					{{end}}
+						<span class="shortsha">{{ShortSha .ID.String}}</span>
+						{{if .Signature}}
+							{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
+						{{end}}
+					{{if $.Reponame}}
+						</a>
+					{{else}}
+						</span>
+					{{end}}
+				</div>
+			</div>
+		</div>
+	{{end}}
+</div>
