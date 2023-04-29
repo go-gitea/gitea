@@ -68,15 +68,21 @@ Gitea's private styles use `g-` prefix.
 .gt-cursor-default { cursor: default !important; }
 .gt-invisible { visibility: hidden !important; }
 .gt-items-start { align-items: flex-start !important; }
-.gt-overflow-x-scroll { overflow-x: scroll !important; }
 .gt-pointer-events-none { pointer-events: none !important; }
 .gt-relative { position: relative !important; }
 .gt-whitespace-nowrap { white-space: nowrap !important; }
 .gt-whitespace-pre { white-space: pre !important; }
 .gt-whitespace-pre-wrap { white-space: pre-wrap !important; }
 
+.gt-overflow-x-auto { overflow-x: auto !important; }
+.gt-overflow-x-scroll { overflow-x: scroll !important; }
+.gt-overflow-y-hidden { overflow-y: hidden !important; }
+
 .gt-w-screen { width: 100vw !important; }
 .gt-h-screen { height: 100vh !important; }
+
+.gt-float-left { float: left !important; }
+.gt-float-right { float: right !important; }
 
 .gt-rounded { border-radius: var(--border-radius) !important; }
 .gt-rounded-top { border-radius: var(--border-radius) var(--border-radius) 0 0 !important; }

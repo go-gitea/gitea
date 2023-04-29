@@ -50,12 +50,12 @@
 				<div class="ui bottom attached table segment members">
 					{{range .Invites}}
 						<div class="item">
+							{{.Email}}
 							<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
 								{{$.CsrfTokenHtml}}
 								<input type="hidden" name="iid" value="{{.ID}}">
-								<button class="ui red button right">{{$.locale.Tr "org.members.remove"}}</button>
+								<button class="ui red button gt-float-right">{{$.locale.Tr "org.members.remove"}}</button>
 							</form>
-							{{.Email}}
 						</div>
 					{{end}}
 				</div>
