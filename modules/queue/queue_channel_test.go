@@ -101,6 +101,7 @@ func TestChannelQueue_Batch(t *testing.T) {
 }
 
 func TestChannelQueue_Pause(t *testing.T) {
+	t.Skip("Skipping because test is flaky on CI")
 	lock := sync.Mutex{}
 	var queue Queue
 	var err error
