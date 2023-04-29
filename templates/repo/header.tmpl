@@ -242,12 +242,10 @@
 				{{end}}
 			</div>
 		{{else if .Permission.IsAdmin}}
-			<div class="ui tabular menu navbar">
-				<div class="right item">
-					<a class="{{if .PageIsRepoSettings}}active {{end}}item" href="{{.RepoLink}}/settings">
-						{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
-					</a>
-				</div>
+			<div class="ui tabular menu navbar gt-overflow-x-auto gt-overflow-y-hidden">
+				<a class="{{if .PageIsRepoSettings}}active {{end}}right item" href="{{.RepoLink}}/settings">
+					{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
+				</a>
 			</div>
 		{{end}}
 	</div>
