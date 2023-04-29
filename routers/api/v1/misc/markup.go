@@ -81,7 +81,7 @@ func Markdown(ctx *context.APIContext) {
 
 // MarkdownRaw render raw markdown HTML
 func MarkdownRaw(ctx *context.APIContext) {
-	// swagger:operation POST /markdown/raw miscellaneous renderMarkdownRaw
+	// swagger:operation POST /markdown/raw miscellaneous renderRawMarkdown
 	// ---
 	// summary: Render raw markdown as HTML
 	// parameters:
