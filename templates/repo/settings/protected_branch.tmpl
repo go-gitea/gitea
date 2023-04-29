@@ -47,7 +47,7 @@
 						</div>
 					</div>
 					<div id="whitelist_box" class="grouped fields {{if not .Rule.EnableWhitelist}}disabled{{end}}">
-						<div class="whitelist field">
+						<div class="checkbox-sub-item field">
 							<label>{{.locale.Tr "repo.settings.protect_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="whitelist_users" value="{{.whitelist_users}}">
@@ -62,7 +62,7 @@
 							</div>
 						</div>
 						{{if .Owner.IsOrganization}}
-							<div class="whitelist field">
+							<div class="checkbox-sub-item field">
 								<label>{{.locale.Tr "repo.settings.protect_whitelist_teams"}}</label>
 								<div class="ui multiple search selection dropdown">
 									<input type="hidden" name="whitelist_teams" value="{{.whitelist_teams}}">
@@ -78,7 +78,7 @@
 								</div>
 							</div>
 						{{end}}
-						<div class="whitelist field">
+						<div class="checkbox-sub-item field">
 							<div class="ui checkbox">
 								<input type="checkbox" name="whitelist_deploy_keys" {{if .Rule.WhitelistDeployKeys}}checked{{end}}>
 								<label>{{.locale.Tr "repo.settings.protect_whitelist_deploy_keys"}}</label>
@@ -108,7 +108,7 @@
 						</div>
 					</div>
 					<div id="approvals_whitelist_box" class="grouped fields {{if not .Rule.EnableApprovalsWhitelist}}disabled{{end}}">
-						<div class="whitelist field">
+						<div class="checkbox-sub-item field">
 							<label>{{.locale.Tr "repo.settings.protect_approvals_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="approvals_whitelist_users" value="{{.approvals_whitelist_users}}">
@@ -123,7 +123,7 @@
 							</div>
 						</div>
 						{{if .Owner.IsOrganization}}
-							<div class="whitelist field">
+							<div class="checkbox-sub-item field">
 								<label>{{.locale.Tr "repo.settings.protect_approvals_whitelist_teams"}}</label>
 								<div class="ui multiple search selection dropdown">
 									<input type="hidden" name="approvals_whitelist_teams" value="{{.approvals_whitelist_teams}}">
@@ -156,22 +156,25 @@
 							<p class="help">{{.locale.Tr "repo.settings.protect_check_status_contexts_desc"}}</p>
 						</div>
 					</div>
-					<div id="statuscheck_contexts_box" class="field {{if not .Rule.EnableStatusCheck}}disabled{{end}}">
-						<table class="ui celled table six column">
+					<div id="statuscheck_contexts_box" class="checkbox-sub-item field {{if not .Rule.EnableStatusCheck}}disabled{{end}}">
+						<table class="ui celled table">
 							<thead>
-								<tr><th>
-									{{.locale.Tr "repo.settings.protect_check_status_contexts_list"}}
-								</th>
+								<tr>
+									<th>{{.locale.Tr "repo.settings.protect_check_status_contexts_list"}}</th>
 								</tr>
 							</thead>
 							<tbody>
 							{{range $.branch_status_check_contexts}}
-								<tr><td>
-									<span class="ui checkbox">
-										<input class="enable-whitelist" name="status_check_contexts" value="{{.}}" type="checkbox" {{if SliceUtils.Contains $.Rule.StatusCheckContexts .}}checked{{end}}>
-									</span>
-									{{.}}
-								</td></tr>
+								<tr>
+									<td>
+										<span class="ui checkbox">
+											<label>{{.}}</label>
+											<input name="status_check_contexts" value="{{.}}" type="checkbox" {{if SliceUtils.Contains $.Rule.StatusCheckContexts .}}checked{{end}}>
+										</span>
+									</td>
+								</tr>
+							{{else}}
+								<tr><td>N/A</td></tr>
 							{{end}}
 							</tbody>
 						</table>
@@ -194,7 +197,7 @@
 						</div>
 					</div>
 					<div id="merge_whitelist_box" class="grouped fields {{if not .Rule.EnableMergeWhitelist}}disabled{{end}}">
-						<div class="whitelist field">
+						<div class="checkbox-sub-item field">
 							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="merge_whitelist_users" value="{{.merge_whitelist_users}}">
@@ -209,7 +212,7 @@
 							</div>
 						</div>
 					{{if .Owner.IsOrganization}}
-						<div class="whitelist field">
+						<div class="checkbox-sub-item field">
 							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_teams"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="merge_whitelist_teams" value="{{.merge_whitelist_teams}}">

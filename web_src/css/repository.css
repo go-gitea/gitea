@@ -2012,21 +2012,10 @@
   margin-top: -3px;
 }
 
-.repository.settings.branches .branch-protection .help {
-  margin-left: 26px;
-  padding-top: 0;
-}
-
-.repository.settings.branches .branch-protection .fields {
-  display: block;
-}
-
-.repository.settings.branches .branch-protection .whitelist, #statuscheck_contexts_box {
+/* if the element is for a checkbox, then it should have a padding-left to align to the checkbox's text */
+.repository.settings.branches .branch-protection .ui.checkbox .help,
+.repository.settings.branches .branch-protection .checkbox-sub-item {
   padding-left: 26px;
-}
-
-.repository.settings.branches .branch-protection .whitelist .dropdown img {
-  display: inline-block;
 }
 
 .repository.settings.webhook .events .column {
