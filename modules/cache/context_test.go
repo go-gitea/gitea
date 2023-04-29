@@ -6,6 +6,7 @@ package cache
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +26,7 @@ func TestWithCacheContext(t *testing.T) {
 	assert.EqualValues(t, 1, v.(int))
 
 	RemoveContextData(ctx, field, "my_config1")
-	RemoveContextData(ctx, field, "my_config2") // remove an non-exist key
+	RemoveContextData(ctx, field, "my_config2") // remove a non-exist key
 
 	v = GetContextData(ctx, field, "my_config1")
 	assert.Nil(t, v)
@@ -38,4 +39,40 @@ func TestWithCacheContext(t *testing.T) {
 
 	v = GetContextData(ctx, field, "my_config1")
 	assert.EqualValues(t, 1, v)
+
+	now := timeNow
+	defer func() {
+		timeNow = now
+	}()
+	timeNow = func() time.Time {
+		return now().Add(10 * time.Second)
+	}
+	v = GetContextData(ctx, field, "my_config1")
+	assert.Nil(t, v)
+}
+
+func TestWithNoCacheContext(t *testing.T) {
+	ctx := context.Background()
+
+	const field = "system_setting"
+
+	v := GetContextData(ctx, field, "my_config1")
+	assert.Nil(t, v)
+	SetContextData(ctx, field, "my_config1", 1)
+	v = GetContextData(ctx, field, "my_config1")
+	assert.Nil(t, v) // still no cache
+
+	ctx = WithCacheContext(ctx)
+	v = GetContextData(ctx, field, "my_config1")
+	assert.Nil(t, v)
+	SetContextData(ctx, field, "my_config1", 1)
+	v = GetContextData(ctx, field, "my_config1")
+	assert.NotNil(t, v)
+
+	ctx = WithNoCacheContext(ctx)
+	v = GetContextData(ctx, field, "my_config1")
+	assert.Nil(t, v)
+	SetContextData(ctx, field, "my_config1", 1)
+	v = GetContextData(ctx, field, "my_config1")
+	assert.Nil(t, v) // still no cache
 }

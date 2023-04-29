@@ -187,7 +187,7 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		resultMsg := htmlDoc.doc.Find(".ui.message>p").Text()
 
-		assert.EqualValues(t, "Branch 'user1/repo1:feature/test' has been deleted.", resultMsg)
+		assert.EqualValues(t, "Branch \"user1/repo1:feature/test\" has been deleted.", resultMsg)
 	})
 }
 
@@ -356,7 +356,7 @@ func TestConflictChecking(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		// Create new clean repo to test conflict checking.
-		baseRepo, err := repo_service.CreateRepository(user, user, repo_module.CreateRepoOptions{
+		baseRepo, err := repo_service.CreateRepository(db.DefaultContext, user, user, repo_module.CreateRepoOptions{
 			Name:          "conflict-checking",
 			Description:   "Tempo repo",
 			AutoInit:      true,
@@ -414,7 +414,7 @@ func TestConflictChecking(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Ensure conflictedFiles is populated.
-		assert.Equal(t, 1, len(conflictingPR.ConflictedFiles))
+		assert.Len(t, conflictingPR.ConflictedFiles, 1)
 		// Check if status is correct.
 		assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
 		// Ensure that mergeable returns false

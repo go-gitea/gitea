@@ -134,7 +134,7 @@ func SettingsPost(ctx *context.Context) {
 				ctx.Repo.GitRepo.Close()
 				ctx.Repo.GitRepo = nil
 			}
-			if err := repo_service.ChangeRepositoryName(ctx.Doer, repo, newRepoName); err != nil {
+			if err := repo_service.ChangeRepositoryName(ctx, ctx.Doer, repo, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
 				case repo_model.IsErrRepoAlreadyExist(err):
@@ -183,7 +183,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		repo.IsPrivate = form.Private
-		if err := repo_service.UpdateRepository(repo, visibilityChanged); err != nil {
+		if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -541,7 +541,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 		if repoChanged {
-			if err := repo_service.UpdateRepository(repo, false); err != nil {
+			if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
@@ -560,7 +560,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if changed {
-			if err := repo_service.UpdateRepository(repo, false); err != nil {
+			if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
@@ -580,7 +580,7 @@ func SettingsPost(ctx *context.Context) {
 			repo.IsFsckEnabled = form.EnableHealthCheck
 		}
 
-		if err := repo_service.UpdateRepository(repo, false); err != nil {
+		if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -672,7 +672,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_service.ConvertForkToNormalRepository(repo); err != nil {
+		if err := repo_service.ConvertForkToNormalRepository(ctx, repo); err != nil {
 			log.Error("Unable to convert repository %-v from fork. Error: %v", repo, err)
 			ctx.ServerError("Convert Fork", err)
 			return
@@ -1244,7 +1244,7 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 	if !(st.IsImage() && !st.IsSvgImage()) {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 	}
-	if err = repo_service.UploadAvatar(ctxRepo, data); err != nil {
+	if err = repo_service.UploadAvatar(ctx, ctxRepo, data); err != nil {
 		return fmt.Errorf("UploadAvatar: %w", err)
 	}
 	return nil
@@ -1264,7 +1264,7 @@ func SettingsAvatar(ctx *context.Context) {
 
 // SettingsDeleteAvatar delete repository avatar
 func SettingsDeleteAvatar(ctx *context.Context) {
-	if err := repo_service.DeleteAvatar(ctx.Repo.Repository); err != nil {
+	if err := repo_service.DeleteAvatar(ctx, ctx.Repo.Repository); err != nil {
 		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")

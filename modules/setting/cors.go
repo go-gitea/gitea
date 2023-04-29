@@ -21,9 +21,10 @@ var CORSConfig = struct {
 	Headers          []string
 	XFrameOptions    string
 }{
-	Enabled:       false,
-	MaxAge:        10 * time.Minute,
+	AllowDomain:   []string{"*"},
+	Methods:       []string{"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 	Headers:       []string{"Content-Type", "User-Agent"},
+	MaxAge:        10 * time.Minute,
 	XFrameOptions: "SAMEORIGIN",
 }
 

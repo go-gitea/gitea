@@ -84,17 +84,28 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(commits) == 0 {
+		return nil, ErrNotExist{ID: relpath}
+	}
 	return commits[0], nil
 }
 
-func (repo *Repository) commitsByRange(id SHA1, page, pageSize int) ([]*Commit, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "log").
-		AddOptionFormat("--skip=%d", (page-1)*pageSize).AddOptionFormat("--max-count=%d", pageSize).AddArguments(prettyLogFormat).
-		AddDynamicArguments(id.String()).
-		RunStdBytes(&RunOpts{Dir: repo.Path})
+func (repo *Repository) commitsByRange(id SHA1, page, pageSize int, not string) ([]*Commit, error) {
+	cmd := NewCommand(repo.Ctx, "log").
+		AddOptionFormat("--skip=%d", (page-1)*pageSize).
+		AddOptionFormat("--max-count=%d", pageSize).
+		AddArguments(prettyLogFormat).
+		AddDynamicArguments(id.String())
+
+	if not != "" {
+		cmd.AddOptionValues("--not", not)
+	}
+
+	stdout, _, err := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}
+
 	return repo.parsePrettyFormatLogToList(stdout)
 }
 
@@ -180,14 +191,6 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 	}
 
 	return repo.parsePrettyFormatLogToList(bytes.TrimSuffix(stdout, []byte{'\n'}))
-}
-
-func (repo *Repository) getFilesChanged(id1, id2 string) ([]string, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only").AddDynamicArguments(id1, id2).RunStdBytes(&RunOpts{Dir: repo.Path})
-	if err != nil {
-		return nil, err
-	}
-	return strings.Split(string(stdout), "\n"), nil
 }
 
 // FileChangedBetweenCommits Returns true if the file changed between commit IDs id1 and id2
@@ -315,6 +318,27 @@ func (repo *Repository) CommitsBetweenLimit(last, before *Commit, limit, skip in
 				AddOptionValues("--max-count", strconv.Itoa(limit)).
 				AddOptionValues("--skip", strconv.Itoa(skip)).
 				AddDynamicArguments(before.ID.String(), last.ID.String()).RunStdBytes(&RunOpts{Dir: repo.Path})
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	return repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
+}
+
+// CommitsBetweenNotBase returns a list that contains commits between [before, last), excluding commits in baseBranch.
+// If before is detached (removed by reset + push) it is not included.
+func (repo *Repository) CommitsBetweenNotBase(last, before *Commit, baseBranch string) ([]*Commit, error) {
+	var stdout []byte
+	var err error
+	if before == nil {
+		stdout, _, err = NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(last.ID.String()).AddOptionValues("--not", baseBranch).RunStdBytes(&RunOpts{Dir: repo.Path})
+	} else {
+		stdout, _, err = NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(before.ID.String()+".."+last.ID.String()).AddOptionValues("--not", baseBranch).RunStdBytes(&RunOpts{Dir: repo.Path})
+		if err != nil && strings.Contains(err.Error(), "no merge base") {
+			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
+			// previously it would return the results of git rev-list before last so let's try that...
+			stdout, _, err = NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(before.ID.String(), last.ID.String()).AddOptionValues("--not", baseBranch).RunStdBytes(&RunOpts{Dir: repo.Path})
 		}
 	}
 	if err != nil {

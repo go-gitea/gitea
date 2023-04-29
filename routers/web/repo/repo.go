@@ -18,7 +18,9 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -57,6 +59,22 @@ func MustBeAbleToUpload(ctx *context.Context) {
 	if !setting.Repository.Upload.Enabled {
 		ctx.NotFound("", nil)
 	}
+}
+
+func CommitInfoCache(ctx *context.Context) {
+	var err error
+	ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	if err != nil {
+		ctx.ServerError("GetBranchCommit", err)
+		return
+	}
+	ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
+	if err != nil {
+		ctx.ServerError("GetCommitsCount", err)
+		return
+	}
+	ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
+	ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
@@ -132,7 +150,7 @@ func Create(ctx *context.Context) {
 
 	// Give default value for template to render.
 	ctx.Data["Gitignores"] = repo_module.Gitignores
-	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 	ctx.Data["Licenses"] = repo_module.Licenses
 	ctx.Data["Readmes"] = repo_module.Readmes
 	ctx.Data["readme"] = "Default"
@@ -200,7 +218,7 @@ func CreatePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	ctx.Data["Gitignores"] = repo_module.Gitignores
-	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 	ctx.Data["Licenses"] = repo_module.Licenses
 	ctx.Data["Readmes"] = repo_module.Readmes
 
@@ -248,14 +266,14 @@ func CreatePost(ctx *context.Context) {
 			return
 		}
 
-		repo, err = repo_service.GenerateRepository(ctx.Doer, ctxUser, templateRepo, opts)
+		repo, err = repo_service.GenerateRepository(ctx, ctx.Doer, ctxUser, templateRepo, opts)
 		if err == nil {
 			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
 			ctx.Redirect(repo.Link())
 			return
 		}
 	} else {
-		repo, err = repo_service.CreateRepository(ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
+		repo, err = repo_service.CreateRepository(ctx, ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
 			Name:          form.RepoName,
 			Description:   form.Description,
 			Gitignores:    form.Gitignores,
@@ -302,7 +320,7 @@ func Action(ctx *context.Context) {
 
 		ctx.Repo.Repository.Description = ctx.FormString("desc")
 		ctx.Repo.Repository.Website = ctx.FormString("site")
-		err = repo_service.UpdateRepository(ctx.Repo.Repository, false)
+		err = repo_service.UpdateRepository(ctx, ctx.Repo.Repository, false)
 	}
 
 	if err != nil {
@@ -373,7 +391,7 @@ func RedirectDownload(ctx *context.Context) {
 			return
 		}
 		if att != nil {
-			ctx.Redirect(att.DownloadURL())
+			ServeAttachment(ctx, att.UUID)
 			return
 		}
 	}

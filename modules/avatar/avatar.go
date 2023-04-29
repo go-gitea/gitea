@@ -18,6 +18,8 @@ import (
 
 	"github.com/nfnt/resize"
 	"github.com/oliamb/cutter"
+
+	_ "golang.org/x/image/webp" // for processing webp images
 )
 
 // AvatarSize returns avatar's size

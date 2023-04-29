@@ -66,6 +66,67 @@ const (
 	ActionAutoMergePullRequest                            // 27
 )
 
+func (at ActionType) String() string {
+	switch at {
+	case ActionCreateRepo:
+		return "create_repo"
+	case ActionRenameRepo:
+		return "rename_repo"
+	case ActionStarRepo:
+		return "star_repo"
+	case ActionWatchRepo:
+		return "watch_repo"
+	case ActionCommitRepo:
+		return "commit_repo"
+	case ActionCreateIssue:
+		return "create_issue"
+	case ActionCreatePullRequest:
+		return "create_pull_request"
+	case ActionTransferRepo:
+		return "transfer_repo"
+	case ActionPushTag:
+		return "push_tag"
+	case ActionCommentIssue:
+		return "comment_issue"
+	case ActionMergePullRequest:
+		return "merge_pull_request"
+	case ActionCloseIssue:
+		return "close_issue"
+	case ActionReopenIssue:
+		return "reopen_issue"
+	case ActionClosePullRequest:
+		return "close_pull_request"
+	case ActionReopenPullRequest:
+		return "reopen_pull_request"
+	case ActionDeleteTag:
+		return "delete_tag"
+	case ActionDeleteBranch:
+		return "delete_branch"
+	case ActionMirrorSyncPush:
+		return "mirror_sync_push"
+	case ActionMirrorSyncCreate:
+		return "mirror_sync_create"
+	case ActionMirrorSyncDelete:
+		return "mirror_sync_delete"
+	case ActionApprovePullRequest:
+		return "approve_pull_request"
+	case ActionRejectPullRequest:
+		return "reject_pull_request"
+	case ActionCommentPull:
+		return "comment_pull"
+	case ActionPublishRelease:
+		return "publish_release"
+	case ActionPullReviewDismissed:
+		return "pull_review_dismissed"
+	case ActionPullRequestReadyForReview:
+		return "pull_request_ready_for_review"
+	case ActionAutoMergePullRequest:
+		return "auto_merge_pull_request"
+	default:
+		return "action-" + strconv.Itoa(int(at))
+	}
+}
+
 // Action represents user operation type and other information to
 // repository. It implemented interface base.Actioner so that can be
 // used in template render.
@@ -98,12 +159,10 @@ func (a *Action) TableIndices() []*schemas.Index {
 	actUserIndex := schemas.NewIndex("au_r_c_u_d", schemas.IndexType)
 	actUserIndex.AddColumn("act_user_id", "repo_id", "created_unix", "user_id", "is_deleted")
 
-	indices := []*schemas.Index{actUserIndex, repoIndex}
-	if setting.Database.UsePostgreSQL {
-		cudIndex := schemas.NewIndex("c_u_d", schemas.IndexType)
-		cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
-		indices = append(indices, cudIndex)
-	}
+	cudIndex := schemas.NewIndex("c_u_d", schemas.IndexType)
+	cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
+
+	indices := []*schemas.Index{actUserIndex, repoIndex, cudIndex}
 
 	return indices
 }
@@ -380,14 +439,14 @@ type GetFeedsOptions struct {
 }
 
 // GetFeeds returns actions according to the provided options
-func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
+func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, error) {
 	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
-		return nil, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
+		return nil, 0, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
 	}
 
 	cond, err := activityQueryCondition(opts)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	sess := db.GetEngine(ctx).Where(cond).
@@ -398,16 +457,16 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	sess = db.SetSessionPagination(sess, &opts)
 
 	actions := make([]*Action, 0, opts.PageSize)
-
-	if err := sess.Desc("`action`.created_unix").Find(&actions); err != nil {
-		return nil, fmt.Errorf("Find: %w", err)
+	count, err := sess.Desc("`action`.created_unix").FindAndCount(&actions)
+	if err != nil {
+		return nil, 0, fmt.Errorf("FindAndCount: %w", err)
 	}
 
 	if err := ActionList(actions).loadAttributes(ctx); err != nil {
-		return nil, fmt.Errorf("LoadAttributes: %w", err)
+		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
 	}
 
-	return actions, nil
+	return actions, count, nil
 }
 
 // ActivityReadable return whether doer can read activities of user
@@ -640,7 +699,7 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
 
 // CountActionCreatedUnixString count actions where created_unix is an empty string
 func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
-	if setting.Database.UseSQLite3 {
+	if setting.Database.Type.IsSQLite3() {
 		return db.GetEngine(ctx).Where(`created_unix = ""`).Count(new(Action))
 	}
 	return 0, nil
@@ -648,7 +707,7 @@ func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
 
 // FixActionCreatedUnixString set created_unix to zero if it is an empty string
 func FixActionCreatedUnixString(ctx context.Context) (int64, error) {
-	if setting.Database.UseSQLite3 {
+	if setting.Database.Type.IsSQLite3() {
 		res, err := db.GetEngine(ctx).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
 		if err != nil {
 			return 0, err

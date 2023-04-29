@@ -1,0 +1,51 @@
+.admin.hooks .list > .item:not(:first-child) {
+  border-top: 1px solid var(--color-secondary);
+  padding: 0.25rem 1rem;
+  margin: 12px -1rem -1rem;
+}
+
+.admin.user table.table .email {
+  max-width: 200px;
+}
+
+.admin dl.admin-dl-horizontal {
+  padding: 1em;
+  margin: 0;
+}
+
+.admin dl.admin-dl-horizontal dd {
+  margin-left: 275px;
+}
+
+@media (max-width: 767px) {
+  .admin dl.admin-dl-horizontal dd {
+    margin-left: 5%;
+  }
+}
+
+.admin dl.admin-dl-horizontal dt {
+  font-weight: var(--font-weight-bold);
+  float: left;
+  width: 285px;
+  clear: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .admin dl.admin-dl-horizontal dt {
+    width: auto;
+    margin-right: 0.5em;
+  }
+}
+
+.admin code,
+.admin pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.admin .ui.table.segment {
+  overflow-x: auto; /* if the screen width is small, many wide tables (eg: user list) need scroll bars */
+}

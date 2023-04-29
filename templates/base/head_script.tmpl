@@ -6,6 +6,7 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 <script>
 	window.addEventListener('error', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 	window.config = {
+		initCount: (window.config?.initCount ?? 0) + 1,
 		appUrl: '{{AppUrl}}',
 		appSubUrl: '{{AppSubUrl}}',
 		assetVersionEncoded: encodeURIComponent('{{AssetVersion}}'), // will be used in URL construction directly
@@ -15,23 +16,19 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 		useServiceWorker: {{UseServiceWorker}},
 		csrfToken: '{{.CsrfToken}}',
 		pageData: {{.PageData}},
-		requireTribute: {{.RequireTribute}},
 		notificationSettings: {{NotificationSettings}}, {{/*a map provided by NewFuncMap in helper.go*/}}
 		enableTimeTracking: {{EnableTimetracking}},
-		{{if .RequireTribute}}
+		{{if or .Participants .Assignees .MentionableTeams}}
 		tributeValues: Array.from(new Map([
-			{{range .Participants}}
-			['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
-			name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink $.Context}}'}],
-			{{end}}
-			{{range .Assignees}}
-			['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
-			name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink $.Context}}'}],
-			{{end}}
-			{{range .MentionableTeams}}
-				['{{$.MentionableTeamsOrg}}/{{.Name}}', {key: '{{$.MentionableTeamsOrg}}/{{.Name}}', value: '{{$.MentionableTeamsOrg}}/{{.Name}}',
-				name: '{{$.MentionableTeamsOrg}}/{{.Name}}', avatar: '{{$.MentionableTeamsOrgAvatar}}'}],
-			{{end}}
+			{{- range .Participants -}}
+				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}', name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink $.Context}}'}],
+			{{- end -}}
+			{{- range .Assignees -}}
+				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}', name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink $.Context}}'}],
+			{{- end -}}
+			{{- range .MentionableTeams -}}
+				['{{$.MentionableTeamsOrg}}/{{.Name}}', {key: '{{$.MentionableTeamsOrg}}/{{.Name}}', value: '{{$.MentionableTeamsOrg}}/{{.Name}}', name: '{{$.MentionableTeamsOrg}}/{{.Name}}', avatar: '{{$.MentionableTeamsOrgAvatar}}'}],
+			{{- end -}}
 		]).values()),
 		{{end}}
 		mermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
@@ -41,6 +38,7 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 			copy_error: '{{.locale.Tr "copy_error"}}',
 			error_occurred: '{{.locale.Tr "error.occurred"}}',
 			network_error: '{{.locale.Tr "error.network_error"}}',
+			remove_label_str: '{{.locale.Tr "remove_label_str"}}',
 		},
 	};
 	{{/* in case some pages don't render the pageData, we make sure it is an object to prevent null access */}}

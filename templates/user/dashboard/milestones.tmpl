@@ -39,21 +39,21 @@
 						<div class="ui compact tiny menu">
 							<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
 								{{svg "octicon-milestone" 16 "gt-mr-3"}}
-								{{JsPrettyNumber .MilestoneStats.OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
+								{{.locale.PrettyNumber .MilestoneStats.OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
 							</a>
 							<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
 								{{svg "octicon-check" 16 "gt-mr-3"}}
-								{{JsPrettyNumber .MilestoneStats.ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
+								{{.locale.PrettyNumber .MilestoneStats.ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
 							</a>
 						</div>
 					</div>
 					<div class="column center aligned">
 						<form class="ui form ignore-dirty">
 							<div class="ui search fluid action input">
-								<input type="hidden" name="type" value="{{$.ViewType}}"/>
-								<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}},{{end}}]"/>
-								<input type="hidden" name="sort" value="{{$.SortType}}"/>
-								<input type="hidden" name="state" value="{{$.State}}"/>
+								<input type="hidden" name="type" value="{{$.ViewType}}">
+								<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}},{{end}}]">
+								<input type="hidden" name="sort" value="{{$.SortType}}">
+								<input type="hidden" name="state" value="{{$.State}}">
 								<input name="q" value="{{$.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
 								<button class="ui primary button" type="submit">{{.locale.Tr "explore.search"}}</button>
 							</div>
@@ -93,20 +93,20 @@
 							<div class="meta">
 								{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
 								{{if .IsClosed}}
-									{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate|Str2html}}
+									{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 								{{else}}
 									{{svg "octicon-calendar"}}
 									{{if .DeadlineString}}
-										<span {{if .IsOverdue}}class="overdue"{{end}}>{{.DeadlineString}}</span>
+										<span {{if .IsOverdue}}class="overdue"{{end}}>{{DateTime "short" .DeadlineString}}</span>
 									{{else}}
 										{{$.locale.Tr "repo.milestones.no_due_date"}}
 									{{end}}
 								{{end}}
 								<span class="issue-stats">
 									{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
-									{{JsPrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
+									{{$.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
 									{{svg "octicon-check" 16 "gt-mr-3"}}
-									{{JsPrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+									{{$.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
 									{{if .TotalTrackedTime}}
 										{{svg "octicon-clock"}} {{.TotalTrackedTime|Sec2Time}}
 									{{end}}

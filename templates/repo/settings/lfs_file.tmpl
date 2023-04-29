@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings lfs">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container repository file list">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings lfs")}}
+	<div class="user-main-content twelve wide column content repository file list">
 		<div class="tab-size-8 non-diff-file-content">
 			<h4 class="ui top attached header">
 				<a href="{{.LFSFilesLink}}">{{.locale.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.LFSFile.Oid}}</span>
@@ -12,7 +8,7 @@
 						<a class="ui mini basic button unescape-button gt-hidden">{{.locale.Tr "repo.unescape_control_characters"}}</a>
 						<a class="ui mini basic button escape-button">{{.locale.Tr "repo.escape_control_characters"}}</a>
 					{{end}}
-					<a class="ui primary show-panel button" href="{{.LFSFilesLink}}/find?oid={{.LFSFile.Oid}}&size={{.LFSFile.Size}}">{{$.locale.Tr "repo.settings.lfs_findcommits"}}</a>
+					<a class="ui primary button" href="{{.LFSFilesLink}}/find?oid={{.LFSFile.Oid}}&size={{.LFSFile.Size}}">{{$.locale.Tr "repo.settings.lfs_findcommits"}}</a>
 				</div>
 			</h4>
 			<div class="ui attached table unstackable segment">
@@ -48,7 +44,7 @@
 									<td><strong>{{.locale.Tr "repo.file_too_large"}}</strong></td>
 								{{else}}
 									<td class="lines-num">{{.LineNums}}</td>
-									<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol class="linenums">{{.FileContent}}</ol></code></pre></td>
+									<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol>{{.FileContent}}</ol></code></pre></td>
 								{{end}}
 								</tr>
 							</tbody>
@@ -58,5 +54,4 @@
 			</div>
 		</div>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "repo/settings/layout_footer" .}}

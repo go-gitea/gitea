@@ -77,7 +77,7 @@ var UI = struct {
 	GraphMaxCommitNum:   100,
 	CodeCommentLines:    4,
 	ReactionMaxUserNum:  10,
-	ThemeColorMetaTag:   `#6cc644`,
+	ThemeColorMetaTag:   ``,
 	MaxDisplayFileSize:  8388608,
 	DefaultTheme:        `auto`,
 	Themes:              []string{`auto`, `gitea`, `arc-green`},
@@ -139,6 +139,9 @@ func loadUIFrom(rootCfg ConfigProvider) {
 	UI.DefaultShowFullName = sec.Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 	UI.SearchRepoDescription = sec.Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
 	UI.UseServiceWorker = sec.Key("USE_SERVICE_WORKER").MustBool(false)
+
+	// OnlyShowRelevantRepos=false is important for many private/enterprise instances,
+	// because many private repositories do not have "description/topic", users just want to search by their names.
 	UI.OnlyShowRelevantRepos = sec.Key("ONLY_SHOW_RELEVANT_REPOS").MustBool(false)
 
 	UI.ReactionsLookup = make(container.Set[string])

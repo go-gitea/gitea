@@ -9,12 +9,12 @@
 					<div class="ui stackable middle very relaxed page grid">
 						<div id="repo_migrating" class="sixteen wide center aligned centered column" task="{{.MigrateTask.ID}}">
 							<div>
-								<img src="{{AssetUrlPrefix}}/img/loading.png"/>
+								<img src="{{AssetUrlPrefix}}/img/loading.png">
 							</div>
 						</div>
 						<div id="repo_migrating_failed_image" class="sixteen wide center aligned centered column gt-hidden">
 							<div>
-								<img src="{{AssetUrlPrefix}}/img/failed.png"/>
+								<img src="{{AssetUrlPrefix}}/img/failed.png">
 							</div>
 						</div>
 					</div>
@@ -72,7 +72,7 @@
 			</div>
 
 			<div class="text right actions">
-				<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
+				<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
 				<button class="ui red button">{{.locale.Tr "repo.settings.confirm_delete"}}</button>
 			</div>
 		</form>

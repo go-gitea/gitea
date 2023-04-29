@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
@@ -74,7 +75,7 @@ func TestPackageNuGet(t *testing.T) {
 	}
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	token := getUserToken(t, user.Name)
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopePackage)
 
 	packageName := "test.package"
 	packageVersion := "1.0.3"

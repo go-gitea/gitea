@@ -1,11 +1,9 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
-import {attachTribute} from './tribute.js';
-import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
-import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
-import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
-import {initTooltip, showTemporaryTooltip} from '../modules/tippy.js';
+import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
+import {setFileFolding} from './file-fold.js';
+import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -77,7 +75,7 @@ function updateDeadline(deadlineString) {
 
 export function initRepoIssueDue() {
   $(document).on('click', '.issue-due-edit', () => {
-    $('#deadlineForm').fadeToggle(150);
+    toggleElem('#deadlineForm');
   });
   $(document).on('click', '.issue-due-remove', () => {
     updateDeadline('');
@@ -88,7 +86,7 @@ export function initRepoIssueDue() {
   });
 }
 
-export function initRepoIssueList() {
+export function initRepoIssueSidebarList() {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
@@ -222,20 +220,6 @@ export function initRepoIssueCodeCommentCancel() {
   });
 }
 
-export function initRepoIssueStatusButton() {
-  // Change status
-  const $statusButton = $('#status-button');
-  $('#comment-form textarea').on('keyup', function () {
-    const easyMDE = getAttachedEasyMDE(this);
-    const value = easyMDE?.value() || $(this).val();
-    $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
-  });
-  $statusButton.on('click', () => {
-    $('#status').val($statusButton.data('status-val'));
-    $('#comment-form').trigger('submit');
-  });
-}
-
 export function initRepoPullRequestUpdate() {
   // Pull Request update button
   const $pullUpdateButton = $('.update-button > button');
@@ -278,10 +262,7 @@ export function initRepoPullRequestAllowMaintainerEdit() {
   const $checkbox = $('#allow-edits-from-maintainers');
   if (!$checkbox.length) return;
 
-  const promptTip = $checkbox.attr('data-prompt-tip');
   const promptError = $checkbox.attr('data-prompt-error');
-
-  initTooltip($checkbox[0], {content: promptTip});
   $checkbox.checkbox({
     'onChange': () => {
       const checked = $checkbox.checkbox('is checked');
@@ -332,7 +313,7 @@ export function initRepoIssueWipTitle() {
     e.preventDefault();
 
     const $issueTitle = $('#issue_title');
-    $issueTitle.focus();
+    $issueTitle.trigger('focus');
     const value = $issueTitle.val().trim().toUpperCase();
 
     const wipPrefixes = $('.title_wip_desc').data('wip-prefixes');
@@ -403,34 +384,52 @@ export function initRepoIssueComments() {
   });
 }
 
+export async function handleReply($el) {
+  hideElem($el);
+  const form = $el.closest('.comment-code-cloud').find('.comment-form');
+  form.removeClass('gt-hidden');
 
-function assignMenuAttributes(menu) {
-  const id = Math.floor(Math.random() * Math.floor(1000000));
-  menu.attr('data-write', menu.attr('data-write') + id);
-  menu.attr('data-preview', menu.attr('data-preview') + id);
-  menu.find('.item').each(function () {
-    const tab = $(this).attr('data-tab') + id;
-    $(this).attr('data-tab', tab);
-  });
-  menu.parent().find("*[data-tab='write']").attr('data-tab', `write${id}`);
-  menu.parent().find("*[data-tab='preview']").attr('data-tab', `preview${id}`);
-  initCompMarkupContentPreviewTab(menu.parent('.form'));
-  return id;
+  const $textarea = form.find('textarea');
+  let editor = getComboMarkdownEditor($textarea);
+  if (!editor) {
+    editor = await initComboMarkdownEditor(form.find('.combo-markdown-editor'));
+  }
+  editor.focus();
+  return editor;
 }
 
 export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
+    // set scrollRestoration to 'manual' when there is a hash in url, so that the scroll position will not be remembered after refreshing
+    if (window.history.scrollRestoration !== 'manual') {
+      window.history.scrollRestoration = 'manual';
+    }
     const commentDiv = $(window.location.hash);
     if (commentDiv) {
       // get the name of the parent id
       const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
+        const ancestorDiffBox = commentDiv.closest('.diff-file-box');
+        // on pages like conversation, there is no diff header
+        const diffHeader = ancestorDiffBox.find('.diff-file-header');
+        // offset is for scrolling
+        let offset = 30;
+        if (diffHeader[0]) {
+          offset += $('.diff-detail-box').outerHeight() + diffHeader.outerHeight();
+        }
         $(`#show-outdated-${id}`).addClass('gt-hidden');
         $(`#code-comments-${id}`).removeClass('gt-hidden');
         $(`#code-preview-${id}`).removeClass('gt-hidden');
         $(`#hide-outdated-${id}`).removeClass('gt-hidden');
-        commentDiv[0].scrollIntoView();
+        // if the comment box is folded, expand it
+        if (ancestorDiffBox.attr('data-folded') && ancestorDiffBox.attr('data-folded') === 'true') {
+          setFileFolding(ancestorDiffBox[0], ancestorDiffBox.find('.fold-file')[0], false);
+        }
+        window.scrollTo({
+          top: commentDiv.offset().top - offset,
+          behavior: 'instant'
+        });
       }
     }
   }
@@ -455,31 +454,12 @@ export function initRepoPullRequestReview() {
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {
     e.preventDefault();
-
-    hideElem($(this));
-    const form = $(this).closest('.comment-code-cloud').find('.comment-form');
-    form.removeClass('gt-hidden');
-    const $textarea = form.find('textarea');
-    let easyMDE = getAttachedEasyMDE($textarea);
-    if (!easyMDE) {
-      await attachTribute($textarea.get(), {mentions: true, emoji: true});
-      easyMDE = await createCommentEasyMDE($textarea);
-    }
-    $textarea.focus();
-    easyMDE.codemirror.focus();
-    assignMenuAttributes(form.find('.menu'));
+    await handleReply($(this));
   });
 
   const $reviewBox = $('.review-box-panel');
   if ($reviewBox.length === 1) {
-    (async () => {
-      // the editor's height is too large in some cases, and the panel cannot be scrolled with page now because there is `.repository .diff-detail-box.sticky { position: sticky; }`
-      // the temporary solution is to make the editor's height smaller (about 4 lines). GitHub also only show 4 lines for default. We can improve the UI (including Dropzone area) in future
-      // EasyMDE's options can not handle minHeight & maxHeight together correctly, we have to set max-height for .CodeMirror-scroll in CSS.
-      const $reviewTextarea = $reviewBox.find('textarea');
-      const easyMDE = await createCommentEasyMDE($reviewTextarea, {minHeight: '80px'});
-      initEasyMDEImagePaste(easyMDE, $reviewBox.find('.dropzone'));
-    })();
+    const _promise = initComboMarkdownEditor($reviewBox.find('.combo-markdown-editor'));
   }
 
   // The following part is only for diff views
@@ -487,13 +467,26 @@ export function initRepoPullRequestReview() {
     return;
   }
 
-  $('.js-btn-review').on('click', function (e) {
-    e.preventDefault();
-    toggleElem($(this).parent().find('.review-box-panel'));
-  }).parent().find('.review-box-panel .close').on('click', function (e) {
-    e.preventDefault();
-    hideElem($(this).closest('.review-box-panel'));
-  });
+  const $reviewBtn = $('.js-btn-review');
+  const $panel = $reviewBtn.parent().find('.review-box-panel');
+  const $closeBtn = $panel.find('.close');
+
+  if ($reviewBtn.length && $panel.length) {
+    const tippy = createTippy($reviewBtn[0], {
+      content: $panel[0],
+      placement: 'bottom',
+      trigger: 'click',
+      role: 'menu',
+      maxWidth: 'none',
+      interactive: true,
+      hideOnClick: true,
+    });
+
+    $closeBtn.on('click', (e) => {
+      e.preventDefault();
+      tippy.hide();
+    });
+  }
 
   $(document).on('click', 'a.add-code-comment', async function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
@@ -511,18 +504,9 @@ export function initRepoPullRequestReview() {
       ntr = $(`
         <tr class="add-comment" data-line-type="${lineType}">
           ${isSplit ? `
-            <td class="lines-num"></td>
-            <td class="lines-escape"></td>
-            <td class="lines-type-marker"></td>
             <td class="add-comment-left" colspan="4"></td>
-            <td class="lines-num"></td>
-            <td class="lines-escape"></td>
-            <td class="lines-type-marker"></td>
             <td class="add-comment-right" colspan="4"></td>
           ` : `
-            <td class="lines-num"></td>
-            <td class="lines-num"></td>
-            <td class="lines-escape"></td>
             <td class="add-comment-left add-comment-right" colspan="5"></td>
           `}
         </tr>`);
@@ -530,20 +514,16 @@ export function initRepoPullRequestReview() {
     }
 
     const td = ntr.find(`.add-comment-${side}`);
-    let commentCloud = td.find('.comment-code-cloud');
-    if (commentCloud.length === 0 && !ntr.find('button[name="is_review"]').length) {
-      const data = await $.get($(this).closest('[data-new-comment-url]').data('new-comment-url'));
-      td.html(data);
-      commentCloud = td.find('.comment-code-cloud');
-      assignMenuAttributes(commentCloud.find('.menu'));
+    const commentCloud = td.find('.comment-code-cloud');
+    if (commentCloud.length === 0 && !ntr.find('button[name="pending_review"]').length) {
+      const html = await $.get($(this).closest('[data-new-comment-url]').attr('data-new-comment-url'));
+      td.html(html);
       td.find("input[name='line']").val(idx);
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
-      const $textarea = commentCloud.find('textarea');
-      await attachTribute($textarea.get(), {mentions: true, emoji: true});
-      const easyMDE = await createCommentEasyMDE($textarea);
-      $textarea.focus();
-      easyMDE.codemirror.focus();
+
+      const editor = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
+      editor.focus();
     }
   });
 }
@@ -593,7 +573,7 @@ export function initRepoIssueTitleEdit() {
     toggleElem($('#pull-desc-edit'));
     toggleElem($('.in-edit'));
     $('#issue-title-wrapper').toggleClass('edit-active');
-    $editInput.focus();
+    $editInput.trigger('focus');
     return false;
   };
 
@@ -610,8 +590,6 @@ export function initRepoIssueTitleEdit() {
       $.post(update_url, {
         _csrf: csrfToken,
         target_branch: targetBranch
-      }).done((data) => {
-        $branchTarget.text(data.base_branch);
       }).always(() => {
         window.location.reload();
       });

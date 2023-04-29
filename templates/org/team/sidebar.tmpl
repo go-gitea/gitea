@@ -11,7 +11,7 @@
 			{{else if .IsOrganizationOwner}}
 				<form method="post" action="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/action/join">
 					{{$.CsrfTokenHtml}}
-					<input type="hidden" name="page" value="team"/>
+					<input type="hidden" name="page" value="team">
 					<button type="submit" class="ui primary tiny button" name="uid" value="{{$.SignedUser.ID}}">{{$.locale.Tr "org.teams.join"}}</button>
 				</form>
 			{{end}}
@@ -83,13 +83,12 @@
 		</div>
 	{{end}}
 </div>
-<div class="ui small basic delete modal" id="leave-team-sidebar">
-	<div class="ui icon header">
-		{{svg "octicon-x" 16 "close inside"}}
+<div class="ui g-modal-confirm delete modal" id="leave-team-sidebar">
+	<div class="header">
 		{{$.locale.Tr "org.teams.leave"}}
 	</div>
 	<div class="content">
 		<p>{{$.locale.Tr "org.teams.leave.detail" `<span class="name"></span>` | Safe}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
