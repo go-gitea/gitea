@@ -19,8 +19,6 @@ import (
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/web/healthcheck"
 	"code.gitea.io/gitea/services/forms"
-
-	"gitea.com/go-chi/session"
 )
 
 type dataStore map[string]interface{}
@@ -30,7 +28,6 @@ func (d *dataStore) GetData() map[string]interface{} {
 }
 
 func installRecovery(ctx goctx.Context) func(next http.Handler) http.Handler {
-	_, rnd := templates.HTMLRenderer(ctx)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			defer func() {
@@ -69,6 +66,7 @@ func installRecovery(ctx goctx.Context) func(next http.Handler) http.Handler {
 					if !setting.IsProd {
 						store["ErrorMsg"] = combinedErr
 					}
+					_, rnd := templates.HTMLRenderer(ctx)
 					err = rnd.HTML(w, http.StatusInternalServerError, "status/500", templates.BaseVars().Merge(store))
 					if err != nil {
 						log.Error("%v", err)
@@ -83,34 +81,22 @@ func installRecovery(ctx goctx.Context) func(next http.Handler) http.Handler {
 
 // Routes registers the installation routes
 func Routes(ctx goctx.Context) *web.Route {
+	base := web.NewRoute()
+	base.Use(common.ProtocolMiddlewares()...)
+	base.RouteMethods("/assets/*", "GET, HEAD", public.AssetsHandlerFunc("/assets/"))
+
 	r := web.NewRoute()
-	for _, middle := range common.Middlewares() {
-		r.Use(middle)
-	}
-
-	r.Use(web.MiddlewareWithPrefix("/assets/", nil, public.AssetsHandlerFunc("/assets/")))
-
-	r.Use(session.Sessioner(session.Options{
-		Provider:       setting.SessionConfig.Provider,
-		ProviderConfig: setting.SessionConfig.ProviderConfig,
-		CookieName:     setting.SessionConfig.CookieName,
-		CookiePath:     setting.SessionConfig.CookiePath,
-		Gclifetime:     setting.SessionConfig.Gclifetime,
-		Maxlifetime:    setting.SessionConfig.Maxlifetime,
-		Secure:         setting.SessionConfig.Secure,
-		SameSite:       setting.SessionConfig.SameSite,
-		Domain:         setting.SessionConfig.Domain,
-	}))
-
+	r.Use(common.Sessioner())
 	r.Use(installRecovery(ctx))
 	r.Use(Init(ctx))
 	r.Get("/", Install) // it must be on the root, because the "install.js" use the window.location to replace the "localhost" AppURL
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
 	r.Get("/post-install", InstallDone)
 	r.Get("/api/healthz", healthcheck.Check)
-
 	r.NotFound(installNotFound)
-	return r
+
+	base.Mount("", r)
+	return base
 }
 
 func installNotFound(w http.ResponseWriter, req *http.Request) {

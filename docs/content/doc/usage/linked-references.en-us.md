@@ -5,6 +5,8 @@ slug: "automatically-linked-references"
 weight: 15
 toc: false
 draft: false
+aliases:
+  - /en-us/automatically-linked-references
 menu:
   sidebar:
     parent: "usage"

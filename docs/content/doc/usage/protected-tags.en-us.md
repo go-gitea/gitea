@@ -5,6 +5,8 @@ slug: "protected-tags"
 weight: 45
 toc: false
 draft: false
+aliases:
+  - /en-us/protected-tags
 menu:
   sidebar:
     parent: "usage"
