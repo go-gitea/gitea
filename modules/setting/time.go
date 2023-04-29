@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// UILocation is the location on the UI, so that we can display the time on UI.
+// DefaultUILocation is the location on the UI, so that we can display the time on UI.
 var DefaultUILocation = time.Local
 
 func loadTimeFrom(rootCfg ConfigProvider) {
