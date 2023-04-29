@@ -162,8 +162,6 @@ github.com/bits-and-blooms/bitset v1.1.10/go.mod h1:w0XsmFg8qg6cmpTtJ0z3pKgjTDBM
 github.com/bits-and-blooms/bitset v1.2.0/go.mod h1:gIdJ4wp64HaoK2YrL1Q5/N7Y16edYb8uY+O0FJTyyDA=
 github.com/bits-and-blooms/bitset v1.5.0 h1:NpE8frKRLGHIcEzkR+gZhiioW1+WbYV6fKwD6ZIpQT8=
 github.com/bits-and-blooms/bitset v1.5.0/go.mod h1:gIdJ4wp64HaoK2YrL1Q5/N7Y16edYb8uY+O0FJTyyDA=
-github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb h1:m935MPodAbYS46DG4pJSv7WO+VECIWUQ7OJYSoTrMh4=
-github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb/go.mod h1:PkYb9DJNAwrSvRx5DYA+gUcOIgTGVMNkfSCbZM8cWpI=
 github.com/blevesearch/bleve/v2 v2.0.5/go.mod h1:ZjWibgnbRX33c+vBRgla9QhPb4QOjD6fdVJ+R1Bk8LM=
 github.com/blevesearch/bleve/v2 v2.3.6 h1:NlntUHcV5CSWIhpugx4d/BRMGCiaoI8ZZXrXlahzNq4=
 github.com/blevesearch/bleve/v2 v2.3.6/go.mod h1:JM2legf1cKVkdV8Ehu7msKIOKC0McSw0Q16Fmv9vsW4=
