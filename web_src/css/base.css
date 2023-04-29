@@ -1472,10 +1472,12 @@ img.ui.avatar,
   color: var(--color-gold) !important;
 }
 
+/* FIXME: this is a serious pollution, do not use this for "float: left" anymore */
 .ui.left:not(.action) {
   float: left;
 }
 
+/* FIXME: this is a serious pollution, do not use this for "float: right" anymore */
 .ui.right:not(.action) {
   float: right;
 }
@@ -2660,38 +2662,6 @@ table th[data-sortt-desc] .svg {
   background: var(--color-secondary-dark-1) !important;
 }
 
-.labelspage {
-  list-style: none;
-  padding-top: 0;
-}
-
-.labelspage .item {
-  border-bottom: 1px solid var(--color-secondary);
-  border-top: none;
-}
-
-.labelspage .item a {
-  font-size: 12px;
-  padding-right: 10px;
-  color: var(--color-text-light);
-}
-
-.labelspage .item a:hover {
-  color: var(--color-primary-light-2);
-}
-
-.labelspage .item a.open-issues {
-  margin-right: 30px;
-}
-
-.labelspage .item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.labelspage .orglabel {
-  opacity: 0.7;
-}
 
 /* https://github.com/go-gitea/gitea/pull/11486 */
 .ui.sub.header {
@@ -2796,21 +2766,16 @@ table th[data-sortt-desc] .svg {
   height: 15px;
 }
 
-@media (max-width: 767px) {
-  .ui.stackable.menu:not(.no-vertical-tabs) {
-    overflow-y: hidden;
-    overflow-x: auto;
-    flex-direction: row;
-    flex-wrap: nowrap !important;
-  }
-  .ui.stackable.menu:not(.no-vertical-tabs) .item {
-    width: initial !important;
-  }
-  .ui.stackable.menu:not(.no-vertical-tabs) > .dropdown.item {
-    position: initial;
-  }
-  .ui.stackable.menu:not(.no-vertical-tabs) .menu {
-    flex-direction: row;
+.g-menu-stackable-scrollable {
+  overflow-y: hidden;
+  overflow-x: auto;
+}
+
+@media (max-width: 767.98px) {
+  /* also respect Fomantic's "stackable" definition, use the same breakpoint to reset our styles */
+  .g-menu-stackable-scrollable {
+    overflow-x: unset;
+    overflow-y: unset;
   }
 }
 

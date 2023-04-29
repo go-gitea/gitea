@@ -30,9 +30,10 @@
 @import "./install.css";
 @import "./form.css";
 @import "./repository.css";
-@import "./repository-release-tag.css";
+@import "./repository/release-tag.css";
+@import "./repository/issue-label.css";
 @import "./editor.css";
-@import "./editor-markdown.css";
+@import "./editor/combomarkdowneditor.css";
 @import "./organization.css";
 @import "./user.css";
 @import "./dashboard.css";

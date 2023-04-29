@@ -25,8 +25,8 @@
 						</div>
 						<div class="inline ui field right">
 							<form class="ui form" id="repo-multiple-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/repositories" method="post">
-								<button class="ui red button delete-button right" data-modal-id="org-team-remove-all-repo" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{.locale.Tr "remove_all"}}</button>
-								<button class="ui green button add-all-button right" data-modal-id="org-team-add-all-repo" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.locale.Tr "add_all"}}</button>
+								<button class="ui green button add-all-button" data-modal-id="org-team-add-all-repo" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.locale.Tr "add_all"}}</button>
+								<button class="ui red button delete-button" data-modal-id="org-team-remove-all-repo" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{.locale.Tr "remove_all"}}</button>
 							</form>
 						</div>
 					</div>
