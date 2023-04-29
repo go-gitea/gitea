@@ -6,6 +6,7 @@ export function initRepoBranchButton() {
 }
 
 function initRepoCreateBranchButton() {
+  // 2 pages share this code, one is the branch list page, the other is the commit view page: create branch/tag from current commit (dirty code)
   $('.show-create-branch-modal').on('click', function () {
     let modalFormName = $(this).attr('data-modal-form');
     if (!modalFormName) {
