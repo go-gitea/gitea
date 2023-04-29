@@ -53,7 +53,7 @@ type ActionRunner struct {
 }
 
 // RunnerType defines the runner type
-type RunnerType int //revive:disable-line:exported
+type RunnerType int //nolint:revive
 
 const (
 	// RunnerTypeGlobal defines a global runner
