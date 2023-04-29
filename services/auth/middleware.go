@@ -236,7 +236,6 @@ func VerifyAuthWithOptionsAPI(options *VerifyOptions) func(ctx *context.APIConte
 				})
 				return
 			}
-			ctx.Data["PageIsAdmin"] = true
 		}
 	}
 }

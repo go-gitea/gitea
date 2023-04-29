@@ -5,6 +5,8 @@ slug: "config-cheat-sheet"
 weight: 30
 toc: false
 draft: false
+aliases:
+  - /zh-cn/config-cheat-sheet
 menu:
   sidebar:
     parent: "administration"
