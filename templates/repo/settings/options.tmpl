@@ -67,19 +67,29 @@
 
 		</div>
 
-		{{if or (or .PullMirrors .PushMirrors) .Repository.IsMirror}}
+		{{if or (not (and .DisableNewPullMirrors .DisableNewPushMirrors)) .Repository.IsMirror}}
 			<h4 class="ui top attached header">
 				{{.locale.Tr "repo.settings.mirror_settings"}}
 			</h4>
 			<div class="ui attached segment">
-				{{if and .PushMirrors .PullMirrors}}
-					{{$.locale.Tr "repo.settings.mirror_settings.docs" | Safe}} {{$.locale.Tr "repo.settings.mirror_settings.docs.pull_mirror_instructions" | Safe}}
-				{{else if and .PushMirrors (not .PullMirrors)}}
-					{{$.locale.Tr "repo.settings.mirror_settings.docs.no_new_pull_mirrors" | Safe}}
-				{{else if and (not .PushMirrors) .PullMirrors}}
-					{{$.locale.Tr "repo.settings.mirror_settings.docs_no_new_push_mirrors" | Safe}} {{$.locale.Tr "repo.settings.mirror_settings.docs.pull_mirror_instructions" | Safe}}
+				{{if and (not .DisableNewPullMirrors) (not .DisableNewPushMirrors)}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs"}}
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pushing-to<ing-to-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.pull_mirror_instructions"}}
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.pulling_remote_title"}}</a><br><br>
+				{{else if and (not .DisableNewPushMirrors) .DisableNewPullMirrors}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_pull_mirror.instructions"}}
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pushing-to-a-remote-repository">{{$.locale.Tr "settings.mirror_settings.docs.doc_link_title"}}</a>
+				{{else if and .DisableNewPushMirrors (not .DisableNewPullMirrors)}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.instructions"}}
+					<b>{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.pull_mirror_warning"}}</b>
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.info"}}
+					{{if .PushMirrors}}
+						{{$.locale.Tr "repo.settings.mirror_settings.docs.can_still_modify"}}
+					{{end}}
 				{{else}}
-					{{$.locale.Tr "repo.settings.mirror_settings.docs.no_new_mirrors" | Safe}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.no_new_mirrors"}} {{$.locale.Tr "repo.settings.mirror_settings.docs.can_still_modify"}}
 				{{end}}
 				<table class="ui table">
 					{{if or .Repository.IsMirror .PushMirrors}}
