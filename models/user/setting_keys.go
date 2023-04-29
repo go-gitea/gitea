@@ -12,6 +12,8 @@ const (
 	UserActivityPubPrivPem = "activitypub.priv_pem"
 	// UserActivityPubPubPem is user's public key
 	UserActivityPubPubPem = "activitypub.pub_pem"
-	// SettingsPreferAbsoluteTimestamps is the setting key for hidden comment types
+	// SettingsPreferAbsoluteTimestamps is the setting key for absolute timestamps
 	SettingsPreferAbsoluteTimestamps = "timestamps.prefer_absolute"
+	// SettingsPreferAbsoluteTimestampsDefault is the default setting value for absolute timestamps
+	SettingsPreferAbsoluteTimestampsDefault = "false"
 )
