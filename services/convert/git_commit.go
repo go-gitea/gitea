@@ -73,7 +73,7 @@ func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, c *git.Co
 }
 
 // ToCommit convert a git.Commit to api.Commit
-func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User, stat bool, file bool, parent bool, verification bool) (*api.Commit, error) {
+func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User, stat, file, parent, verification bool) (*api.Commit, error) {
 	var apiAuthor, apiCommitter *api.User
 
 	// Retrieve author and committer information

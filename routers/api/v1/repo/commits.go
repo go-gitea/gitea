@@ -76,7 +76,6 @@ func getCommit(ctx *context.APIContext, identifier string) {
 	parents := ctx.FormString("parents") == "" || ctx.FormBool("parents")
 	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
 	json, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil, stat, files, parents, verification)
-
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "toCommit", err)
 		return
@@ -122,6 +121,10 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results (ignored if used with 'path')
 	//   type: integer
+	// - name: not
+	//   in: query
+	//   description: commits that match the given specifier will not be listed.
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommitList"
