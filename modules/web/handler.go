@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
-	"strings"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web/routing"
@@ -131,14 +130,20 @@ func hasResponseBeenWritten(argsIn []reflect.Value) bool {
 // toHandlerProvider converts a handler to a handler provider
 // A handler provider is a function that takes a "next" http.Handler, it can be used as a middleware
 func toHandlerProvider(handler any) func(next http.Handler) http.Handler {
-	if hp, ok := handler.(func(next http.Handler) http.Handler); ok {
-		return hp
-	}
-
 	funcInfo := routing.GetFuncInfo(handler)
 	fn := reflect.ValueOf(handler)
 	if fn.Type().Kind() != reflect.Func {
 		panic(fmt.Sprintf("handler must be a function, but got %s", fn.Type()))
+	}
+
+	if hp, ok := handler.(func(next http.Handler) http.Handler); ok {
+		return func(next http.Handler) http.Handler {
+			h := hp(next) // this handle could be dynamically generated, so we can't use it for debug info
+			return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+				routing.UpdateFuncInfo(req.Context(), funcInfo)
+				h.ServeHTTP(resp, req)
+			})
+		}
 	}
 
 	provider := func(next http.Handler) http.Handler {
@@ -174,27 +179,4 @@ func toHandlerProvider(handler any) func(next http.Handler) http.Handler {
 
 	provider(nil).ServeHTTP(nil, nil) // do a pre-check to make sure all arguments and return values are supported
 	return provider
-}
-
-// MiddlewareWithPrefix wraps a handler function at a prefix, and make it as a middleware
-// TODO: this design is incorrect, the asset handler should not be a middleware
-func MiddlewareWithPrefix(pathPrefix string, middleware func(handler http.Handler) http.Handler, handlerFunc http.HandlerFunc) func(next http.Handler) http.Handler {
-	funcInfo := routing.GetFuncInfo(handlerFunc)
-	handler := http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		routing.UpdateFuncInfo(req.Context(), funcInfo)
-		handlerFunc(resp, req)
-	})
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			if !strings.HasPrefix(req.URL.Path, pathPrefix) {
-				next.ServeHTTP(resp, req)
-				return
-			}
-			if middleware != nil {
-				middleware(handler).ServeHTTP(resp, req)
-			} else {
-				handler.ServeHTTP(resp, req)
-			}
-		})
-	}
 }

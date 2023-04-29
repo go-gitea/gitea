@@ -10,7 +10,7 @@ enableEmoji: true
 
 permalinks:
   post: /:year/:month/:title/
-  doc: /:slug/
+  doc: /:sections[1:]/:slug/
   page: /:slug/
   default: /:slug/
 
