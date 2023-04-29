@@ -2533,12 +2533,12 @@ a.ui.basic.label:hover {
   right: 0.78571429rem;
   top: 0;
   bottom: 0;
-  height: 30px;
-  margin-top: auto;
-  margin-bottom: auto;
+  display: flex;
+  align-items: center;
 }
 
-/* https://github.com/go-gitea/gitea/issues/10210 */
+/* if a .top.attached.header is followed by a .segment, add some margin */
+.ui.segments ~ .ui.top.attached.header,
 .ui.attached.segment ~ .ui.top.attached.header {
   margin-top: 1rem;
 }
