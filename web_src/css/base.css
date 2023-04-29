@@ -2771,7 +2771,7 @@ table th[data-sortt-desc] .svg {
   overflow-x: auto;
 }
 
-@media only screen and (max-width: 767.98px) {
+@media (max-width: 767.98px) {
   /* also respect Fomantic's "stackable" definition */
   .g-menu-stackable-scrollable {
     overflow-x: unset;
