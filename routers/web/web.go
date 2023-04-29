@@ -943,6 +943,7 @@ func registerRoutes(m *web.Route) {
 
 	m.Post("/{username}/{reponame}/action/{action}", reqSignIn, context.RepoAssignment, context.UnitTypes(), repo.Action)
 
+	// Grouping for those endpoints not requiring authentication (but should respect ignSignIn)
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/milestone", func() {
 			m.Get("/{id}", repo.MilestoneIssuesAndPulls)
@@ -962,7 +963,7 @@ func registerRoutes(m *web.Route) {
 				m.Get("/info", repo.GetIssueInfo)
 			})
 		})
-	}, ignSignIn, context.RepoAssignment, context.UnitTypes()) // for "/{username}/{reponame}"
+	}, ignSignIn, context.RepoAssignment, context.UnitTypes()) // for "/{username}/{reponame}" which doesn't require authentication
 
 	// Grouping for those endpoints that do require authentication
 	m.Group("/{username}/{reponame}", func() {
