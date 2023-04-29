@@ -2012,35 +2012,10 @@
   margin-top: -3px;
 }
 
-.repository.settings.branches .protected-branches .selection.dropdown {
-  width: 300px;
-}
-
-.repository.settings.branches .protected-branches .item {
-  border: 1px solid var(--color-secondary);
-  padding: 10px 15px;
-}
-
-.repository.settings.branches .protected-branches .item:not(:last-child) {
-  border-bottom: 0;
-}
-
-.repository.settings.branches .branch-protection .help {
-  margin-left: 26px;
-  padding-top: 0;
-}
-
-.repository.settings.branches .branch-protection .fields {
-  margin-left: 20px;
-  display: block;
-}
-
-.repository.settings.branches .branch-protection .whitelist {
-  margin-left: 26px;
-}
-
-.repository.settings.branches .branch-protection .whitelist .dropdown img {
-  display: inline-block;
+/* if the element is for a checkbox, then it should have a padding-left to align to the checkbox's text */
+.repository.settings.branches .branch-protection .ui.checkbox .help,
+.repository.settings.branches .branch-protection .checkbox-sub-item {
+  padding-left: 26px;
 }
 
 .repository.settings.webhook .events .column {
