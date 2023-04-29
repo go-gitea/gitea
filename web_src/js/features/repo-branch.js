@@ -1,8 +1,5 @@
 import $ from 'jquery';
 
-const renameBranchFromInputSelector = 'input#from';
-const renameBranchToSpanSelector = '#modal-rename-branch-to-span';
-
 export function initRepoBranchButton() {
   initRepoCreateBranchButton();
   initRepoRenameBranchButton();
@@ -21,13 +18,19 @@ function initRepoCreateBranchButton() {
     }
 
     $(fromSpanName).text($(this).attr('data-branch-from'));
+    $($(this).attr('data-modal')).modal('show');
   });
 }
 
 function initRepoRenameBranchButton() {
   $('.show-rename-branch-modal').on('click', function () {
+    const target = $(this).attr('data-modal');
+    const $modal = $(target);
+
     const oldBranchName = $(this).attr('data-old-branch-name');
-    $(renameBranchFromInputSelector).val(oldBranchName);
-    $(renameBranchToSpanSelector).text($(renameBranchToSpanSelector).attr('data-rename-branch-to').replace('%s', oldBranchName));
+    $modal.find('input[name=from]').val(oldBranchName);
+
+    const $text = $modal.find('[data-rename-branch-to]');
+    $text.text($text.attr('data-rename-branch-to').replace('%s', oldBranchName));
   });
 }
