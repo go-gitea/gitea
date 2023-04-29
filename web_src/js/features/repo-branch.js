@@ -27,7 +27,7 @@ function initRepoCreateBranchButton() {
 function initRepoRenameBranchButton() {
   $('.show-rename-branch-modal').on('click', function () {
     const oldBranchName = $(this).attr('data-old-branch-name');
-    $(renameBranchFromInputSelector)?.val(oldBranchName);
+    $(renameBranchFromInputSelector).val(oldBranchName);
     $(renameBranchToSpanSelector).text($(renameBranchToSpanSelector).attr('data-rename-branch-to').replace('%s', oldBranchName));
   });
 }
