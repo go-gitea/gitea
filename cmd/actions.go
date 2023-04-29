@@ -43,7 +43,6 @@ func runGenerateActionsRunnerToken(c *cli.Context) error {
 	defer cancel()
 
 	setting.Init(&setting.Options{})
-	setting.LoadCommonSettings()
 
 	scope := c.String("scope")
 

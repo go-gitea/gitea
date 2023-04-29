@@ -63,7 +63,6 @@ func setup(ctx context.Context, debug bool) {
 		_ = log.NewLogger(1000, "console", "console", `{"level":"fatal","stacktracelevel":"NONE","stderr":true}`)
 	}
 	setting.Init(&setting.Options{})
-	setting.LoadCommonSettings()
 	if debug {
 		setting.RunMode = "dev"
 	}

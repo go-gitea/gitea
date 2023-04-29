@@ -66,10 +66,11 @@ func newConfigProviderFromData(configContent string) (ConfigProvider, error) {
 }
 
 type Options struct {
-	CustomConf         string // the ini file path
-	AllowEmpty         bool   // whether not finding configuration files is allowed (only true for the tests)
-	ExtraConfig        string
-	IgnoreCheckRunUser bool
+	CustomConf                string // the ini file path
+	AllowEmpty                bool   // whether not finding configuration files is allowed (only true for the tests)
+	ExtraConfig               string
+	IgnoreCheckRunUser        bool
+	DisableLoadCommonSettings bool
 }
 
 // newConfigProviderFromFile load configuration from file.

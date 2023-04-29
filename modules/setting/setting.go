@@ -212,11 +212,9 @@ func Init(opts *Options) {
 	if err != nil {
 		log.Fatal("Init[%v]: %v", opts, err)
 	}
-}
-
-// LoadCommonSettings loads common configurations from a configuration provider.
-func LoadCommonSettings() {
-	loadCommonSettingsFrom(CfgProvider)
+	if !opts.DisableLoadCommonSettings {
+		loadCommonSettingsFrom(CfgProvider)
+	}
 }
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.

@@ -49,7 +49,6 @@ func InitSettings(extraConfigs ...string) {
 		ExtraConfig: strings.Join(extraConfigs, "\n"),
 	})
 
-	setting.LoadCommonSettings()
 	if err := setting.PrepareAppDataPath(); err != nil {
 		log.Fatalf("Can not prepare APP_DATA_PATH: %v", err)
 	}

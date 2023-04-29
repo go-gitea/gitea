@@ -18,7 +18,6 @@ func PreloadSettings(ctx context.Context) bool {
 	setting.Init(&setting.Options{
 		AllowEmpty: true,
 	})
-	setting.LoadCommonSettings()
 	if !setting.InstallLock {
 		log.Info("AppPath: %s", setting.AppPath)
 		log.Info("AppWorkPath: %s", setting.AppWorkPath)
@@ -41,7 +40,6 @@ func PreloadSettings(ctx context.Context) bool {
 // reloadSettings reloads the existing settings and starts up the database
 func reloadSettings(ctx context.Context) {
 	setting.Init(&setting.Options{})
-	setting.LoadCommonSettings()
 	setting.LoadDBSetting()
 	if setting.InstallLock {
 		if err := common.InitDBEngine(ctx); err == nil {

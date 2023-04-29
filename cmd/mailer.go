@@ -17,7 +17,6 @@ func runSendMail(c *cli.Context) error {
 	defer cancel()
 
 	setting.Init(&setting.Options{})
-	setting.LoadCommonSettings()
 
 	if err := argsSet(c, "title"); err != nil {
 		return err

@@ -58,7 +58,6 @@ func confirm() (bool, error) {
 
 func initDB(ctx context.Context) error {
 	setting.Init(&setting.Options{})
-	setting.LoadCommonSettings()
 	setting.LoadDBSetting()
 	setting.InitSQLLog(false)
 

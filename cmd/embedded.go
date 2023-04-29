@@ -110,7 +110,6 @@ func initEmbeddedExtractor(c *cli.Context) error {
 		AllowEmpty:         true,
 		IgnoreCheckRunUser: true,
 	})
-	setting.LoadCommonSettings()
 
 	patterns, err := compileCollectPatterns(c.Args())
 	if err != nil {
