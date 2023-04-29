@@ -3269,43 +3269,6 @@ td.blob-excerpt {
   box-shadow: 0 0.5rem 1rem var(--color-shadow) !important;
 }
 
-.list-header {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: .5rem;
-}
-
-.list-header-sort {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
-
-.list-header-search {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: center;
-  min-width: 200px; /* to enable flexbox wrapping on mobile */
-}
-
-.list-header-search .input {
-  flex: 1;
-}
-
-.small-pill-buttons {
-  min-height: 35.4px !important; /* match .small.button in height */
-}
-
-.small-pill-buttons .item {
-  padding-top: 6px !important;
-  padding-bottom: 6px !important;
-}
-
 @media (max-width: 767px) {
   .repository.file.list #repo-files-table .entry,
   .repository.file.list #repo-files-table .commit-list {
