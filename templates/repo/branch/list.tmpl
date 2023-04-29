@@ -213,10 +213,8 @@
 				<label for="new_branch_name">{{.locale.Tr "repo.branch.name"}}</label>
 				<input id="new_branch_name" name="new_branch_name" required>
 			</div>
-
-			<div class="text right actions">
-				<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
-				<button class="ui green button">{{.locale.Tr "repo.branch.confirm_create_branch"}}</button>
+			<div class="text right">
+				{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
 			</div>
 		</form>
 	</div>
@@ -238,7 +236,7 @@
 			<div class="required field">
 				<input id="to" name="to" required>
 			</div>
-			<div class="center">
+			<div class="text right">
 				{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
 			</div>
 		</form>
