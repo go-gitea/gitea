@@ -67,12 +67,20 @@
 
 		</div>
 
-		{{if .MirrorsEnabled}}
+		{{if and .MirrorsEnabled (or (or .PullMirrors .PushMirrors) .Repository.IsMirror)}}
 			<h4 class="ui top attached header">
 				{{.locale.Tr "repo.settings.mirror_settings"}}
 			</h4>
 			<div class="ui attached segment">
-				{{$.locale.Tr "repo.settings.mirror_settings.docs" | Safe}}
+				{{if and .PushMirrors .PullMirrors}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs" | Safe}} {{$.locale.Tr "repo.settings.mirror_settings.docs.pull_mirror_instructions" | Safe}}
+				{{else if and .PushMirrors (not .PullMirrors)}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.no_new_pull_mirrors" | Safe}}
+				{{else if and (not .PushMirrors) .PullMirrors}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs_no_new_push_mirrors" | Safe}} {{$.locale.Tr "repo.settings.mirror_settings.docs.pull_mirror_instructions" | Safe}}
+				{{else}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.no_new_mirrors" | Safe}}
+				{{end}}
 				<table class="ui table">
 					{{if or .Repository.IsMirror .PushMirrors}}
 					<thead>
