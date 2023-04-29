@@ -74,11 +74,11 @@ export function initRepoSettingGitHook() {
 export function initRepoSettingBranches() {
   if (!$('.repository.settings.branches').length) return;
   $('.toggle-target-enabled').on('change', function () {
-    const $t = $($(this).attr('data-target'));
-    $t.toggleClass('disabled', !this.checked);
+    const $target = $($(this).attr('data-target'));
+    $target.toggleClass('disabled', !this.checked);
   });
   $('.toggle-target-disabled').on('change', function () {
-    const $t = $($(this).attr('data-target'));
-    if (this.checked) $t.addClass('disabled'); // only disable, do not auto enable
+    const $target = $($(this).attr('data-target'));
+    if (this.checked) $target.addClass('disabled'); // only disable, do not auto enable
   });
 }
