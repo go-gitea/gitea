@@ -9,9 +9,9 @@ import (
 	"code.gitea.io/gitea/modules/json"
 )
 
-type JsonUtils struct{}
+type JsonUtils struct{} //nolint:revive
 
-func NewJsonUtils() *JsonUtils {
+func NewJsonUtils() *JsonUtils { //nolint:revive
 	return &JsonUtils{}
 }
 
