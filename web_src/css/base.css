@@ -769,6 +769,10 @@ a.label,
   border-color: var(--color-primary);
 }
 
+.ui.action.input .button {
+  border-color: var(--color-input-border);
+}
+
 /* currently used for search bar dropdowns in repo search and explore code */
 .ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
   min-width: 10em;
