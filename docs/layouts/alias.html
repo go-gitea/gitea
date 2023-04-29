@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html{{ with site.LanguageCode | default site.Language.Lang }} lang="{{ . }}"{{ end }}>
+  <head>
+    <meta charset="utf-8">
+    <title>{{ .Permalink }}</title>
+    <link rel="canonical" href="{{ .Permalink }}">
+    <meta name="robots" content="noindex">
+    <noscript><meta http-equiv="refresh" content="0; url={{ .Permalink }}"></noscript>
+    <script>
+      window.location = "{{ .Permalink }}" + window.location.search + window.location.hash;
+    </script>
+  </head>
+</html>

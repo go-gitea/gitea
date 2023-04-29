@@ -89,7 +89,7 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 		hasID = hasID || (column.IsPrimaryKey && column.IsAutoIncrement)
 	}
 
-	if hasID && setting.Database.UseMSSQL {
+	if hasID && setting.Database.Type.IsMSSQL() {
 		if _, err := sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` ON", tempTableName)); err != nil {
 			log.Error("Unable to set identity insert for table %s. Error: %v", tempTableName, err)
 			return err
@@ -143,7 +143,7 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 		return err
 	}
 
-	if hasID && setting.Database.UseMSSQL {
+	if hasID && setting.Database.Type.IsMSSQL() {
 		if _, err := sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` OFF", tempTableName)); err != nil {
 			log.Error("Unable to switch off identity insert for table %s. Error: %v", tempTableName, err)
 			return err
@@ -151,7 +151,7 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 	}
 
 	switch {
-	case setting.Database.UseSQLite3:
+	case setting.Database.Type.IsSQLite3():
 		// SQLite will drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
 			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
@@ -178,7 +178,7 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 			return err
 		}
 
-	case setting.Database.UseMySQL:
+	case setting.Database.Type.IsMySQL():
 		// MySQL will drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
 			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
@@ -205,7 +205,7 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 			log.Error("Unable to recreate uniques on table %s. Error: %v", tableName, err)
 			return err
 		}
-	case setting.Database.UsePostgreSQL:
+	case setting.Database.Type.IsPostgreSQL():
 		var originalSequences []string
 		type sequenceData struct {
 			LastValue int  `xorm:"'last_value'"`
@@ -296,7 +296,7 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 
 		}
 
-	case setting.Database.UseMSSQL:
+	case setting.Database.Type.IsMSSQL():
 		// MSSQL will drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
 			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
@@ -323,7 +323,7 @@ func DropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 	// TODO: This will not work if there are foreign keys
 
 	switch {
-	case setting.Database.UseSQLite3:
+	case setting.Database.Type.IsSQLite3():
 		// First drop the indexes on the columns
 		res, errIndex := sess.Query(fmt.Sprintf("PRAGMA index_list(`%s`)", tableName))
 		if errIndex != nil {
@@ -405,7 +405,7 @@ func DropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			return err
 		}
 
-	case setting.Database.UsePostgreSQL:
+	case setting.Database.Type.IsPostgreSQL():
 		cols := ""
 		for _, col := range columnNames {
 			if cols != "" {
@@ -416,7 +416,7 @@ func DropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
-	case setting.Database.UseMySQL:
+	case setting.Database.Type.IsMySQL():
 		// Drop indexes on columns first
 		sql := fmt.Sprintf("SHOW INDEX FROM %s WHERE column_name IN ('%s')", tableName, strings.Join(columnNames, "','"))
 		res, err := sess.Query(sql)
@@ -444,7 +444,7 @@ func DropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
-	case setting.Database.UseMSSQL:
+	case setting.Database.Type.IsMSSQL():
 		cols := ""
 		for _, col := range columnNames {
 			if cols != "" {
@@ -543,13 +543,13 @@ func newXORMEngine() (*xorm.Engine, error) {
 
 func deleteDB() error {
 	switch {
-	case setting.Database.UseSQLite3:
+	case setting.Database.Type.IsSQLite3():
 		if err := util.Remove(setting.Database.Path); err != nil {
 			return err
 		}
 		return os.MkdirAll(path.Dir(setting.Database.Path), os.ModePerm)
 
-	case setting.Database.UseMySQL:
+	case setting.Database.Type.IsMySQL():
 		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/",
 			setting.Database.User, setting.Database.Passwd, setting.Database.Host))
 		if err != nil {
@@ -565,7 +565,7 @@ func deleteDB() error {
 			return err
 		}
 		return nil
-	case setting.Database.UsePostgreSQL:
+	case setting.Database.Type.IsPostgreSQL():
 		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
 			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
 		if err != nil {
@@ -612,7 +612,7 @@ func deleteDB() error {
 			}
 			return nil
 		}
-	case setting.Database.UseMSSQL:
+	case setting.Database.Type.IsMSSQL():
 		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
 			host, port, "master", setting.Database.User, setting.Database.Passwd))

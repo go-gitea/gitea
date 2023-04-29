@@ -68,6 +68,8 @@ type FindRunOptions struct {
 	OwnerID          int64
 	IsClosed         util.OptionalBool
 	WorkflowFileName string
+	TriggerUserID    int64
+	Approved         bool // not util.OptionalBool, it works only when it's true
 }
 
 func (opts FindRunOptions) toConds() builder.Cond {
@@ -88,6 +90,12 @@ func (opts FindRunOptions) toConds() builder.Cond {
 	}
 	if opts.WorkflowFileName != "" {
 		cond = cond.And(builder.Eq{"workflow_id": opts.WorkflowFileName})
+	}
+	if opts.TriggerUserID > 0 {
+		cond = cond.And(builder.Eq{"trigger_user_id": opts.TriggerUserID})
+	}
+	if opts.Approved {
+		cond = cond.And(builder.Gt{"approved_by": 0})
 	}
 	return cond
 }

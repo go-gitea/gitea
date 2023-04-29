@@ -75,6 +75,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdDocs,
 		cmd.CmdDumpRepository,
 		cmd.CmdRestoreRepository,
+		cmd.CmdActions,
 	}
 	// Now adjust these commands to add our global configuration options
 
@@ -112,6 +113,8 @@ arguments - which can alternatively be run by running the subcommand web.`
 	for i := range app.Commands {
 		setFlagsAndBeforeOnSubcommands(&app.Commands[i], defaultFlags, establishCustomPath)
 	}
+
+	app.EnableBashCompletion = true
 
 	err := app.Run(os.Args)
 	if err != nil {

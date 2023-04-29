@@ -4,7 +4,9 @@ tmp_dir = ".air"
 [build]
 cmd = "make backend"
 bin = "gitea"
+delay = 1000
 include_ext = ["go", "tmpl"]
-exclude_dir = ["modules/git/tests", "services/gitdiff/testdata", "modules/avatar/testdata", "models/fixtures", "models/migrations/fixtures", "modules/migration/file_format_testdata", "modules/avatar/identicon/testdata"]
+include_file = ["main.go"]
 include_dir = ["cmd", "models", "modules", "options", "routers", "services"]
+exclude_dir = ["modules/git/tests", "services/gitdiff/testdata", "modules/avatar/testdata", "models/fixtures", "models/migrations/fixtures", "modules/migration/file_format_testdata", "modules/avatar/identicon/testdata"]
 exclude_regex = ["_test.go$", "_gen.go$"]

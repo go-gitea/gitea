@@ -10,7 +10,7 @@
 					<a class="name" href="{{.Link}}">
 						{{if or $.PageIsExplore $.PageIsProfileStarList}}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
 					</a>
-					<div class="labels gt-df gt-ac gt-fw">
+					<div class="labels gt-df gt-ac gt-fw gt-mr-3">
 						{{if .IsArchived}}
 							<span class="ui basic label">{{$.locale.Tr "repo.desc.archived"}}</span>
 						{{end}}
@@ -32,9 +32,9 @@
 							{{end}}
 						{{end}}
 						{{if .IsFork}}
-							<span class="tooltip gt-df" data-content="{{$.locale.Tr "repo.fork"}}" data-position="bottom center">{{svg "octicon-repo-forked"}}</span>
+							<span class="gt-df" data-tooltip-content="{{$.locale.Tr "repo.fork"}}">{{svg "octicon-repo-forked"}}</span>
 						{{else if .IsMirror}}
-							<span class="tooltip gt-df" data-content="{{$.locale.Tr "mirror"}}" data-position="bottom center">{{svg "octicon-mirror"}}</span>
+							<span class="gt-df" data-tooltip-content="{{$.locale.Tr "mirror"}}">{{svg "octicon-mirror"}}</span>
 						{{end}}
 					</div>
 				</div>

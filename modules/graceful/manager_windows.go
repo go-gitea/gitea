@@ -96,7 +96,7 @@ func (g *Manager) start() {
 	run := svc.Run
 
 	//lint:ignore SA1019 We use IsAnInteractiveSession because IsWindowsService has a different permissions profile
-	isAnInteractiveSession, err := svc.IsAnInteractiveSession()
+	isAnInteractiveSession, err := svc.IsAnInteractiveSession() //nolint:staticcheck
 	if err != nil {
 		log.Error("Unable to ascertain if running as an Windows Service: %v", err)
 		return

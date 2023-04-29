@@ -4,20 +4,21 @@
 package repository
 
 import (
-	"code.gitea.io/gitea/models/db"
+	"context"
+
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 )
 
 // GetReviewerTeams get all teams can be requested to review
-func GetReviewerTeams(repo *repo_model.Repository) ([]*organization.Team, error) {
-	if err := repo.LoadOwner(db.DefaultContext); err != nil {
+func GetReviewerTeams(ctx context.Context, repo *repo_model.Repository) ([]*organization.Team, error) {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 	if !repo.Owner.IsOrganization() {
 		return nil, nil
 	}
 
-	return organization.GetTeamsWithAccessToRepo(db.DefaultContext, repo.OwnerID, repo.ID, perm.AccessModeRead)
+	return organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead)
 }

@@ -80,7 +80,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 }
 
 func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_model.PullRequest {
-	baseRepo, err := repo_service.CreateRepository(actor, actor, repo_module.CreateRepoOptions{
+	baseRepo, err := repo_service.CreateRepository(db.DefaultContext, actor, actor, repo_module.CreateRepoOptions{
 		Name:        "repo-pr-update",
 		Description: "repo-tmp-pr-update description",
 		AutoInit:    true,

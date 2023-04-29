@@ -8,15 +8,37 @@
 	<div class="twelve wide column">
 		<div class="ui comments">
 			<div class="comment">
-				{{template "shared/user/avatarlink" Dict "Context" $.Context "user" .SignedUser}}
+				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .SignedUser}}
 				<div class="ui segment content">
 					<div class="field">
 						<input name="title" id="issue_title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255" autocomplete="off">
 						{{if .PageIsComparePull}}
-							<div class="title_wip_desc" data-wip-prefixes="{{Json .PullRequestWorkInProgressPrefixes}}">{{.locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
+							<div class="title_wip_desc" data-wip-prefixes="{{JsonUtils.EncodeToString .PullRequestWorkInProgressPrefixes}}">{{.locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
 						{{end}}
 					</div>
-					{{template "repo/issue/comment_tab" .}}
+					{{if .Fields}}
+						<input type="hidden" name="template-file" value="{{.TemplateFile}}">
+						{{range .Fields}}
+							{{if eq .Type "input"}}
+								{{template "repo/issue/fields/input" dict "Context" $.Context "item" .}}
+							{{else if eq .Type "markdown"}}
+								{{template "repo/issue/fields/markdown" dict "Context" $.Context "item" .}}
+							{{else if eq .Type "textarea"}}
+								{{template "repo/issue/fields/textarea" dict "Context" $.Context "item" .}}
+							{{else if eq .Type "dropdown"}}
+								{{template "repo/issue/fields/dropdown" dict "Context" $.Context "item" .}}
+							{{else if eq .Type "checkboxes"}}
+								{{template "repo/issue/fields/checkboxes" dict "Context" $.Context "item" .}}
+							{{end}}
+						{{end}}
+						{{if .IsAttachmentEnabled}}
+						<div class="field">
+							{{template "repo/upload" .}}
+						</div>
+						{{end}}
+					{{else}}
+						{{template "repo/issue/comment_tab" .}}
+					{{end}}
 					<div class="text right">
 						<button class="ui green button loading-button" tabindex="6">
 							{{if .PageIsComparePull}}
@@ -36,51 +58,8 @@
 			{{template "repo/issue/branch_selector_field" .}}
 
 			<input id="label_ids" name="label_ids" type="hidden" value="{{.label_ids}}">
-			<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-label dropdown">
-				<span class="text">
-					<strong>{{.locale.Tr "repo.issues.new.labels"}}</strong>
-					{{if .HasIssuesOrPullsWritePermission}}
-						{{svg "octicon-gear"}}
-					{{end}}
-				</span>
-				<div class="filter menu" data-id="#label_ids">
-					<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_labels_title"}}</div>
-					{{if or .Labels .OrgLabels}}
-					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_labels"}}">
-					</div>
-					{{end}}
-					<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_labels"}}</div>
-					{{if or .Labels .OrgLabels}}
-						{{$previousExclusiveScope := "_no_scope"}}
-						{{range .Labels}}
-							{{$exclusiveScope := .ExclusiveScope}}
-							{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-								<div class="ui divider"></div>
-							{{end}}
-							{{$previousExclusiveScope = $exclusiveScope}}
-							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel .}}
-							{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
-						{{end}}
-
-						<div class="ui divider"></div>
-						{{$previousExclusiveScope := "_no_scope"}}
-						{{range .OrgLabels}}
-							{{$exclusiveScope := .ExclusiveScope}}
-							{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-								<div class="ui divider"></div>
-							{{end}}
-							{{$previousExclusiveScope = $exclusiveScope}}
-							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel .}}
-							{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
-						{{end}}
-					{{else}}
-						<div class="header" style="text-transform: none;font-size:14px;">{{.locale.Tr "repo.issues.new.no_items"}}</div>
-					{{end}}
-				</div>
-			</div>
-			{{template "repo/issue/labels/labels_sidebar" dict "root" $ "ctx" .}}
+			{{template "repo/issue/labels/labels_selector_field" .}}
+			{{template "repo/issue/labels/labels_sidebar" dict "root" $}}
 
 			<div class="ui divider"></div>
 
@@ -176,9 +155,8 @@
 								{{.locale.Tr "repo.issues.new.open_projects"}}
 							</div>
 							{{range .OpenProjects}}
-								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
-									{{svg "octicon-project" 18 "gt-mr-3"}}
-									{{.Title}}
+								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
+									{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 								</a>
 							{{end}}
 						{{end}}
@@ -188,9 +166,8 @@
 								{{.locale.Tr "repo.issues.new.closed_projects"}}
 							</div>
 							{{range .ClosedProjects}}
-								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
-									{{svg "octicon-project" 18 "gt-mr-3"}}
-									{{.Title}}
+								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
+									{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 								</a>
 							{{end}}
 						{{end}}
@@ -201,9 +178,8 @@
 				<span class="no-select item {{if .Project}}gt-hidden{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
 				<div class="selected">
 					{{if .Project}}
-						<a class="item muted sidebar-item-link" href="{{.RepoLink}}/projects/{{.Project.ID}}">
-							{{svg "octicon-project" 18 "gt-mr-3"}}
-							{{.Project.Title}}
+						<a class="item muted sidebar-item-link" href="{{.Project.Link}}">
+							{{svg .Project.IconName 18 "gt-mr-3"}}{{.Project.Title}}
 						</a>
 					{{end}}
 				</div>
@@ -229,7 +205,7 @@
 							<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
 								<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
 								<span class="text">
-									{{avatar $.Context . 28 "gt-mr-3"}}{{.GetDisplayName}}
+									{{avatar $.Context . 28 "gt-mr-3"}}{{template "repo/search_name" .}}
 								</span>
 							</a>
 						{{end}}
@@ -249,7 +225,7 @@
 				<div class="ui divider"></div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label class="tooltip" data-content="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
+						<label data-tooltip-content="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
 						<input name="allow_maintainer_edit" type="checkbox" {{if .AllowMaintainerEdit}}checked{{end}}>
 					</div>
 				</div>

@@ -130,15 +130,6 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	c.Data["branch_status_check_contexts"] = contexts
-	c.Data["is_context_required"] = func(context string) bool {
-		for _, c := range rule.StatusCheckContexts {
-			if c == context {
-				return true
-			}
-		}
-		return false
-	}
-
 	if c.Repo.Owner.IsOrganization() {
 		teams, err := organization.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c.Repo.Repository.ID, perm.AccessModeRead)
 		if err != nil {
@@ -356,7 +347,7 @@ func RenameBranchPost(ctx *context.Context) {
 		return
 	}
 
-	msg, err := repository.RenameBranch(ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, form.From, form.To)
+	msg, err := repository.RenameBranch(ctx, ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, form.From, form.To)
 	if err != nil {
 		ctx.ServerError("RenameBranch", err)
 		return

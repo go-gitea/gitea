@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings organization">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings organization")}}
+	<div class="user-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "settings.orgs"}}
 			{{if .SignedUser.CanCreateOrganization}}
@@ -39,15 +36,15 @@
 			{{end}}
 		</div>
 	</div>
-</div>
-<div class="ui small basic delete modal" id="leave-organization">
-	<div class="ui icon header">
-		{{svg "octicon-x" 16 "close inside"}}
+
+<div class="ui g-modal-confirm delete modal" id="leave-organization">
+	<div class="header">
 		{{$.locale.Tr "org.members.leave"}}
 	</div>
 	<div class="content">
 		<p>{{$.locale.Tr "org.members.leave.detail" `<span class="dataOrganizationName"></span>` | Safe}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
-{{template "base/footer" .}}
+
+{{template "user/settings/layout_footer" .}}

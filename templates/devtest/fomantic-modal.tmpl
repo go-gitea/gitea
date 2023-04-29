@@ -1,0 +1,49 @@
+{{template "base/head" .}}
+<div class="page-content devtest ui container">
+	<div class="ui g-modal-confirm modal" id="test-modal-default">
+		<div class="header">{{svg "octicon-file"}} Default dialog <span>title</span></div>
+		<div class="content">
+			very long aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+		</div>
+		{{template "base/modal_actions_confirm" (dict "locale" $.locale)}}
+	</div>
+
+	<div class="ui g-modal-confirm modal" id="test-modal-confirm">
+		<div class="header">Confirm dialog</div>
+		<div class="content">hello, this is the modal dialog content</div>
+		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
+	</div>
+
+	<div class="ui g-modal-confirm modal" id="test-modal-blue">
+		<div class="header">Blue dialog</div>
+		<div class="content">hello, this is the modal dialog content</div>
+		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonColors" "blue")}}
+	</div>
+
+	<div class="ui g-modal-confirm modal" id="test-modal-yellow">
+		<div class="header">yellow dialog</div>
+		<div class="content">hello, this is the modal dialog content</div>
+		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonColors" "yellow")}}
+	</div>
+
+	<div class="ui g-modal-confirm modal" id="test-modal-danger">
+		{{svg "octicon-x" 16 "inside close"}}
+		<div class="header">dangerous action dialog</div>
+		<div class="content">hello, this is the modal dialog content, this is a dangerous operation</div>
+		{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" "I know and must do  this is dangerous operation")}}
+	</div>
+
+	<div class="modal-buttons"></div>
+	<script type="module">
+		for (const el of $('.ui.modal')) {
+			const $btn = $('<button>').text(`Show ${el.id}`).on('click', () => {
+				$(el).modal({onApprove() {alert('confirmed')}}).modal('show');
+			});
+			$('.modal-buttons').append($btn);
+		}
+	</script>
+	<style>
+		.modal-buttons button { margin: 5px; }
+	</style>
+</div>
+{{template "base/footer" .}}

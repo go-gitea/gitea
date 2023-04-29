@@ -95,62 +95,68 @@ export function initRepoProject() {
   $('.edit-project-board').each(function () {
     const projectHeader = $(this).closest('.board-column-header');
     const projectTitleLabel = projectHeader.find('.board-label');
-    const projectTitleInput = $(this).find(
-      '.content > .form > .field > .project-board-title',
-    );
-    const projectColorInput = $(this).find('.content > .form > .field  #new_board_color');
+    const projectTitleInput = $(this).find('.project-board-title');
+    const projectColorInput = $(this).find('#new_board_color');
     const boardColumn = $(this).closest('.board-column');
 
     if (boardColumn.css('backgroundColor')) {
       setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
     }
 
-    $(this)
-      .find('.content > .form > .actions > .red')
-      .on('click', function (e) {
-        e.preventDefault();
-
-        $.ajax({
-          url: $(this).data('url'),
-          data: JSON.stringify({title: projectTitleInput.val(), color: projectColorInput.val()}),
-          headers: {
-            'X-Csrf-Token': csrfToken,
-          },
-          contentType: 'application/json',
-          method: 'PUT',
-        }).done(() => {
-          projectTitleLabel.text(projectTitleInput.val());
-          projectTitleInput.closest('form').removeClass('dirty');
-          if (projectColorInput.val()) {
-            setLabelColor(projectHeader, projectColorInput.val());
-          }
-          boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
-          $('.ui.modal').modal('hide');
-        });
-      });
-  });
-
-  $(document).on('click', '.set-default-project-board', async function (e) {
-    e.preventDefault();
-
-    await $.ajax({
-      method: 'POST',
-      url: $(this).data('url'),
-      headers: {
-        'X-Csrf-Token': csrfToken,
-      },
-      contentType: 'application/json',
-    });
-
-    window.location.reload();
-  });
-
-  $('.delete-project-board').each(function () {
-    $(this).click(function (e) {
+    $(this).find('.edit-column-button').on('click', function (e) {
       e.preventDefault();
 
       $.ajax({
         url: $(this).data('url'),
+        data: JSON.stringify({title: projectTitleInput.val(), color: projectColorInput.val()}),
+        headers: {
+          'X-Csrf-Token': csrfToken,
+        },
+        contentType: 'application/json',
+        method: 'PUT',
+      }).done(() => {
+        projectTitleLabel.text(projectTitleInput.val());
+        projectTitleInput.closest('form').removeClass('dirty');
+        if (projectColorInput.val()) {
+          setLabelColor(projectHeader, projectColorInput.val());
+        }
+        boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
+        $('.ui.modal').modal('hide');
+      });
+    });
+  });
+
+  $('.default-project-board-modal').each(function () {
+    const boardColumn = $(this).closest('.board-column');
+    const showButton = $(boardColumn).find('.default-project-board-show');
+    const commitButton = $(this).find('.actions > .ok.button');
+
+    $(commitButton).on('click', (e) => {
+      e.preventDefault();
+
+      $.ajax({
+        method: 'POST',
+        url: $(showButton).data('url'),
+        headers: {
+          'X-Csrf-Token': csrfToken,
+        },
+        contentType: 'application/json',
+      }).done(() => {
+        window.location.reload();
+      });
+    });
+  });
+
+  $('.show-delete-column-modal').each(function () {
+    const deleteColumnModal = $(`${$(this).attr('data-modal')}`);
+    const deleteColumnButton = deleteColumnModal.find('.actions > .ok.button');
+    const deleteUrl = $(this).attr('data-url');
+
+    deleteColumnButton.on('click', (e) => {
+      e.preventDefault();
+
+      $.ajax({
+        url: deleteUrl,
         headers: {
           'X-Csrf-Token': csrfToken,
         },
@@ -162,7 +168,7 @@ export function initRepoProject() {
     });
   });
 
-  $('#new_board_submit').click(function (e) {
+  $('#new_board_submit').on('click', function (e) {
     e.preventDefault();
 
     const boardTitle = $('#new_board');

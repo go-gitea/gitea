@@ -8,14 +8,14 @@
 					{{if .LatestCommitUser}}
 						{{avatar $.Context .LatestCommitUser 24}}
 						{{if .LatestCommitUser.FullName}}
-							<a class="muted" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
+							<a class="muted author-wrapper" title="{{.LatestCommitUser.FullName}}" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
 						{{else}}
-							<a class="muted" href="{{.LatestCommitUser.HomeLink}}"><strong>{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}</strong></a>
+							<a class="muted author-wrapper" title="{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}" href="{{.LatestCommitUser.HomeLink}}"><strong>{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}</strong></a>
 						{{end}}
 					{{else}}
 						{{if .LatestCommit.Author}}
 							{{avatarByEmail $.Context .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
-							<strong>{{.LatestCommit.Author.Name}}</strong>
+							<span class="author-wrapper" title="{{.LatestCommit.Author.Name}}"><strong>{{.LatestCommit.Author.Name}}</strong></span>
 						{{end}}
 					{{end}}
 					<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified}} isVerified{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}Untrusted{{else}}Unmatched{{end}}{{else if .LatestCommitVerification.Warning}} isWarning{{end}}{{end}}" href="{{.RepoLink}}/commit/{{PathEscape .LatestCommit.ID.String}}">
@@ -61,13 +61,15 @@
 						{{else}}
 							{{if $entry.IsDir}}
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
-								{{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
 								{{svg "octicon-file-directory-fill"}}
 								<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
-									{{if eq (len $subJumpablePath) 2}}
-										<span class="color-text-light-2">{{index  $subJumpablePath 0}}</span>{{index  $subJumpablePath 1}}
+									{{$subJumpablePathFields := StringUtils.Split $subJumpablePathName "/"}}
+									{{$subJumpablePathFieldLast := (Eval (len $subJumpablePathFields) "-" 1)}}
+									{{if eq $subJumpablePathFieldLast 0}}
+										{{$subJumpablePathName}}
 									{{else}}
-										{{index $subJumpablePath 0}}
+										{{$subJumpablePathPrefixes := slice $subJumpablePathFields 0 $subJumpablePathFieldLast}}
+										<span class="color-text-light-2">{{StringUtils.Join $subJumpablePathPrefixes "/"}}</span>/{{index $subJumpablePathFields $subJumpablePathFieldLast}}
 									{{end}}
 								</a>
 							{{else}}

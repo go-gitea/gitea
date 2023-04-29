@@ -25,7 +25,7 @@
 		<div class="ui attached segment">
 			{{if .PackageDescriptor.Metadata.Readme}}
 			<div class="markup markdown">
-				{{RenderMarkdownToHtml .PackageDescriptor.Metadata.Readme}}
+				{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.Readme}}
 			</div>
 			{{else if .PackageDescriptor.Metadata.Description}}
 				{{.PackageDescriptor.Metadata.Description}}

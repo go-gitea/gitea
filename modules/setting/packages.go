@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/dustin/go-humanize"
-	ini "gopkg.in/ini.v1"
 )
 
 // Package registry settings
@@ -39,6 +38,7 @@ var (
 		LimitSizePub         int64
 		LimitSizePyPI        int64
 		LimitSizeRubyGems    int64
+		LimitSizeSwift       int64
 		LimitSizeVagrant     int64
 	}{
 		Enabled:              true,
@@ -81,10 +81,11 @@ func loadPackagesFrom(rootCfg ConfigProvider) {
 	Packages.LimitSizePub = mustBytes(sec, "LIMIT_SIZE_PUB")
 	Packages.LimitSizePyPI = mustBytes(sec, "LIMIT_SIZE_PYPI")
 	Packages.LimitSizeRubyGems = mustBytes(sec, "LIMIT_SIZE_RUBYGEMS")
+	Packages.LimitSizeSwift = mustBytes(sec, "LIMIT_SIZE_SWIFT")
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")
 }
 
-func mustBytes(section *ini.Section, key string) int64 {
+func mustBytes(section ConfigSection, key string) int64 {
 	const noLimit = "-1"
 
 	value := section.Key(key).MustString(noLimit)

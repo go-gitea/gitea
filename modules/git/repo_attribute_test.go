@@ -19,7 +19,7 @@ func Test_nulSeparatedAttributeWriter_ReadAttribute(t *testing.T) {
 
 	n, err := wr.Write([]byte(testStr))
 
-	assert.Equal(t, n, len(testStr))
+	assert.Len(t, testStr, n)
 	assert.NoError(t, err)
 	select {
 	case attr := <-wr.ReadAttribute():
@@ -32,7 +32,7 @@ func Test_nulSeparatedAttributeWriter_ReadAttribute(t *testing.T) {
 	// Write a second attribute again
 	n, err = wr.Write([]byte(testStr))
 
-	assert.Equal(t, n, len(testStr))
+	assert.Len(t, testStr, n)
 	assert.NoError(t, err)
 
 	select {
