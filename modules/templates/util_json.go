@@ -11,8 +11,10 @@ import (
 
 type JsonUtils struct{} //nolint:revive
 
+var jsonUtils = JsonUtils{}
+
 func NewJsonUtils() *JsonUtils { //nolint:revive
-	return &JsonUtils{}
+	return &jsonUtils
 }
 
 func (su *JsonUtils) EncodeToString(v any) string {

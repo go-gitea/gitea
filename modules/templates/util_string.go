@@ -11,8 +11,10 @@ import (
 
 type StringUtils struct{}
 
+var stringUtils = StringUtils{}
+
 func NewStringUtils() *StringUtils {
-	return &StringUtils{}
+	return &stringUtils
 }
 
 func (su *StringUtils) HasPrefix(s, prefix string) bool {
