@@ -3,7 +3,7 @@ module code.gitea.io/gitea
 go 1.19
 
 require (
-	code.gitea.io/actions-proto-go v0.2.0
+	code.gitea.io/actions-proto-go v0.2.1
 	code.gitea.io/gitea-vet v0.2.2
 	code.gitea.io/sdk/gitea v0.15.1
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
@@ -104,10 +104,11 @@ require (
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20220924101305-151362477c87
 	github.com/yuin/goldmark-meta v1.1.0
 	golang.org/x/crypto v0.7.0
+	golang.org/x/image v0.7.0
 	golang.org/x/net v0.8.0
 	golang.org/x/oauth2 v0.6.0
 	golang.org/x/sys v0.6.0
-	golang.org/x/text v0.8.0
+	golang.org/x/text v0.9.0
 	golang.org/x/tools v0.6.0
 	google.golang.org/grpc v1.53.0
 	google.golang.org/protobuf v1.28.1
@@ -290,7 +291,7 @@ replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142
 
 replace github.com/blevesearch/zapx/v15 v15.3.6 => github.com/zeripath/zapx/v15 v15.3.6-alignment-fix
 
-replace github.com/nektos/act => gitea.com/gitea/act v0.243.3-0.20230407083103-5c4a96bcb797
+replace github.com/nektos/act => gitea.com/gitea/act v0.243.4
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 

@@ -5,6 +5,8 @@ slug: "cmd-embedded"
 weight: 20
 toc: false
 draft: false
+aliases:
+  - /en-us/cmd-embedded
 menu:
   sidebar:
     parent: "administration"

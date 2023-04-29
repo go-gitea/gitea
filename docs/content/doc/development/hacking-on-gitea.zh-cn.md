@@ -5,6 +5,8 @@ slug: "hacking-on-gitea"
 weight: 10
 toc: false
 draft: false
+aliases:
+  - /zh-cn/hacking-on-gitea
 menu:
   sidebar:
     parent: "development"

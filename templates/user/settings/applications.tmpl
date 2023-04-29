@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings applications">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings applications")}}
+	<div class="user-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "settings.manage_access_token"}}
 		</h4>
@@ -30,7 +27,7 @@
 								</ul>
 							</details>
 							<div class="activity meta">
-								<i>{{$.locale.Tr "settings.add_on"}} <span>{{template "shared/datetime/short" (dict "Datetime" .CreatedUnix.FormatLong "Fallback" .CreatedUnix.FormatShort)}}</span> — {{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{template "shared/datetime/short" (dict "Datetime" .UpdatedUnix.FormatLong "Fallback" .UpdatedUnix.FormatShort)}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{$.locale.Tr "settings.add_on"}} <span>{{DateTime "short" .CreatedUnix}}</span> — {{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
 							</div>
 						</div>
 					</div>
@@ -266,28 +263,16 @@
 			{{template "user/settings/applications_oauth2" .}}
 		{{end}}
 	</div>
-</div>
 
-<div class="ui small basic delete modal" id="delete-token">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal" id="delete-token">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.access_token_deletion"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "settings.access_token_deletion_desc"}}</p>
 	</div>
-
-	<div class="actions">{{/* TODO: Convert to base/delete_modal_actions.tmpl */}}
-		<button class="ui green basic inverted cancel button">
-			{{svg "octicon-x"}}
-			{{.locale.Tr "settings.access_token_deletion_cancel_action"}}
-		</button>
-		<button class="ui red basic inverted ok button">
-			{{svg "octicon-check"}}
-			{{.locale.Tr "settings.access_token_deletion_confirm_action"}}
-		</button>
-	</div>
+	{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonColors" "yellow")}}
 </div>
 
-
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}

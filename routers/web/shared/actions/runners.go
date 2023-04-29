@@ -10,7 +10,6 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -18,8 +17,8 @@ import (
 	"code.gitea.io/gitea/services/forms"
 )
 
-// RunnersList render common runners list page
-func RunnersList(ctx *context.Context, tplName base.TplName, opts actions_model.FindRunnerOptions) {
+// RunnersList prepares data for runners list
+func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions) {
 	count, err := actions_model.CountRunners(ctx, opts)
 	if err != nil {
 		ctx.ServerError("CountRunners", err)
@@ -58,13 +57,12 @@ func RunnersList(ctx *context.Context, tplName base.TplName, opts actions_model.
 	ctx.Data["RunnerRepoID"] = opts.RepoID
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
-	ctx.Data["Page"] = pager
 
-	ctx.HTML(http.StatusOK, tplName)
+	ctx.Data["Page"] = pager
 }
 
-// RunnerDetails render runner details page
-func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerID, ownerID, repoID int64) {
+// RunnerDetails prepares data for runners edit page
+func RunnerDetails(ctx *context.Context, page int, runnerID, ownerID, repoID int64) {
 	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
 	if err != nil {
 		ctx.ServerError("GetRunnerByID", err)
@@ -111,8 +109,6 @@ func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerI
 	ctx.Data["Tasks"] = tasks
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	ctx.Data["Page"] = pager
-
-	ctx.HTML(http.StatusOK, tplName)
 }
 
 // RunnerDetailsEditPost response for edit runner details

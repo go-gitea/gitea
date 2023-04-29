@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}}{{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
 	{{if .ManifestData}}<link rel="manifest" href="data:{{.ManifestData}}">{{end}}
-	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
+	{{if ThemeColorMetaTag}}<meta name="theme-color" content="{{ThemeColorMetaTag}}">{{end}}
 	<meta name="default-theme" content="{{DefaultTheme}}">
 	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}{{MetaAuthor}}{{end}}">
 	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}{{MetaDescription}}{{end}}">
@@ -30,12 +30,12 @@
 		</style>
 	</noscript>
 {{if .PageIsUserProfile}}
-	<meta property="og:title" content="{{.Owner.DisplayName}}">
+	<meta property="og:title" content="{{.ContextUser.DisplayName}}">
 	<meta property="og:type" content="profile">
-	<meta property="og:image" content="{{.Owner.AvatarLink $.Context}}">
-	<meta property="og:url" content="{{.Owner.HTMLURL}}">
-	{{if .Owner.Description}}
-		<meta property="og:description" content="{{.Owner.Description}}">
+	<meta property="og:image" content="{{.ContextUser.AvatarLink $.Context}}">
+	<meta property="og:url" content="{{.ContextUser.HTMLURL}}">
+	{{if .ContextUser.Description}}
+		<meta property="og:description" content="{{.ContextUser.Description}}">
 	{{end}}
 {{else if .Repository}}
 	{{if .Issue}}

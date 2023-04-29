@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings edit">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings edit")}}
+	<div class="repo-setting-content">
 		{{if .Repository.IsArchived}}
 			<div class="ui warning message">
 				{{.locale.Tr "repo.settings.archive.branchsettings_unavailable"}}
@@ -94,17 +90,16 @@
 			{{end}}
 		{{end}}
 	</div>
-</div>
 
-<div class="ui small basic delete modal">
-	<div class="ui header">
-		{{svg "octicon-trash" 16 "gt-mr-2"}}
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
+		{{svg "octicon-trash"}}
 		{{.locale.Tr "repo.settings.protected_branch_deletion"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "repo.settings.protected_branch_deletion_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
-{{template "base/footer" .}}
+{{template "repo/settings/layout_footer" .}}

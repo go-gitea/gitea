@@ -47,7 +47,7 @@ const CookieNameFlash = "gitea_flash"
 
 // Render represents a template render
 type Render interface {
-	TemplateLookup(tmpl string) (*template.Template, error)
+	TemplateLookup(tmpl string) (templates.TemplateExecutor, error)
 	HTML(w io.Writer, status int, name string, data interface{}) error
 }
 
@@ -301,7 +301,7 @@ func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 
 		// it's safe to show internal error to admin users, and it helps
 		if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
-			ctx.Data["ErrorMsg"] = logErr
+			ctx.Data["ErrorMsg"] = fmt.Sprintf("%s, %s", logMsg, logErr)
 		}
 	}
 
@@ -446,6 +446,17 @@ func (ctx *Context) JSON(status int, content interface{}) {
 	}
 }
 
+func removeSessionCookieHeader(w http.ResponseWriter) {
+	cookies := w.Header()["Set-Cookie"]
+	w.Header().Del("Set-Cookie")
+	for _, cookie := range cookies {
+		if strings.HasPrefix(cookie, setting.SessionConfig.CookieName+"=") {
+			continue
+		}
+		w.Header().Add("Set-Cookie", cookie)
+	}
+}
+
 // Redirect redirects the request
 func (ctx *Context) Redirect(location string, status ...int) {
 	code := http.StatusSeeOther
@@ -453,6 +464,15 @@ func (ctx *Context) Redirect(location string, status ...int) {
 		code = status[0]
 	}
 
+	if strings.Contains(location, "://") || strings.HasPrefix(location, "//") {
+		// Some browsers (Safari) have buggy behavior for Cookie + Cache + External Redirection, eg: /my-path => https://other/path
+		// 1. the first request to "/my-path" contains cookie
+		// 2. some time later, the request to "/my-path" doesn't contain cookie (caused by Prevent web tracking)
+		// 3. Gitea's Sessioner doesn't see the session cookie, so it generates a new session id, and returns it to browser
+		// 4. then the browser accepts the empty session, then the user is logged out
+		// So in this case, we should remove the session cookie from the response header
+		removeSessionCookieHeader(ctx.Resp)
+	}
 	http.Redirect(ctx.Resp, ctx.Req, location, code)
 }
 
@@ -741,8 +761,7 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 
 			ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
 			ctx.Data["ShowMilestonesDashboardPage"] = setting.Service.ShowMilestonesDashboardPage
-			ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
-			ctx.Data["ShowFooterVersion"] = setting.ShowFooterVersion
+			ctx.Data["ShowFooterVersion"] = setting.Other.ShowFooterVersion
 
 			ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
 			ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn

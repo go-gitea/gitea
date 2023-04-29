@@ -97,16 +97,16 @@
 								{{else}}
 									{{svg "octicon-calendar"}}
 									{{if .DeadlineString}}
-										<span {{if .IsOverdue}}class="overdue"{{end}}>{{template "shared/datetime/short" (dict "Datetime" .DeadlineString "Fallback" .DeadlineString)}}</span>
+										<span {{if .IsOverdue}}class="overdue"{{end}}>{{DateTime "short" .DeadlineString}}</span>
 									{{else}}
 										{{$.locale.Tr "repo.milestones.no_due_date"}}
 									{{end}}
 								{{end}}
 								<span class="issue-stats">
 									{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
-									{{.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
+									{{$.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
 									{{svg "octicon-check" 16 "gt-mr-3"}}
-									{{.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+									{{$.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
 									{{if .TotalTrackedTime}}
 										{{svg "octicon-clock"}} {{.TotalTrackedTime|Sec2Time}}
 									{{end}}
