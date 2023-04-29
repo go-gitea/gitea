@@ -726,8 +726,9 @@ a.label,
 }
 
 /* fix button enlarged vertically by svg icon */
-.ui.action.input .button:has(svg),
-.ui.search.input .button:has(svg) {
+/* TODO: change to just `.small.button:has(svg)` but may have global side effects */
+.ui.action.input .small.button:has(svg),
+.ui.search.input .small.button:has(svg) {
   padding-top: 7px !important;
   padding-bottom: 7px !important;
 }
