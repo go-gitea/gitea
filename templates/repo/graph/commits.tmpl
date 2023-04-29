@@ -71,7 +71,7 @@
 							{{$userName}}
 						{{end}}
 					</span>
-					<span class="time gt-df gt-ac">{{$commit.Date}}</span>
+					<span class="time gt-df gt-ac">{{DateTime "full" $commit.Date}}</span>
 				{{end}}
 			</li>
 		{{end}}
