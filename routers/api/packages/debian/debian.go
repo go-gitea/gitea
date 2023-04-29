@@ -91,15 +91,15 @@ func GetRepositoryFileByHash(ctx *context.Context) {
 		return
 	}
 
-	algorithmn := strings.ToLower(ctx.Params("algorithmn"))
-	if algorithmn == "md5sum" {
-		algorithmn = "md5"
+	algorithm := strings.ToLower(ctx.Params("algorithm"))
+	if algorithm == "md5sum" {
+		algorithm = "md5"
 	}
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		VersionID:      pv.ID,
 		Hash:           strings.ToLower(ctx.Params("hash")),
-		HashAlgorithmn: algorithmn,
+		HashAlgorithmn: algorithm,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -231,7 +231,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)

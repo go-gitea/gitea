@@ -277,10 +277,10 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 			r.Get("/repository.key", debian.GetRepositoryKey)
 			r.Group("/dists/{distribution}", func() {
 				r.Get("/{filename}", debian.GetRepositoryFile)
-				r.Get("/by-hash/{algorithmn}/{hash}", debian.GetRepositoryFileByHash)
+				r.Get("/by-hash/{algorithm}/{hash}", debian.GetRepositoryFileByHash)
 				r.Group("/{component}/{architecture}", func() {
 					r.Get("/{filename}", debian.GetRepositoryFile)
-					r.Get("/by-hash/{algorithmn}/{hash}", debian.GetRepositoryFileByHash)
+					r.Get("/by-hash/{algorithm}/{hash}", debian.GetRepositoryFileByHash)
 				})
 			})
 			r.Group("/pool/{distribution}/{component}", func() {

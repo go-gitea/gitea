@@ -60,7 +60,7 @@ apt update
 
 ## Publish a package
 
-To publish a Debian package (`*.deb`), perform a HTTP PUT operation with the package content in the request body.
+To publish a Debian package (`*.deb`), perform a HTTP `PUT` operation with the package content in the request body.
 
 ```
 PUT https://gitea.example.com/api/packages/{owner}/debian/pool/{distribution}/{component}/upload
@@ -89,11 +89,11 @@ The server reponds with the following HTTP Status codes.
 | ----------------- | ------- |
 | `201 Created`     | The package has been published. |
 | `400 Bad Request` | The package name, version, distribution, component or architecture are invalid. |
-| `409 Conflict`    | A package file with the same combination of parameters exist already in the package. |
+| `409 Conflict`    | A package file with the same combination of parameters exists already. |
 
 ## Delete a package
 
-To delete a Debian package perform a HTTP DELETE operation. This will delete the package version too if there is no file left.
+To delete a Debian package perform a HTTP `DELETE` operation. This will delete the package version too if there is no file left.
 
 ```
 DELETE https://gitea.example.com/api/packages/{owner}/debian/pool/{distribution}/{component}/{package_name}/{package_version}/{architecture}

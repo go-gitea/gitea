@@ -5,7 +5,7 @@
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.debian.registry"}}</label>
 				<div class="markup"><pre class="code-block"><code>sudo curl <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/debian/repository.key"></gitea-origin-url> -o /etc/apt/trusted.gpg.d/gitea-{{$.PackageDescriptor.Owner.Name}}.asc
-echo "deb <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/debian"></gitea-origin-url> &lt;distribution&gt; &lt;component&gt;" | sudo tee -a /etc/apt/sources.list.d/gitea.list
+echo "deb <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/debian"></gitea-origin-url> $distribution $component" | sudo tee -a /etc/apt/sources.list.d/gitea.list
 sudo apt update</code></pre></div>
 				<p>{{.locale.Tr "packages.debian.registry.info" | Safe}}</p>
 			</div>
@@ -27,15 +27,15 @@ sudo apt update</code></pre></div>
 			<tbody>
 				<tr>
 					<td class="collapsing"><h5>{{.locale.Tr "packages.debian.repository.distributions"}}</h5></td>
-					<td>{{Join .Distributions ", "}}</td>
+					<td>{{StringUtils.Join .Distributions ", "}}</td>
 				</tr>
 				<tr>
 					<td class="collapsing"><h5>{{.locale.Tr "packages.debian.repository.components"}}</h5></td>
-					<td>{{Join .Components ", "}}</td>
+					<td>{{StringUtils.Join .Components ", "}}</td>
 				</tr>
 				<tr>
 					<td class="collapsing"><h5>{{.locale.Tr "packages.debian.repository.architectures"}}</h5></td>
-					<td>{{Join .Architectures ", "}}</td>
+					<td>{{StringUtils.Join .Architectures ", "}}</td>
 				</tr>
 			</tbody>
 		</table>

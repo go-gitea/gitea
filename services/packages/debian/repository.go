@@ -243,12 +243,12 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 
 	w := io.MultiWriter(packagesContent, gzw, xzw)
 
-	addSeperator := false
+	addSeparator := false
 	for _, pfd := range pfds {
-		if addSeperator {
+		if addSeparator {
 			fmt.Fprintln(w)
 		}
-		addSeperator = true
+		addSeparator = true
 
 		fmt.Fprint(w, pfd.Properties.GetByName(debian_module.PropertyControl))
 

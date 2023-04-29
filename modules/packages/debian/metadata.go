@@ -32,11 +32,13 @@ const (
 
 	RepositoryPackage = "_debian"
 	RepositoryVersion = "_repository"
+
+	controlTar = "control.tar"
 )
 
 var (
 	ErrMissingControlFile     = util.NewInvalidArgumentErrorf("control file is missing")
-	ErrUnsupportedCompression = util.NewInvalidArgumentErrorf("unsupported compression algorithmn")
+	ErrUnsupportedCompression = util.NewInvalidArgumentErrorf("unsupported compression algorithm")
 	ErrInvalidName            = util.NewInvalidArgumentErrorf("package name is invalid")
 	ErrInvalidVersion         = util.NewInvalidArgumentErrorf("package version is invalid")
 	ErrInvalidArchitecture    = util.NewInvalidArgumentErrorf("package architecture is invalid")
@@ -76,9 +78,9 @@ func ParsePackage(r io.Reader) (*Package, error) {
 			return nil, err
 		}
 
-		if strings.HasPrefix(hd.Name, "control.tar") {
+		if strings.HasPrefix(hd.Name, controlTar) {
 			var inner io.Reader
-			switch hd.Name[11:] {
+			switch hd.Name[len(controlTar):] {
 			case "":
 				inner = arr
 			case ".gz":

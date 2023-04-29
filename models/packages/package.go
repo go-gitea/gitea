@@ -160,7 +160,7 @@ type Package struct {
 	Name             string `xorm:"NOT NULL"`
 	LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	SemverCompatible bool   `xorm:"NOT NULL DEFAULT false"`
-	IsInternal       bool   `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsInternal       bool   `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT false"`
 }
 
 // TryInsertPackage inserts a package. If a package exists already, ErrDuplicatePackage is returned
