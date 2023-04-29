@@ -263,7 +263,7 @@ type UpdateLanguageForm struct {
 
 // UpdateTimestampsForm form for updating profile
 type UpdateTimestampsForm struct {
-	ForceAbsoluteTimestamps bool
+	PreferAbsoluteTimestamps bool
 }
 
 // Validate validates the fields

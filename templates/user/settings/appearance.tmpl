@@ -74,9 +74,9 @@
 			<form class="ui form" action="{{.Link}}/timestamps" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="field">
-					<div class="ui checkbox" id="force-absolute-timestamps">
-						<label data-tooltip-content="{{.locale.Tr "settings.force_absolute_timestamps_popup"}}"><strong>{{.locale.Tr "settings.force_absolute_timestamps"}}</strong></label>
-						<input name="force_absolute_timestamps" type="checkbox" {{if .ForceAbsoluteTimestamps}}checked{{end}}>
+					<div class="ui checkbox" id="prefer-absolute-timestamps">
+						<label data-tooltip-content="{{.locale.Tr "settings.prefer_absolute_timestamps_popup"}}"><strong>{{.locale.Tr "settings.prefer_absolute_timestamps"}}</strong></label>
+						<input name="prefer_absolute_timestamps" type="checkbox" {{if .PreferAbsoluteTimestamps}}checked{{end}}>
 					</div>
 				</div>
 				<div class="field">

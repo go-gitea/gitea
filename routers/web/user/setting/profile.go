@@ -351,13 +351,13 @@ func Appearance(ctx *context.Context) {
 		return forms.IsUserHiddenCommentTypeGroupChecked(commentTypeGroup, hiddenCommentTypes)
 	}
 
-	val, err = user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsForceAbsoluteTimestamps, "false")
+	val, err = user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsPreferAbsoluteTimestamps, "false")
 	if err != nil {
 		ctx.ServerError("GetUserSetting", err)
 		return
 	}
-	forceAbsoluteTimestamps, _ := strconv.ParseBool(val) // we can safely ignore the failed conversion here
-	ctx.Data["ForceAbsoluteTimestamps"] = forceAbsoluteTimestamps
+	preferAbsoluteTimestamps, _ := strconv.ParseBool(val) // we can safely ignore the failed conversion here
+	ctx.Data["PreferAbsoluteTimestamps"] = preferAbsoluteTimestamps
 
 	ctx.HTML(http.StatusOK, tplSettingsAppearance)
 }
@@ -433,7 +433,7 @@ func UpdateUserHiddenComments(ctx *context.Context) {
 
 // UpdateUserTimestamps update a user's timestamp preferences
 func UpdateUserTimestamps(ctx *context.Context) {
-	err := user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsForceAbsoluteTimestamps, strconv.FormatBool(forms.UserTimestampsFromRequest(ctx).ForceAbsoluteTimestamps))
+	err := user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsPreferAbsoluteTimestamps, strconv.FormatBool(forms.UserTimestampsFromRequest(ctx).PreferAbsoluteTimestamps))
 	if err != nil {
 		ctx.ServerError("SetUserSetting", err)
 		return

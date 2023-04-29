@@ -16,8 +16,8 @@ import (
 )
 
 type PreferenceHelper struct {
-	GetSetting                      func(ctx context.Context, key string, def ...string) (string, error)
-	SettingsForceAbsoluteTimestamps string
+	GetSetting                       func(ctx context.Context, key string, def ...string) (string, error)
+	SettingsPreferAbsoluteTimestamps string
 }
 
 var preferenceHelper PreferenceHelper
@@ -148,13 +148,13 @@ func timeSinceUnix(then, now time.Time, lang translation.Locale) template.HTML {
 
 // TimeSince renders relative time HTML given a time.Time
 func TimeSince(ctx context.Context, then time.Time, lang translation.Locale) template.HTML {
-	// if user forces absolute timestamps, use the full time
-	val, err := preferenceHelper.GetSetting(ctx, preferenceHelper.SettingsForceAbsoluteTimestamps, "false")
+	// if user prefers absolute timestamps, use the full time
+	val, err := preferenceHelper.GetSetting(ctx, preferenceHelper.SettingsPreferAbsoluteTimestamps, "false")
 	if err != nil {
 		log.Error("GetSetting %w", err)
 	}
-	forceAbsoluteTimestamps, _ := strconv.ParseBool(val) // we can safely ignore the failed conversion here
-	if forceAbsoluteTimestamps {
+	preferAbsoluteTimestamps, _ := strconv.ParseBool(val) // we can safely ignore the failed conversion here
+	if preferAbsoluteTimestamps {
 		return DateTime("full", then, `class="time-since"`)
 	}
 

@@ -7,8 +7,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
-// UserTimestampsFromRequest parse the form to hidden comment types bitset
+// UserTimestampsFromRequest parses the form for the absolute timestamps preference
 func UserTimestampsFromRequest(ctx *context.Context) *UpdateTimestampsForm {
-	timestampsForm := &UpdateTimestampsForm{ForceAbsoluteTimestamps: ctx.FormBool("force_absolute_timestamps")}
+	timestampsForm := &UpdateTimestampsForm{PreferAbsoluteTimestamps: ctx.FormBool("prefer_absolute_timestamps")}
 	return timestampsForm
 }

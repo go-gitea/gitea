@@ -304,6 +304,6 @@ func Init() {
 			}
 			return user_model.GetUserSetting(giteaCtx.Doer.ID, key, def...)
 		},
-		SettingsForceAbsoluteTimestamps: user_model.SettingsForceAbsoluteTimestamps,
+		SettingsPreferAbsoluteTimestamps: user_model.SettingsPreferAbsoluteTimestamps,
 	})
 }
