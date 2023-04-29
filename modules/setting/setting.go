@@ -136,7 +136,7 @@ func forcePathSeparator(path string) {
 // This check is ignored under Windows since SSH remote login is not the main
 // method to login on Windows.
 func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
-	if IsWindows || SSH.StartBuiltinServer || ignoreCheckRunUser {
+	if IsWindows || SSH.StartBuiltinServer {
 		return "", true
 	}
 
@@ -260,7 +260,7 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 	IsProd = strings.EqualFold(RunMode, "prod")
 	// Does not check run user when the install lock is off.
 	installLock := rootCfg.Section("security").Key("INSTALL_LOCK").MustBool(false)
-	if installLock {
+	if installLock && !ignoreCheckRunUser {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
 		if !match {
 			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)
