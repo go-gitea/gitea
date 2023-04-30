@@ -209,13 +209,13 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 				t.Run("Git", func(t *testing.T) {
 					t.Run("Entry", func(t *testing.T) {
 						defer tests.PrintCurrentTest(t)()
-	
+
 						content := readGitContent(t, cargo_service.BuildPackagePath(packageName))
-	
+
 						var entry cargo_service.IndexVersionEntry
 						err := json.Unmarshal([]byte(content), &entry)
 						assert.NoError(t, err)
-	
+
 						assert.Equal(t, packageName, entry.Name)
 						assert.Equal(t, packageVersion, entry.Version)
 						assert.Equal(t, pb.HashSHA256, entry.FileChecksum)
@@ -233,13 +233,13 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 						assert.Equal(t, "https://gitea.io/user/_cargo-index", *dep.Registry)
 						assert.Nil(t, dep.Package)
 					})
-	
+
 					t.Run("Rebuild", func(t *testing.T) {
 						defer tests.PrintCurrentTest(t)()
-	
+
 						err := cargo_service.RebuildIndex(db.DefaultContext, user, user)
 						assert.NoError(t, err)
-	
+
 						_ = readGitContent(t, cargo_service.BuildPackagePath(packageName))
 					})
 				})
@@ -250,11 +250,11 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 
 						req := NewRequest(t, "GET", root+"/"+cargo_service.BuildPackagePath(packageName))
 						resp := MakeRequest(t, req, http.StatusOK)
-	
+
 						var entry cargo_service.IndexVersionEntry
 						err := json.Unmarshal(resp.Body.Bytes(), &entry)
 						assert.NoError(t, err)
-	
+
 						assert.Equal(t, packageName, entry.Name)
 						assert.Equal(t, packageVersion, entry.Version)
 						assert.Equal(t, pb.HashSHA256, entry.FileChecksum)
