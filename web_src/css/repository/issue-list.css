@@ -2,7 +2,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 1em;
+  gap: 1rem;
 }
 
 .issue-list-toolbar-left {
