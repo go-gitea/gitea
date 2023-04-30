@@ -130,15 +130,6 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	c.Data["branch_status_check_contexts"] = contexts
-	c.Data["is_context_required"] = func(context string) bool {
-		for _, c := range rule.StatusCheckContexts {
-			if c == context {
-				return true
-			}
-		}
-		return false
-	}
-
 	if c.Repo.Owner.IsOrganization() {
 		teams, err := organization.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c.Repo.Repository.ID, perm.AccessModeRead)
 		if err != nil {
@@ -352,7 +343,7 @@ func RenameBranchPost(ctx *context.Context) {
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.GetErrMsg())
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 		return
 	}
 
@@ -364,16 +355,16 @@ func RenameBranchPost(ctx *context.Context) {
 
 	if msg == "target_exist" {
 		ctx.Flash.Error(ctx.Tr("repo.settings.rename_branch_failed_exist", form.To))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 		return
 	}
 
 	if msg == "from_not_exist" {
 		ctx.Flash.Error(ctx.Tr("repo.settings.rename_branch_failed_not_exist", form.From))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.rename_branch_success", form.From, form.To))
-	ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+	ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 }

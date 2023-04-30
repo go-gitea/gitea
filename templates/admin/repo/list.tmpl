@@ -1,4 +1,4 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.repos.repo_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
@@ -33,6 +33,7 @@
 							{{.locale.Tr "admin.repos.size"}}
 							{{SortArrow "size" "reversesize" $.SortType false}}
 						</th>
+						<th>{{.locale.Tr "admin.auths.updated"}}</th>
 						<th>{{.locale.Tr "admin.users.created"}}</th>
 						<th>{{.locale.Tr "admin.notices.op"}}</th>
 					</tr>
@@ -80,6 +81,7 @@
 							<td>{{.NumForks}}</td>
 							<td>{{.NumIssues}}</td>
 							<td>{{FileSize .Size}}</td>
+							<td>{{DateTime "short" .UpdatedUnix}}</td>
 							<td>{{DateTime "short" .CreatedUnix}}</td>
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trash"}}</a></td>
 						</tr>

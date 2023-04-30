@@ -1,4 +1,4 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.repos.unadopted"}}
@@ -18,47 +18,44 @@
 		{{if .search}}
 			<div class="ui attached segment settings">
 				{{if .Dirs}}
-					<div class="ui middle aligned divided list">
+					<div class="ui aligned divided list">
 						{{range $dirI, $dir := .Dirs}}
-							<div class="item">
-								<div class="content">
-									<span class="icon">{{svg "octicon-file-directory-fill"}}</span>
-									<span class="name">{{$dir}}</span>
-									<div class="right floated content">
-										<button class="ui button submit tiny green adopt show-modal" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{$.locale.Tr "repo.adopt_preexisting_label"}}</span></button>
-										<div class="ui g-modal-confirm modal" id="adopt-unadopted-modal-{{$dirI}}">
-											<div class="header">
-												<span class="label">{{$.locale.Tr "repo.adopt_preexisting"}}</span>
-											</div>
-											<div class="content">
-												<p>{{$.locale.Tr "repo.adopt_preexisting_content" $dir}}</p>
-											</div>
-											<form class="ui form" method="POST" action="{{AppSubUrl}}/admin/repos/unadopted">
-												{{$.CsrfTokenHtml}}
-												<input type="hidden" name="id" value="{{$dir}}">
-												<input type="hidden" name="action" value="adopt">
-												<input type="hidden" name="q" value="{{$.Keyword}}">
-												<input type="hidden" name="page" value="{{$.CurrentPage}}">
-												{{template "base/modal_actions_confirm" (dict "locale" $.locale)}}
-											</form>
+							<div class="item gt-df gt-ac">
+								<span class="gt-f1"> {{svg "octicon-file-directory-fill"}} {{$dir}}</span>
+								<div>
+									<button class="ui button green show-modal gt-p-3" data-modal="#adopt-unadopted-modal-{{$dirI}}">{{svg "octicon-plus"}} {{$.locale.Tr "repo.adopt_preexisting_label"}}</button>
+									<div class="ui g-modal-confirm modal" id="adopt-unadopted-modal-{{$dirI}}">
+										<div class="header">
+											<span class="label">{{$.locale.Tr "repo.adopt_preexisting"}}</span>
 										</div>
-										<button class="ui button submit tiny red delete show-modal" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{$.locale.Tr "repo.delete_preexisting_label"}}</span></button>
-										<div class="ui g-modal-confirm modal" id="delete-unadopted-modal-{{$dirI}}">
-											<div class="header">
-												<span class="label">{{$.locale.Tr "repo.delete_preexisting"}}</span>
-											</div>
-											<div class="content">
-												<p>{{$.locale.Tr "repo.delete_preexisting_content" $dir}}</p>
-											</div>
-											<form class="ui form" method="POST" action="{{AppSubUrl}}/admin/repos/unadopted">
-												{{$.CsrfTokenHtml}}
-												<input type="hidden" name="id" value="{{$dir}}">
-												<input type="hidden" name="action" value="delete">
-												<input type="hidden" name="q" value="{{$.Keyword}}">
-												<input type="hidden" name="page" value="{{$.CurrentPage}}">
-												{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonColors" "yellow")}}
-											</form>
+										<div class="content">
+											<p>{{$.locale.Tr "repo.adopt_preexisting_content" $dir}}</p>
 										</div>
+										<form class="ui form" method="POST" action="{{AppSubUrl}}/admin/repos/unadopted">
+											{{$.CsrfTokenHtml}}
+											<input type="hidden" name="id" value="{{$dir}}">
+											<input type="hidden" name="action" value="adopt">
+											<input type="hidden" name="q" value="{{$.Keyword}}">
+											<input type="hidden" name="page" value="{{$.CurrentPage}}">
+											{{template "base/modal_actions_confirm" (dict "locale" $.locale)}}
+										</form>
+									</div>
+									<button class="ui button red show-modal gt-p-3" data-modal="#delete-unadopted-modal-{{$dirI}}">{{svg "octicon-x"}} {{$.locale.Tr "repo.delete_preexisting_label"}}</button>
+									<div class="ui g-modal-confirm modal" id="delete-unadopted-modal-{{$dirI}}">
+										<div class="header">
+											<span class="label">{{$.locale.Tr "repo.delete_preexisting"}}</span>
+										</div>
+										<div class="content">
+											<p>{{$.locale.Tr "repo.delete_preexisting_content" $dir}}</p>
+										</div>
+										<form class="ui form" method="POST" action="{{AppSubUrl}}/admin/repos/unadopted">
+											{{$.CsrfTokenHtml}}
+											<input type="hidden" name="id" value="{{$dir}}">
+											<input type="hidden" name="action" value="delete">
+											<input type="hidden" name="q" value="{{$.Keyword}}">
+											<input type="hidden" name="page" value="{{$.CurrentPage}}">
+											{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonColors" "yellow")}}
+										</form>
 									</div>
 								</div>
 							</div>
