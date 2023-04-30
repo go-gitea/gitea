@@ -97,9 +97,9 @@ func GetRepositoryFileByHash(ctx *context.Context) {
 	}
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
-		VersionID:      pv.ID,
-		Hash:           strings.ToLower(ctx.Params("hash")),
-		HashAlgorithmn: algorithm,
+		VersionID:     pv.ID,
+		Hash:          strings.ToLower(ctx.Params("hash")),
+		HashAlgorithm: algorithm,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
