@@ -161,7 +161,7 @@
 
 .repository .ui.tabs.divider {
   margin-top: -1px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .repository #clone-panel #repo-clone-url {
@@ -3288,18 +3288,6 @@ td.blob-excerpt {
   .repository.file.list #repo-files-table .entry span.commit-summary,
   .repository.file.list #repo-files-table .commit-list span.commit-summary {
     display: none !important;
-  }
-  .issue-list-headers.ui[class].grid > div:nth-child(1) {
-    order: 1;
-    width: 50%;
-  }
-  .issue-list-headers.ui[class].grid > div:nth-child(2) {
-    order: 3;
-    width: 100%;
-  }
-  .issue-list-headers.ui[class].grid > div.column:not(.row):nth-child(3) {
-    order: 2;
-    width: 50%;
   }
   .repository.view.issue .comment-list .timeline,
   .repository.view.issue .comment-list .timeline-item {

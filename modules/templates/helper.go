@@ -10,7 +10,6 @@ import (
 	"html"
 	"html/template"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
@@ -26,12 +25,9 @@ import (
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
-// Used from static.go && dynamic.go
-var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
-
 // NewFuncMap returns functions for injecting to templates
-func NewFuncMap() []template.FuncMap {
-	return []template.FuncMap{map[string]interface{}{
+func NewFuncMap() template.FuncMap {
+	return map[string]interface{}{
 		"DumpVar": dumpVar,
 
 		// -----------------------------------------------------------------
@@ -192,7 +188,7 @@ func NewFuncMap() []template.FuncMap {
 
 		"FilenameIsImage": FilenameIsImage,
 		"TabSizeClass":    TabSizeClass,
-	}}
+	}
 }
 
 // Safe render raw as HTML
