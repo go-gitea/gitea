@@ -32,6 +32,11 @@ func AddActionScheduleTable(x *xorm.Engine) error {
 		RepoID     int64
 		ScheduleID int64
 		Spec       string
+		Next       timeutil.TimeStamp `xorm:"index"`
+		Prev       timeutil.TimeStamp
+
+		Created timeutil.TimeStamp `xorm:"created"`
+		Updated timeutil.TimeStamp `xorm:"updated"`
 	}
 
 	return x.Sync(

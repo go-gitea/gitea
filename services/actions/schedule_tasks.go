@@ -11,8 +11,8 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/gogs/cron"
 	"github.com/nektos/act/pkg/jobparser"
 )
 
@@ -21,13 +21,15 @@ func StartScheduleTasks(ctx context.Context) error {
 	return startTasks(ctx)
 }
 
-// startTasks retrieves all specs in pages of size 50 and creates a schedule task for each spec
-// whose schedule is due at the current minute.
+// startTasks retrieves specifications in pages, creates a schedule task for each specification,
+// and updates the specification's next run time and previous run time.
+// The function returns an error if there's an issue with finding or updating the specifications.
 func startTasks(ctx context.Context) error {
 	// Set the page size
 	pageSize := 50
 
 	// Retrieve specs in pages until all specs have been retrieved
+	now := time.Now()
 	for page := 1; ; page++ {
 		// Retrieve the specs for the current page
 		specs, _, err := actions_model.FindSpecs(ctx, actions_model.FindSpecOptions{
@@ -35,26 +37,30 @@ func startTasks(ctx context.Context) error {
 				Page:     page,
 				PageSize: pageSize,
 			},
+			Next: now.Unix(),
 		})
 		if err != nil {
 			return fmt.Errorf("find specs: %w", err)
 		}
 
-		// Check if the schedule for each spec is due at the current minute
-		now := time.Now().Truncate(time.Minute)
+		// Loop through each spec and create a schedule task for it
 		for _, row := range specs {
-			schedule, err := cron.Parse(row.Spec)
+			if err := CreateScheduleTask(ctx, row.Schedule); err != nil {
+				log.Error("CreateScheduleTask: %v", err)
+			}
+
+			// Parse the spec
+			schedule, err := row.Parse()
 			if err != nil {
-				// Skip specs with invalid schedules
-				log.Error("ParseSpec: %v", err)
+				log.Error("Parse: %v", err)
 				continue
 			}
 
-			// Create a schedule task for specs whose schedule is due at the current minute
-			if schedule.Next(now.Add(-1)).Equal(now) {
-				if err := CreateScheduleTask(ctx, row.Schedule, row.Spec); err != nil {
-					log.Error("CreateScheduleTask: %v", err)
-				}
+			// Update the spec's next run time and previous run time
+			row.Prev = row.Next
+			row.Next = timeutil.TimeStamp(schedule.Next(now.Add(1 * time.Minute)).Unix())
+			if err := actions_model.UpdateScheduleSpec(ctx, row, "prev", "next"); err != nil {
+				log.Error("UpdateScheduleSpec: %v", err)
 			}
 		}
 
@@ -63,12 +69,13 @@ func startTasks(ctx context.Context) error {
 			break
 		}
 	}
+
 	return nil
 }
 
-// CreateScheduleTask creates a scheduled task from a cron action schedule and a spec string.
+// CreateScheduleTask creates a scheduled task from a cron action schedule.
 // It creates an action run based on the schedule, inserts it into the database, and creates commit statuses for each job.
-func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule, spec string) error {
+func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule) error {
 	// Create a new action run based on the schedule
 	run := &actions_model.ActionRun{
 		Title:         cron.Title,

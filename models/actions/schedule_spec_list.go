@@ -32,6 +32,16 @@ func (specs SpecList) LoadSchedules() error {
 	for _, spec := range specs {
 		spec.Schedule = schedules[spec.ScheduleID]
 	}
+
+	repoIDs := specs.GetRepoIDs()
+	repos, err := GetReposMapByIDs(repoIDs)
+	if err != nil {
+		return err
+	}
+	for _, spec := range specs {
+		spec.Repo = repos[spec.RepoID]
+	}
+
 	return nil
 }
 
@@ -58,12 +68,17 @@ func (specs SpecList) LoadRepos() error {
 type FindSpecOptions struct {
 	db.ListOptions
 	RepoID int64
+	Next   int64
 }
 
 func (opts FindSpecOptions) toConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+
+	if opts.Next > 0 {
+		cond = cond.And(builder.Lte{"next": opts.Next})
 	}
 
 	return cond

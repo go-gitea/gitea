@@ -5,12 +5,15 @@ package actions
 
 import (
 	"context"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+
+	"github.com/gogs/cron"
 )
 
 // ActionSchedule represents a schedule of a workflow file
@@ -43,36 +46,55 @@ func GetSchedulesMapByIDs(ids []int64) (map[int64]*ActionSchedule, error) {
 	return schedules, db.GetEngine(db.DefaultContext).In("id", ids).Find(&schedules)
 }
 
+// GetReposMapByIDs returns the repos by given id slice.
+func GetReposMapByIDs(ids []int64) (map[int64]*repo_model.Repository, error) {
+	repos := make(map[int64]*repo_model.Repository, len(ids))
+	return repos, db.GetEngine(db.DefaultContext).In("id", ids).Find(&repos)
+}
+
 // CreateScheduleTask creates new schedule task.
 func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
+	// Return early if there are no rows to insert
 	if len(rows) == 0 {
 		return nil
 	}
 
+	// Begin transaction
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
+	// Loop through each schedule row
 	for _, row := range rows {
-		// create new schedule
+		// Create new schedule row
 		if err = db.Insert(ctx, row); err != nil {
 			return err
 		}
 
-		// create new schedule spec
+		// Loop through each schedule spec and create a new spec row
+		now := time.Now()
 		for _, spec := range row.Specs {
+			// Parse the spec and check for errors
+			schedule, err := cron.Parse(spec)
+			if err != nil {
+				continue // skip to the next spec if there's an error
+			}
+
+			// Insert the new schedule spec row
 			if err = db.Insert(ctx, &ActionScheduleSpec{
 				RepoID:     row.RepoID,
 				ScheduleID: row.ID,
 				Spec:       spec,
+				Next:       timeutil.TimeStamp(schedule.Next(now).Unix()),
 			}); err != nil {
 				return err
 			}
 		}
 	}
 
+	// Commit transaction
 	return committer.Commit()
 }
 
