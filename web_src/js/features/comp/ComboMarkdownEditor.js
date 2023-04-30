@@ -8,6 +8,7 @@ import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {emojiString} from '../emoji.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
 import {matchEmoji, matchMention} from '../../utils/match.js';
+import {svg} from '../../svg.js';
 
 let elementIdCounter = 0;
 
@@ -218,7 +219,7 @@ class ComboMarkdownEditor {
           cm.replaceSelection(`\n- [ ] ${cm.getSelection()}`);
           cm.focus();
         },
-        className: 'fa fa-square-o',
+        icon: svg('gitea-empty-checkbox'),
         title: 'Add Checkbox (empty)',
       },
       'gitea-checkbox-checked': {
@@ -227,7 +228,7 @@ class ComboMarkdownEditor {
           cm.replaceSelection(`\n- [x] ${cm.getSelection()}`);
           cm.focus();
         },
-        className: 'fa fa-check-square-o',
+        icon: svg('octicon-checkbox'),
         title: 'Add Checkbox (checked)',
       },
       'gitea-switch-to-textarea': {
@@ -235,7 +236,7 @@ class ComboMarkdownEditor {
           this.userPreferredEditor = 'textarea';
           this.switchToTextarea();
         },
-        className: 'fa fa-file',
+        icon: svg('octicon-file'),
         title: 'Revert to simple textarea',
       },
       'gitea-code-inline': {
@@ -249,7 +250,7 @@ class ComboMarkdownEditor {
           }
           cm.focus();
         },
-        className: 'fa fa-angle-right',
+        icon: svg('octicon-chevron-right'),
         title: 'Add Inline Code',
       }
     };
