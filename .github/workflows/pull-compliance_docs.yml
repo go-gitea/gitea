@@ -1,0 +1,22 @@
+name: Compliance testing for documentation
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "*.md"
+
+jobs:
+  compliance-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup node
+        uses: actions/setup-node@v2
+        with:
+          node-version: 18
+      - name: install dependencies
+        run: make deps-frontend
+      - name: lint markdown
+        run: make lint-md
