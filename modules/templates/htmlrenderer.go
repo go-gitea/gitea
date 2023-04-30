@@ -88,7 +88,7 @@ func (h *HTMLRender) CompileTemplates() error {
 	return nil
 }
 
-// HTMLRenderer returns the globally shared html renderer
+// HTMLRenderer init once and returns the globally shared html renderer
 func HTMLRenderer() *HTMLRender {
 	htmlRenderOnce.Do(initHTMLRenderer)
 	return htmlRender
