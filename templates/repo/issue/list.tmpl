@@ -53,7 +53,7 @@
 					</div>
 
 					<!-- Milestone -->
-					<div class="ui {{if not .Milestones}}disabled{{end}} dropdown jump item">
+					<div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_milestone"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -63,9 +63,28 @@
 								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestone"}}">
 							</div>
-							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_milestone_no_select"}}</a>
-							{{range .Milestones}}
-								<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.Name}}</a>
+							<div class="divider"></div>
+							<a class="{{if not $.MilestoneID}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone=0&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_milestone_all"}}</a>
+							<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID -1}}active selected {{end}}{{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone=-1&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_milestone_none"}}</a>
+							{{if .OpenMilestones}}
+								<div class="divider"></div>
+								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_open"}}</div>
+								{{range .OpenMilestones}}
+								<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
+									{{svg "octicon-milestone" 16 "mr-2"}}
+									{{.Name}}
+								</a>
+								{{end}}
+							{{end}}
+							{{if .ClosedMilestones}}
+								<div class="divider"></div>
+								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_closed"}}</div>
+								{{range .ClosedMilestones}}
+								<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
+									{{svg "octicon-milestone" 16 "mr-2"}}
+									{{.Name}}
+								</a>
+								{{end}}
 							{{end}}
 						</div>
 					</div>
