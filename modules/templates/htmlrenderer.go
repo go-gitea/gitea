@@ -6,7 +6,6 @@ package templates
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -15,23 +14,28 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	texttemplate "text/template"
 
 	"code.gitea.io/gitea/modules/assetfs"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates/scopedtmpl"
 	"code.gitea.io/gitea/modules/util"
 )
 
-var rendererKey interface{} = "templatesHtmlRenderer"
-
 type TemplateExecutor scopedtmpl.TemplateExecutor
 
 type HTMLRender struct {
 	templates atomic.Pointer[scopedtmpl.ScopedTemplate]
 }
+
+var (
+	htmlRender     *HTMLRender
+	htmlRenderOnce sync.Once
+)
 
 var ErrTemplateNotInitialized = errors.New("template system is not initialized, check your log for errors")
 
@@ -55,14 +59,14 @@ func (h *HTMLRender) TemplateLookup(name string) (TemplateExecutor, error) {
 		return nil, ErrTemplateNotInitialized
 	}
 
-	return tmpls.Executor(name, NewFuncMap()[0])
+	return tmpls.Executor(name, NewFuncMap())
 }
 
 func (h *HTMLRender) CompileTemplates() error {
 	assets := AssetFS()
 	extSuffix := ".tmpl"
 	tmpls := scopedtmpl.NewScopedTemplate()
-	tmpls.Funcs(NewFuncMap()[0])
+	tmpls.Funcs(NewFuncMap())
 	files, err := ListWebTemplateAssetNames(assets)
 	if err != nil {
 		return nil
@@ -86,20 +90,21 @@ func (h *HTMLRender) CompileTemplates() error {
 	return nil
 }
 
-// HTMLRenderer returns the current html renderer for the context or creates and stores one within the context for future use
-func HTMLRenderer(ctx context.Context) (context.Context, *HTMLRender) {
-	if renderer, ok := ctx.Value(rendererKey).(*HTMLRender); ok {
-		return ctx, renderer
-	}
+// HTMLRenderer init once and returns the globally shared html renderer
+func HTMLRenderer() *HTMLRender {
+	htmlRenderOnce.Do(initHTMLRenderer)
+	return htmlRender
+}
 
+func initHTMLRenderer() {
 	rendererType := "static"
 	if !setting.IsProd {
 		rendererType = "auto-reloading"
 	}
-	log.Log(1, log.DEBUG, "Creating "+rendererType+" HTML Renderer")
+	log.Debug("Creating %s HTML Renderer", rendererType)
 
-	renderer := &HTMLRender{}
-	if err := renderer.CompileTemplates(); err != nil {
+	htmlRender = &HTMLRender{}
+	if err := htmlRender.CompileTemplates(); err != nil {
 		p := &templateErrorPrettier{assets: AssetFS()}
 		wrapFatal(p.handleFuncNotDefinedError(err))
 		wrapFatal(p.handleUnexpectedOperandError(err))
@@ -107,14 +112,14 @@ func HTMLRenderer(ctx context.Context) (context.Context, *HTMLRender) {
 		wrapFatal(p.handleGenericTemplateError(err))
 		log.Fatal("HTMLRenderer CompileTemplates error: %v", err)
 	}
+
 	if !setting.IsProd {
-		go AssetFS().WatchLocalChanges(ctx, func() {
-			if err := renderer.CompileTemplates(); err != nil {
+		go AssetFS().WatchLocalChanges(graceful.GetManager().ShutdownContext(), func() {
+			if err := htmlRender.CompileTemplates(); err != nil {
 				log.Error("Template error: %v\n%s", err, log.Stack(2))
 			}
 		})
 	}
-	return context.WithValue(ctx, rendererKey, renderer), renderer
 }
 
 func wrapFatal(msg string) {
