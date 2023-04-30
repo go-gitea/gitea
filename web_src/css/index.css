@@ -32,6 +32,7 @@
 @import "./repository.css";
 @import "./repository/release-tag.css";
 @import "./repository/issue-label.css";
+@import "./repository/issue-list.css";
 @import "./repository/list-header.css";
 @import "./editor.css";
 @import "./editor/combomarkdowneditor.css";
