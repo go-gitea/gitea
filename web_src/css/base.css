@@ -2051,6 +2051,13 @@ a.ui.label:hover {
   color: var(--color-text);
 }
 
+.ui.labels a.active.label:hover,
+a.ui.active.label:hover {
+  background: var(--color-active);
+  border-color: var(--color-active);
+  color: var(--color-text);
+}
+
 .ui.label > .detail .icons {
   margin-right: 0.25em;
 }
