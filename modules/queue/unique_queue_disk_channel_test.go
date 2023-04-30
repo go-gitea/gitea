@@ -4,8 +4,8 @@
 package queue
 
 import (
-	"os"
 	"fmt"
+	"os"
 	"strconv"
 	"sync"
 	"testing"
