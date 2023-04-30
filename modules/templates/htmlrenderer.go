@@ -32,8 +32,10 @@ type HTMLRender struct {
 	templates atomic.Pointer[scopedtmpl.ScopedTemplate]
 }
 
-var htmlRender *HTMLRender
-var htmlRenderOnce sync.Once
+var (
+	htmlRender     *HTMLRender
+	htmlRenderOnce sync.Once
+)
 
 var ErrTemplateNotInitialized = errors.New("template system is not initialized, check your log for errors")
 
