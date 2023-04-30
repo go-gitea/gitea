@@ -1,7 +1,7 @@
 <template>
   <div id="user-heatmap">
     <div class="total-contributions">
-      {{ sum }} contributions in the last 12 months
+      {{ locale.contributions_in_the_last_12_months }}
     </div>
     <calendar-heatmap
       :locale="locale"
@@ -41,15 +41,6 @@ export default {
     ],
     endDate: new Date(),
   }),
-  computed: {
-    sum() {
-      let s = 0;
-      for (let i = 0; i < this.values.length; i++) {
-        s += this.values[i].count;
-      }
-      return s;
-    }
-  },
   mounted() {
     // work around issue with first legend color being rendered twice and legend cut off
     const legend = document.querySelector('.vch__external-legend-wrapper');

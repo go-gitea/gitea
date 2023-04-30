@@ -59,12 +59,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 					return
 				}
 
-				http.Redirect(
-					w,
-					req,
-					u.String(),
-					http.StatusTemporaryRedirect,
-				)
+				http.Redirect(w, req, u.String(), http.StatusTemporaryRedirect)
 			})
 		}
 
@@ -122,10 +117,10 @@ func (d *dataStore) GetData() map[string]interface{} {
 	return *d
 }
 
-// Recovery returns a middleware that recovers from any panics and writes a 500 and a log if so.
+// RecoveryWith500Page returns a middleware that recovers from any panics and writes a 500 and a log if so.
 // This error will be created with the gitea 500 page.
-func Recovery(ctx goctx.Context) func(next http.Handler) http.Handler {
-	_, rnd := templates.HTMLRenderer(ctx)
+func RecoveryWith500Page(ctx goctx.Context) func(next http.Handler) http.Handler {
+	rnd := templates.HTMLRenderer()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			defer func() {
@@ -143,31 +138,29 @@ func Recovery(ctx goctx.Context) func(next http.Handler) http.Handler {
 						"locale":     lc,
 					}
 
-					user := context.GetContextUser(req)
+					// TODO: this recovery handler is usually called without Gitea's web context, so we shouldn't touch that context too much
+					// Otherwise, the 500 page may cause new panics, eg: cache.GetContextWithData, it makes the developer&users couldn't find the original panic
+					user := context.GetContextUser(req) // almost always nil
 					if user == nil {
 						// Get user from session if logged in - do not attempt to sign-in
 						user = auth.SessionUser(sessionStore)
-					}
-					if user != nil {
-						store["IsSigned"] = true
-						store["SignedUser"] = user
-						store["SignedUserID"] = user.ID
-						store["SignedUserName"] = user.Name
-						store["IsAdmin"] = user.IsAdmin
-					} else {
-						store["SignedUserID"] = int64(0)
-						store["SignedUserName"] = ""
 					}
 
 					httpcache.SetCacheControlInHeader(w.Header(), 0, "no-transform")
 					w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
-					if !setting.IsProd {
+					if !setting.IsProd || (user != nil && user.IsAdmin) {
 						store["ErrorMsg"] = combinedErr
 					}
+
+					defer func() {
+						if err := recover(); err != nil {
+							log.Error("HTML render in Recovery handler panics again: %v", err)
+						}
+					}()
 					err = rnd.HTML(w, http.StatusInternalServerError, "status/500", templates.BaseVars().Merge(store))
 					if err != nil {
-						log.Error("%v", err)
+						log.Error("HTML render in Recovery handler fails again: %v", err)
 					}
 				}
 			}()

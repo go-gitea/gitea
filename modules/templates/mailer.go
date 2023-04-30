@@ -6,16 +6,16 @@ package templates
 import (
 	"context"
 	"html/template"
-	"io/fs"
-	"os"
+	"regexp"
 	"strings"
 	texttmpl "text/template"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/watcher"
 )
+
+var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}\s*$`)
 
 // mailSubjectTextFuncMap returns functions for injecting to text templates, it's only used for mail subject
 func mailSubjectTextFuncMap() texttmpl.FuncMap {
@@ -58,58 +58,25 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 	bodyTemplates := template.New("")
 
 	subjectTemplates.Funcs(mailSubjectTextFuncMap())
-	for _, funcs := range NewFuncMap() {
-		bodyTemplates.Funcs(funcs)
-	}
+	bodyTemplates.Funcs(NewFuncMap())
 
+	assetFS := AssetFS()
 	refreshTemplates := func() {
-		for _, assetPath := range BuiltinAssetNames() {
-			if !strings.HasPrefix(assetPath, "mail/") {
-				continue
-			}
-
-			if !strings.HasSuffix(assetPath, ".tmpl") {
-				continue
-			}
-
-			content, err := BuiltinAsset(assetPath)
-			if err != nil {
-				log.Warn("Failed to read embedded %s template. %v", assetPath, err)
-				continue
-			}
-
-			assetName := strings.TrimPrefix(strings.TrimSuffix(assetPath, ".tmpl"), "mail/")
-
-			log.Trace("Adding built-in mailer template for %s", assetName)
-			buildSubjectBodyTemplate(subjectTemplates,
-				bodyTemplates,
-				assetName,
-				content)
+		assetPaths, err := ListMailTemplateAssetNames(assetFS)
+		if err != nil {
+			log.Error("Failed to list mail templates: %v", err)
+			return
 		}
 
-		if err := walkMailerTemplates(func(path, name string, d fs.DirEntry, err error) error {
+		for _, assetPath := range assetPaths {
+			content, layerName, err := assetFS.ReadLayeredFile(assetPath)
 			if err != nil {
-				return err
+				log.Warn("Failed to read mail template %s by %s: %v", assetPath, layerName, err)
+				continue
 			}
-			if d.IsDir() {
-				return nil
-			}
-
-			content, err := os.ReadFile(path)
-			if err != nil {
-				log.Warn("Failed to read custom %s template. %v", path, err)
-				return nil
-			}
-
-			assetName := strings.TrimSuffix(name, ".tmpl")
-			log.Trace("Adding mailer template for %s from %q", assetName, path)
-			buildSubjectBodyTemplate(subjectTemplates,
-				bodyTemplates,
-				assetName,
-				content)
-			return nil
-		}); err != nil && !os.IsNotExist(err) {
-			log.Warn("Error whilst walking mailer templates directories. %v", err)
+			tmplName := strings.TrimPrefix(strings.TrimSuffix(assetPath, ".tmpl"), "mail/")
+			log.Trace("Adding mail template %s: %s by %s", tmplName, assetPath, layerName)
+			buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, tmplName, content)
 		}
 	}
 
@@ -118,10 +85,7 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 	if !setting.IsProd {
 		// Now subjectTemplates and bodyTemplates are both synchronized
 		// thus it is safe to call refresh from a different goroutine
-		watcher.CreateWatcher(ctx, "Mailer Templates", &watcher.CreateWatcherOpts{
-			PathsCallback:   walkMailerTemplates,
-			BetweenCallback: refreshTemplates,
-		})
+		go assetFS.WatchLocalChanges(ctx, refreshTemplates)
 	}
 
 	return subjectTemplates, bodyTemplates

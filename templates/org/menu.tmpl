@@ -2,6 +2,9 @@
 	<div class="ui secondary stackable pointing menu">
 		<a class="{{if .PageIsViewRepositories}}active {{end}}item" href="{{$.Org.HomeLink}}">
 			{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
+			{{if .ContextUser.NumRepos}}
+				<div class="ui small label">{{.ContextUser.NumRepos}}</div>
+			{{end}}
 		</a>
 		{{if and .IsProjectEnabled .CanReadProjects}}
 		<a class="{{if .PageIsViewProjects}}active {{end}}item" href="{{$.Org.HomeLink}}/-/projects">
@@ -22,13 +25,13 @@
 			<a class="{{if $.PageIsOrgMembers}}active {{end}}item" href="{{$.OrgLink}}/members">
 				{{svg "octicon-person"}}&nbsp;{{$.locale.Tr "org.members"}}
 				{{if .NumMembers}}
-					<div class="ui primary label">{{.NumMembers}}</div>
+					<div class="ui small label">{{.NumMembers}}</div>
 				{{end}}
 			</a>
 			<a class="{{if $.PageIsOrgTeams}}active {{end}}item" href="{{$.OrgLink}}/teams">
 				{{svg "octicon-people"}}&nbsp;{{$.locale.Tr "org.teams"}}
 				{{if .NumTeams}}
-					<div class="ui primary label">{{.NumTeams}}</div>
+					<div class="ui small label">{{.NumTeams}}</div>
 				{{end}}
 			</a>
 		{{end}}

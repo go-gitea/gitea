@@ -189,13 +189,13 @@ function initRepoDiffShowMore() {
 }
 
 export function initRepoDiffView() {
+  initRepoDiffConversationForm();
   const diffFileList = $('#diff-file-list');
   if (diffFileList.length === 0) return;
   initDiffFileTree();
   initRepoDiffShowMore();
   initRepoDiffReviewButton();
   initRepoDiffFileViewToggle();
-  initRepoDiffConversationForm();
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();
 }

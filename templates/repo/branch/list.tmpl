@@ -5,8 +5,13 @@
 		{{template "base/alert" .}}
 		{{template "repo/sub_menu" .}}
 		{{if .DefaultBranchBranch}}
-			<h4 class="ui top attached header gt-mt-4">
+			<h4 class="ui top attached header">
 				{{.locale.Tr "repo.default_branch"}}
+				{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
+				<a role="button" class="right" href="{{.RepoLink}}/settings/branches" data-tooltip-content="{{.locale.Tr "repo.settings.branches.switch_default_branch"}}">
+					{{svg "octicon-arrow-switch"}}
+				</a>
+				{{end}}
 			</h4>
 
 			<div class="ui attached table segment">
@@ -25,6 +30,11 @@
 									<button class="ui basic jump button icon show-create-branch-modal" data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}" data-branch-from="{{$.DefaultBranch}}" data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}" data-modal="#create-branch-modal">
 										{{svg "octicon-git-branch"}}
 									</button>
+								{{end}}
+								{{if .EnableFeed}}
+									<a role="button" class="ui basic button icon" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranch}}">
+										{{svg "octicon-rss"}}
+									</a>
 								{{end}}
 								{{if not $.DisableDownloadSourceArchives}}
 									<button class="ui basic jump dropdown icon button" data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranch)}}">
@@ -113,6 +123,11 @@
 												{{svg "octicon-git-branch"}}
 											</button>
 										{{end}}
+										{{if $.EnableFeed}}
+											<a role="button" class="ui basic button icon" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .Name}}">
+												{{svg "octicon-rss"}}
+											</a>
+										{{end}}
 										{{if and (not .IsDeleted) (not $.DisableDownloadSourceArchives)}}
 											<button class="ui basic jump dropdown icon button" data-tooltip-content="{{$.locale.Tr "repo.branch.download" (.Name)}}">
 												{{svg "octicon-download"}}
@@ -147,15 +162,15 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "repo.branch.delete_html"}} <span class="name"></span>
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "repo.branch.delete_desc" | Str2html}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
 <div class="ui small modal" id="create-branch-modal">

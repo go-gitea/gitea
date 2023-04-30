@@ -79,7 +79,7 @@ func LoadRepoConfig() error {
 	typeFiles := make([]optionFileList, len(types))
 	for i, t := range types {
 		var err error
-		if typeFiles[i].all, err = options.Dir(t); err != nil {
+		if typeFiles[i].all, err = options.AssetFS().ListFiles(t, true); err != nil {
 			return fmt.Errorf("failed to list %s files: %w", t, err)
 		}
 		sort.Strings(typeFiles[i].all)
