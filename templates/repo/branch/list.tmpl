@@ -27,7 +27,7 @@
 							</td>
 							<td class="right aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-									<button class="ui tertiary button show-modal show-create-branch-modal gt-mx-3"
+									<button class="ui tertiary button show-create-branch-modal gt-mx-3"
 										data-modal="#create-branch-modal"
 										data-branch-from="{{$.DefaultBranch}}"
 										data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}"
