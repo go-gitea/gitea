@@ -44,11 +44,16 @@ import octiconOrganization from '../../public/img/svg/octicon-organization.svg';
 import octiconTag from '../../public/img/svg/octicon-tag.svg';
 import octiconGitBranch from '../../public/img/svg/octicon-git-branch.svg';
 import octiconRss from '../../public/img/svg/octicon-rss.svg';
+import octiconCheckbox from '../../public/img/svg/octicon-checkbox.svg';
+import giteaEmptyCheckbox from '../../public/img/svg/gitea-empty-checkbox.svg';
 
 const svgs = {
+  'octicon-archive': octiconArchive,
   'octicon-blocked': octiconBlocked,
+  'octicon-checkbox': octiconCheckbox,
   'octicon-check-circle-fill': octiconCheckCircleFill,
   'octicon-chevron-down': octiconChevronDown,
+  'octicon-chevron-left': octiconChevronLeft,
   'octicon-chevron-right': octiconChevronRight,
   'octicon-clock': octiconClock,
   'octicon-copy': octiconCopy,
@@ -56,8 +61,13 @@ const svgs = {
   'octicon-diff-modified': octiconDiffModified,
   'octicon-diff-removed': octiconDiffRemoved,
   'octicon-diff-renamed': octiconDiffRenamed,
+  'gitea-double-chevron-left': giteaDoubleChevronLeft,
+  'gitea-double-chevron-right': giteaDoubleChevronRight,
+  'gitea-empty-checkbox': giteaEmptyCheckbox,
   'octicon-file': octiconFile,
   'octicon-file-directory-fill': octiconFileDirectoryFill,
+  'octicon-filter': octiconFilter,
+  'octicon-git-branch': octiconGitBranch,
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
   'octicon-issue-closed': octiconIssueClosed,
@@ -68,29 +78,23 @@ const svgs = {
   'octicon-meter': octiconMeter,
   'octicon-milestone': octiconMilestone,
   'octicon-mirror': octiconMirror,
+  'octicon-organization': octiconOrganization,
+  'octicon-plus': octiconPlus,
   'octicon-project': octiconProject,
   'octicon-repo': octiconRepo,
   'octicon-repo-forked': octiconRepoForked,
   'octicon-repo-template': octiconRepoTemplate,
+  'octicon-rss': octiconRss,
+  'octicon-search': octiconSearch,
   'octicon-sidebar-collapse': octiconSidebarCollapse,
   'octicon-sidebar-expand': octiconSidebarExpand,
   'octicon-skip': octiconSkip,
+  'octicon-star': octiconStar,
   'octicon-sync': octiconSync,
+  'octicon-tag': octiconTag,
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
-  'octicon-x-circle-fill': octiconXCircleFill,
-  'octicon-filter': octiconFilter,
-  'octicon-plus': octiconPlus,
-  'octicon-search': octiconSearch,
-  'octicon-archive': octiconArchive,
-  'octicon-star': octiconStar,
-  'gitea-double-chevron-left': giteaDoubleChevronLeft,
-  'gitea-double-chevron-right': giteaDoubleChevronRight,
-  'octicon-chevron-left': octiconChevronLeft,
-  'octicon-organization': octiconOrganization,
-  'octicon-tag': octiconTag,
-  'octicon-git-branch': octiconGitBranch,
-  'octicon-rss': octiconRss,
+  'octicon-x-circle-fill': octiconXCircleFill
 };
 
 // TODO: use a more general approach to access SVG icons.

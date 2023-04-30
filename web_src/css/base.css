@@ -1,7 +1,7 @@
 :root {
   /* fonts */
-  --fonts-proportional: -apple-system, "Segoe UI", system-ui, "Roboto", "Helvetica Neue", "Arial";
-  --fonts-monospace: "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
+  --fonts-proportional: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
+  --fonts-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
   --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
   /* "font-weight: bold" starts from 700, some fonts do not provide "bolding" for weight 600. */
   /* But some users consider "700" is too heavy, so use 601, which is when Segoe UI on Linux */
@@ -769,6 +769,10 @@ a.label,
   border-color: var(--color-primary);
 }
 
+.ui.action.input .button {
+  border-color: var(--color-input-border);
+}
+
 /* currently used for search bar dropdowns in repo search and explore code */
 .ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
   min-width: 10em;
@@ -778,8 +782,19 @@ a.label,
   border-right-color: transparent;
 }
 
+.ui.action.input:not([class*="left action"]) > input:hover {
+  border-right-color: transparent;
+}
+
 .ui.action.input:not([class*="left action"]) > input:focus {
   border-right-color: var(--color-primary);
+}
+
+/* fix button enlarged vertically by svg icon */
+/* TODO: change to just `.small.button:has(svg)` but may have global side effects */
+.ui.action.input .small.button:has(svg) {
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
 }
 
 .ui.menu,
@@ -828,6 +843,25 @@ a.label,
 
 .ui.ui.menu .item.disabled {
   color: var(--color-text-light-3);
+}
+
+.ui.menu .item::before {
+  background: var(--color-secondary);
+}
+
+/* sub menu of vertical menu */
+.ui.vertical.menu .item .menu .item {
+  color: var(--color-text-light-2);
+  text-indent: 16px;
+}
+
+.ui.vertical.menu .item .menu .item:hover,
+.ui.vertical.menu .item .menu a.item:hover {
+  color: var(--color-text-light-1);
+}
+
+.ui.vertical.menu .item .menu .active.item {
+  color: var(--color-text);
 }
 
 /* slightly more contrast for filters on issue list */
@@ -1457,10 +1491,12 @@ img.ui.avatar,
   color: var(--color-gold) !important;
 }
 
+/* FIXME: this is a serious pollution, do not use this for "float: left" anymore */
 .ui.left:not(.action) {
   float: left;
 }
 
+/* FIXME: this is a serious pollution, do not use this for "float: right" anymore */
 .ui.right:not(.action) {
   float: right;
 }
@@ -2518,12 +2554,12 @@ a.ui.basic.label:hover {
   right: 0.78571429rem;
   top: 0;
   bottom: 0;
-  height: 30px;
-  margin-top: auto;
-  margin-bottom: auto;
+  display: flex;
+  align-items: center;
 }
 
-/* https://github.com/go-gitea/gitea/issues/10210 */
+/* if a .top.attached.header is followed by a .segment, add some margin */
+.ui.segments ~ .ui.top.attached.header,
 .ui.attached.segment ~ .ui.top.attached.header {
   margin-top: 1rem;
 }
@@ -2645,38 +2681,6 @@ table th[data-sortt-desc] .svg {
   background: var(--color-secondary-dark-1) !important;
 }
 
-.labelspage {
-  list-style: none;
-  padding-top: 0;
-}
-
-.labelspage .item {
-  border-bottom: 1px solid var(--color-secondary);
-  border-top: none;
-}
-
-.labelspage .item a {
-  font-size: 12px;
-  padding-right: 10px;
-  color: var(--color-text-light);
-}
-
-.labelspage .item a:hover {
-  color: var(--color-primary-light-2);
-}
-
-.labelspage .item a.open-issues {
-  margin-right: 30px;
-}
-
-.labelspage .item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.labelspage .orglabel {
-  opacity: 0.7;
-}
 
 /* https://github.com/go-gitea/gitea/pull/11486 */
 .ui.sub.header {
@@ -2781,21 +2785,16 @@ table th[data-sortt-desc] .svg {
   height: 15px;
 }
 
-@media (max-width: 767px) {
-  .ui.stackable.menu:not(.no-vertical-tabs) {
-    overflow-y: hidden;
-    overflow-x: auto;
-    flex-direction: row;
-    flex-wrap: nowrap !important;
-  }
-  .ui.stackable.menu:not(.no-vertical-tabs) .item {
-    width: initial !important;
-  }
-  .ui.stackable.menu:not(.no-vertical-tabs) > .dropdown.item {
-    position: initial;
-  }
-  .ui.stackable.menu:not(.no-vertical-tabs) .menu {
-    flex-direction: row;
+.g-menu-stackable-scrollable {
+  overflow-y: hidden;
+  overflow-x: auto;
+}
+
+@media (max-width: 767.98px) {
+  /* also respect Fomantic's "stackable" definition, use the same breakpoint to reset our styles */
+  .g-menu-stackable-scrollable {
+    overflow-x: unset;
+    overflow-y: unset;
   }
 }
 

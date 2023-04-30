@@ -5,6 +5,8 @@ slug: "install-with-docker"
 weight: 70
 toc: false
 draft: false
+aliases:
+  - /fr-fr/install-with-docker
 menu:
   sidebar:
     parent: "installation"

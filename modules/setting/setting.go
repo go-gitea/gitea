@@ -250,6 +250,9 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 	loadLogFrom(cfg)
 	loadServerFrom(cfg)
 	loadSSHFrom(cfg)
+
+	mustCurrentRunUserMatch(cfg) // it depends on the SSH config, only non-builtin SSH server requires this check
+
 	loadOAuth2From(cfg)
 	loadSecurityFrom(cfg)
 	loadAttachmentFrom(cfg)
@@ -282,14 +285,6 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 		RunMode = rootSec.Key("RUN_MODE").MustString("prod")
 	}
 	IsProd = strings.EqualFold(RunMode, "prod")
-	// Does not check run user when the install lock is off.
-	installLock := rootCfg.Section("security").Key("INSTALL_LOCK").MustBool(false)
-	if installLock {
-		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
-		if !match {
-			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)
-		}
-	}
 
 	// check if we run as root
 	if os.Getuid() == 0 {
@@ -298,6 +293,17 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 			log.Fatal("Gitea is not supposed to be run as root. Sorry. If you need to use privileged TCP ports please instead use setcap and the `cap_net_bind_service` permission")
 		}
 		log.Critical("You are running Gitea using the root user, and have purposely chosen to skip built-in protections around this. You have been warned against this.")
+	}
+}
+
+func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
+	// Does not check run user when the "InstallLock" is off.
+	installLock := rootCfg.Section("security").Key("INSTALL_LOCK").MustBool(false)
+	if installLock {
+		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
+		if !match {
+			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)
+		}
 	}
 }
 
