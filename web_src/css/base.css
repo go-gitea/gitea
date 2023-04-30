@@ -1,7 +1,7 @@
 :root {
   /* fonts */
-  --fonts-proportional: -apple-system, "Segoe UI", system-ui, "Roboto", "Helvetica Neue", "Arial";
-  --fonts-monospace: "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
+  --fonts-proportional: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
+  --fonts-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
   --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
   /* "font-weight: bold" starts from 700, some fonts do not provide "bolding" for weight 600. */
   /* But some users consider "700" is too heavy, so use 601, which is when Segoe UI on Linux */
