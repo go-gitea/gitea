@@ -17,18 +17,20 @@
 				{{end}}
 			{{end}}
 		</div>
+
 		<div class="ui divider"></div>
-		<div id="issue-filters" class="ui stackable grid">
-			<div class="six wide column">
+
+		<div id="issue-filters" class="issue-list-toolbar">
+			<div class="issue-list-toolbar-left">
 				{{if $.CanWriteIssuesOrPulls}}
-					<input type="checkbox" autocomplete="off" class="issue-checkbox-all gt-vm gt-mr-4" title="{{.locale.Tr "repo.issues.action_check_all"}}">
+					<input type="checkbox" autocomplete="off" class="issue-checkbox-all gt-mr-4" title="{{.locale.Tr "repo.issues.action_check_all"}}">
 				{{end}}
 				{{template "repo/issue/openclose" .}}
 			</div>
-			<div class="ten wide right aligned column">
-				<div class="ui secondary filter menu labels gt-overflow-x-auto gt-overflow-y-hidden">
+			<div class="issue-list-toolbar-right">
+				<div class="ui secondary filter stackable menu labels">
 					<!-- Label -->
-					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter" style="margin-left: auto">
+					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_label"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -206,15 +208,12 @@
 				</div>
 			</div>
 		</div>
-		<div id="issue-actions" class="ui stackable grid gt-hidden">
-			<div class="six wide column">
+
+		<div id="issue-actions" class="issue-list-toolbar gt-hidden">
+			<div class="issue-list-toolbar-left">
 				{{template "repo/issue/openclose" .}}
 			</div>
-			{{/* Ten wide does not cope well and makes the columns stack.
-			This seems to be related to jQuery's hide/show: in fact, switching
-			issue-actions and issue-filters and having this ten wide will show
-			this one correctly, but not the other one. */}}
-			<div class="nine wide right aligned right floated column">
+			<div class="issue-list-toolbar-right">
 				<div class="ui secondary filter stackable menu">
 					{{if not .Repository.IsArchived}}
 					<!-- Action Button -->
