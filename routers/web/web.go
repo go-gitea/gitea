@@ -114,7 +114,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 	routes.RouteMethods("/apple-touch-icon.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.RouteMethods("/favicon.ico", "GET, HEAD", misc.StaticRedirect("/assets/img/favicon.png"))
 
-	ctx, _ = templates.HTMLRenderer(ctx)
+	_ = templates.HTMLRenderer()
+
 	common := []any{
 		common.Sessioner(),
 		RecoveryWith500Page(ctx),

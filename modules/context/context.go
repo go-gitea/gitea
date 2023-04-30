@@ -677,7 +677,7 @@ func getCsrfOpts() CsrfOptions {
 
 // Contexter initializes a classic context for a request.
 func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
-	_, rnd := templates.HTMLRenderer(ctx)
+	rnd := templates.HTMLRenderer()
 	csrfOpts := getCsrfOpts()
 	if !setting.IsProd {
 		CsrfTokenRegenerationInterval = 5 * time.Second // in dev, re-generate the tokens more aggressively for debug purpose
