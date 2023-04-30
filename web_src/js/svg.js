@@ -44,6 +44,8 @@ import octiconOrganization from '../../public/img/svg/octicon-organization.svg';
 import octiconTag from '../../public/img/svg/octicon-tag.svg';
 import octiconGitBranch from '../../public/img/svg/octicon-git-branch.svg';
 import octiconRss from '../../public/img/svg/octicon-rss.svg';
+import octiconCheckbox from '../../public/img/svg/octicon-checkbox.svg';
+import giteaEmptyCheckbox from '../../public/img/svg/gitea-empty-checkbox.svg';
 
 const svgs = {
   'octicon-blocked': octiconBlocked,
@@ -91,6 +93,8 @@ const svgs = {
   'octicon-tag': octiconTag,
   'octicon-git-branch': octiconGitBranch,
   'octicon-rss': octiconRss,
+  'octicon-checkbox': octiconCheckbox,
+  'gitea-empty-checkbox': giteaEmptyCheckbox,
 };
 
 // TODO: use a more general approach to access SVG icons.
