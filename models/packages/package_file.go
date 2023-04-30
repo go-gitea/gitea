@@ -117,15 +117,15 @@ func DeleteFileByID(ctx context.Context, fileID int64) error {
 
 // PackageFileSearchOptions are options for SearchXXX methods
 type PackageFileSearchOptions struct {
-	OwnerID        int64
-	PackageType    string
-	VersionID      int64
-	Query          string
-	CompositeKey   string
-	Properties     map[string]string
-	OlderThan      time.Duration
-	HashAlgorithm  string
-	Hash           string
+	OwnerID       int64
+	PackageType   string
+	VersionID     int64
+	Query         string
+	CompositeKey  string
+	Properties    map[string]string
+	OlderThan     time.Duration
+	HashAlgorithm string
+	Hash          string
 	db.Paginator
 }
 
