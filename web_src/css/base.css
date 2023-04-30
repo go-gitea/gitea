@@ -769,6 +769,10 @@ a.label,
   border-color: var(--color-primary);
 }
 
+.ui.action.input .button {
+  border-color: var(--color-input-border);
+}
+
 /* currently used for search bar dropdowns in repo search and explore code */
 .ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
   min-width: 10em;
@@ -778,8 +782,19 @@ a.label,
   border-right-color: transparent;
 }
 
+.ui.action.input:not([class*="left action"]) > input:hover {
+  border-right-color: transparent;
+}
+
 .ui.action.input:not([class*="left action"]) > input:focus {
   border-right-color: var(--color-primary);
+}
+
+/* fix button enlarged vertically by svg icon */
+/* TODO: change to just `.small.button:has(svg)` but may have global side effects */
+.ui.action.input .small.button:has(svg) {
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
 }
 
 .ui.menu,
@@ -828,6 +843,10 @@ a.label,
 
 .ui.ui.menu .item.disabled {
   color: var(--color-text-light-3);
+}
+
+.ui.menu .item::before {
+  background: var(--color-secondary);
 }
 
 /* sub menu of vertical menu */
