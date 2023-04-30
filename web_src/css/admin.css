@@ -26,6 +26,7 @@
   }
 }
 
+/* divider needs explicit width to become visible here */
 .admin dl.admin-dl-horizontal .ui.divider {
   width: 100%;
 }
