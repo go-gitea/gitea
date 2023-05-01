@@ -184,7 +184,7 @@ func getWikiPage(ctx *context.APIContext, wikiName wiki_service.WebPath) *api.Wi
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount("master", "", pageFilename)
+	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename, "")
 
 	// Get last change information.
 	lastCommit, err := wikiRepo.GetCommitByPath(pageFilename)
@@ -421,7 +421,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount("master", "", pageFilename)
+	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename, "")
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
