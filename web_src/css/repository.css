@@ -649,7 +649,7 @@
 
 .repository.view.issue .title .issue-title h1 .ui.input input {
   font-size: 1.5em;
-  padding: 4px 1rem;
+  padding: 2px .5rem;
 }
 
 .repository.view.issue .title .issue-title .index {

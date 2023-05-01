@@ -574,7 +574,8 @@ export function initRepoIssueTitleEdit() {
     toggleElem($('.in-edit'));
     toggleElem($('.new-issue-button'));
     $('#issue-title-wrapper').toggleClass('edit-active');
-    $editInput.trigger('focus');
+    $editInput[0].focus();
+    $editInput[0].select();
     return false;
   };
 
