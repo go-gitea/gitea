@@ -8,15 +8,15 @@
 			</div>
 		</h1>
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
-			<button id="edit-title" class="ui small basic button secondary edit-button not-in-edit">{{.locale.Tr "repo.issues.edit"}}</button>
+			<button id="edit-title" class="ui small basic button secondary edit-button not-in-edit{{if .Issue.IsPull}} gt-mr-0{{end}}">{{.locale.Tr "repo.issues.edit"}}</button>
 		{{end}}
 		{{if not .Issue.IsPull}}
-			<a role="button" class="ui small green button new-issue-button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
+			<a role="button" class="ui small green button new-issue-button gt-mr-0" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
 		{{end}}
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 			<div class="edit-buttons gt-df">
 				<button id="cancel-edit-title" class="ui small basic button secondary in-edit gt-hidden">{{.locale.Tr "repo.issues.cancel"}}</button>
-				<button id="save-edit-title" class="ui small primary button in-edit gt-hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{.locale.Tr "repo.issues.save"}}</button>
+				<button id="save-edit-title" class="ui small primary button in-edit gt-hidden gt-mr-0" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{.locale.Tr "repo.issues.save"}}</button>
 			</div>
 		{{end}}
 	</div>
