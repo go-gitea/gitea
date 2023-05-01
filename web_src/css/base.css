@@ -1915,7 +1915,7 @@ img.ui.avatar,
 }
 
 .ui.menu.new-menu .item {
-  margin: 0 !important;
+  margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
 }
 
 @media (max-width: 767px) {
@@ -1924,8 +1924,13 @@ img.ui.avatar,
   }
 }
 
+.ui.menu.new-menu .item:first-child {
+  margin-left: auto; /* "justify-content: center" doesn't work with "overflow: auto", so use margin: auto */
+}
+
 .ui.menu.new-menu .item:last-child {
   padding-right: 30px !important;
+  margin-right: auto;
 }
 
 .ui.menu.new-menu::-webkit-scrollbar {
