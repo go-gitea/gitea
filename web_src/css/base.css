@@ -332,8 +332,7 @@ progress::-moz-progress-bar {
   user-select: none;
 }
 
-a,
-.ui.breadcrumb a {
+a {
   color: var(--color-primary);
   cursor: pointer;
   text-decoration-skip-ink: all;
@@ -347,8 +346,7 @@ a.muted,
 a:hover,
 a.muted:hover,
 a.muted:hover [class*="color-text"],
-.muted-links a:hover,
-.ui.breadcrumb a:hover {
+.muted-links a:hover {
   color: var(--color-primary);
 }
 
@@ -735,14 +733,6 @@ a.label,
 .icon-button {
   padding-top: 7.42px !important;
   padding-bottom: 7.42px !important;
-}
-
-.ui.breadcrumb a:hover {
-  text-decoration: underline !important;
-}
-
-.ui.breadcrumb .divider {
-  color: var(--color-text-light-2);
 }
 
 .ui.divider:not(.vertical,.horizontal) {
