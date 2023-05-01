@@ -601,10 +601,6 @@
   padding-bottom: 0 !important;
 }
 
-.repository.view.issue .title .issue-title {
-  margin-bottom: 0.5rem;
-}
-
 .repository.view.issue .title .issue-title.edit-active {
   display: flex;
   align-items: center;
@@ -649,20 +645,11 @@
 
 .repository.view.issue .title .issue-title h1 .ui.input {
   font-size: 0.5em;
-  width: 100%;
 }
 
 .repository.view.issue .title .issue-title h1 .ui.input input {
   font-size: 1.5em;
-  padding: 6px 1rem;
-}
-
-.repository.view.issue .title .issue-title .edit-button {
-  float: right;
-}
-
-.repository.view.issue .title .issue-title .edit-buttons {
-  display: flex;
+  padding: 0 1rem;
 }
 
 .repository.view.issue .title .issue-title .index {
