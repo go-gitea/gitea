@@ -3,7 +3,7 @@
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 			<button id="edit-title" class="ui basic button secondary edit-button not-in-edit">{{.locale.Tr "repo.issues.edit"}}</button>
 		{{end}}
-		<h1>
+		<h1 class="gt-mt-3 gt-mb-3">
 			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink $.Repository.ComposeMetas | RenderCodeBlock}}</span>
 			<span class="index">#{{.Issue.Index}}</span>
 			<div id="edit-title-input" class="ui input gt-ml-4 gt-hidden">
@@ -103,5 +103,4 @@
 			{{$.locale.Tr "repo.issues.num_comments" .Issue.NumComments}}
 		</span>
 	{{end}}
-	<div class="ui divider"></div>
 </div>

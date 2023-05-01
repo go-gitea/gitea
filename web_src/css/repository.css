@@ -659,7 +659,6 @@
 
 .repository.view.issue .title .issue-title .edit-button {
   float: right;
-  padding-left: 1rem;
 }
 
 .repository.view.issue .title .issue-title .edit-buttons {
@@ -1199,13 +1198,15 @@
 
 .repository .milestone.list {
   list-style: none;
-  padding-top: 15px;
 }
 
 .repository .milestone.list > .item {
   padding-top: 10px;
   padding-bottom: 10px;
-  border-bottom: 1px dashed var(--color-secondary);
+}
+
+.repository .milestone.list > .item + .item {
+  border-top: 1px solid var(--color-secondary);
 }
 
 .repository .milestone.list > .item progress {

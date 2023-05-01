@@ -20,7 +20,9 @@
 								<span class="commit">
 									<a class="gt-mono muted" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "gt-mr-2"}}{{ShortSha .Sha1}}</a>
 								</span>
-								{{template "repo/branch_dropdown" dict "root" $ "release" .}}
+								<div class="release-branch-button">
+									{{template "repo/branch_dropdown" dict "root" $ "release" .}}
+								</div>
 							{{end}}
 					</div>
 					<div class="ui twelve wide column detail">
