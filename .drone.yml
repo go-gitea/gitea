@@ -1267,7 +1267,7 @@ steps:
     pull: always
     settings:
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-amd64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1289,7 +1289,7 @@ steps:
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64-rootless
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1609,7 +1609,7 @@ steps:
     pull: always
     settings:
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-arm64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1631,7 +1631,7 @@ steps:
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64-rootless
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-arm64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
