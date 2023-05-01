@@ -183,7 +183,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Total commit count
-		commitsCountTotal, err = baseCommit.CommitsCount()
+		commitsCountTotal, err = baseCommit.CommitsCount(not)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetCommitsCount", err)
 			return

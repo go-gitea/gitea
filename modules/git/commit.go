@@ -186,8 +186,8 @@ func CommitsCount(ctx context.Context, repoPath, not string, revision ...string)
 }
 
 // CommitsCount returns number of total commits of until current revision.
-func (c *Commit) CommitsCount() (int64, error) {
-	return CommitsCount(c.repo.Ctx, c.repo.Path, c.ID.String())
+func (c *Commit) CommitsCount(not string) (int64, error) {
+	return CommitsCount(c.repo.Ctx, c.repo.Path, not, c.ID.String())
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
