@@ -143,7 +143,7 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	val := htmlDoc.doc.Find("#issue-title").Text()
-	assert.contains(t, title, val)
+	assert.Contains(t, title, val)
 	val = htmlDoc.doc.Find(".comment .render-content p").First().Text()
 	assert.Equal(t, content, val)
 
