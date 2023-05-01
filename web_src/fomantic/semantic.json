@@ -22,7 +22,6 @@
   "admin": false,
   "components": [
     "api",
-    "breadcrumb",
     "button",
     "card",
     "checkbox",

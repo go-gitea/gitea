@@ -12,6 +12,12 @@
   border-bottom: 0;
 }
 
+.repo-editor-header {
+  display: flex;
+  margin: 1rem 0;
+  padding: 3px 0;
+}
+
 .editor-toolbar {
   border-color: var(--color-secondary);
 }

@@ -11,6 +11,7 @@
 @import "./features/projects.css";
 @import "./modules/tippy.css";
 @import "./modules/modal.css";
+@import "./modules/breadcrumb.css";
 @import "./code/linebutton.css";
 @import "./markup/content.css";
 @import "./markup/codecopy.css";
