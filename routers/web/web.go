@@ -116,38 +116,34 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 	_ = templates.HTMLRenderer()
 
-	common := []any{
-		common.Sessioner(),
-		RecoveryWith500Page(ctx),
-	}
+	var mid []any
 
 	if setting.EnableGzip {
 		h, err := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(GzipMinSize))
 		if err != nil {
 			log.Fatal("GzipHandlerWithOpts failed: %v", err)
 		}
-		common = append(common, h)
+		mid = append(mid, h)
 	}
 
 	if setting.Service.EnableCaptcha {
 		// The captcha http.Handler should only fire on /captcha/* so we can just mount this on that url
-		routes.RouteMethods("/captcha/*", "GET,HEAD", append(common, captcha.Captchaer(context.GetImageCaptcha()))...)
+		routes.RouteMethods("/captcha/*", "GET,HEAD", append(mid, captcha.Captchaer(context.GetImageCaptcha()))...)
 	}
 
 	if setting.HasRobotsTxt {
-		routes.Get("/robots.txt", append(common, misc.RobotsTxt)...)
+		routes.Get("/robots.txt", append(mid, misc.RobotsTxt)...)
 	}
 
-	// prometheus metrics endpoint - do not need to go through contexter
 	if setting.Metrics.Enabled {
 		prometheus.MustRegister(metrics.NewCollector())
-		routes.Get("/metrics", append(common, Metrics)...)
+		routes.Get("/metrics", append(mid, Metrics)...)
 	}
 
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
-	common = append(common, context.Contexter(ctx))
+	mid = append(mid, common.Sessioner(), context.Contexter())
 
 	group := buildAuthGroup()
 	if err := group.Init(ctx); err != nil {
@@ -155,23 +151,23 @@ func Routes(ctx gocontext.Context) *web.Route {
 	}
 
 	// Get user from session if logged in.
-	common = append(common, auth_service.Auth(group))
+	mid = append(mid, auth_service.Auth(group))
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
-	common = append(common, middleware.GetHead)
+	mid = append(mid, middleware.GetHead)
 
 	if setting.API.EnableSwagger {
 		// Note: The route is here but no in API routes because it renders a web page
-		routes.Get("/api/swagger", append(common, misc.Swagger)...) // Render V1 by default
+		routes.Get("/api/swagger", append(mid, misc.Swagger)...) // Render V1 by default
 	}
 
 	// TODO: These really seem like things that could be folded into Contexter or as helper functions
-	common = append(common, user.GetNotificationCount)
-	common = append(common, repo.GetActiveStopwatch)
-	common = append(common, goGet)
+	mid = append(mid, user.GetNotificationCount)
+	mid = append(mid, repo.GetActiveStopwatch)
+	mid = append(mid, goGet)
 
 	others := web.NewRoute()
-	others.Use(common...)
+	others.Use(mid...)
 	registerRoutes(others)
 	routes.Mount("", others)
 	return routes
