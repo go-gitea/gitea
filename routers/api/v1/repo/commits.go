@@ -150,6 +150,7 @@ func GetAllCommits(ctx *context.APIContext) {
 
 	sha := ctx.FormString("sha")
 	path := ctx.FormString("path")
+	not := ctx.FormString("not")
 
 	var (
 		commitsCountTotal int64
@@ -189,7 +190,6 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Query commits
-		not := ctx.FormString("not")
 		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize, not)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CommitsByRange", err)
@@ -200,7 +200,7 @@ func GetAllCommits(ctx *context.APIContext) {
 			sha = ctx.Repo.Repository.DefaultBranch
 		}
 
-		commitsCountTotal, err = ctx.Repo.GitRepo.FileCommitsCount(sha, path)
+		commitsCountTotal, err = ctx.Repo.GitRepo.FileCommitsCount(sha, path, not)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "FileCommitsCount", err)
 			return

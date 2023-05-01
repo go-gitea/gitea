@@ -161,11 +161,15 @@ func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, file
 }
 
 // CommitsCountFiles returns number of total commits of until given revision.
-func CommitsCountFiles(ctx context.Context, repoPath string, revision, relpath []string) (int64, error) {
+func CommitsCountFiles(ctx context.Context, repoPath, not string, revision, relpath []string) (int64, error) {
 	cmd := NewCommand(ctx, "rev-list", "--count")
 	cmd.AddDynamicArguments(revision...)
 	if len(relpath) > 0 {
 		cmd.AddDashesAndList(relpath...)
+	}
+
+	if not != "" {
+		cmd.AddOptionValues("--not", not)
 	}
 
 	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
@@ -177,8 +181,8 @@ func CommitsCountFiles(ctx context.Context, repoPath string, revision, relpath [
 }
 
 // CommitsCount returns number of total commits of until given revision.
-func CommitsCount(ctx context.Context, repoPath string, revision ...string) (int64, error) {
-	return CommitsCountFiles(ctx, repoPath, revision, []string{})
+func CommitsCount(ctx context.Context, repoPath, not string, revision ...string) (int64, error) {
+	return CommitsCountFiles(ctx, repoPath, not, revision, []string{})
 }
 
 // CommitsCount returns number of total commits of until current revision.
