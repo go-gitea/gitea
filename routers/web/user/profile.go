@@ -167,30 +167,31 @@ func Profile(ctx *context.Context) {
 	language := ctx.FormTrim("language")
 	ctx.Data["Language"] = language
 
+	followers, numFollowers, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
+		PageSize: pagingNum,
+		Page:     page,
+	})
+	if err != nil {
+		ctx.ServerError("GetUserFollowers", err)
+		return
+	}
+	ctx.Data["NumFollowers"] = numFollowers
+	following, numFollowing, err := user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
+		PageSize: pagingNum,
+		Page:     page,
+	})
+	if err != nil {
+		ctx.ServerError("GetUserFollowing", err)
+		return
+	}
+	ctx.Data["NumFollowing"] = numFollowing
+
 	switch tab {
 	case "followers":
-		items, count, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
-			PageSize: pagingNum,
-			Page:     page,
-		})
-		if err != nil {
-			ctx.ServerError("GetUserFollowers", err)
-			return
-		}
-		ctx.Data["Cards"] = items
-
+		ctx.Data["Cards"] = followers
 		total = int(count)
 	case "following":
-		items, count, err := user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
-			PageSize: pagingNum,
-			Page:     page,
-		})
-		if err != nil {
-			ctx.ServerError("GetUserFollowing", err)
-			return
-		}
-		ctx.Data["Cards"] = items
-
+		ctx.Data["Cards"] = following
 		total = int(count)
 	case "activity":
 		date := ctx.FormString("date")

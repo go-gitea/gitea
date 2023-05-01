@@ -10,7 +10,7 @@
 			<div class="ui divider"></div>
 		{{end}}
 
-		<div class="ui two column grid">
+		<div class="ui two column stackable grid">
 			{{range .Teams}}
 				<div class="column">
 					<div class="ui top attached header">
@@ -43,7 +43,7 @@
 		</div>
 	</div>
 </div>
-<div class="ui gitea-confirm-modal delete modal" id="leave-team">
+<div class="ui g-modal-confirm delete modal" id="leave-team">
 	<div class="header">
 		{{$.locale.Tr "org.teams.leave"}}
 	</div>

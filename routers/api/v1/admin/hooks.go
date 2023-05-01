@@ -142,7 +142,7 @@ func EditHook(ctx *context.APIContext) {
 
 // DeleteHook delete a system hook
 func DeleteHook(ctx *context.APIContext) {
-	// swagger:operation DELETE /amdin/hooks/{id} admin adminDeleteHook
+	// swagger:operation DELETE /admin/hooks/{id} admin adminDeleteHook
 	// ---
 	// summary: Delete a hook
 	// produces:
