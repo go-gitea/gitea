@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -21,7 +20,7 @@ import (
 )
 
 // RunnersList prepares data for runners list
-func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions, owner *user.User, repo *repo.Repository) {
+func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions) {
 	count, err := actions_model.CountRunners(ctx, opts)
 	if err != nil {
 		ctx.ServerError("CountRunners", err)
@@ -56,8 +55,8 @@ func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions, own
 	ctx.Data["Runners"] = runners
 	ctx.Data["Total"] = count
 	ctx.Data["RegistrationToken"] = token.Token
-	ctx.Data["RunnerOwner"] = owner
-	ctx.Data["RunnerRepo"] = repo
+	ctx.Data["RunnerOwner"] = opts.Owner
+	ctx.Data["RunnerRepo"] = opts.Repo
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 

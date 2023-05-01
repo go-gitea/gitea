@@ -10,9 +10,12 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+
 	actions_shared "code.gitea.io/gitea/routers/web/shared/actions"
 )
 
@@ -28,7 +31,9 @@ const (
 
 type runnersCtx struct {
 	OwnerID            int64
+	Owner              *user_model.User
 	RepoID             int64
+	Repo               *repo_model.Repository
 	IsRepo             bool
 	IsOrg              bool
 	IsAdmin            bool
@@ -41,7 +46,9 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &runnersCtx{
 			RepoID:             ctx.Repo.Repository.ID,
+			Repo:               ctx.Repo.Repository,
 			OwnerID:            0,
+			Owner:              nil,
 			IsRepo:             true,
 			RunnersTemplate:    tplRepoRunners,
 			RunnerEditTemplate: tplRepoRunnerEdit,
@@ -52,7 +59,9 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 	if ctx.Data["PageIsOrgSettings"] == true {
 		return &runnersCtx{
 			RepoID:             0,
+			Repo:               nil,
 			OwnerID:            ctx.Org.Organization.ID,
+			Owner:              ctx.Org.Organization.AsUser(),
 			IsOrg:              true,
 			RunnersTemplate:    tplOrgRunners,
 			RunnerEditTemplate: tplOrgRunnerEdit,
@@ -63,7 +72,9 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 	if ctx.Data["PageIsAdmin"] == true {
 		return &runnersCtx{
 			RepoID:             0,
+			Repo:               nil,
 			OwnerID:            0,
+			Owner:              nil,
 			IsAdmin:            true,
 			RunnersTemplate:    tplAdminRunners,
 			RunnerEditTemplate: tplAdminRunnerEdit,
@@ -101,9 +112,11 @@ func Runners(ctx *context.Context) {
 	}
 	if rCtx.IsRepo {
 		opts.RepoID = rCtx.RepoID
+		opts.Repo = rCtx.Repo
 		opts.WithAvailable = true
 	} else if rCtx.IsOrg {
 		opts.OwnerID = rCtx.OwnerID
+		opts.Owner = rCtx.Owner
 		opts.WithAvailable = true
 	}
 	actions_shared.RunnersList(ctx, opts)
@@ -127,7 +140,7 @@ func RunnersEdit(ctx *context.Context) {
 	}
 
 	actions_shared.RunnerDetails(ctx, page,
-		ctx.ParamsInt64(":runnerid"), rCtx.OwnerID, rCtx.RepoID,
+		ctx.ParamsInt64(":runnerid"), rCtx.Owner, rCtx.Repo,
 	)
 	ctx.HTML(http.StatusOK, rCtx.RunnerEditTemplate)
 }
@@ -139,8 +152,8 @@ func RunnersEditPost(ctx *context.Context) {
 		return
 	}
 	actions_shared.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"),
-		rCtx.OwnerID, rCtx.RepoID,
-		rCtx.RedirectLink+url.PathEscape(ctx.Params(":runnerid")))
+		rCtx.RedirectLink+url.PathEscape(ctx.Params(":runnerid")),
+		rCtx.Owner, rCtx.Repo)
 }
 
 func ResetRunnerRegistrationToken(ctx *context.Context) {

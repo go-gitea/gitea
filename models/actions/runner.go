@@ -192,7 +192,9 @@ func init() {
 type FindRunnerOptions struct {
 	db.ListOptions
 	RepoID        int64
+	Repo          *repo_model.Repository
 	OwnerID       int64
+	Owner         *user_model.User
 	Sort          string
 	Filter        string
 	WithAvailable bool // not only runners belong to, but also runners can be used
