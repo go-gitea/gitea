@@ -392,7 +392,8 @@ export async function handleReply($el) {
   const $textarea = form.find('textarea');
   let editor = getComboMarkdownEditor($textarea);
   if (!editor) {
-    editor = await initComboMarkdownEditor(form.find('.combo-markdown-editor'));
+    const editors = await initComboMarkdownEditor(form.find('.combo-markdown-editor'));
+    editor = editors[0];
   }
   editor.focus();
   return editor;
@@ -522,8 +523,8 @@ export function initRepoPullRequestReview() {
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
 
-      const editor = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
-      editor.focus();
+      const editors = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
+      editors[0].focus();
     }
   });
 }
@@ -633,4 +634,43 @@ export function initRepoIssueBranchSelect() {
     selectionTextField.data('branch', branchNameNew); // update branch name in setting
   };
   $('#branch-select > .item').on('click', changeBranchSelect);
+}
+
+export function initRepoIssueMarkdownTextarea() {
+  const hiddenTextarea = function (target) {
+    const comboMarkdownEditor = $(target).parent().find('.combo-markdown-editor');
+    const markdownTextEditor = comboMarkdownEditor.find('.markdown-text-editor');
+    const dropzone = $(target).parent().next().find('.dropzone');
+    // show combo markdown editor
+    comboMarkdownEditor.removeClass('gt-hidden');
+    markdownTextEditor.trigger('focus');
+    if (dropzone) {
+      dropzone.removeClass('gt-hidden');
+    }
+    // hidden textarea
+    $(target).addClass('gt-hidden');
+  };
+
+  const showTextarea = function (target) {
+    const comboMarkdownEditor = $(target).parent().find('.combo-markdown-editor');
+    const markdownTextEditor = comboMarkdownEditor.find('.markdown-text-editor');
+    const dropzone = $(target).parent().next().find('.dropzone');
+    // hidden combo markdown editor
+    $(comboMarkdownEditor).addClass('gt-hidden');
+    if (dropzone) {
+      $(dropzone).addClass('gt-hidden');
+    }
+    // show textarea
+    $(target).removeClass('gt-hidden');
+    // sync textarea content
+    $(target).val($(markdownTextEditor).val());
+  };
+
+  // default display textarea
+  $('.markdown-textarea .textarea').each((_, target) => showTextarea(target));
+
+  $('.markdown-textarea .textarea').on('click', function() {
+    hiddenTextarea(this);
+    $('.markdown-textarea .textarea').not(this).each((_, target) => showTextarea(target));
+  });
 }

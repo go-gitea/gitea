@@ -370,17 +370,15 @@ export function getComboMarkdownEditor(el) {
   return el?._giteaComboMarkdownEditor;
 }
 
-export async function initComboMarkdownEditor(container, options = {}) {
-  if (container instanceof $) {
-    if (container.length !== 1) {
-      throw new Error('initComboMarkdownEditor: container must be a single element');
-    }
-    container = container[0];
+export async function initComboMarkdownEditor(containers, options = {}) {
+  if (!containers) {
+    throw new Error('initComboMarkdownEditor: container list is null');
   }
-  if (!container) {
-    throw new Error('initComboMarkdownEditor: container is null');
+  const editors = [];
+  for (const container of containers) {
+    const editor = new ComboMarkdownEditor(container, options);
+    await editor.init();
+    editors.push(editor);
   }
-  const editor = new ComboMarkdownEditor(container, options);
-  await editor.init();
-  return editor;
+  return editors;
 }

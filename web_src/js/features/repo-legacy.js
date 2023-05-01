@@ -439,7 +439,8 @@ async function onEditContent(event) {
 
   if (!$editContentZone.html()) {
     $editContentZone.html($('#issue-comment-editor-template').html());
-    comboMarkdownEditor = await initComboMarkdownEditor($editContentZone.find('.combo-markdown-editor'));
+    const comboMarkdownEditors = await initComboMarkdownEditor($editContentZone.find('.combo-markdown-editor'));
+    comboMarkdownEditor = comboMarkdownEditors[0];
 
     const $dropzone = $editContentZone.find('.dropzone');
     const dz = await setupDropzone($dropzone);

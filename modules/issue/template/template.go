@@ -98,12 +98,6 @@ func validateYaml(template *api.IssueTemplate) error {
 			if err := validateOptions(field, idx); err != nil {
 				return err
 			}
-		case api.IssueFormFieldTypeMarkdownEditor:
-			if err := validateStringItem(position, field.Attributes, false,
-				"description",
-			); err != nil {
-				return err
-			}
 		default:
 			return position.Errorf("unknown type")
 		}

@@ -25,6 +25,7 @@ import {initCommentContent, initMarkupContent} from './markup/content.js';
 import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
 import {
   initRepoIssueDue,
+  initRepoIssueMarkdownTextarea,
   initRepoIssueReferenceRepositorySearch,
   initRepoIssueTimeTracking,
   initRepoIssueWipTitle,
@@ -146,6 +147,7 @@ onDomReady(() => {
   initRepoIssueDue();
   initRepoIssueList();
   initRepoIssueSidebarList();
+  initRepoIssueMarkdownTextarea();
   initRepoIssueReferenceRepositorySearch();
   initRepoIssueTimeTracking();
   initRepoIssueWipTitle();

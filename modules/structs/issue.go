@@ -128,12 +128,11 @@ type IssueDeadline struct {
 type IssueFormFieldType string
 
 const (
-	IssueFormFieldTypeMarkdown       IssueFormFieldType = "markdown"
-	IssueFormFieldTypeTextarea       IssueFormFieldType = "textarea"
-	IssueFormFieldTypeInput          IssueFormFieldType = "input"
-	IssueFormFieldTypeDropdown       IssueFormFieldType = "dropdown"
-	IssueFormFieldTypeCheckboxes     IssueFormFieldType = "checkboxes"
-	IssueFormFieldTypeMarkdownEditor IssueFormFieldType = "markdowneditor"
+	IssueFormFieldTypeMarkdown   IssueFormFieldType = "markdown"
+	IssueFormFieldTypeTextarea   IssueFormFieldType = "textarea"
+	IssueFormFieldTypeInput      IssueFormFieldType = "input"
+	IssueFormFieldTypeDropdown   IssueFormFieldType = "dropdown"
+	IssueFormFieldTypeCheckboxes IssueFormFieldType = "checkboxes"
 )
 
 // IssueFormField represents a form field
