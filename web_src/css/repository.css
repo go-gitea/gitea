@@ -597,70 +597,60 @@
   display: inline-block;
 }
 
-.repository.view.issue .title {
-  padding-bottom: 0 !important;
-}
-
-.repository.view.issue .title .issue-title.edit-active {
-  display: flex;
-  align-items: center;
-}
-
-.repository.view.issue .title .issue-title.edit-active h1 {
-  display: flex;
+.repository.view.issue .issue-title-header {
   width: 100%;
+  padding: 1rem !important;
+}
+
+.repository.view.issue .edit-buttons {
+  display: flex;
 }
 
 @media (max-width: 767px) {
-  .repository.view.issue .title .issue-title.edit-active {
+  .repository.view.issue .issue-title {
     flex-direction: column;
   }
-  .repository.view.issue .title .issue-title.edit-active h1 {
-    margin-right: 0;
-    margin-bottom: 1rem;
-    padding-right: 0;
+  .repository.view.issue .issue-title-header {
+    padding: 1rem 0 !important;
   }
-  .repository.view.issue .title .issue-title.edit-active h1 .ui.input input {
-    width: calc(100% - 2rem);
-  }
-  .repository.view.issue .title .issue-title.edit-active .edit-buttons {
-    padding-bottom: 1rem;
-    width: 100%;
-  }
-  .repository.view.issue .title .issue-title.edit-active .edit-buttons .button {
-    width: 100%;
-    margin-right: 0.5rem;
-  }
-  .repository.view.issue .title .issue-title.edit-active .edit-buttons .button:last-child {
-    margin-right: 0;
+  .repository.view.issue .edit-buttons {
+    margin-top: .5rem;
   }
 }
 
-.repository.view.issue .title .issue-title h1 {
+.repository.view.issue .issue-title {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  margin-bottom: 1rem;
+}
+
+.repository.view.issue .issue-title h1 {
+  width: 100%;
   font-weight: 300;
   font-size: 2.3rem;
   margin: 0;
   padding-right: 0.25rem;
 }
 
-.repository.view.issue .title .issue-title h1 .ui.input {
+.repository.view.issue .issue-title h1 .ui.input {
   font-size: 0.5em;
 }
 
-.repository.view.issue .title .issue-title h1 .ui.input input {
+.repository.view.issue .issue-title h1 .ui.input input {
   font-size: 1.5em;
   padding: 2px .5rem;
 }
 
-.repository.view.issue .title .issue-title .index {
+.repository.view.issue .issue-title .index {
   color: var(--color-text-light-2);
 }
 
-.repository.view.issue .title .issue-title .label {
+.repository.view.issue .issue-title .label {
   margin-right: 10px;
 }
 
-.repository.view.issue .title .issue-title .edit-zone {
+.repository.view.issue .issue-title .edit-zone {
   margin-top: 10px;
 }
 
