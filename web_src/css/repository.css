@@ -599,7 +599,7 @@
 
 .repository.view.issue .issue-title-header {
   width: 100%;
-  padding: 1rem !important;
+  padding: .5rem 1rem !important;
 }
 
 .repository.view.issue .edit-buttons {
