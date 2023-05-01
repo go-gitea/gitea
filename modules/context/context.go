@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
@@ -216,6 +217,26 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 
 const tplStatus500 base.TplName = "status/500"
 
+func (ctx *Context) newCtxFuncMap() template.FuncMap {
+	return template.FuncMap{
+		"CtxLocale": func(s string) string {
+			return ctx.Locale.Tr(s)
+		},
+		"CtxDateTime": func(format string, datetime any) template.HTML {
+			username := "(anonymous)"
+			if ctx.Doer != nil {
+				username = ctx.Doer.Name
+			}
+			s := fmt.Sprintf("PoC demo for %q: %s", html.EscapeString(username), timeutil.DateTime(format, datetime))
+			return template.HTML(s)
+		},
+	}
+}
+
+func (ctx *Context) renderHTML(w io.Writer, status int, name base.TplName, data map[string]any) error {
+	return ctx.Render.(*templates.HTMLRender).HTMLCtxFuncs(ctx.Resp, status, string(name), templates.BaseVars().Merge(data), ctx.newCtxFuncMap())
+}
+
 // HTML calls Context.HTML and renders the template to HTTP response
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
@@ -226,7 +247,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 	ctx.Data["TemplateLoadTimes"] = func() string {
 		return strconv.FormatInt(time.Since(tmplStartTime).Nanoseconds()/1e6, 10) + "ms"
 	}
-	if err := ctx.Render.HTML(ctx.Resp, status, string(name), templates.BaseVars().Merge(ctx.Data)); err != nil {
+	if err := ctx.renderHTML(ctx.Resp, status, name, ctx.Data); err != nil {
 		if status == http.StatusInternalServerError && name == tplStatus500 {
 			ctx.PlainText(http.StatusInternalServerError, "Unable to find HTML templates, the template system is not initialized, or Gitea can't find your template files.")
 			return
@@ -239,7 +260,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 // RenderToString renders the template content to a string
 func (ctx *Context) RenderToString(name base.TplName, data map[string]interface{}) (string, error) {
 	var buf strings.Builder
-	err := ctx.Render.HTML(&buf, http.StatusOK, string(name), data)
+	err := ctx.renderHTML(&buf, http.StatusOK, name, data)
 	return buf.String(), err
 }
 

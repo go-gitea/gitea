@@ -62,7 +62,7 @@ func (t *ScopedTemplate) Freeze() {
 	t.all.Funcs(m)
 }
 
-func (t *ScopedTemplate) Executor(name string, funcMap template.FuncMap) (TemplateExecutor, error) {
+func (t *ScopedTemplate) Executor(name string, funcMaps ...template.FuncMap) (TemplateExecutor, error) {
 	t.scopedMu.RLock()
 	scopedTmplSet, ok := t.scopedTemplateSets[name]
 	t.scopedMu.RUnlock()
@@ -84,7 +84,7 @@ func (t *ScopedTemplate) Executor(name string, funcMap template.FuncMap) (Templa
 	if scopedTmplSet == nil {
 		return nil, fmt.Errorf("template %s not found", name)
 	}
-	return scopedTmplSet.newExecutor(funcMap), nil
+	return scopedTmplSet.newExecutor(funcMaps...), nil
 }
 
 type scopedTemplateSet struct {
@@ -216,14 +216,14 @@ func newScopedTemplateSet(all *template.Template, name string) (*scopedTemplateS
 	return ts, collectErr
 }
 
-func (ts *scopedTemplateSet) newExecutor(funcMap map[string]any) TemplateExecutor {
+func (ts *scopedTemplateSet) newExecutor(funcMaps ...template.FuncMap) TemplateExecutor {
 	tmpl := texttemplate.New("")
 	tmplPtr := ptr[textTemplate](tmpl)
 	tmplPtr.execFuncs = map[string]reflect.Value{}
 	for k, v := range ts.execFuncs {
 		tmplPtr.execFuncs[k] = v
 	}
-	if funcMap != nil {
+	for _, funcMap := range funcMaps {
 		tmpl.Funcs(funcMap)
 	}
 	// after escapeTemplate, the html templates are also escaped text templates, so it could be added to the text template directly

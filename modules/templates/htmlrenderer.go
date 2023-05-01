@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -51,6 +52,24 @@ func (h *HTMLRender) HTML(w io.Writer, status int, name string, data interface{}
 		return texttemplate.ExecError{Name: name, Err: err}
 	}
 	return t.Execute(w, data)
+}
+
+func (h *HTMLRender) HTMLCtxFuncs(w io.Writer, status int, name string, data interface{}, ctxFuncMap template.FuncMap) error {
+	if respWriter, ok := w.(http.ResponseWriter); ok {
+		if respWriter.Header().Get("Content-Type") == "" {
+			respWriter.Header().Set("Content-Type", "text/html; charset=utf-8")
+		}
+		respWriter.WriteHeader(status)
+	}
+	tmpls := h.templates.Load()
+	if tmpls == nil {
+		return ErrTemplateNotInitialized
+	}
+	st, err := tmpls.Executor(name, NewFuncMap(), ctxFuncMap)
+	if err != nil {
+		return texttemplate.ExecError{Name: name, Err: err}
+	}
+	return st.Execute(w, data)
 }
 
 func (h *HTMLRender) TemplateLookup(name string) (TemplateExecutor, error) {

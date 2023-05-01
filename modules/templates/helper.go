@@ -30,6 +30,10 @@ func NewFuncMap() template.FuncMap {
 	return map[string]interface{}{
 		"DumpVar": dumpVar,
 
+		// ctx func
+		"CtxLocale":   func(v ...any) any { panic("not implemented") },
+		"CtxDateTime": func(v ...any) any { panic("not implemented") },
+
 		// -----------------------------------------------------------------
 		// html/template related functions
 		"dict":        dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
