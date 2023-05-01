@@ -141,12 +141,19 @@
   font-size: 11px;
 }
 
-.repository .filter.menu .menu {
+/* make all issue filter dropdown menus popup leftward, to avoid go out the viewport (right side) */
+.repository .filter.menu .ui.dropdown .menu {
   max-height: 500px;
   max-width: 300px;
   overflow-x: hidden;
-  right: 0 !important;
-  left: auto !important;
+  right: 0;
+  left: auto;
+}
+
+/* the label-filter is the first dropdown, it shouldn't be shown leftward, otherwise it may go out the viewport (left side) */
+.repository .filter.menu .ui.dropdown.label-filter .menu {
+  right: unset;
+  left: 0;
 }
 
 .repository .select-label .desc {
@@ -161,7 +168,7 @@
 
 .repository .ui.tabs.divider {
   margin-top: -1px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .repository #clone-panel #repo-clone-url {
@@ -2394,10 +2401,6 @@
   margin: 6px 0;
 }
 
-#issue-actions {
-  margin-top: -1rem !important; /* counteract padding from Semantic */
-}
-
 .ui.menu .item > img:not(.ui) {
   width: auto;
 }
@@ -3288,18 +3291,6 @@ td.blob-excerpt {
   .repository.file.list #repo-files-table .entry span.commit-summary,
   .repository.file.list #repo-files-table .commit-list span.commit-summary {
     display: none !important;
-  }
-  .issue-list-headers.ui[class].grid > div:nth-child(1) {
-    order: 1;
-    width: 50%;
-  }
-  .issue-list-headers.ui[class].grid > div:nth-child(2) {
-    order: 3;
-    width: 100%;
-  }
-  .issue-list-headers.ui[class].grid > div.column:not(.row):nth-child(3) {
-    order: 2;
-    width: 50%;
   }
   .repository.view.issue .comment-list .timeline,
   .repository.view.issue .comment-list .timeline-item {
