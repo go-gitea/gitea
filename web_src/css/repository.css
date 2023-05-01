@@ -640,7 +640,7 @@
   font-weight: 300;
   font-size: 2.3rem;
   margin: 0;
-  padding-right: 0.5rem;
+  padding-right: 0.25rem;
 }
 
 .repository.view.issue .title .issue-title h1 .ui.input {
@@ -649,7 +649,7 @@
 
 .repository.view.issue .title .issue-title h1 .ui.input input {
   font-size: 1.5em;
-  padding: 0 1rem;
+  padding: 4px 1rem;
 }
 
 .repository.view.issue .title .issue-title .index {

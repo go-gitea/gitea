@@ -1,9 +1,9 @@
 <div class="sixteen wide column title gt-mb-3">
 	<div class="issue-title gt-mb-4 gt-df gt-ac" id="issue-title-wrapper">
-		<h1 class="gt-f1 gt-word-break">
+		<h1 class="gt-df gt-ac gt-f1 gt-word-break">
 			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink $.Repository.ComposeMetas | RenderCodeBlock}}</span>
 			<span class="index">#{{.Issue.Index}}</span>
-			<div id="edit-title-input" class="ui input gt-f1 gt-ml-4 gt-hidden">
+			<div id="edit-title-input" class="ui input gt-f1 gt-ml-3 gt-hidden">
 				<input value="{{.Issue.Title}}" maxlength="255" autocomplete="off">
 			</div>
 		</h1>
