@@ -1,0 +1,14 @@
+.rss-icon {
+  display: inline-flex;
+  margin-left: .5rem;
+  color: var(--color-text-light-1);
+}
+
+.releases-page .rss-icon {
+  position: relative;
+  top: 6px;
+}
+
+.organization .rss-icon {
+  margin-left: 0;
+}
