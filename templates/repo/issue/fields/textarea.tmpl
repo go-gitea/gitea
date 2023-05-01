@@ -2,7 +2,7 @@
 	{{template "repo/issue/fields/header" .}}
 	{{/* FIXME: preview markdown result */}}
 	<textarea class="textarea" name="form-field-{{.item.ID}}" placeholder="{{.item.Attributes.placeholder}}" {{if and .item.Validations.required .item.Attributes.render}}required{{end}}>{{.item.Attributes.value}}</textarea>
-	
+
 	{{$ := .Context.Data}}
 	{{template "shared/combomarkdowneditor" (dict
 		"locale" $.locale
