@@ -9,6 +9,7 @@
 		"MarkdownPreviewUrl" (print $.Repository.Link "/markup")
 		"MarkdownPreviewContext" $.RepoLink
 		"TextareaName" "content"
+		"TextareaContent" .item.Attributes.value
 		"TextareaPlaceholder"  ($.locale.Tr "repo.diff.comment.placeholder")
 		"DropzoneParentContainer" "form, .ui.form"
 	)}}
