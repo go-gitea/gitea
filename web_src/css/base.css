@@ -2803,19 +2803,6 @@ table th[data-sortt-desc] .svg {
   height: 15px;
 }
 
-.g-menu-stackable-scrollable {
-  overflow-y: hidden;
-  overflow-x: auto;
-}
-
-@media (max-width: 767.98px) {
-  /* also respect Fomantic's "stackable" definition, use the same breakpoint to reset our styles */
-  .g-menu-stackable-scrollable {
-    overflow-x: unset;
-    overflow-y: unset;
-  }
-}
-
 .color-text-light-2 {
   color: var(--color-text-light-2);
 }
