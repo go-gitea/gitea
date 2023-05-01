@@ -66,7 +66,7 @@ func installRecovery(ctx goctx.Context) func(next http.Handler) http.Handler {
 					if !setting.IsProd {
 						store["ErrorMsg"] = combinedErr
 					}
-					_, rnd := templates.HTMLRenderer(ctx)
+					rnd := templates.HTMLRenderer()
 					err = rnd.HTML(w, http.StatusInternalServerError, "status/500", templates.BaseVars().Merge(store))
 					if err != nil {
 						log.Error("%v", err)
