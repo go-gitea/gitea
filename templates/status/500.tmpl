@@ -42,9 +42,9 @@
 		</div>
 	</div>
 
-	{{/* when a sub-template triggers an 500 error, its parent template has been partially rendered,
-		then the 500 page will be rendered after that partially rendered page, the HTML/JS are totally broken.
-		so use this inline script to try to move it to main viewport */}}
+	{{/* When a sub-template triggers an 500 error, its parent template has been partially rendered, then the 500 page
+		will be rendered after that partially rendered page, the HTML/JS are totally broken. Use this inline script to try to move it to main viewport.
+		And this page shouldn't include any other JS file, avoid duplicate JS execution (still due to the partial rendering).*/}}
 	<script type="module">
 		const embedded = document.querySelector('.page-content .page-content.status-page-500');
 		if (embedded) {
