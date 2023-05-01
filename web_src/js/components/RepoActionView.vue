@@ -198,8 +198,8 @@ const sfc = {
       window.location.href = jobLink;
     },
     // rerun workflow
-    rerun() {
-      this.fetchPost(`${this.run.link}/rerun`);
+    async rerun() {
+      await this.fetchPost(`${this.run.link}/rerun`);
       window.location.href = this.run.link;
     },
     // cancel a run
