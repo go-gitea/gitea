@@ -2051,6 +2051,13 @@ a.ui.label:hover {
   color: var(--color-text);
 }
 
+.ui.labels a.active.label:hover,
+a.ui.active.label:hover {
+  background: var(--color-active);
+  border-color: var(--color-active);
+  color: var(--color-text);
+}
+
 .ui.label > .detail .icons {
   margin-right: 0.25em;
 }
@@ -2603,6 +2610,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.dropdown .svg.dropdown.icon,
+.ui.dropdown .svg.remove.icon,
 .svg.dropdown.icon {
   margin-top: 0 !important; /* reset the "ui.selection.dropdown > .dropdown.icon {margin-top}", for the Issue Dependencies dropdown */
   margin-right: -0.5rem !important; /* fix up SVG dropdown triangles because Fomantic thinks they are icon fonts */
@@ -2613,6 +2621,16 @@ table th[data-sortt-desc] .svg {
 .ui.selection.dropdown > .svg.delete.icon,
 .ui.selection.dropdown > .svg.dropdown.icon {
   top: 0 !important; /* reset the ".ui.selection.dropdown > .xxx.icon {top}" if the icon is svg instead of the fomantic icon */
+}
+
+.ui.selection.dropdown > .svg.remove.icon {
+  top: .5px;
+  right: 32px;
+  width: auto;
+}
+
+.ui.selection.dropdown > .svg.remove.icon:hover {
+  opacity: 1;
 }
 
 .ui.dropdown.no-text > .dropdown.icon {
