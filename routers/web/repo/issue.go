@@ -241,7 +241,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 
 	var mileIDs []int64
-	if milestoneID > 0 {
+	if milestoneID > 0 || milestoneID == db.NoConditionID { // -1 to get those issues which have no any milestone assigned
 		mileIDs = []int64{milestoneID}
 	}
 
@@ -438,20 +438,37 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
-	var err error
-	// Get milestones
-	ctx.Data["Milestones"], _, err = issues_model.GetMilestones(issues_model.GetMilestonesOption{
-		RepoID: ctx.Repo.Repository.ID,
-		State:  api.StateType(ctx.FormString("state")),
-	})
-	if err != nil {
-		ctx.ServerError("GetAllRepoMilestones", err)
+	renderMilestones(ctx)
+	if ctx.Written() {
 		return
 	}
 
 	ctx.Data["CanWriteIssuesOrPulls"] = ctx.Repo.CanWriteIssuesOrPulls(isPullList)
 
 	ctx.HTML(http.StatusOK, tplIssues)
+}
+
+func renderMilestones(ctx *context.Context) {
+	// Get milestones
+	milestones, _, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
+		RepoID: ctx.Repo.Repository.ID,
+		State:  api.StateAll,
+	})
+	if err != nil {
+		ctx.ServerError("GetAllRepoMilestones", err)
+		return
+	}
+
+	openMilestones, closedMilestones := issues_model.MilestoneList{}, issues_model.MilestoneList{}
+	for _, milestone := range milestones {
+		if milestone.IsClosed {
+			closedMilestones = append(closedMilestones, milestone)
+		} else {
+			openMilestones = append(openMilestones, milestone)
+		}
+	}
+	ctx.Data["OpenMilestones"] = openMilestones
+	ctx.Data["ClosedMilestones"] = closedMilestones
 }
 
 // RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository

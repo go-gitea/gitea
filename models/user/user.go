@@ -346,7 +346,7 @@ func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListO
 		Select("`user`.*").
 		Join("LEFT", "follow", "`user`.id=follow.follow_id").
 		Where("follow.user_id=?", u.ID).
-		And("`user`.type=?", UserTypeIndividual).
+		And("`user`.type IN (?, ?)", UserTypeIndividual, UserTypeOrganization).
 		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page != 0 {
@@ -1210,23 +1210,25 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 	return builder.Neq{
 		"`user`.visibility": structs.VisibleTypePrivate,
 	}.Or(
+		// viewer's following
 		builder.In("`user`.id",
 			builder.
 				Select("`follow`.user_id").
 				From("follow").
 				Where(builder.Eq{"`follow`.follow_id": viewer.ID})),
-		builder.In("`user`.id",
-			builder.
-				Select("`team_user`.uid").
-				From("team_user").
-				Join("INNER", "`team_user` AS t2", "`team_user`.id = `t2`.id").
-				Where(builder.Eq{"`t2`.uid": viewer.ID})),
+		// viewer's org user
 		builder.In("`user`.id",
 			builder.
 				Select("`team_user`.uid").
 				From("team_user").
 				Join("INNER", "`team_user` AS t2", "`team_user`.org_id = `t2`.org_id").
-				Where(builder.Eq{"`t2`.uid": viewer.ID})))
+				Where(builder.Eq{"`t2`.uid": viewer.ID})),
+		// viewer's org
+		builder.In("`user`.id",
+			builder.
+				Select("`team_user`.org_id").
+				From("team_user").
+				Where(builder.Eq{"`team_user`.uid": viewer.ID})))
 }
 
 // IsUserVisibleToViewer check if viewer is able to see user profile
