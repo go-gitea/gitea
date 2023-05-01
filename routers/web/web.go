@@ -114,7 +114,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 	routes.RouteMethods("/apple-touch-icon.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.RouteMethods("/favicon.ico", "GET, HEAD", misc.StaticRedirect("/assets/img/favicon.png"))
 
-	ctx, _ = templates.HTMLRenderer(ctx)
+	_ = templates.HTMLRenderer()
+
 	common := []any{
 		common.Sessioner(),
 		RecoveryWith500Page(ctx),
@@ -1093,7 +1094,7 @@ func registerRoutes(m *web.Route) {
 			repo.MustBeNotEmpty, reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag, true))
 		m.Post("/tags/delete", repo.DeleteTag, reqSignIn,
 			repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoCodeWriter, context.RepoRef())
-	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
+	}, ignSignIn, context.RepoAssignment, context.UnitTypes())
 
 	// Releases
 	m.Group("/{username}/{reponame}", func() {
@@ -1185,10 +1186,11 @@ func registerRoutes(m *web.Route) {
 					m.Combo("").
 						Get(actions.View).
 						Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
-					m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
+					m.Post("/rerun", reqRepoActionsWriter, actions.RerunOne)
 				})
 				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 				m.Post("/approve", reqRepoActionsWriter, actions.Approve)
+				m.Post("/rerun", reqRepoActionsWriter, actions.RerunAll)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
 
