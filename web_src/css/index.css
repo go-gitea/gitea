@@ -2,7 +2,6 @@
 
 @import "./shared/issuelist.css";
 @import "./shared/repoorg.css";
-@import "./shared/rss.css";
 
 @import "./features/dropzone.css";
 @import "./features/gitgraph.css";
@@ -10,6 +9,7 @@
 @import "./features/imagediff.css";
 @import "./features/codeeditor.css";
 @import "./features/projects.css";
+@import "./features/rss.css";
 
 @import "./modules/tippy.css";
 @import "./modules/modal.css";
