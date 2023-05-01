@@ -200,7 +200,7 @@ const sfc = {
     // rerun workflow
     rerun() {
       this.fetchPost(`${this.run.link}/rerun`);
-      window.location.href = `${this.run.link}`;
+      window.location.href = this.run.link;
     },
     // cancel a run
     cancelRun() {
