@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
-
 	actions_shared "code.gitea.io/gitea/routers/web/shared/actions"
 )
 
