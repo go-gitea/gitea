@@ -33,11 +33,6 @@
 								{{template "repo/issue/fields/markdowneditor" dict "Context" $.Context "item" .}}
 							{{end}}
 						{{end}}
-						{{if .IsAttachmentEnabled}}
-						<div class="field">
-							{{template "repo/upload" .}}
-						</div>
-						{{end}}
 					{{else}}
 						{{template "repo/issue/comment_tab" .}}
 					{{end}}
