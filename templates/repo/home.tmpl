@@ -109,7 +109,7 @@
 					</a>
 				{{end}}
 				{{if ne $n 0}}
-					<span class="ui breadcrumb repo-path gt-ml-2">
+					<span class="breadcrumb repo-path gt-ml-2">
 						<a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
 						{{- range $i, $v := .TreeNames -}}
 							<span class="divider">/</span>
