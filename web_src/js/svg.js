@@ -18,6 +18,7 @@ import octiconLink from '../../public/img/svg/octicon-link.svg';
 import octiconLock from '../../public/img/svg/octicon-lock.svg';
 import octiconMilestone from '../../public/img/svg/octicon-milestone.svg';
 import octiconMirror from '../../public/img/svg/octicon-mirror.svg';
+import octiconPlay from '../../public/img/svg/octicon-play.svg';
 import octiconProject from '../../public/img/svg/octicon-project.svg';
 import octiconRepo from '../../public/img/svg/octicon-repo.svg';
 import octiconRepoForked from '../../public/img/svg/octicon-repo-forked.svg';
@@ -79,6 +80,7 @@ const svgs = {
   'octicon-milestone': octiconMilestone,
   'octicon-mirror': octiconMirror,
   'octicon-organization': octiconOrganization,
+  'octicon-play': octiconPlay,
   'octicon-plus': octiconPlus,
   'octicon-project': octiconProject,
   'octicon-repo': octiconRepo,
