@@ -343,7 +343,7 @@ func RenameBranchPost(ctx *context.Context) {
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.GetErrMsg())
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 		return
 	}
 
@@ -355,16 +355,16 @@ func RenameBranchPost(ctx *context.Context) {
 
 	if msg == "target_exist" {
 		ctx.Flash.Error(ctx.Tr("repo.settings.rename_branch_failed_exist", form.To))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 		return
 	}
 
 	if msg == "from_not_exist" {
 		ctx.Flash.Error(ctx.Tr("repo.settings.rename_branch_failed_not_exist", form.From))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.rename_branch_success", form.From, form.To))
-	ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+	ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 }

@@ -55,7 +55,7 @@ func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
 
 // Init prepare for rendering installation page
 func Init(ctx goctx.Context) func(next http.Handler) http.Handler {
-	_, rnd := templates.HTMLRenderer(ctx)
+	rnd := templates.HTMLRenderer()
 	dbTypeNames := getSupportedDbTypeNames()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
