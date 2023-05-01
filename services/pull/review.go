@@ -248,7 +248,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			return nil, err
 		}
 	}
-	return issue_service.CreateComment(&issues_model.CreateCommentOptions{
+	return issue_service.CreateComment(ctx, &issues_model.CreateCommentOptions{
 		Type:        issues_model.CommentTypeCode,
 		Doer:        doer,
 		Repo:        repo,
@@ -368,7 +368,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		return
 	}
 
-	comment, err = issue_service.CreateComment(&issues_model.CreateCommentOptions{
+	comment, err = issue_service.CreateComment(ctx, &issues_model.CreateCommentOptions{
 		Doer:     doer,
 		Content:  message,
 		Type:     issues_model.CommentTypeDismissReview,

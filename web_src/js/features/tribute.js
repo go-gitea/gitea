@@ -1,11 +1,10 @@
 import {emojiKeys, emojiHTML, emojiString} from './emoji.js';
-import {uniq} from '../utils.js';
 import {htmlEscape} from 'escape-goat';
 
 function makeCollections({mentions, emoji}) {
   const collections = [];
 
-  if (mentions) {
+  if (emoji) {
     collections.push({
       trigger: ':',
       requireLeadingSpace: true,
@@ -30,14 +29,14 @@ function makeCollections({mentions, emoji}) {
     });
   }
 
-  if (emoji) {
+  if (mentions) {
     collections.push({
       values: window.config.tributeValues,
       requireLeadingSpace: true,
       menuItemTemplate: (item) => {
         return `
           <div class="tribute-item">
-            <img src="${htmlEscape(item.original.avatar)}"/>
+            <img src="${htmlEscape(item.original.avatar)}" class="gt-mr-3"/>
             <span class="name">${htmlEscape(item.original.name)}</span>
             ${item.original.fullname && item.original.fullname !== '' ? `<span class="fullname">${htmlEscape(item.original.fullname)}</span>` : ''}
           </div>
@@ -49,30 +48,10 @@ function makeCollections({mentions, emoji}) {
   return collections;
 }
 
-export async function attachTribute(elementOrNodeList, {mentions, emoji} = {}) {
-  if (!window.config.requireTribute || !elementOrNodeList) return;
-  const nodes = Array.from('length' in elementOrNodeList ? elementOrNodeList : [elementOrNodeList]);
-  if (!nodes.length) return;
-
-  const mentionNodes = nodes.filter((node) => {
-    return mentions || node.id === 'content';
-  });
-  const emojiNodes = nodes.filter((node) => {
-    return emoji || node.id === 'content' || node.classList.contains('emoji-input');
-  });
-  const uniqueNodes = uniq([...mentionNodes, ...emojiNodes]);
-  if (!uniqueNodes.length) return;
-
+export async function attachTribute(element, {mentions, emoji} = {}) {
   const {default: Tribute} = await import(/* webpackChunkName: "tribute" */'tributejs');
-
-  const collections = makeCollections({
-    mentions: mentions || mentionNodes.length > 0,
-    emoji: emoji || emojiNodes.length > 0,
-  });
-
+  const collections = makeCollections({mentions, emoji});
   const tribute = new Tribute({collection: collections, noMatchTemplate: ''});
-  for (const node of uniqueNodes) {
-    tribute.attach(node);
-  }
+  tribute.attach(element);
   return tribute;
 }

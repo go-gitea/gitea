@@ -62,7 +62,9 @@
 							{{template "package/metadata/rubygems" .}}
 							{{template "package/metadata/swift" .}}
 							{{template "package/metadata/vagrant" .}}
+							{{if not (and (eq .PackageDescriptor.Package.Type "container") .PackageDescriptor.Metadata.Manifests)}}
 							<div class="item">{{svg "octicon-database" 16 "gt-mr-3"}} {{FileSize .PackageDescriptor.CalculateBlobSize}}</div>
+							{{end}}
 						</div>
 						{{if not (eq .PackageDescriptor.Package.Type "container")}}
 							<div class="ui divider"></div>
@@ -82,9 +84,9 @@
 							<a class="ui right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{.locale.Tr "packages.versions.view_all"}}</a>
 							<div class="ui relaxed list">
 							{{range .LatestVersions}}
-								<div class="item">
-									<a href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
-									<span class="text small">{{$.locale.Tr "packages.versions.on"}} {{.CreatedUnix.FormatDate}}</span>
+								<div class="item gt-df">
+									<a class="gt-f1" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
+									<span class="text small">{{DateTime "short" .CreatedUnix}}</span>
 								</div>
 							{{end}}
 							</div>

@@ -2,9 +2,11 @@
 date: "2019-08-17T10:20:00+01:00"
 title: "GPG Commit Signatures"
 slug: "signing"
-weight: 20
+weight: 50
 toc: false
 draft: false
+aliases:
+  - /en-us/signing
 menu:
   sidebar:
     parent: "administration"

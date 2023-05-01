@@ -1,0 +1,51 @@
+{{template "base/head" .}}
+<div class="page-content devtest ui container">
+
+	<div>
+		<h1>Tooltip</h1>
+		<div><span data-tooltip-content="test tooltip">text with tooltip</span></div>
+		<div><span data-tooltip-content="test tooltip" data-tooltip-interactive="true">text with interactive tooltip</span></div>
+	</div>
+
+	<div>
+		<h1>GiteaOriginUrl</h1>
+		<div><gitea-origin-url data-url="test/url"></gitea-origin-url></div>
+		<div><gitea-origin-url data-url="/test/url"></gitea-origin-url></div>
+	</div>
+
+	<div>
+		<h1>LocaleNumber</h1>
+		<div>{{.locale.PrettyNumber 1}}</div>
+		<div>{{.locale.PrettyNumber 12}}</div>
+		<div>{{.locale.PrettyNumber 123}}</div>
+		<div>{{.locale.PrettyNumber 1234}}</div>
+		<div>{{.locale.PrettyNumber 12345}}</div>
+		<div>{{.locale.PrettyNumber 123456}}</div>
+		<div>{{.locale.PrettyNumber 1234567}}</div>
+	</div>
+
+	<div>
+		<h1>TimeSince</h1>
+		<div>Now: {{TimeSince .TimeNow $.locale}}</div>
+		<div>5s past: {{TimeSince .TimePast5s $.locale}}</div>
+		<div>5s future: {{TimeSince .TimeFuture5s $.locale}}</div>
+		<div>2m past: {{TimeSince .TimePast2m $.locale}}</div>
+		<div>2m future: {{TimeSince .TimeFuture2m $.locale}}</div>
+		<div>1y past: {{TimeSince .TimePast1y $.locale}}</div>
+		<div>1y future: {{TimeSince .TimeFuture1y $.locale}}</div>
+	</div>
+
+	<div>
+		<h1>ComboMarkdownEditor</h1>
+		<div>ps: no JS code attached, so just a layout</div>
+		{{template "shared/combomarkdowneditor" .}}
+	</div>
+
+	<style>
+		h1 {
+			margin: 0;
+			padding: 10px 0;
+		}
+	</style>
+</div>
+{{template "base/footer" .}}

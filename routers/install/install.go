@@ -55,7 +55,7 @@ func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
 
 // Init prepare for rendering installation page
 func Init(ctx goctx.Context) func(next http.Handler) http.Handler {
-	_, rnd := templates.HTMLRenderer(ctx)
+	rnd := templates.HTMLRenderer()
 	dbTypeNames := getSupportedDbTypeNames()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -559,7 +559,7 @@ func SubmitInstall(ctx *context.Context) {
 		}
 
 		days := 86400 * setting.LogInRememberDays
-		ctx.SetCookie(setting.CookieUserName, u.Name, days)
+		ctx.SetSiteCookie(setting.CookieUserName, u.Name, days)
 
 		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
 			setting.CookieRememberName, u.Name, days)

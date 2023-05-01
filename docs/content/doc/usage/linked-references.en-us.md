@@ -1,10 +1,12 @@
 ---
 date: "2019-11-21T17:00:00-03:00"
-title: "Usage: Automatically Linked References"
+title: "Automatically Linked References"
 slug: "automatically-linked-references"
 weight: 15
 toc: false
 draft: false
+aliases:
+  - /en-us/automatically-linked-references
 menu:
   sidebar:
     parent: "usage"

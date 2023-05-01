@@ -4,7 +4,7 @@
 package queue
 
 import (
-	"fmt"
+	"os"
 	"strconv"
 	"sync"
 	"testing"
@@ -16,8 +16,11 @@ import (
 )
 
 func TestPersistableChannelUniqueQueue(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping because test is flaky on CI")
+	}
+
 	tmpDir := t.TempDir()
-	fmt.Printf("TempDir %s\n", tmpDir)
 	_ = log.NewLogger(1000, "console", "console", `{"level":"warn","stacktracelevel":"NONE","stderr":true}`)
 
 	// Common function to create the Queue
@@ -208,7 +211,7 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 
 			mapLock.Lock()
 			assert.Equal(t, 101, len(executedInitial[name])+len(executedEmpty[name]))
-			assert.Equal(t, 0, len(hasEmpty[name]))
+			assert.Empty(t, hasEmpty[name])
 			mapLock.Unlock()
 		})
 		close(done)

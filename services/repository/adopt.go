@@ -206,7 +206,7 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 		}
 	}
 
-	if exist, err := repo_model.IsRepositoryExist(ctx, u, repoName); err != nil {
+	if exist, err := repo_model.IsRepositoryModelExist(ctx, u, repoName); err != nil {
 		return err
 	} else if exist {
 		return repo_model.ErrRepoAlreadyExist{
