@@ -669,7 +669,7 @@ export function initRepoIssueMarkdownTextarea() {
   // default display textarea
   $('.markdown-textarea .textarea').each((_, target) => showTextarea(target));
 
-  $('.markdown-textarea .textarea').on('click', function() {
+  $('.markdown-textarea .textarea').on('focus', function() {
     hiddenTextarea(this);
     $('.markdown-textarea .textarea').not(this).each((_, target) => showTextarea(target));
   });
