@@ -4,8 +4,8 @@ on:
   push:
     paths:
       - "docs/**"
-  branch:
-    - main
+    branches:
+      - main
 
 jobs:
   compliance-docs:
