@@ -1309,43 +1309,6 @@ steps:
 ---
 kind: pipeline
 type: docker
-name: docker-linux-arm64-dry-run
-
-platform:
-  os: linux
-  arch: arm64
-
-depends_on:
-  - compliance
-
-trigger:
-  event:
-    - pull_request
-  paths:
-    exclude:
-      - "docs/**"
-
-steps:
-  - name: dryrun
-    image: plugins/docker:latest
-    pull: always
-    settings:
-      dry_run: true
-      repo: gitea/gitea
-      tags: linux-arm64
-      build_args:
-        - GOPROXY=https://goproxy.io
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
-      DOCKER_BUILDKIT: 1
-    when:
-      event:
-        - pull_request
-
----
-kind: pipeline
-type: docker
 name: docker-linux-arm64-release-version
 
 platform:
