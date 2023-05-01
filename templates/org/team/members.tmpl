@@ -54,7 +54,7 @@
 							<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
 								{{$.CsrfTokenHtml}}
 								<input type="hidden" name="iid" value="{{.ID}}">
-								<button class="ui red button delete-button">{{$.locale.Tr "org.members.remove"}}</button>
+								<button class="ui red button">{{$.locale.Tr "org.members.remove"}}</button>
 							</form>
 						</div>
 					{{end}}
