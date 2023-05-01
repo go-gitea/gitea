@@ -1,5 +1,5 @@
-<footer role="group" aria-label="{{.locale.Tr "aria.footer"}}">
-	<div class="ui left" role="contentinfo" aria-label="{{.locale.Tr "aria.footer.software"}}">
+<footer class="page-footer" role="group" aria-label="{{.locale.Tr "aria.footer"}}">
+	<div class="left-links" role="contentinfo" aria-label="{{.locale.Tr "aria.footer.software"}}">
 		<a target="_blank" rel="noopener noreferrer" href="https://gitea.io">{{.locale.Tr "powered_by" "Gitea"}}</a>
 		{{if (or .ShowFooterVersion .PageIsAdmin)}}
 			{{.locale.Tr "version"}}:
@@ -14,7 +14,7 @@
 			{{.locale.Tr "template"}}{{if .TemplateName}} {{.TemplateName}}{{end}}: <strong>{{call .TemplateLoadTimes}}</strong>
 		{{end}}
 	</div>
-	<div class="ui right links" role="group" aria-label="{{.locale.Tr "aria.footer.links"}}">
+	<div class="right-links" role="group" aria-label="{{.locale.Tr "aria.footer.links"}}">
 		<div class="ui dropdown upward language">
 			<span>{{svg "octicon-globe"}} {{.locale.LangName}}</span>
 			<div class="menu language-menu">

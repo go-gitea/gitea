@@ -5,6 +5,8 @@ slug: "comparison"
 weight: 5
 toc: false
 draft: false
+aliases:
+  - /zh-cn/comparison
 menu:
   sidebar:
     parent: "installation"

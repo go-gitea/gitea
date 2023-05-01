@@ -115,6 +115,10 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results (ignored if used with 'path')
 	//   type: integer
+	// - name: not
+	//   in: query
+	//   description: commits that match the given specifier will not be listed.
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommitList"
@@ -181,7 +185,8 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Query commits
-		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize)
+		not := ctx.FormString("not")
+		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize, not)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CommitsByRange", err)
 			return

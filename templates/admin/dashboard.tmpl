@@ -16,63 +16,63 @@
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.dashboard.operations"}}
 		</h4>
-		<form method="post" action="{{AppSubUrl}}/admin">
-			{{.CsrfTokenHtml}}
-			<div class="ui attached table segment">
+		<div class="ui attached table segment">
+			<form method="post" action="{{AppSubUrl}}/admin">
+				{{.CsrfTokenHtml}}
 				<table class="ui very basic table gt-px-4">
 					<tbody>
 						<tr>
 							<td>{{.locale.Tr "admin.dashboard.delete_inactive_accounts"}}</td>
-							<td><button type="submit" class="ui green button right" name="op" value="delete_inactive_accounts">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="text right"><button type="submit" class="ui green button" name="op" value="delete_inactive_accounts">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{.locale.Tr "admin.dashboard.delete_repo_archives"}}</td>
-							<td><button type="submit" class="ui green button right" name="op" value="delete_repo_archives">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="text right"><button type="submit" class="ui green button" name="op" value="delete_repo_archives">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{.locale.Tr "admin.dashboard.delete_missing_repos"}}</td>
-							<td><button type="submit" class="ui green button right" name="op" value="delete_missing_repos">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="text right"><button type="submit" class="ui green button" name="op" value="delete_missing_repos">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{.locale.Tr "admin.dashboard.git_gc_repos"}}</td>
-							<td><button type="submit" class="ui green button right" name="op" value="git_gc_repos">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="text right"><button type="submit" class="ui green button" name="op" value="git_gc_repos">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						{{if and (not .SSH.Disabled) (not .SSH.StartBuiltinServer)}}
 							<tr>
 								<td>{{.locale.Tr "admin.dashboard.resync_all_sshkeys"}}<br>
 								{{.locale.Tr "admin.dashboard.resync_all_sshkeys.desc"}}</td>
-								<td><button type="submit" class="ui green button right" name="op" value="resync_all_sshkeys">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
+								<td class="text right"><button type="submit" class="ui green button" name="op" value="resync_all_sshkeys">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 							</tr>
 							<tr>
 								<td>{{.locale.Tr "admin.dashboard.resync_all_sshprincipals"}}<br>
 								{{.locale.Tr "admin.dashboard.resync_all_sshprincipals.desc"}}</td>
-								<td><button type="submit" class="ui green button right" name="op" value="resync_all_sshprincipals">{{svg "octicon-play" 16}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
+								<td class="text right"><button type="submit" class="ui green button" name="op" value="resync_all_sshprincipals">{{svg "octicon-play" 16}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 							</tr>
 						{{end}}
 						<tr>
 							<td>{{.locale.Tr "admin.dashboard.resync_all_hooks"}}</td>
-							<td><button type="submit" class="ui green button right" name="op" value="resync_all_hooks">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="text right"><button type="submit" class="ui green button" name="op" value="resync_all_hooks">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{.locale.Tr "admin.dashboard.reinit_missing_repos"}}</td>
-							<td><button type="submit" class="ui green button right" name="op" value="reinit_missing_repos">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="text right"><button type="submit" class="ui green button" name="op" value="reinit_missing_repos">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{.locale.Tr "admin.dashboard.sync_external_users"}}</td>
-							<td><button type="submit" class="ui green button right" name="op" value="sync_external_users">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="text right"><button type="submit" class="ui green button" name="op" value="sync_external_users">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{.locale.Tr "admin.dashboard.repo_health_check"}}</td>
-							<td><button type="submit" class="ui green button right" name="op" value="repo_health_check">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="text right"><button type="submit" class="ui green button" name="op" value="repo_health_check">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{.locale.Tr "admin.dashboard.delete_generated_repository_avatars"}}</td>
-							<td><button type="submit" class="ui green button right" name="op" value="delete_generated_repository_avatars">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="text right"><button type="submit" class="ui green button" name="op" value="delete_generated_repository_avatars">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 					</tbody>
 				</table>
-			</div>
-		</form>
+			</form>
+		</div>
 
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.dashboard.system_status"}}
