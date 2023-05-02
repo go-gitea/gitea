@@ -121,7 +121,9 @@ func CreateHookTask(ctx context.Context, t *HookTask) (*HookTask, error) {
 		}
 		t.PayloadContent = string(data)
 	}
-	t.Delivered = timeutil.TimeStampNanoNow()
+	if t.Delivered == 0 {
+		t.Delivered = timeutil.TimeStampNanoNow()
+	}
 	return t, db.Insert(ctx, t)
 }
 
