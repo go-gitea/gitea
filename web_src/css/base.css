@@ -332,8 +332,7 @@ progress::-moz-progress-bar {
   user-select: none;
 }
 
-a,
-.ui.breadcrumb a {
+a {
   color: var(--color-primary);
   cursor: pointer;
   text-decoration-skip-ink: all;
@@ -347,8 +346,7 @@ a.muted,
 a:hover,
 a.muted:hover,
 a.muted:hover [class*="color-text"],
-.muted-links a:hover,
-.ui.breadcrumb a:hover {
+.muted-links a:hover {
   color: var(--color-primary);
 }
 
@@ -735,14 +733,6 @@ a.label,
 .icon-button {
   padding-top: 7.42px !important;
   padding-bottom: 7.42px !important;
-}
-
-.ui.breadcrumb a:hover {
-  text-decoration: underline !important;
-}
-
-.ui.breadcrumb .divider {
-  color: var(--color-text-light-2);
 }
 
 .ui.divider:not(.vertical,.horizontal) {
@@ -1925,7 +1915,7 @@ img.ui.avatar,
 }
 
 .ui.menu.new-menu .item {
-  margin: 0 !important;
+  margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
 }
 
 @media (max-width: 767px) {
@@ -1934,8 +1924,13 @@ img.ui.avatar,
   }
 }
 
+.ui.menu.new-menu .item:first-child {
+  margin-left: auto; /* "justify-content: center" doesn't work with "overflow: auto", so use margin: auto */
+}
+
 .ui.menu.new-menu .item:last-child {
   padding-right: 30px !important;
+  margin-right: auto;
 }
 
 .ui.menu.new-menu::-webkit-scrollbar {
@@ -2048,6 +2043,13 @@ i.icon.centerlock {
 a.ui.label:hover {
   background: var(--color-hover);
   border-color: var(--color-hover);
+  color: var(--color-text);
+}
+
+.ui.labels a.active.label:hover,
+a.ui.active.label:hover {
+  background: var(--color-active);
+  border-color: var(--color-active);
   color: var(--color-text);
 }
 
@@ -2603,6 +2605,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.dropdown .svg.dropdown.icon,
+.ui.dropdown .svg.remove.icon,
 .svg.dropdown.icon {
   margin-top: 0 !important; /* reset the "ui.selection.dropdown > .dropdown.icon {margin-top}", for the Issue Dependencies dropdown */
   margin-right: -0.5rem !important; /* fix up SVG dropdown triangles because Fomantic thinks they are icon fonts */
@@ -2613,6 +2616,16 @@ table th[data-sortt-desc] .svg {
 .ui.selection.dropdown > .svg.delete.icon,
 .ui.selection.dropdown > .svg.dropdown.icon {
   top: 0 !important; /* reset the ".ui.selection.dropdown > .xxx.icon {top}" if the icon is svg instead of the fomantic icon */
+}
+
+.ui.selection.dropdown > .svg.remove.icon {
+  top: .5px;
+  right: 32px;
+  width: auto;
+}
+
+.ui.selection.dropdown > .svg.remove.icon:hover {
+  opacity: 1;
 }
 
 .ui.dropdown.no-text > .dropdown.icon {
@@ -2783,19 +2796,6 @@ table th[data-sortt-desc] .svg {
   float: left;
   width: 15px;
   height: 15px;
-}
-
-.g-menu-stackable-scrollable {
-  overflow-y: hidden;
-  overflow-x: auto;
-}
-
-@media (max-width: 767.98px) {
-  /* also respect Fomantic's "stackable" definition, use the same breakpoint to reset our styles */
-  .g-menu-stackable-scrollable {
-    overflow-x: unset;
-    overflow-y: unset;
-  }
 }
 
 .color-text-light-2 {

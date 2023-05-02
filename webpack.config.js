@@ -40,10 +40,6 @@ const filterCssImport = (url, ...args) => {
     return false;
   }
 
-  if (cssFile.includes('font-awesome') && /(eot|ttf|otf|woff|svg)$/.test(importedFile)) {
-    return false;
-  }
-
   return true;
 };
 
@@ -205,9 +201,6 @@ export default {
       },
       emitError: true,
       allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
-      ignore: [
-        'font-awesome',
-      ],
     }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
   ],
   performance: {
