@@ -1,0 +1,85 @@
+{{template "base/head" .}}
+
+<div role="main" aria-label="{{.Title}}" class="page-content repository tags">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		{{template "repo/sub_menu_release_tag" .}}
+
+		<div class="ui divider"></div>
+
+		<h4 class="ui top attached header">
+			<div class="five wide column gt-df gt-ac">
+				{{svg "octicon-tag" 16 "gt-mr-2"}}{{.locale.Tr "repo.release.tags"}}
+			</div>
+		</h4>
+
+		{{$canReadReleases := $.Permission.CanRead $.UnitTypeReleases}}
+
+		<div class="ui attached table segment">
+			<table class="ui very basic striped fixed table single line" id="tags-table">
+				<tbody class="tag-list">
+					{{range $idx, $release := .Releases}}
+						<tr>
+							<td class="tag">
+								<h3 class="release-tag-name gt-mb-3">
+									{{if $canReadReleases}}
+										<a class="gt-df gt-ac" href="{{$.RepoLink}}/releases/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{.TagName}}</a>
+									{{else}}
+										<a class="gt-df gt-ac" href="{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{.TagName}}</a>
+									{{end}}
+								</h3>
+								<div class="download gt-df gt-ac">
+									{{if $.Permission.CanRead $.UnitTypeCode}}
+										{{if .CreatedUnix}}
+											<span class="gt-mr-3">{{svg "octicon-clock" 16 "gt-mr-2"}}{{TimeSinceUnix .CreatedUnix $.locale}}</span>
+										{{end}}
+
+										<a class="gt-mr-3 gt-mono muted" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "gt-mr-2"}}{{ShortSha .Sha1}}</a>
+
+										{{if not $.DisableDownloadSourceArchives}}
+											<a class="archive-link gt-mr-3 muted" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "gt-mr-2"}}ZIP</a>
+											<a class="archive-link gt-mr-3 muted" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "gt-mr-2"}}TAR.GZ</a>
+										{{end}}
+
+										{{if (and $canReadReleases $.CanCreateRelease $release.IsTag)}}
+											<a class="gt-mr-3 muted" href="{{$.RepoLink}}/releases/new?tag={{.TagName}}">{{svg "octicon-tag" 16 "gt-mr-2"}}{{$.locale.Tr "repo.release.new_release"}}</a>
+										{{end}}
+
+										{{if (and ($.Permission.CanWrite $.UnitTypeCode) $release.IsTag)}}
+											<a class="ui delete-button gt-mr-3 muted" data-url="{{$.RepoLink}}/tags/delete" data-id="{{.ID}}">
+												{{svg "octicon-trash" 16 "gt-mr-2"}}{{$.locale.Tr "repo.release.delete_tag"}}
+											</a>
+										{{end}}
+
+										{{if and $canReadReleases (not $release.IsTag)}}
+											<a class="gt-mr-3 muted" href="{{$.RepoLink}}/releases/tag/{{.TagName | PathEscapeSegments}}">{{svg "octicon-tag" 16 "gt-mr-2"}}{{$.locale.Tr "repo.release.detail"}}</a>
+										{{end}}
+									{{end}}
+								</div>
+							</td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+
+		{{template "base/paginate" .}}
+	</div>
+</div>
+
+{{if $.Permission.CanWrite $.UnitTypeCode}}
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
+		{{svg "octicon-trash"}}
+		{{.locale.Tr "repo.release.delete_tag"}}
+	</div>
+	<div class="content">
+		<p>{{.locale.Tr "repo.release.deletion_tag_desc"}}</p>
+	</div>
+	{{template "base/modal_actions_confirm" .}}
+</div>
+{{end}}
+
+
+{{template "base/footer" .}}

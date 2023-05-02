@@ -545,7 +545,7 @@ func processUploadedFile(ctx *context.Context, expectedType nuget_module.Package
 		closables = append(closables, upload)
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return nil, nil, closables

@@ -1,8 +1,8 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content ui container center gt-full-screen-width {{if .IsRepo}}repository{{end}}">
+<div role="main" aria-label="{{.Title}}" class="page-content ui container center gt-w-screen {{if .IsRepo}}repository{{end}}">
 	{{if .IsRepo}}{{template "repo/header" .}}{{end}}
 	<div class="ui container center">
-		<p style="margin-top: 100px"><img src="{{AssetUrlPrefix}}/img/404.png" alt="404"/></p>
+		<p style="margin-top: 100px"><img src="{{AssetUrlPrefix}}/img/404.png" alt="404"></p>
 		<div class="ui divider"></div>
 		<br>
 		<p>{{.locale.Tr "error404" | Safe}}

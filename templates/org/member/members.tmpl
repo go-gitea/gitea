@@ -8,7 +8,7 @@
 			{{range .Members}}
 				<div class="item ui grid">
 					<div class="ui four wide column" style="display: flex;">
-						{{avatar $.Context . 48}}
+						<a href="{{.HomeLink}}">{{avatar $.Context . 48}}</a>
 						<div>
 							<div class="meta"><a href="{{.HomeLink}}">{{.Name}}</a></div>
 							<div class="meta">{{.FullName}}</div>
@@ -55,7 +55,7 @@
 							{{end}}
 						</div>
 					{{end}}
-					<div class="ui three wide column">
+					<div class="ui three wide column gt-df gt-ac gt-je">
 						<div class="text right">
 							{{if eq $.SignedUser.ID .ID}}
 								<form>
@@ -81,25 +81,23 @@
 		{{template "base/paginate" .}}
 	</div>
 </div>
-<div class="ui small basic delete modal" id="leave-organization">
-	<div class="ui icon header">
-		{{svg "octicon-x" 16 "close inside"}}
+<div class="ui g-modal-confirm delete modal" id="leave-organization">
+	<div class="header">
 		{{$.locale.Tr "org.members.leave"}}
 	</div>
 	<div class="content">
 		<p>{{$.locale.Tr "org.members.leave.detail" `<span class="dataOrganizationName"></span>` | Safe}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
-<div class="ui small basic delete modal" id="remove-organization-member">
-	<div class="ui icon header">
-		{{svg "octicon-x" 16 "close inside"}}
+<div class="ui g-modal-confirm delete modal" id="remove-organization-member">
+	<div class="header">
 		{{$.locale.Tr "org.members.remove"}}
 	</div>
 	<div class="content">
 		<p>{{$.locale.Tr "org.members.remove.detail" `<span class="name"></span>` `<span class="dataOrganizationName"></span>` | Safe}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
 {{template "base/footer" .}}

@@ -43,6 +43,10 @@ func (err ErrUserSettingIsNotExist) Error() string {
 	return fmt.Sprintf("Setting[%s] is not exist", err.Key)
 }
 
+func (err ErrUserSettingIsNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // IsErrUserSettingIsNotExist return true if err is ErrSettingIsNotExist
 func IsErrUserSettingIsNotExist(err error) bool {
 	_, ok := err.(ErrUserSettingIsNotExist)

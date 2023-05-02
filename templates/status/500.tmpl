@@ -1,13 +1,36 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content ui container gt-full-screen-width center">
-	<p style="margin-top: 100px"><img src="{{AssetUrlPrefix}}/img/500.png" alt="500"/></p>
+<div role="main" aria-label="{{.Title}}" class="page-content status-page-500">
+	<p class="gt-mt-5 center"><img src="{{AssetUrlPrefix}}/img/500.png" alt="Internal Server Error"></p>
 	<div class="ui divider"></div>
-	<br>
-	{{if .ErrorMsg}}
-		<p>{{.locale.Tr "error.occurred"}}:</p>
-		<pre style="text-align: left">{{.ErrorMsg}}</pre>
-	{{end}}
-	{{if .ShowFooterVersion}}<p>{{.locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
-	{{if .IsAdmin}}<p>{{.locale.Tr "error.report_message"  | Safe}}</p>{{end}}
+
+	<div class="ui container gt-mt-5">
+		{{if .ErrorMsg}}
+			<p>{{.locale.Tr "error.occurred"}}:</p>
+			<pre class="gt-whitespace-pre-wrap gt-break-all">{{.ErrorMsg}}</pre>
+		{{end}}
+
+		<div class="center gt-mt-5">
+			{{if .ShowFooterVersion}}<p>{{.locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
+			{{if .IsAdmin}}<p>{{.locale.Tr "error.report_message"  | Safe}}</p>{{end}}
+		</div>
+	</div>
 </div>
+{{/* when a sub-template triggers an 500 error, its parent template has been partially rendered,
+then the 500 page will be rendered after that partially rendered page, the HTML/JS are totally broken.
+so use this inline script to try to move it to main viewport */}}
+<script type="module">
+const embedded = document.querySelector('.page-content .page-content.status-page-500');
+if (embedded) {
+	// move footer to main view
+	const footer = document.querySelector('footer');
+	if (footer) document.querySelector('body').append(footer);
+	// move the 500 error page content to main view
+	const embeddedParent = embedded.parentNode;
+	let main = document.querySelector('.page-content');
+	main = main ?? document.querySelector('body');
+	main.prepend(document.createElement('hr'));
+	main.prepend(embedded);
+	embeddedParent.remove(); // remove the unrelated 500-page elements (eg: the duplicate nav bar)
+}
+</script>
 {{template "base/footer" .}}

@@ -3,7 +3,7 @@ module code.gitea.io/gitea
 go 1.19
 
 require (
-	code.gitea.io/actions-proto-go v0.2.0
+	code.gitea.io/actions-proto-go v0.2.1
 	code.gitea.io/gitea-vet v0.2.2
 	code.gitea.io/sdk/gitea v0.15.1
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
@@ -17,6 +17,7 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/alecthomas/chroma/v2 v2.5.0
+	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/blevesearch/bleve/v2 v2.3.6
 	github.com/bufbuild/connect-go v1.3.1
 	github.com/buildkite/terminal-to-html/v3 v3.7.0
@@ -44,7 +45,6 @@ require (
 	github.com/go-git/go-billy/v5 v5.4.1
 	github.com/go-git/go-git/v5 v5.5.2
 	github.com/go-ldap/ldap/v3 v3.4.4
-	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/go-swagger/go-swagger v0.30.4
 	github.com/go-testfixtures/testfixtures/v3 v3.8.1
@@ -54,7 +54,7 @@ require (
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v4 v4.5.0
-	github.com/google/go-github/v45 v45.2.0
+	github.com/google/go-github/v51 v51.0.0
 	github.com/google/pprof v0.0.0-20230222194610-99052d3372e7
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/feeds v1.1.1
@@ -73,12 +73,13 @@ require (
 	github.com/markbates/goth v1.76.0
 	github.com/mattn/go-isatty v0.0.17
 	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/meilisearch/meilisearch-go v0.23.0
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/microcosm-cc/bluemonday v1.0.22
 	github.com/minio/minio-go/v7 v7.0.49
 	github.com/minio/sha256-simd v1.0.0
 	github.com/msteinert/pam v1.1.0
-	github.com/nektos/act v0.0.0
+	github.com/nektos/act v0.2.43
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/niklasfasching/go-org v1.6.5
 	github.com/oliamb/cutter v0.2.2
@@ -89,6 +90,7 @@ require (
 	github.com/pquerna/otp v1.4.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/quasoft/websspi v1.1.2
+	github.com/redis/go-redis/v9 v9.0.3
 	github.com/santhosh-tekuri/jsonschema/v5 v5.2.0
 	github.com/sassoftware/go-rpmutils v0.2.0
 	github.com/sergi/go-diff v1.3.1
@@ -96,7 +98,7 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
-	github.com/unrolled/render v1.5.0
+	github.com/ulikunitz/xz v0.5.11
 	github.com/urfave/cli v1.22.12
 	github.com/xanzy/go-gitlab v0.80.2
 	github.com/xeipuuv/gojsonschema v1.2.0
@@ -104,11 +106,12 @@ require (
 	github.com/yuin/goldmark v1.5.4
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20220924101305-151362477c87
 	github.com/yuin/goldmark-meta v1.1.0
-	golang.org/x/crypto v0.6.0
-	golang.org/x/net v0.7.0
-	golang.org/x/oauth2 v0.5.0
-	golang.org/x/sys v0.5.0
-	golang.org/x/text v0.7.0
+	golang.org/x/crypto v0.7.0
+	golang.org/x/image v0.7.0
+	golang.org/x/net v0.8.0
+	golang.org/x/oauth2 v0.6.0
+	golang.org/x/sys v0.6.0
+	golang.org/x/text v0.9.0
 	golang.org/x/tools v0.6.0
 	google.golang.org/grpc v1.53.0
 	google.golang.org/protobuf v1.28.1
@@ -176,7 +179,6 @@ require (
 	github.com/go-asn1-ber/asn1-ber v1.5.4 // indirect
 	github.com/go-enry/go-oniguruma v1.2.1 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
-	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
 	github.com/go-openapi/errors v0.20.3 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
@@ -221,7 +223,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
-	github.com/mholt/acmez v1.1.0 // indirect
+	github.com/mholt/acmez v1.0.4 // indirect
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
@@ -234,6 +236,8 @@ require (
 	github.com/nwaples/rardecode v1.1.3 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/onsi/ginkgo v1.16.5 // indirect
+	github.com/onsi/gomega v1.18.1 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
 	github.com/pierrec/lz4/v4 v4.1.17 // indirect
@@ -242,7 +246,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
-	github.com/rhysd/actionlint v1.6.22 // indirect
+	github.com/rhysd/actionlint v1.6.23 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
@@ -260,8 +264,9 @@ require (
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/toqueteos/webbrowser v1.2.0 // indirect
-	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/unknwon/com v1.0.1 // indirect
+	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/valyala/fasthttp v1.44.0 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
@@ -289,7 +294,7 @@ replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142
 
 replace github.com/blevesearch/zapx/v15 v15.3.6 => github.com/zeripath/zapx/v15 v15.3.6-alignment-fix
 
-replace github.com/nektos/act => gitea.com/gitea/act v0.234.2-0.20230131074955-e46ede1b1744
+replace github.com/nektos/act => gitea.com/gitea/act v0.243.4
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 

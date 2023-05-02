@@ -223,6 +223,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				OptionalDependencies:    meta.OptionalDependencies,
 				Bin:                     meta.Bin,
 				Readme:                  meta.Readme,
+				Repository:              meta.Repository,
 			},
 		}
 

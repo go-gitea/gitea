@@ -14,22 +14,28 @@
 		<form class="ui form" action="{{.Link}}?action={{if .PageIsWikiEdit}}_edit{{else}}_new{{end}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
-				<input name="title" value="{{.title}}" autofocus required>
+				<input name="title" value="{{.title}}" aria-label="{{.locale.Tr "repo.wiki.page_title"}}" placeholder="{{.locale.Tr "repo.wiki.page_title"}}" autofocus required>
 			</div>
 			<div class="help">
 				{{.locale.Tr "repo.wiki.page_name_desc"}}
 			</div>
-			<div class="ui top attached tabular menu previewtabs" data-write="write" data-preview="preview">
-				<a class="active item" data-tab="write">{{.locale.Tr "write"}}</a>
-				<a class="item" data-tab="preview" data-url="{{$.Repository.Link}}/markdown" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
-			</div>
-			<div class="field content" data-loading="{{.locale.Tr "loading"}}">
-				<div class="ui bottom active tab" data-tab="write">
-					<textarea class="js-quick-submit" id="edit_area" name="content" data-id="wiki-{{.title}}" data-url="{{.Repository.Link}}/markdown" data-context="{{.RepoLink}}">{{if .PageIsWikiEdit}}{{.content}}{{else}}{{.locale.Tr "repo.wiki.welcome"}}{{end}}</textarea>
-				</div>
-			</div>
-			<div class="field">
-				<input name="message" placeholder="{{.locale.Tr "repo.wiki.default_commit_message"}}">
+
+			{{$content := .content}}
+			{{if not .PageIsWikiEdit}}
+				{{$content = .locale.Tr "repo.wiki.welcome"}}
+			{{end}}
+			{{template "shared/combomarkdowneditor" (dict
+				"locale" $.locale
+				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
+				"MarkdownPreviewContext" .RepoLink
+				"TextareaName" "content"
+				"TextareaPlaceholder" (.locale.Tr "repo.wiki.page_content")
+				"TextareaAriaLabel" (.locale.Tr "repo.wiki.page_content")
+				"TextareaContent" $content
+			)}}
+
+			<div class="field gt-mt-4">
+				<input name="message" aria-label="{{.locale.Tr "repo.wiki.default_commit_message"}}" placeholder="{{.locale.Tr "repo.wiki.default_commit_message"}}">
 			</div>
 			<div class="text right">
 				<button class="ui green button">

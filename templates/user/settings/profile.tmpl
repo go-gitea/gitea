@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings profile">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings profile")}}
+	<div class="user-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "settings.public_profile"}}
 		</h4>
@@ -30,7 +27,7 @@
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox" id="keep-email-private">
-						<label class="tooltip" data-content="{{.locale.Tr "settings.keep_email_private_popup"}}"><strong>{{.locale.Tr "settings.keep_email_private"}}</strong></label>
+						<label data-tooltip-content="{{.locale.Tr "settings.keep_email_private_popup"}}"><strong>{{.locale.Tr "settings.keep_email_private"}}</strong></label>
 						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
 					</div>
 				</div>
@@ -69,11 +66,11 @@
 						<div class="menu">
 							{{range $mode := .AllowedUserVisibilityModes}}
 								{{if $mode.IsPublic}}
-									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.locale.Tr "settings.visibility.public"}}</div>
+									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.locale.Tr "settings.visibility.public"}}</div>
 								{{else if $mode.IsLimited}}
-									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.locale.Tr "settings.visibility.limited"}}</div>
+									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.locale.Tr "settings.visibility.limited"}}</div>
 								{{else if $mode.IsPrivate}}
-									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.locale.Tr "settings.visibility.private"}}</div>
+									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.locale.Tr "settings.visibility.private"}}</div>
 								{{end}}
 							{{end}}
 						</div>
@@ -82,7 +79,7 @@
 
 				<div class="field">
 					<div class="ui checkbox" id="keep-activity-private">
-						<label class="tooltip" data-content="{{.locale.Tr "settings.keep_activity_private_popup"}}"><strong>{{.locale.Tr "settings.keep_activity_private"}}</strong></label>
+						<label data-tooltip-content="{{.locale.Tr "settings.keep_activity_private_popup"}}"><strong>{{.locale.Tr "settings.keep_activity_private"}}</strong></label>
 						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.KeepActivityPrivate}}checked{{end}}>
 					</div>
 				</div>
@@ -110,7 +107,7 @@
 				</div>
 				<div class="field {{if .Err_Gravatar}}error{{end}}">
 					<label for="gravatar">Avatar {{.locale.Tr "email"}}</label>
-					<input id="gravatar" name="gravatar" value="{{.SignedUser.AvatarEmail}}" />
+					<input id="gravatar" name="gravatar" value="{{.SignedUser.AvatarEmail}}">
 				</div>
 				{{end}}
 
@@ -123,7 +120,7 @@
 
 				<div class="inline field">
 					<label for="avatar">{{.locale.Tr "settings.choose_new_avatar"}}</label>
-					<input name="avatar" type="file" >
+					<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>
 
 				<div class="field">
@@ -133,5 +130,4 @@
 			</form>
 		</div>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}

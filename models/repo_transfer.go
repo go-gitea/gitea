@@ -172,7 +172,7 @@ func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_m
 		}
 
 		// Check if new owner has repository with same name.
-		if has, err := repo_model.IsRepositoryExist(ctx, newOwner, repo.Name); err != nil {
+		if has, err := repo_model.IsRepositoryModelExist(ctx, newOwner, repo.Name); err != nil {
 			return fmt.Errorf("IsRepositoryExist: %w", err)
 		} else if has {
 			return repo_model.ErrRepoAlreadyExist{
@@ -249,7 +249,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 	newOwnerName = newOwner.Name // ensure capitalisation matches
 
 	// Check if new owner has repository with same name.
-	if has, err := repo_model.IsRepositoryExist(ctx, newOwner, repo.Name); err != nil {
+	if has, err := repo_model.IsRepositoryModelOrDirExist(ctx, newOwner, repo.Name); err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{

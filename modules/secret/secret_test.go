@@ -15,9 +15,9 @@ func TestEncryptDecrypt(t *testing.T) {
 
 	hex, _ = EncryptSecret("foo", "baz")
 	str, _ = DecryptSecret("foo", hex)
-	assert.Equal(t, str, "baz")
+	assert.Equal(t, "baz", str)
 
 	hex, _ = EncryptSecret("bar", "baz")
 	str, _ = DecryptSecret("foo", hex)
-	assert.NotEqual(t, str, "baz")
+	assert.NotEqual(t, "baz", str)
 }

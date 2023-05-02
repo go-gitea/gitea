@@ -78,11 +78,11 @@
 										<tr>
 											<th>{{.locale.Tr "units.unit"}}</th>
 											<th class="center aligned">{{.locale.Tr "org.teams.none_access"}}
-											<span class="tooltip gt-vm" data-content="{{.locale.Tr "org.teams.none_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
+											<span class="gt-vm" data-tooltip-content="{{.locale.Tr "org.teams.none_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
 											<th class="center aligned">{{.locale.Tr "org.teams.read_access"}}
-											<span class="tooltip gt-vm" data-content="{{.locale.Tr "org.teams.read_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
+											<span class="gt-vm" data-tooltip-content="{{.locale.Tr "org.teams.read_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
 											<th class="center aligned">{{.locale.Tr "org.teams.write_access"}}
-											<span class="tooltip gt-vm" data-content="{{.locale.Tr "org.teams.write_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
+											<span class="gt-vm" data-tooltip-content="{{.locale.Tr "org.teams.write_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
 										</tr>
 									</thead>
 									<tbody>
@@ -90,8 +90,8 @@
 											{{if ge $unit.MaxPerm 2}}
 												<tr>
 													<td>
-														<div {{if $unit.Type.UnitGlobalDisabled}}class="field tooltip" data-content="{{$.locale.Tr "repo.unit_disabled"}}"{{- else -}}class="field"{{end}}>
-															<div class="ui">
+														<div {{if $unit.Type.UnitGlobalDisabled}}class="field" data-tooltip-content="{{$.locale.Tr "repo.unit_disabled"}}"{{- else -}}class="field"{{end}}>
+															<div>
 																<label>{{$.locale.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{$.locale.Tr "org.team_unit_disabled"}}{{end}}</label>
 																<span class="help">{{$.locale.Tr $unit.DescKey}}</span>
 															</div>
@@ -109,7 +109,7 @@
 													</td>
 													<td class="center aligned">
 														<div class="ui radio checkbox">
-															<input type="radio" name="unit_{{$unit.Type.Value}}" value="2"{{if (eq ($.Team.UnitAccessMode $.Context $unit.Type) 2)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{$.locale.Tr "org.teams.write_access"}}">
+															<input type="radio" name="unit_{{$unit.Type.Value}}" value="2"{{if (ge ($.Team.UnitAccessMode $.Context $unit.Type) 2)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{$.locale.Tr "org.teams.write_access"}}">
 														</div>
 													</td>
 												</tr>
@@ -119,7 +119,7 @@
 								</table>
 								{{range $t, $unit := $.Units}}
 									{{if lt $unit.MaxPerm 2}}
-										<div {{if $unit.Type.UnitGlobalDisabled}}class="field tooltip" data-content="{{$.locale.Tr "repo.unit_disabled"}}"{{else}}class="field"{{end}}>
+										<div {{if $unit.Type.UnitGlobalDisabled}}class="field" data-tooltip-content="{{$.locale.Tr "repo.unit_disabled"}}"{{else}}class="field"{{end}}>
 											<div class="ui checkbox">
 												<input type="checkbox" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
 												<label>{{$.locale.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{$.locale.Tr "org.team_unit_disabled"}}{{end}}</label>
@@ -137,7 +137,7 @@
 							{{else}}
 								<button class="ui green button">{{.locale.Tr "org.teams.update_settings"}}</button>
 								{{if not (eq .Team.LowerName "owners")}}
-									<button class="ui red button delete-button" data-url="{{.OrgLink}}/teams/{{.team_name | PathEscape}}/delete">{{.locale.Tr "org.teams.delete_team"}}</button>
+									<button class="ui red button delete-button" data-url="{{.OrgLink}}/teams/{{.Team.Name | PathEscape}}/delete">{{.locale.Tr "org.teams.delete_team"}}</button>
 								{{end}}
 							{{end}}
 						</div>
@@ -148,14 +148,14 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "org.teams.delete_team_title"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "org.teams.delete_team_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 {{template "base/footer" .}}

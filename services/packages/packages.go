@@ -250,8 +250,6 @@ func NewPackageBlob(hsr packages_module.HashedSizeReader) *packages_model.Packag
 }
 
 func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
-	log.Trace("Adding package file: %v, %s", pv.ID, pfci.Filename)
-
 	if err := CheckSizeQuotaExceeded(ctx, pfci.Creator, pvi.Owner, pvi.PackageType, pfci.Data.Size()); err != nil {
 		return nil, nil, false, err
 	}
@@ -365,6 +363,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizeConda
 	case packages_model.TypeContainer:
 		typeSpecificSize = setting.Packages.LimitSizeContainer
+	case packages_model.TypeDebian:
+		typeSpecificSize = setting.Packages.LimitSizeDebian
 	case packages_model.TypeGeneric:
 		typeSpecificSize = setting.Packages.LimitSizeGeneric
 	case packages_model.TypeHelm:
@@ -383,6 +383,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizeRpm
 	case packages_model.TypeRubyGems:
 		typeSpecificSize = setting.Packages.LimitSizeRubyGems
+	case packages_model.TypeSwift:
+		typeSpecificSize = setting.Packages.LimitSizeSwift
 	case packages_model.TypeVagrant:
 		typeSpecificSize = setting.Packages.LimitSizeVagrant
 	}

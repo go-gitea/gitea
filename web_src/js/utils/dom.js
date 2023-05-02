@@ -1,23 +1,3 @@
-function getComputedStyleProperty(el, prop) {
-  const cs = el ? window.getComputedStyle(el) : null;
-  return cs ? cs[prop] : null;
-}
-
-function isShown(el) {
-  return getComputedStyleProperty(el, 'display') !== 'none';
-}
-
-function assertShown(el, expectShown) {
-  if (window.config.runModeIsProd) return;
-
-  // to help developers to catch display bugs, this assertion can be removed after next release cycle or if it has been proved that there is no bug.
-  if (expectShown && !isShown(el)) {
-    throw new Error('element is hidden but should be shown');
-  } else if (!expectShown && isShown(el)) {
-    throw new Error('element is shown but should be hidden');
-  }
-}
-
 function elementsCall(el, func, ...args) {
   if (typeof el === 'string' || el instanceof String) {
     el = document.querySelectorAll(el);
@@ -41,16 +21,10 @@ function elementsCall(el, func, ...args) {
 function toggleShown(el, force) {
   if (force === true) {
     el.classList.remove('gt-hidden');
-    assertShown(el, true);
   } else if (force === false) {
     el.classList.add('gt-hidden');
-    assertShown(el, false);
   } else if (force === undefined) {
-    const wasShown = window.config.runModeIsProd ? undefined : isShown(el);
     el.classList.toggle('gt-hidden');
-    if (wasShown !== undefined) {
-      assertShown(el, !wasShown);
-    }
   } else {
     throw new Error('invalid force argument');
   }
@@ -66,4 +40,133 @@ export function hideElem(el) {
 
 export function toggleElem(el, force) {
   elementsCall(el, toggleShown, force);
+}
+
+export function onDomReady(cb) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', cb);
+  } else {
+    cb();
+  }
+}
+
+// autosize a textarea to fit content. Based on
+// https://github.com/github/textarea-autosize
+// ---------------------------------------------------------------------
+// Copyright (c) 2018 GitHub, Inc.
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to
+// permit persons to whom the Software is furnished to do so, subject to
+// the following conditions:
+//
+// The above copyright notice and this permission notice shall be
+// included in all copies or substantial portions of the Software.
+// ---------------------------------------------------------------------
+export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
+  let isUserResized = false;
+  // lastStyleHeight and initialStyleHeight are CSS values like '100px'
+  let lastMouseX, lastMouseY, lastStyleHeight, initialStyleHeight;
+
+  function onUserResize(event) {
+    if (isUserResized) return;
+    if (lastMouseX !== event.clientX || lastMouseY !== event.clientY) {
+      const newStyleHeight = textarea.style.height;
+      if (lastStyleHeight && lastStyleHeight !== newStyleHeight) {
+        isUserResized = true;
+      }
+      lastStyleHeight = newStyleHeight;
+    }
+
+    lastMouseX = event.clientX;
+    lastMouseY = event.clientY;
+  }
+
+  function overflowOffset() {
+    let offsetTop = 0;
+    let el = textarea;
+
+    while (el !== document.body && el !== null) {
+      offsetTop += el.offsetTop || 0;
+      el = el.offsetParent;
+    }
+
+    const top = offsetTop - document.defaultView.scrollY;
+    const bottom = document.documentElement.clientHeight - (top + textarea.offsetHeight);
+    return {top, bottom};
+  }
+
+  function resizeToFit() {
+    if (isUserResized) return;
+    if (textarea.offsetWidth <= 0 && textarea.offsetHeight <= 0) return;
+
+    try {
+      const {top, bottom} = overflowOffset();
+      const isOutOfViewport = top < 0 || bottom < 0;
+
+      const computedStyle = getComputedStyle(textarea);
+      const topBorderWidth = parseFloat(computedStyle.borderTopWidth);
+      const bottomBorderWidth = parseFloat(computedStyle.borderBottomWidth);
+      const isBorderBox = computedStyle.boxSizing === 'border-box';
+      const borderAddOn = isBorderBox ? topBorderWidth + bottomBorderWidth : 0;
+
+      const adjustedViewportMarginBottom = bottom < viewportMarginBottom ? bottom : viewportMarginBottom;
+      const curHeight = parseFloat(computedStyle.height);
+      const maxHeight = curHeight + bottom - adjustedViewportMarginBottom;
+
+      textarea.style.height = 'auto';
+      let newHeight = textarea.scrollHeight + borderAddOn;
+
+      if (isOutOfViewport) {
+        // it is already out of the viewport:
+        // * if the textarea is expanding: do not resize it
+        if (newHeight > curHeight) {
+          newHeight = curHeight;
+        }
+        // * if the textarea is shrinking, shrink line by line (just use the
+        //   scrollHeight). do not apply max-height limit, otherwise the page
+        //   flickers and the textarea jumps
+      } else {
+        // * if it is in the viewport, apply the max-height limit
+        newHeight = Math.min(maxHeight, newHeight);
+      }
+
+      textarea.style.height = `${newHeight}px`;
+      lastStyleHeight = textarea.style.height;
+    } finally {
+      // ensure that the textarea is fully scrolled to the end, when the cursor
+      // is at the end during an input event
+      if (textarea.selectionStart === textarea.selectionEnd &&
+          textarea.selectionStart === textarea.value.length) {
+        textarea.scrollTop = textarea.scrollHeight;
+      }
+    }
+  }
+
+  function onFormReset() {
+    isUserResized = false;
+    if (initialStyleHeight !== undefined) {
+      textarea.style.height = initialStyleHeight;
+    } else {
+      textarea.style.removeProperty('height');
+    }
+  }
+
+  textarea.addEventListener('mousemove', onUserResize);
+  textarea.addEventListener('input', resizeToFit);
+  textarea.form?.addEventListener('reset', onFormReset);
+  initialStyleHeight = textarea.style.height ?? undefined;
+  if (textarea.value) resizeToFit();
+
+  return {
+    resizeToFit,
+    destroy() {
+      textarea.removeEventListener('mousemove', onUserResize);
+      textarea.removeEventListener('input', resizeToFit);
+      textarea.form?.removeEventListener('reset', onFormReset);
+    }
+  };
 }

@@ -54,7 +54,11 @@ var (
 
 // LoadDBSetting loads the database settings
 func LoadDBSetting() {
-	sec := CfgProvider.Section("database")
+	loadDBSetting(CfgProvider)
+}
+
+func loadDBSetting(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("database")
 	Database.Type = DatabaseType(sec.Key("DB_TYPE").String())
 	defaultCharset := "utf8"
 

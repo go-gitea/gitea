@@ -1,6 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+//nolint:forbidigo
 package tests
 
 import (
@@ -10,7 +11,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -30,29 +30,44 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func exitf(format string, args ...interface{}) {
+	fmt.Printf(format+"\n", args...)
+	os.Exit(1)
+}
+
 func InitTest(requireGitea bool) {
 	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
-		fmt.Println("Environment variable $GITEA_ROOT not set")
-		os.Exit(1)
+		exitf("Environment variable $GITEA_ROOT not set")
 	}
+	setting.AppWorkPath = giteaRoot
 	if requireGitea {
 		giteaBinary := "gitea"
-		if runtime.GOOS == "windows" {
+		if setting.IsWindows {
 			giteaBinary += ".exe"
 		}
 		setting.AppPath = path.Join(giteaRoot, giteaBinary)
 		if _, err := os.Stat(setting.AppPath); err != nil {
-			fmt.Printf("Could not find gitea binary at %s\n", setting.AppPath)
-			os.Exit(1)
+			exitf("Could not find gitea binary at %s", setting.AppPath)
 		}
 	}
 
 	giteaConf := os.Getenv("GITEA_CONF")
 	if giteaConf == "" {
-		fmt.Println("Environment variable $GITEA_CONF not set")
-		os.Exit(1)
-	} else if !path.IsAbs(giteaConf) {
+		// By default, use sqlite.ini for testing, then IDE like GoLand can start the test process with debugger.
+		// It's easier for developers to debug bugs step by step with a debugger.
+		// Notice: when doing "ssh push", Gitea executes sub processes, debugger won't work for the sub processes.
+		giteaConf = "tests/sqlite.ini"
+		_ = os.Setenv("GITEA_CONF", giteaConf)
+		fmt.Printf("Environment variable $GITEA_CONF not set, use default: %s\n", giteaConf)
+		if !setting.EnableSQLite3 {
+			exitf(`Need to enable SQLite3 for sqlite.ini testing, please set: -tags "sqlite,sqlite_unlock_notify"`)
+		}
+	}
+
+	setting.IsInTesting = true
+
+	if !path.IsAbs(giteaConf) {
 		setting.CustomConf = path.Join(giteaRoot, giteaConf)
 	} else {
 		setting.CustomConf = giteaConf
@@ -69,8 +84,7 @@ func InitTest(requireGitea bool) {
 
 	setting.LoadDBSetting()
 	if err := storage.Init(); err != nil {
-		fmt.Printf("Init storage failed: %v", err)
-		os.Exit(1)
+		exitf("Init storage failed: %v", err)
 	}
 
 	switch {
@@ -221,7 +235,7 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	return deferFn
 }
 
-// resetFixtures flushes queues, reloads fixtures and resets test repositories within a single test.
+// ResetFixtures flushes queues, reloads fixtures and resets test repositories within a single test.
 // Most tests should call defer tests.PrepareTestEnv(t)() (or have onGiteaRun do that for them) but sometimes
 // within a single test this is required
 func ResetFixtures(t *testing.T) {
