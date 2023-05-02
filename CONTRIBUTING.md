@@ -438,7 +438,7 @@ Every PR **must** be reviewed by at least two maintainers (or owners) before it 
 For refactoring PRs after a week and documentation only PRs, the approval of only one maintainer is enough. \
 A maintainer should be a contributor of Gitea and contributed at least
 4 accepted PRs. A contributor should apply as a maintainer in the
-[Discord](https://discord.gg/NsatcWJ) `#develop` channel. The owners
+[Discord](https://discord.gg/Gitea) `#develop` channel. The owners
 or the team maintainers may invite the contributor. A maintainer
 should spend some time on code reviews. If a maintainer has no
 time to do that, they should apply to leave the maintainers team
