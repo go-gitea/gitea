@@ -489,6 +489,8 @@ var migrations = []Migration{
 	NewMigration("Add ActionTaskOutput table", v1_20.AddActionTaskOutputTable),
 	// v255 -> v256
 	NewMigration("Add ArchivedUnix Column", v1_20.AddArchivedUnixToRepository),
+	// v256 -> 257
+	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
 }
 
 // GetCurrentDBVersion returns the current db version
