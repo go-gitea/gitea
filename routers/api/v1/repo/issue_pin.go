@@ -248,3 +248,42 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 
 	ctx.JSON(http.StatusOK, &apiPrs)
 }
+
+// AreNewIssuePinsAllowed returns if new issues pins are allowed
+func AreNewIssuePinsAllowed(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/new_pin_allowed repository repoNewPinAllowed
+	// ---
+	// summary: Returns if new Issue Pins are allowed
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RepoNewIssuePinsAllowed"
+	pinsAllowed := api.NewIssuePinsAllowed{}
+	var err error
+
+	pinsAllowed.Issues, err = issues_model.IsNewPinAllowed(ctx.Repo.Repository.ID, false)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "IsNewIssuePinAllowed", err)
+		return
+	}
+
+	pinsAllowed.PullRequests, err = issues_model.IsNewPinAllowed(ctx.Repo.Repository.ID, true)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "IsNewPullRequestPinAllowed", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, pinsAllowed)
+}

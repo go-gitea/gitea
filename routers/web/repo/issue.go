@@ -1858,6 +1858,17 @@ func ViewIssue(ctx *context.Context) {
 		return
 	}
 
+	var pinAllowed bool
+	if !issue.IsPinned() {
+		pinAllowed, err = issues_model.IsNewPinAllowed(issue.RepoID, issue.IsPull)
+		if err != nil {
+			ctx.ServerError("IsNewPinAllowed", err)
+			return
+		}
+	} else {
+		pinAllowed = true
+	}
+
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
 	ctx.Data["Issue"] = issue
@@ -1869,6 +1880,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
+	ctx.Data["NewPinAllowed"] = pinAllowed
 
 	var hiddenCommentTypes *big.Int
 	if ctx.IsSigned {

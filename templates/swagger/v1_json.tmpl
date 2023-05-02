@@ -9100,6 +9100,39 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/new_pin_allowed": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Returns if new Issue Pins are allowed",
+        "operationId": "repoNewPinAllowed",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepoNewIssuePinsAllowed"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/notifications": {
       "get": {
         "consumes": [
@@ -19321,6 +19354,21 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "NewIssuePinsAllowed": {
+      "description": "NewIssuePinsAllowed represents an API response that says if new Issue Pins are allowed",
+      "type": "object",
+      "properties": {
+        "issues": {
+          "type": "boolean",
+          "x-go-name": "Issues"
+        },
+        "pull_requests": {
+          "type": "boolean",
+          "x-go-name": "PullRequests"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "NodeInfo": {
       "description": "NodeInfo contains standardized way of exposing metadata about a server running one of the distributed social networks",
       "type": "object",
@@ -22251,6 +22299,12 @@
       "description": "RepoIssueConfigValidation",
       "schema": {
         "$ref": "#/definitions/IssueConfigValidation"
+      }
+    },
+    "RepoNewIssuePinsAllowed": {
+      "description": "RepoNewIssuePinsAllowed",
+      "schema": {
+        "$ref": "#/definitions/NewIssuePinsAllowed"
       }
     },
     "Repository": {

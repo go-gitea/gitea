@@ -544,9 +544,9 @@
 			{{if not .Repository.IsArchived}}
 				<div class="ui watching">
 					<div class="gt-mt-3">
-						<form method="POST" action="{{.Issue.Link}}/pin">
+						<form method="POST" {{if $.NewPinAllowed}}action="{{.Issue.Link}}/pin"{{else}}data-tooltip-content="{{.locale.Tr "repo.issues.max_pinned"}}"{{end}}>
 							{{$.CsrfTokenHtml}}
-							<button class="fluid ui button gt-df gt-jc">
+							<button class="fluid ui button gt-df gt-jc {{if not $.NewPinAllowed}}disabled{{end}}">
 								{{svg "octicon-pin" 16 "gt-mr-3"}}
 								{{if not .Issue.IsPinned}}
 									{{.locale.Tr "pin"}}

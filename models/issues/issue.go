@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -2527,6 +2528,11 @@ func (issue *Issue) Pin() error {
 		return err
 	}
 
+	// Check if the maximum allowed Pins reached
+	if maxPin >= setting.Repository.Issue.MaxPinned {
+		return fmt.Errorf("You have reached the max number of pinned Issues")
+	}
+
 	_, err = db.GetEngine(db.DefaultContext).Table("issue").
 		Where("id = ?", issue.ID).
 		Update(map[string]interface{}{
@@ -2638,4 +2644,15 @@ func GetPinnedIssues(repoID int64, isPull bool) ([]*Issue, error) {
 	}
 
 	return issues, nil
+}
+
+// IsNewPinnedAllowed returns if a new Issue or Pull request can be pinned
+func IsNewPinAllowed(repoID int64, isPull bool) (bool, error) {
+	var maxPin int
+	_, err := db.GetEngine(db.DefaultContext).SQL("SELECT MAX(pin_order) FROM issue WHERE repo_id = ? AND is_pull = ?", repoID, isPull).Get(&maxPin)
+	if err != nil {
+		return false, err
+	}
+
+	return maxPin < setting.Repository.Issue.MaxPinned, nil
 }
