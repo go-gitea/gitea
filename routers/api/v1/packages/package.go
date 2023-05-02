@@ -4,6 +4,7 @@
 package packages
 
 import (
+	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/models/packages"
@@ -246,19 +247,21 @@ func LinkPackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repoID := ctx.FormInt64("repo")
-	packageType := ctx.Params("type")
-	name := ctx.Params("name")
-	pkg, err := packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(packageType), name)
+	pkg, err := packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(ctx.Params("type")), ctx.Params("name"))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "LinkPackage", err)
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "GetPackageByName", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetPackageByName", err)
+		}
 		return
 	}
 
-	err = packages_service.LinkPackageToRepository(ctx, ctx.Doer, pkg, repoID)
+	err = packages_service.LinkPackageToRepository(ctx, ctx.Doer, pkg, ctx.FormInt64("repo"))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "LinkPackage", err)
+		ctx.Error(http.StatusInternalServerError, "LinkPackageToRepository", err)
 		return
 	}
+
 	ctx.Status(http.StatusNoContent)
 }
