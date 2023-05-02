@@ -646,7 +646,8 @@ export function initRepoIssueGotoID() {
   });
   $('form.list-header-search input[name=q]').on('keyup', (e) => {
     const qval = e.target.value;
-    if ((window.location.pathname.split('/').length === 2 && qval.includes('/') || window.location.pathname.split('/').length === 4) && issueidre.test(qval)) {
+    const pathslahnum = window.location.pathname.split('/');
+    if ((pathslahnum.length === 2 && qval.includes('/') || pathslahnum.length === 4) && issueidre.test(qval)) {
       $('#hashtagbutton').css('display', 'block');
     } else {
       $('#hashtagbutton').css('display', 'none');
