@@ -51,6 +51,12 @@ func PinIssue(ctx *context.APIContext) {
 		return
 	}
 
+	// If we don't do this, it will crash when trying to add the pin event to the comment history
+	err = issue.LoadRepo(ctx)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadRepo", err)
+	}
+
 	err = issue.Pin(ctx, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "PinIssue", err)
@@ -96,6 +102,12 @@ func UnpinIssue(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 		return
+	}
+
+	// If we don't do this, it will crash when trying to add the unpin event to the comment history
+	err = issue.LoadRepo(ctx)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadRepo", err)
 	}
 
 	err = issue.Unpin(ctx, ctx.Doer)
