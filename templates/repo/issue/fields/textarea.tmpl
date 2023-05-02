@@ -1,4 +1,4 @@
-{{$useMarkdownEditor := not .item.Validations.render}}
+{{$useMarkdownEditor := not .item.Attributes.render}}
 <div class="field {{if $useMarkdownEditor}}combo-editor-dropzone{{end}}">
 	{{template "repo/issue/fields/header" .}}
 
