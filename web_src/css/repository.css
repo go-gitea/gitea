@@ -596,6 +596,7 @@
   padding: 1rem 1rem .5rem !important;
 }
 
+.repository.view.issue .issue-title-buttons,
 .repository.view.issue .edit-buttons {
   display: flex;
 }
@@ -620,11 +621,15 @@
 }
 
 .repository.view.issue .issue-title h1 {
+  display: flex;
+  align-items: center;
+  flex: 1;
   width: 100%;
   font-weight: 300;
   font-size: 2.3rem;
   margin: 0;
   padding-right: 0.25rem;
+  min-height: 43px; /* avoid layout shift on edit */
 }
 
 .repository.view.issue .issue-title h1 .ui.input {
