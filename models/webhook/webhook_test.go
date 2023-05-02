@@ -222,7 +222,6 @@ func TestUpdateHookTask(t *testing.T) {
 
 	hook := unittest.AssertExistsAndLoadBean(t, &HookTask{ID: 1})
 	hook.PayloadContent = "new payload content"
-	hook.DeliveredString = "new delivered string"
 	hook.IsDelivered = true
 	unittest.AssertNotExistsBean(t, hook)
 	assert.NoError(t, UpdateHookTask(hook))

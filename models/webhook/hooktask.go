@@ -40,15 +40,14 @@ type HookResponse struct {
 
 // HookTask represents a hook task.
 type HookTask struct {
-	ID              int64  `xorm:"pk autoincr"`
-	HookID          int64  `xorm:"index"`
-	UUID            string `xorm:"unique"`
-	api.Payloader   `xorm:"-"`
-	PayloadContent  string `xorm:"LONGTEXT"`
-	EventType       webhook_module.HookEventType
-	IsDelivered     bool
-	Delivered       int64
-	DeliveredString string `xorm:"-"`
+	ID             int64  `xorm:"pk autoincr"`
+	HookID         int64  `xorm:"index"`
+	UUID           string `xorm:"unique"`
+	api.Payloader  `xorm:"-"`
+	PayloadContent string `xorm:"LONGTEXT"`
+	EventType      webhook_module.HookEventType
+	IsDelivered    bool
+	Delivered      int64
 
 	// History info.
 	IsSucceed       bool
@@ -75,8 +74,6 @@ func (t *HookTask) BeforeUpdate() {
 
 // AfterLoad updates the webhook object upon setting a column
 func (t *HookTask) AfterLoad() {
-	t.DeliveredString = time.Unix(0, t.Delivered).Format("2006-01-02 15:04:05 MST")
-
 	if len(t.RequestContent) == 0 {
 		return
 	}
@@ -166,6 +163,7 @@ func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, 
 		HookID:         task.HookID,
 		PayloadContent: task.PayloadContent,
 		EventType:      task.EventType,
+		Delivered:      time.Now().UnixNano(),
 	}
 	return newTask, db.Insert(ctx, newTask)
 }
