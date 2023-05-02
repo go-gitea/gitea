@@ -13,6 +13,6 @@ menu:
     identifier: "profile-readme"
 ---
 
-# Gitea Profile README's
+# Gitea Profile READMEs
 
 To display a markdown file in your Gitea profile page, simply make a repository named ".profile" and edit the README.md file inside. Gitea will automatically pull this file in and display it above your repositories
