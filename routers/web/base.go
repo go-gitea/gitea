@@ -120,7 +120,7 @@ func (d *dataStore) GetData() map[string]interface{} {
 // RecoveryWith500Page returns a middleware that recovers from any panics and writes a 500 and a log if so.
 // This error will be created with the gitea 500 page.
 func RecoveryWith500Page(ctx goctx.Context) func(next http.Handler) http.Handler {
-	_, rnd := templates.HTMLRenderer(ctx)
+	rnd := templates.HTMLRenderer()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			defer func() {

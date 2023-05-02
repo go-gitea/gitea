@@ -304,10 +304,12 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$parsedDeadline := .Content | ParseDeadline}}
-					{{$from := DateTime "long" (index $parsedDeadline 1)}}
-					{{$to := DateTime "long" (index $parsedDeadline 0)}}
-					{{$.locale.Tr "repo.issues.due_date_modified" $to $from $createdStr | Safe}}
+					{{$parsedDeadline := StringUtils.Split .Content "|"}}
+					{{if eq (len $parsedDeadline) 2}}
+						{{$from := DateTime "long" (index $parsedDeadline 1)}}
+						{{$to := DateTime "long" (index $parsedDeadline 0)}}
+						{{$.locale.Tr "repo.issues.due_date_modified" $to $from $createdStr | Safe}}
+					{{end}}
 				</span>
 			</div>
 		{{else if eq .Type 18}}
