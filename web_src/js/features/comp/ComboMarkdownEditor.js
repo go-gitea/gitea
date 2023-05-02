@@ -9,6 +9,7 @@ import {emojiString} from '../emoji.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
 import {matchEmoji, matchMention} from '../../utils/match.js';
 import {svg} from '../../svg.js';
+import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
 
 let elementIdCounter = 0;
 
@@ -42,6 +43,7 @@ class ComboMarkdownEditor {
   }
 
   async init() {
+    this.prepareEasyMDEToolbarActions();
     this.setupTab();
     this.setupDropzone();
     this.setupTextarea();
@@ -203,177 +205,22 @@ class ComboMarkdownEditor {
     });
   }
 
-  prepareEasyMDEToolbarActions(EasyMDE, isWiki) {
+  prepareEasyMDEToolbarActions() {
     this.easyMDEToolbarDefault = [
-      {
-        name: 'heading-1',
-        action: EasyMDE.toggleHeading1,
-        icon: svg('octicon-heading'),
-        title: 'Heading',
-      },
-      {
-        name: 'heading-2',
-        action: EasyMDE.toggleHeading2,
-        icon: svg('octicon-heading'),
-        title: 'Heading',
-      },
-      {
-        name: 'heading-3',
-        action: EasyMDE.toggleHeading3,
-        icon: svg('octicon-heading'),
-        title: 'Heading',
-      },
-      '|',
-      {
-        name: 'bold',
-        action: EasyMDE.toggleBold,
-        icon: svg('octicon-bold'),
-        title: 'Bold',
-      },
-      {
-        name: 'italic',
-        action: EasyMDE.toggleItalic,
-        icon: svg('octicon-italic'),
-        title: 'Italic',
-      },
-      {
-        name: 'strikethrough',
-        action: EasyMDE.toggleStrikethrough,
-        icon: svg('octicon-strikethrough'),
-        title: 'Strikethrough',
-      },
-      '|',
-      {
-        name: 'quote',
-        action: EasyMDE.toggleBlockquote,
-        icon: svg('octicon-quote'),
-        title: 'Quote',
-      },
-      isWiki && 'gitea-code-inline',
-      {
-        name: 'code',
-        action: EasyMDE.toggleCodeBlock,
-        icon: svg('octicon-code'),
-        title: 'Code',
-      },
-      {
-        name: 'link',
-        action: EasyMDE.drawLink,
-        icon: svg('octicon-link'),
-        title: 'Link',
-      },
-      '|',
-      {
-        name: 'unordered-list',
-        action: EasyMDE.toggleUnorderedList,
-        icon: svg('octicon-list-unordered'),
-        title: 'Unordered List',
-      },
-      {
-        name: 'ordered-list',
-        action: EasyMDE.toggleOrderedList,
-        icon: svg('octicon-list-ordered'),
-        title: 'Ordered List',
-      },
-      '|',
-      'gitea-checkbox-empty',
-      'gitea-checkbox-checked',
-      '|',
-      {
-        name: 'image',
-        action: EasyMDE.drawImage,
-        icon: svg('octicon-image'),
-        title: 'Image',
-      },
-      {
-        name: 'table',
-        action: EasyMDE.drawTable,
-        icon: svg('octicon-table'),
-        title: 'Table',
-      },
-      {
-        name: 'horizontal-rule',
-        action: EasyMDE.drawHorizontalRule,
-        icon: svg('octicon-horizontal-rule'),
-        title: 'Horizontal Rule',
-      },
-      isWiki && '|',
-      isWiki && {
-        name: 'preview',
-        action: EasyMDE.togglePreview,
-        icon: svg('octicon-eye'),
-        title: 'Preview',
-      },
-      isWiki && {
-        name: 'fullscreen',
-        action: EasyMDE.toggleFullScreen,
-        icon: svg('octicon-screen-full'),
-        title: 'Fullscreen',
-      },
-      isWiki && {
-        name: 'side-by-side',
-        action: EasyMDE.toggleSideBySide,
-        icon: svg('octicon-columns'),
-        title: 'Side by Side',
-      },
-      '|',
+      'bold', 'italic', 'strikethrough', '|', 'heading-1', 'heading-2', 'heading-3', '|',
+      'code', 'quote', '|', 'gitea-checkbox-empty', 'gitea-checkbox-checked', '|',
+      'unordered-list', 'ordered-list', '|', 'link', 'image', 'table', 'horizontal-rule', '|',
       'gitea-switch-to-textarea',
-    ].filter(Boolean);
-
-    this.easyMDEToolbarActions = {
-      'gitea-checkbox-empty': {
-        action(e) {
-          const cm = e.codemirror;
-          cm.replaceSelection(`\n- [ ] ${cm.getSelection()}`);
-          cm.focus();
-        },
-        icon: svg('gitea-empty-checkbox'),
-        title: 'Add Checkbox (empty)',
-      },
-      'gitea-checkbox-checked': {
-        action(e) {
-          const cm = e.codemirror;
-          cm.replaceSelection(`\n- [x] ${cm.getSelection()}`);
-          cm.focus();
-        },
-        icon: svg('octicon-checkbox'),
-        title: 'Add Checkbox (checked)',
-      },
-      'gitea-switch-to-textarea': {
-        action: () => {
-          this.userPreferredEditor = 'textarea';
-          this.switchToTextarea();
-        },
-        icon: svg('octicon-arrow-switch'),
-        title: 'Revert to simple textarea',
-      },
-      'gitea-code-inline': {
-        action(e) {
-          const cm = e.codemirror;
-          const selection = cm.getSelection();
-          cm.replaceSelection(`\`${selection}\``);
-          if (!selection) {
-            const cursorPos = cm.getCursor();
-            cm.setCursor(cursorPos.line, cursorPos.ch - 1);
-          }
-          cm.focus();
-        },
-        icon: svg('octicon-chevron-right'),
-        title: 'Add Inline Code',
-      }
-    };
+    ];
   }
 
-  parseEasyMDEToolbar(actions) {
+  parseEasyMDEToolbar(EasyMDE, actions) {
+    this.easyMDEToolbarActions = this.easyMDEToolbarActions || easyMDEToolbarActions(EasyMDE, this);
     const processed = [];
     for (const action of actions) {
-      if (typeof action === 'string' && action.startsWith('gitea-')) {
-        const giteaAction = this.easyMDEToolbarActions[action];
-        if (!giteaAction) throw new Error(`Unknown EasyMDE toolbar action ${action}`);
-        processed.push(giteaAction);
-      } else {
-        processed.push(action);
-      }
+      const actionButton = this.easyMDEToolbarActions[action];
+      if (!actionButton) throw new Error(`Unknown EasyMDE toolbar action ${action}`);
+      processed.push(actionButton);
     }
     return processed;
   }
@@ -389,9 +236,6 @@ class ComboMarkdownEditor {
   async switchToEasyMDE() {
     // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can not overwrite the default styles.
     const {default: EasyMDE} = await import(/* webpackChunkName: "easymde" */'easymde');
-
-    this.prepareEasyMDEToolbarActions(EasyMDE, this.options.easyMDEOptions.isWiki);
-
     const easyMDEOpt = {
       autoDownloadFontAwesome: false,
       element: this.textarea,
@@ -404,7 +248,7 @@ class ComboMarkdownEditor {
       nativeSpellcheck: true,
       ...this.options.easyMDEOptions,
     };
-    easyMDEOpt.toolbar = this.parseEasyMDEToolbar(easyMDEOpt.toolbar ?? this.easyMDEToolbarDefault);
+    easyMDEOpt.toolbar = this.parseEasyMDEToolbar(EasyMDE, easyMDEOpt.toolbar ?? this.easyMDEToolbarDefault);
 
     this.easyMDE = new EasyMDE(easyMDEOpt);
     this.easyMDE.codemirror.on('change', (...args) => {this.options?.onContentChanged?.(this, ...args)});

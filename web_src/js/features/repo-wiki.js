@@ -53,7 +53,13 @@ async function initRepoWikiFormEditor() {
     previewWiki: true,
     easyMDEOptions: {
       previewRender: (_content, previewTarget) => previewTarget.innerHTML, // disable builtin preview render
-      isWiki: true,
+      toolbar: ['bold', 'italic', 'strikethrough', '|',
+        'heading-1', 'heading-2', 'heading-3', '|',
+        'gitea-code-inline', 'code', 'quote', '|', 'gitea-checkbox-empty', 'gitea-checkbox-checked', '|',
+        'unordered-list', 'ordered-list', '|',
+        'link', 'image', 'table', 'horizontal-rule', '|',
+        'preview', 'fullscreen', 'side-by-side', '|', 'gitea-switch-to-textarea'
+      ],
     },
   });
 
