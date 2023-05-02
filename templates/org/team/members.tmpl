@@ -49,12 +49,12 @@
 				<h4 class="ui top attached header">{{$.locale.Tr "org.teams.invite_team_member.list"}}</h4>
 				<div class="ui bottom attached table segment members">
 					{{range .Invites}}
-						<div class="item">
-							{{.Email}}
+						<div class="item gt-df gt-ac gt-fw">
+							<span class="gt-f1">{{.Email}}</span>
 							<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
 								{{$.CsrfTokenHtml}}
 								<input type="hidden" name="iid" value="{{.ID}}">
-								<button class="ui red button gt-float-right">{{$.locale.Tr "org.members.remove"}}</button>
+								<button class="ui red button">{{$.locale.Tr "org.members.remove"}}</button>
 							</form>
 						</div>
 					{{end}}
