@@ -634,3 +634,15 @@ export function initRepoIssueBranchSelect() {
   };
   $('#branch-select > .item').on('click', changeBranchSelect);
 }
+
+export function initRepoIssueGotoID() {
+  $('form.list-header-search').on('submit', function (e) {
+    const qval = this.q.value.match(/^(?:\w+\/\w+[#\d]+|[#\d]+)$/);
+    const pathname = window.location.pathname;
+    const pathnameslash = pathname.split('/');
+    if (qval && qval.length && (pathnameslash.length === 4 || !qval[0].startsWith('#') && pathnameslash.length === 2)) {
+      e.preventDefault();
+      window.location.href = qval[0].startsWith('#') ? `${pathname}/${qval[0].replace('#', '')}` : `/${qval[0].replace('#', '/issues/')}`;
+    }
+  });
+}
