@@ -14,7 +14,6 @@ const baseOptions = {
   overviewRulerLanes: 0,
   renderLineHighlight: 'all',
   renderLineHighlightOnlyWhenFocus: true,
-  renderWhitespace: 'none',
   rulers: false,
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6},
   scrollBeyondLastLine: false,

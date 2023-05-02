@@ -1267,7 +1267,7 @@ steps:
     pull: always
     settings:
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-amd64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1289,7 +1289,7 @@ steps:
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64-rootless
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1304,43 +1304,6 @@ steps:
     when:
       event:
         exclude:
-        - pull_request
-
----
-kind: pipeline
-type: docker
-name: docker-linux-arm64-dry-run
-
-platform:
-  os: linux
-  arch: arm64
-
-depends_on:
-  - compliance
-
-trigger:
-  event:
-    - pull_request
-  paths:
-    exclude:
-      - "docs/**"
-
-steps:
-  - name: dryrun
-    image: plugins/docker:latest
-    pull: always
-    settings:
-      dry_run: true
-      repo: gitea/gitea
-      tags: linux-arm64
-      build_args:
-        - GOPROXY=https://goproxy.io
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
-      DOCKER_BUILDKIT: 1
-    when:
-      event:
         - pull_request
 
 ---
@@ -1609,7 +1572,7 @@ steps:
     pull: always
     settings:
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-arm64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1631,7 +1594,7 @@ steps:
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64-rootless
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-arm64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
