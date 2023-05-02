@@ -123,21 +123,20 @@ function initRepoIssueListAuthorDropdown() {
 function initPinRemoveButton() {
   for (const button of document.getElementsByName('issue-unpin-button')) {
     button.addEventListener('click', (event) => {
-      const elem = event.currentTarget;
-      const id = Number(elem.getAttribute('data-issue-id'));
+      const el = event.currentTarget;
+      const id = Number(el.getAttribute('data-issue-id'));
 
       // Send the unpin request
-      $.ajax({
-        url: elem.getAttribute('data-unpin-url'),
+      fetch(el.getAttribute('data-unpin-url'), {
+        method: 'delete',
         headers: {
           'X-Csrf-Token': window.config.csrfToken,
+          'Content-Type': 'application/json',
         },
-        contentType: 'application/json',
-        type: 'DELETE',
-        error: (xhr) => {
-          throw new Error(xhr.responseText);
-        },
-        success: () => {
+      }).then((response) => {
+        if (response.ok) {
+          // Delete the tooltip
+          el._tippy.destroy();
           // Remove the Card
           document.querySelector(`div[data-issue-id="${id}"]`).remove();
         }
@@ -146,20 +145,16 @@ function initPinRemoveButton() {
   }
 }
 
-function pinMoveEnd(event) {
-  const url = event.item.getAttribute('data-move-url');
-  const id = Number(event.item.getAttribute('data-issue-id'));
-  $.ajax({
-    url,
-    data: JSON.stringify({id, position: event.newIndex + 1}),
+function pinMoveEnd(e) {
+  const url = e.item.getAttribute('data-move-url');
+  const id = Number(e.item.getAttribute('data-issue-id'));
+  fetch(url, {
+    method: 'post',
+    body: JSON.stringify({id, position: e.newIndex + 1}),
     headers: {
       'X-Csrf-Token': window.config.csrfToken,
+      'Content-Type': 'application/json',
     },
-    contentType: 'application/json',
-    type: 'POST',
-    error: (xhr) => {
-      throw new Error(xhr.responseText);
-    }
   });
   initPinRemoveButton();
 }
@@ -167,27 +162,21 @@ function pinMoveEnd(event) {
 function initIssuePinSort() {
   const pinDiv = document.getElementById('issue-pin-div');
 
-  if (pinDiv === null) {
-    return;
-  }
+  if (pinDiv === null) return;
 
   // If the User is not a Repo Admin, we don't need to proceed
-  if (!pinDiv.hasAttribute('data-is-repo-admin')) {
-    return;
-  }
+  if (!pinDiv.hasAttribute('data-is-repo-admin')) return;
 
   initPinRemoveButton();
 
   // If only one issue pinned, we don't need to make this Sortable
-  if (pinDiv.children.length < 2) {
-    return;
-  }
+  if (pinDiv.children.length < 2) return;
 
   new Sortable(pinDiv, {
     group: 'shared',
     animation: 150,
     ghostClass: 'card-ghost',
-    onEnd: pinMoveEnd
+    onEnd: pinMoveEnd,
   });
 }
 

@@ -7,27 +7,7 @@
 					<input type="checkbox" autocomplete="off" class="issue-checkbox gt-mt-2 gt-mr-4" data-issue-id={{.ID}} aria-label="{{$.locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
 				{{end}}
 				<div class="issue-item-icon">
-					{{if .IsPull}}
-						{{if .PullRequest.HasMerged}}
-							{{svg "octicon-git-merge" 16 "text purple"}}
-						{{else}}
-							{{if .IsClosed}}
-								{{svg "octicon-git-pull-request" 16 "text red"}}
-							{{else}}
-								{{if .PullRequest.IsWorkInProgress}}
-									{{svg "octicon-git-pull-request-draft" 16 "text grey"}}
-								{{else}}
-									{{svg "octicon-git-pull-request" 16 "text green"}}
-								{{end}}
-							{{end}}
-						{{end}}
-					{{else}}
-						{{if .IsClosed}}
-							{{svg "octicon-issue-closed" 16 "text red"}}
-						{{else}}
-							{{svg "octicon-issue-opened" 16 "text green"}}
-						{{end}}
-					{{end}}
+					{{template "shared/issueicon" .}}
 				</div>
 			</div>
 			<div class="issue-item-main gt-f1 gt-fc gt-df">

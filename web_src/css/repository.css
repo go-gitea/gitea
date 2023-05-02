@@ -3446,6 +3446,12 @@ td.blob-excerpt {
   color: var(--color-text-light-2);
 }
 
+#issue-pin-div {
+  display: flex;
+  flex-grow: 1;
+  flex-wrap: wrap;
+}
+
 .pinned-issue-card {
   margin: 4px 2px !important;
   border-radius: 5px !important;
@@ -3456,4 +3462,12 @@ td.blob-excerpt {
   border-style: solid;
   border-color: var(--color-input-border);
   border-width: 1px;
+}
+
+.pinned-issue-title {
+  word-break: break-word;
+}
+
+.pinned-issue-unpin-icon {
+  float: right;
 }
