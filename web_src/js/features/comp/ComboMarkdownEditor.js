@@ -206,11 +206,24 @@ class ComboMarkdownEditor {
   prepareEasyMDEToolbarActions(EasyMDE, isWiki) {
     this.easyMDEToolbarDefault = [
       {
-        name: 'heading',
+        name: 'heading-1',
+        action: EasyMDE.toggleHeading1,
+        icon: svg('octicon-heading'),
+        title: 'Heading',
+      },
+      {
+        name: 'heading-2',
+        action: EasyMDE.toggleHeading2,
+        icon: svg('octicon-heading'),
+        title: 'Heading',
+      },
+      {
+        name: 'heading-3',
         action: EasyMDE.toggleHeading3,
         icon: svg('octicon-heading'),
         title: 'Heading',
       },
+      '|',
       {
         name: 'bold',
         action: EasyMDE.toggleBold,
