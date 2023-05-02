@@ -2538,6 +2538,9 @@ func (issue *Issue) Pin(ctx context.Context, user *user_model.User) error {
 		Update(map[string]interface{}{
 			"pin_order": maxPin + 1,
 		})
+	if err != nil {
+		return err
+	}
 
 	// Add the pin event to the history
 	opts := &CreateCommentOptions{
@@ -2550,7 +2553,7 @@ func (issue *Issue) Pin(ctx context.Context, user *user_model.User) error {
 		return err
 	}
 
-	return err
+	return nil
 }
 
 // UnpinIssue unpins a Issue
@@ -2571,6 +2574,9 @@ func (issue *Issue) Unpin(ctx context.Context, user *user_model.User) error {
 		Update(map[string]interface{}{
 			"pin_order": 0,
 		})
+	if err != nil {
+		return err
+	}
 
 	// Add the unpin event to the history
 	opts := &CreateCommentOptions{
@@ -2583,7 +2589,7 @@ func (issue *Issue) Unpin(ctx context.Context, user *user_model.User) error {
 		return err
 	}
 
-	return err
+	return nil
 }
 
 // PinOrUnpin pins or unpins a Issue
