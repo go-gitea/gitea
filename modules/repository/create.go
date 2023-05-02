@@ -35,7 +35,7 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 		return err
 	}
 
-	has, err := repo_model.IsRepositoryExist(ctx, u, repo.Name)
+	has, err := repo_model.IsRepositoryModelExist(ctx, u, repo.Name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {

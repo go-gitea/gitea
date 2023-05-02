@@ -96,6 +96,11 @@ else
 	endif
 endif
 
+# if version = "main" then update version to "nightly"
+ifeq ($(VERSION),main)
+	VERSION := main-nightly
+endif
+
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64
@@ -278,8 +283,12 @@ clean:
 fmt:
 	GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
-	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it
-	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
+	@# strip whitespace after '{{' or '(' and before '}}' or ')' unless there is only
+	@# whitespace before it
+	@$(SED_INPLACE) \
+		-e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' \
+	  -e 's/([ 	]\{1,\}/(/g' -e '/^[ 	]\{1,\})/! s/[ 	]\{1,\})/)/g' \
+	  $(TEMPLATES)
 
 .PHONY: fmt-check
 fmt-check: fmt

@@ -1,5 +1,3 @@
-@import "font-awesome/css/font-awesome.css";
-
 @import "./animations.css";
 @import "./shared/issuelist.css";
 @import "./shared/repoorg.css";
@@ -10,6 +8,8 @@
 @import "./features/codeeditor.css";
 @import "./features/projects.css";
 @import "./modules/tippy.css";
+@import "./modules/modal.css";
+@import "./modules/breadcrumb.css";
 @import "./code/linebutton.css";
 @import "./markup/content.css";
 @import "./markup/codecopy.css";
@@ -29,8 +29,12 @@
 @import "./install.css";
 @import "./form.css";
 @import "./repository.css";
+@import "./repository/release-tag.css";
+@import "./repository/issue-label.css";
+@import "./repository/issue-list.css";
+@import "./repository/list-header.css";
 @import "./editor.css";
-@import "./editor-markdown.css";
+@import "./editor/combomarkdowneditor.css";
 @import "./organization.css";
 @import "./user.css";
 @import "./dashboard.css";
