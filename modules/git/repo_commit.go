@@ -214,9 +214,16 @@ func (repo *Repository) FileCommitsCount(revision, file, not string) (int64, err
 		})
 }
 
+type CommitsByFileAndRangeOptions struct {
+	Revision string
+	File     string
+	Not      string
+	Page     int
+}
+
 // CommitsByFileAndRange return the commits according revision file and the page
-func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) ([]*Commit, error) {
-	skip := (page - 1) * setting.Git.CommitsRangeSize
+func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions) ([]*Commit, error) {
+	skip := (opts.Page - 1) * setting.Git.CommitsRangeSize
 
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
@@ -226,10 +233,15 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 	go func() {
 		stderr := strings.Builder{}
 		gitCmd := NewCommand(repo.Ctx, "rev-list").
-			AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize*page).
+			AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize*opts.Page).
 			AddOptionFormat("--skip=%d", skip)
-		gitCmd.AddDynamicArguments(revision)
-		gitCmd.AddDashesAndList(file)
+		gitCmd.AddDynamicArguments(opts.Revision)
+
+		if opts.Not != "" {
+			gitCmd.AddOptionValues("--not", opts.Not)
+		}
+
+		gitCmd.AddDashesAndList(opts.File)
 		err := gitCmd.Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: stdoutWriter,
