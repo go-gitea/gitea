@@ -89,10 +89,18 @@ export function initRepoCommentForm() {
     $('#comment-form').trigger('submit');
   });
 
-  const _promise = initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), {
-    onContentChanged(editor) {
-      $statusButton.text($statusButton.attr(editor.value().trim() ? 'data-status-and-comment' : 'data-status'));
-    },
+  // default markdown editor should have no more than one
+  $commentForm.find('.field.markdown .combo-markdown-editor').each((_, comboMarkdownEditor) => {
+    const _promise = initComboMarkdownEditor(comboMarkdownEditor, {
+      onContentChanged(editor) {
+        $statusButton.text($statusButton.attr(editor.value().trim() ? 'data-status-and-comment' : 'data-status'));
+      },
+    });
+  });
+
+  // issue template textarea
+  $commentForm.find('.field.textarea .combo-markdown-editor').each((_, comboMarkdownEditor) => {
+    initComboMarkdownEditor(comboMarkdownEditor);
   });
 
   initBranchSelector();
@@ -439,8 +447,7 @@ async function onEditContent(event) {
 
   if (!$editContentZone.html()) {
     $editContentZone.html($('#issue-comment-editor-template').html());
-    const comboMarkdownEditors = await initComboMarkdownEditor($editContentZone.find('.combo-markdown-editor'));
-    comboMarkdownEditor = comboMarkdownEditors[0];
+    comboMarkdownEditor = await initComboMarkdownEditor($editContentZone.find('.combo-markdown-editor'));
 
     const $dropzone = $editContentZone.find('.dropzone');
     const dz = await setupDropzone($dropzone);

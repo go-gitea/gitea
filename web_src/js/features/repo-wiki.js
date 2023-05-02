@@ -61,7 +61,7 @@ async function initRepoWikiFormEditor() {
         'clean-block', 'preview', 'fullscreen', 'side-by-side', '|', 'gitea-switch-to-textarea'
       ],
     },
-  })[0];
+  });
 
   $form.on('submit', () => {
     if (!validateTextareaNonEmpty($editArea)) {

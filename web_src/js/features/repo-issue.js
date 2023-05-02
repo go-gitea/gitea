@@ -666,11 +666,11 @@ export function initRepoIssueMarkdownTextarea() {
     $(target).val($(markdownTextEditor).val());
   };
 
-  // default display textarea
-  $('.markdown-textarea .textarea').each((_, target) => showTextarea(target));
+  // default display all textarea
+  $('.field.textarea .fake').each((_, target) => showTextarea(target));
 
-  $('.markdown-textarea .textarea').on('focus', function() {
+  $('.field.textarea .fake').on('focus', function() {
     hiddenTextarea(this);
-    $('.markdown-textarea .textarea').not(this).each((_, target) => showTextarea(target));
+    $('.field.textarea .fake').not(this).each((_, target) => showTextarea(target));
   });
 }

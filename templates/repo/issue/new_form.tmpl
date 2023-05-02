@@ -24,7 +24,7 @@
 							{{else if eq .Type "markdown"}}
 								{{template "repo/issue/fields/markdown" dict "Context" $.Context "item" .}}
 							{{else if eq .Type "textarea"}}
-								{{template "repo/issue/fields/textarea" dict "Context" $.Context "item" . "RepoLink" $.RepoLink "Locale" $.locale}}
+								{{template "repo/issue/fields/textarea" dict "Context" $.Context "item" . "RepoLink" $.RepoLink "Locale" $.locale "IsAttachmentEnabled" $.IsAttachmentEnabled}}
 							{{else if eq .Type "dropdown"}}
 								{{template "repo/issue/fields/dropdown" dict "Context" $.Context "item" .}}
 							{{else if eq .Type "checkboxes"}}
