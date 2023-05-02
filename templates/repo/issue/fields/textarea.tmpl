@@ -1,21 +1,25 @@
-<div class="field textarea">
+{{$useMarkdownEditor := not .item.Validations.render}}
+<div class="field {{if $useMarkdownEditor}}combo-editor-dropzone{{end}}">
 	{{template "repo/issue/fields/header" .}}
-	{{/* FIXME: preview markdown result */}}
-	<textarea class="fake" name="form-field-{{.item.ID}}" placeholder="{{.item.Attributes.placeholder}}" {{if and .item.Validations.required .item.Attributes.render}}required{{end}}>{{.item.Attributes.value}}</textarea>
 
-	{{template "shared/combomarkdowneditor" (dict
-		"locale" .Locale
-		"MarkdownPreviewUrl" (print .RepoLink "/markup")
-		"MarkdownPreviewContext" .RepoLink
-		"TextareaName" "content"
-		"TextareaContent" .item.Attributes.value
-		"TextareaPlaceholder"  .item.Attributes.placeholder
-		"DropzoneParentContainer" "form, .ui.form"
-	)}}
-</div>
+	{{/* the real form element to provide the value */}}
+	<textarea class="form-field-real" name="form-field-{{.item.ID}}" placeholder="{{.item.Attributes.placeholder}}" {{if and .item.Validations.required}}required{{end}}>{{.item.Attributes.value}}</textarea>
 
-{{if .IsAttachmentEnabled}}
-<div class="field">
-	{{template "repo/upload" .Context.Data}}
+	{{if $useMarkdownEditor}}
+		{{template "shared/combomarkdowneditor" (dict
+			"locale" .root.locale
+			"ContainerClasses" "gt-hidden"
+			"MarkdownPreviewUrl" (print .root.RepoLink "/markup")
+			"MarkdownPreviewContext" .root.RepoLink
+			"TextareaContent" .item.Attributes.value
+			"TextareaPlaceholder"  .item.Attributes.placeholder
+			"DropzoneParentContainer" ".combo-editor-dropzone"
+		)}}
+
+		{{if .root.IsAttachmentEnabled}}
+		<div class="gt-mt-4 form-field-dropzone gt-hidden">
+			{{template "repo/upload" .root}}
+		</div>
+		{{end}}
+	{{end}}
 </div>
-{{end}}

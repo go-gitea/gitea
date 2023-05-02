@@ -392,8 +392,7 @@ export async function handleReply($el) {
   const $textarea = form.find('textarea');
   let editor = getComboMarkdownEditor($textarea);
   if (!editor) {
-    const editors = await initComboMarkdownEditor(form.find('.combo-markdown-editor'));
-    editor = editors[0];
+    editor = await initComboMarkdownEditor(form.find('.combo-markdown-editor'));
   }
   editor.focus();
   return editor;
@@ -523,8 +522,8 @@ export function initRepoPullRequestReview() {
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
 
-      const editors = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
-      editors[0].focus();
+      const editor = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
+      editor.focus();
     }
   });
 }
@@ -636,41 +635,58 @@ export function initRepoIssueBranchSelect() {
   $('#branch-select > .item').on('click', changeBranchSelect);
 }
 
-export function initRepoIssueMarkdownTextarea() {
-  const hiddenTextarea = function (target) {
-    const comboMarkdownEditor = $(target).parent().find('.combo-markdown-editor');
-    const markdownTextEditor = comboMarkdownEditor.find('.markdown-text-editor');
-    const dropzone = $(target).parent().next().find('.dropzone');
-    // show combo markdown editor
-    comboMarkdownEditor.removeClass('gt-hidden');
-    markdownTextEditor.trigger('focus');
-    if (dropzone) {
-      dropzone.removeClass('gt-hidden');
-    }
-    // hidden textarea
-    $(target).addClass('gt-hidden');
+export function initSingleCommentEditor($commentForm) {
+  // pages:
+  // * normal new issue/pr page, no status-button
+  // * issue/pr view page, with comment form, has status-button
+  const opts = {};
+  const $statusButton = $('#status-button');
+  if ($statusButton.length) {
+    $statusButton.on('click', (e) => {
+      e.preventDefault();
+      $('#status').val($statusButton.data('status-val'));
+      $('#comment-form').trigger('submit');
+    });
+    opts.onContentChanged = (editor) => {
+      $statusButton.text($statusButton.attr(editor.value().trim() ? 'data-status-and-comment' : 'data-status'));
+    };
+  }
+  initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
+}
+
+export function initIssueTemplateCommentEditors($commentForm) {
+  // pages:
+  // * new issue with issue template
+  const $comboFields = $commentForm.find('.combo-editor-dropzone');
+
+  const initCombo = async ($combo) => {
+    const $dropzoneContainer = $combo.find('.form-field-dropzone');
+    const $formField = $combo.find('.form-field-real');
+    const $markdownEditor = $combo.find('.combo-markdown-editor');
+
+    const editor = await initComboMarkdownEditor($markdownEditor, {
+      onContentChanged: (editor) => {
+        $formField.val(editor.value());
+      }
+    });
+
+    $formField.on('focus', async () => {
+      // deactivate all markdown editors
+      showElem($commentForm.find('.combo-editor-dropzone .form-field-real'));
+      hideElem($commentForm.find('.combo-editor-dropzone .combo-markdown-editor'));
+      hideElem($commentForm.find('.combo-editor-dropzone .form-field-dropzone'));
+
+      // activate this markdown editor
+      hideElem($formField);
+      showElem($markdownEditor);
+      showElem($dropzoneContainer);
+
+      await editor.switchToUserPreference();
+      editor.focus();
+    });
   };
 
-  const showTextarea = function (target) {
-    const comboMarkdownEditor = $(target).parent().find('.combo-markdown-editor');
-    const markdownTextEditor = comboMarkdownEditor.find('.markdown-text-editor');
-    const dropzone = $(target).parent().next().find('.dropzone');
-    // hidden combo markdown editor
-    $(comboMarkdownEditor).addClass('gt-hidden');
-    if (dropzone) {
-      $(dropzone).addClass('gt-hidden');
-    }
-    // show textarea
-    $(target).removeClass('gt-hidden');
-    // sync textarea content
-    $(target).val($(markdownTextEditor).val());
-  };
-
-  // default display all textarea
-  $('.field.textarea .fake').each((_, target) => showTextarea(target));
-
-  $('.field.textarea .fake').on('focus', function() {
-    hiddenTextarea(this);
-    $('.field.textarea .fake').not(this).each((_, target) => showTextarea(target));
-  });
+  for (const el of $comboFields) {
+    initCombo($(el));
+  }
 }

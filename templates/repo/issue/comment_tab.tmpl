@@ -3,7 +3,7 @@
 {{if not $textareaContent}}{{$textareaContent = .PullRequestTemplate}}{{end}}
 {{if not $textareaContent}}{{$textareaContent = .content}}{{end}}
 
-<div class="field markdown">
+<div class="field">
 	{{template "shared/combomarkdowneditor" (dict
 		"locale" $.locale
 		"MarkdownPreviewUrl" (print .Repository.Link "/markup")
@@ -16,7 +16,7 @@
 </div>
 
 {{if .IsAttachmentEnabled}}
-<div class="field">
-	{{template "repo/upload" .}}
-</div>
+	<div class="field">
+		{{template "repo/upload" .}}
+	</div>
 {{end}}

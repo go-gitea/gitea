@@ -3,7 +3,7 @@ import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
   initRepoIssueTitleEdit, initRepoIssueWipToggle,
-  initRepoPullRequestUpdate, updateIssuesMeta, handleReply
+  initRepoPullRequestUpdate, updateIssuesMeta, handleReply, initIssueTemplateCommentEditors, initSingleCommentEditor,
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
@@ -53,6 +53,13 @@ export function initRepoCommentForm() {
     return;
   }
 
+  if ($commentForm.find('.field.combo-editor-dropzone').length) {
+    // at the moment, if a form has multiple combo-markdown-editors, it must be a issue template form
+    initIssueTemplateCommentEditors($commentForm);
+  } else {
+    initSingleCommentEditor($commentForm);
+  }
+
   function initBranchSelector() {
     const $selectBranch = $('.ui.select-branch');
     const $branchMenu = $selectBranch.find('.reference-list-menu');
@@ -81,27 +88,6 @@ export function initRepoCommentForm() {
       return false;
     });
   }
-
-  const $statusButton = $('#status-button');
-  $statusButton.on('click', (e) => {
-    e.preventDefault();
-    $('#status').val($statusButton.data('status-val'));
-    $('#comment-form').trigger('submit');
-  });
-
-  // default markdown editor should have no more than one
-  $commentForm.find('.field.markdown .combo-markdown-editor').each((_, comboMarkdownEditor) => {
-    const _promise = initComboMarkdownEditor(comboMarkdownEditor, {
-      onContentChanged(editor) {
-        $statusButton.text($statusButton.attr(editor.value().trim() ? 'data-status-and-comment' : 'data-status'));
-      },
-    });
-  });
-
-  // issue template textarea
-  $commentForm.find('.field.textarea .combo-markdown-editor').each((_, comboMarkdownEditor) => {
-    initComboMarkdownEditor(comboMarkdownEditor);
-  });
 
   initBranchSelector();
 
