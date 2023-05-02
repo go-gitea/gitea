@@ -6,17 +6,17 @@ export function easyMDEToolbarActions(EasyMDE, editor) {
     'heading-1': {
       action: EasyMDE.toggleHeading1,
       icon: svg('octicon-heading'),
-      title: 'Heading',
+      title: 'Heading 1',
     },
     'heading-2': {
       action: EasyMDE.toggleHeading2,
       icon: svg('octicon-heading'),
-      title: 'Heading',
+      title: 'Heading 2',
     },
     'heading-3': {
       action: EasyMDE.toggleHeading3,
       icon: svg('octicon-heading'),
-      title: 'Heading',
+      title: 'Heading 3',
     },
     'heading-smaller': {
       action: EasyMDE.toggleHeadingSmaller,
