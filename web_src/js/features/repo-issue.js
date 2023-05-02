@@ -638,22 +638,18 @@ export function initRepoIssueBranchSelect() {
 export function initRepoIssueGotoID() {
   const issueidre = /^(?:\w+\/\w+#\d+|#\d+|\d+)$/;
   $('form.list-header-search').on('submit', (e) => {
-    const pathname = window.location.pathname;
     const qval = e.target.q.value;
     const aElm = document.activeElement;
-    if (aElm.id === 'searchbutton' || (aElm.name === 'q' && !qval.includes('#')) || (window.location.pathname.split('/').length === 2 && !qval.includes('/')) || !issueidre.test(qval)) return;
+    if (aElm.id === 'searchbutton' || (aElm.name === 'q' && !qval.includes('#')) || (window.location.pathname.split('/').length === 2 && !qval.includes('/')) || !issueidre.test(qval) || !$('#hashtagbutton').length) return;
     e.preventDefault();
-    window.location.href = !qval.includes('/') ? `${pathname}/${qval.replace('#', '')}` : `/${qval.replace('#', '/issues/')}`;
+    window.location.href = !qval.includes('/') ? `${window.location.pathname}/${qval.replace('#', '')}` : `/${qval.replace('#', '/issues/')}`;
   });
-  const hashtagbtn = $('#hashtagbutton');
-  if (hashtagbtn.length === 0) return;
-  const qobj = $('form.list-header-search input[name=q]');
-  qobj.on('keyup', (e) => {
+  $('form.list-header-search input[name=q]').on('keyup', (e) => {
     const qval = e.target.value;
     if ((window.location.pathname.split('/').length === 2 && qval.includes('/') || window.location.pathname.split('/').length === 4) && issueidre.test(qval)) {
-      hashtagbtn.show();
+      $('#hashtagbutton').css('display', 'block');
     } else {
-      hashtagbtn.hide();
+      $('#hashtagbutton').css('display', 'none');
     }
   });
 }
