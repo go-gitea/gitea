@@ -29,7 +29,6 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 			Not:      "",
 			Page:     1,
 		})
-
 	if err != nil {
 		ctx.ServerError("ShowBranchFeed", err)
 		return

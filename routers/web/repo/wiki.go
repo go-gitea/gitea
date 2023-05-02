@@ -383,7 +383,6 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 			Not:      "",
 			Page:     page,
 		})
-
 	if err != nil {
 		if wikiRepo != nil {
 			wikiRepo.Close()

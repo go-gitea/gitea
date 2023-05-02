@@ -436,7 +436,6 @@ func ListPageRevisions(ctx *context.APIContext) {
 			Not:      "",
 			Page:     page,
 		})
-
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRange", err)
 		return

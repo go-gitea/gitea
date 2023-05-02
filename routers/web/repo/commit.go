@@ -237,7 +237,6 @@ func FileHistory(ctx *context.Context) {
 			Not:      "",
 			Page:     page,
 		})
-
 	if err != nil {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return
