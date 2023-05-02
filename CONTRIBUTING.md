@@ -136,10 +136,9 @@ You should always run `make fmt` before committing to conform to Gitea's stylegu
 New code files that you contribute should use the standard copyright header:
 
 ```
-// Copyright <year the PR creating the file was merged> The Gitea Authors. All rights reserved.
+// Copyright <current year> The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 ```
-<!-- TODO: the year the PR was merged, or the year it was created? -->
 
 Afterwards, copyright should only be modified when the copyright author changes.
 
