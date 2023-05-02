@@ -32,10 +32,6 @@
   color: var(--color-white) !important;
 }
 
-.runner-container .runner-new-menu {
-  width: 300px;
-}
-
 .runner-container .task-status-success {
   background-color: var(--color-green);
   color: var(--color-white);
