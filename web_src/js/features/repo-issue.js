@@ -641,7 +641,7 @@ export function initRepoIssueGotoID() {
     const pathname = window.location.pathname;
     const qval = e.target.q.value;
     const aElm = document.activeElement;
-    if (aElm.id === 'searchbutton' || (window.location.pathname.split('/').length === 2 && !qval.includes('/')) || !issueidre.test(qval)) return;
+    if (aElm.id === 'searchbutton' || (aElm.name === 'q' && !qval.includes('#')) || (window.location.pathname.split('/').length === 2 && !qval.includes('/')) || !issueidre.test(qval)) return;
     e.preventDefault();
     window.location.href = !qval.includes('/') ? `${pathname}/${qval.replace('#', '')}` : `/${qval.replace('#', '/issues/')}`;
   });
