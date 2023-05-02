@@ -311,7 +311,7 @@ class ComboMarkdownEditor {
           this.userPreferredEditor = 'textarea';
           this.switchToTextarea();
         },
-        icon: svg('octicon-file'),
+        icon: svg('octicon-arrow-switch'),
         title: 'Revert to simple textarea',
       },
       'gitea-code-inline': {
