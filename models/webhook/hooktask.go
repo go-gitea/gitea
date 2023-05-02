@@ -112,12 +112,15 @@ func HookTasks(hookID int64, page int) ([]*HookTask, error) {
 // CreateHookTask creates a new hook task,
 // it handles conversion from Payload to PayloadContent.
 func CreateHookTask(ctx context.Context, t *HookTask) (*HookTask, error) {
-	data, err := t.Payloader.JSONPayload()
-	if err != nil {
-		return nil, err
-	}
 	t.UUID = gouuid.New().String()
-	t.PayloadContent = string(data)
+	if t.Payloader != nil {
+		data, err := t.Payloader.JSONPayload()
+		if err != nil {
+			return nil, err
+		}
+		t.PayloadContent = string(data)
+	}
+	t.Delivered = time.Now().UnixNano()
 	return t, db.Insert(ctx, t)
 }
 
@@ -158,14 +161,11 @@ func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, 
 		}
 	}
 
-	newTask := &HookTask{
-		UUID:           gouuid.New().String(),
+	return CreateHookTask(ctx, &HookTask{
 		HookID:         task.HookID,
 		PayloadContent: task.PayloadContent,
 		EventType:      task.EventType,
-		Delivered:      time.Now().UnixNano(),
-	}
-	return newTask, db.Insert(ctx, newTask)
+	})
 }
 
 // FindUndeliveredHookTaskIDs will find the next 100 undelivered hook tasks with ID greater than the provided lowerID
