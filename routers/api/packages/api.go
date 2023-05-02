@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/conan"
 	"code.gitea.io/gitea/routers/api/packages/conda"
 	"code.gitea.io/gitea/routers/api/packages/container"
+	"code.gitea.io/gitea/routers/api/packages/debian"
 	"code.gitea.io/gitea/routers/api/packages/generic"
 	"code.gitea.io/gitea/routers/api/packages/helm"
 	"code.gitea.io/gitea/routers/api/packages/maven"
@@ -270,6 +271,24 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				ctx.SetParams("filename", m[2])
 
 				conda.UploadPackageFile(ctx)
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/debian", func() {
+			r.Get("/repository.key", debian.GetRepositoryKey)
+			r.Group("/dists/{distribution}", func() {
+				r.Get("/{filename}", debian.GetRepositoryFile)
+				r.Get("/by-hash/{algorithm}/{hash}", debian.GetRepositoryFileByHash)
+				r.Group("/{component}/{architecture}", func() {
+					r.Get("/{filename}", debian.GetRepositoryFile)
+					r.Get("/by-hash/{algorithm}/{hash}", debian.GetRepositoryFileByHash)
+				})
+			})
+			r.Group("/pool/{distribution}/{component}", func() {
+				r.Get("/{name}_{version}_{architecture}.deb", debian.DownloadPackageFile)
+				r.Group("", func() {
+					r.Put("/upload", debian.UploadPackageFile)
+					r.Delete("/{name}/{version}/{architecture}", debian.DeletePackageFile)
+				}, reqPackageAccess(perm.AccessModeWrite))
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
