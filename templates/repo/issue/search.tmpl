@@ -8,7 +8,8 @@
 		<input type="hidden" name="assignee" value="{{$.AssigneeID}}">
 		<input type="hidden" name="poster" value="{{$.PosterID}}">
 		<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
-		<button class="ui small icon button" type="submit" aria-label="{{.locale.Tr "explore.search"}}">
+		<button id="hashtagbutton" class="ui small icon button" style="display:none" type="submit" aria-label="{{.locale.Tr "explore.search"}}">{{svg "octicon-hash"}}</button>
+		<button id="searchbutton" class="ui small icon button" type="submit" aria-label="{{.locale.Tr "explore.search"}}">
 			{{svg "octicon-search"}}
 		</button>
 	</div>

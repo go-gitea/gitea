@@ -636,13 +636,24 @@ export function initRepoIssueBranchSelect() {
 }
 
 export function initRepoIssueGotoID() {
-  $('form.list-header-search').on('submit', function (e) {
-    const qval = this.q.value.match(/^(?:\w+\/\w+#\d+|#\d+)$/);
+  const issueidre = /^(?:\w+\/\w+#\d+|#\d+|\d+)$/;
+  $('form.list-header-search').on('submit', (e) => {
     const pathname = window.location.pathname;
-    const pathnameslash = pathname.split('/');
-    if (qval && qval.length && (pathnameslash.length === 4 || !qval[0].startsWith('#') && pathnameslash.length === 2)) {
-      e.preventDefault();
-      window.location.href = qval[0].startsWith('#') ? `${pathname}/${qval[0].replace('#', '')}` : `/${qval[0].replace('#', '/issues/')}`;
+    const qval = e.target.q.value;
+    const aElm = document.activeElement;
+    if (aElm.id === 'searchbutton' || (window.location.pathname.split('/').length === 2 && !qval.includes('/')) || !issueidre.test(qval)) return;
+    e.preventDefault();
+    window.location.href = !qval.includes('/') ? `${pathname}/${qval.replace('#', '')}` : `/${qval.replace('#', '/issues/')}`;
+  });
+  const hashtagbtn = $('#hashtagbutton');
+  if (hashtagbtn.length === 0) return;
+  const qobj = $('form.list-header-search input[name=q]');
+  qobj.on('keyup', (e) => {
+    const qval = e.target.value;
+    if ((window.location.pathname.split('/').length === 2 && qval.includes('/') || window.location.pathname.split('/').length === 4) && issueidre.test(qval)) {
+      hashtagbtn.show();
+    } else {
+      hashtagbtn.hide();
     }
   });
 }

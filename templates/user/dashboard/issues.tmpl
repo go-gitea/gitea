@@ -78,7 +78,8 @@
 							<input type="hidden" name="sort" value="{{$.SortType}}">
 							<input type="hidden" name="state" value="{{$.State}}">
 							<input name="q" value="{{$.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
-							<button class="ui small icon button" type="submit" aria-label="{{.locale.Tr "explore.search"}}">{{svg "octicon-search"}}</button>
+							<button id="hashtagbutton" class="ui small icon button" style="display:none" type="submit" aria-label="{{.locale.Tr "explore.search"}}">{{svg "octicon-hash"}}</button>
+							<button id="searchbutton" class="ui small icon button" type="submit" aria-label="{{.locale.Tr "explore.search"}}">{{svg "octicon-search"}}</button>
 						</div>
 					</form>
 					<!-- Sort -->
