@@ -88,6 +88,7 @@ func (rt RunnerType) LocaleString(locale translation.Locale) string {
 	return locale.Tr("actions.runners.owner_type.unknown", rt)
 }
 
+// Should guarantee that all attributes are loaded
 func (r *ActionRunner) BelongsTo() string {
 	if r.RepoID != 0 {
 		return r.Repo.FullName()
