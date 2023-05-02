@@ -141,10 +141,12 @@ export function easyMDEToolbarActions(EasyMDE, editor) {
       title: 'Add Inline Code',
     }
   };
-  for (const action in actions) {
-    if (action !== '|') {
-      actions[action].name = action;
+
+  for (const [key, value] of Object.entries(actions)) {
+    if (typeof value !== 'string') {
+      value.name = key;
     }
   }
+
   return actions;
 }

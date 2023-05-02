@@ -8,7 +8,6 @@ import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {emojiString} from '../emoji.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
 import {matchEmoji, matchMention} from '../../utils/match.js';
-import {svg} from '../../svg.js';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
 
 let elementIdCounter = 0;
