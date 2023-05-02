@@ -44,27 +44,6 @@ func (issue *Issue) LoadAssignees(ctx context.Context) (err error) {
 	return err
 }
 
-// LoadRequestedReviewers load requestedReviewers of this issue.
-func (issue *Issue) LoadRequestedReviewers(ctx context.Context) (err error) {
-	// Reset maybe preexisting reviewers
-	issue.RequestedReviewers = []*user_model.User{}
-	issue.RequestedReviewer = nil
-
-	err = db.GetEngine(ctx).Table("`user`").
-		Join("INNER", "review", "reviewer_id = `user`.id").
-		Where("review.issue_id = ?", issue.ID).
-		Find(&issue.RequestedReviewers)
-	if err != nil {
-		return err
-	}
-
-	// Check if we have at least one reviewer and if yes put it in as `RequestedReviewer`
-	if len(issue.RequestedReviewers) > 0 {
-		issue.RequestedReviewer = issue.RequestedReviewers[0]
-	}
-	return err
-}
-
 // GetAssigneeIDsByIssue returns the IDs of users assigned to an issue
 // but skips joining with `user` for performance reasons.
 // User permissions must be verified elsewhere if required.

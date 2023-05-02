@@ -103,31 +103,30 @@ func (err ErrIssueWasClosed) Error() string {
 
 // Issue represents an issue or pull request of repository.
 type Issue struct {
-	ID                int64                  `xorm:"pk autoincr"`
-	RepoID            int64                  `xorm:"INDEX UNIQUE(repo_index)"`
-	Repo              *repo_model.Repository `xorm:"-"`
-	Index             int64                  `xorm:"UNIQUE(repo_index)"` // Index in one repository.
-	PosterID          int64                  `xorm:"INDEX"`
-	Poster            *user_model.User       `xorm:"-"`
-	OriginalAuthor    string
-	OriginalAuthorID  int64                  `xorm:"index"`
-	Title             string                 `xorm:"name"`
-	Content           string                 `xorm:"LONGTEXT"`
-	RenderedContent   string                 `xorm:"-"`
-	Labels            []*Label               `xorm:"-"`
-	MilestoneID       int64                  `xorm:"INDEX"`
-	Milestone         *Milestone             `xorm:"-"`
-	Project           *project_model.Project `xorm:"-"`
-	Priority          int
-	AssigneeID        int64            `xorm:"-"`
-	Assignee          *user_model.User `xorm:"-"`
-	RequestedReviewer *user_model.User `xorm:"-"`
-	IsClosed          bool             `xorm:"INDEX"`
-	IsRead            bool             `xorm:"-"`
-	IsPull            bool             `xorm:"INDEX"` // Indicates whether is a pull request or not.
-	PullRequest       *PullRequest     `xorm:"-"`
-	NumComments       int
-	Ref               string
+	ID               int64                  `xorm:"pk autoincr"`
+	RepoID           int64                  `xorm:"INDEX UNIQUE(repo_index)"`
+	Repo             *repo_model.Repository `xorm:"-"`
+	Index            int64                  `xorm:"UNIQUE(repo_index)"` // Index in one repository.
+	PosterID         int64                  `xorm:"INDEX"`
+	Poster           *user_model.User       `xorm:"-"`
+	OriginalAuthor   string
+	OriginalAuthorID int64                  `xorm:"index"`
+	Title            string                 `xorm:"name"`
+	Content          string                 `xorm:"LONGTEXT"`
+	RenderedContent  string                 `xorm:"-"`
+	Labels           []*Label               `xorm:"-"`
+	MilestoneID      int64                  `xorm:"INDEX"`
+	Milestone        *Milestone             `xorm:"-"`
+	Project          *project_model.Project `xorm:"-"`
+	Priority         int
+	AssigneeID       int64            `xorm:"-"`
+	Assignee         *user_model.User `xorm:"-"`
+	IsClosed         bool             `xorm:"INDEX"`
+	IsRead           bool             `xorm:"-"`
+	IsPull           bool             `xorm:"INDEX"` // Indicates whether is a pull request or not.
+	PullRequest      *PullRequest     `xorm:"-"`
+	NumComments      int
+	Ref              string
 
 	DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`
 
@@ -268,6 +267,27 @@ func (issue *Issue) LoadPullRequest(ctx context.Context) (err error) {
 		}
 	}
 	return nil
+}
+
+// LoadRequestedReviewers load requestedReviewers of this issue.
+func (issue *Issue) LoadRequestedReviewers(ctx context.Context) (err error) {
+	// Reset maybe preexisting reviewers
+	issue.RequestedReviewers = []*user_model.User{}
+
+	reviews, err := GetReviewersByIssueID(issue.ID)
+	if err != nil {
+		return err
+	}
+	if len(reviews) > 0 {
+		for _, review := range reviews {
+			if err = review.LoadReviewer(ctx); err != nil {
+				return err
+			}
+			issue.RequestedReviewers = append(issue.RequestedReviewers, review.Reviewer)
+		}
+	}
+
+	return err
 }
 
 func (issue *Issue) loadComments(ctx context.Context) (err error) {
