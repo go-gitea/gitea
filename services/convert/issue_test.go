@@ -23,10 +23,11 @@ func TestLabel_ToLabel(t *testing.T) {
 	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: label.RepoID})
 	assert.Equal(t, &api.Label{
-		ID:    label.ID,
-		Name:  label.Name,
-		Color: "abcdef",
-		URL:   fmt.Sprintf("%sapi/v1/repos/user2/repo1/labels/%d", setting.AppURL, label.ID),
+		ID:       label.ID,
+		Name:     label.Name,
+		Color:    "abcdef",
+		Priority: "high",
+		URL:      fmt.Sprintf("%sapi/v1/repos/user2/repo1/labels/%d", setting.AppURL, label.ID),
 	}, ToLabel(label, repo, nil))
 }
 

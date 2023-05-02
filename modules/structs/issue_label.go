@@ -12,7 +12,9 @@ type Label struct {
 	// example: false
 	Exclusive bool `json:"exclusive"`
 	// example: 00aabb
-	Color       string `json:"color"`
+	Color string `json:"color"`
+	// enum: critical,high,medium,low
+	Priority    string `json:"priority"`
 	Description string `json:"description"`
 	URL         string `json:"url"`
 }
@@ -25,7 +27,9 @@ type CreateLabelOption struct {
 	Exclusive bool `json:"exclusive"`
 	// required:true
 	// example: #00aabb
-	Color       string `json:"color" binding:"Required"`
+	Color string `json:"color" binding:"Required"`
+	// enum: critical,high,medium,low
+	Priority    string `json:"priority"`
 	Description string `json:"description"`
 }
 
@@ -35,7 +39,9 @@ type EditLabelOption struct {
 	// example: false
 	Exclusive *bool `json:"exclusive"`
 	// example: #00aabb
-	Color       *string `json:"color"`
+	Color *string `json:"color"`
+	// enum: critical,high,medium,low
+	Priority    *string `json:"priority"`
 	Description *string `json:"description"`
 }
 

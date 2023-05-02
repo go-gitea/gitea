@@ -49,6 +49,17 @@
 					</div>
 				</div>
 			</div>
+			<div class="field">
+				<label for="priority">{{.locale.Tr "repo.issues.label_priority"}}</label>
+				<div class="ui small fluid input">
+					<select class="label-priority-input" name="priority" class="dropdown clearable selection">
+						<option value=""></option>
+						{{range $priority := .LabelPriorities}}
+						<option value="{{$priority}}">{{$.locale.Tr (printf "repo.issues.label_priority_%s" $priority)}}</option>
+						{{end}}
+					</select>
+				</div>
+			</div>
 		</form>
 	</div>
 	<div class="actions">

@@ -60,6 +60,7 @@ export function initCompLabelEdit(selector) {
     $('.edit-label .label-desc-input').val($(this).data('description'));
     $('.edit-label .color-picker').val($(this).data('color'));
     $('.edit-label .minicolors-swatch-color').css('background-color', $(this).data('color'));
+    $('.edit-label .label-priority-input').val($(this).data('priority'));
 
     $('.edit-label.modal').modal({
       onApprove() {

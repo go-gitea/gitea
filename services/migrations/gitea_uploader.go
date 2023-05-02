@@ -230,8 +230,9 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 			RepoID:      g.repo.ID,
 			Name:        l.Name,
 			Exclusive:   l.Exclusive,
-			Description: l.Description,
 			Color:       l.Color,
+			Priority:    label.Priority(l.Priority),
+			Description: l.Description,
 		})
 	}
 

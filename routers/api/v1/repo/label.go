@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -152,10 +153,16 @@ func CreateLabel(ctx *context.APIContext) {
 	}
 	form.Color = color
 
+	if !label.Priority(form.Priority).IsValid() {
+		ctx.Error(http.StatusUnprocessableEntity, "Priority", fmt.Errorf("unknown priority: %s", form.Priority))
+		return
+	}
+
 	l := &issues_model.Label{
 		Name:        form.Name,
 		Exclusive:   form.Exclusive,
 		Color:       form.Color,
+		Priority:    label.Priority(form.Priority),
 		RepoID:      ctx.Repo.Repository.ID,
 		Description: form.Description,
 	}
@@ -227,6 +234,13 @@ func EditLabel(ctx *context.APIContext) {
 			return
 		}
 		l.Color = color
+	}
+	if form.Priority != nil {
+		l.Priority = label.Priority(*form.Priority)
+		if !l.Priority.IsValid() {
+			ctx.Error(http.StatusUnprocessableEntity, "Priority", fmt.Errorf("unknown priority: %s", *form.Priority))
+			return
+		}
 	}
 	if form.Description != nil {
 		l.Description = *form.Description

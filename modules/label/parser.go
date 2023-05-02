@@ -59,6 +59,9 @@ func parseYamlFormat(fileName string, data []byte) ([]*Label, error) {
 		if len(l.Name) == 0 || len(l.Color) == 0 {
 			return nil, ErrTemplateLoad{fileName, errors.New("label name and color are required fields")}
 		}
+		if !l.Priority.IsValid() {
+			return nil, ErrTemplateLoad{fileName, fmt.Errorf("invalid priority: %s", l.Priority)}
+		}
 		color, err := NormalizeColor(l.Color)
 		if err != nil {
 			return nil, ErrTemplateLoad{fileName, fmt.Errorf("bad HTML color code '%s' in label: %s", l.Color, l.Name)}

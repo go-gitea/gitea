@@ -367,8 +367,9 @@ func InitializeLabels(ctx context.Context, id int64, labelTemplate string, isOrg
 		labels[i] = &issues_model.Label{
 			Name:        list[i].Name,
 			Exclusive:   list[i].Exclusive,
-			Description: list[i].Description,
 			Color:       list[i].Color,
+			Priority:    list[i].Priority,
+			Description: list[i].Description,
 		}
 		if isOrg {
 			labels[i].OrgID = id

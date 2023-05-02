@@ -29,6 +29,7 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsLabels"] = true
 	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
+	ctx.Data["LabelPriorities"] = label.GetPriorities()
 	ctx.HTML(http.StatusOK, tplLabels)
 }
 
@@ -114,8 +115,9 @@ func NewLabel(ctx *context.Context) {
 		RepoID:      ctx.Repo.Repository.ID,
 		Name:        form.Title,
 		Exclusive:   form.Exclusive,
-		Description: form.Description,
 		Color:       form.Color,
+		Priority:    label.Priority(form.Priority),
+		Description: form.Description,
 	}
 	if err := issues_model.NewLabel(ctx, l); err != nil {
 		ctx.ServerError("NewLabel", err)
@@ -140,8 +142,9 @@ func UpdateLabel(ctx *context.Context) {
 
 	l.Name = form.Title
 	l.Exclusive = form.Exclusive
-	l.Description = form.Description
 	l.Color = form.Color
+	l.Priority = label.Priority(form.Priority)
+	l.Description = form.Description
 	if err := issues_model.UpdateLabel(l); err != nil {
 		ctx.ServerError("UpdateLabel", err)
 		return

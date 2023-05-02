@@ -4,6 +4,7 @@
 package org
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -95,6 +96,7 @@ func CreateLabel(ctx *context.APIContext) {
 		Name:        form.Name,
 		Exclusive:   form.Exclusive,
 		Color:       form.Color,
+		Priority:    label.Priority(form.Priority),
 		OrgID:       ctx.Org.Organization.ID,
 		Description: form.Description,
 	}
@@ -205,6 +207,13 @@ func EditLabel(ctx *context.APIContext) {
 			return
 		}
 		l.Color = color
+	}
+	if form.Priority != nil {
+		l.Priority = label.Priority(*form.Priority)
+		if !l.Priority.IsValid() {
+			ctx.Error(http.StatusUnprocessableEntity, "Priority", fmt.Errorf("unknown priority: %s", l.Priority))
+			return
+		}
 	}
 	if form.Description != nil {
 		l.Description = *form.Description

@@ -230,8 +230,10 @@ func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
 
 func (g *GiteaDownloader) convertGiteaLabel(label *gitea_sdk.Label) *base.Label {
 	return &base.Label{
-		Name:        label.Name,
-		Color:       label.Color,
+		Name:  label.Name,
+		Color: label.Color,
+		// TODO: Add priority migration once SDK has support for it
+		// Priority:    label.Priority,
 		Description: label.Description,
 	}
 }

@@ -86,7 +86,8 @@ type Label struct {
 	Name            string
 	Exclusive       bool
 	Description     string
-	Color           string `xorm:"VARCHAR(7)"`
+	Color           string         `xorm:"VARCHAR(7)"`
+	Priority        label.Priority `xorm:"VARCHAR(20)"`
 	NumIssues       int
 	NumClosedIssues int
 	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
@@ -204,6 +205,9 @@ func NewLabel(ctx context.Context, l *Label) error {
 	if err != nil {
 		return err
 	}
+	if !l.Priority.IsValid() {
+		return fmt.Errorf("invalid priority: %s", l.Priority)
+	}
 	l.Color = color
 
 	return db.Insert(ctx, l)
@@ -222,6 +226,9 @@ func NewLabels(labels ...*Label) error {
 		if err != nil {
 			return err
 		}
+		if !l.Priority.IsValid() {
+			return fmt.Errorf("invalid priority: %s", l.Priority)
+		}
 		l.Color = color
 
 		if err := db.Insert(ctx, l); err != nil {
@@ -237,9 +244,12 @@ func UpdateLabel(l *Label) error {
 	if err != nil {
 		return err
 	}
+	if !l.Priority.IsValid() {
+		return fmt.Errorf("invalid priority: %s", l.Priority)
+	}
 	l.Color = color
 
-	return updateLabelCols(db.DefaultContext, l, "name", "description", "color", "exclusive")
+	return updateLabelCols(db.DefaultContext, l, "name", "exclusive", "color", "priority", "description")
 }
 
 // DeleteLabel delete a label
@@ -663,6 +673,11 @@ func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error
 		return err
 	}
 
+	issue.CalculatePriority()
+	if err = UpdateIssueCols(ctx, issue, "priority"); err != nil {
+		return err
+	}
+
 	return committer.Commit()
 }
 
@@ -700,6 +715,11 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err e
 
 	issue.Labels = nil
 	if err = issue.LoadLabels(ctx); err != nil {
+		return err
+	}
+
+	issue.CalculatePriority()
+	if err = UpdateIssueCols(ctx, issue, "priority"); err != nil {
 		return err
 	}
 
@@ -741,7 +761,12 @@ func DeleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *use
 	}
 
 	issue.Labels = nil
-	return issue.LoadLabels(ctx)
+	if err := issue.LoadLabels(ctx); err != nil {
+		return err
+	}
+
+	issue.CalculatePriority()
+	return UpdateIssueCols(ctx, issue, "priority")
 }
 
 // DeleteLabelsByRepoID  deletes labels of some repository

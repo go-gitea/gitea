@@ -4,6 +4,7 @@
   org_id: 0
   name: label1
   color: '#abcdef'
+  priority: high
   exclusive: false
   num_issues: 2
   num_closed_issues: 0

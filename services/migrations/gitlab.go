@@ -269,6 +269,34 @@ func (g *GitlabDownloader) normalizeColor(val string) string {
 	return val
 }
 
+func (g *GitlabDownloader) resolvePriorityMap(ls []*gitlab.Label) map[int]base.LabelPriority {
+	priorities := make(map[int]base.LabelPriority)
+	var max, min int
+	// Find max and min priorities
+	for _, l := range ls {
+		if max < l.Priority {
+			max = l.Priority
+		}
+		if min > l.Priority || min == 0 {
+			min = l.Priority
+		}
+	}
+	// Create map
+	for _, l := range ls {
+		if l.Priority == 0 {
+			continue
+		}
+		if l.Priority == max {
+			priorities[l.Priority] = base.LabelPriorityCritical
+		} else if l.Priority == min {
+			priorities[l.Priority] = base.LabelPriorityMedium
+		} else {
+			priorities[l.Priority] = base.LabelPriorityHigh
+		}
+	}
+	return priorities
+}
+
 // GetLabels returns labels
 func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
 	perPage := g.maxPerPage
@@ -281,11 +309,15 @@ func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
 		if err != nil {
 			return nil, err
 		}
+		pm := g.resolvePriorityMap(ls)
 		for _, label := range ls {
 			baseLabel := &base.Label{
 				Name:        label.Name,
 				Color:       g.normalizeColor(label.Color),
 				Description: label.Description,
+			}
+			if label.Priority != 0 {
+				baseLabel.Priority = pm[label.Priority]
 			}
 			labels = append(labels, baseLabel)
 		}
