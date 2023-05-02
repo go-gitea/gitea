@@ -10,10 +10,6 @@
   margin-left: 0.5em;
 }
 
-.runner-container .runner-ops > div {
-  margin-left: 0.5em;
-}
-
 .runner-container .runner-ops-delete {
   color: var(--color-red-light);
 }
