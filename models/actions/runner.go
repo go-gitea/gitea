@@ -76,16 +76,16 @@ func (r *ActionRunner) Type() RunnerType {
 	return RunnerTypeGlobal
 }
 
-func (rt RunnerType) String() string {
+func (rt RunnerType) LocaleString(locale translation.Locale) string {
 	switch rt {
 	case RunnerTypeGlobal:
-		return "Global"
+		return locale.Tr("actions.runners.owner_type.global")
 	case RunnerTypeOrganization:
-		return "Organization"
+		return locale.Tr("actions.runners.owner_type.organization")
 	case RunnerTypeRepository:
-		return "Repository"
+		return locale.Tr("actions.runners.owner_type.repository")
 	}
-	return fmt.Sprintf("Unknown Type %d", rt)
+	return locale.Tr("actions.runners.owner_type.unknown", rt)
 }
 
 func (r *ActionRunner) BelongsTo() string {
