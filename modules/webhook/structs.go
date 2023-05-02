@@ -21,6 +21,7 @@ type HookEvents struct {
 	PullRequestComment   bool `json:"pull_request_comment"`
 	PullRequestReview    bool `json:"pull_request_review"`
 	PullRequestSync      bool `json:"pull_request_sync"`
+	PullReviewRequest    bool `json:"pull_review_request"`
 	Wiki                 bool `json:"wiki"`
 	Repository           bool `json:"repository"`
 	Release              bool `json:"release"`

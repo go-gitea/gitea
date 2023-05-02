@@ -55,8 +55,9 @@ type Issue struct {
 	Labels           []*Label      `json:"labels"`
 	Milestone        *Milestone    `json:"milestone"`
 	// deprecated
-	Assignee  *User   `json:"assignee"`
-	Assignees []*User `json:"assignees"`
+	Assignee           *User   `json:"assignee"`
+	Assignees          []*User `json:"assignees"`
+	RequestedReviewers []*User `json:"requested_reviewers"`
 	// Whether the issue is open or closed
 	//
 	// type: string

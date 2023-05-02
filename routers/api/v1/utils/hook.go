@@ -194,6 +194,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 				PullRequestMilestone: pullHook(form.Events, string(webhook_module.HookEventPullRequestMilestone)),
 				PullRequestComment:   pullHook(form.Events, string(webhook_module.HookEventPullRequestComment)),
 				PullRequestReview:    pullHook(form.Events, "pull_request_review"),
+				PullReviewRequest:    pullHook(form.Events, string(webhook_module.HookEventPullReviewRequest)),
 				PullRequestSync:      pullHook(form.Events, string(webhook_module.HookEventPullRequestSync)),
 				Wiki:                 util.SliceContainsString(form.Events, string(webhook_module.HookEventWiki), true),
 				Repository:           util.SliceContainsString(form.Events, string(webhook_module.HookEventRepository), true),
@@ -379,6 +380,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	w.PullRequestMilestone = pullHook(form.Events, string(webhook_module.HookEventPullRequestMilestone))
 	w.PullRequestComment = pullHook(form.Events, string(webhook_module.HookEventPullRequestComment))
 	w.PullRequestReview = pullHook(form.Events, "pull_request_review")
+	w.PullReviewRequest = pullHook(form.Events, string(webhook_module.HookEventPullReviewRequest))
 	w.PullRequestSync = pullHook(form.Events, string(webhook_module.HookEventPullRequestSync))
 
 	if err := w.UpdateEvent(); err != nil {

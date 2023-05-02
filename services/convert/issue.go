@@ -83,6 +83,14 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 		}
 		apiIssue.Assignee = ToUser(ctx, issue.Assignees[0], nil) // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
 	}
+	if err := issue.LoadRequestedReviewers(ctx); err != nil {
+		return &api.Issue{}
+	}
+	if len(issue.RequestedReviewers) > 0 {
+		for _, reviewers := range issue.RequestedReviewers {
+			apiIssue.RequestedReviewers = append(apiIssue.RequestedReviewers, ToUser(ctx, reviewers, nil))
+		}
+	}
 	if issue.IsPull {
 		if err := issue.LoadPullRequest(ctx); err != nil {
 			return &api.Issue{}

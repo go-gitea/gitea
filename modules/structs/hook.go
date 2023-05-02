@@ -342,6 +342,10 @@ const (
 	HookIssueDemilestoned HookIssueAction = "demilestoned"
 	// HookIssueReviewed is an issue action for when a pull request is reviewed
 	HookIssueReviewed HookIssueAction = "reviewed"
+	// HookIssueReviewRequested is an issue action for when a reviewer is requested for a pull request.
+	HookIssueReviewRequested HookIssueAction = "review_requested"
+	// HookIssueReviewRequestRemoved is an issue action for removing a review request to someone on a pull request.
+	HookIssueReviewRequestRemoved HookIssueAction = "review_request_removed"
 )
 
 // IssuePayload represents the payload information that is sent along with an issue event.
@@ -381,14 +385,15 @@ type ChangesPayload struct {
 
 // PullRequestPayload represents a payload information of pull request event.
 type PullRequestPayload struct {
-	Action      HookIssueAction `json:"action"`
-	Index       int64           `json:"number"`
-	Changes     *ChangesPayload `json:"changes,omitempty"`
-	PullRequest *PullRequest    `json:"pull_request"`
-	Repository  *Repository     `json:"repository"`
-	Sender      *User           `json:"sender"`
-	CommitID    string          `json:"commit_id"`
-	Review      *ReviewPayload  `json:"review"`
+	Action            HookIssueAction `json:"action"`
+	Index             int64           `json:"number"`
+	Changes           *ChangesPayload `json:"changes,omitempty"`
+	PullRequest       *PullRequest    `json:"pull_request"`
+	RequestedReviewer *User           `json:"requested_reviewer"`
+	Repository        *Repository     `json:"repository"`
+	Sender            *User           `json:"sender"`
+	CommitID          string          `json:"commit_id"`
+	Review            *ReviewPayload  `json:"review"`
 }
 
 // JSONPayload FIXME

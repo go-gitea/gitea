@@ -177,6 +177,7 @@ func ParseHookEvent(form forms.WebhookForm) *webhook_module.HookEvent {
 			PullRequestComment:   form.PullRequestComment,
 			PullRequestReview:    form.PullRequestReview,
 			PullRequestSync:      form.PullRequestSync,
+			PullReviewRequest:    form.PullReviewRequest,
 			Wiki:                 form.Wiki,
 			Repository:           form.Repository,
 			Package:              form.Package,
