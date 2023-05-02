@@ -38,14 +38,13 @@ var (
 
 	// Other global setting objects
 
-	CfgProvider        ConfigProvider
-	CustomPath         string // Custom directory path
-	CustomConf         string
-	RunMode            string
-	RunUser            string
-	IsProd             bool
-	IsWindows          bool
-	ignoreCheckRunUser bool
+	CfgProvider ConfigProvider
+	CustomPath  string // Custom directory path
+	CustomConf  string
+	RunMode     string
+	RunUser     string
+	IsProd      bool
+	IsWindows   bool
 
 	// IsInTesting indicates whether the testing is running. A lot of unreliable code causes a lot of nonsense error logs during testing
 	// TODO: this is only a temporary solution, we should make the test code more reliable

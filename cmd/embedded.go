@@ -107,8 +107,7 @@ func initEmbeddedExtractor(c *cli.Context) error {
 
 	// Read configuration file
 	setting.Init(&setting.Options{
-		AllowEmpty:         true,
-		IgnoreCheckRunUser: true,
+		AllowEmpty: true,
 	})
 
 	patterns, err := compileCollectPatterns(c.Args())

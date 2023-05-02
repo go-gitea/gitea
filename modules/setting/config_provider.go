@@ -69,7 +69,6 @@ type Options struct {
 	CustomConf                string // the ini file path
 	AllowEmpty                bool   // whether not finding configuration files is allowed (only true for the tests)
 	ExtraConfig               string
-	IgnoreCheckRunUser        bool
 	DisableLoadCommonSettings bool
 }
 
@@ -103,7 +102,6 @@ func newConfigProviderFromFile(opts *Options) (*iniFileConfigProvider, error) {
 	}
 
 	cfg.NameMapper = ini.SnackCase
-	ignoreCheckRunUser = opts.IgnoreCheckRunUser
 	return &iniFileConfigProvider{
 		opts:    opts,
 		File:    cfg,
