@@ -36,6 +36,7 @@ const (
 	TypeConan     Type = "conan"
 	TypeConda     Type = "conda"
 	TypeContainer Type = "container"
+	TypeDebian    Type = "debian"
 	TypeGeneric   Type = "generic"
 	TypeHelm      Type = "helm"
 	TypeMaven     Type = "maven"
@@ -55,6 +56,7 @@ var TypeList = []Type{
 	TypeConan,
 	TypeConda,
 	TypeContainer,
+	TypeDebian,
 	TypeGeneric,
 	TypeHelm,
 	TypeMaven,
@@ -82,6 +84,8 @@ func (pt Type) Name() string {
 		return "Conda"
 	case TypeContainer:
 		return "Container"
+	case TypeDebian:
+		return "Debian"
 	case TypeGeneric:
 		return "Generic"
 	case TypeHelm:
@@ -121,6 +125,8 @@ func (pt Type) SVGName() string {
 		return "gitea-conda"
 	case TypeContainer:
 		return "octicon-container"
+	case TypeDebian:
+		return "gitea-debian"
 	case TypeGeneric:
 		return "octicon-package"
 	case TypeHelm:
@@ -154,6 +160,7 @@ type Package struct {
 	Name             string `xorm:"NOT NULL"`
 	LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	SemverCompatible bool   `xorm:"NOT NULL DEFAULT false"`
+	IsInternal       bool   `xorm:"NOT NULL DEFAULT false"`
 }
 
 // TryInsertPackage inserts a package. If a package exists already, ErrDuplicatePackage is returned
@@ -214,9 +221,10 @@ func GetPackageByID(ctx context.Context, packageID int64) (*Package, error) {
 // GetPackageByName gets a package by name
 func GetPackageByName(ctx context.Context, ownerID int64, packageType Type, name string) (*Package, error) {
 	var cond builder.Cond = builder.Eq{
-		"package.owner_id":   ownerID,
-		"package.type":       packageType,
-		"package.lower_name": strings.ToLower(name),
+		"package.owner_id":    ownerID,
+		"package.type":        packageType,
+		"package.lower_name":  strings.ToLower(name),
+		"package.is_internal": false,
 	}
 
 	p := &Package{}
@@ -236,8 +244,9 @@ func GetPackageByName(ctx context.Context, ownerID int64, packageType Type, name
 // GetPackagesByType gets all packages of a specific type
 func GetPackagesByType(ctx context.Context, ownerID int64, packageType Type) ([]*Package, error) {
 	var cond builder.Cond = builder.Eq{
-		"package.owner_id": ownerID,
-		"package.type":     packageType,
+		"package.owner_id":    ownerID,
+		"package.type":        packageType,
+		"package.is_internal": false,
 	}
 
 	ps := make([]*Package, 0, 10)
