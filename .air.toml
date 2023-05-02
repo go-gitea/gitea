@@ -10,3 +10,4 @@ include_file = ["main.go"]
 include_dir = ["cmd", "models", "modules", "options", "routers", "services"]
 exclude_dir = ["modules/git/tests", "services/gitdiff/testdata", "modules/avatar/testdata", "models/fixtures", "models/migrations/fixtures", "modules/migration/file_format_testdata", "modules/avatar/identicon/testdata"]
 exclude_regex = ["_test.go$", "_gen.go$"]
+stop_on_error = true
