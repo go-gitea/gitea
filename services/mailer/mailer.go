@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 
+	ntlmssp "github.com/Azure/go-ntlmssp"
 	"github.com/jaytaylor/html2text"
 	"gopkg.in/gomail.v2"
 )
@@ -145,6 +146,35 @@ func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	return nil, nil
 }
 
+type ntlmAuth struct {
+	username, password, domain string
+	domainNeeded               bool
+}
+
+// NtlmAuth SMTP AUTH NTLM Auth Handler
+func NtlmAuth(username, password string) smtp.Auth {
+	user, domain, domainNeeded := ntlmssp.GetDomain(username)
+	return &ntlmAuth{user, password, domain, domainNeeded}
+}
+
+// Start starts SMTP NTLM Auth
+func (a *ntlmAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
+	negotiateMessage, err := ntlmssp.NewNegotiateMessage(a.domain, "")
+	return "NTLM", negotiateMessage, err
+}
+
+// Next next step of SMTP ntlm auth
+func (a *ntlmAuth) Next(fromServer []byte, more bool) ([]byte, error) {
+	if more {
+		if len(fromServer) == 0 {
+			return nil, fmt.Errorf("ntlm ChallengeMessage is empty")
+		}
+		authenticateMessage, err := ntlmssp.ProcessChallenge(fromServer, a.username, a.password, a.domainNeeded)
+		return authenticateMessage, err
+	}
+	return nil, nil
+}
+
 // Sender SMTP mail sender
 type smtpSender struct{}
 
@@ -237,6 +267,8 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 		} else if strings.Contains(options, "LOGIN") {
 			// Patch for AUTH LOGIN
 			auth = LoginAuth(opts.User, opts.Passwd)
+		} else if strings.Contains(options, "NTLM") {
+			auth = NtlmAuth(opts.User, opts.Passwd)
 		}
 
 		if auth != nil {
