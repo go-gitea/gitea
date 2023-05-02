@@ -2,6 +2,10 @@
   padding-bottom: 30px;
 }
 
+.runner-container .ui.table.segment {
+  overflow-x: auto;
+}
+
 .runner-container .runner-ops > a {
   margin-left: 0.5em;
 }
@@ -26,10 +30,6 @@
 
 .runner-container #runner-new:hover .runner-new-text {
   color: var(--color-white) !important;
-}
-
-.runner-container .runner-new-menu {
-  width: 300px;
 }
 
 .runner-container .task-status-success {

@@ -20,7 +20,7 @@ import (
 
 // RenderMarkup renders markup text for the /markup and /markdown endpoints
 func RenderMarkup(ctx *context.Context, mode, text, urlPrefix, filePath string, wiki bool) {
-	markupType := ""
+	var markupType string
 	relativePath := ""
 
 	if len(text) == 0 {

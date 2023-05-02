@@ -2,9 +2,11 @@
 date: "2018-11-23:00:00+02:00"
 title: "External renderers"
 slug: "external-renderers"
-weight: 40
+weight: 60
 toc: false
 draft: false
+aliases:
+  - /en-us/external-renderers
 menu:
   sidebar:
     parent: "administration"

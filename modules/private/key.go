@@ -6,8 +6,6 @@ package private
 import (
 	"context"
 	"fmt"
-	"io"
-	"net/http"
 
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -16,39 +14,18 @@ import (
 func UpdatePublicKeyInRepo(ctx context.Context, keyID, repoID int64) error {
 	// Ask for running deliver hook and test pull request tasks.
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/ssh/%d/update/%d", keyID, repoID)
-	resp, err := newInternalRequest(ctx, reqURL, "POST").Response()
-	if err != nil {
-		return err
-	}
-
-	defer resp.Body.Close()
-
-	// All 2XX status codes are accepted and others will return an error
-	if resp.StatusCode/100 != 2 {
-		return fmt.Errorf("Failed to update public key: %s", decodeJSONError(resp).Err)
-	}
-	return nil
+	req := newInternalRequest(ctx, reqURL, "POST")
+	_, extra := requestJSONResp(req, &responseText{})
+	return extra.Error
 }
 
 // AuthorizedPublicKeyByContent searches content as prefix (leak e-mail part)
 // and returns public key found.
-func AuthorizedPublicKeyByContent(ctx context.Context, content string) (string, error) {
+func AuthorizedPublicKeyByContent(ctx context.Context, content string) (string, ResponseExtra) {
 	// Ask for running deliver hook and test pull request tasks.
 	reqURL := setting.LocalURL + "api/internal/ssh/authorized_keys"
 	req := newInternalRequest(ctx, reqURL, "POST")
 	req.Param("content", content)
-	resp, err := req.Response()
-	if err != nil {
-		return "", err
-	}
-
-	defer resp.Body.Close()
-
-	// All 2XX status codes are accepted and others will return an error
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Failed to update public key: %s", decodeJSONError(resp).Err)
-	}
-	bs, err := io.ReadAll(resp.Body)
-
-	return string(bs), err
+	resp, extra := requestJSONResp(req, &responseText{})
+	return resp.Text, extra
 }

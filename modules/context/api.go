@@ -337,12 +337,13 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 				if git.IsErrNotExist(err) {
 					ctx.NotFound()
 				} else {
-					ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
+					ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 				}
 				return
 			}
 			ctx.Repo.Commit = commit
 			ctx.Repo.TreePath = ctx.Params("*")
+			next.ServeHTTP(w, req)
 			return
 		}
 

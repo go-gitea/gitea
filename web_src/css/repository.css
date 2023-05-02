@@ -72,8 +72,8 @@
   max-height: 500px;
 }
 
-.repository .metas .ui.list.assignees .icon {
-  line-height: 2em;
+.repository .metas .ui.list.assignees .item {
+  line-height: 2.5em;
 }
 
 .repository .metas .ui.list.assignees .teamavatar {
@@ -141,30 +141,34 @@
   font-size: 11px;
 }
 
-.repository .filter.menu .menu {
+/* make all issue filter dropdown menus popup leftward, to avoid go out the viewport (right side) */
+.repository .filter.menu .ui.dropdown .menu {
   max-height: 500px;
   max-width: 300px;
   overflow-x: hidden;
-  right: 0 !important;
-  left: auto !important;
+  right: 0;
+  left: auto;
+}
+
+/* the label-filter is the first dropdown, it shouldn't be shown leftward, otherwise it may go out the viewport (left side) */
+.repository .filter.menu .ui.dropdown.label-filter .menu {
+  right: unset;
+  left: 0;
 }
 
 .repository .select-label .desc {
   padding-left: 23px;
 }
 
-.repository .ui.tabs.container {
-  margin-top: 14px;
-  margin-bottom: 0;
-}
-
-.repository .ui.tabs.container .ui.menu {
+/* For the secondary pointing menu, respect its own border-bottom */
+/* style reference: https://semantic-ui.com/collections/menu.html#pointing */
+.repository .ui.tabs.container .ui.menu:not(.secondary.pointing) {
   border-bottom: 0;
 }
 
 .repository .ui.tabs.divider {
-  margin-top: 0;
-  margin-bottom: 20px;
+  margin-top: -1px;
+  margin-bottom: 12px;
 }
 
 .repository #clone-panel #repo-clone-url {
@@ -217,11 +221,6 @@
 
 .repository.file.list .repo-path {
   word-break: break-word;
-}
-
-.repository.file.list .repo-path .section,
-.repository.file.list .repo-path .divider {
-  display: inline;
 }
 
 .repository.file.list #repo-files-table {
@@ -444,16 +443,15 @@
   width: 16px;
 }
 
-.repository.file.editor .treepath {
+.repo-editor-header {
   width: 100%;
 }
 
-.repository.file.editor .treepath input {
-  vertical-align: middle;
-  box-shadow: rgba(0, 0, 0, 0.0745098) 0 1px 2px inset;
-  width: inherit;
-  padding: 7px 8px;
-  margin-right: 5px;
+.repo-editor-header input {
+  vertical-align: middle !important;
+  width: auto !important;
+  padding: 7px 8px !important;
+  margin-right: 5px !important;
 }
 
 .repository.file.editor .tabular.menu .svg {
@@ -542,10 +540,6 @@
 
 .repository.options .danger .ui.divider {
   margin: 0;
-}
-
-.repository .comment textarea {
-  max-height: none !important;
 }
 
 .repository.new.issue .comment.form .comment .avatar {
@@ -701,9 +695,9 @@
   margin-right: 5px;
 }
 
-.repository.view.issue .pull .merge.box .avatar {
-  margin-left: 10px;
-  margin-top: 10px;
+.repository.view.issue .pull .merge.box .timeline-avatar {
+  margin-top: 3px;
+  margin-left: 4px;
 }
 
 .repository.view.issue .pull .merge.box .branch-update.grid .row {
@@ -969,10 +963,6 @@
   max-width: 100%;
 }
 
-.repository.view.issue .comment-list .ui.comments .avatar {
-  margin-right: 0.5rem;
-}
-
 .repository.view.issue .comment-list .comment > .content > div:first-child {
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
@@ -1047,6 +1037,13 @@
   margin-top: -8px;
 }
 
+.merge-section-info code {
+  border: 1px solid var(--color-light-border);
+  border-radius: 4px;
+  padding: 2px 4px;
+  background: var(--color-light);
+}
+
 .repository.view.issue .comment-list .comment .markup {
   font-size: 14px;
 }
@@ -1066,11 +1063,6 @@
 
 .repository.view.issue .comment-list .comment .ui.form .field .tab.markup {
   min-height: 5rem;
-}
-
-.repository.view.issue .comment-list .comment .ui.form textarea {
-  height: 200px;
-  font-family: var(--fonts-monospace);
 }
 
 .repository.view.issue .comment-list .comment .edit.buttons {
@@ -1100,6 +1092,14 @@
 
 .repository.view.issue .comment-list .code-comment .comment-content {
   margin-left: 36px;
+}
+
+.repository.view.issue .comment-list .comment > .avatar {
+  margin-top: 6px;
+}
+
+.repository.view.issue .comment-list .comment > .avatar ~ .content {
+  margin-left: 3em;
 }
 
 .repository.view.issue .comment-list .code-comment img.avatar,
@@ -1189,15 +1189,6 @@
   border-right-color: var(--color-box-body);
   border-width: 8px;
   margin-top: -8px;
-}
-
-.repository .comment.form .content textarea {
-  height: 200px;
-  font-family: var(--fonts-monospace);
-}
-
-.repository .comment.form .content .CodeMirror-scroll {
-  max-height: 85vh;
 }
 
 .repository .milestone.list {
@@ -1571,7 +1562,7 @@
 }
 
 .repository .data-table th {
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   background: var(--color-box-header);
   border-top: 0;
 }
@@ -1616,14 +1607,12 @@
   padding: 7px 0;
   background: var(--color-body);
   line-height: 30px;
-  height: 47px; /* match .ui.attached.header.diff-file-header.sticky-2nd-row */
 }
 
 @media (max-width: 991px) {
   .repository .diff-detail-box {
     flex-direction: column;
     align-items: flex-start;
-    height: 77px; /* match .ui.attached.header.diff-file-header.sticky-2nd-row */
   }
 }
 
@@ -1638,10 +1627,10 @@
   top: 0;
   z-index: 8;
   border-bottom: none;
-  padding-left: 2px;
-  padding-right: 2px;
-  margin-left: -1px;
-  margin-right: -1px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin-left: -4px;
+  margin-right: -4px;
 }
 
 .repository .diff-detail-box > div::after {
@@ -1677,6 +1666,13 @@
   .repository .diff-detail-box .diff-detail-stats strong {
     font-size: 1rem;
   }
+}
+
+.diff-detail-actions {
+  /* prevent font-size from increasing element height so that .diff-detail-box comes
+     out with height of 47px (one line) and 77px (two lines), which is important for
+     position: sticky */
+  height: 33px;
 }
 
 .repository .diff-detail-box .diff-detail-actions > * {
@@ -1801,8 +1797,14 @@
   padding: 0 !important;
 }
 
-.repository .diff-file-box .code-diff tbody tr td.halfwidth {
-  width: 49%; /* halfwidth is used in split view - and in that case, 1% of each */
+.repository .diff-file-box .code-diff table {
+  table-layout: fixed;
+}
+
+.repository .diff-file-box .code-diff tbody tr td.lines-num,
+.repository .diff-file-box .code-diff tbody tr td.lines-escape,
+.repository .diff-file-box .code-diff tbody tr td.lines-type-marker {
+  white-space: nowrap;
 }
 
 .repository .diff-file-box .code-diff tbody tr td.center {
@@ -1853,10 +1855,31 @@
   padding-bottom: 5px;
 }
 
+.diff-file-box {
+  border: 1px solid transparent;
+  border-radius: var(--border-radius);
+  scroll-margin-top: 47px; /* match .repository .diff-detail-box */
+}
+
+@media (max-width: 991px) {
+  .diff-file-box {
+    scroll-margin-top: 77px; /* match .repository .diff-detail-box */
+  }
+}
+
+/* TODO: this can potentially be made "global" by removing the class prefix */
+.diff-file-box .ui.attached.header,
+.diff-file-box .ui.attached.table {
+  margin: 0; /* remove fomantic negative margins */;
+  width: initial; /* remove fomantic over 100% width */;
+  max-width: initial; /* remove fomantic over 100% width */;
+}
+
 .repository .diff-stats {
   clear: both;
   margin-bottom: 5px;
-  max-height: 400px;
+  max-height: 200px;
+  height: fit-content;
   overflow: auto;
   padding-left: 0;
 }
@@ -1893,187 +1916,14 @@
   border-radius: var(--border-radius) 0 0 var(--border-radius);
 }
 
-.repository.quickstart .guide .ui.action.small.input {
-  width: 100%;
-}
-
 .repository.quickstart .guide #repo-clone-url {
   border-radius: 0;
   padding: 5px 10px;
   font-size: 1.2em;
   line-height: 1.4;
+  flex: 1
 }
 
-.repository.release #release-list {
-  border-top: 1px solid var(--color-secondary);
-  margin-top: 20px;
-  padding-top: 15px;
-  padding-left: 0;
-}
-
-.repository.release #release-list .release-list-title {
-  font-size: 2rem;
-  font-weight: normal;
-  margin-top: -4px;
-  margin-bottom: 0;
-}
-
-.repository.release #release-list > li {
-  list-style: none;
-}
-
-.repository.release #release-list > li .meta,
-.repository.release #release-list > li .detail {
-  padding-top: 30px;
-  padding-bottom: 40px;
-}
-
-.repository.release #release-list > li .meta {
-  text-align: right;
-  position: relative;
-}
-
-.repository.release #release-list > li .meta .label {
-  margin-right: 0;
-}
-
-.repository.release #release-list > li .meta .commit {
-  display: block;
-  margin-top: 10px;
-}
-
-.repository.release #release-list > li .meta .choose {
-  margin-top: 15px;
-}
-
-.repository.release #release-list > li .meta .choose .button {
-  margin-right: 0;
-}
-
-.repository.release #release-list > li .detail {
-  border-left: 2px solid var(--color-secondary);
-}
-
-.repository.release #release-list > li .detail .author img {
-  margin-bottom: 3px;
-}
-
-.repository.release #release-list > li .detail .download > a .svg {
-  margin-left: 5px;
-  margin-right: 5px;
-}
-
-.repository.release #release-list > li .detail .download .list {
-  padding-left: 0;
-}
-
-.repository.release #release-list > li .detail .download .list li {
-  list-style: none;
-  display: block;
-  padding: 8px;
-  border: 1px solid var(--color-secondary);
-  background: var(--color-light);
-}
-
-.repository.release #release-list > li .detail .download .list li a > .text.right {
-  margin-right: 5px;
-}
-
-.repository.release #release-list > li .detail .download .list li + li {
-  border-top: 0;
-}
-
-.repository.release #release-list > li .detail .download .list li:first-of-type {
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
-}
-
-.repository.release #release-list > li .detail .download .list li:last-of-type {
-  border-radius: 0 var(--border-radius) var(--border-radius) 0;
-}
-
-.repository.release #release-list > li .detail .dot {
-  width: 10px;
-  height: 10px;
-  background-color: var(--color-secondary-dark-3);
-  z-index: 9;
-  position: absolute;
-  display: block;
-  left: -6px;
-  top: 40px;
-  border-radius: 100%;
-  border: 2.5px solid var(--color-body);
-}
-
-.repository.release #tags-table .tag {
-  padding: 8px 12px;
-}
-
-.repository.release #tags-table .release-tag-name {
-  font-size: 18px;
-  font-weight: normal;
-}
-
-.repository.new.release .target {
-  min-width: 500px;
-}
-
-.repository.new.release .target #tag-name {
-  margin-top: -4px;
-}
-
-.repository.new.release .target .at {
-  margin-left: -5px;
-  margin-right: 5px;
-}
-
-.repository.new.release .target .selection.dropdown {
-  padding-top: 10px;
-  padding-bottom: 10px;
-}
-
-.repository.new.release .prerelease.field {
-  margin-bottom: 0;
-}
-
-@media (max-width: 438px) {
-  .repository.new.release .field button,
-  .repository.new.release .field input {
-    width: 100%;
-  }
-}
-
-@media (max-width: 767px) {
-  .repository.new.release .field button {
-    margin-bottom: 1em;
-  }
-}
-
-.repository.new.release .field .wrap_remove {
-  height: 38px;
-}
-
-.repository.new.release .field .attachment_edit {
-  width: 450px !important;
-}
-
-.repository.forks .list {
-  margin-top: 0;
-}
-
-.repository.forks .list .item {
-  padding-top: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--color-secondary);
-}
-
-.repository.forks .list .item .ui.avatar {
-  float: left;
-  margin-right: 5px;
-}
-
-.repository.forks .list .item .link {
-  padding-top: 5px;
-}
 
 .repository.packages .empty {
   padding-top: 70px;
@@ -2101,21 +1951,22 @@
   margin-bottom: 15px;
 }
 
-.repository.wiki.view > .markup {
-  padding: 15px 30px;
+.file-view.markup {
+  padding: 1em 2em;
 }
 
-.repository.wiki.view > .markup h1:first-of-type,
-.repository.wiki.view > .markup h2:first-of-type,
-.repository.wiki.view > .markup h3:first-of-type,
-.repository.wiki.view > .markup h4:first-of-type,
-.repository.wiki.view > .markup h5:first-of-type,
-.repository.wiki.view > .markup h6:first-of-type {
-  margin-top: 0;
+.wiki-content-main {
+  padding: 1em 2em !important;
+  margin-left: 1em !important;
 }
 
-.repository.wiki .form .CodeMirror-scroll {
-  max-height: 85vh;
+.wiki-pages-list .wiki-git-entry {
+  margin-left: 10px;
+  display: none;
+}
+
+.wiki-pages-list td:hover .wiki-git-entry {
+  display: inline-block;
 }
 
 @media (max-width: 767px) {
@@ -2162,35 +2013,10 @@
   margin-top: -3px;
 }
 
-.repository.settings.branches .protected-branches .selection.dropdown {
-  width: 300px;
-}
-
-.repository.settings.branches .protected-branches .item {
-  border: 1px solid var(--color-secondary);
-  padding: 10px 15px;
-}
-
-.repository.settings.branches .protected-branches .item:not(:last-child) {
-  border-bottom: 0;
-}
-
-.repository.settings.branches .branch-protection .help {
-  margin-left: 26px;
-  padding-top: 0;
-}
-
-.repository.settings.branches .branch-protection .fields {
-  margin-left: 20px;
-  display: block;
-}
-
-.repository.settings.branches .branch-protection .whitelist {
-  margin-left: 26px;
-}
-
-.repository.settings.branches .branch-protection .whitelist .dropdown img {
-  display: inline-block;
+/* if the element is for a checkbox, then it should have a padding-left to align to the checkbox's text */
+.repository.settings.branches .branch-protection .ui.checkbox .help,
+.repository.settings.branches .branch-protection .checkbox-sub-item {
+  padding-left: 26px;
 }
 
 .repository.settings.webhook .events .column {
@@ -2569,10 +2395,6 @@
   margin: 6px 0;
 }
 
-#issue-actions {
-  margin-top: -1rem !important; /* counteract padding from Semantic */
-}
-
 .ui.menu .item > img:not(.ui) {
   width: auto;
 }
@@ -2594,7 +2416,7 @@
 
 .settings.webhooks .list > .item:not(:first-child),
 .settings.githooks .list > .item:not(:first-child),
-.settings.runners .list > .item:not(:first-child) {
+.settings.actions .list > .item:not(:first-child) {
   padding: 0.25rem 1rem;
   margin: 12px -1rem -1rem;
 }
@@ -2652,7 +2474,8 @@
   filter: drop-shadow(-3px 0 0 var(--color-primary-alpha-30)) !important;
 }
 
-.code-comment:target {
+.code-comment:target,
+.diff-file-box:target {
   border-color: var(--color-primary) !important;
   border-radius: var(--border-radius) !important;
   box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
@@ -2741,11 +2564,10 @@
   width: 100% !important;
   max-width: 100% !important;
   margin: 0 !important;
-  padding: 0 !important;
+  padding: 1em;
 }
 
 .comment-body .markup {
-  padding: 1em;
   border-radius: 0 0 var(--border-radius) var(--border-radius); /* don't render outside box */
 }
 
@@ -3226,15 +3048,26 @@ td.blob-excerpt {
 }
 
 #diff-file-tree {
-  width: 20%;
+  flex: 0 0 20%;
   max-width: 380px;
   line-height: inherit;
   position: sticky;
   padding-top: 0;
   top: 47px;
-  max-height: calc(100vh - 50px);
+  max-height: calc(100vh - 47px);
   height: 100%;
   overflow-y: auto;
+}
+
+.diff-toggle-file-tree-button {
+  background: none;
+  border: none;
+  user-select: none;
+  color: inherit;
+}
+
+.diff-toggle-file-tree-button:hover {
+  color: var(--color-primary);
 }
 
 @media (max-width: 991px) {
@@ -3258,14 +3091,15 @@ td.blob-excerpt {
   display: none;
 }
 
-.wiki-content-toc > ul > li {
-  margin-bottom: 4px;
-}
-
 .wiki-content-toc ul {
   margin: 0;
   list-style: none;
-  padding-left: 1em;
+  padding: 5px 0 5px 1em;
+}
+
+.wiki-content-toc ul ul {
+  border-left:  1px var(--color-secondary);
+  border-left-style: dashed;
 }
 
 /* fomantic's last-child selector does not work with hidden last child */
@@ -3451,18 +3285,6 @@ td.blob-excerpt {
   .repository.file.list #repo-files-table .entry span.commit-summary,
   .repository.file.list #repo-files-table .commit-list span.commit-summary {
     display: none !important;
-  }
-  .issue-list-headers.ui[class].grid > div:nth-child(1) {
-    order: 1;
-    width: 50%;
-  }
-  .issue-list-headers.ui[class].grid > div:nth-child(2) {
-    order: 3;
-    width: 100%;
-  }
-  .issue-list-headers.ui[class].grid > div.column:not(.row):nth-child(3) {
-    order: 2;
-    width: 50%;
   }
   .repository.view.issue .comment-list .timeline,
   .repository.view.issue .comment-list .timeline-item {
