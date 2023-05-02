@@ -131,11 +131,6 @@ func timeSinceUnix(then, now time.Time, lang translation.Locale) template.HTML {
 }
 
 // TimeSince renders relative time HTML given a time.Time
-func Int64TimeSince(then int64, lang translation.Locale) template.HTML {
-	return timeSinceUnix(time.Unix(0, then), time.Now(), lang)
-}
-
-// TimeSince renders relative time HTML given a time.Time
 func TimeSince(then time.Time, lang translation.Locale) template.HTML {
 	return timeSinceUnix(then, time.Now(), lang)
 }

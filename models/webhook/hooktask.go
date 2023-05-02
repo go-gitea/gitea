@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	gouuid "github.com/google/uuid"
@@ -47,7 +48,7 @@ type HookTask struct {
 	PayloadContent string `xorm:"LONGTEXT"`
 	EventType      webhook_module.HookEventType
 	IsDelivered    bool
-	Delivered      int64
+	Delivered      timeutil.TimeStampNano
 
 	// History info.
 	IsSucceed       bool
@@ -120,7 +121,7 @@ func CreateHookTask(ctx context.Context, t *HookTask) (*HookTask, error) {
 		}
 		t.PayloadContent = string(data)
 	}
-	t.Delivered = time.Now().UnixNano()
+	t.Delivered = timeutil.TimeStampNanoNow()
 	return t, db.Insert(ctx, t)
 }
 

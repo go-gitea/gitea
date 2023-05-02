@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
@@ -234,7 +235,7 @@ func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
 		HookID:      3,
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
-		Delivered:   time.Now().UnixNano(),
+		Delivered:   timeutil.TimeStampNanoNow(),
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
@@ -267,7 +268,7 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
 		HookID:      4,
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
-		Delivered:   time.Now().UnixNano(),
+		Delivered:   timeutil.TimeStampNanoNow(),
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
@@ -284,7 +285,7 @@ func TestCleanupHookTaskTable_OlderThan_DeletesDelivered(t *testing.T) {
 		HookID:      3,
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
-		Delivered:   time.Now().AddDate(0, 0, -8).UnixNano(),
+		Delivered:   timeutil.TimeStampNano(time.Now().AddDate(0, 0, -8).UnixNano()),
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
@@ -317,7 +318,7 @@ func TestCleanupHookTaskTable_OlderThan_LeavesTaskEarlierThanAgeToDelete(t *test
 		HookID:      4,
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
-		Delivered:   time.Now().AddDate(0, 0, -6).UnixNano(),
+		Delivered:   timeutil.TimeStampNano(time.Now().AddDate(0, 0, -6).UnixNano()),
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
