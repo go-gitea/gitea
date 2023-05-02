@@ -54,7 +54,7 @@ async function initRepoWikiFormEditor() {
     easyMDEOptions: {
       previewRender: (_content, previewTarget) => previewTarget.innerHTML, // disable builtin preview render
       toolbar: ['bold', 'italic', 'strikethrough', '|',
-        'heading-1', 'heading-2', 'heading-3', '|',
+        'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
         'gitea-code-inline', 'code', 'quote', '|', 'gitea-checkbox-empty', 'gitea-checkbox-checked', '|',
         'unordered-list', 'ordered-list', '|',
         'link', 'image', 'table', 'horizontal-rule', '|',

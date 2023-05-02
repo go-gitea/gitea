@@ -207,10 +207,10 @@ class ComboMarkdownEditor {
 
   prepareEasyMDEToolbarActions() {
     this.easyMDEToolbarDefault = [
-      'bold', 'italic', 'strikethrough', '|', 'heading-1', 'heading-2', 'heading-3', '|',
-      'code', 'quote', '|', 'gitea-checkbox-empty', 'gitea-checkbox-checked', '|',
-      'unordered-list', 'ordered-list', '|', 'link', 'image', 'table', 'horizontal-rule', '|',
-      'gitea-switch-to-textarea',
+      'bold', 'italic', 'strikethrough', '|', 'heading-1', 'heading-2', 'heading-3',
+      'heading-bigger', 'heading-smaller', '|', 'code', 'quote', '|', 'gitea-checkbox-empty',
+      'gitea-checkbox-checked', '|', 'unordered-list', 'ordered-list', '|', 'link', 'image',
+      'table', 'horizontal-rule', '|', 'gitea-switch-to-textarea',
     ];
   }
 

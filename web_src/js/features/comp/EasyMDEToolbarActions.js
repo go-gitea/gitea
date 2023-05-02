@@ -18,6 +18,16 @@ export function easyMDEToolbarActions(EasyMDE, editor) {
       icon: svg('octicon-heading'),
       title: 'Heading',
     },
+    'heading-smaller': {
+      action: EasyMDE.toggleHeadingSmaller,
+      icon: svg('octicon-heading'),
+      title: 'Decrease Heading',
+    },
+    'heading-bigger': {
+      action: EasyMDE.toggleHeadingBigger,
+      icon: svg('octicon-heading'),
+      title: 'Increase Heading',
+    },
     'bold': {
       action: EasyMDE.toggleBold,
       icon: svg('octicon-bold'),
