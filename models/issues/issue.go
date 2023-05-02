@@ -2516,14 +2516,14 @@ func (issue *Issue) IsPinned() bool {
 }
 
 // Pin pins a Issue
-func (issue *Issue) Pin() error {
+func (issue *Issue) Pin(ctx context.Context, user *user_model.User) error {
 	// If the Issue is already pinned, we don't need to pin it twice
 	if issue.IsPinned() {
 		return nil
 	}
 
 	var maxPin int
-	_, err := db.GetEngine(db.DefaultContext).SQL("SELECT MAX(pin_order) FROM issue WHERE repo_id = ? AND is_pull = ?", issue.RepoID, issue.IsPull).Get(&maxPin)
+	_, err := db.GetEngine(ctx).SQL("SELECT MAX(pin_order) FROM issue WHERE repo_id = ? AND is_pull = ?", issue.RepoID, issue.IsPull).Get(&maxPin)
 	if err != nil {
 		return err
 	}
@@ -2533,44 +2533,66 @@ func (issue *Issue) Pin() error {
 		return fmt.Errorf("You have reached the max number of pinned Issues")
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).Table("issue").
+	_, err = db.GetEngine(ctx).Table("issue").
 		Where("id = ?", issue.ID).
 		Update(map[string]interface{}{
 			"pin_order": maxPin + 1,
 		})
 
+	// Add the pin event to the history
+	opts := &CreateCommentOptions{
+		Type:  CommentTypePin,
+		Doer:  user,
+		Repo:  issue.Repo,
+		Issue: issue,
+	}
+	if _, err = CreateComment(ctx, opts); err != nil {
+		return err
+	}
+
 	return err
 }
 
 // UnpinIssue unpins a Issue
-func (issue *Issue) Unpin() error {
+func (issue *Issue) Unpin(ctx context.Context, user *user_model.User) error {
 	// If the Issue is not pinned, we don't need to unpin it
 	if !issue.IsPinned() {
 		return nil
 	}
 
 	// This sets the Pin for all Issues that come after the unpined Issue to the correct value
-	_, err := db.GetEngine(db.DefaultContext).Exec("UPDATE issue SET pin_order = pin_order - 1 WHERE repo_id = ? AND is_pull = ? AND pin_order > ?", issue.RepoID, issue.IsPull, issue.PinOrder)
+	_, err := db.GetEngine(ctx).Exec("UPDATE issue SET pin_order = pin_order - 1 WHERE repo_id = ? AND is_pull = ? AND pin_order > ?", issue.RepoID, issue.IsPull, issue.PinOrder)
 	if err != nil {
 		return err
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).Table("issue").
+	_, err = db.GetEngine(ctx).Table("issue").
 		Where("id = ?", issue.ID).
 		Update(map[string]interface{}{
 			"pin_order": 0,
 		})
 
+	// Add the unpin event to the history
+	opts := &CreateCommentOptions{
+		Type:  CommentTypeUnpin,
+		Doer:  user,
+		Repo:  issue.Repo,
+		Issue: issue,
+	}
+	if _, err = CreateComment(ctx, opts); err != nil {
+		return err
+	}
+
 	return err
 }
 
 // PinOrUnpin pins or unpins a Issue
-func (issue *Issue) PinOrUnpin() error {
+func (issue *Issue) PinOrUnpin(ctx context.Context, user *user_model.User) error {
 	if !issue.IsPinned() {
-		return issue.Pin()
+		return issue.Pin(ctx, user)
 	}
 
-	return issue.Unpin()
+	return issue.Unpin(ctx, user)
 }
 
 // MovePin moves a Pinned Issue to a new Position

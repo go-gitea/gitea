@@ -51,7 +51,7 @@ func PinIssue(ctx *context.APIContext) {
 		return
 	}
 
-	err = issue.Pin()
+	err = issue.Pin(ctx, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "PinIssue", err)
 	}
@@ -98,7 +98,7 @@ func UnpinIssue(ctx *context.APIContext) {
 		return
 	}
 
-	err = issue.Unpin()
+	err = issue.Unpin(ctx, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UnpinIssue", err)
 	}

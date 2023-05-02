@@ -14,7 +14,7 @@ import (
 // IssuePinOrUnpin pin or unpin a Issue
 func IssuePinOrUnpin(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	err := issue.PinOrUnpin()
+	err := issue.PinOrUnpin(ctx, ctx.ContextUser)
 	if err != nil {
 		ctx.ServerError("PinOrUnpinIssue", err)
 		return
@@ -30,7 +30,7 @@ func IssueUnpin(ctx *context.Context) {
 		ctx.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	err = issue.Unpin()
+	err = issue.Unpin(ctx, ctx.ContextUser)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err.Error())
 	}
