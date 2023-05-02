@@ -593,7 +593,7 @@
 
 .repository.view.issue .issue-title-header {
   width: 100%;
-  padding: 1rem 1rem .5rem !important;
+  padding-bottom: 4px;
 }
 
 .repository.view.issue .issue-title-buttons,
@@ -605,9 +605,6 @@
   .repository.view.issue .issue-title {
     flex-direction: column;
   }
-  .repository.view.issue .issue-title-header {
-    padding: 1rem 0 !important;
-  }
   .repository.view.issue .edit-buttons {
     margin-top: .5rem;
   }
@@ -617,7 +614,7 @@
   display: flex;
   align-items: center;
   flex: 1;
-  margin-bottom: 1rem;
+  margin-bottom: 8px;
 }
 
 .repository.view.issue .issue-title h1 {
@@ -626,10 +623,11 @@
   flex: 1;
   width: 100%;
   font-weight: 300;
-  font-size: 2.3rem;
+  font-size: 32px;
+  line-height: 40px;
   margin: 0;
   padding-right: 0.25rem;
-  min-height: 43px; /* avoid layout shift on edit */
+  min-height: 41px; /* avoid layout shift on edit */
 }
 
 .repository.view.issue .issue-title h1 .ui.input {
@@ -651,6 +649,19 @@
 
 .repository.view.issue .issue-title .edit-zone {
   margin-top: 10px;
+}
+
+.issue-state-label {
+  display: inline-block !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 20px !important;
+  padding: 5px 12px !important;
+  border-radius : 6px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  margin-left: 0 !important;
+  margin-right: 4px !important;
 }
 
 .repository.view.issue .pull-desc code {

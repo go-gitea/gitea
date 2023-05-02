@@ -23,17 +23,17 @@
 		{{end}}
 	</div>
 	{{if .HasMerged}}
-		<div class="ui purple large label">{{svg "octicon-git-merge" 16}} {{if eq .Issue.PullRequest.Status 3}}{{.locale.Tr "repo.pulls.manually_merged"}}{{else}}{{.locale.Tr "repo.pulls.merged"}}{{end}}</div>
+		<div class="ui purple label issue-state-label">{{svg "octicon-git-merge" 16 "gt-mr-2"}} {{if eq .Issue.PullRequest.Status 3}}{{.locale.Tr "repo.pulls.manually_merged"}}{{else}}{{.locale.Tr "repo.pulls.merged"}}{{end}}</div>
 	{{else if .Issue.IsClosed}}
-		<div class="ui red large label">{{if .Issue.IsPull}}{{svg "octicon-git-pull-request"}}{{else}}{{svg "octicon-issue-closed"}}{{end}} {{.locale.Tr "repo.issues.closed_title"}}</div>
+		<div class="ui red label issue-state-label">{{if .Issue.IsPull}}{{svg "octicon-git-pull-request"}}{{else}}{{svg "octicon-issue-closed"}}{{end}} {{.locale.Tr "repo.issues.closed_title"}}</div>
 	{{else if .Issue.IsPull}}
 		{{if .IsPullWorkInProgress}}
-			<div class="ui grey large label">{{svg "octicon-git-pull-request-draft"}} {{.locale.Tr "repo.issues.draft_title"}}</div>
+			<div class="ui grey label issue-state-label">{{svg "octicon-git-pull-request-draft"}} {{.locale.Tr "repo.issues.draft_title"}}</div>
 		{{else}}
-			<div class="ui green large label">{{svg "octicon-git-pull-request"}} {{.locale.Tr "repo.issues.open_title"}}</div>
+			<div class="ui green label issue-state-label">{{svg "octicon-git-pull-request"}} {{.locale.Tr "repo.issues.open_title"}}</div>
 		{{end}}
 	{{else}}
-		<div class="ui green large label">{{svg "octicon-issue-opened"}} {{.locale.Tr "repo.issues.open_title"}}</div>
+		<div class="ui green label issue-state-label">{{svg "octicon-issue-opened"}} {{.locale.Tr "repo.issues.open_title"}}</div>
 	{{end}}
 
 	{{if .Issue.IsPull}}
