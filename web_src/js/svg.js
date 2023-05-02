@@ -13,11 +13,13 @@ import octiconChevronLeft from '../../public/img/svg/octicon-chevron-left.svg';
 import octiconChevronRight from '../../public/img/svg/octicon-chevron-right.svg';
 import octiconClock from '../../public/img/svg/octicon-clock.svg';
 import octiconCode from '../../public/img/svg/octicon-code.svg';
+import octiconColumns from '../../public/img/svg/octicon-columns.svg';
 import octiconCopy from '../../public/img/svg/octicon-copy.svg';
 import octiconDiffAdded from '../../public/img/svg/octicon-diff-added.svg';
 import octiconDiffModified from '../../public/img/svg/octicon-diff-modified.svg';
 import octiconDiffRemoved from '../../public/img/svg/octicon-diff-removed.svg';
 import octiconDiffRenamed from '../../public/img/svg/octicon-diff-renamed.svg';
+import octiconEye from '../../public/img/svg/octicon-eye.svg';
 import octiconFile from '../../public/img/svg/octicon-file.svg';
 import octiconFileDirectoryFill from '../../public/img/svg/octicon-file-directory-fill.svg';
 import octiconFilter from '../../public/img/svg/octicon-filter.svg';
@@ -47,6 +49,7 @@ import octiconRepo from '../../public/img/svg/octicon-repo.svg';
 import octiconRepoForked from '../../public/img/svg/octicon-repo-forked.svg';
 import octiconRepoTemplate from '../../public/img/svg/octicon-repo-template.svg';
 import octiconRss from '../../public/img/svg/octicon-rss.svg';
+import octiconScreenFull from '../../public/img/svg/octicon-screen-full.svg';
 import octiconSearch from '../../public/img/svg/octicon-search.svg';
 import octiconSidebarCollapse from '../../public/img/svg/octicon-sidebar-collapse.svg';
 import octiconSidebarExpand from '../../public/img/svg/octicon-sidebar-expand.svg';
@@ -75,11 +78,13 @@ const svgs = {
   'octicon-chevron-right': octiconChevronRight,
   'octicon-clock': octiconClock,
   'octicon-code': octiconCode,
+  'octicon-columns': octiconColumns,
   'octicon-copy': octiconCopy,
   'octicon-diff-added': octiconDiffAdded,
   'octicon-diff-modified': octiconDiffModified,
   'octicon-diff-removed': octiconDiffRemoved,
   'octicon-diff-renamed': octiconDiffRenamed,
+  'octicon-eye': octiconEye,
   'octicon-file': octiconFile,
   'octicon-file-directory-fill': octiconFileDirectoryFill,
   'octicon-filter': octiconFilter,
@@ -109,6 +114,7 @@ const svgs = {
   'octicon-repo-forked': octiconRepoForked,
   'octicon-repo-template': octiconRepoTemplate,
   'octicon-rss': octiconRss,
+  'octicon-screen-full': octiconScreenFull,
   'octicon-search': octiconSearch,
   'octicon-sidebar-collapse': octiconSidebarCollapse,
   'octicon-sidebar-expand': octiconSidebarExpand,

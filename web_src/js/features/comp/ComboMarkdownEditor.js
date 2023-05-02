@@ -203,7 +203,7 @@ class ComboMarkdownEditor {
     });
   }
 
-  prepareEasyMDEToolbarActions(EasyMDE) {
+  prepareEasyMDEToolbarActions(EasyMDE, isWiki) {
     this.easyMDEToolbarDefault = [
       {
         name: 'heading',
@@ -236,6 +236,7 @@ class ComboMarkdownEditor {
         icon: svg('octicon-quote'),
         title: 'Quote',
       },
+      isWiki && 'gitea-code-inline',
       {
         name: 'code',
         action: EasyMDE.toggleCodeBlock,
@@ -283,9 +284,28 @@ class ComboMarkdownEditor {
         icon: svg('octicon-horizontal-rule'),
         title: 'Horizontal Rule',
       },
+      isWiki && '|',
+      isWiki && {
+        name: 'preview',
+        action: EasyMDE.togglePreview,
+        icon: svg('octicon-eye'),
+        title: 'Preview',
+      },
+      isWiki && {
+        name: 'fullscreen',
+        action: EasyMDE.toggleFullScreen,
+        icon: svg('octicon-screen-full'),
+        title: 'Fullscreen',
+      },
+      isWiki && {
+        name: 'side-by-side',
+        action: EasyMDE.toggleSideBySide,
+        icon: svg('octicon-columns'),
+        title: 'Side by Side',
+      },
       '|',
       'gitea-switch-to-textarea',
-    ];
+    ].filter(Boolean);
 
     this.easyMDEToolbarActions = {
       'gitea-checkbox-empty': {
@@ -357,7 +377,7 @@ class ComboMarkdownEditor {
     // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can not overwrite the default styles.
     const {default: EasyMDE} = await import(/* webpackChunkName: "easymde" */'easymde');
 
-    this.prepareEasyMDEToolbarActions(EasyMDE);
+    this.prepareEasyMDEToolbarActions(EasyMDE, this.options.easyMDEOptions.isWiki);
 
     const easyMDEOpt = {
       autoDownloadFontAwesome: false,
