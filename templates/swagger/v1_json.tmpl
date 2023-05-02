@@ -18587,6 +18587,13 @@
         "repository": {
           "$ref": "#/definitions/RepositoryMeta"
         },
+        "requested_reviewers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/User"
+          },
+          "x-go-name": "RequestedReviewers"
+        },
         "state": {
           "$ref": "#/definitions/StateType"
         },
@@ -19821,6 +19828,13 @@
         "patch_url": {
           "type": "string",
           "x-go-name": "PatchURL"
+        },
+        "requested_reviewers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/User"
+          },
+          "x-go-name": "RequestedReviewers"
         },
         "state": {
           "$ref": "#/definitions/StateType"
