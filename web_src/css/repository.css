@@ -2600,39 +2600,6 @@
   height: 15px;
 }
 
-#avatar-arrow::before,
-#avatar-arrow::after {
-  right: 100%;
-  top: 20px;
-  border: solid transparent;
-  content: " ";
-  height: 0;
-  width: 0;
-  position: absolute;
-  pointer-events: none;
-}
-
-#avatar-arrow::before {
-  border-right-color: var(--color-secondary);
-  border-width: 9px;
-  margin-top: -9px;
-}
-
-#avatar-arrow::after {
-  border-right-color: var(--color-box-header);
-  border-width: 8px;
-  margin-top: -8px;
-}
-
-#transfer-repo-modal .ui.message,
-#delete-repo-modal .ui.message,
-#delete-wiki-modal .ui.message,
-#convert-fork-repo-modal .ui.message,
-#convert-mirror-repo-modal .ui.message,
-#fork-repo-modal .ui.message {
-  width: 100% !important;
-}
-
 .tab-size-1 {
   tab-size: 1 !important;
   -moz-tab-size: 1 !important;
