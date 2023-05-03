@@ -98,7 +98,7 @@ jobs:
         run: make checks-frontend
       - name: test frontend
         run: make test-frontend
-  multi_arch_test:
+  backend:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
