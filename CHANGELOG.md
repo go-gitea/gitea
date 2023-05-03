@@ -12,6 +12,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Enable whitespace rendering on selection in Monaco (#24444) (#24485)
   * Improve milestone filter on issues page (#22423) (#24440)
 * BUGFIXES
+  * Fix api error message if fork exists (#24487) (#24493)
   * Fix user-cards format (#24428) (#24431)
   * Fix incorrect CurrentUser check for docker rootless (#24435)
   * Getting the tag list does not require being signed in (#24413) (#24416)
