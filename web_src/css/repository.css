@@ -597,6 +597,11 @@
   margin-bottom: 1rem;
 }
 
+.issue-title-meta {
+  display: flex;
+  align-items: center;
+}
+
 .repository.view.issue .issue-title-buttons,
 .repository.view.issue .edit-buttons {
   display: flex;
@@ -652,16 +657,17 @@
 }
 
 .issue-state-label {
-  display: inline-block !important;
   font-size: 14px !important;
-  font-weight: 500 !important;
-  line-height: 20px !important;
-  padding: 5px 12px !important;
+  padding: 5px 10px !important;
   border-radius : 6px !important;
-  text-align: center !important;
-  white-space: nowrap !important;
   margin-left: 0 !important;
-  margin-right: 4px !important;
+  margin-right: 8px !important;
+  display: inline-flex !important;
+  vertical-align: middle !important;
+}
+
+.issue-state-label .svg {
+  margin-right: 4px;
 }
 
 .repository.view.issue .pull-desc code {
