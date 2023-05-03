@@ -5,11 +5,11 @@ import {attachTribute} from '../tribute.js';
 import {hideElem, showElem, autosize} from '../../utils/dom.js';
 import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
-import {emojiKeys, emojiString} from '../emoji.js';
+import {emojiString} from '../emoji.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
+import {matchEmoji, matchMention} from '../../utils/match.js';
 
 let elementIdCounter = 0;
-const maxExpanderMatches = 6;
 
 /**
  * validate if the given textarea is non-empty.
@@ -106,13 +106,7 @@ class ComboMarkdownEditor {
     const expander = this.container.querySelector('text-expander');
     expander?.addEventListener('text-expander-change', ({detail: {key, provide, text}}) => {
       if (key === ':') {
-        const matches = [];
-        for (const name of emojiKeys) {
-          if (name.includes(text)) {
-            matches.push(name);
-            if (matches.length >= maxExpanderMatches) break;
-          }
-        }
+        const matches = matchEmoji(text);
         if (!matches.length) return provide({matched: false});
 
         const ul = document.createElement('ul');
@@ -128,13 +122,7 @@ class ComboMarkdownEditor {
 
         provide({matched: true, fragment: ul});
       } else if (key === '@') {
-        const matches = [];
-        for (const obj of window.config.tributeValues) {
-          if (obj.key.includes(text)) {
-            matches.push(obj);
-            if (matches.length >= maxExpanderMatches) break;
-          }
-        }
+        const matches = matchMention(text);
         if (!matches.length) return provide({matched: false});
 
         const ul = document.createElement('ul');

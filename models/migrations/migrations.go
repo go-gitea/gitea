@@ -485,6 +485,8 @@ var migrations = []Migration{
 	NewMigration("Fix incorrect admin team unit access mode", v1_20.FixIncorrectAdminTeamUnitAccessMode),
 	// v253 -> v254
 	NewMigration("Fix ExternalTracker and ExternalWiki accessMode in owner and admin team", v1_20.FixExternalTrackerAndExternalWikiAccessModeInOwnerAndAdminTeam),
+	// v254 -> v255
+	NewMigration("Add ActionTaskOutput table", v1_20.AddActionTaskOutputTable),
 	// to modify later
 	NewMigration("Add size limit on repository", v1_20.AddSizeLimitOnRepo),
 }

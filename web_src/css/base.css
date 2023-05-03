@@ -3,6 +3,10 @@
   --fonts-proportional: -apple-system, "Segoe UI", system-ui, "Roboto", "Helvetica Neue", "Arial";
   --fonts-monospace: "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
   --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
+  /* "font-weight: bold" starts from 700, some fonts do not provide "bolding" for weight 600. */
+  /* But some users consider "700" is too heavy, so use 601, which is when Segoe UI on Linux */
+  /* starts bolding. */
+  --font-weight-bold: 601;
   /* backgrounds */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
@@ -211,7 +215,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
 }
 
 body {
@@ -860,6 +864,9 @@ a.label,
   margin-top: -0.25rem;
   margin-bottom: -0.25rem;
 }
+.ui.dropdown .menu > .item > svg {
+  margin-right: .78rem; /* use the same margin as for <img> */
+}
 
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
@@ -1137,32 +1144,6 @@ a.ui.card:hover {
 
 .ui.table > thead > tr > th {
   background: var(--color-box-header);
-  color: var(--color-text);
-}
-
-.ui.modal {
-  background: var(--color-body);
-}
-
-.ui.modal > .header {
-  color: var(--color-text-dark);
-  background: var(--color-secondary-bg);
-  border-color: var(--color-secondary);
-  border-top-left-radius: var(--border-radius);
-  border-top-right-radius: var(--border-radius);
-}
-
-.ui.modal > .content {
-  background: var(--color-body);
-  text-align: left !important;
-}
-
-.ui.modal > .actions {
-  background: var(--color-secondary-bg);
-  border-color: var(--color-secondary);
-}
-
-.ui.modal > .close.inside {
   color: var(--color-text);
 }
 
@@ -1776,7 +1757,7 @@ img.ui.avatar,
 }
 
 .scrolling.menu .item.selected {
-  font-weight: 600 !important;
+  font-weight: var(--font-weight-bold) !important;
 }
 
 .ui.dropdown .scrolling.menu {
@@ -1803,47 +1784,6 @@ img.ui.avatar,
 .attention-warning {
   font-weight: unset;
   color: var(--color-warning-text);
-}
-
-footer {
-  background-color: var(--color-footer);
-  border-top: 1px solid var(--color-secondary);
-  width: 100%;
-  flex-basis: 40px;
-  color: var(--color-text-light);
-}
-
-footer .container {
-  width: 100vw !important;
-  padding: 0 0.5rem;
-  max-width: calc(100vw - 1rem) !important;
-}
-
-footer .container .links > * {
-  border-left: 1px solid var(--color-secondary-dark-1);
-  padding-left: 8px;
-  margin-left: 5px;
-}
-
-footer .container .links > *:first-child {
-  border-left: 0;
-}
-
-footer .ui.language .menu {
-  height: 500px;
-  max-height: calc(100vh - 60px);
-  overflow-y: auto;
-  margin-bottom: 7px;
-}
-
-footer .ui.language .svg {
-  margin-right: 0.15em;
-  margin-top: 1px;
-}
-
-footer .ui.left,
-footer .ui.right {
-  line-height: 39px; /* there  is a border-top on the footer, so make the line-height 1px less */
 }
 
 .center:not(.popup) {
@@ -2368,7 +2308,7 @@ a.ui.label:hover {
 }
 
 .ui.primary.label,
-.ui.primary.labels .label, 
+.ui.primary.labels .label,
 .ui.ui.ui.primary.label {
   background-color: var(--color-primary);
   border-color: var(--color-primary-dark-2);
@@ -2379,6 +2319,13 @@ a.ui.label:hover {
   background: transparent;
   border-color: var(--color-primary);
   color: var(--color-primary);
+}
+
+.ui.basic.labels a.primary.label:hover,
+a.ui.ui.ui.basic.primary.label:hover {
+  background: var(--color-hover);
+  border-color: var(--color-primary-dark-1);
+  color: var(--color-primary-dark-1);
 }
 
 .ui.basic.labels .secondary.label,
@@ -2546,6 +2493,12 @@ a.ui.basic.label:hover {
   font-weight: normal;
 }
 
+/* reduce height of buttons with dropdown icon */
+.ui.attached.header .right .button:has(.dropdown.icon) {
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
 /* fix misaligned right buttons on box headers */
 .ui.attached.header .right:not(.dropdown) {
   position: absolute;
@@ -2628,6 +2581,11 @@ table th[data-sortt-desc] .svg {
 
 .ui.dropdown .menu .item:last-of-type {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.ui.dropdown .menu > .divider {
+  border-top: 1px solid var(--color-secondary);
+  margin: 4px 0;
 }
 
 .ui.multiple.dropdown > .label {
@@ -2787,7 +2745,7 @@ table th[data-sortt-desc] .svg {
 .ellipsis-button {
   padding: 0 5px 8px !important;
   display: inline-block !important;
-  font-weight: 600 !important;
+  font-weight: var(--font-weight-bold) !important;
   line-height: 6px !important;
   vertical-align: middle !important;
 }

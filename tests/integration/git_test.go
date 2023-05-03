@@ -807,7 +807,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 				return
 			}
 			assert.Equal(t, "user2/"+headBranch, pr1.HeadBranch)
-			assert.Equal(t, false, prMsg.HasMerged)
+			assert.False(t, prMsg.HasMerged)
 			assert.Contains(t, "Testing commit 1", prMsg.Body)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
@@ -829,7 +829,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 				return
 			}
 			assert.Equal(t, "user2/test/"+headBranch, pr2.HeadBranch)
-			assert.Equal(t, false, prMsg.HasMerged)
+			assert.False(t, prMsg.HasMerged)
 		})
 
 		if pr1 == nil || pr2 == nil {
@@ -873,7 +873,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			assert.Equal(t, false, prMsg.HasMerged)
+			assert.False(t, prMsg.HasMerged)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
 			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin").AddDynamicArguments("HEAD:refs/for/master/test/" + headBranch).RunStdString(&git.RunOpts{Dir: dstPath})
@@ -885,7 +885,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			assert.Equal(t, false, prMsg.HasMerged)
+			assert.False(t, prMsg.HasMerged)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 		})
 		t.Run("Merge", doAPIMergePullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index))
