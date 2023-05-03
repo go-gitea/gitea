@@ -6,8 +6,6 @@ jobs:
   # PostgreSQL Tests
   db_pgsql_test:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     services:
       pgsql:
         image: postgres:15
@@ -60,8 +58,6 @@ jobs:
   # SQLite Tests
   db_sqlite_test:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     steps:
       - name: checkout
         uses: actions/checkout@v3
@@ -89,8 +85,6 @@ jobs:
   # Unit Tests
   db_unit_tests:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     services:
       mysql:
         image: mysql:5.7
@@ -147,8 +141,6 @@ jobs:
   # MySQL Tests
   db_mysql_test:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     services:
       mysql:
         image: mysql:5.7
@@ -199,8 +191,6 @@ jobs:
   # MySQL8 Tests
   db_mysql8_test:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     services:
       mysql8:
         image: mysql:8
@@ -236,8 +226,6 @@ jobs:
   # MSSQL Tests
   db_mssql_test:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     services:
       mssql:
         image: mcr.microsoft.com/mssql/server:latest

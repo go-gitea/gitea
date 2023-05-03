@@ -5,8 +5,6 @@ on: [pull_request]
 jobs:
   lint_basic:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     steps:
       - name: checkout
         uses: actions/checkout@v3
@@ -24,8 +22,6 @@ jobs:
           TAGS: bindata sqlite sqlite_unlock_notify
   lint_windows:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     steps:
       - name: checkout
         uses: actions/checkout@v3
@@ -45,8 +41,6 @@ jobs:
           GOARCH: amd64
   lint_gogit:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     steps:
       - name: checkout
         uses: actions/checkout@v3
@@ -66,8 +60,6 @@ jobs:
         run: make --always-make checks-backend # ensure the 'go-licenses' make target runs
   check_backend:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     steps:
       - name: checkout
         uses: actions/checkout@v3
@@ -81,8 +73,6 @@ jobs:
         run: make --always-make checks-backend # ensure the 'go-licenses' make target runs
   frontend:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     steps:
       - name: checkout
         uses: actions/checkout@v3
@@ -94,14 +84,12 @@ jobs:
         run: make deps-frontend
       - name: lint frontend
         run: make lint-frontend
-      - name: checks frontend 
+      - name: checks frontend
         run: make checks-frontend
       - name: test frontend
         run: make test-frontend
   backend:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     steps:
       - name: checkout
         uses: actions/checkout@v3
