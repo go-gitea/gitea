@@ -6,7 +6,7 @@ import {hideElem, showElem, autosize} from '../../utils/dom.js';
 import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
-import {svg} from '../../svg.js';
+import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
 import {initTributeExpander} from './TributeExpander.js';
 
 let elementIdCounter = 0;
@@ -150,66 +150,20 @@ class ComboMarkdownEditor {
 
   prepareEasyMDEToolbarActions() {
     this.easyMDEToolbarDefault = [
-      'bold', 'italic', 'strikethrough', '|', 'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
-      'code', 'quote', '|', 'gitea-checkbox-empty', 'gitea-checkbox-checked', '|',
-      'unordered-list', 'ordered-list', '|', 'link', 'image', 'table', 'horizontal-rule', '|', 'clean-block', '|',
-      'gitea-switch-to-textarea',
+      'bold', 'italic', 'strikethrough', '|', 'heading-1', 'heading-2', 'heading-3',
+      'heading-bigger', 'heading-smaller', '|', 'code', 'quote', '|', 'gitea-checkbox-empty',
+      'gitea-checkbox-checked', '|', 'unordered-list', 'ordered-list', '|', 'link', 'image',
+      'table', 'horizontal-rule', '|', 'gitea-switch-to-textarea',
     ];
-
-    this.easyMDEToolbarActions = {
-      'gitea-checkbox-empty': {
-        action(e) {
-          const cm = e.codemirror;
-          cm.replaceSelection(`\n- [ ] ${cm.getSelection()}`);
-          cm.focus();
-        },
-        icon: svg('gitea-empty-checkbox'),
-        title: 'Add Checkbox (empty)',
-      },
-      'gitea-checkbox-checked': {
-        action(e) {
-          const cm = e.codemirror;
-          cm.replaceSelection(`\n- [x] ${cm.getSelection()}`);
-          cm.focus();
-        },
-        icon: svg('octicon-checkbox'),
-        title: 'Add Checkbox (checked)',
-      },
-      'gitea-switch-to-textarea': {
-        action: () => {
-          this.userPreferredEditor = 'textarea';
-          this.switchToTextarea();
-        },
-        icon: svg('octicon-file'),
-        title: 'Revert to simple textarea',
-      },
-      'gitea-code-inline': {
-        action(e) {
-          const cm = e.codemirror;
-          const selection = cm.getSelection();
-          cm.replaceSelection(`\`${selection}\``);
-          if (!selection) {
-            const cursorPos = cm.getCursor();
-            cm.setCursor(cursorPos.line, cursorPos.ch - 1);
-          }
-          cm.focus();
-        },
-        icon: svg('octicon-chevron-right'),
-        title: 'Add Inline Code',
-      }
-    };
   }
 
-  parseEasyMDEToolbar(actions) {
+  parseEasyMDEToolbar(EasyMDE, actions) {
+    this.easyMDEToolbarActions = this.easyMDEToolbarActions || easyMDEToolbarActions(EasyMDE, this);
     const processed = [];
     for (const action of actions) {
-      if (action.startsWith('gitea-')) {
-        const giteaAction = this.easyMDEToolbarActions[action];
-        if (!giteaAction) throw new Error(`Unknown EasyMDE toolbar action ${action}`);
-        processed.push(giteaAction);
-      } else {
-        processed.push(action);
-      }
+      const actionButton = this.easyMDEToolbarActions[action];
+      if (!actionButton) throw new Error(`Unknown EasyMDE toolbar action ${action}`);
+      processed.push(actionButton);
     }
     return processed;
   }
@@ -247,7 +201,7 @@ class ComboMarkdownEditor {
       nativeSpellcheck: true,
       ...this.options.easyMDEOptions,
     };
-    easyMDEOpt.toolbar = this.parseEasyMDEToolbar(easyMDEOpt.toolbar ?? this.easyMDEToolbarDefault);
+    easyMDEOpt.toolbar = this.parseEasyMDEToolbar(EasyMDE, easyMDEOpt.toolbar ?? this.easyMDEToolbarDefault);
 
     this.easyMDE = new EasyMDE(easyMDEOpt);
     this.easyMDE.codemirror.on('change', (...args) => {this.options?.onContentChanged?.(this, ...args)});
