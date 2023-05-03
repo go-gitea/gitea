@@ -426,25 +426,25 @@ a.label,
 }
 
 .ui.red.button:hover,
-.ui.red.buttons .button:hover {
+.ui.red.buttons .button:hover,
+.ui.red.button:focus,
+.ui.red.buttons .button:focus {
   background: var(--color-red-dark-1);
 }
 
-.ui.red.button:focus,
-.ui.red.buttons .button:focus,
 .ui.red.button:active,
 .ui.red.buttons .button:active {
   background: var(--color-red-dark-2);
 }
 
 .ui.basic.red.buttons .button,
-.ui.basic.red.button {
+.ui.basic.red.button,
+.ui.basic.red.buttons .button:focus,
+.ui.basic.red.button:focus {
   color: var(--color-red);
   border-color: var(--color-red);
 }
 
-.ui.basic.red.buttons .button:focus,
-.ui.basic.red.button:focus,
 .ui.basic.red.buttons .button:active,
 .ui.basic.red.button:active {
   color: var(--color-red-dark-1);
@@ -459,12 +459,12 @@ a.label,
 }
 
 .ui.orange.button:hover,
-.ui.orange.buttons .button:hover {
+.ui.orange.buttons .button:hover,
+.ui.orange.button:focus,
+.ui.orange.buttons .button:focus {
   background: var(--color-orange-dark-1);
 }
 
-.ui.orange.button:focus,
-.ui.orange.buttons .button:focus,
 .ui.orange.button:active,
 .ui.orange.buttons .button:active {
   background: var(--color-orange-dark-2);
@@ -477,13 +477,13 @@ a.label,
 }
 
 .ui.basic.orange.buttons .button:hover,
-.ui.basic.orange.button:hover {
+.ui.basic.orange.button:hover,
+.ui.basic.orange.buttons .button:focus,
+.ui.basic.orange.button:focus {
   color: var(--color-orange-dark-1);
   border-color: var(--color-orange-dark-1);
 }
 
-.ui.basic.orange.buttons .button:focus,
-.ui.basic.orange.button:focus,
 .ui.basic.orange.buttons .button:active,
 .ui.basic.orange.button:active {
   color: var(--color-orange-dark-2);
@@ -498,12 +498,12 @@ a.label,
 }
 
 .ui.yellow.button:hover,
-.ui.yellow.buttons .button:hover {
+.ui.yellow.buttons .button:hover,
+.ui.yellow.button:focus,
+.ui.yellow.buttons .button:focus {
   background: var(--color-yellow-dark-1);
 }
 
-.ui.yellow.button:focus,
-.ui.yellow.buttons .button:focus,
 .ui.yellow.button:active,
 .ui.yellow.buttons .button:active {
   background: var(--color-yellow-dark-2);
@@ -516,13 +516,13 @@ a.label,
 }
 
 .ui.basic.yellow.buttons .button:hover,
-.ui.basic.yellow.button:hover {
+.ui.basic.yellow.button:hover,
+.ui.basic.yellow.buttons .button:focus,
+.ui.basic.yellow.button:focus {
   color: var(--color-yellow-dark-1);
   border-color: var(--color-yellow-dark-1);
 }
 
-.ui.basic.yellow.buttons .button:focus,
-.ui.basic.yellow.button:focus,
 .ui.basic.yellow.buttons .button:active,
 .ui.basic.yellow.button:active {
   color: var(--color-yellow-dark-2);
@@ -537,12 +537,12 @@ a.label,
 }
 
 .ui.olive.button:hover,
-.ui.olive.buttons .button:hover {
+.ui.olive.buttons .button:hover,
+.ui.olive.button:focus,
+.ui.olive.buttons .button:focus {
   background: var(--color-olive-dark-1);
 }
 
-.ui.olive.button:focus,
-.ui.olive.buttons .button:focus,
 .ui.olive.button:active,
 .ui.olive.buttons .button:active {
   background: var(--color-olive-dark-2);
@@ -555,13 +555,13 @@ a.label,
 }
 
 .ui.basic.olive.buttons .button:hover,
-.ui.basic.olive.button:hover {
+.ui.basic.olive.button:hover,
+.ui.basic.olive.buttons .button:focus,
+.ui.basic.olive.button:focus {
   color: var(--color-olive-dark-1);
   border-color: var(--color-olive-dark-1);
 }
 
-.ui.basic.olive.buttons .button:focus,
-.ui.basic.olive.button:focus,
 .ui.basic.olive.buttons .button:active,
 .ui.basic.olive.button:active {
   color: var(--color-olive-dark-2);
@@ -576,12 +576,12 @@ a.label,
 }
 
 .ui.green.button:hover,
-.ui.green.buttons .button:hover {
+.ui.green.buttons .button:hover,
+.ui.green.button:focus,
+.ui.green.buttons .button:focus {
   background: var(--color-green-dark-1);
 }
 
-.ui.green.button:focus,
-.ui.green.buttons .button:focus,
 .ui.green.button:active,
 .ui.green.buttons .button:active {
   background: var(--color-green-dark-2);
@@ -594,13 +594,13 @@ a.label,
 }
 
 .ui.basic.green.buttons .button:hover,
-.ui.basic.green.button:hover {
+.ui.basic.green.button:hover,
+.ui.basic.green.buttons .button:focus,
+.ui.basic.green.button:focus {
   color: var(--color-green-dark-1);
   border-color: var(--color-green-dark-1);
 }
 
-.ui.basic.green.buttons .button:focus,
-.ui.basic.green.button:focus,
 .ui.basic.green.buttons .button:active,
 .ui.basic.green.button:active {
   color: var(--color-green-dark-2);
@@ -615,12 +615,12 @@ a.label,
 }
 
 .ui.teal.button:hover,
-.ui.teal.buttons .button:hover {
+.ui.teal.buttons .button:hover,
+.ui.teal.button:focus,
+.ui.teal.buttons .button:focus {
   background: var(--color-teal-dark-1);
 }
 
-.ui.teal.button:focus,
-.ui.teal.buttons .button:focus,
 .ui.teal.button:active,
 .ui.teal.buttons .button:active {
   background: var(--color-teal-dark-2);
@@ -633,13 +633,13 @@ a.label,
 }
 
 .ui.basic.teal.buttons .button:hover,
-.ui.basic.teal.button:hover {
+.ui.basic.teal.button:hover,
+.ui.basic.teal.buttons .button:focus,
+.ui.basic.teal.button:focus {
   color: var(--color-teal-dark-1);
   border-color: var(--color-teal-dark-1);
 }
 
-.ui.basic.teal.buttons .button:focus,
-.ui.basic.teal.button:focus,
 .ui.basic.teal.buttons .button:active,
 .ui.basic.teal.button:active {
   color: var(--color-teal-dark-2);
@@ -654,12 +654,12 @@ a.label,
 }
 
 .ui.blue.button:hover,
-.ui.blue.buttons .button:hover {
+.ui.blue.buttons .button:hover,
+.ui.blue.button:focus,
+.ui.blue.buttons .button:focus {
   background: var(--color-blue-dark-1);
 }
 
-.ui.blue.button:focus,
-.ui.blue.buttons .button:focus,
 .ui.blue.button:active,
 .ui.blue.buttons .button:active {
   background: var(--color-blue-dark-2);
@@ -672,13 +672,13 @@ a.label,
 }
 
 .ui.basic.blue.buttons .button:hover,
-.ui.basic.blue.button:hover {
+.ui.basic.blue.button:hover,
+.ui.basic.blue.buttons .button:focus,
+.ui.basic.blue.button:focus {
   color: var(--color-blue-dark-1);
   border-color: var(--color-blue-dark-1);
 }
 
-.ui.basic.blue.buttons .button:focus,
-.ui.basic.blue.button:focus,
 .ui.basic.blue.buttons .button:active,
 .ui.basic.blue.button:active {
   color: var(--color-blue-dark-2);
@@ -693,12 +693,12 @@ a.label,
 }
 
 .ui.violet.button:hover,
-.ui.violet.buttons .button:hover {
+.ui.violet.buttons .button:hover,
+.ui.violet.button:focus,
+.ui.violet.buttons .button:focus {
   background: var(--color-violet-dark-1);
 }
 
-.ui.violet.button:focus,
-.ui.violet.buttons .button:focus,
 .ui.violet.button:active,
 .ui.violet.buttons .button:active {
   background: var(--color-violet-dark-2);
@@ -711,13 +711,13 @@ a.label,
 }
 
 .ui.basic.violet.buttons .button:hover,
-.ui.basic.violet.button:hover {
+.ui.basic.violet.button:hover,
+.ui.basic.violet.buttons .button:focus,
+.ui.basic.violet.button:focus {
   color: var(--color-violet-dark-1);
   border-color: var(--color-violet-dark-1);
 }
 
-.ui.basic.violet.buttons .button:focus,
-.ui.basic.violet.button:focus,
 .ui.basic.violet.buttons .button:active,
 .ui.basic.violet.button:active {
   color: var(--color-violet-dark-2);
@@ -732,12 +732,12 @@ a.label,
 }
 
 .ui.purple.button:hover,
-.ui.purple.buttons .button:hover {
+.ui.purple.buttons .button:hover,
+.ui.purple.button:focus,
+.ui.purple.buttons .button:focus {
   background: var(--color-purple-dark-1);
 }
 
-.ui.purple.button:focus,
-.ui.purple.buttons .button:focus,
 .ui.purple.button:active,
 .ui.purple.buttons .button:active {
   background: var(--color-purple-dark-2);
@@ -750,13 +750,13 @@ a.label,
 }
 
 .ui.basic.purple.buttons .button:hover,
-.ui.basic.purple.button:hover {
+.ui.basic.purple.button:hover,
+.ui.basic.purple.buttons .button:focus,
+.ui.basic.purple.button:focus {
   color: var(--color-purple-dark-1);
   border-color: var(--color-purple-dark-1);
 }
 
-.ui.basic.purple.buttons .button:focus,
-.ui.basic.purple.button:focus,
 .ui.basic.purple.buttons .button:active,
 .ui.basic.purple.button:active {
   color: var(--color-purple-dark-2);
@@ -771,12 +771,12 @@ a.label,
 }
 
 .ui.pink.button:hover,
-.ui.pink.buttons .button:hover {
+.ui.pink.buttons .button:hover,
+.ui.pink.button:focus,
+.ui.pink.buttons .button:focus {
   background: var(--color-pink-dark-1);
 }
 
-.ui.pink.button:focus,
-.ui.pink.buttons .button:focus,
 .ui.pink.button:active,
 .ui.pink.buttons .button:active {
   background: var(--color-pink-dark-2);
@@ -789,13 +789,13 @@ a.label,
 }
 
 .ui.basic.pink.buttons .button:hover,
-.ui.basic.pink.button:hover {
+.ui.basic.pink.button:hover,
+.ui.basic.pink.buttons .button:focus,
+.ui.basic.pink.button:focus {
   color: var(--color-pink-dark-1);
   border-color: var(--color-pink-dark-1);
 }
 
-.ui.basic.pink.buttons .button:focus,
-.ui.basic.pink.button:focus,
 .ui.basic.pink.buttons .button:active,
 .ui.basic.pink.button:active {
   color: var(--color-pink-dark-2);
@@ -810,12 +810,12 @@ a.label,
 }
 
 .ui.brown.button:hover,
-.ui.brown.buttons .button:hover {
+.ui.brown.buttons .button:hover,
+.ui.brown.button:focus,
+.ui.brown.buttons .button:focus {
   background: var(--color-brown-dark-1);
 }
 
-.ui.brown.button:focus,
-.ui.brown.buttons .button:focus,
 .ui.brown.button:active,
 .ui.brown.buttons .button:active {
   background: var(--color-brown-dark-2);
@@ -828,13 +828,13 @@ a.label,
 }
 
 .ui.basic.brown.buttons .button:hover,
-.ui.basic.brown.button:hover {
+.ui.basic.brown.button:hover,
+.ui.basic.brown.buttons .button:focus,
+.ui.basic.brown.button:focus {
   color: var(--color-brown-dark-1);
   border-color: var(--color-brown-dark-1);
 }
 
-.ui.basic.brown.buttons .button:focus,
-.ui.basic.brown.button:focus,
 .ui.basic.brown.buttons .button:active,
 .ui.basic.brown.button:active {
   color: var(--color-brown-dark-2);
@@ -849,12 +849,12 @@ a.label,
 }
 
 .ui.grey.button:hover,
-.ui.grey.buttons .button:hover {
+.ui.grey.buttons .button:hover,
+.ui.grey.button:focus,
+.ui.grey.buttons .button:focus {
   background: var(--color-grey-dark-1);
 }
 
-.ui.grey.button:focus,
-.ui.grey.buttons .button:focus,
 .ui.grey.button:active,
 .ui.grey.buttons .button:active {
   background: var(--color-grey-dark-2);
@@ -867,13 +867,13 @@ a.label,
 }
 
 .ui.basic.grey.buttons .button:hover,
+.ui.basic.grey.button:hover,
+.ui.basic.grey.buttons .button:hover,
 .ui.basic.grey.button:hover {
   color: var(--color-grey-dark-1);
   border-color: var(--color-grey-dark-1);
 }
 
-.ui.basic.grey.buttons .button:hover,
-.ui.basic.grey.button:hover,
 .ui.basic.grey.buttons .button:active,
 .ui.basic.grey.button:active {
   color: var(--color-grey-dark-2);
@@ -888,12 +888,12 @@ a.label,
 }
 
 .ui.black.button:hover,
-.ui.black.buttons .button:hover {
+.ui.black.buttons .button:hover,
+.ui.black.button:focus,
+.ui.black.buttons .button:focus {
   background: var(--color-black-dark-1);
 }
 
-.ui.black.button:focus,
-.ui.black.buttons .button:focus,
 .ui.black.button:active,
 .ui.black.buttons .button:active {
   background: var(--color-black-dark-2);
@@ -906,13 +906,13 @@ a.label,
 }
 
 .ui.basic.black.buttons .button:hover,
-.ui.basic.black.button:hover {
+.ui.basic.black.button:hover,
+.ui.basic.black.buttons .button:focus,
+.ui.basic.black.button:focus {
   color: var(--color-black-dark-1);
   border-color: var(--color-black-dark-1);
 }
 
-.ui.basic.black.buttons .button:focus,
-.ui.basic.black.button:focus,
 .ui.basic.black.buttons .button:active,
 .ui.basic.black.button:active {
   color: var(--color-black-dark-2);
@@ -925,12 +925,12 @@ a.label,
 }
 
 .ui.negative.buttons .button:hover,
-.ui.negative.button:hover {
+.ui.negative.button:hover,
+.ui.negative.buttons .button:focus,
+.ui.negative.button:focus {
   background: var(--color-red-dark-1);
 }
 
-.ui.negative.buttons .button:focus,
-.ui.negative.button:focus,
 .ui.negative.buttons .button:active,
 .ui.negative.button:active {
   background: var(--color-red-dark-2);
@@ -942,12 +942,12 @@ a.label,
 }
 
 .ui.positive.buttons .button:hover,
-.ui.positive.button:hover {
+.ui.positive.button:hover,
+.ui.positive.buttons .button:focus,
+.ui.positive.button:focus {
   background: var(--color-green-dark-1);
 }
 
-.ui.positive.buttons .button:focus,
-.ui.positive.button:focus,
 .ui.positive.buttons .button:active,
 .ui.positive.button:active {
   background: var(--color-green-dark-2);
