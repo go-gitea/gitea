@@ -2,17 +2,16 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository view issue pull">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		{{if .Issue.IsPull}}
-			{{template "repo/issue/view_title" .}}
-			{{template "repo/pulls/tab_menu" .}}
-			<div class="ui bottom attached tab pull active" data-tab="request-{{.ID}}">
-				{{template "repo/issue/view_content" .}}
-			</div>
-		{{else}}
-			<div>
-				{{template "repo/issue/view_content" .}}
+		{{if .Flash}}
+			<div class="sixteen wide column">
+				{{template "base/alert" .}}
 			</div>
 		{{end}}
+		{{template "repo/issue/view_title" .}}
+		{{if .Issue.IsPull}}
+			{{template "repo/pulls/tab_menu" .}}
+		{{end}}
+		{{template "repo/issue/view_content" .}}
 	</div>
 </div>
 {{template "base/footer" .}}

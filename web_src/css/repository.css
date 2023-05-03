@@ -591,9 +591,10 @@
   display: inline-block;
 }
 
-.repository.view.issue .issue-title-header {
+.issue-title-header {
   width: 100%;
   padding-bottom: 4px;
+  margin-bottom: 1rem;
 }
 
 .repository.view.issue .issue-title-buttons,
