@@ -1556,7 +1556,7 @@ img.ui.avatar,
   vertical-align: middle;
 }
 
-.ui .message {
+.ui .message.flash-message {
   text-align: center;
 }
 
