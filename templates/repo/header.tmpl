@@ -151,7 +151,7 @@
 {{end}}
 	<div class="ui tabs container">
 		{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
-			<div class="ui tabular stackable menu navbar">
+			<div class="ui tabular menu navbar gt-overflow-x-auto gt-overflow-y-hidden">
 				{{if .Permission.CanRead $.UnitTypeCode}}
 				<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if (ne .BranchName .Repository.DefaultBranch)}}/src/{{.BranchNameSubURL}}{{end}}">
 					{{svg "octicon-code"}} {{.locale.Tr "repo.code"}}
@@ -236,20 +236,16 @@
 				{{template "custom/extra_tabs" .}}
 
 				{{if .Permission.IsAdmin}}
-					<div class="right menu">
-						<a class="{{if .PageIsRepoSettings}}active {{end}}item" href="{{.RepoLink}}/settings">
-							{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
-						</a>
-					</div>
+					<a class="{{if .PageIsRepoSettings}}active {{end}}right item" href="{{.RepoLink}}/settings">
+						{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
+					</a>
 				{{end}}
 			</div>
 		{{else if .Permission.IsAdmin}}
-			<div class="ui tabular stackable menu navbar">
-				<div class="right menu">
-					<a class="{{if .PageIsRepoSettings}}active {{end}}item" href="{{.RepoLink}}/settings">
-						{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
-					</a>
-				</div>
+			<div class="ui tabular menu navbar gt-overflow-x-auto gt-overflow-y-hidden">
+				<a class="{{if .PageIsRepoSettings}}active {{end}}right item" href="{{.RepoLink}}/settings">
+					{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
+				</a>
 			</div>
 		{{end}}
 	</div>

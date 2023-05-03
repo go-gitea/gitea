@@ -9,11 +9,11 @@
 				<b>{{$resolveDoer.Name}}</b> {{$.locale.Tr "repo.issues.review.resolved_by"}}
 			</div>
 			<div>
-				<button id="show-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="ui tiny right labeled button show-outdated gt-df gt-ac">
+				<button id="show-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="ui tiny labeled button show-outdated gt-df gt-ac">
 					{{svg "octicon-unfold" 16 "gt-mr-3"}}
 					{{$.locale.Tr "repo.issues.review.show_resolved"}}
 				</button>
-				<button id="hide-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="ui tiny right labeled button hide-outdated gt-df gt-ac gt-hidden">
+				<button id="hide-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="ui tiny labeled button hide-outdated gt-df gt-ac gt-hidden">
 					{{svg "octicon-fold" 16 "gt-mr-3"}}
 					{{$.locale.Tr "repo.issues.review.hide_resolved"}}
 				</button>

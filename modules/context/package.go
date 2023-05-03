@@ -131,7 +131,7 @@ func determineAccessMode(ctx *Context) (perm.AccessMode, error) {
 
 // PackageContexter initializes a package context for a request.
 func PackageContexter(ctx gocontext.Context) func(next http.Handler) http.Handler {
-	_, rnd := templates.HTMLRenderer(ctx)
+	rnd := templates.HTMLRenderer()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			ctx := Context{

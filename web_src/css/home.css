@@ -43,39 +43,38 @@
   color: var(--color-green);
 }
 
-footer {
+.page-footer {
+  display: flex;
   background-color: var(--color-footer);
   border-top: 1px solid var(--color-secondary);
   line-height: 39px;
-  flex-basis: 40px;
-  color: var(--color-text-light);
   padding: 0 20px;
 }
 
-footer .right.links {
+.page-footer .left-links {
+  flex: 1;
+}
+
+.page-footer .right-links {
   min-width: 180px; /* make sure the menu dropdown doesn't overflow horizontally when language name is short */
 }
 
-footer .right.links > a {
+.page-footer .right-links > a {
   border-left: 1px solid var(--color-secondary-dark-1);
   padding-left: 8px;
   margin-left: 5px;
 }
 
-footer .ui.dropdown.language .menu {
+.page-footer .ui.dropdown.language .menu {
   height: 500px;
   max-height: calc(100vh - 60px);
   overflow-y: auto;
   margin-bottom: 10px;
 }
 
-
 @media (max-width: 880px) {
-  footer .ui.left,
-  footer .ui.right {
-    width: 100%;
+  .page-footer {
     display: block;
     text-align: center;
-    float: none;
   }
 }

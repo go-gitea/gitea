@@ -30,7 +30,7 @@ const (
 )
 
 func createContext(req *http.Request) (*context.Context, *httptest.ResponseRecorder) {
-	_, rnd := templates.HTMLRenderer(req.Context())
+	rnd := templates.HTMLRenderer()
 	resp := httptest.NewRecorder()
 	c := &context.Context{
 		Req:    req,
