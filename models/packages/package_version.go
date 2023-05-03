@@ -173,7 +173,7 @@ const (
 )
 
 // PackageSearchOptions are options for SearchXXX methods
-// Besides IsInternal are all fields optional and are not used if they have their default value (nil, "", 0)
+// All fields optional and are not used if they have their default value (nil, "", 0)
 type PackageSearchOptions struct {
 	OwnerID         int64
 	RepoID          int64
@@ -192,7 +192,9 @@ type PackageSearchOptions struct {
 func (opts *PackageSearchOptions) toConds() builder.Cond {
 	cond := builder.NewCond()
 	if !opts.IsInternal.IsNone() {
-		cond = builder.Eq{"package_version.is_internal": opts.IsInternal.IsTrue()}
+		cond = builder.Eq{
+			"package_version.is_internal": opts.IsInternal.IsTrue(),
+		}
 	}
 
 	if opts.OwnerID != 0 {
