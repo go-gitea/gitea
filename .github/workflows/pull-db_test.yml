@@ -22,12 +22,9 @@ jobs:
           - "389:389"
           - "636:636"
       minio:
-        # as github actions doesn't support "entrypoint", we need to use a custom image
+        # as github actions doesn't support "entrypoint", we need to use a non-official image
         # that has a custom entrypoint set to "minio server /data"
-        # Contents of custom Dockerfile is:
-        # FROM minio/minio:RELEASE.2021-03-12T00-00-47Z
-        # CMD ["server", "/data", "--address=0.0.0.0:9000"]
-        image: techknowlogick/minio-dev:latest
+        image: bitnami/minio:2021.3.17
         env:
           MINIO_ACCESS_KEY: 123456
           MINIO_SECRET_KEY: 12345678
