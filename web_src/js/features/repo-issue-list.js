@@ -156,7 +156,6 @@ function pinMoveEnd(e) {
       'Content-Type': 'application/json',
     },
   });
-  initPinRemoveButton();
 }
 
 function initIssuePinSort() {

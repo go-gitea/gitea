@@ -14,7 +14,15 @@ import (
 // IssuePinOrUnpin pin or unpin a Issue
 func IssuePinOrUnpin(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	err := issue.PinOrUnpin(ctx, ctx.ContextUser)
+
+	// If we don't do this, it will crash when trying to add the pin event to the comment history
+	err := issue.LoadRepo(ctx)
+	if err != nil {
+		ctx.ServerError("LoadRepo", err)
+		return
+	}
+
+	err = issue.PinOrUnpin(ctx, ctx.ContextUser)
 	if err != nil {
 		ctx.ServerError("PinOrUnpinIssue", err)
 		return
@@ -28,6 +36,14 @@ func IssueUnpin(ctx *context.Context) {
 	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// If we don't do this, it will crash when trying to add the pin event to the comment history
+	err = issue.LoadRepo(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	err = issue.Unpin(ctx, ctx.ContextUser)
