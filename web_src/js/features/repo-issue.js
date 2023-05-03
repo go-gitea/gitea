@@ -640,17 +640,17 @@ export function initRepoIssueGotoID() {
   $('form.list-header-search').on('submit', (e) => {
     const qval = e.target.q.value;
     const aElm = document.activeElement;
-    if (aElm.id === 'searchbutton' || (aElm.name === 'q' && !qval.includes('#')) || (window.location.pathname.split('/').length === 2 && !qval.includes('/')) || !issueidre.test(qval) || !$('#hashtagbutton').length) return;
+    if (aElm.id === 'search-button' || (aElm.name === 'q' && !qval.includes('#')) || (window.location.pathname.split('/').length === 2 && !qval.includes('/')) || !issueidre.test(qval) || !$('#hashtag-button').length) return;
     e.preventDefault();
     window.location.href = !qval.includes('/') ? `${window.location.pathname}/${qval.replace('#', '')}` : `/${qval.replace('#', '/issues/')}`;
   });
   $('form.list-header-search input[name=q]').on('keyup', (e) => {
     const qval = e.target.value;
-    const pathslahnum = window.location.pathname.split('/');
-    if ((pathslahnum.length === 2 && qval.includes('/') || pathslahnum.length === 4) && issueidre.test(qval)) {
-      $('#hashtagbutton').css('display', 'block');
+    const pathSlashCount = window.location.pathname.split('/'); // for global issues area or repository issue area
+    if ((pathSlashCount.length === 2 && qval.includes('/') || pathSlashCount.length === 4) && issueidre.test(qval)) {
+      showElem($('#hashtag-button'));
     } else {
-      $('#hashtagbutton').css('display', 'none');
+      hideElem($('#hashtag-button'));
     }
   });
 }
