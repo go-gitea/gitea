@@ -17,9 +17,7 @@ jobs:
         with:
           node-version: 18
       - name: build
-        run: |
-          make deps-frontend frontend
-          make deps-backend
+        run: make deps-frontend frontend deps-backend
       - name: Install playwright browsers
         run: npx playwright install --with-deps
       - name: run tests
