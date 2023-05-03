@@ -6,11 +6,14 @@
         <div class="action-title">
           {{ run.title }}
         </div>
-        <button class="run_approve" @click="approveRun()" v-if="run.canApprove">
-          <i class="play circle outline icon"/>
+        <button class="action-control-button text green" @click="approveRun()" v-if="run.canApprove">
+          <SvgIcon name="octicon-play" :size="20"/>
         </button>
-        <button class="run_cancel" @click="cancelRun()" v-else-if="run.canCancel">
-          <i class="stop circle outline icon"/>
+        <button class="action-control-button text red" @click="cancelRun()" v-else-if="run.canCancel">
+          <SvgIcon name="octicon-x-circle-fill" :size="20"/>
+        </button>
+        <button class="action-control-button text green" @click="rerun()" v-else-if="run.canRerun">
+          <SvgIcon name="octicon-sync" :size="20"/>
         </button>
       </div>
       <div class="action-commit-summary">
@@ -106,6 +109,7 @@ const sfc = {
         status: '',
         canCancel: false,
         canApprove: false,
+        canRerun: false,
         done: false,
         jobs: [
           // {
@@ -192,6 +196,11 @@ const sfc = {
       const jobLink = `${this.run.link}/jobs/${idx}`;
       await this.fetchPost(`${jobLink}/rerun`);
       window.location.href = jobLink;
+    },
+    // rerun workflow
+    async rerun() {
+      await this.fetchPost(`${this.run.link}/rerun`);
+      window.location.href = this.run.link;
     },
     // cancel a run
     cancelRun() {
@@ -366,26 +375,16 @@ export function ansiLogToHTML(line) {
   margin: 0 20px 20px 20px;
 }
 
-.action-view-header .run_cancel {
+.action-view-header .action-control-button {
   border: none;
-  color: var(--color-red);
   background-color: transparent;
   outline: none;
   cursor: pointer;
   transition: transform 0.2s;
+  display: flex;
 }
 
-.action-view-header .run_approve {
-  border: none;
-  color: var(--color-green);
-  background-color: transparent;
-  outline: none;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.action-view-header .run_cancel:hover,
-.action-view-header .run_approve:hover {
+.action-view-header .action-control-button:hover {
   transform: scale(130%);
 }
 

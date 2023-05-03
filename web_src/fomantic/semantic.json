@@ -22,7 +22,6 @@
   "admin": false,
   "components": [
     "api",
-    "breadcrumb",
     "button",
     "card",
     "checkbox",
@@ -34,7 +33,6 @@
     "form",
     "grid",
     "header",
-    "icon",
     "input",
     "item",
     "label",
