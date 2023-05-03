@@ -80,6 +80,7 @@ type Repository struct {
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
 	Updated                       time.Time        `json:"updated_at"`
+	ArchivedAt                    time.Time        `json:"archived_at"`
 	Permissions                   *Permission      `json:"permissions,omitempty"`
 	HasIssues                     bool             `json:"has_issues"`
 	InternalTracker               *InternalTracker `json:"internal_tracker,omitempty"`

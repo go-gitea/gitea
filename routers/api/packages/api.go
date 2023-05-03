@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -20,6 +21,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/conan"
 	"code.gitea.io/gitea/routers/api/packages/conda"
 	"code.gitea.io/gitea/routers/api/packages/container"
+	"code.gitea.io/gitea/routers/api/packages/debian"
 	"code.gitea.io/gitea/routers/api/packages/generic"
 	"code.gitea.io/gitea/routers/api/packages/helm"
 	"code.gitea.io/gitea/routers/api/packages/maven"
@@ -36,6 +38,32 @@ import (
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
+		if ctx.Data["IsApiToken"] == true {
+			scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+			if ok { // it's a personal access token but not oauth2 token
+				scopeMatched := false
+				var err error
+				if accessMode == perm.AccessModeRead {
+					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeReadPackage)
+					if err != nil {
+						ctx.Error(http.StatusInternalServerError, "HasScope", err.Error())
+						return
+					}
+				} else if accessMode == perm.AccessModeWrite {
+					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeWritePackage)
+					if err != nil {
+						ctx.Error(http.StatusInternalServerError, "HasScope", err.Error())
+						return
+					}
+				}
+				if !scopeMatched {
+					ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
+					ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
+					return
+				}
+			}
+		}
+
 		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
 			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
 			ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
@@ -243,6 +271,24 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				ctx.SetParams("filename", m[2])
 
 				conda.UploadPackageFile(ctx)
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/debian", func() {
+			r.Get("/repository.key", debian.GetRepositoryKey)
+			r.Group("/dists/{distribution}", func() {
+				r.Get("/{filename}", debian.GetRepositoryFile)
+				r.Get("/by-hash/{algorithm}/{hash}", debian.GetRepositoryFileByHash)
+				r.Group("/{component}/{architecture}", func() {
+					r.Get("/{filename}", debian.GetRepositoryFile)
+					r.Get("/by-hash/{algorithm}/{hash}", debian.GetRepositoryFileByHash)
+				})
+			})
+			r.Group("/pool/{distribution}/{component}", func() {
+				r.Get("/{name}_{version}_{architecture}.deb", debian.DownloadPackageFile)
+				r.Group("", func() {
+					r.Put("/upload", debian.UploadPackageFile)
+					r.Delete("/{name}/{version}/{architecture}", debian.DeletePackageFile)
+				}, reqPackageAccess(perm.AccessModeWrite))
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {

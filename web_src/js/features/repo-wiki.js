@@ -58,7 +58,7 @@ async function initRepoWikiFormEditor() {
         'gitea-code-inline', 'code', 'quote', '|', 'gitea-checkbox-empty', 'gitea-checkbox-checked', '|',
         'unordered-list', 'ordered-list', '|',
         'link', 'image', 'table', 'horizontal-rule', '|',
-        'clean-block', 'preview', 'fullscreen', 'side-by-side', '|', 'gitea-switch-to-textarea'
+        'preview', 'fullscreen', 'side-by-side', '|', 'gitea-switch-to-textarea'
       ],
     },
   });
