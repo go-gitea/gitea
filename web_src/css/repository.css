@@ -619,7 +619,6 @@
 .repository.view.issue .issue-title {
   display: flex;
   align-items: center;
-  margin-top: 8px; /* for the flash above */
   margin-bottom: 8px;
 }
 
