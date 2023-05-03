@@ -25,6 +25,7 @@
 					{{template "package/content/conan" .}}
 					{{template "package/content/conda" .}}
 					{{template "package/content/container" .}}
+					{{template "package/content/debian" .}}
 					{{template "package/content/generic" .}}
 					{{template "package/content/helm" .}}
 					{{template "package/content/maven" .}}
@@ -52,6 +53,7 @@
 							{{template "package/metadata/conan" .}}
 							{{template "package/metadata/conda" .}}
 							{{template "package/metadata/container" .}}
+							{{template "package/metadata/debian" .}}
 							{{template "package/metadata/generic" .}}
 							{{template "package/metadata/helm" .}}
 							{{template "package/metadata/maven" .}}
@@ -86,7 +88,7 @@
 							{{range .LatestVersions}}
 								<div class="item gt-df">
 									<a class="gt-f1" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
-									<span class="text small">{{template "shared/datetime/short" (dict "Datetime" (.CreatedUnix.FormatDate) "Fallback" (.CreatedUnix.FormatDate))}}</span>
+									<span class="text small">{{DateTime "short" .CreatedUnix}}</span>
 								</div>
 							{{end}}
 							</div>

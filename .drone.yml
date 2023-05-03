@@ -270,35 +270,6 @@ steps:
 ---
 kind: pipeline
 type: docker
-name: compliance-docs
-
-platform:
-  os: linux
-  arch: amd64
-
-trigger:
-  event:
-    - pull_request
-  paths:
-    include:
-      - "docs/**"
-      - "*.md"
-
-steps:
-  - name: deps-frontend
-    image: node:18
-    pull: always
-    commands:
-      - make deps-frontend
-
-  - name: lint-md
-    image: node:18
-    commands:
-      - make lint-md
-
----
-kind: pipeline
-type: docker
 name: testing-mysql
 
 platform:
@@ -775,109 +746,6 @@ steps:
 
 ---
 kind: pipeline
-name: update_translations
-
-platform:
-  os: linux
-  arch: arm64
-
-trigger:
-  branch:
-    - main
-  event:
-    - cron
-  cron:
-    - update_translations
-
-steps:
-  - name: download
-    image: jonasfranz/crowdin
-    pull: always
-    settings:
-      download: true
-      export_dir: options/locale/
-      ignore_branch: true
-      project_identifier: gitea
-    environment:
-      CROWDIN_KEY:
-        from_secret: crowdin_key
-
-  - name: update
-    image: alpine:3.17
-    pull: always
-    commands:
-      - ./build/update-locales.sh
-
-  - name: push
-    image: appleboy/drone-git-push
-    pull: always
-    settings:
-      author_email: "teabot@gitea.io"
-      author_name: GiteaBot
-      branch: main
-      commit: true
-      commit_message: "[skip ci] Updated translations via Crowdin"
-      remote: "git@github.com:go-gitea/gitea.git"
-    environment:
-      DRONE_COMMIT_AUTHOR_EMAIL: "teabot@gitea.io"
-      DRONE_COMMIT_AUTHOR: GiteaBot
-      GIT_PUSH_SSH_KEY:
-        from_secret: git_push_ssh_key
-
-  - name: upload_translations
-    image: jonasfranz/crowdin
-    pull: always
-    settings:
-      files:
-        locale_en-US.ini: options/locale/locale_en-US.ini
-      ignore_branch: true
-      project_identifier: gitea
-    environment:
-      CROWDIN_KEY:
-        from_secret: crowdin_key
-
----
-kind: pipeline
-type: docker
-name: update_gitignore_and_licenses
-
-platform:
-  os: linux
-  arch: arm64
-
-trigger:
-  branch:
-    - main
-  event:
-    - cron
-  cron:
-    - update_gitignore_and_licenses
-
-steps:
-  - name: download
-    image: gitea/test_env:linux-1.20-amd64
-    pull: always
-    commands:
-      - timeout -s ABRT 40m make generate-license generate-gitignore
-
-  - name: push
-    image: appleboy/drone-git-push
-    pull: always
-    settings:
-      author_email: "teabot@gitea.io"
-      author_name: "GiteaBot"
-      branch: main
-      commit: true
-      commit_message: "[skip ci] Updated licenses and gitignores"
-      remote: "git@github.com:go-gitea/gitea.git"
-    environment:
-      DRONE_COMMIT_AUTHOR_EMAIL: "teabot@gitea.io"
-      DRONE_COMMIT_AUTHOR: "GiteaBot"
-      GIT_PUSH_SSH_KEY:
-        from_secret: git_push_ssh_key
-
----
-kind: pipeline
 type: docker
 name: release-latest
 
@@ -1139,49 +1007,6 @@ steps:
 ---
 kind: pipeline
 type: docker
-name: docs
-
-platform:
-  os: linux
-  arch: arm64
-
-depends_on:
-  - compliance
-
-trigger:
-  event:
-    - push
-    - tag
-    - pull_request
-  paths:
-    include:
-      - "docs/**"
-
-steps:
-  - name: build-docs
-    image: gitea/test_env:linux-1.20-arm64
-    commands:
-      - cd docs
-      - make trans-copy clean build
-
-  - name: publish-docs
-    image: techknowlogick/drone-netlify:latest
-    pull: always
-    settings:
-      path: docs/public/
-      site_id: d2260bae-7861-4c02-8646-8f6440b12672
-    environment:
-      NETLIFY_TOKEN:
-        from_secret: netlify_token
-    when:
-      branch:
-        - main
-      event:
-        - push
-
----
-kind: pipeline
-type: docker
 name: docker-linux-amd64-release-version
 
 platform:
@@ -1369,7 +1194,7 @@ steps:
     pull: always
     settings:
       auto_tag: false
-      tags: dev-linux-amd64
+      tags: nightly-linux-amd64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1391,7 +1216,7 @@ steps:
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
-      tags: dev-linux-amd64-rootless
+      tags: nightly-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1442,7 +1267,7 @@ steps:
     pull: always
     settings:
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-amd64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1464,7 +1289,7 @@ steps:
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64-rootless
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1479,43 +1304,6 @@ steps:
     when:
       event:
         exclude:
-        - pull_request
-
----
-kind: pipeline
-type: docker
-name: docker-linux-arm64-dry-run
-
-platform:
-  os: linux
-  arch: arm64
-
-depends_on:
-  - compliance
-
-trigger:
-  event:
-    - pull_request
-  paths:
-    exclude:
-      - "docs/**"
-
-steps:
-  - name: dryrun
-    image: plugins/docker:latest
-    pull: always
-    settings:
-      dry_run: true
-      repo: gitea/gitea
-      tags: linux-arm64
-      build_args:
-        - GOPROXY=https://goproxy.io
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
-      DOCKER_BUILDKIT: 1
-    when:
-      event:
         - pull_request
 
 ---
@@ -1711,7 +1499,7 @@ steps:
     pull: always
     settings:
       auto_tag: false
-      tags: dev-linux-arm64
+      tags: nightly-linux-arm64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1733,7 +1521,7 @@ steps:
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
-      tags: dev-linux-arm64-rootless
+      tags: nightly-linux-arm64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1784,7 +1572,7 @@ steps:
     pull: always
     settings:
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-arm64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1806,7 +1594,7 @@ steps:
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64-rootless
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-arm64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1921,57 +1709,3 @@ depends_on:
   - docker-linux-arm64-release
   - docker-linux-amd64-release-branch
   - docker-linux-arm64-release-branch
-
----
-kind: pipeline
-type: docker
-name: notifications
-
-platform:
-  os: linux
-  arch: arm64
-
-clone:
-  disable: true
-
-trigger:
-  branch:
-    - main
-    - "release/*"
-  event:
-    - push
-    - tag
-  status:
-    - success
-    - failure
-
-depends_on:
-  - testing-mysql
-  - testing-mysql8
-  - testing-mssql
-  - testing-pgsql
-  - testing-sqlite
-  - release-version
-  - release-latest
-  - docker-linux-amd64-release
-  - docker-linux-arm64-release
-  - docker-linux-amd64-release-version
-  - docker-linux-arm64-release-version
-  - docker-linux-amd64-release-candidate-version
-  - docker-linux-arm64-release-candidate-version
-  - docker-linux-amd64-release-branch
-  - docker-linux-arm64-release-branch
-  - docker-manifest
-  - docker-manifest-version
-  - docs
-
-steps:
-  - name: discord
-    image: appleboy/drone-discord:1.2.4
-    pull: always
-    settings:
-      message: "{{#success build.status}} ✅  Build #{{build.number}} of `{{repo.name}}` succeeded.\n\n📝 Commit by {{commit.author}} on `{{commit.branch}}`:\n``` {{commit.message}} ```\n\n🌐 {{ build.link }} {{else}} ❌  Build #{{build.number}} of `{{repo.name}}` failed.\n\n📝 Commit by {{commit.author}} on `{{commit.branch}}`:\n``` {{commit.message}} ```\n\n🌐 {{ build.link }} {{/success}}\n"
-      webhook_id:
-        from_secret: discord_webhook_id
-      webhook_token:
-        from_secret: discord_webhook_token

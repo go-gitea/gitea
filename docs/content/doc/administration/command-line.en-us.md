@@ -5,6 +5,8 @@ slug: "command-line"
 weight: 1
 toc: false
 draft: false
+aliases:
+  - /en-us/command-line
 menu:
   sidebar:
     parent: "administration"
