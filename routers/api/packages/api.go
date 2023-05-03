@@ -119,6 +119,12 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 					r.Get("/owners", cargo.ListOwners)
 				})
 			})
+			r.Get("/config.json", cargo.RepositoryConfig)
+			r.Get("/1/{package}", cargo.EnumeratePackageVersions)
+			r.Get("/2/{package}", cargo.EnumeratePackageVersions)
+			// Use dummy placeholders because these parts are not of interest
+			r.Get("/3/{_}/{package}", cargo.EnumeratePackageVersions)
+			r.Get("/{_}/{__}/{package}", cargo.EnumeratePackageVersions)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/chef", func() {
 			r.Group("/api/v1", func() {
