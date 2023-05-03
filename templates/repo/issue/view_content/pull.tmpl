@@ -109,7 +109,7 @@
 	</div>
 {{end}}
 {{if and .Issue.PullRequest.HasMerged (not .IsPullBranchDeletable)}}
-{{/* Then the merge box will not be displayed */}}
+{{/* Then the merge box will not be displayed because this page already contains enough information */}}
 {{else}}
 <div class="timeline-item comment merge box">
 	<a class="timeline-avatar text {{if .Issue.PullRequest.HasMerged}}purple
