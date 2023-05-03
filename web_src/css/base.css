@@ -868,8 +868,8 @@ a.label,
 
 .ui.basic.grey.buttons .button:hover,
 .ui.basic.grey.button:hover,
-.ui.basic.grey.buttons .button:hover,
-.ui.basic.grey.button:hover {
+.ui.basic.grey.buttons .button:focus,
+.ui.basic.grey.button:focus {
   color: var(--color-grey-dark-1);
   border-color: var(--color-grey-dark-1);
 }
