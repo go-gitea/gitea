@@ -254,7 +254,7 @@ func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch
 	}
 	left, right, found := strings.Cut(strings.Trim(stdout, "\n"), "\t")
 	if !found {
-		return do, fmt.Errorf("git rev-list ouput is missing a tab: %q", stdout)
+		return do, fmt.Errorf("git rev-list output is missing a tab: %q", stdout)
 	}
 
 	do.Behind, err = strconv.Atoi(left)
