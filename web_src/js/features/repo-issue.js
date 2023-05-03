@@ -644,7 +644,7 @@ export function initRepoIssueGotoID() {
     e.preventDefault();
     window.location.href = !qval.includes('/') ? `${window.location.pathname}/${qval.replace('#', '')}` : `/${qval.replace('#', '/issues/')}`;
   });
-  $('form.list-header-search input[name=q]').on('keyup', (e) => {
+  $('form.list-header-search input[name=q]').on('input', (e) => {
     const qval = e.target.value;
     const pathSlashCount = window.location.pathname.split('/'); // for global issues area or repository issue area
     if ((pathSlashCount.length === 2 && qval.includes('/') || pathSlashCount.length === 4) && issueidre.test(qval)) {
