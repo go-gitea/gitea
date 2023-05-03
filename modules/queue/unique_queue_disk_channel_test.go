@@ -4,7 +4,6 @@
 package queue
 
 import (
-	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -17,10 +16,7 @@ import (
 )
 
 func TestPersistableChannelUniqueQueue(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping because test is flaky on CI")
-	}
-
+	// Create a temporary directory for the queue
 	tmpDir := t.TempDir()
 	_ = log.NewLogger(1000, "console", "console", `{"level":"warn","stacktracelevel":"NONE","stderr":true}`)
 
