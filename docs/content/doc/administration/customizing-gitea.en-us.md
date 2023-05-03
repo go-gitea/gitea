@@ -167,38 +167,38 @@ You can display STL file directly in Gitea by adding:
 
 ```html
 <script>
-  function lS(src) {
-    return new Promise(function (resolve, reject) {
-      let s = document.createElement("script");
-      s.src = src;
-      s.addEventListener("load", () => {
-        resolve();
-      });
-      document.body.appendChild(s);
+function lS(src){
+  return new Promise(function(resolve, reject) {
+    let s = document.createElement('script');
+    s.src = src
+    s.addEventListener('load', () => {
+      resolve()
     });
-  }
+    document.body.appendChild(s)
+  });
+}
 
-  if ($('.view-raw>a[href$=".stl" i]').length) {
-    $("body").append(
-      '<link href="/assets/Madeleine.js/src/css/Madeleine.css" rel="stylesheet">'
-    );
-    Promise.all([
-      lS("/assets/Madeleine.js/src/lib/stats.js"),
-      lS("/assets/Madeleine.js/src/lib/detector.js"),
-      lS("/assets/Madeleine.js/src/lib/three.min.js"),
-      lS("/assets/Madeleine.js/src/Madeleine.js"),
-    ]).then(function () {
-      $(".view-raw")
-        .attr("id", "view-raw")
-        .attr("style", "padding: 0;margin-bottom: -10px;");
-      new Madeleine({
-        target: "view-raw",
-        data: $('.view-raw>a[href$=".stl" i]').attr("href"),
-        path: "/assets/Madeleine.js/src",
-      });
-      $('.view-raw>a[href$=".stl"]').remove();
+if($('.view-raw>a[href$=".stl" i]').length){
+  $('body').append(
+    '<link href="/assets/Madeleine.js/src/css/Madeleine.css" rel="stylesheet">'
+  );
+  Promise.all([
+    lS("/assets/Madeleine.js/src/lib/stats.js"),
+	lS("/assets/Madeleine.js/src/lib/detector.js"), 
+	lS("/assets/Madeleine.js/src/lib/three.min.js"), 
+	lS("/assets/Madeleine.js/src/Madeleine.js")
+  ]).then(function() {
+    $('.view-raw')
+	   .attr('id', 'view-raw')
+	   .attr('style', 'padding: 0;margin-bottom: -10px;');
+    new Madeleine({
+      target: 'view-raw',
+      data: $('.view-raw>a[href$=".stl" i]').attr('href'),
+      path: '/assets/Madeleine.js/src'
     });
-  }
+    $('.view-raw>a[href$=".stl"]').remove();
+  });
+}
 </script>
 ```
 
