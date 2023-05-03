@@ -260,6 +260,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	mailMeta := map[string]interface{}{
 		"FallbackSubject": fallback,
+		"Context":         ctx,
 		"Body":            body,
 		"Link":            link,
 		"Issue":           ctx.Issue,

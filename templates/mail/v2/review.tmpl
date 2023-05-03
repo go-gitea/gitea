@@ -1,0 +1,115 @@
+{{ range $file_path, $commentsMap := .Comment.Review.CodeComments }}
+	{{ range $_, $comments := $commentsMap }}
+		<table class="block" style="
+						width: 100%;
+						border-radius: 5px;
+						border-spacing: 0;
+						border: 1px solid #DFE1E6;
+						margin-top: 20px;"
+		>
+			<tr class="diff-header">
+				<td colspan="4"
+						style="
+							background-color: #F4F5F7;
+							padding: 5px 20px;
+							font-family: inherit"
+				>
+					<span style="font-family: inherit">{{ $file_path }}</span>
+				</td>
+			</tr>
+			{{ range $_, $comment := $comments }}
+				{{ $patchDiff := CommentMustAsDiff $comment }}
+				{{ $patchLines := $patchDiff.Lines }}
+				{{ range $_, $patchLine := $patchLines }}
+					{{ if eq $patchLine.Type 4 }}  {{ continue }} {{ end }}
+					<tr class="diff"
+							style="
+								font-family: inherit;
+								background-color: {{if eq $patchLine.Type 2 }}#EAFEEE{{ else if eq $patchLine.Type 3 }}#FCEFF0{{else}}#FFFFFF{{ end }};"
+					>
+						<td class="line-number"
+								style="
+									font-family: inherit;
+									padding: 5px;
+									margin: 0;
+									text-align: center;
+									width: 50px;"
+						>
+							{{ if gt $patchLine.LeftIdx 0 }}{{ $patchLine.LeftIdx }}{{end}}
+						</td>
+						<td class="line-number"
+								style="
+									font-family: inherit;
+									padding: 5px;
+									margin: 0;
+									text-align: center;
+									width: 50px;"
+						>
+							{{ if gt $patchLine.RightIdx 0 }}{{ $patchLine.RightIdx }}{{end}}
+						</td>
+						<td class="lines-type-marker"
+								style="
+									font-family: inherit;
+									padding: 5px;
+									margin: 0;
+									text-align: center;
+									width: 20px;"
+						>
+							{{if eq $patchLine.Type 2 }}+{{ else if eq $patchLine.Type 3 }}-{{ end }}
+						</td>
+						<td style="
+									font-family: inherit;
+									padding: 5px;
+									display: grid;
+									margin: 0;"
+						>
+							<span style="margin: 0;overflow:hidden;text-overflow: ellipsis;white-space: nowrap;">
+								{{ $content := StringUtils.ReplaceAll $patchLine.Content "\t" "&emsp;&emsp;" }}
+								{{ if eq $patchLine.Type 2 }}
+									{{ StringUtils.TrimPrefix $content "+" | Str2html }}
+								{{ else if eq $patchLine.Type 3 }}
+									{{ StringUtils.TrimPrefix $content "-" | Str2html }}
+								{{ end }}
+							</span>
+						</td>
+					</tr>
+				{{ end }}
+				<tr class="comment-line">
+					<td colspan="4">
+						<table class="comment-block" style="
+							padding: 10px;
+							width: 100%;
+							border-radius: 5px;
+							border-spacing: 0;
+							border-collapse: collapse;"
+						>
+							<tr>
+								<td style="width: 0;padding: 5px;vertical-align: top;border-radius: 5px;">
+									<img src="{{ $comment.Poster.AvatarLink $.Context }}" width="48" height="48" alt="avatar" style="margin: 5px;"/>
+								</td>
+								<td style="margin: 5px;">
+									<table>
+										<tr>
+											<td>
+									<span style="font-weight: bold;font-family: inherit;">
+										{{ $comment.Poster.Name }}
+									</span>
+											</td>
+										</tr>
+										<tr>
+											<td>
+									<span class="text" style="font-family: inherit">
+										{{ RenderMarkdownToHtml $.Context $comment.Content }}
+									</span>
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			{{end}}
+		</table>
+	{{ end }}
+{{ end }}

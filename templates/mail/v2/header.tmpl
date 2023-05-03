@@ -1,0 +1,126 @@
+<table class="header" style="
+			background-color: #F4F5F7;
+			border-radius: 5px;
+			border-spacing: 5px;
+			padding: 10px 20px;"
+>
+	<tr>
+		<td style="vertical-align: middle; text-align: center; padding: 0 5px;">
+			{{ $avatarLink := .Issue.Repo.AvatarLink $.Context }}
+			{{ if $avatarLink }}
+			<img src="{{ $avatarLink }}" alt="repo icon" width="36" height="36" style="margin: auto;">
+			{{ end }}
+		</td>
+		<td style="padding-right: 20px;">
+			<h1 style="
+					font-size: 20px;
+					font-weight: normal;
+					font-family: inherit;
+					margin: auto;
+					display: flex;
+					flex-direction: row;"
+			>
+				<a href="{{ .Issue.HTMLURL }}" style="text-decoration: none;color: black;"
+				>
+					{{ .Issue.Title }}
+				</a>
+			</h1>
+		</td>
+		<td>
+			{{ if .Issue.IsClosed }}
+			<table style="
+								font-family: inherit;
+								background-color: #CA402D;
+								padding: 2px 10px;
+								border-radius: 5px;
+								font-weight: bold;"
+			>
+				<tr>
+					<td style="text-align: center">{{svg "octicon-issue-closed"}}</td>
+					<td style="text-align: center">
+						<span style="margin-left: 10px;color: white;">{{$.locale.Tr "repo.issues.closed_title"}}</span>
+					</td>
+				</tr>
+			</table>
+			{{ else if .Issue.IsPull }}
+				{{ if .Issue.PullRequest.HasMerged }}
+					<table style="
+										font-family: inherit;
+										background-color: #9742C4;
+										padding: 2px 10px;
+										border-radius: 5px;
+										font-weight: bold;"
+					>
+						<tr>
+							<td style="text-align: center">{{svg "octicon-git-merge" 16}}</td>
+							<td style="text-align: center">
+								<span style="margin-left: 10px;color: white;">
+									{{if eq .Issue.PullRequest.Status 3}}{{$.locale.Tr "repo.pulls.manually_merged"}}{{else}}{{$.locale.Tr "repo.pulls.merged"}}{{end}}
+								</span>
+							</td>
+						</tr>
+					</table>
+				{{ else if .Issue.PullRequest.IsWorkInProgress }}
+					<table style="
+										font-family: inherit;
+										background-color: #707070;
+										padding: 2px 10px;
+										border-radius: 5px;
+										font-weight: bold;"
+					>
+						<tr>
+							<td style="text-align: center">{{svg "octicon-git-pull-request-draft"}}</td>
+							<td style="text-align: center">
+								<span style="margin-left: 10px;color: white;">{{$.locale.Tr "repo.issues.draft_title"}}</span>
+							</td>
+						</tr>
+					</table>
+				{{ else }}
+					<table style="
+									font-family: inherit;
+									background-color: #57B64F;
+									padding: 2px 10px;
+									border-radius: 5px;
+									font-weight: bold;"
+					>
+						<tr>
+							<td style="text-align: center">{{svg "octicon-git-pull-request"}}</td>
+							<td style="text-align: center">
+								<span style="margin-left: 10px;color: white;">{{$.locale.Tr "repo.issues.open_title"}}</span>
+							</td>
+						</tr>
+					</table>
+				{{ end }}
+			{{ else }}
+			<table style="
+							font-family: inherit;
+							background-color: #57B64F;
+							padding: 2px 10px;
+							border-radius: 5px;
+							font-weight: bold;"
+			>
+				<tr>
+					<td style="text-align: center">{{svg "octicon-issue-opened"}}</td>
+					<td style="text-align: center">
+						<span style="margin-left: 10px;color: white;">{{$.locale.Tr "repo.issues.open_title"}}</span>
+					</td>
+				</tr>
+			</table>
+			{{ end }}
+		</td>
+	</tr>
+	<tr>
+		<td colspan="3">
+			<h1 style="
+					margin: 5px 20px;
+					font-family: inherit;
+					font-size: 20px;
+					font-weight: normal;"
+			>
+				<a href="{{ .Issue.Repo.HTMLURL }}" style="text-decoration: none;color: black;">
+					{{ .Issue.Repo.FullName }}
+				</a>
+			</h1>
+		</td>
+	</tr>
+</table>

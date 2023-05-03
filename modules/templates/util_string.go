@@ -36,3 +36,11 @@ func (su *StringUtils) Join(a []string, sep string) string {
 func (su *StringUtils) EllipsisString(s string, max int) string {
 	return base.EllipsisString(s, max)
 }
+
+func (su *StringUtils) ReplaceAll(s string, old string, new string) string {
+	return strings.ReplaceAll(s, old, new)
+}
+
+func (su *StringUtils) TrimPrefix(s string, prefix string) string {
+	return strings.TrimPrefix(s, prefix)
+}

@@ -473,6 +473,21 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 	return nil
 }
 
+func (diff *Diff) Lines() []*DiffLine {
+	if diff == nil {
+		return nil
+	}
+
+	resultLines := make([]*DiffLine, 0, diff.TotalAddition+diff.TotalDeletion)
+	for _, file := range diff.Files {
+		for _, section := range file.Sections {
+			resultLines = append(resultLines, section.Lines...)
+		}
+	}
+
+	return resultLines
+}
+
 const cmdDiffHead = "diff --git "
 
 // ParsePatch builds a Diff object from a io.Reader and some parameters.

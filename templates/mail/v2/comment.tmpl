@@ -1,0 +1,48 @@
+<table class="block" style="
+				width: 100%;
+				border-spacing: 0;
+				margin-top: 20px;"
+>
+	{{ if .Comment.TreePath }}
+		<tr class="diff-header">
+			<td style="background-color: #F4F5F7;padding: 5px 20px;font-family: inherit">
+				<span style="font-family: inherit">{{ .Comment.TreePath }}</span>
+			</td>
+		</tr>
+	{{ end }}
+	<tr class="comment-line">
+		<td>
+			<table class="comment-block" style="
+							padding: 10px;
+							width: 100%;
+							border: 1px solid #DFE1E6;
+							border-radius: 5px;
+							border-spacing: 0;"
+			>
+				<tr>
+					<td style="width: 0;padding: 10px;vertical-align: top;">
+						<img src="{{ .Comment.Poster.AvatarLink $.Context }}" width="48" height="48" alt="avatar" style="margin: 5px;"/>
+					</td>
+					<td style="margin: 5px;">
+						<table>
+							<tr>
+								<td>
+									<span style="font-weight: bold;margin: 5px;font-family: inherit;">
+										{{ .Comment.Poster.Name }}
+									</span>
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<span class="text" style="font-family: inherit">
+										{{ RenderMarkdownToHtml $.Context .Comment.Content }}
+									</span>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+</table>

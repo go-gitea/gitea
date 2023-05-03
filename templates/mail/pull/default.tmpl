@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Browser</title>
+</head>
+
+<body style="font-family: wf_segoe-ui_normal, 'Segoe UI', 'Segoe WP', Tahoma, Arial, sans-serif, serif, EmojiFont;">
+<table class="container" style="
+		background-color: #F4F5F7;
+		width: 100%;
+		margin: auto;
+		border: 1px solid #DFE1E6;
+		border-collapse: collapse;
+		box-shadow: 0 0 0 1px #DFE1E6;
+		border-radius: 5px;"
+>
+	<tr>
+		<td>
+			{{template "v2/header" .}}
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<table style="
+							background-color: #FFFFFF;
+							margin: auto;
+							width: 100%;
+							padding: 10px 50px;"
+			>
+				<tr>
+					<td>
+						{{if eq .ActionName "close"}}
+							{{.locale.Tr "mail.issue.action.close" (Escape .Doer.Name) .Issue.Index | Str2html}}
+						{{else if eq .ActionName "reopen"}}
+							{{.locale.Tr "mail.issue.action.reopen" (Escape .Doer.Name) .Issue.Index | Str2html}}
+						{{else if eq .ActionName "merge"}}
+							{{.locale.Tr "mail.issue.action.merge" (Escape .Doer.Name) .Issue.Index (Escape .Issue.PullRequest.BaseBranch) | Str2html}}
+						{{else if eq .ActionName "approve"}}
+							{{.locale.Tr "mail.issue.action.approve" (Escape .Doer.Name) | Str2html}}
+						{{else if eq .ActionName "reject"}}
+							{{.locale.Tr "mail.issue.action.reject" (Escape .Doer.Name) | Str2html}}
+						{{else if eq .ActionName "review"}}
+							{{.locale.Tr "mail.issue.action.review" (Escape .Doer.Name) | Str2html}}
+						<!--TODO No found locale for comment, only for review-->
+						{{else if eq .ActionName "comment"}}
+							{{.locale.Tr "mail.issue.action.review" (Escape .Doer.Name) | Str2html}}
+						{{else if eq .ActionName "review_dismissed"}}
+							{{.locale.Tr "mail.issue.action.review_dismissed" (Escape .Doer.Name) (Escape .Comment.Review.Reviewer.Name) | Str2html}}
+						{{else if eq .ActionName "ready_for_review"}}
+							{{.locale.Tr "mail.issue.action.ready_for_review" (Escape .Doer.Name) | Str2html}}
+						{{end}}
+					</td>
+				</tr>
+				{{ if .Comment.Content }}
+				<tr>
+					<td>
+						{{ template "v2/comment" . }}
+					</td>
+				</tr>
+				{{ end }}
+				{{ if .Comment.Review }}
+				<tr>
+					<td>
+						{{ template "v2/review" . }}
+					</td>
+				</tr>
+				{{ end }}
+				<tr>
+					<td>
+						<table style="
+									background-color: #F2F2F2;
+									border-spacing: 0;
+									border-radius: 5px;
+									border: 1px solid #0000001d;
+									padding: 10px 15px;
+									margin-top: 30px;">
+							<tr>
+								<td>
+									<a href="{{ .Issue.HTMLURL }}" class="view-button" style="
+											cursor: pointer;
+											font-size: 14px;
+											text-decoration: none;
+											color: black;"
+									>
+										{{.locale.Tr "mail.view_it_on" AppName}}
+									</a>
+								</td>
+							</tr>
+						</table>
+
+					</td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+</table>
+</body>
+
+</html>
