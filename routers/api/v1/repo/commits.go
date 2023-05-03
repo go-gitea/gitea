@@ -179,7 +179,13 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Total commit count
-		commitsCountTotal, err = baseCommit.CommitsCount(not)
+		commitsCountTotal, err = git.CommitsCount(ctx.Repo.GitRepo.Ctx, git.CommitsCountOptions{
+			RepoPath: ctx.Repo.GitRepo.Path,
+			Not:      not,
+			Revision: []string{baseCommit.ID.String()},
+			RelPath:  []string{},
+		})
+
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetCommitsCount", err)
 			return

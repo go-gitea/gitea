@@ -514,7 +514,7 @@ func (repo *Repository) AddLastCommitCache(cacheKey, fullName, sha string) error
 			if err != nil {
 				return 0, err
 			}
-			return commit.CommitsCount("")
+			return commit.CommitsCount()
 		})
 		if err != nil {
 			return err

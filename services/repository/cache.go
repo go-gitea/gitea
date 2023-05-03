@@ -35,7 +35,7 @@ func CacheRef(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 
 	if gitRepo.LastCommitCache == nil {
 		getCount := func() (int64, error) {
-			return commit.CommitsCount("")
+			return commit.CommitsCount()
 		}
 
 		commitsCount, err := cache.GetInt64(repo.GetCommitsCountCacheKey(getRefName(fullRefName), true), getCount)

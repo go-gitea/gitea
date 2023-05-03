@@ -44,7 +44,7 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *repo_model
 			if err != nil {
 				return fmt.Errorf("GetBranchCommit: %w", err)
 			}
-			countCache[release.Target], err = commit.CommitsCount("")
+			countCache[release.Target], err = commit.CommitsCount()
 			if err != nil {
 				return fmt.Errorf("CommitsCount: %w", err)
 			}

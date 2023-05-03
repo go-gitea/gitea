@@ -196,7 +196,7 @@ func (r *Repository) GetCommitsCount() (int64, error) {
 		contextName = r.CommitID
 	}
 	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, r.IsViewBranch || r.IsViewTag), func() (int64, error) {
-		return r.Commit.CommitsCount("")
+		return r.Commit.CommitsCount()
 	})
 }
 

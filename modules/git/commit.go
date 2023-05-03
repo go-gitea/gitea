@@ -195,10 +195,10 @@ func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) 
 }
 
 // CommitsCount returns number of total commits of until current revision.
-func (c *Commit) CommitsCount(not string) (int64, error) {
+func (c *Commit) CommitsCount() (int64, error) {
 	return CommitsCount(c.repo.Ctx, CommitsCountOptions{
 		RepoPath: c.repo.Path,
-		Not:      not,
+		Not:      "",
 		Revision: []string{c.ID.String()},
 		RelPath:  []string{},
 	})
