@@ -1228,8 +1228,6 @@ img.ui.avatar,
 }
 
 .following.bar {
-  z-index: 900;
-  left: 0;
   margin: 0 !important;
 }
 
@@ -1240,24 +1238,6 @@ img.ui.avatar,
 
 .following.bar .column .menu {
   margin-top: 0;
-}
-
-.following.bar .top.menu a.item.brand {
-  padding-left: 0;
-}
-
-.following.bar .top.menu a.item:hover,
-.following.bar .top.menu .dropdown.item:hover,
-.following.bar .top.menu .dropdown.item.active {
-  background-color: transparent;
-}
-
-.following.bar .top.menu a.item:hover {
-  color: rgba(0, 0, 0, 0.45);
-}
-
-.following.bar .top.menu .menu {
-  z-index: 900;
 }
 
 .following.bar .fitted .svg {

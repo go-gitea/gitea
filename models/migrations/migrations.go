@@ -491,6 +491,8 @@ var migrations = []Migration{
 	NewMigration("Add ArchivedUnix Column", v1_20.AddArchivedUnixToRepository),
 	// v256 -> 257
 	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
+	// v257 -> v258
+	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
 }
 
 // GetCurrentDBVersion returns the current db version

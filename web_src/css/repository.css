@@ -1359,7 +1359,7 @@
 }
 
 .repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n) {
-  background-color: rgba(0, 0, 0, 0.02) !important;
+  background-color: var(--color-light) !important;
 }
 
 .repository #commits-table td.sha .sha.label,

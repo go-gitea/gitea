@@ -173,7 +173,7 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(cp.Content, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(cp.Content)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
