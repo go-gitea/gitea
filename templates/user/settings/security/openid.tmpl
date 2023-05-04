@@ -51,13 +51,13 @@
 	</form>
 </div>
 
-<div class="ui small basic delete modal" id="delete-openid">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal" id="delete-openid">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.openid_deletion"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "settings.openid_deletion_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>

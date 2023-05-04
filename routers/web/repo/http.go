@@ -19,7 +19,7 @@ import (
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/auth"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -32,43 +32,31 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
+
+	"github.com/go-chi/cors"
 )
+
+func HTTPGitEnabledHandler(ctx *context.Context) {
+	if setting.Repository.DisableHTTPGit {
+		ctx.Resp.WriteHeader(http.StatusForbidden)
+		_, _ = ctx.Resp.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
+	}
+}
+
+func CorsHandler() func(next http.Handler) http.Handler {
+	if setting.Repository.AccessControlAllowOrigin != "" {
+		return cors.Handler(cors.Options{
+			AllowedOrigins: []string{setting.Repository.AccessControlAllowOrigin},
+			AllowedHeaders: []string{"Content-Type", "Authorization", "User-Agent"},
+		})
+	}
+	return func(next http.Handler) http.Handler {
+		return next
+	}
+}
 
 // httpBase implementation git smart HTTP protocol
 func httpBase(ctx *context.Context) (h *serviceHandler) {
-	if setting.Repository.DisableHTTPGit {
-		ctx.Resp.WriteHeader(http.StatusForbidden)
-		_, err := ctx.Resp.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
-		if err != nil {
-			log.Error(err.Error())
-		}
-		return
-	}
-
-	if len(setting.Repository.AccessControlAllowOrigin) > 0 {
-		allowedOrigin := setting.Repository.AccessControlAllowOrigin
-		// Set CORS headers for browser-based git clients
-		ctx.Resp.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
-		ctx.Resp.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, User-Agent")
-
-		// Handle preflight OPTIONS request
-		if ctx.Req.Method == "OPTIONS" {
-			if allowedOrigin == "*" {
-				ctx.Status(http.StatusOK)
-			} else if allowedOrigin == "null" {
-				ctx.Status(http.StatusForbidden)
-			} else {
-				origin := ctx.Req.Header.Get("Origin")
-				if len(origin) > 0 && origin == allowedOrigin {
-					ctx.Status(http.StatusOK)
-				} else {
-					ctx.Status(http.StatusForbidden)
-				}
-			}
-			return
-		}
-	}
-
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
 
@@ -164,13 +152,18 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			return
 		}
 
+		context.CheckRepoScopedToken(ctx, repo)
+		if ctx.Written() {
+			return
+		}
+
 		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true && ctx.Data["IsActionsToken"] != true {
-			_, err = auth.GetTwoFactorByUID(ctx.Doer.ID)
+			_, err = auth_model.GetTwoFactorByUID(ctx.Doer.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
 				ctx.PlainText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
 				return
-			} else if !auth.IsErrTwoFactorNotEnrolled(err) {
+			} else if !auth_model.IsErrTwoFactorNotEnrolled(err) {
 				ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
 				return
 			}

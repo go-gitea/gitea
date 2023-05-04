@@ -2,14 +2,16 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "Install on Cloud Provider"
 slug: "install-on-cloud-provider"
-weight: 20
+weight: 90
 toc: false
 draft: false
+aliases:
+  - /en-us/install-on-cloud-provider
 menu:
   sidebar:
     parent: "installation"
     name: "On cloud provider"
-    weight: 20
+    weight: 90
     identifier: "install-on-cloud-provider"
 ---
 

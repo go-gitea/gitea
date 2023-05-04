@@ -1,0 +1,28 @@
+name: "Pull: E2E Tests"
+
+on: [pull_request]
+
+jobs:
+  e2e_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.20'
+      - name: setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: build
+        run: make deps-frontend frontend deps-backend
+      - name: Install playwright browsers
+        run: npx playwright install --with-deps
+      - name: run tests
+        run: timeout -s ABRT 40m make test-e2e-sqlite
+        env:
+          GOPROXY: https://goproxy.io
+          GOSUMDB: sum.golang.org
+          USE_REPO_TEST_DIR: 1

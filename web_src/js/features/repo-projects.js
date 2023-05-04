@@ -126,27 +126,37 @@ export function initRepoProject() {
     });
   });
 
-  $(document).on('click', '.set-default-project-board', async function (e) {
-    e.preventDefault();
+  $('.default-project-board-modal').each(function () {
+    const boardColumn = $(this).closest('.board-column');
+    const showButton = $(boardColumn).find('.default-project-board-show');
+    const commitButton = $(this).find('.actions > .ok.button');
 
-    await $.ajax({
-      method: 'POST',
-      url: $(this).data('url'),
-      headers: {
-        'X-Csrf-Token': csrfToken,
-      },
-      contentType: 'application/json',
-    });
-
-    window.location.reload();
-  });
-
-  $('.delete-project-board').each(function () {
-    $(this).click(function (e) {
+    $(commitButton).on('click', (e) => {
       e.preventDefault();
 
       $.ajax({
-        url: $(this).data('url'),
+        method: 'POST',
+        url: $(showButton).data('url'),
+        headers: {
+          'X-Csrf-Token': csrfToken,
+        },
+        contentType: 'application/json',
+      }).done(() => {
+        window.location.reload();
+      });
+    });
+  });
+
+  $('.show-delete-column-modal').each(function () {
+    const deleteColumnModal = $(`${$(this).attr('data-modal')}`);
+    const deleteColumnButton = deleteColumnModal.find('.actions > .ok.button');
+    const deleteUrl = $(this).attr('data-url');
+
+    deleteColumnButton.on('click', (e) => {
+      e.preventDefault();
+
+      $.ajax({
+        url: deleteUrl,
         headers: {
           'X-Csrf-Token': csrfToken,
         },
@@ -158,7 +168,7 @@ export function initRepoProject() {
     });
   });
 
-  $('#new_board_submit').click(function (e) {
+  $('#new_board_submit').on('click', function (e) {
     e.preventDefault();
 
     const boardTitle = $('#new_board');

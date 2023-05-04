@@ -1,10 +1,12 @@
 ---
 date: "2018-06-02T11:00:00+02:00"
-title: "Usage: HTTPS setup"
+title: "HTTPS setup"
 slug: "https-setup"
 weight: 12
 toc: false
 draft: false
+aliases:
+  - /en-us/https-setup
 menu:
   sidebar:
     parent: "administration"

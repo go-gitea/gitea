@@ -24,7 +24,6 @@ const (
 // Emails show all emails
 func Emails(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.emails")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminEmails"] = true
 
 	opts := &user_model.SearchEmailOptions{

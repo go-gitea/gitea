@@ -2,9 +2,11 @@
 date: "2017-04-15T14:56:00+02:00"
 title: "Customizing Gitea"
 slug: "customizing-gitea"
-weight: 9
+weight: 100
 toc: false
 draft: false
+aliases:
+  - /en-us/customizing-gitea
 menu:
   sidebar:
     parent: "administration"

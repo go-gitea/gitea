@@ -26,7 +26,7 @@ func TestRepository_GetTags(t *testing.T) {
 		return
 	}
 	assert.Len(t, tags, 2)
-	assert.Equal(t, len(tags), total)
+	assert.Len(t, tags, total)
 	assert.EqualValues(t, "signed-tag", tags[0].Name)
 	assert.EqualValues(t, "36f97d9a96457e2bab511db30fe2db03893ebc64", tags[0].ID.String())
 	assert.EqualValues(t, "tag", tags[0].Type)

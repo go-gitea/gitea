@@ -29,21 +29,17 @@ import (
 )
 
 const (
-	tplReleases   base.TplName = "repo/release/list"
-	tplReleaseNew base.TplName = "repo/release/new"
+	tplReleasesList base.TplName = "repo/release/list"
+	tplReleaseNew   base.TplName = "repo/release/new"
+	tplTagsList     base.TplName = "repo/tag/list"
 )
 
 // calReleaseNumCommitsBehind calculates given release has how many commits behind release target.
 func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *repo_model.Release, countCache map[string]int64) error {
-	// Fast return if release target is same as default branch.
-	if repoCtx.BranchName == release.Target {
-		release.NumCommitsBehind = repoCtx.CommitsCount - release.NumCommits
-		return nil
-	}
-
 	// Get count if not exists
 	if _, ok := countCache[release.Target]; !ok {
-		if repoCtx.GitRepo.IsBranchExist(release.Target) {
+		// short-circuit for the default branch
+		if repoCtx.Repository.DefaultBranch == release.Target || repoCtx.GitRepo.IsBranchExist(release.Target) {
 			commit, err := repoCtx.GitRepo.GetBranchCommit(release.Target)
 			if err != nil {
 				return fmt.Errorf("GetBranchCommit: %w", err)
@@ -63,30 +59,25 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *repo_model
 
 // Releases render releases list page
 func Releases(ctx *context.Context) {
+	ctx.Data["PageIsReleaseList"] = true
+	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 	releasesOrTags(ctx, false)
 }
 
 // TagsList render tags list page
 func TagsList(ctx *context.Context) {
+	ctx.Data["PageIsTagList"] = true
+	ctx.Data["Title"] = ctx.Tr("repo.release.tags")
 	releasesOrTags(ctx, true)
 }
 
 func releasesOrTags(ctx *context.Context, isTagList bool) {
-	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 	ctx.Data["IsViewBranch"] = false
 	ctx.Data["IsViewTag"] = true
 	// Disable the showCreateNewBranch form in the dropdown on this page.
 	ctx.Data["CanCreateBranch"] = false
 	ctx.Data["HideBranchesInDropdown"] = true
-
-	if isTagList {
-		ctx.Data["Title"] = ctx.Tr("repo.release.tags")
-		ctx.Data["PageIsTagList"] = true
-	} else {
-		ctx.Data["Title"] = ctx.Tr("repo.release.releases")
-		ctx.Data["PageIsTagList"] = false
-	}
 
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
@@ -140,6 +131,10 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return
+	}
+
+	for _, release := range releases {
+		release.Repo = ctx.Repo.Repository
 	}
 
 	if err = repo_model.GetReleaseAttachments(ctx, releases...); err != nil {
@@ -197,7 +192,11 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(http.StatusOK, tplReleases)
+	if isTagList {
+		ctx.HTML(http.StatusOK, tplTagsList)
+	} else {
+		ctx.HTML(http.StatusOK, tplReleasesList)
+	}
 }
 
 // ReleasesFeedRSS get feeds for releases in RSS format
@@ -248,6 +247,8 @@ func SingleRelease(ctx *context.Context) {
 		ctx.Data["Title"] = release.Title
 	}
 
+	release.Repo = ctx.Repo.Repository
+
 	err = repo_model.GetReleaseAttachments(ctx, release)
 	if err != nil {
 		ctx.ServerError("GetReleaseAttachments", err)
@@ -281,7 +282,7 @@ func SingleRelease(ctx *context.Context) {
 	}
 
 	ctx.Data["Releases"] = []*repo_model.Release{release}
-	ctx.HTML(http.StatusOK, tplReleases)
+	ctx.HTML(http.StatusOK, tplReleasesList)
 }
 
 // LatestRelease redirects to the latest release
@@ -308,7 +309,6 @@ func LatestRelease(ctx *context.Context) {
 func NewRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
-	ctx.Data["RequireTribute"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
 	if tagName := ctx.FormString("tag"); len(tagName) > 0 {
 		rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)
@@ -334,13 +334,12 @@ func NewRelease(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
-	var err error
-	// Get assignees.
-	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
+	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {
-		ctx.ServerError("GetAssignees", err)
+		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
+	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
 
 	upload.AddUploadContext(ctx, "release")
 	ctx.HTML(http.StatusOK, tplReleaseNew)
@@ -351,7 +350,6 @@ func NewReleasePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewReleaseForm)
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
-	ctx.Data["RequireTribute"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplReleaseNew)
@@ -360,6 +358,12 @@ func NewReleasePost(ctx *context.Context) {
 
 	if !ctx.Repo.GitRepo.IsBranchExist(form.Target) {
 		ctx.RenderWithErr(ctx.Tr("form.target_branch_not_exist"), tplReleaseNew, &form)
+		return
+	}
+
+	// Title of release cannot be empty
+	if len(form.TagOnly) == 0 && len(form.Title) == 0 {
+		ctx.RenderWithErr(ctx.Tr("repo.release.title_empty"), tplReleaseNew, &form)
 		return
 	}
 
@@ -469,7 +473,6 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
-	ctx.Data["RequireTribute"] = true
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "release")
 
@@ -499,11 +502,12 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["attachments"] = rel.Attachments
 
 	// Get assignees.
-	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, rel.Repo)
+	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, rel.Repo)
 	if err != nil {
-		ctx.ServerError("GetAssignees", err)
+		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
+	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
 
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
@@ -514,7 +518,6 @@ func EditReleasePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
-	ctx.Data["RequireTribute"] = true
 
 	tagName := ctx.Params("*")
 	rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)

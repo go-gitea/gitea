@@ -5,6 +5,8 @@ slug: "mail-templates"
 weight: 45
 toc: false
 draft: false
+aliases:
+  - /en-us/mail-templates
 menu:
   sidebar:
     parent: "administration"
@@ -39,7 +41,7 @@ Currently, the following notification events make use of templates:
 | `approve`   | The head comment of a approving review for a pull request.                                                   |
 | `reject`    | The head comment of a review requesting changes for a pull request.                                          |
 | `code`      | A single comment on the code of a pull request.                                                              |
-| `assigned`  | Used was assigned to an issue or pull request.                                                               |
+| `assigned`  | User was assigned to an issue or pull request.                                                               |
 | `default`   | Any action not included in the above categories, or when the corresponding category template is not present. |
 
 The path for the template of a particular message type is:

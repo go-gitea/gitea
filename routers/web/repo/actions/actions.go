@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"bytes"
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -11,11 +12,14 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/convert"
+
+	"github.com/nektos/act/pkg/model"
 )
 
 const (
@@ -24,9 +28,8 @@ const (
 )
 
 type Workflow struct {
-	Entry     git.TreeEntry
-	IsInvalid bool
-	ErrMsg    string
+	Entry  git.TreeEntry
+	ErrMsg string
 }
 
 // MustEnableActions check if actions are enabled in settings
@@ -73,6 +76,23 @@ func List(ctx *context.Context) {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
+
+		// Get all runner labels
+		opts := actions_model.FindRunnerOptions{
+			RepoID:        ctx.Repo.Repository.ID,
+			WithAvailable: true,
+		}
+		runners, err := actions_model.FindRunners(ctx, opts)
+		if err != nil {
+			ctx.ServerError("FindRunners", err)
+			return
+		}
+		allRunnerLabels := make(container.Set[string])
+		for _, r := range runners {
+			allRunnerLabels.AddMultiple(r.AgentLabels...)
+			allRunnerLabels.AddMultiple(r.CustomLabels...)
+		}
+
 		workflows = make([]Workflow, 0, len(entries))
 		for _, entry := range entries {
 			workflow := Workflow{Entry: *entry}
@@ -81,10 +101,24 @@ func List(ctx *context.Context) {
 				ctx.Error(http.StatusInternalServerError, err.Error())
 				return
 			}
-			_, err = actions.GetEventsFromContent(content)
+			wf, err := model.ReadWorkflow(bytes.NewReader(content))
 			if err != nil {
-				workflow.IsInvalid = true
-				workflow.ErrMsg = err.Error()
+				workflow.ErrMsg = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", err.Error())
+				workflows = append(workflows, workflow)
+				continue
+			}
+			// Check whether have matching runner
+			for _, j := range wf.Jobs {
+				runsOnList := j.RunsOn()
+				for _, ro := range runsOnList {
+					if !allRunnerLabels.Contains(ro) {
+						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_runner_helper", ro)
+						break
+					}
+				}
+				if workflow.ErrMsg != "" {
+					break
+				}
 			}
 			workflows = append(workflows, workflow)
 		}
@@ -128,12 +162,18 @@ func List(ctx *context.Context) {
 	ctx.Data["NumClosedActionRuns"] = numClosedRuns
 
 	opts.IsClosed = util.OptionalBoolNone
-	if ctx.FormString("state") == "closed" {
+	isShowClosed := ctx.FormString("state") == "closed"
+	if len(ctx.FormString("state")) == 0 && numOpenRuns == 0 && numClosedRuns != 0 {
+		isShowClosed = true
+	}
+
+	if isShowClosed {
 		opts.IsClosed = util.OptionalBoolTrue
 		ctx.Data["IsShowClosed"] = true
 	} else {
 		opts.IsClosed = util.OptionalBoolFalse
 	}
+
 	runs, total, err := actions_model.FindRuns(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())

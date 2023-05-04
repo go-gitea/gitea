@@ -2,14 +2,16 @@
 date: "2017-08-23T09:00:00+02:00"
 title: "Installation avec le binaire pré-compilé"
 slug: "install-from-binary"
-weight: 10
+weight: 15
 toc: false
 draft: false
+aliases:
+  - /fr-fr/install-from-binary
 menu:
   sidebar:
     parent: "installation"
     name: "Binaire pré-compilé"
-    weight: 20
+    weight: 15
     identifier: "install-from-binary"
 ---
 
