@@ -7,7 +7,7 @@ require (
 	code.gitea.io/gitea-vet v0.2.2
 	code.gitea.io/sdk/gitea v0.15.1
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
-	gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681
+	gitea.com/go-chi/binding v0.0.0-20230415142243-04b515c6d669
 	gitea.com/go-chi/cache v0.2.0
 	gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5
 	gitea.com/go-chi/session v0.0.0-20221220005550-e056dc379164
@@ -189,7 +189,7 @@ require (
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-openapi/validate v0.22.0 // indirect
 	github.com/go-webauthn/revoke v0.1.9 // indirect
-	github.com/goccy/go-json v0.10.0 // indirect
+	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/geo v0.0.0-20210211234256-740aa86cb551 // indirect

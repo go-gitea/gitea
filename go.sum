@@ -56,6 +56,8 @@ gitea.com/gitea/act v0.243.4 h1:MuBHBLCJfpa6mzwwvs4xqQynrSP2RRzpHpWfTV16PmI=
 gitea.com/gitea/act v0.243.4/go.mod h1:mabw6AZAiDgxGlK83orWLrNERSPvgBJzEUS3S7u2bHI=
 gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681 h1:MMSPgnVULVwV9kEBgvyEUhC9v/uviZ55hPJEMjpbNR4=
 gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681/go.mod h1:77TZu701zMXWJFvB8gvTbQ92zQ3DQq/H7l5wAEjQRKc=
+gitea.com/go-chi/binding v0.0.0-20230415142243-04b515c6d669 h1:RUBX+MK/TsDxpHmymaOaydfigEbbzqUnG1OTZU/HAeo=
+gitea.com/go-chi/binding v0.0.0-20230415142243-04b515c6d669/go.mod h1:77TZu701zMXWJFvB8gvTbQ92zQ3DQq/H7l5wAEjQRKc=
 gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e/go.mod h1:k2V/gPDEtXGjjMGuBJiapffAXTv76H4snSmlJRLUhH0=
 gitea.com/go-chi/cache v0.2.0 h1:E0npuTfDW6CT1yD8NMDVc1SK6IeRjfmRL2zlEsCEd7w=
 gitea.com/go-chi/cache v0.2.0/go.mod h1:iQlVK2aKTZ/rE9UcHyz9pQWGvdP9i1eI2spOpzgCrtE=
@@ -489,6 +491,8 @@ github.com/goccy/go-json v0.9.5/go.mod h1:6MelG93GURQebXPDq3khkgXZkazVtN9CRI+MGF
 github.com/goccy/go-json v0.9.6/go.mod h1:6MelG93GURQebXPDq3khkgXZkazVtN9CRI+MGFi0w8I=
 github.com/goccy/go-json v0.10.0 h1:mXKd9Qw4NuzShiRlOXKews24ufknHO7gx30lsDyokKA=
 github.com/goccy/go-json v0.10.0/go.mod h1:6MelG93GURQebXPDq3khkgXZkazVtN9CRI+MGFi0w8I=
+github.com/goccy/go-json v0.10.2 h1:CrxCmQqYDkv1z7lO7Wbh2HN93uovUHgrECaO5ZrCXAU=
+github.com/goccy/go-json v0.10.2/go.mod h1:6MelG93GURQebXPDq3khkgXZkazVtN9CRI+MGFi0w8I=
 github.com/gogo/googleapis v1.1.0/go.mod h1:gf4bu3Q80BeJ6H1S1vYPm8/ELATdvryBaNFGgqEef3s=
 github.com/gogo/protobuf v1.1.1/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
 github.com/gogo/protobuf v1.2.0/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
