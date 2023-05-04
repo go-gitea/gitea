@@ -74,7 +74,7 @@ func CreateOrg(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToOrganization(org))
+	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }
 
 // GetAllOrgs API for getting information of all the organizations
@@ -114,7 +114,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 	}
 	orgs := make([]*api.Organization, len(users))
 	for i := range users {
-		orgs[i] = convert.ToOrganization(organization.OrgFromUser(users[i]))
+		orgs[i] = convert.ToOrganization(ctx, organization.OrgFromUser(users[i]))
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)

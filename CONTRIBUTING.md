@@ -121,8 +121,7 @@ See the [hacking instructions](https://docs.gitea.io/en-us/hacking-on-gitea/).
 
 Changes to Gitea must be reviewed before they are accepted—no matter who
 makes the change, even if they are an owner or a maintainer. We use GitHub's
-pull request workflow to do that. And, we also use [LGTM](http://lgtm.co)
-to ensure every PR is reviewed by at least 2 maintainers.
+pull request workflow to do that. Every PR is reviewed by at least 2 maintainers.
 
 Please try to make your pull request easy to review for us. And, please read
 the *[How to get faster PR reviews](https://github.com/kubernetes/community/blob/261cb0fd089b64002c91e8eddceebf032462ccd6/contributors/guide/pull-requests.md#best-practices-for-faster-reviews)* guide;
@@ -299,9 +298,7 @@ known as the release freeze. All the feature pull requests should be
 merged before feature freeze. And, during the frozen period, a corresponding
 release branch is open for fixes backported from main branch. Release candidates
 are made during this period for user testing to
-obtain a final version that is maintained in this branch. A release is
-maintained by issuing patch releases to only correct critical problems
-such as crashes or security issues.
+obtain a final version that is maintained in this branch.
 
 Major release cycles are seasonal. They always begin on the 25th and end on
 the 24th (i.e., the 25th of December to March 24th).
@@ -310,6 +307,16 @@ During a development cycle, we may also publish any necessary minor releases
 for the previous version. For example, if the latest, published release is
 v1.2, then minor changes for the previous release—e.g., v1.1.0 -> v1.1.1—are
 still possible.
+
+The previous release gets fixes for:
+
+- Security issues
+- Critical bugs
+- Regressions
+- Build issues
+- Necessary enhancements (including necessary UI/UX fixes)
+
+The backported fixes should avoid breaking downgrade between minor releases as much as possible.
 
 ## Maintainers
 

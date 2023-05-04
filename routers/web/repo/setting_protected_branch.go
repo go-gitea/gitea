@@ -130,15 +130,6 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	c.Data["branch_status_check_contexts"] = contexts
-	c.Data["is_context_required"] = func(context string) bool {
-		for _, c := range rule.StatusCheckContexts {
-			if c == context {
-				return true
-			}
-		}
-		return false
-	}
-
 	if c.Repo.Owner.IsOrganization() {
 		teams, err := organization.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c.Repo.Repository.ID, perm.AccessModeRead)
 		if err != nil {
@@ -166,10 +157,36 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	}
 
 	var err error
-	protectBranch, err = git_model.GetProtectedBranchRuleByName(ctx, ctx.Repo.Repository.ID, f.RuleName)
-	if err != nil {
-		ctx.ServerError("GetProtectBranchOfRepoByName", err)
-		return
+	if f.RuleID > 0 {
+		// If the RuleID isn't 0, it must be an edit operation. So we get rule by id.
+		protectBranch, err = git_model.GetProtectedBranchRuleByID(ctx, ctx.Repo.Repository.ID, f.RuleID)
+		if err != nil {
+			ctx.ServerError("GetProtectBranchOfRepoByID", err)
+			return
+		}
+		if protectBranch != nil && protectBranch.RuleName != f.RuleName {
+			// RuleName changed. We need to check if there is a rule with the same name.
+			// If a rule with the same name exists, an error should be returned.
+			sameNameProtectBranch, err := git_model.GetProtectedBranchRuleByName(ctx, ctx.Repo.Repository.ID, f.RuleName)
+			if err != nil {
+				ctx.ServerError("GetProtectBranchOfRepoByName", err)
+				return
+			}
+			if sameNameProtectBranch != nil {
+				ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_duplicate_rule_name"))
+				ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, protectBranch.RuleName))
+				return
+			}
+		}
+	} else {
+		// FIXME: If a new ProtectBranch has a duplicate RuleName, an error should be returned.
+		// Currently, if a new ProtectBranch with a duplicate RuleName is created, the existing ProtectBranch will be updated.
+		// But we cannot modify this logic now because many unit tests rely on it.
+		protectBranch, err = git_model.GetProtectedBranchRuleByName(ctx, ctx.Repo.Repository.ID, f.RuleName)
+		if err != nil {
+			ctx.ServerError("GetProtectBranchOfRepoByName", err)
+			return
+		}
 	}
 	if protectBranch == nil {
 		// No options found, create defaults.
@@ -326,11 +343,11 @@ func RenameBranchPost(ctx *context.Context) {
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.GetErrMsg())
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 		return
 	}
 
-	msg, err := repository.RenameBranch(ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, form.From, form.To)
+	msg, err := repository.RenameBranch(ctx, ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, form.From, form.To)
 	if err != nil {
 		ctx.ServerError("RenameBranch", err)
 		return
@@ -338,16 +355,16 @@ func RenameBranchPost(ctx *context.Context) {
 
 	if msg == "target_exist" {
 		ctx.Flash.Error(ctx.Tr("repo.settings.rename_branch_failed_exist", form.To))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 		return
 	}
 
 	if msg == "from_not_exist" {
 		ctx.Flash.Error(ctx.Tr("repo.settings.rename_branch_failed_not_exist", form.From))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.rename_branch_success", form.From, form.To))
-	ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+	ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 }

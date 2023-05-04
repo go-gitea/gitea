@@ -1,18 +1,9 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content organization settings options">
-	{{template "org/header" .}}
-	<div class="ui container">
-		<div class="ui grid">
-			{{template "org/settings/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
+{{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings options")}}
+			<div class="org-setting-content">
 				<h4 class="ui top attached header">
 					{{.locale.Tr "settings.applications"}}
 				</h4>
 
 				{{template "user/settings/applications_oauth2_list" .}}
 			</div>
-		</div>
-	</div>
-</div>
-{{template "base/footer" .}}
+{{template "org/settings/layout_footer" .}}

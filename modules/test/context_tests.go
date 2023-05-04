@@ -5,7 +5,6 @@ package test
 
 import (
 	scontext "context"
-	"html/template"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -18,11 +17,12 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	chi "github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
-	"github.com/unrolled/render"
 )
 
 // MockContext mock context for unit tests
@@ -30,12 +30,12 @@ func MockContext(t *testing.T, path string) *context.Context {
 	resp := &mockResponseWriter{}
 	ctx := context.Context{
 		Render: &mockRender{},
-		Data:   make(map[string]interface{}),
+		Data:   make(middleware.ContextData),
 		Flash: &middleware.Flash{
 			Values: make(url.Values),
 		},
 		Resp:   context.NewResponse(resp),
-		Locale: &mockLocale{},
+		Locale: &translation.MockLocale{},
 	}
 	defer ctx.Close()
 
@@ -86,24 +86,10 @@ func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
 // LoadGitRepo load a git repo into a test context. Requires that ctx.Repo has
 // already been populated.
 func LoadGitRepo(t *testing.T, ctx *context.Context) {
-	assert.NoError(t, ctx.Repo.Repository.GetOwner(ctx))
+	assert.NoError(t, ctx.Repo.Repository.LoadOwner(ctx))
 	var err error
 	ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
-}
-
-type mockLocale struct{}
-
-func (l mockLocale) Language() string {
-	return "en"
-}
-
-func (l mockLocale) Tr(s string, _ ...interface{}) string {
-	return s
-}
-
-func (l mockLocale) TrN(_cnt interface{}, key1, _keyN string, _args ...interface{}) string {
-	return key1
 }
 
 type mockResponseWriter struct {
@@ -134,11 +120,11 @@ func (rw *mockResponseWriter) Push(target string, opts *http.PushOptions) error 
 
 type mockRender struct{}
 
-func (tr *mockRender) TemplateLookup(tmpl string) *template.Template {
-	return nil
+func (tr *mockRender) TemplateLookup(tmpl string) (templates.TemplateExecutor, error) {
+	return nil, nil
 }
 
-func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}, _ ...render.HTMLOptions) error {
+func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}) error {
 	if resp, ok := w.(http.ResponseWriter); ok {
 		resp.WriteHeader(status)
 	}

@@ -7,11 +7,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	ini "gopkg.in/ini.v1"
 )
 
-func TestParseMailerConfig(t *testing.T) {
-	iniFile := ini.Empty()
+func Test_loadMailerFrom(t *testing.T) {
+	iniFile := NewEmptyConfigProvider()
 	kases := map[string]*Mailer{
 		"smtp.mydomain.com": {
 			SMTPAddr: "smtp.mydomain.com",
@@ -34,7 +33,7 @@ func TestParseMailerConfig(t *testing.T) {
 			sec.NewKey("HOST", host)
 
 			// Check mailer setting
-			parseMailerConfig(iniFile)
+			loadMailerFrom(iniFile)
 
 			assert.EqualValues(t, kase.SMTPAddr, MailService.SMTPAddr)
 			assert.EqualValues(t, kase.SMTPPort, MailService.SMTPPort)

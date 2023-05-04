@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin user">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.users.user_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 			<div class="ui right">
@@ -94,9 +91,9 @@
 							<td>{{if .IsRestricted}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if index $.UsersTwoFaStatus .ID}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{.NumRepos}}</td>
-							<td><span title="{{.CreatedUnix.FormatLong}}"><time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time></span></td>
+							<td>{{DateTime "short" .CreatedUnix}}</td>
 							{{if .LastLoginUnix}}
-								<td><span title="{{.LastLoginUnix.FormatLong}}"><time data-format="short-date" datetime="{{.LastLoginUnix.FormatLong}}">{{.LastLoginUnix.FormatShort}}</time></span></td>
+								<td>{{DateTime "short" .LastLoginUnix}}</td>
 							{{else}}
 								<td><span>{{$.locale.Tr "admin.users.never_login"}}</span></td>
 							{{end}}
@@ -109,5 +106,4 @@
 
 		{{template "base/paginate" .}}
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

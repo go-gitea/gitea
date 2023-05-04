@@ -24,6 +24,7 @@ func Search(ctx *context.Context) {
 		Keyword:     ctx.FormTrim("q"),
 		UID:         ctx.FormInt64("uid"),
 		Type:        user_model.UserTypeIndividual,
+		IsActive:    ctx.FormOptionalBool("active"),
 		ListOptions: listOptions,
 	})
 	if err != nil {
@@ -38,6 +39,6 @@ func Search(ctx *context.Context) {
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
-		"data": convert.ToUsers(ctx.Doer, users),
+		"data": convert.ToUsers(ctx, ctx.Doer, users),
 	})
 }

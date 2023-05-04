@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"code.gitea.io/gitea/modules/process"
 )
 
 type loggerMap struct {
@@ -243,7 +245,7 @@ func Close() {
 func Log(skip int, level Level, format string, v ...interface{}) {
 	l, ok := NamedLoggers.Load(DEFAULT)
 	if ok {
-		l.Log(skip+1, level, format, v...)
+		l.Log(skip+1, level, format, v...) //nolint:errcheck
 	}
 }
 
@@ -271,7 +273,7 @@ func (l *LoggerAsWriter) Write(p []byte) (int, error) {
 	for _, logger := range l.ourLoggers {
 		// Skip = 3 because this presumes that we have been called by log.Println()
 		// If the caller has used log.Output or the like this will be wrong
-		logger.Log(3, l.level, string(p))
+		logger.Log(3, l.level, string(p)) //nolint:errcheck
 	}
 	return len(p), nil
 }
@@ -285,6 +287,15 @@ func (l *LoggerAsWriter) Log(msg string) {
 }
 
 func init() {
+	process.Trace = func(start bool, pid process.IDType, description string, parentPID process.IDType, typ string) {
+		if start && parentPID != "" {
+			Log(1, TRACE, "Start %s: %s (from %s) (%s)", NewColoredValue(pid, FgHiYellow), description, NewColoredValue(parentPID, FgYellow), NewColoredValue(typ, Reset))
+		} else if start {
+			Log(1, TRACE, "Start %s: %s (%s)", NewColoredValue(pid, FgHiYellow), description, NewColoredValue(typ, Reset))
+		} else {
+			Log(1, TRACE, "Done %s: %s", NewColoredValue(pid, FgHiYellow), NewColoredValue(description, Reset))
+		}
+	}
 	_, filename, _, _ := runtime.Caller(0)
 	prefix = strings.TrimSuffix(filename, "modules/log/log.go")
 	if prefix == filename {

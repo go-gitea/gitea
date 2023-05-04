@@ -16,6 +16,16 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/yuin/goldmark/ast"
+)
+
+type RenderMetaMode string
+
+const (
+	RenderMetaAsDetails RenderMetaMode = "details" // default
+	RenderMetaAsNone    RenderMetaMode = "none"
+	RenderMetaAsTable   RenderMetaMode = "table"
 )
 
 type ProcessorHelper struct {
@@ -63,7 +73,8 @@ type RenderContext struct {
 	GitRepo          *git.Repository
 	ShaExistCache    map[string]bool
 	cancelFn         func()
-	TableOfContents  []Header
+	SidebarTocNode   ast.Node
+	RenderMetaAs     RenderMetaMode
 	InStandalonePage bool // used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
 }
 
@@ -283,6 +294,11 @@ type ErrUnsupportedRenderExtension struct {
 	Extension string
 }
 
+func IsErrUnsupportedRenderExtension(err error) bool {
+	_, ok := err.(ErrUnsupportedRenderExtension)
+	return ok
+}
+
 func (err ErrUnsupportedRenderExtension) Error() string {
 	return fmt.Sprintf("Unsupported render extension: %s", err.Extension)
 }
@@ -318,40 +334,10 @@ func IsMarkupFile(name, markup string) bool {
 	return false
 }
 
-// IsReadmeFile reports whether name looks like a README file
-// based on its name.
-func IsReadmeFile(name string) bool {
-	name = strings.ToLower(name)
-	if len(name) < 6 {
-		return false
-	} else if len(name) == 6 {
-		return name == "readme"
+func PreviewableExtensions() []string {
+	extensions := make([]string, 0, len(extRenderers))
+	for extension := range extRenderers {
+		extensions = append(extensions, extension)
 	}
-	return name[:7] == "readme."
-}
-
-// IsReadmeFileExtension reports whether name looks like a README file
-// based on its name. It will look through the provided extensions and check if the file matches
-// one of the extensions and provide the index in the extension list.
-// If the filename is `readme.` with an unmatched extension it will match with the index equaling
-// the length of the provided extension list.
-// Note that the '.' should be provided in ext, e.g ".md"
-func IsReadmeFileExtension(name string, ext ...string) (int, bool) {
-	name = strings.ToLower(name)
-	if len(name) < 6 || name[:6] != "readme" {
-		return 0, false
-	}
-
-	for i, extension := range ext {
-		extension = strings.ToLower(extension)
-		if name[6:] == extension {
-			return i, true
-		}
-	}
-
-	if name[6] == '.' {
-		return len(ext), true
-	}
-
-	return 0, false
+	return extensions
 }

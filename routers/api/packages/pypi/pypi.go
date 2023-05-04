@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"sort"
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -62,6 +63,11 @@ func PackageMetadata(ctx *context.Context) {
 		return
 	}
 
+	// sort package descriptors by version to mimic PyPI format
+	sort.Slice(pds, func(i, j int) bool {
+		return strings.Compare(pds[i].Version.Version, pds[j].Version.Version) < 0
+	})
+
 	ctx.Data["RegistryURL"] = setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/pypi"
 	ctx.Data["PackageDescriptor"] = pds[0]
 	ctx.Data["PackageDescriptors"] = pds
@@ -111,7 +117,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer file.Close()
 
-	buf, err := packages_module.CreateHashedBufferFromReader(file, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(file)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

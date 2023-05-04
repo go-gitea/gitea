@@ -19,6 +19,9 @@ type (
 	// BoardType is used to represent a project board type
 	BoardType uint8
 
+	// CardType is used to represent a project board card type
+	CardType uint8
+
 	// BoardList is a list of all project boards in a repository
 	BoardList []*Board
 )
@@ -32,6 +35,14 @@ const (
 
 	// BoardTypeBugTriage is a project board type that has predefined columns suited to hunting down bugs
 	BoardTypeBugTriage
+)
+
+const (
+	// CardTypeTextOnly is a project board card type that is text only
+	CardTypeTextOnly CardType = iota
+
+	// CardTypeImagesAndText is a project board card type that has images and text
+	CardTypeImagesAndText
 )
 
 // BoardColorPattern is a regexp witch can validate BoardColor
@@ -79,6 +90,16 @@ func init() {
 func IsBoardTypeValid(p BoardType) bool {
 	switch p {
 	case BoardTypeNone, BoardTypeBasicKanban, BoardTypeBugTriage:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsCardTypeValid checks if the project board card type is valid
+func IsCardTypeValid(p CardType) bool {
+	switch p {
+	case CardTypeTextOnly, CardTypeImagesAndText:
 		return true
 	default:
 		return false
@@ -208,14 +229,14 @@ func UpdateBoard(ctx context.Context, board *Board) error {
 
 // GetBoards fetches all boards related to a project
 // if no default board set, first board is a temporary "Uncategorized" board
-func GetBoards(ctx context.Context, projectID int64) (BoardList, error) {
+func (p *Project) GetBoards(ctx context.Context) (BoardList, error) {
 	boards := make([]*Board, 0, 5)
 
-	if err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", projectID, false).OrderBy("Sorting").Find(&boards); err != nil {
+	if err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", p.ID, false).OrderBy("Sorting").Find(&boards); err != nil {
 		return nil, err
 	}
 
-	defaultB, err := getDefaultBoard(ctx, projectID)
+	defaultB, err := p.getDefaultBoard(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -224,9 +245,9 @@ func GetBoards(ctx context.Context, projectID int64) (BoardList, error) {
 }
 
 // getDefaultBoard return default board and create a dummy if none exist
-func getDefaultBoard(ctx context.Context, projectID int64) (*Board, error) {
+func (p *Project) getDefaultBoard(ctx context.Context) (*Board, error) {
 	var board Board
-	exist, err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", projectID, true).Get(&board)
+	exist, err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", p.ID, true).Get(&board)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +257,7 @@ func getDefaultBoard(ctx context.Context, projectID int64) (*Board, error) {
 
 	// represents a board for issues not assigned to one
 	return &Board{
-		ProjectID: projectID,
+		ProjectID: p.ID,
 		Title:     "Uncategorized",
 		Default:   true,
 	}, nil

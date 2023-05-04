@@ -2,14 +2,16 @@
 date: "2020-03-19T19:27:00+02:00"
 title: "在 Kubernetes 安裝"
 slug: "install-on-kubernetes"
-weight: 10
+weight: 80
 toc: false
 draft: false
+aliases:
+  - /zh-tw/install-on-kubernetes
 menu:
   sidebar:
     parent: "installation"
     name: "Kubernetes"
-    weight: 50
+    weight: 80
     identifier: "install-on-kubernetes"
 ---
 

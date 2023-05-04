@@ -108,7 +108,7 @@ func CreateFork(ctx *context.APIContext) {
 	if form.Organization == nil {
 		forker = ctx.Doer
 	} else {
-		org, err := organization.GetOrgByName(*form.Organization)
+		org, err := organization.GetOrgByName(ctx, *form.Organization)
 		if err != nil {
 			if organization.IsErrOrgNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -141,7 +141,7 @@ func CreateFork(ctx *context.APIContext) {
 		Description: repo.Description,
 	})
 	if err != nil {
-		if repo_model.IsErrReachLimitOfRepo(err) || repo_model.IsErrRepoAlreadyExist(err) {
+		if repo_service.IsErrForkAlreadyExist(err) || repo_model.IsErrRepoAlreadyExist(err) || repo_model.IsErrReachLimitOfRepo(err) {
 			ctx.Error(http.StatusConflict, "ForkRepository", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "ForkRepository", err)

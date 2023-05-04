@@ -30,10 +30,13 @@ type Type string
 
 // List of supported packages
 const (
+	TypeCargo     Type = "cargo"
+	TypeChef      Type = "chef"
 	TypeComposer  Type = "composer"
 	TypeConan     Type = "conan"
 	TypeConda     Type = "conda"
 	TypeContainer Type = "container"
+	TypeDebian    Type = "debian"
 	TypeGeneric   Type = "generic"
 	TypeHelm      Type = "helm"
 	TypeMaven     Type = "maven"
@@ -42,14 +45,18 @@ const (
 	TypePub       Type = "pub"
 	TypePyPI      Type = "pypi"
 	TypeRubyGems  Type = "rubygems"
+	TypeSwift     Type = "swift"
 	TypeVagrant   Type = "vagrant"
 )
 
 var TypeList = []Type{
+	TypeCargo,
+	TypeChef,
 	TypeComposer,
 	TypeConan,
 	TypeConda,
 	TypeContainer,
+	TypeDebian,
 	TypeGeneric,
 	TypeHelm,
 	TypeMaven,
@@ -58,12 +65,17 @@ var TypeList = []Type{
 	TypePub,
 	TypePyPI,
 	TypeRubyGems,
+	TypeSwift,
 	TypeVagrant,
 }
 
 // Name gets the name of the package type
 func (pt Type) Name() string {
 	switch pt {
+	case TypeCargo:
+		return "Cargo"
+	case TypeChef:
+		return "Chef"
 	case TypeComposer:
 		return "Composer"
 	case TypeConan:
@@ -72,6 +84,8 @@ func (pt Type) Name() string {
 		return "Conda"
 	case TypeContainer:
 		return "Container"
+	case TypeDebian:
+		return "Debian"
 	case TypeGeneric:
 		return "Generic"
 	case TypeHelm:
@@ -88,6 +102,8 @@ func (pt Type) Name() string {
 		return "PyPI"
 	case TypeRubyGems:
 		return "RubyGems"
+	case TypeSwift:
+		return "Swift"
 	case TypeVagrant:
 		return "Vagrant"
 	}
@@ -97,6 +113,10 @@ func (pt Type) Name() string {
 // SVGName gets the name of the package type svg image
 func (pt Type) SVGName() string {
 	switch pt {
+	case TypeCargo:
+		return "gitea-cargo"
+	case TypeChef:
+		return "gitea-chef"
 	case TypeComposer:
 		return "gitea-composer"
 	case TypeConan:
@@ -105,6 +125,8 @@ func (pt Type) SVGName() string {
 		return "gitea-conda"
 	case TypeContainer:
 		return "octicon-container"
+	case TypeDebian:
+		return "gitea-debian"
 	case TypeGeneric:
 		return "octicon-package"
 	case TypeHelm:
@@ -121,6 +143,8 @@ func (pt Type) SVGName() string {
 		return "gitea-python"
 	case TypeRubyGems:
 		return "gitea-rubygems"
+	case TypeSwift:
+		return "gitea-swift"
 	case TypeVagrant:
 		return "gitea-vagrant"
 	}
@@ -136,6 +160,7 @@ type Package struct {
 	Name             string `xorm:"NOT NULL"`
 	LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	SemverCompatible bool   `xorm:"NOT NULL DEFAULT false"`
+	IsInternal       bool   `xorm:"NOT NULL DEFAULT false"`
 }
 
 // TryInsertPackage inserts a package. If a package exists already, ErrDuplicatePackage is returned
@@ -196,9 +221,10 @@ func GetPackageByID(ctx context.Context, packageID int64) (*Package, error) {
 // GetPackageByName gets a package by name
 func GetPackageByName(ctx context.Context, ownerID int64, packageType Type, name string) (*Package, error) {
 	var cond builder.Cond = builder.Eq{
-		"package.owner_id":   ownerID,
-		"package.type":       packageType,
-		"package.lower_name": strings.ToLower(name),
+		"package.owner_id":    ownerID,
+		"package.type":        packageType,
+		"package.lower_name":  strings.ToLower(name),
+		"package.is_internal": false,
 	}
 
 	p := &Package{}
@@ -218,8 +244,9 @@ func GetPackageByName(ctx context.Context, ownerID int64, packageType Type, name
 // GetPackagesByType gets all packages of a specific type
 func GetPackagesByType(ctx context.Context, ownerID int64, packageType Type) ([]*Package, error) {
 	var cond builder.Cond = builder.Eq{
-		"package.owner_id": ownerID,
-		"package.type":     packageType,
+		"package.owner_id":    ownerID,
+		"package.type":        packageType,
+		"package.is_internal": false,
 	}
 
 	ps := make([]*Package, 0, 10)

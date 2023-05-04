@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
-	auth_service "code.gitea.io/gitea/services/auth"
 )
 
 // APIContext is a specific context for API service
@@ -215,35 +214,6 @@ func (ctx *APIContext) CheckForOTP() {
 	}
 }
 
-// APIAuth converts auth_service.Auth as a middleware
-func APIAuth(authMethod auth_service.Method) func(*APIContext) {
-	return func(ctx *APIContext) {
-		// Get user from session if logged in.
-		var err error
-		ctx.Doer, err = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if err != nil {
-			ctx.Error(http.StatusUnauthorized, "APIAuth", err)
-			return
-		}
-
-		if ctx.Doer != nil {
-			if ctx.Locale.Language() != ctx.Doer.Language {
-				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
-			}
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth_service.BasicMethodName
-			ctx.IsSigned = true
-			ctx.Data["IsSigned"] = ctx.IsSigned
-			ctx.Data["SignedUser"] = ctx.Doer
-			ctx.Data["SignedUserID"] = ctx.Doer.ID
-			ctx.Data["SignedUserName"] = ctx.Doer.Name
-			ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
-		} else {
-			ctx.Data["SignedUserID"] = int64(0)
-			ctx.Data["SignedUserName"] = ""
-		}
-	}
-}
-
 // APIContexter returns apicontext as middleware
 func APIContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -252,7 +222,7 @@ func APIContexter() func(http.Handler) http.Handler {
 			ctx := APIContext{
 				Context: &Context{
 					Resp:   NewResponse(w),
-					Data:   map[string]interface{}{},
+					Data:   middleware.GetContextData(req.Context()),
 					Locale: locale,
 					Cache:  cache.GetCache(),
 					Repo: &Repository{
@@ -274,23 +244,12 @@ func APIContexter() func(http.Handler) http.Handler {
 				}
 			}
 
-			httpcache.AddCacheControlToHeader(ctx.Resp.Header(), 0, "no-transform")
+			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 0, "no-transform")
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["Context"] = &ctx
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
-
-			// Handle adding signedUserName to the context for the AccessLogger
-			usernameInterface := ctx.Data["SignedUserName"]
-			identityPtrInterface := ctx.Req.Context().Value(signedUserNameStringPointerKey)
-			if usernameInterface != nil && identityPtrInterface != nil {
-				username := usernameInterface.(string)
-				identityPtr := identityPtrInterface.(*string)
-				if identityPtr != nil && username != "" {
-					*identityPtr = username
-				}
-			}
 		})
 	}
 }
@@ -367,12 +326,13 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 				if git.IsErrNotExist(err) {
 					ctx.NotFound()
 				} else {
-					ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
+					ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 				}
 				return
 			}
 			ctx.Repo.Commit = commit
 			ctx.Repo.TreePath = ctx.Params("*")
+			next.ServeHTTP(w, req)
 			return
 		}
 

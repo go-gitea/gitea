@@ -87,14 +87,15 @@ func runRecreateTable(ctx *cli.Context) error {
 	golog.SetPrefix("")
 	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
 
-	setting.LoadFromExisting()
-	setting.InitDBConfig()
+	setting.Init(&setting.Options{})
+	setting.LoadDBSetting()
 
-	setting.EnableXORMLog = ctx.Bool("debug")
+	setting.Log.EnableXORMLog = ctx.Bool("debug")
 	setting.Database.LogSQL = ctx.Bool("debug")
-	setting.Cfg.Section("log").Key("XORM").SetValue(",")
+	// FIXME: don't use CfgProvider directly
+	setting.CfgProvider.Section("log").Key("XORM").SetValue(",")
 
-	setting.NewXORMLogService(!ctx.Bool("debug"))
+	setting.InitSQLLog(!ctx.Bool("debug"))
 	stdCtx, cancel := installSignals()
 	defer cancel()
 

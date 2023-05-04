@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings githooks">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings githooks")}}
+	<div class="repo-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "repo.settings.githooks"}}
 		</h4>
@@ -14,9 +10,9 @@
 				</div>
 				{{range .Hooks}}
 					<div class="item truncated-item-container">
-						<span class="text {{if .IsActive}}green{{else}}grey{{end}} mr-3">{{svg "octicon-dot-fill" 22}}</span>
-						<span class="text truncate f1 mr-3">{{.Name}}</span>
-						<a class="muted ui right p-3" href="{{$.RepoLink}}/settings/hooks/git/{{.Name|PathEscape}}">
+						<span class="text {{if .IsActive}}green{{else}}grey{{end}} gt-mr-3">{{svg "octicon-dot-fill" 22}}</span>
+						<span class="text truncate gt-f1 gt-mr-3">{{.Name}}</span>
+						<a class="muted ui right gt-p-3" href="{{$.RepoLink}}/settings/hooks/git/{{.Name|PathEscape}}">
 							{{svg "octicon-pencil"}}
 						</a>
 					</div>
@@ -24,5 +20,4 @@
 			</div>
 		</div>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "repo/settings/layout_footer" .}}

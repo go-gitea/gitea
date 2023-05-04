@@ -12,7 +12,6 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -21,10 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-)
-
-const (
-	tplBlame base.TplName = "repo/home"
 )
 
 type blameRow struct {
@@ -140,7 +135,7 @@ func RefBlame(ctx *context.Context) {
 
 	renderBlame(ctx, blameParts, commitNames, previousCommits)
 
-	ctx.HTML(http.StatusOK, tplBlame)
+	ctx.HTML(http.StatusOK, tplRepoHome)
 }
 
 func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[string]*user_model.UserCommit, map[string]string) {
@@ -199,7 +194,7 @@ func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[st
 	}
 
 	// populate commit email addresses to later look up avatars.
-	for _, c := range user_model.ValidateCommitsWithEmails(commits) {
+	for _, c := range user_model.ValidateCommitsWithEmails(ctx, commits) {
 		commitNames[c.ID.String()] = c
 	}
 
@@ -217,7 +212,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 		filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
 			CachedOnly: true,
-			Attributes: []git.CmdArg{"linguist-language", "gitlab-language"},
+			Attributes: []string{"linguist-language", "gitlab-language"},
 			Filenames:  []string{ctx.Repo.TreePath},
 			IndexFile:  indexFilename,
 			WorkTree:   worktree,
@@ -262,9 +257,9 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 				var avatar string
 				if commit.User != nil {
-					avatar = string(templates.Avatar(commit.User, 18, "mr-3"))
+					avatar = string(templates.Avatar(ctx, commit.User, 18, "gt-mr-3"))
 				} else {
-					avatar = string(templates.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "mr-3"))
+					avatar = string(templates.AvatarByEmail(ctx, commit.Author.Email, commit.Author.Name, 18, "gt-mr-3"))
 				}
 
 				br.Avatar = gotemplate.HTML(avatar)

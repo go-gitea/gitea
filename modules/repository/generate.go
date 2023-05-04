@@ -319,7 +319,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		TrustModel:    templateRepo.TrustModel,
 	}
 
-	if err = CreateRepositoryByExample(ctx, doer, owner, generateRepo, false); err != nil {
+	if err = CreateRepositoryByExample(ctx, doer, owner, generateRepo, false, false); err != nil {
 		return nil, err
 	}
 
