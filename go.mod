@@ -20,7 +20,7 @@ require (
 	github.com/alecthomas/chroma/v2 v2.7.0
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/blevesearch/bleve/v2 v2.3.7
-	github.com/bufbuild/connect-go v1.3.1
+	github.com/bufbuild/connect-go v1.7.0
 	github.com/buildkite/terminal-to-html/v3 v3.7.0
 	github.com/caddyserver/certmagic v0.17.2
 	github.com/chi-middleware/proxy v1.1.1
