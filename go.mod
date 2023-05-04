@@ -9,7 +9,7 @@ require (
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
 	gitea.com/go-chi/binding v0.0.0-20230415142243-04b515c6d669
 	gitea.com/go-chi/cache v0.2.0
-	gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5
+	gitea.com/go-chi/captcha v0.0.0-20230415143339-2c0754df4384
 	gitea.com/go-chi/session v0.0.0-20221220005550-e056dc379164
 	gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	gitea.com/lunny/levelqueue v0.4.2-0.20220729054728-f020868cc2f7
