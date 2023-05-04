@@ -1,8 +1,8 @@
+name: "Cron: Pull translations from Crowdin"
+
 on:
   schedule:
     - cron: "7 0 * * *" # every day at 0:07 UTC
-
-name: Pull translations from Crowdin
 
 jobs:
   crowdin_pull:

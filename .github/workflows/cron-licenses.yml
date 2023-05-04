@@ -1,9 +1,9 @@
+name: "Cron: Update licenses and gitignores"
+
 on:
   schedule:
     # weekly on Monday at 0:07 UTC
     - cron: "7 0 * * 1"
-
-name: Update licenses and gitignores
 
 jobs:
   cron:
