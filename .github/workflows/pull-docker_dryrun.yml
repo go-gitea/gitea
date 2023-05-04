@@ -1,4 +1,4 @@
-name: Docker build dry run
+name: "Pull: Docker Dry Run"
 
 on: [pull_request]
 
