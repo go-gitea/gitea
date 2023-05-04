@@ -377,6 +377,7 @@
 					</a>
 					{{end}}
 					<span class="badge{{if eq .Review.Type 1}} gt-bg-green gt-text-white{{else if eq .Review.Type 3}} gt-bg-red gt-text-white{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon)}}</span>
+					{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 					<span class="text grey muted-links">
 						{{if .OriginalAuthor}}
 							<span class="text black">
@@ -763,6 +764,7 @@
 						<img src="{{.Poster.AvatarLink $.Context}}">
 					</a>
 					<span class="badge grey">{{svg "octicon-x" 16}}</span>
+					{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Poster}}
 						{{$reviewerName := ""}}
