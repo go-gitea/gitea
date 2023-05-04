@@ -32,7 +32,7 @@ export function initRepoSettingsCollaboration() {
           if ($item) {
             $dropdown.dropdown('set selected', $dropdown.attr('data-last-value'));
           } else {
-            $text.text('(N/A)'); // prevent from misleading users when the access mode is undefined
+            $text.text('(none)'); // prevent from misleading users when the access mode is undefined
           }
         }, 0);
       }
