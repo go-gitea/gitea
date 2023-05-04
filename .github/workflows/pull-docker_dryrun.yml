@@ -2,6 +2,10 @@ name: "Pull: Docker Dry Run"
 
 on: [pull_request]
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   docker_dryrun:
     runs-on: ubuntu-latest

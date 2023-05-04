@@ -2,6 +2,10 @@ name: "Pull: Compliance Tests"
 
 on: [pull_request]
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint_basic:
     runs-on: ubuntu-latest

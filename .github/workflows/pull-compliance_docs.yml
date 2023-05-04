@@ -6,6 +6,10 @@ on:
       - "docs/**"
       - "*.md"
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   compliance-docs:
     runs-on: ubuntu-latest

@@ -2,6 +2,10 @@ name: "Pull: E2E Tests"
 
 on: [pull_request]
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   e2e_tests:
     runs-on: ubuntu-latest
