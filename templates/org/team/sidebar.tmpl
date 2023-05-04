@@ -63,7 +63,7 @@
 									{{if eq $unit.Type 10}}
 										{{$isActionsUnit = true}}
 									{{end}}
-									{{if or (not $isActionsUnit) (and $isActionsUnit $.IsActionsEnabled)}}
+									{{if not (and $.IsActionsDisabled $isActionsUnit)}}
 										<tr>
 											<td><strong>{{$.locale.Tr $unit.NameKey}}</strong></td>
 											<td>{{if eq ($.Team.UnitAccessMode $.Context $unit.Type) 0 -}}
