@@ -7,7 +7,7 @@
 				{{.locale.Tr "repo.wiki.pages"}}
 			</div>
 			<div>
-				{{if and .CanWriteWiki (not .IsRepositoryMirror)}}
+				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 					<a class="ui green small button" href="{{.RepoLink}}/wiki?action=_new">{{.locale.Tr "repo.wiki.new_page_button"}}</a>
 				{{end}}
 			</div>
