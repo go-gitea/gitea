@@ -3,6 +3,7 @@
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 1rem;
+  margin-top: 1rem;
 }
 
 .issue-list-toolbar-left {

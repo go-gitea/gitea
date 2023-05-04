@@ -573,8 +573,10 @@ export function initRepoIssueTitleEdit() {
     toggleElem($('#pull-desc'));
     toggleElem($('#pull-desc-edit'));
     toggleElem($('.in-edit'));
+    toggleElem($('.new-issue-button'));
     $('#issue-title-wrapper').toggleClass('edit-active');
-    $editInput.trigger('focus');
+    $editInput[0].focus();
+    $editInput[0].select();
     return false;
   };
 
