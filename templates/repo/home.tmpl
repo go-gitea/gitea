@@ -63,7 +63,7 @@
 		{{template "repo/sub_menu" .}}
 		<div class="repo-button-row gt-df gt-ac gt-sb gt-fw">
 			<div class="gt-df gt-ac gt-fw gt-gap-y-3">
-				{{template "repo/branch_dropdown" dict "root" .}}
+				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "gt-mr-2"}}
 				{{$n := len .TreeNames}}
 				{{$l := Eval $n "-" 1}}
 				<!-- If home page, show new pr. If not, show breadcrumb -->
