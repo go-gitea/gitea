@@ -290,8 +290,6 @@ replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
-replace github.com/blevesearch/zapx/v15 v15.3.6 => github.com/zeripath/zapx/v15 v15.3.6-alignment-fix
-
 replace github.com/nektos/act => gitea.com/gitea/act v0.243.4
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
