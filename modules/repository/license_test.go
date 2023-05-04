@@ -129,6 +129,29 @@ gitea
 `,
 		},
 		{
+			name: "year",
+			args: args{
+				name:   "regular",
+				values: &licenseValues{Year: "2023", Owner: "Gitea", Email: "teabot@gitea.io", Repo: "gitea"},
+				origin: `
+<year>
+[YEAR]
+{YEAR}
+[yyyy]
+[Year]
+[year]
+`,
+			},
+			want: `
+2023
+2023
+2023
+2023
+2023
+2023
+`,
+		},
+		{
 			name: "0BSD",
 			args: args{
 				name:   "0BSD",
