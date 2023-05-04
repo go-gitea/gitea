@@ -34,7 +34,7 @@ function initRepoRenameBranchButton() {
 
     // display the warning that the branch which is chosen is the default branch
     const $warn = $modal.find('.default-branch-warning');
-    toggleElem($warn, $(this).attr('data-is-default-branch') === 'true')
+    toggleElem($warn, $(this).attr('data-is-default-branch') === 'true');
 
     const $text = $modal.find('[data-rename-branch-to]');
     $text.text($text.attr('data-rename-branch-to').replace('%s', oldBranchName));
