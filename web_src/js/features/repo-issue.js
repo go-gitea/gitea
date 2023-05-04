@@ -4,6 +4,7 @@ import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
+import {parseIssueHref} from '../utils.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -641,12 +642,16 @@ export function initRepoIssueGotoID() {
     const qval = e.target.q.value;
     const aElm = document.activeElement;
     if (aElm.id === 'search-button' || (aElm.name === 'q' && !qval.includes('#')) || (window.location.pathname.split('/').length === 2 && !qval.includes('/')) || !issueidre.test(qval) || !$('#hashtag-button').length) return;
-    e.preventDefault();
-    window.location.href = !qval.includes('/') ? `${window.location.pathname}/${qval.replace('#', '')}` : `/${qval.replace('#', '/issues/')}`;
+    const gotoUrl = !qval.includes('/') ? `${window.location.pathname}/${qval.replace('#', '')}` : `/${qval.replace('#', '/issues/')}`;
+    const {owner, repo, index} = parseIssueHref(gotoUrl);
+    if (owner && repo && index) {
+      e.preventDefault();
+      window.location.href = gotoUrl;
+    }
   });
   $('form.list-header-search input[name=q]').on('input', (e) => {
     const qval = e.target.value;
-    const pathSlashCount = window.location.pathname.split('/'); // for global issues area or repository issue area
+    const pathSlashCount = window.location.pathname.split('/'); // for global issues area or repository issues area
     if ((pathSlashCount.length === 2 && qval.includes('/') || pathSlashCount.length === 4) && issueidre.test(qval)) {
       showElem($('#hashtag-button'));
     } else {
