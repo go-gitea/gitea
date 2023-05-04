@@ -102,7 +102,7 @@ require (
 	github.com/urfave/cli v1.22.13
 	github.com/xanzy/go-gitlab v0.83.0
 	github.com/xeipuuv/gojsonschema v1.2.0
-	github.com/yohcop/openid-go v1.0.0
+	github.com/yohcop/openid-go v1.0.1
 	github.com/yuin/goldmark v1.5.4
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20220924101305-151362477c87
 	github.com/yuin/goldmark-meta v1.1.0
