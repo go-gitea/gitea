@@ -177,8 +177,7 @@ func runWeb(ctx *cli.Context) error {
 
 	log.Info("Global init")
 	// Perform global initialization
-	setting.InitProviderFromExistingFile()
-	setting.LoadCommonSettings()
+	setting.Init(&setting.Options{})
 	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 
 	// We check that AppDataPath exists here (it should have been created during installation)
