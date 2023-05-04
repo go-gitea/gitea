@@ -76,7 +76,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/meilisearch/meilisearch-go v0.24.0
 	github.com/mholt/archiver/v3 v3.5.1
-	github.com/microcosm-cc/bluemonday v1.0.22
+	github.com/microcosm-cc/bluemonday v1.0.23
 	github.com/minio/minio-go/v7 v7.0.49
 	github.com/minio/sha256-simd v1.0.0
 	github.com/msteinert/pam v1.1.0
