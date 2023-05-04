@@ -338,6 +338,8 @@ github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21/go.mod h1
 github.com/eapache/queue v1.1.0/go.mod h1:6eCeP0CKFpHLu8blIFXhExK/dRa7WDZfr6jVFPTqq+I=
 github.com/editorconfig/editorconfig-core-go/v2 v2.5.1 h1:EMpGLI+QHJMbvppCjIFTWulZcc+lDPor4G6SRnsfRNU=
 github.com/editorconfig/editorconfig-core-go/v2 v2.5.1/go.mod h1:9l0WF7U8RrFunzIpbUGLh1TIRUgDrfy0mpkyv8T7q9M=
+github.com/editorconfig/editorconfig-core-go/v2 v2.5.2 h1:Z/G8cwnwOzGgTtvTutUhWPJ1ySUzuermioYMra7TuDQ=
+github.com/editorconfig/editorconfig-core-go/v2 v2.5.2/go.mod h1:DoNm5QtDjTkizv0Oo1O+OJ92feoyUz3V4StZpOmP69E=
 github.com/edsrzf/mmap-go v1.0.0/go.mod h1:YO35OhQPt3KJa3ryjFM5Bs14WD66h8eGKpfaBNrHW5M=
 github.com/elazarl/go-bindata-assetfs v1.0.1/go.mod h1:v+YaWX3bdea5J/mo8dSETolEo7R71Vk1u8bnjau5yw4=
 github.com/emersion/go-imap v1.2.1 h1:+s9ZjMEjOB8NzZMVTM3cCenz2JrQIGGo5j1df19WjTA=
