@@ -14,12 +14,12 @@
 				<div class="ui repo-search">
 					<form class="ui form ignore-dirty" action="{{.RepoLink}}/search" method="get">
 						<div class="field">
-							<div class="ui action input{{if .CodeIndexerUnavailable}} disabled left icon{{end}}"{{if .CodeIndexerUnavailable}} data-tooltip-content="{{.locale.Tr "repo.search.code_search_unavailable"}}"{{end}}>
+							<div class="ui small action input{{if .CodeIndexerUnavailable}} disabled left icon{{end}}"{{if .CodeIndexerUnavailable}} data-tooltip-content="{{.locale.Tr "repo.search.code_search_unavailable"}}"{{end}}>
 								<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{.locale.Tr "repo.search.search_repo"}}">
 								{{if .CodeIndexerUnavailable}}
 									<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-alert"}}</i>
 								{{end}}
-								<button class="ui icon button"{{if .CodeIndexerUnavailable}} disabled{{end}} type="submit">
+								<button class="ui small icon button"{{if .CodeIndexerUnavailable}} disabled{{end}} type="submit">
 									{{svg "octicon-search"}}
 								</button>
 							</div>
@@ -63,12 +63,18 @@
 		{{template "repo/sub_menu" .}}
 		<div class="repo-button-row gt-df gt-ac gt-sb gt-fw">
 			<div class="gt-df gt-ac gt-fw gt-gap-y-3">
-				{{template "repo/branch_dropdown" dict "root" .}}
+				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "gt-mr-2"}}
 				{{$n := len .TreeNames}}
 				{{$l := Eval $n "-" 1}}
 				<!-- If home page, show new pr. If not, show breadcrumb -->
 				{{if and (eq $n 0) .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
-					<a id="new-pull-request" role="button" class="ui compact basic button" href="{{CompareLink .BaseRepo .Repository .BranchName}}"
+					{{$cmpBranch := ""}}
+					{{if ne .Repository.ID .BaseRepo.ID}}
+						{{$cmpBranch = printf "%s/%s:" (.Repository.OwnerName|PathEscape) (.Repository.Name|PathEscape)}}
+					{{end}}
+					{{$cmpBranch = printf "%s%s" $cmpBranch (.BranchName|PathEscapeSegments)}}
+					{{$compareLink := printf "%s/compare/%s...%s" .BaseRepo.Link (.BaseRepo.DefaultBranch|PathEscapeSegments) $cmpBranch}}
+					<a id="new-pull-request" role="button" class="ui compact basic button" href="{{$compareLink}}"
 						data-tooltip-content="{{if .PullRequestCtx.Allowed}}{{.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{.locale.Tr "action.compare_branch"}}{{end}}">
 						{{svg "octicon-git-pull-request"}}
 					</a>
@@ -103,7 +109,17 @@
 					</a>
 				{{end}}
 				{{if ne $n 0}}
-					<span class="ui breadcrumb repo-path gt-ml-2"><a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{EllipsisString .Repository.Name 30}}</a>{{range $i, $v := .TreeNames}}<span class="divider">/</span>{{if eq $i $l}}<span class="active section" title="{{$v}}">{{EllipsisString $v 30}}</span>{{else}}{{$p := index $.Paths $i}}<span class="section"><a href="{{$.BranchLink}}/{{PathEscapeSegments $p}}" title="{{$v}}">{{EllipsisString $v 30}}</a></span>{{end}}{{end}}</span>
+					<span class="breadcrumb repo-path gt-ml-2">
+						<a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
+						{{- range $i, $v := .TreeNames -}}
+							<span class="divider">/</span>
+							{{- if eq $i $l -}}
+								<span class="active section" title="{{$v}}">{{StringUtils.EllipsisString $v 30}}</span>
+							{{- else -}}
+								{{$p := index $.Paths $i}}<span class="section"><a href="{{$.BranchLink}}/{{PathEscapeSegments $p}}" title="{{$v}}">{{StringUtils.EllipsisString $v 30}}</a></span>
+							{{- end -}}
+						{{- end -}}
+					</span>
 				{{end}}
 			</div>
 			<div class="gt-df gt-ac">

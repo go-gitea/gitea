@@ -5,6 +5,8 @@ slug: "install-from-binary"
 weight: 15
 toc: false
 draft: false
+aliases:
+  - /zh-cn/install-from-binary
 menu:
   sidebar:
     parent: "installation"
@@ -161,4 +163,4 @@ GITEA_WORK_DIR=/var/lib/gitea/ /usr/local/bin/gitea web -c /etc/gitea/app.ini
 
 > 更多经验总结，请参考英文版 [Troubleshooting](/en-us/install-from-binary/#troubleshooting)
 
-如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "seek-help.zh-cn.md" >}})
+如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "support.zh-cn.md" >}})
