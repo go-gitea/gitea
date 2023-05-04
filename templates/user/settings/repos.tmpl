@@ -9,7 +9,7 @@
 					<div class="ui middle aligned divided list">
 						{{range $dirI, $dir := .Dirs}}
 							{{$repo := index $.ReposMap $dir}}
-							<div class="item">
+							<div class="item {{if not $repo}}gt-py-2{{end}}">{{/* if not repo, then there are "adapt" buttons, so the padding shouldn't be that default large*/}}
 								<div class="content">
 									{{if $repo}}
 										{{if $repo.IsPrivate}}
@@ -30,11 +30,11 @@
 											<span><a href="{{$repo.BaseRepo.Link}}">{{$repo.BaseRepo.OwnerName}}/{{$repo.BaseRepo.Name}}</a></span>
 										{{end}}
 									{{else}}
-										<span class="icon">{{svg "octicon-file-directory-fill"}}</span>
-										<span class="name">{{$.ContextUser.Name}}/{{$dir}}</span>
-										<div class="right floated content">
+										<span class="icon gt-dib gt-pt-3">{{svg "octicon-file-directory-fill"}}</span>
+										<span class="name gt-dib gt-pt-3">{{$.ContextUser.Name}}/{{$dir}}</span>
+										<div class="ui right">
 											{{if $.allowAdopt}}
-												<button class="ui button submit tiny green adopt show-modal" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{$.locale.Tr "repo.adopt_preexisting_label"}}</span></button>
+												<button class="ui button green show-modal gt-p-3" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{$.locale.Tr "repo.adopt_preexisting_label"}}</span></button>
 												<div class="ui g-modal-confirm modal" id="adopt-unadopted-modal-{{$dirI}}">
 													<div class="header">
 														<span class="label">{{$.locale.Tr "repo.adopt_preexisting"}}</span>
@@ -51,7 +51,7 @@
 												</div>
 											{{end}}
 											{{if $.allowDelete}}
-												<button class="ui button submit tiny red delete show-modal" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{$.locale.Tr "repo.delete_preexisting_label"}}</span></button>
+												<button class="ui button red show-modal gt-p-3" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{$.locale.Tr "repo.delete_preexisting_label"}}</span></button>
 												<div class="ui g-modal-confirm modal" id="delete-unadopted-modal-{{$dirI}}">
 													<div class="header">
 														<span class="label">{{$.locale.Tr "repo.delete_preexisting"}}</span>
