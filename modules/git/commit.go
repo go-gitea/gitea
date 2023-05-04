@@ -168,8 +168,8 @@ type CommitsCountOptions struct {
 	RelPath  []string
 }
 
-// CommitsCountFiles returns number of total commits of until given revision.
-func CommitsCountFiles(ctx context.Context, opts CommitsCountOptions) (int64, error) {
+// CommitsCount returns number of total commits of until given revision.
+func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) {
 	cmd := NewCommand(ctx, "rev-list", "--count")
 
 	cmd.AddDynamicArguments(opts.Revision...)
@@ -187,11 +187,6 @@ func CommitsCountFiles(ctx context.Context, opts CommitsCountOptions) (int64, er
 	}
 
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
-}
-
-// CommitsCount returns number of total commits of until given revision.
-func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) {
-	return CommitsCountFiles(ctx, opts)
 }
 
 // CommitsCount returns number of total commits of until current revision.

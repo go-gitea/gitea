@@ -205,7 +205,7 @@ func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bo
 
 // FileCommitsCount return the number of files at a revision
 func (repo *Repository) FileCommitsCount(revision, file, not string) (int64, error) {
-	return CommitsCountFiles(repo.Ctx,
+	return CommitsCount(repo.Ctx,
 		CommitsCountOptions{
 			RepoPath: repo.Path,
 			Not:      not,
@@ -383,7 +383,7 @@ func (repo *Repository) CommitsBetweenIDs(last, before string) ([]*Commit, error
 
 // CommitsCountBetween return numbers of commits between two commits
 func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
-	count, err := CommitsCountFiles(repo.Ctx, CommitsCountOptions{
+	count, err := CommitsCount(repo.Ctx, CommitsCountOptions{
 		RepoPath: repo.Path,
 		Not:      "",
 		Revision: []string{start + ".." + end},
@@ -393,7 +393,7 @@ func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 		// previously it would return the results of git rev-list before last so let's try that...
-		return CommitsCountFiles(repo.Ctx, CommitsCountOptions{
+		return CommitsCount(repo.Ctx, CommitsCountOptions{
 			RepoPath: repo.Path,
 			Not:      "",
 			Revision: []string{start, end},
