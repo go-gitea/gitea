@@ -1,3 +1,5 @@
+import {encode, decode} from 'uint8-to-base64';
+
 // transform /path/to/file.ext to file.ext
 export function basename(path = '') {
   return path ? path.replace(/^.*\//, '') : '';
@@ -148,4 +150,19 @@ export function useLightTextOnBackground(backgroundColor) {
   const b = parseInt(backgroundColor.substring(4, 6), 16);
   const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return brightness < 0.35;
+}
+
+// Encode an ArrayBuffer into a URLEncoded base64 string.
+export function encodeURLEncodedBase64(arrayBuffer) {
+  return encode(arrayBuffer)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+// Decode a URLEncoded base64 to an ArrayBuffer string.
+export function decodeURLEncodedBase64(base64url) {
+  return decode(base64url
+    .replace(/_/g, '/')
+    .replace(/-/g, '+'));
 }

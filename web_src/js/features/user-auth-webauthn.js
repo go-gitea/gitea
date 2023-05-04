@@ -1,21 +1,6 @@
-import {encode, decode} from 'uint8-to-base64';
+import {encodeURLEncodedBase64, decodeURLEncodedBase64} from '../utils.js';
 
 const {appSubUrl, csrfToken} = window.config;
-
-// Encode an ArrayBuffer into a URLEncoded base64 string.
-function encodeURLEncodedBase64(value) {
-  return encode(value)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
-}
-
-// Dccode a URLEncoded base64 to an ArrayBuffer string.
-function decodeURLEncodedBase64(value) {
-  return decode(value
-    .replace(/_/g, '/')
-    .replace(/-/g, '+'));
-}
 
 export async function initUserAuthWebAuthn() {
   document.getElementById('webauthn-error')?.classList.add('hide');
