@@ -824,6 +824,8 @@ github.com/jessevdk/go-flags v1.5.0 h1:1jKYvbxEjfUl0fmqTCOfonvskHHXMjBySTLW4y9LF
 github.com/jessevdk/go-flags v1.5.0/go.mod h1:Fw0T6WPc1dYxT4mKEZRfG5kJhaTDP9pj1c2EWnYs/m4=
 github.com/jhillyerd/enmime v0.10.1 h1:3VP8gFhK7R948YJBrna5bOgnTXEuPAoICo79kKkBKfA=
 github.com/jhillyerd/enmime v0.10.1/go.mod h1:Qpe8EEemJMFAF8+NZoWdpXvK2Yb9dRF0k/z6mkcDHsA=
+github.com/jhillyerd/enmime v0.11.1 h1:U6ToGVxfxNQQhKrAaGxtwOf7Zqksb8AQ3j1CyAWOk5k=
+github.com/jhillyerd/enmime v0.11.1/go.mod h1:EktNOa/V6ka9yCrfoB2uxgefp1lno6OVdszW0iQ5LnM=
 github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=
 github.com/joho/godotenv v1.3.0/go.mod h1:7hK45KPybAkOC6peb+G5yklZfMxEjkZhHbwpqxOKXbg=
 github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
