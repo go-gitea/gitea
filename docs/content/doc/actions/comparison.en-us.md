@@ -122,6 +122,18 @@ Pre and Post steps don't have their own section in the job log user interface.
 
 ## Different behavior
 
+### Downloading actions
+
+Gitea Actions doesn't download actions from GitHub by default.
+"By default" means that you don't specify the host in the `uses` field, like `uses: actions/checkout@v3`.
+As a contrast, `uses: https://github.com/actions/checkout@v3` has specified host.
+
+The missing host will be filled with `https://gitea.com` if you don't configure it.
+That means `uses: actions/checkout@v3` will download the action from [gitea.com/actions/checkout](https://gitea.com/actions/checkout), instead of [github.com/actions/checkout](https://github.com/actions/checkout).
+
+As mentioned, it's configurable.
+If you want your runners to download actions from GitHub or your own Gitea instance by default, you can configure it by setting `[actions].DEFAULT_ACTIONS_URL`. See [Configuration Cheat Sheet](({{ < relref "doc/administration/config-cheat-sheet.en-us.md#actions-actions" > }})).
+
 ### Context availability
 
 Context availability is not checked, so you can use the env context on more places.
