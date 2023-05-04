@@ -211,7 +211,6 @@ func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, 
 		return git.CommitsCount(ctx,
 			git.CommitsCountOptions{
 				RepoPath: r.Repository.RepoPath(),
-				Not:      "",
 				Revision: branches,
 				RelPath:  files,
 			})

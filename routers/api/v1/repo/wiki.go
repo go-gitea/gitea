@@ -433,7 +433,6 @@ func ListPageRevisions(ctx *context.APIContext) {
 		git.CommitsByFileAndRangeOptions{
 			Revision: "master",
 			File:     pageFilename,
-			Not:      "",
 			Page:     page,
 		})
 	if err != nil {

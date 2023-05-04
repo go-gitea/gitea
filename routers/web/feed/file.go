@@ -26,7 +26,6 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 		git.CommitsByFileAndRangeOptions{
 			Revision: ctx.Repo.RefName,
 			File:     fileName,
-			Not:      "",
 			Page:     1,
 		})
 	if err != nil {

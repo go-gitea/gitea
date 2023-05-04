@@ -17,7 +17,6 @@ func TestCommitsCount(t *testing.T) {
 	commitsCount, err := CommitsCount(DefaultContext,
 		CommitsCountOptions{
 			RepoPath: bareRepo1Path,
-			Not:      "",
 			Revision: []string{"8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"},
 			RelPath:  []string{},
 		})

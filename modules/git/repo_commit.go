@@ -385,7 +385,6 @@ func (repo *Repository) CommitsBetweenIDs(last, before string) ([]*Commit, error
 func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 	count, err := CommitsCount(repo.Ctx, CommitsCountOptions{
 		RepoPath: repo.Path,
-		Not:      "",
 		Revision: []string{start + ".." + end},
 		RelPath:  []string{},
 	})
@@ -395,7 +394,6 @@ func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 		// previously it would return the results of git rev-list before last so let's try that...
 		return CommitsCount(repo.Ctx, CommitsCountOptions{
 			RepoPath: repo.Path,
-			Not:      "",
 			Revision: []string{start, end},
 			RelPath:  []string{},
 		})

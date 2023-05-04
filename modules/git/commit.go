@@ -193,7 +193,6 @@ func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) 
 func (c *Commit) CommitsCount() (int64, error) {
 	return CommitsCount(c.repo.Ctx, CommitsCountOptions{
 		RepoPath: c.repo.Path,
-		Not:      "",
 		Revision: []string{c.ID.String()},
 		RelPath:  []string{},
 	})

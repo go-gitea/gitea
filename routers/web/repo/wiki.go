@@ -380,7 +380,6 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 		git.CommitsByFileAndRangeOptions{
 			Revision: wiki_service.DefaultBranch,
 			File:     pageFilename,
-			Not:      "",
 			Page:     page,
 		})
 	if err != nil {

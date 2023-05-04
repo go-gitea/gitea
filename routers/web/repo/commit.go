@@ -234,7 +234,6 @@ func FileHistory(ctx *context.Context) {
 		git.CommitsByFileAndRangeOptions{
 			Revision: ctx.Repo.RefName,
 			File:     fileName,
-			Not:      "",
 			Page:     page,
 		})
 	if err != nil {
