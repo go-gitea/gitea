@@ -55,6 +55,7 @@
 										data-modal="#rename-branch-modal"
 										data-old-branch-name="{{$.DefaultBranch}}"
 										data-tooltip-content="{{$.locale.Tr "repo.branch.rename" ($.DefaultBranch)}}"
+										data-is-defualt-branch="true"
 									>
 										{{svg "octicon-pencil"}}
 									</button>
@@ -161,6 +162,7 @@
 												data-old-branch-name="{{.Name}}"
 												data-modal="#rename-branch-modal"
 												data-tooltip-content="{{$.locale.Tr "repo.branch.rename" (.Name)}}"
+												data-is-defualt-branch="false"
 											>
 												{{svg "octicon-pencil"}}
 											</button>
@@ -229,6 +231,9 @@
 	<form class="ui form" action="{{$.Repository.Link}}/settings/rename_branch" method="post">
 		<div class="content">
 			{{.CsrfTokenHtml}}
+			<div class="field default-branch-warning">
+				<span class="text red">{{.locale.Tr "repo.branch.warning_raname_default_branch"}}</span>
+			</div>
 			<div class="field">
 				<span class="text" data-rename-branch-to="{{.locale.Tr "repo.branch.rename_branch_to"}}"></span>
 			</div>
