@@ -654,7 +654,7 @@ export function initRepoIssueGotoID() {
   });
   $('form.list-header-search input[name=q]').on('input', (e) => {
     const qval = e.target.value;
-    if ((isGlobalIssuesArea && qval.includes('/') && issueidre.test(qval)) || !isGlobalIssuesArea && issueidre.test(qval)) {
+    if (isGlobalIssuesArea && qval.includes('/') && issueidre.test(qval) || !isGlobalIssuesArea && issueidre.test(qval)) {
       showElem($('#hashtag-button'));
     } else {
       hideElem($('#hashtag-button'));
