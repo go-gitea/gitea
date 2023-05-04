@@ -96,7 +96,7 @@ rules:
   property-no-vendor-prefix: null
   rule-empty-line-before: null
   rule-selector-property-disallowed-list: null
-  scale-unlimited/declaration-strict-value: [color, {ignoreValues: /^(inherit|transparent|unset|initial|currentcolor)$/}]
+  scale-unlimited/declaration-strict-value: [[color, background-color, border-color], {ignoreValues: /^(inherit|transparent|unset|initial|currentcolor|none)$/, ignoreFunctions: false}]
   selector-attribute-name-disallowed-list: null
   selector-attribute-operator-allowed-list: null
   selector-attribute-operator-disallowed-list: null

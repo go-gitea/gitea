@@ -89,6 +89,6 @@ func TestLocalStorageIterator(t *testing.T) {
 			return nil
 		})
 		assert.NoError(t, err)
-		assert.Equal(t, count, len(expected))
+		assert.Len(t, expected, count)
 	}
 }

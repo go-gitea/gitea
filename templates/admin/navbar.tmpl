@@ -1,5 +1,6 @@
-<div class="ui secondary pointing tabular top attached borderless menu stackable new-menu navbar">
-	<div class="new-menu-inner">
+<div class="four wide column">
+	<div class="ui fluid vertical menu">
+		<div class="header item">{{.locale.Tr "settings"}}</div>
 		<a class="{{if .PageIsAdminDashboard}}active {{end}}item" href="{{AppSubUrl}}/admin">
 			{{.locale.Tr "admin.dashboard"}}
 		</a>
@@ -34,9 +35,14 @@
 			</a>
 		{{end}}
 		{{if .EnableActions}}
-		<a class="{{if .PageIsAdminRunners}}active {{end}}item" href="{{AppSubUrl}}/admin/runners">
-			{{.locale.Tr "actions.runners"}}
-		</a>
+		<div class="item">
+			{{.locale.Tr "actions.actions"}}
+			<div class="menu">
+				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{AppSubUrl}}/admin/actions/runners">
+					{{.locale.Tr "actions.runners"}}
+				</a>
+			</div>
+		</div>
 		{{end}}
 		<a class="{{if .PageIsAdminConfig}}active {{end}}item" href="{{AppSubUrl}}/admin/config">
 			{{.locale.Tr "admin.config"}}

@@ -4,9 +4,9 @@
 package queue
 
 import (
-	"fmt"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -16,8 +16,8 @@ import (
 )
 
 func TestPersistableChannelUniqueQueue(t *testing.T) {
+	// Create a temporary directory for the queue
 	tmpDir := t.TempDir()
-	fmt.Printf("TempDir %s\n", tmpDir)
 	_ = log.NewLogger(1000, "console", "console", `{"level":"warn","stacktracelevel":"NONE","stderr":true}`)
 
 	// Common function to create the Queue
@@ -97,7 +97,7 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 	executedInitial := map[string][]string{}
 	hasInitial := map[string][]string{}
 
-	fillQueue := func(name string, done chan struct{}) {
+	fillQueue := func(name string, done chan int64) {
 		t.Run("Initial Filling: "+name, func(t *testing.T) {
 			lock := sync.Mutex{}
 
@@ -154,33 +154,39 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 			assert.Equal(t, 101, len(executedInitial[name])+len(hasInitial[name]))
 			mapLock.Unlock()
 		})
+		mapLock.Lock()
+		count := int64(len(hasInitial[name]))
+		mapLock.Unlock()
+		done <- count
 		close(done)
 	}
 
-	doneA := make(chan struct{})
-	doneB := make(chan struct{})
+	hasQueueAChan := make(chan int64)
+	hasQueueBChan := make(chan int64)
 
-	go fillQueue("QueueA", doneA)
-	go fillQueue("QueueB", doneB)
+	go fillQueue("QueueA", hasQueueAChan)
+	go fillQueue("QueueB", hasQueueBChan)
 
-	<-doneA
-	<-doneB
+	hasA := <-hasQueueAChan
+	hasB := <-hasQueueBChan
 
 	executedEmpty := map[string][]string{}
 	hasEmpty := map[string][]string{}
-	emptyQueue := func(name string, done chan struct{}) {
+	emptyQueue := func(name string, numInQueue int64, done chan struct{}) {
 		t.Run("Empty Queue: "+name, func(t *testing.T) {
 			lock := sync.Mutex{}
 			stop := make(chan struct{})
 
 			// collect the tasks that have been executed
+			atomicCount := int64(0)
 			handle := func(data ...Data) []Data {
 				lock.Lock()
 				for _, datum := range data {
 					mapLock.Lock()
 					executedEmpty[name] = append(executedEmpty[name], datum.(string))
 					mapLock.Unlock()
-					if datum.(string) == "final" {
+					count := atomic.AddInt64(&atomicCount, 1)
+					if count >= numInQueue {
 						close(stop)
 					}
 				}
@@ -208,17 +214,17 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 
 			mapLock.Lock()
 			assert.Equal(t, 101, len(executedInitial[name])+len(executedEmpty[name]))
-			assert.Equal(t, 0, len(hasEmpty[name]))
+			assert.Empty(t, hasEmpty[name])
 			mapLock.Unlock()
 		})
 		close(done)
 	}
 
-	doneA = make(chan struct{})
-	doneB = make(chan struct{})
+	doneA := make(chan struct{})
+	doneB := make(chan struct{})
 
-	go emptyQueue("QueueA", doneA)
-	go emptyQueue("QueueB", doneB)
+	go emptyQueue("QueueA", hasA, doneA)
+	go emptyQueue("QueueB", hasB, doneB)
 
 	<-doneA
 	<-doneB
@@ -234,20 +240,20 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 	hasEmpty = map[string][]string{}
 	mapLock.Unlock()
 
+	hasQueueAChan = make(chan int64)
+	hasQueueBChan = make(chan int64)
+
+	go fillQueue("QueueA", hasQueueAChan)
+	go fillQueue("QueueB", hasQueueBChan)
+
+	hasA = <-hasQueueAChan
+	hasB = <-hasQueueBChan
+
 	doneA = make(chan struct{})
 	doneB = make(chan struct{})
 
-	go fillQueue("QueueA", doneA)
-	go fillQueue("QueueB", doneB)
-
-	<-doneA
-	<-doneB
-
-	doneA = make(chan struct{})
-	doneB = make(chan struct{})
-
-	go emptyQueue("QueueA", doneA)
-	go emptyQueue("QueueB", doneB)
+	go emptyQueue("QueueA", hasA, doneA)
+	go emptyQueue("QueueB", hasB, doneB)
 
 	<-doneA
 	<-doneB

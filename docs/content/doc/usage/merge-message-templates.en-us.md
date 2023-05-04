@@ -5,6 +5,8 @@ slug: "merge-message-templates"
 weight: 15
 toc: false
 draft: false
+aliases:
+  - /en-us/merge-message-templates
 menu:
   sidebar:
     parent: "usage"

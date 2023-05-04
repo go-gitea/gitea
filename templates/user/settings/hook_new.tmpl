@@ -1,10 +1,7 @@
-{{template "base/head" .}}
-<div class="page-content user  settings new webhook">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		<div class="twelve wide column content">
-			{{template "base/alert" .}}
-			<h4 class="ui top attached header">
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings new webhook")}}
+	<div class="user-setting-content">
+		<div class="user-setting-content">
+				<h4 class="ui top attached header">
 				{{if .PageIsSettingsHooksNew}}{{.locale.Tr "repo.settings.add_webhook"}}{{else}}{{.locale.Tr "repo.settings.update_webhook"}}{{end}}
 				<div class="ui right">
 					{{if eq .HookType "gitea"}}
@@ -49,5 +46,4 @@
 			{{template "repo/settings/webhook/history" .}}
 		</div>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}

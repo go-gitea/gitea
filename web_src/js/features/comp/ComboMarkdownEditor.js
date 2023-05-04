@@ -5,11 +5,12 @@ import {attachTribute} from '../tribute.js';
 import {hideElem, showElem, autosize} from '../../utils/dom.js';
 import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
-import {emojiKeys, emojiString} from '../emoji.js';
+import {emojiString} from '../emoji.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
+import {matchEmoji, matchMention} from '../../utils/match.js';
+import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
 
 let elementIdCounter = 0;
-const maxExpanderMatches = 6;
 
 /**
  * validate if the given textarea is non-empty.
@@ -106,14 +107,7 @@ class ComboMarkdownEditor {
     const expander = this.container.querySelector('text-expander');
     expander?.addEventListener('text-expander-change', ({detail: {key, provide, text}}) => {
       if (key === ':') {
-        const matches = [];
-        const textLowerCase = text.toLowerCase();
-        for (const name of emojiKeys) {
-          if (name.toLowerCase().includes(textLowerCase)) {
-            matches.push(name);
-            if (matches.length >= maxExpanderMatches) break;
-          }
-        }
+        const matches = matchEmoji(text);
         if (!matches.length) return provide({matched: false});
 
         const ul = document.createElement('ul');
@@ -129,14 +123,7 @@ class ComboMarkdownEditor {
 
         provide({matched: true, fragment: ul});
       } else if (key === '@') {
-        const matches = [];
-        const textLowerCase = text.toLowerCase();
-        for (const obj of window.config.tributeValues) {
-          if (obj.key.toLowerCase().includes(textLowerCase)) {
-            matches.push(obj);
-            if (matches.length >= maxExpanderMatches) break;
-          }
-        }
+        const matches = matchMention(text);
         if (!matches.length) return provide({matched: false});
 
         const ul = document.createElement('ul');
@@ -219,66 +206,20 @@ class ComboMarkdownEditor {
 
   prepareEasyMDEToolbarActions() {
     this.easyMDEToolbarDefault = [
-      'bold', 'italic', 'strikethrough', '|', 'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
-      'code', 'quote', '|', 'gitea-checkbox-empty', 'gitea-checkbox-checked', '|',
-      'unordered-list', 'ordered-list', '|', 'link', 'image', 'table', 'horizontal-rule', '|', 'clean-block', '|',
-      'gitea-switch-to-textarea',
+      'bold', 'italic', 'strikethrough', '|', 'heading-1', 'heading-2', 'heading-3',
+      'heading-bigger', 'heading-smaller', '|', 'code', 'quote', '|', 'gitea-checkbox-empty',
+      'gitea-checkbox-checked', '|', 'unordered-list', 'ordered-list', '|', 'link', 'image',
+      'table', 'horizontal-rule', '|', 'gitea-switch-to-textarea',
     ];
-
-    this.easyMDEToolbarActions = {
-      'gitea-checkbox-empty': {
-        action(e) {
-          const cm = e.codemirror;
-          cm.replaceSelection(`\n- [ ] ${cm.getSelection()}`);
-          cm.focus();
-        },
-        className: 'fa fa-square-o',
-        title: 'Add Checkbox (empty)',
-      },
-      'gitea-checkbox-checked': {
-        action(e) {
-          const cm = e.codemirror;
-          cm.replaceSelection(`\n- [x] ${cm.getSelection()}`);
-          cm.focus();
-        },
-        className: 'fa fa-check-square-o',
-        title: 'Add Checkbox (checked)',
-      },
-      'gitea-switch-to-textarea': {
-        action: () => {
-          this.userPreferredEditor = 'textarea';
-          this.switchToTextarea();
-        },
-        className: 'fa fa-file',
-        title: 'Revert to simple textarea',
-      },
-      'gitea-code-inline': {
-        action(e) {
-          const cm = e.codemirror;
-          const selection = cm.getSelection();
-          cm.replaceSelection(`\`${selection}\``);
-          if (!selection) {
-            const cursorPos = cm.getCursor();
-            cm.setCursor(cursorPos.line, cursorPos.ch - 1);
-          }
-          cm.focus();
-        },
-        className: 'fa fa-angle-right',
-        title: 'Add Inline Code',
-      }
-    };
   }
 
-  parseEasyMDEToolbar(actions) {
+  parseEasyMDEToolbar(EasyMDE, actions) {
+    this.easyMDEToolbarActions = this.easyMDEToolbarActions || easyMDEToolbarActions(EasyMDE, this);
     const processed = [];
     for (const action of actions) {
-      if (action.startsWith('gitea-')) {
-        const giteaAction = this.easyMDEToolbarActions[action];
-        if (!giteaAction) throw new Error(`Unknown EasyMDE toolbar action ${action}`);
-        processed.push(giteaAction);
-      } else {
-        processed.push(action);
-      }
+      const actionButton = this.easyMDEToolbarActions[action];
+      if (!actionButton) throw new Error(`Unknown EasyMDE toolbar action ${action}`);
+      processed.push(actionButton);
     }
     return processed;
   }
@@ -306,7 +247,7 @@ class ComboMarkdownEditor {
       nativeSpellcheck: true,
       ...this.options.easyMDEOptions,
     };
-    easyMDEOpt.toolbar = this.parseEasyMDEToolbar(easyMDEOpt.toolbar ?? this.easyMDEToolbarDefault);
+    easyMDEOpt.toolbar = this.parseEasyMDEToolbar(EasyMDE, easyMDEOpt.toolbar ?? this.easyMDEToolbarDefault);
 
     this.easyMDE = new EasyMDE(easyMDEOpt);
     this.easyMDE.codemirror.on('change', (...args) => {this.options?.onContentChanged?.(this, ...args)});
