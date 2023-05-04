@@ -21,12 +21,17 @@ type licenseValues struct {
 }
 
 func getLicense(name string, values *licenseValues) ([]byte, error) {
-	placeholder := getLicensePlaceholder(name)
 	data, err := options.License(name)
 	if err != nil {
 		return nil, fmt.Errorf("GetRepoInitFile[%s]: %w", name, err)
 	}
-	scanner := bufio.NewScanner(bytes.NewReader(data))
+	return fillLicensePlaceholder(name, values, data), nil
+}
+
+func fillLicensePlaceholder(name string, values *licenseValues, origin []byte) []byte {
+	placeholder := getLicensePlaceholder(name)
+
+	scanner := bufio.NewScanner(bytes.NewReader(origin))
 	output := bytes.NewBuffer(nil)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -47,7 +52,7 @@ func getLicense(name string, values *licenseValues) ([]byte, error) {
 		output.WriteString(line + "\n")
 	}
 
-	return output.Bytes(), nil
+	return output.Bytes()
 }
 
 type licensePlaceholder struct {
