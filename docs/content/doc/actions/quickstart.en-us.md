@@ -131,29 +131,7 @@ Please make sure your database supports them, especially when using MySQL.
 If the charset is not `utf8mb4`, errors will occur, such as `Error 1366 (HY000): Incorrect string value: '\\xF0\\x9F\\x8E\\x89 T...' for column 'name' at row 1`.
 See [Database Preparation]( {{ < relref "doc/installation/database-preparation.en-us.md#mysql" > }}) for more information.
 
-Alternatively, you can use this demo without emojis:
-
-```yaml
-name: Gitea Actions Demo
-run-name: ${{ gitea.actor }} is testing out Gitea Actions
-on: [push]
-
-jobs:
-  Explore-Gitea-Actions:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "The job was automatically triggered by a ${{ gitea.event_name }} event."
-      - run: echo "This job is now running on a ${{ runner.os }} server hosted by Gitea!"
-      - run: echo "The name of your branch is ${{ gitea.ref }} and your repository is ${{ gitea.repository }}."
-      - name: Check out repository code
-        uses: actions/checkout@v3
-      - run: echo "The ${{ gitea.repository }} repository has been cloned to the runner."
-      - run: echo "The workflow is now ready to test your code on the runner."
-      - name: List files in the repository
-        run: |
-          ls ${{ gitea.workspace }}
-      - run: echo "This job's status is ${{ gitea.status }}."
-```
+Alternatively, you can remove all emojis from the demo file and try again.
 
 The line `on: [push]` indicates that the workflow will be triggered when you push commits to this repository.
 However, when you upload the YAML file, it also pushes a commit, so you should see a new task in the Actions tab.
