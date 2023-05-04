@@ -182,7 +182,7 @@ It is a comma-separated list, and each item is a label.
 Let's take `ubuntu-22.04:docker://node:16-bullseye` as an example.
 It means that the runner can run jobs with `runs-on: ubuntu-22.04`, and the job will be run in a docker container with the image `node:16-bullseye`.
 
-If you think the image is too poor, and you have enough disk space to use a better and bigger one, you can change it to `ubuntu-22.04:docker://<the image you like>`.
+If the default image is insufficient for your needs, and you have enough disk space to use a better and bigger one, you can change it to `ubuntu-22.04:docker://<the image you like>`.
 You can find more useful images on [act images](https://github.com/nektos/act/blob/master/IMAGES.md).
 
 If you want to run jobs in the host directly, you can change it to `ubuntu-22.04:host` or just `ubuntu-22.04`, the `:host` is optional.
