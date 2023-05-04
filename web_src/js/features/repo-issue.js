@@ -643,8 +643,8 @@ export function initRepoIssueGotoID() {
     const aElm = document.activeElement;
     if (aElm.id === 'search-button' || (aElm.name === 'q' && !qval.includes('#')) || (window.location.pathname.split('/').length === 2 && !qval.includes('/')) || !issueidre.test(qval) || !$('#hashtag-button').length) return;
     const gotoUrl = !qval.includes('/') ? `${window.location.pathname}/${qval.replace('#', '')}` : `/${qval.replace('#', '/issues/')}`;
-    const {owner, repo, index} = parseIssueHref(gotoUrl);
-    if (owner && repo && index) {
+    const {owner, repo, type, index} = parseIssueHref(gotoUrl);
+    if (owner && repo && type && index) {
       e.preventDefault();
       window.location.href = gotoUrl;
     }
