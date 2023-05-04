@@ -965,6 +965,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0j
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/meilisearch/meilisearch-go v0.23.0 h1:CuqB+/NyEJKXF2SovTetAZW7lX+nSH+QTqbgSH6bv+Q=
 github.com/meilisearch/meilisearch-go v0.23.0/go.mod h1:sAPJgywANHUCFUo/spCQ8SoP6sJhmfIKFWIXu7Dd5GQ=
+github.com/meilisearch/meilisearch-go v0.24.0 h1:GTP8LWZmkMYrGgX5BRZdkC2Txyp0mFYLzXYMlVV7cSQ=
+github.com/meilisearch/meilisearch-go v0.24.0/go.mod h1:SxuSqDcPBIykjWz1PX+KzsYzArNLSCadQodWs8extS0=
 github.com/mholt/acmez v1.0.4 h1:N3cE4Pek+dSolbsofIkAYz6H1d3pE+2G0os7QHslf80=
 github.com/mholt/acmez v1.0.4/go.mod h1:qFGLZ4u+ehWINeJZjzPlsnjJBCPAADWTcIqE/7DAYQY=
 github.com/mholt/acmez v1.1.0 h1:IQ9CGHKOHokorxnffsqDvmmE30mDenO1lptYZ1AYkHY=
@@ -1312,6 +1314,8 @@ github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyC
 github.com/valyala/fasthttp v1.37.1-0.20220607072126-8a320890c08d/go.mod h1:t/G+3rLek+CyY9bnIE+YlMRddxVAAGjhxndDB4i4C0I=
 github.com/valyala/fasthttp v1.44.0 h1:R+gLUhldIsfg1HokMuQjdQ5bh9nuXHPIfvkYUu9eR5Q=
 github.com/valyala/fasthttp v1.44.0/go.mod h1:f6VbjjoI3z1NDOZOv17o6RvtRSWxC77seBFc2uWtgiY=
+github.com/valyala/fasthttp v1.47.0 h1:y7moDoxYzMooFpT5aHgNgVOQDrS3qlkfiP9mDtGGK9c=
+github.com/valyala/fasthttp v1.47.0/go.mod h1:k2zXd82h/7UZc3VOdJ2WaUqt1uZ/XpXAfE9i+HBC3lA=
 github.com/valyala/fastjson v1.6.3/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLrsQns1aXY=
 github.com/valyala/fastjson v1.6.4 h1:uAUNq9Z6ymTgGhcm0UynUAB6tlbakBrz6CQFax3BXVQ=
 github.com/valyala/fastjson v1.6.4/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLrsQns1aXY=
