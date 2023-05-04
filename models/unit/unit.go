@@ -160,6 +160,9 @@ func LoadUnitConfig() error {
 		log.Warn("Invalid keys in default fork repo units: %s", strings.Join(invalidKeys, ", "))
 	}
 	DefaultForkRepoUnits = validateDefaultRepoUnits(DefaultForkRepoUnits, setDefaultForkRepoUnits)
+	if len(DefaultForkRepoUnits) == 0 {
+		return errors.New("no default fork repository units found")
+	}
 	return nil
 }
 

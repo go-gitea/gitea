@@ -253,11 +253,23 @@ func registerRoutes(m *web.Route) {
 		}
 	}
 
-	unitEnabled := func(ut unit.Type) func(ctx *context.Context) {
+	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
-			if ut.UnitGlobalDisabled() {
-				ctx.NotFound("Code", nil)
+			if unitType.UnitGlobalDisabled() {
+				ctx.NotFound(unitType.String(), nil)
 				return
+			}
+
+			if ctx.ContextUser == nil {
+				ctx.NotFound(unitType.String(), nil)
+				return
+			}
+
+			if ctx.ContextUser.IsOrganization() {
+				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
+					ctx.NotFound(unitType.String(), nil)
+					return
+				}
 			}
 		}
 	}
@@ -317,7 +329,7 @@ func registerRoutes(m *web.Route) {
 		m.Get("/users", explore.Users)
 		m.Get("/users/sitemap-{idx}.xml", sitemapEnabled, explore.Users)
 		m.Get("/organizations", explore.Organizations)
-		m.Get("/code", unitEnabled(unit.TypeCode), explore.Code)
+		m.Get("/code", reqUnitAccess(unit.TypeCode, perm.AccessModeRead), explore.Code)
 		m.Get("/topics/search", explore.TopicSearch)
 	}, ignExploreSignIn)
 	m.Group("/issues", func() {
@@ -643,21 +655,6 @@ func registerRoutes(m *web.Route) {
 		}
 	}
 
-	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode) func(ctx *context.Context) {
-		return func(ctx *context.Context) {
-			if ctx.ContextUser == nil {
-				ctx.NotFound(unitType.String(), nil)
-				return
-			}
-			if ctx.ContextUser.IsOrganization() {
-				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
-					ctx.NotFound(unitType.String(), nil)
-					return
-				}
-			}
-		}
-	}
-
 	// ***** START: Organization *****
 	m.Group("/org", func() {
 		m.Group("/{org}", func() {
@@ -853,7 +850,7 @@ func registerRoutes(m *web.Route) {
 		}, repo.MustEnableProjects)
 
 		m.Group("", func() {
-			m.Get("/code", unitEnabled(unit.TypeCode), user.CodeSearch)
+			m.Get("/code", user.CodeSearch)
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead))
 	}, context_service.UserAssignmentWeb(), context.OrgAssignment())
 
