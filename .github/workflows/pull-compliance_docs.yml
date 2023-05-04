@@ -1,4 +1,4 @@
-name: Compliance testing for documentation
+name: "Pull: Compliance testing for documentation"
 
 on:
   pull_request:

@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 // Package contains owner, access mode and optional the package descriptor
@@ -136,7 +137,7 @@ func PackageContexter(ctx gocontext.Context) func(next http.Handler) http.Handle
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			ctx := Context{
 				Resp:   NewResponse(resp),
-				Data:   map[string]interface{}{},
+				Data:   middleware.GetContextData(req.Context()),
 				Render: rnd,
 			}
 			defer ctx.Close()

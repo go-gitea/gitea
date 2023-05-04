@@ -2,7 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository labels">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<div class="navbar">
+		<div class="navbar gt-mb-4">
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
 				<div class="ui right">
@@ -10,7 +10,6 @@
 				</div>
 			{{end}}
 		</div>
-		<div class="ui divider"></div>
 		{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
 			{{template "repo/issue/labels/label_new" .}}
 		{{end}}
