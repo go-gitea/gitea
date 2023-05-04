@@ -218,7 +218,7 @@ func ViewPost(ctx *context_module.Context) {
 				// !(index < task.LogIndexes[index]) when task data is older than step data.
 				// It can be fixed by making sure write/read tasks and steps in the same transaction,
 				// but it's easier to just treat it as fetching the next line before it's ready.
-				index < task.LogIndexes[index]
+				index < int64(len(task.LogIndexes))
 
 			if validCursor {
 				length := step.LogLength - cursor.Cursor
