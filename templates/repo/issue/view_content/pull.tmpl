@@ -47,7 +47,7 @@
 										{{$.locale.Tr "repo.issues.dismiss_review"}}
 									</div>
 									<div class="content">
-										<div class="ui warning message text left">
+										<div class="ui warning message">
 											{{$.locale.Tr "repo.issues.dismiss_review_warning"}}
 										</div>
 										<form class="ui form dismiss-review-form" id="dismiss-review-{{.Review.ID}}" action="{{$.RepoLink}}/issues/dismiss_review" method="post">
@@ -108,6 +108,9 @@
 		</div>
 	</div>
 {{end}}
+{{if and .Issue.PullRequest.HasMerged (not .IsPullBranchDeletable)}}
+{{/* Then the merge box will not be displayed because this page already contains enough information */}}
+{{else}}
 <div class="timeline-item comment merge box">
 	<a class="timeline-avatar text {{if .Issue.PullRequest.HasMerged}}purple
 	{{- else if .Issue.IsClosed}}grey
@@ -131,19 +134,21 @@
 		{{$showGeneralMergeForm := false}}
 		<div class="ui attached merge-section segment {{if not $.LatestCommitStatus}}no-header{{end}}">
 			{{if .Issue.PullRequest.HasMerged}}
-				<div class="item item-section text gt-f1">
-					<div class="item-section-left">
-						<h3 class="gt-mb-3">{{$.locale.Tr "repo.pulls.merged_success"}}</h3>
-						<div class="merge-section-info">
-							{{$.locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape)) | Str2html}}
+				{{if .IsPullBranchDeletable}}
+					<div class="item item-section text gt-f1">
+						<div class="item-section-left">
+							<h3 class="gt-mb-3">
+									{{$.locale.Tr "repo.pulls.merged_success"}}
+							</h3>
+							<div class="merge-section-info">
+								{{$.locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape)) | Str2html}}
+							</div>
 						</div>
-					</div>
-					{{if .IsPullBranchDeletable}}
 						<div class="item-section-right">
 							<button class="delete-button ui button" data-url="{{.DeleteBranchLink}}">{{$.locale.Tr "repo.branch.delete_html"}}</button>
 						</div>
-					{{end}}
-				</div>
+					</div>
+				{{end}}
 			{{else if .Issue.IsClosed}}
 				<div class="item item-section text gt-f1">
 					<div class="item-section-left">
@@ -249,7 +254,7 @@
 						{{$.locale.Tr "repo.pulls.require_signed_wont_sign"}}
 					</div>
 					<div class="item">
-						<i class="icon unlock"></i>
+						<i class="icon icon-octicon">{{svg "octicon-unlock"}}</i>
 						{{$.locale.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason)}}
 					</div>
 				{{end}}
@@ -274,12 +279,12 @@
 					{{end}}
 					{{if .WillSign}}
 						<div class="item">
-							<i class="icon lock green"></i>
+							<i class="icon icon-octicon">{{svg "octicon-lock" 16 "text green"}}</i>
 							{{$.locale.Tr "repo.signing.will_sign" .SigningKey}}
 						</div>
 					{{else if .IsSigned}}
 						<div class="item">
-							<i class="icon unlock"></i>
+							<i class="icon icon-octicon">{{svg "octicon-unlock"}}</i>
 							{{$.locale.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason)}}
 						</div>
 					{{end}}
@@ -485,3 +490,4 @@
 		</div>
 	</div>
 </div>
+{{end}}
