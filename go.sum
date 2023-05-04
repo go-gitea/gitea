@@ -384,6 +384,8 @@ github.com/glycerine/go-unsnap-stream v0.0.0-20181221182339-f9677308dec2/go.mod 
 github.com/glycerine/goconvey v0.0.0-20190410193231-58a59202ab31/go.mod h1:Ogl1Tioa0aV7gstGFO7KhffUsb9M4ydbEbbxpcEDc24=
 github.com/go-ap/activitypub v0.0.0-20230218112952-bfb607b04799 h1:zVZaYt1h4yWL7uRHvq2StewCu4ObtS+ws9gGgoZJ+2s=
 github.com/go-ap/activitypub v0.0.0-20230218112952-bfb607b04799/go.mod h1:1oVD0h0aPT3OEE1ZoSUoym/UGKzxe+e0y8K2AkQ1Hqs=
+github.com/go-ap/activitypub v0.0.0-20230331173947-f5b96d9450d4 h1:SGAGW21M92426IL1wW42rDHEkA2kqheNYrkFYVDNLvk=
+github.com/go-ap/activitypub v0.0.0-20230331173947-f5b96d9450d4/go.mod h1:qw0WNf+PTG69Xu6mVqUluDuKl1VwVYdgntOZQFBZQ48=
 github.com/go-ap/errors v0.0.0-20221205040414-01c1adfc98ea h1:ywGtLGVjJjMrq4mu35Qmu+NtlhlTk/gTayE6Bb4tQZk=
 github.com/go-ap/errors v0.0.0-20221205040414-01c1adfc98ea/go.mod h1:SaTNjEEkp0q+w3pUS1ccyEL/lUrHteORlDq/e21mCc8=
 github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73 h1:GMKIYXyXPGIp+hYiWOhfqK4A023HdgisDT4YGgf99mw=
