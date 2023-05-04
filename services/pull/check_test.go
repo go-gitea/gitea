@@ -21,26 +21,18 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 
 	idChan := make(chan int64, 10)
 
-	q, err := queue.NewChannelUniqueQueue(func(data ...queue.Data) []queue.Data {
-		for _, datum := range data {
-			id, _ := strconv.ParseInt(datum.(string), 10, 64)
+	testHandler := func(items ...string) []string {
+		for _, s := range items {
+			id, _ := strconv.ParseInt(s, 10, 64)
 			idChan <- id
 		}
 		return nil
-	}, queue.ChannelUniqueQueueConfiguration{
-		WorkerPoolConfiguration: queue.WorkerPoolConfiguration{
-			QueueLength: 10,
-			BatchLength: 1,
-			Name:        "temporary-queue",
-		},
-		Workers: 1,
-	}, "")
-	assert.NoError(t, err)
+	}
+	iniCfg := queue.IniConfig{Length: 10, BatchLength: 1, Workers: 1}
+	prPatchCheckerQueue = queue.NewWorkerPoolQueueByIniConfig("pr_patch_checker", iniCfg, testHandler, true)
 
-	queueShutdown := []func(){}
-	queueTerminate := []func(){}
-
-	prPatchCheckerQueue = q.(queue.UniqueQueue)
+	var queueShutdown []func()
+	var queueTerminate []func()
 
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	AddToTaskQueue(pr)
@@ -54,7 +46,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	assert.True(t, has)
 	assert.NoError(t, err)
 
-	prPatchCheckerQueue.Run(func(shutdown func()) {
+	go prPatchCheckerQueue.Run(func(shutdown func()) {
 		queueShutdown = append(queueShutdown, shutdown)
 	}, func(terminate func()) {
 		queueTerminate = append(queueTerminate, terminate)

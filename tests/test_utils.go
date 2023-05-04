@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -233,47 +232,4 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	assert.NoError(t, storage.Clean(storage.Packages))
 
 	return deferFn
-}
-
-// ResetFixtures flushes queues, reloads fixtures and resets test repositories within a single test.
-// Most tests should call defer tests.PrepareTestEnv(t)() (or have onGiteaRun do that for them) but sometimes
-// within a single test this is required
-func ResetFixtures(t *testing.T) {
-	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), -1))
-
-	// load database fixtures
-	assert.NoError(t, unittest.LoadFixtures())
-
-	// load git repo fixtures
-	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
-	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
-	if err != nil {
-		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
-	}
-	for _, ownerDir := range ownerDirs {
-		if !ownerDir.Type().IsDir() {
-			continue
-		}
-		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
-		if err != nil {
-			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
-		}
-		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
-		}
-	}
-
-	// load LFS object fixtures
-	// (LFS storage can be on any of several backends, including remote servers, so we init it with the storage API)
-	lfsFixtures, err := storage.NewStorage("", storage.LocalStorageConfig{Path: path.Join(filepath.Dir(setting.AppPath), "tests/gitea-lfs-meta")})
-	assert.NoError(t, err)
-	assert.NoError(t, storage.Clean(storage.LFS))
-	assert.NoError(t, lfsFixtures.IterateObjects("", func(path string, _ storage.Object) error {
-		_, err := storage.Copy(storage.LFS, path, lfsFixtures, path)
-		return err
-	}))
 }

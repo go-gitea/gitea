@@ -89,6 +89,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	}
 
 	if err = CreateTestEngine(opts); err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, `sqlite3 requires: import _ "github.com/mattn/go-sqlite3" or -tags sqlite,sqlite_unlock_notify`)
 		fatalTestError("Error creating test engine: %v\n", err)
 	}
 
