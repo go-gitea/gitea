@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {hideElem, showElem} from '../utils/dom.js';
+import {toggleElem} from '../utils/dom.js';
 
 export function initRepoBranchButton() {
   initRepoCreateBranchButton();
@@ -34,8 +34,7 @@ function initRepoRenameBranchButton() {
 
     // display the warning that the branch which is chosen is the default branch
     const $warn = $modal.find('.default-branch-warning');
-    if ($(this).attr('data-is-default-branch') !== 'true') hideElem($warn);
-    else showElem($warn);
+    toggleElem($warn, $(this).attr('data-is-default-branch') === 'true')
 
     const $text = $modal.find('[data-rename-branch-to]');
     $text.text($text.attr('data-rename-branch-to').replace('%s', oldBranchName));
