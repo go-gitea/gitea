@@ -348,6 +348,6 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	}
 
 	if err := loadRepoArchiveFrom(rootCfg); err != nil {
-		log.Fatal("%v", err)
+		log.Fatal("loadRepoArchiveFrom: %v", err)
 	}
 }

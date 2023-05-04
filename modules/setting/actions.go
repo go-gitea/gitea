@@ -25,6 +25,7 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	sec.Key("MINIO_BASE_PATH").MustString("actions_log/")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
 
-	Actions.Storage = getStorage(rootCfg, "actions_log", storageType, sec)
+	// don't support to read configuration from [actions]
+	Actions.Storage = getStorage(rootCfg, "actions_log", storageType, nil)
 	return nil
 }
