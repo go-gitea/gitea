@@ -5,6 +5,8 @@ slug: "config-cheat-sheet"
 weight: 30
 toc: false
 draft: false
+aliases:
+  - /en-us/config-cheat-sheet
 menu:
   sidebar:
     parent: "administration"
@@ -117,7 +119,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 
 ### Repository - Editor (`repository.editor`)
 
-- `LINE_WRAP_EXTENSIONS`: **.txt,.md,.markdown,.mdown,.mkd,**: List of file extensions for which lines should be wrapped in the Monaco editor. Separate extensions with a comma. To line wrap files without an extension, just put a comma
+- `LINE_WRAP_EXTENSIONS`: **.txt,.md,.markdown,.mdown,.mkd,.livemd,**: List of file extensions for which lines should be wrapped in the Monaco editor. Separate extensions with a comma. To line wrap files without an extension, just put a comma
 - `PREVIEWABLE_FILE_MODES`: **markdown**: Valid file modes that have a preview API associated with them, such as `api/v1/markdown`. Separate the values by commas. The preview tab in edit mode won't be displayed if the file extension doesn't match.
 
 ### Repository - Pull Request (`repository.pull-request`)
@@ -277,6 +279,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `CUSTOM_URL_SCHEMES`: Use a comma separated list (ftp,git,svn) to indicate additional
   URL hyperlinks to be rendered in Markdown. URLs beginning in http and https are
   always displayed
+- `FILE_EXTENSIONS`: **.md,.markdown,.mdown,.mkd,.livemd**: List of file extensions that should be rendered/edited as Markdown. Separate the extensions with a comma. To render files without any extension as markdown, just put a comma.
 - `ENABLE_MATH`: **true**: Enables detection of `\(...\)`, `\[...\]`, `$...$` and `$$...$$` blocks as math blocks.
 
 ## Server (`server`)
@@ -1204,7 +1207,6 @@ in this mapping or the filetype using heuristics.
 
 ## Time (`time`)
 
-- `FORMAT`: Time format to display on UI. i.e. RFC1123 or 2006-01-02 15:04:05
 - `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Asia/Shanghai
 
 ## Task (`task`)
@@ -1249,6 +1251,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `LIMIT_SIZE_CONAN`: **-1**: Maximum size of a Conan upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_CONDA`: **-1**: Maximum size of a Conda upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_CONTAINER`: **-1**: Maximum size of a Container upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_DEBIAN`: **-1**: Maximum size of a Debian upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_GENERIC`: **-1**: Maximum size of a Generic upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_HELM`: **-1**: Maximum size of a Helm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_MAVEN`: **-1**: Maximum size of a Maven upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)

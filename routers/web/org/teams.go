@@ -86,9 +86,17 @@ func TeamsAction(ctx *context.Context) {
 				return
 			}
 		}
+
+		redirect := ctx.Org.OrgLink + "/teams/"
+		if isOrgMember, err := org_model.IsOrganizationMember(ctx, ctx.Org.Organization.ID, ctx.Doer.ID); err != nil {
+			ctx.ServerError("IsOrganizationMember", err)
+			return
+		} else if !isOrgMember {
+			redirect = setting.AppSubURL + "/"
+		}
 		ctx.JSON(http.StatusOK,
 			map[string]interface{}{
-				"redirect": ctx.Org.OrgLink + "/teams/",
+				"redirect": redirect,
 			})
 		return
 	case "remove":
@@ -544,6 +552,7 @@ func TeamInvite(ctx *context.Context) {
 	ctx.Data["Organization"] = org
 	ctx.Data["Team"] = team
 	ctx.Data["Inviter"] = inviter
+	ctx.Data["EmailMismatch"] = ctx.Doer.Email != invite.Email
 
 	ctx.HTML(http.StatusOK, tplTeamInvite)
 }
@@ -557,6 +566,13 @@ func TeamInvitePost(ctx *context.Context) {
 		} else {
 			ctx.ServerError("getTeamInviteFromContext", err)
 		}
+		return
+	}
+
+	// check that the Doer is the invitee
+	if ctx.Doer.Email != invite.Email {
+		log.Info("invite %d does not apply to the current user %d", invite.ID, ctx.Doer.ID)
+		ctx.NotFound("ErrTeamInviteNotFound", err)
 		return
 	}
 
