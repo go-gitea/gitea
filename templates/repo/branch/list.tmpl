@@ -52,7 +52,7 @@
 								{{end}}
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not $.IsMirror)}}
 									<button class="ui tertiary button show-modal show-rename-branch-modal gt-mx-3"
-										data-is-defualt-branch="true"
+										data-is-default-branch="true"
 										data-modal="#rename-branch-modal"
 										data-old-branch-name="{{$.DefaultBranch}}"
 										data-tooltip-content="{{$.locale.Tr "repo.branch.rename" ($.DefaultBranch)}}"
@@ -159,7 +159,7 @@
 										{{end}}
 										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not $.IsMirror)}}
 											<button class="ui tertiary button show-modal show-rename-branch-modal gt-mx-3"
-												data-is-defualt-branch="false"
+												data-is-default-branch="false"
 												data-old-branch-name="{{.Name}}"
 												data-modal="#rename-branch-modal"
 												data-tooltip-content="{{$.locale.Tr "repo.branch.rename" (.Name)}}"
