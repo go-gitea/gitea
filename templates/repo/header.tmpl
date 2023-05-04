@@ -52,7 +52,7 @@
 						<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
 							<div data-tooltip-content="{{if $.CanUserAcceptTransfer}}{{$.locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{$.locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}">
-								<button type="submit" class="ui button {{if $.CanUserAcceptTransfer}}green {{end}} ok inverted small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
+								<button type="submit" class="ui basic button {{if $.CanUserAcceptTransfer}}green {{end}} ok small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
 									{{$.locale.Tr "repo.transfer.accept"}}
 								</button>
 							</div>
@@ -60,7 +60,7 @@
 						<form method="post" action="{{$.RepoLink}}/action/reject_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
 							<div data-tooltip-content="{{if $.CanUserAcceptTransfer}}{{$.locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{$.locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}">
-								<button type="submit" class="ui button {{if $.CanUserAcceptTransfer}}red {{end}}ok inverted small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
+								<button type="submit" class="ui basic button {{if $.CanUserAcceptTransfer}}red {{end}}ok small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
 									{{$.locale.Tr "repo.transfer.reject"}}
 								</button>
 							</div>
