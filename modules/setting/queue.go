@@ -10,8 +10,6 @@ import (
 
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
-
-	ini "gopkg.in/ini.v1"
 )
 
 // QueueSettings represent the settings for a queue from the ini
@@ -195,7 +193,7 @@ func handleOldLengthConfiguration(rootCfg ConfigProvider, queueName, oldSection,
 // toDirectlySetKeysSet returns a set of keys directly set by this section
 // Note: we cannot use section.HasKey(...) as that will immediately set the Key if a parent section has the Key
 // but this section does not.
-func toDirectlySetKeysSet(section *ini.Section) container.Set[string] {
+func toDirectlySetKeysSet(section ConfigSection) container.Set[string] {
 	sections := make(container.Set[string])
 	for _, key := range section.Keys() {
 		sections.Add(key.Name())

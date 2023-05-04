@@ -55,7 +55,7 @@ type Render interface {
 type Context struct {
 	Resp     ResponseWriter
 	Req      *http.Request
-	Data     map[string]interface{} // data used by MVC templates
+	Data     middleware.ContextData // data used by MVC templates
 	PageData map[string]interface{} // data used by JavaScript modules in one page, it's `window.config.pageData`
 	Render   Render
 	translation.Locale
@@ -97,7 +97,7 @@ func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
 }
 
 // GetData returns the data
-func (ctx *Context) GetData() map[string]interface{} {
+func (ctx *Context) GetData() middleware.ContextData {
 	return ctx.Data
 }
 
@@ -219,6 +219,7 @@ const tplStatus500 base.TplName = "status/500"
 // HTML calls Context.HTML and renders the template to HTTP response
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
+
 	tmplStartTime := time.Now()
 	if !setting.IsProd {
 		ctx.Data["TemplateName"] = name
@@ -226,13 +227,19 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 	ctx.Data["TemplateLoadTimes"] = func() string {
 		return strconv.FormatInt(time.Since(tmplStartTime).Nanoseconds()/1e6, 10) + "ms"
 	}
-	if err := ctx.Render.HTML(ctx.Resp, status, string(name), templates.BaseVars().Merge(ctx.Data)); err != nil {
-		if status == http.StatusInternalServerError && name == tplStatus500 {
-			ctx.PlainText(http.StatusInternalServerError, "Unable to find HTML templates, the template system is not initialized, or Gitea can't find your template files.")
-			return
-		}
+
+	err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data)
+	if err == nil {
+		return
+	}
+
+	// if rendering fails, show error page
+	if name != tplStatus500 {
 		err = fmt.Errorf("failed to render template: %s, error: %s", name, templates.HandleTemplateRenderingError(err))
-		ctx.ServerError("Render failed", err)
+		ctx.ServerError("Render failed", err) // show the 500 error page
+	} else {
+		ctx.PlainText(http.StatusInternalServerError, "Unable to render status/500 page, the template system is broken, or Gitea can't find your template files.")
+		return
 	}
 }
 
@@ -446,6 +453,17 @@ func (ctx *Context) JSON(status int, content interface{}) {
 	}
 }
 
+func removeSessionCookieHeader(w http.ResponseWriter) {
+	cookies := w.Header()["Set-Cookie"]
+	w.Header().Del("Set-Cookie")
+	for _, cookie := range cookies {
+		if strings.HasPrefix(cookie, setting.SessionConfig.CookieName+"=") {
+			continue
+		}
+		w.Header().Add("Set-Cookie", cookie)
+	}
+}
+
 // Redirect redirects the request
 func (ctx *Context) Redirect(location string, status ...int) {
 	code := http.StatusSeeOther
@@ -453,6 +471,15 @@ func (ctx *Context) Redirect(location string, status ...int) {
 		code = status[0]
 	}
 
+	if strings.Contains(location, "://") || strings.HasPrefix(location, "//") {
+		// Some browsers (Safari) have buggy behavior for Cookie + Cache + External Redirection, eg: /my-path => https://other/path
+		// 1. the first request to "/my-path" contains cookie
+		// 2. some time later, the request to "/my-path" doesn't contain cookie (caused by Prevent web tracking)
+		// 3. Gitea's Sessioner doesn't see the session cookie, so it generates a new session id, and returns it to browser
+		// 4. then the browser accepts the empty session, then the user is logged out
+		// So in this case, we should remove the session cookie from the response header
+		removeSessionCookieHeader(ctx.Resp)
+	}
 	http.Redirect(ctx.Resp, ctx.Req, location, code)
 }
 
@@ -656,42 +683,38 @@ func getCsrfOpts() CsrfOptions {
 }
 
 // Contexter initializes a classic context for a request.
-func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
-	_, rnd := templates.HTMLRenderer(ctx)
+func Contexter() func(next http.Handler) http.Handler {
+	rnd := templates.HTMLRenderer()
 	csrfOpts := getCsrfOpts()
 	if !setting.IsProd {
 		CsrfTokenRegenerationInterval = 5 * time.Second // in dev, re-generate the tokens more aggressively for debug purpose
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			locale := middleware.Locale(resp, req)
-			startTime := time.Now()
-			link := setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/")
-
 			ctx := Context{
 				Resp:    NewResponse(resp),
 				Cache:   mc.GetCache(),
-				Locale:  locale,
-				Link:    link,
+				Locale:  middleware.Locale(resp, req),
+				Link:    setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/"),
 				Render:  rnd,
 				Session: session.GetSession(req),
 				Repo: &Repository{
 					PullRequest: &PullRequest{},
 				},
-				Org: &Organization{},
-				Data: map[string]interface{}{
-					"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
-					"PageStartTime": startTime,
-					"Link":          link,
-					"RunModeIsProd": setting.IsProd,
-				},
+				Org:  &Organization{},
+				Data: middleware.GetContextData(req.Context()),
 			}
 			defer ctx.Close()
 
-			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
-			ctx.PageData = map[string]interface{}{}
-			ctx.Data["PageData"] = ctx.PageData
+			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data["Context"] = &ctx
+			ctx.Data["CurrentURL"] = setting.AppSubURL + req.URL.RequestURI()
+			ctx.Data["Link"] = ctx.Link
+			ctx.Data["locale"] = ctx.Locale
+
+			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
+			ctx.PageData = map[string]any{}
+			ctx.Data["PageData"] = ctx.PageData
 
 			ctx.Req = WithContext(req, &ctx)
 			ctx.Csrf = PrepareCSRFProtector(csrfOpts, &ctx)
@@ -735,17 +758,6 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
 
 			// FIXME: do we really always need these setting? There should be someway to have to avoid having to always set these
-			ctx.Data["IsLandingPageHome"] = setting.LandingPageURL == setting.LandingPageHome
-			ctx.Data["IsLandingPageExplore"] = setting.LandingPageURL == setting.LandingPageExplore
-			ctx.Data["IsLandingPageOrganizations"] = setting.LandingPageURL == setting.LandingPageOrganizations
-
-			ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
-			ctx.Data["ShowMilestonesDashboardPage"] = setting.Service.ShowMilestonesDashboardPage
-			ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
-			ctx.Data["ShowFooterVersion"] = setting.ShowFooterVersion
-
-			ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
-			ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 			ctx.Data["DisableStars"] = setting.Repository.DisableStars
 			ctx.Data["EnableActions"] = setting.Actions.Enabled
@@ -758,21 +770,9 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
 			ctx.Data["UnitActionsGlobalDisabled"] = unit.TypeActions.UnitGlobalDisabled()
 
-			ctx.Data["locale"] = locale
 			ctx.Data["AllLangs"] = translation.AllLangs()
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
-
-			// Handle adding signedUserName to the context for the AccessLogger
-			usernameInterface := ctx.Data["SignedUserName"]
-			identityPtrInterface := ctx.Req.Context().Value(signedUserNameStringPointerKey)
-			if usernameInterface != nil && identityPtrInterface != nil {
-				username := usernameInterface.(string)
-				identityPtr := identityPtrInterface.(*string)
-				if identityPtr != nil && username != "" {
-					*identityPtr = username
-				}
-			}
 		})
 	}
 }

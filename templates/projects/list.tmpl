@@ -3,14 +3,14 @@
 		{{if .CanWriteProjects}}
 			<div class="navbar">
 				<div class="ui right">
-					<a class="ui green button" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
+					<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
 				</div>
 			</div>
 			<div class="ui divider"></div>
 		{{end}}
 
 		{{template "base/alert" .}}
-		<div class="ui compact tiny menu">
+		<div class="small-menu-items ui compact tiny menu">
 			<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{$.Link}}?state=open">
 				{{svg "octicon-project-symlink" 16 "gt-mr-3"}}
 				{{.locale.PrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
@@ -76,14 +76,14 @@
 </div>
 
 {{if $.CanWriteProjects}}
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "repo.projects.deletion"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "repo.projects.deletion_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 {{end}}

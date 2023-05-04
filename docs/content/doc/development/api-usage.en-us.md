@@ -5,6 +5,8 @@ slug: "api-usage"
 weight: 40
 toc: false
 draft: false
+aliases:
+  - /en-us/api-usage
 menu:
   sidebar:
     parent: "development"
