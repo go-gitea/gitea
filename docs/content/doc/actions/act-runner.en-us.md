@@ -204,4 +204,3 @@ After you have registered the runner, you can run it by running the following co
 The runner will fetch jobs from the Gitea instance and run them automatically.
 
 Since act runner is still in development, it is recommended to check the latest version and upgrade it regularly.
-

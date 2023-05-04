@@ -164,4 +164,3 @@ Although we would like to provide more options, our limited manpower means that 
 However, both Gitea and act runner are completely open source, so anyone can create a new/better implementation.
 We support your choice, no matter how you decide.
 In case you fork act runner to create your own version: Please contribute the changes back if you can and if you think your changes will help others as well.
-

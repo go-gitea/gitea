@@ -116,7 +116,7 @@ It's ignored by Gitea Actions now.
 
 ## Missing UI features
 
-### Pre and Post steps 
+### Pre and Post steps
 
 Pre and Post steps don't have their own section in the job log user interface.
 
@@ -138,7 +138,8 @@ But the `docker/build-push-action@v4` tries to parse the token as JWT and doesn'
 
 There are two workarounds:
 
-1. Set the `ACTIONS_RUNTIME_TOKEN` to empty manually, like:
+Set the `ACTIONS_RUNTIME_TOKEN` to empty manually, like:
+
 ``` yml
 - name: Build and push
   uses: docker/build-push-action@v4
@@ -148,7 +149,8 @@ There are two workarounds:
 ...
 ```
 
-2. The bug has been fixed in a newer [commit](https://gitea.com/docker/build-push-action/commit/d8823bfaed2a82c6f5d4799a2f8e86173c461aba?style=split&whitespace=show-all#diff-1af9a5bdf96ddff3a2f3427ed520b7005e9564ad), but it has not been released. So you could use the latest version by specifying the branch name, like:
+The bug has been fixed in a newer [commit](https://gitea.com/docker/build-push-action/commit/d8823bfaed2a82c6f5d4799a2f8e86173c461aba?style=split&whitespace=show-all#diff-1af9a5bdf96ddff3a2f3427ed520b7005e9564ad), but it has not been released. So you could use the latest version by specifying the branch name, like:
+
 ``` yml
 - name: Build and push
   uses: docker/build-push-action@master
