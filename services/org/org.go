@@ -131,15 +131,21 @@ func RenameOrganization(ctx context.Context, org *org_model.Organization, newNam
 	org.Name = newName
 	org.LowerName = strings.ToLower(newName)
 	if err := user_model.UpdateUserCols(ctx, org.AsUser(), "name", "lower_name"); err != nil {
+		org.Name = oldName
+		org.LowerName = strings.ToLower(oldName)
 		return err
 	}
 
 	// Do not fail if directory does not exist
 	if err = util.Rename(user_model.UserPath(oldName), user_model.UserPath(newName)); err != nil && !os.IsNotExist(err) {
+		org.Name = oldName
+		org.LowerName = strings.ToLower(oldName)
 		return fmt.Errorf("rename user directory: %w", err)
 	}
 
 	if err = committer.Commit(); err != nil {
+		org.Name = oldName
+		org.LowerName = strings.ToLower(oldName)
 		if err2 := util.Rename(user_model.UserPath(newName), user_model.UserPath(oldName)); err2 != nil && !os.IsNotExist(err2) {
 			log.Critical("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldName, newName, err, err2)
 			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldName, newName, err, err2)

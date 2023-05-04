@@ -55,7 +55,6 @@ func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName s
 		// Non-local users are not allowed to change their username.
 		case user_model.IsErrUserIsNotLocal(err):
 			ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
-			return fmt.Errorf(ctx.Tr("form.username_change_not_local_user"))
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
 		case user_model.IsErrEmailAlreadyUsed(err):
