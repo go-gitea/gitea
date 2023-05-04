@@ -244,35 +244,28 @@ type DivergeObject struct {
 	Behind int
 }
 
-func checkDivergence(ctx context.Context, repoPath, baseBranch, targetBranch string) (int, error) {
-	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
-	cmd := NewCommand(ctx, "rev-list", "--count").AddDynamicArguments(branches)
+// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
+func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch string) (do DivergeObject, err error) {
+	cmd := NewCommand(ctx, "rev-list", "--count", "--left-right").
+		AddDynamicArguments(baseBranch + "..." + targetBranch)
 	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
-		return -1, err
+		return do, err
 	}
-	outInteger, errInteger := strconv.Atoi(strings.Trim(stdout, "\n"))
-	if errInteger != nil {
-		return -1, errInteger
-	}
-	return outInteger, nil
-}
-
-// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
-func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch string) (DivergeObject, error) {
-	// $(git rev-list --count master..feature) commits ahead of master
-	ahead, errorAhead := checkDivergence(ctx, repoPath, baseBranch, targetBranch)
-	if errorAhead != nil {
-		return DivergeObject{}, errorAhead
+	left, right, found := strings.Cut(strings.Trim(stdout, "\n"), "\t")
+	if !found {
+		return do, fmt.Errorf("git rev-list output is missing a tab: %q", stdout)
 	}
 
-	// $(git rev-list --count feature..master) commits behind master
-	behind, errorBehind := checkDivergence(ctx, repoPath, targetBranch, baseBranch)
-	if errorBehind != nil {
-		return DivergeObject{}, errorBehind
+	do.Behind, err = strconv.Atoi(left)
+	if err != nil {
+		return do, err
 	}
-
-	return DivergeObject{ahead, behind}, nil
+	do.Ahead, err = strconv.Atoi(right)
+	if err != nil {
+		return do, err
+	}
+	return do, nil
 }
 
 // CreateBundle create bundle content to the target path

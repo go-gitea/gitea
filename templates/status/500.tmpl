@@ -1,36 +1,61 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content status-page-500">
-	<p class="gt-mt-5 center"><img src="{{AssetUrlPrefix}}/img/500.png" alt="Internal Server Error"></p>
-	<div class="ui divider"></div>
-
-	<div class="ui container gt-mt-5">
-		{{if .ErrorMsg}}
-			<p>{{.locale.Tr "error.occurred"}}:</p>
-			<pre class="gt-whitespace-pre-wrap gt-break-all">{{.ErrorMsg}}</pre>
-		{{end}}
-
-		<div class="center gt-mt-5">
-			{{if .ShowFooterVersion}}<p>{{.locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
-			{{if .IsAdmin}}<p>{{.locale.Tr "error.report_message"  | Safe}}</p>{{end}}
+{{/* This page should only depend the minimal template functions/variables, to avoid triggering new panics.
+* base template functions: AppName, AssetUrlPrefix, AssetVersion, AppSubUrl, DefaultTheme, Str2html
+* locale
+* ErrorMsg
+* SignedUser (optional)
+*/}}
+<!DOCTYPE html>
+<html lang="{{.locale.Lang}}" class="theme-{{if .SignedUser.Theme}}{{.SignedUser.Theme}}{{else}}{{DefaultTheme}}{{end}}">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Internal Server Error - {{AppName}}</title>
+	<link rel="icon" href="{{AssetUrlPrefix}}/img/favicon.svg" type="image/svg+xml">
+	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
+	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/index.css?v={{AssetVersion}}">
+</head>
+<body>
+	<div class="full height">
+		<nav class="ui secondary menu following bar light">
+			<div class="ui container gt-df">
+				<div class="item brand gt-f1">
+					<a href="{{AppSubUrl}}/" aria-label="{{.locale.Tr "home"}}">
+						<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}" aria-hidden="true">
+					</a>
+				</div>
+				<button class="item ui icon button">{{svg "octicon-three-bars"}}</button>{{/* a fake button to make the UI looks better*/}}
+			</div>
+		</nav>
+		<div role="main" class="page-content status-page-500">
+			<p class="gt-mt-5 center"><img src="{{AssetUrlPrefix}}/img/500.png" alt="Internal Server Error"></p>
+			<div class="ui divider"></div>
+			<div class="ui container gt-mt-5">
+				{{if .ErrorMsg}}
+					<p>{{.locale.Tr "error.occurred"}}:</p>
+					<pre class="gt-whitespace-pre-wrap gt-break-all">{{.ErrorMsg}}</pre>
+				{{end}}
+				<div class="center gt-mt-5">
+					{{if or .SignedUser.IsAdmin .ShowFooterVersion}}<p>{{.locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
+					{{if .SignedUser.IsAdmin}}<p>{{.locale.Tr "error.report_message"  | Str2html}}</p>{{end}}
+				</div>
+			</div>
 		</div>
 	</div>
-</div>
-{{/* when a sub-template triggers an 500 error, its parent template has been partially rendered,
-then the 500 page will be rendered after that partially rendered page, the HTML/JS are totally broken.
-so use this inline script to try to move it to main viewport */}}
-<script type="module">
-const embedded = document.querySelector('.page-content .page-content.status-page-500');
-if (embedded) {
-	// move footer to main view
-	const footer = document.querySelector('footer');
-	if (footer) document.querySelector('body').append(footer);
-	// move the 500 error page content to main view
-	const embeddedParent = embedded.parentNode;
-	let main = document.querySelector('.page-content');
-	main = main ?? document.querySelector('body');
-	main.prepend(document.createElement('hr'));
-	main.prepend(embedded);
-	embeddedParent.remove(); // remove the unrelated 500-page elements (eg: the duplicate nav bar)
-}
-</script>
-{{template "base/footer" .}}
+
+	{{/* When a sub-template triggers an 500 error, its parent template has been partially rendered, then the 500 page
+		will be rendered after that partially rendered page, the HTML/JS are totally broken. Use this inline script to try to move it to main viewport.
+		And this page shouldn't include any other JS file, avoid duplicate JS execution (still due to the partial rendering).*/}}
+	<script type="module">
+		const embedded = document.querySelector('.page-content .page-content.status-page-500');
+		if (embedded) {
+			// move the 500 error page content to main view
+			const embeddedParent = embedded.parentNode;
+			let main = document.querySelector('.page-content');
+			main = main ?? document.querySelector('body');
+			main.prepend(document.createElement('hr'));
+			main.prepend(embedded);
+			embeddedParent.remove(); // remove the unrelated 500-page elements (eg: the duplicate nav bar)
+		}
+	</script>
+</body>
+</html>
