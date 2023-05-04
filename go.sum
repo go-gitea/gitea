@@ -67,6 +67,8 @@ gitea.com/go-chi/captcha v0.0.0-20230415143339-2c0754df4384 h1:klh0LjhH7l4CuJkxl
 gitea.com/go-chi/captcha v0.0.0-20230415143339-2c0754df4384/go.mod h1:hQ9SYHKdOX968wJglb/NMQ+UqpOKwW4L+EYdvkWjHSo=
 gitea.com/go-chi/session v0.0.0-20221220005550-e056dc379164 h1:nvIOUfSzrQ6EphSLnYI+e4OcvqTd6HWdCnh+aIq9Uew=
 gitea.com/go-chi/session v0.0.0-20221220005550-e056dc379164/go.mod h1:fc/pjt5EqNKgqQXYzcas1Z5L5whkZHyOvTA7OzWVJck=
+gitea.com/go-chi/session v0.0.0-20230415140235-3182bcc14852 h1:K/QcpdrEbOXZgYhcUrd0+S1j0MsZ1/rSV8Cy2+DdsK8=
+gitea.com/go-chi/session v0.0.0-20230415140235-3182bcc14852/go.mod h1:fc/pjt5EqNKgqQXYzcas1Z5L5whkZHyOvTA7OzWVJck=
 gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96 h1:+wWBi6Qfruqu7xJgjOIrKVQGiLUZdpKYCZewJ4clqhw=
 gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96/go.mod h1:VyMQP6ue6MKHM8UsOXfNfuMKD0oSAWZdXVcpHIN2yaY=
 gitea.com/lunny/levelqueue v0.4.2-0.20220729054728-f020868cc2f7 h1:Zc3RQWC2xOVglLciQH/ZIC5IqSk3Jn96LflGQLv18Rg=
