@@ -638,11 +638,14 @@ export function initRepoIssueBranchSelect() {
 
 export function initRepoIssueGotoID() {
   const issueidre = /^(?:\w+\/\w+#\d+|#\d+|\d+)$/;
+  const isGlobalIssuesArea = $('.repo.name.item').length > 0; // for global issues area or repository issues area
   $('form.list-header-search').on('submit', (e) => {
     const qval = e.target.q.value;
     const aElm = document.activeElement;
-    if (aElm.id === 'search-button' || (aElm.name === 'q' && !qval.includes('#')) || (window.location.pathname.split('/').length === 2 && !qval.includes('/')) || !issueidre.test(qval) || !$('#hashtag-button').length) return;
-    const gotoUrl = !qval.includes('/') ? `${window.location.pathname}/${qval.replace('#', '')}` : `/${qval.replace('#', '/issues/')}`;
+    if (!$('#hashtag-button').length || aElm.id === 'search-button' || (aElm.name === 'q' && !qval.includes('#')) || (isGlobalIssuesArea && !qval.includes('/')) || !issueidre.test(qval)) return;
+    const {appUrl} = window.config;
+    const pathname = window.location.pathname;
+    const gotoUrl = qval.includes('/') ? `${appUrl}/${qval.replace('#', '/issues/')}` : `${appUrl}/${pathname}/${qval.replace('#', '')}`;
     const {owner, repo, type, index} = parseIssueHref(gotoUrl);
     if (owner && repo && type && index) {
       e.preventDefault();
@@ -651,8 +654,7 @@ export function initRepoIssueGotoID() {
   });
   $('form.list-header-search input[name=q]').on('input', (e) => {
     const qval = e.target.value;
-    const pathSlashCount = window.location.pathname.split('/'); // for global issues area or repository issues area
-    if ((pathSlashCount.length === 2 && qval.includes('/') || pathSlashCount.length === 4) && issueidre.test(qval)) {
+    if ((isGlobalIssuesArea && qval.includes('/') && issueidre.test(qval)) || !isGlobalIssuesArea && issueidre.test(qval)) {
       showElem($('#hashtag-button'));
     } else {
       hideElem($('#hashtag-button'));
