@@ -774,7 +774,7 @@
   padding-bottom: 8px;
 }
 
-.repository.view.issue .comment-list .timeline-item-group .timeline-avatar {
+.repository.view.issue .comment-list .timeline-item-group .timeline-avatar-offset {
   margin-top: 48px;
 }
 
@@ -3257,6 +3257,8 @@ td.blob-excerpt {
   .repository.view.issue .comment-list .timeline .inline-timeline-avatar {
     display: flex;
     margin-bottom: auto;
+    margin-left: 6px;
+    margin-right: 2px;
   }
   .repository.view.issue .comment-list .timeline .inline-timeline-avatar img.avatar {
     height: 24px;

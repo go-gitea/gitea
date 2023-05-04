@@ -12,7 +12,7 @@
 								{{svg (printf "octicon-%s" .Review.Type.Icon) 18}}
 							</span>
 							{{if .User}}
-								<a href="{{.User.HomeLink}}">
+								<a href="{{.User.HomeLink}}" class="gt-mr-2">
 									{{avatar $.Context .User}}
 								</a>
 							{{end}}
@@ -43,7 +43,7 @@
 							{{end}}
 							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed))}}
 								<a href="#" class="ui muted icon dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-tooltip-content="{{$.locale.Tr "repo.issues.dismiss_review"}}">
-									{{svg "octicon-x" 16}}
+									{{svg "octicon-x" 20}}
 								</a>
 								<div class="ui small modal" id="dismiss-review-modal">
 									<div class="header">
@@ -68,11 +68,9 @@
 									</div>
 								</div>
 							{{end}}
-							<span class="gt-df gt-ac">
-								{{if .CanChange}}
-									<a href="#" class="ui icon muted re-request-review{{if .Checked}} checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-tooltip-content="{{if .Checked}}{{$.locale.Tr "repo.issues.remove_request_review"}}{{else}}{{$.locale.Tr "repo.issues.re_request_review"}}{{end}}" data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">{{if .Checked}}{{svg "octicon-trash"}}{{else}}{{svg "octicon-sync"}}{{end}}</a>
-								{{end}}
-							</span>
+							{{if .CanChange}}
+								<a href="#" class="ui icon muted re-request-review{{if .Checked}} checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-tooltip-content="{{if .Checked}}{{$.locale.Tr "repo.issues.remove_request_review"}}{{else}}{{$.locale.Tr "repo.issues.re_request_review"}}{{end}}" data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">{{if .Checked}}{{svg "octicon-trash"}}{{else}}{{svg "octicon-sync"}}{{end}}</a>
+							{{end}}
 						</div>
 					</div>
 				{{end}}
@@ -85,7 +83,7 @@
 								{{svg (printf "octicon-%s" .Type.Icon) 18}}
 							</span>
 							<a href="{{$.Repository.OriginalURL}}" data-tooltip-content="{{$.locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe}}">
-								<span class="text black ">
+								<span class="text black">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 									{{.OriginalAuthor}}
 								</span>

@@ -372,7 +372,7 @@
 				<div class="timeline-item event">
 					{{if .OriginalAuthor}}
 					{{else}}
-					<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+					<a class="timeline-avatar{{if or (eq .Review.Type 2) (eq .Review.Type 3)}} timeline-avatar-offset{{end}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
 						{{avatar $.Context .Poster}}
 					</a>
 					{{end}}
@@ -409,6 +409,11 @@
 					<div class="content comment-container">
 						<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
 							<div class="comment-header-left gt-df gt-ac">
+								{{if gt .Poster.ID 0}}
+									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
+										{{avatar $.Context .Poster}}
+									</a>
+								{{end}}
 								<span class="text grey muted-links">
 									{{if .OriginalAuthor}}
 										<span class="text black gt-bold">
@@ -779,7 +784,12 @@
 				{{if .Content}}
 					<div class="timeline-item comment">
 						<div class="content">
-							<div class="ui top attached header arrow-top">
+							<div class="ui top attached header comment-header-left gt-df gt-ac arrow-top">
+								{{if gt .Poster.ID 0}}
+									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
+										{{avatar $.Context .Poster}}
+									</a>
+								{{end}}
 								<span class="text grey muted-links">
 									{{$.locale.Tr "action.review_dismissed_reason"}}
 								</span>
