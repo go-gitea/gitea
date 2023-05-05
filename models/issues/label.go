@@ -176,10 +176,11 @@ func (l *Label) ColorRGB() (float64, float64, float64, error) {
 func (l *Label) UseLightTextColor() bool {
 	if strings.HasPrefix(l.Color, "#") {
 		if r, g, b, err := l.ColorRGB(); err == nil {
-			// Perceived brightness from: https://www.w3.org/TR/AERT/#color-contrast
+			// Reference from: https://firsching.ch/github_labels.html
 			// In the future WCAG 3 APCA may be a better solution
-			brightness := (0.299*r + 0.587*g + 0.114*b) / 255
-			return brightness < 0.35
+			brightness := (0.2126*r + 0.7152*g + 0.0722*b) / 255
+			lightnessThreshold := 0.453
+			return brightness < lightnessThreshold
 		}
 	}
 
