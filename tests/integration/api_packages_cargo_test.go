@@ -98,13 +98,27 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 	url := fmt.Sprintf("%s/api/v1/crates", root)
 
 	t.Run("Index", func(t *testing.T) {
-		t.Run("Config", func(t *testing.T) {
+		t.Run("Git/Config", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			content := readGitContent(t, cargo_service.ConfigFileName)
 
 			var config cargo_service.Config
 			err := json.Unmarshal([]byte(content), &config)
+			assert.NoError(t, err)
+
+			assert.Equal(t, url, config.DownloadURL)
+			assert.Equal(t, root, config.APIURL)
+		})
+
+		t.Run("HTTP/Config", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequest(t, "GET", root+"/"+cargo_service.ConfigFileName)
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			var config cargo_service.Config
+			err := json.Unmarshal(resp.Body.Bytes(), &config)
 			assert.NoError(t, err)
 
 			assert.Equal(t, url, config.DownloadURL)
@@ -192,40 +206,72 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 			MakeRequest(t, req, http.StatusConflict)
 
 			t.Run("Index", func(t *testing.T) {
-				t.Run("Entry", func(t *testing.T) {
-					defer tests.PrintCurrentTest(t)()
+				t.Run("Git", func(t *testing.T) {
+					t.Run("Entry", func(t *testing.T) {
+						defer tests.PrintCurrentTest(t)()
 
-					content := readGitContent(t, cargo_service.BuildPackagePath(packageName))
+						content := readGitContent(t, cargo_service.BuildPackagePath(packageName))
 
-					var entry cargo_service.IndexVersionEntry
-					err := json.Unmarshal([]byte(content), &entry)
-					assert.NoError(t, err)
+						var entry cargo_service.IndexVersionEntry
+						err := json.Unmarshal([]byte(content), &entry)
+						assert.NoError(t, err)
 
-					assert.Equal(t, packageName, entry.Name)
-					assert.Equal(t, packageVersion, entry.Version)
-					assert.Equal(t, pb.HashSHA256, entry.FileChecksum)
-					assert.False(t, entry.Yanked)
-					assert.Len(t, entry.Dependencies, 1)
-					dep := entry.Dependencies[0]
-					assert.Equal(t, "dep", dep.Name)
-					assert.Equal(t, "1.0", dep.Req)
-					assert.Equal(t, "normal", dep.Kind)
-					assert.True(t, dep.DefaultFeatures)
-					assert.Empty(t, dep.Features)
-					assert.False(t, dep.Optional)
-					assert.Nil(t, dep.Target)
-					assert.NotNil(t, dep.Registry)
-					assert.Equal(t, "https://gitea.io/user/_cargo-index", *dep.Registry)
-					assert.Nil(t, dep.Package)
+						assert.Equal(t, packageName, entry.Name)
+						assert.Equal(t, packageVersion, entry.Version)
+						assert.Equal(t, pb.HashSHA256, entry.FileChecksum)
+						assert.False(t, entry.Yanked)
+						assert.Len(t, entry.Dependencies, 1)
+						dep := entry.Dependencies[0]
+						assert.Equal(t, "dep", dep.Name)
+						assert.Equal(t, "1.0", dep.Req)
+						assert.Equal(t, "normal", dep.Kind)
+						assert.True(t, dep.DefaultFeatures)
+						assert.Empty(t, dep.Features)
+						assert.False(t, dep.Optional)
+						assert.Nil(t, dep.Target)
+						assert.NotNil(t, dep.Registry)
+						assert.Equal(t, "https://gitea.io/user/_cargo-index", *dep.Registry)
+						assert.Nil(t, dep.Package)
+					})
+
+					t.Run("Rebuild", func(t *testing.T) {
+						defer tests.PrintCurrentTest(t)()
+
+						err := cargo_service.RebuildIndex(db.DefaultContext, user, user)
+						assert.NoError(t, err)
+
+						_ = readGitContent(t, cargo_service.BuildPackagePath(packageName))
+					})
 				})
 
-				t.Run("Rebuild", func(t *testing.T) {
-					defer tests.PrintCurrentTest(t)()
+				t.Run("HTTP", func(t *testing.T) {
+					t.Run("Entry", func(t *testing.T) {
+						defer tests.PrintCurrentTest(t)()
 
-					err := cargo_service.RebuildIndex(db.DefaultContext, user, user)
-					assert.NoError(t, err)
+						req := NewRequest(t, "GET", root+"/"+cargo_service.BuildPackagePath(packageName))
+						resp := MakeRequest(t, req, http.StatusOK)
 
-					_ = readGitContent(t, cargo_service.BuildPackagePath(packageName))
+						var entry cargo_service.IndexVersionEntry
+						err := json.Unmarshal(resp.Body.Bytes(), &entry)
+						assert.NoError(t, err)
+
+						assert.Equal(t, packageName, entry.Name)
+						assert.Equal(t, packageVersion, entry.Version)
+						assert.Equal(t, pb.HashSHA256, entry.FileChecksum)
+						assert.False(t, entry.Yanked)
+						assert.Len(t, entry.Dependencies, 1)
+						dep := entry.Dependencies[0]
+						assert.Equal(t, "dep", dep.Name)
+						assert.Equal(t, "1.0", dep.Req)
+						assert.Equal(t, "normal", dep.Kind)
+						assert.True(t, dep.DefaultFeatures)
+						assert.Empty(t, dep.Features)
+						assert.False(t, dep.Optional)
+						assert.Nil(t, dep.Target)
+						assert.NotNil(t, dep.Registry)
+						assert.Equal(t, "https://gitea.io/user/_cargo-index", *dep.Registry)
+						assert.Nil(t, dep.Package)
+					})
 				})
 			})
 		})
