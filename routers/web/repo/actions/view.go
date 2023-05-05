@@ -209,8 +209,18 @@ func ViewPost(ctx *context_module.Context) {
 			step := steps[cursor.Step]
 
 			logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead fo 'null' in json
-			if c := cursor.Cursor; c < step.LogLength && c >= 0 {
-				index := step.LogIndex + c
+
+			index := step.LogIndex + cursor.Cursor
+			validCursor := cursor.Cursor >= 0 &&
+				// !(cursor.Cursor < step.LogLength) when the frontend tries to fetch next line before it's ready.
+				// So return the same cursor and empty lines to let the frontend retry.
+				cursor.Cursor < step.LogLength &&
+				// !(index < task.LogIndexes[index]) when task data is older than step data.
+				// It can be fixed by making sure write/read tasks and steps in the same transaction,
+				// but it's easier to just treat it as fetching the next line before it's ready.
+				index < int64(len(task.LogIndexes))
+
+			if validCursor {
 				length := step.LogLength - cursor.Cursor
 				offset := task.LogIndexes[index]
 				var err error
