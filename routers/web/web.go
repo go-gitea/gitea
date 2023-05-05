@@ -176,10 +176,11 @@ func Routes(ctx gocontext.Context) *web.Route {
 // registerRoutes register routes
 func registerRoutes(m *web.Route) {
 	reqSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: true})
+	reqSignOut := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignOutRequired: true})
+	// TODO: rename them to "optSignIn", which means that the "sign-in" could be optional, depends on the VerifyOptions (RequireSignInView)
 	ignSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: setting.Service.RequireSignInView})
 	ignExploreSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
 	ignSignInAndCsrf := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{DisableCSRF: true})
-	reqSignOut := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignOutRequired: true})
 	validation.AddBindingRules()
 
 	linkAccountEnabled := func(ctx *context.Context) {
@@ -489,7 +490,6 @@ func registerRoutes(m *web.Route) {
 	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "AllThemes", setting.UI.Themes, "EnablePackages", setting.Packages.Enabled))
 
 	m.Group("/user", func() {
-		// r.Get("/feeds", binding.Bind(auth.FeedsForm{}), user.Feeds)
 		m.Get("/activate", auth.Activate)
 		m.Post("/activate", auth.ActivatePost)
 		m.Any("/activate_email", auth.ActivateEmail)
@@ -809,7 +809,7 @@ func registerRoutes(m *web.Route) {
 						}, reqPackageAccess(perm.AccessModeWrite))
 					})
 				})
-			}, ignSignIn, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 
 		m.Group("/projects", func() {
@@ -848,7 +848,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead))
-	}, context_service.UserAssignmentWeb(), context.OrgAssignment())
+	}, ignSignIn, context_service.UserAssignmentWeb(), context.OrgAssignment()) // for "/{username}/-" (packages, projects, code)
 
 	// ***** Release Attachment Download without Signin
 	m.Get("/{username}/{reponame}/releases/download/{vTag}/{fileName}", ignSignIn, context.RepoAssignment, repo.MustBeNotEmpty, repo.RedirectDownload)
@@ -940,7 +940,7 @@ func registerRoutes(m *web.Route) {
 
 	m.Post("/{username}/{reponame}/action/{action}", reqSignIn, context.RepoAssignment, context.UnitTypes(), repo.Action)
 
-	// Grouping for those endpoints not requiring authentication
+	// Grouping for those endpoints not requiring authentication (but should respect ignSignIn)
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/milestone", func() {
 			m.Get("/{id}", repo.MilestoneIssuesAndPulls)
@@ -953,14 +953,14 @@ func registerRoutes(m *web.Route) {
 		})
 		m.Get("/compare", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists, ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
-			Get(ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
+			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
 			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, web.Bind(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
 		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
 				m.Get("/info", repo.GetIssueInfo)
 			})
 		})
-	}, context.RepoAssignment, context.UnitTypes())
+	}, ignSignIn, context.RepoAssignment, context.UnitTypes()) // for "/{username}/{reponame}" which doesn't require authentication
 
 	// Grouping for those endpoints that do require authentication
 	m.Group("/{username}/{reponame}", func() {
