@@ -91,7 +91,7 @@
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
 							<td>{{DateTime "full" .Mirror.UpdatedUnix}}</td>
 							<td class="right aligned">
-								<form method="post" style="display: inline-block">
+								<form method="post" class="gt-dib">
 									{{.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="mirror-sync">
 									<button class="ui primary tiny button inline text-thin">{{$.locale.Tr "repo.settings.sync_mirror"}}</button>
@@ -153,7 +153,7 @@
 									</div>
 									{{end}}
 									<div class="field">
-										<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
+										<button class="ui green button">{{$.locale.Tr "repo.settings.update_mirror_settings"}}</button>
 									</div>
 								</form>
 							</td>
@@ -169,13 +169,13 @@
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
 							<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
-								<form method="post" style="display: inline-block">
+								<form method="post" class="gt-dib">
 									{{$.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="push-mirror-remove">
 									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
 									<button class="ui basic red tiny button inline text-thin">{{$.locale.Tr "remove"}}</button>
 								</form>
-								<form method="post" style="display: inline-block">
+								<form method="post" class="gt-dib">
 									{{$.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="push-mirror-sync">
 									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
@@ -803,7 +803,7 @@
 				{{.locale.Tr "repo.settings.convert"}}
 			</div>
 			<div class="content">
-				<div class="ui warning message text left">
+				<div class="ui warning message">
 					{{.locale.Tr "repo.settings.convert_notices_1"}}
 				</div>
 				<form class="ui form" action="{{.Link}}" method="post">
@@ -834,7 +834,7 @@
 				{{.locale.Tr "repo.settings.convert_fork"}}
 			</div>
 			<div class="content">
-				<div class="ui warning message text left">
+				<div class="ui warning message">
 					{{.locale.Tr "repo.settings.convert_fork_notices_1"}}
 				</div>
 				<form class="ui form" action="{{.Link}}" method="post">
@@ -864,7 +864,7 @@
 			{{.locale.Tr "repo.settings.transfer"}}
 		</div>
 		<div class="content">
-			<div class="ui warning message text left">
+			<div class="ui warning message">
 				{{.locale.Tr "repo.settings.transfer_notices_1"}} <br>
 				{{.locale.Tr "repo.settings.transfer_notices_2"}} <br>
 				{{.locale.Tr "repo.settings.transfer_notices_3"}}
@@ -900,7 +900,7 @@
 			{{.locale.Tr "repo.settings.delete"}}
 		</div>
 		<div class="content">
-			<div class="ui warning message text left">
+			<div class="ui warning message">
 				{{.locale.Tr "repo.settings.delete_notices_1" | Safe}}<br>
 				{{.locale.Tr "repo.settings.delete_notices_2" .Repository.FullName | Safe}}
 				{{if .Repository.NumForks}}<br>
@@ -935,7 +935,7 @@
 			{{.locale.Tr "repo.settings.wiki_delete"}}
 		</div>
 		<div class="content">
-			<div class="ui warning message text left">
+			<div class="ui warning message">
 				{{.locale.Tr "repo.settings.delete_notices_1" | Safe}}<br>
 				{{.locale.Tr "repo.settings.wiki_delete_notices_1" .Repository.Name | Safe}}
 			</div>

@@ -1228,8 +1228,6 @@ img.ui.avatar,
 }
 
 .following.bar {
-  z-index: 900;
-  left: 0;
   margin: 0 !important;
 }
 
@@ -1240,24 +1238,6 @@ img.ui.avatar,
 
 .following.bar .column .menu {
   margin-top: 0;
-}
-
-.following.bar .top.menu a.item.brand {
-  padding-left: 0;
-}
-
-.following.bar .top.menu a.item:hover,
-.following.bar .top.menu .dropdown.item:hover,
-.following.bar .top.menu .dropdown.item.active {
-  background-color: transparent;
-}
-
-.following.bar .top.menu a.item:hover {
-  color: rgba(0, 0, 0, 0.45);
-}
-
-.following.bar .top.menu .menu {
-  z-index: 900;
 }
 
 .following.bar .fitted .svg {
@@ -1576,7 +1556,7 @@ img.ui.avatar,
   vertical-align: middle;
 }
 
-.ui .message {
+.ui .message.flash-message {
   text-align: center;
 }
 
@@ -2579,18 +2559,18 @@ a.ui.basic.label:hover {
 
 .notification_count {
   position: absolute;
-  left: 5px;
-  top: -8px;
+  left: 7px;
+  top: -9px;
   min-width: 1.5em;
   text-align: center;
   background: var(--color-primary);
   border: 2px solid var(--color-header-bar);
   color: var(--color-header-bar);
-  padding: 2px;
+  padding: 2.75px;
   border-radius: 1em;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  line-height: 0.7;
+  line-height: .67em;
 }
 
 table th[data-sortt-asc]:hover,
