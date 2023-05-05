@@ -229,11 +229,15 @@ func (q *WorkerPoolQueue[T]) doRun() {
 
 	defer func() {
 		q.ctxRunCancel()
+
+		// drain all data on the fly
 		close(q.batchChan)
 		for batch := range q.batchChan {
 			q.safeHandler(batch...)
 		}
-		q.safeHandler(wg.batchBuffer...)
+		if len(wg.batchBuffer) > 0 {
+			q.safeHandler(wg.batchBuffer...)
+		}
 		for data := range wg.popItemChan {
 			if v, ok := q.unmarshal(data); ok {
 				q.safeHandler(v)
@@ -249,6 +253,7 @@ func (q *WorkerPoolQueue[T]) doRun() {
 				return
 			}
 			if v, jsonOk := q.unmarshal(data); !jsonOk {
+				testRecorder.Record("pop:corrupted:%s", data)
 				continue
 			} else {
 				wg.batchBuffer = append(wg.batchBuffer, v)
@@ -262,6 +267,7 @@ func (q *WorkerPoolQueue[T]) doRun() {
 			batchDispatchC = infiniteTimerC
 			q.doDispatchBatchToWorker(wg)
 		case flushed := <-q.flushChan:
+			q.doDispatchBatchToWorker(wg)
 			q.doFlush(wg, flushed)
 		case err := <-wg.popItemErr:
 			if !q.isCtxRunCanceled() {

@@ -25,12 +25,11 @@ type baseChannel struct {
 var _ baseQueue = (*baseChannel)(nil)
 
 func newBaseChannelGeneric(cfg *BaseConfig, unique bool) (baseQueue, error) {
-	return &baseChannel{
-		c:   make(chan []byte, cfg.Length),
-		set: container.Set[string]{},
-
-		isUnique: unique,
-	}, nil
+	q := &baseChannel{c: make(chan []byte, cfg.Length), isUnique: unique}
+	if unique {
+		q.set = container.Set[string]{}
+	}
+	return q, nil
 }
 
 func newBaseChannelSimple(cfg *BaseConfig) (baseQueue, error) {
@@ -42,15 +41,15 @@ func newBaseChannelUnique(cfg *BaseConfig) (baseQueue, error) {
 }
 
 func (q *baseChannel) PushItem(ctx context.Context, data []byte) error {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-
 	if q.c == nil {
 		return errChannelClosed
 	}
 
 	if q.isUnique {
-		if q.set.Contains(string(data)) {
+		q.mu.Lock()
+		has := q.set.Contains(string(data))
+		q.mu.Unlock()
+		if has {
 			return ErrAlreadyInQueue
 		}
 	}
@@ -58,7 +57,9 @@ func (q *baseChannel) PushItem(ctx context.Context, data []byte) error {
 	select {
 	case q.c <- data:
 		if q.isUnique {
+			q.mu.Lock()
 			q.set.Add(string(data))
+			q.mu.Unlock()
 		}
 		return nil
 	case <-time.After(pushBlockTime):
@@ -69,15 +70,14 @@ func (q *baseChannel) PushItem(ctx context.Context, data []byte) error {
 }
 
 func (q *baseChannel) PopItem(ctx context.Context) ([]byte, error) {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-
 	select {
 	case data, ok := <-q.c:
 		if !ok {
 			return nil, errChannelClosed
 		}
+		q.mu.Lock()
 		q.set.Remove(string(data))
+		q.mu.Unlock()
 		return data, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()

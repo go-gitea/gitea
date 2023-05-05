@@ -37,15 +37,18 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 
 	mu := sync.Mutex{}
 
-	test := func(queueSetting setting.QueueSettings) {
+	test := func(t *testing.T, queueSetting setting.QueueSettings) {
 		queueSetting.Length = 100
+		queueSetting.Type = "channel"
 		queueSetting.Datadir = t.TempDir() + "/test-queue"
 		m := map[int]int{}
+
 		// odds are handled once, evens are handled twice
 		handler := func(items ...int) (unhandled []int) {
+			testRecorder.Record("handle:%v", items)
 			for _, item := range items {
 				mu.Lock()
-				if item%2 == 0 && m[item] != 1 {
+				if item%2 == 0 && m[item] == 0 {
 					unhandled = append(unhandled, item)
 				}
 				m[item]++
@@ -57,30 +60,41 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 		q := NewWorkerPoolQueueBySetting("test-workpoolqueue", queueSetting, handler, false)
 		stop := runWorkerPoolQueue(q)
 		for i := 0; i < queueSetting.Length; i++ {
+			testRecorder.Record("push:%v", i)
 			assert.NoError(t, q.Push(i))
 		}
 		assert.NoError(t, q.FlushWithContext(context.Background(), 0))
 		stop()
 
+		ok := true
 		for i := 0; i < queueSetting.Length; i++ {
-			assert.EqualValues(t, i%2, m[i]%2)
+			if i%2 == 0 {
+				ok = ok && assert.EqualValues(t, 2, m[i], "test %s: item %d", t.Name(), i)
+			} else {
+				ok = ok && assert.EqualValues(t, 1, m[i], "test %s: item %d", t.Name(), i)
+			}
 		}
+		if !ok {
+			t.Logf("m: %v", m)
+			t.Logf("records: %v", testRecorder.Records())
+		}
+		testRecorder.Reset()
 	}
 
-	runCount := 2
+	runCount := 10
 	t.Run("1/1", func(t *testing.T) {
 		for i := 0; i < runCount; i++ {
-			test(setting.QueueSettings{BatchLength: 1, MaxWorkers: 1})
+			test(t, setting.QueueSettings{BatchLength: 1, MaxWorkers: 1})
 		}
 	})
 	t.Run("3/1", func(t *testing.T) {
 		for i := 0; i < runCount; i++ {
-			test(setting.QueueSettings{BatchLength: 3, MaxWorkers: 1})
+			test(t, setting.QueueSettings{BatchLength: 3, MaxWorkers: 1})
 		}
 	})
 	t.Run("4/5", func(t *testing.T) {
 		for i := 0; i < runCount; i++ {
-			test(setting.QueueSettings{BatchLength: 4, MaxWorkers: 5})
+			test(t, setting.QueueSettings{BatchLength: 4, MaxWorkers: 5})
 		}
 	})
 }
