@@ -7,7 +7,6 @@ package issues
 import (
 	"context"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 
@@ -158,14 +157,6 @@ func (l *Label) BelongsToOrg() bool {
 // BelongsToRepo returns true if label is a repository label
 func (l *Label) BelongsToRepo() bool {
 	return l.RepoID > 0
-}
-
-func getColorFromChannel(rgbChannel float64) float64 {
-	result := rgbChannel / 255
-	if result <= 0.03928 {
-		return result / 12.92 * 255
-	}
-	return math.Pow((result+0.055)/1.055, 2.4) * 255
 }
 
 // Get color as RGB values in 0..255 range
