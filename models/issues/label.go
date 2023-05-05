@@ -175,12 +175,9 @@ func (l *Label) ColorRGB() (float64, float64, float64, error) {
 		return 0, 0, 0, err
 	}
 
-	R := float64(uint8(0xFF & (uint32(color) >> 16)))
-	G := float64(uint8(0xFF & (uint32(color) >> 8)))
-	B := float64(uint8(0xFF & uint32(color)))
-	r := getColorFromChannel(R)
-	g := getColorFromChannel(G)
-	b := getColorFromChannel(B)
+	r := float64(uint8(0xFF & (uint32(color) >> 16)))
+	g := float64(uint8(0xFF & (uint32(color) >> 8)))
+	b := float64(uint8(0xFF & uint32(color)))
 	return r, g, b, nil
 }
 

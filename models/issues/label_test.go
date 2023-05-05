@@ -24,23 +24,18 @@ func TestLabel_CalOpenIssues(t *testing.T) {
 
 func TestLabel_TextColor(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
-	assert.False(t, label.UseLightTextColor())
 
-	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 2})
-	assert.True(t, label.UseLightTextColor())
-
-	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 10})
+	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 10})
 	assert.True(t, label.UseLightTextColor())
 
 	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 11})
 	assert.True(t, label.UseLightTextColor())
 
 	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 12})
-	assert.True(t, label.UseLightTextColor())
+	assert.False(t, label.UseLightTextColor())
 
 	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 13})
-	assert.True(t, label.UseLightTextColor())
+	assert.False(t, label.UseLightTextColor())
 
 	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 14})
 	assert.True(t, label.UseLightTextColor())
