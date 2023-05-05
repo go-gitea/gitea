@@ -1,6 +1,5 @@
 import $ from 'jquery';
 import {createMonaco} from './codeeditor.js';
-import {initRepoCommonFilterSearchDropdown} from './repo-common.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -33,7 +32,7 @@ export function initRepoSettingsCollaboration() {
           if ($item) {
             $dropdown.dropdown('set selected', $dropdown.attr('data-last-value'));
           } else {
-            $text.text('(N/A)'); // prevent from misleading users when the access mode is undefined
+            $text.text('(none)'); // prevent from misleading users when the access mode is undefined
           }
         }, 0);
       }
@@ -73,20 +72,13 @@ export function initRepoSettingGitHook() {
 }
 
 export function initRepoSettingBranches() {
-  // Branches
-  if ($('.repository.settings.branches').length > 0) {
-    initRepoCommonFilterSearchDropdown('.protected-branches .dropdown');
-    $('.enable-protection, .enable-whitelist, .enable-statuscheck').on('change', function () {
-      if (this.checked) {
-        $($(this).data('target')).removeClass('disabled');
-      } else {
-        $($(this).data('target')).addClass('disabled');
-      }
-    });
-    $('.disable-whitelist').on('change', function () {
-      if (this.checked) {
-        $($(this).data('target')).addClass('disabled');
-      }
-    });
-  }
+  if (!$('.repository.settings.branches').length) return;
+  $('.toggle-target-enabled').on('change', function () {
+    const $target = $($(this).attr('data-target'));
+    $target.toggleClass('disabled', !this.checked);
+  });
+  $('.toggle-target-disabled').on('change', function () {
+    const $target = $($(this).attr('data-target'));
+    if (this.checked) $target.addClass('disabled'); // only disable, do not auto enable
+  });
 }

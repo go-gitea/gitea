@@ -97,7 +97,7 @@ func (s *Service) Register(
 // FetchTask assigns a task to the runner
 func (s *Service) FetchTask(
 	ctx context.Context,
-	req *connect.Request[runnerv1.FetchTaskRequest],
+	_ *connect.Request[runnerv1.FetchTaskRequest],
 ) (*connect.Response[runnerv1.FetchTaskResponse], error) {
 	runner := GetRunner(ctx)
 
@@ -145,14 +145,36 @@ func (s *Service) UpdateTask(
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
 	}
 
+	for k, v := range req.Msg.Outputs {
+		if len(k) > 255 {
+			log.Warn("Ignore the output of task %d because the key is too long: %q", task.ID, k)
+			continue
+		}
+		// The value can be a maximum of 1 MB
+		if l := len(v); l > 1024*1024 {
+			log.Warn("Ignore the output %q of task %d because the value is too long: %v", k, task.ID, l)
+			continue
+		}
+		// There's another limitation on GitHub that the total of all outputs in a workflow run can be a maximum of 50 MB.
+		// We don't check the total size here because it's not easy to do, and it doesn't really worth it.
+		// See https://docs.github.com/en/actions/using-jobs/defining-outputs-for-jobs
+
+		if err := actions_model.InsertTaskOutputIfNotExist(ctx, task.ID, k, v); err != nil {
+			log.Warn("Failed to insert the output %q of task %d: %v", k, task.ID, err)
+			// It's ok not to return errors, the runner will resend the outputs.
+		}
+	}
+	sentOutputs, err := actions_model.FindTaskOutputKeyByTaskID(ctx, task.ID)
+	if err != nil {
+		log.Warn("Failed to find the sent outputs of task %d: %v", task.ID, err)
+		// It's not to return errors, it can be handled when the runner resends sent outputs.
+	}
+
 	if err := task.LoadJob(ctx); err != nil {
 		return nil, status.Errorf(codes.Internal, "load job: %v", err)
 	}
 
-	if err := actions_service.CreateCommitStatus(ctx, task.Job); err != nil {
-		log.Error("Update commit status for job %v failed: %v", task.Job.ID, err)
-		// go on
-	}
+	actions_service.CreateCommitStatus(ctx, task.Job)
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		if err := actions_service.EmitJobsIfReady(task.Job.RunID); err != nil {
@@ -165,6 +187,7 @@ func (s *Service) UpdateTask(
 			Id:     req.Msg.State.Id,
 			Result: task.Status.AsResult(),
 		},
+		SentOutputs: sentOutputs,
 	}), nil
 }
 

@@ -194,14 +194,16 @@ func (opts *FindTopicOptions) toConds() builder.Cond {
 // FindTopics retrieves the topics via FindTopicOptions
 func FindTopics(opts *FindTopicOptions) ([]*Topic, int64, error) {
 	sess := db.GetEngine(db.DefaultContext).Select("topic.*").Where(opts.toConds())
+	orderBy := "topic.repo_count DESC"
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
+		orderBy = "topic.name" // when render topics for a repo, it's better to sort them by name, to get consistent result
 	}
 	if opts.PageSize != 0 && opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, opts)
 	}
 	topics := make([]*Topic, 0, 10)
-	total, err := sess.Desc("topic.repo_count").FindAndCount(&topics)
+	total, err := sess.OrderBy(orderBy).FindAndCount(&topics)
 	return topics, total, err
 }
 

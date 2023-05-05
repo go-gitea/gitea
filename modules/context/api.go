@@ -222,7 +222,7 @@ func APIContexter() func(http.Handler) http.Handler {
 			ctx := APIContext{
 				Context: &Context{
 					Resp:   NewResponse(w),
-					Data:   map[string]interface{}{},
+					Data:   middleware.GetContextData(req.Context()),
 					Locale: locale,
 					Cache:  cache.GetCache(),
 					Repo: &Repository{
@@ -250,17 +250,6 @@ func APIContexter() func(http.Handler) http.Handler {
 			ctx.Data["Context"] = &ctx
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
-
-			// Handle adding signedUserName to the context for the AccessLogger
-			usernameInterface := ctx.Data["SignedUserName"]
-			identityPtrInterface := ctx.Req.Context().Value(signedUserNameStringPointerKey)
-			if usernameInterface != nil && identityPtrInterface != nil {
-				username := usernameInterface.(string)
-				identityPtr := identityPtrInterface.(*string)
-				if identityPtr != nil && username != "" {
-					*identityPtr = username
-				}
-			}
 		})
 	}
 }
@@ -337,12 +326,13 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 				if git.IsErrNotExist(err) {
 					ctx.NotFound()
 				} else {
-					ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
+					ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 				}
 				return
 			}
 			ctx.Repo.Commit = commit
 			ctx.Repo.TreePath = ctx.Params("*")
+			next.ServeHTTP(w, req)
 			return
 		}
 

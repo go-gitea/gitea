@@ -52,7 +52,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 	}
 
 	for _, assigneeID := range assigneeIDs {
-		if err := issue_service.AddAssigneeIfNotAssigned(pull, pull.Poster, assigneeID); err != nil {
+		if err := issue_service.AddAssigneeIfNotAssigned(ctx, pull, pull.Poster, assigneeID); err != nil {
 			return err
 		}
 	}
@@ -122,7 +122,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 			Content:     string(dataJSON),
 		}
 
-		_, _ = issue_service.CreateComment(ops)
+		_, _ = issue_service.CreateComment(ctx, ops)
 	}
 
 	return nil
@@ -221,7 +221,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		OldRef: oldBranch,
 		NewRef: targetBranch,
 	}
-	if _, err = issue_service.CreateComment(options); err != nil {
+	if _, err = issue_service.CreateComment(ctx, options); err != nil {
 		return fmt.Errorf("CreateChangeTargetBranchComment: %w", err)
 	}
 
@@ -294,6 +294,10 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			}
 			if err == nil {
 				for _, pr := range prs {
+					if pr.Issue.IsClosed {
+						// The closed PR never trigger action or webhook
+						continue
+					}
 					if newCommitID != "" && newCommitID != git.EmptySHA {
 						changed, err := checkIfPRContentChanged(ctx, pr, oldCommitID, newCommitID)
 						if err != nil {

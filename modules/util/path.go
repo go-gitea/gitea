@@ -74,29 +74,28 @@ const pathSeparator = string(os.PathSeparator)
 //
 //	{`/foo`, ``, `bar`} => `/foo/bar`
 //	{`/foo`, `..`, `bar`} => `/foo/bar`
-func FilePathJoinAbs(elem ...string) string {
-	elems := make([]string, len(elem))
+func FilePathJoinAbs(base string, sub ...string) string {
+	elems := make([]string, 1, len(sub)+1)
 
-	// POISX filesystem can have `\` in file names. Windows: `\` and `/` are both used for path separators
+	// POSIX filesystem can have `\` in file names. Windows: `\` and `/` are both used for path separators
 	// to keep the behavior consistent, we do not allow `\` in file names, replace all `\` with `/`
 	if isOSWindows() {
-		elems[0] = filepath.Clean(elem[0])
+		elems[0] = filepath.Clean(base)
 	} else {
-		elems[0] = filepath.Clean(strings.ReplaceAll(elem[0], "\\", pathSeparator))
+		elems[0] = filepath.Clean(strings.ReplaceAll(base, "\\", pathSeparator))
 	}
 	if !filepath.IsAbs(elems[0]) {
 		// This shouldn't happen. If there is really necessary to pass in relative path, return the full path with filepath.Abs() instead
 		panic(fmt.Sprintf("FilePathJoinAbs: %q (for path %v) is not absolute, do not guess a relative path based on current working directory", elems[0], elems))
 	}
-
-	for i := 1; i < len(elem); i++ {
-		if elem[i] == "" {
+	for _, s := range sub {
+		if s == "" {
 			continue
 		}
 		if isOSWindows() {
-			elems[i] = filepath.Clean(pathSeparator + elem[i])
+			elems = append(elems, filepath.Clean(pathSeparator+s))
 		} else {
-			elems[i] = filepath.Clean(pathSeparator + strings.ReplaceAll(elem[i], "\\", pathSeparator))
+			elems = append(elems, filepath.Clean(pathSeparator+strings.ReplaceAll(s, "\\", pathSeparator)))
 		}
 	}
 	// the elems[0] must be an absolute path, just join them together

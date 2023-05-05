@@ -20,12 +20,10 @@ import (
 	"io"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	alpine_model "code.gitea.io/gitea/models/packages/alpine"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
 	"code.gitea.io/gitea/modules/util"
@@ -37,43 +35,7 @@ const IndexFilename = "APKINDEX.tar.gz"
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
 // The Alpine registry needs multiple index files which are stored in this package.
 func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion, error) {
-	var repositoryVersion *packages_model.PackageVersion
-
-	return repositoryVersion, db.WithTx(db.DefaultContext, func(ctx context.Context) error {
-		p := &packages_model.Package{
-			OwnerID:    ownerID,
-			Type:       packages_model.TypeAlpine,
-			Name:       alpine_module.RepositoryPackage,
-			LowerName:  alpine_module.RepositoryPackage,
-			IsInternal: true,
-		}
-		var err error
-		if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
-			if err != packages_model.ErrDuplicatePackage {
-				log.Error("Error inserting package: %v", err)
-				return err
-			}
-		}
-
-		pv := &packages_model.PackageVersion{
-			PackageID:    p.ID,
-			CreatorID:    ownerID,
-			Version:      alpine_module.RepositoryVersion,
-			LowerVersion: alpine_module.RepositoryVersion,
-			IsInternal:   true,
-			MetadataJSON: "null",
-		}
-		if pv, err = packages_model.GetOrInsertVersion(ctx, pv); err != nil {
-			if err != packages_model.ErrDuplicatePackageVersion {
-				log.Error("Error inserting package version: %v", err)
-				return err
-			}
-		}
-
-		repositoryVersion = pv
-
-		return nil
-	})
+	return packages_service.GetOrCreateInternalPackageVersion(ownerID, packages_model.TypeAlpine, alpine_module.RepositoryPackage, alpine_module.RepositoryVersion)
 }
 
 // GetOrCreateKeyPair gets or creates the RSA keys used to sign repository files
@@ -275,7 +237,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		fmt.Fprint(&buf, "\n")
 	}
 
-	unsignedIndexContent, _ := packages_module.NewHashedBuffer(32 * 1024 * 1024)
+	unsignedIndexContent, _ := packages_module.NewHashedBuffer()
 	h := sha1.New()
 
 	if err := writeGzipStream(io.MultiWriter(unsignedIndexContent, h), "APKINDEX", buf.Bytes(), true); err != nil {
@@ -312,7 +274,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		return err
 	}
 
-	signedIndexContent, _ := packages_module.NewHashedBuffer(32 * 1024 * 1024)
+	signedIndexContent, _ := packages_module.NewHashedBuffer()
 
 	if err := writeGzipStream(
 		signedIndexContent,

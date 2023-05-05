@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -21,6 +22,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/conan"
 	"code.gitea.io/gitea/routers/api/packages/conda"
 	"code.gitea.io/gitea/routers/api/packages/container"
+	"code.gitea.io/gitea/routers/api/packages/debian"
 	"code.gitea.io/gitea/routers/api/packages/generic"
 	"code.gitea.io/gitea/routers/api/packages/helm"
 	"code.gitea.io/gitea/routers/api/packages/maven"
@@ -37,12 +39,56 @@ import (
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
+		if ctx.Data["IsApiToken"] == true {
+			scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+			if ok { // it's a personal access token but not oauth2 token
+				scopeMatched := false
+				var err error
+				if accessMode == perm.AccessModeRead {
+					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeReadPackage)
+					if err != nil {
+						ctx.Error(http.StatusInternalServerError, "HasScope", err.Error())
+						return
+					}
+				} else if accessMode == perm.AccessModeWrite {
+					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeWritePackage)
+					if err != nil {
+						ctx.Error(http.StatusInternalServerError, "HasScope", err.Error())
+						return
+					}
+				}
+				if !scopeMatched {
+					ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
+					ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
+					return
+				}
+			}
+		}
+
 		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
 			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
 			ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
 			return
 		}
 	}
+}
+
+func verifyAuth(r *web.Route, authMethods []auth.Method) {
+	if setting.Service.EnableReverseProxyAuth {
+		authMethods = append(authMethods, &auth.ReverseProxy{})
+	}
+	authGroup := auth.NewGroup(authMethods...)
+
+	r.Use(func(ctx *context.Context) {
+		var err error
+		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if err != nil {
+			log.Error("Failed to verify user: %v", err)
+			ctx.Error(http.StatusUnauthorized, "authGroup.Verify")
+			return
+		}
+		ctx.IsSigned = ctx.Doer != nil
+	})
 }
 
 // CommonRoutes provide endpoints for most package managers (except containers - see below)
@@ -52,27 +98,12 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 
 	r.Use(context.PackageContexter(ctx))
 
-	authMethods := []auth.Method{
+	verifyAuth(r, []auth.Method{
 		&auth.OAuth2{},
 		&auth.Basic{},
 		&nuget.Auth{},
 		&conan.Auth{},
 		&chef.Auth{},
-	}
-	if setting.Service.EnableReverseProxyAuth {
-		authMethods = append(authMethods, &auth.ReverseProxy{})
-	}
-
-	authGroup := auth.NewGroup(authMethods...)
-	r.Use(func(ctx *context.Context) {
-		var err error
-		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if err != nil {
-			log.Error("Verify: %v", err)
-			ctx.Error(http.StatusUnauthorized, "authGroup.Verify")
-			return
-		}
-		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Group("/{username}", func() {
@@ -102,6 +133,12 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 					r.Get("/owners", cargo.ListOwners)
 				})
 			})
+			r.Get("/config.json", cargo.RepositoryConfig)
+			r.Get("/1/{package}", cargo.EnumeratePackageVersions)
+			r.Get("/2/{package}", cargo.EnumeratePackageVersions)
+			// Use dummy placeholders because these parts are not of interest
+			r.Get("/3/{_}/{package}", cargo.EnumeratePackageVersions)
+			r.Get("/{_}/{__}/{package}", cargo.EnumeratePackageVersions)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/chef", func() {
 			r.Group("/api/v1", func() {
@@ -254,6 +291,24 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				ctx.SetParams("filename", m[2])
 
 				conda.UploadPackageFile(ctx)
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/debian", func() {
+			r.Get("/repository.key", debian.GetRepositoryKey)
+			r.Group("/dists/{distribution}", func() {
+				r.Get("/{filename}", debian.GetRepositoryFile)
+				r.Get("/by-hash/{algorithm}/{hash}", debian.GetRepositoryFileByHash)
+				r.Group("/{component}/{architecture}", func() {
+					r.Get("/{filename}", debian.GetRepositoryFile)
+					r.Get("/by-hash/{algorithm}/{hash}", debian.GetRepositoryFileByHash)
+				})
+			})
+			r.Group("/pool/{distribution}/{component}", func() {
+				r.Get("/{name}_{version}_{architecture}.deb", debian.DownloadPackageFile)
+				r.Group("", func() {
+					r.Put("/upload", debian.UploadPackageFile)
+					r.Delete("/{name}/{version}/{architecture}", debian.DeletePackageFile)
+				}, reqPackageAccess(perm.AccessModeWrite))
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
@@ -451,24 +506,9 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 
 	r.Use(context.PackageContexter(ctx))
 
-	authMethods := []auth.Method{
+	verifyAuth(r, []auth.Method{
 		&auth.Basic{},
 		&container.Auth{},
-	}
-	if setting.Service.EnableReverseProxyAuth {
-		authMethods = append(authMethods, &auth.ReverseProxy{})
-	}
-
-	authGroup := auth.NewGroup(authMethods...)
-	r.Use(func(ctx *context.Context) {
-		var err error
-		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if err != nil {
-			log.Error("Failed to verify user: %v", err)
-			ctx.Error(http.StatusUnauthorized, "Verify")
-			return
-		}
-		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)
@@ -506,7 +546,7 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 		)
 
 		// Manual mapping of routes because {image} can contain slashes which chi does not support
-		r.Route("/*", "HEAD,GET,POST,PUT,PATCH,DELETE", func(ctx *context.Context) {
+		r.RouteMethods("/*", "HEAD,GET,POST,PUT,PATCH,DELETE", func(ctx *context.Context) {
 			path := ctx.Params("*")
 			isHead := ctx.Req.Method == "HEAD"
 			isGet := ctx.Req.Method == "GET"

@@ -13,7 +13,7 @@ import (
 )
 
 // DataStore represents a data store
-type DataStore middleware.DataStore
+type DataStore middleware.ContextDataStore
 
 // SessionStore represents a session store
 type SessionStore session.Store

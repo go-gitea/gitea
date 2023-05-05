@@ -1,7 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
+// Package private contains all internal routes. The package name "internal" isn't usable because Golang reserves it for disabling cross-package usage.
 package private
 
 import (
@@ -38,12 +38,12 @@ func CheckInternalToken(next http.Handler) http.Handler {
 }
 
 // bind binding an obj to a handler
-func bind[T any](obj T) http.HandlerFunc {
-	return web.Wrap(func(ctx *context.PrivateContext) {
+func bind[T any](_ T) any {
+	return func(ctx *context.PrivateContext) {
 		theObj := new(T) // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)
 		web.SetForm(ctx, theObj)
-	})
+	}
 }
 
 // Routes registers all internal APIs routes to web application.
@@ -77,6 +77,7 @@ func Routes() *web.Route {
 	r.Get("/manager/processes", Processes)
 	r.Post("/mail/send", SendEmail)
 	r.Post("/restore_repo", RestoreRepo)
+	r.Post("/actions/generate_actions_runner_token", GenerateActionsRunnerToken)
 
 	return r
 }

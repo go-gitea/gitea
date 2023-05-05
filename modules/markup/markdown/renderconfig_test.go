@@ -60,7 +60,7 @@ func TestRenderConfig_UnmarshalYAML(t *testing.T) {
 		},
 		{
 			"toc", &RenderConfig{
-				TOC:  true,
+				TOC:  "true",
 				Meta: "table",
 				Icon: "table",
 				Lang: "",
@@ -68,7 +68,7 @@ func TestRenderConfig_UnmarshalYAML(t *testing.T) {
 		},
 		{
 			"tocfalse", &RenderConfig{
-				TOC:  false,
+				TOC:  "false",
 				Meta: "table",
 				Icon: "table",
 				Lang: "",
@@ -78,7 +78,7 @@ func TestRenderConfig_UnmarshalYAML(t *testing.T) {
 			"toclang", &RenderConfig{
 				Meta: "table",
 				Icon: "table",
-				TOC:  true,
+				TOC:  "true",
 				Lang: "testlang",
 			}, `
 				include_toc: true
@@ -120,7 +120,7 @@ func TestRenderConfig_UnmarshalYAML(t *testing.T) {
 			"complex2", &RenderConfig{
 				Lang: "two",
 				Meta: "table",
-				TOC:  true,
+				TOC:  "true",
 				Icon: "smiley",
 			}, `
 	lang: one
@@ -155,7 +155,7 @@ func TestRenderConfig_UnmarshalYAML(t *testing.T) {
 				t.Errorf("Lang Expected %s Got %s", tt.expected.Lang, got.Lang)
 			}
 			if got.TOC != tt.expected.TOC {
-				t.Errorf("TOC Expected %t Got %t", tt.expected.TOC, got.TOC)
+				t.Errorf("TOC Expected %q Got %q", tt.expected.TOC, got.TOC)
 			}
 		})
 	}

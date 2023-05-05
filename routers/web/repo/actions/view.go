@@ -14,8 +14,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/base"
 	context_module "code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -55,8 +55,10 @@ type ViewResponse struct {
 			Status     string     `json:"status"`
 			CanCancel  bool       `json:"canCancel"`
 			CanApprove bool       `json:"canApprove"` // the run needs an approval and the doer has permission to approve
+			CanRerun   bool       `json:"canRerun"`
 			Done       bool       `json:"done"`
 			Jobs       []*ViewJob `json:"jobs"`
+			Commit     ViewCommit `json:"commit"`
 		} `json:"run"`
 		CurrentJob struct {
 			Title  string         `json:"title"`
@@ -74,6 +76,26 @@ type ViewJob struct {
 	Name     string `json:"name"`
 	Status   string `json:"status"`
 	CanRerun bool   `json:"canRerun"`
+	Duration string `json:"duration"`
+}
+
+type ViewCommit struct {
+	LocaleCommit   string     `json:"localeCommit"`
+	LocalePushedBy string     `json:"localePushedBy"`
+	ShortSha       string     `json:"shortSHA"`
+	Link           string     `json:"link"`
+	Pusher         ViewUser   `json:"pusher"`
+	Branch         ViewBranch `json:"branch"`
+}
+
+type ViewUser struct {
+	DisplayName string `json:"displayName"`
+	Link        string `json:"link"`
+}
+
+type ViewBranch struct {
+	Name string `json:"name"`
+	Link string `json:"link"`
 }
 
 type ViewJobStep struct {
@@ -104,6 +126,10 @@ func ViewPost(ctx *context_module.Context) {
 		return
 	}
 	run := current.Run
+	if err := run.LoadAttributes(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	resp := &ViewResponse{}
 
@@ -111,6 +137,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.Run.Link = run.Link()
 	resp.State.Run.CanCancel = !run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.CanApprove = run.NeedApproval && ctx.Repo.CanWrite(unit.TypeActions)
+	resp.State.Run.CanRerun = run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.Done = run.Status.IsDone()
 	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead fo 'null' in json
 	resp.State.Run.Status = run.Status.String()
@@ -120,7 +147,25 @@ func ViewPost(ctx *context_module.Context) {
 			Name:     v.Name,
 			Status:   v.Status.String(),
 			CanRerun: v.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions),
+			Duration: v.Duration().String(),
 		})
+	}
+
+	pusher := ViewUser{
+		DisplayName: run.TriggerUser.GetDisplayName(),
+		Link:        run.TriggerUser.HomeLink(),
+	}
+	branch := ViewBranch{
+		Name: run.PrettyRef(),
+		Link: run.RefLink(),
+	}
+	resp.State.Run.Commit = ViewCommit{
+		LocaleCommit:   ctx.Tr("actions.runs.commit"),
+		LocalePushedBy: ctx.Tr("actions.runs.pushed_by"),
+		ShortSha:       base.ShortSha(run.CommitSHA),
+		Link:           fmt.Sprintf("%s/commit/%s", run.Repo.Link(), run.CommitSHA),
+		Pusher:         pusher,
+		Branch:         branch,
 	}
 
 	var task *actions_model.ActionTask
@@ -164,8 +209,18 @@ func ViewPost(ctx *context_module.Context) {
 			step := steps[cursor.Step]
 
 			logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead fo 'null' in json
-			if c := cursor.Cursor; c < step.LogLength && c >= 0 {
-				index := step.LogIndex + c
+
+			index := step.LogIndex + cursor.Cursor
+			validCursor := cursor.Cursor >= 0 &&
+				// !(cursor.Cursor < step.LogLength) when the frontend tries to fetch next line before it's ready.
+				// So return the same cursor and empty lines to let the frontend retry.
+				cursor.Cursor < step.LogLength &&
+				// !(index < task.LogIndexes[index]) when task data is older than step data.
+				// It can be fixed by making sure write/read tasks and steps in the same transaction,
+				// but it's easier to just treat it as fetching the next line before it's ready.
+				index < int64(len(task.LogIndexes))
+
+			if validCursor {
 				length := step.LogLength - cursor.Cursor
 				offset := task.LogIndexes[index]
 				var err error
@@ -195,7 +250,7 @@ func ViewPost(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func Rerun(ctx *context_module.Context) {
+func RerunOne(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
 	jobIndex := ctx.ParamsInt64("job")
 
@@ -203,10 +258,37 @@ func Rerun(ctx *context_module.Context) {
 	if ctx.Written() {
 		return
 	}
+
+	if err := rerunJob(ctx, job); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, struct{}{})
+}
+
+func RerunAll(ctx *context_module.Context) {
+	runIndex := ctx.ParamsInt64("run")
+
+	_, jobs := getRunJobs(ctx, runIndex, 0)
+	if ctx.Written() {
+		return
+	}
+
+	for _, j := range jobs {
+		if err := rerunJob(ctx, j); err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	ctx.JSON(http.StatusOK, struct{}{})
+}
+
+func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob) error {
 	status := job.Status
 	if !status.IsDone() {
-		ctx.JSON(http.StatusOK, struct{}{})
-		return
+		return nil
 	}
 
 	job.TaskID = 0
@@ -218,16 +300,11 @@ func Rerun(ctx *context_module.Context) {
 		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped")
 		return err
 	}); err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
+		return err
 	}
 
-	if err := actions_service.CreateCommitStatus(ctx, job); err != nil {
-		log.Error("Update commit status for job %v failed: %v", job.ID, err)
-		// go on
-	}
-
-	ctx.JSON(http.StatusOK, struct{}{})
+	actions_service.CreateCommitStatus(ctx, job)
+	return nil
 }
 
 func Cancel(ctx *context_module.Context) {
@@ -266,12 +343,7 @@ func Cancel(ctx *context_module.Context) {
 		return
 	}
 
-	for _, job := range jobs {
-		if err := actions_service.CreateCommitStatus(ctx, job); err != nil {
-			log.Error("Update commit status for job %v failed: %v", job.ID, err)
-			// go on
-		}
-	}
+	actions_service.CreateCommitStatus(ctx, jobs...)
 
 	ctx.JSON(http.StatusOK, struct{}{})
 }
@@ -306,6 +378,8 @@ func Approve(ctx *context_module.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	actions_service.CreateCommitStatus(ctx, jobs...)
 
 	ctx.JSON(http.StatusOK, struct{}{})
 }

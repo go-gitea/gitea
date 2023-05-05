@@ -5,6 +5,7 @@ package packages
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -18,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/packages/conda"
 	"code.gitea.io/gitea/modules/packages/container"
+	"code.gitea.io/gitea/modules/packages/debian"
 	"code.gitea.io/gitea/modules/packages/helm"
 	"code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/modules/packages/npm"
@@ -27,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/packages/rubygems"
 	"code.gitea.io/gitea/modules/packages/swift"
 	"code.gitea.io/gitea/modules/packages/vagrant"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/hashicorp/go-version"
 )
@@ -100,7 +103,11 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	}
 	creator, err := user_model.GetUserByID(ctx, pv.CreatorID)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, util.ErrNotExist) {
+			creator = user_model.NewGhostUser()
+		} else {
+			return nil, err
+		}
 	}
 	var semVer *version.Version
 	if p.SemverCompatible {
@@ -122,13 +129,9 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		return nil, err
 	}
 
-	pfds := make([]*PackageFileDescriptor, 0, len(pfs))
-	for _, pf := range pfs {
-		pfd, err := GetPackageFileDescriptor(ctx, pf)
-		if err != nil {
-			return nil, err
-		}
-		pfds = append(pfds, pfd)
+	pfds, err := GetPackageFileDescriptors(ctx, pfs)
+	if err != nil {
+		return nil, err
 	}
 
 	var metadata interface{}
@@ -147,6 +150,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &conda.VersionMetadata{}
 	case TypeContainer:
 		metadata = &container.Metadata{}
+	case TypeDebian:
+		metadata = &debian.Metadata{}
 	case TypeGeneric:
 		// generic packages have no metadata
 	case TypeHelm:
@@ -205,6 +210,19 @@ func GetPackageFileDescriptor(ctx context.Context, pf *PackageFile) (*PackageFil
 		pb,
 		PackagePropertyList(pfps),
 	}, nil
+}
+
+// GetPackageFileDescriptors gets the package file descriptors for the package files
+func GetPackageFileDescriptors(ctx context.Context, pfs []*PackageFile) ([]*PackageFileDescriptor, error) {
+	pfds := make([]*PackageFileDescriptor, 0, len(pfs))
+	for _, pf := range pfs {
+		pfd, err := GetPackageFileDescriptor(ctx, pf)
+		if err != nil {
+			return nil, err
+		}
+		pfds = append(pfds, pfd)
+	}
+	return pfds, nil
 }
 
 // GetPackageDescriptors gets the package descriptions for the versions

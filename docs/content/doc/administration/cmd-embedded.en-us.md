@@ -2,9 +2,11 @@
 date: "2020-01-25T21:00:00-03:00"
 title: "Embedded data extraction tool"
 slug: "cmd-embedded"
-weight: 40
+weight: 20
 toc: false
 draft: false
+aliases:
+  - /en-us/cmd-embedded
 menu:
   sidebar:
     parent: "administration"
@@ -38,7 +40,7 @@ gitea embedded list [--include-vendored] [patterns...]
 
 The `--include-vendored` flag makes the command include vendored files, which are
 normally excluded; that is, files from external libraries that are required for Gitea
-(e.g. [font-awesome](https://fontawesome.com/), [octicons](https://octicons.github.com/), etc).
+(e.g. [octicons](https://octicons.github.com/), etc).
 
 A list of file search patterns can be provided. Gitea uses [gobwas/glob](https://github.com/gobwas/glob)
 for its glob syntax. Here are some examples:

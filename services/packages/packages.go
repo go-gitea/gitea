@@ -214,7 +214,6 @@ func addFileToPackageWrapper(fn func(ctx context.Context) (*packages_model.Packa
 	defer committer.Close()
 
 	pf, pb, blobCreated, err := fn(ctx)
-
 	removeBlob := false
 	defer func() {
 		if removeBlob {
@@ -251,8 +250,6 @@ func NewPackageBlob(hsr packages_module.HashedSizeReader) *packages_model.Packag
 }
 
 func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
-	log.Trace("Adding package file: %v, %s", pv.ID, pfci.Filename)
-
 	if err := CheckSizeQuotaExceeded(ctx, pfci.Creator, pvi.Owner, pvi.PackageType, pfci.Data.Size()); err != nil {
 		return nil, nil, false, err
 	}
@@ -368,6 +365,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizeConda
 	case packages_model.TypeContainer:
 		typeSpecificSize = setting.Packages.LimitSizeContainer
+	case packages_model.TypeDebian:
+		typeSpecificSize = setting.Packages.LimitSizeDebian
 	case packages_model.TypeGeneric:
 		typeSpecificSize = setting.Packages.LimitSizeGeneric
 	case packages_model.TypeHelm:
@@ -407,6 +406,46 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 	}
 
 	return nil
+}
+
+// GetOrCreateInternalPackageVersion gets or creates an internal package
+// Some package types need such internal packages for housekeeping.
+func GetOrCreateInternalPackageVersion(ownerID int64, packageType packages_model.Type, name, version string) (*packages_model.PackageVersion, error) {
+	var pv *packages_model.PackageVersion
+
+	return pv, db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		p := &packages_model.Package{
+			OwnerID:    ownerID,
+			Type:       packageType,
+			Name:       name,
+			LowerName:  name,
+			IsInternal: true,
+		}
+		var err error
+		if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
+			if err != packages_model.ErrDuplicatePackage {
+				log.Error("Error inserting package: %v", err)
+				return err
+			}
+		}
+
+		pv = &packages_model.PackageVersion{
+			PackageID:    p.ID,
+			CreatorID:    ownerID,
+			Version:      version,
+			LowerVersion: version,
+			IsInternal:   true,
+			MetadataJSON: "null",
+		}
+		if pv, err = packages_model.GetOrInsertVersion(ctx, pv); err != nil {
+			if err != packages_model.ErrDuplicatePackageVersion {
+				log.Error("Error inserting package version: %v", err)
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 // RemovePackageVersionByNameAndVersion deletes a package version and all associated files

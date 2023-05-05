@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/dustin/go-humanize"
-	ini "gopkg.in/ini.v1"
 )
 
 // Package registry settings
@@ -32,6 +31,7 @@ var (
 		LimitSizeConan       int64
 		LimitSizeConda       int64
 		LimitSizeContainer   int64
+		LimitSizeDebian      int64
 		LimitSizeGeneric     int64
 		LimitSizeHelm        int64
 		LimitSizeMaven       int64
@@ -76,6 +76,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) {
 	Packages.LimitSizeConan = mustBytes(sec, "LIMIT_SIZE_CONAN")
 	Packages.LimitSizeConda = mustBytes(sec, "LIMIT_SIZE_CONDA")
 	Packages.LimitSizeContainer = mustBytes(sec, "LIMIT_SIZE_CONTAINER")
+	Packages.LimitSizeDebian = mustBytes(sec, "LIMIT_SIZE_DEBIAN")
 	Packages.LimitSizeGeneric = mustBytes(sec, "LIMIT_SIZE_GENERIC")
 	Packages.LimitSizeHelm = mustBytes(sec, "LIMIT_SIZE_HELM")
 	Packages.LimitSizeMaven = mustBytes(sec, "LIMIT_SIZE_MAVEN")
@@ -88,7 +89,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) {
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")
 }
 
-func mustBytes(section *ini.Section, key string) int64 {
+func mustBytes(section ConfigSection, key string) int64 {
 	const noLimit = "-1"
 
 	value := section.Key(key).MustString(noLimit)
