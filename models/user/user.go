@@ -529,6 +529,7 @@ var (
 		"explore",
 		"favicon.ico",
 		"ghost",
+		"gitea-actions",
 		"issues",
 		"login",
 		"manifest.json",
@@ -548,7 +549,7 @@ var (
 		"swagger.v1.json",
 		"user",
 		"v2",
-		"gitea-actions",
+		"xrpc",
 	}
 
 	// DON'T ADD ANY NEW STUFF, WE SOLVE THIS WITH `/user/{obj}` PATHS!
