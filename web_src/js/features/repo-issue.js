@@ -645,7 +645,6 @@ export function initRepoIssueGotoID() {
     const qval = e.target.q.value;
     const aElm = document.activeElement;
     if (!$('#hashtag-button').length || aElm.id === 'search-button' || (aElm.name === 'q' && !qval.includes('#')) || (isGlobalIssuesArea && !qval.includes('/')) || !issueidre.test(qval)) return;
-    const {appSubUrl} = window.config;
     const pathname = window.location.pathname;
     const gotoUrl = qval.includes('/') ? `${appSubUrl}/${qval.replace('#', '/issues/')}` : `${appSubUrl}/${pathname}/${qval.replace('#', '')}`;
     const {owner, repo, type, index} = parseIssueHref(gotoUrl);
