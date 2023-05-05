@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	ini "gopkg.in/ini.v1"
 )
 
 func Test_getStorageInheritNameSectionTypeForActions(t *testing.T) {
@@ -15,7 +14,7 @@ func Test_getStorageInheritNameSectionTypeForActions(t *testing.T) {
 	[storage]
 	STORAGE_TYPE = minio
 	`
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 	assert.NoError(t, loadActionsFrom(cfg))
 
@@ -26,7 +25,7 @@ func Test_getStorageInheritNameSectionTypeForActions(t *testing.T) {
 [storage.actions_log]
 STORAGE_TYPE = minio
 `
-	cfg, err = ini.Load([]byte(iniStr))
+	cfg, err = newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 	assert.NoError(t, loadActionsFrom(cfg))
 

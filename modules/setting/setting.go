@@ -209,10 +209,12 @@ func Init(opts *Options) {
 	var err error
 	CfgProvider, err = newConfigProviderFromFile(opts)
 	if err != nil {
-		log.Fatal("Init[%v]: %v", opts, err)
+		log.Fatal("newConfigProviderFromFile[%v]: %v", opts, err)
 	}
 	if !opts.DisableLoadCommonSettings {
-		loadCommonSettingsFrom(CfgProvider)
+		if err := loadCommonSettingsFrom(CfgProvider); err != nil {
+			log.Fatal("loadCommonSettingsFrom[%v]: %v", opts, err)
+		}
 	}
 }
 

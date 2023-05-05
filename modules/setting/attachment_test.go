@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	ini "gopkg.in/ini.v1"
 )
 
 func Test_getStorageCustomType(t *testing.T) {
@@ -20,7 +19,7 @@ MINIO_BUCKET = gitea-attachment
 STORAGE_TYPE = minio
 MINIO_ENDPOINT = my_minio:9000
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadAttachmentFrom(cfg))
@@ -41,7 +40,7 @@ MINIO_BUCKET = gitea-attachment
 [storage.minio]
 MINIO_BUCKET = gitea
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadAttachmentFrom(cfg))
@@ -61,7 +60,7 @@ MINIO_BUCKET = gitea-minio
 [storage]
 MINIO_BUCKET = gitea
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadAttachmentFrom(cfg))
@@ -82,7 +81,7 @@ MINIO_BUCKET = gitea
 [storage]
 STORAGE_TYPE = local
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadAttachmentFrom(cfg))
@@ -92,7 +91,7 @@ STORAGE_TYPE = local
 }
 
 func Test_getStorageGetDefaults(t *testing.T) {
-	cfg, err := ini.Load([]byte(""))
+	cfg, err := newConfigProviderFromData("")
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadAttachmentFrom(cfg))
@@ -105,7 +104,7 @@ func Test_getStorageInheritNameSectionType(t *testing.T) {
 [storage.attachments]
 STORAGE_TYPE = minio
 `
-	cfg, err := ini.Load([]byte(iniStr))
+	cfg, err := newConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadAttachmentFrom(cfg))
