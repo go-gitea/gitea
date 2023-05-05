@@ -155,7 +155,7 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 	if r, g, b, err := label.ColorRGB(); err == nil {
 		// Make scope and item background colors slightly darker and lighter respectively.
 		// More contrast needed with higher luminance, empirically tweaked.
-		luminance := (0.299*r + 0.587*g + 0.114*b) / 255
+		luminance := (0.2126*r + 0.7152*g + 0.0722*b) / 255
 		contrast := 0.01 + luminance*0.03
 		// Ensure we add the same amount of contrast also near 0 and 1.
 		darken := contrast + math.Max(luminance+contrast-1.0, 0.0)

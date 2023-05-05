@@ -7,6 +7,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -159,6 +160,14 @@ func (l *Label) BelongsToRepo() bool {
 	return l.RepoID > 0
 }
 
+func getColorFromChannel(rgbChannel float64) float64 {
+	result := rgbChannel / 255
+	if result <= 0.03928 {
+		return result / 12.92 * 255
+	}
+	return math.Pow((result+0.055)/1.055, 2.4) * 255
+}
+
 // Get color as RGB values in 0..255 range
 func (l *Label) ColorRGB() (float64, float64, float64, error) {
 	color, err := strconv.ParseUint(l.Color[1:], 16, 64)
@@ -166,9 +175,12 @@ func (l *Label) ColorRGB() (float64, float64, float64, error) {
 		return 0, 0, 0, err
 	}
 
-	r := float64(uint8(0xFF & (uint32(color) >> 16)))
-	g := float64(uint8(0xFF & (uint32(color) >> 8)))
-	b := float64(uint8(0xFF & uint32(color)))
+	R := float64(uint8(0xFF & (uint32(color) >> 16)))
+	G := float64(uint8(0xFF & (uint32(color) >> 8)))
+	B := float64(uint8(0xFF & uint32(color)))
+	r := getColorFromChannel(R)
+	g := getColorFromChannel(G)
+	b := getColorFromChannel(B)
 	return r, g, b, nil
 }
 
@@ -176,7 +188,7 @@ func (l *Label) ColorRGB() (float64, float64, float64, error) {
 func (l *Label) UseLightTextColor() bool {
 	if strings.HasPrefix(l.Color, "#") {
 		if r, g, b, err := l.ColorRGB(); err == nil {
-			// Reference from: https://firsching.ch/github_labels.html
+			// Reference from: https://firsching.ch/github_labels.html and https://www.w3.org/WAI/GL/wiki/Relative_luminance
 			// In the future WCAG 3 APCA may be a better solution
 			brightness := (0.2126*r + 0.7152*g + 0.0722*b) / 255
 			lightnessThreshold := 0.453

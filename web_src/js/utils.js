@@ -141,11 +141,19 @@ export function useLightTextOnBackground(backgroundColor) {
   if (backgroundColor[0] === '#') {
     backgroundColor = backgroundColor.substring(1);
   }
-  // Perceived brightness from: https://www.w3.org/TR/AERT/#color-contrast
+  // Reference from: https://firsching.ch/github_labels.html and https://www.w3.org/WAI/GL/wiki/Relative_luminance
   // In the future WCAG 3 APCA may be a better solution.
   const r = parseInt(backgroundColor.substring(0, 2), 16);
   const g = parseInt(backgroundColor.substring(2, 4), 16);
   const b = parseInt(backgroundColor.substring(4, 6), 16);
-  const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return brightness < 0.35;
+  const RsRGB = r / 255;
+  const GsRGB = g / 255;
+  const BsRGB = b / 255;
+
+  const R = (RsRGB <= 0.03928) ? RsRGB / 12.92 : ((RsRGB + 0.055) / 1.055) ** 2.4;
+  const G = (GsRGB <= 0.03928) ? GsRGB / 12.92 : ((GsRGB + 0.055) / 1.055) ** 2.4;
+  const B = (BsRGB <= 0.03928) ? BsRGB / 12.92 : ((BsRGB + 0.055) / 1.055) ** 2.4;
+
+  const brightness = 0.2126 * R + 0.7152 * G + 0.0722 * B;
+  return brightness < 0.453;
 }
