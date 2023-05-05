@@ -91,7 +91,7 @@
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
 							<td>{{DateTime "full" .Mirror.UpdatedUnix}}</td>
 							<td class="right aligned">
-								<form method="post gt-dib">
+								<form method="post" class="gt-dib">
 									{{.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="mirror-sync">
 									<button class="ui primary tiny button inline text-thin">{{$.locale.Tr "repo.settings.sync_mirror"}}</button>
@@ -169,13 +169,13 @@
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
 							<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
-								<form method="post gt-dib">
+								<form method="post" class="gt-dib">
 									{{$.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="push-mirror-remove">
 									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
 									<button class="ui basic red tiny button inline text-thin">{{$.locale.Tr "remove"}}</button>
 								</form>
-								<form method="post gt-dib">
+								<form method="post" class="gt-dib">
 									{{$.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="push-mirror-sync">
 									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
