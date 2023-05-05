@@ -494,7 +494,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 			).From("`user`"),
 		))
 	} else if !opts.Actor.IsAdmin {
-		uidCond := builder.Select("`user`.id").Where(
+		uidCond := builder.Select("`user`.id").From("`user`").Where(
 			builder.Eq{"keep_activity_private": false}.
 				And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).
 			Or(builder.Eq{"id": opts.Actor.ID})
@@ -516,7 +516,6 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 				)
 			}
 		}
-		uidCond.From("`user`")
 
 		cond = cond.And(builder.In("act_user_id", uidCond))
 	}
