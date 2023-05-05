@@ -101,12 +101,17 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	if err != nil && !repo_model.IsErrRepoNotExist(err) {
 		return nil, err
 	}
-	creator, err := user_model.GetUserByID(ctx, pv.CreatorID)
-	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			creator = user_model.NewGhostUser()
-		} else {
-			return nil, err
+	var creator *user_model.User
+	if pv.CreatorID == user_model.ActionsUserID {
+		creator = user_model.NewActionsUser()
+	} else {
+		creator, err = user_model.GetUserByID(ctx, pv.CreatorID)
+		if err != nil {
+			if errors.Is(err, util.ErrNotExist) {
+				creator = user_model.NewGhostUser()
+			} else {
+				return nil, err
+			}
 		}
 	}
 	var semVer *version.Version
