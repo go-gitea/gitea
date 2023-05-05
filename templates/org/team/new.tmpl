@@ -94,7 +94,7 @@
 												{{end}}
 												<tr>
 													<td>
-														<div {{if $unit.Type.UnitGlobalDisabled}}class="field" data-tooltip-content="{{$.locale.Tr "repo.unit_disabled"}}"{{- else -}}class="field"{{end}}>
+														<div {{if or $unit.Type.UnitGlobalDisabled (and $.IsActionsDisabled $isActionsUnit)}}class="field" data-tooltip-content="{{$.locale.Tr "repo.unit_disabled"}}"{{- else -}}class="field"{{end}}>
 															<div>
 																<label>{{$.locale.Tr $unit.NameKey}}{{if or $unit.Type.UnitGlobalDisabled (and $.IsActionsDisabled $isActionsUnit)}} {{$.locale.Tr "org.team_unit_disabled"}}{{end}}</label>
 																<span class="help">{{$.locale.Tr $unit.DescKey}}</span>
