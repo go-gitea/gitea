@@ -156,12 +156,24 @@ func LoadUnitConfig() {
 	if len(invalidKeys) > 0 {
 		log.Warn("Invalid keys in disabled repo units: %s", strings.Join(invalidKeys, ", "))
 	}
+
+	var isActionsDisabled bool
 	// Check that must units are not disabled
 	for i, disabledU := range DisabledRepoUnits {
+		if disabledU == TypeActions {
+			isActionsDisabled = true
+		}
 		if !disabledU.CanDisable() {
 			log.Warn("Not allowed to global disable unit %s", disabledU.String())
 			DisabledRepoUnits = append(DisabledRepoUnits[:i], DisabledRepoUnits[i+1:]...)
 		}
+	}
+
+	// Check that actions.ENABLED
+	if !isActionsDisabled && !setting.Actions.Enabled {
+		// not disabled in `repo.DISABLED_REPO_UNITS`` but disabled in `actions.ENABLED`
+		// also append into the slice of DisabledRepoUnits
+		DisabledRepoUnits = append(DisabledRepoUnits, TypeActions)
 	}
 
 	setDefaultRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultRepoUnits...)

@@ -59,22 +59,16 @@
 						<tbody>
 							{{range $t, $unit := $.Units}}
 								{{if not $unit.Type.UnitGlobalDisabled}}
-									{{$isActionsUnit := false}}
-									{{if eq $unit.Type 10}}
-										{{$isActionsUnit = true}}
-									{{end}}
-									{{if not (and $.IsActionsDisabled $isActionsUnit)}}
-										<tr>
-											<td><strong>{{$.locale.Tr $unit.NameKey}}</strong></td>
-											<td>{{if eq ($.Team.UnitAccessMode $.Context $unit.Type) 0 -}}
-											{{$.locale.Tr "org.teams.none_access"}}
-											{{- else if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1) -}}
-											{{$.locale.Tr "org.teams.read_access"}}
-											{{- else if eq ($.Team.UnitAccessMode $.Context $unit.Type) 2 -}}
-											{{$.locale.Tr "org.teams.write_access"}}
-											{{- end}}</td>
-										</tr>
-									{{end}}
+									<tr>
+										<td><strong>{{$.locale.Tr $unit.NameKey}}</strong></td>
+										<td>{{if eq ($.Team.UnitAccessMode $.Context $unit.Type) 0 -}}
+										{{$.locale.Tr "org.teams.none_access"}}
+										{{- else if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1) -}}
+										{{$.locale.Tr "org.teams.read_access"}}
+										{{- else if eq ($.Team.UnitAccessMode $.Context $unit.Type) 2 -}}
+										{{$.locale.Tr "org.teams.write_access"}}
+										{{- end}}</td>
+									</tr>
 								{{end}}
 							{{end}}
 						</tbody>

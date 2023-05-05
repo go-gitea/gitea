@@ -271,7 +271,6 @@ func NewTeam(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Team"] = &org_model.Team{}
 	ctx.Data["Units"] = unit_model.Units
-	ctx.Data["IsActionsDisabled"] = !setting.Actions.Enabled
 
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
@@ -381,7 +380,6 @@ func TeamMembers(ctx *context.Context) {
 	}
 	ctx.Data["Invites"] = invites
 	ctx.Data["IsEmailInviteEnabled"] = setting.MailService != nil
-	ctx.Data["IsActionsDisabled"] = !setting.Actions.Enabled
 
 	ctx.HTML(http.StatusOK, tplTeamMembers)
 }
@@ -396,7 +394,6 @@ func TeamRepositories(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Units"] = unit_model.Units
-	ctx.Data["IsActionsDisabled"] = !setting.Actions.Enabled
 
 	ctx.HTML(http.StatusOK, tplTeamRepositories)
 }
@@ -453,7 +450,6 @@ func EditTeam(ctx *context.Context) {
 	}
 	ctx.Data["Team"] = ctx.Org.Team
 	ctx.Data["Units"] = unit_model.Units
-	ctx.Data["IsActionsDisabled"] = !setting.Actions.Enabled
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
