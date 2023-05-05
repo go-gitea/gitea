@@ -18,7 +18,9 @@
 						</div>
 						<i class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.token_state_desc"}}"{{end}}>{{svg "fontawesome-send" 36}}</i>
 						<div class="content">
-							<details><summary><strong>{{.Name}}</strong></summary>
+							<!--Temporarily disable-->
+							<strong>{{.Name}}</strong>
+							<details class="gt-hidden"><summary><strong>{{.Name}}</strong></summary>
 								<p class="gt-my-2">{{$.locale.Tr "settings.scopes_list"}}</p>
 								<ul class="gt-my-2">
 								{{range .Scope.StringSlice}}
@@ -45,7 +47,8 @@
 					<label for="name">{{.locale.Tr "settings.token_name"}}</label>
 					<input id="name" name="name" value="{{.name}}" autofocus required>
 				</div>
-				<details class="ui optional field">
+				<!--Temporarily disable-->
+				<details class="gt-hidden ui optional field">
 					<summary class="gt-p-2">
 						{{.locale.Tr "settings.select_scopes"}}
 					</summary>
