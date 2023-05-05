@@ -271,7 +271,6 @@ func NewTeam(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Team"] = &org_model.Team{}
 	ctx.Data["Units"] = unit_model.Units
-
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
@@ -394,7 +393,6 @@ func TeamRepositories(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Units"] = unit_model.Units
-
 	ctx.HTML(http.StatusOK, tplTeamRepositories)
 }
 
