@@ -27,7 +27,6 @@ func TestLoadUnitConfig(t *testing.T) {
 		setting.Repository.DisabledRepoUnits = []string{"repo.issues"}
 		setting.Repository.DefaultRepoUnits = []string{"repo.code", "repo.releases", "repo.issues", "repo.pulls"}
 		setting.Repository.DefaultForkRepoUnits = []string{"repo.releases"}
-		setting.Actions.Enabled = true
 		LoadUnitConfig()
 		assert.Equal(t, []Type{TypeIssues}, DisabledRepoUnits)
 		assert.Equal(t, []Type{TypeCode, TypeReleases, TypePullRequests}, DefaultRepoUnits)
@@ -37,7 +36,6 @@ func TestLoadUnitConfig(t *testing.T) {
 		setting.Repository.DisabledRepoUnits = []string{"repo.issues", "invalid.1"}
 		setting.Repository.DefaultRepoUnits = []string{"repo.code", "invalid.2", "repo.releases", "repo.issues", "repo.pulls"}
 		setting.Repository.DefaultForkRepoUnits = []string{"invalid.3", "repo.releases"}
-		setting.Actions.Enabled = true
 		LoadUnitConfig()
 		assert.Equal(t, []Type{TypeIssues}, DisabledRepoUnits)
 		assert.Equal(t, []Type{TypeCode, TypeReleases, TypePullRequests}, DefaultRepoUnits)
@@ -47,19 +45,8 @@ func TestLoadUnitConfig(t *testing.T) {
 		setting.Repository.DisabledRepoUnits = []string{"repo.issues", "repo.issues"}
 		setting.Repository.DefaultRepoUnits = []string{"repo.code", "repo.releases", "repo.issues", "repo.pulls", "repo.code"}
 		setting.Repository.DefaultForkRepoUnits = []string{"repo.releases", "repo.releases"}
-		setting.Actions.Enabled = true
 		LoadUnitConfig()
 		assert.Equal(t, []Type{TypeIssues}, DisabledRepoUnits)
-		assert.Equal(t, []Type{TypeCode, TypeReleases, TypePullRequests}, DefaultRepoUnits)
-		assert.Equal(t, []Type{TypeCode, TypeReleases}, DefaultForkRepoUnits)
-	})
-	t.Run("actions_disabled", func(t *testing.T) {
-		setting.Repository.DisabledRepoUnits = []string{"repo.issues"}
-		setting.Repository.DefaultRepoUnits = []string{"repo.code", "repo.releases", "repo.issues", "repo.pulls"}
-		setting.Repository.DefaultForkRepoUnits = []string{"repo.releases"}
-		setting.Actions.Enabled = false
-		LoadUnitConfig()
-		assert.Equal(t, []Type{TypeIssues, TypeActions}, DisabledRepoUnits)
 		assert.Equal(t, []Type{TypeCode, TypeReleases, TypePullRequests}, DefaultRepoUnits)
 		assert.Equal(t, []Type{TypeCode, TypeReleases}, DefaultForkRepoUnits)
 	})
