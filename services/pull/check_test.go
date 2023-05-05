@@ -12,6 +12,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -28,7 +29,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 		}
 		return nil
 	}
-	iniCfg := queue.IniConfig{Length: 10, BatchLength: 1, Workers: 1}
+	iniCfg := setting.QueueSettings{Length: 10, BatchLength: 1, MaxWorkers: 1}
 	prPatchCheckerQueue = queue.NewWorkerPoolQueueBySetting("pr_patch_checker", iniCfg, testHandler, true)
 
 	var queueShutdown []func()

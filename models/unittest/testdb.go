@@ -89,7 +89,6 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	}
 
 	if err = CreateTestEngine(opts); err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, `sqlite3 requires: import _ "github.com/mattn/go-sqlite3" or -tags sqlite,sqlite_unlock_notify`)
 		fatalTestError("Error creating test engine: %v\n", err)
 	}
 
@@ -203,6 +202,9 @@ type FixturesOptions struct {
 func CreateTestEngine(opts FixturesOptions) error {
 	x, err := xorm.NewEngine("sqlite3", "file::memory:?cache=shared&_txlock=immediate")
 	if err != nil {
+		if strings.Contains(err.Error(), "unknown driver") {
+			return fmt.Errorf(`sqlite3 requires: import _ "github.com/mattn/go-sqlite3" or -tags sqlite,sqlite_unlock_notify%s%w`, "\n", err)
+		}
 		return err
 	}
 	x.SetMapper(names.GonicMapper{})
