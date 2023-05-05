@@ -167,3 +167,43 @@
   exclusive: false
   num_issues: 0
   num_closed_issues: 0
+
+-
+  id: 18
+  repo_id: 55
+  org_id: 0
+  name: bug
+  color: '#D73A4A'
+  exclusive: false
+  num_issues: 0
+  num_closed_issues: 0
+
+-
+  id: 19
+  repo_id: 55
+  org_id: 0
+  name: documentation
+  color: '#0075CA'
+  exclusive: false
+  num_issues: 0
+  num_closed_issues: 0
+
+-
+  id: 20
+  repo_id: 55
+  org_id: 0
+  name: duplicate
+  color: '#CFD3D7'
+  exclusive: false
+  num_issues: 0
+  num_closed_issues: 0
+
+-
+  id: 21
+  repo_id: 55
+  org_id: 0
+  name: enhancement
+  color: '#A2EEEF'
+  exclusive: false
+  num_issues: 0
+  num_closed_issues: 0
