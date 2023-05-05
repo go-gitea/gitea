@@ -171,7 +171,7 @@ func LoadUnitConfig() {
 
 	// Check that actions.ENABLED
 	if !isActionsDisabled && !setting.Actions.Enabled {
-		// not disabled in `repo.DISABLED_REPO_UNITS`` but disabled in `actions.ENABLED`
+		// not disabled in `repo.DISABLED_REPO_UNITS` but disabled in `actions.ENABLED`
 		// also append into the slice of DisabledRepoUnits
 		DisabledRepoUnits = append(DisabledRepoUnits, TypeActions)
 	}
