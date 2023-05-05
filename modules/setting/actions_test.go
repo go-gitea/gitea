@@ -31,4 +31,18 @@ STORAGE_TYPE = minio
 
 	assert.EqualValues(t, "minio", Actions.Storage.Type)
 	assert.EqualValues(t, "actions_log/", Actions.Storage.Section.Key("MINIO_BASE_PATH").String())
+
+	iniStr = `
+[storage.actions_log]
+STORAGE_TYPE = my_storage
+
+[storage.my_storage]
+STORAGE_TYPE = minio
+`
+	cfg, err = newConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+	assert.NoError(t, loadActionsFrom(cfg))
+
+	assert.EqualValues(t, "minio", Actions.Storage.Type)
+	assert.EqualValues(t, "actions_log/", Actions.Storage.Section.Key("MINIO_BASE_PATH").String())
 }

@@ -7,7 +7,7 @@ package setting
 var (
 	// Picture settings
 	Avatar = struct {
-		Storage
+		*Storage
 
 		MaxWidth           int
 		MaxHeight          int
@@ -25,7 +25,7 @@ var (
 	EnableFederatedAvatar bool // Depreciated: migrated to database
 
 	RepoAvatar = struct {
-		Storage
+		*Storage
 
 		Fallback      string
 		FallbackImage string
@@ -41,7 +41,11 @@ func loadAvatarsFrom(rootCfg ConfigProvider) error {
 	avatarSec.Key("PATH").MustString(
 		sec.Key("AVATAR_UPLOAD_PATH").String())
 
-	Avatar.Storage = getStorage(rootCfg, "avatars", storageType, avatarSec)
+	var err error
+	Avatar.Storage, err = getStorage(rootCfg, avatarSec, "avatars", storageType)
+	if err != nil {
+		return err
+	}
 
 	Avatar.MaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
 	Avatar.MaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
@@ -91,7 +95,11 @@ func loadRepoAvatarFrom(rootCfg ConfigProvider) error {
 	repoAvatarSec.Key("PATH").MustString(
 		sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").String())
 
-	RepoAvatar.Storage = getStorage(rootCfg, "repo-avatars", storageType, repoAvatarSec)
+	var err error
+	RepoAvatar.Storage, err = getStorage(rootCfg, repoAvatarSec, "repo-avatars", storageType)
+	if err != nil {
+		return err
+	}
 
 	RepoAvatar.Fallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
 	RepoAvatar.FallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/assets/img/repo_default.png")

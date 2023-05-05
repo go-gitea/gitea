@@ -20,7 +20,7 @@ var LFS = struct {
 	MaxFileSize     int64         `ini:"LFS_MAX_FILE_SIZE"`
 	LocksPagingNum  int           `ini:"LFS_LOCKS_PAGING_NUM"`
 
-	Storage
+	*Storage
 }{}
 
 func loadLFSFrom(rootCfg ConfigProvider) error {
@@ -38,7 +38,11 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 	deprecatedSetting(rootCfg, "server", "LFS_CONTENT_PATH", "lfs", "PATH", "v1.19.0")
 	lfsSec.Key("PATH").MustString(sec.Key("LFS_CONTENT_PATH").String())
 
-	LFS.Storage = getStorage(rootCfg, "lfs", storageType, lfsSec)
+	var err error
+	LFS.Storage, err = getStorage(rootCfg, lfsSec, "lfs", storageType)
+	if err != nil {
+		return err
+	}
 
 	// Rest of LFS service settings
 	if LFS.LocksPagingNum == 0 {

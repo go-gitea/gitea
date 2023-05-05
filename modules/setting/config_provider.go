@@ -114,11 +114,19 @@ func (p *iniFileConfigProvider) Section(section string) ConfigSection {
 }
 
 func (p *iniFileConfigProvider) NewSection(name string) (ConfigSection, error) {
-	return p.File.NewSection(name)
+	sec, err := p.File.NewSection(name)
+	if err != nil {
+		return nil, err
+	}
+	return sec, nil
 }
 
 func (p *iniFileConfigProvider) GetSection(name string) (ConfigSection, error) {
-	return p.File.GetSection(name)
+	sec, err := p.File.GetSection(name)
+	if err != nil {
+		return nil, err
+	}
+	return sec, nil
 }
 
 func (p *iniFileConfigProvider) DeleteSection(name string) error {

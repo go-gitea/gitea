@@ -16,7 +16,7 @@ import (
 // Package registry settings
 var (
 	Packages = struct {
-		Storage
+		*Storage
 		Enabled           bool
 		ChunkedUploadPath string
 		RegistryHost      string
@@ -48,13 +48,14 @@ var (
 
 func loadPackagesFrom(rootCfg ConfigProvider) error {
 	sec := rootCfg.Section("packages")
-	if err := sec.MapTo(&Packages); err != nil {
+	err := sec.MapTo(&Packages)
+	if err != nil {
 		return fmt.Errorf("failed to map Packages settings: %v", err)
 	}
 
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
 
-	Packages.Storage = getStorage(rootCfg, "packages", storageType, sec)
+	Packages.Storage, err = getStorage(rootCfg, sec, "packages", storageType)
 
 	appURL, _ := url.Parse(AppURL)
 	Packages.RegistryHost = appURL.Host

@@ -6,7 +6,7 @@ package setting
 import "fmt"
 
 var RepoArchive = struct {
-	Storage
+	*Storage
 }{}
 
 func loadRepoArchiveFrom(rootCfg ConfigProvider) error {
@@ -15,6 +15,7 @@ func loadRepoArchiveFrom(rootCfg ConfigProvider) error {
 		return fmt.Errorf("mapto repoarchive failed: %v", err)
 	}
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
-	RepoArchive.Storage = getStorage(rootCfg, "repo-archive", storageType, sec)
-	return nil
+	var err error
+	RepoArchive.Storage, err = getStorage(rootCfg, sec, "repo-archive", storageType)
+	return err
 }

@@ -3,12 +3,14 @@
 
 package setting
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Actions settings
 var (
 	Actions = struct {
-		Storage           // how the created logs should be stored
+		*Storage          // how the created logs should be stored
 		Enabled           bool
 		DefaultActionsURL string `ini:"DEFAULT_ACTIONS_URL"`
 	}{
@@ -24,6 +26,7 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	}
 
 	// don't support to read configuration from [actions]
-	Actions.Storage = getStorage(rootCfg, "actions_log", "", nil)
-	return nil
+	var err error
+	Actions.Storage, err = getStorage(rootCfg, nil, "actions_log", "")
+	return err
 }
