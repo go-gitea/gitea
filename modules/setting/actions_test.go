@@ -19,7 +19,7 @@ func Test_getStorageInheritNameSectionTypeForActions(t *testing.T) {
 	assert.NoError(t, loadActionsFrom(cfg))
 
 	assert.EqualValues(t, "minio", Actions.Storage.Type)
-	assert.EqualValues(t, "actions_log/", cfg.Section("actions").Key("MINIO_BASE_PATH").MustString(""))
+	assert.EqualValues(t, "actions_log/", Actions.Storage.Section.Key("MINIO_BASE_PATH").String())
 
 	iniStr = `
 [storage.actions_log]
@@ -30,5 +30,5 @@ STORAGE_TYPE = minio
 	assert.NoError(t, loadActionsFrom(cfg))
 
 	assert.EqualValues(t, "minio", Actions.Storage.Type)
-	assert.EqualValues(t, "actions_log/", cfg.Section("actions").Key("MINIO_BASE_PATH").MustString(""))
+	assert.EqualValues(t, "actions_log/", Actions.Storage.Section.Key("MINIO_BASE_PATH").String())
 }
