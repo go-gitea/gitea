@@ -1,13 +1,4 @@
 <div class="ui stackable grid">
-	{{if .Flash}}
-		<div class="sixteen wide column">
-			{{template "base/alert" .}}
-		</div>
-	{{end}}
-	{{if not .Issue.IsPull}}
-		{{template "repo/issue/view_title" .}}
-	{{end}}
-
 	<!-- I know, there is probably a better way to do this (moved from sidebar.tmpl, original author: 6543 @ 2021-02-28) -->
 	<!-- Agree, there should be a better way, eg: introduce window.config.pageData (original author: wxiaoguang @ 2021-09-05) -->
 	<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">

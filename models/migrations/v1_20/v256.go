@@ -4,21 +4,20 @@
 package v1_20 //nolint
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func CreateVariableTable(x *xorm.Engine) error {
-	type Variable struct {
-		ID          int64              `xorm:"pk autoincr"`
-		OwnerID     int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
-		RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
-		Name        string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
-		Data        string             `xorm:"LONGTEXT NOT NULL"`
-		CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+func AddIsInternalColumnToPackage(x *xorm.Engine) error {
+	type Package struct {
+		ID               int64  `xorm:"pk autoincr"`
+		OwnerID          int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		RepoID           int64  `xorm:"INDEX"`
+		Type             string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		Name             string `xorm:"NOT NULL"`
+		LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		SemverCompatible bool   `xorm:"NOT NULL DEFAULT false"`
+		IsInternal       bool   `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync(new(Variable))
+	return x.Sync(new(Package))
 }

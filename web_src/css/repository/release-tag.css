@@ -1,7 +1,6 @@
 .repository.releases #release-list {
-  border-top: 1px solid var(--color-secondary);
-  margin-top: 20px;
-  padding-top: 15px;
+  margin-top: 12px;
+  padding-top: 12px;
   padding-left: 0;
 }
 
@@ -23,29 +22,13 @@
 }
 
 .repository.releases #release-list > li .meta {
+  margin-top: 4px;
   text-align: right;
   position: relative;
 }
 
-.repository.releases #release-list > li .meta .label {
-  margin-right: 0;
-}
-
-.repository.releases #release-list > li .meta .commit {
-  display: block;
-  margin-top: 10px;
-}
-
-.repository.releases #release-list > li .meta .choose {
-  margin-top: 15px;
-}
-
-.repository.releases #release-list > li .meta .choose .button {
-  margin-right: 0;
-}
-
 .repository.releases #release-list > li .detail {
-  border-left: 2px solid var(--color-secondary);
+  border-left: 1px solid var(--color-secondary);
 }
 
 .repository.releases #release-list > li .detail .author img {
@@ -92,7 +75,7 @@
   z-index: 9;
   position: absolute;
   display: block;
-  left: -6px;
+  left: -5.5px;
   top: 40px;
   border-radius: 100%;
   border: 2.5px solid var(--color-body);

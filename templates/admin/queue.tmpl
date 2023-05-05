@@ -174,7 +174,7 @@
 			{{.locale.Tr "admin.monitor.queue.configuration"}}
 		</h4>
 		<div class="ui attached segment">
-			<pre>{{.Queue.Configuration | JsonPrettyPrint}}</pre>
+			<pre>{{JsonUtils.PrettyIndent .Queue.Configuration}}</pre>
 		</div>
 	</div>
 

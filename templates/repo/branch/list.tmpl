@@ -5,8 +5,13 @@
 		{{template "base/alert" .}}
 		{{template "repo/sub_menu" .}}
 		{{if .DefaultBranchBranch}}
-			<h4 class="ui top attached header gt-mt-4">
+			<h4 class="ui top attached header">
 				{{.locale.Tr "repo.default_branch"}}
+				{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
+				<a role="button" class="right" href="{{.RepoLink}}/settings/branches" data-tooltip-content="{{.locale.Tr "repo.settings.branches.switch_default_branch"}}">
+					{{svg "octicon-arrow-switch"}}
+				</a>
+				{{end}}
 			</h4>
 
 			<div class="ui attached table segment">
@@ -22,22 +27,37 @@
 							</td>
 							<td class="right aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-									<button class="ui basic jump button icon show-create-branch-modal" data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}" data-branch-from="{{$.DefaultBranch}}" data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}" data-modal="#create-branch-modal">
+									<button class="ui tertiary button show-create-branch-modal gt-mx-3"
+										data-modal="#create-branch-modal"
+										data-branch-from="{{$.DefaultBranch}}"
+										data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}"
+										data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}"
+									>
 										{{svg "octicon-git-branch"}}
 									</button>
 								{{end}}
 								{{if .EnableFeed}}
-									<a role="button" class="ui basic button icon" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranch}}">
+									<a role="button" class="ui tertiary button gt-mx-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranch}}">
 										{{svg "octicon-rss"}}
 									</a>
 								{{end}}
 								{{if not $.DisableDownloadSourceArchives}}
-									<button class="ui basic jump dropdown icon button" data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranch)}}">
+									<div class="ui dropdown tertiary button gt-mx-3"  data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranch)}}">
 										{{svg "octicon-download"}}
 										<div class="menu">
 											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
 											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 										</div>
+									</div>
+								{{end}}
+								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not $.IsMirror)}}
+									<button class="ui tertiary button show-modal show-rename-branch-modal gt-mx-3"
+										data-is-default-branch="true"
+										data-modal="#rename-branch-modal"
+										data-old-branch-name="{{$.DefaultBranch}}"
+										data-tooltip-content="{{$.locale.Tr "repo.branch.rename" ($.DefaultBranch)}}"
+									>
+										{{svg "octicon-pencil"}}
 									</button>
 								{{end}}
 							</td>
@@ -114,33 +134,48 @@
 									</td>
 									<td class="three wide right aligned overflow-visible">
 										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-											<button class="ui basic jump button icon show-create-branch-modal" data-branch-from="{{.Name}}" data-branch-from-urlcomponent="{{PathEscapeSegments .Name}}" data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" .Name}}" data-modal="#create-branch-modal" data-name="{{.Name}}">
+											<button class="ui tertiary button show-modal show-create-branch-modal gt-mx-3"
+												data-branch-from="{{.Name}}"
+												data-branch-from-urlcomponent="{{PathEscapeSegments .Name}}"
+												data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" .Name}}"
+												data-modal="#create-branch-modal" data-name="{{.Name}}"
+											>
 												{{svg "octicon-git-branch"}}
 											</button>
 										{{end}}
 										{{if $.EnableFeed}}
-											<a role="button" class="ui basic button icon" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .Name}}">
+											<a role="button" class="ui tertiary button gt-mx-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .Name}}">
 												{{svg "octicon-rss"}}
 											</a>
 										{{end}}
 										{{if and (not .IsDeleted) (not $.DisableDownloadSourceArchives)}}
-											<button class="ui basic jump dropdown icon button" data-tooltip-content="{{$.locale.Tr "repo.branch.download" (.Name)}}">
+											<div class="ui dropdown tertiary button gt-mx-3" data-tooltip-content="{{$.locale.Tr "repo.branch.download" (.Name)}}">
 												{{svg "octicon-download"}}
 												<div class="menu">
 													<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .Name}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
 													<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .Name}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 												</div>
+											</div>
+										{{end}}
+										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not $.IsMirror)}}
+											<button class="ui tertiary button show-modal show-rename-branch-modal gt-mx-3"
+												data-is-default-branch="false"
+												data-old-branch-name="{{.Name}}"
+												data-modal="#rename-branch-modal"
+												data-tooltip-content="{{$.locale.Tr "repo.branch.rename" (.Name)}}"
+											>
+												{{svg "octicon-pencil"}}
 											</button>
 										{{end}}
 										{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
 											{{if .IsDeleted}}
-												<button class="ui basic jump button icon undo-button" data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID}}&name={{.DeletedBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.restore" (.Name)}}">
+												<button class="ui tertiary button undo-button gt-mx-3" data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID}}&name={{.DeletedBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.restore" (.Name)}}">
 													<span class="text blue">
 														{{svg "octicon-reply"}}
 													</span>
 												</button>
 											{{else}}
-												<button class="ui basic jump button icon delete-button delete-branch-button" data-url="{{$.Link}}/delete?name={{.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.delete" (.Name)}}" data-name="{{.Name}}">
+												<button class="ui tertiary button delete-button delete-branch-button gt-mx-3" data-url="{{$.Link}}/delete?name={{.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.delete" (.Name)}}" data-name="{{.Name}}">
 													{{svg "octicon-trash"}}
 												</button>
 											{{end}}
@@ -168,29 +203,46 @@
 	{{template "base/modal_actions_confirm" .}}
 </div>
 
-<div class="ui small modal" id="create-branch-modal">
+<div class="ui mini modal" id="create-branch-modal">
 	<div class="header">
 		{{.locale.Tr "repo.branch.new_branch"}}
 	</div>
-	<div class="content">
-		<form class="ui form" id="create-branch-form" action="" data-base-action="{{.Link}}/_new/branch/" method="post">
+
+	<form class="ui form" id="create-branch-form" action="" data-base-action="{{.Link}}/_new/branch/" method="post">
+		<div class="content">
 			{{.CsrfTokenHtml}}
 			<div class="field">
-				<label>
-					{{.locale.Tr "repo.branch.create_new_branch"}}
-					<span class="text" id="modal-create-branch-from-span"></span>
-				</label>
+				{{.locale.Tr "repo.branch.create_new_branch"}}
+				<span id="modal-create-branch-from-span"></span>
 			</div>
 			<div class="required field">
 				<label for="new_branch_name">{{.locale.Tr "repo.branch.name"}}</label>
 				<input id="new_branch_name" name="new_branch_name" required>
 			</div>
+		</div>
+		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
+	</form>
+</div>
 
-			<div class="text right actions">
-				<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
-				<button class="ui green button">{{.locale.Tr "repo.branch.confirm_create_branch"}}</button>
-			</div>
-		</form>
+<div class="ui mini modal" id="rename-branch-modal">
+	<div class="header">
+		{{.locale.Tr "repo.settings.rename_branch"}}
 	</div>
+	<form class="ui form" action="{{$.Repository.Link}}/settings/rename_branch" method="post">
+		<div class="content">
+			{{.CsrfTokenHtml}}
+			<div class="field default-branch-warning">
+				<span class="text red">{{.locale.Tr "repo.branch.warning_rename_default_branch"}}</span>
+			</div>
+			<div class="field">
+				<span class="text" data-rename-branch-to="{{.locale.Tr "repo.branch.rename_branch_to"}}"></span>
+			</div>
+			<input name="from" type="hidden" required>
+			<div class="required field">
+				<input name="to" required>
+			</div>
+		</div>
+		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
+	</form>
 </div>
 {{template "base/footer" .}}

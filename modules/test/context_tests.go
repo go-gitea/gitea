@@ -30,7 +30,7 @@ func MockContext(t *testing.T, path string) *context.Context {
 	resp := &mockResponseWriter{}
 	ctx := context.Context{
 		Render: &mockRender{},
-		Data:   make(map[string]interface{}),
+		Data:   make(middleware.ContextData),
 		Flash: &middleware.Flash{
 			Values: make(url.Values),
 		},

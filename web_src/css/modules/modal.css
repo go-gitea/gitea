@@ -30,6 +30,7 @@
 .ui.modal > .content,
 .ui.modal > form > .content {
   background: var(--color-body);
+  padding: 1.5em;
 }
 
 .ui.modal > .actions,

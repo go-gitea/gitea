@@ -22,9 +22,9 @@
 					<a class="item" href="{{$.Link}}/rules/{{.ID}}"><strong>{{.Type.Name}}</strong></a>
 					<div><i>{{if .Enabled}}{{$.locale.Tr "enabled"}}{{else}}{{$.locale.Tr "disabled"}}{{end}}</i></div>
 					{{if .KeepCount}}<div><i>{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.count"}}:</i> {{if eq .KeepCount 1}}{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.count.1"}}{{else}}{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" .KeepCount}}{{end}}</div>{{end}}
-					{{if .KeepPattern}}<div><i>{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.pattern"}}:</i> {{EllipsisString .KeepPattern 100}}</div>{{end}}
+					{{if .KeepPattern}}<div><i>{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.pattern"}}:</i> {{StringUtils.EllipsisString .KeepPattern 100}}</div>{{end}}
 					{{if .RemoveDays}}<div><i>{{$.locale.Tr "packages.owner.settings.cleanuprules.remove.days"}}:</i> {{$.locale.Tr "tool.days" .RemoveDays}}</div>{{end}}
-					{{if .RemovePattern}}<div><i>{{$.locale.Tr "packages.owner.settings.cleanuprules.remove.pattern"}}:</i> {{EllipsisString .RemovePattern 100}}</div>{{end}}
+					{{if .RemovePattern}}<div><i>{{$.locale.Tr "packages.owner.settings.cleanuprules.remove.pattern"}}:</i> {{StringUtils.EllipsisString .RemovePattern 100}}</div>{{end}}
 				</div>
 			</div>
 		{{else}}
