@@ -29,6 +29,30 @@ func TestLabel_TextColor(t *testing.T) {
 
 	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 2})
 	assert.True(t, label.UseLightTextColor())
+
+	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 10})
+	assert.True(t, label.UseLightTextColor())
+
+	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 11})
+	assert.True(t, label.UseLightTextColor())
+
+	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 12})
+	assert.False(t, label.UseLightTextColor())
+
+	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 13})
+	assert.False(t, label.UseLightTextColor())
+
+	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 14})
+	assert.True(t, label.UseLightTextColor())
+
+	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 15})
+	assert.True(t, label.UseLightTextColor())
+
+	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 16})
+	assert.True(t, label.UseLightTextColor())
+
+	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 17})
+	assert.True(t, label.UseLightTextColor())
 }
 
 func TestLabel_ExclusiveScope(t *testing.T) {

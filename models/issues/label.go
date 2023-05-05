@@ -190,9 +190,9 @@ func (l *Label) UseLightTextColor() bool {
 		if r, g, b, err := l.ColorRGB(); err == nil {
 			// Reference from: https://firsching.ch/github_labels.html and https://www.w3.org/WAI/GL/wiki/Relative_luminance
 			// In the future WCAG 3 APCA may be a better solution
-			brightness := (0.2126*r + 0.7152*g + 0.0722*b) / 255
+			luminance := (0.2126*r + 0.7152*g + 0.0722*b) / 255
 			lightnessThreshold := 0.453
-			return brightness < lightnessThreshold
+			return luminance < lightnessThreshold
 		}
 	}
 

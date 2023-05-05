@@ -87,3 +87,83 @@
   exclusive: true
   num_issues: 0
   num_closed_issues: 0
+
+-
+  id: 10
+  repo_id: 55
+  org_id: 0
+  name: #2b8685
+  color: '#2b8685'
+  exclusive: false
+  num_issues: 0
+  num_closed_issues: 0
+
+-
+  id: 11
+  repo_id: 55
+  org_id: 0
+  name: #2b8786
+  color: '#2b8786'
+  exclusive: false
+  num_issues: 0
+  num_closed_issues: 0
+
+-
+  id: 12
+  repo_id: 55
+  org_id: 0
+  name: #2c8786
+  color: '#2c8786'
+  exclusive: false
+  num_issues: 0
+  num_closed_issues: 0
+
+-
+  id: 13
+  repo_id: 55
+  org_id: 0
+  name: #3bb6b3
+  color: '#3bb6b3'
+  exclusive: false
+  num_issues: 0
+  num_closed_issues: 0
+
+-
+  id: 14
+  repo_id: 55
+  org_id: 0
+  name: #7c7268
+  color: '#7c7268'
+  exclusive: false
+  num_issues: 0
+  num_closed_issues: 0
+
+-
+  id: 15
+  repo_id: 55
+  org_id: 0
+  name: #7e716c
+  color: '#7e716c'
+  exclusive: false
+  num_issues: 0
+  num_closed_issues: 0
+
+-
+  id: 16
+  repo_id: 55
+  org_id: 0
+  name: #81706d
+  color: '#81706d'
+  exclusive: false
+  num_issues: 0
+  num_closed_issues: 0
+
+-
+  id: 17
+  repo_id: 55
+  org_id: 0
+  name: #807070
+  color: '#807070'
+  exclusive: false
+  num_issues: 0
+  num_closed_issues: 0
