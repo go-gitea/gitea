@@ -182,27 +182,17 @@ func getNewQueueFn(t string) (string, func(cfg *BaseConfig, unique bool) (baseQu
 	}
 }
 
-func NewWorkerPoolQueueByIniConfig[T any](name string, iniCfg IniConfig, handler HandlerFuncT[T], unique bool) *WorkerPoolQueue[T] {
+func NewWorkerPoolQueueByIniConfig[T any](name string, queueSetting setting.QueueSettings, handler HandlerFuncT[T], unique bool) *WorkerPoolQueue[T] {
 	if handler == nil {
 		log.Debug("Use dummy queue for %q because handler is nil and caller doesn't want to process the queue items", name)
-		iniCfg.Type = "dummy"
-	}
-
-	if iniCfg.Length <= 0 {
-		iniCfg.Length = iniConfigDefault.Length
-	}
-	if iniCfg.Workers <= 0 {
-		iniCfg.Workers = iniConfigDefault.Workers
-	}
-	if iniCfg.BatchLength <= 0 {
-		iniCfg.BatchLength = iniConfigDefault.BatchLength
+		queueSetting.Type = "dummy"
 	}
 
 	var w WorkerPoolQueue[T]
 	var err error
-	queueType, newQueueFn := getNewQueueFn(iniCfg.Type)
+	queueType, newQueueFn := getNewQueueFn(queueSetting.Type)
 	w.baseQueueType = queueType
-	w.baseConfig = toBaseConfig(name, &iniCfg)
+	w.baseConfig = toBaseConfig(name, queueSetting)
 	w.baseQueue, err = newQueueFn(w.baseConfig, unique)
 	if err != nil {
 		log.Error("Failed to create queue %q: %v", name, err)
@@ -213,8 +203,8 @@ func NewWorkerPoolQueueByIniConfig[T any](name string, iniCfg IniConfig, handler
 	w.ctxRun, w.ctxRunCancel = context.WithCancel(graceful.GetManager().ShutdownContext())
 	w.batchChan = make(chan []T)
 	w.flushChan = make(chan flushChanType)
-	w.workerMaxNum = iniCfg.Workers
-	w.batchLength = iniCfg.BatchLength
+	w.workerMaxNum = queueSetting.MaxWorkers
+	w.batchLength = queueSetting.BatchLength
 
 	w.origHandler = handler
 	w.safeHandler = func(t ...T) (unhandled []T) {
@@ -239,24 +229,12 @@ func CreateUniqueQueue[T any](name string, handler HandlerFuncT[T]) *WorkerPoolQ
 }
 
 func createWorkerPoolQueue[T any](name string, cfgProvider setting.ConfigProvider, handler HandlerFuncT[T], unique bool) *WorkerPoolQueue[T] {
-	// FIXME: legacy ini options should be dropped and removed
-	iniCfg := iniConfigDefault
-	if sec, err := cfgProvider.GetSection("queue"); err == nil {
-		if err = sec.MapTo(&iniCfg); err != nil {
-			log.Error("Failed to map queue common config for %q: %v", name, err)
-			return nil
-		}
+	queueSetting, err := setting.GetQueueSettings(cfgProvider, name)
+	if err != nil {
+		log.Error("Failed to get queue settings for %q: %v", name, err)
+		return nil
 	}
-	if sec, err := cfgProvider.GetSection("queue." + name); err == nil {
-		if err = sec.MapTo(&iniCfg); err != nil {
-			log.Error("Failed to map queue spec config for %q: %v", name, err)
-			return nil
-		}
-		if sec.HasKey("CONN_STR") {
-			iniCfg.ConnStr = sec.Key("CONN_STR").String()
-		}
-	}
-	w := NewWorkerPoolQueueByIniConfig(name, iniCfg, handler, unique)
+	w := NewWorkerPoolQueueByIniConfig(name, queueSetting, handler, unique)
 	GetManager().AddManagedQueue(w)
 	return w
 }

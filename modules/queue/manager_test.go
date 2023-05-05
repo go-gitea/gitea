@@ -28,8 +28,6 @@ LENGTH = 100
 BATCH_LENGTH = 20
 CONN_STR = "addrs=127.0.0.1:6379 db=0"
 QUEUE_NAME = "_queue1"
-SET_NAME = "_unique1"
-WORKERS = 1
 
 [queue.sub]
 TYPE = level
@@ -37,9 +35,9 @@ DATADIR = queues-dir2
 LENGTH = 102
 BATCH_LENGTH = 22
 CONN_STR =
-QUEUE_NAME = "q2"
-SET_NAME = "u2"
-WORKERS = 2
+QUEUE_NAME = "_q2"
+SET_NAME = "_u2"
+MAX_WORKERS = 2
 `)
 
 	assert.NoError(t, err)
@@ -52,8 +50,8 @@ WORKERS = 2
 	assert.Equal(t, 20, q1.batchLength)
 	assert.Equal(t, "addrs=127.0.0.1:6379 db=0", q1.baseConfig.ConnStr)
 	assert.Equal(t, "default_queue1", q1.baseConfig.QueueFullName)
-	assert.Equal(t, "default_unique1", q1.baseConfig.SetFullName)
-	assert.Equal(t, 1, q1.GetWorkerMaxNumber())
+	assert.Equal(t, "default_queue1_unique", q1.baseConfig.SetFullName)
+	assert.Equal(t, 10, q1.GetWorkerMaxNumber())
 	assert.Equal(t, 0, q1.GetWorkerNumber())
 	assert.Equal(t, 0, q1.GetWorkerActiveNumber())
 	assert.Equal(t, 0, q1.GetQueueItemNumber())
@@ -67,8 +65,8 @@ WORKERS = 2
 	assert.Equal(t, 102, q2.baseConfig.Length)
 	assert.Equal(t, 22, q2.batchLength)
 	assert.Equal(t, "", q2.baseConfig.ConnStr)
-	assert.Equal(t, "q2", q2.baseConfig.QueueFullName)
-	assert.Equal(t, "u2", q2.baseConfig.SetFullName)
+	assert.Equal(t, "sub_q2", q2.baseConfig.QueueFullName)
+	assert.Equal(t, "sub_q2_u2", q2.baseConfig.SetFullName)
 	assert.Equal(t, 2, q2.GetWorkerMaxNumber())
 	assert.Equal(t, 0, q2.GetWorkerNumber())
 	assert.Equal(t, 0, q2.GetWorkerActiveNumber())

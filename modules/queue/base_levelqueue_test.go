@@ -16,6 +16,6 @@ func TestBaseLevelDB(t *testing.T) {
 		setting.AppDataPath = oldAppDataPath
 	}()
 
-	testQueueBasic(t, newBaseLevelQueueSimple, toBaseConfig("baseLevelQueue", &IniConfig{Length: 10}), false)
-	testQueueBasic(t, newBaseLevelQueueUnique, toBaseConfig("baseLevelQueueUnique", &IniConfig{Length: 10}), true)
+	testQueueBasic(t, newBaseLevelQueueSimple, toBaseConfig("baseLevelQueue", setting.QueueSettings{Length: 10}), false)
+	testQueueBasic(t, newBaseLevelQueueUnique, toBaseConfig("baseLevelQueueUnique", setting.QueueSettings{Length: 10}), true)
 }

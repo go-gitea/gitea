@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,7 +39,7 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 
 	mu := sync.Mutex{}
 
-	test := func(iniCfg IniConfig) {
+	test := func(iniCfg setting.QueueSettings) {
 		iniCfg.Length = 100
 		iniCfg.Datadir = t.TempDir() + "/test-queue"
 		m := map[int]int{}
@@ -70,17 +72,17 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 	runCount := 2
 	t.Run("1/1", func(t *testing.T) {
 		for i := 0; i < runCount; i++ {
-			test(IniConfig{BatchLength: 1, Workers: 1})
+			test(setting.QueueSettings{BatchLength: 1, MaxWorkers: 1})
 		}
 	})
 	t.Run("3/1", func(t *testing.T) {
 		for i := 0; i < runCount; i++ {
-			test(IniConfig{BatchLength: 3, Workers: 1})
+			test(setting.QueueSettings{BatchLength: 3, MaxWorkers: 1})
 		}
 	})
 	t.Run("4/5", func(t *testing.T) {
 		for i := 0; i < runCount; i++ {
-			test(IniConfig{BatchLength: 4, Workers: 5})
+			test(setting.QueueSettings{BatchLength: 4, MaxWorkers: 5})
 		}
 	})
 }
@@ -89,22 +91,22 @@ func TestWorkerPoolQueuePersistence(t *testing.T) {
 	runCount := 2 // we can run these tests even 100 times to see its stability
 	t.Run("1/1", func(t *testing.T) {
 		for i := 0; i < runCount; i++ {
-			testWorkerPoolQueuePersistence(t, IniConfig{BatchLength: 1, Workers: 1, Length: 100})
+			testWorkerPoolQueuePersistence(t, setting.QueueSettings{BatchLength: 1, MaxWorkers: 1, Length: 100})
 		}
 	})
 	t.Run("3/1", func(t *testing.T) {
 		for i := 0; i < runCount; i++ {
-			testWorkerPoolQueuePersistence(t, IniConfig{BatchLength: 3, Workers: 1, Length: 100})
+			testWorkerPoolQueuePersistence(t, setting.QueueSettings{BatchLength: 3, MaxWorkers: 1, Length: 100})
 		}
 	})
 	t.Run("4/5", func(t *testing.T) {
 		for i := 0; i < runCount; i++ {
-			testWorkerPoolQueuePersistence(t, IniConfig{BatchLength: 4, Workers: 5, Length: 100})
+			testWorkerPoolQueuePersistence(t, setting.QueueSettings{BatchLength: 4, MaxWorkers: 5, Length: 100})
 		}
 	})
 }
 
-func testWorkerPoolQueuePersistence(t *testing.T, iniCfg IniConfig) {
+func testWorkerPoolQueuePersistence(t *testing.T, iniCfg setting.QueueSettings) {
 	testCount := iniCfg.Length
 	iniCfg.Datadir = t.TempDir() + "/test-queue"
 
