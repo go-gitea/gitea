@@ -47,7 +47,7 @@ func getStorageSection(rootCfg ConfigProvider) ConfigSection {
 }
 
 // getStorage will read storage configurations from 4 possible ways
-// 1 read configurations from [$name] if the setting keys exist (eg: name="attachments")
+// 1 read configurations from given section if the setting keys exist (eg: name="attachments")
 // 2 read configurations from [storage.$name] if the keys exist
 // 3 read configurations from [storage.$type] if the keys exist (eg: type="local" or "minio")
 // 4 read configurations from [storage] if the keys exist
@@ -75,11 +75,7 @@ func getStorage(rootCfg ConfigProvider, startSec ConfigSection, name, typ string
 	if targetSec == nil { // finally fallback
 		targetSec = startSec
 		if targetSec == nil {
-			var err error
-			targetSec, err = rootCfg.NewSection(storageSectionName + "." + name)
-			if err != nil {
-				return nil, err
-			}
+			targetSec = getStorageSection(rootCfg)
 		}
 	}
 
