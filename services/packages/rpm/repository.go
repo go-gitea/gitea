@@ -17,11 +17,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/setting"
@@ -36,43 +34,7 @@ import (
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
 // The RPM registry needs multiple metadata files which are stored in this package.
 func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion, error) {
-	var repositoryVersion *packages_model.PackageVersion
-
-	return repositoryVersion, db.WithTx(db.DefaultContext, func(ctx context.Context) error {
-		p := &packages_model.Package{
-			OwnerID:    ownerID,
-			Type:       packages_model.TypeRpm,
-			Name:       rpm_module.RepositoryPackage,
-			LowerName:  rpm_module.RepositoryPackage,
-			IsInternal: true,
-		}
-		var err error
-		if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
-			if err != packages_model.ErrDuplicatePackage {
-				log.Error("Error inserting package: %v", err)
-				return err
-			}
-		}
-
-		pv := &packages_model.PackageVersion{
-			PackageID:    p.ID,
-			CreatorID:    ownerID,
-			Version:      rpm_module.RepositoryVersion,
-			LowerVersion: rpm_module.RepositoryVersion,
-			IsInternal:   true,
-			MetadataJSON: "null",
-		}
-		if pv, err = packages_model.GetOrInsertVersion(ctx, pv); err != nil {
-			if err != packages_model.ErrDuplicatePackageVersion {
-				log.Error("Error inserting package version: %v", err)
-				return err
-			}
-		}
-
-		repositoryVersion = pv
-
-		return nil
-	})
+	return packages_service.GetOrCreateInternalPackageVersion(ownerID, packages_model.TypeRpm, rpm_module.RepositoryPackage, rpm_module.RepositoryVersion)
 }
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository metadata files
@@ -294,12 +256,12 @@ func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoD
 		return err
 	}
 
-	repomdAscContent, _ := packages_module.NewHashedBuffer(32 * 1024 * 1024)
+	repomdAscContent, _ := packages_module.NewHashedBuffer()
 	if err := openpgp.ArmoredDetachSign(repomdAscContent, e, bytes.NewReader(buf.Bytes()), nil); err != nil {
 		return err
 	}
 
-	repomdContent, _ := packages_module.CreateHashedBufferFromReader(&buf, 32*1024*1024)
+	repomdContent, _ := packages_module.CreateHashedBufferFromReader(&buf)
 
 	for _, file := range []struct {
 		Name string
@@ -583,7 +545,7 @@ func (wc *writtenCounter) Written() int64 {
 }
 
 func addDataAsFileToRepo(pv *packages_model.PackageVersion, filetype string, obj any) (*repoData, error) {
-	content, _ := packages_module.NewHashedBuffer(1)
+	content, _ := packages_module.NewHashedBuffer()
 	gzw := gzip.NewWriter(content)
 	wc := &writtenCounter{}
 	h := sha256.New()

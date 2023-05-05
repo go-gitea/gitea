@@ -69,10 +69,6 @@ func GetSetting(uid int64, key string) (string, error) {
 	})
 }
 
-func (err ErrUserSettingIsNotExist) Unwrap() error {
-	return util.ErrNotExist
-}
-
 // GetSettingNoCache returns specific setting without using the cache
 func GetSettingNoCache(uid int64, key string) (*Setting, error) {
 	v, err := GetSettings(uid, []string{key})
