@@ -156,7 +156,6 @@ func LoadUnitConfig() {
 	if len(invalidKeys) > 0 {
 		log.Warn("Invalid keys in disabled repo units: %s", strings.Join(invalidKeys, ", "))
 	}
-
 	// Check that must units are not disabled
 	for i, disabledU := range DisabledRepoUnits {
 		if !disabledU.CanDisable() {
