@@ -6,6 +6,7 @@ package queue
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -18,8 +19,12 @@ var (
 
 var (
 	workerIdleDuration           = 1 * time.Second
-	unhandledItemRequeueDuration = 1 * time.Second
+	unhandledItemRequeueDuration atomic.Int64 // to avoid data race during test
 )
+
+func init() {
+	unhandledItemRequeueDuration.Store(int64(5 * time.Second))
+}
 
 // workerGroup is a group of workers to work with a WorkerPoolQueue
 type workerGroup[T any] struct {
@@ -93,9 +98,9 @@ func (q *WorkerPoolQueue[T]) doWorkerHandle(batch []T) {
 	unhandled := q.safeHandler(batch...)
 	// if none of the items were handled, it should back-off for a few seconds
 	// in this case the handler (eg: document indexer) may have encountered some errors/failures
-	if len(unhandled) == len(batch) && unhandledItemRequeueDuration != 0 {
+	if len(unhandled) == len(batch) && unhandledItemRequeueDuration.Load() != 0 {
 		log.Error("Queue %q failed to handle batch of %d items, backoff for a few seconds", q.GetName(), len(batch))
-		time.Sleep(unhandledItemRequeueDuration)
+		time.Sleep(time.Duration(unhandledItemRequeueDuration.Load()))
 	}
 	for _, item := range unhandled {
 		if err := q.Push(item); err != nil {

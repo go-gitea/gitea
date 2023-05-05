@@ -31,11 +31,9 @@ func runWorkerPoolQueue[T any](q *WorkerPoolQueue[T]) func() {
 }
 
 func TestWorkerPoolQueueUnhandled(t *testing.T) {
-	oldUnhandledItemRequeueDuration := unhandledItemRequeueDuration
-	unhandledItemRequeueDuration = 0
-	defer func() {
-		unhandledItemRequeueDuration = oldUnhandledItemRequeueDuration
-	}()
+	oldUnhandledItemRequeueDuration := unhandledItemRequeueDuration.Load()
+	unhandledItemRequeueDuration.Store(0)
+	defer unhandledItemRequeueDuration.Store(oldUnhandledItemRequeueDuration)
 
 	mu := sync.Mutex{}
 

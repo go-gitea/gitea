@@ -60,7 +60,7 @@ MAX_WORKERS = 2
 
 	q2 := createWorkerPoolQueue("sub", cfgProvider, func(s ...int) (unhandled []int) { return nil }, false)
 	assert.Equal(t, "sub", q2.GetName())
-	assert.Equal(t, "levelqueue", q2.GetType()) // no handler
+	assert.Equal(t, "level", q2.GetType()) // no handler
 	assert.Equal(t, filepath.Join(setting.AppDataPath, "queues-dir2"), q2.baseConfig.DataFullDir)
 	assert.Equal(t, 102, q2.baseConfig.Length)
 	assert.Equal(t, 22, q2.batchLength)
