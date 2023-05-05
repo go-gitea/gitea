@@ -308,6 +308,10 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
 	}
 
+	if !rootCfg.Section("actions").Key("ENABLED").MustBool(true) {
+		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.actions")
+	}
+
 	// Handle default trustmodel settings
 	Repository.Signing.DefaultTrustModel = strings.ToLower(strings.TrimSpace(Repository.Signing.DefaultTrustModel))
 	if Repository.Signing.DefaultTrustModel == "default" {
