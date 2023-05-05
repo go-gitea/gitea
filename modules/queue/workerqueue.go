@@ -178,11 +178,11 @@ func getNewQueueFn(t string) (string, func(cfg *BaseConfig, unique bool) (baseQu
 	case "redis":
 		return t, newBaseRedisGeneric
 	default: // level(leveldb,levelqueue,persistable-channel)
-		return "levelqueue", newBaseLevelQueueGeneric
+		return "level", newBaseLevelQueueGeneric
 	}
 }
 
-func NewWorkerPoolQueueByIniConfig[T any](name string, queueSetting setting.QueueSettings, handler HandlerFuncT[T], unique bool) *WorkerPoolQueue[T] {
+func NewWorkerPoolQueueBySetting[T any](name string, queueSetting setting.QueueSettings, handler HandlerFuncT[T], unique bool) *WorkerPoolQueue[T] {
 	if handler == nil {
 		log.Debug("Use dummy queue for %q because handler is nil and caller doesn't want to process the queue items", name)
 		queueSetting.Type = "dummy"
@@ -234,7 +234,7 @@ func createWorkerPoolQueue[T any](name string, cfgProvider setting.ConfigProvide
 		log.Error("Failed to get queue settings for %q: %v", name, err)
 		return nil
 	}
-	w := NewWorkerPoolQueueByIniConfig(name, queueSetting, handler, unique)
+	w := NewWorkerPoolQueueBySetting(name, queueSetting, handler, unique)
 	GetManager().AddManagedQueue(w)
 	return w
 }

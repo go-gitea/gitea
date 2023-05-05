@@ -16,9 +16,9 @@ type QueueSettings struct {
 	Type    string
 	Datadir string
 	ConnStr string // for levelqueue or redis
-	Length  int    // queue length
+	Length  int    // max queue length before blocking
 
-	QueueName, SetName string
+	QueueName, SetName string // the name suffix for storage (db key, redis key), "set" is for unique queue
 
 	BatchLength int
 	MaxWorkers  int
@@ -29,14 +29,15 @@ var queueSettingsDefault = QueueSettings{
 	Datadir: "queues/", // relative to AppDataPath
 	Length:  20,        // queue length before a channel queue will block
 
-	QueueName:   "_queue",  // the suffix of the default redis/disk queue name
-	SetName:     "_unique", // the suffix of the default redis/disk unique queue set name (for unique queue)
+	QueueName:   "_queue",
+	SetName:     "_unique",
 	BatchLength: 20,
 	MaxWorkers:  10,
 }
 
 func GetQueueSettings(rootCfg ConfigProvider, name string) (QueueSettings, error) {
 	cfg := queueSettingsDefault
+	cfg.Name = name
 	if sec, err := rootCfg.GetSection("queue"); err == nil {
 		if err = sec.MapTo(&cfg); err != nil {
 			log.Error("Failed to map queue common config for %q: %v", name, err)
@@ -78,8 +79,6 @@ func GetQueueSettings(rootCfg ConfigProvider, name string) (QueueSettings, error
 	return cfg, nil
 }
 
-// LoadQueueSettings sets up the default settings for Queues
-// This is exported for tests to be able to use the queue
 func LoadQueueSettings() {
 	loadQueueFrom(CfgProvider)
 }
@@ -95,8 +94,6 @@ func loadQueueFrom(rootCfg ConfigProvider) {
 	handleOldLengthConfiguration(rootCfg, "mirror", "repository", "MIRROR_QUEUE_LENGTH")
 }
 
-// handleOldLengthConfiguration allows fallback to older configuration. `[queue.name]` `LENGTH` will override this configuration, but
-// if that is left unset then we should fall back to the older configuration. (Except where the new length woul be <=0)
 func handleOldLengthConfiguration(rootCfg ConfigProvider, newQueueName, oldSection, oldKey string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
 		log.Fatal("Removed queue option:`[%s].%s`. Use new options in`[queue.%s]`", oldSection, oldKey, newQueueName)

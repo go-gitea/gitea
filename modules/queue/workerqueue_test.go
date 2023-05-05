@@ -39,9 +39,9 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 
 	mu := sync.Mutex{}
 
-	test := func(iniCfg setting.QueueSettings) {
-		iniCfg.Length = 100
-		iniCfg.Datadir = t.TempDir() + "/test-queue"
+	test := func(queueSetting setting.QueueSettings) {
+		queueSetting.Length = 100
+		queueSetting.Datadir = t.TempDir() + "/test-queue"
 		m := map[int]int{}
 		// odds are handled once, evens are handled twice
 		handler := func(items ...int) (unhandled []int) {
@@ -56,15 +56,15 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 			return unhandled
 		}
 
-		q := NewWorkerPoolQueueByIniConfig("test-workpoolqueue", iniCfg, handler, false)
+		q := NewWorkerPoolQueueBySetting("test-workpoolqueue", queueSetting, handler, false)
 		stop := runWorkerPoolQueue(q)
-		for i := 0; i < iniCfg.Length; i++ {
+		for i := 0; i < queueSetting.Length; i++ {
 			assert.NoError(t, q.Push(i))
 		}
 		assert.NoError(t, q.FlushWithContext(context.Background(), 0))
 		stop()
 
-		for i := 0; i < iniCfg.Length; i++ {
+		for i := 0; i < queueSetting.Length; i++ {
 			assert.EqualValues(t, i%2, m[i]%2)
 		}
 	}
@@ -106,9 +106,9 @@ func TestWorkerPoolQueuePersistence(t *testing.T) {
 	})
 }
 
-func testWorkerPoolQueuePersistence(t *testing.T, iniCfg setting.QueueSettings) {
-	testCount := iniCfg.Length
-	iniCfg.Datadir = t.TempDir() + "/test-queue"
+func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSettings) {
+	testCount := queueSetting.Length
+	queueSetting.Datadir = t.TempDir() + "/test-queue"
 
 	mu := sync.Mutex{}
 
@@ -132,7 +132,7 @@ func testWorkerPoolQueuePersistence(t *testing.T, iniCfg setting.QueueSettings) 
 			return nil
 		}
 
-		q := NewWorkerPoolQueueByIniConfig("pr_patch_checker_test", iniCfg, testHandler, true)
+		q := NewWorkerPoolQueueBySetting("pr_patch_checker_test", queueSetting, testHandler, true)
 		stop := runWorkerPoolQueue(q)
 		for i := 0; i < testCount; i++ {
 			_ = q.Push("task-" + strconv.Itoa(i))
@@ -156,7 +156,7 @@ func testWorkerPoolQueuePersistence(t *testing.T, iniCfg setting.QueueSettings) 
 			return nil
 		}
 
-		q := NewWorkerPoolQueueByIniConfig("pr_patch_checker_test", iniCfg, testHandler, true)
+		q := NewWorkerPoolQueueBySetting("pr_patch_checker_test", queueSetting, testHandler, true)
 		stop := runWorkerPoolQueue(q)
 		assert.NoError(t, q.FlushWithContext(context.Background(), 0))
 		stop()

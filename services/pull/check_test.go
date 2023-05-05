@@ -29,7 +29,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 		return nil
 	}
 	iniCfg := queue.IniConfig{Length: 10, BatchLength: 1, Workers: 1}
-	prPatchCheckerQueue = queue.NewWorkerPoolQueueByIniConfig("pr_patch_checker", iniCfg, testHandler, true)
+	prPatchCheckerQueue = queue.NewWorkerPoolQueueBySetting("pr_patch_checker", iniCfg, testHandler, true)
 
 	var queueShutdown []func()
 	var queueTerminate []func()
