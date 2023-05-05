@@ -18,7 +18,6 @@ func TestCommitsCount(t *testing.T) {
 		CommitsCountOptions{
 			RepoPath: bareRepo1Path,
 			Revision: []string{"8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"},
-			RelPath:  []string{},
 		})
 
 	assert.NoError(t, err)
@@ -33,7 +32,6 @@ func TestCommitsCountWithoutBase(t *testing.T) {
 			RepoPath: bareRepo1Path,
 			Not:      "master",
 			Revision: []string{"branch1"},
-			RelPath:  []string{},
 		})
 
 	assert.NoError(t, err)

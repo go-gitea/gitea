@@ -386,7 +386,6 @@ func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 	count, err := CommitsCount(repo.Ctx, CommitsCountOptions{
 		RepoPath: repo.Path,
 		Revision: []string{start + ".." + end},
-		RelPath:  []string{},
 	})
 
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
@@ -395,7 +394,6 @@ func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 		return CommitsCount(repo.Ctx, CommitsCountOptions{
 			RepoPath: repo.Path,
 			Revision: []string{start, end},
-			RelPath:  []string{},
 		})
 	}
 

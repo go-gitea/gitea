@@ -194,7 +194,6 @@ func (c *Commit) CommitsCount() (int64, error) {
 	return CommitsCount(c.repo.Ctx, CommitsCountOptions{
 		RepoPath: c.repo.Path,
 		Revision: []string{c.ID.String()},
-		RelPath:  []string{},
 	})
 }
 

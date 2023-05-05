@@ -183,7 +183,6 @@ func GetAllCommits(ctx *context.APIContext) {
 			RepoPath: ctx.Repo.GitRepo.Path,
 			Not:      not,
 			Revision: []string{baseCommit.ID.String()},
-			RelPath:  []string{},
 		})
 
 		if err != nil {
