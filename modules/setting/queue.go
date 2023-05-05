@@ -6,6 +6,7 @@ package setting
 import (
 	"path/filepath"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -36,7 +37,14 @@ var queueSettingsDefault = QueueSettings{
 }
 
 func GetQueueSettings(rootCfg ConfigProvider, name string) (QueueSettings, error) {
-	cfg := queueSettingsDefault
+	// deep copy default settings
+	cfg := QueueSettings{}
+	if cfgBs, err := json.Marshal(queueSettingsDefault); err != nil {
+		return cfg, err
+	} else if err = json.Unmarshal(cfgBs, &cfg); err != nil {
+		return cfg, err
+	}
+
 	cfg.Name = name
 	if sec, err := rootCfg.GetSection("queue"); err == nil {
 		if err = sec.MapTo(&cfg); err != nil {
