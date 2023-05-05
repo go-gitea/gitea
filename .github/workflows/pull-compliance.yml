@@ -2,6 +2,10 @@ name: "Pull: Compliance Tests"
 
 on: [pull_request]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   lint_basic:
     runs-on: ubuntu-latest
@@ -79,7 +83,7 @@ jobs:
       - name: setup node
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20
       - name: deps-frontend
         run: make deps-frontend
       - name: lint frontend
@@ -100,7 +104,7 @@ jobs:
       - name: setup node
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20
       - name: deps-backend
         run: make deps-backend deps-tools
       - name: deps-frontend
