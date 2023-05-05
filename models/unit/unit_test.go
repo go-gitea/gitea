@@ -53,7 +53,7 @@ func TestLoadUnitConfig(t *testing.T) {
 		assert.Equal(t, []Type{TypeCode, TypeReleases, TypePullRequests}, DefaultRepoUnits)
 		assert.Equal(t, []Type{TypeCode, TypeReleases}, DefaultForkRepoUnits)
 	})
-	t.Run("actions_disbaled", func(t *testing.T) {
+	t.Run("actions_disabled", func(t *testing.T) {
 		setting.Repository.DisabledRepoUnits = []string{"repo.issues"}
 		setting.Repository.DefaultRepoUnits = []string{"repo.code", "repo.releases", "repo.issues", "repo.pulls"}
 		setting.Repository.DefaultForkRepoUnits = []string{"repo.releases"}
