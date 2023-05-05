@@ -173,12 +173,13 @@ func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) 
 	cmd := NewCommand(ctx, "rev-list", "--count")
 
 	cmd.AddDynamicArguments(opts.Revision...)
-	if len(opts.RelPath) > 0 {
-		cmd.AddDashesAndList(opts.RelPath...)
-	}
 
 	if opts.Not != "" {
 		cmd.AddOptionValues("--not", opts.Not)
+	}
+
+	if len(opts.RelPath) > 0 {
+		cmd.AddDashesAndList(opts.RelPath...)
 	}
 
 	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: opts.RepoPath})
