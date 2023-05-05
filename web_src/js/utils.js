@@ -147,6 +147,6 @@ export function useLightTextOnBackground(backgroundColor) {
   const g = parseInt(backgroundColor.substring(2, 4), 16);
   const b = parseInt(backgroundColor.substring(4, 6), 16);
 
-  const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  const brightness = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
   return brightness < 0.453;
 }
