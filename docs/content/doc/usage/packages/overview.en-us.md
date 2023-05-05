@@ -27,23 +27,24 @@ The following package managers are currently supported:
 
 | Name | Language | Package client |
 | ---- | -------- | -------------- |
-| [Cargo]({{< relref "doc/packages/cargo.en-us.md" >}}) | Rust | `cargo` |
-| [Chef]({{< relref "doc/packages/chef.en-us.md" >}}) | - | `knife` |
-| [Composer]({{< relref "doc/packages/composer.en-us.md" >}}) | PHP | `composer` |
-| [Conan]({{< relref "doc/packages/conan.en-us.md" >}}) | C++ | `conan` |
-| [Conda]({{< relref "doc/packages/conda.en-us.md" >}}) | - | `conda` |
-| [Container]({{< relref "doc/packages/container.en-us.md" >}}) | - | any OCI compliant client |
+| [Cargo]({{< relref "doc/usage/packages/cargo.en-us.md" >}}) | Rust | `cargo` |
+| [Chef]({{< relref "doc/usage/packages/chef.en-us.md" >}}) | - | `knife` |
+| [Composer]({{< relref "doc/usage/packages/composer.en-us.md" >}}) | PHP | `composer` |
+| [Conan]({{< relref "doc/usage/packages/conan.en-us.md" >}}) | C++ | `conan` |
+| [Conda]({{< relref "doc/usage/packages/conda.en-us.md" >}}) | - | `conda` |
+| [Container]({{< relref "doc/usage/packages/container.en-us.md" >}}) | - | any OCI compliant client |
 | [Debian]({{< relref "doc/usage/packages/debian.en-us.md" >}}) | - | `apt` |
-| [Generic]({{< relref "doc/packages/generic.en-us.md" >}}) | - | any HTTP client |
-| [Helm]({{< relref "doc/packages/helm.en-us.md" >}}) | - | any HTTP client, `cm-push` |
-| [Maven]({{< relref "doc/packages/maven.en-us.md" >}}) | Java | `mvn`, `gradle` |
-| [npm]({{< relref "doc/packages/npm.en-us.md" >}}) | JavaScript | `npm`, `yarn`, `pnpm` |
-| [NuGet]({{< relref "doc/packages/nuget.en-us.md" >}}) | .NET | `nuget` |
-| [Pub]({{< relref "doc/packages/pub.en-us.md" >}}) | Dart | `dart`, `flutter` |
-| [PyPI]({{< relref "doc/packages/pypi.en-us.md" >}}) | Python | `pip`, `twine` |
-| [RPM]({{< relref "doc/packages/rpm.en-us.md" >}}) | - | `yum`, `dnf` |
-| [RubyGems]({{< relref "doc/packages/rubygems.en-us.md" >}}) | Ruby | `gem`, `Bundler` |
-| [Vagrant]({{< relref "doc/packages/vagrant.en-us.md" >}}) | - | `vagrant` |
+| [Generic]({{< relref "doc/usage/packages/generic.en-us.md" >}}) | - | any HTTP client |
+| [Helm]({{< relref "doc/usage/packages/helm.en-us.md" >}}) | - | any HTTP client, `cm-push` |
+| [Maven]({{< relref "doc/usage/packages/maven.en-us.md" >}}) | Java | `mvn`, `gradle` |
+| [npm]({{< relref "doc/usage/packages/npm.en-us.md" >}}) | JavaScript | `npm`, `yarn`, `pnpm` |
+| [NuGet]({{< relref "doc/usage/packages/nuget.en-us.md" >}}) | .NET | `nuget` |
+| [Pub]({{< relref "doc/usage/packages/pub.en-us.md" >}}) | Dart | `dart`, `flutter` |
+| [PyPI]({{< relref "doc/usage/packages/pypi.en-us.md" >}}) | Python | `pip`, `twine` |
+| [RPM]({{< relref "doc/usage/packages/rpm.en-us.md" >}}) | - | `yum`, `dnf` |
+| [RubyGems]({{< relref "doc/usage/packages/rubygems.en-us.md" >}}) | Ruby | `gem`, `Bundler` |
+| [Swift]({{< relref "doc/usage/packages/rubygems.en-us.md" >}}) | Swift | `swift` |
+| [Vagrant]({{< relref "doc/usage/packages/vagrant.en-us.md" >}}) | - | `vagrant` |
 
 **The following paragraphs only apply if Packages are not globally disabled!**
 
