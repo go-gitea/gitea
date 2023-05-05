@@ -507,12 +507,9 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 				// A user can always see the activities of the organizations to which the user belongs.
 				uidCond = uidCond.Or(
 					builder.Eq{"type": user_model.UserTypeOrganization}.
-						And(
-							builder.In("`user`.id", builder.Select("org_id").
-								Where(builder.Eq{"uid": opts.RequestedUser.ID}).
-								From("team_user"),
-							),
-						),
+						And(builder.In("`user`.id", builder.Select("org_id").
+							Where(builder.Eq{"uid": opts.RequestedUser.ID}).
+							From("team_user"))),
 				)
 			}
 		}
