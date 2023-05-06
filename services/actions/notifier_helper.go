@@ -119,6 +119,7 @@ func handleSchedules(
 	rows, _, err := actions_model.FindSchedules(ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID})
 	if err != nil {
 		log.Error("FindCrons: %v", err)
+		return err
 	}
 
 	if len(rows) > 0 {
