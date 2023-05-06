@@ -88,7 +88,8 @@
   padding-right: 0.5rem;
 }
 
-.dashboard .dashboard-navbar .org-visibility .label {
+.dashboard .dashboard-navbar .org-visibility .label,
+.dashboard .repo-owner-name-list .org-visibility .label {
   margin-left: 5px;
 }
 
