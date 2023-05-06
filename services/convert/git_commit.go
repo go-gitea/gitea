@@ -203,7 +203,6 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
 			AfterCommitID: commit.ID.String(),
 		})
-
 		if err != nil {
 			return nil, err
 		}
