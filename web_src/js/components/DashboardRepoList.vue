@@ -132,8 +132,8 @@
                 <svg-icon name="octicon-organization" :size="16" class-name="gt-mr-2"/>
                 <strong>{{ org.name }}</strong>
                 <span class="ui tiny basic label gt-ml-3" v-if="org.org_visibility !== 'public'">
-						      {{org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate}}
-					      </span>
+                  {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
+                </span>
               </div>
               <div class="text light grey gt-df gt-ac">
                 {{ org.num_repos }}
