@@ -66,7 +66,7 @@ func (ctx *Context) FormOptionalBool(key string) util.OptionalBool {
 	return util.OptionalBoolOf(v)
 }
 
-func (ctx *Context) SetFormValue(key, value string) {
+func (ctx *Context) SetFormString(key, value string) {
 	_ = ctx.Req.FormValue(key) // force parse form
 	ctx.Req.Form.Set(key, value)
 }

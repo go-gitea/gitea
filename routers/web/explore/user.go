@@ -134,7 +134,7 @@ func Users(ctx *context.Context) {
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	if ctx.FormString("sort") == "" {
-		ctx.SetFormValue("sort", UserSearchDefaultSortType)
+		ctx.SetFormString("sort", UserSearchDefaultSortType)
 	}
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{

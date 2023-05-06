@@ -54,7 +54,7 @@ func Users(ctx *context.Context) {
 	sortType := ctx.FormString("sort")
 	if sortType == "" {
 		sortType = explore.UserSearchDefaultAdminSort
-		ctx.SetFormValue("sort", sortType)
+		ctx.SetFormString("sort", sortType)
 	}
 	ctx.PageData["adminUserListSearchForm"] = map[string]interface{}{
 		"StatusFilterMap": statusFilterMap,

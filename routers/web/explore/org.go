@@ -31,7 +31,7 @@ func Organizations(ctx *context.Context) {
 	}
 
 	if ctx.FormString("sort") == "" {
-		ctx.SetFormValue("sort", UserSearchDefaultSortType)
+		ctx.SetFormString("sort", UserSearchDefaultSortType)
 	}
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{
