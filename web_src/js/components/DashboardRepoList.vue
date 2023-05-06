@@ -131,7 +131,7 @@
               <div class="text truncate item-name gt-f1">
                 <svg-icon name="octicon-organization" :size="16" class-name="gt-mr-2"/>
                 <strong>{{ org.name }}</strong>
-                <span class="ui medium basic horizontal label org-visibility" v-if="org.org_visibility !== 'public'">
+                <span class="ui tiny basic label gt-ml-3" v-if="org.org_visibility !== 'public'">
 						      {{org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate}}
 					      </span>
               </div>
@@ -426,8 +426,3 @@ export function initDashboardRepoList() {
 export default sfc; // activate the IDE's Vue plugin
 
 </script>
-<style scoped>
-.dashboard .org-visibility.label {
-  margin-left: 5px;
-}
-</style>
