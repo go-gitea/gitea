@@ -479,14 +479,13 @@ relation to port exhaustion.
 
 Configuration at `[queue]` will set defaults for queues with overrides for individual queues at `[queue.*]`. (However see below.)
 
-- `TYPE`: **persistable-channel**: General queue type, currently support: `persistable-channel` (uses a LevelDB internally), `channel`, `level`, `redis`, `dummy`
-- `DATADIR`: **queues/**: Base DataDir for storing persistent and level queues. `DATADIR` for individual queues can be set in `queue.name` sections but will default to `DATADIR/`**`common`**. (Previously each queue would default to `DATADIR/`**`name`**.) Relative paths will be made absolute against `%(APP_DATA_PATH)s`.
-- `LENGTH`: **20**: Maximal queue size before channel queues block
+- `TYPE`: **level**: General queue type, currently support: `level` (uses a LevelDB internally), `channel`, `redis`, `dummy`. Invalid types are treated as `level`.
+- `DATADIR`: **queues/common**: Base DataDir for storing level queues. `DATADIR` for individual queues can be set in `queue.name` sections. Relative paths will be made absolute against `%(APP_DATA_PATH)s`.
+- `LENGTH`: **100**: Maximal queue size before channel queues block
 - `BATCH_LENGTH`: **20**: Batch data before passing to the handler
-- `CONN_STR`: **redis://127.0.0.1:6379/0**: Connection string for the redis queue type. Options can be set using query params. Similarly LevelDB options can also be set using: **leveldb://relative/path?option=value** or **leveldb:///absolute/path?option=value**, and will override `DATADIR`
+- `CONN_STR`: **redis://127.0.0.1:6379/0**: Connection string for the redis queue type. Options can be set using query params. Similarly, LevelDB options can also be set using: **leveldb://relative/path?option=value** or **leveldb:///absolute/path?option=value**, and will override `DATADIR`
 - `QUEUE_NAME`: **_queue**: The suffix for default redis and disk queue name. Individual queues will default to **`name`**`QUEUE_NAME` but can be overridden in the specific `queue.name` section.
-- `SET_NAME`: **_unique**: The suffix that will be added to the default redis and disk queue `set` name for unique queues. Individual queues will default to
- **`name`**`QUEUE_NAME`_`SET_NAME`_ but can be overridden in the specific `queue.name` section.
+- `SET_NAME`: **_unique**: The suffix that will be added to the default redis and disk queue `set` name for unique queues. Individual queues will default to **`name`**`QUEUE_NAME`_`SET_NAME`_ but can be overridden in the specific `queue.name` section.
 - `MAX_WORKERS`: **10**: Maximum number of worker go-routines for the queue.
 
 Gitea creates the following non-unique queues:

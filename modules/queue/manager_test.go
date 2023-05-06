@@ -20,37 +20,75 @@ func TestManager(t *testing.T) {
 		setting.AppDataPath = oldAppDataPath
 	}()
 
+	newQueueFromConfig := func(name, cfg string) (*WorkerPoolQueue[int], error) {
+		cfgProvider, err := setting.NewConfigProviderFromData(cfg)
+		if err != nil {
+			return nil, err
+		}
+		qs, err := setting.GetQueueSettings(cfgProvider, name)
+		if err != nil {
+			return nil, err
+		}
+		return NewWorkerPoolQueueBySetting(name, qs, func(s ...int) (unhandled []int) { return nil }, false)
+	}
+
+	// test invalid CONN_STR
+	_, err := newQueueFromConfig("default", `
+[queue]
+DATADIR = temp-dir
+CONN_STR = redis://
+`)
+	assert.ErrorContains(t, err, "invalid leveldb connection string")
+
+	// test default config
+	q, err := newQueueFromConfig("default", "")
+	assert.NoError(t, err)
+	assert.Equal(t, "default", q.GetName())
+	assert.Equal(t, "level", q.GetType())
+	assert.Equal(t, filepath.Join(setting.AppDataPath, "queues/common"), q.baseConfig.DataDir)
+	assert.Equal(t, 100, q.baseConfig.Length)
+	assert.Equal(t, 20, q.batchLength)
+	assert.Equal(t, q.baseConfig.DataDir, q.baseConfig.ConnStr)
+	assert.Equal(t, "default_queue", q.baseConfig.QueueFullName)
+	assert.Equal(t, "default_queue_unique", q.baseConfig.SetFullName)
+	assert.Equal(t, 10, q.GetWorkerMaxNumber())
+	assert.Equal(t, 0, q.GetWorkerNumber())
+	assert.Equal(t, 0, q.GetWorkerActiveNumber())
+	assert.Equal(t, 0, q.GetQueueItemNumber())
+	assert.Equal(t, "int", q.GetItemTypeName())
+
+	// test inherited config
 	cfgProvider, err := setting.NewConfigProviderFromData(`
 [queue]
 TYPE = channel
-DATADIR = queues-dir1
+DATADIR = queues/dir1
 LENGTH = 100
 BATCH_LENGTH = 20
 CONN_STR = "addrs=127.0.0.1:6379 db=0"
-QUEUE_NAME = "_queue1"
+QUEUE_NAME = _queue1
 
 [queue.sub]
 TYPE = level
-DATADIR = queues-dir2
+DATADIR = queues/dir2
 LENGTH = 102
 BATCH_LENGTH = 22
 CONN_STR =
-QUEUE_NAME = "_q2"
-SET_NAME = "_u2"
+QUEUE_NAME = _q2
+SET_NAME = _u2
 MAX_WORKERS = 2
 `)
 
 	assert.NoError(t, err)
 
-	q1 := createWorkerPoolQueue[string]("default", cfgProvider, nil, false)
-	assert.Equal(t, "default", q1.GetName())
-	assert.Equal(t, "dummy", q1.GetType()) // no handler
-	assert.Equal(t, filepath.Join(setting.AppDataPath, "queues-dir1"), q1.baseConfig.DataFullDir)
+	q1 := createWorkerPoolQueue[string]("no-such", cfgProvider, nil, false)
+	assert.Equal(t, "no-such", q1.GetName())
+	assert.Equal(t, "dummy", q1.GetType()) // no handler, so it becomes dummy
+	assert.Equal(t, filepath.Join(setting.AppDataPath, "queues/dir1"), q1.baseConfig.DataDir)
 	assert.Equal(t, 100, q1.baseConfig.Length)
 	assert.Equal(t, 20, q1.batchLength)
 	assert.Equal(t, "addrs=127.0.0.1:6379 db=0", q1.baseConfig.ConnStr)
-	assert.Equal(t, "default_queue1", q1.baseConfig.QueueFullName)
-	assert.Equal(t, "default_queue1_unique", q1.baseConfig.SetFullName)
+	assert.Equal(t, "no-such_queue1", q1.baseConfig.QueueFullName)
+	assert.Equal(t, "no-such_queue1_unique", q1.baseConfig.SetFullName)
 	assert.Equal(t, 10, q1.GetWorkerMaxNumber())
 	assert.Equal(t, 0, q1.GetWorkerNumber())
 	assert.Equal(t, 0, q1.GetWorkerActiveNumber())
@@ -60,11 +98,11 @@ MAX_WORKERS = 2
 
 	q2 := createWorkerPoolQueue("sub", cfgProvider, func(s ...int) (unhandled []int) { return nil }, false)
 	assert.Equal(t, "sub", q2.GetName())
-	assert.Equal(t, "level", q2.GetType()) // no handler
-	assert.Equal(t, filepath.Join(setting.AppDataPath, "queues-dir2"), q2.baseConfig.DataFullDir)
+	assert.Equal(t, "level", q2.GetType())
+	assert.Equal(t, filepath.Join(setting.AppDataPath, "queues/dir2"), q2.baseConfig.DataDir)
 	assert.Equal(t, 102, q2.baseConfig.Length)
 	assert.Equal(t, 22, q2.batchLength)
-	assert.Equal(t, "", q2.baseConfig.ConnStr)
+	assert.Equal(t, q2.baseConfig.DataDir, q2.baseConfig.ConnStr)
 	assert.Equal(t, "sub_q2", q2.baseConfig.QueueFullName)
 	assert.Equal(t, "sub_q2_u2", q2.baseConfig.SetFullName)
 	assert.Equal(t, 2, q2.GetWorkerMaxNumber())

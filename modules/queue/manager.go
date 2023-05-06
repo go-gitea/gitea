@@ -100,7 +100,11 @@ func createWorkerPoolQueue[T any](name string, cfgProvider setting.ConfigProvide
 		log.Error("Failed to get queue settings for %q: %v", name, err)
 		return nil
 	}
-	w := NewWorkerPoolQueueBySetting(name, queueSetting, handler, unique)
+	w, err := NewWorkerPoolQueueBySetting(name, queueSetting, handler, unique)
+	if err != nil {
+		log.Error("Failed to create queue %q: %v", name, err)
+		return nil
+	}
 	GetManager().AddManagedQueue(w)
 	return w
 }

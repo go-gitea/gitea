@@ -61,7 +61,7 @@ func InitTest(requireGitea bool) {
 		_ = os.Setenv("GITEA_CONF", giteaConf)
 		fmt.Printf("Environment variable $GITEA_CONF not set, use default: %s\n", giteaConf)
 		if !setting.EnableSQLite3 {
-			exitf(`Need to enable SQLite3 for sqlite.ini testing, please set: -tags "sqlite,sqlite_unlock_notify"`)
+			exitf(`sqlite3 requires: import _ "github.com/mattn/go-sqlite3" or -tags sqlite,sqlite_unlock_notify`)
 		}
 	}
 

@@ -4,17 +4,15 @@
 package queue
 
 import (
-	"path/filepath"
-
 	"code.gitea.io/gitea/modules/setting"
 )
 
 type BaseConfig struct {
 	ManagedName string
 
-	DataFullDir string
-	ConnStr     string
-	Length      int
+	DataDir string
+	ConnStr string
+	Length  int
 
 	QueueFullName, SetFullName string
 }
@@ -23,17 +21,9 @@ func toBaseConfig(managedName string, queueSetting setting.QueueSettings) *BaseC
 	baseConfig := &BaseConfig{
 		ManagedName: managedName,
 
+		DataDir: queueSetting.Datadir,
 		ConnStr: queueSetting.ConnStr,
 		Length:  queueSetting.Length,
-	}
-	// data dir
-	baseConfig.DataFullDir = queueSetting.Datadir
-	if baseConfig.DataFullDir == "" {
-		baseConfig.DataFullDir = "queues/"
-	}
-	baseConfig.DataFullDir = filepath.Clean(baseConfig.DataFullDir)
-	if !filepath.IsAbs(baseConfig.DataFullDir) {
-		baseConfig.DataFullDir = filepath.Join(setting.AppDataPath, baseConfig.DataFullDir)
 	}
 
 	// queue name and set name

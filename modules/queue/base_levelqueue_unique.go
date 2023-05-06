@@ -25,11 +25,11 @@ type baseLevelQueueUnique struct {
 var _ baseQueue = (*baseLevelQueueUnique)(nil)
 
 func newBaseLevelQueueUnique(cfg *BaseConfig) (baseQueue, error) {
-	q := &baseLevelQueueUnique{conn: cfg.ConnStr, cfg: cfg}
-	if q.conn == "" {
-		q.conn = cfg.DataFullDir
+	if err := prepareLevelQueueConfig(cfg); err != nil {
+		return nil, err
 	}
 
+	q := &baseLevelQueueUnique{conn: cfg.ConnStr, cfg: cfg}
 	db, err := nosql.GetManager().GetLevelDB(q.conn)
 	if err != nil {
 		return nil, err

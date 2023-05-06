@@ -7,15 +7,17 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBaseLevelDB(t *testing.T) {
-	oldAppDataPath := setting.AppDataPath
-	setting.AppDataPath = t.TempDir() + "/queues"
-	defer func() {
-		setting.AppDataPath = oldAppDataPath
-	}()
+	_, err := newBaseLevelQueueGeneric(&BaseConfig{ConnStr: "redis://"}, false)
+	assert.ErrorContains(t, err, "invalid leveldb connection string")
 
-	testQueueBasic(t, newBaseLevelQueueSimple, toBaseConfig("baseLevelQueue", setting.QueueSettings{Length: 10}), false)
-	testQueueBasic(t, newBaseLevelQueueUnique, toBaseConfig("baseLevelQueueUnique", setting.QueueSettings{Length: 10}), true)
+	_, err = newBaseLevelQueueGeneric(&BaseConfig{DataDir: "relative"}, false)
+	assert.ErrorContains(t, err, "invalid leveldb data dir")
+
+	testQueueBasic(t, newBaseLevelQueueSimple, toBaseConfig("baseLevelQueue", setting.QueueSettings{Datadir: t.TempDir() + "/queue-test", Length: 10}), false)
+	testQueueBasic(t, newBaseLevelQueueUnique, toBaseConfig("baseLevelQueueUnique", setting.QueueSettings{ConnStr: "leveldb://" + t.TempDir() + "/queue-test", Length: 10}), true)
 }

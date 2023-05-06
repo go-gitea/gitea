@@ -28,6 +28,7 @@ type WorkerPoolQueue[T any] struct {
 	baseConfig    *BaseConfig
 	baseQueue     baseQueue
 
+	started   bool
 	batchChan chan []T
 	flushChan chan flushType
 
@@ -92,6 +93,11 @@ func (q *WorkerPoolQueue[T]) FlushWithContext(ctx context.Context, timeout time.
 		return
 	}
 
+	// it won't happen in production, it's for testing purpose only (see the comment of this function), so just do a quick check
+	if !q.started {
+		return nil
+	}
+
 	log.Debug("Try to flush queue %q with timeout %v", q.GetName(), timeout)
 	defer log.Debug("Finish flushing queue %q, err: %v", q.GetName(), err)
 
@@ -103,6 +109,7 @@ func (q *WorkerPoolQueue[T]) FlushWithContext(ctx context.Context, timeout time.
 	c := make(flushType)
 
 	// send flush request
+	// if it blocks, it means that there is a flush in progress or the queue hasn't been started yet
 	select {
 	case q.flushChan <- c:
 	case <-ctx.Done():
@@ -167,6 +174,7 @@ func (q *WorkerPoolQueue[T]) Has(data T) (bool, error) {
 }
 
 func (q *WorkerPoolQueue[T]) Run(atShutdown, atTerminate func(func())) {
+	q.started = true
 	atShutdown(q.ctxRunCancel)
 	q.doRun()
 }
@@ -184,7 +192,7 @@ func getNewQueueFn(t string) (string, func(cfg *BaseConfig, unique bool) (baseQu
 	}
 }
 
-func NewWorkerPoolQueueBySetting[T any](name string, queueSetting setting.QueueSettings, handler HandlerFuncT[T], unique bool) *WorkerPoolQueue[T] {
+func NewWorkerPoolQueueBySetting[T any](name string, queueSetting setting.QueueSettings, handler HandlerFuncT[T], unique bool) (*WorkerPoolQueue[T], error) {
 	if handler == nil {
 		log.Debug("Use dummy queue for %q because handler is nil and caller doesn't want to process the queue items", name)
 		queueSetting.Type = "dummy"
@@ -197,8 +205,7 @@ func NewWorkerPoolQueueBySetting[T any](name string, queueSetting setting.QueueS
 	w.baseConfig = toBaseConfig(name, queueSetting)
 	w.baseQueue, err = newQueueFn(w.baseConfig, unique)
 	if err != nil {
-		log.Error("Failed to create queue %q: %v", name, err)
-		return nil
+		return nil, err
 	}
 	log.Trace("Created queue %q of type %q", name, queueType)
 
@@ -219,5 +226,5 @@ func NewWorkerPoolQueueBySetting[T any](name string, queueSetting setting.QueueS
 		return w.origHandler(t...)
 	}
 
-	return &w
+	return &w, nil
 }

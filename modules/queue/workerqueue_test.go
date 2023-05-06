@@ -57,7 +57,7 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 			return unhandled
 		}
 
-		q := NewWorkerPoolQueueBySetting("test-workpoolqueue", queueSetting, handler, false)
+		q, _ := NewWorkerPoolQueueBySetting("test-workpoolqueue", queueSetting, handler, false)
 		stop := runWorkerPoolQueue(q)
 		for i := 0; i < queueSetting.Length; i++ {
 			testRecorder.Record("push:%v", i)
@@ -144,7 +144,7 @@ func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSett
 			return nil
 		}
 
-		q := NewWorkerPoolQueueBySetting("pr_patch_checker_test", queueSetting, testHandler, true)
+		q, _ := NewWorkerPoolQueueBySetting("pr_patch_checker_test", queueSetting, testHandler, true)
 		stop := runWorkerPoolQueue(q)
 		for i := 0; i < testCount; i++ {
 			_ = q.Push("task-" + strconv.Itoa(i))
@@ -168,7 +168,7 @@ func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSett
 			return nil
 		}
 
-		q := NewWorkerPoolQueueBySetting("pr_patch_checker_test", queueSetting, testHandler, true)
+		q, _ := NewWorkerPoolQueueBySetting("pr_patch_checker_test", queueSetting, testHandler, true)
 		stop := runWorkerPoolQueue(q)
 		assert.NoError(t, q.FlushWithContext(context.Background(), 0))
 		stop()
@@ -193,7 +193,7 @@ func TestWorkerPoolQueueActiveWorkers(t *testing.T) {
 		return nil
 	}
 
-	q := NewWorkerPoolQueueBySetting("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 1, Length: 100}, handler, false)
+	q, _ := NewWorkerPoolQueueBySetting("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 1, Length: 100}, handler, false)
 	stop := runWorkerPoolQueue(q)
 	for i := 0; i < 5; i++ {
 		assert.NoError(t, q.Push(i))
@@ -209,7 +209,7 @@ func TestWorkerPoolQueueActiveWorkers(t *testing.T) {
 	assert.EqualValues(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
 	stop()
 
-	q = NewWorkerPoolQueueBySetting("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 3, Length: 100}, handler, false)
+	q, _ = NewWorkerPoolQueueBySetting("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 3, Length: 100}, handler, false)
 	stop = runWorkerPoolQueue(q)
 	for i := 0; i < 15; i++ {
 		assert.NoError(t, q.Push(i))

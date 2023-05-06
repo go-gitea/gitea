@@ -16,7 +16,7 @@ type QueueSettings struct {
 
 	Type    string
 	Datadir string
-	ConnStr string // for levelqueue or redis
+	ConnStr string // for leveldb or redis
 	Length  int    // max queue length before blocking
 
 	QueueName, SetName string // the name suffix for storage (db key, redis key), "set" is for unique queue
@@ -26,9 +26,9 @@ type QueueSettings struct {
 }
 
 var queueSettingsDefault = QueueSettings{
-	Type:    "level",   // dummy, channel, level(leveldb,levelqueue,persistable-channel), redis
-	Datadir: "queues/", // relative to AppDataPath
-	Length:  20,        // queue length before a channel queue will block
+	Type:    "level",         // dummy, channel, level, redis
+	Datadir: "queues/common", // relative to AppDataPath
+	Length:  100,             // queue length before a channel queue will block
 
 	QueueName:   "_queue",
 	SetName:     "_unique",
@@ -63,7 +63,7 @@ func GetQueueSettings(rootCfg ConfigProvider, name string) (QueueSettings, error
 	}
 
 	if cfg.Datadir == "" {
-		cfg.Datadir = "queues/"
+		cfg.Datadir = queueSettingsDefault.Datadir
 	}
 	if !filepath.IsAbs(cfg.Datadir) {
 		cfg.Datadir = filepath.Join(AppDataPath, cfg.Datadir)
@@ -92,6 +92,13 @@ func LoadQueueSettings() {
 }
 
 func loadQueueFrom(rootCfg ConfigProvider) {
+	hasOld := false
+	handleOldLengthConfiguration := func(rootCfg ConfigProvider, newQueueName, oldSection, oldKey string) {
+		if rootCfg.Section(oldSection).HasKey(oldKey) {
+			hasOld = true
+			log.Error("Removed queue option:`[%s].%s`. Use new options in`[queue.%s]`", oldSection, oldKey, newQueueName)
+		}
+	}
 	handleOldLengthConfiguration(rootCfg, "issue_indexer", "indexer", "ISSUE_INDEXER_QUEUE_TYPE")
 	handleOldLengthConfiguration(rootCfg, "issue_indexer", "indexer", "UPDATE_BUFFER_LEN")
 	handleOldLengthConfiguration(rootCfg, "issue_indexer", "indexer", "ISSUE_INDEXER_QUEUE_BATCH_NUMBER")
@@ -100,10 +107,7 @@ func loadQueueFrom(rootCfg ConfigProvider) {
 	handleOldLengthConfiguration(rootCfg, "mailer", "mailer", "SEND_BUFFER_LEN")
 	handleOldLengthConfiguration(rootCfg, "pr_patch_checker", "repository", "PULL_REQUEST_QUEUE_LENGTH")
 	handleOldLengthConfiguration(rootCfg, "mirror", "repository", "MIRROR_QUEUE_LENGTH")
-}
-
-func handleOldLengthConfiguration(rootCfg ConfigProvider, newQueueName, oldSection, oldKey string) {
-	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		log.Fatal("Removed queue option:`[%s].%s`. Use new options in`[queue.%s]`", oldSection, oldKey, newQueueName)
+	if hasOld {
+		log.Fatal("Please update your app.ini to remove deprecated config options")
 	}
 }
