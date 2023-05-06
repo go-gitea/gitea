@@ -60,7 +60,7 @@ apk update
 
 ## Publish a package
 
-To publish an Alpine package (`*.apk`), perform a HTTP PUT operation with the package content in the request body.
+To publish an Alpine package (`*.apk`), perform a HTTP `PUT` operation with the package content in the request body.
 
 ```
 PUT https://gitea.example.com/api/packages/{owner}/alpine/{branch}/{repository}
@@ -93,7 +93,7 @@ The server reponds with the following HTTP Status codes.
 
 ## Delete a package
 
-To delete an Alpine package perform a HTTP DELETE operation. This will delete the package version too if there is no file left.
+To delete an Alpine package perform a HTTP `DELETE` operation. This will delete the package version too if there is no file left.
 
 ```
 DELETE https://gitea.example.com/api/packages/{owner}/alpine/{branch}/{repository}/{architecture}/{filename}

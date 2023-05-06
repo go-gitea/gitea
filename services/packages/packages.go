@@ -381,6 +381,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizePub
 	case packages_model.TypePyPI:
 		typeSpecificSize = setting.Packages.LimitSizePyPI
+	case packages_model.TypeRpm:
+		typeSpecificSize = setting.Packages.LimitSizeRpm
 	case packages_model.TypeRubyGems:
 		typeSpecificSize = setting.Packages.LimitSizeRubyGems
 	case packages_model.TypeSwift:
