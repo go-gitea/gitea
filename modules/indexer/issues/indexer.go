@@ -254,6 +254,7 @@ func InitIssueIndexer(syncReindex bool) {
 			case <-graceful.GetManager().IsShutdown():
 				log.Warn("Shutdown occurred before issue index initialisation was complete")
 			case <-time.After(timeout):
+				issueIndexerQueue.ShutdownWait(5 * time.Second)
 				log.Fatal("Issue Indexer Initialization timed-out after: %v", timeout)
 			}
 		}()

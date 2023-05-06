@@ -75,7 +75,7 @@ func (q *WorkerPoolQueue[T]) doDispatchBatchToWorker(wg *workerGroup[T], flushCh
 			q.doWorkerHandle(batch)
 			q.doFlush(wg, flush)
 		case <-q.ctxRun.Done():
-			q.safeHandler(batch...)
+			wg.batchBuffer = batch // return the batch to buffer, the "doRun" function will handle it
 		}
 	}
 }
@@ -98,13 +98,35 @@ func (q *WorkerPoolQueue[T]) doWorkerHandle(batch []T) {
 	// in this case the handler (eg: document indexer) may have encountered some errors/failures
 	if len(unhandled) == len(batch) && unhandledItemRequeueDuration.Load() != 0 {
 		log.Error("Queue %q failed to handle batch of %d items, backoff for a few seconds", q.GetName(), len(batch))
-		time.Sleep(time.Duration(unhandledItemRequeueDuration.Load()))
+		select {
+		case <-q.ctxRun.Done():
+		case <-time.After(time.Duration(unhandledItemRequeueDuration.Load())):
+		}
 	}
 	for _, item := range unhandled {
 		if err := q.Push(item); err != nil {
-			log.Error("Failed to requeue item for queue %q: %v", q.GetName(), err)
+			if !q.basePushForShutdown(item) {
+				log.Error("Failed to requeue item for queue %q when calling handler: %v", q.GetName(), err)
+			}
 		}
 	}
+}
+
+// basePushForShutdown tries to requeue items into the base queue when the WorkerPoolQueue is shutting down.
+// If the queue is shutting down, it returns true and try to push the items
+// Otherwise it does nothing and returns false
+func (q *WorkerPoolQueue[T]) basePushForShutdown(items ...T) bool {
+	ctxShutdown := q.ctxShutdown.Load()
+	if ctxShutdown == nil {
+		return false
+	}
+	for _, item := range items {
+		// if there is still any error, the queue can do nothing instead of losing the items
+		if err := q.baseQueue.PushItem(*ctxShutdown, q.marshal(item)); err != nil {
+			log.Error("Failed to requeue item for queue %q when shutting down: %v", q.GetName(), err)
+		}
+	}
+	return true
 }
 
 // doStartNewWorker starts a new worker for the queue, the worker reads from worker's channel and handles the items.
@@ -235,20 +257,38 @@ func (q *WorkerPoolQueue[T]) doRun() {
 		q.ctxRunCancel()
 
 		// drain all data on the fly
-		// since the queue is shutting down, we can only call the handler, but not dispatch to workers because the context is canceled
+		// since the queue is shutting down, the items can't be dispatched to workers because the context is canceled
 		// it can't call doWorkerHandle either, because there is no chance to push unhandled items back to the queue
+		var unhandled []T
 		close(q.batchChan)
 		for batch := range q.batchChan {
-			q.safeHandler(batch...)
+			unhandled = append(unhandled, batch...)
 		}
-		if len(wg.batchBuffer) > 0 {
-			q.safeHandler(wg.batchBuffer...)
-		}
+		unhandled = append(unhandled, wg.batchBuffer...)
 		for data := range wg.popItemChan {
 			if v, ok := q.unmarshal(data); ok {
-				q.safeHandler(v)
+				unhandled = append(unhandled, v)
 			}
 		}
+
+		ctxShutdownPtr := q.ctxShutdown.Load()
+		if ctxShutdownPtr != nil {
+			// if there is a shutdown context, try to push the items back to the base queue
+			q.basePushForShutdown(unhandled...)
+			workerDone := make(chan struct{})
+			// the only way to wait for the workers, because the handlers do not have context to wait for
+			go func() { wg.wg.Wait(); close(workerDone) }()
+			select {
+			case <-workerDone:
+			case <-(*ctxShutdownPtr).Done():
+				log.Error("Queue %q is shutting down, but workers are still running after timeout", q.GetName())
+			}
+		} else {
+			// if there is no shutdown context, just call the handler to try to handle the items. if the handler fails again, the items are lost
+			q.safeHandler(unhandled...)
+		}
+
+		close(q.shutdownDone)
 	}()
 
 	var batchDispatchC <-chan time.Time = infiniteTimerC

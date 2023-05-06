@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/graceful"
@@ -20,6 +21,8 @@ import (
 type WorkerPoolQueue[T any] struct {
 	ctxRun       context.Context
 	ctxRunCancel context.CancelFunc
+	ctxShutdown  atomic.Pointer[context.Context]
+	shutdownDone chan struct{}
 
 	origHandler HandlerFuncT[T]
 	safeHandler HandlerFuncT[T]
@@ -168,8 +171,22 @@ func (q *WorkerPoolQueue[T]) Has(data T) (bool, error) {
 }
 
 func (q *WorkerPoolQueue[T]) Run(atShutdown, atTerminate func(func())) {
-	atShutdown(q.ctxRunCancel)
+	atShutdown(func() {
+		// in case some queue handlers are slow or have hanging bugs, at most wait for a short time
+		q.ShutdownWait(1 * time.Second)
+	})
 	q.doRun()
+}
+
+// ShutdownWait shuts down the queue, waits for all workers to finish their jobs, and pushes the unhandled items back to the base queue
+// It waits for all workers (handlers) to finish their jobs, in case some buggy handlers would hang forever, a reasonable timeout is needed
+func (q *WorkerPoolQueue[T]) ShutdownWait(timeout time.Duration) {
+	shutdownCtx, shutdownCtxCancel := context.WithTimeout(context.Background(), timeout)
+	defer shutdownCtxCancel()
+	if q.ctxShutdown.CompareAndSwap(nil, &shutdownCtx) {
+		q.ctxRunCancel()
+	}
+	<-q.shutdownDone
 }
 
 func getNewQueueFn(t string) (string, func(cfg *BaseConfig, unique bool) (baseQueue, error)) {
@@ -205,6 +222,7 @@ func NewWorkerPoolQueueBySetting[T any](name string, queueSetting setting.QueueS
 	w.ctxRun, w.ctxRunCancel = context.WithCancel(graceful.GetManager().ShutdownContext())
 	w.batchChan = make(chan []T)
 	w.flushChan = make(chan flushType)
+	w.shutdownDone = make(chan struct{})
 	w.workerMaxNum = queueSetting.MaxWorkers
 	w.batchLength = queueSetting.BatchLength
 

@@ -81,7 +81,7 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 		testRecorder.Reset()
 	}
 
-	runCount := 10
+	runCount := 200
 	t.Run("1/1", func(t *testing.T) {
 		for i := 0; i < runCount; i++ {
 			test(t, setting.QueueSettings{BatchLength: 1, MaxWorkers: 1})
@@ -100,7 +100,7 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 }
 
 func TestWorkerPoolQueuePersistence(t *testing.T) {
-	runCount := 2 // we can run these tests even 100 times to see its stability
+	runCount := 200 // we can run these tests even 100 times to see its stability
 	t.Run("1/1", func(t *testing.T) {
 		for i := 0; i < runCount; i++ {
 			testWorkerPoolQueuePersistence(t, setting.QueueSettings{BatchLength: 1, MaxWorkers: 1, Length: 100})
@@ -120,6 +120,7 @@ func TestWorkerPoolQueuePersistence(t *testing.T) {
 
 func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSettings) {
 	testCount := queueSetting.Length
+	queueSetting.Type = "level"
 	queueSetting.Datadir = t.TempDir() + "/test-queue"
 
 	mu := sync.Mutex{}
@@ -224,4 +225,36 @@ func TestWorkerPoolQueueActiveWorkers(t *testing.T) {
 	time.Sleep(workerIdleDuration)
 	assert.EqualValues(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
 	stop()
+}
+
+func TestWorkerPoolQueueShutdown(t *testing.T) {
+	oldUnhandledItemRequeueDuration := unhandledItemRequeueDuration.Load()
+	unhandledItemRequeueDuration.Store(int64(100 * time.Millisecond))
+	defer unhandledItemRequeueDuration.Store(oldUnhandledItemRequeueDuration)
+
+	// simulate a slow handler, it doesn't handle any item (all items will be pushed back to the queue)
+	handlerCalled := make(chan struct{})
+	handler := func(items ...int) (unhandled []int) {
+		if items[0] == 0 {
+			close(handlerCalled)
+		}
+		time.Sleep(100 * time.Millisecond)
+		return items
+	}
+
+	qs := setting.QueueSettings{Type: "level", Datadir: t.TempDir() + "/queue", BatchLength: 3, MaxWorkers: 4, Length: 20}
+	q, _ := NewWorkerPoolQueueBySetting("test-workpoolqueue", qs, handler, false)
+	stop := runWorkerPoolQueue(q)
+	for i := 0; i < qs.Length; i++ {
+		assert.NoError(t, q.Push(i))
+	}
+	<-handlerCalled
+	time.Sleep(50 * time.Millisecond) // wait for a while to make sure all workers are active
+	assert.EqualValues(t, 4, q.GetWorkerActiveNumber())
+	stop() // stop triggers shutdown
+	assert.EqualValues(t, 0, q.GetWorkerActiveNumber())
+
+	// no item was ever handled, so we still get all of them again
+	q, _ = NewWorkerPoolQueueBySetting("test-workpoolqueue", qs, handler, false)
+	assert.EqualValues(t, 20, q.GetQueueItemNumber())
 }
