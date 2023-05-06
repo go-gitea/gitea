@@ -38,7 +38,7 @@ dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/rpm
 | ----------- | ----------- |
 | `owner`     | The owner of the package. |
 
-If the registry is private, provide credentials in the url. You can use a password or a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}):
+If the registry is private, provide credentials in the url. You can use a password or a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}):
 
 ```shell
 dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/rpm.repo
@@ -66,7 +66,7 @@ curl --user your_username:your_password_or_token \
      https://gitea.example.com/api/packages/testuser/rpm/upload
 ```
 
-If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}) instead of the password.
+If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) instead of the password.
 You cannot publish a file with the same name twice to a package. You must delete the existing package version first.
 
 The server reponds with the following HTTP Status codes.
