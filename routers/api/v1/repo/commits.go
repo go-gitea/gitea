@@ -107,6 +107,14 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   in: query
 	//   description: include diff stats for every commit (disable for speedup, default 'true')
 	//   type: boolean
+	// - name: verification
+	//   in: query
+	//   description: include verification for every commit (disable for speedup, default 'true')
+	//   type: boolean
+	// - name: files
+	//   in: query
+	//   description: include a list of affected files for every commit (disable for speedup, default 'true')
+	//   type: boolean
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
