@@ -23,6 +23,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 
@@ -232,4 +233,20 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	assert.NoError(t, storage.Clean(storage.Packages))
 
 	return deferFn
+}
+
+func PrintCurrentTest(t testing.TB, skip ...int) func() {
+	if len(skip) == 1 {
+		skip = []int{skip[0] + 1}
+	}
+	return testlogger.PrintCurrentTest(t, skip...)
+}
+
+// Printf takes a format and args and prints the string to os.Stdout
+func Printf(format string, args ...interface{}) {
+	testlogger.Printf(format, args...)
+}
+
+func init() {
+	log.Register("test", testlogger.NewTestLogger)
 }

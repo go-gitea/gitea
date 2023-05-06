@@ -153,7 +153,9 @@ func (q *WorkerPoolQueue[T]) Push(data T) error {
 	if q.isBaseQueueDummy() && q.safeHandler != nil {
 		// FIXME: the "immediate" queue is only for testing, but it really causes problems because its behavior is different from a real queue.
 		// Even if tests pass, it doesn't mean that there is no bug in code.
-		q.safeHandler(data)
+		if data, ok := q.unmarshal(q.marshal(data)); ok {
+			q.safeHandler(data)
+		}
 	}
 	return q.baseQueue.PushItem(q.ctxRun, q.marshal(data))
 }

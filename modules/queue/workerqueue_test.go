@@ -180,3 +180,48 @@ func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSett
 	assert.NotZero(t, len(tasksQ2))
 	assert.EqualValues(t, testCount, len(tasksQ1)+len(tasksQ2))
 }
+
+func TestWorkerPoolQueueActiveWorkers(t *testing.T) {
+	oldWorkerIdleDuration := workerIdleDuration
+	workerIdleDuration = 300 * time.Millisecond
+	defer func() {
+		workerIdleDuration = oldWorkerIdleDuration
+	}()
+
+	handler := func(items ...int) (unhandled []int) {
+		time.Sleep(100 * time.Millisecond)
+		return nil
+	}
+
+	q := NewWorkerPoolQueueBySetting("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 1, Length: 100}, handler, false)
+	stop := runWorkerPoolQueue(q)
+	for i := 0; i < 5; i++ {
+		assert.NoError(t, q.Push(i))
+	}
+
+	time.Sleep(50 * time.Millisecond)
+	assert.EqualValues(t, 1, q.GetWorkerNumber())
+	assert.EqualValues(t, 1, q.GetWorkerActiveNumber())
+	time.Sleep(500 * time.Millisecond)
+	assert.EqualValues(t, 1, q.GetWorkerNumber())
+	assert.EqualValues(t, 0, q.GetWorkerActiveNumber())
+	time.Sleep(workerIdleDuration)
+	assert.EqualValues(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
+	stop()
+
+	q = NewWorkerPoolQueueBySetting("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 3, Length: 100}, handler, false)
+	stop = runWorkerPoolQueue(q)
+	for i := 0; i < 15; i++ {
+		assert.NoError(t, q.Push(i))
+	}
+
+	time.Sleep(50 * time.Millisecond)
+	assert.EqualValues(t, 3, q.GetWorkerNumber())
+	assert.EqualValues(t, 3, q.GetWorkerActiveNumber())
+	time.Sleep(500 * time.Millisecond)
+	assert.EqualValues(t, 3, q.GetWorkerNumber())
+	assert.EqualValues(t, 0, q.GetWorkerActiveNumber())
+	time.Sleep(workerIdleDuration)
+	assert.EqualValues(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
+	stop()
+}
