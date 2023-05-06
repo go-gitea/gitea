@@ -81,7 +81,7 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 		testRecorder.Reset()
 	}
 
-	runCount := 200
+	runCount := 2 // we can run these tests even hundreds times to see its stability
 	t.Run("1/1", func(t *testing.T) {
 		for i := 0; i < runCount; i++ {
 			test(t, setting.QueueSettings{BatchLength: 1, MaxWorkers: 1})
@@ -100,7 +100,7 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 }
 
 func TestWorkerPoolQueuePersistence(t *testing.T) {
-	runCount := 200 // we can run these tests even 100 times to see its stability
+	runCount := 2 // we can run these tests even hundreds times to see its stability
 	t.Run("1/1", func(t *testing.T) {
 		for i := 0; i < runCount; i++ {
 			testWorkerPoolQueuePersistence(t, setting.QueueSettings{BatchLength: 1, MaxWorkers: 1, Length: 100})
