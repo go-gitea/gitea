@@ -9,8 +9,8 @@ import (
 
 type BaseConfig struct {
 	ManagedName string
+	DataFullDir string // the caller must prepare an absolute path
 
-	DataDir string
 	ConnStr string
 	Length  int
 
@@ -20,8 +20,8 @@ type BaseConfig struct {
 func toBaseConfig(managedName string, queueSetting setting.QueueSettings) *BaseConfig {
 	baseConfig := &BaseConfig{
 		ManagedName: managedName,
+		DataFullDir: queueSetting.Datadir,
 
-		DataDir: queueSetting.Datadir,
 		ConnStr: queueSetting.ConnStr,
 		Length:  queueSetting.Length,
 	}

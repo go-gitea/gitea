@@ -5,10 +5,16 @@ package queue
 
 import (
 	"context"
+	"errors"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/nosql"
+
 	"gitea.com/lunny/levelqueue"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type baseLevelQueuePushPoper interface {
@@ -62,4 +68,25 @@ func (q *baseLevelQueueCommonImpl) PopItem(ctx context.Context) ([]byte, error) 
 
 func baseLevelQueueCommon(cfg *BaseConfig, internal baseLevelQueuePushPoper, mu *sync.Mutex) *baseLevelQueueCommonImpl {
 	return &baseLevelQueueCommonImpl{length: cfg.Length, internal: internal}
+}
+
+func prepareLevelDB(cfg *BaseConfig) (conn string, db *leveldb.DB, err error) {
+	if cfg.ConnStr == "" { // use data dir as conn str
+		if !filepath.IsAbs(cfg.DataFullDir) {
+			return "", nil, errors.New("invalid leveldb data dir")
+		}
+		conn = cfg.DataFullDir
+	} else {
+		if !strings.HasPrefix(cfg.ConnStr, "leveldb://") {
+			return "", nil, errors.New("invalid leveldb connection string")
+		}
+		conn = cfg.ConnStr
+	}
+	for i := 0; i < 10; i++ {
+		if db, err = nosql.GetManager().GetLevelDB(conn); err == nil {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return conn, db, err
 }

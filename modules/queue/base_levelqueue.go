@@ -5,9 +5,6 @@ package queue
 
 import (
 	"context"
-	"errors"
-	"path/filepath"
-	"strings"
 
 	"code.gitea.io/gitea/modules/nosql"
 
@@ -22,19 +19,6 @@ type baseLevelQueue struct {
 
 var _ baseQueue = (*baseLevelQueue)(nil)
 
-func prepareLevelQueueConfig(cfg *BaseConfig) error {
-	if cfg.ConnStr == "" { // use data dir as conn str
-		dir := cfg.DataDir
-		if !filepath.IsAbs(dir) {
-			return errors.New("invalid leveldb data dir")
-		}
-		cfg.ConnStr = dir
-	} else if !strings.HasPrefix(cfg.ConnStr, "leveldb://") {
-		return errors.New("invalid leveldb connection string")
-	}
-	return nil
-}
-
 func newBaseLevelQueueGeneric(cfg *BaseConfig, unique bool) (baseQueue, error) {
 	if unique {
 		return newBaseLevelQueueUnique(cfg)
@@ -43,16 +27,11 @@ func newBaseLevelQueueGeneric(cfg *BaseConfig, unique bool) (baseQueue, error) {
 }
 
 func newBaseLevelQueueSimple(cfg *BaseConfig) (baseQueue, error) {
-	if err := prepareLevelQueueConfig(cfg); err != nil {
-		return nil, err
-	}
-
-	q := &baseLevelQueue{conn: cfg.ConnStr, cfg: cfg}
-	db, err := nosql.GetManager().GetLevelDB(q.conn)
+	conn, db, err := prepareLevelDB(cfg)
 	if err != nil {
 		return nil, err
 	}
-
+	q := &baseLevelQueue{conn: conn, cfg: cfg}
 	q.internal, err = levelqueue.NewQueue(db, []byte(cfg.QueueFullName), false)
 	if err != nil {
 		return nil, err
