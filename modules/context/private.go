@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 // PrivateContext represents a context for private routes
@@ -62,7 +63,7 @@ func PrivateContexter() func(http.Handler) http.Handler {
 			ctx := &PrivateContext{
 				Context: &Context{
 					Resp: NewResponse(w),
-					Data: map[string]interface{}{},
+					Data: middleware.GetContextData(req.Context()),
 				},
 			}
 			defer ctx.Close()
