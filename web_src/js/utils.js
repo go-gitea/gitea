@@ -1,4 +1,4 @@
-import {isUseLightColor} from './utils/color.js';
+import {getRGB, isUseLightColor} from './utils/color.js';
 
 // transform /path/to/file.ext to file.ext
 export function basename(path = '') {
@@ -140,14 +140,10 @@ export function toAbsoluteUrl(url) {
 // determine if light or dark text color should be used on a given background color
 // NOTE: see models/issue_label.go for similar implementation
 export function useLightTextOnBackground(backgroundColor) {
-  if (backgroundColor[0] === '#') {
-    backgroundColor = backgroundColor.substring(1);
+  if (backgroundColor[0] !== '#') {
+    return false;
   }
-  // Reference from: https://firsching.ch/github_labels.html and https://www.w3.org/WAI/GL/wiki/Relative_luminance
-  // In the future WCAG 3 APCA may be a better solution.
-  const r = parseInt(backgroundColor.substring(0, 2), 16);
-  const g = parseInt(backgroundColor.substring(2, 4), 16);
-  const b = parseInt(backgroundColor.substring(4, 6), 16);
-
+  backgroundColor = backgroundColor.substring(1);
+  const [r, g, b] = getRGB(backgroundColor);
   return isUseLightColor(r, g, b);
 }

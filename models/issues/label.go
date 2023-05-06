@@ -166,10 +166,7 @@ func (l *Label) ColorRGB() (float64, float64, float64, error) {
 		return 0, 0, 0, err
 	}
 
-	r := float64(uint8(0xFF & (uint32(color) >> 16)))
-	g := float64(uint8(0xFF & (uint32(color) >> 8)))
-	b := float64(uint8(0xFF & uint32(color)))
-	return r, g, b, nil
+	return util.GetRBG(color)
 }
 
 // Determine if label text should be light or dark to be readable on background color
