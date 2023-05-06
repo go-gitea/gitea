@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -118,7 +119,7 @@ func TestAPIReposGitCommitListWithoutSelectFields(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	// Test getting commits without files, verification, and stats
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits?token="+token+"&sha=good-sign&stats=false&files=false&verification=false", user.Name)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits?token="+token+"&sha=good-sign&stat=false&files=false&verification=false", user.Name)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiData []api.Commit
@@ -126,9 +127,9 @@ func TestAPIReposGitCommitListWithoutSelectFields(t *testing.T) {
 
 	assert.Len(t, apiData, 1)
 	assert.Equal(t, "f27c2b2b03dcab38beaf89b0ab4ff61f6de63441", apiData[0].CommitMeta.SHA)
-	assert.Equal(t, nil, apiData[0].Stats)
-	assert.Equal(t, nil, apiData[0].RepoCommit.Verification)
-	assert.Equal(t, nil, apiData[0].Files)
+	assert.Equal(t, (*structs.CommitStats)(nil), apiData[0].Stats)
+	assert.Equal(t, (*api.PayloadCommitVerification)(nil), apiData[0].RepoCommit.Verification)
+	assert.Equal(t, ([]*api.CommitAffectedFiles)(nil), apiData[0].Files)
 }
 
 func TestDownloadCommitDiffOrPatch(t *testing.T) {
