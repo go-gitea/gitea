@@ -504,21 +504,6 @@ And the following unique queues:
 - `mirror`
 - `pr_patch_checker`
 
-Certain queues have defaults that override the defaults set in `[queue]` (this occurs mostly to support older configuration):
-
-- `[queue.issue_indexer]`
-  - `TYPE` this will default to `[queue]` `TYPE` if it is set but if not it will appropriately convert `[indexer]` `ISSUE_INDEXER_QUEUE_TYPE` if that is set.
-  - `LENGTH` will default to `[indexer]` `UPDATE_BUFFER_LEN` if that is set.
-  - `BATCH_LENGTH` will default to `[indexer]` `ISSUE_INDEXER_QUEUE_BATCH_NUMBER` if that is set.
-  - `DATADIR` will default to `[indexer]` `ISSUE_INDEXER_QUEUE_DIR` if that is set.
-  - `CONN_STR` will default to `[indexer]` `ISSUE_INDEXER_QUEUE_CONN_STR` if that is set.
-- `[queue.mailer]`
-  - `LENGTH` will default to **100** or whatever `[mailer]` `SEND_BUFFER_LEN` is.
-- `[queue.pr_patch_checker]`
-  - `LENGTH` will default to **1000** or whatever `[repository]` `PULL_REQUEST_QUEUE_LENGTH` is.
-- `[queue.mirror]`
-  - `LENGTH` will default to **1000** or whatever `[repository]` `MIRROR_QUEUE_LENGTH` is.
-
 ## Admin (`admin`)
 
 - `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**: Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
