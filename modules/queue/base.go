@@ -5,13 +5,8 @@ package queue
 
 import (
 	"context"
-	"errors"
 	"time"
 )
-
-type HandlerFuncT[T any] func(...T) (unhandled []T)
-
-var ErrAlreadyInQueue = errors.New("already in queue")
 
 var pushBlockTime = 5 * time.Second
 

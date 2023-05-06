@@ -136,18 +136,12 @@ func Init() {
 	// Create the Queue
 	switch setting.Indexer.RepoType {
 	case "bleve", "elasticsearch":
-		handler := func(items ...*IndexerData) []*IndexerData {
+		handler := func(items ...*IndexerData) (unhandled []*IndexerData) {
 			idx, err := indexer.get()
 			if idx == nil || err != nil {
 				log.Error("Codes indexer handler: unable to get indexer!")
 				return items
 			}
-			if !idx.Ping() {
-				log.Error("Code indexer handler: indexer is unavailable.")
-				return items
-			}
-
-			// the old logic did: if indexer.Ping() { return nil }, skip all failed items
 
 			for _, indexerData := range items {
 				log.Trace("IndexerData Process Repo: %d", indexerData.RepoID)
@@ -167,12 +161,17 @@ func Init() {
 					code.gitea.io/gitea/modules/indexer/code.index(indexer.go:105)
 				*/
 				if err := index(ctx, indexer, indexerData.RepoID); err != nil {
+					if !idx.Ping() {
+						log.Error("Code indexer handler: indexer is unavailable.")
+						unhandled = append(unhandled, indexerData)
+						continue
+					}
 					if !setting.IsInTesting {
-						log.Error("indexer index error for repo %v: %v", indexerData.RepoID, err)
+						log.Error("Codes indexer handler: index error for repo %v: %v", indexerData.RepoID, err)
 					}
 				}
 			}
-			return nil
+			return unhandled
 		}
 
 		indexerQueue = queue.CreateUniqueQueue("code_indexer", handler)

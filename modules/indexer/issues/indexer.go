@@ -107,25 +107,22 @@ func InitIssueIndexer(syncReindex bool) {
 	// Create the Queue
 	switch setting.Indexer.IssueType {
 	case "bleve", "elasticsearch", "meilisearch":
-		handler := func(items ...*IndexerData) []*IndexerData {
+		handler := func(items ...*IndexerData) (unhandled []*IndexerData) {
 			indexer := holder.get()
 			if indexer == nil {
 				log.Error("Issue indexer handler: unable to get indexer.")
 				return items
 			}
-			if !indexer.Ping() {
-				log.Error("Issue indexer handler: indexer is unavailable.")
-				return items
-			}
-
-			// the old logic did: if indexer.Ping() { return nil }, skip all failed items
-
 			toIndex := make([]*IndexerData, 0, len(items))
 			for _, indexerData := range items {
 				log.Trace("IndexerData Process: %d %v %t", indexerData.ID, indexerData.IDs, indexerData.IsDelete)
 				if indexerData.IsDelete {
 					if err := indexer.Delete(indexerData.IDs...); err != nil {
-						log.Error("Error whilst deleting from index: %v Error: %v", indexerData.IDs, err)
+						log.Error("Issue indexer handler: failed to from index: %v Error: %v", indexerData.IDs, err)
+						if !indexer.Ping() {
+							log.Error("Issue indexer handler: indexer is unavailable when deleting")
+							unhandled = append(unhandled, indexerData)
+						}
 					}
 					continue
 				}
@@ -133,8 +130,12 @@ func InitIssueIndexer(syncReindex bool) {
 			}
 			if err := indexer.Index(toIndex); err != nil {
 				log.Error("Error whilst indexing: %v Error: %v", toIndex, err)
+				if !indexer.Ping() {
+					log.Error("Issue indexer handler: indexer is unavailable when indexing")
+					unhandled = append(unhandled, toIndex...)
+				}
 			}
-			return nil
+			return unhandled
 		}
 
 		issueIndexerQueue = queue.CreateSimpleQueue("issue_indexer", handler)
