@@ -1,7 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package base
+package testlogger
 
 import (
 	"context"
@@ -20,8 +20,8 @@ import (
 
 var (
 	prefix    string
-	slowTest  = 10 * time.Second
-	slowFlush = 5 * time.Second
+	SlowTest  = 10 * time.Second
+	SlowFlush = 5 * time.Second
 )
 
 // TestLogger is a logger which will write to the testing log
@@ -29,7 +29,7 @@ type TestLogger struct {
 	log.WriterLogger
 }
 
-var writerCloser = &testLoggerWriterCloser{}
+var WriterCloser = &testLoggerWriterCloser{}
 
 type testLoggerWriterCloser struct {
 	sync.RWMutex
@@ -97,6 +97,21 @@ func (w *testLoggerWriterCloser) Close() error {
 	return nil
 }
 
+func (w *testLoggerWriterCloser) Reset() {
+	w.Lock()
+	if len(w.t) > 0 {
+		for _, t := range w.t {
+			if t == nil {
+				continue
+			}
+			fmt.Fprintf(os.Stdout, "Unclosed logger writer in test: %s", (*t).Name())
+			(*t).Errorf("Unclosed logger writer in test: %s", (*t).Name())
+		}
+		w.t = nil
+	}
+	w.Unlock()
+}
+
 // PrintCurrentTest prints the current test to os.Stdout
 func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	start := time.Now()
@@ -111,38 +126,47 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	} else {
 		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", t.Name(), strings.TrimPrefix(filename, prefix), line)
 	}
-	writerCloser.pushT(&t)
+	WriterCloser.pushT(&t)
 	return func() {
 		took := time.Since(start)
-		if took > slowTest {
+		if took > SlowTest {
 			if log.CanColorStdout {
 				fmt.Fprintf(os.Stdout, "+++ %s is a slow test (took %v)\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgYellow)), fmt.Formatter(log.NewColoredValue(took, log.Bold, log.FgYellow)))
 			} else {
 				fmt.Fprintf(os.Stdout, "+++ %s is a slow test (took %v)\n", t.Name(), took)
 			}
 		}
-		timer := time.AfterFunc(slowFlush, func() {
+		timer := time.AfterFunc(SlowFlush, func() {
 			if log.CanColorStdout {
-				fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgRed)), slowFlush)
+				fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgRed)), SlowFlush)
 			} else {
-				fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", t.Name(), slowFlush)
+				fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", t.Name(), SlowFlush)
 			}
 		})
-
-		if err := queue.GetManager().FlushAll(context.Background(), 0); err != nil {
+		if err := queue.GetManager().FlushAll(context.Background(), time.Minute); err != nil {
 			t.Errorf("Flushing queues failed with error %v", err)
 		}
 		timer.Stop()
 		flushTook := time.Since(start) - took
-		if flushTook > slowFlush {
+		if flushTook > SlowFlush {
 			if log.CanColorStdout {
 				fmt.Fprintf(os.Stdout, "+++ %s had a slow clean-up flush (took %v)\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgRed)), fmt.Formatter(log.NewColoredValue(flushTook, log.Bold, log.FgRed)))
 			} else {
 				fmt.Fprintf(os.Stdout, "+++ %s had a slow clean-up flush (took %v)\n", t.Name(), flushTook)
 			}
 		}
-		writerCloser.popT()
+		WriterCloser.popT()
 	}
+}
+
+// Printf takes a format and args and prints the string to os.Stdout
+func Printf(format string, args ...interface{}) {
+	if log.CanColorStdout {
+		for i := 0; i < len(args); i++ {
+			args[i] = log.NewColoredValue(args[i])
+		}
+	}
+	fmt.Fprintf(os.Stdout, "\t"+format, args...)
 }
 
 // NewTestLogger creates a TestLogger as a log.LoggerProvider
@@ -160,7 +184,7 @@ func (log *TestLogger) Init(config string) error {
 	if err != nil {
 		return err
 	}
-	log.NewWriterLogger(writerCloser)
+	log.NewWriterLogger(WriterCloser)
 	return nil
 }
 
@@ -176,4 +200,13 @@ func (log *TestLogger) ReleaseReopen() error {
 // GetName returns the default name for this implementation
 func (log *TestLogger) GetName() string {
 	return "test"
+}
+
+func init() {
+	const relFilePath = "modules/testlogger/testlogger.go"
+	_, filename, _, _ := runtime.Caller(0)
+	if !strings.HasSuffix(filename, relFilePath) {
+		panic("source code file path doesn't match expected: " + relFilePath)
+	}
+	prefix = strings.TrimSuffix(filename, relFilePath)
 }
