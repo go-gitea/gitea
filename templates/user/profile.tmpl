@@ -135,7 +135,7 @@
 						{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
 					</a>
 					{{end}}
-					{{if .IsRepoIndexerEnabled}}
+					{{if and (not $.UnitTypeCode.UnitGlobalDisabled) .IsRepoIndexerEnabled}}
 					<a class='{{if eq .TabName "code"}}active {{end}}item' href="{{.ContextUser.HomeLink}}/-/code">
 						{{svg "octicon-code"}} {{.locale.Tr "user.code"}}
 					</a>
