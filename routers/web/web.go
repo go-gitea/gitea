@@ -261,6 +261,27 @@ func registerRoutes(m *web.Route) {
 		}
 	}
 
+	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode) func(ctx *context.Context) {
+		return func(ctx *context.Context) {
+			if unitType.UnitGlobalDisabled() {
+				ctx.NotFound(unitType.String(), nil)
+				return
+			}
+
+			if ctx.ContextUser == nil {
+				ctx.NotFound(unitType.String(), nil)
+				return
+			}
+
+			if ctx.ContextUser.IsOrganization() {
+				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
+					ctx.NotFound(unitType.String(), nil)
+					return
+				}
+			}
+		}
+	}
+
 	addWebhookAddRoutes := func() {
 		m.Get("/{type}/new", repo.WebhooksNew)
 		m.Post("/gitea/new", web.Bind(forms.NewWebhookForm{}), repo.GiteaHooksNewPost)
@@ -334,7 +355,7 @@ func registerRoutes(m *web.Route) {
 		m.Get("/users", explore.Users)
 		m.Get("/users/sitemap-{idx}.xml", sitemapEnabled, explore.Users)
 		m.Get("/organizations", explore.Organizations)
-		m.Get("/code", explore.Code)
+		m.Get("/code", reqUnitAccess(unit.TypeCode, perm.AccessModeRead), explore.Code)
 		m.Get("/topics/search", explore.TopicSearch)
 	}, ignExploreSignIn)
 	m.Group("/issues", func() {
@@ -645,21 +666,6 @@ func registerRoutes(m *web.Route) {
 		return func(ctx *context.Context) {
 			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
 				ctx.NotFound("", nil)
-			}
-		}
-	}
-
-	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode) func(ctx *context.Context) {
-		return func(ctx *context.Context) {
-			if ctx.ContextUser == nil {
-				ctx.NotFound(unitType.String(), nil)
-				return
-			}
-			if ctx.ContextUser.IsOrganization() {
-				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
-					ctx.NotFound(unitType.String(), nil)
-					return
-				}
 			}
 		}
 	}
