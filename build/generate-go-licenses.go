@@ -35,12 +35,40 @@ func main() {
 
 	base, out := os.Args[1], os.Args[2]
 
+	// Add ext for excluded files because license_test.go will be included for some reason.
+	// And there are more files that should be excluded, check with:
+	//
+	// go run github.com/google/go-licenses@v1.6.0 save . --force --save_path=.go-licenses 2>/dev/null
+	// find .go-licenses -type f | while read FILE; do echo "${$(basename $FILE)##*.}"; done | sort -u
+	//    AUTHORS
+	//    COPYING
+	//    LICENSE
+	//    Makefile
+	//    NOTICE
+	//    gitignore
+	//    go
+	//    md
+	//    mod
+	//    sum
+	//    toml
+	//    txt
+	//    yml
+	//
+	// It could be removed once we have a better regex.
+	excludedExt := map[string]bool{
+		".gitignore": true,
+		".go":        true,
+		".mod":       true,
+		".sum":       true,
+		".toml":      true,
+		".yml":       true,
+	}
 	var paths []string
 	err := filepath.WalkDir(base, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if entry.IsDir() || !licenseRe.MatchString(entry.Name()) {
+		if entry.IsDir() || !licenseRe.MatchString(entry.Name()) || excludedExt[filepath.Ext(entry.Name())] {
 			return nil
 		}
 		paths = append(paths, path)
