@@ -100,9 +100,9 @@ Adds the following fields:
 
 - User Filter **(required)**
   - An LDAP filter declaring how to find the user record that is attempting to
-    authenticate. The `%s` matching parameter will be substituted with login
+    authenticate. The `%[1]s` matching parameter will be substituted with login
     name given on sign-in form.
-  - Example: `(&(objectClass=posixAccount)(uid=%s))`
+  - Example: `(&(objectClass=posixAccount)(|(uid=%[1]s)(mail=%[1]s)))`
   - Example for Microsoft Active Directory (AD): `(&(objectCategory=Person)(memberOf=CN=user-group,OU=example,DC=example,DC=org)(sAMAccountName=%s)(!(UserAccountControl:1.2.840.113556.1.4.803:=2)))`
   - To substitute more than once, `%[1]s` should be used instead, e.g. when
     matching supplied login name against multiple attributes such as user
@@ -137,11 +137,11 @@ Adds the following fields:
   - Example: `ou=Users,dc=mydomain,dc=com`
 
 - User Filter **(required)**
-  - An LDAP filter declaring when a user should be allowed to log in. The `%s`
+  - An LDAP filter declaring when a user should be allowed to log in. The `%[1]s`
     matching parameter will be substituted with login name given on sign-in
     form.
-  - Example: `(&(objectClass=posixAccount)(cn=%s))`
-  - Example: `(&(objectClass=posixAccount)(uid=%s))`
+  - Example: `(&(objectClass=posixAccount)(|(cn=%[1]s)(mail=%[1]s)))`
+  - Example: `(&(objectClass=posixAccount)(|(uid=%[1]s)(mail=%[1]s)))`
 
 ### Verify group membership in LDAP
 

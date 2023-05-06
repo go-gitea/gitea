@@ -93,6 +93,7 @@ require (
 	github.com/quasoft/websspi v1.1.2
 	github.com/redis/go-redis/v9 v9.0.4
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0
+	github.com/sassoftware/go-rpmutils v0.2.0
 	github.com/sergi/go-diff v1.3.1
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	github.com/stretchr/testify v1.8.2
@@ -130,6 +131,7 @@ require (
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
 	github.com/ClickHouse/ch-go v0.55.0 // indirect
 	github.com/ClickHouse/clickhouse-go/v2 v2.9.1 // indirect
+	github.com/DataDog/zstd v1.4.5 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
