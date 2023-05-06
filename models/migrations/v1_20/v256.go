@@ -14,9 +14,9 @@ func AddActionScheduleTable(x *xorm.Engine) error {
 		ID            int64
 		Title         string
 		Specs         []string
-		RepoID        int64  `xorm:"index"`
-		OwnerID       int64  `xorm:"index"`
-		WorkflowID    string `xorm:"index"` // the name of workflow file
+		RepoID        int64 `xorm:"index"`
+		OwnerID       int64 `xorm:"index"`
+		WorkflowID    string
 		TriggerUserID int64
 		Ref           string
 		CommitSHA     string
@@ -29,8 +29,8 @@ func AddActionScheduleTable(x *xorm.Engine) error {
 
 	type ActionScheduleSpec struct {
 		ID         int64
-		RepoID     int64
-		ScheduleID int64
+		RepoID     int64 `xorm:"index"`
+		ScheduleID int64 `xorm:"index"`
 		Spec       string
 		Next       timeutil.TimeStamp `xorm:"index"`
 		Prev       timeutil.TimeStamp
