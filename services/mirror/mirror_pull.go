@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/proxy"
@@ -23,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/migrations"
 )
 
 // gitShortEmptySha Git short empty SHA
@@ -196,8 +198,8 @@ func pruneBrokenReferences(ctx context.Context,
 	return pruneErr
 }
 
-// runSync returns true if sync finished without error.
-func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bool) {
+// runSyncGit returns true if sync git repos finished without error.
+func runSyncGit(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bool) {
 	repoPath := m.Repo.RepoPath()
 	wikiPath := m.Repo.WikiPath()
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
@@ -372,8 +374,6 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Trace("SyncMirrors [repo: %-v Wiki]: git remote update complete", m.Repo)
 	}
 
-	// TODO：sync issues, prs, etc.
-
 	log.Trace("SyncMirrors [repo: %-v]: invalidating mirror branch caches...", m.Repo)
 	branches, _, err := git.GetBranchesByPath(ctx, m.Repo.RepoPath(), 0, 0)
 	if err != nil {
@@ -387,6 +387,53 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	m.UpdatedUnix = timeutil.TimeStampNow()
 	return parseRemoteUpdateOutput(output), true
+}
+
+// runSyncMisc runs the sync of Issues, Pull Requests, Reviews, Topics, Releases, Labels, and Milestones.
+// It returns true if the sync was successful.
+func runSyncMisc(ctx context.Context, m *repo_model.Mirror) bool {
+	repo := m.GetRepository()
+
+	remoteURL, remoteErr := git.GetRemoteURL(ctx, repo.RepoPath(), m.GetRemoteName())
+	if remoteErr != nil {
+		log.Error("SyncMirrors [repo: %-v]: GetRemoteAddress Error %v", m.Repo, remoteErr)
+		return false
+	}
+
+	password, ok := remoteURL.User.Password()
+	if !ok {
+		password = ""
+	}
+
+	opts := migration.MigrateOptions{
+		CloneAddr:      repo.OriginalURL,
+		AuthUsername:   remoteURL.User.Username(),
+		AuthPassword:   password,
+		UID:            int(repo.OwnerID),
+		RepoName:       repo.Name,
+		Mirror:         true,
+		LFS:            m.LFS,
+		LFSEndpoint:    m.LFSEndpoint,
+		GitServiceType: repo.OriginalServiceType,
+		Wiki:           repo.HasWiki() && m.SyncWiki,
+		Issues:         m.SyncIssues,
+		Milestones:     m.SyncMilestones,
+		Labels:         m.SyncLabels,
+		Releases:       m.SyncReleases,
+		Comments:       m.SyncComments,
+		PullRequests:   m.SyncPullRequests,
+		// Topics
+		// ReleaseAssets
+		MigrateToRepoID: repo.ID,
+		MirrorInterval:  m.Interval.String(),
+	}
+	_, err := migrations.SyncRepository(ctx, repo.Owner, repo.OwnerName, opts, nil, m.UpdatedUnix.AsTime())
+	if err != nil {
+		log.Error("SyncMirrors [repo: %-v]: failed to sync repository: %v", m.Repo, err)
+		return false
+	}
+
+	return true
 }
 
 // SyncPullMirror starts the sync of the pull mirror and schedules the next run.
@@ -411,9 +458,16 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing Mirror %s/%s", m.Repo.OwnerName, m.Repo.Name))
 	defer finished()
 
-	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
-	results, ok := runSync(ctx, m)
+	log.Trace("SyncMirrors [repo: %-v]: Running Sync Git", m.Repo)
+	results, ok := runSyncGit(ctx, m)
 	if !ok {
+		if err = repo_model.TouchMirror(ctx, m); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: failed to TouchMirror: %v", m.Repo, err)
+		}
+		return false
+	}
+
+	if ok := runSyncMisc(ctx, m); !ok {
 		if err = repo_model.TouchMirror(ctx, m); err != nil {
 			log.Error("SyncMirrors [repo: %-v]: failed to TouchMirror: %v", m.Repo, err)
 		}
