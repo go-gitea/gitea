@@ -70,7 +70,7 @@
 					<div class="activity meta">
 						<i>{{$.locale.Tr "settings.add_on"}} <span>{{DateTime "short" .AddedUnix}}</span></i>
 						-
-						<i>{{if not .ExpiredUnix.IsZero}}{{$.locale.Tr "settings.valid_until"}} <span>{{DateTime "short" .ExpiredUnix}}</span>{{else}}{{$.locale.Tr "settings.valid_forever"}}{{end}}</i>
+						<i>{{if not .ExpiredUnix.IsZero}}{{$.locale.Tr "settings.valid_until_date" (DateTime "short" .ExpiredUnix) | Safe}}{{else}}{{$.locale.Tr "settings.valid_forever"}}{{end}}</i>
 					</div>
 				</div>
 			</div>
