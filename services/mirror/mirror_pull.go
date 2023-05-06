@@ -427,7 +427,7 @@ func runSyncMisc(ctx context.Context, m *repo_model.Mirror) bool {
 		MigrateToRepoID: repo.ID,
 		MirrorInterval:  m.Interval.String(),
 	}
-	_, err := migrations.SyncRepository(ctx, repo.Owner, repo.OwnerName, opts, nil, m.UpdatedUnix.AsTime())
+	_, err := migrations.SyncRepository(ctx, repo.Owner, repo, opts, nil, m.UpdatedUnix.AsTime())
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to sync repository: %v", m.Repo, err)
 		return false

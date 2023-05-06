@@ -17,6 +17,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -484,7 +485,8 @@ func migrateRepository(doer *user_model.User, downloader base.Downloader, upload
 }
 
 // SyncRepository syncs a repository according MigrateOptions
-func SyncRepository(ctx context.Context, doer *user_model.User, ownerName string, opts base.MigrateOptions, messenger base.Messenger, lastSynced time.Time) (*repo_model.Repository, error) {
+func SyncRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, opts base.MigrateOptions, messenger base.Messenger, lastSynced time.Time) (*repo_model.Repository, error) {
+	ownerName := repo.OwnerName
 	downloader, err := newDownloader(ctx, ownerName, opts)
 	if err != nil {
 		return nil, err
@@ -497,6 +499,12 @@ func SyncRepository(ctx context.Context, doer *user_model.User, ownerName string
 
 	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
 	uploader.gitServiceType = opts.GitServiceType
+	uploader.repo = repo
+	uploader.gitRepo, err = git.OpenRepository(ctx, repo.RepoPath())
+	if err != nil {
+		log.Error("open repository failed: %v", err)
+		return nil, err
+	}
 
 	if err := syncRepository(downloader, uploader, opts, messenger, lastSynced); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {

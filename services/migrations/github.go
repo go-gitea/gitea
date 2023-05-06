@@ -126,6 +126,10 @@ func (g *GithubDownloaderV3) String() string {
 	return fmt.Sprintf("migration from github server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
 }
 
+func (g *GithubDownloaderV3) SupportSyncing() bool {
+	return true
+}
+
 // ColorFormat provides a basic color format for a GithubDownloader
 func (g *GithubDownloaderV3) ColorFormat(s fmt.State) {
 	if g == nil {
