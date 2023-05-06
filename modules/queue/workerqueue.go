@@ -29,7 +29,7 @@ type WorkerPoolQueue[T any] struct {
 	baseQueue     baseQueue
 
 	batchChan chan []T
-	flushChan chan flushChanType
+	flushChan chan flushType
 
 	batchLength     int
 	workerNum       int
@@ -38,7 +38,7 @@ type WorkerPoolQueue[T any] struct {
 	workerNumMu     sync.Mutex
 }
 
-type flushChanType chan struct{}
+type flushType chan struct{}
 
 var _ ManagedWorkerPoolQueue = (*WorkerPoolQueue[any])(nil)
 
@@ -100,7 +100,7 @@ func (q *WorkerPoolQueue[T]) FlushWithContext(ctx context.Context, timeout time.
 	if timeout > 0 {
 		after = time.After(timeout)
 	}
-	c := make(flushChanType)
+	c := make(flushType)
 
 	// send flush request
 	select {
@@ -202,7 +202,7 @@ func NewWorkerPoolQueueBySetting[T any](name string, queueSetting setting.QueueS
 
 	w.ctxRun, w.ctxRunCancel = context.WithCancel(graceful.GetManager().ShutdownContext())
 	w.batchChan = make(chan []T)
-	w.flushChan = make(chan flushChanType)
+	w.flushChan = make(chan flushType)
 	w.workerMaxNum = queueSetting.MaxWorkers
 	w.batchLength = queueSetting.BatchLength
 
@@ -218,23 +218,4 @@ func NewWorkerPoolQueueBySetting[T any](name string, queueSetting setting.QueueS
 	}
 
 	return &w
-}
-
-func CreateSimpleQueue[T any](name string, handler HandlerFuncT[T]) *WorkerPoolQueue[T] {
-	return createWorkerPoolQueue(name, setting.CfgProvider, handler, false)
-}
-
-func CreateUniqueQueue[T any](name string, handler HandlerFuncT[T]) *WorkerPoolQueue[T] {
-	return createWorkerPoolQueue(name, setting.CfgProvider, handler, true)
-}
-
-func createWorkerPoolQueue[T any](name string, cfgProvider setting.ConfigProvider, handler HandlerFuncT[T], unique bool) *WorkerPoolQueue[T] {
-	queueSetting, err := setting.GetQueueSettings(cfgProvider, name)
-	if err != nil {
-		log.Error("Failed to get queue settings for %q: %v", name, err)
-		return nil
-	}
-	w := NewWorkerPoolQueueBySetting(name, queueSetting, handler, unique)
-	GetManager().AddManagedQueue(w)
-	return w
 }

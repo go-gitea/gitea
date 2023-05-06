@@ -15,10 +15,8 @@ import (
 var (
 	infiniteTimerC        = make(chan time.Time)
 	batchDebounceDuration = 100 * time.Millisecond
-)
+	workerIdleDuration    = 1 * time.Second
 
-var (
-	workerIdleDuration           = 1 * time.Second
 	unhandledItemRequeueDuration atomic.Int64 // to avoid data race during test
 )
 
@@ -45,7 +43,7 @@ func (wg *workerGroup[T]) doPrepareWorkerContext() {
 
 // doDispatchBatchToWorker dispatches a batch of items to worker's channel.
 // If the channel is full, it tries to start a new worker if possible.
-func (q *WorkerPoolQueue[T]) doDispatchBatchToWorker(wg *workerGroup[T]) {
+func (q *WorkerPoolQueue[T]) doDispatchBatchToWorker(wg *workerGroup[T], flushChan chan flushType) {
 	batch := wg.batchBuffer
 	wg.batchBuffer = nil
 
@@ -73,9 +71,9 @@ func (q *WorkerPoolQueue[T]) doDispatchBatchToWorker(wg *workerGroup[T]) {
 	if full {
 		select {
 		case q.batchChan <- batch:
-		case flushed := <-q.flushChan:
+		case flush := <-flushChan:
 			q.doWorkerHandle(batch)
-			q.doFlush(wg, flushed)
+			q.doFlush(wg, flush)
 		case <-q.ctxRun.Done():
 			q.safeHandler(batch...)
 		}
@@ -152,18 +150,21 @@ func (q *WorkerPoolQueue[T]) doStartNewWorker(wp *workerGroup[T]) {
 
 // doFlush flushes the queue: it tries to read all items from the queue and handles them.
 // It is for testing purpose only. It's not designed to work for a cluster.
-func (q *WorkerPoolQueue[T]) doFlush(wg *workerGroup[T], flushChan flushChanType) {
+func (q *WorkerPoolQueue[T]) doFlush(wg *workerGroup[T], flush flushType) {
 	log.Debug("Queue %q starts flushing", q.GetName())
 	defer log.Debug("Queue %q finishes flushing", q.GetName())
+
+	// stop all workers, and prepare a new worker context to start new workers
 
 	wg.ctxWorkerCancel()
 	wg.wg.Wait()
 
 	defer func() {
-		close(flushChan)
+		close(flush)
 		wg.doPrepareWorkerContext()
 	}()
 
+	// drain the batch channel first
 loop:
 	for {
 		select {
@@ -174,6 +175,7 @@ loop:
 		}
 	}
 
+	// drain the popItem channel
 	emptyCounter := 0
 	for {
 		select {
@@ -218,6 +220,8 @@ func (q *WorkerPoolQueue[T]) isCtxRunCanceled() bool {
 	}
 }
 
+var skipFlushChan = make(chan flushType) // an empty flush chan, used to skip reading other flush requests
+
 // doRun is the main loop of the queue. All related "doXxx" functions are executed in its context.
 func (q *WorkerPoolQueue[T]) doRun() {
 	log.Debug("Queue %q starts running", q.GetName())
@@ -231,6 +235,8 @@ func (q *WorkerPoolQueue[T]) doRun() {
 		q.ctxRunCancel()
 
 		// drain all data on the fly
+		// since the queue is shutting down, we can only call the handler, but not dispatch to workers because the context is canceled
+		// it can't call doWorkerHandle either, because there is no chance to push unhandled items back to the queue
 		close(q.batchChan)
 		for batch := range q.batchChan {
 			q.safeHandler(batch...)
@@ -253,22 +259,25 @@ func (q *WorkerPoolQueue[T]) doRun() {
 				return
 			}
 			if v, jsonOk := q.unmarshal(data); !jsonOk {
-				testRecorder.Record("pop:corrupted:%s", data)
+				testRecorder.Record("pop:corrupted:%s", data) // in rare cases the levelqueue(leveldb) might be corrupted
 				continue
 			} else {
 				wg.batchBuffer = append(wg.batchBuffer, v)
 			}
 			if len(wg.batchBuffer) >= q.batchLength {
-				q.doDispatchBatchToWorker(wg)
+				q.doDispatchBatchToWorker(wg, q.flushChan)
 			} else if batchDispatchC == infiniteTimerC {
 				batchDispatchC = time.After(batchDebounceDuration)
 			} // else: batchDispatchC is already a debounce timer, it will be triggered soon
 		case <-batchDispatchC:
 			batchDispatchC = infiniteTimerC
-			q.doDispatchBatchToWorker(wg)
-		case flushed := <-q.flushChan:
-			q.doDispatchBatchToWorker(wg)
-			q.doFlush(wg, flushed)
+			q.doDispatchBatchToWorker(wg, q.flushChan)
+		case flush := <-q.flushChan:
+			// before flushing, it needs to try to dispatch the batch to worker first, in case there is no worker running
+			// after the flushing, there is at least one worker running, so "doFlush" could wait for workers to finish
+			// since we are already in a "flush" operation, so the dispatching function shouldn't read the flush chan.
+			q.doDispatchBatchToWorker(wg, skipFlushChan)
+			q.doFlush(wg, flush)
 		case err := <-wg.popItemErr:
 			if !q.isCtxRunCanceled() {
 				log.Error("Failed to pop item from queue %q (doRun): %v", q.GetName(), err)

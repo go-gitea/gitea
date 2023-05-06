@@ -7,7 +7,18 @@ import (
 	"context"
 	"sync"
 	"time"
+
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
+
+// Manager is a manager for the queues created by "CreateXxxQueue" functions, these queues are called "managed queues".
+type Manager struct {
+	mu sync.Mutex
+
+	qidCounter int64
+	Queues     map[int64]ManagedWorkerPoolQueue
+}
 
 type ManagedWorkerPoolQueue interface {
 	GetName() string
@@ -25,13 +36,6 @@ type ManagedWorkerPoolQueue interface {
 }
 
 var manager *Manager
-
-type Manager struct {
-	mu sync.Mutex
-
-	qidCounter int64
-	Queues     map[int64]ManagedWorkerPoolQueue
-}
 
 func init() {
 	manager = &Manager{
@@ -67,6 +71,8 @@ func (m *Manager) ManagedQueues() map[int64]ManagedWorkerPoolQueue {
 	return queues
 }
 
+// FlushAll tries to make all managed queues process all items synchronously, until timeout or the queue is empty.
+// It is for testing purpose only. It's not designed to be used in a cluster.
 func (m *Manager) FlushAll(ctx context.Context, timeout time.Duration) error {
 	var finalErr error
 	qs := m.ManagedQueues()
@@ -76,4 +82,25 @@ func (m *Manager) FlushAll(ctx context.Context, timeout time.Duration) error {
 		}
 	}
 	return finalErr
+}
+
+// CreateSimpleQueue creates a simple queue from global setting config provider by name
+func CreateSimpleQueue[T any](name string, handler HandlerFuncT[T]) *WorkerPoolQueue[T] {
+	return createWorkerPoolQueue(name, setting.CfgProvider, handler, false)
+}
+
+// CreateUniqueQueue creates a unique queue from global setting config provider by name
+func CreateUniqueQueue[T any](name string, handler HandlerFuncT[T]) *WorkerPoolQueue[T] {
+	return createWorkerPoolQueue(name, setting.CfgProvider, handler, true)
+}
+
+func createWorkerPoolQueue[T any](name string, cfgProvider setting.ConfigProvider, handler HandlerFuncT[T], unique bool) *WorkerPoolQueue[T] {
+	queueSetting, err := setting.GetQueueSettings(cfgProvider, name)
+	if err != nil {
+		log.Error("Failed to get queue settings for %q: %v", name, err)
+		return nil
+	}
+	w := NewWorkerPoolQueueBySetting(name, queueSetting, handler, unique)
+	GetManager().AddManagedQueue(w)
+	return w
 }
