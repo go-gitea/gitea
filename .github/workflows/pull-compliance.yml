@@ -16,6 +16,7 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '>=1.20'
+          check-latest: true
       - name: deps-backend
         run: make deps-backend deps-tools
       - name: lint backend
@@ -33,6 +34,7 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '>=1.20'
+          check-latest: true
       - name: deps-backend
         run: make deps-backend deps-tools
       - name: lint-backend-windows
@@ -52,6 +54,7 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '>=1.20'
+          check-latest: true
       - name: deps-backend
         run: make deps-backend deps-tools
       - name: lint-backend-gogit
@@ -71,6 +74,7 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '>=1.20'
+          check-latest: true
       - name: deps-backend
         run: make deps-backend deps-tools
       - name: checks backend
@@ -101,6 +105,7 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '>=1.20'
+          check-latest: true
       - name: setup node
         uses: actions/setup-node@v3
         with:
