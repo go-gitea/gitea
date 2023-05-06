@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/graceful"
@@ -28,7 +29,7 @@ type WorkerPoolQueue[T any] struct {
 	baseConfig    *BaseConfig
 	baseQueue     baseQueue
 
-	started   bool
+	started   atomic.Bool
 	batchChan chan []T
 	flushChan chan flushType
 
@@ -94,7 +95,7 @@ func (q *WorkerPoolQueue[T]) FlushWithContext(ctx context.Context, timeout time.
 	}
 
 	// it won't happen in production, it's for testing purpose only (see the comment of this function), so just do a quick check
-	if !q.started {
+	if !q.started.Load() {
 		return nil
 	}
 
@@ -174,7 +175,7 @@ func (q *WorkerPoolQueue[T]) Has(data T) (bool, error) {
 }
 
 func (q *WorkerPoolQueue[T]) Run(atShutdown, atTerminate func(func())) {
-	q.started = true
+	q.started.Store(true)
 	atShutdown(q.ctxRunCancel)
 	q.doRun()
 }

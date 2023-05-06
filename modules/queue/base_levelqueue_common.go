@@ -5,7 +5,7 @@ package queue
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -73,12 +73,12 @@ func baseLevelQueueCommon(cfg *BaseConfig, internal baseLevelQueuePushPoper, mu 
 func prepareLevelDB(cfg *BaseConfig) (conn string, db *leveldb.DB, err error) {
 	if cfg.ConnStr == "" { // use data dir as conn str
 		if !filepath.IsAbs(cfg.DataFullDir) {
-			return "", nil, errors.New("invalid leveldb data dir")
+			return "", nil, fmt.Errorf("invalid leveldb data dir (not absolute): %q", cfg.DataFullDir)
 		}
 		conn = cfg.DataFullDir
 	} else {
 		if !strings.HasPrefix(cfg.ConnStr, "leveldb://") {
-			return "", nil, errors.New("invalid leveldb connection string")
+			return "", nil, fmt.Errorf("invalid leveldb connection string: %q", cfg.ConnStr)
 		}
 		conn = cfg.ConnStr
 	}
