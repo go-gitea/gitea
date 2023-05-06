@@ -30,6 +30,10 @@ func Organizations(ctx *context.Context) {
 		visibleTypes = append(visibleTypes, structs.VisibleTypeLimited, structs.VisibleTypePrivate)
 	}
 
+	if ctx.FormString("sort") == "" {
+		ctx.SetFormString("sort", UserSearchDefaultSortType)
+	}
+
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeOrganization,
