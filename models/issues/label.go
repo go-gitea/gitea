@@ -176,8 +176,6 @@ func (l *Label) ColorRGB() (float64, float64, float64, error) {
 func (l *Label) UseLightTextColor() bool {
 	if strings.HasPrefix(l.Color, "#") {
 		if r, g, b, err := l.ColorRGB(); err == nil {
-			// Reference from: https://firsching.ch/github_labels.html and https://www.w3.org/WAI/GL/wiki/Relative_luminance
-			// In the future WCAG 3 APCA may be a better solution
 			return util.IsUseLightColor(r, g, b)
 		}
 	}
