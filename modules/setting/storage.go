@@ -47,22 +47,23 @@ func getStorageSection(rootCfg ConfigProvider) ConfigSection {
 }
 
 // getStorage will read storage configurations from 4 possible ways
-// 1 read configurations from given section if the setting keys exist (eg: name="attachments")
-// 2 read configurations from [storage.$name] if the keys exist
+// 1 read configurations from [storage.$name] if the keys exist
+// 2 read configurations from given section if the setting keys exist (eg: name="attachments")
 // 3 read configurations from [storage.$type] if the keys exist (eg: type="local" or "minio")
 // 4 read configurations from [storage] if the keys exist
 // The keys in earlier section have higher priority.
-func getStorage(rootCfg ConfigProvider, startSec ConfigSection, name, typ string) (*Storage, error) {
+func getStorage(rootCfg ConfigProvider, name string, startSec ConfigSection, typ string) (*Storage, error) {
 	if name == "" {
 		return nil, errors.New("getStorage: name cannot be empty")
 	}
 
-	targetSec := startSec
+	nameSec, _ := rootCfg.GetSection(storageSectionName + "." + name)
+
+	targetSec := nameSec
 	if targetSec == nil {
-		targetSec, _ = rootCfg.GetSection(storageSectionName + "." + name)
-	} else {
-		if targetSec.Key("STORAGE_TYPE").String() == "" {
-			targetSec = nil
+		targetSec = startSec
+		if targetSec != nil && targetSec.Key("STORAGE_TYPE").String() == "" {
+			targetSec = nil // startSec's STORAGE_TYPE could be ignored
 		}
 	}
 
