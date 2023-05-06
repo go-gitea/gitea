@@ -54,13 +54,14 @@ func Users(ctx *context.Context) {
 	sortType := ctx.FormString("sort")
 	if sortType == "" {
 		sortType = explore.UserSearchDefaultAdminSort
+		ctx.SetFormValue("sort", sortType)
 	}
 	ctx.PageData["adminUserListSearchForm"] = map[string]interface{}{
 		"StatusFilterMap": statusFilterMap,
 		"SortType":        sortType,
 	}
 
-	explore.RenderUserSearchWithSort(ctx, &user_model.SearchUserOptions{
+	explore.RenderUserSearch(ctx, &user_model.SearchUserOptions{
 		Actor: ctx.Doer,
 		Type:  user_model.UserTypeIndividual,
 		ListOptions: db.ListOptions{
@@ -73,7 +74,7 @@ func Users(ctx *context.Context) {
 		IsTwoFactorEnabled: util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    util.OptionalBoolParse(statusFilterMap["is_prohibit_login"]),
 		ExtraParamStrings:  extraParamStrings,
-	}, tplUsers, explore.UserSearchDefaultAdminSort)
+	}, tplUsers)
 }
 
 // NewUser render adding a new user page

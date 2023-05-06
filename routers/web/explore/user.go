@@ -37,11 +37,6 @@ func isKeywordValid(keyword string) bool {
 
 // RenderUserSearch render user search page
 func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, tplName base.TplName) {
-	RenderUserSearchWithSort(ctx, opts, tplName, UserSearchDefaultSortType)
-}
-
-// RenderUserSearchWithSort render user search page with specific default sort
-func RenderUserSearchWithSort(ctx *context.Context, opts *user_model.SearchUserOptions, tplName base.TplName, defaultSort string) {
 	// Sitemap index for sitemap paths
 	opts.Page = int(ctx.ParamsInt64("idx"))
 	isSitemap := ctx.Params("idx") != ""
@@ -65,12 +60,8 @@ func RenderUserSearchWithSort(ctx *context.Context, opts *user_model.SearchUserO
 
 	// we can not set orderBy to `models.SearchOrderByXxx`, because there may be a JOIN in the statement, different tables may have the same name columns
 
-	sortType := ctx.FormString("sort")
-	if sortType == "" {
-		sortType = defaultSort
-	}
-	ctx.Data["SortType"] = sortType
-	switch sortType {
+	ctx.Data["SortType"] = ctx.FormString("sort")
+	switch ctx.FormString("sort") {
 	case "newest":
 		orderBy = "`user`.id DESC"
 	case "oldest":
@@ -141,6 +132,10 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreUsers"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+
+	if ctx.FormString("sort") == "" {
+		ctx.SetFormValue("sort", UserSearchDefaultSortType)
+	}
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,

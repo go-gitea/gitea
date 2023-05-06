@@ -23,12 +23,16 @@ func Organizations(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.organizations")
 	ctx.Data["PageIsAdminOrganizations"] = true
 
-	explore.RenderUserSearchWithSort(ctx, &user_model.SearchUserOptions{
+	if ctx.FormString("sort") == "" {
+		ctx.SetFormValue("sort", explore.UserSearchDefaultAdminSort)
+	}
+
+	explore.RenderUserSearch(ctx, &user_model.SearchUserOptions{
 		Actor: ctx.Doer,
 		Type:  user_model.UserTypeOrganization,
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.OrgPagingNum,
 		},
 		Visible: []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
-	}, tplOrgs, explore.UserSearchDefaultAdminSort)
+	}, tplOrgs)
 }
