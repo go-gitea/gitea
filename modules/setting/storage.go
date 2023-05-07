@@ -93,7 +93,7 @@ func getStorage(rootCfg ConfigProvider, name string, startSec ConfigSection, typ
 		}
 	}
 
-	// just nameSec and startSec could contains override configurations
+	// just nameSec and startSec could contain override configurations
 	overrideSec := nameSec
 	if overrideSec == nil {
 		overrideSec = startSec
@@ -101,9 +101,13 @@ func getStorage(rootCfg ConfigProvider, name string, startSec ConfigSection, typ
 
 	serveDirect := false
 	path := ""
+	minioBucket := ""
+	minioBasePath := ""
 	if overrideSec != nil {
 		serveDirect = overrideSec.Key("SERVE_DIRECT").MustBool(false)
 		path = overrideSec.Key("PATH").MustString(filepath.Join(AppDataPath, name))
+		minioBucket = overrideSec.Key("MINIO_BUCKET").MustString(targetSec.Key("MINIO_BUCKET").String())
+		minioBasePath = overrideSec.Key("MINIO_BASE_PATH").MustString(name + "/")
 	}
 
 	storage := Storage{
@@ -118,7 +122,8 @@ func getStorage(rootCfg ConfigProvider, name string, startSec ConfigSection, typ
 		storage.Path = filepath.Join(AppWorkPath, storage.Path)
 		storage.Section.Key("PATH").SetValue(storage.Path)
 	}
-	storage.Section.Key("MINIO_BASE_PATH").MustString(name + "/")
+	storage.Section.Key("MINIO_BUCKET").SetValue(minioBucket)
+	storage.Section.Key("MINIO_BASE_PATH").SetValue(minioBasePath)
 
 	return &storage, nil
 }
