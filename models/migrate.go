@@ -53,32 +53,77 @@ func UpdateMilestones(ms ...*issues_model.Milestone) (err error) {
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
-	// check if milestone exists, if not create it
-	// milestones are considered as unique by RepoID and CreatedUnix
-	for _, m := range ms {
-		var existingMilestone *issues_model.Milestone
-		has, err := sess.Where("repo_id = ? AND created_unix = ?", m.RepoID, m.CreatedUnix).Get(&existingMilestone)
-		if err != nil {
-			return err
-		}
-
-		if !has {
-			if _, err = sess.NoAutoTime().Insert(m); err != nil {
-				return err
-			}
-		} else if existingMilestone.Name != m.Name || existingMilestone.Content != m.Content ||
-			existingMilestone.IsClosed != m.IsClosed ||
-			existingMilestone.UpdatedUnix != m.UpdatedUnix || existingMilestone.ClosedDateUnix != m.ClosedDateUnix ||
-			existingMilestone.DeadlineUnix != m.DeadlineUnix {
-			if _, err = sess.NoAutoTime().ID(existingMilestone.ID).Update(m); err != nil {
-				return err
-			}
-		}
-	}
-
-	if _, err = sess.Exec(ctx, "UPDATE `repository` SET num_milestones = num_milestones + ? WHERE id = ?", len(ms), ms[0].RepoID); err != nil {
+	// get existing milestones
+	existingMilestones := make([]*issues_model.Milestone, 0)
+	if err = sess.Where("repo_id = ?", ms[0].RepoID).Find(&existingMilestones); err != nil {
 		return err
 	}
+
+	milestonesToAdd := make([]*issues_model.Milestone, 0)
+	milestonesToUpdate := make([]*issues_model.Milestone, 0)
+	milestonesToDelete := make([]*issues_model.Milestone, 0)
+	foundMap := make(map[int64]bool)
+
+	openCount := 0
+	closedCount := 0
+
+	for _, m := range ms {
+		var foundMilestone *issues_model.Milestone
+		for _, existingMilestone := range existingMilestones {
+			if existingMilestone.CreatedUnix == m.CreatedUnix {
+				foundMilestone = existingMilestone
+				foundMap[existingMilestone.ID] = true
+				break
+			}
+		}
+
+		if foundMilestone == nil {
+			milestonesToAdd = append(milestonesToAdd, m)
+		} else if foundMilestone.UpdatedUnix != m.UpdatedUnix {
+			// consider as updated if updated_unix is different
+			m.ID = foundMilestone.ID
+			milestonesToUpdate = append(milestonesToUpdate, m)
+		}
+
+		if m.IsClosed {
+			closedCount++
+		} else {
+			openCount++
+		}
+	}
+
+	for _, existingMilestone := range existingMilestones {
+		if _, exist := foundMap[existingMilestone.ID]; !exist {
+			milestonesToDelete = append(milestonesToDelete, existingMilestone)
+		}
+	}
+
+	if len(milestonesToAdd) > 0 {
+		if _, err = sess.Insert(milestonesToAdd); err != nil {
+			return err
+		}
+	}
+
+	for _, m := range milestonesToUpdate {
+		if _, err = sess.ID(m.ID).AllCols().Update(m); err != nil {
+			return err
+		}
+	}
+
+	for _, m := range milestonesToDelete {
+		if _, err = sess.ID(m.ID).Delete(m); err != nil {
+			return err
+		}
+	}
+
+	if _, err = sess.ID(ms[0].RepoID).Update(&repo_model.Repository{
+		NumMilestones:       len(ms),
+		NumOpenMilestones:   openCount,
+		NumClosedMilestones: closedCount,
+	}); err != nil {
+		return err
+	}
+
 	return committer.Commit()
 }
 
