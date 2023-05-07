@@ -73,7 +73,7 @@ func DecryptSecret(key, cipherHex string) (string, error) {
 	}
 	plaintext, err := AesDecrypt(keyHash[:], ciphertext)
 	if err != nil {
-		return "", fmt.Errorf("failed to decrypt by secret, secret key (SECRET_KEY) might be incorrect: %w", err)
+		return "", fmt.Errorf("failed to decrypt by secret, the key (maybe SECRET_KEY?) might be incorrect: %w", err)
 	}
 	return string(plaintext), nil
 }

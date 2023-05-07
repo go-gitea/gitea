@@ -24,8 +24,8 @@ func TestEncryptDecrypt(t *testing.T) {
 	assert.ErrorContains(t, err, "invalid hex string")
 
 	_, err = DecryptSecret("a", "bb")
-	assert.ErrorContains(t, err, "secret key (SECRET_KEY) might be incorrect: AesDecrypt ciphertext too short")
+	assert.ErrorContains(t, err, "the key (maybe SECRET_KEY?) might be incorrect: AesDecrypt ciphertext too short")
 
 	_, err = DecryptSecret("a", "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
-	assert.ErrorContains(t, err, "secret key (SECRET_KEY) might be incorrect: AesDecrypt invalid decrtyped base64 string")
+	assert.ErrorContains(t, err, "the key (maybe SECRET_KEY?) might be incorrect: AesDecrypt invalid decrypted base64 string")
 }
