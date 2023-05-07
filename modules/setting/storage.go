@@ -48,7 +48,7 @@ func getStorageSection(rootCfg ConfigProvider) ConfigSection {
 
 // getStorage will read storage configurations from 4 possible ways
 // 1 read configurations from [storage.$name] if the keys exist
-// 2 read configurations from given section if the setting keys exist (eg: name="attachments")
+// 2 read configurations from given section if it's not nil
 // 3 read configurations from [storage.$type] if the keys exist (eg: type="local" or "minio")
 // 4 read configurations from [storage] if the keys exist
 // The keys in earlier section have higher priority.
@@ -88,13 +88,29 @@ func getStorage(rootCfg ConfigProvider, name string, startSec ConfigSection, typ
 			return nil, fmt.Errorf("unknown storage type: %s", storageType)
 		}
 		storageType = targetSec.Key("STORAGE_TYPE").String()
+		if storageType != "local" && storageType != "minio" {
+			return nil, fmt.Errorf("%s should have STORAGE_TYPE as local or minio", storageSectionName+"."+storageType)
+		}
+	}
+
+	// just nameSec and startSec could contains override configurations
+	overrideSec := nameSec
+	if overrideSec == nil {
+		overrideSec = startSec
+	}
+
+	serveDirect := false
+	path := ""
+	if overrideSec != nil {
+		serveDirect = overrideSec.Key("SERVE_DIRECT").MustBool(false)
+		path = overrideSec.Key("PATH").MustString(filepath.Join(AppDataPath, name))
 	}
 
 	storage := Storage{
 		Section:     targetSec,
 		Type:        storageType,
-		ServeDirect: targetSec.Key("SERVE_DIRECT").MustBool(false),
-		Path:        targetSec.Key("PATH").MustString(filepath.Join(AppDataPath, name)),
+		ServeDirect: serveDirect,
+		Path:        path,
 	}
 
 	// Specific defaults

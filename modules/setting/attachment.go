@@ -22,10 +22,9 @@ var Attachment = struct {
 
 func loadAttachmentFrom(rootCfg ConfigProvider) error {
 	sec := rootCfg.Section("attachment")
-	storageType := sec.Key("STORAGE_TYPE").MustString("")
 
 	var err error
-	Attachment.Storage, err = getStorage(rootCfg, sec, "attachments", storageType)
+	Attachment.Storage, err = getStorage(rootCfg, "attachments", sec, "")
 	if err != nil {
 		return err
 	}

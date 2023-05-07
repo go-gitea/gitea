@@ -14,8 +14,8 @@ func loadRepoArchiveFrom(rootCfg ConfigProvider) error {
 	if err := sec.MapTo(&RepoArchive); err != nil {
 		return fmt.Errorf("mapto repoarchive failed: %v", err)
 	}
-	storageType := sec.Key("STORAGE_TYPE").MustString("")
+
 	var err error
-	RepoArchive.Storage, err = getStorage(rootCfg, sec, "repo-archive", storageType)
+	RepoArchive.Storage, err = getStorage(rootCfg, "repo-archive", sec, "")
 	return err
 }

@@ -38,11 +38,10 @@ func loadAvatarsFrom(rootCfg ConfigProvider) error {
 	avatarSec := rootCfg.Section("avatar")
 	storageType := sec.Key("AVATAR_STORAGE_TYPE").MustString("")
 	// Specifically default PATH to AVATAR_UPLOAD_PATH
-	avatarSec.Key("PATH").MustString(
-		sec.Key("AVATAR_UPLOAD_PATH").String())
+	avatarSec.Key("PATH").MustString(sec.Key("AVATAR_UPLOAD_PATH").String())
 
 	var err error
-	Avatar.Storage, err = getStorage(rootCfg, avatarSec, "avatars", storageType)
+	Avatar.Storage, err = getStorage(rootCfg, "avatars", avatarSec, storageType)
 	if err != nil {
 		return err
 	}
@@ -96,7 +95,7 @@ func loadRepoAvatarFrom(rootCfg ConfigProvider) error {
 		sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").String())
 
 	var err error
-	RepoAvatar.Storage, err = getStorage(rootCfg, repoAvatarSec, "repo-avatars", storageType)
+	RepoAvatar.Storage, err = getStorage(rootCfg, "repo-avatars", repoAvatarSec, storageType)
 	if err != nil {
 		return err
 	}

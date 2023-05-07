@@ -30,7 +30,6 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 	}
 
 	lfsSec := rootCfg.Section("lfs")
-	storageType := lfsSec.Key("STORAGE_TYPE").MustString("")
 
 	// Specifically default PATH to LFS_CONTENT_PATH
 	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
@@ -39,7 +38,7 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 	lfsSec.Key("PATH").MustString(sec.Key("LFS_CONTENT_PATH").String())
 
 	var err error
-	LFS.Storage, err = getStorage(rootCfg, lfsSec, "lfs", storageType)
+	LFS.Storage, err = getStorage(rootCfg, "lfs", lfsSec, "")
 	if err != nil {
 		return err
 	}
