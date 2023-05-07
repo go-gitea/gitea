@@ -69,7 +69,7 @@ func (ctx *Context) Close() error {
 	return err
 }
 
-// TrHTMLEscapeArgs runs "locale.Tr()" but pre-escapes all arguments with html.EscapeString.
+// TrHTMLEscapeArgs runs ".Locale.Tr()" but pre-escapes all arguments with html.EscapeString.
 // This is useful if the locale message is intended to only produce HTML content.
 func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
 	trArgs := make([]interface{}, len(args))
