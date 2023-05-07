@@ -5,9 +5,7 @@ package audit
 
 import (
 	"context"
-	"fmt"
 
-	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util/rotatingfilewriter"

@@ -4,6 +4,7 @@
 package audit
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"

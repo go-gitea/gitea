@@ -6,6 +6,7 @@ package rotatingfilewriter
 import (
 	"bufio"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
