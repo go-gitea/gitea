@@ -92,6 +92,8 @@ type Label struct {
 	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
 
+	OriginalID int64 // Only for migrating data from other system, used for syncing
+
 	NumOpenIssues     int    `xorm:"-"`
 	NumOpenRepoIssues int64  `xorm:"-"`
 	IsChecked         bool   `xorm:"-"`
@@ -281,7 +283,9 @@ func deleteLabel(ctx context.Context, id, labelID int64) error {
 
 	if _, err = sess.ID(labelID).Delete(new(Label)); err != nil {
 		return err
-	} else if _, err = sess.
+	}
+
+	if _, err = sess.
 		Where("label_id = ?", labelID).
 		Delete(new(IssueLabel)); err != nil {
 		return err
@@ -444,32 +448,31 @@ func UpdateLabelsByRepoID(repoID int64, labels ...*Label) error {
 	labelsToDelete := make([]*Label, 0)
 
 	for _, l := range labels {
-		color, err := label.NormalizeColor(l.Color)
-		if err != nil {
-			return err
-		}
-		l.Color = color
-
-		found := false
+		var foundLabel *Label
 		for _, existingLabel := range existingLabels {
-			if existingLabel.ID == l.ID {
-				found = true
-				if existingLabel.Name != l.Name || existingLabel.Description != l.Description ||
-					existingLabel.Color != l.Color {
-					labelsToUpdate = append(labelsToUpdate, l)
-				}
+			if existingLabel.OriginalID == l.OriginalID {
+				foundLabel = existingLabel
+				break
 			}
 		}
-		if !found {
+
+		if foundLabel == nil {
 			labelsToAdd = append(labelsToAdd, l)
+		} else {
+			if foundLabel.Name != l.Name || foundLabel.Description != l.Description ||
+				foundLabel.Color != l.Color {
+				l.RepoID = repoID
+				labelsToUpdate = append(labelsToUpdate, l)
+			}
 		}
 	}
 
 	for _, existingLabel := range existingLabels {
 		found := false
 		for _, label := range labels {
-			if label.ID == existingLabel.ID {
+			if label.OriginalID == existingLabel.OriginalID {
 				found = true
+				break
 			}
 		}
 		if !found {
@@ -495,7 +498,7 @@ func UpdateLabelsByRepoID(repoID int64, labels ...*Label) error {
 		}
 	}
 
-	return nil
+	return committer.Commit()
 }
 
 // CountLabelsByRepoID count number of all labels that belong to given repository by ID.

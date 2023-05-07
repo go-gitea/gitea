@@ -282,6 +282,7 @@ func convertGithubLabel(label *github.Label) *base.Label {
 		Name:        label.GetName(),
 		Color:       label.GetColor(),
 		Description: label.GetDescription(),
+		OriginalID:  label.GetID(),
 	}
 }
 

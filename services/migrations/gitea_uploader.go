@@ -259,6 +259,7 @@ func (g *GiteaLocalUploader) convertLabels(labels ...*base.Label) []*issues_mode
 			Exclusive:   l.Exclusive,
 			Description: l.Description,
 			Color:       l.Color,
+			OriginalID:  l.OriginalID,
 		})
 	}
 	return lbs
