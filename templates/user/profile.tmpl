@@ -73,7 +73,7 @@
 									</li>
 								{{end}}
 							{{end}}
-							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} {{DateTime "short" .ContextUser.CreatedUnix}}</li>
+							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.joined_on" (DateTime "short" .ContextUser.CreatedUnix) | Safe}}</li>
 							{{if and .Orgs .HasOrgsVisible}}
 							<li>
 								<ul class="user-orgs">
@@ -135,7 +135,7 @@
 						{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
 					</a>
 					{{end}}
-					{{if .IsRepoIndexerEnabled}}
+					{{if and (not $.UnitTypeCode.UnitGlobalDisabled) .IsRepoIndexerEnabled}}
 					<a class='{{if eq .TabName "code"}}active {{end}}item' href="{{.ContextUser.HomeLink}}/-/code">
 						{{svg "octicon-code"}} {{.locale.Tr "user.code"}}
 					</a>
