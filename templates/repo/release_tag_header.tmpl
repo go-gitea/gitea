@@ -1,7 +1,7 @@
 {{$canReadReleases := $.Permission.CanRead $.UnitTypeReleases}}
 {{$canReadCode := $.Permission.CanRead $.UnitTypeCode}}
-<div class="releases-tag-header gt-df gt-ac">
-	<div class="releases-tag-header-left gt-df gt-ac gt-f1">
+<div class="release-tag-header gt-df gt-ac">
+	<div class="release-tag-header-left gt-df gt-ac gt-f1">
 		{{if $canReadReleases}}
 			<h2 class="ui compact small menu header small-menu-items">
 				<a class="{{if .PageIsReleaseList}}active {{end}}item" href="{{.RepoLink}}/releases">{{.locale.Tr "repo.release.releases"}}</a>
@@ -17,7 +17,7 @@
 			{{template "repo/sub_menu" .}}
 		{{end}}
 	</div>
-	<div class="releases-tag-header-right">
+	<div class="release-tag-header-right">
 		{{if and (not .PageIsTagList) .CanCreateRelease}}
 			<a class="ui right small green button" href="{{$.RepoLink}}/releases/new">
 				{{.locale.Tr "repo.release.new_release"}}
