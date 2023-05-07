@@ -42,6 +42,13 @@ export function toggleElem(el, force) {
   elementsCall(el, toggleShown, force);
 }
 
+export function isElemHidden(el) {
+  const res = [];
+  elementsCall(el, (e) => res.push(e.classList.contains('gt-hidden')));
+  if (res.length > 1) throw new Error(`the hidden check doesn't work for multiple elements`);
+  return res[0];
+}
+
 export function onDomReady(cb) {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', cb);
