@@ -46,7 +46,6 @@ var (
 // Authentications show authentication config page
 func Authentications(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.authentication")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	var err error
@@ -90,7 +89,6 @@ var (
 // NewAuthSource render adding a new auth source page
 func NewAuthSource(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["type"] = auth.LDAP.Int()
@@ -238,7 +236,6 @@ func parseSSPIConfig(ctx *context.Context, form forms.AuthenticationForm) (*sspi
 func NewAuthSourcePost(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AuthenticationForm)
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["CurrentTypeName"] = auth.Type(form.Type).String()
@@ -338,7 +335,6 @@ func NewAuthSourcePost(ctx *context.Context) {
 // EditAuthSource render editing auth source page
 func EditAuthSource(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.edit")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["SecurityProtocols"] = securityProtocols
@@ -374,7 +370,6 @@ func EditAuthSource(ctx *context.Context) {
 func EditAuthSourcePost(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AuthenticationForm)
 	ctx.Data["Title"] = ctx.Tr("admin.auths.edit")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["SMTPAuths"] = smtp.Authenticators

@@ -1,0 +1,264 @@
+name: "Pull: Database Tests"
+
+on: [pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  # PostgreSQL Tests
+  db_pgsql_test:
+    runs-on: ubuntu-latest
+    services:
+      pgsql:
+        image: postgres:15
+        env:
+          POSTGRES_DB: test
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - "5432:5432"
+      ldap:
+        image: gitea/test-openldap:latest
+        ports:
+          - "389:389"
+          - "636:636"
+      minio:
+        # as github actions doesn't support "entrypoint", we need to use a non-official image
+        # that has a custom entrypoint set to "minio server /data"
+        image: bitnami/minio:2021.3.17
+        env:
+          MINIO_ACCESS_KEY: 123456
+          MINIO_SECRET_KEY: 12345678
+        ports:
+          - "9000:9000"
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.20.0'
+      - name: Add hosts to /etc/hosts
+        run: echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts
+      - name: install dependencies
+        run: make deps-backend
+      - name: build
+        run: make backend
+        env:
+          GOPROXY: https://goproxy.io
+          GOSUMDB: sum.golang.org
+          TAGS: bindata
+      - name: run tests
+        run: timeout -s ABRT 50m make test-pgsql-migration test-pgsql
+        env:
+          GOPROXY: https://goproxy.io
+          TAGS: bindata gogit
+          RACE_ENABLED: true
+          TEST_TAGS: gogit
+          TEST_LDAP: 1
+          USE_REPO_TEST_DIR: 1
+
+  # SQLite Tests
+  db_sqlite_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.20.0'
+      - name: install dependencies
+        run: make deps-backend
+      - name: build
+        run: make backend
+        env:
+          GOPROXY: https://goproxy.io
+          GOSUMDB: sum.golang.org
+          TAGS: bindata gogit sqlite sqlite_unlock_notify
+      - name: run tests
+        run: timeout -s ABRT 50m make test-sqlite-migration test-sqlite
+        env:
+          GOPROXY: https://goproxy.io
+          TAGS: bindata gogit sqlite sqlite_unlock_notify
+          RACE_ENABLED: true
+          TEST_TAGS: gogit sqlite sqlite_unlock_notify
+          USE_REPO_TEST_DIR: 1
+
+  # Unit Tests
+  db_unit_tests:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: test
+        ports:
+          - "3306:3306"
+      elasticsearch:
+        image: elasticsearch:7.5.0
+        env:
+          discovery.type: single-node
+        ports:
+          - "9200:9200"
+      smtpimap:
+        image: tabascoterrier/docker-imap-devel:latest
+        ports:
+          - "25:25"
+          - "143:143"
+          - "587:587"
+          - "993:993"
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.20.0'
+      - name: Add hosts to /etc/hosts
+        run: echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts
+      - name: install dependencies
+        run: make deps-backend
+      - name: build
+        run: make backend
+        env:
+          GOPROXY: https://goproxy.io
+          GOSUMDB: sum.golang.org
+          TAGS: bindata
+      - name: unit tests
+        run: make unit-test-coverage test-check
+        env:
+          GOPROXY: https://goproxy.io
+          TAGS: bindata
+          RACE_ENABLED: true
+          GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
+      - name: unit tests (gogit)
+        run: make unit-test-coverage test-check
+        env:
+          GOPROXY: https://goproxy.io
+          TAGS: bindata gogit
+          RACE_ENABLED: true
+          GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
+
+  # MySQL Tests
+  db_mysql_test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: test
+        ports:
+          - "3306:3306"
+      elasticsearch:
+        image: elasticsearch:7.5.0
+        env:
+          discovery.type: single-node
+        ports:
+          - "9200:9200"
+      smtpimap:
+        image: tabascoterrier/docker-imap-devel:latest
+        ports:
+          - "25:25"
+          - "143:143"
+          - "587:587"
+          - "993:993"
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.20.0'
+      - name: Add hosts to /etc/hosts
+        run: echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts
+      - name: install dependencies
+        run: make deps-backend
+      - name: build
+        run: make backend
+        env:
+          GOPROXY: https://goproxy.io
+          GOSUMDB: sum.golang.org
+          TAGS: bindata
+      - name: run tests
+        run: make test-mysql-migration integration-test-coverage
+        env:
+          GOPROXY: https://goproxy.io
+          TAGS: bindata
+          RACE_ENABLED: true
+          USE_REPO_TEST_DIR: 1
+          TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
+
+  # MySQL8 Tests
+  db_mysql8_test:
+    runs-on: ubuntu-latest
+    services:
+      mysql8:
+        image: mysql:8
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: testgitea
+        ports:
+          - "3306:3306"
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.20.0'
+      - name: Add hosts to /etc/hosts
+        run: echo "127.0.0.1 mysql8" | sudo tee -a /etc/hosts
+      - name: install dependencies
+        run: make deps-backend
+      - name: build
+        run: make backend
+        env:
+          GOPROXY: https://goproxy.io
+          GOSUMDB: sum.golang.org
+          TAGS: bindata
+      - name: run tests
+        run: timeout -s ABRT 50m make test-mysql8-migration test-mysql8
+        env:
+          GOPROXY: https://goproxy.io
+          TAGS: bindata
+          USE_REPO_TEST_DIR: 1
+
+  # MSSQL Tests
+  db_mssql_test:
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:latest
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_PID: Standard
+          SA_PASSWORD: MwantsaSecurePassword1
+        ports:
+          - "1433:1433"
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.20.0'
+      - name: Add hosts to /etc/hosts
+        run: echo "127.0.0.1 mssql" | sudo tee -a /etc/hosts
+      - name: install dependencies
+        run: make deps-backend
+      - name: build
+        run: make backend
+        env:
+          GOPROXY: https://goproxy.io
+          GOSUMDB: sum.golang.org
+          TAGS: bindata
+      - name: run tests
+        run: timeout -s ABRT 50m make test-mssql-migration test-mssql
+        env:
+          GOPROXY: https://goproxy.io
+          TAGS: bindata
+          USE_REPO_TEST_DIR: 1

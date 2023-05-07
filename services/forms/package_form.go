@@ -15,7 +15,7 @@ import (
 type PackageCleanupRuleForm struct {
 	ID            int64
 	Enabled       bool
-	Type          string `binding:"Required;In(cargo,chef,composer,conan,conda,container,generic,helm,maven,npm,nuget,pub,pypi,rubygems,swift,vagrant)"`
+	Type          string `binding:"Required;In(cargo,chef,composer,conan,conda,container,debian,generic,helm,maven,npm,nuget,pub,pypi,rpm,rubygems,swift,vagrant)"`
 	KeepCount     int    `binding:"In(0,1,5,10,25,50,100)"`
 	KeepPattern   string `binding:"RegexPattern"`
 	RemoveDays    int    `binding:"In(0,7,14,30,60,90,180)"`

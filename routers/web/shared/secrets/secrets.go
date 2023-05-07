@@ -17,7 +17,16 @@ import (
 	"code.gitea.io/gitea/services/forms"
 )
 
-func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
+func SetSecretsContext(ctx *context.Context, owner *user_model.User, repo *repo_model.Repository) {
+	ownerID := int64(0)
+	if owner != nil {
+		ownerID = owner.ID
+	}
+	repoID := int64(0)
+	if repo != nil {
+		repoID = repo.ID
+	}
+
 	secrets, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{OwnerID: ownerID, RepoID: repoID})
 	if err != nil {
 		ctx.ServerError("FindSecrets", err)

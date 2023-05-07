@@ -96,6 +96,11 @@ else
 	endif
 endif
 
+# if version = "main" then update version to "nightly"
+ifeq ($(VERSION),main)
+	VERSION := main-nightly
+endif
+
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64
@@ -134,7 +139,7 @@ GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
 GO_SOURCES := $(wildcard *.go)
-GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
+GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" ! -path modules/options/bindata.go ! -path modules/public/bindata.go ! -path modules/templates/bindata.go)
 GO_SOURCES += $(GENERATED_GO_DEST)
 GO_SOURCES_NO_BINDATA := $(GO_SOURCES)
 
@@ -278,8 +283,12 @@ clean:
 fmt:
 	GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
-	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it
-	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
+	@# strip whitespace after '{{' or '(' and before '}}' or ')' unless there is only
+	@# whitespace before it
+	@$(SED_INPLACE) \
+		-e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' \
+	  -e 's/([ 	]\{1,\}/(/g' -e '/^[ 	]\{1,\})/! s/[ 	]\{1,\})/)/g' \
+	  $(TEMPLATES)
 
 .PHONY: fmt-check
 fmt-check: fmt

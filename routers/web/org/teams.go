@@ -92,9 +92,17 @@ func TeamsAction(ctx *context.Context) {
 		} else {
 			audit.Record(audit.OrganizationTeamMemberRemove, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "User %s was removed from team %s/%s.", ctx.Doer.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name)
 		}
+
+		redirect := ctx.Org.OrgLink + "/teams/"
+		if isOrgMember, err := org_model.IsOrganizationMember(ctx, ctx.Org.Organization.ID, ctx.Doer.ID); err != nil {
+			ctx.ServerError("IsOrganizationMember", err)
+			return
+		} else if !isOrgMember {
+			redirect = setting.AppSubURL + "/"
+		}
 		ctx.JSON(http.StatusOK,
 			map[string]interface{}{
-				"redirect": ctx.Org.OrgLink + "/teams/",
+				"redirect": redirect,
 			})
 		return
 	case "remove":

@@ -168,7 +168,7 @@ var (
 		Editor: struct {
 			LineWrapExtensions []string
 		}{
-			LineWrapExtensions: strings.Split(".txt,.md,.markdown,.mdown,.mkd,", ","),
+			LineWrapExtensions: strings.Split(".txt,.md,.markdown,.mdown,.mkd,.livemd,", ","),
 		},
 
 		// Repository upload settings
@@ -306,6 +306,10 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 
 	if !rootCfg.Section("packages").Key("ENABLED").MustBool(true) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
+	}
+
+	if !rootCfg.Section("actions").Key("ENABLED").MustBool(true) {
+		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.actions")
 	}
 
 	// Handle default trustmodel settings

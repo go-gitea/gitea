@@ -5,6 +5,8 @@ slug: "template-repositories"
 weight: 14
 toc: false
 draft: false
+aliases:
+  - /en-us/template-repositories
 menu:
   sidebar:
     parent: "usage"

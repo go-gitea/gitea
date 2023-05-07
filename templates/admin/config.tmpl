@@ -238,16 +238,18 @@
 						<dd>{{.Mailer.SMTPPort}}</dd>
 					{{end}}
 					<dt>{{.locale.Tr "admin.config.mailer_user"}}</dt>
-					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd><br>
-					<form class="ui form ignore-dirty" action="{{AppSubUrl}}/admin/config/test_mail" method="post">
-						{{.CsrfTokenHtml}}
-						<div class="inline field ui left">
-							<div class="ui input">
+					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd>
+					<div class="ui divider"></div>
+					<dt class="gt-py-2">{{.locale.Tr "admin.config.send_test_mail"}}</dt>
+					<dd>
+						<form class="ui form ignore-dirty" action="{{AppSubUrl}}/admin/config/test_mail" method="post">
+							{{.CsrfTokenHtml}}
+							<div class="ui tiny input">
 								<input type="email" name="email" placeholder="{{.locale.Tr "admin.config.test_email_placeholder"}}" size="29" required>
 							</div>
-						</div>
-						<button class="ui green button" id="test-mail-btn">{{.locale.Tr "admin.config.send_test_mail"}}</button>
-					</form>
+							<button class="ui tiny green button">{{.locale.Tr "admin.config.send_test_mail_submit"}}</button>
+						</form>
+					</dd>
 				{{end}}
 			</dl>
 		</div>
@@ -363,7 +365,7 @@
 					<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
 					<dd>{{.Name}} ({{.Provider}})</dd>
 					<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-					<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
+					<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
 				{{end}}
 				<div class="ui divider"></div>
 				<dt>{{$.locale.Tr "admin.config.router_log_mode"}}</dt>
@@ -376,7 +378,7 @@
 							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
 							<dd>{{.Name}} ({{.Provider}})</dd>
 							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
+							<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
 						{{end}}
 					{{else}}
 						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
@@ -391,7 +393,7 @@
 							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
 							<dd>{{.Name}} ({{.Provider}})</dd>
 							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
+							<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
 						{{end}}
 					{{else}}
 						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
@@ -410,7 +412,7 @@
 							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
 							<dd>{{.Name}} ({{.Provider}})</dd>
 							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
+							<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
 						{{end}}
 					{{else}}
 						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>

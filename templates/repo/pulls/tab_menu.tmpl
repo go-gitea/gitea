@@ -7,11 +7,11 @@
 	<a class="item {{if .PageIsPullCommits}}active{{end}}" {{if .NumCommits}}href="{{.Issue.Link}}/commits"{{end}}>
 		{{svg "octicon-git-commit"}}
 		{{$.locale.Tr "repo.pulls.tab_commits"}}
-		<span class="ui small label">{{if .NumCommits}}{{.NumCommits}}{{else}}N/A{{end}}</span>
+		<span class="ui small label">{{if .NumCommits}}{{.NumCommits}}{{else}}-{{end}}</span>
 	</a>
 	<a class="item {{if .PageIsPullFiles}}active{{end}}" {{if .NumFiles}}href="{{.Issue.Link}}/files"{{end}}>
 		{{svg "octicon-diff"}}
 		{{$.locale.Tr "repo.pulls.tab_files"}}
-		<span class="ui small label">{{if .NumFiles}}{{.NumFiles}}{{else}}N/A{{end}}</span>
+		<span class="ui small label">{{if .NumFiles}}{{.NumFiles}}{{else}}-{{end}}</span>
 	</a>
 </div>

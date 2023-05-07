@@ -92,7 +92,7 @@ func (ctx *ownerRepoCtx) auditScopeSwitch() any {
 
 // getOwnerRepoCtx determines whether this is a repo, owner, or admin (both default and system) context.
 func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
-	if is, ok := ctx.Data["IsRepositoryWebhook"]; ok && is.(bool) {
+	if ctx.Data["PageIsRepoSettings"] == true {
 		return &ownerRepoCtx{
 			Repo:        ctx.Repo.Repository,
 			Link:        path.Join(ctx.Repo.RepoLink, "settings/hooks"),
@@ -101,7 +101,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 		}, nil
 	}
 
-	if is, ok := ctx.Data["IsOrganizationWebhook"]; ok && is.(bool) {
+	if ctx.Data["PageIsOrgSettings"] == true {
 		return &ownerRepoCtx{
 			Owner:       ctx.ContextUser,
 			Link:        path.Join(ctx.Org.OrgLink, "settings/hooks"),
@@ -110,7 +110,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 		}, nil
 	}
 
-	if is, ok := ctx.Data["IsUserWebhook"]; ok && is.(bool) {
+	if ctx.Data["PageIsUserSettings"] == true {
 		return &ownerRepoCtx{
 			Owner:       ctx.Doer,
 			Link:        path.Join(setting.AppSubURL, "/user/settings/hooks"),
@@ -119,7 +119,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 		}, nil
 	}
 
-	if ctx.Doer.IsAdmin {
+	if ctx.Data["PageIsAdmin"] == true {
 		return &ownerRepoCtx{
 			IsAdmin:         true,
 			IsSystemWebhook: ctx.Params(":configType") == "system-hooks",
