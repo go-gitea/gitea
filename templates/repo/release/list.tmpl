@@ -1,16 +1,9 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository releases">
 	{{template "repo/header" .}}
-	<div class="ui container releases-page">
+	<div class="ui container releases-container">
 		{{template "base/alert" .}}
-		{{template "repo/sub_menu_release_tag" .}}
-
-		{{if .CanCreateRelease}}
-			<a class="ui right small green button" href="{{$.RepoLink}}/releases/new">
-				{{.locale.Tr "repo.release.new_release"}}
-			</a>
-		{{end}}
-
+		{{template "repo/release_tag_header" .}}
 		<ul id="release-list">
 			{{range $idx, $release := .Releases}}
 				<li class="ui grid">

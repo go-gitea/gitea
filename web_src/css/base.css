@@ -2573,6 +2573,16 @@ a.ui.basic.label:hover {
   line-height: .67em;
 }
 
+.rss-icon {
+  display: inline-flex;
+  margin-left: 8px;
+  color: var(--color-text-light-1);
+}
+
+.organization.profile .rss-icon {
+  margin-left: 0;
+}
+
 table th[data-sortt-asc]:hover,
 table th[data-sortt-desc]:hover {
   background: rgba(0, 0, 0, 0.1) !important;
