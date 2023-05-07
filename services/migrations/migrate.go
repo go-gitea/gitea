@@ -507,11 +507,11 @@ func SyncRepository(ctx context.Context, doer *user_model.User, repo *repo_model
 	}
 
 	if err := syncRepository(downloader, uploader, opts, messenger, lastSynced); err != nil {
-		if err1 := uploader.Rollback(); err1 != nil {
-			log.Error("rollback failed: %v", err1)
-		}
-		if err2 := system_model.CreateRepositoryNotice(fmt.Sprintf("Syncing repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
-			log.Error("create repository notice failed: ", err2)
+		// It's different from migration that we shouldn't rollback here,
+		// because the only thing rollback does is to delete the repository
+
+		if err := system_model.CreateRepositoryNotice(fmt.Sprintf("Syncing repository from %s failed: %v", opts.OriginalURL, err)); err != nil {
+			log.Error("create repository notice failed: ", err)
 		}
 		return nil, err
 	}
