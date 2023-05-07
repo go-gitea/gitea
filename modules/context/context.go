@@ -76,7 +76,7 @@ func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
 	for i, arg := range args {
 		trArgs[i] = html.EscapeString(arg)
 	}
-	return ctx.Tr(msg, trArgs...)
+	return ctx.Locale.Tr(msg, trArgs...)
 }
 
 // Deadline is part of the interface for context.Context and we pass this to the request context
