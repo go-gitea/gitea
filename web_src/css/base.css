@@ -438,17 +438,23 @@ a.label,
 }
 
 .ui.basic.red.buttons .button,
-.ui.basic.red.button,
-.ui.basic.red.buttons .button:focus,
-.ui.basic.red.button:focus {
+.ui.basic.red.button {
   color: var(--color-red);
   border-color: var(--color-red);
 }
 
-.ui.basic.red.buttons .button:active,
-.ui.basic.red.button:active {
+.ui.basic.red.buttons .button:hover,
+.ui.basic.red.button:hover,
+.ui.basic.red.buttons .button:focus,
+.ui.basic.red.button:focus {
   color: var(--color-red-dark-1);
   border-color: var(--color-red-dark-1);
+}
+
+.ui.basic.red.buttons .button:active,
+.ui.basic.red.button:active {
+  color: var(--color-red-dark-2);
+  border-color: var(--color-red-dark-2);
 }
 
 .ui.orange.labels .label,
@@ -936,6 +942,26 @@ a.label,
   background: var(--color-red-dark-2);
 }
 
+.ui.basic.negative.buttons .button,
+.ui.basic.negative.button {
+  color: var(--color-red);
+  border-color: var(--color-red);
+}
+
+.ui.basic.negative.buttons .button:hover,
+.ui.basic.negative.button:hover,
+.ui.basic.negative.buttons .button:focus,
+.ui.basic.negative.button:focus {
+  color: var(--color-red-dark-1);
+  border-color: var(--color-red-dark-1);
+}
+
+.ui.basic.negative.buttons .button:active,
+.ui.basic.negative.button:active {
+  color: var(--color-red-dark-2);
+  border-color: var(--color-red-dark-2);
+}
+
 .ui.positive.buttons .button,
 .ui.positive.button {
   background: var(--color-green);
@@ -951,6 +977,26 @@ a.label,
 .ui.positive.buttons .button:active,
 .ui.positive.button:active {
   background: var(--color-green-dark-2);
+}
+
+.ui.basic.positive.buttons .button,
+.ui.basic.positive.button {
+  color: var(--color-green);
+  border-color: var(--color-green);
+}
+
+.ui.basic.positive.buttons .button:hover,
+.ui.basic.positive.button:hover,
+.ui.basic.positive.buttons .button:focus,
+.ui.basic.positive.button:focus {
+  color: var(--color-green-dark-1);
+  border-color: var(--color-green-dark-1);
+}
+
+.ui.basic.positive.buttons .button:active,
+.ui.basic.positive.button:active {
+  color: var(--color-green-dark-2);
+  border-color: var(--color-green-dark-2);
 }
 
 .ui.search > .results {
