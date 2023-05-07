@@ -201,7 +201,14 @@ func GetAllCommits(ctx *context.APIContext) {
 			sha = ctx.Repo.Repository.DefaultBranch
 		}
 
-		commitsCountTotal, err = ctx.Repo.GitRepo.FileCommitsCount(sha, path, not)
+		commitsCountTotal, err = git.CommitsCount(ctx,
+			git.CommitsCountOptions{
+				RepoPath: ctx.Repo.GitRepo.Path,
+				Not:      not,
+				Revision: []string{sha},
+				RelPath:  []string{path},
+			})
+
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "FileCommitsCount", err)
 			return

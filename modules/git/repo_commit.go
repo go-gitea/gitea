@@ -204,11 +204,10 @@ func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bo
 }
 
 // FileCommitsCount return the number of files at a revision
-func (repo *Repository) FileCommitsCount(revision, file, not string) (int64, error) {
+func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
 	return CommitsCount(repo.Ctx,
 		CommitsCountOptions{
 			RepoPath: repo.Path,
-			Not:      not,
 			Revision: []string{revision},
 			RelPath:  []string{file},
 		})
