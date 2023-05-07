@@ -186,24 +186,11 @@ func typeToDescription(val any) TypeDescriptor {
 }
 
 func ReleaseReopen() error {
-	var accumulatedErr error
-	for _, a := range appenders {
-		if err := a.ReleaseReopen(); err != nil {
-			if accumulatedErr == nil {
-				accumulatedErr = fmt.Errorf("Error whilst reopening: %w", err)
-			} else {
-				accumulatedErr = fmt.Errorf("Error whilst reopening: %v & %w", err, accumulatedErr)
-			}
-		}
-	}
-	return accumulatedErr
-
-	// TODO Replace with errors.Join > Go 1.20
-	/*var joinedErr error
+	var joinedErr error
 	for _, a := range appenders {
 		if err := a.ReleaseReopen(); err != nil {
 			joinedErr = errors.Join(joinedErr, err)
 		}
 	}
-	return joinedErr*/
+	return joinedErr
 }
