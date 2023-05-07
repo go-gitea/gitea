@@ -19,24 +19,6 @@ type Appender interface {
 	ReleaseReopen() error
 }
 
-// NoticeAppender creates an admin notice for every audit event
-type NoticeAppender struct{}
-
-func (a *NoticeAppender) Record(ctx context.Context, e *Event) {
-	m := fmt.Sprintf("%s\n\nDoer:   %s\nScope:  %s[%v] %s\nTarget: %s[%v] %s", e.Message, e.Doer.FriendlyName, e.Scope.Type, e.Scope.PrimaryKey, e.Scope.FriendlyName, e.Target.Type, e.Target.PrimaryKey, e.Target.FriendlyName)
-	if err := system.CreateNotice(ctx, system.NoticeAudit, m); err != nil {
-		log.Error("CreateNotice: %v", err)
-	}
-}
-
-func (a *NoticeAppender) Close() error {
-	return nil
-}
-
-func (a *NoticeAppender) ReleaseReopen() error {
-	return nil
-}
-
 // LogAppender writes an info log entry for every audit event
 type LogAppender struct{}
 

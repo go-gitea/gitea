@@ -938,7 +938,7 @@ Default templates for project boards:
 ## Audit Log (`audit`)
 
 - `ENABLED`: **false**: Enable logging of audit events
-- `APPENDER`: **\<empty\>**: Comma seperated list of appenders to log to (possible values: `notice`, `log` or `file`).
+- `APPENDER`: **\<empty\>**: Comma seperated list of appenders to log to (possible values: `log` or `file`).
 
 ## File Audit Log (`audit.file`)
 

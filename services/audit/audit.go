@@ -56,8 +56,6 @@ func Init() {
 		switch name {
 		case "log":
 			a = &LogAppender{}
-		case "notice":
-			a = &NoticeAppender{}
 		case "file":
 			if err := os.MkdirAll(path.Dir(opts.Filename), os.ModePerm); err != nil {
 				panic(err.Error())
