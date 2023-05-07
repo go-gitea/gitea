@@ -458,12 +458,10 @@ func UpdateLabelsByRepoID(repoID int64, labels ...*Label) error {
 
 		if foundLabel == nil {
 			labelsToAdd = append(labelsToAdd, l)
-		} else {
-			if foundLabel.Name != l.Name || foundLabel.Description != l.Description ||
-				foundLabel.Color != l.Color {
-				l.RepoID = repoID
-				labelsToUpdate = append(labelsToUpdate, l)
-			}
+		} else if foundLabel.Name != l.Name || foundLabel.Description != l.Description ||
+			foundLabel.Color != l.Color {
+			l.RepoID = repoID
+			labelsToUpdate = append(labelsToUpdate, l)
 		}
 	}
 
