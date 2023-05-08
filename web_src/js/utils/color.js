@@ -29,6 +29,6 @@ export function getRGBColorFromHex(backgroundColorStr) {
 // Reference from: https://firsching.ch/github_labels.html
 // In the future WCAG 3 APCA may be a better solution.
 // Check if text should use light color based on RGB of background
-export function isUseLightColor(r, g, b) {
+export function useLightTextOnBackground(r, g, b) {
   return getLuminance(r, g, b) < 0.453;
 }

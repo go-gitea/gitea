@@ -1,5 +1,3 @@
-import {getRGBColorFromHex, isUseLightColor} from './utils/color.js';
-
 // transform /path/to/file.ext to file.ext
 export function basename(path = '') {
   return path ? path.replace(/^.*\//, '') : '';
@@ -137,9 +135,3 @@ export function toAbsoluteUrl(url) {
   return `${window.location.origin}${url}`;
 }
 
-// determine if light or dark text color should be used on a given background color
-// NOTE: see models/issue_label.go for similar implementation
-export function useLightTextOnBackground(backgroundColor) {
-  const [r, g, b] = getRGBColorFromHex(backgroundColor);
-  return isUseLightColor(r, g, b);
-}
