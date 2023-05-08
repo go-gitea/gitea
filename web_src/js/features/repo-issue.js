@@ -664,6 +664,7 @@ export function initRepoIssueGotoID() {
       hideElem($('#hashtag-button'));
     }
   });
+}
 
 export function initSingleCommentEditor($commentForm) {
   // pages:
