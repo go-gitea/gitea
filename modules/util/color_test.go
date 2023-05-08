@@ -15,11 +15,11 @@ func Test_HexToRBGColor(t *testing.T) {
 		expectedG   float64
 		expectedB   float64
 	}{
-		{"#2b8685", 43, 134, 133},
-		{"#2b8786", 43, 135, 134},
-		{"#2c8786", 44, 135, 134},
-		{"#3bb6b3", 59, 182, 179},
-		{"#7c7268", 124, 114, 104},
+		{"2b8685", 43, 134, 133},
+		{"2b8786", 43, 135, 134},
+		{"2c8786", 44, 135, 134},
+		{"3bb6b3", 59, 182, 179},
+		{"7c7268", 124, 114, 104},
 		{"#7e716c", 126, 113, 108},
 		{"#807070", 128, 112, 112},
 		{"#81706d", 129, 112, 109},
@@ -34,7 +34,7 @@ func Test_HexToRBGColor(t *testing.T) {
 	}
 }
 
-func Test_IsUseLightColor(t *testing.T) {
+func Test_UseLightTextOnBackground(t *testing.T) {
 	cases := []struct {
 		r        float64
 		g        float64
@@ -60,7 +60,7 @@ func Test_IsUseLightColor(t *testing.T) {
 		{128, 112, 112, true},
 	}
 	for n, c := range cases {
-		result := IsUseLightColor(c.r, c.g, c.b)
+		result := UseLightTextOnBackground(c.r, c.g, c.b)
 		assert.Equal(t, c.expected, result, "case %d: error should match", n)
 	}
 }

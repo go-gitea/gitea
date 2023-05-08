@@ -5,7 +5,10 @@ package util
 import (
 	"math"
 	"strconv"
+	"strings"
 )
+
+// Check similar implementation in modules/util/color.go and keep synchronization
 
 // Return R, G, B values defined in reletive luminance
 func getLuminanceRGB(channel float64) float64 {
@@ -16,9 +19,15 @@ func getLuminanceRGB(channel float64) float64 {
 	return math.Pow((sRGB+0.055)/1.055, 2.4)
 }
 
-// Get color as RGB values in 0..255 range from the hex color string (with #)
+// Get color as RGB values in 0..255 range from the hex color string (with or without #)
 func HexToRBGColor(colorString string) (float64, float64, float64, error) {
-	color, err := strconv.ParseUint(colorString[1:], 16, 64)
+	var color uint64
+	var err error
+	if strings.HasPrefix(colorString, "#") {
+		color, err = strconv.ParseUint(colorString[1:], 16, 64)
+	} else {
+		color, err = strconv.ParseUint(colorString, 16, 64)
+	}
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -41,6 +50,6 @@ func GetLuminance(r, g, b float64) float64 {
 // Reference from: https://firsching.ch/github_labels.html
 // In the future WCAG 3 APCA may be a better solution.
 // Check if text should use light color based on RGB of background
-func IsUseLightColor(r, g, b float64) bool {
+func UseLightTextOnBackground(r, g, b float64) bool {
 	return GetLuminance(r, g, b) < 0.453
 }

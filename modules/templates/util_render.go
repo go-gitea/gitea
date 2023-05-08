@@ -134,7 +134,9 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 	labelScope := label.ExclusiveScope()
 
 	textColor := "#111"
-	if label.UseLightTextColor() {
+	r, g, b, err := util.HexToRBGColor(label.Color)
+	// Determine if label text should be light or dark to be readable on background color
+	if err == nil && util.UseLightTextOnBackground(r, g, b) {
 		textColor = "#eee"
 	}
 
@@ -153,7 +155,7 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 
 	itemColor := label.Color
 	scopeColor := label.Color
-	if r, g, b, err := util.HexToRBGColor(label.Color); err == nil {
+	if err == nil {
 		// Make scope and item background colors slightly darker and lighter respectively.
 		// More contrast needed with higher luminance, empirically tweaked.
 		luminance := util.GetLuminance(r, g, b)
