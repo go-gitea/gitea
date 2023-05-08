@@ -5,7 +5,7 @@
 			<div class="ui five wide column">
 				<div class="ui card">
 					<div id="profile-avatar" class="content gt-df">
-					{{if eq .SignedUserName .ContextUser.Name}}
+					{{if eq .SignedUserID .ContextUser.ID}}
 						<a class="image" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{.locale.Tr "user.change_avatar"}}">
 							{{avatar $.Context .ContextUser 290}}
 						</a>
@@ -30,7 +30,7 @@
 							{{if .ContextUser.Location}}
 								<li>{{svg "octicon-location"}} {{.ContextUser.Location}}</li>
 							{{end}}
-							{{if (eq .SignedUserName .ContextUser.Name)}}
+							{{if (eq .SignedUserID .ContextUser.ID)}}
 								<li>
 									{{svg "octicon-mail"}}
 									<a href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
@@ -73,7 +73,7 @@
 									</li>
 								{{end}}
 							{{end}}
-							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} {{DateTime "short" .ContextUser.CreatedUnix}}</li>
+							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.joined_on" (DateTime "short" .ContextUser.CreatedUnix) | Safe}}</li>
 							{{if and .Orgs .HasOrgsVisible}}
 							<li>
 								<ul class="user-orgs">
@@ -100,7 +100,7 @@
 								</ul>
 							</li>
 							{{end}}
-							{{if and .IsSigned (ne .SignedUserName .ContextUser.Name)}}
+							{{if and .IsSigned (ne .SignedUserID .ContextUser.ID)}}
 							<li class="follow">
 								{{if $.IsFollowing}}
 									<form method="post" action="{{.Link}}?action=unfollow&redirect_to={{$.Link}}">
@@ -135,7 +135,7 @@
 						{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
 					</a>
 					{{end}}
-					{{if .IsRepoIndexerEnabled}}
+					{{if and (not $.UnitTypeCode.UnitGlobalDisabled) .IsRepoIndexerEnabled}}
 					<a class='{{if eq .TabName "code"}}active {{end}}item' href="{{.ContextUser.HomeLink}}/-/code">
 						{{svg "octicon-code"}} {{.locale.Tr "user.code"}}
 					</a>
