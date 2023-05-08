@@ -15,7 +15,7 @@ import (
 const (
 	// TODO: Separate from runners when layout is ready
 	tplRepoVariables base.TplName = "repo/settings/actions"
-	tplOrgVaribales  base.TplName = "org/settings/actions"
+	tplOrgVariables  base.TplName = "org/settings/actions"
 )
 
 type variablesCtx struct {
@@ -41,7 +41,7 @@ func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 		return &variablesCtx{
 			OwnerID:           ctx.ContextUser.ID,
 			IsOrg:             true,
-			VariablesTemplate: tplOrgVaribales,
+			VariablesTemplate: tplOrgVariables,
 			RedirectLink:      ctx.Org.OrgLink + "/settings/actions/variables",
 		}, nil
 	}
