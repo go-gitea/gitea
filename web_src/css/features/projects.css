@@ -80,10 +80,13 @@
 .board-card {
   margin: 4px 2px !important;
   border-radius: 5px !important;
-  cursor: move;
   width: calc(100% - 4px) !important;
   padding: 0.5rem !important;
   min-height: auto !important;
+}
+
+.board-card.sortable {
+  cursor: move;
 }
 
 .board-card .meta * {

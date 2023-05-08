@@ -73,7 +73,7 @@
 	</div>
 	<div class="ui container fluid padded" id="project-board">
 
-		<div class="board">
+		<div class="board {{if .CanWriteProjects}}sortable{{end}}">
 			{{range $board := .Boards}}
 
 			<div class="ui segment board-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
@@ -182,7 +182,7 @@
 					{{range (index $.IssuesMap .ID)}}
 
 					<!-- start issue card -->
-					<div class="card board-card" data-issue="{{.ID}}">
+					<div class="card board-card {{if $.CanWriteProjects}}sortable{{end}}" data-issue="{{.ID}}">
 						{{if eq $.Project.CardType 1}}{{/* Images and Text*/}}
 							<div class="card-attachment-images">
 								{{range (index $.issuesAttachmentMap .ID)}}
