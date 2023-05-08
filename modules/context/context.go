@@ -41,11 +41,11 @@ type Context struct {
 	Data     middleware.ContextData // data used by MVC templates
 	PageData map[string]any         // data used by JavaScript modules in one page, it's `window.config.pageData`
 	Render   Render
-	translation.Locale
-	Cache   cache.Cache
-	Csrf    CSRFProtector
-	Flash   *middleware.Flash
-	Session session.Store
+	Locale   translation.Locale
+	Cache    cache.Cache
+	Csrf     CSRFProtector
+	Flash    *middleware.Flash
+	Session  session.Store
 
 	Link        string // current request URL
 	EscapedLink string
@@ -77,6 +77,14 @@ func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
 		trArgs[i] = html.EscapeString(arg)
 	}
 	return ctx.Locale.Tr(msg, trArgs...)
+}
+
+func (ctx *Context) Tr(msg string, args ...any) string {
+	return ctx.Locale.Tr(msg, args...)
+}
+
+func (ctx *Context) TrN(cnt any, key1, keyN string, args ...any) string {
+	return ctx.Locale.TrN(cnt, key1, keyN, args...)
 }
 
 // Deadline is part of the interface for context.Context and we pass this to the request context
