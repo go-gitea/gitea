@@ -1,3 +1,6 @@
+// Copyright 2023 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package variable
 
 import (
@@ -106,4 +109,25 @@ func FindVariables(ctx context.Context, opts FindVariablesOpts) ([]*Variable, er
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}
 	return variables, sess.Where(opts.toConds()).Find(&variables)
+}
+
+func GetVariableByID(ctx context.Context, variableID int64) (*Variable, error) {
+	var variable Variable
+	has, err := db.GetEngine(ctx).Where("id=?", variableID).Get(&variable)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, fmt.Errorf("variable with id %d: %w", variableID, util.ErrNotExist)
+	}
+	return &variable, nil
+}
+
+func UpdateVariable(ctx context.Context, variable *Variable) (bool, error) {
+	count, err := db.GetEngine(ctx).ID(variable.ID).Cols("name", "data").
+		Where("owner_id = ? and repo_id = ?", variable.OwnerID, variable.RepoID).
+		Update(&Variable{
+			Name: variable.Name,
+			Data: variable.Data,
+		})
+	return count != 0, err
 }

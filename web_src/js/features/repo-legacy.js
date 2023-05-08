@@ -19,7 +19,7 @@ import {initRepoDiffConversationNav} from './repo-diff.js';
 import {createDropzone} from './dropzone.js';
 import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
-import {initRepoSettingBranches} from './repo-settings.js';
+import {initRepoSettingBranches, initRepoSettingVariables} from './repo-settings.js';
 import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
 import {hideElem, showElem} from '../utils/dom.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
@@ -532,6 +532,7 @@ export function initRepository() {
   initCitationFileCopyContent();
   initRepoCommonLanguageStats();
   initRepoSettingBranches();
+  initRepoSettingVariables();
 
   // Issues
   if ($('.repository.view.issue').length > 0) {

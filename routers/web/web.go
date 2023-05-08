@@ -290,6 +290,15 @@ func registerRoutes(m *web.Route) {
 		m.Post("/packagist/{id}", web.Bind(forms.NewPackagistHookForm{}), repo.PackagistHooksEditPost)
 	}
 
+	addSettingVariablesRoutes := func() {
+		m.Group("/variables", func() {
+			m.Get("", repo_setting.Variables)
+			m.Post("/new", web.Bind(forms.EditVariableForm{}), repo_setting.VariableCreate)
+			m.Post("/{variableID}/edit", web.Bind(forms.EditVariableForm{}), repo_setting.VariableUpdate)
+			m.Post("/{variableID}/delete", repo_setting.VariableDelete)
+		})
+	}
+
 	addSettingsSecretsRoutes := func() {
 		m.Group("/secrets", func() {
 			m.Get("", repo_setting.Secrets)
@@ -934,6 +943,7 @@ func registerRoutes(m *web.Route) {
 				m.Get("", repo_setting.RedirectToDefaultSetting)
 				addSettingsRunnersRoutes()
 				addSettingsSecretsRoutes()
+				addSettingVariablesRoutes()
 			}, actions.MustEnableActions)
 		}, ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer))
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoAdmin, context.RepoRef())

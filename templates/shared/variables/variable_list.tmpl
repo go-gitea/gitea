@@ -1,0 +1,96 @@
+<h4 class="ui top attached header">
+	{{.locale.Tr "actions.variables.management"}}
+	<div class="ui right">
+		<button class="ui primary tiny show-modal show-variable-edit-modal button"
+      data-is-new="true"
+      data-base-action="{{.Link}}/new"
+      data-modal="#edit-variable-modal"
+      data-modal-header="{{.locale.Tr "actions.variables.creation"}}"
+    >
+      {{.locale.Tr "actions.variables.creation"}}
+    </button>
+	</div>
+</h4>
+<div class="ui attached segment">
+  {{if .Variables}}
+  <div class="ui key list">
+    {{range .Variables}}
+    <div class="item">
+      <div class="right floated content">
+        <i class="color-text-light-2 gt-mr-5">
+          {{$.locale.Tr "settings.add_on"}}
+          <span>{{.CreatedUnix.FormatShort}}</span>
+        </i>
+        <button class="ui tertiary button show-modal show-variable-edit-modal gt-mx-3"
+          data-is-new="false"
+          data-old-name="{{.Name}}"
+          data-old-value="{{.Data}}"
+          data-modal="#edit-variable-modal"
+          data-base-action="{{$.Link}}/{{.ID}}/edit"
+          data-modal-header="{{$.locale.Tr "actions.variables.edit"}}"
+          data-tooltip-content="{{$.locale.Tr "actions.variables.edit_tooltip" .Name}}"
+        >
+          {{svg "octicon-pencil"}}
+        </button>
+        <button class="ui tertiary button delete-button gt-mx-3" 
+          data-url="{{$.Link}}/{{.ID}}/delete" 
+          data-tooltip-content="{{$.locale.Tr "actions.variables.delete" .Name}}"
+        >
+          {{svg "octicon-trash"}}
+        </button>
+      </div>
+      <div class="content">
+				<strong>{{.Name}}</strong>
+				<div class="print meta">{{.Data}}</div>
+			</div>
+    </div>
+    {{end}}
+  </div>
+  {{else}}
+    {{.locale.Tr "actions.variables.none"}}
+  {{end}}
+</div>
+
+<div class="ui small modal" id="edit-variable-modal">
+	<div class="header">
+    <span id="variable-edit-header"></span>
+	</div>
+	<form class="ui form" action="" method="post">
+		<div class="content">
+			{{.CsrfTokenHtml}}
+			<div class="field">
+				{{.locale.Tr "actions.variables.description"}}
+			</div>
+			<div class="field">
+				<label for="variable-title">{{.locale.Tr "actions.variables.name"}}</label>
+				<input autofocus required
+          name="name"
+          id="variable-title"
+          value="{{.title}}"
+          pattern="^[a-zA-Z_][a-zA-Z0-9_]*$"
+          placeholder="{{.locale.Tr "secrets.creation.name_placeholder"}}"
+        >
+			</div>
+			<div class="field">
+				<label for="secret-content">{{.locale.Tr "actions.variables.value"}}</label>
+				<textarea required
+          id="secret-content"
+          name="data"
+          placeholder="{{.locale.Tr "secrets.creation.value_placeholder"}}">
+        </textarea>
+			</div>
+    </div>
+		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
+	</form>
+</div>
+
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
+		{{svg "octicon-trash"}}
+		{{.locale.Tr "actions.variables.deletion"}}
+	</div>
+	<div class="content">
+		<p>{{.locale.Tr "actions.variables.deletion.description"}}</p>
+	</div>
+	{{template "base/modal_actions_confirm" .}}
+</div>
