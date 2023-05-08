@@ -60,10 +60,26 @@ func getStorage(rootCfg ConfigProvider, name string, startSec ConfigSection, typ
 	nameSec, _ := rootCfg.GetSection(storageSectionName + "." + name)
 
 	targetSec := nameSec
+	storageType := ""
 	if targetSec == nil {
 		targetSec = startSec
-		if targetSec != nil && targetSec.Key("STORAGE_TYPE").String() == "" {
-			targetSec = nil // startSec's STORAGE_TYPE could be ignored
+		if targetSec != nil {
+			storageType = targetSec.Key("STORAGE_TYPE").String()
+			if storageType == "" {
+				targetSec = nil // startSec's STORAGE_TYPE could be ignored
+			} else {
+				storageSec, _ := rootCfg.GetSection(storageSectionName + "." + storageType)
+				if storageSec != nil {
+					targetSec = storageSec
+					if storageType != "local" && storageType != "minio" {
+						storageType = targetSec.Key("STORAGE_TYPE").MustString("local")
+					}
+				} else {
+					if storageType != "local" && storageType != "minio" {
+						return nil, fmt.Errorf("unknown storage type: %s", storageType)
+					}
+				}
+			}
 		}
 	}
 
@@ -80,7 +96,7 @@ func getStorage(rootCfg ConfigProvider, name string, startSec ConfigSection, typ
 		}
 	}
 
-	storageType := targetSec.Key("STORAGE_TYPE").MustString("local")
+	storageType = targetSec.Key("STORAGE_TYPE").MustString("local")
 	if storageType != "local" && storageType != "minio" {
 		var err error
 		targetSec, err = rootCfg.GetSection(storageSectionName + "." + storageType)
@@ -100,14 +116,14 @@ func getStorage(rootCfg ConfigProvider, name string, startSec ConfigSection, typ
 	}
 
 	serveDirect := false
-	path := ""
-	minioBucket := ""
-	minioBasePath := ""
+	path := filepath.Join(AppDataPath, name)
+	minioBucket := targetSec.Key("MINIO_BUCKET").String()
+	minioBasePath := name + "/"
 	if overrideSec != nil {
 		serveDirect = overrideSec.Key("SERVE_DIRECT").MustBool(false)
-		path = overrideSec.Key("PATH").MustString(filepath.Join(AppDataPath, name))
-		minioBucket = overrideSec.Key("MINIO_BUCKET").MustString(targetSec.Key("MINIO_BUCKET").String())
-		minioBasePath = overrideSec.Key("MINIO_BASE_PATH").MustString(name + "/")
+		path = overrideSec.Key("PATH").MustString(path)
+		minioBucket = overrideSec.Key("MINIO_BUCKET").MustString(minioBucket)
+		minioBasePath = overrideSec.Key("MINIO_BASE_PATH").MustString(minioBasePath)
 	}
 
 	storage := Storage{
