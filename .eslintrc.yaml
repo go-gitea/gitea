@@ -665,7 +665,6 @@ rules:
   unicorn/prefer-at: [0]
   unicorn/prefer-blob-reading-methods: [2]
   unicorn/prefer-code-point: [0]
-  unicorn/prefer-dataset: [2]
   unicorn/prefer-date-now: [2]
   unicorn/prefer-default-parameters: [0]
   unicorn/prefer-dom-node-append: [2]
