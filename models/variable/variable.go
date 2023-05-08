@@ -43,7 +43,7 @@ type ErrVariableInvalidValue struct {
 
 func (err ErrVariableInvalidValue) Error() string {
 	if err.Name != nil {
-		return fmt.Sprintf("varibale name %s is invalid", *err.Name)
+		return fmt.Sprintf("variable name %s is invalid", *err.Name)
 	}
 	if err.Data != nil {
 		return fmt.Sprintf("variable data %s is invalid", *err.Data)
@@ -54,7 +54,7 @@ func (err ErrVariableInvalidValue) Error() string {
 // some regular expression of `variables`
 // reference to: https://docs.github.com/en/actions/learn-github-actions/variables#naming-conventions-for-configuration-variables
 var (
-	varibaleNameReg            = regexp.MustCompile("(?i)^[A-Z_][A-Z0-9_]*$")
+	variableNameReg            = regexp.MustCompile("(?i)^[A-Z_][A-Z0-9_]*$")
 	variableForbiddenPrefixReg = regexp.MustCompile("(?i)^GIT(EA|HUB)_")
 )
 
@@ -66,7 +66,7 @@ func (v *Variable) Validate() error {
 		return ErrVariableInvalidValue{Name: &v.Name}
 	case len(v.Data) == 0:
 		return ErrVariableInvalidValue{Data: &v.Data}
-	case !varibaleNameReg.MatchString(v.Name) || variableForbiddenPrefixReg.MatchString(v.Name):
+	case !variableNameReg.MatchString(v.Name) || variableForbiddenPrefixReg.MatchString(v.Name):
 		return ErrVariableInvalidValue{Name: &v.Name}
 	default:
 		return nil

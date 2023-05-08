@@ -492,7 +492,7 @@ var migrations = []Migration{
 	// v256 -> v257
 	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
 	// v257 -> v258
-	NewMigration("Add varibale table", v1_20.CreateVariableTable),
+	NewMigration("Add variable table", v1_20.CreateVariableTable),
 }
 
 // GetCurrentDBVersion returns the current db version
