@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
-	"code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -1063,59 +1062,6 @@ func UnitTypes() func(ctx *Context) {
 	}
 }
 
-// IssueTemplatesFromDefaultBranch checks for valid issue templates in the repo's default branch,
-func (ctx *Context) IssueTemplatesFromDefaultBranch() []*api.IssueTemplate {
-	ret, _ := ctx.IssueTemplatesErrorsFromDefaultBranch()
-	return ret
-}
-
-// IssueTemplatesErrorsFromDefaultBranch checks for issue templates in the repo's default branch,
-// returns valid templates and the errors of invalid template files.
-func (ctx *Context) IssueTemplatesErrorsFromDefaultBranch() ([]*api.IssueTemplate, map[string]error) {
-	var issueTemplates []*api.IssueTemplate
-
-	if ctx.Repo.Repository.IsEmpty {
-		return issueTemplates, nil
-	}
-
-	if ctx.Repo.Commit == nil {
-		var err error
-		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-		if err != nil {
-			return issueTemplates, nil
-		}
-	}
-
-	invalidFiles := map[string]error{}
-	for _, dirName := range IssueTemplateDirCandidates {
-		tree, err := ctx.Repo.Commit.SubTree(dirName)
-		if err != nil {
-			log.Debug("get sub tree of %s: %v", dirName, err)
-			continue
-		}
-		entries, err := tree.ListEntries()
-		if err != nil {
-			log.Debug("list entries in %s: %v", dirName, err)
-			return issueTemplates, nil
-		}
-		for _, entry := range entries {
-			if !template.CouldBe(entry.Name()) {
-				continue
-			}
-			fullName := path.Join(dirName, entry.Name())
-			if it, err := template.UnmarshalFromEntry(entry, dirName); err != nil {
-				invalidFiles[fullName] = err
-			} else {
-				if !strings.HasPrefix(it.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
-					it.Ref = git.BranchPrefix + it.Ref
-				}
-				issueTemplates = append(issueTemplates, it)
-			}
-		}
-	}
-	return issueTemplates, invalidFiles
-}
-
 func GetDefaultIssueConfig() api.IssueConfig {
 	return api.IssueConfig{
 		BlankIssuesEnabled: true,
@@ -1177,31 +1123,6 @@ func (r *Repository) GetIssueConfig(path string, commit *git.Commit) (api.IssueC
 	return issueConfig, nil
 }
 
-// IssueConfigFromDefaultBranch returns the issue config for this repo.
-// It never returns a nil config.
-func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
-	if ctx.Repo.Repository.IsEmpty {
-		return GetDefaultIssueConfig(), nil
-	}
-
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-	if err != nil {
-		return GetDefaultIssueConfig(), err
-	}
-
-	for _, configName := range IssueConfigCandidates {
-		if _, err := commit.GetTreeEntryByPath(configName + ".yaml"); err == nil {
-			return ctx.Repo.GetIssueConfig(configName+".yaml", commit)
-		}
-
-		if _, err := commit.GetTreeEntryByPath(configName + ".yml"); err == nil {
-			return ctx.Repo.GetIssueConfig(configName+".yml", commit)
-		}
-	}
-
-	return GetDefaultIssueConfig(), nil
-}
-
 // IsIssueConfig returns if the given path is a issue config file.
 func (r *Repository) IsIssueConfig(path string) bool {
 	for _, configName := range IssueConfigCandidates {
@@ -1210,13 +1131,4 @@ func (r *Repository) IsIssueConfig(path string) bool {
 		}
 	}
 	return false
-}
-
-func (ctx *Context) HasIssueTemplatesOrContactLinks() bool {
-	if len(ctx.IssueTemplatesFromDefaultBranch()) > 0 {
-		return true
-	}
-
-	issueConfig, _ := ctx.IssueConfigFromDefaultBranch()
-	return len(issueConfig.ContactLinks) > 0
 }
