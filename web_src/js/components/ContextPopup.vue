@@ -77,7 +77,7 @@ export default {
     labels() {
       return this.issue.labels.map((label) => {
         let textColor;
-        const [r, g, b] = hexToRGBColor(label.color)
+        const [r, g, b] = hexToRGBColor(label.color);
         if (useLightTextOnBackground(r, g, b)) {
           textColor = '#eeeeee';
         } else {
