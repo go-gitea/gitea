@@ -536,6 +536,7 @@ export function ansiLogToHTML(line) {
   width: 48px;
   color: var(--color-grey-light);
   text-align: right;
+  user-select: none;
 }
 
 .job-step-section .job-step-logs .job-log-line .log-time {
