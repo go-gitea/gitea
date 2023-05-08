@@ -6,13 +6,13 @@
         <div class="action-title">
           {{ run.title }}
         </div>
-        <button class="action-control-button text green" @click="approveRun()" v-if="run.canApprove">
+        <button :data-tooltip-content="locale.approve" class="action-control-button text green" @click="approveRun()" v-if="run.canApprove">
           <SvgIcon name="octicon-play" :size="20"/>
         </button>
-        <button class="action-control-button text red" @click="cancelRun()" v-else-if="run.canCancel">
+        <button :data-tooltip-content="locale.cancel" class="action-control-button text red" @click="cancelRun()" v-else-if="run.canCancel">
           <SvgIcon name="octicon-x-circle-fill" :size="20"/>
         </button>
-        <button class="action-control-button text green" @click="rerun()" v-else-if="run.canRerun">
+        <button :data-tooltip-content="locale.rerun" class="action-control-button text green" @click="rerun()" v-else-if="run.canRerun">
           <SvgIcon name="octicon-sync" :size="20"/>
         </button>
       </div>
@@ -93,6 +93,7 @@ const sfc = {
     runIndex: String,
     jobIndex: String,
     actionsURL: String,
+    locale: Object,
   },
 
   data() {
@@ -314,6 +315,11 @@ export function initRepositoryActionView() {
     runIndex: el.getAttribute('data-run-index'),
     jobIndex: el.getAttribute('data-job-index'),
     actionsURL: el.getAttribute('data-actions-url'),
+    locale: {
+      approve: el.getAttribute('data-locale-approve'),
+      cancel: el.getAttribute('data-locale-cancel'),
+      rerun: el.getAttribute('data-locale-rerun'),
+    }
   });
   view.mount(el);
 }
