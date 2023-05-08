@@ -80,7 +80,7 @@ import {initRepositoryActionView} from './components/RepoActionView.vue';
 import {initGlobalTooltips} from './modules/tippy.js';
 import {initGiteaFomantic} from './modules/fomantic.js';
 import {onDomReady} from './utils/dom.js';
-import { initRepoIssueList } from './features/repo-issue-list.js';
+import {initRepoIssueList} from './features/repo-issue-list.js';
 import {initSettingVariables} from './features/shared.js';
 
 // Init Gitea's Fomantic settings
