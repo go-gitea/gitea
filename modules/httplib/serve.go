@@ -76,7 +76,7 @@ func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
 }
 
 // ServeData download file from io.Reader
-func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, filePath string, mineBuf []byte) error {
+func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, filePath string, mineBuf []byte) {
 	// do not set "Content-Length", because the length could only be set by callers, and it needs to support range requests
 	opts := &ServeHeaderOptions{
 		Filename: path.Base(filePath),
@@ -129,23 +129,21 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, filePath stri
 	}
 
 	ServeSetHeaders(w, opts)
-	return nil
 }
 
 const mimeDetectionBufferLen = 1024
 
-func ServeContentByReader(r *http.Request, w http.ResponseWriter, filePath string, size int64, reader io.Reader) error {
+func ServeContentByReader(r *http.Request, w http.ResponseWriter, filePath string, size int64, reader io.Reader) {
 	buf := make([]byte, mimeDetectionBufferLen)
 	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {
-		return err
+		http.Error(w, "serve content: unable to pre-read", http.StatusRequestedRangeNotSatisfiable)
+		return
 	}
 	if n >= 0 {
 		buf = buf[:n]
 	}
-	if err = setServeHeadersByFile(r, w, filePath, buf); err != nil {
-		return err
-	}
+	setServeHeadersByFile(r, w, filePath, buf)
 
 	// reset the reader to the beginning
 	reader = io.MultiReader(bytes.NewReader(buf), reader)
@@ -157,8 +155,8 @@ func ServeContentByReader(r *http.Request, w http.ResponseWriter, filePath strin
 		if size >= 0 {
 			w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 		}
-		_, err = io.Copy(w, reader)
-		return err
+		_, _ = io.Copy(w, reader) // just like http.ServeContent, not necessary to handle the error
+		return
 	}
 
 	// do our best to support the minimal "Range" request (no support for multiple range: "Range: bytes=0-50, 100-150")
@@ -178,7 +176,7 @@ func ServeContentByReader(r *http.Request, w http.ResponseWriter, filePath strin
 	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusRequestedRangeNotSatisfiable)
-		return err
+		return
 	}
 	end, err := strconv.ParseInt(rangeBytesEnd, 10, 64)
 	if rangeBytesEnd == "" && found {
@@ -193,36 +191,35 @@ func ServeContentByReader(r *http.Request, w http.ResponseWriter, filePath strin
 	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return err
+		return
 	}
 
 	partialLength := end - start + 1
 	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, size))
 	w.Header().Set("Content-Length", strconv.FormatInt(partialLength, 10))
 	if _, err = io.CopyN(io.Discard, reader, start); err != nil {
-		return fmt.Errorf("unable to skip first %d bytes: %w", start, err)
+		http.Error(w, "serve content: unable to skip", http.StatusRequestedRangeNotSatisfiable)
+		return
 	}
 
 	w.WriteHeader(http.StatusPartialContent)
-	_, err = io.CopyN(w, reader, partialLength)
-	return err
+	_, _ = io.CopyN(w, reader, partialLength) // just like http.ServeContent, not necessary to handle the error
 }
 
-func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, filePath string, modTime time.Time, reader io.ReadSeeker) error {
+func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, filePath string, modTime time.Time, reader io.ReadSeeker) {
 	buf := make([]byte, mimeDetectionBufferLen)
 	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {
-		return err
+		http.Error(w, "serve content: unable to read", http.StatusInternalServerError)
+		return
 	}
 	if _, err = reader.Seek(0, io.SeekStart); err != nil {
-		return err
+		http.Error(w, "serve content: unable to seek", http.StatusInternalServerError)
+		return
 	}
 	if n >= 0 {
 		buf = buf[:n]
 	}
-	if err = setServeHeadersByFile(r, w, filePath, buf); err != nil {
-		return err
-	}
+	setServeHeadersByFile(r, w, filePath, buf)
 	http.ServeContent(w, r, path.Base(filePath), modTime, reader)
-	return nil
 }

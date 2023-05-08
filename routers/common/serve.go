@@ -30,13 +30,14 @@ func ServeBlob(ctx *context.Context, blob *git.Blob, lastModified time.Time) err
 		}
 	}()
 
-	return httplib.ServeContentByReader(ctx.Req, ctx.Resp, ctx.Repo.TreePath, blob.Size(), dataRc)
+	httplib.ServeContentByReader(ctx.Req, ctx.Resp, ctx.Repo.TreePath, blob.Size(), dataRc)
+	return nil
 }
 
-func ServeContentByReader(ctx *context.Context, filePath string, size int64, reader io.Reader) error {
-	return httplib.ServeContentByReader(ctx.Req, ctx.Resp, filePath, size, reader)
+func ServeContentByReader(ctx *context.Context, filePath string, size int64, reader io.Reader) {
+	httplib.ServeContentByReader(ctx.Req, ctx.Resp, filePath, size, reader)
 }
 
-func ServeContentByReadSeeker(ctx *context.Context, filePath string, modTime time.Time, reader io.ReadSeeker) error {
-	return httplib.ServeContentByReadSeeker(ctx.Req, ctx.Resp, filePath, modTime, reader)
+func ServeContentByReadSeeker(ctx *context.Context, filePath string, modTime time.Time, reader io.ReadSeeker) {
+	httplib.ServeContentByReadSeeker(ctx.Req, ctx.Resp, filePath, modTime, reader)
 }

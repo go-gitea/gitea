@@ -26,13 +26,11 @@ func TestServeContentByReader(t *testing.T) {
 		}
 		reader := strings.NewReader(data)
 		w := NewMockResponseWriter()
-		err := ServeContentByReader(r, w, "test", int64(len(data)), reader)
+		ServeContentByReader(r, w, "test", int64(len(data)), reader)
 		assert.Equal(t, expectedStatusCode, w.StatusCode)
 		if expectedStatusCode == http.StatusPartialContent || expectedStatusCode == http.StatusOK {
 			assert.Equal(t, fmt.Sprint(len(expectedContent)), w.Header().Get("Content-Length"))
 			assert.Equal(t, expectedContent, w.BodyBuffer.String())
-		} else {
-			assert.Error(t, err)
 		}
 	}
 
@@ -79,7 +77,7 @@ func TestServeContentByReadSeeker(t *testing.T) {
 		defer seekReader.Close()
 
 		w := NewMockResponseWriter()
-		_ = ServeContentByReadSeeker(r, w, "test", time.Time{}, seekReader)
+		ServeContentByReadSeeker(r, w, "test", time.Time{}, seekReader)
 		assert.Equal(t, expectedStatusCode, w.StatusCode)
 		if expectedStatusCode == http.StatusPartialContent || expectedStatusCode == http.StatusOK {
 			assert.Equal(t, fmt.Sprint(len(expectedContent)), w.Header().Get("Content-Length"))
