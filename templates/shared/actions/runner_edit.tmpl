@@ -25,7 +25,7 @@
 				</div>
 				<div class="field gt-dib gt-mr-4">
 					<label>{{.locale.Tr "actions.runners.owner_type"}}</label>
-					<span data-tooltip-content="{{.Runner.BelongsTo}}">{{.Runner.Type.LocaleString $.locale}}</span>
+					<span data-tooltip-content="{{.Runner.BelongsToOwnerName}}">{{.Runner.BelongsToOwnerType.LocaleString $.locale}}</span>
 				</div>
 			</div>
 
