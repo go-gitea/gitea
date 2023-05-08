@@ -5,6 +5,8 @@ slug: "pull-request"
 weight: 13
 toc: false
 draft: false
+aliases:
+  - /zh-cn/pull-request
 menu:
   sidebar:
     parent: "usage"

@@ -109,16 +109,16 @@ func TestHasUnmergedPullRequestsByHeadInfo(t *testing.T) {
 
 	exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(db.DefaultContext, 1, "branch2")
 	assert.NoError(t, err)
-	assert.Equal(t, true, exist)
+	assert.True(t, exist)
 
 	exist, err = issues_model.HasUnmergedPullRequestsByHeadInfo(db.DefaultContext, 1, "not_exist_branch")
 	assert.NoError(t, err)
-	assert.Equal(t, false, exist)
+	assert.False(t, exist)
 }
 
 func TestGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(1, "branch2", false)
+	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(1, "branch2")
 	assert.NoError(t, err)
 	assert.Len(t, prs, 1)
 	for _, pr := range prs {

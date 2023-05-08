@@ -1,10 +1,12 @@
 ---
 date: "2023-03-04T19:00:00+00:00"
-title: "Usage: Labels"
+title: "Labels"
 slug: "labels"
 weight: 13
 toc: false
 draft: false
+aliases:
+  - /en-us/labels
 menu:
   sidebar:
     parent: "usage"

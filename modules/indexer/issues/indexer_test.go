@@ -16,7 +16,6 @@ import (
 	_ "code.gitea.io/gitea/models"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/ini.v1"
 )
 
 func TestMain(m *testing.M) {
@@ -27,7 +26,7 @@ func TestMain(m *testing.M) {
 
 func TestBleveSearchIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	setting.CfgProvider = ini.Empty()
+	setting.CfgProvider = setting.NewEmptyConfigProvider()
 
 	tmpIndexerDir := t.TempDir()
 

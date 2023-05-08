@@ -5,7 +5,6 @@ package test
 
 import (
 	scontext "context"
-	"html/template"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -18,24 +17,26 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	chi "github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
-	"github.com/unrolled/render"
 )
 
 // MockContext mock context for unit tests
+// TODO: move this function to other packages, because it depends on "models" package
 func MockContext(t *testing.T, path string) *context.Context {
 	resp := &mockResponseWriter{}
 	ctx := context.Context{
 		Render: &mockRender{},
-		Data:   make(map[string]interface{}),
+		Data:   make(middleware.ContextData),
 		Flash: &middleware.Flash{
 			Values: make(url.Values),
 		},
 		Resp:   context.NewResponse(resp),
-		Locale: &mockLocale{},
+		Locale: &translation.MockLocale{},
 	}
 	defer ctx.Close()
 
@@ -92,20 +93,6 @@ func LoadGitRepo(t *testing.T, ctx *context.Context) {
 	assert.NoError(t, err)
 }
 
-type mockLocale struct{}
-
-func (l mockLocale) Language() string {
-	return "en"
-}
-
-func (l mockLocale) Tr(s string, _ ...interface{}) string {
-	return s
-}
-
-func (l mockLocale) TrN(_cnt interface{}, key1, _keyN string, _args ...interface{}) string {
-	return key1
-}
-
 type mockResponseWriter struct {
 	httptest.ResponseRecorder
 	size int
@@ -134,11 +121,11 @@ func (rw *mockResponseWriter) Push(target string, opts *http.PushOptions) error 
 
 type mockRender struct{}
 
-func (tr *mockRender) TemplateLookup(tmpl string) *template.Template {
-	return nil
+func (tr *mockRender) TemplateLookup(tmpl string) (templates.TemplateExecutor, error) {
+	return nil, nil
 }
 
-func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}, _ ...render.HTMLOptions) error {
+func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}) error {
 	if resp, ok := w.(http.ResponseWriter); ok {
 		resp.WriteHeader(status)
 	}

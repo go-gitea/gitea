@@ -5,6 +5,8 @@ slug: "guidelines-backend"
 weight: 20
 toc: false
 draft: false
+aliases:
+  - /en-us/guidelines-backend
 menu:
   sidebar:
     parent: "contributing"

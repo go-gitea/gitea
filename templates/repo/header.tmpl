@@ -52,7 +52,7 @@
 						<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
 							<div data-tooltip-content="{{if $.CanUserAcceptTransfer}}{{$.locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{$.locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}">
-								<button type="submit" class="ui button {{if $.CanUserAcceptTransfer}}green {{end}} ok inverted small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
+								<button type="submit" class="ui basic button {{if $.CanUserAcceptTransfer}}green {{end}} ok small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
 									{{$.locale.Tr "repo.transfer.accept"}}
 								</button>
 							</div>
@@ -60,7 +60,7 @@
 						<form method="post" action="{{$.RepoLink}}/action/reject_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
 							<div data-tooltip-content="{{if $.CanUserAcceptTransfer}}{{$.locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{$.locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}">
-								<button type="submit" class="ui button {{if $.CanUserAcceptTransfer}}red {{end}}ok inverted small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
+								<button type="submit" class="ui basic button {{if $.CanUserAcceptTransfer}}red {{end}}ok small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
 									{{$.locale.Tr "repo.transfer.reject"}}
 								</button>
 							</div>
@@ -118,7 +118,6 @@
 								{{svg "octicon-repo-forked"}}{{$.locale.Tr "repo.fork"}}
 							</a>
 							<div class="ui small modal" id="fork-repo-modal">
-								{{svg "octicon-x" 16 "close inside"}}
 								<div class="header">
 									{{$.locale.Tr "repo.already_forked" .Name}}
 								</div>
@@ -152,7 +151,7 @@
 {{end}}
 	<div class="ui tabs container">
 		{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
-			<div class="ui tabular stackable menu navbar">
+			<div class="ui tabular menu navbar gt-overflow-x-auto gt-overflow-y-hidden">
 				{{if .Permission.CanRead $.UnitTypeCode}}
 				<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if (ne .BranchName .Repository.DefaultBranch)}}/src/{{.BranchNameSubURL}}{{end}}">
 					{{svg "octicon-code"}} {{.locale.Tr "repo.code"}}
@@ -216,9 +215,15 @@
 				</a>
 				{{end}}
 
-				{{if or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki)}}
-					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki" {{if and (.Permission.CanRead $.UnitTypeExternalWiki) (not (HasPrefix ((.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL) (.Repository.Link)))}} target="_blank" rel="noopener noreferrer" {{end}}>
+				{{if .Permission.CanRead $.UnitTypeWiki}}
+					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki">
 						{{svg "octicon-book"}} {{.locale.Tr "repo.wiki"}}
+					</a>
+				{{end}}
+
+				{{if .Permission.CanRead $.UnitTypeExternalWiki}}
+					<a class="item" href="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank" rel="noopener noreferrer">
+						{{svg "octicon-link-external"}} {{.locale.Tr "repo.wiki"}}
 					</a>
 				{{end}}
 
@@ -231,20 +236,16 @@
 				{{template "custom/extra_tabs" .}}
 
 				{{if .Permission.IsAdmin}}
-					<div class="right menu">
-						<a class="{{if .PageIsSettings}}active {{end}}item" href="{{.RepoLink}}/settings">
-							{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
-						</a>
-					</div>
+					<a class="{{if .PageIsRepoSettings}}active {{end}}right item" href="{{.RepoLink}}/settings">
+						{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
+					</a>
 				{{end}}
 			</div>
 		{{else if .Permission.IsAdmin}}
-			<div class="ui tabular stackable menu navbar">
-				<div class="right menu">
-					<a class="{{if .PageIsSettings}}active {{end}}item" href="{{.RepoLink}}/settings">
-						{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
-					</a>
-				</div>
+			<div class="ui tabular menu navbar gt-overflow-x-auto gt-overflow-y-hidden">
+				<a class="{{if .PageIsRepoSettings}}active {{end}}right item" href="{{.RepoLink}}/settings">
+					{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
+				</a>
 			</div>
 		{{end}}
 	</div>

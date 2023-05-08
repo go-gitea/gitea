@@ -2,9 +2,11 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "從 Gogs 升級"
 slug: "upgrade-from-gogs"
-weight: 10
+weight: 101
 toc: false
 draft: false
+aliases:
+  - /zh-tw/upgrade-from-gogs
 menu:
   sidebar:
     parent: "installation"

@@ -1,10 +1,12 @@
 ---
 date: "2017-01-01T16:00:00+02:00"
-title: "Usage: Command Line"
+title: "Gitea Command Line"
 slug: "command-line"
-weight: 10
+weight: 1
 toc: false
 draft: false
+aliases:
+  - /en-us/command-line
 menu:
   sidebar:
     parent: "administration"
@@ -223,7 +225,7 @@ Admin operations:
         - `--synchronize-users`: Enable user synchronization.
         - `--page-size value`: Search page size.
       - Examples:
-        - `gitea admin auth add-ldap --name ldap --security-protocol unencrypted --host mydomain.org --port 389 --user-search-base "ou=Users,dc=mydomain,dc=org" --user-filter "(&(objectClass=posixAccount)(uid=%s))" --email-attribute mail`
+        - `gitea admin auth add-ldap --name ldap --security-protocol unencrypted --host mydomain.org --port 389 --user-search-base "ou=Users,dc=mydomain,dc=org" --user-filter "(&(objectClass=posixAccount)(|(uid=%[1]s)(mail=%[1]s)))" --email-attribute mail`
     - `update-ldap`: Update existing LDAP (via Bind DN) authentication source
       - Options:
         - `--id value`: ID of authentication source. Required.
@@ -551,3 +553,28 @@ Restore-repo restore repository data from disk dir:
   - `--owner_name lunny`: Restore destination owner name
   - `--repo_name tango`: Restore destination repository name
   - `--units <units>`: Which items will be restored, one or more units should be separated as comma. wiki, issues, labels, releases, release_assets, milestones, pull_requests, comments are allowed. Empty means all units.
+
+### actions generate-runner-token
+
+Generate a new token for a runner to use to register with the server
+
+- Options:
+  - `--scope {owner}[/{repo}]`, `-s {owner}[/{repo}]`: To limit the scope of the runner, no scope means the runner can be used for all repos, but you can also limit it to a specific repo or owner
+
+To register a global runner:
+
+```
+gitea actions generate-runner-token
+```
+
+To register a runner for a specific organization, in this case `org`:
+
+```
+gitea actions generate-runner-token -s org
+```
+
+To register a runner for a specific repo, in this case `username/test-repo`:
+
+```
+gitea actions generate-runner-token -s username/test-repo
+```

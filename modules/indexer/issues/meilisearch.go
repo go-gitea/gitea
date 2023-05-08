@@ -6,6 +6,7 @@ package issues
 import (
 	"context"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,12 +17,11 @@ var _ Indexer = &MeilisearchIndexer{}
 
 // MeilisearchIndexer implements Indexer interface
 type MeilisearchIndexer struct {
-	client               *meilisearch.Client
-	indexerName          string
-	available            bool
-	availabilityCallback func(bool)
-	stopTimer            chan struct{}
-	lock                 sync.RWMutex
+	client      *meilisearch.Client
+	indexerName string
+	available   bool
+	stopTimer   chan struct{}
+	lock        sync.RWMutex
 }
 
 // MeilisearchIndexer creates a new meilisearch indexer
@@ -72,13 +72,6 @@ func (b *MeilisearchIndexer) Init() (bool, error) {
 	return false, b.checkError(err)
 }
 
-// SetAvailabilityChangeCallback sets callback that will be triggered when availability changes
-func (b *MeilisearchIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-	b.availabilityCallback = callback
-}
-
 // Ping checks if meilisearch is available
 func (b *MeilisearchIndexer) Ping() bool {
 	b.lock.RLock()
@@ -120,10 +113,11 @@ func (b *MeilisearchIndexer) Delete(ids ...int64) error {
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
 func (b *MeilisearchIndexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*SearchResult, error) {
-	filter := make([][]string, 0, len(repoIDs))
+	repoFilters := make([]string, 0, len(repoIDs))
 	for _, repoID := range repoIDs {
-		filter = append(filter, []string{"repo_id = " + strconv.FormatInt(repoID, 10)})
+		repoFilters = append(repoFilters, "repo_id = "+strconv.FormatInt(repoID, 10))
 	}
+	filter := strings.Join(repoFilters, " OR ")
 	searchRes, err := b.client.Index(b.indexerName).Search(keyword, &meilisearch.SearchRequest{
 		Filter: filter,
 		Limit:  int64(limit),
@@ -176,8 +170,4 @@ func (b *MeilisearchIndexer) setAvailability(available bool) {
 	}
 
 	b.available = available
-	if b.availabilityCallback != nil {
-		// Call the callback from within the lock to ensure that the ordering remains correct
-		b.availabilityCallback(b.available)
-	}
 }

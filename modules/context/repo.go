@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
-	"code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -184,6 +183,9 @@ func (r *Repository) CanCreateIssueDependencies(user *user_model.User, isPull bo
 
 // GetCommitsCount returns cached commit count for current view
 func (r *Repository) GetCommitsCount() (int64, error) {
+	if r.Commit == nil {
+		return 0, nil
+	}
 	var contextName string
 	if r.IsViewBranch {
 		contextName = r.BranchName
@@ -205,7 +207,12 @@ func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, 
 		if len(branches) == 0 {
 			return git.AllCommitsCount(ctx, r.Repository.RepoPath(), hidePRRefs, files...)
 		}
-		return git.CommitsCountFiles(ctx, r.Repository.RepoPath(), branches, files)
+		return git.CommitsCount(ctx,
+			git.CommitsCountOptions{
+				RepoPath: r.Repository.RepoPath(),
+				Revision: branches,
+				RelPath:  files,
+			})
 	})
 }
 
@@ -240,35 +247,34 @@ func (r *Repository) FileExists(path, branch string) (bool, error) {
 
 // GetEditorconfig returns the .editorconfig definition if found in the
 // HEAD of the default repo branch.
-func (r *Repository) GetEditorconfig(optCommit ...*git.Commit) (*editorconfig.Editorconfig, error) {
+func (r *Repository) GetEditorconfig(optCommit ...*git.Commit) (cfg *editorconfig.Editorconfig, warning, err error) {
 	if r.GitRepo == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
-	var (
-		err    error
-		commit *git.Commit
-	)
+
+	var commit *git.Commit
+
 	if len(optCommit) != 0 {
 		commit = optCommit[0]
 	} else {
 		commit, err = r.GitRepo.GetBranchCommit(r.Repository.DefaultBranch)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	treeEntry, err := commit.GetTreeEntryByPath(".editorconfig")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if treeEntry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
-		return nil, git.ErrNotExist{ID: "", RelPath: ".editorconfig"}
+		return nil, nil, git.ErrNotExist{ID: "", RelPath: ".editorconfig"}
 	}
 	reader, err := treeEntry.Blob().DataAsync()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer reader.Close()
-	return editorconfig.Parse(reader)
+	return editorconfig.ParseGraceful(reader)
 }
 
 // RetrieveBaseRepo retrieves base repository
@@ -450,7 +456,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	userName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 	repoName = strings.TrimSuffix(repoName, ".git")
-	if setting.EnableFeed {
+	if setting.Other.EnableFeed {
 		repoName = strings.TrimSuffix(repoName, ".rss")
 		repoName = strings.TrimSuffix(repoName, ".atom")
 	}
@@ -537,6 +543,11 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Repo.RepoLink = repo.Link()
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
 	ctx.Data["RepoRelPath"] = ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
+
+	if setting.Other.EnableFeed {
+		ctx.Data["EnableFeed"] = true
+		ctx.Data["FeedURL"] = ctx.Repo.RepoLink
+	}
 
 	unit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeExternalTracker)
 	if err == nil {
@@ -638,8 +649,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	if err != nil {
 		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
 			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
-			ctx.Repo.Repository.Status = repo_model.RepositoryBroken
-			ctx.Repo.Repository.IsEmpty = true
+			ctx.Repo.Repository.MarkAsBrokenEmpty()
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
 			// Only allow access to base of repo or settings
 			if !isHomeOrSettings {
@@ -685,7 +695,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["BranchesCount"] = len(brs)
 
 	// If not branch selected, try default one.
-	// If default branch doesn't exists, fall back to some other branch.
+	// If default branch doesn't exist, fall back to some other branch.
 	if len(ctx.Repo.BranchName) == 0 {
 		if len(ctx.Repo.Repository.DefaultBranch) > 0 && gitRepo.IsBranchExist(ctx.Repo.Repository.DefaultBranch) {
 			ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
@@ -874,6 +884,10 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 	return func(ctx *Context) (cancel context.CancelFunc) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty {
+			// assume the user is viewing the (non-existent) default branch
+			ctx.Repo.IsViewBranch = true
+			ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
+			ctx.Data["TreePath"] = ""
 			return
 		}
 
@@ -903,27 +917,30 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 			refName = ctx.Repo.Repository.DefaultBranch
 			if !ctx.Repo.GitRepo.IsBranchExist(refName) {
 				brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 0)
-				if err != nil {
-					ctx.ServerError("GetBranches", err)
-					return
+				if err == nil && len(brs) != 0 {
+					refName = brs[0]
 				} else if len(brs) == 0 {
-					err = fmt.Errorf("No branches in non-empty repository %s",
-						ctx.Repo.GitRepo.Path)
-					ctx.ServerError("GetBranches", err)
-					return
+					log.Error("No branches in non-empty repository %s", ctx.Repo.GitRepo.Path)
+					ctx.Repo.Repository.MarkAsBrokenEmpty()
+				} else {
+					log.Error("GetBranches error: %v", err)
+					ctx.Repo.Repository.MarkAsBrokenEmpty()
 				}
-				refName = brs[0]
 			}
 			ctx.Repo.RefName = refName
 			ctx.Repo.BranchName = refName
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
-			if err != nil {
+			if err == nil {
+				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
+			} else if strings.Contains(err.Error(), "fatal: not a git repository") || strings.Contains(err.Error(), "object does not exist") {
+				// if the repository is broken, we can continue to the handler code, to show "Settings -> Delete Repository" for end users
+				log.Error("GetBranchCommit: %v", err)
+				ctx.Repo.Repository.MarkAsBrokenEmpty()
+			} else {
 				ctx.ServerError("GetBranchCommit", err)
 				return
 			}
-			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 			ctx.Repo.IsViewBranch = true
-
 		} else {
 			refName = getRefName(ctx, refType)
 			ctx.Repo.RefName = refName
@@ -1045,59 +1062,6 @@ func UnitTypes() func(ctx *Context) {
 	}
 }
 
-// IssueTemplatesFromDefaultBranch checks for valid issue templates in the repo's default branch,
-func (ctx *Context) IssueTemplatesFromDefaultBranch() []*api.IssueTemplate {
-	ret, _ := ctx.IssueTemplatesErrorsFromDefaultBranch()
-	return ret
-}
-
-// IssueTemplatesErrorsFromDefaultBranch checks for issue templates in the repo's default branch,
-// returns valid templates and the errors of invalid template files.
-func (ctx *Context) IssueTemplatesErrorsFromDefaultBranch() ([]*api.IssueTemplate, map[string]error) {
-	var issueTemplates []*api.IssueTemplate
-
-	if ctx.Repo.Repository.IsEmpty {
-		return issueTemplates, nil
-	}
-
-	if ctx.Repo.Commit == nil {
-		var err error
-		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-		if err != nil {
-			return issueTemplates, nil
-		}
-	}
-
-	invalidFiles := map[string]error{}
-	for _, dirName := range IssueTemplateDirCandidates {
-		tree, err := ctx.Repo.Commit.SubTree(dirName)
-		if err != nil {
-			log.Debug("get sub tree of %s: %v", dirName, err)
-			continue
-		}
-		entries, err := tree.ListEntries()
-		if err != nil {
-			log.Debug("list entries in %s: %v", dirName, err)
-			return issueTemplates, nil
-		}
-		for _, entry := range entries {
-			if !template.CouldBe(entry.Name()) {
-				continue
-			}
-			fullName := path.Join(dirName, entry.Name())
-			if it, err := template.UnmarshalFromEntry(entry, dirName); err != nil {
-				invalidFiles[fullName] = err
-			} else {
-				if !strings.HasPrefix(it.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
-					it.Ref = git.BranchPrefix + it.Ref
-				}
-				issueTemplates = append(issueTemplates, it)
-			}
-		}
-	}
-	return issueTemplates, invalidFiles
-}
-
 func GetDefaultIssueConfig() api.IssueConfig {
 	return api.IssueConfig{
 		BlankIssuesEnabled: true,
@@ -1159,31 +1123,6 @@ func (r *Repository) GetIssueConfig(path string, commit *git.Commit) (api.IssueC
 	return issueConfig, nil
 }
 
-// IssueConfigFromDefaultBranch returns the issue config for this repo.
-// It never returns a nil config.
-func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
-	if ctx.Repo.Repository.IsEmpty {
-		return GetDefaultIssueConfig(), nil
-	}
-
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-	if err != nil {
-		return GetDefaultIssueConfig(), err
-	}
-
-	for _, configName := range IssueConfigCandidates {
-		if _, err := commit.GetTreeEntryByPath(configName + ".yaml"); err == nil {
-			return ctx.Repo.GetIssueConfig(configName+".yaml", commit)
-		}
-
-		if _, err := commit.GetTreeEntryByPath(configName + ".yml"); err == nil {
-			return ctx.Repo.GetIssueConfig(configName+".yml", commit)
-		}
-	}
-
-	return GetDefaultIssueConfig(), nil
-}
-
 // IsIssueConfig returns if the given path is a issue config file.
 func (r *Repository) IsIssueConfig(path string) bool {
 	for _, configName := range IssueConfigCandidates {
@@ -1192,13 +1131,4 @@ func (r *Repository) IsIssueConfig(path string) bool {
 		}
 	}
 	return false
-}
-
-func (ctx *Context) HasIssueTemplatesOrContactLinks() bool {
-	if len(ctx.IssueTemplatesFromDefaultBranch()) > 0 {
-		return true
-	}
-
-	issueConfig, _ := ctx.IssueConfigFromDefaultBranch()
-	return len(issueConfig.ContactLinks) > 0
 }
