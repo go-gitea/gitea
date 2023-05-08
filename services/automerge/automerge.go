@@ -26,11 +26,11 @@ import (
 )
 
 // prAutoMergeQueue represents a queue to handle update pull request tests
-var prAutoMergeQueue queue.UniqueQueue
+var prAutoMergeQueue *queue.WorkerPoolQueue[string]
 
 // Init runs the task queue to that handles auto merges
 func Init() error {
-	prAutoMergeQueue = queue.CreateUniqueQueue("pr_auto_merge", handle, "")
+	prAutoMergeQueue = queue.CreateUniqueQueue("pr_auto_merge", handler)
 	if prAutoMergeQueue == nil {
 		return fmt.Errorf("Unable to create pr_auto_merge Queue")
 	}
@@ -39,12 +39,12 @@ func Init() error {
 }
 
 // handle passed PR IDs and test the PRs
-func handle(data ...queue.Data) []queue.Data {
-	for _, d := range data {
+func handler(items ...string) []string {
+	for _, s := range items {
 		var id int64
 		var sha string
-		if _, err := fmt.Sscanf(d.(string), "%d_%s", &id, &sha); err != nil {
-			log.Error("could not parse data from pr_auto_merge queue (%v): %v", d, err)
+		if _, err := fmt.Sscanf(s, "%d_%s", &id, &sha); err != nil {
+			log.Error("could not parse data from pr_auto_merge queue (%v): %v", s, err)
 			continue
 		}
 		handlePull(id, sha)
@@ -53,10 +53,8 @@ func handle(data ...queue.Data) []queue.Data {
 }
 
 func addToQueue(pr *issues_model.PullRequest, sha string) {
-	if err := prAutoMergeQueue.PushFunc(fmt.Sprintf("%d_%s", pr.ID, sha), func() error {
-		log.Trace("Adding pullID: %d to the pull requests patch checking queue with sha %s", pr.ID, sha)
-		return nil
-	}); err != nil {
+	log.Trace("Adding pullID: %d to the pull requests patch checking queue with sha %s", pr.ID, sha)
+	if err := prAutoMergeQueue.Push(fmt.Sprintf("%d_%s", pr.ID, sha)); err != nil {
 		log.Error("Error adding pullID: %d to the pull requests patch checking queue %v", pr.ID, err)
 	}
 }

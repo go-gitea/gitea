@@ -125,9 +125,9 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{$link := printf "%s/commit/%s" $.Repository.Link ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
 					{{if eq $.Issue.PullRequest.Status 3}}
-						{{$.locale.Tr "repo.issues.manually_pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.comment_manually_pull_merged_at" (printf "<a class='ui sha' href='%[1]s'><b>%[2]s</b></a>" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
 					{{else}}
-						{{$.locale.Tr "repo.issues.pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.comment_pull_merged_at" (printf "<a class='ui sha' href='%[1]s'><b>%[2]s</b></a>" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>

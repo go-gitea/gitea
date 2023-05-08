@@ -104,6 +104,19 @@ func (d *DiffLine) GetType() int {
 	return int(d.Type)
 }
 
+// GetHTMLDiffLineType returns the diff line type name for HTML
+func (d *DiffLine) GetHTMLDiffLineType() string {
+	switch d.Type {
+	case DiffLineAdd:
+		return "add"
+	case DiffLineDel:
+		return "del"
+	case DiffLineSection:
+		return "tag"
+	}
+	return "same"
+}
+
 // CanComment returns whether a line can get commented
 func (d *DiffLine) CanComment() bool {
 	return len(d.Comments) == 0 && d.Type != DiffLineSection

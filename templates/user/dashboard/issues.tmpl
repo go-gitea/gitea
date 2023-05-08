@@ -61,7 +61,7 @@
 			</div>
 			<div class="twelve wide column content">
 				<div class="list-header">
-					<div class="small-pill-buttons ui compact tiny menu">
+					<div class="small-menu-items ui compact tiny menu">
 						<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
 							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 							{{.locale.PrettyNumber .IssueStats.OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
@@ -78,7 +78,8 @@
 							<input type="hidden" name="sort" value="{{$.SortType}}">
 							<input type="hidden" name="state" value="{{$.State}}">
 							<input name="q" value="{{$.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
-							<button class="ui small icon button" type="submit" aria-label="{{.locale.Tr "explore.search"}}">{{svg "octicon-search"}}</button>
+							<button id="hashtag-button" class="ui small icon button gt-hidden" data-tooltip-content="{{.locale.Tr "explore.go_to"}}">{{svg "octicon-hash"}}</button>
+							<button id="search-button" class="ui small icon button" aria-label="{{.locale.Tr "explore.search"}}">{{svg "octicon-search"}}</button>
 						</div>
 					</form>
 					<!-- Sort -->

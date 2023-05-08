@@ -29,12 +29,11 @@ import (
 )
 
 // pushQueue represents a queue to handle update pull request tests
-var pushQueue queue.Queue
+var pushQueue *queue.WorkerPoolQueue[[]*repo_module.PushUpdateOptions]
 
 // handle passed PR IDs and test the PRs
-func handle(data ...queue.Data) []queue.Data {
-	for _, datum := range data {
-		opts := datum.([]*repo_module.PushUpdateOptions)
+func handler(items ...[]*repo_module.PushUpdateOptions) [][]*repo_module.PushUpdateOptions {
+	for _, opts := range items {
 		if err := pushUpdates(opts); err != nil {
 			log.Error("pushUpdate failed: %v", err)
 		}
@@ -43,7 +42,7 @@ func handle(data ...queue.Data) []queue.Data {
 }
 
 func initPushQueue() error {
-	pushQueue = queue.CreateQueue("push_update", handle, []*repo_module.PushUpdateOptions{})
+	pushQueue = queue.CreateSimpleQueue("push_update", handler)
 	if pushQueue == nil {
 		return errors.New("unable to create push_update Queue")
 	}

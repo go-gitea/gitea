@@ -1,5 +1,3 @@
-@import "font-awesome/css/font-awesome.css";
-
 @import "./animations.css";
 @import "./shared/issuelist.css";
 @import "./shared/repoorg.css";
@@ -43,6 +41,5 @@
 @import "./admin.css";
 @import "./explore.css";
 @import "./review.css";
-@import "./package.css";
 @import "./runner.css";
 @import "./helpers.css";

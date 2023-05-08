@@ -376,7 +376,12 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get Commit Count
-	commitsHistory, err := wikiRepo.CommitsByFileAndRange(wiki_service.DefaultBranch, pageFilename, page)
+	commitsHistory, err := wikiRepo.CommitsByFileAndRange(
+		git.CommitsByFileAndRangeOptions{
+			Revision: wiki_service.DefaultBranch,
+			File:     pageFilename,
+			Page:     page,
+		})
 	if err != nil {
 		if wikiRepo != nil {
 			wikiRepo.Close()

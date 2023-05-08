@@ -469,11 +469,7 @@ export function initRepository() {
     return;
   }
 
-  // File list and commits
-  if ($('.repository.file.list').length > 0 || $('.branch-dropdown').length > 0 ||
-    $('.repository.commits').length > 0 || $('.repository.release').length > 0) {
-    initRepoBranchTagSelector('.js-branch-tag-selector');
-  }
+  initRepoBranchTagSelector('.js-branch-tag-selector');
 
   // Options
   if ($('.repository.settings.options').length > 0) {

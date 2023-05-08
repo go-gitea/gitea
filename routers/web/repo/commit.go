@@ -230,7 +230,12 @@ func FileHistory(ctx *context.Context) {
 		page = 1
 	}
 
-	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(ctx.Repo.RefName, fileName, page)
+	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
+		git.CommitsByFileAndRangeOptions{
+			Revision: ctx.Repo.RefName,
+			File:     fileName,
+			Page:     page,
+		})
 	if err != nil {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return

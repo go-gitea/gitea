@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/conan"
 	"code.gitea.io/gitea/routers/api/packages/conda"
 	"code.gitea.io/gitea/routers/api/packages/container"
+	"code.gitea.io/gitea/routers/api/packages/debian"
 	"code.gitea.io/gitea/routers/api/packages/generic"
 	"code.gitea.io/gitea/routers/api/packages/helm"
 	"code.gitea.io/gitea/routers/api/packages/maven"
@@ -28,6 +29,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/nuget"
 	"code.gitea.io/gitea/routers/api/packages/pub"
 	"code.gitea.io/gitea/routers/api/packages/pypi"
+	"code.gitea.io/gitea/routers/api/packages/rpm"
 	"code.gitea.io/gitea/routers/api/packages/rubygems"
 	"code.gitea.io/gitea/routers/api/packages/swift"
 	"code.gitea.io/gitea/routers/api/packages/vagrant"
@@ -118,6 +120,12 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 					r.Get("/owners", cargo.ListOwners)
 				})
 			})
+			r.Get("/config.json", cargo.RepositoryConfig)
+			r.Get("/1/{package}", cargo.EnumeratePackageVersions)
+			r.Get("/2/{package}", cargo.EnumeratePackageVersions)
+			// Use dummy placeholders because these parts are not of interest
+			r.Get("/3/{_}/{package}", cargo.EnumeratePackageVersions)
+			r.Get("/{_}/{__}/{package}", cargo.EnumeratePackageVersions)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/chef", func() {
 			r.Group("/api/v1", func() {
@@ -272,6 +280,24 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				conda.UploadPackageFile(ctx)
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/debian", func() {
+			r.Get("/repository.key", debian.GetRepositoryKey)
+			r.Group("/dists/{distribution}", func() {
+				r.Get("/{filename}", debian.GetRepositoryFile)
+				r.Get("/by-hash/{algorithm}/{hash}", debian.GetRepositoryFileByHash)
+				r.Group("/{component}/{architecture}", func() {
+					r.Get("/{filename}", debian.GetRepositoryFile)
+					r.Get("/by-hash/{algorithm}/{hash}", debian.GetRepositoryFileByHash)
+				})
+			})
+			r.Group("/pool/{distribution}/{component}", func() {
+				r.Get("/{name}_{version}_{architecture}.deb", debian.DownloadPackageFile)
+				r.Group("", func() {
+					r.Put("/upload", debian.UploadPackageFile)
+					r.Delete("/{name}/{version}/{architecture}", debian.DeletePackageFile)
+				}, reqPackageAccess(perm.AccessModeWrite))
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
 			r.Group("/{packagename}/{packageversion}", func() {
 				r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
@@ -394,6 +420,16 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 			r.Post("/", reqPackageAccess(perm.AccessModeWrite), pypi.UploadPackageFile)
 			r.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
 			r.Get("/simple/{id}", pypi.PackageMetadata)
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/rpm", func() {
+			r.Get(".repo", rpm.GetRepositoryConfig)
+			r.Get("/repository.key", rpm.GetRepositoryKey)
+			r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
+			r.Group("/package/{name}/{version}/{architecture}", func() {
+				r.Get("", rpm.DownloadPackageFile)
+				r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
+			})
+			r.Get("/repodata/{filename}", rpm.GetRepositoryFile)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rubygems", func() {
 			r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)

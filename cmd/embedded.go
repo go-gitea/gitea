@@ -106,8 +106,9 @@ func initEmbeddedExtractor(c *cli.Context) error {
 	log.DelNamedLogger(log.DEFAULT)
 
 	// Read configuration file
-	setting.InitProviderAllowEmpty()
-	setting.LoadCommonSettings()
+	setting.Init(&setting.Options{
+		AllowEmpty: true,
+	})
 
 	patterns, err := compileCollectPatterns(c.Args())
 	if err != nil {
