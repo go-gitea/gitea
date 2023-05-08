@@ -83,6 +83,8 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, filePath stri
 	}
 
 	sniffedType := typesniffer.DetectContentType(mineBuf)
+
+	// the "render" parameter came from year 2016: 638dd24c, it doesn't have clear meaning, so I think it could be removed later
 	isPlain := sniffedType.IsText() || r.FormValue("render") != ""
 
 	if setting.MimeTypeMap.Enabled {
@@ -171,18 +173,27 @@ func ServeContentByReader(r *http.Request, w http.ResponseWriter, filePath strin
 	_, rangeParts, _ := strings.Cut(rangeHeader, "=")
 	rangeBytesStart, rangeBytesEnd, found := strings.Cut(rangeParts, "-")
 	start, err := strconv.ParseInt(rangeBytesStart, 10, 64)
-	if err != nil || start < 0 || start >= size {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return errors.New("invalid start range")
+	if start < 0 || start >= size {
+		err = errors.New("invalid start range")
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusRequestedRangeNotSatisfiable)
+		return err
 	}
 	end, err := strconv.ParseInt(rangeBytesEnd, 10, 64)
 	if rangeBytesEnd == "" && found {
 		err = nil
 		end = size - 1
 	}
-	if err != nil || end < start || end >= size {
+	if end >= size {
+		end = size - 1
+	}
+	if end < start {
+		err = errors.New("invalid end range")
+	}
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return errors.New("invalid end range")
+		return err
 	}
 
 	partialLength := end - start + 1
@@ -197,7 +208,7 @@ func ServeContentByReader(r *http.Request, w http.ResponseWriter, filePath strin
 	return err
 }
 
-func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, filePath string, size int64, modTime time.Time, reader io.ReadSeeker) error {
+func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, filePath string, modTime time.Time, reader io.ReadSeeker) error {
 	buf := make([]byte, mimeDetectionBufferLen)
 	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {

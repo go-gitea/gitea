@@ -37,6 +37,6 @@ func ServeContentByReader(ctx *context.Context, filePath string, size int64, rea
 	return httplib.ServeContentByReader(ctx.Req, ctx.Resp, filePath, size, reader)
 }
 
-func ServeContentByReadSeeker(ctx *context.Context, filePath string, size int64, modTime time.Time, reader io.ReadSeeker) error {
-	return httplib.ServeContentByReadSeeker(ctx.Req, ctx.Resp, filePath, size, modTime, reader)
+func ServeContentByReadSeeker(ctx *context.Context, filePath string, modTime time.Time, reader io.ReadSeeker) error {
+	return httplib.ServeContentByReadSeeker(ctx.Req, ctx.Resp, filePath, modTime, reader)
 }

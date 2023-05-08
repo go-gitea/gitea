@@ -153,7 +153,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 	}
 	defer fr.Close()
 
-	if err = common.ServeContentByReadSeeker(ctx, attach.Name, attach.Size, attach.CreatedUnix.AsTime(), fr); err != nil {
+	if err = common.ServeContentByReadSeeker(ctx, attach.Name, attach.CreatedUnix.AsTime(), fr); err != nil {
 		ctx.ServerError("ServeData", err)
 		return
 	}

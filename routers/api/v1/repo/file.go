@@ -219,7 +219,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 	defer lfsDataRc.Close()
 
-	if err := common.ServeContentByReadSeeker(ctx.Context, ctx.Repo.TreePath, meta.Size, lastModified, lfsDataRc); err != nil {
+	if err := common.ServeContentByReadSeeker(ctx.Context, ctx.Repo.TreePath, lastModified, lfsDataRc); err != nil {
 		ctx.ServerError("ServeData", err)
 	}
 }
