@@ -159,20 +159,10 @@ func (l *Label) BelongsToRepo() bool {
 	return l.RepoID > 0
 }
 
-// Get color as RGB values in 0..255 range
-func (l *Label) ColorRGB() (float64, float64, float64, error) {
-	color, err := strconv.ParseUint(l.Color[1:], 16, 64)
-	if err != nil {
-		return 0, 0, 0, err
-	}
-
-	return util.GetRBG(color)
-}
-
 // Determine if label text should be light or dark to be readable on background color
 func (l *Label) UseLightTextColor() bool {
 	if strings.HasPrefix(l.Color, "#") {
-		if r, g, b, err := l.ColorRGB(); err == nil {
+		if r, g, b, err := util.GetRBGColor(l.Color); err == nil {
 			return util.IsUseLightColor(r, g, b)
 		}
 	}

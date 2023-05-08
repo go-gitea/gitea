@@ -153,7 +153,7 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 
 	itemColor := label.Color
 	scopeColor := label.Color
-	if r, g, b, err := label.ColorRGB(); err == nil {
+	if r, g, b, err := util.GetRBGColor(label.Color); err == nil {
 		// Make scope and item background colors slightly darker and lighter respectively.
 		// More contrast needed with higher luminance, empirically tweaked.
 		luminance := util.GetLuminance(r, g, b)

@@ -1,4 +1,4 @@
-import {getRGB, isUseLightColor} from './utils/color.js';
+import {getRGBColor, isUseLightColor} from './utils/color.js';
 
 // transform /path/to/file.ext to file.ext
 export function basename(path = '') {
@@ -140,10 +140,6 @@ export function toAbsoluteUrl(url) {
 // determine if light or dark text color should be used on a given background color
 // NOTE: see models/issue_label.go for similar implementation
 export function useLightTextOnBackground(backgroundColor) {
-  if (backgroundColor[0] !== '#') {
-    return false;
-  }
-  backgroundColor = backgroundColor.substring(1);
-  const [r, g, b] = getRGB(backgroundColor);
+  const [r, g, b] = getRGBColor(backgroundColor);
   return isUseLightColor(r, g, b);
 }
