@@ -66,7 +66,7 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, try
 	// 1. Markdown files - with and without localisation - e.g. README.en-us.md or README.md
 	// 2. Txt files - e.g. README.txt
 	// 3. No extension - e.g. README
-	exts := append(localizedExtensions(".md", ctx.Language()), ".txt", "") // sorted by priority
+	exts := append(localizedExtensions(".md", ctx.Locale.Language()), ".txt", "") // sorted by priority
 	extCount := len(exts)
 	readmeFiles := make([]*git.TreeEntry, extCount+1)
 
