@@ -408,6 +408,11 @@
 					<div class="content comment-container">
 						<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
 							<div class="comment-header-left gt-df gt-ac">
+								{{if gt .Poster.ID 0}}
+									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
+										{{avatar $.Context .Poster}}
+									</a>
+								{{end}}
 								<span class="text grey muted-links">
 									{{if .OriginalAuthor}}
 										<span class="text black gt-bold">
