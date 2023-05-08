@@ -38,6 +38,7 @@ var (
 		LimitSizeNuGet       int64
 		LimitSizePub         int64
 		LimitSizePyPI        int64
+		LimitSizeRpm         int64
 		LimitSizeRubyGems    int64
 		LimitSizeSwift       int64
 		LimitSizeVagrant     int64
@@ -82,6 +83,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) {
 	Packages.LimitSizeNuGet = mustBytes(sec, "LIMIT_SIZE_NUGET")
 	Packages.LimitSizePub = mustBytes(sec, "LIMIT_SIZE_PUB")
 	Packages.LimitSizePyPI = mustBytes(sec, "LIMIT_SIZE_PYPI")
+	Packages.LimitSizeRpm = mustBytes(sec, "LIMIT_SIZE_RPM")
 	Packages.LimitSizeRubyGems = mustBytes(sec, "LIMIT_SIZE_RUBYGEMS")
 	Packages.LimitSizeSwift = mustBytes(sec, "LIMIT_SIZE_SWIFT")
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")

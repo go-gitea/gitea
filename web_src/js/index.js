@@ -30,7 +30,7 @@ import {
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
-  initRepoPullRequestReview, initRepoIssueSidebarList,
+  initRepoPullRequestReview, initRepoIssueSidebarList, initRepoIssueGotoID
 } from './features/repo-issue.js';
 import {
   initRepoEllipsisButton,
@@ -176,5 +176,6 @@ onDomReady(() => {
   initUserAuthWebAuthnRegister();
   initUserSettings();
   initRepoDiffView();
+  initRepoIssueGotoID();
   initSettingVariables();
 });
