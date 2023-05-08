@@ -7,7 +7,7 @@ import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
-import {initTributeExpander} from './TributeExpander.js';
+import {initTextExpander} from './TextExpander.js';
 
 let elementIdCounter = 0;
 
@@ -58,7 +58,7 @@ class ComboMarkdownEditor {
   }
 
   setupContainer() {
-    initTributeExpander(this.container.querySelector('text-expander'));
+    initTextExpander(this.container.querySelector('text-expander'));
     this.container.addEventListener('ce-editor-content-changed', (e) => this.options?.onContentChanged?.(this, e));
   }
 

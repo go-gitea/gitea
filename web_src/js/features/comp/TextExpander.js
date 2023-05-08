@@ -1,7 +1,7 @@
 import {matchEmoji, matchMention} from '../../utils/match.js';
 import {emojiString} from '../emoji.js';
 
-export function initTributeExpander(expander) {
+export function initTextExpander(expander) {
   expander?.addEventListener('text-expander-change', ({detail: {key, provide, text}}) => {
     if (key === ':') {
       const matches = matchEmoji(text);
