@@ -71,7 +71,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified time.Time
 				log.Error("ServeBlobOrLFS: Close: %v", err)
 			}
 		}()
-		return common.ServeData(ctx, ctx.Repo.TreePath, meta.Size, lfsDataRc)
+		return common.ServeContentByReadSeeker(ctx, ctx.Repo.TreePath, meta.Size, lastModified, lfsDataRc)
 	}
 	if err = dataRc.Close(); err != nil {
 		log.Error("ServeBlobOrLFS: Close: %v", err)
