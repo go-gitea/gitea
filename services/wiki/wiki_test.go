@@ -34,6 +34,9 @@ func TestUserTitleToWebPath(t *testing.T) {
 		UserTitle string
 	}
 	for _, test := range []test{
+		{"unnamed", ""},
+		{"unnamed", "."},
+		{"unnamed", ".."},
 		{"wiki-name", "wiki name"},
 		{"title.md.-", "title.md"},
 		{"wiki-name.-", "wiki-name"},
@@ -118,7 +121,7 @@ func TestUserWebGitPathConsistency(t *testing.T) {
 		}
 
 		userTitle := strings.TrimSpace(string(b[:l]))
-		if userTitle == "" || userTitle == "." {
+		if userTitle == "" || userTitle == "." || userTitle == ".." {
 			continue
 		}
 		webPath := UserTitleToWebPath("", userTitle)

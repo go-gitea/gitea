@@ -178,7 +178,7 @@ func Search(ctx *context.APIContext) {
 		if len(sortOrder) == 0 {
 			sortOrder = "asc"
 		}
-		if searchModeMap, ok := context.SearchOrderByMap[sortOrder]; ok {
+		if searchModeMap, ok := repo_model.SearchOrderByMap[sortOrder]; ok {
 			if orderBy, ok := searchModeMap[sortMode]; ok {
 				opts.OrderBy = orderBy
 			} else {
@@ -970,9 +970,11 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if err := repo_model.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateRepositoryUnits", err)
-		return err
+	if len(units)+len(deleteUnitTypes) > 0 {
+		if err := repo_model.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
+			ctx.Error(http.StatusInternalServerError, "UpdateRepositoryUnits", err)
+			return err
+		}
 	}
 
 	log.Trace("Repository advanced settings updated: %s/%s", owner.Name, repo.Name)

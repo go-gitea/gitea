@@ -1,6 +1,6 @@
 # End to end tests
 
-E2e tests largely follow the same syntax as [integration tests](tests/e2e/README.md). 
+E2e tests largely follow the same syntax as [integration tests](../integration).
 Whereas integration tests are intended to mock and stress the back-end, server-side code, e2e tests the interface between front-end and back-end, as well as visual regressions with both assertions and visual comparisons.
 They can be run with make commands for the appropriate backends, namely:
 ```shell
