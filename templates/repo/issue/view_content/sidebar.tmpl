@@ -62,12 +62,12 @@
 								{{if .CanChange}}
 									<a href="#" class="ui muted icon re-request-review{{if .Checked}} checked{{end}}" data-tooltip-content="{{if .Checked}}{{$.locale.Tr "repo.issues.remove_request_review"}}{{else}}{{$.locale.Tr "repo.issues.re_request_review"}}{{end}}" data-issue-id="{{$.Issue.ID}}" data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">{{if .Checked}}{{svg "octicon-trash"}}{{else}}{{svg "octicon-sync"}}{{end}}</a>
 								{{end}}
-								{{svg (printf "octicon-%s" .Review.Type.Icon) 18 (printf "text %s" (.Review.HTMLTypeColorName))}}
+								{{svg (printf "octicon-%s" .Review.Type.Icon) 16 (printf "text %s" (.Review.HTMLTypeColorName))}}
 							</span>
 						</div>
 					{{end}}
 					{{range .OriginalReviews}}
-						<div class="item" style="margin-bottom: 10px;">
+						<div class="item gt-mb-3">
 							<a href="{{$.Repository.OriginalURL}}" data-tooltip-content="{{$.locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe}}">
 								<span class="text black">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}

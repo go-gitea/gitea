@@ -1094,8 +1094,8 @@
   margin-left: 3em;
 }
 
-.repository.view.issue .comment-list .code-comment img.avatar,
-.repository.view.issue .comment-list .comment img.avatar {
+.repository.view.issue .comment-code-cloud .comment-list .code-comment img.avatar,
+.repository.view.issue .comment-code-cloud .comment-list .comment img.avatar {
   width: 28px;
   height: 28px;
 }

@@ -9,11 +9,11 @@
 					<div class="review-item">
 						<div class="review-item-left">
 							<span class="gt-mr-3 text {{.Review.HTMLTypeColorName}}">
-								{{svg (printf "octicon-%s" .Review.Type.Icon) 18}}
+								{{svg (printf "octicon-%s" .Review.Type.Icon) 16}}
 							</span>
 							{{if .User}}
-								<a href="{{.User.HomeLink}}" class="gt-mr-2">
-									{{avatar $.Context .User}}
+								<a href="{{.User.HomeLink}}">
+									{{avatar $.Context .User 20}}
 								</a>
 							{{end}}
 							<span class="gt-ml-2">
@@ -42,7 +42,7 @@
 								</span>
 							{{end}}
 							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed))}}
-								<a href="#" class="ui muted icon dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-tooltip-content="{{$.locale.Tr "repo.issues.dismiss_review"}}">
+								<a href="#" class="ui muted icon gt-df gt-ac dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-tooltip-content="{{$.locale.Tr "repo.issues.dismiss_review"}}">
 									{{svg "octicon-x" 20}}
 								</a>
 								<div class="ui small modal" id="dismiss-review-modal">
@@ -69,7 +69,7 @@
 								</div>
 							{{end}}
 							{{if .CanChange}}
-								<a href="#" class="ui icon muted re-request-review{{if .Checked}} checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-tooltip-content="{{if .Checked}}{{$.locale.Tr "repo.issues.remove_request_review"}}{{else}}{{$.locale.Tr "repo.issues.re_request_review"}}{{end}}" data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">{{if .Checked}}{{svg "octicon-trash"}}{{else}}{{svg "octicon-sync"}}{{end}}</a>
+								<a href="#" class="ui icon muted gt-df gt-ac re-request-review{{if .Checked}} checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-tooltip-content="{{if .Checked}}{{$.locale.Tr "repo.issues.remove_request_review"}}{{else}}{{$.locale.Tr "repo.issues.re_request_review"}}{{end}}" data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">{{if .Checked}}{{svg "octicon-trash"}}{{else}}{{svg "octicon-sync"}}{{end}}</a>
 							{{end}}
 						</div>
 					</div>
