@@ -122,33 +122,32 @@ function initRepoIssueListAuthorDropdown() {
 
 function initPinRemoveButton() {
   for (const button of document.getElementsByName('issue-unpin-button')) {
-    button.addEventListener('click', (event) => {
+    button.addEventListener('click', async (event) => {
       const el = event.currentTarget;
       const id = Number(el.getAttribute('data-issue-id'));
 
       // Send the unpin request
-      fetch(el.getAttribute('data-unpin-url'), {
+      const response = await fetch(el.getAttribute('data-unpin-url'), {
         method: 'delete',
         headers: {
           'X-Csrf-Token': window.config.csrfToken,
           'Content-Type': 'application/json',
         },
-      }).then((response) => {
-        if (response.ok) {
-          // Delete the tooltip
-          el._tippy.destroy();
-          // Remove the Card
-          document.querySelector(`div[data-issue-id="${id}"]`).remove();
-        }
       });
+      if (response.ok) {
+        // Delete the tooltip
+        el._tippy.destroy();
+        // Remove the Card
+        el.closest(`div[data-issue-id="${id}"]`).remove();
+      }
     });
   }
 }
 
-function pinMoveEnd(e) {
+async function pinMoveEnd(e) {
   const url = e.item.getAttribute('data-move-url');
   const id = Number(e.item.getAttribute('data-issue-id'));
-  fetch(url, {
+  await fetch(url, {
     method: 'post',
     body: JSON.stringify({id, position: e.newIndex + 1}),
     headers: {
