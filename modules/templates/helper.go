@@ -188,7 +188,6 @@ func NewFuncMap() template.FuncMap {
 
 		"FilenameIsImage": FilenameIsImage,
 		"TabSizeClass":    TabSizeClass,
-		"ReviewTypeColor": ReviewTypeColor,
 	}
 }
 

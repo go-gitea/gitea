@@ -13,7 +13,6 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	issue_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	giturl "code.gitea.io/gitea/modules/git/url"
@@ -134,20 +133,6 @@ func DiffLineTypeToStr(diffType int) string {
 		return "tag"
 	}
 	return "same"
-}
-
-func ReviewTypeColor(review issue_model.Review) string {
-	switch review.Type {
-	case 1:
-		return "green"
-	case 2:
-		return "grey"
-	case 3:
-		return "red"
-	case 4:
-		return "yellow"
-	}
-	return "grey"
 }
 
 // MigrationIcon returns a SVG name matching the service an issue/comment was migrated from

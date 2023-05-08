@@ -189,6 +189,21 @@ func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 	return err
 }
 
+
+func (r *Review) HTMLTypeColorName() string {
+	switch r.Type {
+	case 1:
+		return "green"
+	case 2:
+		return "grey"
+	case 3:
+		return "red"
+	case 4:
+		return "yellow"
+	}
+	return "grey"
+}
+
 // GetReviewByID returns the review by the given ID
 func GetReviewByID(ctx context.Context, id int64) (*Review, error) {
 	review := new(Review)

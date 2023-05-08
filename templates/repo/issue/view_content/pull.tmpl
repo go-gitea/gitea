@@ -8,7 +8,7 @@
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<div class="review-item-left">
-							<span class="gt-mr-3 text {{ReviewTypeColor .Review}}">
+							<span class="gt-mr-3 text {{.Review.HTMLTypeColorName}}">
 								{{svg (printf "octicon-%s" .Review.Type.Icon) 18}}
 							</span>
 							{{if .User}}
@@ -79,7 +79,7 @@
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<div class="review-item-left">
-							<span class="gt-mr-3 text {{ReviewTypeColor .Review}}">
+							<span class="gt-mr-3 text {{.Review.HTMLTypeColorName}}">
 								{{svg (printf "octicon-%s" .Type.Icon) 18}}
 							</span>
 							<a href="{{$.Repository.OriginalURL}}" data-tooltip-content="{{$.locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe}}">

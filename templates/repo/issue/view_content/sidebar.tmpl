@@ -62,7 +62,7 @@
 								{{if .CanChange}}
 									<a href="#" class="ui muted icon re-request-review{{if .Checked}} checked{{end}}" data-tooltip-content="{{if .Checked}}{{$.locale.Tr "repo.issues.remove_request_review"}}{{else}}{{$.locale.Tr "repo.issues.re_request_review"}}{{end}}" data-issue-id="{{$.Issue.ID}}" data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">{{if .Checked}}{{svg "octicon-trash"}}{{else}}{{svg "octicon-sync"}}{{end}}</a>
 								{{end}}
-								{{svg (printf "octicon-%s" .Review.Type.Icon) 18 (printf "text %s" (ReviewTypeColor .Review))}}
+								{{svg (printf "octicon-%s" .Review.Type.Icon) 18 (printf "text %s" (.Review.HTMLTypeColorName))}}
 							</span>
 						</div>
 					{{end}}
