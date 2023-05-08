@@ -5,6 +5,7 @@ package varibales
 
 import (
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	variable_model "code.gitea.io/gitea/models/variable"
@@ -89,7 +90,7 @@ func UpdateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL str
 		ID:      id,
 		OwnerID: ownerID,
 		RepoID:  repoID,
-		Name:    form.Name,
+		Name:    strings.ToUpper(form.Name),
 		Data:    form.Data,
 	})
 	if err != nil || !ok {

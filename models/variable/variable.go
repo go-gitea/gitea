@@ -123,6 +123,9 @@ func GetVariableByID(ctx context.Context, variableID int64) (*Variable, error) {
 }
 
 func UpdateVariable(ctx context.Context, variable *Variable) (bool, error) {
+	if err := variable.Validate(); err != nil {
+		return false, err
+	}
 	count, err := db.GetEngine(ctx).ID(variable.ID).Cols("name", "data").
 		Where("owner_id = ? and repo_id = ?", variable.OwnerID, variable.RepoID).
 		Update(&Variable{

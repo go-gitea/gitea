@@ -32,6 +32,9 @@
 				<a class="{{if .PageIsSharedSettingsSecrets}}active {{end}}item" href="{{.OrgLink}}/settings/actions/secrets">
 					{{.locale.Tr "secrets.secrets"}}
 				</a>
+				<a class="{{if .PageIsSharedSettingsVariables}}active {{end}}item" href="{{.OrgLink}}/settings/actions/variables">
+					{{.locale.Tr "actions.variables"}}
+				</a>
 			</div>
 		</div>
 		{{end}}
