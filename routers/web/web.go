@@ -551,12 +551,7 @@ func registerRoutes(m *web.Route) {
 			m.Post("/cancel/{pid}", admin.MonitorCancel)
 			m.Group("/queue/{qid}", func() {
 				m.Get("", admin.Queue)
-				m.Post("/set", admin.SetQueueSettings)
-				m.Post("/add", admin.AddWorkers)
-				m.Post("/cancel/{pid}", admin.WorkerCancel)
-				m.Post("/flush", admin.Flush)
-				m.Post("/pause", admin.Pause)
-				m.Post("/resume", admin.Resume)
+				m.Post("/set", admin.QueueSet)
 			})
 		})
 
