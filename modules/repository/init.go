@@ -195,9 +195,14 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 
 	// LICENSE
 	if len(opts.License) > 0 {
-		data, err = options.License(opts.License)
+		data, err = getLicense(opts.License, &licenseValues{
+			Owner: repo.OwnerName,
+			Email: authorSig.Email,
+			Repo:  repo.Name,
+			Year:  time.Now().Format("2006"),
+		})
 		if err != nil {
-			return fmt.Errorf("GetRepoInitFile[%s]: %w", opts.License, err)
+			return fmt.Errorf("getLicense[%s]: %w", opts.License, err)
 		}
 
 		if err = os.WriteFile(filepath.Join(tmpDir, "LICENSE"), data, 0o644); err != nil {
