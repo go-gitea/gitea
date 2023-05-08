@@ -9,12 +9,9 @@
 					<a class="{{if .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/tags">{{.locale.Tr "repo.release.tags"}}</a>
 				{{end}}
 			</h2>
-
 			{{if .EnableFeed}}
 				<a class="rss-icon" href="{{.RepoLink}}/{{if .PageIsTagList}}tags{{else}}releases{{end}}.rss" data-tooltip-content="{{.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</a>
 			{{end}}
-		{{else if $canReadCode}}
-			{{template "repo/sub_menu" .}}
 		{{end}}
 	</div>
 	<div class="release-tag-header-right">
