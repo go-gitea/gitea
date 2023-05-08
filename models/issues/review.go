@@ -189,7 +189,6 @@ func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 	return err
 }
 
-
 func (r *Review) HTMLTypeColorName() string {
 	switch r.Type {
 	case 1:
