@@ -79,13 +79,13 @@ func (r *ActionRunner) Type() RunnerType {
 func (rt RunnerType) LocaleString(locale translation.Locale) string {
 	switch rt {
 	case RunnerTypeGlobal:
-		return locale.Tr("actions.runners.owner_type.global")
+		return locale.Tr("actions.runners.global_type")
 	case RunnerTypeOrganization:
-		return locale.Tr("actions.runners.owner_type.organization")
+		return locale.Tr("organization")
 	case RunnerTypeRepository:
-		return locale.Tr("actions.runners.owner_type.repository")
+		return locale.Tr("repository")
 	}
-	return locale.Tr("actions.runners.owner_type.unknown", rt)
+	return locale.Tr("unknown")
 }
 
 // Should guarantee that all attributes are loaded
