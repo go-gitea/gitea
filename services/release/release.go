@@ -96,7 +96,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 		}
 
 		rel.Sha1 = commit.ID.String()
-		rel.NumCommits, err = commit.CommitsCount("")
+		rel.NumCommits, err = commit.CommitsCount()
 		if err != nil {
 			return false, fmt.Errorf("CommitsCount: %w", err)
 		}

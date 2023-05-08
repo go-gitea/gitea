@@ -365,7 +365,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			createdAt = sig.When
 		}
 
-		commitsCount, err := commit.CommitsCount("")
+		commitsCount, err := commit.CommitsCount()
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %w", err)
 		}
