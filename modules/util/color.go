@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// Check similar implementation in modules/util/color.go and keep synchronization
+// Check similar implementation in web_src/js/utils/color.js and keep synchronization
 
 // Return R, G, B values defined in reletive luminance
 func getLuminanceRGB(channel float64) float64 {
