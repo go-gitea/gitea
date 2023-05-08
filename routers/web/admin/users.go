@@ -37,7 +37,6 @@ const (
 // Users show all the users
 func Users(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 
 	extraParamStrings := map[string]string{}
@@ -54,7 +53,8 @@ func Users(ctx *context.Context) {
 
 	sortType := ctx.FormString("sort")
 	if sortType == "" {
-		sortType = explore.UserSearchDefaultSortType
+		sortType = explore.UserSearchDefaultAdminSort
+		ctx.SetFormString("sort", sortType)
 	}
 	ctx.PageData["adminUserListSearchForm"] = map[string]interface{}{
 		"StatusFilterMap": statusFilterMap,
@@ -80,7 +80,6 @@ func Users(ctx *context.Context) {
 // NewUser render adding a new user page
 func NewUser(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
@@ -102,7 +101,6 @@ func NewUser(ctx *context.Context) {
 func NewUserPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AdminCreateUserForm)
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
@@ -253,7 +251,6 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 // EditUser show editing user page
 func EditUser(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
@@ -271,7 +268,6 @@ func EditUser(ctx *context.Context) {
 func EditUserPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AdminEditUserForm)
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()

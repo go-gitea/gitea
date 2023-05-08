@@ -485,6 +485,12 @@ var migrations = []Migration{
 	NewMigration("Fix incorrect admin team unit access mode", v1_20.FixIncorrectAdminTeamUnitAccessMode),
 	// v253 -> v254
 	NewMigration("Fix ExternalTracker and ExternalWiki accessMode in owner and admin team", v1_20.FixExternalTrackerAndExternalWikiAccessModeInOwnerAndAdminTeam),
+	// v254 -> v255
+	NewMigration("Add ActionTaskOutput table", v1_20.AddActionTaskOutputTable),
+	// v255 -> v256
+	NewMigration("Add ArchivedUnix Column", v1_20.AddArchivedUnixToRepository),
+	// v256 -> v257
+	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -5,7 +5,6 @@ package test
 
 import (
 	scontext "context"
-	"html/template"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -18,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
 
@@ -30,7 +30,7 @@ func MockContext(t *testing.T, path string) *context.Context {
 	resp := &mockResponseWriter{}
 	ctx := context.Context{
 		Render: &mockRender{},
-		Data:   make(map[string]interface{}),
+		Data:   make(middleware.ContextData),
 		Flash: &middleware.Flash{
 			Values: make(url.Values),
 		},
@@ -120,7 +120,7 @@ func (rw *mockResponseWriter) Push(target string, opts *http.PushOptions) error 
 
 type mockRender struct{}
 
-func (tr *mockRender) TemplateLookup(tmpl string) (*template.Template, error) {
+func (tr *mockRender) TemplateLookup(tmpl string) (templates.TemplateExecutor, error) {
 	return nil, nil
 }
 

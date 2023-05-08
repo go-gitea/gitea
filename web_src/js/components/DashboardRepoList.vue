@@ -10,7 +10,7 @@
           {{ textMyRepos }}
           <span class="ui grey label gt-ml-3">{{ reposTotalCount }}</span>
         </div>
-        <a :href="subUrl + '/repo/create'" :data-tooltip-content="textNewRepo">
+        <a :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
           <svg-icon name="octicon-plus"/>
           <span class="sr-only">{{ textNewRepo }}</span>
         </a>
@@ -131,6 +131,9 @@
               <div class="text truncate item-name gt-f1">
                 <svg-icon name="octicon-organization" :size="16" class-name="gt-mr-2"/>
                 <strong>{{ org.name }}</strong>
+                <span class="ui tiny basic label gt-ml-3" v-if="org.org_visibility !== 'public'">
+                  {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
+                </span>
               </div>
               <div class="text light grey gt-df gt-ac">
                 {{ org.num_repos }}
@@ -199,6 +202,7 @@ const sfc = {
       isOrganization: true,
       canCreateOrganization: false,
       organizationsTotalCount: 0,
+      organizationId: 0,
 
       subUrl: appSubUrl,
       ...pageData.dashboardRepoList,

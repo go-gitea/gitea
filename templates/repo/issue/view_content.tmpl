@@ -1,13 +1,4 @@
 <div class="ui stackable grid">
-	{{if .Flash}}
-		<div class="sixteen wide column">
-			{{template "base/alert" .}}
-		</div>
-	{{end}}
-	{{if not .Issue.IsPull}}
-		{{template "repo/issue/view_title" .}}
-	{{end}}
-
 	<!-- I know, there is probably a better way to do this (moved from sidebar.tmpl, original author: 6543 @ 2021-02-28) -->
 	<!-- Agree, there should be a better way, eg: introduce window.config.pageData (original author: wxiaoguang @ 2021-09-05) -->
 	<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
@@ -78,7 +69,7 @@
 							{{end}}
 						</div>
 						<div id="issue-{{.Issue.ID}}-raw" class="raw-content gt-hidden">{{.Issue.Content}}</div>
-						<div class="edit-content-zone gt-hidden" data-write="issue-{{.Issue.ID}}-write" data-preview="issue-{{.Issue.ID}}-preview" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
+						<div class="edit-content-zone gt-hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
 						{{if .Issue.Attachments}}
 							{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Issue.Attachments "Content" .Issue.RenderedContent}}
 						{{end}}
@@ -166,13 +157,15 @@
 
 <template id="issue-comment-editor-template">
 	<div class="ui comment form">
-		{{template "shared/combomarkdowneditor" (dict
-			"locale" $.locale
-			"MarkdownPreviewUrl" (print .Repository.Link "/markup")
-			"MarkdownPreviewContext" .RepoLink
-			"TextareaName" "content"
-			"DropzoneParentContainer" ".ui.form"
-		)}}
+		<div class="field">
+			{{template "shared/combomarkdowneditor" (dict
+				"locale" $.locale
+				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
+				"MarkdownPreviewContext" .RepoLink
+				"TextareaName" "content"
+				"DropzoneParentContainer" ".ui.form"
+			)}}
+		</div>
 
 		{{if .IsAttachmentEnabled}}
 			<div class="field">
@@ -180,7 +173,7 @@
 			</div>
 		{{end}}
 
-		<div class="field footer">
+		<div class="field">
 			<div class="text right edit">
 				<button class="ui basic secondary cancel button" tabindex="3">{{.locale.Tr "repo.issues.cancel"}}</button>
 				<button class="ui primary save button" tabindex="2">{{.locale.Tr "repo.issues.save"}}</button>
@@ -195,13 +188,13 @@
 	<span class="no-content">{{.locale.Tr "repo.issues.no_content"}}</span>
 </div>
 
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "repo.branch.delete" .HeadTarget}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "repo.branch.delete_desc" | Str2html}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
