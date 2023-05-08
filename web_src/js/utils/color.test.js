@@ -1,17 +1,17 @@
 import {test, expect} from 'vitest';
-import {getRGBColorFromHex, useLightTextOnBackground} from './color.js';
+import {hexToRGBColor, useLightTextOnBackground} from './color.js';
 
-test('getRGBColorFromHex', () => {
-  expect(getRGBColorFromHex('2b8685')).toEqual([43, 134, 133]);
-  expect(getRGBColorFromHex('2b8786')).toEqual([43, 135, 134]);
-  expect(getRGBColorFromHex('2c8786')).toEqual([44, 135, 134]);
-  expect(getRGBColorFromHex('3bb6b3')).toEqual([59, 182, 179]);
-  expect(getRGBColorFromHex('7c7268')).toEqual([124, 114, 104]);
-  expect(getRGBColorFromHex('#7e716c')).toEqual([126, 113, 108]);
-  expect(getRGBColorFromHex('#807070')).toEqual([128, 112, 112]);
-  expect(getRGBColorFromHex('#81706d')).toEqual([129, 112, 109]);
-  expect(getRGBColorFromHex('#d73a4a')).toEqual([215, 58, 74]);
-  expect(getRGBColorFromHex('#0075ca')).toEqual([0, 117, 202]);
+test('hexToRGBColor', () => {
+  expect(hexToRGBColor('2b8685')).toEqual([43, 134, 133]);
+  expect(hexToRGBColor('2b8786')).toEqual([43, 135, 134]);
+  expect(hexToRGBColor('2c8786')).toEqual([44, 135, 134]);
+  expect(hexToRGBColor('3bb6b3')).toEqual([59, 182, 179]);
+  expect(hexToRGBColor('7c7268')).toEqual([124, 114, 104]);
+  expect(hexToRGBColor('#7e716c')).toEqual([126, 113, 108]);
+  expect(hexToRGBColor('#807070')).toEqual([128, 112, 112]);
+  expect(hexToRGBColor('#81706d')).toEqual([129, 112, 109]);
+  expect(hexToRGBColor('#d73a4a')).toEqual([215, 58, 74]);
+  expect(hexToRGBColor('#0075ca')).toEqual([0, 117, 202]);
 });
 
 test('useLightTextOnBackground', () => {

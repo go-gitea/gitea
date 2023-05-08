@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {useLightTextOnBackground, getRGBColorFromHex} from '../utils/color.js';
+import {useLightTextOnBackground, hexToRGBColor} from '../utils/color.js';
 
 const {csrfToken} = window.config;
 
@@ -190,7 +190,7 @@ export function initRepoProject() {
 }
 
 function setLabelColor(label, color) {
-  const [r, g, b] = getRGBColorFromHex(color);
+  const [r, g, b] = hexToRGBColor(color);
   if (useLightTextOnBackground(r, g, b)) {
     label.removeClass('dark-label').addClass('light-label');
   } else {

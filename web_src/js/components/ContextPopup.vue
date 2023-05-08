@@ -26,7 +26,7 @@
 <script>
 import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
-import {useLightTextOnBackground, getRGBColorFromHex} from '../utils/color.js';
+import {useLightTextOnBackground, hexToRGBColor} from '../utils/color.js';
 
 const {appSubUrl, i18n} = window.config;
 
@@ -77,7 +77,7 @@ export default {
     labels() {
       return this.issue.labels.map((label) => {
         let textColor;
-        const [r, g, b] = getRGBColorFromHex(label.color)
+        const [r, g, b] = hexToRGBColor(label.color)
         if (useLightTextOnBackground(r, g, b)) {
           textColor = '#eeeeee';
         } else {

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_GetRBGColor(t *testing.T) {
+func Test_HexToRBGColor(t *testing.T) {
 	cases := []struct {
 		colorString string
 		expectedR   float64
@@ -27,7 +27,7 @@ func Test_GetRBGColor(t *testing.T) {
 		{"#0075ca", 0, 117, 202},
 	}
 	for n, c := range cases {
-		r, g, b, _ := GetRBGColor(c.colorString)
+		r, g, b, _ := HexToRBGColor(c.colorString)
 		assert.Equal(t, c.expectedR, r, "case %d: error R should match: expected %f, but get %f", n, c.expectedR, r)
 		assert.Equal(t, c.expectedG, g, "case %d: error G should match: expected %f, but get %f", n, c.expectedG, g)
 		assert.Equal(t, c.expectedB, b, "case %d: error B should match: expected %f, but get %f", n, c.expectedB, b)

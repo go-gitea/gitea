@@ -16,8 +16,8 @@ func getLuminanceRGB(channel float64) float64 {
 	return math.Pow((sRGB+0.055)/1.055, 2.4)
 }
 
-// Get color as RGB values in 0..255 range from the hex color string
-func GetRBGColor(colorString string) (float64, float64, float64, error) {
+// Get color as RGB values in 0..255 range from the hex color string (with #)
+func HexToRBGColor(colorString string) (float64, float64, float64, error) {
 	color, err := strconv.ParseUint(colorString[1:], 16, 64)
 	if err != nil {
 		return 0, 0, 0, err

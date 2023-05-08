@@ -15,7 +15,7 @@ function getLuminance(r, g, b) {
 }
 
 // Get color as RGB values in 0..255 range from the hex color string (with or without #)
-export function getRGBColorFromHex(backgroundColorStr) {
+export function hexToRGBColor(backgroundColorStr) {
   let backgroundColor = backgroundColorStr;
   if (backgroundColorStr[0] === '#') {
     backgroundColor = backgroundColorStr.substring(1);

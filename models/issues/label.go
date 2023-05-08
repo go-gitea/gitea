@@ -162,7 +162,7 @@ func (l *Label) BelongsToRepo() bool {
 // Determine if label text should be light or dark to be readable on background color
 func (l *Label) UseLightTextColor() bool {
 	if strings.HasPrefix(l.Color, "#") {
-		if r, g, b, err := util.GetRBGColor(l.Color); err == nil {
+		if r, g, b, err := util.HexToRBGColor(l.Color); err == nil {
 			return util.IsUseLightColor(r, g, b)
 		}
 	}
