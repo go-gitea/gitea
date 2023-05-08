@@ -37,6 +37,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates/vars"
@@ -2784,7 +2785,8 @@ func NewComment(ctx *context.Context) {
 				pr, err = issues_model.GetUnmergedPullRequest(ctx, pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch, pull.Flow)
 				if err != nil {
 					if !issues_model.IsErrPullRequestNotExist(err) {
-						ctx.ServerError("GetUnmergedPullRequest", err)
+						ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+						ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pull.Index))
 						return
 					}
 				}
@@ -2793,6 +2795,57 @@ func NewComment(ctx *context.Context) {
 				if pr == nil {
 					issue.PullRequest.HeadCommitID = ""
 					pull_service.AddToTaskQueue(issue.PullRequest)
+				}
+
+				// check whether the ref of PR <refs/pulls/pr_index/head> in base repo is consistent with the head commit of head branch in the head repo
+				// get head commit of PR
+				prHeadRef := pull.GetGitRefName()
+				if err := pull.LoadBaseRepo(ctx); err != nil {
+					ctx.ServerError("Unable to load base repo", err)
+					return
+				}
+				prHeadCommitID, err := git.GetFullCommitID(ctx, pull.BaseRepo.RepoPath(), prHeadRef)
+				if err != nil {
+					ctx.ServerError("Get head commit Id of pr fail", err)
+					return
+				}
+
+				// get head commit of branch in the head repo
+				if err := pull.LoadHeadRepo(ctx); err != nil {
+					ctx.ServerError("Unable to load head repo", err)
+					return
+				}
+				if ok := git.IsBranchExist(ctx, pull.HeadRepo.RepoPath(), pull.BaseBranch); !ok {
+					// todo localize
+					ctx.Flash.Error("The origin branch is delete, cannot reopen.")
+					ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pull.Index))
+					return
+				}
+				headBranchRef := pull.GetGitHeadBranchRefName()
+				headBranchCommitID, err := git.GetFullCommitID(ctx, pull.HeadRepo.RepoPath(), headBranchRef)
+				if err != nil {
+					ctx.ServerError("Get head commit Id of head branch fail", err)
+					return
+				}
+
+				err = pull.LoadIssue(ctx)
+				if err != nil {
+					ctx.ServerError("load the issue of pull request error", err)
+					return
+				}
+
+				if prHeadCommitID != headBranchCommitID {
+					// force push to base repo
+					err := git.Push(ctx, pull.HeadRepo.RepoPath(), git.PushOptions{
+						Remote: pull.BaseRepo.RepoPath(),
+						Branch: pull.HeadBranch + ":" + prHeadRef,
+						Force:  true,
+						Env:    repo_module.InternalPushingEnvironment(pull.Issue.Poster, pull.BaseRepo),
+					})
+					if err != nil {
+						ctx.ServerError("force push error", err)
+						return
+					}
 				}
 			}
 
@@ -2822,6 +2875,7 @@ func NewComment(ctx *context.Context) {
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 				}
 			}
+
 		}
 
 		// Redirect to comment hashtag if there is any actual content.
