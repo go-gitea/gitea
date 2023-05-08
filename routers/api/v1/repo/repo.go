@@ -1144,8 +1144,12 @@ func GetIssueTemplates(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueTemplates"
-
-	ctx.JSON(http.StatusOK, ctx.IssueTemplatesFromDefaultBranch())
+	ret, err := ctx.IssueTemplatesErrorsFromDefaultBranch()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "IssueTemplatesErrorsFromDefaultBranch", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, ret)
 }
 
 // GetIssueConfig returns the issue config for a repo

@@ -19,11 +19,6 @@ func (ctx *Context) IsUserSiteAdmin() bool {
 	return ctx.IsSigned && ctx.Doer.IsAdmin
 }
 
-// IsUserRepoOwner returns true if current user owns current repo
-func (ctx *Context) IsUserRepoOwner() bool {
-	return ctx.Repo.IsOwner()
-}
-
 // IsUserRepoAdmin returns true if current user is admin in current repo
 func (ctx *Context) IsUserRepoAdmin() bool {
 	return ctx.Repo.IsAdmin()
@@ -38,22 +33,6 @@ func (ctx *Context) IsUserRepoWriter(unitTypes []unit.Type) bool {
 	}
 
 	return false
-}
-
-// IsUserRepoReaderSpecific returns true if current user can read current repo's specific part
-func (ctx *Context) IsUserRepoReaderSpecific(unitType unit.Type) bool {
-	return ctx.Repo.CanRead(unitType)
-}
-
-// IsUserRepoReaderAny returns true if current user can read any part of current repo
-func (ctx *Context) IsUserRepoReaderAny() bool {
-	return ctx.Repo.HasAccess()
-}
-
-// IssueTemplatesFromDefaultBranch checks for valid issue templates in the repo's default branch,
-func (ctx *Context) IssueTemplatesFromDefaultBranch() []*api.IssueTemplate {
-	ret, _ := ctx.IssueTemplatesErrorsFromDefaultBranch()
-	return ret
 }
 
 // IssueTemplatesErrorsFromDefaultBranch checks for issue templates in the repo's default branch,
@@ -129,7 +108,8 @@ func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
 }
 
 func (ctx *Context) HasIssueTemplatesOrContactLinks() bool {
-	if len(ctx.IssueTemplatesFromDefaultBranch()) > 0 {
+	ret, _ := ctx.IssueTemplatesErrorsFromDefaultBranch()
+	if len(ret) > 0 {
 		return true
 	}
 
