@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
+	"code.gitea.io/gitea/services/issue"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -1144,8 +1145,12 @@ func GetIssueTemplates(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueTemplates"
-
-	ctx.JSON(http.StatusOK, ctx.IssueTemplatesFromDefaultBranch())
+	ret, err := issue.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetTemplatesFromDefaultBranch", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, ret)
 }
 
 // GetIssueConfig returns the issue config for a repo
@@ -1169,7 +1174,7 @@ func GetIssueConfig(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepoIssueConfig"
-	issueConfig, _ := ctx.IssueConfigFromDefaultBranch()
+	issueConfig, _ := issue.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.JSON(http.StatusOK, issueConfig)
 }
 
@@ -1194,7 +1199,7 @@ func ValidateIssueConfig(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepoIssueConfigValidation"
-	_, err := ctx.IssueConfigFromDefaultBranch()
+	_, err := issue.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 
 	if err == nil {
 		ctx.JSON(http.StatusOK, api.IssueConfigValidation{Valid: true, Message: ""})
