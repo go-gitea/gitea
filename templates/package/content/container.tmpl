@@ -69,7 +69,7 @@
 	{{if .PackageDescriptor.Metadata.Labels}}
 		<h4 class="ui top attached header">{{.locale.Tr "packages.container.labels"}}</h4>
 		<div class="ui attached segment">
-			<table class="ui very basic compact table container-labels">
+			<table class="ui very basic compact table">
 				<thead>
 					<tr>
 						<th>{{.locale.Tr "packages.container.labels.key"}}</th>
@@ -79,8 +79,8 @@
 				<tbody>
 					{{range $key, $value := .PackageDescriptor.Metadata.Labels}}
 						<tr>
-							<td>{{$key}}</td>
-							<td>{{$value}}</td>
+							<td class="top aligned">{{$key}}</td>
+							<td class="gt-word-break">{{$value}}</td>
 						</tr>
 					{{end}}
 				</tbody>

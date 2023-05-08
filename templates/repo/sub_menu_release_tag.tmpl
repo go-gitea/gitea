@@ -2,7 +2,7 @@
 {{$canReadCode := $.Permission.CanRead $.UnitTypeCode}}
 
 {{if $canReadReleases}}
-	<h2 class="ui compact small menu header small-pill-buttons">
+	<h2 class="ui compact small menu header small-menu-items">
 		<a class="{{if .PageIsReleaseList}}active {{end}}item" href="{{.RepoLink}}/releases">{{.locale.Tr "repo.release.releases"}}</a>
 		{{if $canReadCode}}
 			<a class="{{if .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/tags">{{.locale.Tr "repo.release.tags"}}</a>

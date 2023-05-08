@@ -1,10 +1,14 @@
-name: Compliance testing for documentation
+name: "Pull: Compliance testing for documentation"
 
 on:
   pull_request:
     paths:
       - "docs/**"
       - "*.md"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   compliance-docs:
@@ -13,9 +17,9 @@ jobs:
       - name: checkout
         uses: actions/checkout@v3
       - name: setup node
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20
       - name: install dependencies
         run: make deps-frontend
       - name: lint markdown

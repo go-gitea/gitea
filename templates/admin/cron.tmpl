@@ -22,7 +22,7 @@
 						<td>{{$.locale.Tr (printf "admin.dashboard.%s" .Name)}}</td>
 						<td>{{.Spec}}</td>
 						<td>{{DateTime "full" .Next}}</td>
-						<td>{{if gt .Prev.Year 1}}{{DateTime "full" .Prev}}{{else}}N/A{{end}}</td>
+						<td>{{if gt .Prev.Year 1}}{{DateTime "full" .Prev}}{{else}}-{{end}}</td>
 						<td>{{.ExecTimes}}</td>
 						<td {{if ne .Status ""}}data-tooltip-content="{{.FormatLastMessage $.locale}}"{{end}} >{{if eq .Status ""}}—{{else if eq .Status "finished"}}{{svg "octicon-check" 16}}{{else}}{{svg "octicon-x" 16}}{{end}}</td>
 					</tr>

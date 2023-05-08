@@ -143,7 +143,6 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 		},
 	}
 	for _, test := range testCases {
-		defer tests.ResetFixtures(t)
 		session := ctx.Session
 		testAPICreateBranch(t, session, "user2", "my-noo-repo", test.OldBranch, test.NewBranch, test.ExpectedHTTPStatus)
 	}

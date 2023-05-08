@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
@@ -58,7 +59,7 @@ func TestMain(m *testing.M) {
 
 	exitVal := m.Run()
 
-	tests.WriterCloser.Reset()
+	testlogger.WriterCloser.Reset()
 
 	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("util.RemoveAll: %v\n", err)
