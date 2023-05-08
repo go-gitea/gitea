@@ -762,6 +762,7 @@ func registerRoutes(m *web.Route) {
 					m.Get("", org_setting.RedirectToDefaultSetting)
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
+					addSettingVariablesRoutes()
 				}, actions.MustEnableActions)
 
 				m.RouteMethods("/delete", "GET,POST", org.SettingsDelete)
