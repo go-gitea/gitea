@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gorilla/feeds"
@@ -21,7 +22,12 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 	if len(fileName) == 0 {
 		return
 	}
-	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(ctx.Repo.RefName, fileName, 1)
+	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
+		git.CommitsByFileAndRangeOptions{
+			Revision: ctx.Repo.RefName,
+			File:     fileName,
+			Page:     1,
+		})
 	if err != nil {
 		ctx.ServerError("ShowBranchFeed", err)
 		return
