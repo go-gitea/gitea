@@ -6,7 +6,7 @@ const {csrfToken} = window.config;
 function updateIssueCount(cards) {
   const parent = cards.parentElement;
   const cnt = parent.getElementsByClassName('board-card').length;
-  parent.getElementsByClassName('board-card-cnt')[0].innerText = cnt;
+  parent.getElementsByClassName('board-card-cnt')[0].textContent = cnt;
 }
 
 function moveIssue({item, from, to, oldIndex}) {
@@ -36,7 +36,7 @@ function moveIssue({item, from, to, oldIndex}) {
 }
 
 async function initRepoProjectSortable() {
-  const els = document.querySelectorAll('#project-board > .board');
+  const els = document.querySelectorAll('#project-board > .board.sortable');
   if (!els.length) return;
 
   const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
