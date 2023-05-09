@@ -37,13 +37,14 @@ type ProtectedBranch struct {
 	isPlainName                   bool                   `xorm:"-"`
 	CanPush                       bool                   `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist               bool
-	WhitelistUserIDs              []int64  `xorm:"JSON TEXT"`
-	WhitelistTeamIDs              []int64  `xorm:"JSON TEXT"`
-	EnableMergeWhitelist          bool     `xorm:"NOT NULL DEFAULT false"`
-	WhitelistDeployKeys           bool     `xorm:"NOT NULL DEFAULT false"`
-	MergeWhitelistUserIDs         []int64  `xorm:"JSON TEXT"`
-	MergeWhitelistTeamIDs         []int64  `xorm:"JSON TEXT"`
-	EnableStatusCheck             bool     `xorm:"NOT NULL DEFAULT false"`
+	WhitelistUserIDs              []int64 `xorm:"JSON TEXT"`
+	WhitelistTeamIDs              []int64 `xorm:"JSON TEXT"`
+	EnableMergeWhitelist          bool    `xorm:"NOT NULL DEFAULT false"`
+	WhitelistDeployKeys           bool    `xorm:"NOT NULL DEFAULT false"`
+	MergeWhitelistUserIDs         []int64 `xorm:"JSON TEXT"`
+	MergeWhitelistTeamIDs         []int64 `xorm:"JSON TEXT"`
+	EnableStatusCheck             bool    `xorm:"NOT NULL DEFAULT false"`
+	StatusCheckPattern            string
 	StatusCheckContexts           []string `xorm:"JSON TEXT"`
 	EnableApprovalsWhitelist      bool     `xorm:"NOT NULL DEFAULT false"`
 	ApprovalsWhitelistUserIDs     []int64  `xorm:"JSON TEXT"`
