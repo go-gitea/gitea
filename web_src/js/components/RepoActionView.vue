@@ -7,13 +7,13 @@
           {{ run.title }}
         </div>
         <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
-          <SvgIcon name="octicon-play" :size="20"/> {{ locale.approve }}
+          <SvgIcon class="gt-mr-2" name="octicon-play" :size="20"/> {{ locale.approve }}
         </button>
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
-          <SvgIcon name="octicon-x-circle-fill" :size="20"/> {{ locale.cancel }}
+          <SvgIcon class="gt-mr-2" name="octicon-x-circle-fill" :size="20"/> {{ locale.cancel }}
         </button>
         <button class="ui basic small compact button secondary" @click="rerun()" v-else-if="run.canRerun">
-          <SvgIcon name="octicon-sync" :size="20"/> {{ locale.rerun }}
+          <SvgIcon class="gt-mr-2" name="octicon-sync" :size="20"/> {{ locale.rerun }}
         </button>
       </div>
       <div class="action-commit-summary">
