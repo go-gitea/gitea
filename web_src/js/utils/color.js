@@ -24,8 +24,6 @@ const getAlphafloat = (a) => {
   return 1;
 };
 
-const re = new RegExp('.{1}', 'g');
-const re2 = new RegExp('.{2}', 'g');
 // Get color as RGB values in 0..255 range from the hex color string (with or without #)
 export function hexToRGBColor(backgroundColorStr, ignoreAlpha = true) {
   let backgroundColor = backgroundColorStr;
@@ -41,7 +39,7 @@ export function hexToRGBColor(backgroundColorStr, ignoreAlpha = true) {
   const chunkSize = Math.floor(backgroundColor.length / 3);
   // hexArr is array of [r, g, b] or [r, g, b, a], a could be undefined
   // and will be processed in getAlphafloat if ignoreAlpha is false
-  const hexArr = chunkSize === 1 ? backgroundColor.match(re): backgroundColor.match(re2);
+  const hexArr = chunkSize === 1 ? backgroundColor.split('') : backgroundColor.match(/.{1,2}/g);
   const [r, g, b, a] = hexArr.map(convertHexUnitTo256);
   return ignoreAlpha ? [r, g, b] : [r, g, b, getAlphafloat(a)];
 }
