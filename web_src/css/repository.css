@@ -3431,8 +3431,5 @@ td.blob-excerpt {
 
 .pinned-issue-title {
   word-break: break-word;
-}
-
-.pinned-issue-unpin-icon {
-  float: right;
+  vertical-align: middle;
 }
