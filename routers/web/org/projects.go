@@ -185,19 +185,19 @@ func ChangeProjectStatus(ctx *context.Context) {
 	case "close":
 		toClose = true
 	default:
-		ctx.Redirect(ctx.Repo.RepoLink + "/projects")
+		ctx.Redirect(ctx.ContextUser.HomeLink() + "/-/projects")
 	}
 	id := ctx.ParamsInt64(":id")
 
-	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx.Repo.Repository.ID, id, toClose); err != nil {
+	if err := project_model.ChangeProjectStatusByRepoIDAndID(0, id, toClose); err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", err)
 		} else {
-			ctx.ServerError("ChangeProjectStatusByIDAndRepoID", err)
+			ctx.ServerError("ChangeProjectStatusByRepoIDAndID", err)
 		}
 		return
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/projects?state=" + url.QueryEscape(ctx.Params(":action")))
+	ctx.Redirect(ctx.ContextUser.HomeLink() + "/-/projects?state=" + url.QueryEscape(ctx.Params(":action")))
 }
 
 // DeleteProject delete a project

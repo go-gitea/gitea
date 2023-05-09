@@ -41,7 +41,7 @@ func TestRepoStatsIndex(t *testing.T) {
 	err = UpdateRepoIndexer(repo)
 	assert.NoError(t, err)
 
-	queue.GetManager().FlushAll(context.Background(), 5*time.Second)
+	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), 5*time.Second))
 
 	status, err := repo_model.GetIndexerStatus(db.DefaultContext, repo, repo_model.RepoIndexerTypeStats)
 	assert.NoError(t, err)
