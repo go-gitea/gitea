@@ -42,6 +42,18 @@ func GetSingleCommit(ctx *context.APIContext) {
 	//   description: a git ref or commit sha
 	//   type: string
 	//   required: true
+	// - name: stat
+	//   in: query
+	//   description: include diff stats for every commit (disable for speedup, default 'true')
+	//   type: boolean
+	// - name: verification
+	//   in: query
+	//   description: include verification for every commit (disable for speedup, default 'true')
+	//   type: boolean
+	// - name: files
+	//   in: query
+	//   description: include a list of affected files for every commit (disable for speedup, default 'true')
+	//   type: boolean
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Commit"
@@ -51,14 +63,24 @@ func GetSingleCommit(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	sha := ctx.Params(":sha")
+
 	if !git.IsValidRefPattern(sha) {
 		ctx.Error(http.StatusUnprocessableEntity, "no valid ref or sha", fmt.Sprintf("no valid ref or sha: %s", sha))
 		return
 	}
-	getCommit(ctx, sha)
+
+	stat := ctx.FormString("stat") == "" || ctx.FormBool("stat")
+	files := ctx.FormString("files") == "" || ctx.FormBool("files")
+	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
+
+	getCommit(ctx, sha, convert.ToCommitOptions{
+		Stat:         stat,
+		Files:        files,
+		Verification: verification,
+	})
 }
 
-func getCommit(ctx *context.APIContext, identifier string) {
+func getCommit(ctx *context.APIContext, identifier string, toCommitOpts convert.ToCommitOptions) {
 	commit, err := ctx.Repo.GitRepo.GetCommit(identifier)
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -69,14 +91,7 @@ func getCommit(ctx *context.APIContext, identifier string) {
 		return
 	}
 
-	stat := ctx.FormString("stat") == "" || ctx.FormBool("stat")
-	files := ctx.FormString("files") == "" || ctx.FormBool("files")
-	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
-	json, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil, convert.ToCommitOptions{
-		Stat:         stat,
-		Files:        files,
-		Verification: verification,
-	})
+	json, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil, toCommitOpts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "toCommit", err)
 		return
