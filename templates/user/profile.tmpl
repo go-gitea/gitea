@@ -121,45 +121,7 @@
 			</div>
 			<div class="ui eleven wide column">
 				<div class="ui secondary stackable pointing tight menu">
-					{{if .ProfileReadme}}
-						<a class='{{if and (ne .TabName "repositories") (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "watching") (ne .TabName "projects") (ne .TabName "code")}}active {{end}}item' href="{{.Owner.HomeLink}}?tab=overview">
-							{{svg "octicon-info"}} {{.locale.Tr "user.overview"}}
-						</a>
-					{{end}}
-					<a class='{{if or (eq .TabName "repositories") (and (not .ProfileReadme) (ne .TabName "repositories") (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "watching") (ne .TabName "projects") (ne .TabName "code"))}}active {{end}}item' href="{{.Owner.HomeLink}}?tab=repositories">
-						{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
-						{{if .ContextUser.NumRepos}}
-							<div class="ui small label">{{.ContextUser.NumRepos}}</div>
-						{{end}}
-					</a>
-					<a href="{{.ContextUser.HomeLink}}/-/projects" class="{{if eq .TabName "projects"}}active {{end}}item">
-						{{svg "octicon-project-symlink"}} {{.locale.Tr "user.projects"}}
-					</a>
-					{{if .IsPackageEnabled}}
-					<a class='{{if eq .TabName "packages"}}active {{end}}item' href="{{.ContextUser.HomeLink}}/-/packages">
-						{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
-					</a>
-					{{end}}
-					{{if .IsRepoIndexerEnabled}}
-					<a class='{{if eq .TabName "code"}}active {{end}}item' href="{{.ContextUser.HomeLink}}/-/code">
-						{{svg "octicon-code"}} {{.locale.Tr "user.code"}}
-					</a>
-					{{end}}
-					<a class='{{if eq .TabName "activity"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=activity">
-						{{svg "octicon-rss"}} {{.locale.Tr "user.activity"}}
-					</a>
-					{{if not .DisableStars}}
-						<a class='{{if eq .TabName "stars"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=stars">
-							{{svg "octicon-star"}} {{.locale.Tr "user.starred"}}
-							{{if .ContextUser.NumStars}}
-								<div class="ui small label">{{.ContextUser.NumStars}}</div>
-							{{end}}
-						</a>
-					{{else}}
-						<a class='{{if eq .TabName "watching"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=watching">
-							{{svg "octicon-eye"}} {{.locale.Tr "user.watched"}}
-						</a>
-					{{end}}
+					{{template "user/overview/header" .}}
 				</div>
 
 				{{if eq .TabName "activity"}}
