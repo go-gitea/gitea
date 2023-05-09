@@ -188,7 +188,7 @@ func TestHook(ctx *context.APIContext) {
 		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, perm.AccessModeNone),
 		Pusher:       convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
 		Sender:       convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
-	}); err != nil {
+	}, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "PrepareWebhook: ", err)
 		return
 	}

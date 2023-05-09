@@ -153,18 +153,23 @@ func checkBranch(w *webhook_model.Webhook, branch string) bool {
 }
 
 // PrepareWebhook creates a hook task and enqueues it for processing
-func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook_module.HookEventType, p api.Payloader) error {
+func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook_module.HookEventType, p api.Payloader, isTest bool) error {
 	// Skip sending if webhooks are disabled.
 	if setting.DisableWebhooks {
+		if isTest {
+			return fmt.Errorf("webhooks is disabled")
+		}
 		return nil
 	}
 
 	for _, e := range w.EventCheckers() {
 		if event == e.Type {
 			if !e.Has() {
+				if isTest {
+					return fmt.Errorf("event %q doesn't trigger in the webhook", event)
+				}
 				return nil
 			}
-
 			break
 		}
 	}
@@ -181,6 +186,9 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 	// branch filter has no effect.
 	if branch := getPayloadBranch(p); branch != "" {
 		if !checkBranch(w, branch) {
+			if isTest {
+				return fmt.Errorf("branch %q doesn't match branch filter %q", branch, w.BranchFilter)
+			}
 			log.Info("Branch %q doesn't match branch filter %q, skipping", branch, w.BranchFilter)
 			return nil
 		}
@@ -253,7 +261,7 @@ func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_modu
 	}
 
 	for _, w := range ws {
-		if err := PrepareWebhook(ctx, w, event, p); err != nil {
+		if err := PrepareWebhook(ctx, w, event, p, false); err != nil {
 			return err
 		}
 	}

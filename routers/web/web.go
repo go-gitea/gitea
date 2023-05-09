@@ -911,7 +911,7 @@ func registerRoutes(m *web.Route) {
 				addWebhookAddRoutes()
 				m.Group("/{id}", func() {
 					m.Get("", repo.WebHooksEdit)
-					m.Post("/test", repo.TestWebhook)
+					m.Post("/test/{branch}/{event}", repo.TestWebhook)
 					m.Post("/replay/{uuid}", repo.ReplayWebhook)
 				})
 				addWebhookEditRoutes()

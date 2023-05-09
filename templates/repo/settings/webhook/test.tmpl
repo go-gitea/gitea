@@ -1,0 +1,41 @@
+{{if and .PageIsSettingsHooksEdit .Permission.IsAdmin}}
+    <h4 class="ui top attached header">
+        {{.locale.Tr "repo.settings.webhook.test_delivery"}}
+    </h4>
+    <div class="ui attached segment">
+        <form class="ui form">
+            {{.CsrfTokenHtml}}
+            <div class="required field">
+                <label for="branch">{{.locale.Tr "repo.branch"}}</label>
+			    <div class="ui selection dropdown">
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<input type="hidden" id="branch" name="branch" value="{{.Repository.DefaultBranch}}">
+					<div class="default text">{{.Repository.DefaultBranch}}</div>
+					<div class="menu">
+						{{range .Branches}}
+							<div class="item" data-value="{{.}}">{{.}}</div>
+						{{end}}
+					</div>
+				</div>
+            </div>
+            <div class="required field">
+                <label for="event">{{.locale.Tr "repo.settings.webhook.event"}}</label>
+			    <div class="ui selection dropdown">
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<input type="hidden" id="hook_event" name="hook_event" value="{{index .WebhookEvents 0}}">
+					<div class="default text">post</div>
+					<div class="menu">
+						{{range .WebhookEvents}}
+							<div class="item" data-value="{{.}}">{{.}}</div>
+						{{end}}
+					</div>
+				</div>
+            </div>
+            <div class="field">
+                <button class="ui green button" id="test-delivery" 
+                data-tooltip-content="{{.locale.Tr "repo.settings.webhook.test_delivery_desc"}}"
+                data-link="{{.Link}}/test">{{.locale.Tr "repo.settings.webhook.test_delivery"}}</button>
+            </div>
+        </form>
+    </div>
+{{end}}

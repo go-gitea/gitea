@@ -32,7 +32,8 @@ export function initCompWebHookEditor() {
   $('#test-delivery').on('click', function () {
     const $this = $(this);
     $this.addClass('loading disabled');
-    $.post($this.data('link'), {
+    const link = `${$this.data('link')}/${$('#branch').val()}/${$('#hook_event').val()}`;
+    $.post(link, {
       _csrf: csrfToken
     }).done(
       setTimeout(() => {

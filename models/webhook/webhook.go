@@ -332,6 +332,17 @@ func (w *Webhook) EventCheckers() []struct {
 	}
 }
 
+func (w *Webhook) GetAllValidEventTypes() []webhook_module.HookEventType {
+	var allValidEventTypes []webhook_module.HookEventType
+
+	for _, e := range w.EventCheckers() {
+		if e.Has() {
+			allValidEventTypes = append(allValidEventTypes, e.Type)
+		}
+	}
+	return allValidEventTypes
+}
+
 // EventsArray returns an array of hook events
 func (w *Webhook) EventsArray() []string {
 	events := make([]string, 0, 7)

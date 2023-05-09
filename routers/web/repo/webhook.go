@@ -265,6 +265,7 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 		return
 	}
 	ctx.Data["Webhook"] = w
+	ctx.Data["WebHookEvents"] = w.GetAllValidEventTypes()
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
@@ -633,6 +634,7 @@ func WebHooksEdit(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Webhook"] = w
+	ctx.Data["WebhookEvents"] = w.GetAllValidEventTypes()
 
 	ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 }
@@ -646,6 +648,11 @@ func TestWebhook(ctx *context.Context) {
 		ctx.Status(http.StatusInternalServerError)
 		return
 	}
+	branch := ctx.Params(":branch")
+	if branch == "" {
+		branch = ctx.Repo.Repository.DefaultBranch
+	}
+	event := webhook_module.HookEventType(ctx.Params(":event"))
 
 	// Grab latest commit or fake one if it's empty repository.
 	commit := ctx.Repo.Commit
@@ -677,7 +684,7 @@ func TestWebhook(ctx *context.Context) {
 
 	commitID := commit.ID.String()
 	p := &api.PushPayload{
-		Ref:          git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
+		Ref:          git.BranchPrefix + branch,
 		Before:       commitID,
 		After:        commitID,
 		CompareURL:   setting.AppURL + ctx.Repo.Repository.ComposeCompareURL(commitID, commitID),
@@ -688,12 +695,10 @@ func TestWebhook(ctx *context.Context) {
 		Pusher:       apiUser,
 		Sender:       apiUser,
 	}
-	if err := webhook_service.PrepareWebhook(ctx, w, webhook_module.HookEventPush, p); err != nil {
+	if err := webhook_service.PrepareWebhook(ctx, w, event, p, true); err != nil {
 		ctx.Flash.Error("PrepareWebhook: " + err.Error())
-		ctx.Status(http.StatusInternalServerError)
 	} else {
 		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.delivery.success"))
-		ctx.Status(http.StatusOK)
 	}
 }
 
