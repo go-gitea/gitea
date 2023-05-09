@@ -3420,13 +3420,17 @@ td.blob-excerpt {
 
 .pinned-issue-card {
   border-radius: var(--border-radius);
-  padding: 7px 12px;
+  padding: 8px 10px;
   border: 1px solid var(--color-secondary);
   background: var(--color-card);
 }
 
 .pinned-issue-card .meta a {
   color: inherit;
+}
+
+.pinned-issue-card .meta a:hover {
+  color: var(--color-primary);
 }
 
 .pinned-issue-icon,
