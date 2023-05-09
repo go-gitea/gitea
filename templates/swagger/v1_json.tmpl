@@ -16145,10 +16145,16 @@
           "x-go-name": "BranchName"
         },
         "old_branch_name": {
-          "description": "Name of the old branch to create from",
+          "description": "Deprecated: true\nName of the old branch to create from",
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "OldBranchName"
+        },
+        "old_ref_name": {
+          "description": "Name of the old branch/tag/commit to create from",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "OldRefName"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
