@@ -59,7 +59,7 @@ server {
     location /gitea/ {
         client_max_body_size 512M;
 
-        # make nginx use unescaped the URI, keep "%2F" as is
+        # make nginx use unescaped URI, keep "%2F" as is
         rewrite ^ $request_uri;
         rewrite ^/gitea(/.*) $1 break;
         proxy_pass http://127.0.0.1:3000$uri;
