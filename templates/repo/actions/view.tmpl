@@ -2,7 +2,15 @@
 
 <div class="page-content repository">
 	{{template "repo/header" .}}
-	<div id="repo-action-view" data-run-index="{{.RunIndex}}" data-job-index="{{.JobIndex}}" data-actions-url="{{.ActionsURL}}"></div>
+	<div id="repo-action-view"
+		data-run-index="{{.RunIndex}}"
+		data-job-index="{{.JobIndex}}"
+		data-actions-url="{{.ActionsURL}}"
+		data-locale-approve="{{.locale.Tr "repo.diff.review.approve"}}"
+		data-locale-cancel="{{.locale.Tr "cancel"}}"
+		data-locale-rerun="{{.locale.Tr "rerun"}}"
+	>
+	</div>
 </div>
 
 {{template "base/footer" .}}

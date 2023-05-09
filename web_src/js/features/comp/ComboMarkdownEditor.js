@@ -5,10 +5,9 @@ import {attachTribute} from '../tribute.js';
 import {hideElem, showElem, autosize} from '../../utils/dom.js';
 import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
-import {emojiString} from '../emoji.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
-import {matchEmoji, matchMention} from '../../utils/match.js';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
+import {initTextExpander} from './TextExpander.js';
 
 let elementIdCounter = 0;
 
@@ -43,14 +42,12 @@ class ComboMarkdownEditor {
 
   async init() {
     this.prepareEasyMDEToolbarActions();
+    this.setupContainer();
     this.setupTab();
     this.setupDropzone();
     this.setupTextarea();
-    this.setupExpander();
 
-    if (this.userPreferredEditor === 'easymde') {
-      await this.switchToEasyMDE();
-    }
+    await this.switchToUserPreference();
   }
 
   applyEditorHeights(el, heights) {
@@ -58,6 +55,11 @@ class ComboMarkdownEditor {
     if (heights.minHeight) el.style.minHeight = heights.minHeight;
     if (heights.height) el.style.height = heights.height;
     if (heights.maxHeight) el.style.maxHeight = heights.maxHeight;
+  }
+
+  setupContainer() {
+    initTextExpander(this.container.querySelector('text-expander'));
+    this.container.addEventListener('ce-editor-content-changed', (e) => this.options?.onContentChanged?.(this, e));
   }
 
   setupTextarea() {
@@ -101,64 +103,6 @@ class ComboMarkdownEditor {
     if (this.dropzone) {
       initTextareaImagePaste(this.textarea, this.dropzone);
     }
-  }
-
-  setupExpander() {
-    const expander = this.container.querySelector('text-expander');
-    expander?.addEventListener('text-expander-change', ({detail: {key, provide, text}}) => {
-      if (key === ':') {
-        const matches = matchEmoji(text);
-        if (!matches.length) return provide({matched: false});
-
-        const ul = document.createElement('ul');
-        ul.classList.add('suggestions');
-        for (const name of matches) {
-          const emoji = emojiString(name);
-          const li = document.createElement('li');
-          li.setAttribute('role', 'option');
-          li.setAttribute('data-value', emoji);
-          li.textContent = `${emoji} ${name}`;
-          ul.append(li);
-        }
-
-        provide({matched: true, fragment: ul});
-      } else if (key === '@') {
-        const matches = matchMention(text);
-        if (!matches.length) return provide({matched: false});
-
-        const ul = document.createElement('ul');
-        ul.classList.add('suggestions');
-        for (const {value, name, fullname, avatar} of matches) {
-          const li = document.createElement('li');
-          li.setAttribute('role', 'option');
-          li.setAttribute('data-value', `${key}${value}`);
-
-          const img = document.createElement('img');
-          img.src = avatar;
-          li.append(img);
-
-          const nameSpan = document.createElement('span');
-          nameSpan.textContent = name;
-          li.append(nameSpan);
-
-          if (fullname && fullname.toLowerCase() !== name) {
-            const fullnameSpan = document.createElement('span');
-            fullnameSpan.classList.add('fullname');
-            fullnameSpan.textContent = fullname;
-            li.append(fullnameSpan);
-          }
-
-          ul.append(li);
-        }
-
-        provide({matched: true, fragment: ul});
-      }
-    });
-    expander?.addEventListener('text-expander-value', ({detail}) => {
-      if (detail?.item) {
-        detail.value = detail.item.getAttribute('data-value');
-      }
-    });
   }
 
   setupDropzone() {
@@ -224,7 +168,16 @@ class ComboMarkdownEditor {
     return processed;
   }
 
+  async switchToUserPreference() {
+    if (this.userPreferredEditor === 'easymde') {
+      await this.switchToEasyMDE();
+    } else {
+      this.switchToTextarea();
+    }
+  }
+
   switchToTextarea() {
+    if (!this.easyMDE) return;
     showElem(this.textareaMarkdownToolbar);
     if (this.easyMDE) {
       this.easyMDE.toTextArea();
@@ -233,6 +186,7 @@ class ComboMarkdownEditor {
   }
 
   async switchToEasyMDE() {
+    if (this.easyMDE) return;
     // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can not overwrite the default styles.
     const {default: EasyMDE} = await import(/* webpackChunkName: "easymde" */'easymde');
     const easyMDEOpt = {

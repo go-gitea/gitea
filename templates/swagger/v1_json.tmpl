@@ -3795,6 +3795,18 @@
             "in": "query"
           },
           {
+            "type": "boolean",
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "name": "files",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",

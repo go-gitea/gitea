@@ -1,192 +1,29 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
-	<div class="admin-setting-content">
-		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.monitor.queue" .Queue.Name}}
-		</h4>
-		<div class="ui attached table segment">
-			<table class="ui very basic striped table">
-				<thead>
-					<tr>
-						<th>{{.locale.Tr "admin.monitor.queue.name"}}</th>
-						<th>{{.locale.Tr "admin.monitor.queue.type"}}</th>
-						<th>{{.locale.Tr "admin.monitor.queue.exemplar"}}</th>
-						<th>{{.locale.Tr "admin.monitor.queue.numberworkers"}}</th>
-						<th>{{.locale.Tr "admin.monitor.queue.maxnumberworkers"}}</th>
-						<th>{{.locale.Tr "admin.monitor.queue.numberinqueue"}}</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr>
-						<td>{{.Queue.Name}}</td>
-						<td>{{.Queue.Type}}</td>
-						<td>{{.Queue.ExemplarType}}</td>
-						<td>{{$sum := .Queue.NumberOfWorkers}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
-						<td>{{if lt $sum 0}}-{{else}}{{.Queue.MaxNumberOfWorkers}}{{end}}</td>
-						<td>{{$sum = .Queue.NumberInQueue}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
-					</tr>
-				</tbody>
-			</table>
-		</div>
-		{{if lt $sum 0}}
-		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.monitor.queue.nopool.title"}}
-		</h4>
-		<div class="ui attached segment">
-			{{if eq .Queue.Type "wrapped"}}
-			<p>{{.locale.Tr "admin.monitor.queue.wrapped.desc"}}</p>
-			{{else if eq .Queue.Type "persistable-channel"}}
-			<p>{{.locale.Tr "admin.monitor.queue.persistable-channel.desc"}}</p>
-			{{else}}
-			<p>{{.locale.Tr "admin.monitor.queue.nopool.desc"}}</p>
-			{{end}}
-		</div>
-		{{else}}
-		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.monitor.queue.settings.title"}}
-		</h4>
-		<div class="ui attached segment">
-			<p>{{.locale.Tr "admin.monitor.queue.settings.desc"}}</p>
-			<form method="POST" action="{{.Link}}/set">
-				{{$.CsrfTokenHtml}}
-				<div class="ui form">
-					<div class="inline field">
-						<label for="max-number">{{.locale.Tr "admin.monitor.queue.settings.maxnumberworkers"}}</label>
-						<input name="max-number" type="text" placeholder="{{.locale.Tr "admin.monitor.queue.settings.maxnumberworkers.placeholder" .Queue.MaxNumberOfWorkers}}">
-					</div>
-					<div class="inline field">
-						<label for="timeout">{{.locale.Tr "admin.monitor.queue.settings.timeout"}}</label>
-						<input name="timeout" type="text" placeholder="{{.locale.Tr "admin.monitor.queue.settings.timeout.placeholder" .Queue.BoostTimeout}}">
-					</div>
-					<div class="inline field">
-						<label for="number">{{.locale.Tr "admin.monitor.queue.settings.numberworkers"}}</label>
-						<input name="number" type="text" placeholder="{{.locale.Tr "admin.monitor.queue.settings.numberworkers.placeholder" .Queue.BoostWorkers}}">
-					</div>
-					<div class="inline field">
-						<label>{{.locale.Tr "admin.monitor.queue.settings.blocktimeout"}}</label>
-						<span>{{.locale.Tr "admin.monitor.queue.settings.blocktimeout.value" .Queue.BlockTimeout}}</span>
-					</div>
-					<button class="ui submit button">{{.locale.Tr "admin.monitor.queue.settings.submit"}}</button>
-				</div>
-			</form>
-		</div>
-		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.monitor.queue.pool.addworkers.title"}}
-		</h4>
-		<div class="ui attached segment">
-			<p>{{.locale.Tr "admin.monitor.queue.pool.addworkers.desc"}}</p>
-			<form method="POST" action="{{.Link}}/add">
-				{{$.CsrfTokenHtml}}
-				<div class="ui form">
-					<div class="fields">
-						<div class="field">
-							<label>{{.locale.Tr "admin.monitor.queue.numberworkers"}}</label>
-							<input name="number" type="text" placeholder="{{.locale.Tr "admin.monitor.queue.pool.addworkers.numberworkers.placeholder"}}">
-						</div>
-						<div class="field">
-							<label>{{.locale.Tr "admin.monitor.queue.pool.timeout"}}</label>
-							<input name="timeout" type="text" placeholder="{{.locale.Tr "admin.monitor.queue.pool.addworkers.timeout.placeholder"}}">
-						</div>
-					</div>
-					<button class="ui submit button">{{.locale.Tr "admin.monitor.queue.pool.addworkers.submit"}}</button>
-				</div>
-			</form>
-		</div>
-		{{if .Queue.Pausable}}
-			{{if .Queue.IsPaused}}
-				<h4 class="ui top attached header">
-					{{.locale.Tr "admin.monitor.queue.pool.resume.title"}}
-				</h4>
-				<div class="ui attached segment">
-					<p>{{.locale.Tr "admin.monitor.queue.pool.resume.desc"}}</p>
-					<form method="POST" action="{{.Link}}/resume">
-						{{$.CsrfTokenHtml}}
-						<div class="ui form">
-							<button class="ui submit button">{{.locale.Tr "admin.monitor.queue.pool.resume.submit"}}</button>
-						</div>
-					</form>
-				</div>
-			{{else}}
-				<h4 class="ui top attached header">
-					{{.locale.Tr "admin.monitor.queue.pool.pause.title"}}
-				</h4>
-				<div class="ui attached segment">
-					<p>{{.locale.Tr "admin.monitor.queue.pool.pause.desc"}}</p>
-					<form method="POST" action="{{.Link}}/pause">
-						{{$.CsrfTokenHtml}}
-						<div class="ui form">
-							<button class="ui submit button">{{.locale.Tr "admin.monitor.queue.pool.pause.submit"}}</button>
-						</div>
-					</form>
-				</div>
-			{{end}}
+<h4 class="ui top attached header">
+	{{.locale.Tr "admin.monitor.queues"}}
+</h4>
+<div class="ui attached table segment">
+	<table class="ui very basic striped table unstackable">
+		<thead>
+		<tr>
+			<th>{{.locale.Tr "admin.monitor.queue.name"}}</th>
+			<th>{{.locale.Tr "admin.monitor.queue.type"}}</th>
+			<th>{{.locale.Tr "admin.monitor.queue.exemplar"}}</th>
+			<th>{{.locale.Tr "admin.monitor.queue.numberworkers"}}</th>
+			<th>{{.locale.Tr "admin.monitor.queue.numberinqueue"}}</th>
+			<th></th>
+		</tr>
+		</thead>
+		<tbody>
+		{{range $qid, $q := .Queues}}
+		<tr>
+			<td>{{$q.GetName}}</td>
+			<td>{{$q.GetType}}</td>
+			<td>{{$q.GetItemTypeName}}</td>
+			<td>{{$sum := $q.GetWorkerNumber}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
+			<td>{{$sum = $q.GetQueueItemNumber}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
+			<td><a href="{{$.Link}}/queue/{{$qid}}" class="button">{{if lt $sum 0}}{{$.locale.Tr "admin.monitor.queue.review"}}{{else}}{{$.locale.Tr "admin.monitor.queue.review_add"}}{{end}}</a>
+		</tr>
 		{{end}}
-		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.monitor.queue.pool.flush.title"}}
-		</h4>
-		<div class="ui attached segment">
-			<p>{{.locale.Tr "admin.monitor.queue.pool.flush.desc"}}</p>
-			<form method="POST" action="{{.Link}}/flush">
-				{{$.CsrfTokenHtml}}
-				<div class="ui form">
-					<div class="fields">
-						<div class="field">
-							<label>{{.locale.Tr "admin.monitor.queue.pool.timeout"}}</label>
-							<input name="timeout" type="text" placeholder="{{.locale.Tr "admin.monitor.queue.pool.addworkers.timeout.placeholder"}}">
-						</div>
-					</div>
-					<button class="ui submit button">{{.locale.Tr "admin.monitor.queue.pool.flush.submit"}}</button>
-				</div>
-			</form>
-		</div>
-		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.monitor.queue.pool.workers.title"}}
-		</h4>
-		<div class="ui attached table segment">
-			<table class="ui very basic striped table">
-				<thead>
-					<tr>
-						<th>{{.locale.Tr "admin.monitor.queue.numberworkers"}}</th>
-						<th>{{.locale.Tr "admin.monitor.start"}}</th>
-						<th>{{.locale.Tr "admin.monitor.queue.pool.timeout"}}</th>
-						<th></th>
-					</tr>
-				</thead>
-				<tbody>
-					{{range .Queue.Workers}}
-					<tr>
-						<td>{{.Workers}}{{if .IsFlusher}}<span title="{{$.locale.Tr "admin.monitor.queue.flush"}}">{{svg "octicon-sync"}}</span>{{end}}</td>
-						<td>{{DateTime "full" .Start}}</td>
-						<td>{{if .HasTimeout}}{{DateTime "full" .Timeout}}{{else}}-{{end}}</td>
-						<td>
-							<a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Workers}}" title="{{$.locale.Tr "remove"}}">{{svg "octicon-trash"}}</a>
-						</td>
-					</tr>
-					{{else}}
-						<tr>
-							<td colspan="4">{{.locale.Tr "admin.monitor.queue.pool.workers.none"}}
-						</tr>
-					{{end}}
-				</tbody>
-			</table>
-		</div>
-		{{end}}
-		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.monitor.queue.configuration"}}
-		</h4>
-		<div class="ui attached segment">
-			<pre>{{JsonUtils.PrettyIndent .Queue.Configuration}}</pre>
-		</div>
-	</div>
-
-<div class="ui g-modal-confirm delete modal">
-	<div class="header">
-		{{.locale.Tr "admin.monitor.queue.pool.cancel"}}
-	</div>
-	<div class="content">
-		<p>{{$.locale.Tr "admin.monitor.queue.pool.cancel_notices" `<span class="name"></span>` | Safe}}</p>
-		<p>{{$.locale.Tr "admin.monitor.queue.pool.cancel_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
+		</tbody>
+	</table>
 </div>
-
-{{template "admin/layout_footer" .}}
