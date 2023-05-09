@@ -37,7 +37,10 @@ export function hexToRGBColor(backgroundColorStr, ignoreAlpha = true) {
   if (![3, 4, 6, 8].includes(backgroundColor.length)) {
     return ignoreAlpha ? [0, 0, 0] : [0, 0, 0, 1];
   }
+  // chunkSize is number of digits that should be grouped together to form a RGBA channel
   const chunkSize = Math.floor(backgroundColor.length / 3);
+  // getChunksFromString returns array of [r, g, b] or [r, g, b, a], a could be undefined 
+  // and will be processed in getAlphafloat if ignoreAlpha is false
   const hexArr = getChunksFromString(backgroundColor, chunkSize);
   const [r, g, b, a] = hexArr.map(convertHexUnitTo256);
   return ignoreAlpha ? [r, g, b] : [r, g, b, getAlphafloat(a)];
