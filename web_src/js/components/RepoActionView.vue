@@ -2,7 +2,7 @@
   <div class="action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary gt-ac">
-        <ActionRunStatus :status="run.status" :size="20"/>
+        <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
         <div class="action-title">
           {{ run.title }}
         </div>
@@ -319,6 +319,16 @@ export function initRepositoryActionView() {
       approve: el.getAttribute('data-locale-approve'),
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
+      status: {
+        unknown: el.getAttribute('data-locale-status-unknown'),
+        waiting: el.getAttribute('data-locale-status-waiting'),
+        running: el.getAttribute('data-locale-status-running'),
+        success: el.getAttribute('data-locale-status-success'),
+        failure: el.getAttribute('data-locale-status-failure'),
+        cancelled: el.getAttribute('data-locale-status-cancelled'),
+        skipped: el.getAttribute('data-locale-status-skipped'),
+        blocked: el.getAttribute('data-locale-status-blocked'),
+      }
     }
   });
   view.mount(el);
