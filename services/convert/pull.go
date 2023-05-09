@@ -4,6 +4,9 @@
 package convert
 
 import (
+	"context"
+	"fmt"
+
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -11,8 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
-	"context"
-	"fmt"
 )
 
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
