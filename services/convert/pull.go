@@ -4,9 +4,6 @@
 package convert
 
 import (
-	"context"
-	"fmt"
-
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -14,6 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"context"
+	"fmt"
 )
 
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
@@ -43,16 +42,6 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		return nil
 	}
 
-	if err := pr.LoadRequestedReviewers(ctx); err != nil {
-		log.Error("LoadRequestedReviewers[%d]: %v", pr.ID, err)
-		return nil
-	}
-	if len(pr.RequestedReviewers) > 0 {
-		for _, reviewer := range pr.RequestedReviewers {
-			apiIssue.RequestedReviewers = append(apiIssue.RequestedReviewers, ToUser(ctx, reviewer, nil))
-		}
-	}
-
 	p, err := access_model.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
 	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
@@ -60,29 +49,28 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	apiPullRequest := &api.PullRequest{
-		ID:                 pr.ID,
-		URL:                pr.Issue.HTMLURL(),
-		Index:              pr.Index,
-		Poster:             apiIssue.Poster,
-		Title:              apiIssue.Title,
-		Body:               apiIssue.Body,
-		Labels:             apiIssue.Labels,
-		Milestone:          apiIssue.Milestone,
-		Assignee:           apiIssue.Assignee,
-		Assignees:          apiIssue.Assignees,
-		RequestedReviewers: apiIssue.RequestedReviewers,
-		State:              apiIssue.State,
-		IsLocked:           apiIssue.IsLocked,
-		Comments:           apiIssue.Comments,
-		HTMLURL:            pr.Issue.HTMLURL(),
-		DiffURL:            pr.Issue.DiffURL(),
-		PatchURL:           pr.Issue.PatchURL(),
-		HasMerged:          pr.HasMerged,
-		MergeBase:          pr.MergeBase,
-		Mergeable:          pr.Mergeable(),
-		Deadline:           apiIssue.Deadline,
-		Created:            pr.Issue.CreatedUnix.AsTimePtr(),
-		Updated:            pr.Issue.UpdatedUnix.AsTimePtr(),
+		ID:        pr.ID,
+		URL:       pr.Issue.HTMLURL(),
+		Index:     pr.Index,
+		Poster:    apiIssue.Poster,
+		Title:     apiIssue.Title,
+		Body:      apiIssue.Body,
+		Labels:    apiIssue.Labels,
+		Milestone: apiIssue.Milestone,
+		Assignee:  apiIssue.Assignee,
+		Assignees: apiIssue.Assignees,
+		State:     apiIssue.State,
+		IsLocked:  apiIssue.IsLocked,
+		Comments:  apiIssue.Comments,
+		HTMLURL:   pr.Issue.HTMLURL(),
+		DiffURL:   pr.Issue.DiffURL(),
+		PatchURL:  pr.Issue.PatchURL(),
+		HasMerged: pr.HasMerged,
+		MergeBase: pr.MergeBase,
+		Mergeable: pr.Mergeable(),
+		Deadline:  apiIssue.Deadline,
+		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
+		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
 
 		AllowMaintainerEdit: pr.AllowMaintainerEdit,
 
@@ -97,6 +85,16 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			Ref:    fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index),
 			RepoID: -1,
 		},
+	}
+
+	if err := pr.LoadRequestedReviewers(ctx); err != nil {
+		log.Error("LoadRequestedReviewers[%d]: %v", pr.ID, err)
+		return nil
+	}
+	if len(pr.RequestedReviewers) > 0 {
+		for _, reviewer := range pr.RequestedReviewers {
+			apiPullRequest.RequestedReviewers = append(apiPullRequest.RequestedReviewers, ToUser(ctx, reviewer, nil))
+		}
 	}
 
 	if pr.Issue.ClosedUnix != 0 {

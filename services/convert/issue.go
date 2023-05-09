@@ -83,7 +83,6 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 		}
 		apiIssue.Assignee = ToUser(ctx, issue.Assignees[0], nil) // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
 	}
-
 	if issue.IsPull {
 		if err := issue.LoadPullRequest(ctx); err != nil {
 			return &api.Issue{}
