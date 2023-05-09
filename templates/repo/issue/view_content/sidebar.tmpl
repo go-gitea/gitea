@@ -542,34 +542,28 @@
 			<div class="ui divider"></div>
 
 			{{if not .Repository.IsArchived}}
-				<div class="ui watching">
-					<div class="gt-mt-3">
-						<form method="POST" {{if $.NewPinAllowed}}action="{{.Issue.Link}}/pin"{{else}}data-tooltip-content="{{.locale.Tr "repo.issues.max_pinned"}}"{{end}}>
-							{{$.CsrfTokenHtml}}
-							<button class="fluid ui button gt-df gt-jc {{if not $.NewPinAllowed}}disabled{{end}}">
-								{{svg "octicon-pin" 16 "gt-mr-3"}}
-								{{if not .Issue.IsPinned}}
-									{{.locale.Tr "pin"}}
-								{{else}}
-									{{.locale.Tr "unpin"}}
-								{{end}}
-							</button>
-						</form>
-					</div>
-				</div>
+				<form class="gt-mt-2" method="POST" {{if $.NewPinAllowed}}action="{{.Issue.Link}}/pin"{{else}}data-tooltip-content="{{.locale.Tr "repo.issues.max_pinned"}}"{{end}}>
+					{{$.CsrfTokenHtml}}
+					<button class="fluid ui button gt-df gt-jc {{if not $.NewPinAllowed}}disabled{{end}}">
+						{{svg "octicon-pin" 16 "gt-mr-3"}}
+						{{if not .Issue.IsPinned}}
+							{{.locale.Tr "pin"}}
+						{{else}}
+							{{.locale.Tr "unpin"}}
+						{{end}}
+					</button>
+				</form>
 			{{end}}
 
-			<div class="ui watching">
-				<button class="fluid ui show-modal button {{if .Issue.IsLocked}} negative {{end}}" data-modal="#lock">
-					{{if .Issue.IsLocked}}
-						{{svg "octicon-key"}}
-						{{.locale.Tr "repo.issues.unlock"}}
-					{{else}}
-						{{svg "octicon-lock"}}
-						{{.locale.Tr "repo.issues.lock"}}
-					{{end}}
-				</button>
-			</div>
+			<button class="gt-mt-2 fluid ui show-modal button {{if .Issue.IsLocked}} negative {{end}}" data-modal="#lock">
+				{{if .Issue.IsLocked}}
+					{{svg "octicon-key"}}
+					{{.locale.Tr "repo.issues.unlock"}}
+				{{else}}
+					{{svg "octicon-lock"}}
+					{{.locale.Tr "repo.issues.lock"}}
+				{{end}}
+			</button>
 			<div class="ui tiny modal" id="lock">
 				<div class="header">
 					{{if .Issue.IsLocked}}
@@ -634,7 +628,7 @@
 					</form>
 				</div>
 			</div>
-			<button class="fluid ui show-modal button negative gt-mt-3" data-modal="#delete">
+			<button class="gt-mt-2 fluid ui show-modal button negative" data-modal="#delete">
 				{{svg "octicon-trash"}}
 				{{.locale.Tr "repo.issues.delete"}}
 			</button>
