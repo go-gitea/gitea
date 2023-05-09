@@ -257,8 +257,10 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		log.Info("Starting a merge")
 		cmd := git.NewCommand(ctx, "merge", "--no-ff", "--no-commit").AddDynamicArguments(trackingBranch)
 		if err := runMergeCommand(mergeCtx, mergeStyle, cmd); err != nil {
+			log.Info("Error while merging: %v", err)
+
 			// If the error was from a merge conflict, that's okay. The strategy might fix it
-			if !models.IsErrMergeConflicts(err) || len(strategy) > 0 {
+			if !models.IsErrMergeConflicts(err) || len(strategy) == 0 {
 				log.Error("Unable to merge tracking into base: %v", err)
 				return "", err
 			}
