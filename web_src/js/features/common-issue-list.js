@@ -7,7 +7,7 @@ const reIssueSharpIndex = /^#(\d+)$/; // eg: "#123"
 const reIssueOwnerRepoIndex = /^([-.\w]+)\/([-.\w]+)#(\d+)$/;  // eg: "{owner}/{repo}#{index}"
 
 // if the searchText can be parsed to an "issue goto link", return the link, otherwise return empty string
-export function parseIssueListQuickGotoLink (repoLink, searchText) {
+export function parseIssueListQuickGotoLink(repoLink, searchText) {
   searchText = searchText.trim();
   let targetUrl = '';
   if (repoLink) {
