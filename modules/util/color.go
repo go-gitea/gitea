@@ -3,6 +3,7 @@
 package util
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -35,7 +36,7 @@ func HexToRBGColor(colorString string) (float64, float64, float64, error) {
 		return 0, 0, 0, nil
 	}
 	if len(hexString) == 3 {
-		hexString = hexString[0:1] + hexString[0:1] + hexString[1:2] + hexString[1:2] + hexString[2:3] + hexString[2:3]
+		hexString = fmt.Sprintf("%c%c%c%c%c%c", hexString[0], hexString[0], hexString[1], hexString[1], hexString[2], hexString[2])
 	}
 	color, err = strconv.ParseUint(hexString, 16, 64)
 	if err != nil {
