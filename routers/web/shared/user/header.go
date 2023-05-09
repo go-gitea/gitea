@@ -17,6 +17,8 @@ func RenderUserHeader(ctx *context.Context) {
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["ContextUser"] = ctx.ContextUser
+	tab := ctx.FormString("tab")
+	ctx.Data["TabName"] = tab
 	repo, err := repo_model.GetRepositoryByName(ctx.ContextUser.ID, ".profile")
 	if err == nil && !repo.IsEmpty {
 		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
