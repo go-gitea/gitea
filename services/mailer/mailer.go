@@ -378,7 +378,7 @@ func (s *dummySender) Send(from string, to []string, msg io.WriterTo) error {
 	return nil
 }
 
-var mailQueue queue.Queue
+var mailQueue *queue.WorkerPoolQueue[*Message]
 
 // Sender sender for sending mail synchronously
 var Sender gomail.Sender
@@ -401,9 +401,8 @@ func NewContext(ctx context.Context) {
 		Sender = &smtpSender{}
 	}
 
-	mailQueue = queue.CreateQueue("mail", func(data ...queue.Data) []queue.Data {
-		for _, datum := range data {
-			msg := datum.(*Message)
+	mailQueue = queue.CreateSimpleQueue("mail", func(items ...*Message) []*Message {
+		for _, msg := range items {
 			gomailMsg := msg.ToMessage()
 			log.Trace("New e-mail sending request %s: %s", gomailMsg.GetHeader("To"), msg.Info)
 			if err := gomail.Send(Sender, gomailMsg); err != nil {
@@ -413,7 +412,7 @@ func NewContext(ctx context.Context) {
 			}
 		}
 		return nil
-	}, &Message{})
+	})
 
 	go graceful.GetManager().RunWithShutdownFns(mailQueue.Run)
 

@@ -53,7 +53,7 @@ function doSearch() {
   } else {
     const para = document.createElement('P');
     para.textContent = 'Please enter a word or phrase above';
-    document.getElementById('search-results').appendChild(para);
+    document.getElementById('search-results').append(para);
   }
 }
 
@@ -85,7 +85,7 @@ function executeSearch(searchQuery) {
     } else {
       const para = document.createElement('P');
       para.textContent = 'No matches found';
-      document.getElementById('search-results').appendChild(para);
+      document.getElementById('search-results').append(para);
     }
   });
 }
@@ -128,7 +128,7 @@ function populateResults(result) {
       categories: value.item.categories,
       snippet
     });
-    document.getElementById('search-results').appendChild(htmlToElement(output));
+    document.getElementById('search-results').append(htmlToElement(output));
 
     for (const snipvalue of snippetHighlights) {
       new Mark(document.getElementById(`summary-${key}`)).mark(snipvalue);
