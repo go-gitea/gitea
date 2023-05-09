@@ -175,8 +175,8 @@ const sfc = {
       const elJobLogList = document.createElement('div');
       elJobLogList.classList.add('job-log-list');
 
-      elJobLogGroup.appendChild(elJobLogGroupSummary);
-      elJobLogGroup.appendChild(elJobLogList);
+      elJobLogGroup.append(elJobLogGroupSummary);
+      elJobLogGroup.append(elJobLogList);
       el._stepLogsActiveContainer = elJobLogList;
     },
     // end a log group
@@ -219,15 +219,15 @@ const sfc = {
 
       const lineNumber = document.createElement('div');
       lineNumber.className = 'line-num';
-      lineNumber.innerText = line.index;
-      div.appendChild(lineNumber);
+      lineNumber.textContent = line.index;
+      div.append(lineNumber);
 
       // TODO: Support displaying time optionally
 
       const logMessage = document.createElement('div');
       logMessage.className = 'log-msg';
       logMessage.innerHTML = ansiLogToHTML(line.message);
-      div.appendChild(logMessage);
+      div.append(logMessage);
 
       return div;
     },

@@ -66,7 +66,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
 
   const container = document.createElement('div');
   container.className = 'monaco-editor-container';
-  textarea.parentNode.appendChild(container);
+  textarea.parentNode.append(container);
 
   // https://github.com/microsoft/monaco-editor/issues/2427
   const styles = window.getComputedStyle(document.documentElement);
