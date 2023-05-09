@@ -3,15 +3,20 @@ import {hexToRGBColor, useLightTextOnBackground} from './color.js';
 
 test('hexToRGBColor', () => {
   expect(hexToRGBColor('2b8685')).toEqual([43, 134, 133]);
-  expect(hexToRGBColor('2b8786')).toEqual([43, 135, 134]);
-  expect(hexToRGBColor('2c8786')).toEqual([44, 135, 134]);
+  expect(hexToRGBColor('1e1')).toEqual([17, 238, 17]);
+  expect(hexToRGBColor('#1e1')).toEqual([17, 238, 17]);
+  expect(hexToRGBColor('#1e1', false)).toEqual([17, 238, 17, 1]);
+  expect(hexToRGBColor('1e16')).toEqual([17, 238, 17]);
+  expect(hexToRGBColor('1e16', false)).toEqual([17, 238, 17, 0.4]);
+  expect(hexToRGBColor('#1e16', false)).toEqual([17, 238, 17, 0.4]);
   expect(hexToRGBColor('3bb6b3')).toEqual([59, 182, 179]);
-  expect(hexToRGBColor('7c7268')).toEqual([124, 114, 104]);
-  expect(hexToRGBColor('#7e716c')).toEqual([126, 113, 108]);
-  expect(hexToRGBColor('#807070')).toEqual([128, 112, 112]);
-  expect(hexToRGBColor('#81706d')).toEqual([129, 112, 109]);
-  expect(hexToRGBColor('#d73a4a')).toEqual([215, 58, 74]);
-  expect(hexToRGBColor('#0075ca')).toEqual([0, 117, 202]);
+  expect(hexToRGBColor('3bb6b399', false)).toEqual([59, 182, 179, 0.6]);
+  expect(hexToRGBColor('#3bb6b399')).toEqual([59, 182, 179]);
+  expect(hexToRGBColor('#807070', false)).toEqual([128, 112, 112, 1]);
+  expect(hexToRGBColor('#0')).toEqual([0, 0, 0]);
+  expect(hexToRGBColor('#00', false)).toEqual([0, 0, 0, 1]);
+  expect(hexToRGBColor('#00000')).toEqual([0, 0, 0]);
+  expect(hexToRGBColor('#0000000', false)).toEqual([0, 0, 0, 1]);
 });
 
 test('useLightTextOnBackground', () => {
