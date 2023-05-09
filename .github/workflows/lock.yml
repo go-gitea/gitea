@@ -1,4 +1,4 @@
-name: 'Lock Threads'
+name: Lock Threads
 
 on:
   schedule:

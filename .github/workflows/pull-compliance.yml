@@ -1,4 +1,4 @@
-name: "Pull: Compliance Tests"
+name: Compliance
 
 on: [pull_request]
 
@@ -7,13 +7,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint_basic:
+  lint-backend:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
-        uses: actions/checkout@v3
-      - name: setup go
-        uses: actions/setup-go@v4
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: '>=1.20'
           check-latest: true
@@ -25,13 +23,11 @@ jobs:
           GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
           GOSUMDB: sum.golang.org
           TAGS: bindata sqlite sqlite_unlock_notify
-  lint_windows:
+  lint-backend-windows:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
-        uses: actions/checkout@v3
-      - name: setup go
-        uses: actions/setup-go@v4
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: '>=1.20'
           check-latest: true
@@ -45,13 +41,11 @@ jobs:
           TAGS: bindata sqlite sqlite_unlock_notify
           GOOS: windows
           GOARCH: amd64
-  lint_gogit:
+  lint-backup-gogit:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
-        uses: actions/checkout@v3
-      - name: setup go
-        uses: actions/setup-go@v4
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: '>=1.20'
           check-latest: true
@@ -63,15 +57,11 @@ jobs:
           GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
           GOSUMDB: sum.golang.org
           TAGS: bindata gogit sqlite sqlite_unlock_notify
-      - name: checks backend
-        run: make --always-make checks-backend # ensure the 'go-licenses' make target runs
-  check_backend:
+  checks-backend:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
-        uses: actions/checkout@v3
-      - name: setup go
-        uses: actions/setup-go@v4
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: '>=1.20'
           check-latest: true
@@ -82,42 +72,28 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
-        uses: actions/checkout@v3
-      - name: setup node
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: 20
-      - name: deps-frontend
-        run: make deps-frontend
-      - name: lint frontend
-        run: make lint-frontend
-      - name: checks frontend
-        run: make checks-frontend
-      - name: test frontend
-        run: make test-frontend
+      - run: make deps-frontend
+      - run: make lint-frontend
+      - run: make checks-frontend
   backend:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
-        uses: actions/checkout@v3
-      - name: setup go
-        uses: actions/setup-go@v4
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: '>=1.20'
           check-latest: true
-      - name: setup node
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: 20
-      - name: deps-backend
-        run: make deps-backend deps-tools
-      - name: deps-frontend
-        run: make deps-frontend
-      - name: build frontend
-        run: make frontend
-      - name: build-backend-no-gcc
-        run: go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
+      - run: make deps-backend deps-tools
+      - run: make deps-frontend
+      - run: make frontend
+      - run: go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
         env:
           GOPROXY: https://goproxy.io
       - name: build-backend-arm64

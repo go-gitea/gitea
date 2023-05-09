@@ -1,4 +1,4 @@
-name: "Pull: Compliance testing for documentation"
+name: Compliance Docs
 
 on:
   pull_request:
@@ -14,13 +14,9 @@ jobs:
   compliance-docs:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
-        uses: actions/checkout@v3
-      - name: setup node
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: 20
-      - name: install dependencies
-        run: make deps-frontend
-      - name: lint markdown
-        run: make lint-md
+      - run: make deps-frontend
+      - run: make lint-md
