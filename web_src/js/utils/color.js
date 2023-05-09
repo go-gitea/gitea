@@ -15,36 +15,32 @@ function getLuminance(r, g, b) {
   return luminance;
 }
 
-const getChunksFromString = (st, chunkSize) => st.match(new RegExp(`.{${chunkSize}}`, "g"));
+const getChunksFromString = (st, chunkSize) => st.match(new RegExp(`.{${chunkSize}}`, 'g'));
 
 const convertHexUnitTo256 = (hexStr) => parseInt(hexStr.repeat(2 / hexStr.length), 16);
 
 const getAlphafloat = (a) => {
-  if (typeof a !== "undefined") {
+  if (a !== undefined) {
     return a / 255;
   }
   return 1;
-}
+};
 
 // Get color as RGB values in 0..255 range from the hex color string (with or without #)
-export function hexToRGBColor(backgroundColorStr, ignoreAlpha=true) {
+export function hexToRGBColor(backgroundColorStr, ignoreAlpha = true) {
   let backgroundColor = backgroundColorStr;
   if (backgroundColorStr[0] === '#') {
     backgroundColor = backgroundColorStr.substring(1);
   }
   // only support transfer of rgb, rgba, rrggbb, and rrggbbaa
-	// if not in this format, use default values 0, 0, 0 or 0, 0, 0, 1
+  // if not in this format, use default values 0, 0, 0 or 0, 0, 0, 1
   if (![3, 4, 6, 8].includes(backgroundColor.length)) {
-    return ignoreAlpha ? [0, 0, 0]: [0, 0, 0, 1];
+    return ignoreAlpha ? [0, 0, 0] : [0, 0, 0, 1];
   }
   const chunkSize = Math.floor(backgroundColor.length / 3);
   const hexArr = getChunksFromString(backgroundColor, chunkSize);
   const [r, g, b, a] = hexArr.map(convertHexUnitTo256);
-  if (ignoreAlpha) {
-    return [r, g, b];
-  } else {
-    return [r, g, b, getAlphafloat(a)];
-  }
+  return ignoreAlpha ? [r, g, b] : [r, g, b, getAlphafloat(a)];
 }
 
 // Reference from: https://firsching.ch/github_labels.html
