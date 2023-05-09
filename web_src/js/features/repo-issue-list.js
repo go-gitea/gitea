@@ -121,7 +121,7 @@ function initRepoIssueListAuthorDropdown() {
 }
 
 function initPinRemoveButton() {
-  for (const button of document.getElementsByName('issue-unpin-button')) {
+  for (const button of document.getElementsByClassName('pinned-issue-unpin')) {
     button.addEventListener('click', async (event) => {
       const el = event.currentTarget;
       const id = Number(el.getAttribute('data-issue-id'));
@@ -158,7 +158,7 @@ async function pinMoveEnd(e) {
 }
 
 function initIssuePinSort() {
-  const pinDiv = document.getElementById('issue-pin-div');
+  const pinDiv = document.getElementById('issue-pins');
 
   if (pinDiv === null) return;
 

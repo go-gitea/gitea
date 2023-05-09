@@ -4,9 +4,9 @@
 	<div class="ui container">
 
 	{{if .PinnedIssues}}
-		<div id="issue-pin-div" {{if .IsRepoAdmin}}data-is-repo-admin{{end}}>
+		<div id="issue-pins" {{if .IsRepoAdmin}}data-is-repo-admin{{end}}>
 			{{range .PinnedIssues}}
-				<div class="card pinned-issue-card" data-move-url="{{$.Link}}/pin_move" data-issue-id="{{.ID}}">
+				<div class="pinned-issue-card gt-word-break" data-move-url="{{$.Link}}/pin_move" data-issue-id="{{.ID}}">
 					{{if eq $.Project.CardType 1}}
 						<div class="card-attachment-images">
 							{{range (index $.issuesAttachmentMap .ID)}}
@@ -15,24 +15,16 @@
 						</div>
 					{{end}}
 					<div class="content gt-p-0">
-						<div class="header">
-							<div class="gt-df gt-ac">
-								<div class="gt-df gt-ac gt-f1">
-									<div class="gt-ellipsis">
-										<span class="gt-dif gt-ac gt-vm {{if .IsClosed}}red{{else}}green{{end}}">
-											{{template "shared/issueicon" .}}
-										</span>
-										<a class="pinned-issue-title" href="{{.Link}}">
-											{{.Title}}
-										</a>
-									</div>
-								</div>
-								{{if $.IsRepoAdmin}}
-									<div name="issue-unpin-button" class="gt-df gt-ac" data-tooltip-content={{$.locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Link}}/unpin/{{.ID}}">
-										{{svg "octicon-x" 16 "gt-mr-3"}}
-									</div>
-								{{end}}
+						<div class="header gt-df gt-items-start">
+							<div class="pinned-issue-icon">
+								{{template "shared/issueicon" .}}
 							</div>
+							<a class="pinned-issue-title muted" href="{{.Link}}">{{.Title}}</a>
+							{{if $.IsRepoAdmin}}
+								<a role="button" class="pinned-issue-unpin muted gt-df gt-ac" data-tooltip-content={{$.locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Link}}/unpin/{{.ID}}">
+									{{svg "octicon-x" 16}}
+								</a>
+							{{end}}
 						</div>
 						<div class="meta gt-my-2">
 							<span class="text light grey">

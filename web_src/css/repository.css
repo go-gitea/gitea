@@ -3411,25 +3411,32 @@ td.blob-excerpt {
   color: var(--color-text-light-2);
 }
 
-#issue-pin-div {
-  display: flex;
-  flex-grow: 1;
-  flex-wrap: wrap;
+#issue-pins {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .pinned-issue-card {
-  margin: 4px 2px !important;
-  border-radius: 5px !important;
-  width: calc(100% - 4px) !important;
-  padding: 0.5rem !important;
-  min-height: auto !important;
-  max-width: calc(100% * (1/3) - 10px - 1px);
-  border-style: solid;
-  border-color: var(--color-input-border);
-  border-width: 1px;
+  border-radius: var(--border-radius);
+  padding: 7px 12px;
+  border: 1px solid var(--color-secondary);
+  background: var(--color-card);
+}
+
+.pinned-issue-card .meta a {
+  color: inherit;
+}
+
+.pinned-issue-icon,
+.pinned-issue-unpin {
+  margin-top: 1px;
+  flex-shrink: 0;
 }
 
 .pinned-issue-title {
-  word-break: break-word;
-  vertical-align: middle;
+  flex: 1;
+  font-size: 18px;
+  margin-left: 4px;
 }
