@@ -15,8 +15,6 @@ function getLuminance(r, g, b) {
   return luminance;
 }
 
-const getChunksFromString = (st, chunkSize) => st.match(new RegExp(`.{${chunkSize}}`, 'g'));
-
 const convertHexUnitTo256 = (hexStr) => parseInt(hexStr.repeat(2 / hexStr.length), 16);
 
 const getAlphafloat = (a) => {
@@ -26,6 +24,8 @@ const getAlphafloat = (a) => {
   return 1;
 };
 
+const re = new RegExp('.{1}', 'g');
+const re2 = new RegExp('.{2}', 'g');
 // Get color as RGB values in 0..255 range from the hex color string (with or without #)
 export function hexToRGBColor(backgroundColorStr, ignoreAlpha = true) {
   let backgroundColor = backgroundColorStr;
@@ -39,9 +39,9 @@ export function hexToRGBColor(backgroundColorStr, ignoreAlpha = true) {
   }
   // chunkSize is number of digits that should be grouped together to form a RGBA channel
   const chunkSize = Math.floor(backgroundColor.length / 3);
-  // getChunksFromString returns array of [r, g, b] or [r, g, b, a], a could be undefined
+  // hexArr is array of [r, g, b] or [r, g, b, a], a could be undefined
   // and will be processed in getAlphafloat if ignoreAlpha is false
-  const hexArr = getChunksFromString(backgroundColor, chunkSize);
+  const hexArr = chunkSize === 1 ? backgroundColor.match(re): backgroundColor.match(re2);
   const [r, g, b, a] = hexArr.map(convertHexUnitTo256);
   return ignoreAlpha ? [r, g, b] : [r, g, b, getAlphafloat(a)];
 }
