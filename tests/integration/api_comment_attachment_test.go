@@ -36,8 +36,8 @@ func TestAPIGetCommentAttachment(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets/%d", repoOwner.Name, repo.Name, comment.ID, attachment.ID)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets/%d?token=%s", repoOwner.Name, repo.Name, comment.ID, attachment.ID, token)
 	session.MakeRequest(t, req, http.StatusOK)
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets/%d?token=%s", repoOwner.Name, repo.Name, comment.ID, attachment.ID, token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -61,8 +61,9 @@ func TestAPIListCommentAttachments(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets",
-		repoOwner.Name, repo.Name, comment.ID)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets?token=%s",
+		repoOwner.Name, repo.Name, comment.ID, token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var apiAttachments []*api.Attachment

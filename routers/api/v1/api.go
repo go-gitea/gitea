@@ -737,7 +737,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Get("", activitypub.Person)
 					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
 				}, context_service.UserIDAssignmentAPI())
-			}, reqToken(auth_model.AccessTokenScopeCategoryActivityPub))
+			}) // TODO reqToken(auth_model.AccessTokenScopeCategoryActivityPub)
 		}
 
 		m.Group("", func() {
@@ -791,7 +791,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 				m.Get("/activities/feeds", user.ListUserActivityFeeds)
 			}, context_service.UserAssignmentAPI())
-		}, reqToken(auth_model.NoCategory)) // TODO add scope here?
+		})
 
 		// (no scope required)
 		m.Group("/users", func() {
@@ -809,7 +809,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
 			}, context_service.UserAssignmentAPI())
-		}, reqToken(auth_model.NoCategory)) // TODO add scope here?
+		}, reqToken(auth_model.NoCategory))
 
 		m.Group("/user", func() {
 			m.Get("", user.GetAuthenticatedUser)
