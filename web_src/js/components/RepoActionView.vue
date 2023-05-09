@@ -6,11 +6,14 @@
         <div class="action-title">
           {{ run.title }}
         </div>
-        <button class="run_approve" @click="approveRun()" v-if="run.canApprove">
-          <i class="play circle outline icon"/>
+        <button :data-tooltip-content="locale.approve" class="action-control-button text green" @click="approveRun()" v-if="run.canApprove">
+          <SvgIcon name="octicon-play" :size="20"/>
         </button>
-        <button class="run_cancel" @click="cancelRun()" v-else-if="run.canCancel">
-          <i class="stop circle outline icon"/>
+        <button :data-tooltip-content="locale.cancel" class="action-control-button text red" @click="cancelRun()" v-else-if="run.canCancel">
+          <SvgIcon name="octicon-x-circle-fill" :size="20"/>
+        </button>
+        <button :data-tooltip-content="locale.rerun" class="action-control-button text green" @click="rerun()" v-else-if="run.canRerun">
+          <SvgIcon name="octicon-sync" :size="20"/>
         </button>
       </div>
       <div class="action-commit-summary">
@@ -90,6 +93,7 @@ const sfc = {
     runIndex: String,
     jobIndex: String,
     actionsURL: String,
+    locale: Object,
   },
 
   data() {
@@ -106,6 +110,7 @@ const sfc = {
         status: '',
         canCancel: false,
         canApprove: false,
+        canRerun: false,
         done: false,
         jobs: [
           // {
@@ -170,8 +175,8 @@ const sfc = {
       const elJobLogList = document.createElement('div');
       elJobLogList.classList.add('job-log-list');
 
-      elJobLogGroup.appendChild(elJobLogGroupSummary);
-      elJobLogGroup.appendChild(elJobLogList);
+      elJobLogGroup.append(elJobLogGroupSummary);
+      elJobLogGroup.append(elJobLogList);
       el._stepLogsActiveContainer = elJobLogList;
     },
     // end a log group
@@ -193,6 +198,11 @@ const sfc = {
       await this.fetchPost(`${jobLink}/rerun`);
       window.location.href = jobLink;
     },
+    // rerun workflow
+    async rerun() {
+      await this.fetchPost(`${this.run.link}/rerun`);
+      window.location.href = this.run.link;
+    },
     // cancel a run
     cancelRun() {
       this.fetchPost(`${this.run.link}/cancel`);
@@ -209,15 +219,15 @@ const sfc = {
 
       const lineNumber = document.createElement('div');
       lineNumber.className = 'line-num';
-      lineNumber.innerText = line.index;
-      div.appendChild(lineNumber);
+      lineNumber.textContent = line.index;
+      div.append(lineNumber);
 
       // TODO: Support displaying time optionally
 
       const logMessage = document.createElement('div');
       logMessage.className = 'log-msg';
       logMessage.innerHTML = ansiLogToHTML(line.message);
-      div.appendChild(logMessage);
+      div.append(logMessage);
 
       return div;
     },
@@ -305,6 +315,11 @@ export function initRepositoryActionView() {
     runIndex: el.getAttribute('data-run-index'),
     jobIndex: el.getAttribute('data-job-index'),
     actionsURL: el.getAttribute('data-actions-url'),
+    locale: {
+      approve: el.getAttribute('data-locale-approve'),
+      cancel: el.getAttribute('data-locale-cancel'),
+      rerun: el.getAttribute('data-locale-rerun'),
+    }
   });
   view.mount(el);
 }
@@ -366,26 +381,16 @@ export function ansiLogToHTML(line) {
   margin: 0 20px 20px 20px;
 }
 
-.action-view-header .run_cancel {
+.action-view-header .action-control-button {
   border: none;
-  color: var(--color-red);
   background-color: transparent;
   outline: none;
   cursor: pointer;
   transition: transform 0.2s;
+  display: flex;
 }
 
-.action-view-header .run_approve {
-  border: none;
-  color: var(--color-green);
-  background-color: transparent;
-  outline: none;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.action-view-header .run_cancel:hover,
-.action-view-header .run_approve:hover {
+.action-view-header .action-control-button:hover {
   transform: scale(130%);
 }
 
@@ -531,6 +536,7 @@ export function ansiLogToHTML(line) {
   width: 48px;
   color: var(--color-grey-light);
   text-align: right;
+  user-select: none;
 }
 
 .job-step-section .job-step-logs .job-log-line .log-time {

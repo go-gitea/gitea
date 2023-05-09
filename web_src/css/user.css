@@ -90,17 +90,6 @@
   padding: 8px 15px;
 }
 
-.user .button.adopt,
-.user .button.delete {
-  margin-top: -15px;
-  margin-bottom: -15px;
-}
-
-.user .button.adopt .label,
-.user .button.delete .label {
-  vertical-align: middle;
-}
-
 .user.link-account:not(.icon) {
   padding-top: 15px;
   padding-bottom: 5px;

@@ -40,11 +40,6 @@
   }
 }
 
-.organization .head .ui.header .org-visibility .label {
-  margin-left: 5px;
-  margin-top: 5px;
-}
-
 .organization .head .ui.header .ui.right {
   margin-top: 5px;
 }
@@ -230,6 +225,12 @@
 
 .organization.teams #repo-top-segment {
   height: 60px;
+}
+
+@media (max-width: 767px) {
+  .organization.teams #repo-top-segment {
+    height: 100px;
+  }
 }
 
 .org-team-navbar .active.item {

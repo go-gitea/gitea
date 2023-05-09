@@ -14,7 +14,6 @@ const baseOptions = {
   overviewRulerLanes: 0,
   renderLineHighlight: 'all',
   renderLineHighlightOnlyWhenFocus: true,
-  renderWhitespace: 'none',
   rulers: false,
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6},
   scrollBeyondLastLine: false,
@@ -67,7 +66,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
 
   const container = document.createElement('div');
   container.className = 'monaco-editor-container';
-  textarea.parentNode.appendChild(container);
+  textarea.parentNode.append(container);
 
   // https://github.com/microsoft/monaco-editor/issues/2427
   const styles = window.getComputedStyle(document.documentElement);
@@ -136,7 +135,7 @@ function togglePreviewDisplay(previewable) {
   if (!previewTab) return;
 
   if (previewable) {
-    const newUrl = (previewTab.getAttribute('data-url') || '').replace(/(.*)\/.*/i, `$1/markup`);
+    const newUrl = (previewTab.getAttribute('data-url') || '').replace(/(.*)\/.*/, `$1/markup`);
     previewTab.setAttribute('data-url', newUrl);
     previewTab.style.display = '';
   } else {
