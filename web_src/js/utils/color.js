@@ -33,6 +33,7 @@ export function hexToRGBColor(backgroundColorStr, ignoreAlpha=true) {
     backgroundColor = backgroundColorStr.substring(1);
   }
   // only support transfer of rgb, rgba, rrggbb, and rrggbbaa
+	// if not in this format, use default values 0, 0, 0 or 0, 0, 0, 1
   if (![3, 4, 6, 8].includes(backgroundColor.length)) {
     return ignoreAlpha ? [0, 0, 0]: [0, 0, 0, 1];
   }
