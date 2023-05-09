@@ -778,7 +778,6 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	// start with merging by checking
 	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, form.ForceMerge); err != nil {
-
 		// If there are conflicts, they might be solved by the resolution strategy
 		if !errors.Is(err, pull_service.ErrNotMergableState) {
 			if errors.Is(err, pull_service.ErrIsClosed) {
