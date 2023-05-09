@@ -36,19 +36,20 @@ type Render interface {
 
 // Context represents context of a request.
 type Context struct {
-	Resp     ResponseWriter
-	Req      *http.Request
+	Resp   ResponseWriter
+	Req    *http.Request
+	Render Render
+
 	Data     middleware.ContextData // data used by MVC templates
 	PageData map[string]any         // data used by JavaScript modules in one page, it's `window.config.pageData`
-	Render   Render
-	Locale   translation.Locale
-	Cache    cache.Cache
-	Csrf     CSRFProtector
-	Flash    *middleware.Flash
-	Session  session.Store
 
-	Link        string // current request URL
-	EscapedLink string
+	Locale  translation.Locale
+	Cache   cache.Cache
+	Csrf    CSRFProtector
+	Flash   *middleware.Flash
+	Session session.Store
+
+	Link        string // current request URL (without query string)
 	Doer        *user_model.User
 	IsSigned    bool
 	IsBasicAuth bool

@@ -6,7 +6,6 @@ package context
 import (
 	"encoding/hex"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -84,22 +83,4 @@ func (ctx *Context) CookieEncrypt(secret, value string) string {
 	}
 
 	return hex.EncodeToString(text)
-}
-
-// GetCookieInt returns cookie result in int type.
-func (ctx *Context) GetCookieInt(name string) int {
-	r, _ := strconv.Atoi(ctx.GetSiteCookie(name))
-	return r
-}
-
-// GetCookieInt64 returns cookie result in int64 type.
-func (ctx *Context) GetCookieInt64(name string) int64 {
-	r, _ := strconv.ParseInt(ctx.GetSiteCookie(name), 10, 64)
-	return r
-}
-
-// GetCookieFloat64 returns cookie result in float64 type.
-func (ctx *Context) GetCookieFloat64(name string) float64 {
-	v, _ := strconv.ParseFloat(ctx.GetSiteCookie(name), 64)
-	return v
 }

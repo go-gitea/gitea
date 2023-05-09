@@ -72,8 +72,14 @@ func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, c *git.Co
 	}
 }
 
+type ToCommitOptions struct {
+	Stat         bool
+	Verification bool
+	Files        bool
+}
+
 // ToCommit convert a git.Commit to api.Commit
-func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User, stat, file, parent, verification bool) (*api.Commit, error) {
+func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User, opts ToCommitOptions) (*api.Commit, error) {
 	var apiAuthor, apiCommitter *api.User
 
 	// Retrieve author and committer information
@@ -156,27 +162,25 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		Committer: apiCommitter,
 	}
 
-	if parent {
-		// Retrieve parent(s) of the commit
-		apiParents := make([]*api.CommitMeta, commit.ParentCount())
-		for i := 0; i < commit.ParentCount(); i++ {
-			sha, _ := commit.ParentID(i)
-			apiParents[i] = &api.CommitMeta{
-				URL: repo.APIURL() + "/git/commits/" + url.PathEscape(sha.String()),
-				SHA: sha.String(),
-			}
+	// Retrieve parent(s) of the commit
+	apiParents := make([]*api.CommitMeta, commit.ParentCount())
+	for i := 0; i < commit.ParentCount(); i++ {
+		sha, _ := commit.ParentID(i)
+		apiParents[i] = &api.CommitMeta{
+			URL: repo.APIURL() + "/git/commits/" + url.PathEscape(sha.String()),
+			SHA: sha.String(),
 		}
-
-		res.Parents = apiParents
 	}
 
-	// Set verification for commit
-	if verification {
+	res.Parents = apiParents
+
+	// Retrieve verification for commit
+	if opts.Verification {
 		res.RepoCommit.Verification = ToVerification(ctx, commit)
 	}
 
 	// Retrieve files affected by the commit
-	if file {
+	if opts.Files {
 		fileStatus, err := git.GetCommitFileStatus(gitRepo.Ctx, repo.RepoPath(), commit.ID.String())
 		if err != nil {
 			return nil, err
@@ -194,8 +198,8 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		res.Files = affectedFileList
 	}
 
-	// Get stats for commit
-	if stat {
+	// Get diff stats for commit
+	if opts.Stat {
 		diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
 			AfterCommitID: commit.ID.String(),
 		})
