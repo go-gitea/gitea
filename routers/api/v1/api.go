@@ -237,14 +237,10 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) 
 	}
 }
 
-// Contexter middleware already checks token for user sign in process.
-func reqToken(requiredScopeCategory auth_model.AccessTokenScopeCategory) func(ctx *context.APIContext) {
+// if a token is being used for auth, we check that it contains the required scope
+// if a token is not being used, reqToken will enforce other sign in methods
+func tokenRequiresScope(requiredScopeCategory auth_model.AccessTokenScopeCategory) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		// If actions token is present
-		if true == ctx.Data["IsActionsToken"] {
-			return
-		}
-
 		// If OAuth2 token is present
 		if _, ok := ctx.Data["ApiTokenScope"]; ctx.Data["IsApiToken"] == true && ok {
 			// no scope required
@@ -269,25 +265,25 @@ func reqToken(requiredScopeCategory auth_model.AccessTokenScopeCategory) func(ct
 			// check if scope only applies to public resources
 			publicOnly, err := scope.PublicOnly()
 			if err != nil {
-				ctx.Error(http.StatusForbidden, "reqToken", "parsing public resource scope failed: "+err.Error())
+				ctx.Error(http.StatusForbidden, "tokenRequiresScope", "parsing public resource scope failed: "+err.Error())
 				return
 			}
 
 			if publicOnly && (requiredScopeCategory == auth_model.AccessTokenScopeCategoryRepository) &&
 				ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
-				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public repos: "+requiredScope)
+				ctx.Error(http.StatusForbidden, "tokenRequiresScope", "token scope is limited to public repos: "+requiredScope)
 				return
 			}
 
 			if publicOnly && (requiredScopeCategory == auth_model.AccessTokenScopeCategoryOrganization) &&
 				ctx.Org.Organization != nil && ctx.Org.Organization.Visibility != structs.VisibleTypePublic {
-				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public orgs: "+requiredScope)
+				ctx.Error(http.StatusForbidden, "tokenRequiresScope", "token scope is limited to public orgs: "+requiredScope)
 				return
 			}
 
 			allow, err := scope.HasScope(requiredScope)
 			if err != nil {
-				ctx.Error(http.StatusForbidden, "reqToken", "checking scope failed: "+err.Error())
+				ctx.Error(http.StatusForbidden, "tokenRequiresScope", "checking scope failed: "+err.Error())
 				return
 			}
 
@@ -295,9 +291,25 @@ func reqToken(requiredScopeCategory auth_model.AccessTokenScopeCategory) func(ct
 				return
 			}
 
-			ctx.Error(http.StatusForbidden, "reqToken", "token does not have required scope: "+requiredScope)
+			ctx.Error(http.StatusForbidden, "tokenRequiresScope", "token does not have required scope: "+requiredScope)
 			return
 		}
+	}
+}
+
+// Contexter middleware already checks token for user sign in process.
+func reqToken() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		// If actions token is present
+		if true == ctx.Data["IsActionsToken"] {
+			return
+		}
+
+		if true == ctx.Data["IsApiToken"] {
+			// token scope checked at by top-level groups
+			return
+		}
+
 		if ctx.IsBasicAuth {
 			ctx.CheckForOTP()
 			return
@@ -765,7 +777,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			m.Combo("/threads/{id}").
 				Get(notify.GetThread).
 				Patch(notify.ReadThread)
-		}, reqToken(auth_model.AccessTokenScopeNotification))
+		}, reqToken(auth_model.AccessTokenScopeCategoryNotification))
 
 		// Users (no scope required)
 		m.Group("/users", func() {
@@ -805,26 +817,27 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
 			}, context_service.UserAssignmentAPI())
-		}, reqToken(""))
+		}, reqToken(auth_model.NoCategory))
 
 		m.Group("/user", func() {
 			m.Get("", user.GetAuthenticatedUser)
 			m.Group("/settings", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadUser), user.GetUserSettings)
-				m.Patch("", reqToken(auth_model.AccessTokenScopeUser), bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
-			})
-			m.Combo("/emails").Get(reqToken(auth_model.AccessTokenScopeReadUser), user.ListEmails).
-				Post(reqToken(auth_model.AccessTokenScopeUser), bind(api.CreateEmailOption{}), user.AddEmail).
-				Delete(reqToken(auth_model.AccessTokenScopeUser), bind(api.DeleteEmailOption{}), user.DeleteEmail)
+				m.Get("", user.GetUserSettings)
+				m.Patch("", bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
+			}, reqToken(auth_model.AccessTokenScopeCategoryUser))
+			m.Combo("/emails", reqToken(auth_model.AccessTokenScopeCategoryUser)).
+				Get(user.ListEmails).
+				Post(bind(api.CreateEmailOption{}), user.AddEmail).
+				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
 
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {
 				m.Get("", user.ListMyFollowing)
 				m.Group("/{username}", func() {
 					m.Get("", user.CheckMyFollowing)
-					m.Put("", reqToken(auth_model.AccessTokenScopeUserFollow), user.Follow)      // requires 'user:follow' scope
-					m.Delete("", reqToken(auth_model.AccessTokenScopeUserFollow), user.Unfollow) // requires 'user:follow' scope
-				}, context_service.UserAssignmentAPI())
+					m.Put("", user.Follow)
+					m.Delete("", user.Unfollow)
+				}, reqToken(auth_model.AccessTokenScopeCategoryUser), context_service.UserAssignmentAPI())
 			})
 
 			// (admin:public_key scope)
@@ -833,7 +846,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					Post(reqToken(auth_model.AccessTokenScopeWritePublicKey), bind(api.CreateKeyOption{}), user.CreatePublicKey)
 				m.Combo("/{id}").Get(reqToken(auth_model.AccessTokenScopeReadPublicKey), user.GetPublicKey).
 					Delete(reqToken(auth_model.AccessTokenScopeWritePublicKey), user.DeletePublicKey)
-			})
+			}, reqToken(auth_model.AccessTokenScopeCategoryUser))
 
 			// (admin:application scope)
 			m.Group("/applications", func() {
