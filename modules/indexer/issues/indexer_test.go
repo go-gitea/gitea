@@ -26,7 +26,9 @@ func TestMain(m *testing.M) {
 
 func TestBleveSearchIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	setting.CfgProvider = setting.NewEmptyConfigProvider()
+	var err error
+	setting.CfgProvider, err = setting.NewConfigProviderFromData("")
+	assert.NoError(t, err)
 
 	tmpIndexerDir := t.TempDir()
 

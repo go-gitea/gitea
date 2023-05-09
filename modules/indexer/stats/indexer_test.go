@@ -28,11 +28,13 @@ func TestMain(m *testing.M) {
 
 func TestRepoStatsIndex(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	setting.CfgProvider = setting.NewEmptyConfigProvider()
+	var err error
+	setting.CfgProvider, err = setting.NewConfigProviderFromData("")
+	assert.NoError(t, err)
 
 	setting.LoadQueueSettings()
 
-	err := Init()
+	err = Init()
 	assert.NoError(t, err)
 
 	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 1)
