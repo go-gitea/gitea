@@ -23,7 +23,7 @@ func TestAPIWatch(t *testing.T) {
 
 	session := loginUser(t, user)
 	token := getTokenForLoggedInUser(t, session)
-	tokenWithRepoScope := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	tokenWithRepoScope := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	t.Run("Watch", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
