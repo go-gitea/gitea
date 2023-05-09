@@ -69,6 +69,8 @@ func getCommit(ctx *context.APIContext, identifier string) {
 		return
 	}
 
+	stat := ctx.FormString("stat") == "" || ctx.FormBool("stat")
+	files := ctx.FormString("files") == "" || ctx.FormBool("files")
 	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
 	json, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil, convert.ToCommitOptions{
 		Stat:         stat,
