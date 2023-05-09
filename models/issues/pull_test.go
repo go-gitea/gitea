@@ -4,6 +4,7 @@
 package issues_test
 
 import (
+	user_model "code.gitea.io/gitea/models/user"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -72,6 +73,33 @@ func TestPullRequestsNewest(t *testing.T) {
 		assert.EqualValues(t, 2, prs[1].ID)
 		assert.EqualValues(t, 1, prs[2].ID)
 	}
+}
+
+func TestLoadRequestedReviewers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	assert.NoError(t, pull.LoadIssue(db.DefaultContext))
+	issue := pull.Issue
+	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
+	assert.Len(t, pull.RequestedReviewers, 0)
+
+	user1, err := user_model.GetUserByID(db.DefaultContext, 1)
+	assert.NoError(t, err)
+
+	comment, err := issues_model.AddReviewRequest(issue, user1, &user_model.User{})
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
+
+	assert.NoError(t, pull.LoadRequestedReviewers(db.DefaultContext))
+	assert.Len(t, pull.RequestedReviewers, 1)
+
+	comment, err = issues_model.RemoveReviewRequest(issue, user1, &user_model.User{})
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
+
+	assert.NoError(t, pull.LoadRequestedReviewers(db.DefaultContext))
+	assert.Empty(t, pull.RequestedReviewers)
 }
 
 func TestPullRequestsOldest(t *testing.T) {

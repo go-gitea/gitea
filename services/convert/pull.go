@@ -43,6 +43,16 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		return nil
 	}
 
+	if err := pr.LoadRequestedReviewers(ctx); err != nil {
+		log.Error("LoadRequestedReviewers[%d]: %v", pr.ID, err)
+		return nil
+	}
+	if len(pr.RequestedReviewers) > 0 {
+		for _, reviewer := range pr.RequestedReviewers {
+			apiIssue.RequestedReviewers = append(apiIssue.RequestedReviewers, ToUser(ctx, reviewer, nil))
+		}
+	}
+
 	p, err := access_model.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
 	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)

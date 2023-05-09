@@ -134,12 +134,11 @@ type Issue struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	ClosedUnix  timeutil.TimeStamp `xorm:"INDEX"`
 
-	Attachments        []*repo_model.Attachment `xorm:"-"`
-	Comments           []*Comment               `xorm:"-"`
-	Reactions          ReactionList             `xorm:"-"`
-	TotalTrackedTime   int64                    `xorm:"-"`
-	Assignees          []*user_model.User       `xorm:"-"`
-	RequestedReviewers []*user_model.User       `xorm:"-"`
+	Attachments      []*repo_model.Attachment `xorm:"-"`
+	Comments         []*Comment               `xorm:"-"`
+	Reactions        ReactionList             `xorm:"-"`
+	TotalTrackedTime int64                    `xorm:"-"`
+	Assignees        []*user_model.User       `xorm:"-"`
 
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
@@ -269,27 +268,6 @@ func (issue *Issue) LoadPullRequest(ctx context.Context) (err error) {
 	return nil
 }
 
-// LoadRequestedReviewers load requestedReviewers of this issue.
-func (issue *Issue) LoadRequestedReviewers(ctx context.Context) (err error) {
-	// Reset maybe preexisting reviewers
-	issue.RequestedReviewers = []*user_model.User{}
-
-	reviews, err := GetReviewersByIssueID(issue.ID)
-	if err != nil {
-		return err
-	}
-	if len(reviews) > 0 {
-		for _, review := range reviews {
-			if err = review.LoadReviewer(ctx); err != nil {
-				return err
-			}
-			issue.RequestedReviewers = append(issue.RequestedReviewers, review.Reviewer)
-		}
-	}
-
-	return err
-}
-
 func (issue *Issue) loadComments(ctx context.Context) (err error) {
 	return issue.loadCommentsByType(ctx, CommentTypeUndefined)
 }
@@ -378,10 +356,6 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 	}
 
 	if err = issue.LoadAssignees(ctx); err != nil {
-		return
-	}
-
-	if err = issue.LoadRequestedReviewers(ctx); err != nil {
 		return
 	}
 
