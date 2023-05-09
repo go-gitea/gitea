@@ -9,7 +9,7 @@
 					<div class="review-item">
 						<div class="review-item-left">
 							<span class="gt-mr-3 text {{.Review.HTMLTypeColorName}}">
-								{{svg (printf "octicon-%s" .Review.Type.Icon) 16}}
+								{{svg (printf "octicon-%s" .Review.Type.Icon)}}
 							</span>
 							{{if .User}}
 								<a href="{{.User.HomeLink}}">
@@ -80,7 +80,7 @@
 					<div class="review-item">
 						<div class="review-item-left">
 							<span class="gt-mr-3 text {{.Review.HTMLTypeColorName}}">
-								{{svg (printf "octicon-%s" .Type.Icon) 18}}
+								{{svg (printf "octicon-%s" .Type.Icon)}}
 							</span>
 							<a href="{{$.Repository.OriginalURL}}" data-tooltip-content="{{$.locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe}}">
 								<span class="text black">
@@ -192,7 +192,7 @@
 				</div>
 			{{else if .Issue.PullRequest.IsAncestor}}
 				<div class="item">
-					<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
+					<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
 					{{$.locale.Tr "repo.pulls.is_ancestor"}}
 				</div>
 			{{else if or .Issue.PullRequest.CanAutoMerge .Issue.PullRequest.IsEmpty}}
@@ -218,7 +218,7 @@
 					</div>
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item">
-						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 						{{$.locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
 						<ul>
 							{{range .ChangedProtectedFiles}}
@@ -282,7 +282,7 @@
 					<div class="ui divider"></div>
 
 					<div class="item">
-						<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
+						<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
 						{{$.locale.Tr "repo.pulls.is_empty"}}
 					</div>
 				{{end}}
@@ -418,7 +418,7 @@
 					</div>
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item text red">
-						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 						{{$.locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
 						<ul>
 							{{range .ChangedProtectedFiles}}
