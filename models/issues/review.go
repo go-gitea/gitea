@@ -191,13 +191,13 @@ func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 
 func (r *Review) HTMLTypeColorName() string {
 	switch r.Type {
-	case 1:
+	case ReviewTypeApprove:
 		return "green"
-	case 2:
+	case ReviewTypeComment:
 		return "grey"
-	case 3:
+	case ReviewTypeReject:
 		return "red"
-	case 4:
+	case ReviewTypeRequest:
 		return "yellow"
 	}
 	return "grey"
