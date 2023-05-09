@@ -32,7 +32,7 @@
           <div class="job-brief-list">
             <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
-                <ActionRunStatus :status="job.status"/>
+                <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="ui text gt-mx-3">{{ job.name }}</span>
               </a>
               <span class="step-summary-duration">{{ job.duration }}</span>
