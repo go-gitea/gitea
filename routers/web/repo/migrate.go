@@ -262,7 +262,8 @@ func setMigrationContextData(ctx *context.Context, serviceType structs.GitServic
 func MigrateCancelPost(ctx *context.Context) {
 	migratingTask, err := admin_model.GetMigratingTask(ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetMigratingTask", err)
+		log.Error("GetMigratingTask: %v", err)
+		ctx.Redirect(ctx.Repo.Repository.Link())
 		return
 	}
 	if migratingTask.Status == structs.TaskStatusRunning {
