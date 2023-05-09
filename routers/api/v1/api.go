@@ -723,6 +723,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 		m.Get("/gitignore/templates/{name}", misc.GetGitignoreTemplateInfo)
 		m.Get("/licenses", misc.ListLicenseTemplates)
 		m.Get("/licenses/{name}", misc.GetLicenseTemplateInfo)
+		m.Get("/label_templates", misc.ListLabelTemplates)
+		m.Get("/label_templates/{name}", misc.GetLabelTemplate)
 		m.Group("/settings", func() {
 			m.Get("/ui", settings.GetGeneralUISettings)
 			m.Get("/api", settings.GetGeneralAPISettings)
