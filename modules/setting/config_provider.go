@@ -42,12 +42,12 @@ type iniFileConfigProvider struct {
 
 // NewEmptyConfigProvider create a new empty config provider
 func NewEmptyConfigProvider() ConfigProvider {
-	cp, _ := newConfigProviderFromData("")
+	cp, _ := NewConfigProviderFromData("")
 	return cp
 }
 
-// newConfigProviderFromData this function is only for testing
-func newConfigProviderFromData(configContent string) (ConfigProvider, error) {
+// NewConfigProviderFromData this function is only for testing
+func NewConfigProviderFromData(configContent string) (ConfigProvider, error) {
 	var cfg *ini.File
 	var err error
 	if configContent == "" {

@@ -14,12 +14,11 @@ import (
 )
 
 // statsQueue represents a queue to handle repository stats updates
-var statsQueue queue.UniqueQueue
+var statsQueue *queue.WorkerPoolQueue[int64]
 
 // handle passed PR IDs and test the PRs
-func handle(data ...queue.Data) []queue.Data {
-	for _, datum := range data {
-		opts := datum.(int64)
+func handler(items ...int64) []int64 {
+	for _, opts := range items {
 		if err := indexer.Index(opts); err != nil {
 			if !setting.IsInTesting {
 				log.Error("stats queue indexer.Index(%d) failed: %v", opts, err)
@@ -30,7 +29,7 @@ func handle(data ...queue.Data) []queue.Data {
 }
 
 func initStatsQueue() error {
-	statsQueue = queue.CreateUniqueQueue("repo_stats_update", handle, int64(0))
+	statsQueue = queue.CreateUniqueQueue("repo_stats_update", handler)
 	if statsQueue == nil {
 		return fmt.Errorf("Unable to create repo_stats_update Queue")
 	}

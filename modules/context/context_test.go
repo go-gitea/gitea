@@ -7,32 +7,16 @@ import (
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
 
-type mockResponseWriter struct {
-	header http.Header
-}
-
-func (m *mockResponseWriter) Header() http.Header {
-	return m.header
-}
-
-func (m *mockResponseWriter) Write(bytes []byte) (int, error) {
-	panic("implement me")
-}
-
-func (m *mockResponseWriter) WriteHeader(statusCode int) {
-	panic("implement me")
-}
-
 func TestRemoveSessionCookieHeader(t *testing.T) {
-	w := &mockResponseWriter{}
-	w.header = http.Header{}
-	w.header.Add("Set-Cookie", (&http.Cookie{Name: setting.SessionConfig.CookieName, Value: "foo"}).String())
-	w.header.Add("Set-Cookie", (&http.Cookie{Name: "other", Value: "bar"}).String())
+	w := httplib.NewMockResponseWriter()
+	w.Header().Add("Set-Cookie", (&http.Cookie{Name: setting.SessionConfig.CookieName, Value: "foo"}).String())
+	w.Header().Add("Set-Cookie", (&http.Cookie{Name: "other", Value: "bar"}).String())
 	assert.Len(t, w.Header().Values("Set-Cookie"), 2)
 	removeSessionCookieHeader(w)
 	assert.Len(t, w.Header().Values("Set-Cookie"), 1)
