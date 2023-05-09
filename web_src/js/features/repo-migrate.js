@@ -14,7 +14,7 @@ export function initRepoMigrationStatusChecker() {
     const res = await fetch(`${appSubUrl}/user/task/${task}`);
     if (res.status !== 200) return true; // continue to refresh if network error occurs
 
-    const data = await res.json()
+    const data = await res.json();
 
     // for all status
     if (data.message) {
@@ -38,7 +38,7 @@ export function initRepoMigrationStatusChecker() {
     }
 
     return true; // continue to refresh
-  }
+  };
 
   const syncTaskStatus = async () => {
     let doNextRefresh = true;
@@ -49,7 +49,7 @@ export function initRepoMigrationStatusChecker() {
         setTimeout(syncTaskStatus, 2000);
       }
     }
-  }
+  };
 
-  const _ = syncTaskStatus()
+  const _ = syncTaskStatus();
 }
