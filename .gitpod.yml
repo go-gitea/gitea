@@ -31,7 +31,7 @@ vscode:
     - golang.go
     - stylelint.vscode-stylelint
     - DavidAnson.vscode-markdownlint
-    - vue.volar
+    - Vue.volar
     - ms-azuretools.vscode-docker
     - zixuanchen.vitest-explorer
     - alexcvzz.vscode-sqlite
