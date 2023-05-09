@@ -153,8 +153,6 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 	scopeText := RenderEmoji(ctx, labelScope)
 	itemText := RenderEmoji(ctx, label.Name[len(labelScope)+1:])
 
-	itemColor := label.Color
-	scopeColor := label.Color
 	// Make scope and item background colors slightly darker and lighter respectively.
 	// More contrast needed with higher luminance, empirically tweaked.
 	luminance := util.GetLuminance(r, g, b)
@@ -177,8 +175,8 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 		uint8(math.Min(math.Round(b*lightenFactor), 255)),
 	}
 
-	itemColor = "#" + hex.EncodeToString(itemBytes)
-	scopeColor = "#" + hex.EncodeToString(scopeBytes)
+	itemColor := "#" + hex.EncodeToString(itemBytes)
+	scopeColor := "#" + hex.EncodeToString(scopeBytes)
 
 	s := fmt.Sprintf("<span class='ui label scope-parent' title='%s'>"+
 		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+
