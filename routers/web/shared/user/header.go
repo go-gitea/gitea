@@ -7,8 +7,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -33,21 +31,8 @@ func RenderUserHeader(ctx *context.Context) {
 			return
 		}
 		blob, err := commit.GetBlobByPath("README.md")
-		if err == nil {
-			bytes, err := blob.GetBlobContent()
-			if err != nil {
-				ctx.ServerError("GetBlobContent", err)
-				return
-			}
-			profileContent, err := markdown.RenderString(&markup.RenderContext{
-				Ctx:     ctx,
-				GitRepo: gitRepo,
-			}, bytes)
-			if err != nil {
-				ctx.ServerError("RenderString", err)
-				return
-			}
-			ctx.Data["ProfileReadme"] = profileContent
+		if err == nil && blob != nil {
+			ctx.Data["ProfileReadme"] = true
 		}
 	}
 }
