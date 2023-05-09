@@ -198,7 +198,7 @@ func ServeContentByReader(r *http.Request, w http.ResponseWriter, filePath strin
 	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, size))
 	w.Header().Set("Content-Length", strconv.FormatInt(partialLength, 10))
 	if _, err = io.CopyN(io.Discard, reader, start); err != nil {
-		http.Error(w, "serve content: unable to skip", http.StatusRequestedRangeNotSatisfiable)
+		http.Error(w, "serve content: unable to skip", http.StatusInternalServerError)
 		return
 	}
 
