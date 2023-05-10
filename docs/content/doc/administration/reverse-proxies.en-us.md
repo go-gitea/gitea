@@ -44,7 +44,8 @@ server {
 ### Resolving Error: 413 Request Entity Too Large
 
 This error indicates nginx is configured to restrict the file upload size,
-you can fine tune the `client_max_body_size` option according to [nginx document](http://nginx.org/en/docs/http/ngx_http_core_module.html#client_max_body_size).
+it affects attachment uploading, form posting, package uploading and LFS pushing, etc.
+You can fine tune the `client_max_body_size` option according to [nginx document](http://nginx.org/en/docs/http/ngx_http_core_module.html#client_max_body_size).
 
 ## Nginx with a sub-path
 
