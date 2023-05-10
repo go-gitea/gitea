@@ -107,7 +107,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		if opts.IsNewRef() && opts.IsDelRef() {
 			return fmt.Errorf("old and new revisions are both %s", git.EmptySHA)
 		}
-		if opts.RefFullName.IsTag() { // If is tag reference
+		if opts.RefFullName.IsTag() {
 			if pusher == nil || pusher.ID != opts.PusherID {
 				if opts.PusherID == user_model.ActionsUserID {
 					pusher = user_model.NewActionsUser()
@@ -123,7 +123,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				notification.NotifyPushCommits(
 					ctx, pusher, repo,
 					&repo_module.PushUpdateOptions{
-						RefFullName: git.RefName(git.TagPrefix + tagName),
+						RefFullName: git.RefNameFromTag(tagName),
 						OldCommitID: opts.OldCommitID,
 						NewCommitID: git.EmptySHA,
 					}, repo_module.NewPushCommits())
@@ -151,7 +151,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				addTags = append(addTags, tagName)
 				notification.NotifyCreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
 			}
-		} else if opts.RefFullName.IsBranch() { // If is branch reference
+		} else if opts.RefFullName.IsBranch() {
 			if pusher == nil || pusher.ID != opts.PusherID {
 				if opts.PusherID == user_model.ActionsUserID {
 					pusher = user_model.NewActionsUser()

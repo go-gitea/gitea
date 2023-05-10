@@ -596,7 +596,7 @@ func (m *webhookNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 	}
 
 	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{
-		Ref:          opts.RefFullName.String(), //
+		Ref:          opts.RefFullName.String(),
 		Before:       opts.OldCommitID,
 		After:        opts.NewCommitID,
 		CompareURL:   setting.AppURL + commits.CompareURL,
