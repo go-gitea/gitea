@@ -24,7 +24,7 @@ This page will guide you through the process of using Gitea Actions.
 ## Set up Gitea
 
 First of all, you need a Gitea instance.
-You can follow the [documentation]({{ < relref "doc/installation/from-package.en-us.md" > }}) to set up a new instance or upgrade your existing one.
+You can follow the [documentation]({{< relref "doc/installation/from-package.en-us.md" >}}) to set up a new instance or upgrade your existing one.
 It doesn't matter how you install or run Gitea, as long as its version is 1.19.0 or higher.
 
 Actions are disabled by default, so you need to add the following to the configuration file to enable it:
@@ -34,7 +34,7 @@ Actions are disabled by default, so you need to add the following to the configu
 ENABLED=true
 ```
 
-If you want to learn more or encounter any problems while configuring it, please refer to the [Configuration Cheat Sheet]({{ < relref "doc/administration/config-cheat-sheet.en-us.md#actions-actions" > }}).
+If you want to learn more or encounter any problems while configuring it, please refer to the [Configuration Cheat Sheet]({{< relref "doc/administration/config-cheat-sheet.en-us.md#actions-actions" >}}).
 
 ### Set up runner
 
@@ -85,7 +85,7 @@ And you can see the new runner in the management page:
 
 ![view runner](/images/usage/actions/view-runner.png)
 
-You can find more information by visiting [Act runner]({{ < relref "doc/actions/act-runner.en-us.md" > }}).
+You can find more information by visiting [Act runner]({{< relref "doc/actions/act-runner.en-us.md" >}}).
 
 ### Use Actions
 
@@ -129,7 +129,7 @@ That is because  Gitea Actions is designed to be compatible with GitHub Actions 
 Be careful, the demo file contains some emojis.
 Please make sure your database supports them, especially when using MySQL.
 If the charset is not `utf8mb4`, errors will occur, such as `Error 1366 (HY000): Incorrect string value: '\\xF0\\x9F\\x8E\\x89 T...' for column 'name' at row 1`.
-See [Database Preparation]( {{ < relref "doc/installation/database-preparation.en-us.md#mysql" > }}) for more information.
+See [Database Preparation]({{< relref "doc/installation/database-preparation.en-us.md#mysql" >}}) for more information.
 
 Alternatively, you can remove all emojis from the demo file and try again.
 
