@@ -364,6 +364,12 @@ a.label,
   text-decoration: none !important;
 }
 
+/* for most cases, we only use our svg icon as inline icon, so we need to make them inline-block and vertical-align: middle */
+svg.svg {
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .ui.red.labels .label,
 .ui.ui.ui.red.label,
 .ui.red.button,
