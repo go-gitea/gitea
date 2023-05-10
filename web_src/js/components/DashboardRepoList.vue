@@ -80,12 +80,12 @@
                 </span>
               </div>
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
-              <svg-icon v-if="repo.commit_status_state === 'pending'" name="octicon-dot-fill" class-name="commit-status icon text grey" :size="16"/>
-              <svg-icon v-else-if="repo.commit_status_state === 'running'" name="octicon-dot-fill" class-name="commit-status icon text yellow" :size="16"/>
-              <svg-icon v-else-if="repo.commit_status_state === 'success'" name="octicon-check" class-name="commit-status icon text green" :size="16"/>
-              <svg-icon v-else-if="repo.commit_status_state === 'error'" name="gitea-exclamation" class-name="commit-status icon text red" :size="16"/>
-              <svg-icon v-else-if="repo.commit_status_state === 'failure'" name="octicon-x" class-name="commit-status icon text red" :size="16"/>
-              <svg-icon v-else-if="repo.commit_status_state === 'warning'" name="gitea-exclamation" class-name="commit-status icon text yellow" :size="16"/>
+              <svg-icon v-if="repo.latest_commit_status_state === 'pending'" name="octicon-dot-fill" class-name="commit-status icon text grey" :size="16"/>
+              <svg-icon v-else-if="repo.latest_commit_status_state === 'running'" name="octicon-dot-fill" class-name="commit-status icon text yellow" :size="16"/>
+              <svg-icon v-else-if="repo.latest_commit_status_state === 'success'" name="octicon-check" class-name="commit-status icon text green" :size="16"/>
+              <svg-icon v-else-if="repo.latest_commit_status_state === 'error'" name="gitea-exclamation" class-name="commit-status icon text red" :size="16"/>
+              <svg-icon v-else-if="repo.latest_commit_status_state === 'failure'" name="octicon-x" class-name="commit-status icon text red" :size="16"/>
+              <svg-icon v-else-if="repo.latest_commit_status_state === 'warning'" name="gitea-exclamation" class-name="commit-status icon text yellow" :size="16"/>
             </a>
           </li>
         </ul>

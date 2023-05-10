@@ -580,17 +580,17 @@ func SearchRepo(ctx *context.Context) {
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
 		results[i] = &api.Repository{
-			ID:                repo.ID,
-			FullName:          repo.FullName(),
-			Fork:              repo.IsFork,
-			Private:           repo.IsPrivate,
-			Template:          repo.IsTemplate,
-			Mirror:            repo.IsMirror,
-			Stars:             repo.NumStars,
-			HTMLURL:           repo.HTMLURL(),
-			Link:              repo.Link(),
-			Internal:          !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
-			CommitStatusState: getLatestCommitStatusState(ctx, repo),
+			ID:                      repo.ID,
+			FullName:                repo.FullName(),
+			Fork:                    repo.IsFork,
+			Private:                 repo.IsPrivate,
+			Template:                repo.IsTemplate,
+			Mirror:                  repo.IsMirror,
+			Stars:                   repo.NumStars,
+			HTMLURL:                 repo.HTMLURL(),
+			Link:                    repo.Link(),
+			Internal:                !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
+			LatestCommitStatusState: getLatestCommitStatusState(ctx, repo),
 		}
 	}
 
