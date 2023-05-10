@@ -1,7 +1,7 @@
 <template>
   <div class="action-view-container">
     <div class="action-view-header">
-      <div class="action-info-summary gt-ac gt-mt-4">
+      <div class="action-info-summary">
         <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
         <div class="action-title">
           {{ run.title }}
@@ -395,6 +395,8 @@ export function ansiLogToHTML(line) {
   font-size: 150%;
   height: 20px;
   display: flex;
+  align-items: center;
+  margin-top: 1rem;
 }
 
 .action-info-summary .action-title {
