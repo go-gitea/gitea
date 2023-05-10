@@ -132,9 +132,3 @@
 .repository.new.release .field .attachment_edit {
   width: 450px !important;
 }
-
-/* stretch summary when rendered in releases page in case the
-   repo has the releases tab disabled */
-.release-tag-header .repository-summary {
-  width: 100%;
-}

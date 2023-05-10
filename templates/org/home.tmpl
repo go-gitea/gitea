@@ -3,14 +3,14 @@
 	<div class="ui container gt-df">
 		{{avatar $.Context .Org 140 "org-avatar"}}
 		<div id="org-info">
-			<div class="ui header gt-df gt-ac gt-fw">
+			<div class="ui header">
 				{{.Org.DisplayName}}
-				<span class="org-visibility gt-df gt-ml-3">
-					{{if .Org.Visibility.IsLimited}}<div class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
-					{{if .Org.Visibility.IsPrivate}}<div class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+				<span class="org-visibility">
+					{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
+					{{if .Org.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
 				</span>
 				{{if .EnableFeed}}
-					<a href="{{.Org.HomeLink}}.rss" class="rss-icon" data-tooltip-content="{{.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 24}}</a>
+					<a class="muted" href="{{.Org.HomeLink}}.rss" data-tooltip-content="{{.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 24}}</a>
 				{{end}}
 			</div>
 			{{if $.RenderedDescription}}<div class="render-content markup">{{$.RenderedDescription|Str2html}}</div>{{end}}

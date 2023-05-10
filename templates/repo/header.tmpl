@@ -14,7 +14,7 @@
 					<div class="gt-mx-2">/</div>
 					<a href="{{$.RepoLink}}">{{.Name}}</a>
 					{{if $.EnableFeed}}
-						<a href="{{$.RepoLink}}.rss" class="rss-icon" data-tooltip-content="{{$.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</a>
+						<a class="muted gt-mx-2" href="{{$.RepoLink}}.rss" data-tooltip-content="{{$.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</a>
 					{{end}}
 					<div class="labels gt-df gt-ac gt-fw">
 						{{if .IsTemplate}}
