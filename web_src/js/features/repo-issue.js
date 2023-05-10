@@ -459,7 +459,7 @@ export function initRepoPullRequestReview() {
 
   const $reviewBox = $('.review-box-panel');
   if ($reviewBox.length === 1) {
-    const _promise = initComboMarkdownEditor($reviewBox.find('.combo-markdown-editor'));
+    initComboMarkdownEditor($reviewBox.find('.combo-markdown-editor')); // no await
   }
 
   // The following part is only for diff views

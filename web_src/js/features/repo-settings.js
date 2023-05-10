@@ -68,7 +68,7 @@ export function initRepoSettingSearchTeamBox() {
 export function initRepoSettingGitHook() {
   if ($('.edit.githook').length === 0) return;
   const filename = document.querySelector('.hook-filename').textContent;
-  const _promise = createMonaco($('#content')[0], filename, {language: 'shell'});
+  createMonaco($('#content')[0], filename, {language: 'shell'}); // no await
 }
 
 export function initRepoSettingBranches() {

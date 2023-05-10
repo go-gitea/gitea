@@ -90,7 +90,7 @@ export function initRepoProject() {
     return;
   }
 
-  const _promise = initRepoProjectSortable();
+  initRepoProjectSortable(); // no await
 
   $('.edit-project-board').each(function () {
     const projectHeader = $(this).closest('.board-column-header');

@@ -91,9 +91,9 @@ Reference: https://github.com/github/eslint-plugin-github/blob/main/docs/rules/a
 If an event listener must be `async`, the `e.preventDefault()` should be before any `await`,
 it's recommended to put it at the beginning of the function.
 
-If we want to call an `async` function in a non-async context,
-it's recommended to use `const _promise = asyncFoo()` to tell readers
-that this is done by purpose, we want to call the async function and ignore the Promise.
+If we want to call an `async` function without awaiting the result,  it's recommended to
+use `asyncFoo() // no await` to indicate that the following code will execute out of order.
+
 Some lint rules and IDEs also have warnings if the returned Promise is not handled.
 
 ### HTML Attributes and `dataset`

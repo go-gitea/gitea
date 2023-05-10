@@ -138,7 +138,7 @@ export function initGlobalDropzone() {
   // Dropzone
   for (const el of document.querySelectorAll('.dropzone')) {
     const $dropzone = $(el);
-    const _promise = createDropzone(el, {
+    createDropzone(el, { // no await
       url: $dropzone.data('upload-url'),
       headers: {'X-Csrf-Token': csrfToken},
       maxFiles: $dropzone.data('max-file'),

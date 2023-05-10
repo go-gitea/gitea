@@ -49,5 +49,5 @@ function initRepoReleaseEditor() {
   if ($editor.length === 0) {
     return;
   }
-  const _promise = initComboMarkdownEditor($editor);
+  initComboMarkdownEditor($editor); // no await
 }
