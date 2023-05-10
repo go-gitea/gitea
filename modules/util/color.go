@@ -21,19 +21,22 @@ func getLuminanceRGB(channel float64) float64 {
 }
 
 // Get color as RGB values in 0..255 range from the hex color string (with or without #)
-// TODO: support return of rgba
 func HexToRBGColor(colorString string) (float64, float64, float64) {
 	hexString := colorString
 	if strings.HasPrefix(colorString, "#") {
-		hexString = hexString[1:]
+		hexString = colorString[1:]
 	}
-	// only support transfer of rgb and rrggbb
-	// if not in this format, use default values 0, 0, 0
-	if len(hexString) != 3 && len(hexString) != 6 {
+	// only support transfer of rgb, rgba, rrggbb and rrggbbaa
+	// if not in these formats, use default values 0, 0, 0
+	fmt.Println(hexString)
+	if len(hexString) != 3 && len(hexString) != 4 && len(hexString) != 6 && len(hexString) != 8 {
 		return 0, 0, 0
 	}
-	if len(hexString) == 3 {
+	if len(hexString) == 3 || len(hexString) == 4 {
 		hexString = fmt.Sprintf("%c%c%c%c%c%c", hexString[0], hexString[0], hexString[1], hexString[1], hexString[2], hexString[2])
+	}
+	if len(hexString) == 8 {
+		hexString = hexString[0:6]
 	}
 	color, err := strconv.ParseUint(hexString, 16, 64)
 	if err != nil {

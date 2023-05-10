@@ -13,34 +13,25 @@ function getLuminance(r, g, b) {
   return 0.2126 * R + 0.7152 * G + 0.0722 * B;
 }
 
-const convertHexUnitTo256 = (hexStr) => parseInt(hexStr.repeat(2 / hexStr.length), 16);
-
-function getAlphafloat(alpha) {
-  if (alpha !== undefined) {
-    return alpha / 255;
-  }
-  return 1;
-}
-
-const re = /.{1,2}/g;
 // Get color as RGB values in 0..255 range from the hex color string (with or without #)
-export function hexToRGBColor(backgroundColorStr, ignoreAlpha = true) {
+export function hexToRGBColor(backgroundColorStr) {
   let backgroundColor = backgroundColorStr;
   if (backgroundColorStr[0] === '#') {
     backgroundColor = backgroundColorStr.substring(1);
   }
-  // only support transfer of rgb, rgba, rrggbb, and rrggbbaa
-  // if not in this format, use default values 0, 0, 0 or 0, 0, 0, 1
+  // only support transfer of rgb, rgba, rrggbb and rrggbbaa
+  // if not in these formats, use default values 0, 0, 0
   if (![3, 4, 6, 8].includes(backgroundColor.length)) {
-    return ignoreAlpha ? [0, 0, 0] : [0, 0, 0, 1];
+    return [0, 0, 0];
   }
-  // chunkSize is number of digits that should be grouped together to form a RGBA channel
-  const chunkSize = Math.floor(backgroundColor.length / 3);
-  // hexArr is array of [r, g, b] or [r, g, b, a], a could be undefined
-  // and will be processed in getAlphafloat if ignoreAlpha is false
-  const hexArr = chunkSize === 1 ? backgroundColor.split('') : backgroundColor.match(re);
-  const [r, g, b, a] = hexArr.map(convertHexUnitTo256);
-  return ignoreAlpha ? [r, g, b] : [r, g, b, getAlphafloat(a)];
+  if ([3, 4].includes(backgroundColor.length)) {
+    const [r, g, b] = backgroundColor;
+    backgroundColor = `${r}${r}${g}${g}${b}${b}`;
+  }
+  const r = parseInt(backgroundColor.substring(0, 2), 16);
+  const g = parseInt(backgroundColor.substring(2, 4), 16);
+  const b = parseInt(backgroundColor.substring(4, 6), 16);
+  return [r, g, b];
 }
 
 // Reference from: https://firsching.ch/github_labels.html
