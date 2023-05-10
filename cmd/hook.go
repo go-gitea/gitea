@@ -201,7 +201,7 @@ Gitea or set your environment appropriately.`, "")
 
 	oldCommitIDs := make([]string, hookBatchSize)
 	newCommitIDs := make([]string, hookBatchSize)
-	refFullNames := make([]string, hookBatchSize)
+	refFullNames := make([]git.RefName, hookBatchSize)
 	count := 0
 	total := 0
 	lastline := 0
@@ -236,14 +236,14 @@ Gitea or set your environment appropriately.`, "")
 
 		oldCommitID := string(fields[0])
 		newCommitID := string(fields[1])
-		refFullName := string(fields[2])
+		refFullName := git.RefName(fields[2])
 		total++
 		lastline++
 
 		// If the ref is a branch or tag, check if it's protected
 		// if supportProcReceive all ref should be checked because
 		// permission check was delayed
-		if supportProcReceive || strings.HasPrefix(refFullName, git.BranchPrefix) || strings.HasPrefix(refFullName, git.TagPrefix) {
+		if supportProcReceive || refFullName.IsBranch() || refFullName.IsTag() {
 			oldCommitIDs[count] = oldCommitID
 			newCommitIDs[count] = newCommitID
 			refFullNames[count] = refFullName
@@ -351,7 +351,7 @@ Gitea or set your environment appropriately.`, "")
 	}
 	oldCommitIDs := make([]string, hookBatchSize)
 	newCommitIDs := make([]string, hookBatchSize)
-	refFullNames := make([]string, hookBatchSize)
+	refFullNames := make([]git.RefName, hookBatchSize)
 	count := 0
 	total := 0
 	wasEmpty := false
@@ -373,7 +373,7 @@ Gitea or set your environment appropriately.`, "")
 		fmt.Fprintf(out, ".")
 		oldCommitIDs[count] = string(fields[0])
 		newCommitIDs[count] = string(fields[1])
-		refFullNames[count] = string(fields[2])
+		refFullNames[count] = git.RefName(fields[2])
 		if refFullNames[count] == git.BranchPrefix+"master" && newCommitIDs[count] != git.EmptySHA && count == total {
 			masterPushed = true
 		}
@@ -575,7 +575,7 @@ Gitea or set your environment appropriately.`, "")
 	}
 	hookOptions.OldCommitIDs = make([]string, 0, hookBatchSize)
 	hookOptions.NewCommitIDs = make([]string, 0, hookBatchSize)
-	hookOptions.RefFullNames = make([]string, 0, hookBatchSize)
+	hookOptions.RefFullNames = make([]git.RefName, 0, hookBatchSize)
 
 	for {
 		// note: pktLineTypeUnknow means pktLineTypeFlush and pktLineTypeData all allowed
@@ -593,7 +593,7 @@ Gitea or set your environment appropriately.`, "")
 		}
 		hookOptions.OldCommitIDs = append(hookOptions.OldCommitIDs, t[0])
 		hookOptions.NewCommitIDs = append(hookOptions.NewCommitIDs, t[1])
-		hookOptions.RefFullNames = append(hookOptions.RefFullNames, t[2])
+		hookOptions.RefFullNames = append(hookOptions.RefFullNames, git.RefName(t[2]))
 	}
 
 	hookOptions.GitPushOptions = make(map[string]string)
@@ -640,7 +640,7 @@ Gitea or set your environment appropriately.`, "")
 
 	for _, rs := range resp.Results {
 		if len(rs.Err) > 0 {
-			err = writeDataPktLine(ctx, os.Stdout, []byte("ng "+rs.OriginalRef+" "+rs.Err))
+			err = writeDataPktLine(ctx, os.Stdout, []byte("ng "+rs.OriginalRef.String()+" "+rs.Err))
 			if err != nil {
 				return err
 			}
@@ -648,7 +648,7 @@ Gitea or set your environment appropriately.`, "")
 		}
 
 		if rs.IsNotMatched {
-			err = writeDataPktLine(ctx, os.Stdout, []byte("ok "+rs.OriginalRef))
+			err = writeDataPktLine(ctx, os.Stdout, []byte("ok "+rs.OriginalRef.String()))
 			if err != nil {
 				return err
 			}

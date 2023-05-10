@@ -852,7 +852,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 		ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
 		ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
 		ctx.Data["Reference"] = template.Ref
-		ctx.Data["RefEndName"] = git.RefEndName(template.Ref)
+		ctx.Data["RefEndName"] = git.RefName(template.Ref).ShortName()
 		return templateErrs
 	}
 	return templateErrs
@@ -1861,7 +1861,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(unit.TypeProjects)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
-	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
+	ctx.Data["RefEndName"] = git.RefName(issue.Ref).ShortName()
 
 	var hiddenCommentTypes *big.Int
 	if ctx.IsSigned {

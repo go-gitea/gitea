@@ -6,6 +6,8 @@ package git
 import (
 	"regexp"
 	"strings"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -63,8 +65,24 @@ func (ref *Reference) RefGroup() string {
 	return RefName(ref.Name).RefGroup()
 }
 
-// RefName represents a git reference name
+// RefName represents a full git reference name
 type RefName string
+
+func RefNameFromBranch(shortName string) RefName {
+	return RefName(BranchPrefix + shortName)
+}
+
+func RefNameFromTag(shortName string) RefName {
+	return RefName(TagPrefix + shortName)
+}
+
+func (ref RefName) IsValid() bool {
+	return ref.IsBranch() || ref.IsTag() || ref.IsRemote() || ref.IsPull()
+}
+
+func (ref RefName) String() string {
+	return string(ref)
+}
 
 func (ref RefName) IsBranch() bool {
 	return strings.HasPrefix(string(ref), BranchPrefix)
@@ -72,6 +90,18 @@ func (ref RefName) IsBranch() bool {
 
 func (ref RefName) IsTag() bool {
 	return strings.HasPrefix(string(ref), TagPrefix)
+}
+
+func (ref RefName) IsRemote() bool {
+	return strings.HasPrefix(string(ref), RemotePrefix)
+}
+
+func (ref RefName) IsPull() bool {
+	return strings.HasPrefix(string(ref), PullPrefix)
+}
+
+func (ref RefName) IsFor() bool {
+	return strings.HasPrefix(string(ref), ForPrefix)
 }
 
 // ShortName returns the short name of the reference name
@@ -88,6 +118,9 @@ func (ref RefName) ShortName() string {
 	}
 	if strings.HasPrefix(refName, PullPrefix) && strings.IndexByte(refName[pullLen:], '/') > -1 {
 		return refName[pullLen : strings.IndexByte(refName[pullLen:], '/')+pullLen]
+	}
+	if strings.HasPrefix(refName, ForPrefix) {
+		return strings.TrimPrefix(refName, ForPrefix)
 	}
 
 	return refName
@@ -108,5 +141,24 @@ func (ref RefName) RefGroup() string {
 	if strings.HasPrefix(refName, PullPrefix) && strings.IndexByte(refName[pullLen:], '/') > -1 {
 		return "pull"
 	}
+	if strings.HasPrefix(refName, ForPrefix) {
+		return "for"
+	}
 	return ""
+}
+
+// RefURL returns the absolute URL for a ref in a repository
+func RefURL(repoURL, ref string) string {
+	refName := util.PathEscapeSegments(RefName(ref).ShortName())
+	switch {
+	case strings.HasPrefix(ref, BranchPrefix):
+		return repoURL + "/src/branch/" + refName
+	case strings.HasPrefix(ref, TagPrefix):
+		return repoURL + "/src/tag/" + refName
+	case !IsValidSHAPattern(ref):
+		// assume they mean a branch
+		return repoURL + "/src/branch/" + refName
+	default:
+		return repoURL + "/src/commit/" + refName
+	}
 }

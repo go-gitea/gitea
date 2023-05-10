@@ -78,13 +78,19 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 // If the oldCommitID is "0000000", it means a new reference, the value of newCommitID is empty.
 // If the newCommitID is "0000000", it means the reference is deleted, the value of oldCommitID is empty.
 type mirrorSyncResult struct {
-	refName     string
+	refName     git.RefName
 	oldCommitID string
 	newCommitID string
 }
 
 // parseRemoteUpdateOutput detects create, update and delete operations of references from upstream.
-func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
+/* possible output example:
+* [new tag]         v0.1.8     -> v0.1.8
+* [new branch]      master     -> origin/master
+- [deleted]         (none)     -> origin/test
++ f895a1e...957a993 test       -> origin/test  (forced update)
+*/
+func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 	results := make([]*mirrorSyncResult, 0, 3)
 	lines := strings.Split(output, "\n")
 	for i := range lines {
@@ -97,19 +103,21 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 		refName := lines[i][idx+3:]
 
 		switch {
-		case strings.HasPrefix(lines[i], " * "): // New reference
-			if strings.HasPrefix(lines[i], " * [new tag]") {
-				refName = git.TagPrefix + refName
-			} else if strings.HasPrefix(lines[i], " * [new branch]") {
-				refName = git.BranchPrefix + refName
-			}
+		case strings.HasPrefix(lines[i], " * [new tag]"): // new tag
 			results = append(results, &mirrorSyncResult{
-				refName:     refName,
+				refName:     git.RefNameFromTag(refName),
+				oldCommitID: gitShortEmptySha,
+			})
+		case strings.HasPrefix(lines[i], " * [new branch]"): // new branch
+			refName = strings.TrimPrefix(strings.TrimSpace(refName), remoteName+"/")
+			results = append(results, &mirrorSyncResult{
+				refName:     git.RefNameFromBranch(refName),
 				oldCommitID: gitShortEmptySha,
 			})
 		case strings.HasPrefix(lines[i], " - "): // Delete reference
+			refName = strings.TrimPrefix(strings.TrimSpace(refName), remoteName+"/")
 			results = append(results, &mirrorSyncResult{
-				refName:     refName,
+				refName:     git.RefNameFromBranch(refName),
 				newCommitID: gitShortEmptySha,
 			})
 		case strings.HasPrefix(lines[i], " + "): // Force update
@@ -127,7 +135,7 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 				continue
 			}
 			results = append(results, &mirrorSyncResult{
-				refName:     refName,
+				refName:     git.RefNameFromBranch(refName),
 				oldCommitID: shas[0],
 				newCommitID: shas[1],
 			})
@@ -143,7 +151,7 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 				continue
 			}
 			results = append(results, &mirrorSyncResult{
-				refName:     refName,
+				refName:     git.RefNameFromBranch(refName),
 				oldCommitID: shas[0],
 				newCommitID: shas[1],
 			})
@@ -384,7 +392,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	}
 
 	m.UpdatedUnix = timeutil.TimeStampNow()
-	return parseRemoteUpdateOutput(output), true
+	return parseRemoteUpdateOutput(output, m.GetRemoteName()), true
 }
 
 // SyncPullMirror starts the sync of the pull mirror and schedules the next run.
@@ -444,20 +452,13 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 	for _, result := range results {
 		// Discard GitHub pull requests, i.e. refs/pull/*
-		if strings.HasPrefix(result.refName, git.PullPrefix) {
+		if result.refName.IsPull() {
 			continue
 		}
 
-		tp, _ := git.SplitRefName(result.refName)
-
 		// Create reference
 		if result.oldCommitID == gitShortEmptySha {
-			if tp == git.TagPrefix {
-				tp = "tag"
-			} else if tp == git.BranchPrefix {
-				tp = "branch"
-			}
-			commitID, err := gitRepo.GetRefCommitID(result.refName)
+			commitID, err := gitRepo.GetRefCommitID(result.refName.String())
 			if err != nil {
 				log.Error("SyncMirrors [repo: %-v]: unable to GetRefCommitID [ref_name: %s]: %v", m.Repo, result.refName, err)
 				continue
@@ -467,13 +468,13 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 				OldCommitID: git.EmptySHA,
 				NewCommitID: commitID,
 			}, repo_module.NewPushCommits())
-			notification.NotifySyncCreateRef(ctx, m.Repo.MustOwner(ctx), m.Repo, tp, result.refName, commitID)
+			notification.NotifySyncCreateRef(ctx, m.Repo.MustOwner(ctx), m.Repo, result.refName, commitID)
 			continue
 		}
 
 		// Delete reference
 		if result.newCommitID == gitShortEmptySha {
-			notification.NotifySyncDeleteRef(ctx, m.Repo.MustOwner(ctx), m.Repo, tp, result.refName)
+			notification.NotifySyncDeleteRef(ctx, m.Repo.MustOwner(ctx), m.Repo, result.refName)
 			continue
 		}
 
@@ -547,13 +548,11 @@ func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository
 	}
 	firstName := ""
 	for _, result := range results {
-		if strings.HasPrefix(result.refName, git.PullPrefix) {
+		if !result.refName.IsBranch() {
 			continue
 		}
-		tp, name := git.SplitRefName(result.refName)
-		if len(tp) > 0 && tp != git.BranchPrefix {
-			continue
-		}
+
+		name := result.refName.ShortName()
 		if len(firstName) == 0 {
 			firstName = name
 		}

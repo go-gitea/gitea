@@ -11,15 +11,15 @@ import (
 
 func TestRefEndName(t *testing.T) {
 	// Test branch names (with and without slash).
-	assert.Equal(t, "foo", RefEndName("refs/heads/foo"))
-	assert.Equal(t, "feature/foo", RefEndName("refs/heads/feature/foo"))
+	assert.Equal(t, "foo", RefName("refs/heads/foo").ShortName())
+	assert.Equal(t, "feature/foo", RefName("refs/heads/feature/foo").ShortName())
 
 	// Test tag names (with and without slash).
-	assert.Equal(t, "foo", RefEndName("refs/tags/foo"))
-	assert.Equal(t, "release/foo", RefEndName("refs/tags/release/foo"))
+	assert.Equal(t, "foo", RefName("refs/tags/foo").ShortName())
+	assert.Equal(t, "release/foo", RefName("refs/tags/release/foo").ShortName())
 
 	// Test commit hashes.
-	assert.Equal(t, "c0ffee", RefEndName("c0ffee"))
+	assert.Equal(t, "c0ffee", RefName("c0ffee").ShortName())
 }
 
 func TestRefURL(t *testing.T) {

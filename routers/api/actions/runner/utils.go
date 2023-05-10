@@ -98,14 +98,8 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 		baseRef = pullPayload.PullRequest.Base.Ref
 		headRef = pullPayload.PullRequest.Head.Ref
 	}
-	refPrefix, refName := git.SplitRefName(t.Job.Run.Ref)
-	refType := ""
-	switch refPrefix {
-	case git.BranchPrefix:
-		refType = "branch"
-	case git.TagPrefix:
-		refType = "tag"
-	}
+	refName := git.RefName(t.Job.Run.Ref)
+	refType := refName.RefGroup()
 
 	taskContext, _ := structpb.NewStruct(map[string]interface{}{
 		// standard contexts, see https://docs.github.com/en/actions/learn-github-actions/contexts#github-context

@@ -56,7 +56,7 @@ var _ PayloadConvertor = &WechatworkPayload{}
 // Create implements PayloadConvertor Create method
 func (f *WechatworkPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
 
 	return newWechatworkMarkdownPayload(title), nil
@@ -65,7 +65,7 @@ func (f *WechatworkPayload) Create(p *api.CreatePayload) (api.Payloader, error) 
 // Delete implements PayloadConvertor Delete method
 func (f *WechatworkPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
 
 	return newWechatworkMarkdownPayload(title), nil
@@ -81,7 +81,7 @@ func (f *WechatworkPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 // Push implements PayloadConvertor Push method
 func (f *WechatworkPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	var (
-		branchName = git.RefEndName(p.Ref)
+		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
 	)
 

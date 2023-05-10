@@ -107,7 +107,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		if opts.IsNewRef() && opts.IsDelRef() {
 			return fmt.Errorf("old and new revisions are both %s", git.EmptySHA)
 		}
-		if opts.IsTag() { // If is tag reference
+		if opts.RefFullName.IsTag() { // If is tag reference
 			if pusher == nil || pusher.ID != opts.PusherID {
 				if opts.PusherID == user_model.ActionsUserID {
 					pusher = user_model.NewActionsUser()
@@ -123,13 +123,13 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				notification.NotifyPushCommits(
 					ctx, pusher, repo,
 					&repo_module.PushUpdateOptions{
-						RefFullName: git.TagPrefix + tagName,
+						RefFullName: git.RefName(git.TagPrefix + tagName),
 						OldCommitID: opts.OldCommitID,
 						NewCommitID: git.EmptySHA,
 					}, repo_module.NewPushCommits())
 
 				delTags = append(delTags, tagName)
-				notification.NotifyDeleteRef(ctx, pusher, repo, "tag", opts.RefFullName)
+				notification.NotifyDeleteRef(ctx, pusher, repo, opts.RefFullName)
 			} else { // is new tag
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
@@ -143,15 +143,15 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				notification.NotifyPushCommits(
 					ctx, pusher, repo,
 					&repo_module.PushUpdateOptions{
-						RefFullName: git.TagPrefix + tagName,
+						RefFullName: opts.RefFullName,
 						OldCommitID: git.EmptySHA,
 						NewCommitID: opts.NewCommitID,
 					}, commits)
 
 				addTags = append(addTags, tagName)
-				notification.NotifyCreateRef(ctx, pusher, repo, "tag", opts.RefFullName, opts.NewCommitID)
+				notification.NotifyCreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
 			}
-		} else if opts.IsBranch() { // If is branch reference
+		} else if opts.RefFullName.IsBranch() { // If is branch reference
 			if pusher == nil || pusher.ID != opts.PusherID {
 				if opts.PusherID == user_model.ActionsUserID {
 					pusher = user_model.NewActionsUser()
@@ -198,7 +198,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeLimit: %w", err)
 					}
-					notification.NotifyCreateRef(ctx, pusher, repo, "branch", opts.RefFullName, opts.NewCommitID)
+					notification.NotifyCreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
 				} else {
 					l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
 					if err != nil {
@@ -269,7 +269,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
 				}
 			} else {
-				notification.NotifyDeleteRef(ctx, pusher, repo, "branch", opts.RefFullName)
+				notification.NotifyDeleteRef(ctx, pusher, repo, opts.RefFullName)
 				if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
 					// close all related pulls
 					log.Error("close related pull request failed: %v", err)

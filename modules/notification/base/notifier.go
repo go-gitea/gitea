@@ -10,6 +10,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/repository"
 )
 
@@ -54,11 +55,11 @@ type Notifier interface {
 	NotifyUpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release)
 	NotifyDeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release)
 	NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
-	NotifyCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string)
-	NotifyDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName string)
+	NotifyCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string)
+	NotifyDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName)
 	NotifySyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
-	NotifySyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string)
-	NotifySyncDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName string)
+	NotifySyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string)
+	NotifySyncDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName)
 	NotifyRepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository)
 	NotifyPackageCreate(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor)
 	NotifyPackageDelete(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor)

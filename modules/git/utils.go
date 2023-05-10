@@ -10,8 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"code.gitea.io/gitea/modules/util"
 )
 
 // ObjectCache provides thread-safe cache operations.
@@ -76,48 +74,6 @@ func ConcatenateError(err error, stderr string) error {
 		return err
 	}
 	return fmt.Errorf("%w - %s", err, stderr)
-}
-
-// RefEndName return the end name of a ref name
-func RefEndName(refStr string) string {
-	if strings.HasPrefix(refStr, BranchPrefix) {
-		return refStr[len(BranchPrefix):]
-	}
-
-	if strings.HasPrefix(refStr, TagPrefix) {
-		return refStr[len(TagPrefix):]
-	}
-
-	return refStr
-}
-
-// RefURL returns the absolute URL for a ref in a repository
-func RefURL(repoURL, ref string) string {
-	refName := util.PathEscapeSegments(RefEndName(ref))
-	switch {
-	case strings.HasPrefix(ref, BranchPrefix):
-		return repoURL + "/src/branch/" + refName
-	case strings.HasPrefix(ref, TagPrefix):
-		return repoURL + "/src/tag/" + refName
-	case !IsValidSHAPattern(ref):
-		// assume they mean a branch
-		return repoURL + "/src/branch/" + refName
-	default:
-		return repoURL + "/src/commit/" + refName
-	}
-}
-
-// SplitRefName splits a full refname to reftype and simple refname
-func SplitRefName(refStr string) (string, string) {
-	if strings.HasPrefix(refStr, BranchPrefix) {
-		return BranchPrefix, refStr[len(BranchPrefix):]
-	}
-
-	if strings.HasPrefix(refStr, TagPrefix) {
-		return TagPrefix, refStr[len(TagPrefix):]
-	}
-
-	return "", refStr
 }
 
 // ParseBool returns the boolean value represented by the string as per git's git_config_bool

@@ -146,7 +146,7 @@ func RestoreBranchPost(ctx *context.Context) {
 	// Don't return error below this
 	if err := repo_service.PushUpdate(
 		&repo_module.PushUpdateOptions{
-			RefFullName:  git.BranchPrefix + deletedBranch.Name,
+			RefFullName:  git.RefNameFromBranch(deletedBranch.Name),
 			OldCommitID:  git.EmptySHA,
 			NewCommitID:  deletedBranch.Commit,
 			PusherID:     ctx.Doer.ID,

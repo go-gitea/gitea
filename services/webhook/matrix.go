@@ -73,7 +73,7 @@ func MatrixLinkFormatter(url, text string) string {
 
 // MatrixLinkToRef Matrix-formatter link to a repo ref
 func MatrixLinkToRef(repoURL, ref string) string {
-	refName := git.RefEndName(ref)
+	refName := git.RefName(ref).ShortName()
 	switch {
 	case strings.HasPrefix(ref, git.BranchPrefix):
 		return MatrixLinkFormatter(repoURL+"/src/branch/"+util.PathEscapeSegments(refName), refName)
@@ -95,7 +95,7 @@ func (m *MatrixPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 
 // Delete composes Matrix payload for delete a branch or tag.
 func (m *MatrixPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	repoLink := MatrixLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	text := fmt.Sprintf("[%s:%s] %s deleted by %s", repoLink, refName, p.RefType, p.Sender.UserName)
 
