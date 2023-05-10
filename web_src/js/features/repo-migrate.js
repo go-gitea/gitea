@@ -51,5 +51,5 @@ export function initRepoMigrationStatusChecker() {
     }
   };
 
-  const _ = syncTaskStatus();
+  syncTaskStatus(); // no await
 }
