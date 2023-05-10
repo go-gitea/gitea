@@ -93,7 +93,6 @@ type mirrorSyncResult struct {
 func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 	results := make([]*mirrorSyncResult, 0, 3)
 	lines := strings.Split(output, "\n")
-	fmt.Println("----", lines)
 	for i := range lines {
 		// Make sure reference name is presented before continue
 		idx := strings.Index(lines[i], "-> ")

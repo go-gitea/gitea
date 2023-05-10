@@ -145,11 +145,12 @@ func (ref RefName) RefGroup() string {
 
 // RefURL returns the absolute URL for a ref in a repository
 func RefURL(repoURL, ref string) string {
-	refName := util.PathEscapeSegments(RefName(ref).ShortName())
+	refFullName := RefName(ref)
+	refName := util.PathEscapeSegments(refFullName.ShortName())
 	switch {
-	case strings.HasPrefix(ref, BranchPrefix):
+	case refFullName.IsBranch():
 		return repoURL + "/src/branch/" + refName
-	case strings.HasPrefix(ref, TagPrefix):
+	case refFullName.IsTag():
 		return repoURL + "/src/tag/" + refName
 	case !IsValidSHAPattern(ref):
 		// assume they mean a branch
