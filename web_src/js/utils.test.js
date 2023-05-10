@@ -134,5 +134,7 @@ test('toAbsoluteUrl', () => {
 });
 
 test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
-  expect(encodeURLEncodedBase64(decodeURLEncodedBase64('foo'))).toEqual('foo');
+  expect(encodeURLEncodedBase64(decodeURLEncodedBase64('foo'))).toEqual('foo'); // No = padding
+  expect(encodeURLEncodedBase64(decodeURLEncodedBase64('a-minus'))).toEqual('a-minus');
+  expect(encodeURLEncodedBase64(decodeURLEncodedBase64('_underscorc'))).toEqual('_underscorc');
 });
