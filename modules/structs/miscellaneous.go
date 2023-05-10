@@ -9,6 +9,12 @@ type SearchResults struct {
 	Data []*Repository `json:"data"`
 }
 
+// WebSearchResults results of a successful web search
+type WebSearchResults struct {
+	OK   bool                   `json:"ok"`
+	Data []*WebSearchRepository `json:"data"`
+}
+
 // SearchError error of a failed search
 type SearchError struct {
 	OK    bool   `json:"ok"`

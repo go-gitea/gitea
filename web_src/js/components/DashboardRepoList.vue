@@ -394,7 +394,7 @@ const sfc = {
       }
 
       if (searchedURL === this.searchURL) {
-        this.repos = json.data;
+        this.repos = json.data.map((webSearchRepo) => {return {...webSearchRepo.repository, latest_commit_status_state: webSearchRepo.latest_commit_status_state}});
         const count = response.headers.get('X-Total-Count');
         if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
           this.reposTotalCount = count;
