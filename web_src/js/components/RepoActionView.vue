@@ -1,19 +1,19 @@
 <template>
   <div class="action-view-container">
     <div class="action-view-header">
-      <div class="action-info-summary gt-ac">
+      <div class="action-info-summary">
         <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
         <div class="action-title">
           {{ run.title }}
         </div>
-        <button :data-tooltip-content="locale.approve" class="action-control-button text green" @click="approveRun()" v-if="run.canApprove">
-          <SvgIcon name="octicon-play" :size="20"/>
+        <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
+          <SvgIcon class="gt-mr-2" name="octicon-play" :size="20"/> {{ locale.approve }}
         </button>
-        <button :data-tooltip-content="locale.cancel" class="action-control-button text red" @click="cancelRun()" v-else-if="run.canCancel">
-          <SvgIcon name="octicon-x-circle-fill" :size="20"/>
+        <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
+          <SvgIcon class="gt-mr-2" name="octicon-x-circle-fill" :size="20"/> {{ locale.cancel }}
         </button>
-        <button :data-tooltip-content="locale.rerun" class="action-control-button text green" @click="rerun()" v-else-if="run.canRerun">
-          <SvgIcon name="octicon-sync" :size="20"/>
+        <button class="ui basic small compact button secondary" @click="rerun()" v-else-if="run.canRerun">
+          <SvgIcon class="gt-mr-2" name="octicon-sync" :size="20"/> {{ locale.rerun }}
         </button>
       </div>
       <div class="action-commit-summary">
@@ -391,27 +391,17 @@ export function ansiLogToHTML(line) {
   margin: 0 20px 20px 20px;
 }
 
-.action-view-header .action-control-button {
-  border: none;
-  background-color: transparent;
-  outline: none;
-  cursor: pointer;
-  transition: transform 0.2s;
-  display: flex;
-}
-
-.action-view-header .action-control-button:hover {
-  transform: scale(130%);
-}
-
 .action-info-summary {
   font-size: 150%;
   height: 20px;
   display: flex;
+  align-items: center;
+  margin-top: 1rem;
 }
 
 .action-info-summary .action-title {
   padding: 0 5px;
+  flex: 1;
 }
 
 .action-commit-summary {
