@@ -16,7 +16,6 @@ export async function initUserAuthWebAuthn() {
 
   const res = await fetch(`${appSubUrl}/user/webauthn/assertion`);
   if (res.status !== 200) {
-    console.error(`Unexpected status from /user/webauthn/assertion ${res.status}`);
     webAuthnError('unknown');
     return;
   }
@@ -138,15 +137,15 @@ function webAuthnError(errorType, message) {
 
 function detectWebAuthnSupport() {
   if (!window.isSecureContext) {
-    document.getElementById('register-button').setAttribute('disabled', 'true');
-    document.getElementById('login-button').setAttribute('disabled', 'true');
+    document.getElementById('register-button').disabled = true;
+    document.getElementById('login-button').disabled = true;
     webAuthnError('insecure');
     return false;
   }
 
   if (typeof window.PublicKeyCredential !== 'function') {
-    document.getElementById('register-button').setAttribute('disabled', 'true');
-    document.getElementById('login-button').setAttribute('disabled', 'true');
+    document.getElementById('register-button').disabled = true;
+    document.getElementById('login-button').disabled = true;
     webAuthnError('browser');
     return false;
   }
@@ -162,7 +161,7 @@ export function initUserAuthWebAuthnRegister() {
     return;
   }
 
-  document.getElementById('webauthn-error')?.classList.add('hide');
+  document.getElementById('webauthn-error')?.classList.add('gt-hidden');
 
   elRegister.addEventListener('click', (e) => {
     e.preventDefault();
