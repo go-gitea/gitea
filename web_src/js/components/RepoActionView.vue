@@ -2,7 +2,7 @@
   <div class="action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary gt-ac">
-        <ActionRunStatus :status="run.status" :size="20"/>
+        <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
         <div class="action-title">
           {{ run.title }}
         </div>
@@ -32,7 +32,7 @@
           <div class="job-brief-list">
             <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
-                <ActionRunStatus :status="job.status"/>
+                <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="ui text gt-mx-3">{{ job.name }}</span>
               </a>
               <span class="step-summary-duration">{{ job.duration }}</span>
@@ -319,6 +319,16 @@ export function initRepositoryActionView() {
       approve: el.getAttribute('data-locale-approve'),
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
+      status: {
+        unknown: el.getAttribute('data-locale-status-unknown'),
+        waiting: el.getAttribute('data-locale-status-waiting'),
+        running: el.getAttribute('data-locale-status-running'),
+        success: el.getAttribute('data-locale-status-success'),
+        failure: el.getAttribute('data-locale-status-failure'),
+        cancelled: el.getAttribute('data-locale-status-cancelled'),
+        skipped: el.getAttribute('data-locale-status-skipped'),
+        blocked: el.getAttribute('data-locale-status-blocked'),
+      }
     }
   });
   view.mount(el);
