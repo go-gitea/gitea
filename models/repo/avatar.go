@@ -6,7 +6,6 @@ package repo
 import (
 	"context"
 	"fmt"
-	"image/png"
 	"io"
 	"net/url"
 	"strings"
@@ -16,6 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+
+	"github.com/chai2010/webp"
 )
 
 // CustomAvatarRelativePath returns repository custom avatar file path.
@@ -48,7 +49,7 @@ func generateRandomAvatar(ctx context.Context, repo *Repository) error {
 	repo.Avatar = idToString
 
 	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, img); err != nil {
+		if err := webp.Encode(w, img, &webp.Options{Quality: 75}); err != nil {
 			log.Error("Encode: %v", err)
 		}
 		return err

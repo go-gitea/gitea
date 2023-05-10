@@ -6,7 +6,6 @@ package user
 import (
 	"context"
 	"fmt"
-	"image/png"
 	"io"
 	"time"
 
@@ -25,6 +24,8 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/packages"
+
+	"github.com/chai2010/webp"
 )
 
 // RenameUser renames a user
@@ -262,7 +263,7 @@ func UploadAvatar(u *user_model.User, data []byte) error {
 	}
 
 	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, *m); err != nil {
+		if err := webp.Encode(w, *m, &webp.Options{Quality: 75}); err != nil {
 			log.Error("Encode: %v", err)
 		}
 		return err

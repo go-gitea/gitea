@@ -6,7 +6,6 @@ package integration
 import (
 	"bytes"
 	"fmt"
-	"image/png"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -18,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
 
+	"github.com/chai2010/webp"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,7 +52,7 @@ func TestUserAvatar(t *testing.T) {
 			return
 		}
 
-		if err := png.Encode(imgData, img); err != nil {
+		if err := webp.Encode(imgData, img, &webp.Options{Quality: 75}); err != nil {
 			assert.NoError(t, err)
 			return
 		}

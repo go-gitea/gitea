@@ -6,7 +6,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"image/png"
 	"io"
 	"strconv"
 	"strings"
@@ -16,6 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
+
+	"github.com/chai2010/webp"
 )
 
 // UploadAvatar saves custom avatar for repository.
@@ -47,7 +48,7 @@ func UploadAvatar(ctx context.Context, repo *repo_model.Repository, data []byte)
 	}
 
 	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, *m); err != nil {
+		if err := webp.Encode(w, *m, &webp.Options{Quality: 75}); err != nil {
 			log.Error("Encode: %v", err)
 		}
 		return err

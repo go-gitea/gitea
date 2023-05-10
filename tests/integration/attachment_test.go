@@ -6,7 +6,6 @@ package integration
 import (
 	"bytes"
 	"image"
-	"image/png"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -18,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/chai2010/webp"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,7 +25,7 @@ func generateImg() bytes.Buffer {
 	// Generate image
 	myImage := image.NewRGBA(image.Rect(0, 0, 32, 32))
 	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
+	webp.Encode(&buff, myImage, &webp.Options{Quality: 75})
 	return buff
 }
 

@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
-	"image/png"
 	"io"
 	"strings"
 
@@ -18,6 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+
+	"github.com/chai2010/webp"
 )
 
 // CustomAvatarRelativePath returns user custom avatar relative path.
@@ -41,7 +42,7 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 
 	// Don't share the images so that we can delete them easily
 	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, img); err != nil {
+		if err := webp.Encode(w, img, &webp.Options{Quality: 75}); err != nil {
 			log.Error("Encode: %v", err)
 		}
 		return err
