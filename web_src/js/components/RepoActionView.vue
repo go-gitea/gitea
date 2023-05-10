@@ -2,17 +2,17 @@
   <div class="action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary gt-ac">
-        <ActionRunStatus :status="run.status" :size="20"/>
+        <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
         <div class="action-title">
           {{ run.title }}
         </div>
-        <button class="action-control-button text green" @click="approveRun()" v-if="run.canApprove">
+        <button :data-tooltip-content="locale.approve" class="action-control-button text green" @click="approveRun()" v-if="run.canApprove">
           <SvgIcon name="octicon-play" :size="20"/>
         </button>
-        <button class="action-control-button text red" @click="cancelRun()" v-else-if="run.canCancel">
+        <button :data-tooltip-content="locale.cancel" class="action-control-button text red" @click="cancelRun()" v-else-if="run.canCancel">
           <SvgIcon name="octicon-x-circle-fill" :size="20"/>
         </button>
-        <button class="action-control-button text green" @click="rerun()" v-else-if="run.canRerun">
+        <button :data-tooltip-content="locale.rerun" class="action-control-button text green" @click="rerun()" v-else-if="run.canRerun">
           <SvgIcon name="octicon-sync" :size="20"/>
         </button>
       </div>
@@ -32,7 +32,7 @@
           <div class="job-brief-list">
             <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
-                <ActionRunStatus :status="job.status"/>
+                <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="ui text gt-mx-3">{{ job.name }}</span>
               </a>
               <span class="step-summary-duration">{{ job.duration }}</span>
@@ -93,6 +93,7 @@ const sfc = {
     runIndex: String,
     jobIndex: String,
     actionsURL: String,
+    locale: Object,
   },
 
   data() {
@@ -174,8 +175,8 @@ const sfc = {
       const elJobLogList = document.createElement('div');
       elJobLogList.classList.add('job-log-list');
 
-      elJobLogGroup.appendChild(elJobLogGroupSummary);
-      elJobLogGroup.appendChild(elJobLogList);
+      elJobLogGroup.append(elJobLogGroupSummary);
+      elJobLogGroup.append(elJobLogList);
       el._stepLogsActiveContainer = elJobLogList;
     },
     // end a log group
@@ -218,15 +219,15 @@ const sfc = {
 
       const lineNumber = document.createElement('div');
       lineNumber.className = 'line-num';
-      lineNumber.innerText = line.index;
-      div.appendChild(lineNumber);
+      lineNumber.textContent = line.index;
+      div.append(lineNumber);
 
       // TODO: Support displaying time optionally
 
       const logMessage = document.createElement('div');
       logMessage.className = 'log-msg';
       logMessage.innerHTML = ansiLogToHTML(line.message);
-      div.appendChild(logMessage);
+      div.append(logMessage);
 
       return div;
     },
@@ -314,6 +315,21 @@ export function initRepositoryActionView() {
     runIndex: el.getAttribute('data-run-index'),
     jobIndex: el.getAttribute('data-job-index'),
     actionsURL: el.getAttribute('data-actions-url'),
+    locale: {
+      approve: el.getAttribute('data-locale-approve'),
+      cancel: el.getAttribute('data-locale-cancel'),
+      rerun: el.getAttribute('data-locale-rerun'),
+      status: {
+        unknown: el.getAttribute('data-locale-status-unknown'),
+        waiting: el.getAttribute('data-locale-status-waiting'),
+        running: el.getAttribute('data-locale-status-running'),
+        success: el.getAttribute('data-locale-status-success'),
+        failure: el.getAttribute('data-locale-status-failure'),
+        cancelled: el.getAttribute('data-locale-status-cancelled'),
+        skipped: el.getAttribute('data-locale-status-skipped'),
+        blocked: el.getAttribute('data-locale-status-blocked'),
+      }
+    }
   });
   view.mount(el);
 }
@@ -530,6 +546,7 @@ export function ansiLogToHTML(line) {
   width: 48px;
   color: var(--color-grey-light);
   text-align: right;
+  user-select: none;
 }
 
 .job-step-section .job-step-logs .job-log-line .log-time {
