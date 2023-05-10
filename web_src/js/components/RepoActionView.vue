@@ -1,7 +1,7 @@
 <template>
   <div class="action-view-container">
     <div class="action-view-header">
-      <div class="action-info-summary gt-ac gt-mt-5">
+      <div class="action-info-summary gt-ac gt-mt-4">
         <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
         <div class="action-title">
           {{ run.title }}
