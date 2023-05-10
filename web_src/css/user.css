@@ -140,6 +140,13 @@
   border: none;
 }
 
+#readme_profile {
+  padding: 10px;
+  border-radius: 0.28571429rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-secondary);
+}
+
 #notification_table tr {
   cursor: default;
 }
