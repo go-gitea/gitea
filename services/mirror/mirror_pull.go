@@ -84,11 +84,13 @@ type mirrorSyncResult struct {
 }
 
 // parseRemoteUpdateOutput detects create, update and delete operations of references from upstream.
-/* possible output example:
-* [new tag]         v0.1.8     -> v0.1.8
-* [new branch]      master     -> origin/master
-- [deleted]         (none)     -> origin/test
-+ f895a1e...957a993 test       -> origin/test  (forced update)
+// possible output example:
+/*
+// * [new tag]         v0.1.8     -> v0.1.8
+// * [new branch]      master     -> origin/master
+// - [deleted]         (none)     -> origin/test
+//   957a993..a87ba5f  test       -> origin/test
+// + f895a1e...957a993 test       -> origin/test  (forced update)
 */
 func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 	results := make([]*mirrorSyncResult, 0, 3)
@@ -124,6 +126,7 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 			if idx := strings.Index(refName, " "); idx > -1 {
 				refName = refName[:idx]
 			}
+			refName = strings.TrimPrefix(strings.TrimSpace(refName), remoteName+"/")
 			delimIdx := strings.Index(lines[i][3:], " ")
 			if delimIdx == -1 {
 				log.Error("SHA delimiter not found: %q", lines[i])
@@ -150,6 +153,7 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 				log.Error("Expect two SHAs but not what found: %q", lines[i])
 				continue
 			}
+			refName = strings.TrimPrefix(strings.TrimSpace(refName), remoteName+"/")
 			results = append(results, &mirrorSyncResult{
 				refName:     git.RefNameFromBranch(refName),
 				oldCommitID: shas[0],
