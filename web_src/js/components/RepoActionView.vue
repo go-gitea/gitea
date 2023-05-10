@@ -36,7 +36,7 @@
                 <span class="ui text gt-mx-3">{{ job.name }}</span>
               </a>
               <span class="step-summary-duration">{{ job.duration }}</span>
-              <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
+              <button :data-tooltip-content="locale.rerun" class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
             </div>
