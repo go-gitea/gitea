@@ -1149,7 +1149,8 @@ a.ui.card:hover {
 }
 
 .ui.striped.table > tr:nth-child(2n),
-.ui.striped.table > tbody > tr:nth-child(2n) {
+.ui.striped.table > tbody > tr:nth-child(2n),
+.ui.basic.striped.table > tbody > tr:nth-child(2n) {
   background: var(--color-light);
 }
 
