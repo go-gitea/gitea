@@ -212,152 +212,6 @@
         }
       }
     },
-    "/admin/hooks": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "List system's webhooks",
-        "operationId": "adminListHooks",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results",
-            "name": "limit",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/HookList"
-          }
-        }
-      },
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Create a hook",
-        "operationId": "adminCreateHook",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/CreateHookOption"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "$ref": "#/responses/Hook"
-          }
-        }
-      }
-    },
-    "/admin/hooks/{id}": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Get a hook",
-        "operationId": "adminGetHook",
-        "parameters": [
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the hook to get",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/Hook"
-          }
-        }
-      },
-      "delete": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Delete a hook",
-        "operationId": "adminDeleteHook",
-        "parameters": [
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the hook to delete",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          }
-        }
-      },
-      "patch": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Update a hook",
-        "operationId": "adminEditHook",
-        "parameters": [
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the hook to update",
-            "name": "id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/EditHookOption"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/Hook"
-          }
-        }
-      }
-    },
     "/admin/orgs": {
       "get": {
         "produces": [
@@ -879,6 +733,195 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/admin/{hookType}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List system's webhooks",
+        "operationId": "adminListHooks",
+        "parameters": [
+          {
+            "enum": [
+              "system-hooks",
+              "default-hooks"
+            ],
+            "type": "string",
+            "description": "whether the hook is system-wide or copied-to-each-new-repo",
+            "name": "hookType",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/HookList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create a hook",
+        "operationId": "adminCreateHook",
+        "parameters": [
+          {
+            "enum": [
+              "system-hooks",
+              "default-hooks"
+            ],
+            "type": "string",
+            "description": "whether the hook is system-wide or copied-to-each-new-repo",
+            "name": "hookType",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateHookOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Hook"
+          }
+        }
+      }
+    },
+    "/admin/{hookType}/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get a hook",
+        "operationId": "adminGetHook",
+        "parameters": [
+          {
+            "enum": [
+              "system-hooks",
+              "default-hooks"
+            ],
+            "type": "string",
+            "description": "whether the hook is system-wide or copied-to-each-new-repo",
+            "name": "hookType",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the hook to get",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Hook"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete a hook",
+        "operationId": "adminDeleteHook",
+        "parameters": [
+          {
+            "enum": [
+              "system-hooks",
+              "default-hooks"
+            ],
+            "type": "string",
+            "description": "whether the hook is system-wide or copied-to-each-new-repo",
+            "name": "hookType",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the hook to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update a hook",
+        "operationId": "adminEditHook",
+        "parameters": [
+          {
+            "enum": [
+              "system-hooks",
+              "default-hooks"
+            ],
+            "type": "string",
+            "description": "whether the hook is system-wide or copied-to-each-new-repo",
+            "name": "hookType",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the hook to update",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditHookOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Hook"
           }
         }
       }
@@ -16901,10 +16944,6 @@
           },
           "x-go-name": "Events"
         },
-        "is_system_webhook": {
-          "type": "boolean",
-          "x-go-name": "IsSystemWebhook"
-        },
         "type": {
           "type": "string",
           "enum": [
@@ -17916,10 +17955,6 @@
             "type": "string"
           },
           "x-go-name": "Events"
-        },
-        "is_system_webhook": {
-          "type": "boolean",
-          "x-go-name": "IsSystemWebhook"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -19107,10 +19142,6 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
-        },
-        "is_system_webhook": {
-          "type": "boolean",
-          "x-go-name": "IsSystemWebhook"
         },
         "type": {
           "type": "string",

@@ -1376,12 +1376,12 @@ func Routes() *web.Route {
 				m.Get("", admin.GetAllEmails)
 				m.Get("/search", admin.SearchEmail)
 			})
-			m.Group("/unadopted", func() {
+			m.Group("/uinadopted", func() {
 				m.Get("", admin.ListUnadoptedRepositories)
 				m.Post("/{username}/{reponame}", admin.AdoptRepository)
 				m.Delete("/{username}/{reponame}", admin.DeleteUnadoptedRepository)
 			})
-			m.Group("/hooks", func() {
+			m.Group("/{hookType:system-hooks|default-hooks}", func() {
 				m.Combo("").Get(admin.ListHooks).
 					Post(bind(api.CreateHookOption{}), admin.CreateHook)
 				m.Combo("/{id}").Get(admin.GetHook).

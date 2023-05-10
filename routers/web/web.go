@@ -601,8 +601,8 @@ func registerRoutes(m *web.Route) {
 		}, packagesEnabled)
 
 		m.Group("/hooks", func() {
-			m.Get("", admin.DefaultOrSystemWebhooks)
-			m.Post("/delete", admin.DeleteDefaultOrSystemWebhook)
+			m.Get("", admin.Webhooks)
+			m.Post("/delete", admin.DeleteWebhook)
 			m.Group("/{id}", func() {
 				m.Get("", repo.WebHooksEdit)
 				m.Post("/replay/{uuid}", repo.ReplayWebhook)

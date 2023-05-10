@@ -100,9 +100,9 @@ func checkCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) 
 	return true
 }
 
-// AddSystemHook add a system hook
-func AddSystemHook(ctx *context.APIContext, form *api.CreateHookOption) {
-	hook, ok := addHook(ctx, form, 0, 0)
+// add a system or default hook
+func AddAdminHook(ctx *context.APIContext, form *api.CreateHookOption, isSystemWebhook bool) {
+	hook, ok := addHook(ctx, form, 0, 0, isSystemWebhook)
 	if ok {
 		h, err := webhook_service.ToHook(setting.AppSubURL+"/admin", hook)
 		if err != nil {
@@ -115,7 +115,7 @@ func AddSystemHook(ctx *context.APIContext, form *api.CreateHookOption) {
 
 // AddOwnerHook adds a hook to an user or organization
 func AddOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.CreateHookOption) {
-	hook, ok := addHook(ctx, form, owner.ID, 0)
+	hook, ok := addHook(ctx, form, owner.ID, 0, false)
 	if !ok {
 		return
 	}
@@ -129,7 +129,7 @@ func AddOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.Cre
 // AddRepoHook add a hook to a repo. Writes to `ctx` accordingly
 func AddRepoHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	repo := ctx.Repo
-	hook, ok := addHook(ctx, form, 0, repo.Repository.ID)
+	hook, ok := addHook(ctx, form, 0, repo.Repository.ID, false)
 	if !ok {
 		return
 	}
@@ -159,9 +159,18 @@ func pullHook(events []string, event string) bool {
 	return util.SliceContainsString(events, event, true) || util.SliceContainsString(events, string(webhook_module.HookEventPullRequest), true)
 }
 
-// addHook add the hook specified by `form`, `ownerID` and `repoID`. If there is
-// an error, write to `ctx` accordingly. Return (webhook, ok)
-func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoID int64) (*webhook.Webhook, bool) {
+// addHook add the hook specified by `form`, `ownerID`, `repoID`, and `isSystemWebhook`.
+// `isSystemWebhook` == true means it's a hook attached automatically to all repos
+// `isSystemWebhook` == false && ownerID == 0 && repoID == 0 means it's a default hook, automatically copied to all new repos
+// `ownerID` != 0 means it runs on all their repos
+// `repoID` != 0 means it is an active hook, attached to that repo
+// If there is an error, write to `ctx` accordingly. Return (webhook, ok)
+func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoID int64, isSystemWebhook bool) (*webhook.Webhook, bool) {
+	if isSystemWebhook && (ownerID != 0 || repoID != 0) {
+		ctx.Error(http.StatusInternalServerError, "addHook", fmt.Errorf("cannot create a hook with an owner or repo that is also a system hook"))
+		return nil, false
+	}
+
 	if !checkCreateHookOption(ctx, form) {
 		return nil, false
 	}
@@ -175,7 +184,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 		URL:             form.Config["url"],
 		ContentType:     webhook.ToHookContentType(form.Config["content_type"]),
 		Secret:          form.Config["secret"],
-		IsSystemWebhook: form.IsSystemWebhook,
+		IsSystemWebhook: isSystemWebhook,
 		HTTPMethod:      "POST",
 		HookEvent: &webhook_module.HookEvent{
 			ChooseEvents: true,
@@ -248,21 +257,28 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 }
 
 // EditSystemHook edit system webhook `w` according to `form`. Writes to `ctx` accordingly
-func EditSystemHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64) {
-	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
+func EditHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64, isSystemWebhook bool) {
+	hook, err := webhook.GetAdminWebhook(ctx, hookID, isSystemWebhook)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err)
+		ctx.Error(http.StatusInternalServerError, "GetAdminWebhook", err)
+		return
+	}
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Edithook", err)
 		return
 	}
 	if !editHook(ctx, form, hook) {
 		ctx.Error(http.StatusInternalServerError, "editHook", err)
 		return
 	}
-	updated, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
+
+	updated, err := webhook.GetAdminWebhook(ctx, hookID, isSystemWebhook)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err)
+		ctx.Error(http.StatusInternalServerError, "GetAdminWebhook", err)
 		return
 	}
+
 	h, err := webhook_service.ToHook(setting.AppURL+"/admin", updated)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
@@ -390,10 +406,6 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	if err := w.UpdateEvent(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateEvent", err)
 		return false
-	}
-
-	if form.IsSystemWebhook != nil {
-		w.IsSystemWebhook = *form.IsSystemWebhook
 	}
 
 	if form.Active != nil {

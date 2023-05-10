@@ -24,7 +24,6 @@ type Hook struct {
 	Events              []string          `json:"events"`
 	AuthorizationHeader string            `json:"authorization_header"`
 	Active              bool              `json:"active"`
-	IsSystemWebhook     bool              `json:"is_system_webhook"`
 	// swagger:strfmt date-time
 	Updated time.Time `json:"updated_at"`
 	// swagger:strfmt date-time
@@ -49,8 +48,7 @@ type CreateHookOption struct {
 	BranchFilter        string                 `json:"branch_filter" binding:"GlobPattern"`
 	AuthorizationHeader string                 `json:"authorization_header"`
 	// default: false
-	Active          bool `json:"active"`
-	IsSystemWebhook bool `json:"is_system_webhook"`
+	Active bool `json:"active"`
 }
 
 // EditHookOption options when modify one hook
@@ -59,7 +57,6 @@ type EditHookOption struct {
 	Events              []string          `json:"events"`
 	BranchFilter        string            `json:"branch_filter" binding:"GlobPattern"`
 	AuthorizationHeader string            `json:"authorization_header"`
-	IsSystemWebhook     *bool             `json:"is_system_webhook"`
 	Active              *bool             `json:"active"`
 }
 

@@ -11,19 +11,11 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// GetDefaultWebhooks returns all admin-default webhooks.
-func GetDefaultWebhooks(ctx context.Context) ([]*Webhook, error) {
-	webhooks := make([]*Webhook, 0, 5)
-	return webhooks, db.GetEngine(ctx).
-		Where("repo_id=? AND owner_id=? AND is_system_webhook=?", 0, 0, false).
-		Find(&webhooks)
-}
-
-// GetSystemOrDefaultWebhook returns admin system or default webhook by given ID.
-func GetSystemOrDefaultWebhook(ctx context.Context, id int64) (*Webhook, error) {
+// GetSystemWebhook returns admin default webhook by given ID.
+func GetAdminWebhook(ctx context.Context, id int64, isSystemWebhook bool) (*Webhook, error) {
 	webhook := &Webhook{ID: id}
 	has, err := db.GetEngine(ctx).
-		Where("repo_id=? AND owner_id=?", 0, 0).
+		Where("repo_id=? AND owner_id=? AND is_system_webhook=?", 0, 0, isSystemWebhook).
 		Get(webhook)
 	if err != nil {
 		return nil, err
@@ -33,34 +25,27 @@ func GetSystemOrDefaultWebhook(ctx context.Context, id int64) (*Webhook, error) 
 	return webhook, nil
 }
 
-// GetSystemWebhooks returns all admin system webhooks.
-func GetSystemWebhooks(ctx context.Context, isActive util.OptionalBool) ([]*Webhook, error) {
+// returns all admin system or default webhooks.
+// isSystemWebhook == true gives system webhooks, otherwise gives default webhooks.
+// isActive filters system webhooks to those currently enabled or disabled; pass util.OptionalBoolNone to get both.
+// isActive is ignored when requesting default webhooks.
+func GetAdminWebhooks(ctx context.Context, isSystemWebhook bool, isActive util.OptionalBool) ([]*Webhook, error) {
+	if !isSystemWebhook {
+		isActive = util.OptionalBoolNone
+	}
 	webhooks := make([]*Webhook, 0, 5)
 	if isActive.IsNone() {
 		return webhooks, db.GetEngine(ctx).
-			Where("repo_id=? AND owner_id=? AND is_system_webhook=?", 0, 0, true).
+			Where("repo_id=? AND owner_id=? AND is_system_webhook=?", 0, 0, isSystemWebhook).
 			Find(&webhooks)
 	}
 	return webhooks, db.GetEngine(ctx).
-		Where("repo_id=? AND owner_id=? AND is_system_webhook=? AND is_active = ?", 0, 0, true, isActive.IsTrue()).
+		Where("repo_id=? AND owner_id=? AND is_system_webhook=? AND is_active = ?", 0, 0, isSystemWebhook, isActive.IsTrue()).
 		Find(&webhooks)
 }
 
-// GetSystemOrDefaultWebhooks returns all admin webhooks.
-func GetSystemOrDefaultWebhooks(ctx context.Context, isActive util.OptionalBool) ([]*Webhook, error) {
-	webhooks := make([]*Webhook, 0, 5)
-	if isActive.IsNone() {
-		return webhooks, db.GetEngine(ctx).
-			Where("repo_id=? AND org_id=?", 0, 0).
-			Find(&webhooks)
-	}
-	return webhooks, db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=? AND is_active = ?", 0, 0, isActive.IsTrue()).
-		Find(&webhooks)
-}
-
-// DeleteDefaultSystemWebhook deletes an admin-configured default or system webhook (where Org and Repo ID both 0)
-func DeleteDefaultSystemWebhook(ctx context.Context, id int64) error {
+// DeleteWebhook deletes an admin-configured default or system webhook (where Org and Repo ID both 0)
+func DeleteAdminWebhook(ctx context.Context, id int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		count, err := db.GetEngine(ctx).
 			Where("repo_id=? AND owner_id=?", 0, 0).
@@ -78,7 +63,7 @@ func DeleteDefaultSystemWebhook(ctx context.Context, id int64) error {
 
 // CopyDefaultWebhooksToRepo creates copies of the default webhooks in a new repo
 func CopyDefaultWebhooksToRepo(ctx context.Context, repoID int64) error {
-	ws, err := GetDefaultWebhooks(ctx)
+	ws, err := GetAdminWebhooks(ctx, false, util.OptionalBoolNone)
 	if err != nil {
 		return fmt.Errorf("GetDefaultWebhooks: %v", err)
 	}

@@ -592,7 +592,7 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 	} else if orCtx.OwnerID > 0 {
 		w, err = webhook.GetWebhookByOwnerID(orCtx.OwnerID, ctx.ParamsInt64(":id"))
 	} else if orCtx.IsAdmin {
-		w, err = webhook.GetSystemOrDefaultWebhook(ctx, ctx.ParamsInt64(":id"))
+		w, err = webhook.GetAdminWebhook(ctx, ctx.ParamsInt64(":id"), orCtx.IsSystemWebhook)
 	}
 	if err != nil || w == nil {
 		if webhook.IsErrWebhookNotExist(err) {

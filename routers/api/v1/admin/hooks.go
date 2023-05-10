@@ -17,33 +17,36 @@ import (
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
-// ListHooks list system's webhooks
+// swaggeroperation GET /admin/{hookType:default-hooks|system-hooks} admin adminListHooks
+
+// list system or default webhooks
 func ListHooks(ctx *context.APIContext) {
-	// swagger:operation GET /admin/hooks admin adminListHooks
+	// swagger:operation GET /admin/{hookType} admin adminListHooks
 	// ---
 	// summary: List system's webhooks
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: page
-	//   in: query
-	//   description: page number of results to return (1-based)
-	//   type: integer
-	// - name: limit
-	//   in: query
-	//   description: page size of results
-	//   type: integer
+	// - name: hookType
+	//   in: path
+	//   description: whether the hook is system-wide or copied-to-each-new-repo
+	//   type: string
+	//   enum: [system-hooks, default-hooks]
+	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	sysHooks, err := webhook.GetSystemOrDefaultWebhooks(ctx, util.OptionalBoolNone)
+	isSystemWebhook := ctx.Params(":hookType") == "system-hooks"
+
+	adminHooks, err := webhook.GetAdminWebhooks(ctx, isSystemWebhook, util.OptionalBoolNone)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetSystemWebhooks", err)
+		ctx.Error(http.StatusInternalServerError, "GetAdminWebhooks", err)
 		return
 	}
-	hooks := make([]*api.Hook, len(sysHooks))
-	for i, hook := range sysHooks {
+
+	hooks := make([]*api.Hook, len(adminHooks))
+	for i, hook := range adminHooks {
 		h, err := webhook_service.ToHook(setting.AppURL+"/admin", hook)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
@@ -54,14 +57,20 @@ func ListHooks(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, hooks)
 }
 
-// GetHook get an organization's hook by id
+// get a system/default hook by id
 func GetHook(ctx *context.APIContext) {
-	// swagger:operation GET /admin/hooks/{id} admin adminGetHook
+	// swagger:operation GET /admin/{hookType}/{id} admin adminGetHook
 	// ---
 	// summary: Get a hook
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: hookType
+	//   in: path
+	//   description: whether the hook is system-wide or copied-to-each-new-repo
+	//   type: string
+	//   enum: [system-hooks, default-hooks]
+	//   required: true
 	// - name: id
 	//   in: path
 	//   description: id of the hook to get
@@ -72,16 +81,19 @@ func GetHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
+	isSystemWebhook := ctx.Params(":hookType") == "system-hooks"
+
 	hookID := ctx.ParamsInt64(":id")
-	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
+	hook, err := webhook.GetAdminWebhook(ctx, hookID, isSystemWebhook)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err)
+			ctx.Error(http.StatusInternalServerError, "GetAdminWebhook", err)
 		}
 		return
 	}
+
 	h, err := webhook_service.ToHook("/admin/", hook)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
@@ -90,9 +102,9 @@ func GetHook(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, h)
 }
 
-// CreateHook create a hook for an organization
+// create a system or default hook
 func CreateHook(ctx *context.APIContext) {
-	// swagger:operation POST /admin/hooks admin adminCreateHook
+	// swagger:operation POST /admin/{hookType} admin adminCreateHook
 	// ---
 	// summary: Create a hook
 	// consumes:
@@ -100,6 +112,12 @@ func CreateHook(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: hookType
+	//   in: path
+	//   description: whether the hook is system-wide or copied-to-each-new-repo
+	//   type: string
+	//   enum: [system-hooks, default-hooks]
+	//   required: true
 	// - name: body
 	//   in: body
 	//   required: true
@@ -109,14 +127,16 @@ func CreateHook(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/Hook"
 
+	isSystemWebhook := ctx.Params(":hookType") == "system-hooks"
+
 	form := web.GetForm(ctx).(*api.CreateHookOption)
 
-	utils.AddSystemHook(ctx, form)
+	utils.AddAdminHook(ctx, form, isSystemWebhook)
 }
 
-// EditHook modify a hook of a repository
+// modify a system or default hook
 func EditHook(ctx *context.APIContext) {
-	// swagger:operation PATCH /admin/hooks/{id} admin adminEditHook
+	// swagger:operation PATCH /admin/{hookType}/{id} admin adminEditHook
 	// ---
 	// summary: Update a hook
 	// consumes:
@@ -124,6 +144,12 @@ func EditHook(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: hookType
+	//   in: path
+	//   description: whether the hook is system-wide or copied-to-each-new-repo
+	//   type: string
+	//   enum: [system-hooks, default-hooks]
+	//   required: true
 	// - name: id
 	//   in: path
 	//   description: id of the hook to update
@@ -138,21 +164,29 @@ func EditHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
+	isSystemWebhook := ctx.Params(":hookType") == "system-hooks"
+
 	form := web.GetForm(ctx).(*api.EditHookOption)
 
 	// TODO in body params
 	hookID := ctx.ParamsInt64(":id")
-	utils.EditSystemHook(ctx, form, hookID)
+	utils.EditHook(ctx, form, hookID, isSystemWebhook)
 }
 
-// DeleteHook delete a system hook
+// delete a system or default hook
 func DeleteHook(ctx *context.APIContext) {
-	// swagger:operation DELETE /admin/hooks/{id} admin adminDeleteHook
+	// swagger:operation DELETE /admin/{hookType}/{id} admin adminDeleteHook
 	// ---
 	// summary: Delete a hook
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: hookType
+	//   in: path
+	//   description: whether the hook is system-wide or copied-to-each-new-repo
+	//   type: string
+	//   enum: [system-hooks, default-hooks]
+	//   required: true
 	// - name: id
 	//   in: path
 	//   description: id of the hook to delete
@@ -164,11 +198,11 @@ func DeleteHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 
 	hookID := ctx.ParamsInt64(":id")
-	if err := webhook.DeleteDefaultSystemWebhook(ctx, hookID); err != nil {
+	if err := webhook.DeleteAdminWebhook(ctx, hookID); err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteDefaultSystemWebhook", err)
+			ctx.Error(http.StatusInternalServerError, "DeleteAdminWebhook", err)
 		}
 		return
 	}
