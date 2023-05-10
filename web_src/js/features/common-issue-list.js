@@ -66,5 +66,5 @@ export function initCommonIssueListQuickGoto() {
   };
 
   $input.on('input', onInputDebounce(onInput));
-  const _ = onInput();
+  onInput();
 }
