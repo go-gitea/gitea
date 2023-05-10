@@ -18,15 +18,7 @@ func CacheRef(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		return nil
 	}
 
-	var commit *git.Commit
-	var err error
-	if fullRefName.IsBranch() {
-		commit, err = gitRepo.GetBranchCommit(fullRefName.ShortName())
-	} else if fullRefName.IsTag() {
-		commit, err = gitRepo.GetTagCommit(fullRefName.ShortName())
-	} else {
-		return nil
-	}
+	commit, err := gitRepo.GetCommit(fullRefName.String())
 	if err != nil {
 		return err
 	}
