@@ -154,8 +154,6 @@ function detectWebAuthnSupport() {
 }
 
 export function initUserAuthWebAuthnRegister() {
-  document.getElementById('webauthn-error')?.classList.add('gt-hidden');
-
   const elRegister = document.getElementById('register-webauthn');
   if (!elRegister) {
     return;
