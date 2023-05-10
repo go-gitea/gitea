@@ -22,7 +22,9 @@ func TestManager(t *testing.T) {
 
 	newQueueFromConfig := func(name, cfg string) (*WorkerPoolQueue[int], error) {
 		cfgProvider, err := setting.NewConfigProviderFromData(cfg)
-		assert.NoError(t, err)
+		if err != nil {
+			return nil, err
+		}
 		qs, err := setting.GetQueueSettings(cfgProvider, name)
 		if err != nil {
 			return nil, err
@@ -75,6 +77,7 @@ QUEUE_NAME = _q2
 SET_NAME = _u2
 MAX_WORKERS = 2
 `)
+
 	assert.NoError(t, err)
 
 	q1 := createWorkerPoolQueue[string]("no-such", cfgProvider, nil, false)
