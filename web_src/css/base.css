@@ -1148,6 +1148,12 @@ a.ui.card:hover {
   border-top-color: var(--color-secondary-alpha-50);
 }
 
+.ui.striped.table > tr:nth-child(2n),
+.ui.striped.table > tbody > tr:nth-child(2n),
+.ui.basic.striped.table > tbody > tr:nth-child(2n) {
+  background: var(--color-light);
+}
+
 .ui.ui.ui.ui.table tr.active,
 .ui.ui.table td.active {
   color: var(--color-text);
@@ -2230,6 +2236,16 @@ a.ui.active.label:hover {
 
 .ui.buttons .button + .button {
   border-left: none;
+}
+
+.ui.button.button-link {
+  background: transparent;
+  border: none;
+  color: inherit;
+}
+
+.ui.button.button-link:hover {
+  color: var(--color-primary);
 }
 
 .two-toggle-buttons .button:not(.active):first-of-type {
