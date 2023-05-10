@@ -2,8 +2,7 @@
 // Return R, G, B values defined in reletive luminance
 function getLuminanceRGB(channel) {
   const sRGB = channel / 255;
-  const res = (sRGB <= 0.03928) ? sRGB / 12.92 : ((sRGB + 0.055) / 1.055) ** 2.4;
-  return res;
+  return (sRGB <= 0.03928) ? sRGB / 12.92 : ((sRGB + 0.055) / 1.055) ** 2.4;
 }
 
 // Reference from: https://www.w3.org/WAI/GL/wiki/Relative_luminance
