@@ -108,3 +108,31 @@
   is_prerelease: false
   is_tag: false
   created_unix: 946684803
+
+- id: 9
+  repo_id: 57
+  publisher_id: 2
+  tag_name: "non-existing-target-branch"
+  lower_tag_name: "non-existing-target-branch"
+  target: "non-existing"
+  title: "non-existing-target-branch"
+  sha1: "cef06e48f2642cd0dc9597b4bea09f4b3f74aad6"
+  num_commits: 5
+  is_draft: false
+  is_prerelease: false
+  is_tag: false
+  created_unix: 946684803
+
+- id: 10
+  repo_id: 57
+  publisher_id: 2
+  tag_name: "empty-target-branch"
+  lower_tag_name: "empty-target-branch"
+  target: ""
+  title: "empty-target-branch"
+  sha1: "cef06e48f2642cd0dc9597b4bea09f4b3f74aad6"
+  num_commits: 5
+  is_draft: false
+  is_prerelease: false
+  is_tag: false
+  created_unix: 946684803
