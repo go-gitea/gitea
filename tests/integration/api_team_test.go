@@ -139,9 +139,9 @@ func TestAPITeam(t *testing.T) {
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, "CreateTeam2", &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		"read", nil, teamToCreate.UnitsMap)
+		"none", nil, teamToCreate.UnitsMap)
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		"read", nil, teamToCreate.UnitsMap)
+		"none", nil, teamToCreate.UnitsMap)
 	teamID = apiTeam.ID
 
 	// Edit team.
