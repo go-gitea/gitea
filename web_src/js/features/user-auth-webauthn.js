@@ -3,7 +3,7 @@ import {encodeURLEncodedBase64, decodeURLEncodedBase64} from '../utils.js';
 const {appSubUrl, csrfToken} = window.config;
 
 export async function initUserAuthWebAuthn() {
-  document.getElementById('webauthn-error')?.classList.add('hide');
+  document.getElementById('webauthn-error')?.classList.add('gt-hidden');
 
   const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
   if (!elPrompt) {
@@ -82,7 +82,7 @@ async function verifyAssertion(assertedCredential) {
   }
   const reply = await res.json();
 
-  window.location.href = reply?.redirect ?? '/';
+  window.location.href = reply?.redirect ?? `${appSubUrl}/`;
 }
 
 async function webauthnRegistered(newCredential) {
@@ -133,7 +133,7 @@ function webAuthnError(errorType, message) {
   }
 
   const elWebauthnError = document.getElementById('webauthn-error');
-  elWebauthnError.classList.remove('hide');
+  elWebauthnError.classList.remove('gt-hidden');
 }
 
 function detectWebAuthnSupport() {
@@ -155,7 +155,7 @@ function detectWebAuthnSupport() {
 }
 
 export function initUserAuthWebAuthnRegister() {
-  document.getElementById('webauthn-error')?.classList.add('hide');
+  document.getElementById('webauthn-error')?.classList.add('gt-hidden');
 
   const elRegister = document.getElementById('register-webauthn');
   if (!elRegister) {
