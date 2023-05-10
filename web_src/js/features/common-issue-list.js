@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {isElemHidden, toggleElem} from '../utils/dom.js';
+import {isElemHidden, onInputDebounce, toggleElem} from '../utils/dom.js';
 const {appSubUrl} = window.config;
 
 const reIssueIndex = /^(\d+)$/; // eg: "123"
@@ -65,6 +65,6 @@ export function initCommonIssueListQuickGoto() {
     $goto.attr('data-issue-goto-link', targetUrl);
   };
 
-  $input.on('input', onInput);
-  onInput();
+  $input.on('input', onInputDebounce(onInput));
+  const _ = onInput();
 }

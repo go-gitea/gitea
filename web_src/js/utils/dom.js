@@ -1,3 +1,5 @@
+import {debounce} from 'throttle-debounce';
+
 function elementsCall(el, func, ...args) {
   if (typeof el === 'string' || el instanceof String) {
     el = document.querySelectorAll(el);
@@ -176,4 +178,8 @@ export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
       textarea.form?.removeEventListener('reset', onFormReset);
     }
   };
+}
+
+export function onInputDebounce(fn) {
+  return debounce(300, fn);
 }
