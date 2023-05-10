@@ -76,10 +76,6 @@ func RefNameFromTag(shortName string) RefName {
 	return RefName(TagPrefix + shortName)
 }
 
-func (ref RefName) IsValid() bool {
-	return ref.IsBranch() || ref.IsTag() || ref.IsRemote() || ref.IsPull()
-}
-
 func (ref RefName) String() string {
 	return string(ref)
 }
