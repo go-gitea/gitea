@@ -131,7 +131,6 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	c.Data["branch_status_check_contexts"] = contexts
-
 	if c.Repo.Owner.IsOrganization() {
 		teams, err := organization.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c.Repo.Repository.ID, perm.AccessModeRead)
 		if err != nil {
