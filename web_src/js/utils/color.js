@@ -17,12 +17,12 @@ function getLuminance(r, g, b) {
 
 const convertHexUnitTo256 = (hexStr) => parseInt(hexStr.repeat(2 / hexStr.length), 16);
 
-const getAlphafloat = (a) => {
-  if (a !== undefined) {
-    return a / 255;
+function getAlphafloat(alpha) {
+  if (alpha !== undefined) {
+    return alpha / 255;
   }
   return 1;
-};
+}
 
 const re = /.{1,2}/g;
 // Get color as RGB values in 0..255 range from the hex color string (with or without #)
