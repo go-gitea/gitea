@@ -36,7 +36,7 @@ function moveIssue({item, from, to, oldIndex}) {
 }
 
 async function initRepoProjectSortable() {
-  const els = document.querySelectorAll('#project-board > .board');
+  const els = document.querySelectorAll('#project-board > .board.sortable');
   if (!els.length) return;
 
   const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');

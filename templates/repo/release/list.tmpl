@@ -56,7 +56,7 @@
 								{{end}}
 								|
 								{{end}}
-								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}{{if .Target}}...{{.Target | PathEscapeSegments}}{{end}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.tag.ahead.target" $.DefaultBranch}}</span>
+								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.TargetBehind | PathEscapeSegments}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.tag.ahead.target" .TargetBehind}}</span>
 							</p>
 						{{else}}
 							<p class="text grey">
@@ -77,7 +77,7 @@
 									<span class="time">{{TimeSinceUnix .CreatedUnix $.locale}}</span>
 								{{end}}
 								{{if not .IsDraft}}
-									| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.Target | PathEscapeSegments}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.release.ahead.target" .Target}}</span>
+									| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.TargetBehind | PathEscapeSegments}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.release.ahead.target" .TargetBehind}}</span>
 								{{end}}
 							</p>
 						{{end}}
