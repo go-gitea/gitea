@@ -26,8 +26,7 @@ func Test_loadMailerFrom(t *testing.T) {
 	}
 	for host, kase := range kases {
 		t.Run(host, func(t *testing.T) {
-			cfg, err := NewConfigProviderFromData("")
-			assert.NoError(t, err)
+			cfg, _ := NewConfigProviderFromData("")
 			sec := cfg.Section("mailer")
 			sec.NewKey("ENABLED", "true")
 			sec.NewKey("HOST", host)
