@@ -1,12 +1,12 @@
 import $ from 'jquery';
-import {useLightTextOnBackground} from '../utils.js';
+import {useLightTextOnBackground, hexToRGBColor} from '../utils/color.js';
 
 const {csrfToken} = window.config;
 
 function updateIssueCount(cards) {
   const parent = cards.parentElement;
   const cnt = parent.getElementsByClassName('board-card').length;
-  parent.getElementsByClassName('board-card-cnt')[0].innerText = cnt;
+  parent.getElementsByClassName('board-card-cnt')[0].textContent = cnt;
 }
 
 function moveIssue({item, from, to, oldIndex}) {
@@ -36,7 +36,7 @@ function moveIssue({item, from, to, oldIndex}) {
 }
 
 async function initRepoProjectSortable() {
-  const els = document.querySelectorAll('#project-board > .board');
+  const els = document.querySelectorAll('#project-board > .board.sortable');
   if (!els.length) return;
 
   const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
@@ -190,7 +190,8 @@ export function initRepoProject() {
 }
 
 function setLabelColor(label, color) {
-  if (useLightTextOnBackground(color)) {
+  const [r, g, b] = hexToRGBColor(color);
+  if (useLightTextOnBackground(r, g, b)) {
     label.removeClass('dark-label').addClass('light-label');
   } else {
     label.removeClass('light-label').addClass('dark-label');
