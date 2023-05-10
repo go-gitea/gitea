@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -579,16 +580,17 @@ func SearchRepo(ctx *context.Context) {
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
 		results[i] = &api.Repository{
-			ID:       repo.ID,
-			FullName: repo.FullName(),
-			Fork:     repo.IsFork,
-			Private:  repo.IsPrivate,
-			Template: repo.IsTemplate,
-			Mirror:   repo.IsMirror,
-			Stars:    repo.NumStars,
-			HTMLURL:  repo.HTMLURL(),
-			Link:     repo.Link(),
-			Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
+			ID:                repo.ID,
+			FullName:          repo.FullName(),
+			Fork:              repo.IsFork,
+			Private:           repo.IsPrivate,
+			Template:          repo.IsTemplate,
+			Mirror:            repo.IsMirror,
+			Stars:             repo.NumStars,
+			HTMLURL:           repo.HTMLURL(),
+			Link:              repo.Link(),
+			Internal:          !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
+			CommitStatusState: getLatestCommitStatusState(ctx, repo),
 		}
 	}
 
@@ -596,4 +598,36 @@ func SearchRepo(ctx *context.Context) {
 		OK:   true,
 		Data: results,
 	})
+}
+
+// getLatestCommitStatusState returns the commit status state returns the latest commit status state of the latest
+// commit on the default branch of the given repository
+func getLatestCommitStatusState(ctx *context.Context, repo *repo_model.Repository) api.CommitStatusState {
+	branches, branchCount, _ := repo_service.GetBranches(ctx, repo, 0, 0)
+	if branchCount == 0 {
+		return ""
+	}
+
+	for _, branch := range branches {
+		// find the default branch
+		if repo.DefaultBranch == branch.Name {
+			commit, err := branch.GetCommit()
+			if err != nil {
+				log.Error("GetCommit: %v", err)
+				return ""
+			}
+
+			statuses, statusCount, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commit.ID.String(), db.ListOptions{})
+			if err != nil {
+				log.Error("GetLatestCommitStatus: %v", err)
+				return ""
+			}
+			if statusCount == 0 {
+				return ""
+			}
+
+			return git_model.CalcCommitStatus(statuses).State
+		}
+	}
+	return ""
 }

@@ -48,34 +48,35 @@ type ExternalWiki struct {
 
 // Repository represents a repository
 type Repository struct {
-	ID            int64       `json:"id"`
-	Owner         *User       `json:"owner"`
-	Name          string      `json:"name"`
-	FullName      string      `json:"full_name"`
-	Description   string      `json:"description"`
-	Empty         bool        `json:"empty"`
-	Private       bool        `json:"private"`
-	Fork          bool        `json:"fork"`
-	Template      bool        `json:"template"`
-	Parent        *Repository `json:"parent"`
-	Mirror        bool        `json:"mirror"`
-	Size          int         `json:"size"`
-	Language      string      `json:"language"`
-	LanguagesURL  string      `json:"languages_url"`
-	HTMLURL       string      `json:"html_url"`
-	Link          string      `json:"link"`
-	SSHURL        string      `json:"ssh_url"`
-	CloneURL      string      `json:"clone_url"`
-	OriginalURL   string      `json:"original_url"`
-	Website       string      `json:"website"`
-	Stars         int         `json:"stars_count"`
-	Forks         int         `json:"forks_count"`
-	Watchers      int         `json:"watchers_count"`
-	OpenIssues    int         `json:"open_issues_count"`
-	OpenPulls     int         `json:"open_pr_counter"`
-	Releases      int         `json:"release_counter"`
-	DefaultBranch string      `json:"default_branch"`
-	Archived      bool        `json:"archived"`
+	ID                int64             `json:"id"`
+	Owner             *User             `json:"owner"`
+	Name              string            `json:"name"`
+	FullName          string            `json:"full_name"`
+	Description       string            `json:"description"`
+	Empty             bool              `json:"empty"`
+	Private           bool              `json:"private"`
+	Fork              bool              `json:"fork"`
+	Template          bool              `json:"template"`
+	Parent            *Repository       `json:"parent"`
+	Mirror            bool              `json:"mirror"`
+	Size              int               `json:"size"`
+	Language          string            `json:"language"`
+	LanguagesURL      string            `json:"languages_url"`
+	HTMLURL           string            `json:"html_url"`
+	Link              string            `json:"link"`
+	SSHURL            string            `json:"ssh_url"`
+	CloneURL          string            `json:"clone_url"`
+	OriginalURL       string            `json:"original_url"`
+	Website           string            `json:"website"`
+	Stars             int               `json:"stars_count"`
+	Forks             int               `json:"forks_count"`
+	Watchers          int               `json:"watchers_count"`
+	OpenIssues        int               `json:"open_issues_count"`
+	OpenPulls         int               `json:"open_pr_counter"`
+	Releases          int               `json:"release_counter"`
+	DefaultBranch     string            `json:"default_branch"`
+	CommitStatusState CommitStatusState `json:"commit_status_state"`
+	Archived          bool              `json:"archived"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
