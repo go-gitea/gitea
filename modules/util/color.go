@@ -28,7 +28,6 @@ func HexToRBGColor(colorString string) (float64, float64, float64) {
 	}
 	// only support transfer of rgb, rgba, rrggbb and rrggbbaa
 	// if not in these formats, use default values 0, 0, 0
-	fmt.Println(hexString)
 	if len(hexString) != 3 && len(hexString) != 4 && len(hexString) != 6 && len(hexString) != 8 {
 		return 0, 0, 0
 	}
