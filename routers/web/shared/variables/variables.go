@@ -31,7 +31,7 @@ func SetVariablesContext(ctx *context.Context, ownerID, repoID int64) {
 func DeleteVariable(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	id := ctx.ParamsInt64(":variableID")
 
-	if _, err := db.DeleteByBean(ctx, &variable_model.Variable{
+	if _, err := db.DeleteByBean(ctx, &variable_model.ActionVariable{
 		ID:      id,
 		OwnerID: ownerID,
 		RepoID:  repoID,
@@ -86,7 +86,7 @@ func GetVariable(ctx *context.Context) {
 func UpdateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	id := ctx.ParamsInt64(":variableID")
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
-	ok, err := variable_model.UpdateVariable(ctx, &variable_model.Variable{
+	ok, err := variable_model.UpdateVariable(ctx, &variable_model.ActionVariable{
 		ID:      id,
 		OwnerID: ownerID,
 		RepoID:  repoID,

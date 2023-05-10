@@ -10,7 +10,7 @@ import (
 )
 
 func CreateVariableTable(x *xorm.Engine) error {
-	type Variable struct {
+	type ActionVariable struct {
 		ID          int64              `xorm:"pk autoincr"`
 		OwnerID     int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
 		RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
@@ -20,5 +20,5 @@ func CreateVariableTable(x *xorm.Engine) error {
 		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 	}
 
-	return x.Sync(new(Variable))
+	return x.Sync(new(ActionVariable))
 }
