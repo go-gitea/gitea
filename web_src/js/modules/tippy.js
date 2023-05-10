@@ -11,8 +11,12 @@ export function createTippy(target, opts = {}) {
     interactiveBorder: 20,
     ignoreAttributes: true,
     maxWidth: 500, // increase over default 350px
-    onHide: (instance) => visibleInstances.delete(instance),
-    onDestroy: (instance) => visibleInstances.delete(instance),
+    onHide: (instance) => {
+      visibleInstances.delete(instance);
+    },
+    onDestroy: (instance) => {
+      visibleInstances.delete(instance);
+    },
     onShow: (instance) => {
       for (const visibleInstance of visibleInstances) {
         visibleInstance.hide(); // hide other instances
