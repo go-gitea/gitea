@@ -10,7 +10,6 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	actions_service "code.gitea.io/gitea/services/actions"
@@ -97,7 +96,7 @@ func (s *Service) Register(
 // FetchTask assigns a task to the runner
 func (s *Service) FetchTask(
 	ctx context.Context,
-	req *connect.Request[runnerv1.FetchTaskRequest],
+	_ *connect.Request[runnerv1.FetchTaskRequest],
 ) (*connect.Response[runnerv1.FetchTaskResponse], error) {
 	runner := GetRunner(ctx)
 
@@ -120,29 +119,34 @@ func (s *Service) UpdateTask(
 	ctx context.Context,
 	req *connect.Request[runnerv1.UpdateTaskRequest],
 ) (*connect.Response[runnerv1.UpdateTaskResponse], error) {
-	{
-		// to debug strange runner behaviors, it could be removed if all problems have been solved.
-		stateMsg, _ := json.Marshal(req.Msg.State)
-		log.Trace("update task with state: %s", stateMsg)
-	}
-
-	// Get Task first
-	task, err := actions_model.GetTaskByID(ctx, req.Msg.State.Id)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "can't find the task: %v", err)
-	}
-	if task.Status.IsCancelled() {
-		return connect.NewResponse(&runnerv1.UpdateTaskResponse{
-			State: &runnerv1.TaskState{
-				Id:     req.Msg.State.Id,
-				Result: task.Status.AsResult(),
-			},
-		}), nil
-	}
-
-	task, err = actions_model.UpdateTaskByState(ctx, req.Msg.State)
+	task, err := actions_model.UpdateTaskByState(ctx, req.Msg.State)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
+	}
+
+	for k, v := range req.Msg.Outputs {
+		if len(k) > 255 {
+			log.Warn("Ignore the output of task %d because the key is too long: %q", task.ID, k)
+			continue
+		}
+		// The value can be a maximum of 1 MB
+		if l := len(v); l > 1024*1024 {
+			log.Warn("Ignore the output %q of task %d because the value is too long: %v", k, task.ID, l)
+			continue
+		}
+		// There's another limitation on GitHub that the total of all outputs in a workflow run can be a maximum of 50 MB.
+		// We don't check the total size here because it's not easy to do, and it doesn't really worth it.
+		// See https://docs.github.com/en/actions/using-jobs/defining-outputs-for-jobs
+
+		if err := actions_model.InsertTaskOutputIfNotExist(ctx, task.ID, k, v); err != nil {
+			log.Warn("Failed to insert the output %q of task %d: %v", k, task.ID, err)
+			// It's ok not to return errors, the runner will resend the outputs.
+		}
+	}
+	sentOutputs, err := actions_model.FindTaskOutputKeyByTaskID(ctx, task.ID)
+	if err != nil {
+		log.Warn("Failed to find the sent outputs of task %d: %v", task.ID, err)
+		// It's not to return errors, it can be handled when the runner resends sent outputs.
 	}
 
 	if err := task.LoadJob(ctx); err != nil {
@@ -162,6 +166,7 @@ func (s *Service) UpdateTask(
 			Id:     req.Msg.State.Id,
 			Result: task.Status.AsResult(),
 		},
+		SentOutputs: sentOutputs,
 	}), nil
 }
 

@@ -475,7 +475,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 		Version:     np.Version,
 	}
 
-	_, _, err = packages_service.AddFileToExistingPackage(
+	_, err = packages_service.AddFileToExistingPackage(
 		pi,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -501,7 +501,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 	}
 
 	for _, pdb := range pdbs {
-		_, _, err := packages_service.AddFileToExistingPackage(
+		_, err := packages_service.AddFileToExistingPackage(
 			pi,
 			&packages_service.PackageFileCreationInfo{
 				PackageFileInfo: packages_service.PackageFileInfo{
@@ -545,7 +545,7 @@ func processUploadedFile(ctx *context.Context, expectedType nuget_module.Package
 		closables = append(closables, upload)
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return nil, nil, closables
@@ -585,7 +585,7 @@ func DownloadSymbolFile(ctx *context.Context) {
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:     ctx.Package.Owner.ID,
-		PackageType: string(packages_model.TypeNuGet),
+		PackageType: packages_model.TypeNuGet,
 		Query:       filename,
 		Properties: map[string]string{
 			nuget_module.PropertySymbolID: strings.ToLower(guid),

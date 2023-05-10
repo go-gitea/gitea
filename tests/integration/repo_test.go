@@ -78,7 +78,7 @@ func testViewRepo(t *testing.T) {
 		// convert "2017-06-14 21:54:21 +0800" to "Wed, 14 Jun 2017 13:54:21 UTC"
 		htmlTimeString, _ := s.Find("relative-time.time-since").Attr("datetime")
 		htmlTime, _ := time.Parse(time.RFC3339, htmlTimeString)
-		f.commitTime = htmlTime.UTC().Format("Mon, 02 Jan 2006 15:04:05 UTC")
+		f.commitTime = htmlTime.In(time.Local).Format(time.RFC1123)
 		items = append(items, f)
 	})
 
@@ -354,7 +354,6 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 
 			htmlDoc := NewHTMLParser(t, resp.Body)
 			_, exists := htmlDoc.doc.Find(".file-view").Attr("class")
-			fmt.Printf("%s", resp.Body)
 
 			assert.False(t, exists, "README should not have rendered")
 		})
@@ -376,7 +375,7 @@ func TestMarkDownReadmeImage(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	src, exists := htmlDoc.doc.Find(`.markdown img`).Attr("src")
 	assert.True(t, exists, "Image not found in README")
-	assert.Equal(t, src, "/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg")
+	assert.Equal(t, "/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg", src)
 
 	req = NewRequest(t, "GET", "/user2/repo1/src/branch/home-md-img-check/README.md")
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -384,7 +383,7 @@ func TestMarkDownReadmeImage(t *testing.T) {
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	src, exists = htmlDoc.doc.Find(`.markdown img`).Attr("src")
 	assert.True(t, exists, "Image not found in markdown file")
-	assert.Equal(t, src, "/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg")
+	assert.Equal(t, "/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg", src)
 }
 
 func TestMarkDownReadmeImageSubfolder(t *testing.T) {
@@ -399,7 +398,7 @@ func TestMarkDownReadmeImageSubfolder(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	src, exists := htmlDoc.doc.Find(`.markdown img`).Attr("src")
 	assert.True(t, exists, "Image not found in README")
-	assert.Equal(t, src, "/user2/repo1/media/branch/sub-home-md-img-check/docs/test-fake-img.jpg")
+	assert.Equal(t, "/user2/repo1/media/branch/sub-home-md-img-check/docs/test-fake-img.jpg", src)
 
 	req = NewRequest(t, "GET", "/user2/repo1/src/branch/sub-home-md-img-check/docs/README.md")
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -407,5 +406,5 @@ func TestMarkDownReadmeImageSubfolder(t *testing.T) {
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	src, exists = htmlDoc.doc.Find(`.markdown img`).Attr("src")
 	assert.True(t, exists, "Image not found in markdown file")
-	assert.Equal(t, src, "/user2/repo1/media/branch/sub-home-md-img-check/docs/test-fake-img.jpg")
+	assert.Equal(t, "/user2/repo1/media/branch/sub-home-md-img-check/docs/test-fake-img.jpg", src)
 }

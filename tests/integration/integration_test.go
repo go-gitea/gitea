@@ -1,6 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+//nolint:forbidigo
 package integration
 
 import (
@@ -28,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
@@ -90,21 +92,21 @@ func TestMain(m *testing.M) {
 	// integration test settings...
 	if setting.CfgProvider != nil {
 		testingCfg := setting.CfgProvider.Section("integration-tests")
-		tests.SlowTest = testingCfg.Key("SLOW_TEST").MustDuration(tests.SlowTest)
-		tests.SlowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(tests.SlowFlush)
+		testlogger.SlowTest = testingCfg.Key("SLOW_TEST").MustDuration(testlogger.SlowTest)
+		testlogger.SlowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(testlogger.SlowFlush)
 	}
 
 	if os.Getenv("GITEA_SLOW_TEST_TIME") != "" {
 		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_TEST_TIME"))
 		if err == nil {
-			tests.SlowTest = duration
+			testlogger.SlowTest = duration
 		}
 	}
 
 	if os.Getenv("GITEA_SLOW_FLUSH_TIME") != "" {
 		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_FLUSH_TIME"))
 		if err == nil {
-			tests.SlowFlush = duration
+			testlogger.SlowFlush = duration
 		}
 	}
 
@@ -124,9 +126,12 @@ func TestMain(m *testing.M) {
 		fmt.Printf("Error initializing test database: %v\n", err)
 		os.Exit(1)
 	}
+
+	// FIXME: the console logger is deleted by mistake, so if there is any `log.Fatal`, developers won't see any error message.
+	// Instead, "No tests were found",  last nonsense log is "According to the configuration, subsequent logs will not be printed to the console"
 	exitCode := m.Run()
 
-	tests.WriterCloser.Reset()
+	testlogger.WriterCloser.Reset()
 
 	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("util.RemoveAll: %v\n", err)
@@ -366,10 +371,12 @@ const NoExpectedStatus = -1
 func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
 	recorder := httptest.NewRecorder()
+	if req.RemoteAddr == "" {
+		req.RemoteAddr = "test-mock:12345"
+	}
 	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		if !assert.EqualValues(t, expectedStatus, recorder.Code,
-			"Request: %s %s", req.Method, req.URL.String()) {
+		if !assert.EqualValues(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, recorder)
 		}
 	}
@@ -410,8 +417,10 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 		return
 	} else if len(respBytes) < 500 {
 		// if body is short, just log the whole thing
-		t.Log("Response:", string(respBytes))
+		t.Log("Response: ", string(respBytes))
 		return
+	} else {
+		t.Log("Response length: ", len(respBytes))
 	}
 
 	// log the "flash" error message, if one exists

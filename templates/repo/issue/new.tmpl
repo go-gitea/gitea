@@ -2,10 +2,6 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository new issue">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<div class="navbar">
-			{{template "repo/issue/navbar" .}}
-		</div>
-		<div class="ui divider"></div>
 		{{if .Flash.WarningMsg}}
 			{{/*
 			There's already an importing of alert.tmpl in new_form.tmpl,

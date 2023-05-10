@@ -25,6 +25,10 @@ function clipboardPastedImages(e) {
   return files;
 }
 
+function triggerEditorContentChanged(target) {
+  target.dispatchEvent(new CustomEvent('ce-editor-content-changed', {bubbles: true}));
+}
+
 class TextareaEditor {
   constructor(editor) {
     this.editor = editor;
@@ -38,6 +42,7 @@ class TextareaEditor {
     editor.selectionStart = startPos;
     editor.selectionEnd = startPos + value.length;
     editor.focus();
+    triggerEditorContentChanged(editor);
   }
 
   replacePlaceholder(oldVal, newVal) {
@@ -54,6 +59,7 @@ class TextareaEditor {
     }
     editor.selectionStart = editor.selectionEnd;
     editor.focus();
+    triggerEditorContentChanged(editor);
   }
 }
 
@@ -70,6 +76,7 @@ class CodeMirrorEditor {
     endPoint.ch = startPoint.ch + value.length;
     editor.setSelection(startPoint, endPoint);
     editor.focus();
+    triggerEditorContentChanged(editor.getTextArea());
   }
 
   replacePlaceholder(oldVal, newVal) {
@@ -84,6 +91,7 @@ class CodeMirrorEditor {
     endPoint.ch += newVal.length;
     editor.setSelection(endPoint, endPoint);
     editor.focus();
+    triggerEditorContentChanged(editor.getTextArea());
   }
 }
 

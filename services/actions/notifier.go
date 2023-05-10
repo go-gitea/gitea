@@ -526,3 +526,38 @@ func (n *actionsNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Contex
 		WithPullRequest(pr).
 		Notify(ctx)
 }
+
+func (n *actionsNotifier) NotifyNewWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+	ctx = withMethod(ctx, "NotifyNewWikiPage")
+
+	newNotifyInput(repo, doer, webhook_module.HookEventWiki).WithPayload(&api.WikiPayload{
+		Action:     api.HookWikiCreated,
+		Repository: convert.ToRepo(ctx, repo, perm_model.AccessModeOwner),
+		Sender:     convert.ToUser(ctx, doer, nil),
+		Page:       page,
+		Comment:    comment,
+	}).Notify(ctx)
+}
+
+func (n *actionsNotifier) NotifyEditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+	ctx = withMethod(ctx, "NotifyEditWikiPage")
+
+	newNotifyInput(repo, doer, webhook_module.HookEventWiki).WithPayload(&api.WikiPayload{
+		Action:     api.HookWikiEdited,
+		Repository: convert.ToRepo(ctx, repo, perm_model.AccessModeOwner),
+		Sender:     convert.ToUser(ctx, doer, nil),
+		Page:       page,
+		Comment:    comment,
+	}).Notify(ctx)
+}
+
+func (n *actionsNotifier) NotifyDeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page string) {
+	ctx = withMethod(ctx, "NotifyDeleteWikiPage")
+
+	newNotifyInput(repo, doer, webhook_module.HookEventWiki).WithPayload(&api.WikiPayload{
+		Action:     api.HookWikiDeleted,
+		Repository: convert.ToRepo(ctx, repo, perm_model.AccessModeOwner),
+		Sender:     convert.ToUser(ctx, doer, nil),
+		Page:       page,
+	}).Notify(ctx)
+}

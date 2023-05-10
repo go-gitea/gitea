@@ -31,15 +31,20 @@ func TestFind(t *testing.T) {
 	xe := unittest.GetXORMEngine()
 	assert.NoError(t, xe.Sync(&repo_model.RepoUnit{}))
 
+	var repoUnitCount int
+	_, err := db.GetEngine(db.DefaultContext).SQL("SELECT COUNT(*) FROM repo_unit").Get(&repoUnitCount)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, repoUnitCount)
+
 	opts := mockListOptions{}
 	var repoUnits []repo_model.RepoUnit
-	err := db.Find(db.DefaultContext, &opts, &repoUnits)
+	err = db.Find(db.DefaultContext, &opts, &repoUnits)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 84, len(repoUnits))
+	assert.Len(t, repoUnits, repoUnitCount)
 
 	cnt, err := db.Count(db.DefaultContext, &opts, new(repo_model.RepoUnit))
 	assert.NoError(t, err)
-	assert.EqualValues(t, 84, cnt)
+	assert.EqualValues(t, repoUnitCount, cnt)
 
 	repoUnits = make([]repo_model.RepoUnit, 0, 10)
 	newCnt, err := db.FindAndCount(db.DefaultContext, &opts, &repoUnits)

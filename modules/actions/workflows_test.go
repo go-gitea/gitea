@@ -92,6 +92,13 @@ func TestDetectMatched(t *testing.T) {
 			yamlOn:       "on:\n  registry_package:\n    types: [updated]",
 			expected:     false,
 		},
+		{
+			desc:         "HookEventWiki(wiki) matches githubEventGollum(gollum)",
+			triggedEvent: webhook_module.HookEventWiki,
+			payload:      nil,
+			yamlOn:       "on: gollum",
+			expected:     true,
+		},
 	}
 
 	for _, tc := range testCases {

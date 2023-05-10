@@ -4,12 +4,12 @@
 package setting
 
 import (
+	"encoding/base64"
 	"math"
 	"path/filepath"
 
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
-
-	"gopkg.in/ini.v1"
 )
 
 // OAuth2UsernameType is enum describing the way gitea 'name' should be generated from oauth2 data
@@ -80,7 +80,7 @@ func loadOAuth2ClientFrom(rootCfg ConfigProvider) {
 	}
 }
 
-func parseScopes(sec *ini.Section, name string) []string {
+func parseScopes(sec ConfigSection, name string) []string {
 	parts := sec.Key(name).Strings(" ")
 	scopes := make([]string, 0, len(parts))
 	for _, scope := range parts {
@@ -118,5 +118,20 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 
 	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
 		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)
+	}
+
+	key := make([]byte, 32)
+	n, err := base64.RawURLEncoding.Decode(key, []byte(OAuth2.JWTSecretBase64))
+	if err != nil || n != 32 {
+		key, err = generate.NewJwtSecret()
+		if err != nil {
+			log.Fatal("error generating JWT secret: %v", err)
+		}
+
+		secretBase64 := base64.RawURLEncoding.EncodeToString(key)
+		rootCfg.Section("oauth2").Key("JWT_SECRET").SetValue(secretBase64)
+		if err := rootCfg.Save(); err != nil {
+			log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
+		}
 	}
 }

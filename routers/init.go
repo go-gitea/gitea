@@ -108,6 +108,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	}
 
 	mustInitCtx(ctx, git.InitFull)
+	log.Info("Gitea Version: %s%s", setting.AppVer, setting.AppBuiltWith)
 	log.Info("Git Version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
 	log.Info("AppPath: %s", setting.AppPath)
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
@@ -115,7 +116,6 @@ func GlobalInitInstalled(ctx context.Context) {
 	log.Info("Log path: %s", setting.Log.RootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
 	log.Info("Run Mode: %s", util.ToTitleCase(setting.RunMode))
-	log.Info("Gitea v%s%s", setting.AppVer, setting.AppBuiltWith)
 
 	// Setup i18n
 	translation.InitLocales(ctx)
@@ -175,22 +175,17 @@ func GlobalInitInstalled(ctx context.Context) {
 
 // NormalRoutes represents non install routes
 func NormalRoutes(ctx context.Context) *web.Route {
-	ctx, _ = templates.HTMLRenderer(ctx)
+	_ = templates.HTMLRenderer()
 	r := web.NewRoute()
-	for _, middle := range common.Middlewares() {
-		r.Use(middle)
-	}
+	r.Use(common.ProtocolMiddlewares()...)
 
 	r.Mount("/", web_routers.Routes(ctx))
 	r.Mount("/api/v1", apiv1.Routes(ctx))
 	r.Mount("/api/internal", private.Routes())
 
 	if setting.Packages.Enabled {
-		// Add endpoints to match common package manager APIs
-
 		// This implements package support for most package managers
 		r.Mount("/api/packages", packages_router.CommonRoutes(ctx))
-
 		// This implements the OCI API (Note this is not preceded by /api but is instead /v2)
 		r.Mount("/v2", packages_router.ContainerRoutes(ctx))
 	}
