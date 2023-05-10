@@ -14,7 +14,7 @@
 				<form action="{{AppSubUrl}}/notifications/purge" method="POST" style="margin-left: auto;">
 					{{$.CsrfTokenHtml}}
 					<div class="{{if not $notificationUnreadCount}}gt-hidden{{end}}">
-						<button class="ui mini button primary" title='{{$.locale.Tr "notification.mark_all_as_read"}}'>
+						<button class="ui mini button primary gt-mr-0" title='{{$.locale.Tr "notification.mark_all_as_read"}}'>
 							{{svg "octicon-checklist"}}
 						</button>
 					</div>
