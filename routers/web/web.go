@@ -1309,7 +1309,7 @@ func registerRoutes(m *web.Route) {
 		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
 		m.Group("", func() {
-			m.Get("/graph", repo.Graph)	
+			m.Get("/graph", repo.Graph)
 			m.Get("/commit/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 			m.Get("/cherry-pick/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.CherryPick)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
