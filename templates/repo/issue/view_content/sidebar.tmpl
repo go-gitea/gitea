@@ -54,37 +54,27 @@
 					{{range .PullReviewers}}
 						<div class="item gt-mb-2">
 							{{if .User}}
-								<a class="muted sidebar-item-link" href="{{.User.HomeLink}}">
-									{{avatar $.Context .User 28 "gt-mr-3"}}
-									{{.User.GetDisplayName}}
-								</a>
+								<a class="muted sidebar-item-link" href="{{.User.HomeLink}}">{{avatar $.Context .User 28 "gt-mr-3"}}{{.User.GetDisplayName}}</a>
 							{{else if .Team}}
 								<span class="text">{{svg "octicon-people" 16 "teamavatar"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
 							{{end}}
-							<span class="ui right type-icon text {{if eq .Review.Type 1}}green
-								{{- else if eq .Review.Type 2}}grey
-								{{- else if eq .Review.Type 3}}red
-								{{- else if eq .Review.Type 4}}yellow
-								{{- else}}grey{{end}} right ">
-
+							<span class="ui right gt-df gt-ac gt-gap-3">
 								{{if .CanChange}}
-									<a href="#" class="ui icon re-request-review {{if .Checked}}checked{{end}}" data-tooltip-content="{{if .Checked}} {{$.locale.Tr "repo.issues.remove_request_review"}} {{else}} {{$.locale.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-										{{if .Checked}} {{svg "octicon-trash"}} {{else}} {{svg "octicon-sync"}} {{end}}
-									</a>
+									<a href="#" class="ui muted icon re-request-review{{if .Checked}} checked{{end}}" data-tooltip-content="{{if .Checked}}{{$.locale.Tr "repo.issues.remove_request_review"}}{{else}}{{$.locale.Tr "repo.issues.re_request_review"}}{{end}}" data-issue-id="{{$.Issue.ID}}" data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">{{if .Checked}}{{svg "octicon-trash"}}{{else}}{{svg "octicon-sync"}}{{end}}</a>
 								{{end}}
-								{{svg (printf "octicon-%s" .Review.Type.Icon)}}
+								{{svg (printf "octicon-%s" .Review.Type.Icon) 16 (printf "text %s" (.Review.HTMLTypeColorName))}}
 							</span>
 						</div>
 					{{end}}
 					{{range .OriginalReviews}}
-						<div class="item" style="margin-bottom: 10px;">
+						<div class="item gt-mb-3">
 							<a href="{{$.Repository.OriginalURL}}" data-tooltip-content="{{$.locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe}}">
 								<span class="text black">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 									{{.OriginalAuthor}}
 								</span>
 							</a>
-							<span class="ui right type-icon text {{if eq .Type 1}}green
+							<span class="ui right text {{if eq .Type 1}}green
 								{{- else if eq .Type 2}}grey
 								{{- else if eq .Type 3}}red
 								{{- else if eq .Type 4}}yellow
