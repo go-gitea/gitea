@@ -11,8 +11,7 @@ function getLuminance(r, g, b) {
   const R = getLuminanceRGB(r);
   const G = getLuminanceRGB(g);
   const B = getLuminanceRGB(b);
-  const luminance = 0.2126 * R + 0.7152 * G + 0.0722 * B;
-  return luminance;
+  return 0.2126 * R + 0.7152 * G + 0.0722 * B;
 }
 
 const convertHexUnitTo256 = (hexStr) => parseInt(hexStr.repeat(2 / hexStr.length), 16);
