@@ -75,7 +75,7 @@ type Repository struct {
 	OpenPulls         int               `json:"open_pr_counter"`
 	Releases          int               `json:"release_counter"`
 	DefaultBranch     string            `json:"default_branch"`
-	CommitStatusState CommitStatusState `json:"commit_status_state"`
+	LatestCommitStatusState CommitStatusState `json:"latest_commit_status_state"`
 	Archived          bool              `json:"archived"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
