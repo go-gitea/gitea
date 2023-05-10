@@ -6,7 +6,6 @@ package integration
 import (
 	"bytes"
 	"fmt"
-	"image/png"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -52,7 +51,7 @@ func TestUserAvatar(t *testing.T) {
 			return
 		}
 
-		if err := png.Encode(imgData, img); err != nil {
+		if err := avatar.Encoder(img)(imgData); err != nil {
 			assert.NoError(t, err)
 			return
 		}

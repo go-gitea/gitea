@@ -6,8 +6,6 @@ package repo
 import (
 	"context"
 	"fmt"
-	"image/png"
-	"io"
 	"net/url"
 	"strings"
 
@@ -47,12 +45,7 @@ func generateRandomAvatar(ctx context.Context, repo *Repository) error {
 
 	repo.Avatar = idToString
 
-	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, img); err != nil {
-			log.Error("Encode: %v", err)
-		}
-		return err
-	}); err != nil {
+	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), avatar.Encoder(img)); err != nil {
 		return fmt.Errorf("Failed to create dir %s: %w", repo.CustomAvatarRelativePath(), err)
 	}
 

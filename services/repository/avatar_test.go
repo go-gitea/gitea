@@ -6,7 +6,6 @@ package repository
 import (
 	"bytes"
 	"image"
-	"image/png"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -21,7 +20,7 @@ func TestUploadAvatar(t *testing.T) {
 	// Generate image
 	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
 	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
+	avatar.Encoder(myImage)(&buff)
 
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
@@ -35,7 +34,7 @@ func TestUploadBigAvatar(t *testing.T) {
 	// Generate BIG image
 	myImage := image.NewRGBA(image.Rect(0, 0, 5000, 1))
 	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
+	avatar.Encoder(myImage)(&buff)
 
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
@@ -48,7 +47,7 @@ func TestDeleteAvatar(t *testing.T) {
 	// Generate image
 	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
 	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
+	avatar.Encoder(myImage)(&buff)
 
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})

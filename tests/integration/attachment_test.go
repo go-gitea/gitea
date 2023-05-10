@@ -6,7 +6,6 @@ package integration
 import (
 	"bytes"
 	"image"
-	"image/png"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -14,6 +13,7 @@ import (
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
@@ -25,7 +25,7 @@ func generateImg() bytes.Buffer {
 	// Generate image
 	myImage := image.NewRGBA(image.Rect(0, 0, 32, 32))
 	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
+	avatar.Encoder(myImage)(&buff)
 	return buff
 }
 

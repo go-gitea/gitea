@@ -8,18 +8,22 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"io"
 
 	_ "image/gif"  // for processing gif images
 	_ "image/jpeg" // for processing jpeg images
 	_ "image/png"  // for processing png images
 
 	"code.gitea.io/gitea/modules/avatar/identicon"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/nfnt/resize"
 	"github.com/oliamb/cutter"
 
 	_ "golang.org/x/image/webp" // for processing webp images
+
+	"git.sr.ht/~jackmordaunt/go-libwebp/webp"
 )
 
 // AvatarSize returns avatar's size
@@ -83,4 +87,14 @@ func Prepare(data []byte) (*image.Image, error) {
 
 	img = resize.Resize(AvatarSize, AvatarSize, img, resize.Bilinear)
 	return &img, nil
+}
+
+// Encoder returns a function that can be used to encode an avatar image as webp
+func Encoder(img image.Image) func(io.Writer) error {
+	return func(w io.Writer) error {
+		if err := webp.Encode(w, img, webp.Quality(0.75)); err != nil {
+			log.Error("Unable to Encode image to webp: %v", err)
+		}
+		return nil
+	}
 }

@@ -6,8 +6,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"image/png"
-	"io"
 	"strconv"
 	"strings"
 
@@ -46,12 +44,7 @@ func UploadAvatar(ctx context.Context, repo *repo_model.Repository, data []byte)
 		return fmt.Errorf("UploadAvatar: Update repository avatar: %w", err)
 	}
 
-	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, *m); err != nil {
-			log.Error("Encode: %v", err)
-		}
-		return err
-	}); err != nil {
+	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), avatar.Encoder(*m)); err != nil {
 		return fmt.Errorf("UploadAvatar %s failed: Failed to remove old repo avatar %s: %w", repo.RepoPath(), newAvatar, err)
 	}
 
