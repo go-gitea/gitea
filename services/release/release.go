@@ -80,7 +80,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 			commits.HeadCommit = repository.CommitToPushCommit(commit)
 			commits.CompareURL = rel.Repo.ComposeCompareURL(git.EmptySHA, commit.ID.String())
 
-			refFullName := git.RefName(git.TagPrefix + rel.TagName)
+			refFullName := git.RefNameFromTag(rel.TagName)
 			notification.NotifyPushCommits(
 				ctx, rel.Publisher, rel.Repo,
 				&repository.PushUpdateOptions{
