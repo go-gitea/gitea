@@ -119,7 +119,7 @@ jobs:
       - name: List files in the repository
         run: |
           ls ${{ gitea.workspace }}
-      - run: echo "🍏 This job's status is ${{ gitea.status }}."
+      - run: echo "🍏 This job's status is ${{ job.status }}."
 ```
 
 You can upload it as a file with the extension `.yaml` in the directory `.gitea/workflows/` of the repository, for example `.gitea/workflows/demo.yaml`.
