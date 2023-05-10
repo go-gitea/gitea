@@ -125,9 +125,9 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{$link := printf "%s/commit/%s" $.Repository.Link ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
 					{{if eq $.Issue.PullRequest.Status 3}}
-						{{$.locale.Tr "repo.issues.manually_pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.comment_manually_pull_merged_at" (printf "<a class='ui sha' href='%[1]s'><b>%[2]s</b></a>" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
 					{{else}}
-						{{$.locale.Tr "repo.issues.pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.comment_pull_merged_at" (printf "<a class='ui sha' href='%[1]s'><b>%[2]s</b></a>" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>
@@ -304,10 +304,12 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$parsedDeadline := .Content | ParseDeadline}}
-					{{$from := DateTime "long" (index $parsedDeadline 1)}}
-					{{$to := DateTime "long" (index $parsedDeadline 0)}}
-					{{$.locale.Tr "repo.issues.due_date_modified" $to $from $createdStr | Safe}}
+					{{$parsedDeadline := StringUtils.Split .Content "|"}}
+					{{if eq (len $parsedDeadline) 2}}
+						{{$from := DateTime "long" (index $parsedDeadline 1)}}
+						{{$to := DateTime "long" (index $parsedDeadline 0)}}
+						{{$.locale.Tr "repo.issues.due_date_modified" $to $from $createdStr | Safe}}
+					{{end}}
 				</span>
 			</div>
 		{{else if eq .Type 18}}
@@ -370,7 +372,10 @@
 				<div class="timeline-item event">
 					{{if .OriginalAuthor}}
 					{{else}}
-					<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+					{{/* Some timeline avatars need a offset to correctly allign with their speech
+							bubble. The condition depends on review type and for positive reviews whether
+							there is a comment element or not */}}
+					<a class="timeline-avatar{{if or (and (eq .Review.Type 1) (or .Content .Attachments)) (eq .Review.Type 2) (eq .Review.Type 3)}} timeline-avatar-offset{{end}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
 						{{avatar $.Context .Poster}}
 					</a>
 					{{end}}
@@ -406,6 +411,11 @@
 					<div class="content comment-container">
 						<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
 							<div class="comment-header-left gt-df gt-ac">
+								{{if gt .Poster.ID 0}}
+									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
+										{{avatar $.Context .Poster}}
+									</a>
+								{{end}}
 								<span class="text grey muted-links">
 									{{if .OriginalAuthor}}
 										<span class="text black gt-bold">
@@ -761,6 +771,7 @@
 						<img src="{{.Poster.AvatarLink $.Context}}">
 					</a>
 					<span class="badge grey">{{svg "octicon-x" 16}}</span>
+					{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Poster}}
 						{{$reviewerName := ""}}
@@ -775,7 +786,12 @@
 				{{if .Content}}
 					<div class="timeline-item comment">
 						<div class="content">
-							<div class="ui top attached header arrow-top">
+							<div class="ui top attached header comment-header-left gt-df gt-ac arrow-top">
+								{{if gt .Poster.ID 0}}
+									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
+										{{avatar $.Context .Poster}}
+									</a>
+								{{end}}
 								<span class="text grey muted-links">
 									{{$.locale.Tr "action.review_dismissed_reason"}}
 								</span>

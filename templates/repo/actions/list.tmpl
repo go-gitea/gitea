@@ -1,7 +1,6 @@
 {{template "base/head" .}}
 <div class="page-content repository">
 	{{template "repo/header" .}}
-
 	<div class="ui container">
 		<div class="ui stackable grid">
 			<div class="four wide column">
@@ -12,7 +11,7 @@
 						<a class="item{{if eq .Entry.Name $.CurWorkflow}} active{{end}}" href="{{$.Link}}?workflow={{.Entry.Name}}">{{.Entry.Name}}
 							{{if .ErrMsg}}
 								<span data-tooltip-content="{{.ErrMsg}}">
-									<i class="warning icon red"></i>
+									{{svg "octicon-alert" 16 "text red"}}
 								</span>
 							{{end}}
 						</a>
@@ -20,7 +19,7 @@
 				</div>
 			</div>
 			<div class="twelve wide column content">
-				<div id="issue-filters" class="ui stackable grid">
+				<div class="ui stackable grid">
 					<div class="six wide column">
 						{{template "repo/actions/openclose" .}}
 					</div>

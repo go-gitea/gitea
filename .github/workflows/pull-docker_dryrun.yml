@@ -1,0 +1,23 @@
+name: "Pull: Docker Dry Run"
+
+on: [pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  docker_dryrun:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          push: false
+          tags: gitea/gitea:linux-amd64
+          build-args: |
+            GOPROXY=https://goproxy.io

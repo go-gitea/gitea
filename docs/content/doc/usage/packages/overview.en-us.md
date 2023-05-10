@@ -33,6 +33,7 @@ The following package managers are currently supported:
 | [Conan]({{< relref "doc/usage/packages/conan.en-us.md" >}}) | C++ | `conan` |
 | [Conda]({{< relref "doc/usage/packages/conda.en-us.md" >}}) | - | `conda` |
 | [Container]({{< relref "doc/usage/packages/container.en-us.md" >}}) | - | any OCI compliant client |
+| [Debian]({{< relref "doc/usage/packages/debian.en-us.md" >}}) | - | `apt` |
 | [Generic]({{< relref "doc/usage/packages/generic.en-us.md" >}}) | - | any HTTP client |
 | [Helm]({{< relref "doc/usage/packages/helm.en-us.md" >}}) | - | any HTTP client, `cm-push` |
 | [Maven]({{< relref "doc/usage/packages/maven.en-us.md" >}}) | Java | `mvn`, `gradle` |
@@ -40,6 +41,7 @@ The following package managers are currently supported:
 | [NuGet]({{< relref "doc/usage/packages/nuget.en-us.md" >}}) | .NET | `nuget` |
 | [Pub]({{< relref "doc/usage/packages/pub.en-us.md" >}}) | Dart | `dart`, `flutter` |
 | [PyPI]({{< relref "doc/usage/packages/pypi.en-us.md" >}}) | Python | `pip`, `twine` |
+| [RPM]({{< relref "doc/usage/packages/rpm.en-us.md" >}}) | - | `yum`, `dnf` |
 | [RubyGems]({{< relref "doc/usage/packages/rubygems.en-us.md" >}}) | Ruby | `gem`, `Bundler` |
 | [Swift]({{< relref "doc/usage/packages/rubygems.en-us.md" >}}) | Swift | `swift` |
 | [Vagrant]({{< relref "doc/usage/packages/vagrant.en-us.md" >}}) | - | `vagrant` |

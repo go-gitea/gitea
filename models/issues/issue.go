@@ -1273,7 +1273,9 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 		applySubscribedCondition(sess, opts.SubscriberID)
 	}
 
-	if len(opts.MilestoneIDs) > 0 {
+	if len(opts.MilestoneIDs) == 1 && opts.MilestoneIDs[0] == db.NoConditionID {
+		sess.And("issue.milestone_id = 0")
+	} else if len(opts.MilestoneIDs) > 0 {
 		sess.In("issue.milestone_id", opts.MilestoneIDs)
 	}
 
@@ -1287,7 +1289,7 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	if opts.ProjectID > 0 {
 		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
 			And("project_issue.project_id=?", opts.ProjectID)
-	} else if opts.ProjectID == db.NoneID { // show those that are in no project
+	} else if opts.ProjectID == db.NoConditionID { // show those that are in no project
 		sess.And(builder.NotIn("issue.id", builder.Select("issue_id").From("project_issue")))
 	}
 
@@ -1721,6 +1723,8 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 		if opts.MilestoneID > 0 {
 			sess.And("issue.milestone_id = ?", opts.MilestoneID)
+		} else if opts.MilestoneID == db.NoConditionID {
+			sess.And("issue.milestone_id = 0")
 		}
 
 		if opts.ProjectID > 0 {

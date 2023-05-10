@@ -365,7 +365,7 @@
 					<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
 					<dd>{{.Name}} ({{.Provider}})</dd>
 					<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-					<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
+					<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
 				{{end}}
 				<div class="ui divider"></div>
 				<dt>{{$.locale.Tr "admin.config.router_log_mode"}}</dt>
@@ -378,7 +378,7 @@
 							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
 							<dd>{{.Name}} ({{.Provider}})</dd>
 							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
+							<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
 						{{end}}
 					{{else}}
 						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
@@ -393,7 +393,7 @@
 							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
 							<dd>{{.Name}} ({{.Provider}})</dd>
 							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
+							<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
 						{{end}}
 					{{else}}
 						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
@@ -412,7 +412,7 @@
 							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
 							<dd>{{.Name}} ({{.Provider}})</dd>
 							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
+							<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
 						{{end}}
 					{{else}}
 						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
