@@ -44,7 +44,6 @@ type SearchResultLanguages struct {
 // Indexer defines an interface to index and search code contents
 type Indexer interface {
 	Ping() bool
-	SetAvailabilityChangeCallback(callback func(bool))
 	Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error
 	Delete(repoID int64) error
 	Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error)
@@ -81,7 +80,7 @@ type IndexerData struct {
 	RepoID int64
 }
 
-var indexerQueue queue.UniqueQueue
+var indexerQueue *queue.WorkerPoolQueue[*IndexerData]
 
 func index(ctx context.Context, indexer Indexer, repoID int64) error {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
@@ -137,37 +136,45 @@ func Init() {
 	// Create the Queue
 	switch setting.Indexer.RepoType {
 	case "bleve", "elasticsearch":
-		handler := func(data ...queue.Data) []queue.Data {
+		handler := func(items ...*IndexerData) (unhandled []*IndexerData) {
 			idx, err := indexer.get()
 			if idx == nil || err != nil {
 				log.Error("Codes indexer handler: unable to get indexer!")
-				return data
+				return items
 			}
 
-			unhandled := make([]queue.Data, 0, len(data))
-			for _, datum := range data {
-				indexerData, ok := datum.(*IndexerData)
-				if !ok {
-					log.Error("Unable to process provided datum: %v - not possible to cast to IndexerData", datum)
-					continue
-				}
+			for _, indexerData := range items {
 				log.Trace("IndexerData Process Repo: %d", indexerData.RepoID)
 
+				// FIXME: it seems there is a bug in `CatFileBatch` or `nio.Pipe`, which will cause the process to hang forever in rare cases
+				/*
+					sync.(*Cond).Wait(cond.go:70)
+					github.com/djherbis/nio/v3.(*PipeReader).Read(sync.go:106)
+					bufio.(*Reader).fill(bufio.go:106)
+					bufio.(*Reader).ReadSlice(bufio.go:372)
+					bufio.(*Reader).collectFragments(bufio.go:447)
+					bufio.(*Reader).ReadString(bufio.go:494)
+					code.gitea.io/gitea/modules/git.ReadBatchLine(batch_reader.go:149)
+					code.gitea.io/gitea/modules/indexer/code.(*BleveIndexer).addUpdate(bleve.go:214)
+					code.gitea.io/gitea/modules/indexer/code.(*BleveIndexer).Index(bleve.go:296)
+					code.gitea.io/gitea/modules/indexer/code.(*wrappedIndexer).Index(wrapped.go:74)
+					code.gitea.io/gitea/modules/indexer/code.index(indexer.go:105)
+				*/
 				if err := index(ctx, indexer, indexerData.RepoID); err != nil {
-					if !setting.IsInTesting {
-						log.Error("indexer index error for repo %v: %v", indexerData.RepoID, err)
-					}
-					if indexer.Ping() {
+					if !idx.Ping() {
+						log.Error("Code indexer handler: indexer is unavailable.")
+						unhandled = append(unhandled, indexerData)
 						continue
 					}
-					// Add back to queue
-					unhandled = append(unhandled, datum)
+					if !setting.IsInTesting {
+						log.Error("Codes indexer handler: index error for repo %v: %v", indexerData.RepoID, err)
+					}
 				}
 			}
 			return unhandled
 		}
 
-		indexerQueue = queue.CreateUniqueQueue("code_indexer", handler, &IndexerData{})
+		indexerQueue = queue.CreateUniqueQueue("code_indexer", handler)
 		if indexerQueue == nil {
 			log.Fatal("Unable to create codes indexer queue")
 		}
@@ -223,18 +230,6 @@ func Init() {
 		}
 
 		indexer.set(rIndexer)
-
-		if queue, ok := indexerQueue.(queue.Pausable); ok {
-			rIndexer.SetAvailabilityChangeCallback(func(available bool) {
-				if !available {
-					log.Info("Code index queue paused")
-					queue.Pause()
-				} else {
-					log.Info("Code index queue resumed")
-					queue.Resume()
-				}
-			})
-		}
 
 		// Start processing the queue
 		go graceful.GetManager().RunWithShutdownFns(indexerQueue.Run)
