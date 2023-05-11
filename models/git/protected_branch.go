@@ -44,7 +44,6 @@ type ProtectedBranch struct {
 	MergeWhitelistUserIDs         []int64  `xorm:"JSON TEXT"`
 	MergeWhitelistTeamIDs         []int64  `xorm:"JSON TEXT"`
 	EnableStatusCheck             bool     `xorm:"NOT NULL DEFAULT false"`
-	StatusCheckPattern            string   `xorm:"TEXT"`
 	StatusCheckContexts           []string `xorm:"JSON TEXT"`
 	EnableApprovalsWhitelist      bool     `xorm:"NOT NULL DEFAULT false"`
 	ApprovalsWhitelistUserIDs     []int64  `xorm:"JSON TEXT"`

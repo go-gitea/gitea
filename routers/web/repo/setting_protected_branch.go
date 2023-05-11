@@ -115,7 +115,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(rule.WhitelistUserIDs), ",")
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.MergeWhitelistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistUserIDs), ",")
-	c.Data["status_check_pattern"] = rule.StatusCheckPattern
+	c.Data["status_check_pattern"] = strings.Join(rule.StatusCheckContexts, ";")
 	contexts, _ := git_model.FindRepoRecentCommitStatusContexts(c, c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
 	for _, ctx := range rule.StatusCheckContexts {
 		var found bool
@@ -239,10 +239,8 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.EnableStatusCheck = f.EnableStatusCheck
 	if f.EnableStatusCheck {
 		protectBranch.StatusCheckContexts = f.StatusCheckContexts
-		protectBranch.StatusCheckPattern = f.StatusCheckPattern
 	} else {
 		protectBranch.StatusCheckContexts = nil
-		protectBranch.StatusCheckPattern = ""
 	}
 
 	protectBranch.RequiredApprovals = f.RequiredApprovals

@@ -10,8 +10,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/gobwas/glob"
@@ -19,21 +19,8 @@ import (
 )
 
 // MergeRequiredContextsCommitStatus returns a commit status state for given required contexts
-func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus, requiredContexts []string, statusCheckPattern string) structs.CommitStatusState {
-	allRequiredContexts := container.SetOf(requiredContexts...)
-	if len(statusCheckPattern) > 0 {
-		if gp, err := glob.Compile(statusCheckPattern); err != nil {
-			return structs.CommitStatusError
-		} else {
-			for _, commitStatus := range commitStatuses {
-				if gp.Match(commitStatus.Context) {
-					allRequiredContexts.Add(commitStatus.Context)
-				}
-			}
-		}
-	}
-
-	if len(allRequiredContexts) == 0 {
+func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus, requiredContexts []string) structs.CommitStatusState {
+	if len(requiredContexts) == 0 {
 		status := git_model.CalcCommitStatus(commitStatuses)
 		if status != nil {
 			return status.State
@@ -41,11 +28,20 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 		return structs.CommitStatusSuccess
 	}
 
+	requiredContextsGlob := make(map[string]glob.Glob, len(requiredContexts))
+	for _, ctx := range requiredContexts {
+		if gp, err := glob.Compile(ctx); err != nil {
+			log.Error("")
+		} else {
+			requiredContextsGlob[ctx] = gp
+		}
+	}
+
 	returnedStatus := structs.CommitStatusSuccess
-	for _, ctx := range allRequiredContexts.Values() {
+	for ctx, gp := range requiredContextsGlob {
 		var targetStatus structs.CommitStatusState
 		for _, commitStatus := range commitStatuses {
-			if commitStatus.Context == ctx {
+			if gp.Match(commitStatus.Context) {
 				targetStatus = commitStatus.State
 				break
 			}
@@ -162,5 +158,5 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 		requiredContexts = pb.StatusCheckContexts
 	}
 
-	return MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts, pb.StatusCheckPattern), nil
+	return MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts), nil
 }

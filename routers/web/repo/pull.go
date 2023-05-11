@@ -577,16 +577,14 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	if pb != nil && pb.EnableStatusCheck {
 		ctx.Data["is_context_required"] = func(context string) bool {
 			for _, c := range pb.StatusCheckContexts {
-				if c == context {
-					return true
+				if gp, err := glob.Compile(c); err == nil {
+					return gp.Match(context)
 				}
 			}
-			if gp, err := glob.Compile(pb.StatusCheckPattern); err == nil {
-				return gp.Match(context)
-			}
+
 			return false
 		}
-		ctx.Data["RequiredStatusCheckState"] = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pb.StatusCheckContexts, pb.StatusCheckPattern)
+		ctx.Data["RequiredStatusCheckState"] = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pb.StatusCheckContexts)
 	}
 
 	ctx.Data["HeadBranchMovedOn"] = headBranchSha != sha
