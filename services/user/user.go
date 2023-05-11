@@ -243,7 +243,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 
 // UploadAvatar saves custom avatar for user.
 func UploadAvatar(u *user_model.User, data []byte) error {
-	avatarData, err := avatar.TryToResizeAvatar(data, setting.Avatar.MaxOriginSize)
+	avatarData, err := avatar.TryToResizeAvatar(data)
 	if err != nil {
 		return err
 	}

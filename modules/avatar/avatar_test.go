@@ -89,26 +89,26 @@ func Test_TryToResizeAvatar(t *testing.T) {
 
 	// if origin image is smaller than the default size, use the origin image
 	origin := newImgData(1)
-	resized, err := TryToResizeAvatar(origin, 0)
+	resized, err := tryToResizeAvatar(origin, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, origin, resized)
 
 	// use the resized image if the resized is smaller
 	origin = newImgData(DefaultAvatarSize + 100)
-	resized, err = TryToResizeAvatar(origin, 0)
+	resized, err = tryToResizeAvatar(origin, 0)
 	assert.NoError(t, err)
 	assert.Less(t, len(resized), len(origin))
 
 	// still use the origin image if the origin doesn't exceed the max-origin-size
 	origin = newImgData(DefaultAvatarSize + 100)
-	resized, err = TryToResizeAvatar(origin, 128000)
+	resized, err = tryToResizeAvatar(origin, 128000)
 	assert.NoError(t, err)
 	assert.Equal(t, origin, resized)
 
 	// allow to use known image format (eg: webp) if it is small enough
 	origin, err = os.ReadFile("testdata/animated.webp")
 	assert.NoError(t, err)
-	resized, err = TryToResizeAvatar(origin, 128000)
+	resized, err = tryToResizeAvatar(origin, 128000)
 	assert.NoError(t, err)
 	assert.Equal(t, origin, resized)
 
@@ -119,11 +119,11 @@ func Test_TryToResizeAvatar(t *testing.T) {
 	assert.EqualValues(t, 400, height)
 	assert.True(t, acceptable)
 	assert.NoError(t, err)
-	_, err = TryToResizeAvatar(origin, 0)
+	_, err = tryToResizeAvatar(origin, 0)
 	assert.ErrorContains(t, err, "image data size is too large and it can't be converted")
 
 	// do not support unknown image formats, eg: SVG may contain embedded JS
 	origin = []byte("<svg></svg>")
-	_, err = TryToResizeAvatar(origin, 128000)
+	_, err = tryToResizeAvatar(origin, 128000)
 	assert.ErrorContains(t, err, "unsupported image format")
 }

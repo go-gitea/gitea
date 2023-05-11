@@ -137,7 +137,7 @@ func tryToUseOrigin(data []byte, maxOriginSize int64) ([]byte, error) {
 	return nil, errors.New("unsupported image format")
 }
 
-func TryToResizeAvatar(data []byte, maxOriginSize int64) ([]byte, error) {
+func tryToResizeAvatar(data []byte, maxOriginSize int64) ([]byte, error) {
 	img, err := resizeAvatar(data)
 	if err != nil {
 		// in case Golang's package can't decode the image (eg: animated webp), we try to decode by our code to see whether it could be use as origin
@@ -152,4 +152,8 @@ func TryToResizeAvatar(data []byte, maxOriginSize int64) ([]byte, error) {
 		return data, nil
 	}
 	return resized, nil
+}
+
+func TryToResizeAvatar(data []byte) ([]byte, error) {
+	return tryToUseOrigin(data, setting.Avatar.MaxOriginSize)
 }

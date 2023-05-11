@@ -14,14 +14,13 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 )
 
 // UploadAvatar saves custom avatar for repository.
 // FIXME: split uploads to different subdirs in case we have massive number of repos.
 func UploadAvatar(ctx context.Context, repo *repo_model.Repository, data []byte) error {
-	avatarData, err := avatar.TryToResizeAvatar(data, setting.Avatar.MaxOriginSize)
+	avatarData, err := avatar.TryToResizeAvatar(data)
 	if err != nil {
 		return err
 	}
