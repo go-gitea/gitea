@@ -44,6 +44,8 @@ func RandomImage(data []byte) (image.Image, error) {
 	return RandomImageSize(DefaultAvatarSize, data)
 }
 
+// processAvatarImage process the avatar image data, crop and resize it if necessary.
+// the returned data could be the original image if no processing is needed.
 func processAvatarImage(data []byte, maxOriginSize int64) ([]byte, error) {
 	imgCfg, imgType, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
@@ -65,8 +67,8 @@ func processAvatarImage(data []byte, maxOriginSize int64) ([]byte, error) {
 
 	// If the origin is small enough, just use it, then APNG could be supported,
 	// otherwise, if the image is processed later, APNG loses animation.
-	// And one more thing, webp is not fully supported, image.DecodeConfig works but Decode fails.
-	// So for webp, if the uploaded file is smaller than maxOriginSize, it will be used, if it's larger, there will be an error.
+	// And one more thing, webp is not fully supported, for animated webp, image.DecodeConfig works but Decode fails.
+	// So for animated webp, if the uploaded file is smaller than maxOriginSize, it will be used, if it's larger, there will be an error.
 	if len(data) < int(maxOriginSize) {
 		return data, nil
 	}
@@ -114,6 +116,8 @@ func processAvatarImage(data []byte, maxOriginSize int64) ([]byte, error) {
 	return resized, nil
 }
 
+// ProcessAvatarImage process the avatar image data, crop/ it if necessary.
+// the returned data could be the original image if no processing is needed.
 func ProcessAvatarImage(data []byte) ([]byte, error) {
 	return processAvatarImage(data, setting.Avatar.MaxOriginSize)
 }
