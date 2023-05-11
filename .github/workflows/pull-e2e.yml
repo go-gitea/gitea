@@ -18,10 +18,8 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 20
-      - name: build
-        run: make deps-frontend frontend deps-backend
-      - name: Install playwright browsers
-        run: npx playwright install --with-deps
+      - run: make deps-frontend frontend deps-backend
+      - run: npx playwright install --with-deps
       - name: run tests
         run: timeout -s ABRT 40m make test-e2e-sqlite
         env:

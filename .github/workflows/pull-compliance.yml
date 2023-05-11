@@ -15,10 +15,8 @@ jobs:
         with:
           go-version: '>=1.20'
           check-latest: true
-      - name: deps-backend
-        run: make deps-backend deps-tools
-      - name: lint backend
-        run: make lint-backend
+      - run: make deps-backend deps-tools
+      - run: make lint-backend
         env:
           GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
           GOSUMDB: sum.golang.org
@@ -31,10 +29,8 @@ jobs:
         with:
           go-version: '>=1.20'
           check-latest: true
-      - name: deps-backend
-        run: make deps-backend deps-tools
-      - name: lint-go-windows
-        run: make lint-go-windows lint-go-vet
+      - run: make deps-backend deps-tools
+      - run: make lint-go-windows lint-go-vet
         env:
           GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
           GOSUMDB: sum.golang.org
@@ -49,10 +45,8 @@ jobs:
         with:
           go-version: '>=1.20'
           check-latest: true
-      - name: deps-backend
-        run: make deps-backend deps-tools
-      - name: lint-go-gogit
-        run: make lint-go
+      - run: make deps-backend deps-tools
+      - run: make lint-go
         env:
           GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
           GOSUMDB: sum.golang.org
@@ -65,10 +59,8 @@ jobs:
         with:
           go-version: '>=1.20'
           check-latest: true
-      - name: deps-backend
-        run: make deps-backend deps-tools
-      - name: checks backend
-        run: make --always-make checks-backend # ensure the 'go-licenses' make target runs
+      - run: make deps-backend deps-tools
+      - run: make --always-make checks-backend # ensure the 'go-licenses' make target runs
   frontend:
     runs-on: ubuntu-latest
     steps:
