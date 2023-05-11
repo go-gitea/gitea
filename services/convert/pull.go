@@ -88,7 +88,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		},
 	}
 
-	if err := pr.LoadRequestedReviewers(ctx); err != nil {
+	if err = pr.LoadRequestedReviewers(ctx); err != nil {
 		log.Error("LoadRequestedReviewers[%d]: %v", pr.ID, err)
 		return nil
 	}

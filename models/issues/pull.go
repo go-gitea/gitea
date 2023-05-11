@@ -316,14 +316,16 @@ func (pr *PullRequest) LoadHeadRepo(ctx context.Context) (err error) {
 	return nil
 }
 
-func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) (err error) {
-	// Reset maybe preexisting reviewers
-	pr.RequestedReviewers = []*user_model.User{}
+func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) error {
+	if len(pr.RequestedReviewers) > 0 {
+		return nil
+	}
 
 	reviews, err := GetReviewersByIssueID(pr.Issue.ID)
 	if err != nil {
 		return err
 	}
+
 	if len(reviews) > 0 {
 		for _, review := range reviews {
 			if err = review.LoadReviewer(ctx); err != nil {

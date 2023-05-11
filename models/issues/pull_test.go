@@ -99,6 +99,7 @@ func TestLoadRequestedReviewers(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
 
+	pull.RequestedReviewers = nil
 	assert.NoError(t, pull.LoadRequestedReviewers(db.DefaultContext))
 	assert.Empty(t, pull.RequestedReviewers)
 }
