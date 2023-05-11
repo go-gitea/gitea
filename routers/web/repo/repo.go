@@ -577,6 +577,41 @@ func SearchRepo(ctx *context.Context) {
 		return
 	}
 
+	// collect the latest commit of each repo
+	repoIDsWithCommitStatuses := make([]int64, 0, len(repos))
+	commitsWithCommitStatuses := make([]string, 0, len(repos))
+	for _, repo := range repos {
+		branches, branchCount, err := repo_service.GetBranches(ctx, repo, 0, 0)
+		if err != nil {
+			log.Error("GetBranches: %v", err)
+			continue
+		}
+		if branchCount == 0 {
+			continue
+		}
+
+		for _, branch := range branches {
+			// find the default branch
+			if repo.DefaultBranch == branch.Name {
+				commit, err := branch.GetCommit()
+				if err != nil {
+					log.Error("GetCommit: %v", err)
+					break
+				}
+				repoIDsWithCommitStatuses = append(repoIDsWithCommitStatuses, repo.ID)
+				commitsWithCommitStatuses = append(commitsWithCommitStatuses, commit.ID.String())
+				break
+			}
+		}
+	}
+
+	// call the database O(1) times to get the commit statuses for all repos
+	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsWithCommitStatuses, commitsWithCommitStatuses, db.ListOptions{})
+	if err != nil {
+		log.Error("GetLatestCommitStatusForPairs: %v", err)
+		return
+	}
+
 	results := make([]*api.WebSearchRepository, len(repos))
 	for i, repo := range repos {
 		results[i] = &api.WebSearchRepository{
@@ -592,7 +627,7 @@ func SearchRepo(ctx *context.Context) {
 				Link:     repo.Link(),
 				Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 			},
-			LatestCommitStatusState: getLatestCommitStatusState(ctx, repo),
+			LatestCommitStatusState: git_model.CalcCommitStatus(repoToItsLatestCommitStatuses[repo.ID]).State,
 		}
 	}
 
@@ -600,36 +635,4 @@ func SearchRepo(ctx *context.Context) {
 		OK:   true,
 		Data: results,
 	})
-}
-
-// getLatestCommitStatusState returns the commit status state returns the latest commit status state of the latest
-// commit on the default branch of the given repository
-func getLatestCommitStatusState(ctx *context.Context, repo *repo_model.Repository) api.CommitStatusState {
-	branches, branchCount, _ := repo_service.GetBranches(ctx, repo, 0, 0)
-	if branchCount == 0 {
-		return ""
-	}
-
-	for _, branch := range branches {
-		// find the default branch
-		if repo.DefaultBranch == branch.Name {
-			commit, err := branch.GetCommit()
-			if err != nil {
-				log.Error("GetCommit: %v", err)
-				return ""
-			}
-
-			statuses, statusCount, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commit.ID.String(), db.ListOptions{})
-			if err != nil {
-				log.Error("GetLatestCommitStatus: %v", err)
-				return ""
-			}
-			if statusCount == 0 {
-				return ""
-			}
-
-			return git_model.CalcCommitStatus(statuses).State
-		}
-	}
-	return ""
 }
