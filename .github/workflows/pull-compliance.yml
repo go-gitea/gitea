@@ -23,7 +23,7 @@ jobs:
           GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
           GOSUMDB: sum.golang.org
           TAGS: bindata sqlite sqlite_unlock_notify
-  lint-backend-windows:
+  lint-go-windows:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -33,7 +33,7 @@ jobs:
           check-latest: true
       - name: deps-backend
         run: make deps-backend deps-tools
-      - name: lint-backend-windows
+      - name: lint-go-windows
         run: make lint-go-windows lint-go-vet
         env:
           GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
@@ -41,7 +41,7 @@ jobs:
           TAGS: bindata sqlite sqlite_unlock_notify
           GOOS: windows
           GOARCH: amd64
-  lint-backup-gogit:
+  lint-go-gogit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -51,8 +51,8 @@ jobs:
           check-latest: true
       - name: deps-backend
         run: make deps-backend deps-tools
-      - name: lint-backend-gogit
-        run: make lint-backend
+      - name: lint-go-gogit
+        run: make lint-go
         env:
           GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
           GOSUMDB: sum.golang.org
