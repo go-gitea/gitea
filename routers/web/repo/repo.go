@@ -599,9 +599,9 @@ func SearchRepo(ctx *context.Context) {
 		return
 	}
 
-	results := make([]*api.WebSearchRepository, len(repos))
+	results := make([]*repo_service.WebSearchRepository, len(repos))
 	for i, repo := range repos {
-		results[i] = &api.WebSearchRepository{
+		results[i] = &repo_service.WebSearchRepository{
 			Repository: &api.Repository{
 				ID:       repo.ID,
 				FullName: repo.FullName(),
@@ -614,11 +614,11 @@ func SearchRepo(ctx *context.Context) {
 				Link:     repo.Link(),
 				Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 			},
-			LatestCommitStatusState: git_model.CalcCommitStatus(repoToItsLatestCommitStatuses[repo.ID]).State,
+			LatestCommitStatus: git_model.CalcCommitStatus(repoToItsLatestCommitStatuses[repo.ID]),
 		}
 	}
 
-	ctx.JSON(http.StatusOK, api.WebSearchResults{
+	ctx.JSON(http.StatusOK, repo_service.WebSearchResults{
 		OK:   true,
 		Data: results,
 	})

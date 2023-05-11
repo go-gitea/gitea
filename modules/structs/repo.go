@@ -46,12 +46,6 @@ type ExternalWiki struct {
 	ExternalWikiURL string `json:"external_wiki_url"`
 }
 
-// WebSearchRepository represents a repository returned by web search
-type WebSearchRepository struct {
-	Repository              *Repository       `json:"repository"`
-	LatestCommitStatusState CommitStatusState `json:"latest_commit_status_state"`
-}
-
 // Repository represents a repository
 type Repository struct {
 	ID            int64       `json:"id"`
