@@ -21,6 +21,8 @@ func Stacktrace(ctx *context.Context) {
 
 	show := ctx.FormString("show")
 	ctx.Data["ShowGoroutineList"] = show
+	// by default, do not do anything which might cause server errors, to avoid unnecessary 500 pages.
+	// this page is the entrance of the chance to collect diagnosis report.
 	if show != "" {
 		showNoSystem := show == "process"
 		processStacks, processCount, _, err := process.GetManager().ProcessStacktraces(false, showNoSystem)
