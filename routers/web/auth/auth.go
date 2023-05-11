@@ -444,7 +444,7 @@ func SignUpPost(ctx *context.Context) {
 	}
 	if !password.IsComplexEnough(form.Password) {
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplSignUp, &form)
+		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplSignUp, &form)
 		return
 	}
 	pwned, err := password.IsPwned(ctx, form.Password)

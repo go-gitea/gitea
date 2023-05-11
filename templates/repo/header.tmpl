@@ -13,9 +13,6 @@
 					<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 					<div class="gt-mx-2">/</div>
 					<a href="{{$.RepoLink}}">{{.Name}}</a>
-					{{if $.EnableFeed}}
-						<a href="{{$.RepoLink}}.rss"><i class="ui grey icon gt-ml-3" data-tooltip-content="{{$.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
-					{{end}}
 					<div class="labels gt-df gt-ac gt-fw">
 						{{if .IsTemplate}}
 							{{if .IsPrivate}}
@@ -38,6 +35,9 @@
 							<span class="ui basic label">{{$.locale.Tr "repo.desc.archived"}}</span>
 						{{end}}
 					</div>
+					{{if $.EnableFeed}}
+						<a class="muted gt-ml-3" href="{{$.RepoLink}}.rss" data-tooltip-content="{{$.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</a>
+					{{end}}
 				</div>
 				{{if $.IsPullMirror}}
 					{{$address := MirrorRemoteAddress $.Context . $.Mirror.GetRemoteName false}}

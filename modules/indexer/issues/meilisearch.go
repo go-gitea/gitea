@@ -17,12 +17,11 @@ var _ Indexer = &MeilisearchIndexer{}
 
 // MeilisearchIndexer implements Indexer interface
 type MeilisearchIndexer struct {
-	client               *meilisearch.Client
-	indexerName          string
-	available            bool
-	availabilityCallback func(bool)
-	stopTimer            chan struct{}
-	lock                 sync.RWMutex
+	client      *meilisearch.Client
+	indexerName string
+	available   bool
+	stopTimer   chan struct{}
+	lock        sync.RWMutex
 }
 
 // MeilisearchIndexer creates a new meilisearch indexer
@@ -71,13 +70,6 @@ func (b *MeilisearchIndexer) Init() (bool, error) {
 
 	_, err = b.client.Index(b.indexerName).UpdateFilterableAttributes(&[]string{"repo_id"})
 	return false, b.checkError(err)
-}
-
-// SetAvailabilityChangeCallback sets callback that will be triggered when availability changes
-func (b *MeilisearchIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-	b.availabilityCallback = callback
 }
 
 // Ping checks if meilisearch is available
@@ -178,8 +170,4 @@ func (b *MeilisearchIndexer) setAvailability(available bool) {
 	}
 
 	b.available = available
-	if b.availabilityCallback != nil {
-		// Call the callback from within the lock to ensure that the ordering remains correct
-		b.availabilityCallback(b.available)
-	}
 }

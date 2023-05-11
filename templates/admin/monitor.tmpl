@@ -1,36 +1,7 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
 	<div class="admin-setting-content">
 		{{template "admin/cron" .}}
-		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.monitor.queues"}}
-		</h4>
-		<div class="ui attached table segment">
-			<table class="ui very basic striped table unstackable">
-				<thead>
-					<tr>
-						<th>{{.locale.Tr "admin.monitor.queue.name"}}</th>
-						<th>{{.locale.Tr "admin.monitor.queue.type"}}</th>
-						<th>{{.locale.Tr "admin.monitor.queue.exemplar"}}</th>
-						<th>{{.locale.Tr "admin.monitor.queue.numberworkers"}}</th>
-						<th>{{.locale.Tr "admin.monitor.queue.numberinqueue"}}</th>
-						<th></th>
-					</tr>
-				</thead>
-				<tbody>
-					{{range .Queues}}
-						<tr>
-							<td>{{.Name}}</td>
-							<td>{{.Type}}</td>
-							<td>{{.ExemplarType}}</td>
-							<td>{{$sum := .NumberOfWorkers}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
-							<td>{{$sum = .NumberInQueue}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
-							<td><a href="{{$.Link}}/queue/{{.QID}}" class="button">{{if lt $sum 0}}{{$.locale.Tr "admin.monitor.queue.review"}}{{else}}{{$.locale.Tr "admin.monitor.queue.review_add"}}{{end}}</a>
-						</tr>
-					{{end}}
-				</tbody>
-			</table>
-		</div>
-
+		{{template "admin/queue" .}}
 		{{template "admin/process" .}}
 	</div>
 
