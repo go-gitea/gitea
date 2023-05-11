@@ -219,9 +219,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 
 		// this is necessary for sync local tags from remote
-		if stdout, _, err := git.NewCommand(ctx, "config", "--add").
-			AddDynamicArguments(fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())).
-			AddDynamicArguments(`+refs/tags/*:refs/tags/*`).
+		configName := fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())
+		if stdout, _, err := git.NewCommand(ctx, "config").
+			AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`).
 			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return repo, fmt.Errorf("error in MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*): %w", err)
