@@ -7,7 +7,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # PostgreSQL Tests
   test-pgsql:
     runs-on: ubuntu-latest
     services:
@@ -52,7 +51,6 @@ jobs:
           TEST_LDAP: 1
           USE_REPO_TEST_DIR: 1
 
-  # SQLite Tests
   test-sqlite:
     runs-on: ubuntu-latest
     steps:
@@ -72,7 +70,6 @@ jobs:
           TEST_TAGS: gogit sqlite sqlite_unlock_notify
           USE_REPO_TEST_DIR: 1
 
-  # Unit Tests
   test-unit:
     runs-on: ubuntu-latest
     services:
@@ -98,8 +95,7 @@ jobs:
           - "993:993"
       redis:
         image: redis
-        # Set health checks to wait until redis has started
-        options: >-
+        options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s
           --health-timeout 3s
@@ -130,7 +126,6 @@ jobs:
           RACE_ENABLED: true
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
-  # MySQL Tests
   test-mysql5:
     runs-on: ubuntu-latest
     services:
@@ -173,7 +168,6 @@ jobs:
           USE_REPO_TEST_DIR: 1
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
-  # MySQL8 Tests
   test-mysql8:
     runs-on: ubuntu-latest
     services:
@@ -201,7 +195,6 @@ jobs:
           TAGS: bindata
           USE_REPO_TEST_DIR: 1
 
-  # MSSQL Tests
   test-mssql:
     runs-on: ubuntu-latest
     services:
