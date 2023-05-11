@@ -1,7 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package tests
+package testlogger
 
 import (
 	"context"
@@ -36,56 +36,64 @@ type testLoggerWriterCloser struct {
 	t []*testing.TB
 }
 
-func (w *testLoggerWriterCloser) setT(t *testing.TB) {
+func (w *testLoggerWriterCloser) pushT(t *testing.TB) {
 	w.Lock()
 	w.t = append(w.t, t)
 	w.Unlock()
 }
 
 func (w *testLoggerWriterCloser) Write(p []byte) (int, error) {
+	// There was a data race problem: the logger system could still try to output logs after the runner is finished.
+	// So we must ensure that the "t" in stack is still valid.
 	w.RLock()
+	defer w.RUnlock()
+
 	var t *testing.TB
 	if len(w.t) > 0 {
 		t = w.t[len(w.t)-1]
 	}
-	w.RUnlock()
-	if t != nil && *t != nil {
-		if len(p) > 0 && p[len(p)-1] == '\n' {
-			p = p[:len(p)-1]
-		}
 
-		defer func() {
-			err := recover()
-			if err == nil {
-				return
-			}
-			var errString string
-			errErr, ok := err.(error)
-			if ok {
-				errString = errErr.Error()
-			} else {
-				errString, ok = err.(string)
-			}
-			if !ok {
-				panic(err)
-			}
-			if !strings.HasPrefix(errString, "Log in goroutine after ") {
-				panic(err)
-			}
-		}()
-
-		(*t).Log(string(p))
-		return len(p), nil
+	if len(p) > 0 && p[len(p)-1] == '\n' {
+		p = p[:len(p)-1]
 	}
+
+	if t == nil || *t == nil {
+		return fmt.Fprintf(os.Stdout, "??? [Unknown Test] %s\n", p)
+	}
+
+	defer func() {
+		err := recover()
+		if err == nil {
+			return
+		}
+		var errString string
+		errErr, ok := err.(error)
+		if ok {
+			errString = errErr.Error()
+		} else {
+			errString, ok = err.(string)
+		}
+		if !ok {
+			panic(err)
+		}
+		if !strings.HasPrefix(errString, "Log in goroutine after ") {
+			panic(err)
+		}
+	}()
+
+	(*t).Log(string(p))
 	return len(p), nil
 }
 
-func (w *testLoggerWriterCloser) Close() error {
+func (w *testLoggerWriterCloser) popT() {
 	w.Lock()
 	if len(w.t) > 0 {
 		w.t = w.t[:len(w.t)-1]
 	}
 	w.Unlock()
+}
+
+func (w *testLoggerWriterCloser) Close() error {
 	return nil
 }
 
@@ -118,7 +126,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	} else {
 		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", t.Name(), strings.TrimPrefix(filename, prefix), line)
 	}
-	WriterCloser.setT(&t)
+	WriterCloser.pushT(&t)
 	return func() {
 		took := time.Since(start)
 		if took > SlowTest {
@@ -135,7 +143,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 				fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", t.Name(), SlowFlush)
 			}
 		})
-		if err := queue.GetManager().FlushAll(context.Background(), 2*time.Minute); err != nil {
+		if err := queue.GetManager().FlushAll(context.Background(), time.Minute); err != nil {
 			t.Errorf("Flushing queues failed with error %v", err)
 		}
 		timer.Stop()
@@ -147,7 +155,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 				fmt.Fprintf(os.Stdout, "+++ %s had a slow clean-up flush (took %v)\n", t.Name(), flushTook)
 			}
 		}
-		_ = WriterCloser.Close()
+		WriterCloser.popT()
 	}
 }
 
@@ -195,7 +203,10 @@ func (log *TestLogger) GetName() string {
 }
 
 func init() {
-	log.Register("test", NewTestLogger)
+	const relFilePath = "modules/testlogger/testlogger.go"
 	_, filename, _, _ := runtime.Caller(0)
-	prefix = strings.TrimSuffix(filename, "tests/integration/testlogger.go")
+	if !strings.HasSuffix(filename, relFilePath) {
+		panic("source code file path doesn't match expected: " + relFilePath)
+	}
+	prefix = strings.TrimSuffix(filename, relFilePath)
 }
