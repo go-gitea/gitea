@@ -242,7 +242,7 @@ func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOp
 }
 
 // GetLatestCommitStatusForPairs returns all statuses with a unique context for a given list of repo-sha pairs
-func GetLatestCommitStatusForPairs(ctx context.Context, repoIDs []int64, shas []string, listOptions db.ListOptions) (map[int64][]*CommitStatus, error) {
+func GetLatestCommitStatusForPairs(ctx context.Context, repoIDsToLatestCommitSHAs map[int64]string, listOptions db.ListOptions) (map[int64][]*CommitStatus, error) {
 	if len(repoIDs) != len(shas) {
 		return nil, errors.New("repoIDs and shas must have the same length")
 	}
