@@ -42,13 +42,10 @@ jobs:
       - run: make deps-backend
       - run: make backend
         env:
-          GOPROXY: https://goproxy.io
-          GOSUMDB: sum.golang.org
           TAGS: bindata
       - name: run tests
         run: timeout -s ABRT 50m make test-pgsql-migration test-pgsql
         env:
-          GOPROXY: https://goproxy.io
           TAGS: bindata gogit
           RACE_ENABLED: true
           TEST_TAGS: gogit
@@ -66,13 +63,10 @@ jobs:
       - run: make deps-backend
       - run: make backend
         env:
-          GOPROXY: https://goproxy.io
-          GOSUMDB: sum.golang.org
           TAGS: bindata gogit sqlite sqlite_unlock_notify
       - name: run tests
         run: timeout -s ABRT 50m make test-sqlite-migration test-sqlite
         env:
-          GOPROXY: https://goproxy.io
           TAGS: bindata gogit sqlite sqlite_unlock_notify
           RACE_ENABLED: true
           TEST_TAGS: gogit sqlite sqlite_unlock_notify
@@ -122,20 +116,16 @@ jobs:
       - run: make deps-backend
       - run: make backend
         env:
-          GOPROXY: https://goproxy.io
-          GOSUMDB: sum.golang.org
           TAGS: bindata
       - name: unit-tests
         run: make unit-test-coverage test-check
         env:
-          GOPROXY: https://goproxy.io
           TAGS: bindata
           RACE_ENABLED: true
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
       - name: unit-tests-gogit
         run: make unit-test-coverage test-check
         env:
-          GOPROXY: https://goproxy.io
           TAGS: bindata gogit
           RACE_ENABLED: true
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
@@ -174,13 +164,10 @@ jobs:
       - run: make deps-backend
       - run: make backend
         env:
-          GOPROXY: https://goproxy.io
-          GOSUMDB: sum.golang.org
           TAGS: bindata
       - name: run tests
         run: make test-mysql-migration integration-test-coverage
         env:
-          GOPROXY: https://goproxy.io
           TAGS: bindata
           RACE_ENABLED: true
           USE_REPO_TEST_DIR: 1
@@ -207,13 +194,10 @@ jobs:
       - run: make deps-backend
       - run: make backend
         env:
-          GOPROXY: https://goproxy.io
-          GOSUMDB: sum.golang.org
           TAGS: bindata
       - name: run tests
         run: timeout -s ABRT 50m make test-mysql8-migration test-mysql8
         env:
-          GOPROXY: https://goproxy.io
           TAGS: bindata
           USE_REPO_TEST_DIR: 1
 
@@ -239,12 +223,9 @@ jobs:
       - run: make deps-backend
       - run: make backend
         env:
-          GOPROXY: https://goproxy.io
-          GOSUMDB: sum.golang.org
           TAGS: bindata
       - name: run tests
         run: timeout -s ABRT 50m make test-mssql-migration test-mssql
         env:
-          GOPROXY: https://goproxy.io
           TAGS: bindata
           USE_REPO_TEST_DIR: 1

@@ -23,6 +23,4 @@ jobs:
       - name: run tests
         run: timeout -s ABRT 40m make test-e2e-sqlite
         env:
-          GOPROXY: https://goproxy.io
-          GOSUMDB: sum.golang.org
           USE_REPO_TEST_DIR: 1

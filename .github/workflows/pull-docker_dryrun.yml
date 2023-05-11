@@ -16,5 +16,3 @@ jobs:
         with:
           push: false
           tags: gitea/gitea:linux-amd64
-          build-args: |
-            GOPROXY=https://goproxy.io
