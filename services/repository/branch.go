@@ -53,6 +53,10 @@ func GetBranches(ctx context.Context, repo *repo_model.Repository, skip, limit i
 	return git.GetBranchesByPath(ctx, repo.RepoPath(), skip, limit)
 }
 
+func GetBranch(ctx context.Context, repo *repo_model.Repository, branch string) (*git.Branch, error) {
+	return git.GetBranch(ctx, repo.RepoPath(), branch)
+}
+
 // checkBranchName validates branch name with existing repository branches
 func checkBranchName(ctx context.Context, repo *repo_model.Repository, name string) error {
 	_, err := git.WalkReferences(ctx, repo.RepoPath(), func(_, refName string) error {

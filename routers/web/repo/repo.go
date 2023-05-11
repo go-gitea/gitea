@@ -581,28 +581,17 @@ func SearchRepo(ctx *context.Context) {
 	repoIDsWithCommitStatuses := make([]int64, 0, len(repos))
 	commitsWithCommitStatuses := make([]string, 0, len(repos))
 	for _, repo := range repos {
-		branches, branchCount, err := repo_service.GetBranches(ctx, repo, 0, 0)
+		branch, err := repo_service.GetBranch(ctx, repo, repo.DefaultBranch)
 		if err != nil {
-			log.Error("GetBranches: %v", err)
 			continue
 		}
-		if branchCount == 0 {
+		commit, err := branch.GetCommit()
+		if err != nil {
+			log.Error("GetCommit: %v", err)
 			continue
 		}
-
-		for _, branch := range branches {
-			// find the default branch
-			if repo.DefaultBranch == branch.Name {
-				commit, err := branch.GetCommit()
-				if err != nil {
-					log.Error("GetCommit: %v", err)
-					break
-				}
-				repoIDsWithCommitStatuses = append(repoIDsWithCommitStatuses, repo.ID)
-				commitsWithCommitStatuses = append(commitsWithCommitStatuses, commit.ID.String())
-				break
-			}
-		}
+		repoIDsWithCommitStatuses = append(repoIDsWithCommitStatuses, repo.ID)
+		commitsWithCommitStatuses = append(commitsWithCommitStatuses, commit.ID.String())
 	}
 
 	// call the database O(1) times to get the commit statuses for all repos
