@@ -140,6 +140,7 @@ func tryToUseOrigin(data []byte, maxOriginSize int64) ([]byte, error) {
 func TryToResizeAvatar(data []byte, maxOriginSize int64) ([]byte, error) {
 	img, err := resizeAvatar(data)
 	if err != nil {
+		// in case Golang's package can't decode the image (eg: animated webp), we try to decode by our code to see whether it could be use as origin
 		return tryToUseOrigin(data, maxOriginSize)
 	}
 	bs := bytes.Buffer{}
