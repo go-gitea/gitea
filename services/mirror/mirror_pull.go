@@ -88,10 +88,12 @@ type mirrorSyncResult struct {
 /*
 // * [new tag]         v0.1.8     -> v0.1.8
 // * [new branch]      master     -> origin/master
-// - [deleted]         (none)     -> origin/test
+// - [deleted]         (none)     -> origin/test // delete a branch
+// - [deleted]         (none)     -> 1 // delete a tag
 //   957a993..a87ba5f  test       -> origin/test
 // + f895a1e...957a993 test       -> origin/test  (forced update)
 */
+// TODO: return whether it's a force update
 func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 	results := make([]*mirrorSyncResult, 0, 3)
 	lines := strings.Split(output, "\n")
@@ -102,7 +104,7 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 			continue
 		}
 
-		refName := lines[i][idx+3:]
+		refName := strings.TrimSpace(lines[i][idx+3:])
 
 		switch {
 		case strings.HasPrefix(lines[i], " * [new tag]"): // new tag
@@ -111,22 +113,27 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 				oldCommitID: gitShortEmptySha,
 			})
 		case strings.HasPrefix(lines[i], " * [new branch]"): // new branch
-			refName = strings.TrimPrefix(strings.TrimSpace(refName), remoteName+"/")
+			refName = strings.TrimPrefix(refName, remoteName+"/")
 			results = append(results, &mirrorSyncResult{
 				refName:     git.RefNameFromBranch(refName),
 				oldCommitID: gitShortEmptySha,
 			})
 		case strings.HasPrefix(lines[i], " - "): // Delete reference
-			refName = strings.TrimPrefix(strings.TrimSpace(refName), remoteName+"/")
+			isTag := !strings.HasPrefix(refName, remoteName+"/")
+			var refFullName git.RefName
+			if isTag {
+				refFullName = git.RefNameFromTag(refName)
+			} else {
+				refFullName = git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/"))
+			}
 			results = append(results, &mirrorSyncResult{
-				refName:     git.RefNameFromBranch(refName),
+				refName:     refFullName,
 				newCommitID: gitShortEmptySha,
 			})
 		case strings.HasPrefix(lines[i], " + "): // Force update
 			if idx := strings.Index(refName, " "); idx > -1 {
 				refName = refName[:idx]
 			}
-			refName = strings.TrimPrefix(strings.TrimSpace(refName), remoteName+"/")
 			delimIdx := strings.Index(lines[i][3:], " ")
 			if delimIdx == -1 {
 				log.Error("SHA delimiter not found: %q", lines[i])
@@ -138,7 +145,7 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 				continue
 			}
 			results = append(results, &mirrorSyncResult{
-				refName:     git.RefNameFromBranch(refName),
+				refName:     git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/")),
 				oldCommitID: shas[0],
 				newCommitID: shas[1],
 			})
@@ -153,9 +160,8 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 				log.Error("Expect two SHAs but not what found: %q", lines[i])
 				continue
 			}
-			refName = strings.TrimPrefix(strings.TrimSpace(refName), remoteName+"/")
 			results = append(results, &mirrorSyncResult{
-				refName:     git.RefNameFromBranch(refName),
+				refName:     git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/")),
 				oldCommitID: shas[0],
 				newCommitID: shas[1],
 			})
@@ -216,11 +222,11 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
 
-	cmd := git.NewCommand(ctx, "remote", "update")
+	cmd := git.NewCommand(ctx, "fetch")
 	if m.EnablePrune {
 		cmd.AddArguments("--prune")
 	}
-	cmd.AddDynamicArguments(m.GetRemoteName())
+	cmd.AddArguments("--tags").AddDynamicArguments(m.GetRemoteName())
 
 	remoteURL, remoteErr := git.GetRemoteURL(ctx, repoPath, m.GetRemoteName())
 	if remoteErr != nil {
