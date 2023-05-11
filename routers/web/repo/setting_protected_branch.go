@@ -117,12 +117,13 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(rule.WhitelistUserIDs), ",")
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.MergeWhitelistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistUserIDs), ",")
-	c.Data["status_check_pattern"] = strings.Join(rule.StatusCheckContexts, ";")
+	c.Data["status_check_contexts"] = strings.Join(rule.StatusCheckContexts, ";")
 	contexts, _ := git_model.FindRepoRecentCommitStatusContexts(c, c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
 	for _, ctx := range rule.StatusCheckContexts {
 		gb, err := glob.Compile(ctx)
 		if err != nil {
-			log.Error("")
+			log.Error("glob.Compile %s failed. Error: %v", ctx, err)
+			continue
 		}
 		var found bool
 		for i := range contexts {
@@ -251,7 +252,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 				continue
 			}
 			if _, err := glob.Compile(c); err != nil {
-				ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_invalid_status_check_pattern", c))
+				ctx.Flash.Error(ctx.Tr("repo.settings.protect_invalid_status_check_pattern", c))
 				ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, protectBranch.RuleName))
 				return
 			}

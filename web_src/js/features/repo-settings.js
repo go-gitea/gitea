@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {debounce} from 'throttle-debounce';
+import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.js';
 
 const {appSubUrl, csrfToken} = window.config;
@@ -83,11 +84,31 @@ export function initRepoSettingBranches() {
     if (this.checked) $target.addClass('disabled'); // only disable, do not auto enable
   });
 
-  // mark all status checks that match the pattern
-  const statusCheckPatternInput = document.getElementById('status_check_pattern');
+  // show the `Matched` mark for the status check contexts that match the pattern
+  const markMatchedStatusCheckContexts = function() {
+    const matchedMarks = document.getElementsByClassName('status-check-matched-mark');
+    const statusCheckContexts = Array.from(matchedMarks).map(el => el.getAttribute('data-status-check-context'));
+    const patterns = document.getElementById('status_check_contexts').value.split(';');
+    const matchedStatusCheckContexts = new Set();
+    for (const context of statusCheckContexts) {
+      for (const pattern of patterns) {
+        if (minimatch(context, pattern)) {
+          matchedStatusCheckContexts.add(context);
+          break;
+        }
+      }
+    }
+    for (const el of matchedMarks) {
+      if (matchedStatusCheckContexts.has(el.getAttribute('data-status-check-context'))) {
+        el.classList.remove('gt-hidden');
+      } else {
+        el.classList.add('gt-hidden');
+      }
+    }
+  };
+  markMatchedStatusCheckContexts();
+  const statusCheckPatternInput = document.getElementById('status_check_contexts');
   if (statusCheckPatternInput) {
-    statusCheckPatternInput.addEventListener('input', debounce(200, (e) => {
-      // TODO
-    }));
+    statusCheckPatternInput.addEventListener('input', debounce(200, markMatchedStatusCheckContexts));
   }
 }
