@@ -1,18 +1,19 @@
 {{if and .PageIsSettingsHooksEdit .Permission.IsAdmin}}
 	<h4 class="ui top attached header">
-		{{.locale.Tr "repo.settings.webhook.test_delivery"}}
+		{{.locale.Tr "repo.settings.webhook.test"}}
 	</h4>
 	<div class="ui attached segment">
+		<p>{{.locale.Tr "repo.settings.webhook.test_desc"}}</p>
 		<form class="ui form">
 			{{.CsrfTokenHtml}}
 			<div class="required field">
 				<label for="branch">{{.locale.Tr "repo.branch"}}</label>
 				<div class="ui selection dropdown">
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-					<input type="hidden" id="branch" name="branch" value="{{.Repository.DefaultBranch}}">
-					<div class="default text">{{.Repository.DefaultBranch}}</div>
+					<input type="hidden" id="branch" name="branch" value="{{if .WebhookBranches}}{{index .WebhookBranches 0}}{{end}}">
+					<div class="default text">{{if .WebhookBranches}}{{index .WebhookBranches 0}}{{end}}</div>
 					<div class="menu">
-						{{range .Branches}}
+						{{range .WebhookBranches}}
 							<div class="item" data-value="{{.}}">{{.}}</div>
 						{{end}}
 					</div>
@@ -22,7 +23,7 @@
 				<label for="event">{{.locale.Tr "repo.settings.webhook.event"}}</label>
 				<div class="ui selection dropdown">
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-					<input type="hidden" id="hook_event" name="hook_event" value="{{index .WebhookEvents 0}}">
+					<input type="hidden" id="hook_event" name="hook_event" value="{{if .WebhookEvents}}{{index .WebhookEvents 0}}{{end}}">
 					<div class="default text">post</div>
 					<div class="menu">
 						{{range .WebhookEvents}}
@@ -32,9 +33,7 @@
 				</div>
 			</div>
 			<div class="field">
-				<button class="ui green button" id="test-delivery"
-				data-tooltip-content="{{.locale.Tr "repo.settings.webhook.test_delivery_desc"}}"
-				data-link="{{.Link}}/test">{{.locale.Tr "repo.settings.webhook.test_delivery"}}</button>
+				<button class="ui green button {{if and (not .WebhookBranches) (not .WebhookEvents)}}disabled{{end}}" id="test-delivery" data-link="{{.Link}}/test">{{.locale.Tr "repo.settings.webhook.test_btn"}}</button>
 			</div>
 		</form>
 	</div>

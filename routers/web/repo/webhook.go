@@ -266,6 +266,12 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	}
 	ctx.Data["Webhook"] = w
 	ctx.Data["WebHookEvents"] = w.GetAllValidEventTypes()
+	brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 0)
+	if err != nil {
+		ctx.ServerError("GetBranches", err)
+		return
+	}
+	ctx.Data["WebhookBranches"] = getAllValidBranchNames(w, brs)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
@@ -273,7 +279,6 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	}
 
 	var meta []byte
-	var err error
 	if params.Meta != nil {
 		meta, err = json.Marshal(params.Meta)
 		if err != nil {
@@ -635,6 +640,12 @@ func WebHooksEdit(ctx *context.Context) {
 	}
 	ctx.Data["Webhook"] = w
 	ctx.Data["WebhookEvents"] = w.GetAllValidEventTypes()
+	brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 0)
+	if err != nil {
+		ctx.ServerError("GetBranches", err)
+		return
+	}
+	ctx.Data["WebhookBranches"] = getAllValidBranchNames(w, brs)
 
 	ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 }
@@ -735,4 +746,14 @@ func DeleteWebhook(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/hooks",
 	})
+}
+
+func getAllValidBranchNames(w *webhook.Webhook, branchNames []string) []string {
+	var validBranchNames []string
+	for _, bn := range branchNames {
+		if webhook_service.CheckBranch(w, bn) {
+			validBranchNames = append(validBranchNames, bn)
+		}
+	}
+	return validBranchNames
 }

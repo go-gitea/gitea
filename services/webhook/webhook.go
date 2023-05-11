@@ -137,7 +137,7 @@ func enqueueHookTask(taskID int64) error {
 	return nil
 }
 
-func checkBranch(w *webhook_model.Webhook, branch string) bool {
+func CheckBranch(w *webhook_model.Webhook, branch string) bool {
 	if w.BranchFilter == "" || w.BranchFilter == "*" {
 		return true
 	}
@@ -185,7 +185,7 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 	// If payload has no associated branch (e.g. it's a new tag, issue, etc.),
 	// branch filter has no effect.
 	if branch := getPayloadBranch(p); branch != "" {
-		if !checkBranch(w, branch) {
+		if !CheckBranch(w, branch) {
 			if isTest {
 				return fmt.Errorf("branch %q doesn't match branch filter %q", branch, w.BranchFilter)
 			}
