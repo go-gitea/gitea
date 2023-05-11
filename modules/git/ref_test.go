@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRefEndName(t *testing.T) {
+func TestRefName(t *testing.T) {
 	// Test branch names (with and without slash).
 	assert.Equal(t, "foo", RefName("refs/heads/foo").ShortName())
 	assert.Equal(t, "feature/foo", RefName("refs/heads/feature/foo").ShortName())
@@ -17,6 +17,8 @@ func TestRefEndName(t *testing.T) {
 	// Test tag names (with and without slash).
 	assert.Equal(t, "foo", RefName("refs/tags/foo").ShortName())
 	assert.Equal(t, "release/foo", RefName("refs/tags/release/foo").ShortName())
+
+	assert.Equal(t, "main", RefName("refs/for/main").ShortName())
 
 	// Test commit hashes.
 	assert.Equal(t, "c0ffee", RefName("c0ffee").ShortName())

@@ -125,6 +125,10 @@ func (r *indexerNotifier) NotifyMigrateRepository(ctx context.Context, doer, u *
 }
 
 func (r *indexerNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	if !opts.RefFullName.IsBranch() {
+		return
+	}
+
 	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName.ShortName() == repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
@@ -134,6 +138,10 @@ func (r *indexerNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 }
 
 func (r *indexerNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	if !opts.RefFullName.IsBranch() {
+		return
+	}
+
 	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName.ShortName() == repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
