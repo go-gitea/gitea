@@ -119,25 +119,18 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistUserIDs), ",")
 	c.Data["status_check_contexts"] = strings.Join(rule.StatusCheckContexts, ";")
 	contexts, _ := git_model.FindRepoRecentCommitStatusContexts(c, c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
-	for _, ctx := range rule.StatusCheckContexts {
-		gb, err := glob.Compile(ctx)
-		if err != nil {
-			log.Error("glob.Compile %s failed. Error: %v", ctx, err)
-			continue
-		}
-		var found bool
-		for i := range contexts {
-			if gb.Match(contexts[i]) {
-				found = true
-				break
+	c.Data["branch_status_check_contexts"] = contexts
+	c.Data["can_context_match"] = func(context string) bool {
+		for _, c := range rule.StatusCheckContexts {
+			if gp, err := glob.Compile(c); err != nil {
+				log.Error("glob.Compile %s failed. Error: %v", c, err)
+			} else if gp.Match(context) {
+				return true
 			}
 		}
-		if !found {
-			contexts = append(contexts, ctx)
-		}
+		return false
 	}
 
-	c.Data["branch_status_check_contexts"] = contexts
 	if c.Repo.Owner.IsOrganization() {
 		teams, err := organization.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c.Repo.Repository.ID, perm.AccessModeRead)
 		if err != nil {
