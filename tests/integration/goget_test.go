@@ -37,11 +37,11 @@ func TestGoGet(t *testing.T) {
 func TestGoGetForSSH(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	old := setting.Repository.UseGitCloneURL
+	old := setting.Repository.GoGetCloneURLProtocol
 	defer func() {
-		setting.Repository.UseGitCloneURL = old
+		setting.Repository.GoGetCloneURLProtocol = old
 	}()
-	setting.Repository.UseGitCloneURL = true
+	setting.Repository.GoGetCloneURLProtocol = "ssh"
 
 	req := NewRequest(t, "GET", "/blah/glah/plah?go-get=1")
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -49,13 +49,13 @@ func TestGoGetForSSH(t *testing.T) {
 	expected := fmt.Sprintf(`<!doctype html>
 <html>
 	<head>
-		<meta name="go-import" content="%[1]s:%[2]s/blah/glah git git@%[3]sblah/glah.git">
+		<meta name="go-import" content="%[1]s:%[2]s/blah/glah git git@%[4]s/blah/glah.git">
 		<meta name="go-source" content="%[1]s:%[2]s/blah/glah _ %[3]sblah/glah/src/branch/master{/dir} %[3]sblah/glah/src/branch/master{/dir}/{file}#L{line}">
 	</head>
 	<body>
 		go get --insecure %[1]s:%[2]s/blah/glah
 	</body>
-</html>`, setting.Domain, setting.HTTPPort, setting.SSH.Domain)
+</html>`, setting.Domain, setting.HTTPPort, setting.AppURL, setting.SSH.Domain)
 
 	assert.Equal(t, expected, resp.Body.String())
 }
