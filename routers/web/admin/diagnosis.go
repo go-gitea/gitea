@@ -46,7 +46,7 @@ func MonitorDiagnosis(ctx *context.Context) {
 
 	err = pprof.StartCPUProfile(f)
 	if err == nil {
-		time.Sleep(time.Duration(seconds * int64(time.Second)))
+		time.Sleep(time.Duration(seconds) * time.Second)
 		pprof.StopCPUProfile()
 	} else {
 		_, _ = f.Write([]byte(err.Error()))
