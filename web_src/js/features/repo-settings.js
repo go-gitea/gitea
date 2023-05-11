@@ -1,5 +1,4 @@
 import $ from 'jquery';
-import {debounce} from 'throttle-debounce';
 import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.js';
 
@@ -85,30 +84,24 @@ export function initRepoSettingBranches() {
   });
 
   // show the `Matched` mark for the status check contexts that match the pattern
-  const markMatchedStatusCheckContexts = function() {
-    const matchedMarks = document.getElementsByClassName('status-check-matched-mark');
-    const statusCheckContexts = Array.from(matchedMarks).map(el => el.getAttribute('data-status-check-context'));
-    const patterns = document.getElementById('status_check_contexts').value.split(';');
-    const matchedStatusCheckContexts = new Set();
-    for (const context of statusCheckContexts) {
+  const statusCheckPatternInput = document.getElementById('status_check_contexts');
+  statusCheckPatternInput?.addEventListener('input', (e) => {
+    const patterns = e.target.value.split(';');
+    const marks = document.getElementsByClassName('status-check-matched-mark');
+    for (const el of marks) {
+      let matched = false;
+      const statusCheckContext = el.getAttribute('data-status-check-context');
       for (const pattern of patterns) {
-        if (minimatch(context, pattern)) {
-          matchedStatusCheckContexts.add(context);
+        if (minimatch(statusCheckContext, pattern)) {
+          matched = true;
           break;
         }
       }
-    }
-    for (const el of matchedMarks) {
-      if (matchedStatusCheckContexts.has(el.getAttribute('data-status-check-context'))) {
+      if (matched) {
         el.classList.remove('gt-hidden');
       } else {
         el.classList.add('gt-hidden');
       }
     }
-  };
-  markMatchedStatusCheckContexts();
-  const statusCheckPatternInput = document.getElementById('status_check_contexts');
-  if (statusCheckPatternInput) {
-    statusCheckPatternInput.addEventListener('input', debounce(200, markMatchedStatusCheckContexts));
-  }
+  });
 }
