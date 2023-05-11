@@ -23,6 +23,8 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
+
+	"github.com/gobwas/glob"
 )
 
 const (
@@ -118,9 +120,13 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["status_check_pattern"] = strings.Join(rule.StatusCheckContexts, ";")
 	contexts, _ := git_model.FindRepoRecentCommitStatusContexts(c, c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
 	for _, ctx := range rule.StatusCheckContexts {
+		gb, err := glob.Compile(ctx)
+		if err != nil {
+			log.Error("")
+		}
 		var found bool
 		for i := range contexts {
-			if contexts[i] == ctx {
+			if gb.Match(contexts[i]) {
 				found = true
 				break
 			}
@@ -238,7 +244,20 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 
 	protectBranch.EnableStatusCheck = f.EnableStatusCheck
 	if f.EnableStatusCheck {
-		protectBranch.StatusCheckContexts = f.StatusCheckContexts
+		statusCheckContexts := strings.Split(f.StatusCheckContexts, ";")
+		validStatusCheckContexts := make([]string, 0, len(statusCheckContexts))
+		for _, c := range statusCheckContexts {
+			if c == "" {
+				continue
+			}
+			if _, err := glob.Compile(c); err != nil {
+				ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_invalid_status_check_pattern", c))
+				ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, protectBranch.RuleName))
+				return
+			}
+			validStatusCheckContexts = append(validStatusCheckContexts, c)
+		}
+		protectBranch.StatusCheckContexts = validStatusCheckContexts
 	} else {
 		protectBranch.StatusCheckContexts = nil
 	}

@@ -158,7 +158,7 @@
 					</div>
 					<div id="statuscheck_contexts_box" class="checkbox-sub-item field {{if not .Rule.EnableStatusCheck}}disabled{{end}}">
 						<label>Status Check Pattern</label>
-						<input id="status_check_pattern" name="status_check_pattern" type="text" value="{{.status_check_pattern}}">
+						<input id="status_check_contexts" name="status_check_contexts" type="text" value="{{.status_check_pattern}}">
 						<table class="ui celled table">
 							<thead>
 								<tr>
@@ -170,12 +170,6 @@
 								<tr>
 									<td>
 										<label>{{.}}</label>
-										<!--
-										<span class="ui checkbox">
-											<label>{{.}}</label>
-											<input name="status_check_contexts" value="{{.}}" type="checkbox" {{if SliceUtils.Contains $.Rule.StatusCheckContexts .}}checked{{end}}>
-										</span>
-										-->
 									</td>
 								</tr>
 							{{else}}

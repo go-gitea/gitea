@@ -578,10 +578,11 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 		ctx.Data["is_context_required"] = func(context string) bool {
 			for _, c := range pb.StatusCheckContexts {
 				if gp, err := glob.Compile(c); err == nil {
-					return gp.Match(context)
+					if gp.Match(context) {
+						return true
+					}
 				}
 			}
-
 			return false
 		}
 		ctx.Data["RequiredStatusCheckState"] = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pb.StatusCheckContexts)
