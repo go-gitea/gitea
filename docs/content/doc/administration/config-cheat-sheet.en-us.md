@@ -793,7 +793,7 @@ and
 - `AVATAR_UPLOAD_PATH`: **data/avatars**: Path to store user avatar image files.
 - `AVATAR_MAX_WIDTH`: **4096**: Maximum avatar image width in pixels.
 - `AVATAR_MAX_HEIGHT`: **3072**: Maximum avatar image height in pixels.
-- `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): Maximum avatar image file size in bytes.
+- `AVATAR_MAX_FILE_SIZE`: **1048576** (1MB): Maximum avatar image file size in bytes.
 - `AVATAR_MAX_ORIGIN_SIZE`: **128000** (128KB): If the uploaded file is not larger than this size, the image will be used as is, without resizing/converting.
 - `AVATAR_RENDERED_SIZE_FACTOR`: **3**: The multiplication factor for rendered avatar images. Larger values result in finer rendering on HiDPI devices.
 
