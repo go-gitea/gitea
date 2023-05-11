@@ -4,6 +4,9 @@
 package avatar
 
 import (
+	"bytes"
+	"image"
+	"image/png"
 	"os"
 	"testing"
 
@@ -32,11 +35,11 @@ func Test_PrepareWithPNG(t *testing.T) {
 	data, err := os.ReadFile("testdata/avatar.png")
 	assert.NoError(t, err)
 
-	imgPtr, err := Prepare(data)
+	img, err := resizeAvatar(data)
 	assert.NoError(t, err)
 
-	assert.Equal(t, 290, (*imgPtr).Bounds().Max.X)
-	assert.Equal(t, 290, (*imgPtr).Bounds().Max.Y)
+	assert.Equal(t, 290, img.Bounds().Max.X)
+	assert.Equal(t, 290, img.Bounds().Max.Y)
 }
 
 func Test_PrepareWithJPEG(t *testing.T) {
@@ -46,18 +49,18 @@ func Test_PrepareWithJPEG(t *testing.T) {
 	data, err := os.ReadFile("testdata/avatar.jpeg")
 	assert.NoError(t, err)
 
-	imgPtr, err := Prepare(data)
+	img, err := resizeAvatar(data)
 	assert.NoError(t, err)
 
-	assert.Equal(t, 290, (*imgPtr).Bounds().Max.X)
-	assert.Equal(t, 290, (*imgPtr).Bounds().Max.Y)
+	assert.Equal(t, 290, img.Bounds().Max.X)
+	assert.Equal(t, 290, img.Bounds().Max.Y)
 }
 
 func Test_PrepareWithInvalidImage(t *testing.T) {
 	setting.Avatar.MaxWidth = 5
 	setting.Avatar.MaxHeight = 5
 
-	_, err := Prepare([]byte{})
+	_, err := resizeAvatar([]byte{})
 	assert.EqualError(t, err, "DecodeConfig: image: unknown format")
 }
 
@@ -68,6 +71,34 @@ func Test_PrepareWithInvalidImageSize(t *testing.T) {
 	data, err := os.ReadFile("testdata/avatar.png")
 	assert.NoError(t, err)
 
-	_, err = Prepare(data)
+	_, err = resizeAvatar(data)
 	assert.EqualError(t, err, "Image width is too large: 10 > 5")
+}
+
+func Test_TryToResizeAvatar(t *testing.T) {
+	newImgData := func(size int) []byte {
+		img := image.NewRGBA(image.Rect(0, 0, size, size))
+		bs := bytes.Buffer{}
+		err := png.Encode(&bs, img)
+		assert.NoError(t, err)
+		return bs.Bytes()
+	}
+
+	// if origin image is smaller than the default size, use the origin image
+	origin := newImgData(1)
+	resized, err := TryToResizeAvatar(origin, 0)
+	assert.NoError(t, err)
+	assert.Equal(t, origin, resized)
+
+	// use the resized image if the resized is smaller
+	origin = newImgData(DefaultAvatarSize + 100)
+	resized, err = TryToResizeAvatar(origin, 0)
+	assert.NoError(t, err)
+	assert.Less(t, len(resized), len(origin))
+
+	// still use the origin image if the origin doesn't exceed the max-origin-size
+	origin = newImgData(DefaultAvatarSize + 100)
+	resized, err = TryToResizeAvatar(origin, 1024000)
+	assert.NoError(t, err)
+	assert.Equal(t, origin, resized)
 }
