@@ -3,6 +3,8 @@
 
 package webhook
 
+import "code.gitea.io/gitea/modules/translation"
+
 // HookEventType is the type of a hook event
 type HookEventType string
 
@@ -64,6 +66,54 @@ func (h HookEventType) Event() string {
 		return "release"
 	}
 	return ""
+}
+
+func (h HookEventType) LocaleString(locale translation.Locale) string {
+	switch h {
+	case HookEventCreate:
+		return locale.Tr("repo.settings.event_create")
+	case HookEventDelete:
+		return locale.Tr("repo.settings.event_delete")
+	case HookEventFork:
+		return locale.Tr("repo.settings.event_fork")
+	case HookEventPush:
+		return locale.Tr("repo.settings.event_push")
+	case HookEventIssues:
+		return locale.Tr("repo.settings.event_issues")
+	case HookEventIssueAssign:
+		return locale.Tr("repo.settings.event_issue_assign")
+	case HookEventIssueLabel:
+		return locale.Tr("repo.settings.event_issue_label")
+	case HookEventIssueMilestone:
+		return locale.Tr("repo.settings.event_issue_milestone")
+	case HookEventIssueComment:
+		return locale.Tr("repo.settings.event_issue_comment")
+	case HookEventPullRequest:
+		return locale.Tr("repo.settings.event_pull_request")
+	case HookEventPullRequestAssign:
+		return locale.Tr("repo.settings.event_pull_request_assign")
+	case HookEventPullRequestLabel:
+		return locale.Tr("repo.settings.event_pull_request_label")
+	case HookEventPullRequestMilestone:
+		return locale.Tr("repo.settings.event_pull_request_milestone")
+	case HookEventPullRequestSync:
+		return locale.Tr("repo.settings.event_pull_request_sync")
+	case HookEventPullRequestComment:
+		return locale.Tr("repo.settings.event_pull_request_comment")
+	case HookEventPullRequestReviewApproved:
+		return locale.Tr("repo.settings.event_pull_request_review_approved")
+	case HookEventPullRequestReviewRejected:
+		return locale.Tr("repo.settings.event_pull_request_review_rejected")
+	case HookEventPullRequestReviewComment:
+		return locale.Tr("repo.settings.event_pull_request_review_comment")
+	case HookEventWiki:
+		return locale.Tr("repo.settings.event_wiki")
+	case HookEventRepository:
+		return locale.Tr("repo.settings.event_repository")
+	case HookEventRelease:
+		return locale.Tr("repo.settings.event_release")
+	}
+	return locale.Tr("unknow")
 }
 
 // HookType is the type of a webhook
