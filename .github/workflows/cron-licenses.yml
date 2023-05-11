@@ -6,6 +6,7 @@ on:
 
 jobs:
   cron-licenses:
+    if: github.repository == 'go-gitea/gitea'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
