@@ -78,7 +78,7 @@ func processAvatarImage(data []byte, maxOriginSize int64) ([]byte, error) {
 		return nil, fmt.Errorf("image.Decode: %w", err)
 	}
 
-	// try to corp and resize the origin image if necessary
+	// try to crop and resize the origin image if necessary
 	if imgCfg.Width != imgCfg.Height {
 		var newSize, ax, ay int
 		if imgCfg.Width > imgCfg.Height {
