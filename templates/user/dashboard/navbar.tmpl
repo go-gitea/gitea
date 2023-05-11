@@ -20,8 +20,8 @@
 							{{avatar $.Context .SignedUser}}
 							<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
 							<span class="org-visibility">
-								{{if .ContextUser.Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{$.locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
-								{{if .ContextUser.Visibility.IsPrivate}}<div class="ui basic tiny horizontal label">{{$.locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+								{{if .SignedUser.Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{$.locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+								{{if .SignedUser.Visibility.IsPrivate}}<div class="ui basic tiny horizontal label">{{$.locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
 							</span>
 						</a>
 						{{range .Orgs}}
@@ -78,7 +78,7 @@
 
 	{{if .ContextUser.IsOrganization}}
 		<div class="right stackable menu">
-			<a class="{{if .PageIsNews}}active {{end}}item" style="margin-left: auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+			<a class="{{if .PageIsNews}}active {{end}}item gt-ml-auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
 				{{svg "octicon-rss"}}&nbsp;{{.locale.Tr "activities"}}
 			</a>
 			{{if not .UnitIssuesGlobalDisabled}}

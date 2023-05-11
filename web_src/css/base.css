@@ -364,6 +364,12 @@ a.label,
   text-decoration: none !important;
 }
 
+/* for most cases, we only use our svg icon as inline icon, so we need to make them inline-block and vertical-align: middle */
+svg.svg {
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .ui.red.labels .label,
 .ui.ui.ui.red.label,
 .ui.red.button,
@@ -1148,6 +1154,12 @@ a.ui.card:hover {
   border-top-color: var(--color-secondary-alpha-50);
 }
 
+.ui.striped.table > tr:nth-child(2n),
+.ui.striped.table > tbody > tr:nth-child(2n),
+.ui.basic.striped.table > tbody > tr:nth-child(2n) {
+  background: var(--color-light);
+}
+
 .ui.ui.ui.ui.table tr.active,
 .ui.ui.table td.active {
   color: var(--color-text);
@@ -1556,7 +1568,7 @@ img.ui.avatar,
   vertical-align: middle;
 }
 
-.ui .message {
+.ui .message.flash-message {
   text-align: center;
 }
 
@@ -2232,6 +2244,16 @@ a.ui.active.label:hover {
   border-left: none;
 }
 
+.ui.button.button-link {
+  background: transparent;
+  border: none;
+  color: inherit;
+}
+
+.ui.button.button-link:hover {
+  color: var(--color-primary);
+}
+
 .two-toggle-buttons .button:not(.active):first-of-type {
   border-right: none;
 }
@@ -2559,18 +2581,18 @@ a.ui.basic.label:hover {
 
 .notification_count {
   position: absolute;
-  left: 5px;
-  top: -8px;
+  left: 7px;
+  top: -9px;
   min-width: 1.5em;
   text-align: center;
   background: var(--color-primary);
   border: 2px solid var(--color-header-bar);
   color: var(--color-header-bar);
-  padding: 2px;
+  padding: 2.75px;
   border-radius: 1em;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  line-height: 0.7;
+  line-height: .67em;
 }
 
 table th[data-sortt-asc]:hover,

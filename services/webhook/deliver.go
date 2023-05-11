@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/gobwas/glob"
@@ -175,7 +176,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 	// All code from this point will update the hook task
 	defer func() {
-		t.Delivered = time.Now().UnixNano()
+		t.Delivered = timeutil.TimeStampNanoNow()
 		if t.IsSucceed {
 			log.Trace("Hook delivered: %s", t.UUID)
 		} else if !w.IsActive {
@@ -282,7 +283,7 @@ func Init() error {
 		},
 	}
 
-	hookQueue = queue.CreateUniqueQueue("webhook_sender", handle, int64(0))
+	hookQueue = queue.CreateUniqueQueue("webhook_sender", handler)
 	if hookQueue == nil {
 		return fmt.Errorf("Unable to create webhook_sender Queue")
 	}

@@ -30,25 +30,17 @@ type ConfigProvider interface {
 	Section(section string) ConfigSection
 	NewSection(name string) (ConfigSection, error)
 	GetSection(name string) (ConfigSection, error)
-	DeleteSection(name string) error
 	Save() error
 }
 
 type iniFileConfigProvider struct {
+	opts *Options
 	*ini.File
-	filepath   string // the ini file path
-	newFile    bool   // whether the file has not existed previously
-	allowEmpty bool   // whether not finding configuration files is allowed (only true for the tests)
+	newFile bool // whether the file has not existed previously
 }
 
-// NewEmptyConfigProvider create a new empty config provider
-func NewEmptyConfigProvider() ConfigProvider {
-	cp, _ := newConfigProviderFromData("")
-	return cp
-}
-
-// newConfigProviderFromData this function is only for testing
-func newConfigProviderFromData(configContent string) (ConfigProvider, error) {
+// NewConfigProviderFromData this function is only for testing
+func NewConfigProviderFromData(configContent string) (ConfigProvider, error) {
 	var cfg *ini.File
 	var err error
 	if configContent == "" {
@@ -66,41 +58,47 @@ func newConfigProviderFromData(configContent string) (ConfigProvider, error) {
 	}, nil
 }
 
+type Options struct {
+	CustomConf                string // the ini file path
+	AllowEmpty                bool   // whether not finding configuration files is allowed (only true for the tests)
+	ExtraConfig               string
+	DisableLoadCommonSettings bool
+}
+
 // newConfigProviderFromFile load configuration from file.
 // NOTE: do not print any log except error.
-func newConfigProviderFromFile(customConf string, allowEmpty bool, extraConfig string) (*iniFileConfigProvider, error) {
+func newConfigProviderFromFile(opts *Options) (*iniFileConfigProvider, error) {
 	cfg := ini.Empty()
 	newFile := true
 
-	if customConf != "" {
-		isFile, err := util.IsFile(customConf)
+	if opts.CustomConf != "" {
+		isFile, err := util.IsFile(opts.CustomConf)
 		if err != nil {
-			return nil, fmt.Errorf("unable to check if %s is a file. Error: %v", customConf, err)
+			return nil, fmt.Errorf("unable to check if %s is a file. Error: %v", opts.CustomConf, err)
 		}
 		if isFile {
-			if err := cfg.Append(customConf); err != nil {
-				return nil, fmt.Errorf("failed to load custom conf '%s': %v", customConf, err)
+			if err := cfg.Append(opts.CustomConf); err != nil {
+				return nil, fmt.Errorf("failed to load custom conf '%s': %v", opts.CustomConf, err)
 			}
 			newFile = false
 		}
 	}
 
-	if newFile && !allowEmpty {
+	if newFile && !opts.AllowEmpty {
 		return nil, fmt.Errorf("unable to find configuration file: %q, please ensure you are running in the correct environment or set the correct configuration file with -c", CustomConf)
 	}
 
-	if extraConfig != "" {
-		if err := cfg.Append([]byte(extraConfig)); err != nil {
+	if opts.ExtraConfig != "" {
+		if err := cfg.Append([]byte(opts.ExtraConfig)); err != nil {
 			return nil, fmt.Errorf("unable to append more config: %v", err)
 		}
 	}
 
 	cfg.NameMapper = ini.SnackCase
 	return &iniFileConfigProvider{
-		File:       cfg,
-		filepath:   customConf,
-		newFile:    newFile,
-		allowEmpty: allowEmpty,
+		opts:    opts,
+		File:    cfg,
+		newFile: newFile,
 	}, nil
 }
 
@@ -116,15 +114,10 @@ func (p *iniFileConfigProvider) GetSection(name string) (ConfigSection, error) {
 	return p.File.GetSection(name)
 }
 
-func (p *iniFileConfigProvider) DeleteSection(name string) error {
-	p.File.DeleteSection(name)
-	return nil
-}
-
 // Save save the content into file
 func (p *iniFileConfigProvider) Save() error {
-	if p.filepath == "" {
-		if !p.allowEmpty {
+	if p.opts.CustomConf == "" {
+		if !p.opts.AllowEmpty {
 			return fmt.Errorf("custom config path must not be empty")
 		}
 		return nil
@@ -135,8 +128,8 @@ func (p *iniFileConfigProvider) Save() error {
 			return fmt.Errorf("failed to create '%s': %v", CustomConf, err)
 		}
 	}
-	if err := p.SaveTo(p.filepath); err != nil {
-		return fmt.Errorf("failed to save '%s': %v", p.filepath, err)
+	if err := p.SaveTo(p.opts.CustomConf); err != nil {
+		return fmt.Errorf("failed to save '%s': %v", p.opts.CustomConf, err)
 	}
 
 	// Change permissions to be more restrictive
