@@ -35,11 +35,8 @@ func Test_PrepareWithPNG(t *testing.T) {
 	data, err := os.ReadFile("testdata/avatar.png")
 	assert.NoError(t, err)
 
-	img, err := resizeAvatar(data)
+	_, err = processAvatarImage(data, 128000)
 	assert.NoError(t, err)
-
-	assert.Equal(t, DefaultAvatarSize, img.Bounds().Max.X)
-	assert.Equal(t, DefaultAvatarSize, img.Bounds().Max.Y)
 }
 
 func Test_PrepareWithJPEG(t *testing.T) {
@@ -49,18 +46,15 @@ func Test_PrepareWithJPEG(t *testing.T) {
 	data, err := os.ReadFile("testdata/avatar.jpeg")
 	assert.NoError(t, err)
 
-	img, err := resizeAvatar(data)
+	_, err = processAvatarImage(data, 128000)
 	assert.NoError(t, err)
-
-	assert.Equal(t, DefaultAvatarSize, img.Bounds().Max.X)
-	assert.Equal(t, DefaultAvatarSize, img.Bounds().Max.Y)
 }
 
 func Test_PrepareWithInvalidImage(t *testing.T) {
 	setting.Avatar.MaxWidth = 5
 	setting.Avatar.MaxHeight = 5
 
-	_, err := resizeAvatar([]byte{})
+	_, err := processAvatarImage([]byte{}, 12800)
 	assert.EqualError(t, err, "image.DecodeConfig: image: unknown format")
 }
 
@@ -71,11 +65,11 @@ func Test_PrepareWithInvalidImageSize(t *testing.T) {
 	data, err := os.ReadFile("testdata/avatar.png")
 	assert.NoError(t, err)
 
-	_, err = resizeAvatar(data)
+	_, err = processAvatarImage(data, 12800)
 	assert.EqualError(t, err, "image width is too large: 10 > 5")
 }
 
-func Test_TryToResizeAvatar(t *testing.T) {
+func Test_ProcessAvatarImage(t *testing.T) {
 	setting.Avatar.MaxWidth = 4096
 	setting.Avatar.MaxHeight = 4096
 
@@ -89,41 +83,38 @@ func Test_TryToResizeAvatar(t *testing.T) {
 
 	// if origin image is smaller than the default size, use the origin image
 	origin := newImgData(1)
-	resized, err := tryToResizeAvatar(origin, 0)
+	result, err := processAvatarImage(origin, 0)
 	assert.NoError(t, err)
-	assert.Equal(t, origin, resized)
+	assert.Equal(t, origin, result)
 
-	// use the resized image if the resized is smaller
+	// use the result image if the result is smaller
 	origin = newImgData(DefaultAvatarSize + 100)
-	resized, err = tryToResizeAvatar(origin, 0)
+	result, err = processAvatarImage(origin, 0)
 	assert.NoError(t, err)
-	assert.Less(t, len(resized), len(origin))
+	assert.Less(t, len(result), len(origin))
 
 	// still use the origin image if the origin doesn't exceed the max-origin-size
 	origin = newImgData(DefaultAvatarSize + 100)
-	resized, err = tryToResizeAvatar(origin, 128000)
+	result, err = processAvatarImage(origin, 128000)
 	assert.NoError(t, err)
-	assert.Equal(t, origin, resized)
+	assert.Equal(t, origin, result)
 
 	// allow to use known image format (eg: webp) if it is small enough
 	origin, err = os.ReadFile("testdata/animated.webp")
 	assert.NoError(t, err)
-	resized, err = tryToResizeAvatar(origin, 128000)
+	result, err = processAvatarImage(origin, 128000)
 	assert.NoError(t, err)
-	assert.Equal(t, origin, resized)
-
-	// if a format is known, but it's not convertable, then it can't be used
-	origin, err = os.ReadFile("testdata/animated.webp")
-	width, height, acceptable := detectAcceptableWebp(origin)
-	assert.EqualValues(t, 400, width)
-	assert.EqualValues(t, 400, height)
-	assert.True(t, acceptable)
-	assert.NoError(t, err)
-	_, err = tryToResizeAvatar(origin, 0)
-	assert.ErrorContains(t, err, "image data size is too large and it can't be converted")
+	assert.Equal(t, origin, result)
 
 	// do not support unknown image formats, eg: SVG may contain embedded JS
 	origin = []byte("<svg></svg>")
-	_, err = tryToResizeAvatar(origin, 128000)
-	assert.ErrorContains(t, err, "unsupported image format")
+	_, err = processAvatarImage(origin, 128000)
+	assert.ErrorContains(t, err, "image: unknown format")
+
+	// make sure the canvas size limit works
+	setting.Avatar.MaxWidth = 5
+	setting.Avatar.MaxHeight = 5
+	origin = newImgData(10)
+	_, err = processAvatarImage(origin, 128000)
+	assert.ErrorContains(t, err, "image width is too large: 10 > 5")
 }

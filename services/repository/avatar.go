@@ -20,7 +20,7 @@ import (
 // UploadAvatar saves custom avatar for repository.
 // FIXME: split uploads to different subdirs in case we have massive number of repos.
 func UploadAvatar(ctx context.Context, repo *repo_model.Repository, data []byte) error {
-	avatarData, err := avatar.TryToResizeAvatar(data)
+	avatarData, err := avatar.ProcessAvatarImage(data)
 	if err != nil {
 		return err
 	}
