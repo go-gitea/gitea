@@ -243,23 +243,19 @@ func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOp
 
 // GetLatestCommitStatusForPairs returns all statuses with a unique context for a given list of repo-sha pairs
 func GetLatestCommitStatusForPairs(ctx context.Context, repoIDsToLatestCommitSHAs map[int64]string, listOptions db.ListOptions) (map[int64][]*CommitStatus, error) {
-	if len(repoIDs) != len(shas) {
-		return nil, errors.New("repoIDs and shas must have the same length")
-	}
-
-	type Result struct {
+	type result struct {
 		ID     int64
 		RepoID int64
 	}
 
-	results := make([]Result, 0)
+	results := make([]result, 0, len(repoIDsToLatestCommitSHAs))
 
 	sess := db.GetEngine(ctx).Table(&CommitStatus{})
 
 	// Create a disjunction of conditions for each repoID and SHA pair
-	conds := make([]builder.Cond, 0, len(repoIDs))
-	for i := range repoIDs {
-		conds = append(conds, builder.And(builder.Eq{"repo_id": repoIDs[i]}, builder.Eq{"sha": shas[i]}))
+	conds := make([]builder.Cond, 0, len(repoIDsToLatestCommitSHAs))
+	for repoID, sha := range repoIDsToLatestCommitSHAs {
+		conds = append(conds, builder.Eq{"repo_id": repoID, "sha": sha})
 	}
 	sess = sess.Where(builder.Or(conds...)).
 		Select("max( id ) as id, repo_id").
@@ -276,7 +272,6 @@ func GetLatestCommitStatusForPairs(ctx context.Context, repoIDsToLatestCommitSHA
 	repoStatuses := make(map[int64][]*CommitStatus)
 	for _, result := range results {
 		ids = append(ids, result.ID)
-		repoStatuses[result.RepoID] = nil
 	}
 
 	statuses := make([]*CommitStatus, 0, len(ids))

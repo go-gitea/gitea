@@ -578,8 +578,7 @@ func SearchRepo(ctx *context.Context) {
 	}
 
 	// collect the latest commit of each repo
-	repoIDsWithCommitStatuses := make([]int64, 0, len(repos))
-	commitsWithCommitStatuses := make([]string, 0, len(repos))
+	repoIDsToLatestCommitSHAs := make(map[int64]string)
 	for _, repo := range repos {
 		branch, err := repo_service.GetBranch(ctx, repo, repo.DefaultBranch)
 		if err != nil {
@@ -590,12 +589,11 @@ func SearchRepo(ctx *context.Context) {
 			log.Error("GetCommit: %v", err)
 			continue
 		}
-		repoIDsWithCommitStatuses = append(repoIDsWithCommitStatuses, repo.ID)
-		commitsWithCommitStatuses = append(commitsWithCommitStatuses, commit.ID.String())
+		repoIDsToLatestCommitSHAs[repo.ID] = commit.ID.String()
 	}
 
 	// call the database O(1) times to get the commit statuses for all repos
-	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsWithCommitStatuses, commitsWithCommitStatuses, db.ListOptions{})
+	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsToLatestCommitSHAs, db.ListOptions{})
 	if err != nil {
 		log.Error("GetLatestCommitStatusForPairs: %v", err)
 		return
