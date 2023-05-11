@@ -13,11 +13,11 @@ import (
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
-	"github.com/chai2010/webp"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,7 +25,7 @@ func generateImg() bytes.Buffer {
 	// Generate image
 	myImage := image.NewRGBA(image.Rect(0, 0, 32, 32))
 	var buff bytes.Buffer
-	webp.Encode(&buff, myImage, &webp.Options{Quality: 75})
+	avatar.Encoder(myImage)(&buff)
 	return buff
 }
 

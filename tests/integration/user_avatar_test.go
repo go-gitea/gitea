@@ -17,7 +17,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
 
-	"github.com/chai2010/webp"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,7 +51,7 @@ func TestUserAvatar(t *testing.T) {
 			return
 		}
 
-		if err := webp.Encode(imgData, img, &webp.Options{Quality: 75}); err != nil {
+		if err := avatar.Encoder(img)(imgData); err != nil {
 			assert.NoError(t, err)
 			return
 		}

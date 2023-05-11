@@ -6,7 +6,6 @@ package repo
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/url"
 	"strings"
 
@@ -15,8 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-
-	"github.com/chai2010/webp"
 )
 
 // CustomAvatarRelativePath returns repository custom avatar file path.
@@ -48,12 +45,7 @@ func generateRandomAvatar(ctx context.Context, repo *Repository) error {
 
 	repo.Avatar = idToString
 
-	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := webp.Encode(w, img, &webp.Options{Quality: 75}); err != nil {
-			log.Error("Encode: %v", err)
-		}
-		return err
-	}); err != nil {
+	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), avatar.Encoder(img)); err != nil {
 		return fmt.Errorf("Failed to create dir %s: %w", repo.CustomAvatarRelativePath(), err)
 	}
 

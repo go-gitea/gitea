@@ -6,7 +6,6 @@ package user
 import (
 	"context"
 	"fmt"
-	"io"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -24,8 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/packages"
-
-	"github.com/chai2010/webp"
 )
 
 // RenameUser renames a user
@@ -262,12 +259,7 @@ func UploadAvatar(u *user_model.User, data []byte) error {
 		return fmt.Errorf("updateUser: %w", err)
 	}
 
-	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := webp.Encode(w, *m, &webp.Options{Quality: 75}); err != nil {
-			log.Error("Encode: %v", err)
-		}
-		return err
-	}); err != nil {
+	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), avatar.Encoder(*m)); err != nil {
 		return fmt.Errorf("Failed to create dir %s: %w", u.CustomAvatarRelativePath(), err)
 	}
 
