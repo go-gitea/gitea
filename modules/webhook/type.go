@@ -26,7 +26,7 @@ const (
 	HookEventPullRequestReviewRejected HookEventType = "pull_request_review_rejected"
 	HookEventPullRequestReviewComment  HookEventType = "pull_request_review_comment"
 	HookEventPullRequestSync           HookEventType = "pull_request_sync"
-	HookEventPullReviewRequest         HookEventType = "pull_review_request"
+	HookEventPullRequestReviewRequest  HookEventType = "pull_request_review_request"
 	HookEventWiki                      HookEventType = "wiki"
 	HookEventRepository                HookEventType = "repository"
 	HookEventRelease                   HookEventType = "release"
@@ -47,7 +47,7 @@ func (h HookEventType) Event() string {
 	case HookEventIssues, HookEventIssueAssign, HookEventIssueLabel, HookEventIssueMilestone:
 		return "issues"
 	case HookEventPullRequest, HookEventPullRequestAssign, HookEventPullRequestLabel, HookEventPullRequestMilestone,
-		HookEventPullRequestSync, HookEventPullReviewRequest:
+		HookEventPullRequestSync, HookEventPullRequestReviewRequest:
 		return "pull_request"
 	case HookEventIssueComment, HookEventPullRequestComment:
 		return "issue_comment"

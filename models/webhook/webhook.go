@@ -298,10 +298,10 @@ func (w *Webhook) HasPackageEvent() bool {
 		(w.ChooseEvents && w.HookEvents.Package)
 }
 
-// HasPullReviewRequestEvent returns true if hook enabled pull request review request event.
-func (w *Webhook) HasPullReviewRequestEvent() bool {
+// HasPullRequestReviewRequestEvent returns true if hook enabled pull request review request event.
+func (w *Webhook) HasPullRequestReviewRequestEvent() bool {
 	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.PullReviewRequest)
+		(w.ChooseEvents && w.HookEvents.PullRequestReviewRequest)
 }
 
 // EventCheckers returns event checkers
@@ -335,7 +335,7 @@ func (w *Webhook) EventCheckers() []struct {
 		{w.HasRepositoryEvent, webhook_module.HookEventRepository},
 		{w.HasReleaseEvent, webhook_module.HookEventRelease},
 		{w.HasPackageEvent, webhook_module.HookEventPackage},
-		{w.HasPullReviewRequestEvent, webhook_module.HookEventPullReviewRequest},
+		{w.HasPullRequestReviewRequestEvent, webhook_module.HookEventPullRequestReviewRequest},
 	}
 }
 

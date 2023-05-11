@@ -741,7 +741,7 @@ func (m *webhookNotifier) NotifyPullReviewRequest(ctx context.Context, doer *use
 	} else {
 		apiPullRequest.Action = api.HookIssueReviewRequestRemoved
 	}
-	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullReviewRequest, apiPullRequest); err != nil {
+	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequestReviewRequest, apiPullRequest); err != nil {
 		log.Error("PrepareWebhooks [review_requested: %v]: %v", isRequest, err)
 		return
 	}
