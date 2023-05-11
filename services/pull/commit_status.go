@@ -31,7 +31,7 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 	requiredContextsGlob := make(map[string]glob.Glob, len(requiredContexts))
 	for _, ctx := range requiredContexts {
 		if gp, err := glob.Compile(ctx); err != nil {
-			log.Error("")
+			log.Error("glob.Compile %s failed. Error: %v", ctx, err)
 		} else {
 			requiredContextsGlob[ctx] = gp
 		}

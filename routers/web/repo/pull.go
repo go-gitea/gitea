@@ -577,10 +577,10 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	if pb != nil && pb.EnableStatusCheck {
 		ctx.Data["is_context_required"] = func(context string) bool {
 			for _, c := range pb.StatusCheckContexts {
-				if gp, err := glob.Compile(c); err == nil {
-					if gp.Match(context) {
-						return true
-					}
+				if gp, err := glob.Compile(c); err != nil {
+					log.Error("glob.Compile %s failed. Error: %v", c, err)
+				} else if gp.Match(context) {
+					return true
 				}
 			}
 			return false
