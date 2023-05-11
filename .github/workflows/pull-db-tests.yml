@@ -43,8 +43,8 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
-      - name: run tests
-        run: timeout -s ABRT 50m make test-pgsql-migration test-pgsql
+      - run: make test-pgsql-migration test-pgsql
+        timeout-minutes: 50
         env:
           TAGS: bindata gogit
           RACE_ENABLED: true
@@ -64,8 +64,8 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
-      - name: run tests
-        run: timeout -s ABRT 50m make test-sqlite-migration test-sqlite
+      - run: make test-sqlite-migration test-sqlite
+        timeout-minutes: 50
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
           RACE_ENABLED: true
@@ -195,8 +195,8 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
-      - name: run tests
-        run: timeout -s ABRT 50m make test-mysql8-migration test-mysql8
+      - run: make test-mysql8-migration test-mysql8
+        timeout-minutes: 50
         env:
           TAGS: bindata
           USE_REPO_TEST_DIR: 1
@@ -224,8 +224,8 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
-      - name: run tests
-        run: timeout -s ABRT 50m make test-mssql-migration test-mssql
+      - run: make test-mssql-migration test-mssql
+        timeout-minutes: 50
         env:
           TAGS: bindata
           USE_REPO_TEST_DIR: 1

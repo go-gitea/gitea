@@ -13,8 +13,8 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: '>=1.20.1'
-      - name: update licenses and gitignores
-        run: timeout -s ABRT 40m make generate-license generate-gitignore
+      - run: make generate-license generate-gitignore
+        timeout-minutes: 40
       - name: push translations to repo
         uses: appleboy/git-push-action@v0.0.2
         with:

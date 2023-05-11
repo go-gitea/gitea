@@ -20,7 +20,7 @@ jobs:
           node-version: 20
       - run: make deps-frontend frontend deps-backend
       - run: npx playwright install --with-deps
-      - name: run tests
-        run: timeout -s ABRT 40m make test-e2e-sqlite
+      - run: make test-e2e-sqlite
+        timeout-minutes: 40
         env:
           USE_REPO_TEST_DIR: 1
