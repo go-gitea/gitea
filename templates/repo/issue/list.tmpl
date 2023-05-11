@@ -241,7 +241,7 @@
 					</div>
 
 					<!-- Milestone -->
-					<div class="ui {{if not .Milestones}}disabled{{end}} dropdown jump item">
+					<div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.action_milestone"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -250,10 +250,23 @@
 							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/milestone">
 							{{.locale.Tr "repo.issues.action_milestone_no_select"}}
 							</div>
-							{{range .Milestones}}
-								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
-									{{.Name}}
-								</div>
+							{{if .OpenMilestones}}
+								<div class="divider"></div>
+								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_open"}}</div>
+								{{range .OpenMilestones}}
+									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
+										{{.Name}}
+									</div>
+								{{end}}
+							{{end}}
+							{{if .ClosedMilestones}}
+								<div class="divider"></div>
+								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_open"}}</div>
+								{{range .ClosedMilestones}}
+									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
+										{{.Name}}
+									</div>
+								{{end}}
 							{{end}}
 						</div>
 					</div>
