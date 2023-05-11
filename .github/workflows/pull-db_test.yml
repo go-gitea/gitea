@@ -110,6 +110,16 @@ jobs:
           - "143:143"
           - "587:587"
           - "993:993"
+      redis:
+        image: redis
+        # Set health checks to wait until redis has started
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+        ports:
+          - 6379:6379
     steps:
       - name: checkout
         uses: actions/checkout@v3
