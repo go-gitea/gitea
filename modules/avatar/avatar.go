@@ -5,6 +5,7 @@ package avatar
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -84,10 +85,33 @@ func resizeAvatar(data []byte) (image.Image, error) {
 	return img, nil
 }
 
+func isWebp(data []byte) bool {
+	if len(data) < 12 {
+		return false
+	}
+	if string(data[0:4]) != "RIFF" {
+		return false
+	}
+	if string(data[8:12]) != "WEBP" {
+		return false
+	}
+	return true
+}
+
+func tryToUseOrigin(data []byte, maxOriginSize int64) ([]byte, error) {
+	if len(data) > int(maxOriginSize) {
+		return nil, fmt.Errorf("image size is too large and it can't be converted: %d > %d", len(data), maxOriginSize)
+	}
+	if isWebp(data) {
+		return data, nil
+	}
+	return nil, errors.New("unsupported image format")
+}
+
 func TryToResizeAvatar(data []byte, maxOriginSize int64) ([]byte, error) {
 	img, err := resizeAvatar(data)
 	if err != nil {
-		return nil, err
+		return tryToUseOrigin(data, maxOriginSize)
 	}
 	bs := bytes.Buffer{}
 	if err = png.Encode(&bs, img); err != nil {

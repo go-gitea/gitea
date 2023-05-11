@@ -98,7 +98,25 @@ func Test_TryToResizeAvatar(t *testing.T) {
 
 	// still use the origin image if the origin doesn't exceed the max-origin-size
 	origin = newImgData(DefaultAvatarSize + 100)
-	resized, err = TryToResizeAvatar(origin, 1024000)
+	resized, err = TryToResizeAvatar(origin, 128000)
 	assert.NoError(t, err)
 	assert.Equal(t, origin, resized)
+
+	// allow to use known image format (eg: webp) if it is small enough
+	origin, err = os.ReadFile("testdata/animated.webp")
+	assert.NoError(t, err)
+	resized, err = TryToResizeAvatar(origin, 128000)
+	assert.NoError(t, err)
+	assert.Equal(t, origin, resized)
+
+	// if a format is known, but it's not convertable, then it can't be used
+	origin, err = os.ReadFile("testdata/animated.webp")
+	assert.NoError(t, err)
+	_, err = TryToResizeAvatar(origin, 0)
+	assert.ErrorContains(t, err, "image size is too large and it can't be converted")
+
+	// do not support unknown image formats, eg: SVG man contain embedded JS
+	origin = []byte("<svg></svg>")
+	_, err = TryToResizeAvatar(origin, 128000)
+	assert.ErrorContains(t, err, "unsupported image format")
 }
