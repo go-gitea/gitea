@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {debounce} from 'throttle-debounce';
 import {createMonaco} from './codeeditor.js';
 
 const {appSubUrl, csrfToken} = window.config;
@@ -81,4 +82,12 @@ export function initRepoSettingBranches() {
     const $target = $($(this).attr('data-target'));
     if (this.checked) $target.addClass('disabled'); // only disable, do not auto enable
   });
+
+  // mark all status checks that match the pattern
+  const statusCheckPatternInput = document.getElementById('status_check_pattern');
+  if (statusCheckPatternInput) {
+    statusCheckPatternInput.addEventListener('input', debounce(200, (e) => {
+      // TODO
+    }));
+  }
 }
