@@ -138,7 +138,7 @@ You may be confused about the runner labels, which will be explained later.
 If you want to register the runner in a non-interactive way, you can use arguments to do it.
 
 ```bash
-./act_runner register --no-interactive --instance <intance_url> --token <registration_token> --name <runner_name> --labels <runner_labels>
+./act_runner register --no-interactive --instance <instance_url> --token <registration_token> --name <runner_name> --labels <runner_labels>
 ```
 
 When you have registered the runner, you can find a new file named `.runner` in the current directory.
