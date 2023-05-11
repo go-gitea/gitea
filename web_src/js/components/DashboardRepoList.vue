@@ -80,12 +80,7 @@
                 </span>
               </div>
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
-              <svg-icon v-if="repo.latest_commit_status_state === 'pending'" name="octicon-dot-fill" class-name="commit-status icon text grey" :size="16"/>
-              <svg-icon v-else-if="repo.latest_commit_status_state === 'running'" name="octicon-dot-fill" class-name="commit-status icon text yellow" :size="16"/>
-              <svg-icon v-else-if="repo.latest_commit_status_state === 'success'" name="octicon-check" class-name="commit-status icon text green" :size="16"/>
-              <svg-icon v-else-if="repo.latest_commit_status_state === 'error'" name="gitea-exclamation" class-name="commit-status icon text red" :size="16"/>
-              <svg-icon v-else-if="repo.latest_commit_status_state === 'failure'" name="octicon-x" class-name="commit-status icon text red" :size="16"/>
-              <svg-icon v-else-if="repo.latest_commit_status_state === 'warning'" name="gitea-exclamation" class-name="commit-status icon text yellow" :size="16"/>
+              <svg-icon v-if="repo.latest_commit_status_state" :name="statusIcon(repo.latest_commit_status_state)" :class-name="'commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
             </a>
           </li>
         </ul>
@@ -160,6 +155,15 @@ import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
+
+const commitStatus = {
+  pending: {name: 'octicon-dot-fill', color: 'grey'},
+  running: {name: 'octicon-dot-fill', color: 'yellow'},
+  success: {name: 'octicon-check', color: 'green'},
+  error: {name: 'gitea-exclamation', color: 'red'},
+  failure: {name: 'octicon-x', color: 'red'},
+  warning: {name: 'gitea-exclamation', color: 'yellow'},
+};
 
 const sfc = {
   components: {SvgIcon},
@@ -419,6 +423,14 @@ const sfc = {
         return 'octicon-repo';
       }
       return 'octicon-repo';
+    },
+
+    statusIcon(status) {
+      return commitStatus[status].name;
+    },
+
+    statusColor(status) {
+      return commitStatus[status].color;
     }
   },
 };
