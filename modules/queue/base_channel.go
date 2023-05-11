@@ -87,7 +87,9 @@ func (q *baseChannel) PopItem(ctx context.Context) ([]byte, error) {
 func (q *baseChannel) HasItem(ctx context.Context, data []byte) (bool, error) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
-
+	if !q.isUnique {
+		return false, nil
+	}
 	return q.set.Contains(string(data)), nil
 }
 
@@ -107,7 +109,9 @@ func (q *baseChannel) Close() error {
 	defer q.mu.Unlock()
 
 	close(q.c)
-	q.set = container.Set[string]{}
+	if q.isUnique {
+		q.set = container.Set[string]{}
+	}
 
 	return nil
 }
@@ -118,6 +122,10 @@ func (q *baseChannel) RemoveAll(ctx context.Context) error {
 
 	for q.c != nil && len(q.c) > 0 {
 		<-q.c
+	}
+
+	if q.isUnique {
+		q.set = container.Set[string]{}
 	}
 	return nil
 }
