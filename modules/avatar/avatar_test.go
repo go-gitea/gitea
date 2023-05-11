@@ -28,7 +28,7 @@ func Test_RandomImage(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func Test_PrepareWithPNG(t *testing.T) {
+func Test_ProcessAvatarPNG(t *testing.T) {
 	setting.Avatar.MaxWidth = 4096
 	setting.Avatar.MaxHeight = 4096
 
@@ -39,7 +39,7 @@ func Test_PrepareWithPNG(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func Test_PrepareWithJPEG(t *testing.T) {
+func Test_ProcessAvatarJPEG(t *testing.T) {
 	setting.Avatar.MaxWidth = 4096
 	setting.Avatar.MaxHeight = 4096
 
@@ -50,7 +50,7 @@ func Test_PrepareWithJPEG(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func Test_PrepareWithInvalidImage(t *testing.T) {
+func Test_ProcessAvatarInvalidData(t *testing.T) {
 	setting.Avatar.MaxWidth = 5
 	setting.Avatar.MaxHeight = 5
 
@@ -58,7 +58,7 @@ func Test_PrepareWithInvalidImage(t *testing.T) {
 	assert.EqualError(t, err, "image.DecodeConfig: image: unknown format")
 }
 
-func Test_PrepareWithInvalidImageSize(t *testing.T) {
+func Test_ProcessAvatarInvalidImageSize(t *testing.T) {
 	setting.Avatar.MaxWidth = 5
 	setting.Avatar.MaxHeight = 5
 
@@ -73,21 +73,36 @@ func Test_ProcessAvatarImage(t *testing.T) {
 	setting.Avatar.MaxWidth = 4096
 	setting.Avatar.MaxHeight = 4096
 
-	newImgData := func(size int) []byte {
-		img := image.NewRGBA(image.Rect(0, 0, size, size))
+	newImgData := func(size int, optHeight ...int) []byte {
+		width := size
+		height := size
+		if len(optHeight) == 1 {
+			height = optHeight[0]
+		}
+		img := image.NewRGBA(image.Rect(0, 0, width, height))
 		bs := bytes.Buffer{}
 		err := png.Encode(&bs, img)
 		assert.NoError(t, err)
 		return bs.Bytes()
 	}
 
-	// if origin image is smaller than the default size, use the origin image
-	origin := newImgData(1)
+	// if origin image canvas is too large, crop and resize it
+	origin := newImgData(500, 600)
 	result, err := processAvatarImage(origin, 0)
+	assert.NoError(t, err)
+	assert.NotEqual(t, origin, result)
+	decoded, err := png.Decode(bytes.NewReader(result))
+	assert.NoError(t, err)
+	assert.EqualValues(t, DefaultAvatarSize, decoded.Bounds().Max.X)
+	assert.EqualValues(t, DefaultAvatarSize, decoded.Bounds().Max.Y)
+
+	// if origin image is smaller than the default size, use the origin image
+	origin = newImgData(1)
+	result, err = processAvatarImage(origin, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, origin, result)
 
-	// use the result image if the result is smaller
+	// use the origin image if the origin is smaller
 	origin = newImgData(DefaultAvatarSize + 100)
 	result, err = processAvatarImage(origin, 0)
 	assert.NoError(t, err)

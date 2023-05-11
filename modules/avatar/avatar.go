@@ -50,9 +50,9 @@ func processAvatarImage(data []byte, maxOriginSize int64) ([]byte, error) {
 		return nil, fmt.Errorf("image.DecodeConfig: %w", err)
 	}
 
-	// for safety, only accept know types explicitly
+	// for safety, only accept known types explicitly
 	if imgType != "png" && imgType != "jpeg" && imgType != "gif" && imgType != "webp" {
-		return nil, errors.New("unsupported image type")
+		return nil, errors.New("unsupported avatar image type")
 	}
 
 	// do not process image which is too large, it would consume too much memory
@@ -63,10 +63,10 @@ func processAvatarImage(data []byte, maxOriginSize int64) ([]byte, error) {
 		return nil, fmt.Errorf("image height is too large: %d > %d", imgCfg.Height, setting.Avatar.MaxHeight)
 	}
 
-	// if the origin is small enough, just use it, then APNG could be supported
-	// otherwise, if the image is processed later, APNG loses animation
-	// and one more thing, webp is not fully supported, image.DecodeConfig works but Decode fails
-	// so for webp, if the uploaded file is smaller than maxOriginSize, it will be used, if it's larger, there will be an error
+	// If the origin is small enough, just use it, then APNG could be supported,
+	// otherwise, if the image is processed later, APNG loses animation.
+	// And one more thing, webp is not fully supported, image.DecodeConfig works but Decode fails.
+	// So for webp, if the uploaded file is smaller than maxOriginSize, it will be used, if it's larger, there will be an error.
 	if len(data) < int(maxOriginSize) {
 		return data, nil
 	}
@@ -76,6 +76,7 @@ func processAvatarImage(data []byte, maxOriginSize int64) ([]byte, error) {
 		return nil, fmt.Errorf("image.Decode: %w", err)
 	}
 
+	// try to corp and resize the origin image if necessary
 	if imgCfg.Width != imgCfg.Height {
 		var newSize, ax, ay int
 		if imgCfg.Width > imgCfg.Height {
@@ -105,7 +106,7 @@ func processAvatarImage(data []byte, maxOriginSize int64) ([]byte, error) {
 	}
 	resized := bs.Bytes()
 
-	// usually the png compression is not good enough, use the original image (no cropping/resizing)
+	// usually the png compression is not good enough, use the original image (no cropping/resizing) if the origin is smaller
 	if len(data) <= len(resized) {
 		return data, nil
 	}
