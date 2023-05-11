@@ -1,4 +1,4 @@
-name: Publish documentation
+name: "Docs: Publish"
 
 on:
   push:
@@ -26,6 +26,6 @@ jobs:
         with:
           production-branch: main
           publish-dir: docs/public/
-          site-id: d2260bae-7861-4c02-8646-8f6440b12672
         env:
+          NETLIFY_SITE_ID: d2260bae-7861-4c02-8646-8f6440b12672
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}

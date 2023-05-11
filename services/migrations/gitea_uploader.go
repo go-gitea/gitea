@@ -923,9 +923,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 func (g *GiteaLocalUploader) Rollback() error {
 	if g.repo != nil && g.repo.ID > 0 {
 		g.gitRepo.Close()
-		if err := models.DeleteRepository(g.doer, g.repo.OwnerID, g.repo.ID); err != nil {
-			return err
-		}
+
+		// do not delete the repository, otherwise the end users won't be able to see the last error message
 	}
 	return nil
 }

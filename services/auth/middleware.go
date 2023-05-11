@@ -51,13 +51,11 @@ func authShared(ctx *context.Context, authMethod Method) error {
 		ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == BasicMethodName
 		ctx.IsSigned = true
 		ctx.Data["IsSigned"] = ctx.IsSigned
-		ctx.Data["SignedUser"] = ctx.Doer
+		ctx.Data[middleware.ContextDataKeySignedUser] = ctx.Doer
 		ctx.Data["SignedUserID"] = ctx.Doer.ID
-		ctx.Data["SignedUserName"] = ctx.Doer.Name
 		ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
 	} else {
 		ctx.Data["SignedUserID"] = int64(0)
-		ctx.Data["SignedUserName"] = ""
 	}
 	return nil
 }

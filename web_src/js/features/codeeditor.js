@@ -1,5 +1,5 @@
 import {basename, extname, isObject, isDarkTheme} from '../utils.js';
-import {debounce} from 'throttle-debounce';
+import {onInputDebounce} from '../utils/dom.js';
 
 const languagesByFilename = {};
 const languagesByExt = {};
@@ -14,7 +14,6 @@ const baseOptions = {
   overviewRulerLanes: 0,
   renderLineHighlight: 'all',
   renderLineHighlightOnlyWhenFocus: true,
-  renderWhitespace: 'none',
   rulers: false,
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6},
   scrollBeyondLastLine: false,
@@ -67,7 +66,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
 
   const container = document.createElement('div');
   container.className = 'monaco-editor-container';
-  textarea.parentNode.appendChild(container);
+  textarea.parentNode.append(container);
 
   // https://github.com/microsoft/monaco-editor/issues/2427
   const styles = window.getComputedStyle(document.documentElement);
@@ -165,7 +164,7 @@ export async function createCodeEditor(textarea, filenameInput) {
     ...getEditorConfigOptions(editorConfig),
   });
 
-  filenameInput.addEventListener('input', debounce(500, () => {
+  filenameInput.addEventListener('input', onInputDebounce(() => {
     const filename = filenameInput.value;
     const previewable = previewableExts.has(extname(filename));
     togglePreviewDisplay(previewable);

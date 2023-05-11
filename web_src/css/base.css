@@ -332,8 +332,7 @@ progress::-moz-progress-bar {
   user-select: none;
 }
 
-a,
-.ui.breadcrumb a {
+a {
   color: var(--color-primary);
   cursor: pointer;
   text-decoration-skip-ink: all;
@@ -347,8 +346,7 @@ a.muted,
 a:hover,
 a.muted:hover,
 a.muted:hover [class*="color-text"],
-.muted-links a:hover,
-.ui.breadcrumb a:hover {
+.muted-links a:hover {
   color: var(--color-primary);
 }
 
@@ -364,6 +362,12 @@ a.label,
 .ui.cards a.card,
 .issue-keyword a {
   text-decoration: none !important;
+}
+
+/* for most cases, we only use our svg icon as inline icon, so we need to make them inline-block and vertical-align: middle */
+svg.svg {
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .ui.red.labels .label,
@@ -735,14 +739,6 @@ a.label,
 .icon-button {
   padding-top: 7.42px !important;
   padding-bottom: 7.42px !important;
-}
-
-.ui.breadcrumb a:hover {
-  text-decoration: underline !important;
-}
-
-.ui.breadcrumb .divider {
-  color: var(--color-text-light-2);
 }
 
 .ui.divider:not(.vertical,.horizontal) {
@@ -1158,6 +1154,12 @@ a.ui.card:hover {
   border-top-color: var(--color-secondary-alpha-50);
 }
 
+.ui.striped.table > tr:nth-child(2n),
+.ui.striped.table > tbody > tr:nth-child(2n),
+.ui.basic.striped.table > tbody > tr:nth-child(2n) {
+  background: var(--color-light);
+}
+
 .ui.ui.ui.ui.table tr.active,
 .ui.ui.table td.active {
   color: var(--color-text);
@@ -1238,8 +1240,6 @@ img.ui.avatar,
 }
 
 .following.bar {
-  z-index: 900;
-  left: 0;
   margin: 0 !important;
 }
 
@@ -1250,24 +1250,6 @@ img.ui.avatar,
 
 .following.bar .column .menu {
   margin-top: 0;
-}
-
-.following.bar .top.menu a.item.brand {
-  padding-left: 0;
-}
-
-.following.bar .top.menu a.item:hover,
-.following.bar .top.menu .dropdown.item:hover,
-.following.bar .top.menu .dropdown.item.active {
-  background-color: transparent;
-}
-
-.following.bar .top.menu a.item:hover {
-  color: rgba(0, 0, 0, 0.45);
-}
-
-.following.bar .top.menu .menu {
-  z-index: 900;
 }
 
 .following.bar .fitted .svg {
@@ -1586,7 +1568,7 @@ img.ui.avatar,
   vertical-align: middle;
 }
 
-.ui .message {
+.ui .message.flash-message {
   text-align: center;
 }
 
@@ -1925,7 +1907,7 @@ img.ui.avatar,
 }
 
 .ui.menu.new-menu .item {
-  margin: 0 !important;
+  margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
 }
 
 @media (max-width: 767px) {
@@ -1934,8 +1916,13 @@ img.ui.avatar,
   }
 }
 
+.ui.menu.new-menu .item:first-child {
+  margin-left: auto; /* "justify-content: center" doesn't work with "overflow: auto", so use margin: auto */
+}
+
 .ui.menu.new-menu .item:last-child {
   padding-right: 30px !important;
+  margin-right: auto;
 }
 
 .ui.menu.new-menu::-webkit-scrollbar {
@@ -2255,6 +2242,16 @@ a.ui.active.label:hover {
 
 .ui.buttons .button + .button {
   border-left: none;
+}
+
+.ui.button.button-link {
+  background: transparent;
+  border: none;
+  color: inherit;
+}
+
+.ui.button.button-link:hover {
+  color: var(--color-primary);
 }
 
 .two-toggle-buttons .button:not(.active):first-of-type {
@@ -2584,18 +2581,18 @@ a.ui.basic.label:hover {
 
 .notification_count {
   position: absolute;
-  left: 5px;
-  top: -8px;
+  left: 7px;
+  top: -9px;
   min-width: 1.5em;
   text-align: center;
   background: var(--color-primary);
   border: 2px solid var(--color-header-bar);
   color: var(--color-header-bar);
-  padding: 2px;
+  padding: 2.75px;
   border-radius: 1em;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  line-height: 0.7;
+  line-height: .67em;
 }
 
 table th[data-sortt-asc]:hover,

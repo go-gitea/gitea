@@ -99,7 +99,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 			IsAdmin:         true,
 			IsSystemWebhook: ctx.Params(":configType") == "system-hooks",
 			Link:            path.Join(setting.AppSubURL, "/admin/hooks"),
-			LinkNew:         path.Join(setting.AppSubURL, "/admin/system-hooks"),
+			LinkNew:         path.Join(setting.AppSubURL, "/admin/", ctx.Params(":configType")),
 			NewTemplate:     tplAdminHookNew,
 		}, nil
 	}

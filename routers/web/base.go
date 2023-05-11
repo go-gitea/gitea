@@ -4,7 +4,6 @@
 package web
 
 import (
-	goctx "context"
 	"errors"
 	"fmt"
 	"io"
@@ -13,18 +12,12 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/modules/web/routing"
-	"code.gitea.io/gitea/services/auth"
-
-	"gitea.com/go-chi/session"
 )
 
 func storageHandler(storageSetting setting.Storage, prefix string, objStore storage.ObjectStorage) func(next http.Handler) http.Handler {
@@ -107,65 +100,6 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				http.Error(w, fmt.Sprintf("Error whilst rendering %s %s", prefix, rPath), http.StatusInternalServerError)
 				return
 			}
-		})
-	}
-}
-
-type dataStore map[string]interface{}
-
-func (d *dataStore) GetData() map[string]interface{} {
-	return *d
-}
-
-// RecoveryWith500Page returns a middleware that recovers from any panics and writes a 500 and a log if so.
-// This error will be created with the gitea 500 page.
-func RecoveryWith500Page(ctx goctx.Context) func(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			defer func() {
-				if err := recover(); err != nil {
-					routing.UpdatePanicError(req.Context(), err)
-					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
-					log.Error("%s", combinedErr)
-
-					sessionStore := session.GetSession(req)
-
-					lc := middleware.Locale(w, req)
-					store := dataStore{
-						"Language":   lc.Language(),
-						"CurrentURL": setting.AppSubURL + req.URL.RequestURI(),
-						"locale":     lc,
-					}
-
-					// TODO: this recovery handler is usually called without Gitea's web context, so we shouldn't touch that context too much
-					// Otherwise, the 500 page may cause new panics, eg: cache.GetContextWithData, it makes the developer&users couldn't find the original panic
-					user := context.GetContextUser(req) // almost always nil
-					if user == nil {
-						// Get user from session if logged in - do not attempt to sign-in
-						user = auth.SessionUser(sessionStore)
-					}
-
-					httpcache.SetCacheControlInHeader(w.Header(), 0, "no-transform")
-					w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
-
-					if !setting.IsProd || (user != nil && user.IsAdmin) {
-						store["ErrorMsg"] = combinedErr
-					}
-
-					defer func() {
-						if err := recover(); err != nil {
-							log.Error("HTML render in Recovery handler panics again: %v", err)
-						}
-					}()
-					err = rnd.HTML(w, http.StatusInternalServerError, "status/500", templates.BaseVars().Merge(store))
-					if err != nil {
-						log.Error("HTML render in Recovery handler fails again: %v", err)
-					}
-				}
-			}()
-
-			next.ServeHTTP(w, req)
 		})
 	}
 }
