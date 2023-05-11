@@ -38,8 +38,8 @@ func Test_PrepareWithPNG(t *testing.T) {
 	img, err := resizeAvatar(data)
 	assert.NoError(t, err)
 
-	assert.Equal(t, 290, img.Bounds().Max.X)
-	assert.Equal(t, 290, img.Bounds().Max.Y)
+	assert.Equal(t, DefaultAvatarSize, img.Bounds().Max.X)
+	assert.Equal(t, DefaultAvatarSize, img.Bounds().Max.Y)
 }
 
 func Test_PrepareWithJPEG(t *testing.T) {
@@ -52,8 +52,8 @@ func Test_PrepareWithJPEG(t *testing.T) {
 	img, err := resizeAvatar(data)
 	assert.NoError(t, err)
 
-	assert.Equal(t, 290, img.Bounds().Max.X)
-	assert.Equal(t, 290, img.Bounds().Max.Y)
+	assert.Equal(t, DefaultAvatarSize, img.Bounds().Max.X)
+	assert.Equal(t, DefaultAvatarSize, img.Bounds().Max.Y)
 }
 
 func Test_PrepareWithInvalidImage(t *testing.T) {
@@ -61,7 +61,7 @@ func Test_PrepareWithInvalidImage(t *testing.T) {
 	setting.Avatar.MaxHeight = 5
 
 	_, err := resizeAvatar([]byte{})
-	assert.EqualError(t, err, "DecodeConfig: image: unknown format")
+	assert.EqualError(t, err, "image.DecodeConfig: image: unknown format")
 }
 
 func Test_PrepareWithInvalidImageSize(t *testing.T) {
@@ -72,10 +72,13 @@ func Test_PrepareWithInvalidImageSize(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, err = resizeAvatar(data)
-	assert.EqualError(t, err, "Image width is too large: 10 > 5")
+	assert.EqualError(t, err, "image width is too large: 10 > 5")
 }
 
 func Test_TryToResizeAvatar(t *testing.T) {
+	setting.Avatar.MaxWidth = 4096
+	setting.Avatar.MaxHeight = 4096
+
 	newImgData := func(size int) []byte {
 		img := image.NewRGBA(image.Rect(0, 0, size, size))
 		bs := bytes.Buffer{}
@@ -111,11 +114,15 @@ func Test_TryToResizeAvatar(t *testing.T) {
 
 	// if a format is known, but it's not convertable, then it can't be used
 	origin, err = os.ReadFile("testdata/animated.webp")
+	width, height, acceptable := detectAcceptableWebp(origin)
+	assert.EqualValues(t, 400, width)
+	assert.EqualValues(t, 400, height)
+	assert.True(t, acceptable)
 	assert.NoError(t, err)
 	_, err = TryToResizeAvatar(origin, 0)
-	assert.ErrorContains(t, err, "image size is too large and it can't be converted")
+	assert.ErrorContains(t, err, "image data size is too large and it can't be converted")
 
-	// do not support unknown image formats, eg: SVG man contain embedded JS
+	// do not support unknown image formats, eg: SVG may contain embedded JS
 	origin = []byte("<svg></svg>")
 	_, err = TryToResizeAvatar(origin, 128000)
 	assert.ErrorContains(t, err, "unsupported image format")
