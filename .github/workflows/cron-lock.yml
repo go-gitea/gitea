@@ -1,5 +1,3 @@
-name: Lock Threads
-
 on:
   schedule:
     - cron: '0 0 * * *' # Once a day

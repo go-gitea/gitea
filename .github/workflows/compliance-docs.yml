@@ -1,18 +1,20 @@
-name: Docker Dry Run
-
-on: [pull_request]
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
-  docker-dryrun:
+  compliance-docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v4
+      - uses: actions/setup-node@v3
         with:
-          push: false
-          tags: gitea/gitea:linux-amd64
+          node-version: 20
+      - run: make deps-frontend
+      - run: make lint-md

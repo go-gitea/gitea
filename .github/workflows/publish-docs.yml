@@ -1,5 +1,3 @@
-name: Publish
-
 on:
   push:
     paths:

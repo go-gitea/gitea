@@ -1,5 +1,3 @@
-name: Database Tests
-
 on: [pull_request]
 
 concurrency:
