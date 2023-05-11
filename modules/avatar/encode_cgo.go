@@ -10,6 +10,7 @@ import (
 	"io"
 
 	"code.gitea.io/gitea/modules/log"
+
 	"github.com/chai2010/webp"
 )
 
