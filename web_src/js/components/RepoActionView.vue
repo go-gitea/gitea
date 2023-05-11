@@ -1,19 +1,19 @@
 <template>
-  <div class="action-view-container">
+  <div class="ui container action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary">
         <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
-        <div class="action-title">
+        <h2 class="action-title">
           {{ run.title }}
-        </div>
+        </h2>
         <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
-          <SvgIcon class="gt-mr-2" name="octicon-play" :size="20"/> {{ locale.approve }}
+          {{ locale.approve }}
         </button>
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
-          <SvgIcon class="gt-mr-2" name="octicon-x-circle-fill" :size="20"/> {{ locale.cancel }}
+          {{ locale.cancel }}
         </button>
         <button class="ui basic small compact button secondary" @click="rerun()" v-else-if="run.canRerun">
-          <SvgIcon class="gt-mr-2" name="octicon-sync" :size="20"/> {{ locale.rerun }}
+          {{ locale.rerun_all }}
         </button>
       </div>
       <div class="action-commit-summary">
@@ -30,15 +30,15 @@
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="rerunIndex = job.id"  @mouseleave="rerunIndex = -1">
+            <div class="job-brief-item" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id"  @mouseleave="onHoverRerunIndex = -1">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
-                <span class="ui text gt-mx-3">{{ job.name }}</span>
+                <span class="job-brief-name gt-mx-3 gt-ellipsis">{{ job.name }}</span>
               </a>
-              <button :data-tooltip-content="locale.rerun" class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun && rerunIndex === job.id">
-                <SvgIcon name="octicon-sync" class="ui text black"/>
-              </button>
-              <span class="step-summary-duration">{{ job.duration }}</span>
+              <span class="job-brief-info" :data-tooltip-content="locale.rerun" >
+                <SvgIcon name="octicon-sync" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-show="job.canRerun && onHoverRerunIndex === job.id"/>
+                <span class="step-summary-duration">{{ job.duration }}</span>
+              </span>
             </div>
           </div>
         </div>
@@ -58,21 +58,21 @@
 
       <div class="action-view-right">
         <div class="job-info-header">
-          <div class="job-info-header-title">
+          <h3 class="job-info-header-title">
             {{ currentJob.title }}
-          </div>
-          <div class="job-info-header-detail">
+          </h3>
+          <p class="job-info-header-detail">
             {{ currentJob.detail }}
-          </div>
+          </p>
         </div>
         <div class="job-step-container">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
-            <div class="job-step-summary" @click.stop="toggleStepLogs(i)">
-              <SvgIcon :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" class="gt-mr-3"/>
-
+            <div class="job-step-summary" @click.stop="toggleStepLogs(i)" :class="currentJobStepsStates[i].expanded ? 'selected' : ''">
+              <SvgIcon v-if="currentJobStepsStates[i].isLoading" name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
+              <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" class="gt-mr-3"/>
               <ActionRunStatus :status="jobStep.status" class="gt-mr-3"/>
 
-              <span class="step-summary-msg">{{ jobStep.summary }}</span>
+              <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
               <span class="step-summary-duration">{{ jobStep.duration }}</span>
             </div>
 
@@ -115,7 +115,7 @@ const sfc = {
       intervalID: null,
       currentJobStepsStates: [],
       artifacts: [],
-      rerunIndex: -1,
+      onHoverRerunIndex: -1,
 
       // provided by backend
       run: {
@@ -209,10 +209,21 @@ const sfc = {
     },
 
     // show/hide the step logs for a step
-    toggleStepLogs(idx) {
-      this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
-      if (this.currentJobStepsStates[idx].expanded) {
-        this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
+    async toggleStepLogs(idx) {
+      console.log(this.currentJobStepsStates[idx]);
+      const currentToggledStep = this.currentJobStepsStates[idx];
+      currentToggledStep.expanded = !currentToggledStep.expanded;
+      if (currentToggledStep.expanded) {
+        // If the job is done and the job step is expanded for the first time,
+        // wait for fetching job and show the loading icon
+        if (this.isDone(this.run.status) && currentToggledStep.isInitialExpand) {
+          currentToggledStep.isInitialExpand = false;
+          currentToggledStep.isLoading = true;
+          await this.loadJob();
+          currentToggledStep.isLoading = false;
+        } else {
+          this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
+        }
       }
     },
     // rerun a job
@@ -256,6 +267,7 @@ const sfc = {
     },
 
     appendLogs(stepIndex, logLines) {
+      console.log('append', logLines);
       for (const line of logLines) {
         // TODO: group support: ##[group]GroupTitle , ##[endgroup]
         const el = this.getLogsContainer(stepIndex);
@@ -296,11 +308,13 @@ const sfc = {
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJob.steps.length; i++) {
           if (!this.currentJobStepsStates[i]) {
-            this.currentJobStepsStates[i] = {cursor: null, expanded: false};
+            console.log('initial syncing')
+            this.currentJobStepsStates[i] = {cursor: null, expanded: false, isInitialExpand: true};
           }
         }
         // append logs to the UI
         for (const logs of response.logs.stepsLog) {
+          console.log('logs.cursor', logs.cursor);
           // save the cursor, it will be passed to backend next time
           this.currentJobStepsStates[logs.step].cursor = logs.cursor;
           this.appendLogs(logs.step, logs.lines);
@@ -326,6 +340,10 @@ const sfc = {
         body,
       });
     },
+
+    isDone(status) {
+      return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
+    }
   },
 };
 
@@ -349,6 +367,7 @@ export function initRepositoryActionView() {
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
+      rerun_all: el.getAttribute('data-locale-rerun-all'),
       status: {
         unknown: el.getAttribute('data-locale-status-unknown'),
         waiting: el.getAttribute('data-locale-status-waiting'),
@@ -418,24 +437,24 @@ export function ansiLogToHTML(line) {
 /* action view header */
 
 .action-view-header {
-  margin: 0 20px 20px 20px;
+  margin: 20px 0px;
 }
 
 .action-info-summary {
-  font-size: 150%;
-  height: 20px;
   display: flex;
   align-items: center;
   margin-top: 1rem;
 }
 
 .action-info-summary .action-title {
+  font-size: 20px;
+  margin: 0;
   padding: 0 5px;
   flex: 1;
 }
 
 .action-commit-summary {
-  padding: 10px 10px;
+  padding: 10px;
 }
 
 /* ================ */
@@ -445,7 +464,6 @@ export function ansiLogToHTML(line) {
   width: 30%;
   max-width: 400px;
   overflow-y: scroll;
-  margin-left: 10px;
 }
 
 .job-group-section .job-group-summary {
@@ -481,25 +499,23 @@ export function ansiLogToHTML(line) {
   border-radius: 5px;
   text-decoration: none;
   display: flex;
-  justify-items: center;
   flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .job-group-section .job-brief-list .job-brief-item .job-brief-rerun {
-  float: right;
-  border: none;
-  background-color: transparent;
-  outline: none;
   cursor: pointer;
+  transition: transform 0.2s;
 }
 
 .job-group-section .job-brief-list .job-brief-item .job-brief-rerun:hover {
-  
+  transform: scale(130%);
 }
 
 .job-group-section .job-brief-list .job-brief-item .job-brief-link {
-  flex-grow: 1;
   display: flex;
+  width: 80%;
 }
 
 .job-group-section .job-brief-list .job-brief-item .job-brief-link span {
@@ -507,11 +523,26 @@ export function ansiLogToHTML(line) {
   align-items: center;
 }
 
+.job-group-section .job-brief-list .job-brief-item .job-brief-link .job-brief-name {
+  display: block;
+  width: 70%;
+}
+
 .job-group-section .job-brief-list .job-brief-item .job-brief-link:hover {
   text-decoration: none;
 }
 
+.job-group-section .job-brief-list .job-brief-item .job-brief-info {
+  display: flex;
+  align-items: center;
+}
+
 .job-group-section .job-brief-list .job-brief-item:hover {
+  background-color: var(--color-secondary-light-2);
+}
+
+.job-group-section .job-brief-list .job-brief-item.selected {
+  font-weight: 600;
   background-color: var(--color-secondary);
 }
 
@@ -521,21 +552,27 @@ export function ansiLogToHTML(line) {
 .action-view-right {
   flex: 1;
   background-color: var(--color-console-bg);
-  color: var(--color-console-fg);
+  color: var(--color-secondary-dark-2);
   max-height: 100%;
-  margin-right: 10px;
+  width: 70%;
   display: flex;
   flex-direction: column;
 }
 
-.job-info-header .job-info-header-title {
-  font-size: 150%;
+.job-info-header {
   padding: 10px;
+  border-bottom: 1px solid var(--color-grey);
+}
+
+.job-info-header .job-info-header-title {
+  color: var(--color-console-fg);
+  font-size: 16px;
+  margin: 0;
 }
 
 .job-info-header .job-info-header-detail {
-  padding: 0 10px 10px;
-  border-bottom: 1px solid var(--color-grey);
+  color: var(--color-secondary-dark-3);
+  font-size: 12px;
 }
 
 .job-step-container {
@@ -547,6 +584,7 @@ export function ansiLogToHTML(line) {
   cursor: pointer;
   padding: 5px 10px;
   display: flex;
+  align-items: center;
 }
 
 .job-step-container .job-step-summary .step-summary-msg {
@@ -557,8 +595,25 @@ export function ansiLogToHTML(line) {
   margin-left: 16px;
 }
 
-.job-step-container .job-step-summary:hover {
+.job-step-container .job-step-summary:hover,
+.job-step-container .job-step-summary.selected {
+  color: var(--color-console-fg);
   background-color: var(--color-black-light);
+  border-radius: 5px;
+}
+
+@media (max-width: 768px) {
+  .action-view-body {
+    flex-direction: column;
+  }
+  .action-view-left, .action-view-right {
+    width: 100%;
+  }
+
+  .action-view-left {
+    max-width: none;
+    overflow-y: visible;
+  }
 }
 </style>
 
@@ -580,10 +635,17 @@ export function ansiLogToHTML(line) {
 
 .job-step-section .job-step-logs {
   font-family: monospace, monospace;
+  margin: 8px 0px;
+  font-size: 12px;
 }
 
 .job-step-section .job-step-logs .job-log-line {
   display: flex;
+}
+
+.job-step-section .job-step-logs .job-log-line:hover {
+  color: var(--color-console-fg);
+  background-color: var(--color-black-light);
 }
 
 .job-step-section .job-step-logs .job-log-line .line-num {
