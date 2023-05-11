@@ -30,15 +30,15 @@
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
+            <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="rerunIndex = job.id"  @mouseleave="rerunIndex = -1">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="ui text gt-mx-3">{{ job.name }}</span>
               </a>
-              <span class="step-summary-duration">{{ job.duration }}</span>
-              <button :data-tooltip-content="locale.rerun" class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
+              <button :data-tooltip-content="locale.rerun" class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun && rerunIndex === job.id">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
+              <span class="step-summary-duration">{{ job.duration }}</span>
             </div>
           </div>
         </div>
@@ -115,6 +115,7 @@ const sfc = {
       intervalID: null,
       currentJobStepsStates: [],
       artifacts: [],
+      rerunIndex: -1,
 
       // provided by backend
       run: {
@@ -490,11 +491,10 @@ export function ansiLogToHTML(line) {
   background-color: transparent;
   outline: none;
   cursor: pointer;
-  transition: transform 0.2s;
 }
 
 .job-group-section .job-brief-list .job-brief-item .job-brief-rerun:hover {
-  transform: scale(130%);
+  
 }
 
 .job-group-section .job-brief-list .job-brief-item .job-brief-link {
@@ -505,6 +505,10 @@ export function ansiLogToHTML(line) {
 .job-group-section .job-brief-list .job-brief-item .job-brief-link span {
   display: flex;
   align-items: center;
+}
+
+.job-group-section .job-brief-list .job-brief-item .job-brief-link:hover {
+  text-decoration: none;
 }
 
 .job-group-section .job-brief-list .job-brief-item:hover {
