@@ -1,3 +1,5 @@
+name: cron-lock
+
 on:
   schedule:
     - cron: '0 0 * * *' # Once a day

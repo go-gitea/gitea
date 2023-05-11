@@ -1,3 +1,5 @@
+name: docker-dryrun
+
 on: [pull_request]
 
 concurrency:

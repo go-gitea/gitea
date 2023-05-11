@@ -1,3 +1,5 @@
+name: db-tests
+
 on: [pull_request]
 
 concurrency:

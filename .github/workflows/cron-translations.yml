@@ -1,3 +1,5 @@
+name: cron-translations
+
 on:
   schedule:
     - cron: "7 0 * * *" # every day at 0:07 UTC

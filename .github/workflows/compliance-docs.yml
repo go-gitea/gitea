@@ -1,3 +1,5 @@
+name: compliance-docs
+
 on:
   pull_request:
     paths:

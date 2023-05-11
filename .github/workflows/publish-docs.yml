@@ -1,3 +1,5 @@
+name: publish-docs
+
 on:
   push:
     paths:

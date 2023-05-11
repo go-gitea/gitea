@@ -1,3 +1,5 @@
+name: cron-licenses
+
 on:
   schedule:
     - cron: "7 0 * * 1" # weekly on Monday at 0:07 UTC
