@@ -120,16 +120,6 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["status_check_contexts"] = strings.Join(rule.StatusCheckContexts, "\n")
 	contexts, _ := git_model.FindRepoRecentCommitStatusContexts(c, c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
 	c.Data["branch_status_check_contexts"] = contexts
-	c.Data["can_context_match"] = func(context string) bool {
-		for _, c := range rule.StatusCheckContexts {
-			if gp, err := glob.Compile(c); err != nil {
-				log.Error("glob.Compile %s failed. Error: %v", c, err)
-			} else if gp.Match(context) {
-				return true
-			}
-		}
-		return false
-	}
 
 	if c.Repo.Owner.IsOrganization() {
 		teams, err := organization.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c.Repo.Repository.ID, perm.AccessModeRead)

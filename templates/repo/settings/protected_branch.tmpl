@@ -171,7 +171,7 @@
 								<tr>
 									<td>
 										<span>{{.}}</span>
-										<span class="status-check-matched-mark {{if not (call $.can_context_match .)}}gt-hidden{{end}}" data-status-check-context="{{.}}">{{$.locale.Tr "repo.settings.protect_status_check_matched"}}</span>
+										<span class="status-check-matched-mark gt-hidden" data-status-check-context="{{.}}">{{$.locale.Tr "repo.settings.protect_status_check_matched"}}</span>
 									</td>
 								</tr>
 							{{else}}
