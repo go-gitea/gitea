@@ -49,13 +49,13 @@ func TestGoGetForSSH(t *testing.T) {
 	expected := fmt.Sprintf(`<!doctype html>
 <html>
 	<head>
-		<meta name="go-import" content="%[1]s:%[2]s/blah/glah git git@%[4]s/blah/glah.git">
+		<meta name="go-import" content="%[1]s:%[2]s/blah/glah git ssh://git@%[4]s:%[5]s/blah/glah.git">
 		<meta name="go-source" content="%[1]s:%[2]s/blah/glah _ %[3]sblah/glah/src/branch/master{/dir} %[3]sblah/glah/src/branch/master{/dir}/{file}#L{line}">
 	</head>
 	<body>
 		go get --insecure %[1]s:%[2]s/blah/glah
 	</body>
-</html>`, setting.Domain, setting.HTTPPort, setting.AppURL, setting.SSH.Domain)
+</html>`, setting.Domain, setting.HTTPPort, setting.AppURL, setting.SSH.Domain, setting.SSH.Port)
 
 	assert.Equal(t, expected, resp.Body.String())
 }

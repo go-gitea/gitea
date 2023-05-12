@@ -559,7 +559,7 @@ func ComposeSSHCloneURL(ownerName, repoName string) string {
 	}
 
 	if setting.SSH.Port != 22 {
-		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, 
+		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser,
 			net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)),
 			url.PathEscape(ownerName),
 			url.PathEscape(repoName))
