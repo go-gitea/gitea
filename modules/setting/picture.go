@@ -16,7 +16,7 @@ var (
 		RenderedSizeFactor int
 	}{
 		MaxWidth:           4096,
-		MaxHeight:          3072,
+		MaxHeight:          4096,
 		MaxFileSize:        2097152,
 		MaxOriginSize:      262144,
 		RenderedSizeFactor: 2,
@@ -46,7 +46,7 @@ func loadPictureFrom(rootCfg ConfigProvider) {
 	Avatar.Storage = getStorage(rootCfg, "avatars", storageType, avatarSec)
 
 	Avatar.MaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
-	Avatar.MaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
+	Avatar.MaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(4096)
 	Avatar.MaxFileSize = sec.Key("AVATAR_MAX_FILE_SIZE").MustInt64(2097152)
 	Avatar.MaxOriginSize = sec.Key("AVATAR_MAX_ORIGIN_SIZE").MustInt64(262144)
 	Avatar.RenderedSizeFactor = sec.Key("AVATAR_RENDERED_SIZE_FACTOR").MustInt(2)
