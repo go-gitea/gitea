@@ -103,7 +103,7 @@ export function initRepoSettingBranches() {
         el.classList.add('gt-hidden');
       }
     }
-  }
+  };
   markMatchedStatusChecks();
   document.getElementById('status_check_contexts')?.addEventListener('input', markMatchedStatusChecks);
 }
