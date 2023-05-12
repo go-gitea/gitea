@@ -127,7 +127,7 @@ func TestRenameReservedUsername(t *testing.T) {
 		"ssh_info",
 		"swagger.v1.json",
 		"user",
-		"v2",
+		"v2testfail",
 	}
 
 	session := loginUser(t, "user2")
