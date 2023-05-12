@@ -3,17 +3,12 @@
   run_id: 791
   repo_id: 4
   owner_id: 1
-  commit_sha: "c2d72f548424103f01ee1dc02889c1e2bff816b0"
+  commit_sha: c2d72f548424103f01ee1dc02889c1e2bff816b0
   is_fork_pull_request: 0
-  name: "job_2"
+  name: job_2
   attempt: 1
-  workflow_payload: ""
-  job_id: "job_2"
-  needs: ""
-  runs_on: "[\"ubuntu-latest\"]"
+  job_id: job_2
   task_id: 47
   status: 1
   started: 1683636528
   stopped: 1683636626
-  created: 1683636108
-  updated: 1683636626

@@ -9,10 +9,11 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/tests"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func TestArtifactsUpload(t *testing.T) {
+func TestActionsArtifactUpload(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	type uploadArtifactResponse struct {
@@ -56,7 +57,7 @@ func TestArtifactsUpload(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 }
 
-func TestArtifactsUploadNotExist(t *testing.T) {
+func TestActionsArtifactUploadNotExist(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	// artifact id 54321 not exist
@@ -70,7 +71,7 @@ func TestArtifactsUploadNotExist(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestArtifactConfirmUpload(t *testing.T) {
+func TestActionsArtifactConfirmUpload(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
@@ -79,14 +80,14 @@ func TestArtifactConfirmUpload(t *testing.T) {
 	assert.Contains(t, resp.Body.String(), "success")
 }
 
-func TestArtifactUploadWithoutToken(t *testing.T) {
+func TestActionsArtifactUploadWithoutToken(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequestWithJSON(t, "POST", "/api/actions_pipeline/_apis/pipelines/workflows/1/artifacts", nil)
 	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
-func TestArtifactDownload(t *testing.T) {
+func TestActionsArtifactDownload(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	type (
