@@ -20,7 +20,7 @@ func TestSettingShowUserEmailExplore(t *testing.T) {
 	setting.UI.ShowUserEmail = true
 
 	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/explore/users")
+	req := NewRequest(t, "GET", "/explore/users?sort=alphabetically")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	assert.Contains(t,
@@ -30,7 +30,7 @@ func TestSettingShowUserEmailExplore(t *testing.T) {
 
 	setting.UI.ShowUserEmail = false
 
-	req = NewRequest(t, "GET", "/explore/users")
+	req = NewRequest(t, "GET", "/explore/users?sort=alphabetically")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	assert.NotContains(t,

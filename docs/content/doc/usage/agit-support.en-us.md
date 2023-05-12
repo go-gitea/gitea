@@ -5,6 +5,8 @@ slug: "agit-setup"
 weight: 12
 toc: false
 draft: false
+aliases:
+  - /en-us/agit-setup
 menu:
   sidebar:
     parent: "usage"

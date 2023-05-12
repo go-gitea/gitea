@@ -37,7 +37,7 @@
 			</div>
 			<div class="field" data-tooltip-content="Labels are comma-separated. Whitespace at the beginning, end, and around the commas are ignored.">
 				<label for="custom_labels">{{.locale.Tr "actions.runners.custom_labels"}}</label>
-				<input id="custom_labels" name="custom_labels" value="{{Join .Runner.CustomLabels `,`}}">
+				<input id="custom_labels" name="custom_labels" value="{{StringUtils.Join .Runner.CustomLabels `,`}}">
 				<p class="help">{{.locale.Tr "actions.runners.custom_labels_helper"}}</p>
 			</div>
 

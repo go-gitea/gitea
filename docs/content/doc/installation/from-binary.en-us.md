@@ -5,6 +5,8 @@ slug: "install-from-binary"
 weight: 15
 toc: false
 draft: false
+aliases:
+  - /en-us/install-from-binary
 menu:
   sidebar:
     parent: "installation"

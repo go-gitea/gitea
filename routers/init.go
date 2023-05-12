@@ -175,7 +175,7 @@ func GlobalInitInstalled(ctx context.Context) {
 
 // NormalRoutes represents non install routes
 func NormalRoutes(ctx context.Context) *web.Route {
-	ctx, _ = templates.HTMLRenderer(ctx)
+	_ = templates.HTMLRenderer()
 	r := web.NewRoute()
 	r.Use(common.ProtocolMiddlewares()...)
 

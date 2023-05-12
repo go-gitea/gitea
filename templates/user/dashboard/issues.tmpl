@@ -60,57 +60,52 @@
 				</div>
 			</div>
 			<div class="twelve wide column content">
-				<div class="ui three column stackable grid">
-					<div class="column">
-						<div class="ui compact tiny menu">
-							<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
-								{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
-								{{.locale.PrettyNumber .IssueStats.OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
-							</a>
-							<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
-								{{svg "octicon-issue-closed" 16 "gt-mr-3"}}
-								{{.locale.PrettyNumber .IssueStats.ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
-							</a>
+				<div class="list-header">
+					<div class="small-menu-items ui compact tiny menu">
+						<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
+							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
+							{{.locale.PrettyNumber .IssueStats.OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
+						</a>
+						<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
+							{{svg "octicon-issue-closed" 16 "gt-mr-3"}}
+							{{.locale.PrettyNumber .IssueStats.ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
+						</a>
+					</div>
+					<form class="list-header-search ui form ignore-dirty">
+						<div class="ui small search fluid action input">
+							<input type="hidden" name="type" value="{{$.ViewType}}">
+							<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}}%2C{{end}}]">
+							<input type="hidden" name="sort" value="{{$.SortType}}">
+							<input type="hidden" name="state" value="{{$.State}}">
+							<input name="q" value="{{$.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
+							<button id="issue-list-quick-goto" class="ui small icon button gt-hidden" data-tooltip-content="{{.locale.Tr "explore.go_to"}}">{{svg "octicon-hash"}}</button>
+							<button class="ui small icon button" aria-label="{{.locale.Tr "explore.search"}}">{{svg "octicon-search"}}</button>
+						</div>
+					</form>
+					<!-- Sort -->
+					<div class="list-header-sort ui small dropdown type jump item">
+						<span class="text gt-whitespace-nowrap">
+							{{.locale.Tr "repo.issues.filter_sort"}}
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						</span>
+						<div class="menu">
+							<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=recentupdate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+							<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastupdate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+							<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=latest&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.latest"}}</a>
+							<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=oldest&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+							<a class="{{if eq .SortType "mostcomment"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomment&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
+							<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomment&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+							<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=nearduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
+							<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=farduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
 						</div>
 					</div>
-					<div class="column center aligned">
-						<form class="ui form ignore-dirty">
-							<div class="ui search fluid action input">
-								<input type="hidden" name="type" value="{{$.ViewType}}">
-								<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}}%2C{{end}}]">
-								<input type="hidden" name="sort" value="{{$.SortType}}">
-								<input type="hidden" name="state" value="{{$.State}}">
-								<input name="q" value="{{$.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
-								<button class="ui primary button" type="submit">{{.locale.Tr "explore.search"}}</button>
-							</div>
-						</form>
-					</div>
-					<div class="column right aligned gt-df gt-ac gt-je">
-						<!-- Sort -->
-						<div class="ui dropdown type jump item">
-							<span class="text gt-whitespace-nowrap">
-								{{.locale.Tr "repo.issues.filter_sort"}}
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							</span>
-							<div class="menu">
-								<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=recentupdate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-								<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastupdate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
-								<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=latest&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.latest"}}</a>
-								<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=oldest&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-								<a class="{{if eq .SortType "mostcomment"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomment&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
-								<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomment&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
-								<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=nearduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
-								<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=farduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
-							</div>
-						</div>
-						{{if .SingleRepoLink}}
-							{{if eq .SingleRepoAction "issue"}}
-								<a class="ui green button gt-ml-4" href="{{.SingleRepoLink}}/issues/new/choose">{{.locale.Tr "repo.issues.new"}}</a>
-							{{else if eq .SingleRepoAction "pull"}}
-								<a class="ui green button gt-ml-4" href="{{.SingleRepoLink}}/compare">{{.locale.Tr "repo.pulls.new"}}</a>
-							{{end}}
+					{{if .SingleRepoLink}}
+						{{if eq .SingleRepoAction "issue"}}
+							<a class="ui green button gt-ml-4" href="{{.SingleRepoLink}}/issues/new/choose">{{.locale.Tr "repo.issues.new"}}</a>
+						{{else if eq .SingleRepoAction "pull"}}
+							<a class="ui green button gt-ml-4" href="{{.SingleRepoLink}}/compare">{{.locale.Tr "repo.pulls.new"}}</a>
 						{{end}}
-					</div>
+					{{end}}
 				</div>
 				{{template "shared/issuelist" dict "." . "listType" "dashboard"}}
 			</div>

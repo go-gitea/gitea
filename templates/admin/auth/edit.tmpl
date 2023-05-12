@@ -70,7 +70,7 @@
 					{{end}}
 					<div class="required field">
 						<label for="filter">{{.locale.Tr "admin.auths.filter"}}</label>
-						<input id="filter" name="filter" value="{{$cfg.Filter}}" placeholder="e.g. (&(objectClass=posixAccount)(uid=%s))" required>
+						<input id="filter" name="filter" value="{{$cfg.Filter}}" placeholder="e.g. (&(objectClass=posixAccount)(|(uid=%[1]s)(mail=%[1]s)))" required>
 					</div>
 					<div class="field">
 						<label for="admin_filter">{{.locale.Tr "admin.auths.admin_filter"}}</label>
@@ -334,7 +334,7 @@
 
 					<div class="field">
 						<label for="oauth2_scopes">{{.locale.Tr "admin.auths.oauth2_scopes"}}</label>
-						<input id="oauth2_scopes" name="oauth2_scopes" value="{{if $cfg.Scopes}}{{Join $cfg.Scopes ","}}{{end}}">
+						<input id="oauth2_scopes" name="oauth2_scopes" value="{{if $cfg.Scopes}}{{StringUtils.Join $cfg.Scopes ","}}{{end}}">
 					</div>
 					<div class="field">
 						<label for="oauth2_required_claim_name">{{.locale.Tr "admin.auths.oauth2_required_claim_name"}}</label>

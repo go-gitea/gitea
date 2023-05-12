@@ -35,12 +35,11 @@ import (
 	"xorm.io/builder"
 )
 
-// ItemsPerPage maximum items per page in forks, watchers and stars of a repo
-var ItemsPerPage = 40
-
 // Init initialize model
 func Init(ctx context.Context) error {
-	unit.LoadUnitConfig()
+	if err := unit.LoadUnitConfig(); err != nil {
+		return err
+	}
 	return system_model.Init(ctx)
 }
 

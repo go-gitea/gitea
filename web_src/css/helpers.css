@@ -60,21 +60,29 @@ Gitea's private styles use `g-` prefix.
   text-overflow: ellipsis;
 }
 
+.gt-max-width-24rem { max-width: 24rem !important; }
+
 /* below class names match Tailwind CSS */
 .gt-break-all { word-break: break-all !important; }
 .gt-content-center { align-content: center !important; }
 .gt-cursor-default { cursor: default !important; }
 .gt-invisible { visibility: hidden !important; }
 .gt-items-start { align-items: flex-start !important; }
-.gt-overflow-x-scroll { overflow-x: scroll !important; }
 .gt-pointer-events-none { pointer-events: none !important; }
 .gt-relative { position: relative !important; }
 .gt-whitespace-nowrap { white-space: nowrap !important; }
 .gt-whitespace-pre { white-space: pre !important; }
 .gt-whitespace-pre-wrap { white-space: pre-wrap !important; }
 
+.gt-overflow-x-auto { overflow-x: auto !important; }
+.gt-overflow-x-scroll { overflow-x: scroll !important; }
+.gt-overflow-y-hidden { overflow-y: hidden !important; }
+
 .gt-w-screen { width: 100vw !important; }
 .gt-h-screen { height: 100vh !important; }
+
+.gt-float-left { float: left !important; }
+.gt-float-right { float: right !important; }
 
 .gt-rounded { border-radius: var(--border-radius) !important; }
 .gt-rounded-top { border-radius: var(--border-radius) var(--border-radius) 0 0 !important; }
@@ -154,6 +162,14 @@ Gitea's private styles use `g-` prefix.
 .gt-my-3 { margin-top: .5rem !important; margin-bottom: .5rem !important; }
 .gt-my-4 { margin-top: 1rem !important; margin-bottom: 1rem !important; }
 .gt-my-5 { margin-top: 2rem !important; margin-bottom: 2rem !important; }
+
+.gt-m-auto  { margin: auto !important; }
+.gt-mx-auto { margin-left: auto !important; margin-right: auto !important; }
+.gt-my-auto { margin-top: auto !important; margin-bottom: auto !important; }
+.gt-mt-auto { margin-top: auto !important; }
+.gt-mr-auto { margin-right: auto !important; }
+.gt-mb-auto { margin-bottom: auto !important; }
+.gt-ml-auto { margin-left: auto !important; }
 
 .gt-p-0 { padding: 0 !important; }
 .gt-p-1 { padding: .125rem !important; }

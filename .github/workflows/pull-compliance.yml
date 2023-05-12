@@ -1,0 +1,142 @@
+name: "Pull: Compliance Tests"
+
+on: [pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  lint_basic:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.20'
+          check-latest: true
+      - name: deps-backend
+        run: make deps-backend deps-tools
+      - name: lint backend
+        run: make lint-backend
+        env:
+          GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
+          GOSUMDB: sum.golang.org
+          TAGS: bindata sqlite sqlite_unlock_notify
+  lint_windows:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.20'
+          check-latest: true
+      - name: deps-backend
+        run: make deps-backend deps-tools
+      - name: lint-backend-windows
+        run: make lint-go-windows lint-go-vet
+        env:
+          GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
+          GOSUMDB: sum.golang.org
+          TAGS: bindata sqlite sqlite_unlock_notify
+          GOOS: windows
+          GOARCH: amd64
+  lint_gogit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.20'
+          check-latest: true
+      - name: deps-backend
+        run: make deps-backend deps-tools
+      - name: lint-backend-gogit
+        run: make lint-backend
+        env:
+          GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
+          GOSUMDB: sum.golang.org
+          TAGS: bindata gogit sqlite sqlite_unlock_notify
+      - name: checks backend
+        run: make --always-make checks-backend # ensure the 'go-licenses' make target runs
+  check_backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.20'
+          check-latest: true
+      - name: deps-backend
+        run: make deps-backend deps-tools
+      - name: checks backend
+        run: make --always-make checks-backend # ensure the 'go-licenses' make target runs
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - name: deps-frontend
+        run: make deps-frontend
+      - name: lint frontend
+        run: make lint-frontend
+      - name: checks frontend
+        run: make checks-frontend
+      - name: test frontend
+        run: make test-frontend
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.20'
+          check-latest: true
+      - name: setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - name: deps-backend
+        run: make deps-backend deps-tools
+      - name: deps-frontend
+        run: make deps-frontend
+      - name: build frontend
+        run: make frontend
+      - name: build-backend-no-gcc
+        run: go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
+        env:
+          GOPROXY: https://goproxy.io
+      - name: build-backend-arm64
+        run: make backend # test cross compile
+        env:
+          GOPROXY: https://goproxy.io
+          GOOS: linux
+          GOARCH: arm64
+          TAGS: bindata gogit
+      - name: build-backend-windows
+        run: go build -o gitea_windows
+        env:
+          GOPROXY: https://goproxy.io
+          GOOS: windows
+          GOARCH: amd64
+          TAGS: bindata gogit
+      - name: build-backend-386
+        run: go build -o gitea_linux_386 # test if compatible with 32 bit
+        env:
+          GOPROXY: https://goproxy.io
+          GOOS: linux
+          GOARCH: 386
