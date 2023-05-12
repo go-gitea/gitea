@@ -284,6 +284,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
 	if errors.Is(err, util.ErrNotExist) {
 		log.Error("Error getting artifact: %v", err)
 		ctx.Error(http.StatusNotFound, err.Error())
+		return
 	} else if err != nil {
 		log.Error("Error getting artifact: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -527,6 +528,7 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *context.Context) {
 	if errors.Is(err, util.ErrNotExist) {
 		log.Error("Error getting artifact: %v", err)
 		ctx.Error(http.StatusNotFound, err.Error())
+		return
 	} else if err != nil {
 		log.Error("Error getting artifact: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -555,6 +557,7 @@ func (ar artifactRoutes) downloadArtifact(ctx *context.Context) {
 	if errors.Is(err, util.ErrNotExist) {
 		log.Error("Error getting artifact: %v", err)
 		ctx.Error(http.StatusNotFound, err.Error())
+		return
 	} else if err != nil {
 		log.Error("Error getting artifact: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
