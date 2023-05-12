@@ -1,15 +1,14 @@
+name: cron-translations
+
 on:
   schedule:
-    - cron: "7 0 * * *" # every day at 0:07 UTC
-
-name: Pull translations from Crowdin
+    - cron: "7 0 * * *" # every day at 00:07 UTC
 
 jobs:
-  crowdin_pull:
+  crowdin-pull:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       - name: download from crowdin
         uses: docker://jonasfranz/crowdin
         env:
@@ -30,11 +29,10 @@ jobs:
           commit_message: "[skip ci] Updated translations via Crowdin"
           remote: "git@github.com:go-gitea/gitea.git"
           ssh_key: ${{ secrets.DEPLOY_KEY }}
-  crowdin_push:
+  crowdin-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       - name: push translations to crowdin
         uses: docker://jonasfranz/crowdin
         env:

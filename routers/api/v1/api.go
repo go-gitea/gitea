@@ -316,7 +316,7 @@ func reqSiteAdmin() func(ctx *context.APIContext) {
 // reqOwner user should be the owner of the repo or site admin.
 func reqOwner() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.IsUserRepoOwner() && !ctx.IsUserSiteAdmin() {
+		if !ctx.Repo.IsOwner() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqOwner", "user should be the owner of the repo")
 			return
 		}
@@ -355,7 +355,7 @@ func reqRepoBranchWriter(ctx *context.APIContext) {
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
 func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.IsUserRepoReaderSpecific(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
+		if !ctx.Repo.CanRead(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqRepoReader", "user should have specific read permission or be a repo admin or a site admin")
 			return
 		}
@@ -365,7 +365,7 @@ func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 // reqAnyRepoReader user should have any permission to read repository or permissions of site admin
 func reqAnyRepoReader() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.IsUserRepoReaderAny() && !ctx.IsUserSiteAdmin() {
+		if !ctx.Repo.HasAccess() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqAnyRepoReader", "user should have any permission to read repository or permissions of site admin")
 			return
 		}

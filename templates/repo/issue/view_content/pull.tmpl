@@ -1,5 +1,5 @@
 {{if or .PullReviewers .OriginalReviews}}
-	<div class="comment box">
+	<div class="comment box timeline-item gt-pt-3 gt-pb-0">
 		<div class="content">
 			<div class="ui segment">
 				<h4>{{$.locale.Tr "repo.issues.review.reviewers"}}</h4>
@@ -8,9 +8,12 @@
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<div class="review-item-left">
+							<span class="gt-mr-3 text {{.Review.HTMLTypeColorName}}">
+								{{svg (printf "octicon-%s" .Review.Type.Icon)}}
+							</span>
 							{{if .User}}
 								<a href="{{.User.HomeLink}}">
-									{{avatar $.Context .User}}
+									{{avatar $.Context .User 20}}
 								</a>
 							{{end}}
 							<span class="gt-ml-2">
@@ -34,20 +37,20 @@
 						</div>
 						<div class="review-item-right">
 							{{if .Review.Stale}}
-								<span class="ui type-icon text grey" data-tooltip-content="{{$.locale.Tr "repo.issues.is_stale"}}">
+								<span class="ui text grey" data-tooltip-content="{{$.locale.Tr "repo.issues.is_stale"}}">
 									{{svg "octicon-hourglass" 16 "icon"}}
 								</span>
 							{{end}}
 							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed))}}
-								<a href="#" class="ui muted icon dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-tooltip-content="{{$.locale.Tr "repo.issues.dismiss_review"}}">
-									{{svg "octicon-x" 16}}
+								<a href="#" class="ui muted icon gt-df gt-ac dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-tooltip-content="{{$.locale.Tr "repo.issues.dismiss_review"}}">
+									{{svg "octicon-x" 20}}
 								</a>
 								<div class="ui small modal" id="dismiss-review-modal">
 									<div class="header">
 										{{$.locale.Tr "repo.issues.dismiss_review"}}
 									</div>
 									<div class="content">
-										<div class="ui warning message text left">
+										<div class="ui warning message">
 											{{$.locale.Tr "repo.issues.dismiss_review_warning"}}
 										</div>
 										<form class="ui form dismiss-review-form" id="dismiss-review-{{.Review.ID}}" action="{{$.RepoLink}}/issues/dismiss_review" method="post">
@@ -65,19 +68,9 @@
 									</div>
 								</div>
 							{{end}}
-							<span class="type-icon text {{if eq .Review.Type 1}}green
-								{{- else if eq .Review.Type 2}}grey
-								{{- else if eq .Review.Type 3}}red
-								{{- else if eq .Review.Type 4}}yellow
-								{{else}}grey{{end}}">
-
-								{{if .CanChange}}
-									<a href="#" class="ui icon re-request-review {{if .Checked}}checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-tooltip-content="{{if .Checked}} {{$.locale.Tr "repo.issues.remove_request_review"}} {{else}} {{$.locale.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-										{{if .Checked}} {{svg "octicon-trash"}} {{else}} {{svg "octicon-sync"}} {{end}}
-									</a>
-								{{end}}
-								{{svg (printf "octicon-%s" .Review.Type.Icon)}}
-							</span>
+							{{if .CanChange}}
+								<a href="#" class="ui icon muted gt-df gt-ac re-request-review{{if .Checked}} checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-tooltip-content="{{if .Checked}}{{$.locale.Tr "repo.issues.remove_request_review"}}{{else}}{{$.locale.Tr "repo.issues.re_request_review"}}{{end}}" data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">{{if .Checked}}{{svg "octicon-trash"}}{{else}}{{svg "octicon-sync"}}{{end}}</a>
+							{{end}}
 						</div>
 					</div>
 				{{end}}
@@ -86,21 +79,15 @@
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<div class="review-item-left">
+							<span class="gt-mr-3 text {{.Review.HTMLTypeColorName}}">
+								{{svg (printf "octicon-%s" .Type.Icon)}}
+							</span>
 							<a href="{{$.Repository.OriginalURL}}" data-tooltip-content="{{$.locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe}}">
-								<span class="text black ">
+								<span class="text black">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 									{{.OriginalAuthor}}
 								</span>
 							</a>
-						</div>
-						<div class="review-item-right">
-							<span class="type-icon text {{if eq .Type 1}}green
-								{{- else if eq .Type 2}}grey
-								{{- else if eq .Type 3}}red
-								{{- else if eq .Type 4}}yellow
-								{{else}}grey{{end}}">
-								{{svg (printf "octicon-%s" .Type.Icon)}}
-							</span>
 						</div>
 					</div>
 				{{end}}
@@ -108,6 +95,9 @@
 		</div>
 	</div>
 {{end}}
+{{if and .Issue.PullRequest.HasMerged (not .IsPullBranchDeletable)}}
+{{/* Then the merge box will not be displayed because this page already contains enough information */}}
+{{else}}
 <div class="timeline-item comment merge box">
 	<a class="timeline-avatar text {{if .Issue.PullRequest.HasMerged}}purple
 	{{- else if .Issue.IsClosed}}grey
@@ -131,19 +121,21 @@
 		{{$showGeneralMergeForm := false}}
 		<div class="ui attached merge-section segment {{if not $.LatestCommitStatus}}no-header{{end}}">
 			{{if .Issue.PullRequest.HasMerged}}
-				<div class="item item-section text gt-f1">
-					<div class="item-section-left">
-						<h3 class="gt-mb-3">{{$.locale.Tr "repo.pulls.merged_success"}}</h3>
-						<div class="merge-section-info">
-							{{$.locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape)) | Str2html}}
+				{{if .IsPullBranchDeletable}}
+					<div class="item item-section text gt-f1">
+						<div class="item-section-left">
+							<h3 class="gt-mb-3">
+									{{$.locale.Tr "repo.pulls.merged_success"}}
+							</h3>
+							<div class="merge-section-info">
+								{{$.locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape)) | Str2html}}
+							</div>
 						</div>
-					</div>
-					{{if .IsPullBranchDeletable}}
 						<div class="item-section-right">
 							<button class="delete-button ui button" data-url="{{.DeleteBranchLink}}">{{$.locale.Tr "repo.branch.delete_html"}}</button>
 						</div>
-					{{end}}
-				</div>
+					</div>
+				{{end}}
 			{{else if .Issue.IsClosed}}
 				<div class="item item-section text gt-f1">
 					<div class="item-section-left">
@@ -199,7 +191,7 @@
 				</div>
 			{{else if .Issue.PullRequest.IsAncestor}}
 				<div class="item">
-					<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
+					<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
 					{{$.locale.Tr "repo.pulls.is_ancestor"}}
 				</div>
 			{{else if or .Issue.PullRequest.CanAutoMerge .Issue.PullRequest.IsEmpty}}
@@ -225,7 +217,7 @@
 					</div>
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item">
-						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 						{{$.locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
 						<ul>
 							{{range .ChangedProtectedFiles}}
@@ -249,7 +241,7 @@
 						{{$.locale.Tr "repo.pulls.require_signed_wont_sign"}}
 					</div>
 					<div class="item">
-						<i class="icon unlock"></i>
+						<i class="icon icon-octicon">{{svg "octicon-unlock"}}</i>
 						{{$.locale.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason)}}
 					</div>
 				{{end}}
@@ -274,12 +266,12 @@
 					{{end}}
 					{{if .WillSign}}
 						<div class="item">
-							<i class="icon lock green"></i>
+							<i class="icon icon-octicon">{{svg "octicon-lock" 16 "text green"}}</i>
 							{{$.locale.Tr "repo.signing.will_sign" .SigningKey}}
 						</div>
 					{{else if .IsSigned}}
 						<div class="item">
-							<i class="icon unlock"></i>
+							<i class="icon icon-octicon">{{svg "octicon-unlock"}}</i>
 							{{$.locale.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason)}}
 						</div>
 					{{end}}
@@ -289,7 +281,7 @@
 					<div class="ui divider"></div>
 
 					<div class="item">
-						<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
+						<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
 						{{$.locale.Tr "repo.pulls.is_empty"}}
 					</div>
 				{{end}}
@@ -425,7 +417,7 @@
 					</div>
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item text red">
-						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 						{{$.locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
 						<ul>
 							{{range .ChangedProtectedFiles}}
@@ -485,3 +477,4 @@
 		</div>
 	</div>
 </div>
+{{end}}

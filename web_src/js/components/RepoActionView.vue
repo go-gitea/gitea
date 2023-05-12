@@ -1,16 +1,19 @@
 <template>
   <div class="action-view-container">
     <div class="action-view-header">
-      <div class="action-info-summary gt-ac">
-        <ActionRunStatus :status="run.status" :size="20"/>
+      <div class="action-info-summary">
+        <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
         <div class="action-title">
           {{ run.title }}
         </div>
-        <button class="run_approve" @click="approveRun()" v-if="run.canApprove">
-          <i class="play circle outline icon"/>
+        <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
+          <SvgIcon class="gt-mr-2" name="octicon-play" :size="20"/> {{ locale.approve }}
         </button>
-        <button class="run_cancel" @click="cancelRun()" v-else-if="run.canCancel">
-          <i class="stop circle outline icon"/>
+        <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
+          <SvgIcon class="gt-mr-2" name="octicon-x-circle-fill" :size="20"/> {{ locale.cancel }}
+        </button>
+        <button class="ui basic small compact button secondary" @click="rerun()" v-else-if="run.canRerun">
+          <SvgIcon class="gt-mr-2" name="octicon-sync" :size="20"/> {{ locale.rerun }}
         </button>
       </div>
       <div class="action-commit-summary">
@@ -29,11 +32,11 @@
           <div class="job-brief-list">
             <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
-                <ActionRunStatus :status="job.status"/>
+                <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="ui text gt-mx-3">{{ job.name }}</span>
               </a>
               <span class="step-summary-duration">{{ job.duration }}</span>
-              <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
+              <button :data-tooltip-content="locale.rerun" class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
             </div>
@@ -90,6 +93,7 @@ const sfc = {
     runIndex: String,
     jobIndex: String,
     actionsURL: String,
+    locale: Object,
   },
 
   data() {
@@ -106,6 +110,7 @@ const sfc = {
         status: '',
         canCancel: false,
         canApprove: false,
+        canRerun: false,
         done: false,
         jobs: [
           // {
@@ -170,8 +175,8 @@ const sfc = {
       const elJobLogList = document.createElement('div');
       elJobLogList.classList.add('job-log-list');
 
-      elJobLogGroup.appendChild(elJobLogGroupSummary);
-      elJobLogGroup.appendChild(elJobLogList);
+      elJobLogGroup.append(elJobLogGroupSummary);
+      elJobLogGroup.append(elJobLogList);
       el._stepLogsActiveContainer = elJobLogList;
     },
     // end a log group
@@ -193,6 +198,11 @@ const sfc = {
       await this.fetchPost(`${jobLink}/rerun`);
       window.location.href = jobLink;
     },
+    // rerun workflow
+    async rerun() {
+      await this.fetchPost(`${this.run.link}/rerun`);
+      window.location.href = this.run.link;
+    },
     // cancel a run
     cancelRun() {
       this.fetchPost(`${this.run.link}/cancel`);
@@ -209,15 +219,15 @@ const sfc = {
 
       const lineNumber = document.createElement('div');
       lineNumber.className = 'line-num';
-      lineNumber.innerText = line.index;
-      div.appendChild(lineNumber);
+      lineNumber.textContent = line.index;
+      div.append(lineNumber);
 
       // TODO: Support displaying time optionally
 
       const logMessage = document.createElement('div');
       logMessage.className = 'log-msg';
       logMessage.innerHTML = ansiLogToHTML(line.message);
-      div.appendChild(logMessage);
+      div.append(logMessage);
 
       return div;
     },
@@ -305,6 +315,21 @@ export function initRepositoryActionView() {
     runIndex: el.getAttribute('data-run-index'),
     jobIndex: el.getAttribute('data-job-index'),
     actionsURL: el.getAttribute('data-actions-url'),
+    locale: {
+      approve: el.getAttribute('data-locale-approve'),
+      cancel: el.getAttribute('data-locale-cancel'),
+      rerun: el.getAttribute('data-locale-rerun'),
+      status: {
+        unknown: el.getAttribute('data-locale-status-unknown'),
+        waiting: el.getAttribute('data-locale-status-waiting'),
+        running: el.getAttribute('data-locale-status-running'),
+        success: el.getAttribute('data-locale-status-success'),
+        failure: el.getAttribute('data-locale-status-failure'),
+        cancelled: el.getAttribute('data-locale-status-cancelled'),
+        skipped: el.getAttribute('data-locale-status-skipped'),
+        blocked: el.getAttribute('data-locale-status-blocked'),
+      }
+    }
   });
   view.mount(el);
 }
@@ -366,37 +391,17 @@ export function ansiLogToHTML(line) {
   margin: 0 20px 20px 20px;
 }
 
-.action-view-header .run_cancel {
-  border: none;
-  color: var(--color-red);
-  background-color: transparent;
-  outline: none;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.action-view-header .run_approve {
-  border: none;
-  color: var(--color-green);
-  background-color: transparent;
-  outline: none;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.action-view-header .run_cancel:hover,
-.action-view-header .run_approve:hover {
-  transform: scale(130%);
-}
-
 .action-info-summary {
   font-size: 150%;
   height: 20px;
   display: flex;
+  align-items: center;
+  margin-top: 1rem;
 }
 
 .action-info-summary .action-title {
   padding: 0 5px;
+  flex: 1;
 }
 
 .action-commit-summary {
@@ -531,6 +536,7 @@ export function ansiLogToHTML(line) {
   width: 48px;
   color: var(--color-grey-light);
   text-align: right;
+  user-select: none;
 }
 
 .job-step-section .job-step-logs .job-log-line .log-time {

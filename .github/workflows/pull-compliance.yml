@@ -1,0 +1,99 @@
+name: compliance
+
+on: [pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  lint-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.20"
+          check-latest: true
+      - run: make deps-backend deps-tools
+      - run: make lint-backend
+        env:
+          TAGS: bindata sqlite sqlite_unlock_notify
+  lint-go-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.20"
+          check-latest: true
+      - run: make deps-backend deps-tools
+      - run: make lint-go-windows lint-go-vet
+        env:
+          TAGS: bindata sqlite sqlite_unlock_notify
+          GOOS: windows
+          GOARCH: amd64
+  lint-go-gogit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.20"
+          check-latest: true
+      - run: make deps-backend deps-tools
+      - run: make lint-go
+        env:
+          TAGS: bindata gogit sqlite sqlite_unlock_notify
+  checks-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.20"
+          check-latest: true
+      - run: make deps-backend deps-tools
+      - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - run: make deps-frontend
+      - run: make lint-frontend
+      - run: make checks-frontend
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.20"
+          check-latest: true
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - run: make deps-backend deps-tools
+      - run: make deps-frontend
+      - run: make frontend
+      - run: go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
+      - name: build-backend-arm64
+        run: make backend # test cross compile
+        env:
+          GOOS: linux
+          GOARCH: arm64
+          TAGS: bindata gogit
+      - name: build-backend-windows
+        run: go build -o gitea_windows
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          TAGS: bindata gogit
+      - name: build-backend-386
+        run: go build -o gitea_linux_386 # test if compatible with 32 bit
+        env:
+          GOOS: linux
+          GOARCH: 386

@@ -66,8 +66,7 @@ func checkConfigurationFiles(ctx context.Context, logger log.Logger, autofix boo
 		return err
 	}
 
-	setting.InitProviderFromExistingFile()
-	setting.LoadCommonSettings()
+	setting.Init(&setting.Options{})
 
 	configurationFiles := []configurationFile{
 		{"Configuration File Path", setting.CustomConf, false, true, false},
