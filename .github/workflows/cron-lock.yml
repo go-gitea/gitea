@@ -1,8 +1,8 @@
-name: 'Lock Threads'
+name: cron-lock
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Run once a day
+    - cron: "0 0 * * *" # every day at 00:00 UTC
   workflow_dispatch:
 
 permissions:

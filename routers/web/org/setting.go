@@ -46,6 +46,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
+	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 

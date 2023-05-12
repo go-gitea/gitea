@@ -9,13 +9,15 @@
 			<form class="ui form" action="{{.Link}}/reviews/submit" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="commit_id" value="{{.AfterCommitID}}">
-				<div class="header gt-df gt-ac gt-pb-3">
+				<div class="field gt-df gt-ac">
 					<div class="gt-f1">{{$.locale.Tr "repo.diff.review.header"}}</div>
-					<a class="muted close gt-px-3">{{svg "octicon-x" 16}}</a>
+					<a class="muted close">{{svg "octicon-x" 16}}</a>
 				</div>
-				<div class="ui field">
+				<div class="field">
 					{{template "shared/combomarkdowneditor" (dict
 						"locale" $.locale
+						"MarkdownPreviewUrl" (print .Repository.Link "/markup")
+						"MarkdownPreviewContext" .RepoLink
 						"TextareaName" "content"
 						"TextareaPlaceholder" ($.locale.Tr "repo.diff.review.placeholder")
 						"DropzoneParentContainer" "form"
