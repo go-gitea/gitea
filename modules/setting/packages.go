@@ -24,6 +24,7 @@ var (
 
 		LimitTotalOwnerCount int64
 		LimitTotalOwnerSize  int64
+		LimitSizeAlpine      int64
 		LimitSizeCargo       int64
 		LimitSizeChef        int64
 		LimitSizeComposer    int64
@@ -69,6 +70,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) {
 	}
 
 	Packages.LimitTotalOwnerSize = mustBytes(sec, "LIMIT_TOTAL_OWNER_SIZE")
+	Packages.LimitSizeAlpine = mustBytes(sec, "LIMIT_SIZE_ALPINE")
 	Packages.LimitSizeCargo = mustBytes(sec, "LIMIT_SIZE_CARGO")
 	Packages.LimitSizeChef = mustBytes(sec, "LIMIT_SIZE_CHEF")
 	Packages.LimitSizeComposer = mustBytes(sec, "LIMIT_SIZE_COMPOSER")
