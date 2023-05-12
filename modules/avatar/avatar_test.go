@@ -72,6 +72,7 @@ func Test_ProcessAvatarInvalidImageSize(t *testing.T) {
 func Test_ProcessAvatarImage(t *testing.T) {
 	setting.Avatar.MaxWidth = 4096
 	setting.Avatar.MaxHeight = 4096
+	scaledSize := DefaultAvatarSize * setting.Avatar.RenderedSizeFactor
 
 	newImgData := func(size int, optHeight ...int) []byte {
 		width := size
@@ -93,8 +94,8 @@ func Test_ProcessAvatarImage(t *testing.T) {
 	assert.NotEqual(t, origin, result)
 	decoded, err := png.Decode(bytes.NewReader(result))
 	assert.NoError(t, err)
-	assert.EqualValues(t, DefaultAvatarSize, decoded.Bounds().Max.X)
-	assert.EqualValues(t, DefaultAvatarSize, decoded.Bounds().Max.Y)
+	assert.EqualValues(t, scaledSize, decoded.Bounds().Max.X)
+	assert.EqualValues(t, scaledSize, decoded.Bounds().Max.Y)
 
 	// if origin image is smaller than the default size, use the origin image
 	origin = newImgData(1)
@@ -103,13 +104,13 @@ func Test_ProcessAvatarImage(t *testing.T) {
 	assert.Equal(t, origin, result)
 
 	// use the origin image if the origin is smaller
-	origin = newImgData(DefaultAvatarSize + 100)
+	origin = newImgData(scaledSize + 100)
 	result, err = processAvatarImage(origin, 0)
 	assert.NoError(t, err)
 	assert.Less(t, len(result), len(origin))
 
 	// still use the origin image if the origin doesn't exceed the max-origin-size
-	origin = newImgData(DefaultAvatarSize + 100)
+	origin = newImgData(scaledSize + 100)
 	result, err = processAvatarImage(origin, 128000)
 	assert.NoError(t, err)
 	assert.Equal(t, origin, result)

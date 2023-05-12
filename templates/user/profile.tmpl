@@ -7,11 +7,11 @@
 					<div id="profile-avatar" class="content gt-df">
 					{{if eq .SignedUserID .ContextUser.ID}}
 						<a class="image" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{.locale.Tr "user.change_avatar"}}">
-							{{avatar $.Context .ContextUser 290}}
+							{{avatar $.Context .ContextUser 256}}
 						</a>
 					{{else}}
 						<span class="image">
-							{{avatar $.Context .ContextUser 290}}
+							{{avatar $.Context .ContextUser 256}}
 						</span>
 					{{end}}
 					</div>

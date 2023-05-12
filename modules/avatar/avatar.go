@@ -23,8 +23,9 @@ import (
 	_ "golang.org/x/image/webp" // for processing webp images
 )
 
-// DefaultAvatarSize is used for avatar generation, usually the avatar image saved in server won't be larger than this value.
-// Unless the original file is smaller than the resized image.
+// DefaultAvatarSize is used for avatar generation, usually the avatar image saved
+// in server won't be larger than this value, unless the original file is smaller
+// than the resized image.
 const DefaultAvatarSize = 256
 
 // RandomImageSize generates and returns a random avatar image unique to input data
@@ -41,7 +42,7 @@ func RandomImageSize(size int, data []byte) (image.Image, error) {
 // RandomImage generates and returns a random avatar image unique to input data
 // in default size (height and width).
 func RandomImage(data []byte) (image.Image, error) {
-	return RandomImageSize(DefaultAvatarSize, data)
+	return RandomImageSize(DefaultAvatarSize * setting.Avatar.RenderedSizeFactor, data)
 }
 
 // processAvatarImage process the avatar image data, crop and resize it if necessary.
@@ -99,7 +100,8 @@ func processAvatarImage(data []byte, maxOriginSize int64) ([]byte, error) {
 		}
 	}
 
-	img = resize.Resize(DefaultAvatarSize, DefaultAvatarSize, img, resize.Bilinear)
+	targetSize := uint(DefaultAvatarSize * setting.Avatar.RenderedSizeFactor)
+	img = resize.Resize(targetSize, targetSize, img, resize.Bilinear)
 
 	// try to encode the cropped/resized image to png
 	bs := bytes.Buffer{}
