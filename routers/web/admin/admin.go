@@ -13,8 +13,6 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
 	"code.gitea.io/gitea/modules/web"
@@ -24,7 +22,8 @@ import (
 
 const (
 	tplDashboard   base.TplName = "admin/dashboard"
-	tplMonitor     base.TplName = "admin/monitor"
+	tplCron        base.TplName = "admin/cron"
+	tplQueue       base.TplName = "admin/queue"
 	tplStacktrace  base.TplName = "admin/stacktrace"
 	tplQueueManage base.TplName = "admin/queue_manage"
 )
@@ -142,47 +141,15 @@ func DashboardPost(ctx *context.Context) {
 		}
 	}
 	if form.From == "monitor" {
-		ctx.Redirect(setting.AppSubURL + "/admin/monitor")
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor/cron")
 	} else {
 		ctx.Redirect(setting.AppSubURL + "/admin")
 	}
 }
 
-// Monitor show admin monitor page
-func Monitor(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.monitor")
-	ctx.Data["PageIsAdminMonitor"] = true
-	ctx.Data["Processes"], ctx.Data["ProcessCount"] = process.GetManager().Processes(false, true)
+func CronTasks(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.monitor.cron")
+	ctx.Data["PageIsAdminMonitorCron"] = true
 	ctx.Data["Entries"] = cron.ListTasks()
-	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
-
-	ctx.HTML(http.StatusOK, tplMonitor)
-}
-
-// GoroutineStacktrace show admin monitor goroutines page
-func GoroutineStacktrace(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.monitor")
-	ctx.Data["PageIsAdminMonitor"] = true
-
-	processStacks, processCount, goroutineCount, err := process.GetManager().ProcessStacktraces(false, false)
-	if err != nil {
-		ctx.ServerError("GoroutineStacktrace", err)
-		return
-	}
-
-	ctx.Data["ProcessStacks"] = processStacks
-
-	ctx.Data["GoroutineCount"] = goroutineCount
-	ctx.Data["ProcessCount"] = processCount
-
-	ctx.HTML(http.StatusOK, tplStacktrace)
-}
-
-// MonitorCancel cancels a process
-func MonitorCancel(ctx *context.Context) {
-	pid := ctx.Params("pid")
-	process.GetManager().Cancel(process.IDType(pid))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/monitor",
-	})
+	ctx.HTML(http.StatusOK, tplCron)
 }

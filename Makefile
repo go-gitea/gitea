@@ -394,7 +394,7 @@ lint-go:
 lint-go-fix:
 	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix
 
-# workaround step for the lint-backend-windows CI task because 'go run' can not
+# workaround step for the lint-go-windows CI task because 'go run' can not
 # have distinct GOOS/GOARCH for its build and run steps
 .PHONY: lint-go-windows
 lint-go-windows:
@@ -409,7 +409,7 @@ lint-go-vet:
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
-	$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) templates
+	$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) templates .github/workflows
 
 .PHONY: watch
 watch:

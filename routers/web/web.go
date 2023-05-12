@@ -546,13 +546,16 @@ func registerRoutes(m *web.Route) {
 		})
 
 		m.Group("/monitor", func() {
-			m.Get("", admin.Monitor)
-			m.Get("/stacktrace", admin.GoroutineStacktrace)
-			m.Post("/cancel/{pid}", admin.MonitorCancel)
+			m.Get("/cron", admin.CronTasks)
+			m.Get("/stacktrace", admin.Stacktrace)
+			m.Post("/stacktrace/cancel/{pid}", admin.StacktraceCancel)
+			m.Get("/queue", admin.Queues)
 			m.Group("/queue/{qid}", func() {
-				m.Get("", admin.Queue)
+				m.Get("", admin.QueueManage)
 				m.Post("/set", admin.QueueSet)
+				m.Post("/remove-all-items", admin.QueueRemoveAllItems)
 			})
+			m.Get("/diagnosis", admin.MonitorDiagnosis)
 		})
 
 		m.Group("/users", func() {
@@ -936,6 +939,7 @@ func registerRoutes(m *web.Route) {
 				addSettingsRunnersRoutes()
 				addSettingsSecretsRoutes()
 			}, actions.MustEnableActions)
+			m.Post("/migrate/cancel", repo.MigrateCancelPost) // this handler must be under "settings", otherwise this incomplete repo can't be accessed
 		}, ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer))
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 

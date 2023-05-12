@@ -1,6 +1,9 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-params="{{.Page.GetParams}}" data-sequence-number="{{.SequenceNumber}}">
 	<div class="ui container">
-		<h1 class="ui dividing header">{{.locale.Tr "notification.notifications"}}</h1>
+		<h1 class="ui header gt-df gt-ac">
+			{{svg "octicon-bell" 28 "gt-mr-3 gt-mt-1"}}
+			{{.locale.Tr "notification.notifications"}}
+		</h1>
 		<div class="ui top attached tabular menu">
 			{{$notificationUnreadCount := call .NotificationUnreadCount}}
 			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active {{end}}item">
@@ -23,11 +26,14 @@
 		</div>
 		<div class="ui bottom attached active tab segment gt-p-3">
 			{{if eq (len .Notifications) 0}}
-				{{if eq .Status 1}}
-					{{.locale.Tr "notification.no_unread"}}
-				{{else}}
-					{{.locale.Tr "notification.no_read"}}
-				{{end}}
+				<div class="gt-df gt-ac gt-fc gt-p-4">
+					{{svg "octicon-inbox" 56 "gt-mb-4"}}
+					{{if eq .Status 1}}
+						{{.locale.Tr "notification.no_unread"}}
+					{{else}}
+						{{.locale.Tr "notification.no_read"}}
+					{{end}}
+				</div>
 			{{else}}
 				<table class="ui unstackable very compact small table" id="notification_table">
 					<tbody>
