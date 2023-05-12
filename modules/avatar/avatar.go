@@ -43,7 +43,7 @@ func RandomImageSize(size int, data []byte) (image.Image, error) {
 // RandomImage generates and returns a random avatar image unique to input data
 // in default size (height and width).
 func RandomImage(data []byte) (image.Image, error) {
-	return RandomImageSize(DefaultAvatarSize * setting.Avatar.RenderedSizeFactor, data)
+	return RandomImageSize(DefaultAvatarSize*setting.Avatar.RenderedSizeFactor, data)
 }
 
 // processAvatarImage process the avatar image data, crop and resize it if necessary.
