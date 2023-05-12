@@ -249,10 +249,16 @@ type CreateBranchRepoOption struct {
 	// unique: true
 	BranchName string `json:"new_branch_name" binding:"Required;GitRefName;MaxSize(100)"`
 
+	// Deprecated: true
 	// Name of the old branch to create from
 	//
 	// unique: true
 	OldBranchName string `json:"old_branch_name" binding:"GitRefName;MaxSize(100)"`
+
+	// Name of the old branch/tag/commit to create from
+	//
+	// unique: true
+	OldRefName string `json:"old_ref_name" binding:"GitRefName;MaxSize(100)"`
 }
 
 // TransferRepoOption options when transfer a repository's ownership

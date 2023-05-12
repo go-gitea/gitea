@@ -691,49 +691,41 @@
   margin-right: 5px;
 }
 
-.repository.view.issue .pull .merge.box .timeline-avatar {
+.repository.view.issue .merge.box .timeline-avatar {
   margin-top: 3px;
   margin-left: 4px;
 }
 
-.repository.view.issue .pull .merge.box .branch-update.grid .row {
+.repository.view.issue .merge.box .branch-update.grid .row {
   padding-bottom: 1rem;
 }
 
-.repository.view.issue .pull .merge.box .branch-update.grid .row .icon {
+.repository.view.issue .merge.box .branch-update.grid .row .icon {
   margin-top: 1.1rem;
 }
 
-.repository.view.issue .pull .review-item {
+.repository.view.issue .review-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.repository.view.issue .pull .review-item .review-item-left,
-.repository.view.issue .pull .review-item .review-item-right {
+.review-item-left,
+.review-item-right {
   display: flex;
   align-items: center;
 }
 
-.repository.view.issue .pull .review-item .text {
-  margin: 0.3em 0 0.5em 0.5em;
+.review-item-right {
+  gap: 8px;
+  margin-left: 4px;
 }
 
-.repository.view.issue .pull .review-item .type-icon {
-  align-self: flex-start;
-  margin-right: 1em;
-}
-
-.repository.view.issue .pull .review-item .type-icon i {
-  line-height: 1.8em;
-}
-
-.repository.view.issue .pull .review-item .divider {
+.repository.view.issue .review-item .divider {
   margin: 0.5rem 0;
 }
 
-.repository.view.issue .pull .review-item .review-content {
+.repository.view.issue .review-item .review-content {
   padding: 1em 0 1em 3.8em;
 }
 
@@ -780,6 +772,10 @@
 .repository.view.issue .comment-list .timeline-item-group .timeline-item {
   padding-top: 8px;
   padding-bottom: 8px;
+}
+
+.repository.view.issue .comment-list .timeline-avatar-offset {
+  margin-top: 48px;
 }
 
 .repository.view.issue .comment-list .timeline-item {
@@ -1098,8 +1094,8 @@
   margin-left: 3em;
 }
 
-.repository.view.issue .comment-list .code-comment img.avatar,
-.repository.view.issue .comment-list .comment img.avatar {
+.repository.view.issue .comment-code-cloud .comment-list .code-comment img.avatar,
+.repository.view.issue .comment-code-cloud .comment-list .comment img.avatar {
   width: 28px;
   height: 28px;
 }
@@ -3261,6 +3257,8 @@ td.blob-excerpt {
   .repository.view.issue .comment-list .timeline .inline-timeline-avatar {
     display: flex;
     margin-bottom: auto;
+    margin-left: 6px;
+    margin-right: 2px;
   }
   .repository.view.issue .comment-list .timeline .inline-timeline-avatar img.avatar {
     height: 24px;
