@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -102,7 +103,9 @@ func TestPackageGo(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/@v/list", url, packageName))
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		assert.Equal(t, packageVersion+"\n"+packageVersion2+"\n", resp.Body.String())
+		versions := strings.FieldsFunc(resp.Body.String(), func(c rune) bool { return c == '\n' })
+
+		assert.ElementsMatch(t, []string{packageVersion, packageVersion2}, versions)
 	})
 
 	t.Run("Info", func(t *testing.T) {

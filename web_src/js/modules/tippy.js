@@ -18,8 +18,11 @@ export function createTippy(target, opts = {}) {
       visibleInstances.delete(instance);
     },
     onShow: (instance) => {
+      // hide other tooltip instances so only one tooltip shows at a time
       for (const visibleInstance of visibleInstances) {
-        visibleInstance.hide(); // hide other instances
+        if (visibleInstance.role === 'tooltip') {
+          visibleInstance.hide();
+        }
       }
       visibleInstances.add(instance);
     },
