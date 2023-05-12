@@ -1,5 +1,5 @@
 import {basename, extname, isObject, isDarkTheme} from '../utils.js';
-import {debounce} from 'throttle-debounce';
+import {onInputDebounce} from '../utils/dom.js';
 
 const languagesByFilename = {};
 const languagesByExt = {};
@@ -164,7 +164,7 @@ export async function createCodeEditor(textarea, filenameInput) {
     ...getEditorConfigOptions(editorConfig),
   });
 
-  filenameInput.addEventListener('input', debounce(500, () => {
+  filenameInput.addEventListener('input', onInputDebounce(() => {
     const filename = filenameInput.value;
     const previewable = previewableExts.has(extname(filename));
     togglePreviewDisplay(previewable);
