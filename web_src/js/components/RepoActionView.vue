@@ -110,8 +110,6 @@ const sfc = {
 
   data() {
     return {
-      ansiToHTML: new AnsiToHTML({escapeXML: true}),
-
       // internal state
       loading: false,
       intervalID: null,
@@ -283,7 +281,7 @@ const sfc = {
       try {
         this.loading = true;
 
-        // refresh artitfact list if upload-artifact step done
+        // refresh artifacts if upload-artifact step done
         const resp = await this.fetchPost(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
         const artifacts = await resp.json();
         this.artifacts = artifacts['artifacts'] || [];

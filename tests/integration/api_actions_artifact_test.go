@@ -16,13 +16,15 @@ func TestArtifactsUpload(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	type uploadArtifactResponse struct {
-		FileContainerResourceUrl string `json:"fileContainerResourceUrl"`
+		FileContainerResourceURL string `json:"fileContainerResourceUrl"`
 	}
 
 	type getUploadArtifactRequest struct {
 		Type string
 		Name string
 	}
+
+	t.Logf("Create artifact request")
 
 	// acquire artifact upload url
 	req := NewRequestWithJSON(t, "POST", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts", getUploadArtifactRequest{
@@ -33,11 +35,13 @@ func TestArtifactsUpload(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	var uploadResp uploadArtifactResponse
 	DecodeJSON(t, resp, &uploadResp)
-	assert.Contains(t, uploadResp.FileContainerResourceUrl, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
+	assert.Contains(t, uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
+
+	t.Logf("upload artifact request")
 
 	// get upload url
-	idx := strings.Index(uploadResp.FileContainerResourceUrl, "/api/actions_pipeline/_apis/pipelines/")
-	url := uploadResp.FileContainerResourceUrl[idx:] + "?itemPath=artifact/abc.txt"
+	idx := strings.Index(uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
+	url := uploadResp.FileContainerResourceURL[idx:] + "?itemPath=artifact/abc.txt"
 
 	// upload artifact chunk
 	body := strings.Repeat("A", 1024)
@@ -47,6 +51,8 @@ func TestArtifactsUpload(t *testing.T) {
 	req.Header.Add("x-tfs-filelength", "1024")
 	req.Header.Add("x-actions-results-md5", "1HsSe8LeLWh93ILaw1TEFQ==") // base64(md5(body))
 	MakeRequest(t, req, http.StatusOK)
+
+	t.Logf("Create artifact confirm")
 
 	// confirm artifact upload
 	req = NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")

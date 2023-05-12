@@ -12,21 +12,21 @@ import (
 func CreateActionArtifactTable(x *xorm.Engine) error {
 	// ActionArtifact is a file that is stored in the artifact storage.
 	type ActionArtifact struct {
-		ID               int64 `xorm:"pk autoincr"`
-		RunID            int64 `xorm:"index UNIQUE(runid_name)"` // The run id of the artifact
-		RunnerID         int64
-		RepoID           int64 `xorm:"index"`
-		OwnerID          int64
-		CommitSHA        string
-		StoragePath      string             // The path to the artifact in the storage
-		FileSize         int64              // The size of the artifact in bytes
-		FileGzipSize     int64              // The size of the artifact in bytes after gzip compression
-		ContentEncnoding string             // The content encoding of the artifact
-		ArtifactPath     string             // The path to the artifact when runner uploads it
-		ArtifactName     string             `xorm:"UNIQUE(runid_name)"` // The name of the artifact when runner uploads it
-		UploadStatus     int64              `xorm:"index"`              // The status of the artifact upload
-		Created          timeutil.TimeStamp `xorm:"created"`
-		Updated          timeutil.TimeStamp `xorm:"updated index"`
+		ID                 int64 `xorm:"pk autoincr"`
+		RunID              int64 `xorm:"index UNIQUE(runid_name)"` // The run id of the artifact
+		RunnerID           int64
+		RepoID             int64 `xorm:"index"`
+		OwnerID            int64
+		CommitSHA          string
+		StoragePath        string             // The path to the artifact in the storage
+		FileSize           int64              // The size of the artifact in bytes
+		FileCompressedSize int64              // The size of the artifact in bytes after gzip compression
+		ContentEncoding    string             // The content encoding of the artifact
+		ArtifactPath       string             // The path to the artifact when runner uploads it
+		ArtifactName       string             `xorm:"UNIQUE(runid_name)"` // The name of the artifact when runner uploads it
+		UploadStatus       int64              `xorm:"index"`              // The status of the artifact upload
+		CreatedUnix        timeutil.TimeStamp `xorm:"created"`
+		UpdatedUnix        timeutil.TimeStamp `xorm:"updated index"`
 	}
 
 	return x.Sync(new(ActionArtifact))

@@ -441,7 +441,7 @@ func ArtifactsView(ctx *context_module.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	artifacts, err := actions_model.ListUploadedArtifactByRunID(ctx, run.ID)
+	artifacts, err := actions_model.ListUploadedArtifactsByRunID(ctx, run.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -464,7 +464,9 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	artifactID := ctx.ParamsInt64("id")
 
 	artifact, err := actions_model.GetArtifactByID(ctx, artifactID)
-	if err != nil {
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.Error(http.StatusNotFound, err.Error())
+	} else if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -491,6 +493,6 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 
 	ctx.ServeContent(f, &context_module.ServeHeaderOptions{
 		Filename:     artifact.ArtifactName,
-		LastModified: artifact.Created.AsLocalTime(),
+		LastModified: artifact.CreatedUnix.AsLocalTime(),
 	})
 }
