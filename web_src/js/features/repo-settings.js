@@ -87,7 +87,7 @@ export function initRepoSettingBranches() {
   const statusCheckPatternTextarea = document.getElementById('status_check_contexts');
   statusCheckPatternTextarea?.addEventListener('input', (e) => {
     const patterns = e.target.value.split(/[\r\n]+/);
-    const validPatterns = patterns.map(item => item.trim()).filter(item => item.length > 0);
+    const validPatterns = patterns.map((item) => item.trim()).filter((item) => item.length > 0);
     const marks = document.getElementsByClassName('status-check-matched-mark');
     for (const el of marks) {
       let matched = false;
