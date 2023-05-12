@@ -238,15 +238,15 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 			}
 			if _, err := glob.Compile(trimmed); err != nil {
 				ctx.Flash.Error(ctx.Tr("repo.settings.protect_invalid_status_check_pattern", pattern))
-				ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, url.PathEscape(protectBranch.RuleName)))
+				ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, url.QueryEscape(protectBranch.RuleName)))
 				return
 			}
 			validPatterns = append(validPatterns, trimmed)
 		}
 		if len(validPatterns) == 0 {
 			// if status check is enabled, patterns slice is not allowed to be empty
-			ctx.Flash.Error(ctx.Tr("repo.settings.no_valid_status_check_patterns"))
-			ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, url.PathEscape(protectBranch.RuleName)))
+			ctx.Flash.Error(ctx.Tr("repo.settings.protect_no_valid_status_check_patterns"))
+			ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, url.QueryEscape(protectBranch.RuleName)))
 			return
 		}
 		protectBranch.StatusCheckContexts = validPatterns
