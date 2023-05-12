@@ -17,6 +17,7 @@ plugins:
   - eslint-plugin-custom-elements
   - eslint-plugin-regexp
   - eslint-plugin-wc
+  - eslint-plugin-eslint-comments
 
 env:
   es2022: true
@@ -86,6 +87,15 @@ rules:
   dot-notation: [0]
   eol-last: [2]
   eqeqeq: [2]
+  eslint-comments/disable-enable-pair: [2]
+  eslint-comments/no-aggregating-enable: [2]
+  eslint-comments/no-duplicate-disable: [2]
+  eslint-comments/no-restricted-disable: [0]
+  eslint-comments/no-unlimited-disable: [2]
+  eslint-comments/no-unused-disable: [2]
+  eslint-comments/no-unused-enable: [2]
+  eslint-comments/no-use: [0]
+  eslint-comments/require-description: [0]
   for-direction: [2]
   func-call-spacing: [2, never]
   func-name-matching: [2]
