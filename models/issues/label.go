@@ -159,33 +159,6 @@ func (l *Label) BelongsToRepo() bool {
 	return l.RepoID > 0
 }
 
-// Get color as RGB values in 0..255 range
-func (l *Label) ColorRGB() (float64, float64, float64, error) {
-	color, err := strconv.ParseUint(l.Color[1:], 16, 64)
-	if err != nil {
-		return 0, 0, 0, err
-	}
-
-	r := float64(uint8(0xFF & (uint32(color) >> 16)))
-	g := float64(uint8(0xFF & (uint32(color) >> 8)))
-	b := float64(uint8(0xFF & uint32(color)))
-	return r, g, b, nil
-}
-
-// Determine if label text should be light or dark to be readable on background color
-func (l *Label) UseLightTextColor() bool {
-	if strings.HasPrefix(l.Color, "#") {
-		if r, g, b, err := l.ColorRGB(); err == nil {
-			// Perceived brightness from: https://www.w3.org/TR/AERT/#color-contrast
-			// In the future WCAG 3 APCA may be a better solution
-			brightness := (0.299*r + 0.587*g + 0.114*b) / 255
-			return brightness < 0.35
-		}
-	}
-
-	return false
-}
-
 // Return scope substring of label name, or empty string if none exists
 func (l *Label) ExclusiveScope() string {
 	if !l.Exclusive {
