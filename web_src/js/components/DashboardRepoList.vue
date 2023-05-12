@@ -70,7 +70,7 @@
       </div>
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
-          <li v-for="repo in repos" :class="{'private': repo.private || repo.internal}" :key="repo.id">
+          <li v-for="repo in repos" :key="repo.id">
             <a class="repo-list-link gt-df gt-ac gt-sb" :href="repo.link">
               <div class="item-name gt-df gt-ac gt-f1">
                 <svg-icon :name="repoIcon(repo)" :size="16" class-name="gt-mr-2"/>
@@ -131,6 +131,9 @@
               <div class="text truncate item-name gt-f1">
                 <svg-icon name="octicon-organization" :size="16" class-name="gt-mr-2"/>
                 <strong>{{ org.name }}</strong>
+                <span class="ui tiny basic label gt-ml-3" v-if="org.org_visibility !== 'public'">
+                  {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
+                </span>
               </div>
               <div class="text light grey gt-df gt-ac">
                 {{ org.num_repos }}

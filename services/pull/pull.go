@@ -257,7 +257,8 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 		// If you don't let it run all the way then you will lose data
 		// TODO: graceful: AddTestPullRequestTask needs to become a queue!
 
-		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repoID, branch, true)
+		// GetUnmergedPullRequestsByHeadInfo() only return open and unmerged PR.
+		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
 		if err != nil {
 			log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repoID, branch, err)
 			return
@@ -274,12 +275,9 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 				continue
 			}
 
-			// If the PR is closed, someone still push some commits to the PR,
-			// 1. We will insert comments of commits, but hidden until the PR is reopened.
-			// 2. We won't send any notification.
 			AddToTaskQueue(pr)
 			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
-			if err == nil && comment != nil && !pr.Issue.IsClosed {
+			if err == nil && comment != nil {
 				notification.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
 			}
 		}
@@ -294,10 +292,6 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			}
 			if err == nil {
 				for _, pr := range prs {
-					if pr.Issue.IsClosed {
-						// The closed PR never trigger action or webhook
-						continue
-					}
 					if newCommitID != "" && newCommitID != git.EmptySHA {
 						changed, err := checkIfPRContentChanged(ctx, pr, oldCommitID, newCommitID)
 						if err != nil {
@@ -503,7 +497,7 @@ func (errs errlist) Error() string {
 
 // CloseBranchPulls close all the pull requests who's head branch is the branch
 func CloseBranchPulls(doer *user_model.User, repoID int64, branch string) error {
-	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repoID, branch, false)
+	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
 	if err != nil {
 		return err
 	}
@@ -539,7 +533,7 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 
 	var errs errlist
 	for _, branch := range branches {
-		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repo.ID, branch.Name, false)
+		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repo.ID, branch.Name)
 		if err != nil {
 			return err
 		}

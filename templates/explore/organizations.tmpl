@@ -23,7 +23,7 @@
 								{{svg "octicon-link"}}
 								<a href="{{.Website}}" rel="nofollow">{{.Website}}</a>
 							{{end}}
-							{{svg "octicon-clock"}} {{$.locale.Tr "user.join_on"}} {{DateTime "short" .CreatedUnix}}
+							{{svg "octicon-clock"}} {{$.locale.Tr "user.joined_on" (DateTime "short" .CreatedUnix) | Safe}}
 						</div>
 					</div>
 				</div>

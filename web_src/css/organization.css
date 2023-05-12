@@ -112,11 +112,6 @@
   margin-bottom: 0;
 }
 
-.organization.profile #org-info .ui.header .org-visibility .label {
-  margin-left: 5px;
-  margin-top: 2px;
-}
-
 .organization.profile #org-info .desc {
   font-size: 16px;
   margin-bottom: 10px;
