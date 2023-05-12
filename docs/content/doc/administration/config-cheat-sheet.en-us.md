@@ -795,7 +795,7 @@ and
 - `AVATAR_MAX_HEIGHT`: **3072**: Maximum avatar image height in pixels.
 - `AVATAR_MAX_FILE_SIZE`: **2097152** (2MiB): Maximum avatar image file size in bytes.
 - `AVATAR_MAX_ORIGIN_SIZE`: **262144** (256KiB): If the uploaded file is not larger than this byte size, the image will be used as is, without resizing/converting.
-- `AVATAR_RENDERED_SIZE_FACTOR`: **3**: The multiplication factor for rendered avatar images. Larger values result in finer rendering on HiDPI devices.
+- `AVATAR_RENDERED_SIZE_FACTOR`: **2**: The multiplication factor for rendered avatar images. Larger values result in finer rendering on HiDPI devices.
 
 - `REPOSITORY_AVATAR_STORAGE_TYPE`: **default**: Storage type defined in `[storage.xxx]`. Default is `default` which will read `[storage]` if no section `[storage]` will be a type `local`.
 - `REPOSITORY_AVATAR_UPLOAD_PATH`: **data/repo-avatars**: Path to store repository avatar image files.

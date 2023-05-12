@@ -19,7 +19,7 @@ var (
 		MaxHeight:          3072,
 		MaxFileSize:        2097152,
 		MaxOriginSize:      262144,
-		RenderedSizeFactor: 3,
+		RenderedSizeFactor: 2,
 	}
 
 	GravatarSource        string
@@ -49,7 +49,7 @@ func loadPictureFrom(rootCfg ConfigProvider) {
 	Avatar.MaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
 	Avatar.MaxFileSize = sec.Key("AVATAR_MAX_FILE_SIZE").MustInt64(2097152)
 	Avatar.MaxOriginSize = sec.Key("AVATAR_MAX_ORIGIN_SIZE").MustInt64(262144)
-	Avatar.RenderedSizeFactor = sec.Key("AVATAR_RENDERED_SIZE_FACTOR").MustInt(3)
+	Avatar.RenderedSizeFactor = sec.Key("AVATAR_RENDERED_SIZE_FACTOR").MustInt(2)
 
 	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
 	case "duoshuo":
