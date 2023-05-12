@@ -82,7 +82,7 @@
 											{{$.CsrfTokenHtml}}
 											<input type="hidden" name="notification_id" value="{{.ID}}">
 											<input type="hidden" name="status" value="pinned">
-											<button class="ui mini button button-link" title='{{$.locale.Tr "notification.pin"}}'
+											<button class="ui mini button button-ghost" title='{{$.locale.Tr "notification.pin"}}'
 												data-url="{{AppSubUrl}}/notifications/status"
 												data-status="pinned"
 												data-page="{{$.Page.Paginater.Current}}"
@@ -100,7 +100,7 @@
 											<input type="hidden" name="notification_id" value="{{.ID}}">
 											<input type="hidden" name="status" value="read">
 											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-											<button class="ui mini button button-link" title='{{$.locale.Tr "notification.mark_as_read"}}'
+											<button class="ui mini button button-ghost" title='{{$.locale.Tr "notification.mark_as_read"}}'
 												data-url="{{AppSubUrl}}/notifications/status"
 												data-status="read"
 												data-page="{{$.Page.Paginater.Current}}"
@@ -115,7 +115,7 @@
 											<input type="hidden" name="notification_id" value="{{.ID}}">
 											<input type="hidden" name="status" value="unread">
 											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-											<button class="ui mini button button-link" title='{{$.locale.Tr "notification.mark_as_unread"}}'
+											<button class="ui mini button button-ghost" title='{{$.locale.Tr "notification.mark_as_unread"}}'
 												data-url="{{AppSubUrl}}/notifications/status"
 												data-status="unread"
 												data-page="{{$.Page.Paginater.Current}}"
