@@ -41,14 +41,6 @@ func FollowUser(userID, followID int64) (err error) {
 	if err = db.Insert(ctx, &Follow{UserID: userID, FollowID: followID}); err != nil {
 		return err
 	}
-
-	if _, err = db.Exec(ctx, "UPDATE `user` SET num_followers = num_followers + 1 WHERE id = ?", followID); err != nil {
-		return err
-	}
-
-	if _, err = db.Exec(ctx, "UPDATE `user` SET num_following = num_following + 1 WHERE id = ?", userID); err != nil {
-		return err
-	}
 	return committer.Commit()
 }
 
@@ -65,14 +57,6 @@ func UnfollowUser(userID, followID int64) (err error) {
 	defer committer.Close()
 
 	if _, err = db.DeleteByBean(ctx, &Follow{UserID: userID, FollowID: followID}); err != nil {
-		return err
-	}
-
-	if _, err = db.Exec(ctx, "UPDATE `user` SET num_followers = num_followers - 1 WHERE id = ?", followID); err != nil {
-		return err
-	}
-
-	if _, err = db.Exec(ctx, "UPDATE `user` SET num_following = num_following - 1 WHERE id = ?", userID); err != nil {
 		return err
 	}
 	return committer.Commit()

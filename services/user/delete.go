@@ -52,24 +52,6 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 	}
 	// ***** END: Star *****
 
-	// ***** START: Follow *****
-	followeeIDs, err := db.FindIDs(ctx, "follow", "follow.follow_id",
-		builder.Eq{"follow.user_id": u.ID})
-	if err != nil {
-		return fmt.Errorf("get all followees: %w", err)
-	} else if err = db.DecrByIDs(ctx, followeeIDs, "num_followers", new(user_model.User)); err != nil {
-		return fmt.Errorf("decrease user num_followers: %w", err)
-	}
-
-	followerIDs, err := db.FindIDs(ctx, "follow", "follow.user_id",
-		builder.Eq{"follow.follow_id": u.ID})
-	if err != nil {
-		return fmt.Errorf("get all followers: %w", err)
-	} else if err = db.DecrByIDs(ctx, followerIDs, "num_following", new(user_model.User)); err != nil {
-		return fmt.Errorf("decrease user num_following: %w", err)
-	}
-	// ***** END: Follow *****
-
 	if err = db.DeleteBeans(ctx,
 		&auth_model.AccessToken{UID: u.ID},
 		&repo_model.Collaboration{UserID: u.ID},
