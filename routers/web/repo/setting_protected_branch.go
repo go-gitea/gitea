@@ -117,7 +117,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(rule.WhitelistUserIDs), ",")
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.MergeWhitelistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistUserIDs), ",")
-	c.Data["status_check_contexts"] = strings.Join(rule.StatusCheckContexts, ";")
+	c.Data["status_check_contexts"] = strings.Join(rule.StatusCheckContexts, "\n")
 	contexts, _ := git_model.FindRepoRecentCommitStatusContexts(c, c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
 	c.Data["branch_status_check_contexts"] = contexts
 	c.Data["can_context_match"] = func(context string) bool {
@@ -238,20 +238,22 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 
 	protectBranch.EnableStatusCheck = f.EnableStatusCheck
 	if f.EnableStatusCheck {
-		statusCheckContexts := strings.Split(f.StatusCheckContexts, ";")
-		validStatusCheckContexts := make([]string, 0, len(statusCheckContexts))
-		for _, c := range statusCheckContexts {
-			if c == "" {
+		replacer := strings.NewReplacer("\r\n", "\n", "\r", "\n")
+		patterns := strings.Split(replacer.Replace(f.StatusCheckContexts), "\n")
+		validPatterns := make([]string, 0, len(patterns))
+		for _, c := range patterns {
+			trimmed := strings.TrimSpace(c)
+			if trimmed == "" {
 				continue
 			}
-			if _, err := glob.Compile(c); err != nil {
+			if _, err := glob.Compile(trimmed); err != nil {
 				ctx.Flash.Error(ctx.Tr("repo.settings.protect_invalid_status_check_pattern", c))
 				ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, protectBranch.RuleName))
 				return
 			}
-			validStatusCheckContexts = append(validStatusCheckContexts, c)
+			validPatterns = append(validPatterns, trimmed)
 		}
-		protectBranch.StatusCheckContexts = validStatusCheckContexts
+		protectBranch.StatusCheckContexts = validPatterns
 	} else {
 		protectBranch.StatusCheckContexts = nil
 	}
