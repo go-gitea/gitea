@@ -114,7 +114,7 @@ curl --user your_username:your_token_or_password -X DELETE \
      https://gitea.example.com/api/packages/testuser/alpine/v3.17/main/test-package-1.0.0.apk
 ```
 
-The server reponds with the following HTTP Status codes.
+The server responds with the following HTTP Status codes.
 
 | HTTP Status Code  | Meaning |
 | ----------------- | ------- |
