@@ -16,6 +16,7 @@ plugins:
   - eslint-plugin-sonarjs
   - eslint-plugin-custom-elements
   - eslint-plugin-regexp
+  - eslint-plugin-wc
 
 env:
   es2022: true
@@ -717,6 +718,15 @@ rules:
   use-isnan: [2]
   valid-typeof: [2, {requireStringLiterals: true}]
   vars-on-top: [0]
+  wc/attach-shadow-constructor: [2]
+  wc/guard-super-call: [2]
+  wc/no-closed-shadow-root: [2]
+  wc/no-constructor-attributes: [2]
+  wc/no-constructor-params: [2]
+  wc/no-invalid-element-name: [0] # covered by custom-elements/valid-tag-name
+  wc/no-self-class: [2]
+  wc/no-typos: [2]
+  wc/require-listener-teardown: [2]
   wrap-iife: [2, inside]
   wrap-regex: [0]
   yield-star-spacing: [2, after]
