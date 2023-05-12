@@ -21,10 +21,6 @@ Publish Go packages for your user or organization.
 
 {{< toc >}}
 
-## Authenticate to the package registry
-
-
-
 ## Publish a package
 
 To publish a Go package perform a HTTP `PUT` operation with the package content in the request body.
