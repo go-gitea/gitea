@@ -12,8 +12,18 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// Queue shows details for a specific queue
-func Queue(ctx *context.Context) {
+func Queues(ctx *context.Context) {
+	if !setting.IsProd {
+		initTestQueueOnce()
+	}
+	ctx.Data["Title"] = ctx.Tr("admin.monitor.queue")
+	ctx.Data["PageIsAdminMonitorQueue"] = true
+	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
+	ctx.HTML(http.StatusOK, tplQueue)
+}
+
+// QueueManage shows details for a specific queue
+func QueueManage(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
@@ -55,5 +65,25 @@ func QueueSet(ctx *context.Context) {
 
 	mq.SetWorkerMaxNumber(maxNumber)
 	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.settings.changed"))
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
+}
+
+func QueueRemoveAllItems(ctx *context.Context) {
+	// Gitea's queue doesn't have transaction support
+	// So in rare cases, the queue could be corrupted/out-of-sync
+	// Site admin could remove all items from the queue to make it work again
+	qid := ctx.ParamsInt64("qid")
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
+	if err := mq.RemoveAllItems(ctx); err != nil {
+		ctx.ServerError("RemoveAllItems", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.settings.remove_all_items_done"))
 	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }
