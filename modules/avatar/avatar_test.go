@@ -35,7 +35,7 @@ func Test_ProcessAvatarPNG(t *testing.T) {
 	data, err := os.ReadFile("testdata/avatar.png")
 	assert.NoError(t, err)
 
-	_, err = processAvatarImage(data, 128000)
+	_, err = processAvatarImage(data, 262144)
 	assert.NoError(t, err)
 }
 
@@ -46,7 +46,7 @@ func Test_ProcessAvatarJPEG(t *testing.T) {
 	data, err := os.ReadFile("testdata/avatar.jpeg")
 	assert.NoError(t, err)
 
-	_, err = processAvatarImage(data, 128000)
+	_, err = processAvatarImage(data, 262144)
 	assert.NoError(t, err)
 }
 
@@ -111,26 +111,26 @@ func Test_ProcessAvatarImage(t *testing.T) {
 
 	// still use the origin image if the origin doesn't exceed the max-origin-size
 	origin = newImgData(scaledSize + 100)
-	result, err = processAvatarImage(origin, 128000)
+	result, err = processAvatarImage(origin, 262144)
 	assert.NoError(t, err)
 	assert.Equal(t, origin, result)
 
 	// allow to use known image format (eg: webp) if it is small enough
 	origin, err = os.ReadFile("testdata/animated.webp")
 	assert.NoError(t, err)
-	result, err = processAvatarImage(origin, 128000)
+	result, err = processAvatarImage(origin, 262144)
 	assert.NoError(t, err)
 	assert.Equal(t, origin, result)
 
 	// do not support unknown image formats, eg: SVG may contain embedded JS
 	origin = []byte("<svg></svg>")
-	_, err = processAvatarImage(origin, 128000)
+	_, err = processAvatarImage(origin, 262144)
 	assert.ErrorContains(t, err, "image: unknown format")
 
 	// make sure the canvas size limit works
 	setting.Avatar.MaxWidth = 5
 	setting.Avatar.MaxHeight = 5
 	origin = newImgData(10)
-	_, err = processAvatarImage(origin, 128000)
+	_, err = processAvatarImage(origin, 262144)
 	assert.ErrorContains(t, err, "image width is too large: 10 > 5")
 }
