@@ -66,7 +66,7 @@ func goGet(ctx *context.Context) {
 	}
 
 	goGetImport := context.ComposeGoGetImport(ownerName, trimmedRepoName)
-	
+
 	var cloneURL string
 	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
 		cloneURL = repo_model.ComposeSSHCloneURL(ownerName, repoName)
