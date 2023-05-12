@@ -939,6 +939,7 @@ func registerRoutes(m *web.Route) {
 				addSettingsRunnersRoutes()
 				addSettingsSecretsRoutes()
 			}, actions.MustEnableActions)
+			m.Post("/migrate/cancel", repo.MigrateCancelPost) // this handler must be under "settings", otherwise this incomplete repo can't be accessed
 		}, ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer))
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 
