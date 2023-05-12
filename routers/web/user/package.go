@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -168,6 +169,27 @@ func ViewPackageVersion(ctx *context.Context) {
 	switch pd.Package.Type {
 	case packages_model.TypeContainer:
 		ctx.Data["RegistryHost"] = setting.Packages.RegistryHost
+	case packages_model.TypeAlpine:
+		branches := make(container.Set[string])
+		repositories := make(container.Set[string])
+		architectures := make(container.Set[string])
+
+		for _, f := range pd.Files {
+			for _, pp := range f.Properties {
+				switch pp.Name {
+				case alpine_module.PropertyBranch:
+					branches.Add(pp.Value)
+				case alpine_module.PropertyRepository:
+					repositories.Add(pp.Value)
+				case alpine_module.PropertyArchitecture:
+					architectures.Add(pp.Value)
+				}
+			}
+		}
+
+		ctx.Data["Branches"] = branches.Values()
+		ctx.Data["Repositories"] = repositories.Values()
+		ctx.Data["Architectures"] = architectures.Values()
 	case packages_model.TypeDebian:
 		distributions := make(container.Set[string])
 		components := make(container.Set[string])

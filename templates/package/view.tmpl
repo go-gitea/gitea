@@ -19,6 +19,7 @@
 					<div class="ui divider"></div>
 				</div>
 				<div class="twelve wide column">
+					{{template "package/content/alpine" .}}
 					{{template "package/content/cargo" .}}
 					{{template "package/content/chef" .}}
 					{{template "package/content/composer" .}}
@@ -48,6 +49,7 @@
 							{{end}}
 							<div class="item">{{svg "octicon-calendar" 16 "gt-mr-3"}} {{TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.locale}}</div>
 							<div class="item">{{svg "octicon-download" 16 "gt-mr-3"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
+							{{template "package/metadata/alpine" .}}
 							{{template "package/metadata/cargo" .}}
 							{{template "package/metadata/chef" .}}
 							{{template "package/metadata/composer" .}}

@@ -12,6 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/packages/alpine"
 	"code.gitea.io/gitea/modules/packages/cargo"
 	"code.gitea.io/gitea/modules/packages/chef"
 	"code.gitea.io/gitea/modules/packages/composer"
@@ -136,6 +137,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 
 	var metadata interface{}
 	switch p.Type {
+	case TypeAlpine:
+		metadata = &alpine.VersionMetadata{}
 	case TypeCargo:
 		metadata = &cargo.Metadata{}
 	case TypeChef:
