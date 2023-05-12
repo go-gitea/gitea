@@ -319,7 +319,14 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
 	}
-	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(username, reponame), repo_model.ComposeHTTPSCloneURL(username, reponame))
+
+	var cloneURL string
+	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
+		cloneURL = repo_model.ComposeSSHCloneURL(username, reponame)
+	} else {
+		cloneURL = repo_model.ComposeHTTPSCloneURL(username, reponame)
+	}
+	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(username, reponame), cloneURL)
 	htmlMeta := fmt.Sprintf(`<meta name="go-import" content="%s">`, html.EscapeString(goImportContent))
 	ctx.PlainText(http.StatusOK, htmlMeta)
 }
