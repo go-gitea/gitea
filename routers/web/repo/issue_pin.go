@@ -22,7 +22,7 @@ func IssuePinOrUnpin(ctx *context.Context) {
 		return
 	}
 
-	err = issue.PinOrUnpin(ctx, ctx.ContextUser)
+	err = issue.PinOrUnpin(ctx, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("PinOrUnpinIssue", err)
 		return
@@ -46,7 +46,7 @@ func IssueUnpin(ctx *context.Context) {
 		return
 	}
 
-	err = issue.Unpin(ctx, ctx.ContextUser)
+	err = issue.Unpin(ctx, ctx.Doer)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err.Error())
 	}
