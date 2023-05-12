@@ -125,10 +125,8 @@ type User struct {
 	UseCustomAvatar bool
 
 	// Counters
-	NumFollowers int
-	NumFollowing int `xorm:"NOT NULL DEFAULT 0"`
-	NumStars     int
-	NumRepos     int
+	NumStars int
+	NumRepos int
 
 	// For organization
 	NumTeams                  int

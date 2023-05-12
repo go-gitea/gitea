@@ -59,8 +59,6 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 		Website:     user.Website,
 		Description: user.Description,
 		// counter's
-		Followers:    user.NumFollowers,
-		Following:    user.NumFollowing,
 		StarredRepos: user.NumStars,
 	}
 
