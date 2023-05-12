@@ -169,6 +169,11 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
 
+	// Delete Milestone Labels
+	if err := issues_model.DeleteMilestoneLabelsByRepoID(ctx, repoID); err != nil {
+		return err
+	}
+
 	// Delete Labels and related objects
 	if err := issues_model.DeleteLabelsByRepoID(ctx, repoID); err != nil {
 		return err

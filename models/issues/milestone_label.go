@@ -11,6 +11,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
+
+	"xorm.io/builder"
 )
 
 // MilestoneLabel represents an milestone-label relation.
@@ -154,6 +156,17 @@ func DeleteMilestoneLabel(m *Milestone, label *Label, doer *user_model.User) (er
 	}
 
 	return committer.Commit()
+}
+
+// DeleteMilestoneLabelsByRepoID deletes Milestone Labels
+func DeleteMilestoneLabelsByRepoID(ctx context.Context, repoID int64) error {
+	deleteCond := builder.Select("id").From("label").Where(builder.Eq{"label.repo_id": repoID})
+
+	if _, err := db.GetEngine(ctx).In("label_id", deleteCond).
+		Delete(&MilestoneLabel{}); err != nil {
+		return err
+	}
+	return nil
 }
 
 // LoadLabels loads labels
