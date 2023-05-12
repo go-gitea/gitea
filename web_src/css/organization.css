@@ -40,25 +40,8 @@
   }
 }
 
-.organization .head .ui.header .text {
-  vertical-align: middle;
-  font-size: 1.6rem;
-  margin-left: 15px;
-}
-
-.organization .head .ui.header .org-visibility .label {
-  margin-left: 5px;
-  margin-top: 5px;
-}
-
 .organization .head .ui.header .ui.right {
   margin-top: 5px;
-}
-
-.organization .ui.secondary.stackable.pointing.menu {
-  flex-wrap: wrap;
-  margin-top: 5px;
-  margin-bottom: 10px;
 }
 
 .organization.new.org form {
@@ -129,11 +112,6 @@
   margin-bottom: 0;
 }
 
-.organization.profile #org-info .ui.header .org-visibility .label {
-  margin-left: 5px;
-  margin-top: 2px;
-}
-
 .organization.profile #org-info .desc {
   font-size: 16px;
   margin-bottom: 10px;
@@ -154,11 +132,6 @@
 
 .organization.profile .teams .item {
   padding: 10px 15px;
-}
-
-.organization.teams .members a:hover,
-.organization.profile .members a:hover {
-  text-decoration: none;
 }
 
 .organization.teams .members .ui.avatar,
@@ -218,8 +191,7 @@
 
 .organization.teams .repositories .item,
 .organization.teams .members .item {
-  padding: 10px 20px;
-  line-height: 32px;
+  padding: 10px 19px;
 }
 
 .organization.teams .repositories .item:not(:last-child),
@@ -230,6 +202,7 @@
 .organization.teams .repositories .item .button,
 .organization.teams .members .item .button {
   padding: 9px 10px;
+  margin: 0;
 }
 
 .organization.teams #add-repo-form input,
@@ -247,4 +220,14 @@
 
 .organization.teams #repo-top-segment {
   height: 60px;
+}
+
+@media (max-width: 767px) {
+  .organization.teams #repo-top-segment {
+    height: 100px;
+  }
+}
+
+.org-team-navbar .active.item {
+  background: var(--color-box-body) !important;
 }

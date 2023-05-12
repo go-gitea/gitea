@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin user">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.packages.package_manage_panel"}} ({{.locale.Tr "admin.total" .TotalCount}},
 			{{.locale.Tr "admin.packages.total_size" (FileSize .TotalBlobSize)}},
@@ -68,7 +65,7 @@
 							{{end}}
 							</td>
 							<td>{{FileSize .CalculateBlobSize}}</td>
-							<td><span title="{{.Version.CreatedUnix.FormatLong}}"><time data-format="short-date" datetime="{{.Version.CreatedUnix.FormatLong}}">{{.Version.CreatedUnix.FormatShort}}</time></span></td>
+							<td>{{DateTime "short" .Version.CreatedUnix}}</td>
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.Version.ID}}" data-name="{{.Package.Name}}" data-data-version="{{.Version.Version}}">{{svg "octicon-trash"}}</a></td>
 						</tr>
 					{{end}}
@@ -78,16 +75,16 @@
 
 		{{template "base/paginate" .}}
 	</div>
-</div>
 
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "packages.settings.delete"}}
 	</div>
 	<div class="content">
 		{{.locale.Tr "packages.settings.delete.notice" `<span class="name"></span>` `<span class="dataVersion"></span>` | Safe}}
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
-{{template "base/footer" .}}
+
+{{template "admin/layout_footer" .}}

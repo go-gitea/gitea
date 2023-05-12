@@ -82,9 +82,9 @@ func TestAPISearchRepo(t *testing.T) {
 	}{
 		{
 			name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
-				nil:   {count: 31},
-				user:  {count: 31},
-				user2: {count: 31},
+				nil:   {count: 32},
+				user:  {count: 32},
+				user2: {count: 32},
 			},
 		},
 		{
@@ -183,18 +183,17 @@ func TestAPISearchRepo(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			for userToLogin, expected := range testCase.expectedResults {
-				var session *TestSession
 				var testName string
 				var userID int64
 				var token string
 				if userToLogin != nil && userToLogin.ID > 0 {
 					testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
-					session = loginUser(t, userToLogin.Name)
+					session := loginUser(t, userToLogin.Name)
 					token = getTokenForLoggedInUser(t, session)
 					userID = userToLogin.ID
 				} else {
 					testName = "AnonymousUser"
-					session = emptyTestSession(t)
+					_ = emptyTestSession(t)
 				}
 
 				t.Run(testName, func(t *testing.T) {
@@ -413,7 +412,7 @@ func TestAPIMirrorSyncNonMirrorRepo(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &repo)
-	assert.EqualValues(t, false, repo.Mirror)
+	assert.False(t, repo.Mirror)
 
 	req = NewRequestf(t, "POST", "/api/v1/repos/user2/repo1/mirror-sync?token=%s", token)
 	resp = MakeRequest(t, req, http.StatusBadRequest)
@@ -470,7 +469,7 @@ func testAPIRepoCreateConflict(t *testing.T, u *url.URL) {
 		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
 		respJSON := map[string]string{}
 		DecodeJSON(t, resp, &respJSON)
-		assert.Equal(t, respJSON["message"], "The repository with the same name already exists.")
+		assert.Equal(t, "The repository with the same name already exists.", respJSON["message"])
 	})
 }
 

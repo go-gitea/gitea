@@ -30,6 +30,7 @@ type Type string
 
 // List of supported packages
 const (
+	TypeAlpine    Type = "alpine"
 	TypeCargo     Type = "cargo"
 	TypeChef      Type = "chef"
 	TypeComposer  Type = "composer"
@@ -37,6 +38,7 @@ const (
 	TypeConda     Type = "conda"
 	TypeContainer Type = "container"
 	TypeCran      Type = "cran"
+	TypeDebian    Type = "debian"
 	TypeGeneric   Type = "generic"
 	TypeHelm      Type = "helm"
 	TypeMaven     Type = "maven"
@@ -44,12 +46,14 @@ const (
 	TypeNuGet     Type = "nuget"
 	TypePub       Type = "pub"
 	TypePyPI      Type = "pypi"
+	TypeRpm       Type = "rpm"
 	TypeRubyGems  Type = "rubygems"
 	TypeSwift     Type = "swift"
 	TypeVagrant   Type = "vagrant"
 )
 
 var TypeList = []Type{
+	TypeAlpine,
 	TypeCargo,
 	TypeChef,
 	TypeComposer,
@@ -57,6 +61,7 @@ var TypeList = []Type{
 	TypeConda,
 	TypeContainer,
 	TypeCran,
+	TypeDebian,
 	TypeGeneric,
 	TypeHelm,
 	TypeMaven,
@@ -64,6 +69,7 @@ var TypeList = []Type{
 	TypeNuGet,
 	TypePub,
 	TypePyPI,
+	TypeRpm,
 	TypeRubyGems,
 	TypeSwift,
 	TypeVagrant,
@@ -72,6 +78,8 @@ var TypeList = []Type{
 // Name gets the name of the package type
 func (pt Type) Name() string {
 	switch pt {
+	case TypeAlpine:
+		return "Alpine"
 	case TypeCargo:
 		return "Cargo"
 	case TypeChef:
@@ -86,6 +94,8 @@ func (pt Type) Name() string {
 		return "Container"
 	case TypeCran:
 		return "CRAN"
+	case TypeDebian:
+		return "Debian"
 	case TypeGeneric:
 		return "Generic"
 	case TypeHelm:
@@ -100,6 +110,8 @@ func (pt Type) Name() string {
 		return "Pub"
 	case TypePyPI:
 		return "PyPI"
+	case TypeRpm:
+		return "RPM"
 	case TypeRubyGems:
 		return "RubyGems"
 	case TypeSwift:
@@ -113,6 +125,8 @@ func (pt Type) Name() string {
 // SVGName gets the name of the package type svg image
 func (pt Type) SVGName() string {
 	switch pt {
+	case TypeAlpine:
+		return "gitea-alpine"
 	case TypeCargo:
 		return "gitea-cargo"
 	case TypeChef:
@@ -127,6 +141,8 @@ func (pt Type) SVGName() string {
 		return "octicon-container"
 	case TypeCran:
 		return "gitea-cran"
+	case TypeDebian:
+		return "gitea-debian"
 	case TypeGeneric:
 		return "octicon-package"
 	case TypeHelm:
@@ -141,6 +157,8 @@ func (pt Type) SVGName() string {
 		return "gitea-pub"
 	case TypePyPI:
 		return "gitea-python"
+	case TypeRpm:
+		return "gitea-rpm"
 	case TypeRubyGems:
 		return "gitea-rubygems"
 	case TypeSwift:
@@ -160,6 +178,7 @@ type Package struct {
 	Name             string `xorm:"NOT NULL"`
 	LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	SemverCompatible bool   `xorm:"NOT NULL DEFAULT false"`
+	IsInternal       bool   `xorm:"NOT NULL DEFAULT false"`
 }
 
 // TryInsertPackage inserts a package. If a package exists already, ErrDuplicatePackage is returned
@@ -220,9 +239,10 @@ func GetPackageByID(ctx context.Context, packageID int64) (*Package, error) {
 // GetPackageByName gets a package by name
 func GetPackageByName(ctx context.Context, ownerID int64, packageType Type, name string) (*Package, error) {
 	var cond builder.Cond = builder.Eq{
-		"package.owner_id":   ownerID,
-		"package.type":       packageType,
-		"package.lower_name": strings.ToLower(name),
+		"package.owner_id":    ownerID,
+		"package.type":        packageType,
+		"package.lower_name":  strings.ToLower(name),
+		"package.is_internal": false,
 	}
 
 	p := &Package{}
@@ -242,8 +262,9 @@ func GetPackageByName(ctx context.Context, ownerID int64, packageType Type, name
 // GetPackagesByType gets all packages of a specific type
 func GetPackagesByType(ctx context.Context, ownerID int64, packageType Type) ([]*Package, error) {
 	var cond builder.Cond = builder.Eq{
-		"package.owner_id": ownerID,
-		"package.type":     packageType,
+		"package.owner_id":    ownerID,
+		"package.type":        packageType,
+		"package.is_internal": false,
 	}
 
 	ps := make([]*Package, 0, 10)

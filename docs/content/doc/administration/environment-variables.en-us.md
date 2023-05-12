@@ -2,9 +2,11 @@
 date: "2017-04-08T11:34:00+02:00"
 title: "Environment variables"
 slug: "environment-variables"
-weight: 20
+weight: 10
 toc: false
 draft: false
+aliases:
+  - /en-us/environment-variables
 menu:
   sidebar:
     parent: "administration"
