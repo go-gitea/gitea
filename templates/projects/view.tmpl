@@ -73,7 +73,7 @@
 	</div>
 	<div class="ui container fluid padded" id="project-board">
 
-		<div class="board">
+		<div class="board {{if .CanWriteProjects}}sortable{{end}}">
 			{{range $board := .Boards}}
 
 			<div class="ui segment board-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">

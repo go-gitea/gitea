@@ -15,7 +15,7 @@ REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-pgsql/indexers/repos.bleve
 
 [queue.issue_indexer]
-PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-pgsql/indexers/issues.bleve
+TYPE = level
 DATADIR = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-pgsql/indexers/issues.queue
 
 [queue]

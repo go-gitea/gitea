@@ -16,7 +16,7 @@ import (
 	"xorm.io/builder"
 )
 
-var jobEmitterQueue queue.UniqueQueue
+var jobEmitterQueue *queue.WorkerPoolQueue[*jobUpdate]
 
 type jobUpdate struct {
 	RunID int64
@@ -32,13 +32,12 @@ func EmitJobsIfReady(runID int64) error {
 	return err
 }
 
-func jobEmitterQueueHandle(data ...queue.Data) []queue.Data {
+func jobEmitterQueueHandler(items ...*jobUpdate) []*jobUpdate {
 	ctx := graceful.GetManager().ShutdownContext()
-	var ret []queue.Data
-	for _, d := range data {
-		update := d.(*jobUpdate)
+	var ret []*jobUpdate
+	for _, update := range items {
 		if err := checkJobsOfRun(ctx, update.RunID); err != nil {
-			ret = append(ret, d)
+			ret = append(ret, update)
 		}
 	}
 	return ret
