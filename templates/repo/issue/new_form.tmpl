@@ -24,17 +24,12 @@
 							{{else if eq .Type "markdown"}}
 								{{template "repo/issue/fields/markdown" dict "Context" $.Context "item" .}}
 							{{else if eq .Type "textarea"}}
-								{{template "repo/issue/fields/textarea" dict "Context" $.Context "item" .}}
+								{{template "repo/issue/fields/textarea" dict "Context" $.Context "item" . "root" $}}
 							{{else if eq .Type "dropdown"}}
 								{{template "repo/issue/fields/dropdown" dict "Context" $.Context "item" .}}
 							{{else if eq .Type "checkboxes"}}
 								{{template "repo/issue/fields/checkboxes" dict "Context" $.Context "item" .}}
 							{{end}}
-						{{end}}
-						{{if .IsAttachmentEnabled}}
-						<div class="field">
-							{{template "repo/upload" .}}
-						</div>
 						{{end}}
 					{{else}}
 						{{template "repo/issue/comment_tab" .}}

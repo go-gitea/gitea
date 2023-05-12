@@ -30,7 +30,7 @@ import (
 )
 
 // prPatchCheckerQueue represents a queue to handle update pull request tests
-var prPatchCheckerQueue queue.UniqueQueue
+var prPatchCheckerQueue *queue.WorkerPoolQueue[string]
 
 var (
 	ErrIsClosed              = errors.New("pull is closed")
@@ -44,16 +44,14 @@ var (
 
 // AddToTaskQueue adds itself to pull request test task queue.
 func AddToTaskQueue(pr *issues_model.PullRequest) {
-	err := prPatchCheckerQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
-		pr.Status = issues_model.PullRequestStatusChecking
-		err := pr.UpdateColsIfNotMerged(db.DefaultContext, "status")
-		if err != nil {
-			log.Error("AddToTaskQueue(%-v).UpdateCols.(add to queue): %v", pr, err)
-		} else {
-			log.Trace("Adding %-v to the test pull requests queue", pr)
-		}
-		return err
-	})
+	pr.Status = issues_model.PullRequestStatusChecking
+	err := pr.UpdateColsIfNotMerged(db.DefaultContext, "status")
+	if err != nil {
+		log.Error("AddToTaskQueue(%-v).UpdateCols.(add to queue): %v", pr, err)
+		return
+	}
+	log.Trace("Adding %-v to the test pull requests queue", pr)
+	err = prPatchCheckerQueue.Push(strconv.FormatInt(pr.ID, 10))
 	if err != nil && err != queue.ErrAlreadyInQueue {
 		log.Error("Error adding %-v to the test pull requests queue: %v", pr, err)
 	}
@@ -315,10 +313,8 @@ func InitializePullRequests(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
-			if err := prPatchCheckerQueue.PushFunc(strconv.FormatInt(prID, 10), func() error {
-				log.Trace("Adding PR[%d] to the pull requests patch checking queue", prID)
-				return nil
-			}); err != nil {
+			log.Trace("Adding PR[%d] to the pull requests patch checking queue", prID)
+			if err := prPatchCheckerQueue.Push(strconv.FormatInt(prID, 10)); err != nil {
 				log.Error("Error adding PR[%d] to the pull requests patch checking queue %v", prID, err)
 			}
 		}
@@ -326,10 +322,9 @@ func InitializePullRequests(ctx context.Context) {
 }
 
 // handle passed PR IDs and test the PRs
-func handle(data ...queue.Data) []queue.Data {
-	for _, datum := range data {
-		id, _ := strconv.ParseInt(datum.(string), 10, 64)
-
+func handler(items ...string) []string {
+	for _, s := range items {
+		id, _ := strconv.ParseInt(s, 10, 64)
 		testPR(id)
 	}
 	return nil
@@ -389,7 +384,7 @@ func CheckPRsForBaseBranch(baseRepo *repo_model.Repository, baseBranchName strin
 
 // Init runs the task queue to test all the checking status pull requests
 func Init() error {
-	prPatchCheckerQueue = queue.CreateUniqueQueue("pr_patch_checker", handle, "")
+	prPatchCheckerQueue = queue.CreateUniqueQueue("pr_patch_checker", handler)
 
 	if prPatchCheckerQueue == nil {
 		return fmt.Errorf("Unable to create pr_patch_checker Queue")
