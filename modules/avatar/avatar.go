@@ -116,7 +116,7 @@ func processAvatarImage(data []byte, maxOriginSize int64) ([]byte, error) {
 	return resized, nil
 }
 
-// ProcessAvatarImage process the avatar image data, crop/ it if necessary.
+// ProcessAvatarImage process the avatar image data, crop and resize it if necessary.
 // the returned data could be the original image if no processing is needed.
 func ProcessAvatarImage(data []byte) ([]byte, error) {
 	return processAvatarImage(data, setting.Avatar.MaxOriginSize)
