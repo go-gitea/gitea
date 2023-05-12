@@ -95,7 +95,7 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*adm
 		DoerID:         doer.ID,
 		OwnerID:        u.ID,
 		Type:           structs.TaskTypeMigrateRepo,
-		Status:         structs.TaskStatusQueue,
+		Status:         structs.TaskStatusQueued,
 		PayloadContent: string(bs),
 	}
 
