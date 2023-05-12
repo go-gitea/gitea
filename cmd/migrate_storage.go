@@ -146,7 +146,7 @@ func migrateActionsLog(ctx context.Context, dstStorage storage.ObjectStorage) er
 			return nil
 		}
 		p := task.LogFilename
-		_, err := storage.Copy(dstStorage, p, storage.RepoAvatars, p)
+		_, err := storage.Copy(dstStorage, p, storage.Actions, p)
 		return err
 	})
 }
