@@ -23,9 +23,10 @@ import (
 	_ "golang.org/x/image/webp" // for processing webp images
 )
 
-// DefaultAvatarSize is used for avatar generation, usually the avatar image saved
-// in server won't be larger than this value, unless the original file is smaller
-// than the resized image.
+// DefaultAvatarSize is the target CSS pixel size for avatar generation. It is
+// multiplied by setting.Avatar.RenderedSizeFactor and the resulting size is the
+// usual size of avatar image saved on server, unless the original file is smaller
+// than the size after resizing.
 const DefaultAvatarSize = 256
 
 // RandomImageSize generates and returns a random avatar image unique to input data
