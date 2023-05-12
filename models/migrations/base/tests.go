@@ -1,6 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+//nolint:forbidigo
 package base
 
 import (
@@ -10,7 +11,6 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/testlogger"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
@@ -31,7 +32,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 	t.Helper()
 	ourSkip := 2
 	ourSkip += skip
-	deferFn := PrintCurrentTest(t, ourSkip)
+	deferFn := testlogger.PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
@@ -109,9 +110,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 }
 
 func MainTest(m *testing.M) {
-	log.Register("test", NewTestLogger)
-	_, filename, _, _ := runtime.Caller(0)
-	prefix = strings.TrimSuffix(filename, "tests/testlogger.go")
+	log.Register("test", testlogger.NewTestLogger)
 
 	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
@@ -149,7 +148,7 @@ func MainTest(m *testing.M) {
 	setting.AppDataPath = tmpDataPath
 
 	setting.SetCustomPathAndConf("", "", "")
-	setting.InitProviderAndLoadCommonSettingsForTest()
+	unittest.InitSettings()
 	if err = git.InitFull(context.Background()); err != nil {
 		fmt.Printf("Unable to InitFull: %v\n", err)
 		os.Exit(1)

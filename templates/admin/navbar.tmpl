@@ -35,9 +35,14 @@
 			</a>
 		{{end}}
 		{{if .EnableActions}}
-		<a class="{{if .PageIsAdminRunners}}active {{end}}item" href="{{AppSubUrl}}/admin/runners">
-			{{.locale.Tr "actions.runners"}}
-		</a>
+		<div class="item">
+			{{.locale.Tr "actions.actions"}}
+			<div class="menu">
+				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{AppSubUrl}}/admin/actions/runners">
+					{{.locale.Tr "actions.runners"}}
+				</a>
+			</div>
+		</div>
 		{{end}}
 		<a class="{{if .PageIsAdminConfig}}active {{end}}item" href="{{AppSubUrl}}/admin/config">
 			{{.locale.Tr "admin.config"}}
@@ -45,8 +50,19 @@
 		<a class="{{if .PageIsAdminNotices}}active {{end}}item" href="{{AppSubUrl}}/admin/notices">
 			{{.locale.Tr "admin.notices"}}
 		</a>
-		<a class="{{if .PageIsAdminMonitor}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor">
+		<div class="item">
 			{{.locale.Tr "admin.monitor"}}
-		</a>
+			<div class="menu">
+				<a class="{{if .PageIsAdminMonitorCron}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/cron">
+					{{.locale.Tr "admin.monitor.cron"}}
+				</a>
+				<a class="{{if .PageIsAdminMonitorQueue}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/queue">
+					{{.locale.Tr "admin.monitor.queues"}}
+				</a>
+				<a class="{{if .PageIsAdminMonitorStacktrace}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/stacktrace">
+					{{.locale.Tr "admin.monitor.stacktrace"}}
+				</a>
+			</div>
+		</div>
 	</div>
 </div>

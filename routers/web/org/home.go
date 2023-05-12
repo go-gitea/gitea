@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
@@ -143,6 +144,11 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	var isFollowing bool
+	if ctx.Doer != nil {
+		isFollowing = user_model.IsFollowing(ctx.Doer.ID, ctx.ContextUser.ID)
+	}
+
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 	ctx.Data["MembersTotal"] = membersCount
@@ -150,6 +156,7 @@ func Home(ctx *context.Context) {
 	ctx.Data["Teams"] = ctx.Org.Teams
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["PageIsViewRepositories"] = true
+	ctx.Data["IsFollowing"] = isFollowing
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)

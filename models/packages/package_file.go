@@ -117,13 +117,15 @@ func DeleteFileByID(ctx context.Context, fileID int64) error {
 
 // PackageFileSearchOptions are options for SearchXXX methods
 type PackageFileSearchOptions struct {
-	OwnerID      int64
-	PackageType  string
-	VersionID    int64
-	Query        string
-	CompositeKey string
-	Properties   map[string]string
-	OlderThan    time.Duration
+	OwnerID       int64
+	PackageType   Type
+	VersionID     int64
+	Query         string
+	CompositeKey  string
+	Properties    map[string]string
+	OlderThan     time.Duration
+	HashAlgorithm string
+	Hash          string
 	db.Paginator
 }
 
@@ -180,6 +182,26 @@ func (opts *PackageFileSearchOptions) toConds() builder.Cond {
 
 	if opts.OlderThan != 0 {
 		cond = cond.And(builder.Lt{"package_file.created_unix": time.Now().Add(-opts.OlderThan).Unix()})
+	}
+
+	if opts.Hash != "" {
+		var field string
+		switch strings.ToLower(opts.HashAlgorithm) {
+		case "md5":
+			field = "package_blob.hash_md5"
+		case "sha1":
+			field = "package_blob.hash_sha1"
+		case "sha256":
+			field = "package_blob.hash_sha256"
+		case "sha512":
+			fallthrough
+		default: // default to SHA512 if not specified or unknown
+			field = "package_blob.hash_sha512"
+		}
+		innerCond := builder.
+			Expr("package_blob.id = package_file.blob_id").
+			And(builder.Eq{field: opts.Hash})
+		cond = cond.And(builder.Exists(builder.Select("package_blob.id").From("package_blob").Where(innerCond)))
 	}
 
 	return cond

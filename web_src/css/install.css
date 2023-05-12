@@ -55,7 +55,7 @@
   margin: 20px auto;
   color: var(--color-red);
   text-align: left;
-  font-weight: bold;
+  font-weight: var(--font-weight-bold);
 }
 
 .page-content.install .ui .reinstall-confirm {

@@ -37,10 +37,6 @@ const (
 	tplSettingsHooks base.TplName = "org/settings/hooks"
 	// tplSettingsLabels template path for render labels settings
 	tplSettingsLabels base.TplName = "org/settings/labels"
-	// tplSettingsRunners template path for render runners settings
-	tplSettingsRunners base.TplName = "org/settings/runners"
-	// tplSettingsRunnersEdit template path for render runners edit settings
-	tplSettingsRunnersEdit base.TplName = "org/settings/runners_edit"
 )
 
 // Settings render the main settings page
@@ -50,6 +46,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
+	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 

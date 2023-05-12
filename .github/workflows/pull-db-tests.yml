@@ -1,0 +1,224 @@
+name: db-tests
+
+on: [pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  test-pgsql:
+    runs-on: ubuntu-latest
+    services:
+      pgsql:
+        image: postgres:15
+        env:
+          POSTGRES_DB: test
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - "5432:5432"
+      ldap:
+        image: gitea/test-openldap:latest
+        ports:
+          - "389:389"
+          - "636:636"
+      minio:
+        # as github actions doesn't support "entrypoint", we need to use a non-official image
+        # that has a custom entrypoint set to "minio server /data"
+        image: bitnami/minio:2021.3.17
+        env:
+          MINIO_ACCESS_KEY: 123456
+          MINIO_SECRET_KEY: 12345678
+        ports:
+          - "9000:9000"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.20.0"
+      - name: Add hosts to /etc/hosts
+        run: echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts
+      - run: make deps-backend
+      - run: make backend
+        env:
+          TAGS: bindata
+      - run: make test-pgsql-migration test-pgsql
+        timeout-minutes: 50
+        env:
+          TAGS: bindata gogit
+          RACE_ENABLED: true
+          TEST_TAGS: gogit
+          TEST_LDAP: 1
+          USE_REPO_TEST_DIR: 1
+
+  test-sqlite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.20.0"
+      - run: make deps-backend
+      - run: make backend
+        env:
+          TAGS: bindata gogit sqlite sqlite_unlock_notify
+      - run: make test-sqlite-migration test-sqlite
+        timeout-minutes: 50
+        env:
+          TAGS: bindata gogit sqlite sqlite_unlock_notify
+          RACE_ENABLED: true
+          TEST_TAGS: gogit sqlite sqlite_unlock_notify
+          USE_REPO_TEST_DIR: 1
+
+  test-unit:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: test
+        ports:
+          - "3306:3306"
+      elasticsearch:
+        image: elasticsearch:7.5.0
+        env:
+          discovery.type: single-node
+        ports:
+          - "9200:9200"
+      smtpimap:
+        image: tabascoterrier/docker-imap-devel:latest
+        ports:
+          - "25:25"
+          - "143:143"
+          - "587:587"
+          - "993:993"
+      redis:
+        image: redis
+        options: >- # wait until redis has started
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.20.0"
+      - name: Add hosts to /etc/hosts
+        run: echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts
+      - run: make deps-backend
+      - run: make backend
+        env:
+          TAGS: bindata
+      - name: unit-tests
+        run: make unit-test-coverage test-check
+        env:
+          TAGS: bindata
+          RACE_ENABLED: true
+          GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
+      - name: unit-tests-gogit
+        run: make unit-test-coverage test-check
+        env:
+          TAGS: bindata gogit
+          RACE_ENABLED: true
+          GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
+
+  test-mysql5:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: test
+        ports:
+          - "3306:3306"
+      elasticsearch:
+        image: elasticsearch:7.5.0
+        env:
+          discovery.type: single-node
+        ports:
+          - "9200:9200"
+      smtpimap:
+        image: tabascoterrier/docker-imap-devel:latest
+        ports:
+          - "25:25"
+          - "143:143"
+          - "587:587"
+          - "993:993"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.20.0"
+      - name: Add hosts to /etc/hosts
+        run: echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts
+      - run: make deps-backend
+      - run: make backend
+        env:
+          TAGS: bindata
+      - name: run tests
+        run: make test-mysql-migration integration-test-coverage
+        env:
+          TAGS: bindata
+          RACE_ENABLED: true
+          USE_REPO_TEST_DIR: 1
+          TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
+
+  test-mysql8:
+    runs-on: ubuntu-latest
+    services:
+      mysql8:
+        image: mysql:8
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: testgitea
+        ports:
+          - "3306:3306"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.20.0"
+      - name: Add hosts to /etc/hosts
+        run: echo "127.0.0.1 mysql8" | sudo tee -a /etc/hosts
+      - run: make deps-backend
+      - run: make backend
+        env:
+          TAGS: bindata
+      - run: make test-mysql8-migration test-mysql8
+        timeout-minutes: 50
+        env:
+          TAGS: bindata
+          USE_REPO_TEST_DIR: 1
+
+  test-mssql:
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:latest
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_PID: Standard
+          SA_PASSWORD: MwantsaSecurePassword1
+        ports:
+          - "1433:1433"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.20.0"
+      - name: Add hosts to /etc/hosts
+        run: echo "127.0.0.1 mssql" | sudo tee -a /etc/hosts
+      - run: make deps-backend
+      - run: make backend
+        env:
+          TAGS: bindata
+      - run: make test-mssql-migration test-mssql
+        timeout-minutes: 50
+        env:
+          TAGS: bindata
+          USE_REPO_TEST_DIR: 1

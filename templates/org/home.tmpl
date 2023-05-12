@@ -3,21 +3,33 @@
 	<div class="ui container gt-df">
 		{{avatar $.Context .Org 140 "org-avatar"}}
 		<div id="org-info">
-			<div class="ui header">
+			<div class="ui header gt-df gt-fw">
 				{{.Org.DisplayName}}
-				{{if .EnableFeed}}
-					<a href="{{.Org.HomeLink}}.rss"><i class="ui grey icon gt-ml-3" data-tooltip-content="{{.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 36}}</i></a>
-				{{end}}
 				<span class="org-visibility">
-					{{if .Org.Visibility.IsLimited}}<div class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
-					{{if .Org.Visibility.IsPrivate}}<div class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+					{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
+					{{if .Org.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
 				</span>
+				{{if .EnableFeed}}
+					<a class="rss-icon gt-mx-3" href="{{.Org.HomeLink}}.rss" data-tooltip-content="{{.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 24}}</a>
+				{{end}}
 			</div>
 			{{if $.RenderedDescription}}<div class="render-content markup">{{$.RenderedDescription|Str2html}}</div>{{end}}
 			<div class="text grey meta">
 				{{if .Org.Location}}<div class="item">{{svg "octicon-location"}} <span>{{.Org.Location}}</span></div>{{end}}
 				{{if .Org.Website}}<div class="item">{{svg "octicon-link"}} <a target="_blank" rel="noopener noreferrer me" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
 			</div>
+		</div>
+		<div class="right stackable menu">
+			<form method="post" action="{{.Link}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}&redirect_to={{$.Link}}">
+				{{$.CsrfTokenHtml}}
+				<button type="submit" class="ui basic button gt-mr-0">
+					{{if $.IsFollowing}}
+						{{.locale.Tr "user.unfollow"}}
+					{{else}}
+						{{.locale.Tr "user.follow"}}
+					{{end}}
+				</button>
+			</form>
 		</div>
 	</div>
 

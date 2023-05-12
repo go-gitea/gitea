@@ -40,11 +40,6 @@
   }
 }
 
-.organization .head .ui.header .org-visibility .label {
-  margin-left: 5px;
-  margin-top: 5px;
-}
-
 .organization .head .ui.header .ui.right {
   margin-top: 5px;
 }
@@ -115,11 +110,6 @@
   align-items: center;
   font-size: 36px;
   margin-bottom: 0;
-}
-
-.organization.profile #org-info .ui.header .org-visibility .label {
-  margin-left: 5px;
-  margin-top: 2px;
 }
 
 .organization.profile #org-info .desc {
@@ -230,6 +220,12 @@
 
 .organization.teams #repo-top-segment {
   height: 60px;
+}
+
+@media (max-width: 767px) {
+  .organization.teams #repo-top-segment {
+    height: 100px;
+  }
 }
 
 .org-team-navbar .active.item {

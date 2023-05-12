@@ -7,7 +7,7 @@
 		<div class="list">
 			{{range .Members}}
 				<div class="item ui grid">
-					<div class="ui four wide column" style="display: flex;">
+					<div class="ui four wide column gt-df">
 						<a href="{{.HomeLink}}">{{avatar $.Context . 48}}</a>
 						<div>
 							<div class="meta"><a href="{{.HomeLink}}">{{.Name}}</a></div>
@@ -81,7 +81,7 @@
 		{{template "base/paginate" .}}
 	</div>
 </div>
-<div class="ui gitea-confirm-modal delete modal" id="leave-organization">
+<div class="ui g-modal-confirm delete modal" id="leave-organization">
 	<div class="header">
 		{{$.locale.Tr "org.members.leave"}}
 	</div>
@@ -90,7 +90,7 @@
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>
-<div class="ui gitea-confirm-modal delete modal" id="remove-organization-member">
+<div class="ui g-modal-confirm delete modal" id="remove-organization-member">
 	<div class="header">
 		{{$.locale.Tr "org.members.remove"}}
 	</div>
