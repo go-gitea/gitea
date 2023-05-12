@@ -83,16 +83,16 @@ export function initRepoSettingBranches() {
     if (this.checked) $target.addClass('disabled'); // only disable, do not auto enable
   });
 
-  // show the `Matched` mark for the status check contexts that match the pattern
-  const markMatchedCheckStatusContexts = () => {
+  // show the `Matched` mark for the status checks that match the pattern
+  const markMatchedStatusChecks = () => {
     const patterns = document.getElementById('status_check_contexts')?.value.split(/[\r\n]+/);
     const validPatterns = patterns.map((item) => item.trim()).filter((item) => item.length > 0);
     const marks = document.getElementsByClassName('status-check-matched-mark');
     for (const el of marks) {
       let matched = false;
-      const statusCheckContext = el.getAttribute('data-status-check-context');
+      const statusCheck = el.getAttribute('data-status-check');
       for (const pattern of validPatterns) {
-        if (minimatch(statusCheckContext, pattern)) {
+        if (minimatch(statusCheck, pattern)) {
           matched = true;
           break;
         }
@@ -104,6 +104,6 @@ export function initRepoSettingBranches() {
       }
     }
   }
-  markMatchedCheckStatusContexts()
-  document.getElementById('status_check_contexts')?.addEventListener('input', markMatchedCheckStatusContexts);
+  markMatchedStatusChecks();
+  document.getElementById('status_check_contexts')?.addEventListener('input', markMatchedStatusChecks);
 }
