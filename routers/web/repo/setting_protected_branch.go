@@ -6,6 +6,7 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -228,17 +229,16 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 
 	protectBranch.EnableStatusCheck = f.EnableStatusCheck
 	if f.EnableStatusCheck {
-		replacer := strings.NewReplacer("\r\n", "\n", "\r", "\n")
-		patterns := strings.Split(replacer.Replace(f.StatusCheckContexts), "\n")
+		patterns := strings.Split(strings.ReplaceAll(f.StatusCheckContexts, "\r", "\n"), "\n")
 		validPatterns := make([]string, 0, len(patterns))
-		for _, c := range patterns {
-			trimmed := strings.TrimSpace(c)
+		for _, pattern := range patterns {
+			trimmed := strings.TrimSpace(pattern)
 			if trimmed == "" {
 				continue
 			}
 			if _, err := glob.Compile(trimmed); err != nil {
-				ctx.Flash.Error(ctx.Tr("repo.settings.protect_invalid_status_check_pattern", c))
-				ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, protectBranch.RuleName))
+				ctx.Flash.Error(ctx.Tr("repo.settings.protect_invalid_status_check_pattern", pattern))
+				ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, url.PathEscape(protectBranch.RuleName)))
 				return
 			}
 			validPatterns = append(validPatterns, trimmed)
