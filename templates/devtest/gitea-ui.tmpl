@@ -1,5 +1,38 @@
 {{template "base/head" .}}
 <div class="page-content devtest ui container">
+	<div>
+		<h1>Button</h1>
+		<div>
+			Style:
+			<label><input type="checkbox" name="button-style-compact" value="compact">compact</label>
+			<label><input type="radio" name="button-style-size" value="">(normal)</label>
+			<label><input type="radio" name="button-style-size" value="tiny">tiny</label>
+			<label><input type="radio" name="button-style-size" value="mini">mini</label>
+		</div>
+		<div>
+			State:
+			<label><input type="checkbox" name="button-state-disabled" value="disabled">disabled</label>
+		</div>
+		<div id="devtest-button-samples">
+			<div>
+				<button class="ui primary button">Primary</button>
+				<button class="ui secondary button">Secondary</button>
+				<button class="ui basic secondary button">Basic Secondary</button>
+				<button class="ui red button">Red</button>
+				<button class="ui basic red button">Basic Red</button>
+			</div>
+			<div>This is a <button class="ui button button-ghost">Ghost</button> button</div>
+		</div>
+		<script type="module">
+			const $buttons = $('#devtest-button-samples').find('button');
+
+			const $buttonStyles = $('input[name*="button-style"]');
+			$buttonStyles.on('click', () => $buttonStyles.map((_ ,el) => $buttons.toggleClass(el.value, el.checked)));
+
+			const $buttonStates = $('input[name*="button-state"]');
+			$buttonStates.on('click', () => $buttonStates.map((_ ,el) => $buttons.prop(el.value, el.checked)));
+		</script>
+	</div>
 
 	<div>
 		<h1>Tooltip</h1>
