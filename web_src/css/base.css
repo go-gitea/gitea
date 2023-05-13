@@ -2180,13 +2180,16 @@ a.ui.active.label:hover {
   border-left: none;
 }
 
-.ui.button.button-ghost {
+/* a ghost button can be used as inline text, it doesn't have obvious styles */
+.button.button-ghost {
   background: transparent;
   border: none;
   color: inherit;
+  margin: 0;
+  padding: 0;
 }
 
-.ui.button.button-ghost:hover {
+.button.button-ghost:hover {
   color: var(--color-primary);
 }
 
@@ -2281,19 +2284,6 @@ a.ui.active.label:hover {
 .ui.basic.secondary.buttons .button:focus {
   color: var(--color-secondary-dark-8) !important;
   border-color: var(--color-secondary-dark-3) !important;
-}
-
-.ui.tertiary.button {
-  color: var(--color-text-light);
-  border: none;
-}
-
-.ui.tertiary.button:hover {
-  color: var(--color-text);
-}
-
-.ui.tertiary.button:focus {
-  color: var(--color-text-dark);
 }
 
 .ui.primary.label,
