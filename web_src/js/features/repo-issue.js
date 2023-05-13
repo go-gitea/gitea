@@ -291,8 +291,8 @@ export function initRepoIssueReferenceRepositorySearch() {
           const filteredResponse = {success: true, results: []};
           $.each(response.data, (_r, repo) => {
             filteredResponse.results.push({
-              name: htmlEscape(repo.full_name),
-              value: repo.full_name
+              name: htmlEscape(repo.repository.full_name),
+              value: repo.repository.full_name
             });
           });
           return filteredResponse;

@@ -121,10 +121,6 @@
   object-fit: contain;
 }
 
-.user.notification table button {
-  padding: 3px 3px 3px 5px;
-}
-
 #notification_div .tab.segment {
   overflow-x: auto;
 }
