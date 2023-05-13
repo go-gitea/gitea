@@ -1050,14 +1050,6 @@ a.label,
 /* are needed to get all current uses of fomantic cards working  */
 /* TODO: remove all these styles and use custom styling instead  */
 
-.ui.cards {
-  display: flex;
-  margin: -.875em -.5em;
-  margin-right: -0.5em;
-  margin-left: -0.5em;
-  flex-wrap: wrap;
-}
-
 .ui.card:last-child {
   margin-bottom: 0;
 }
@@ -1071,13 +1063,28 @@ a.label,
   flex-direction: column;
   max-width: 100%;
   width: 290px;
-  margin: 1em 0;
   min-height: 0;
   padding: 0;
   background: var(--color-card);
   border: 1px solid var(--color-secondary);
   box-shadow: none;
   word-wrap: break-word;
+}
+
+.ui.card {
+  margin: 1em 0;
+}
+
+.ui.cards {
+  display: flex;
+  margin: -0.875em -0.5em;
+  flex-wrap: wrap;
+}
+
+.ui.cards > .card {
+  display: flex;
+  margin: 0.875em 0.5em;
+  float: none;
 }
 
 .ui.cards > .card > .content,
@@ -1112,6 +1119,11 @@ a.label,
 .ui.cards > .card > :last-child,
 .ui.card > :last-child {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.ui.cards > .card > :only-child,
+.ui.card > :only-child {
+  border-radius: var(--border-radius) !important;
 }
 
 .ui.cards > .card > .extra,
