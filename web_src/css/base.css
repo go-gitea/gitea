@@ -1046,6 +1046,10 @@ a.label,
   box-shadow: -1px -1px 0 0 var(--color-secondary);
 }
 
+/* Below styles are a skeleton of the full fomantic styles which */
+/* are needed to get all current uses of fomantic cards working  */
+/* TODO: remove all these styles and use custom styling instead  */
+
 .ui.cards {
   display: flex;
   margin: -.875em -.5em;
