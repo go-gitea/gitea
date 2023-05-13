@@ -102,6 +102,13 @@ jobs:
           --health-retries 10
         ports:
           - 6379:6379
+      minio:
+        image: bitnami/minio:2021.3.17
+        env:
+          MINIO_ACCESS_KEY: 123456
+          MINIO_SECRET_KEY: 12345678
+        ports:
+          - "9000:9000"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
