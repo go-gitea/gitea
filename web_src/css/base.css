@@ -2239,7 +2239,7 @@ a.ui.active.label:hover {
 }
 
 /* a ghost button can be used as inline text, it doesn't have obvious styles */
-.ui.button.button-ghost {
+.button.button-ghost {
   background: transparent;
   border: none;
   color: inherit;
@@ -2247,7 +2247,7 @@ a.ui.active.label:hover {
   padding: 0;
 }
 
-.ui.button.button-ghost:hover {
+.button.button-ghost:hover {
   color: var(--color-primary);
 }
 
