@@ -39,16 +39,13 @@
 }
 
 .user.profile .ui.card #profile-avatar {
-  background: none;
   padding: 1rem 1rem 0.25rem;
   justify-content: center;
 }
 
 .user.profile .ui.card #profile-avatar img {
-  width: 100%;
+  max-width: 100%;
   height: auto;
-  object-fit: contain;
-  margin: 0;
 }
 
 @media (max-width: 767px) {
