@@ -129,6 +129,7 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
+	p = strings.TrimPrefix(p, "/") // url path prefix should not start with /
 	return util.PathJoinRelX(m.basePath, p)
 }
 

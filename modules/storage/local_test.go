@@ -63,6 +63,7 @@ func TestLocalStorageIterator(t *testing.T) {
 	testFiles := [][]string{
 		{"a/1.txt", "a1"},
 		{"/a/1.txt", "aa1"}, // same as above, but with leading slash that will be trim
+		{"ab/1.txt", "ab1"},
 		{"b/1.txt", "b1"},
 		{"b/2.txt", "b2"},
 		{"b/3.txt", "b3"},
@@ -76,8 +77,8 @@ func TestLocalStorageIterator(t *testing.T) {
 	expectedList := map[string][]string{
 		"a":           {"a/1.txt"},
 		"b":           {"b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
-		"":            {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
-		"/":           {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
+		"":            {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt", "ab/1.txt"},
+		"/":           {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt", "ab/1.txt"},
 		"a/b/../../a": {"a/1.txt"},
 	}
 	for dir, expected := range expectedList {

@@ -23,8 +23,9 @@ func TestMinioStorageIterator(t *testing.T) {
 	assert.NoError(t, err)
 
 	testFiles := [][]string{
-		{"m/1.txt", "m1"},
-		{"/mn/1.txt", "mn1"},
+		{"a/1.txt", "a1"},
+		{"/a/1.txt", "aa1"}, // same as above, but with leading slash that will be trim
+		{"ab/1.txt", "ab1"},
 		{"b/1.txt", "b1"},
 		{"b/2.txt", "b2"},
 		{"b/3.txt", "b3"},
@@ -36,10 +37,11 @@ func TestMinioStorageIterator(t *testing.T) {
 	}
 
 	expectedList := map[string][]string{
-		"mn":          {"mn/1.txt"},
-		"m":           {"m/1.txt"},
+		"a":           {"a/1.txt"},
 		"b":           {"b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
-		"m/b/../../m": {"m/1.txt"},
+		"":            {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt", "ab/1.txt"},
+		"/":           {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt", "ab/1.txt"},
+		"a/b/../../a": {"a/1.txt"},
 	}
 	for dir, expected := range expectedList {
 		count := 0
@@ -52,5 +54,4 @@ func TestMinioStorageIterator(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, expected, count)
 	}
-
 }
