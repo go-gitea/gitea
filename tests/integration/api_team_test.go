@@ -60,7 +60,7 @@ func TestAPITeam(t *testing.T) {
 	session = loginUser(t, user.Name)
 	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAdminOrg)
 
-	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 6})
+	org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 6})
 
 	// Create team.
 	teamToCreate := &api.CreateTeamOption{
