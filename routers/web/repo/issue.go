@@ -2739,7 +2739,7 @@ func NewComment(ctx *context.Context) {
 				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
 					"User in Repo has Permissions: %-+v",
 					ctx.Doer,
-					log.NewColoredIDValue(issue.PosterID),
+					issue.PosterID,
 					issueType,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
@@ -3017,7 +3017,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
 					"User in Repo has Permissions: %-+v",
 					ctx.Doer,
-					log.NewColoredIDValue(issue.PosterID),
+					issue.PosterID,
 					issueType,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
@@ -3119,7 +3119,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
 					"User in Repo has Permissions: %-+v",
 					ctx.Doer,
-					log.NewColoredIDValue(comment.Issue.PosterID),
+					comment.Issue.PosterID,
 					issueType,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)

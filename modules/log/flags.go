@@ -1,4 +1,4 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package log
@@ -25,12 +25,11 @@ const (
 	LUTC                       // if Ldate or Ltime is set, use UTC rather than the local time zone
 	Llevelinitial              // Initial character of the provided level in brackets eg. [I] for info
 	Llevel                     // Provided level in brackets [INFO]
+	Lgopid
 
-	// Last 20 characters of the filename
-	Lmedfile = Lshortfile | Llongfile
+	Lmedfile = Lshortfile | Llongfile // last 20 characters of the filename
 
-	// LstdFlags is the initial value for the standard logger
-	LstdFlags = Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial
+	LstdFlags = Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial // default
 )
 
 var flagFromString = map[string]int{
@@ -47,10 +46,10 @@ var flagFromString = map[string]int{
 	"level":         Llevel,
 	"medfile":       Lmedfile,
 	"stdflags":      LstdFlags,
+	"gopid":         Lgopid,
 }
 
-// FlagsFromString takes a comma separated list of flags and returns
-// the flags for this string
+// FlagsFromString takes a comma separated list of flags and returns the flags for this string
 func FlagsFromString(from string) int {
 	flags := 0
 	for _, flag := range strings.Split(strings.ToLower(from), ",") {

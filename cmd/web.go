@@ -103,11 +103,9 @@ func createPIDFile(pidPath string) {
 
 func runWeb(ctx *cli.Context) error {
 	if ctx.Bool("verbose") {
-		_ = log.DelLogger("console")
-		log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "trace", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
+		setupConsoleLogger(log.TRACE, log.CanColorStdout, os.Stdout)
 	} else if ctx.Bool("quiet") {
-		_ = log.DelLogger("console")
-		log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "fatal", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
+		setupConsoleLogger(log.FATAL, log.CanColorStdout, os.Stdout)
 	}
 	defer func() {
 		if panicked := recover(); panicked != nil {
@@ -156,7 +154,7 @@ func runWeb(ctx *cli.Context) error {
 		case <-graceful.GetManager().IsShutdown():
 			<-graceful.GetManager().Done()
 			log.Info("PID: %d Gitea Web Finished", os.Getpid())
-			log.Close()
+			log.GetManager().Close()
 			return err
 		default:
 		}
@@ -199,7 +197,7 @@ func runWeb(ctx *cli.Context) error {
 	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
-	log.Close()
+	log.GetManager().Close()
 	return err
 }
 

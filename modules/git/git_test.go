@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -18,8 +17,6 @@ import (
 )
 
 func testRun(m *testing.M) error {
-	_ = log.NewLogger(1000, "console", "console", `{"level":"trace","stacktracelevel":"NONE","stderr":true}`)
-
 	gitHomePath, err := os.MkdirTemp(os.TempDir(), "git-home")
 	if err != nil {
 		return fmt.Errorf("unable to create temp dir: %w", err)

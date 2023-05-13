@@ -56,11 +56,10 @@ var CmdServ = cli.Command{
 }
 
 func setup(ctx context.Context, debug bool) {
-	_ = log.DelLogger("console")
 	if debug {
-		_ = log.NewLogger(1000, "console", "console", `{"level":"trace","stacktracelevel":"NONE","stderr":true}`)
+		setupConsoleLogger(log.TRACE, false, os.Stderr)
 	} else {
-		_ = log.NewLogger(1000, "console", "console", `{"level":"fatal","stacktracelevel":"NONE","stderr":true}`)
+		setupConsoleLogger(log.FATAL, false, os.Stderr)
 	}
 	setting.Init(&setting.Options{})
 	if debug {

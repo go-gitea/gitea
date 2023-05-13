@@ -114,13 +114,11 @@ func (d *OneDevDownloader) String() string {
 	return fmt.Sprintf("migration from oneDev server %s [%d]/%s", d.baseURL, d.repoID, d.repoName)
 }
 
-// ColorFormat provides a basic color format for a OneDevDownloader
-func (d *OneDevDownloader) ColorFormat(s fmt.State) {
+func (d *OneDevDownloader) LogString() string {
 	if d == nil {
-		log.ColorFprintf(s, "<nil: OneDevDownloader>")
-		return
+		return "<OneDevDownloader nil>"
 	}
-	log.ColorFprintf(s, "migration from oneDev server %s [%d]/%s", d.baseURL, d.repoID, d.repoName)
+	return fmt.Sprintf("<OneDevDownloader %s [%d]/%s>", d.baseURL, d.repoID, d.repoName)
 }
 
 func (d *OneDevDownloader) callAPI(endpoint string, parameter map[string]string, result interface{}) error {

@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"code.gitea.io/gitea/modules/graceful/releasereopen"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -136,7 +137,7 @@ func (g *Manager) handleSignals(ctx context.Context) {
 				g.DoGracefulRestart()
 			case syscall.SIGUSR1:
 				log.Warn("PID %d. Received SIGUSR1. Releasing and reopening logs", pid)
-				if err := log.ReleaseReopen(); err != nil {
+				if err := releasereopen.GetManager().ReleaseReopen(); err != nil {
 					log.Error("Error whilst releasing and reopening logs: %v", err)
 				}
 			case syscall.SIGUSR2:

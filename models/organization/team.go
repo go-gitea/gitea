@@ -94,21 +94,11 @@ func init() {
 	db.RegisterModel(new(TeamInvite))
 }
 
-// ColorFormat provides a basic color format for a Team
-func (t *Team) ColorFormat(s fmt.State) {
+func (t *Team) LogString() string {
 	if t == nil {
-		log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
-			log.NewColoredIDValue(0),
-			"<nil>",
-			log.NewColoredIDValue(0),
-			0)
-		return
+		return "<Team nil>"
 	}
-	log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
-		log.NewColoredIDValue(t.ID),
-		t.Name,
-		log.NewColoredIDValue(t.OrgID),
-		t.AccessMode)
+	return fmt.Sprintf("<Team %d:%s OrgID=%d AccessMode=%s>", t.ID, t.Name, t.OrgID, t.AccessMode.LogString())
 }
 
 // LoadUnits load a list of available units for a team

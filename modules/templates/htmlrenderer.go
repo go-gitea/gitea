@@ -126,7 +126,7 @@ func wrapFatal(msg string) {
 	if msg == "" {
 		return
 	}
-	log.FatalWithSkip(1, "Unable to compile templates, %s", msg)
+	log.Fatal("Unable to compile templates, %s", msg)
 }
 
 type templateErrorPrettier struct {

@@ -115,13 +115,11 @@ func (d *CodebaseDownloader) String() string {
 	return fmt.Sprintf("migration from codebase server %s %s/%s", d.baseURL, d.project, d.repoName)
 }
 
-// ColorFormat provides a basic color format for a GogsDownloader
-func (d *CodebaseDownloader) ColorFormat(s fmt.State) {
+func (d *CodebaseDownloader) LogString() string {
 	if d == nil {
-		log.ColorFprintf(s, "<nil: CodebaseDownloader>")
-		return
+		return "<CodebaseDownloader nil>"
 	}
-	log.ColorFprintf(s, "migration from codebase server %s %s/%s", d.baseURL, d.project, d.repoName)
+	return fmt.Sprintf("<CodebaseDownloader %s %s/%s>", d.baseURL, d.project, d.repoName)
 }
 
 // FormatCloneURL add authentication into remote URLs

@@ -8,15 +8,15 @@ import (
 	"time"
 )
 
-var statusToColor = map[int][]byte{
-	100: ColorBytes(Bold),
-	200: ColorBytes(FgGreen),
-	300: ColorBytes(FgYellow),
-	304: ColorBytes(FgCyan),
-	400: ColorBytes(Bold, FgRed),
-	401: ColorBytes(Bold, FgMagenta),
-	403: ColorBytes(Bold, FgMagenta),
-	500: ColorBytes(Bold, BgRed),
+var statusToColor = map[int][]ColorAttribute{
+	100: {Bold},
+	200: {FgGreen},
+	300: {FgYellow},
+	304: {FgCyan},
+	400: {Bold, FgRed},
+	401: {Bold, FgMagenta},
+	403: {Bold, FgMagenta},
+	500: {Bold, BgRed},
 }
 
 // ColoredStatus adds colors for HTTP status
@@ -26,30 +26,30 @@ func ColoredStatus(status int, s ...string) *ColoredValue {
 		color, ok = statusToColor[(status/100)*100]
 	}
 	if !ok {
-		color = fgBoldBytes
+		color = []ColorAttribute{Bold}
 	}
 	if len(s) > 0 {
-		return NewColoredValueBytes(s[0], &color)
+		return NewColoredValue(s[0], color...)
 	}
-	return NewColoredValueBytes(status, &color)
+	return NewColoredValue(status, color...)
 }
 
-var methodToColor = map[string][]byte{
-	"GET":    ColorBytes(FgBlue),
-	"POST":   ColorBytes(FgGreen),
-	"DELETE": ColorBytes(FgRed),
-	"PATCH":  ColorBytes(FgCyan),
-	"PUT":    ColorBytes(FgYellow, Faint),
-	"HEAD":   ColorBytes(FgBlue, Faint),
+var methodToColor = map[string][]ColorAttribute{
+	"GET":    {FgBlue},
+	"POST":   {FgGreen},
+	"DELETE": {FgRed},
+	"PATCH":  {FgCyan},
+	"PUT":    {FgYellow, Faint},
+	"HEAD":   {FgBlue, Faint},
 }
 
 // ColoredMethod adds colors for HTTP methods on log
 func ColoredMethod(method string) *ColoredValue {
 	color, ok := methodToColor[method]
 	if !ok {
-		return NewColoredValueBytes(method, &fgBoldBytes)
+		return NewColoredValue(method, Bold)
 	}
-	return NewColoredValueBytes(method, &color)
+	return NewColoredValue(method, color...)
 }
 
 var (
@@ -61,15 +61,15 @@ var (
 		10 * time.Second,
 	}
 
-	durationColors = [][]byte{
-		ColorBytes(FgGreen),
-		ColorBytes(Bold),
-		ColorBytes(FgYellow),
-		ColorBytes(FgRed, Bold),
-		ColorBytes(BgRed),
+	durationColors = [][]ColorAttribute{
+		{FgGreen},
+		{Bold},
+		{FgYellow},
+		{FgRed, Bold},
+		{BgRed},
 	}
 
-	wayTooLong = ColorBytes(BgMagenta)
+	wayTooLong = BgMagenta
 )
 
 // ColoredTime converts the provided time to a ColoredValue for logging. The duration is always formatted in milliseconds.
@@ -80,8 +80,8 @@ func ColoredTime(duration time.Duration) *ColoredValue {
 	str := fmt.Sprintf("%.1fms", float64(duration.Microseconds())/1000)
 	for i, k := range durations {
 		if duration < k {
-			return NewColoredValueBytes(str, &durationColors[i])
+			return NewColoredValue(str, durationColors[i]...)
 		}
 	}
-	return NewColoredValueBytes(str, &wayTooLong)
+	return NewColoredValue(str, wayTooLong)
 }

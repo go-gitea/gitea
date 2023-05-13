@@ -60,11 +60,11 @@ func ProtocolMiddlewares() (handlers []any) {
 		handlers = append(handlers, proxy.ForwardedHeaders(opt))
 	}
 
-	if !setting.Log.DisableRouterLog {
+	if setting.IsRouteLogEnabled() {
 		handlers = append(handlers, routing.NewLoggerHandler())
 	}
 
-	if setting.Log.EnableAccessLog {
+	if setting.IsAccessLogEnabled() {
 		handlers = append(handlers, context.AccessLogger())
 	}
 

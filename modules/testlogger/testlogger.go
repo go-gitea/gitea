@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 )
@@ -23,11 +22,6 @@ var (
 	SlowTest  = 10 * time.Second
 	SlowFlush = 5 * time.Second
 )
-
-// TestLogger is a logger which will write to the testing log
-type TestLogger struct {
-	log.WriterLogger
-}
 
 var WriterCloser = &testLoggerWriterCloser{}
 
@@ -171,37 +165,18 @@ func Printf(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stdout, "\t"+format, args...)
 }
 
-// NewTestLogger creates a TestLogger as a log.LoggerProvider
-func NewTestLogger() log.LoggerProvider {
-	logger := &TestLogger{}
-	logger.Colorize = log.CanColorStdout
-	logger.Level = log.TRACE
-	return logger
+// TestLogEventWriter is a logger which will write to the testing log
+type TestLogEventWriter struct {
+	*log.EventWriterBaseImpl
 }
 
-// Init inits connection writer with json config.
-// json config only need key "level".
-func (log *TestLogger) Init(config string) error {
-	err := json.Unmarshal([]byte(config), log)
-	if err != nil {
-		return err
-	}
-	log.NewWriterLogger(WriterCloser)
-	return nil
-}
-
-// Flush when log should be flushed
-func (log *TestLogger) Flush() {
-}
-
-// ReleaseReopen does nothing
-func (log *TestLogger) ReleaseReopen() error {
-	return nil
-}
-
-// GetName returns the default name for this implementation
-func (log *TestLogger) GetName() string {
-	return "test"
+// NewTestLoggerWriter creates a TestLogEventWriter as a log.LoggerProvider
+func NewTestLoggerWriter(name string, mode log.WriterMode) log.EventWriter {
+	w := &TestLogEventWriter{}
+	w.EventWriterBaseImpl = log.NewEventWriterBase(name, mode)
+	w.Formatter = log.EventFormatTextMessage
+	w.OutputWriteCloser = WriterCloser
+	return w
 }
 
 func init() {

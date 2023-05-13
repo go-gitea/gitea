@@ -33,6 +33,29 @@ type ConfigProvider interface {
 	Save() error
 }
 
+// KeyInSection only searches the keys in the given section.
+// ini package has a special behavior:  with "[sec] a=1" and an empty "[sec.sub]",
+// then in "[sec.sub]", Key()/HasKey() can always see "a=1" because it always tries parent sections.
+func KeyInSection(sec ConfigSection, key string) *ini.Key {
+	if sec == nil {
+		return nil
+	}
+	for _, k := range sec.Keys() {
+		if k.Name() == key {
+			return k
+		}
+	}
+	return nil
+}
+
+func KeyInSectionString(sec ConfigSection, key string) string {
+	k := KeyInSection(sec, key)
+	if k != nil {
+		return k.String()
+	}
+	return ""
+}
+
 type iniFileConfigProvider struct {
 	opts *Options
 	*ini.File

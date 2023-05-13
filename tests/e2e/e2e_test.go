@@ -31,7 +31,7 @@ import (
 var c *web.Route
 
 func TestMain(m *testing.M) {
-	defer log.Close()
+	defer log.GetManager().Close()
 
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
