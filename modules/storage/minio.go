@@ -225,15 +225,15 @@ func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
 }
 
 // IterateObjects iterates across the objects in the miniostorage
-func (m *MinioStorage) IterateObjects(prefix string, fn func(path string, obj Object) error) error {
+func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
 	opts := minio.GetObjectOptions{}
 	lobjectCtx, cancel := context.WithCancel(m.ctx)
 	defer cancel()
 
 	basePath := m.basePath
-	if prefix != "" {
+	if dirName != "" {
 		// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
-		basePath = m.buildMinioPath(prefix) + "/"
+		basePath = m.buildMinioPath(dirName) + "/"
 	}
 
 	for mObjInfo := range m.client.ListObjects(lobjectCtx, m.bucket, minio.ListObjectsOptions{
