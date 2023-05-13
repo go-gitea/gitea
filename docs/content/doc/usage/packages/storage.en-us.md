@@ -9,7 +9,7 @@ menu:
   sidebar:
     parent: "packages"
     name: "Storage"
-    weight: 5
+    weight: 2
     identifier: "storage"
 ---
 

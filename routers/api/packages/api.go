@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/packages/alpine"
 	"code.gitea.io/gitea/routers/api/packages/cargo"
 	"code.gitea.io/gitea/routers/api/packages/chef"
 	"code.gitea.io/gitea/routers/api/packages/composer"
@@ -107,6 +108,19 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 	})
 
 	r.Group("/{username}", func() {
+		r.Group("/alpine", func() {
+			r.Get("/key", alpine.GetRepositoryKey)
+			r.Group("/{branch}/{repository}", func() {
+				r.Put("", reqPackageAccess(perm.AccessModeWrite), alpine.UploadPackageFile)
+				r.Group("/{architecture}", func() {
+					r.Get("/APKINDEX.tar.gz", alpine.GetRepositoryFile)
+					r.Group("/{filename}", func() {
+						r.Get("", alpine.DownloadPackageFile)
+						r.Delete("", reqPackageAccess(perm.AccessModeWrite), alpine.DeletePackageFile)
+					})
+				})
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cargo", func() {
 			r.Group("/api/v1/crates", func() {
 				r.Get("", cargo.SearchPackages)
