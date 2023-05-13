@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -579,18 +580,24 @@ func SearchRepo(ctx *context.Context) {
 
 	// collect the latest commit of each repo
 	repoIDsToLatestCommitSHAs := make(map[int64]string)
+	wg := sync.WaitGroup{}
+	wg.Add(len(repos))
 	for _, repo := range repos {
-		branch, err := repo_service.GetBranch(ctx, repo, repo.DefaultBranch)
-		if err != nil {
-			continue
-		}
-		commit, err := branch.GetCommit()
-		if err != nil {
-			log.Error("GetCommit: %v", err)
-			continue
-		}
-		repoIDsToLatestCommitSHAs[repo.ID] = commit.ID.String()
+		go func(repo *repo_model.Repository) {
+			defer wg.Done()
+			branch, err := repo_service.GetBranch(ctx, repo, repo.DefaultBranch)
+			if err != nil {
+				return
+			}
+			commit, err := branch.GetCommit()
+			if err != nil {
+				log.Error("GetCommit: %v", err)
+				return
+			}
+			repoIDsToLatestCommitSHAs[repo.ID] = commit.ID.String()
+		}(repo)
 	}
+	wg.Wait()
 
 	// call the database O(1) times to get the commit statuses for all repos
 	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsToLatestCommitSHAs, db.ListOptions{})
