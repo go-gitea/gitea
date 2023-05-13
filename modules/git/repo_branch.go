@@ -106,15 +106,15 @@ func GetBranchesByPath(ctx context.Context, path string, skip, limit int) ([]*Br
 	return gitRepo.GetBranches(skip, limit)
 }
 
-// GetBranch returns a branch by its name
-func GetBranch(ctx context.Context, path, branch string) (*Branch, error) {
+// GetBranchCommit returns a branch commit by its name
+func GetBranchCommit(ctx context.Context, path, branch string) (*Commit, error) {
 	gitRepo, err := OpenRepository(ctx, path)
 	if err != nil {
 		return nil, err
 	}
 	defer gitRepo.Close()
 
-	return gitRepo.GetBranch(branch)
+	return gitRepo.GetBranchCommit(branch)
 }
 
 // GetBranches returns a slice of *git.Branch

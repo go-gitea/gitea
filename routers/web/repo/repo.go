@@ -585,13 +585,9 @@ func SearchRepo(ctx *context.Context) {
 	for _, repo := range repos {
 		go func(repo *repo_model.Repository) {
 			defer wg.Done()
-			branch, err := repo_service.GetBranch(ctx, repo, repo.DefaultBranch)
+			commit, err := repo_service.GetBranchCommit(ctx, repo, repo.DefaultBranch)
 			if err != nil {
-				return
-			}
-			commit, err := branch.GetCommit()
-			if err != nil {
-				log.Error("GetCommit: %v", err)
+				log.Error("GetBranchCommit: %v", err)
 				return
 			}
 			repoIDsToLatestCommitSHAs[repo.ID] = commit.ID.String()
