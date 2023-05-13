@@ -1058,13 +1058,22 @@ a.label,
   flex-wrap: wrap;
 }
 
+.ui.card:last-child {
+  margin-bottom: 0;
+}
+.ui.card:first-child {
+  margin-top: 0;
+}
+
 .ui.cards > .card,
 .ui.card {
   display: flex;
   flex-direction: column;
   max-width: 100%;
   width: 290px;
-  margin: .875em .5em;
+  margin: 1em 0;
+  min-height: 0;
+  padding: 0;
   background: var(--color-card);
   border: 1px solid var(--color-secondary);
   box-shadow: none;

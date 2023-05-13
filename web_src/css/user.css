@@ -38,6 +38,10 @@
   width: 100%;
 }
 
+.user.profile .ui.card #profile-avatar {
+  padding: 1rem 1rem 0.25rem;
+  justify-content: center;
+}
 
 .user.profile .ui.card #profile-avatar img {
   max-width: 100%;
