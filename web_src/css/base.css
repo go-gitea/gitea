@@ -2238,13 +2238,13 @@ a.ui.active.label:hover {
   border-left: none;
 }
 
-.ui.button.button-link {
+.ui.button.button-ghost {
   background: transparent;
   border: none;
   color: inherit;
 }
 
-.ui.button.button-link:hover {
+.ui.button.button-ghost:hover {
   color: var(--color-primary);
 }
 
