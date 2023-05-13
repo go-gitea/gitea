@@ -129,8 +129,11 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
-	p = strings.TrimPrefix(p, "/") // url path prefix should not start with /
-	return util.PathJoinRelX(m.basePath, p)
+	p = util.PathJoinRelX(m.basePath, p)
+	if p == "." {
+		p = "" // minio doesn't use dot as relative path
+	}
+	return p
 }
 
 // Open opens a file
