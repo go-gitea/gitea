@@ -244,7 +244,7 @@ func (m *MinioStorage) IterateObjects(prefix string, fn func(path string, obj Ob
 		}
 		if err := func(object *minio.Object, fn func(path string, obj Object) error) error {
 			defer object.Close()
-			return fn(strings.TrimPrefix(mObjInfo.Key, basePath), &minioObject{object})
+			return fn(strings.TrimPrefix(mObjInfo.Key, m.basePath), &minioObject{object})
 		}(object, fn); err != nil {
 			return convertMinioErr(err)
 		}
