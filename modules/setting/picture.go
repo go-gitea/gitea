@@ -3,21 +3,23 @@
 
 package setting
 
-// settings
+// Avatar settings
+
 var (
-	// Picture settings
 	Avatar = struct {
 		Storage
 
 		MaxWidth           int
 		MaxHeight          int
 		MaxFileSize        int64
+		MaxOriginSize      int64
 		RenderedSizeFactor int
 	}{
 		MaxWidth:           4096,
-		MaxHeight:          3072,
+		MaxHeight:          4096,
 		MaxFileSize:        1048576,
-		RenderedSizeFactor: 3,
+		MaxOriginSize:      262144,
+		RenderedSizeFactor: 2,
 	}
 
 	GravatarSource        string
@@ -44,9 +46,10 @@ func loadPictureFrom(rootCfg ConfigProvider) {
 	Avatar.Storage = getStorage(rootCfg, "avatars", storageType, avatarSec)
 
 	Avatar.MaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
-	Avatar.MaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
+	Avatar.MaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(4096)
 	Avatar.MaxFileSize = sec.Key("AVATAR_MAX_FILE_SIZE").MustInt64(1048576)
-	Avatar.RenderedSizeFactor = sec.Key("AVATAR_RENDERED_SIZE_FACTOR").MustInt(3)
+	Avatar.MaxOriginSize = sec.Key("AVATAR_MAX_ORIGIN_SIZE").MustInt64(262144)
+	Avatar.RenderedSizeFactor = sec.Key("AVATAR_RENDERED_SIZE_FACTOR").MustInt(2)
 
 	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
 	case "duoshuo":
@@ -94,5 +97,5 @@ func loadRepoAvatarFrom(rootCfg ConfigProvider) {
 	RepoAvatar.Storage = getStorage(rootCfg, "repo-avatars", storageType, repoAvatarSec)
 
 	RepoAvatar.Fallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
-	RepoAvatar.FallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/assets/img/repo_default.png")
+	RepoAvatar.FallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString(AppSubURL + "/assets/img/repo_default.png")
 }
