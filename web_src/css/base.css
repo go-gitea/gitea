@@ -1046,62 +1046,6 @@ a.label,
   box-shadow: -1px -1px 0 0 var(--color-secondary);
 }
 
-.ui.cards > .card,
-.ui.card {
-  background: var(--color-card);
-  border: 1px solid var(--color-secondary);
-  box-shadow: none;
-}
-
-.ui.cards > .card > .content,
-.ui.card > .content {
-  border-color: var(--color-secondary);
-}
-
-.ui.cards > .card > .extra,
-.ui.card > .extra,
-.ui.cards > .card > .extra a:not(.ui),
-.ui.card > .extra a:not(.ui) {
-  color: var(--color-text);
-}
-
-.ui.cards > .card > .extra a:not(.ui):hover,
-.ui.card > .extra a:not(.ui):hover {
-  color: var(--color-primary);
-}
-
-.ui.cards > .card > .content > .header,
-.ui.card > .content > .header {
-  color: var(--color-text);
-}
-
-.ui.cards > .card > .content > .description,
-.ui.card > .content > .description {
-  color: var(--color-text);
-}
-
-.ui.cards > .card .meta > a:not(.ui),
-.ui.card .meta > a:not(.ui) {
-  color: var(--color-text-light-2);
-}
-
-.ui.cards > .card .meta > a:not(.ui):hover,
-.ui.card .meta > a:not(.ui):hover {
-  color: var(--color-text);
-}
-
-.ui.cards a.card:hover,
-a.ui.card:hover {
-  border: 1px solid var(--color-secondary);
-  background: var(--color-card);
-}
-
-.ui.cards > .card > .extra,
-.ui.card > .extra {
-  color: var(--color-text);
-  border-top-color: var(--color-secondary-light-1) !important;
-}
-
 .ui.comments .comment .text {
   margin: 0;
 }
@@ -1183,12 +1127,10 @@ a.ui.card:hover {
 
 img.ui.avatar,
 .ui.avatar img,
-.ui.avatar svg,
-.ui.cards > .card img.avatar,
-.ui.cards > .card .avatar img,
-.ui.card img.avatar,
-.ui.card .avatar img {
+.ui.avatar svg {
   border-radius: var(--border-radius);
+  object-fit: contain;
+  aspect-ratio: 1;
 }
 
 .ui.divided.list > .item {
