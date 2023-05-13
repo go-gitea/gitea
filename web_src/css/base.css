@@ -1903,11 +1903,6 @@ img.ui.avatar,
   color: var(--color-text-light);
 }
 
-.repo-title .avatar {
-  width: 32px !important;
-  height: 32px !important;
-}
-
 .repo-title .labels {
   margin-left: 0.5rem;
 }

@@ -788,18 +788,14 @@
   left: -68px;
 }
 
-.repository.view.issue .comment-list .timeline-item .timeline-avatar img {
-  width: 40px !important;
-  height: 40px !important;
-}
-
 /* Don't show the mobile oriented avatar ".inline-timeline-avatar" on desktop. Desktop uses the avatar with class ".timeline-avatar" */
 .repository.view.issue .comment-list .timeline-item .inline-timeline-avatar {
   display: none;
 }
 
-.repository.view.issue .comment-list .timeline-item img.avatar,
-.repository.view.issue .comment-list .timeline-item .avatar img {
+/* size adjustment is necessary until fomantic comment module removal */
+.repository.view.issue .comment-list .timeline-item .comment-code-cloud img.avatar,
+.repository.view.issue .comment-list .timeline-item .comment-code-cloud .avatar img {
   width: 20px;
   height: 20px;
   vertical-align: middle;
@@ -1094,6 +1090,7 @@
   margin-left: 3em;
 }
 
+/* size adjustment is necessary until fomantic comment module removal */
 .repository.view.issue .comment-code-cloud .comment-list .code-comment img.avatar,
 .repository.view.issue .comment-code-cloud .comment-list .comment img.avatar {
   width: 28px;
@@ -1148,6 +1145,10 @@
 
 .repository.view.issue .ui.depending .item.is-closed .title {
   text-decoration: line-through;
+}
+
+.ui.comments .comment .avatar {
+  margin: 0;
 }
 
 .repository .comment.form .ui.comments {
@@ -3085,6 +3086,7 @@ td.blob-excerpt {
 }
 
 .sidebar-item-link {
+  display: inline-flex;
   align-items: center;
   word-break: break-all;
 }
@@ -3259,10 +3261,6 @@ td.blob-excerpt {
     margin-bottom: auto;
     margin-left: 6px;
     margin-right: 2px;
-  }
-  .repository.view.issue .comment-list .timeline .inline-timeline-avatar img.avatar {
-    height: 24px;
-    width: 24px;
   }
   .repository.view.issue .comment-list .timeline .comment-header {
     padding-left: 4px;
