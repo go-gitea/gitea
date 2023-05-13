@@ -231,7 +231,8 @@ func (m *MinioStorage) IterateObjects(prefix string, fn func(path string, obj Ob
 
 	basePath := m.basePath
 	if prefix != "" {
-		basePath = m.buildMinioPath(prefix)
+		// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
+		basePath = m.buildMinioPath(prefix) + "/"
 	}
 
 	for mObjInfo := range m.client.ListObjects(lobjectCtx, m.bucket, minio.ListObjectsOptions{
