@@ -53,8 +53,8 @@ func GetBranches(ctx context.Context, repo *repo_model.Repository, skip, limit i
 	return git.GetBranchesByPath(ctx, repo.RepoPath(), skip, limit)
 }
 
-func GetBranchCommit(ctx context.Context, repo *repo_model.Repository, branch string) (*git.Commit, error) {
-	return git.GetBranchCommit(ctx, repo.RepoPath(), branch)
+func GetBranchCommitID(ctx context.Context, repo *repo_model.Repository, branch string) (string, error) {
+	return git.GetBranchCommitID(ctx, repo.RepoPath(), branch)
 }
 
 // checkBranchName validates branch name with existing repository branches

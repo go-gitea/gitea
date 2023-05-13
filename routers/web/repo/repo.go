@@ -585,12 +585,11 @@ func SearchRepo(ctx *context.Context) {
 	for _, repo := range repos {
 		go func(repo *repo_model.Repository) {
 			defer wg.Done()
-			commit, err := repo_service.GetBranchCommit(ctx, repo, repo.DefaultBranch)
+			commitID, err := repo_service.GetBranchCommitID(ctx, repo, repo.DefaultBranch)
 			if err != nil {
-				log.Error("GetBranchCommit: %v", err)
 				return
 			}
-			repoIDsToLatestCommitSHAs[repo.ID] = commit.ID.String()
+			repoIDsToLatestCommitSHAs[repo.ID] = commitID
 		}(repo)
 	}
 	wg.Wait()
