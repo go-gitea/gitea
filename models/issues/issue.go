@@ -1251,6 +1251,8 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 
 	if opts.AssigneeID > 0 {
 		applyAssigneeCondition(sess, opts.AssigneeID)
+	} else if opts.AssigneeID == db.NoConditionID {
+		sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_assignees)")
 	}
 
 	if opts.PosterID > 0 {
@@ -1742,6 +1744,8 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 		if opts.AssigneeID > 0 {
 			applyAssigneeCondition(sess, opts.AssigneeID)
+		} else if opts.AssigneeID == db.NoConditionID {
+			sess.Where("id NOT IN (SELECT issue_id FROM issue_assignees)")
 		}
 
 		if opts.PosterID > 0 {
