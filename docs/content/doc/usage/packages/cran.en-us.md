@@ -14,7 +14,7 @@ menu:
 
 # CRAN Packages Repository
 
-Publish [CRAN](https://cran.r-project.org/) packages for your user or organization.
+Publish [R](https://www.r-project.org/) packages to a [CRAN](https://cran.r-project.org/)-like registry for your user or organization.
 
 **Table of Contents**
 
@@ -40,7 +40,7 @@ If you need to provide credentials, you may embed them as part of the url (`http
 
 ## Publish a package
 
-To publish a package, perform a HTTP PUT operation with the package content in the request body.
+To publish a R package, perform a HTTP `PUT` operation with the package content in the request body.
 
 Source packages:
 
@@ -76,7 +76,7 @@ You cannot publish a package if a package of the same name and version already e
 
 ## Install a package
 
-To install a CRAN package from the package registry, execute the following command:
+To install a R package from the package registry, execute the following command:
 
 ```shell
 install.packages({package_name})
