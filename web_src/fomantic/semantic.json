@@ -23,7 +23,6 @@
   "components": [
     "api",
     "button",
-    "card",
     "checkbox",
     "comment",
     "container",
