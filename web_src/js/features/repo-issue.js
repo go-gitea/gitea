@@ -291,8 +291,8 @@ export function initRepoIssueReferenceRepositorySearch() {
           const filteredResponse = {success: true, results: []};
           $.each(response.data, (_r, repo) => {
             filteredResponse.results.push({
-              name: htmlEscape(repo.full_name),
-              value: repo.full_name
+              name: htmlEscape(repo.repository.full_name),
+              value: repo.repository.full_name
             });
           });
           return filteredResponse;
@@ -635,4 +635,60 @@ export function initRepoIssueBranchSelect() {
     selectionTextField.data('branch', branchNameNew); // update branch name in setting
   };
   $('#branch-select > .item').on('click', changeBranchSelect);
+}
+
+export function initSingleCommentEditor($commentForm) {
+  // pages:
+  // * normal new issue/pr page, no status-button
+  // * issue/pr view page, with comment form, has status-button
+  const opts = {};
+  const $statusButton = $('#status-button');
+  if ($statusButton.length) {
+    $statusButton.on('click', (e) => {
+      e.preventDefault();
+      $('#status').val($statusButton.data('status-val'));
+      $('#comment-form').trigger('submit');
+    });
+    opts.onContentChanged = (editor) => {
+      $statusButton.text($statusButton.attr(editor.value().trim() ? 'data-status-and-comment' : 'data-status'));
+    };
+  }
+  initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
+}
+
+export function initIssueTemplateCommentEditors($commentForm) {
+  // pages:
+  // * new issue with issue template
+  const $comboFields = $commentForm.find('.combo-editor-dropzone');
+
+  const initCombo = async ($combo) => {
+    const $dropzoneContainer = $combo.find('.form-field-dropzone');
+    const $formField = $combo.find('.form-field-real');
+    const $markdownEditor = $combo.find('.combo-markdown-editor');
+
+    const editor = await initComboMarkdownEditor($markdownEditor, {
+      onContentChanged: (editor) => {
+        $formField.val(editor.value());
+      }
+    });
+
+    $formField.on('focus', async () => {
+      // deactivate all markdown editors
+      showElem($commentForm.find('.combo-editor-dropzone .form-field-real'));
+      hideElem($commentForm.find('.combo-editor-dropzone .combo-markdown-editor'));
+      hideElem($commentForm.find('.combo-editor-dropzone .form-field-dropzone'));
+
+      // activate this markdown editor
+      hideElem($formField);
+      showElem($markdownEditor);
+      showElem($dropzoneContainer);
+
+      await editor.switchToUserPreference();
+      editor.focus();
+    });
+  };
+
+  for (const el of $comboFields) {
+    initCombo($(el));
+  }
 }

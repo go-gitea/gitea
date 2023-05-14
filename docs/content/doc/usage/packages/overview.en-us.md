@@ -27,6 +27,7 @@ The following package managers are currently supported:
 
 | Name | Language | Package client |
 | ---- | -------- | -------------- |
+| [Alpine]({{< relref "doc/usage/packages/alpine.en-us.md" >}}) | - | `apk` |
 | [Cargo]({{< relref "doc/usage/packages/cargo.en-us.md" >}}) | Rust | `cargo` |
 | [Chef]({{< relref "doc/usage/packages/chef.en-us.md" >}}) | - | `knife` |
 | [Composer]({{< relref "doc/usage/packages/composer.en-us.md" >}}) | PHP | `composer` |
@@ -41,6 +42,7 @@ The following package managers are currently supported:
 | [NuGet]({{< relref "doc/usage/packages/nuget.en-us.md" >}}) | .NET | `nuget` |
 | [Pub]({{< relref "doc/usage/packages/pub.en-us.md" >}}) | Dart | `dart`, `flutter` |
 | [PyPI]({{< relref "doc/usage/packages/pypi.en-us.md" >}}) | Python | `pip`, `twine` |
+| [RPM]({{< relref "doc/usage/packages/rpm.en-us.md" >}}) | - | `yum`, `dnf` |
 | [RubyGems]({{< relref "doc/usage/packages/rubygems.en-us.md" >}}) | Ruby | `gem`, `Bundler` |
 | [Swift]({{< relref "doc/usage/packages/rubygems.en-us.md" >}}) | Swift | `swift` |
 | [Vagrant]({{< relref "doc/usage/packages/vagrant.en-us.md" >}}) | - | `vagrant` |

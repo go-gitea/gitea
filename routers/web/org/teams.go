@@ -552,7 +552,6 @@ func TeamInvite(ctx *context.Context) {
 	ctx.Data["Organization"] = org
 	ctx.Data["Team"] = team
 	ctx.Data["Inviter"] = inviter
-	ctx.Data["EmailMismatch"] = ctx.Doer.Email != invite.Email
 
 	ctx.HTML(http.StatusOK, tplTeamInvite)
 }
@@ -566,13 +565,6 @@ func TeamInvitePost(ctx *context.Context) {
 		} else {
 			ctx.ServerError("getTeamInviteFromContext", err)
 		}
-		return
-	}
-
-	// check that the Doer is the invitee
-	if ctx.Doer.Email != invite.Email {
-		log.Info("invite %d does not apply to the current user %d", invite.ID, ctx.Doer.ID)
-		ctx.NotFound("ErrTeamInviteNotFound", err)
 		return
 	}
 

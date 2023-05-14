@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/packages/alpine"
 	"code.gitea.io/gitea/routers/api/packages/cargo"
 	"code.gitea.io/gitea/routers/api/packages/chef"
 	"code.gitea.io/gitea/routers/api/packages/composer"
@@ -29,6 +30,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/nuget"
 	"code.gitea.io/gitea/routers/api/packages/pub"
 	"code.gitea.io/gitea/routers/api/packages/pypi"
+	"code.gitea.io/gitea/routers/api/packages/rpm"
 	"code.gitea.io/gitea/routers/api/packages/rubygems"
 	"code.gitea.io/gitea/routers/api/packages/swift"
 	"code.gitea.io/gitea/routers/api/packages/vagrant"
@@ -106,6 +108,19 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 	})
 
 	r.Group("/{username}", func() {
+		r.Group("/alpine", func() {
+			r.Get("/key", alpine.GetRepositoryKey)
+			r.Group("/{branch}/{repository}", func() {
+				r.Put("", reqPackageAccess(perm.AccessModeWrite), alpine.UploadPackageFile)
+				r.Group("/{architecture}", func() {
+					r.Get("/APKINDEX.tar.gz", alpine.GetRepositoryFile)
+					r.Group("/{filename}", func() {
+						r.Get("", alpine.DownloadPackageFile)
+						r.Delete("", reqPackageAccess(perm.AccessModeWrite), alpine.DeletePackageFile)
+					})
+				})
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cargo", func() {
 			r.Group("/api/v1/crates", func() {
 				r.Get("", cargo.SearchPackages)
@@ -419,6 +434,16 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 			r.Post("/", reqPackageAccess(perm.AccessModeWrite), pypi.UploadPackageFile)
 			r.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
 			r.Get("/simple/{id}", pypi.PackageMetadata)
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/rpm", func() {
+			r.Get(".repo", rpm.GetRepositoryConfig)
+			r.Get("/repository.key", rpm.GetRepositoryKey)
+			r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
+			r.Group("/package/{name}/{version}/{architecture}", func() {
+				r.Get("", rpm.DownloadPackageFile)
+				r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
+			})
+			r.Get("/repodata/{filename}", rpm.GetRepositoryFile)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rubygems", func() {
 			r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)

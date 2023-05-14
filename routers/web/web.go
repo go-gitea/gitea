@@ -112,6 +112,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	routes.RouteMethods("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.RouteMethods("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 	routes.RouteMethods("/apple-touch-icon.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
+	routes.RouteMethods("/apple-touch-icon-precomposed.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.RouteMethods("/favicon.ico", "GET, HEAD", misc.StaticRedirect("/assets/img/favicon.png"))
 
 	_ = templates.HTMLRenderer()
@@ -261,6 +262,27 @@ func registerRoutes(m *web.Route) {
 		}
 	}
 
+	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode) func(ctx *context.Context) {
+		return func(ctx *context.Context) {
+			if unitType.UnitGlobalDisabled() {
+				ctx.NotFound(unitType.String(), nil)
+				return
+			}
+
+			if ctx.ContextUser == nil {
+				ctx.NotFound(unitType.String(), nil)
+				return
+			}
+
+			if ctx.ContextUser.IsOrganization() {
+				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
+					ctx.NotFound(unitType.String(), nil)
+					return
+				}
+			}
+		}
+	}
+
 	addWebhookAddRoutes := func() {
 		m.Get("/{type}/new", repo.WebhooksNew)
 		m.Post("/gitea/new", web.Bind(forms.NewWebhookForm{}), repo.GiteaHooksNewPost)
@@ -334,7 +356,7 @@ func registerRoutes(m *web.Route) {
 		m.Get("/users", explore.Users)
 		m.Get("/users/sitemap-{idx}.xml", sitemapEnabled, explore.Users)
 		m.Get("/organizations", explore.Organizations)
-		m.Get("/code", explore.Code)
+		m.Get("/code", reqUnitAccess(unit.TypeCode, perm.AccessModeRead), explore.Code)
 		m.Get("/topics/search", explore.TopicSearch)
 	}, ignExploreSignIn)
 	m.Group("/issues", func() {
@@ -525,18 +547,16 @@ func registerRoutes(m *web.Route) {
 		})
 
 		m.Group("/monitor", func() {
-			m.Get("", admin.Monitor)
-			m.Get("/stacktrace", admin.GoroutineStacktrace)
-			m.Post("/cancel/{pid}", admin.MonitorCancel)
+			m.Get("/cron", admin.CronTasks)
+			m.Get("/stacktrace", admin.Stacktrace)
+			m.Post("/stacktrace/cancel/{pid}", admin.StacktraceCancel)
+			m.Get("/queue", admin.Queues)
 			m.Group("/queue/{qid}", func() {
-				m.Get("", admin.Queue)
-				m.Post("/set", admin.SetQueueSettings)
-				m.Post("/add", admin.AddWorkers)
-				m.Post("/cancel/{pid}", admin.WorkerCancel)
-				m.Post("/flush", admin.Flush)
-				m.Post("/pause", admin.Pause)
-				m.Post("/resume", admin.Resume)
+				m.Get("", admin.QueueManage)
+				m.Post("/set", admin.QueueSet)
+				m.Post("/remove-all-items", admin.QueueRemoveAllItems)
 			})
+			m.Get("/diagnosis", admin.MonitorDiagnosis)
 		})
 
 		m.Group("/users", func() {
@@ -645,21 +665,6 @@ func registerRoutes(m *web.Route) {
 		return func(ctx *context.Context) {
 			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
 				ctx.NotFound("", nil)
-			}
-		}
-	}
-
-	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode) func(ctx *context.Context) {
-		return func(ctx *context.Context) {
-			if ctx.ContextUser == nil {
-				ctx.NotFound(unitType.String(), nil)
-				return
-			}
-			if ctx.ContextUser.IsOrganization() {
-				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
-					ctx.NotFound(unitType.String(), nil)
-					return
-				}
 			}
 		}
 	}
@@ -935,6 +940,7 @@ func registerRoutes(m *web.Route) {
 				addSettingsRunnersRoutes()
 				addSettingsSecretsRoutes()
 			}, actions.MustEnableActions)
+			m.Post("/migrate/cancel", repo.MigrateCancelPost) // this handler must be under "settings", otherwise this incomplete repo can't be accessed
 		}, ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer))
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 
