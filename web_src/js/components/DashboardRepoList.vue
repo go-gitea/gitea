@@ -79,6 +79,8 @@
                   <svg-icon name="octicon-archive" :size="16" class-name="gt-ml-2"/>
                 </span>
               </div>
+              <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
+              <svg-icon v-if="repo.latest_commit_status_state" :name="statusIcon(repo.latest_commit_status_state)" :class-name="'commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
             </a>
           </li>
         </ul>
@@ -153,6 +155,15 @@ import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
+
+const commitStatus = {
+  pending: {name: 'octicon-dot-fill', color: 'grey'},
+  running: {name: 'octicon-dot-fill', color: 'yellow'},
+  success: {name: 'octicon-check', color: 'green'},
+  error: {name: 'gitea-exclamation', color: 'red'},
+  failure: {name: 'octicon-x', color: 'red'},
+  warning: {name: 'gitea-exclamation', color: 'yellow'},
+};
 
 const sfc = {
   components: {SvgIcon},
@@ -387,7 +398,7 @@ const sfc = {
       }
 
       if (searchedURL === this.searchURL) {
-        this.repos = json.data;
+        this.repos = json.data.map((webSearchRepo) => {return {...webSearchRepo.repository, latest_commit_status_state: webSearchRepo.latest_commit_status.State}});
         const count = response.headers.get('X-Total-Count');
         if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
           this.reposTotalCount = count;
@@ -412,6 +423,14 @@ const sfc = {
         return 'octicon-repo';
       }
       return 'octicon-repo';
+    },
+
+    statusIcon(status) {
+      return commitStatus[status].name;
+    },
+
+    statusColor(status) {
+      return commitStatus[status].color;
     }
   },
 };
