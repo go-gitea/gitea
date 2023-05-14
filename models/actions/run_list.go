@@ -45,6 +45,9 @@ func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 			run.TriggerUser = user_model.NewActionsUser()
 		} else {
 			run.TriggerUser = users[run.TriggerUserID]
+			if run.TriggerUser == nil {
+				run.TriggerUser = user_model.NewGhostUser()
+			}
 		}
 	}
 	return nil
