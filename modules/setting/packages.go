@@ -16,7 +16,7 @@ import (
 // Package registry settings
 var (
 	Packages = struct {
-		*Storage
+		Storage           *Storage
 		Enabled           bool
 		ChunkedUploadPath string
 		RegistryHost      string

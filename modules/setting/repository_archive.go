@@ -6,7 +6,7 @@ package setting
 import "fmt"
 
 var RepoArchive = struct {
-	*Storage
+	Storage *Storage
 }{}
 
 func loadRepoArchiveFrom(rootCfg ConfigProvider) error {

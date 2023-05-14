@@ -131,7 +131,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		return
 	}
 
-	if setting.Attachment.ServeDirect {
+	if setting.Attachment.Storage.ServeDirect {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.Attachments.URL(attach.RelativePath(), attach.Name)
 

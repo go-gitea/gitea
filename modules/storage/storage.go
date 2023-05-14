@@ -214,7 +214,7 @@ func initActions() (err error) {
 		Actions = discardStorage("Actions isn't enabled")
 		return nil
 	}
-	log.Info("Initialising Actions storage with type: %s", setting.Actions.Storage.Type)
-	Actions, err = NewStorage(setting.Actions.Storage.Type, &setting.Actions.Storage)
+	log.Info("Initialising Actions storage with type: %s", setting.Actions.LogStorage.Type)
+	Actions, err = NewStorage(setting.Actions.LogStorage.Type, &setting.Actions.LogStorage)
 	return err
 }

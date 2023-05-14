@@ -20,7 +20,7 @@ var LFS = struct {
 	MaxFileSize     int64         `ini:"LFS_MAX_FILE_SIZE"`
 	LocksPagingNum  int           `ini:"LFS_LOCKS_PAGING_NUM"`
 
-	*Storage
+	Storage *Storage
 }{}
 
 func loadLFSFrom(rootCfg ConfigProvider) error {

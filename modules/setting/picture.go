@@ -7,7 +7,7 @@ package setting
 
 var (
 	Avatar = struct {
-		*Storage
+		Storage *Storage
 
 		MaxWidth           int
 		MaxHeight          int
@@ -27,7 +27,7 @@ var (
 	EnableFederatedAvatar bool // Depreciated: migrated to database
 
 	RepoAvatar = struct {
-		*Storage
+		Storage *Storage
 
 		Fallback      string
 		FallbackImage string

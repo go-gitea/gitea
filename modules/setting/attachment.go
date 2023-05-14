@@ -5,7 +5,7 @@ package setting
 
 // Attachment settings
 var Attachment = struct {
-	*Storage
+	Storage      *Storage
 	AllowedTypes string
 	MaxSize      int64
 	MaxFiles     int
