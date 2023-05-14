@@ -1,0 +1,26 @@
+name: e2e-tests
+
+on: [pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  test-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.20"
+          check-latest: true
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - run: make deps-frontend frontend deps-backend
+      - run: npx playwright install --with-deps
+      - run: make test-e2e-sqlite
+        timeout-minutes: 40
+        env:
+          USE_REPO_TEST_DIR: 1

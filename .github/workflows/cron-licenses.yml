@@ -1,21 +1,20 @@
+name: cron-licenses
+
 on:
   schedule:
-    # weekly on Monday at 0:07 UTC
-    - cron: "7 0 * * 1"
-
-name: Update licenses and gitignores
+    - cron: "7 0 * * 1" # every Monday at 00:07 UTC
 
 jobs:
-  cron:
+  cron-licenses:
+    if: github.repository == "go-gitea/gitea"
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
         with:
-          go-version: '>=1.20.1'
-      - name: update licenses and gitignores
-        run: timeout -s ABRT 40m make generate-license generate-gitignore
+          go-version: ">=1.20.1"
+      - run: make generate-license generate-gitignore
+        timeout-minutes: 40
       - name: push translations to repo
         uses: appleboy/git-push-action@v0.0.2
         with:

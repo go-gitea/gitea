@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 )
@@ -203,44 +202,18 @@ func PrepareAppDataPath() error {
 	return nil
 }
 
-// InitProviderFromExistingFile initializes config provider from an existing config file (app.ini)
-func InitProviderFromExistingFile() {
+func Init(opts *Options) {
+	if opts.CustomConf == "" {
+		opts.CustomConf = CustomConf
+	}
 	var err error
-	CfgProvider, err = newConfigProviderFromFile(CustomConf, false, "")
+	CfgProvider, err = newConfigProviderFromFile(opts)
 	if err != nil {
-		log.Fatal("InitProviderFromExistingFile: %v", err)
+		log.Fatal("Init[%v]: %v", opts, err)
 	}
-}
-
-// InitProviderAllowEmpty initializes config provider from file, it's also fine that if the config file (app.ini) doesn't exist
-func InitProviderAllowEmpty() {
-	var err error
-	CfgProvider, err = newConfigProviderFromFile(CustomConf, true, "")
-	if err != nil {
-		log.Fatal("InitProviderAllowEmpty: %v", err)
+	if !opts.DisableLoadCommonSettings {
+		loadCommonSettingsFrom(CfgProvider)
 	}
-}
-
-// InitProviderAndLoadCommonSettingsForTest initializes config provider and load common setttings for tests
-func InitProviderAndLoadCommonSettingsForTest(extraConfigs ...string) {
-	var err error
-	CfgProvider, err = newConfigProviderFromFile(CustomConf, true, strings.Join(extraConfigs, "\n"))
-	if err != nil {
-		log.Fatal("InitProviderAndLoadCommonSettingsForTest: %v", err)
-	}
-	loadCommonSettingsFrom(CfgProvider)
-	if err := PrepareAppDataPath(); err != nil {
-		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
-	}
-	// register the dummy hash algorithm function used in the test fixtures
-	_ = hash.Register("dummy", hash.NewDummyHasher)
-
-	PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
-}
-
-// LoadCommonSettings loads common configurations from a configuration provider.
-func LoadCommonSettings() {
-	loadCommonSettingsFrom(CfgProvider)
 }
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.
@@ -250,6 +223,9 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 	loadLogFrom(cfg)
 	loadServerFrom(cfg)
 	loadSSHFrom(cfg)
+
+	mustCurrentRunUserMatch(cfg) // it depends on the SSH config, only non-builtin SSH server requires this check
+
 	loadOAuth2From(cfg)
 	loadSecurityFrom(cfg)
 	loadAttachmentFrom(cfg)
@@ -282,14 +258,6 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 		RunMode = rootSec.Key("RUN_MODE").MustString("prod")
 	}
 	IsProd = strings.EqualFold(RunMode, "prod")
-	// Does not check run user when the install lock is off.
-	installLock := rootCfg.Section("security").Key("INSTALL_LOCK").MustBool(false)
-	if installLock {
-		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
-		if !match {
-			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)
-		}
-	}
 
 	// check if we run as root
 	if os.Getuid() == 0 {
@@ -298,6 +266,17 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 			log.Fatal("Gitea is not supposed to be run as root. Sorry. If you need to use privileged TCP ports please instead use setcap and the `cap_net_bind_service` permission")
 		}
 		log.Critical("You are running Gitea using the root user, and have purposely chosen to skip built-in protections around this. You have been warned against this.")
+	}
+}
+
+func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
+	// Does not check run user when the "InstallLock" is off.
+	installLock := rootCfg.Section("security").Key("INSTALL_LOCK").MustBool(false)
+	if installLock {
+		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
+		if !match {
+			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)
+		}
 	}
 }
 

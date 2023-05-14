@@ -80,19 +80,22 @@ func TestChangePassword(t *testing.T) {
 			PasswordComplexity: pcLU,
 		},
 	} {
-		unittest.PrepareTestEnv(t)
-		ctx := test.MockContext(t, "user/settings/security")
-		test.LoadUser(t, ctx, 2)
-		test.LoadRepo(t, ctx, 1)
+		t.Run(req.OldPassword+"__"+req.NewPassword, func(t *testing.T) {
+			unittest.PrepareTestEnv(t)
+			setting.PasswordComplexity = req.PasswordComplexity
+			ctx := test.MockContext(t, "user/settings/security")
+			test.LoadUser(t, ctx, 2)
+			test.LoadRepo(t, ctx, 1)
 
-		web.SetForm(ctx, &forms.ChangePasswordForm{
-			OldPassword: req.OldPassword,
-			Password:    req.NewPassword,
-			Retype:      req.Retype,
+			web.SetForm(ctx, &forms.ChangePasswordForm{
+				OldPassword: req.OldPassword,
+				Password:    req.NewPassword,
+				Retype:      req.Retype,
+			})
+			AccountPost(ctx)
+
+			assert.Contains(t, ctx.Flash.ErrorMsg, req.Message)
+			assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 		})
-		AccountPost(ctx)
-
-		assert.Contains(t, ctx.Flash.ErrorMsg, req.Message)
-		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 	}
 }

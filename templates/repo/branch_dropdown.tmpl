@@ -1,3 +1,8 @@
+{{/* Attributes:
+* root
+* ContainerClasses
+* (TODO: search "branch_dropdown" in the template direcotry)
+*/}}
 {{$defaultBranch := $.root.BranchName}}
 {{if and .root.IsViewTag (not .noTag)}}
 	{{$defaultBranch = .root.TagName}}
@@ -62,10 +67,10 @@
 	window.config.pageData.branchDropdownDataList.push(data);
 </script>
 
-<div class="fitted item js-branch-tag-selector">
+<div class="js-branch-tag-selector {{if .ContainerClasses}}{{.ContainerClasses}}{{end}}">
 	{{/* show dummy elements before Vue componment is mounted, this code must match the code in BranchTagSelector.vue */}}
 	<div class="ui floating filter dropdown custom">
-		<button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df">
+		<button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-m-0">
 			<span class="text gt-df gt-ac gt-mr-2">
 				{{if .release}}
 					{{.root.locale.Tr "repo.release.compare"}}

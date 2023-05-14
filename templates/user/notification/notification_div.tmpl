@@ -1,6 +1,9 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-params="{{.Page.GetParams}}" data-sequence-number="{{.SequenceNumber}}">
 	<div class="ui container">
-		<h1 class="ui dividing header">{{.locale.Tr "notification.notifications"}}</h1>
+		<h1 class="ui header gt-df gt-ac">
+			{{svg "octicon-bell" 28 "gt-mr-3 gt-mt-1"}}
+			{{.locale.Tr "notification.notifications"}}
+		</h1>
 		<div class="ui top attached tabular menu">
 			{{$notificationUnreadCount := call .NotificationUnreadCount}}
 			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active {{end}}item">
@@ -11,25 +14,28 @@
 				{{.locale.Tr "notification.read"}}
 			</a>
 			{{if and (eq .Status 1)}}
-				<form action="{{AppSubUrl}}/notifications/purge" method="POST" style="margin-left: auto;">
+				<form class="gt-ml-auto" action="{{AppSubUrl}}/notifications/purge" method="POST">
 					{{$.CsrfTokenHtml}}
 					<div class="{{if not $notificationUnreadCount}}gt-hidden{{end}}">
-						<button class="ui mini button primary" title='{{$.locale.Tr "notification.mark_all_as_read"}}'>
+						<button class="ui mini button primary gt-mr-0" title='{{$.locale.Tr "notification.mark_all_as_read"}}'>
 							{{svg "octicon-checklist"}}
 						</button>
 					</div>
 				</form>
 			{{end}}
 		</div>
-		<div class="ui bottom attached active tab segment">
+		<div class="ui bottom attached active tab segment gt-p-3">
 			{{if eq (len .Notifications) 0}}
-				{{if eq .Status 1}}
-					{{.locale.Tr "notification.no_unread"}}
-				{{else}}
-					{{.locale.Tr "notification.no_read"}}
-				{{end}}
+				<div class="gt-df gt-ac gt-fc gt-p-4">
+					{{svg "octicon-inbox" 56 "gt-mb-4"}}
+					{{if eq .Status 1}}
+						{{.locale.Tr "notification.no_unread"}}
+					{{else}}
+						{{.locale.Tr "notification.no_read"}}
+					{{end}}
+				</div>
 			{{else}}
-				<table class="ui unstackable striped very compact small selectable table" id="notification_table">
+				<table class="ui unstackable very compact small table" id="notification_table">
 					<tbody>
 						{{range $notification := .Notifications}}
 							{{$issue := .Issue}}
@@ -59,16 +65,16 @@
 									{{end}}
 								</td>
 								<td class="eleven wide">
-									<a class="item" href="{{.Link}}">
+									<a class="item issue-title muted" href="{{.Link}}">
 										{{if $issue}}
-											#{{$issue.Index}} - {{$issue.Title}}
+											#{{$issue.Index}} - {{$issue.Title | RenderEmoji $.Context | RenderCodeBlock}}
 										{{else}}
 											{{$repo.FullName}}
 										{{end}}
 									</a>
 								</td>
 								<td>
-									<a class="item" href="{{$repo.Link}}">{{$repo.FullName}}</a>
+									<a class="item muted" href="{{$repo.Link}}">{{$repo.FullName}}</a>
 								</td>
 								<td class="collapsing">
 									{{if ne .Status 3}}
@@ -76,7 +82,7 @@
 											{{$.CsrfTokenHtml}}
 											<input type="hidden" name="notification_id" value="{{.ID}}">
 											<input type="hidden" name="status" value="pinned">
-											<button class="ui mini button" title='{{$.locale.Tr "notification.pin"}}'
+											<button class="ui mini button button-ghost" title='{{$.locale.Tr "notification.pin"}}'
 												data-url="{{AppSubUrl}}/notifications/status"
 												data-status="pinned"
 												data-page="{{$.Page.Paginater.Current}}"
@@ -94,7 +100,7 @@
 											<input type="hidden" name="notification_id" value="{{.ID}}">
 											<input type="hidden" name="status" value="read">
 											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-											<button class="ui mini button" title='{{$.locale.Tr "notification.mark_as_read"}}'
+											<button class="ui mini button button-ghost" title='{{$.locale.Tr "notification.mark_as_read"}}'
 												data-url="{{AppSubUrl}}/notifications/status"
 												data-status="read"
 												data-page="{{$.Page.Paginater.Current}}"
@@ -109,7 +115,7 @@
 											<input type="hidden" name="notification_id" value="{{.ID}}">
 											<input type="hidden" name="status" value="unread">
 											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-											<button class="ui mini button" title='{{$.locale.Tr "notification.mark_as_unread"}}'
+											<button class="ui mini button button-ghost" title='{{$.locale.Tr "notification.mark_as_unread"}}'
 												data-url="{{AppSubUrl}}/notifications/status"
 												data-status="unread"
 												data-page="{{$.Page.Paginater.Current}}"

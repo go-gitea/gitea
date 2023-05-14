@@ -16,7 +16,7 @@ default_channels:
 				<div class="markup"><pre class="code-block"><code>conda install{{if $channel}} -c {{$channel}}{{end}} {{.PackageDescriptor.PackageProperties.GetByName "conda.name"}}={{.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{.locale.Tr "packages.conda.documentation" | Safe}}</label>
+				<label>{{.locale.Tr "packages.conda.documentation" "https://docs.gitea.io/en-us/usage/packages/conda/" | Safe}}</label>
 			</div>
 		</div>
 	</div>

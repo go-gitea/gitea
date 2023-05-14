@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -20,8 +21,21 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
+
+// WebSearchRepository represents a repository returned by web search
+type WebSearchRepository struct {
+	Repository         *structs.Repository `json:"repository"`
+	LatestCommitStatus *git.CommitStatus   `json:"latest_commit_status"`
+}
+
+// WebSearchResults results of a successful web search
+type WebSearchResults struct {
+	OK   bool                   `json:"ok"`
+	Data []*WebSearchRepository `json:"data"`
+}
 
 // CreateRepository creates a repository for the user/organization.
 func CreateRepository(ctx context.Context, doer, owner *user_model.User, opts repo_module.CreateRepoOptions) (*repo_model.Repository, error) {

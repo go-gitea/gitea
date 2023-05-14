@@ -3,7 +3,7 @@ import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
   initRepoIssueTitleEdit, initRepoIssueWipToggle,
-  initRepoPullRequestUpdate, updateIssuesMeta, handleReply
+  initRepoPullRequestUpdate, updateIssuesMeta, handleReply, initIssueTemplateCommentEditors, initSingleCommentEditor,
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
@@ -53,6 +53,13 @@ export function initRepoCommentForm() {
     return;
   }
 
+  if ($commentForm.find('.field.combo-editor-dropzone').length) {
+    // at the moment, if a form has multiple combo-markdown-editors, it must be a issue template form
+    initIssueTemplateCommentEditors($commentForm);
+  } else {
+    initSingleCommentEditor($commentForm);
+  }
+
   function initBranchSelector() {
     const $selectBranch = $('.ui.select-branch');
     const $branchMenu = $selectBranch.find('.reference-list-menu');
@@ -81,19 +88,6 @@ export function initRepoCommentForm() {
       return false;
     });
   }
-
-  const $statusButton = $('#status-button');
-  $statusButton.on('click', (e) => {
-    e.preventDefault();
-    $('#status').val($statusButton.data('status-val'));
-    $('#comment-form').trigger('submit');
-  });
-
-  const _promise = initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), {
-    onContentChanged(editor) {
-      $statusButton.text($statusButton.attr(editor.value().trim() ? 'data-status-and-comment' : 'data-status'));
-    },
-  });
 
   initBranchSelector();
 
@@ -469,11 +463,7 @@ export function initRepository() {
     return;
   }
 
-  // File list and commits
-  if ($('.repository.file.list').length > 0 || $('.branch-dropdown').length > 0 ||
-    $('.repository.commits').length > 0 || $('.repository.release').length > 0) {
-    initRepoBranchTagSelector('.js-branch-tag-selector');
-  }
+  initRepoBranchTagSelector('.js-branch-tag-selector');
 
   // Options
   if ($('.repository.settings.options').length > 0) {
