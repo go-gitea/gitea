@@ -19,7 +19,7 @@
       <div class="action-commit-summary">
         {{ run.commit.localeCommit }}
         <a :href="run.commit.link">{{ run.commit.shortSHA }}</a>
-        &nbsp;<span class="ui label">
+        &nbsp;<span class="ui label" v-if="run.commit.shortSHA">
           <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
         </span>
         &nbsp;{{ run.commit.localePushedBy }}
