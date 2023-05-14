@@ -30,7 +30,7 @@ The following package managers are currently supported:
 | [Alpine]({{< relref "doc/usage/packages/alpine.en-us.md" >}}) | - | `apk` |
 | [Cargo]({{< relref "doc/usage/packages/cargo.en-us.md" >}}) | Rust | `cargo` |
 | [Chef]({{< relref "doc/usage/packages/chef.en-us.md" >}}) | - | `knife` |
-| [Composer]({{< relref "doc//usagepackages/composer.en-us.md" >}}) | PHP | `composer` |
+| [Composer]({{< relref "doc/usage/packages/composer.en-us.md" >}}) | PHP | `composer` |
 | [Conan]({{< relref "doc/usage/packages/conan.en-us.md" >}}) | C++ | `conan` |
 | [Conda]({{< relref "doc/usage/packages/conda.en-us.md" >}}) | - | `conda` |
 | [Container]({{< relref "doc/usage/packages/container.en-us.md" >}}) | - | any OCI compliant client |
