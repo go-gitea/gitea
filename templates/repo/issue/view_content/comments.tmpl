@@ -484,7 +484,7 @@
 					{{range $filename, $lines := .Review.CodeComments}}
 						{{range $line, $comms := $lines}}
 								<div class="ui segments">
-									<div class="ui segment gt-py-3 gt-df gt-ac gt-sb">
+									<div class="ui segment collapsible-comment-box gt-py-3 gt-df gt-ac gt-sb">
 										{{$invalid := (index $comms 0).Invalidated}}
 										{{$resolved := (index $comms 0).IsResolved}}
 										{{$resolveDoer := (index $comms 0).ResolveDoer}}
@@ -543,7 +543,7 @@
 															<div class="comment-header-left gt-df gt-ac">
 																{{if not .OriginalAuthor}}
 																	<a class="avatar">
-																		{{avatar $.Context .Poster}}
+																		{{avatar $.Context .Poster 20}}
 																	</a>
 																{{end}}
 																<span class="text grey muted-links">

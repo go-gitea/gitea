@@ -793,14 +793,6 @@
   display: none;
 }
 
-/* size adjustment is necessary until fomantic comment module removal */
-.repository.view.issue .comment-list .timeline-item .comment-code-cloud img.avatar,
-.repository.view.issue .comment-list .timeline-item .comment-code-cloud .avatar img {
-  width: 20px;
-  height: 20px;
-  vertical-align: middle;
-}
-
 .repository.view.issue .comment-list .timeline-item:first-child:not(.commit) {
   padding-top: 0 !important;
 }
@@ -1059,12 +1051,12 @@
 
 .repository.view.issue .comment-list .code-comment {
   border: 1px solid transparent;
-  padding: 0.25rem 0.5rem;
   margin: 0;
 }
 
-.repository.view.issue .comment-list .code-comment .content {
-  border: none !important;
+/* fix fomantic's border-radius via :first-child with hidden elements */
+.collapsible-comment-box:has(.gt-hidden) {
+  border-radius: var(--border-radius) !important;
 }
 
 .repository.view.issue .comment-list .code-comment .comment-header {
@@ -1087,14 +1079,7 @@
 }
 
 .repository.view.issue .comment-list .comment > .avatar ~ .content {
-  margin-left: 3em;
-}
-
-/* size adjustment is necessary until fomantic comment module removal */
-.repository.view.issue .comment-code-cloud .comment-list .code-comment img.avatar,
-.repository.view.issue .comment-code-cloud .comment-list .comment img.avatar {
-  width: 28px;
-  height: 28px;
+  margin-left: 42px;
 }
 
 .repository.view.issue .comment-list .comment-code-cloud .segment.reactions {
@@ -1145,10 +1130,6 @@
 
 .repository.view.issue .ui.depending .item.is-closed .title {
   text-decoration: line-through;
-}
-
-.ui.comments .comment .avatar {
-  margin: 0;
 }
 
 .repository .comment.form .ui.comments {
