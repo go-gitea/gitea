@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"sync"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -579,20 +578,15 @@ func SearchRepo(ctx *context.Context) {
 	}
 
 	// collect the latest commit of each repo
-	repoIDsToLatestCommitSHAs := make(map[int64]string)
-	wg := sync.WaitGroup{}
-	wg.Add(len(repos))
+	// at most there are dozens of repos (limited by MaxResponseItems), so it's not a big problem at the moment
+	repoIDsToLatestCommitSHAs := make(map[int64]string, len(repos))
 	for _, repo := range repos {
-		go func(repo *repo_model.Repository) {
-			defer wg.Done()
-			commitID, err := repo_service.GetBranchCommitID(ctx, repo, repo.DefaultBranch)
-			if err != nil {
-				return
-			}
-			repoIDsToLatestCommitSHAs[repo.ID] = commitID
-		}(repo)
+		commitID, err := repo_service.GetBranchCommitID(ctx, repo, repo.DefaultBranch)
+		if err != nil {
+			continue
+		}
+		repoIDsToLatestCommitSHAs[repo.ID] = commitID
 	}
-	wg.Wait()
 
 	// call the database O(1) times to get the commit statuses for all repos
 	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsToLatestCommitSHAs, db.ListOptions{})

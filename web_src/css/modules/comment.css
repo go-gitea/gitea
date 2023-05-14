@@ -47,20 +47,8 @@
 }
 
 .ui.comments .comment .avatar {
-  display: block;
-  width: 2.5em;
-  height: auto;
   float: left;
-  margin: 0.2em 0 0;
-}
-
-.ui.comments .comment img.avatar,
-.ui.comments .comment .avatar img {
-  display: block;
-  margin: 0 auto;
-  width: 100%;
-  height: 100%;
-  border-radius: 0.25rem;
+  width: 2.5em;
 }
 
 .ui.comments .comment > .content {
