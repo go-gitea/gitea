@@ -155,6 +155,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &debian.Metadata{}
 	case TypeGeneric:
 		// generic packages have no metadata
+	case TypeGo:
+		// go packages have no metadata
 	case TypeHelm:
 		metadata = &helm.Metadata{}
 	case TypeNuGet:
