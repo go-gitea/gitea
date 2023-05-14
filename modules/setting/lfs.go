@@ -48,7 +48,7 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 		LFS.LocksPagingNum = 50
 	}
 
-	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
+	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(24 * time.Hour)
 
 	if !LFS.StartServer {
 		return nil

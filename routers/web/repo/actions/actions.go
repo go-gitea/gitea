@@ -61,12 +61,7 @@ func List(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	} else if !empty {
-		defaultBranch, err := ctx.Repo.GitRepo.GetDefaultBranch()
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
-			return
-		}
-		commit, err := ctx.Repo.GitRepo.GetBranchCommit(defaultBranch)
+		commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return

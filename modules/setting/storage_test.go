@@ -20,7 +20,7 @@ MINIO_BUCKET = gitea-attachment
 [storage]
 MINIO_BUCKET = gitea-storage
 `
-	cfg, err := newConfigProviderFromData(iniStr)
+	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadAttachmentFrom(cfg))
@@ -41,7 +41,7 @@ STORAGE_TYPE = lfs
 [storage.lfs]
 MINIO_BUCKET = gitea-storage
 `
-	cfg, err := newConfigProviderFromData(iniStr)
+	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadAttachmentFrom(cfg))
@@ -56,7 +56,7 @@ func Test_getStorageInheritStorageType(t *testing.T) {
 [storage]
 STORAGE_TYPE = minio
 `
-	cfg, err := newConfigProviderFromData(iniStr)
+	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadAttachmentFrom(cfg))
@@ -93,4 +93,18 @@ STORAGE_TYPE = minio
 	assert.EqualValues(t, "minio", RepoAvatar.Storage.Type)
 	assert.EqualValues(t, "gitea", RepoAvatar.Storage.Section.Key("MINIO_BUCKET").String())
 	assert.EqualValues(t, "repo-avatars/", RepoAvatar.Storage.Section.Key("MINIO_BASE_PATH").MustString(""))
+
+	iniStr = `
+[storage.attachments]
+STORAGE_TYPE = minio
+`
+	cfg, err = NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+
+	sec := cfg.Section("attachment")
+	storageType := sec.Key("STORAGE_TYPE").MustString("")
+	storage, err := getStorage(cfg, "attachments", sec, storageType)
+	assert.NoError(t, err)
+
+	assert.EqualValues(t, "minio", storage.Type)
 }

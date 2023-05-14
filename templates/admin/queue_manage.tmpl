@@ -1,0 +1,59 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
+	<div class="admin-setting-content">
+		<h4 class="ui top attached header">
+			{{.locale.Tr "admin.monitor.queue" .Queue.GetName}}
+		</h4>
+		<div class="ui attached table segment">
+			<table class="ui very basic striped table">
+				<thead>
+					<tr>
+						<th>{{.locale.Tr "admin.monitor.queue.name"}}</th>
+						<th>{{.locale.Tr "admin.monitor.queue.type"}}</th>
+						<th>{{.locale.Tr "admin.monitor.queue.exemplar"}}</th>
+						<th>{{.locale.Tr "admin.monitor.queue.numberworkers"}}</th>
+						<th>{{.locale.Tr "admin.monitor.queue.maxnumberworkers"}}</th>
+						<th>{{.locale.Tr "admin.monitor.queue.numberinqueue"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>{{.Queue.GetName}}</td>
+						<td>{{.Queue.GetType}}</td>
+						<td>{{.Queue.GetItemTypeName}}</td>
+						<td>{{$sum := .Queue.GetWorkerNumber}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
+						<td>{{if lt $sum 0}}-{{else}}{{.Queue.GetWorkerMaxNumber}}{{end}}</td>
+						<td>
+							{{$sum = .Queue.GetQueueItemNumber}}
+							{{if lt $sum 0}}
+								-
+							{{else}}
+								{{$sum}}
+								<form action="{{$.Link}}/remove-all-items" method="post" class="gt-dib gt-ml-4">
+									{{$.CsrfTokenHtml}}
+									<button class="ui tiny basic red button">{{.locale.Tr "admin.monitor.queue.settings.remove_all_items"}}</button>
+								</form>
+							{{end}}
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
+		<h4 class="ui top attached header">
+			{{.locale.Tr "admin.monitor.queue.settings.title"}}
+		</h4>
+		<div class="ui attached segment">
+			<p>{{.locale.Tr "admin.monitor.queue.settings.desc"}}</p>
+			<form method="POST" action="{{.Link}}/set">
+				{{$.CsrfTokenHtml}}
+				<div class="ui form">
+					<div class="inline field">
+						<label for="max-number">{{.locale.Tr "admin.monitor.queue.settings.maxnumberworkers"}}</label>
+						<input name="max-number" type="text" placeholder="{{.locale.Tr "admin.monitor.queue.settings.maxnumberworkers.placeholder" .Queue.GetWorkerMaxNumber}}">
+					</div>
+					<button class="ui submit button">{{.locale.Tr "admin.monitor.queue.settings.submit"}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{{template "admin/layout_footer" .}}
