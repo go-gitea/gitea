@@ -38,6 +38,7 @@ jobs:
         env:
           CROWDIN_KEY: ${{ secrets.CROWDIN_KEY }}
           PLUGIN_UPLOAD: true
+          PLUGIN_EXPORT_DIR: options/locale/
           PLUGIN_IGNORE_BRANCH: true
           PLUGIN_PROJECT_IDENTIFIER: gitea
           PLUGIN_FILES: |
