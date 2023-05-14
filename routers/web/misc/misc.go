@@ -5,13 +5,13 @@ package misc
 
 import (
 	"net/http"
-	"os"
 	"path"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func SSHInfo(rw http.ResponseWriter, req *http.Request) {
@@ -34,11 +34,8 @@ func DummyOK(w http.ResponseWriter, req *http.Request) {
 }
 
 func RobotsTxt(w http.ResponseWriter, req *http.Request) {
-	filePath := path.Join(setting.CustomPath, "robots.txt")
-	fi, err := os.Stat(filePath)
-	if err == nil && httpcache.HandleTimeCache(req, w, fi) {
-		return
-	}
+	filePath := util.FilePathJoinAbs(setting.CustomPath, "robots.txt")
+	httpcache.SetCacheControlInHeader(w.Header(), setting.StaticCacheTime)
 	http.ServeFile(w, req, filePath)
 }
 
