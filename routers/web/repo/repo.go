@@ -581,7 +581,11 @@ func SearchRepo(ctx *context.Context) {
 	// at most there are dozens of repos (limited by MaxResponseItems), so it's not a big problem at the moment
 	repoIDsToLatestCommitSHAs := make(map[int64]string, len(repos))
 	for _, repo := range repos {
-		repoIDsToLatestCommitSHAs[repo.ID], _ = repo_service.GetBranchCommitID(ctx, repo, repo.DefaultBranch)
+		commitID, err := repo_service.GetBranchCommitID(ctx, repo, repo.DefaultBranch)
+		if err != nil {
+		  continue
+		}
+		repoIDsToLatestCommitSHAs[repo.ID] = commitID
 	}
 
 	// call the database O(1) times to get the commit statuses for all repos
