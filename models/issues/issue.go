@@ -1313,12 +1313,16 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	}
 
 	if opts.LabelIDs != nil {
-		for i, labelID := range opts.LabelIDs {
-			if labelID > 0 {
-				sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
-					fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
-			} else {
-				sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
+		if opts.LabelIDs[0] == 0 {
+			sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label)")
+		} else {
+			for i, labelID := range opts.LabelIDs {
+				if labelID > 0 {
+					sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
+						fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+				} else {
+					sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
+				}
 			}
 		}
 	}
@@ -1705,17 +1709,21 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 			sess.In("issue.id", issueIDs)
 		}
 
-		if len(opts.Labels) > 0 && opts.Labels != "0" {
+		if len(opts.Labels) > 0 {
 			labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
 			if err != nil {
 				log.Warn("Malformed Labels argument: %s", opts.Labels)
 			} else {
-				for i, labelID := range labelIDs {
-					if labelID > 0 {
-						sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
-							fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
-					} else {
-						sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label WHERE label_id = ?)", -labelID)
+				if labelIDs[0] == 0 {
+					sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label)")
+				} else {
+					for i, labelID := range labelIDs {
+						if labelID > 0 {
+							sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
+								fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+						} else {
+							sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label WHERE label_id = ?)", -labelID)
+						}
 					}
 				}
 			}
