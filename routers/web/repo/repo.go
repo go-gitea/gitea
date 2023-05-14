@@ -583,7 +583,7 @@ func SearchRepo(ctx *context.Context) {
 	for _, repo := range repos {
 		commitID, err := repo_service.GetBranchCommitID(ctx, repo, repo.DefaultBranch)
 		if err != nil {
-		  continue
+			continue
 		}
 		repoIDsToLatestCommitSHAs[repo.ID] = commitID
 	}
