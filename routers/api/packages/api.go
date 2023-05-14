@@ -320,8 +320,17 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 			})
 
 			// Manual mapping of routes because the package name contains slashes which chi does not support
+			// https://go.dev/ref/mod#goproxy-protocol
 			r.Get("/*", func(ctx *context.Context) {
 				path := ctx.Params("*")
+
+				if strings.HasSuffix(path, "/@latest") {
+					ctx.SetParams("name", path[:len(path)-len("/@latest")])
+					ctx.SetParams("version", "latest")
+
+					goproxy.PackageVersionMetadata(ctx)
+					return
+				}
 
 				parts := strings.SplitN(path, "/@v/", 2)
 				if len(parts) != 2 {
