@@ -1312,7 +1312,7 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 		sess.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
 	}
 
-	if opts.LabelIDs != nil {
+	if len(opts.LabelIDs) > 0 {
 		if opts.LabelIDs[0] == 0 {
 			sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label)")
 		} else {
