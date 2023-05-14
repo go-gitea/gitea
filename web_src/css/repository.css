@@ -691,11 +691,6 @@
   margin-right: 5px;
 }
 
-.repository.view.issue .merge.box .timeline-avatar {
-  margin-top: 3px;
-  margin-left: 4px;
-}
-
 .repository.view.issue .merge.box .branch-update.grid .row {
   padding-bottom: 1rem;
 }
@@ -788,21 +783,9 @@
   left: -68px;
 }
 
-.repository.view.issue .comment-list .timeline-item .timeline-avatar img {
-  width: 40px !important;
-  height: 40px !important;
-}
-
 /* Don't show the mobile oriented avatar ".inline-timeline-avatar" on desktop. Desktop uses the avatar with class ".timeline-avatar" */
 .repository.view.issue .comment-list .timeline-item .inline-timeline-avatar {
   display: none;
-}
-
-.repository.view.issue .comment-list .timeline-item img.avatar,
-.repository.view.issue .comment-list .timeline-item .avatar img {
-  width: 20px;
-  height: 20px;
-  vertical-align: middle;
 }
 
 .repository.view.issue .comment-list .timeline-item:first-child:not(.commit) {
@@ -1063,12 +1046,12 @@
 
 .repository.view.issue .comment-list .code-comment {
   border: 1px solid transparent;
-  padding: 0.25rem 0.5rem;
   margin: 0;
 }
 
-.repository.view.issue .comment-list .code-comment .content {
-  border: none !important;
+/* fix fomantic's border-radius via :first-child with hidden elements */
+.collapsible-comment-box:has(.gt-hidden) {
+  border-radius: var(--border-radius) !important;
 }
 
 .repository.view.issue .comment-list .code-comment .comment-header {
@@ -1091,13 +1074,7 @@
 }
 
 .repository.view.issue .comment-list .comment > .avatar ~ .content {
-  margin-left: 3em;
-}
-
-.repository.view.issue .comment-code-cloud .comment-list .code-comment img.avatar,
-.repository.view.issue .comment-code-cloud .comment-list .comment img.avatar {
-  width: 28px;
-  height: 28px;
+  margin-left: 42px;
 }
 
 .repository.view.issue .comment-list .comment-code-cloud .segment.reactions {
@@ -3085,6 +3062,7 @@ td.blob-excerpt {
 }
 
 .sidebar-item-link {
+  display: inline-flex;
   align-items: center;
   word-break: break-all;
 }
@@ -3259,10 +3237,6 @@ td.blob-excerpt {
     margin-bottom: auto;
     margin-left: 6px;
     margin-right: 2px;
-  }
-  .repository.view.issue .comment-list .timeline .inline-timeline-avatar img.avatar {
-    height: 24px;
-    width: 24px;
   }
   .repository.view.issue .comment-list .timeline .comment-header {
     padding-left: 4px;
