@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -88,6 +87,8 @@ func TestPackageGo(t *testing.T) {
 		AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusConflict)
 
+		time.Sleep(time.Second)
+
 		content = createArchive(map[string][]byte{
 			packageName + "@" + packageVersion2 + "/go.mod": []byte(goModContent),
 		})
@@ -103,9 +104,7 @@ func TestPackageGo(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/@v/list", url, packageName))
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		versions := strings.FieldsFunc(resp.Body.String(), func(c rune) bool { return c == '\n' })
-
-		assert.ElementsMatch(t, []string{packageVersion, packageVersion2}, versions)
+		assert.Equal(t, packageVersion+"\n"+packageVersion2+"\n", resp.Body.String())
 	})
 
 	t.Run("Info", func(t *testing.T) {
@@ -123,6 +122,22 @@ func TestPackageGo(t *testing.T) {
 		DecodeJSON(t, resp, &info)
 
 		assert.Equal(t, packageVersion, info.Version)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/@v/latest.info", url, packageName))
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		info = &Info{}
+		DecodeJSON(t, resp, &info)
+
+		assert.Equal(t, packageVersion2, info.Version)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/@latest", url, packageName))
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		info = &Info{}
+		DecodeJSON(t, resp, &info)
+
+		assert.Equal(t, packageVersion2, info.Version)
 	})
 
 	t.Run("GoMod", func(t *testing.T) {
@@ -132,12 +147,20 @@ func TestPackageGo(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, goModContent, resp.Body.String())
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/@v/latest.mod", url, packageName))
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		assert.Equal(t, goModContent, resp.Body.String())
 	})
 
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/@v/%s.zip", url, packageName, packageVersion))
+		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/@v/latest.zip", url, packageName))
 		MakeRequest(t, req, http.StatusOK)
 	})
 }
