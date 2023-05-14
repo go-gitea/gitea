@@ -691,11 +691,6 @@
   margin-right: 5px;
 }
 
-.repository.view.issue .merge.box .timeline-avatar {
-  margin-top: 3px;
-  margin-left: 4px;
-}
-
 .repository.view.issue .merge.box .branch-update.grid .row {
   padding-bottom: 1rem;
 }
