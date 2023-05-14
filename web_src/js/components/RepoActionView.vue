@@ -2,10 +2,12 @@
   <div class="ui container action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary">
-        <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
-        <h2 class="action-title">
-          {{ run.title }}
-        </h2>
+        <div class="action-info-summary-title">
+          <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
+          <h2 class="action-info-summary-title-text">
+            {{ run.title }}
+          </h2>
+        </div>
         <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
           {{ locale.approve }}
         </button>
@@ -210,7 +212,6 @@ const sfc = {
 
     // show/hide the step logs for a step
     async toggleStepLogs(idx) {
-      console.log(this.currentJobStepsStates[idx]);
       const currentToggledStep = this.currentJobStepsStates[idx];
       currentToggledStep.expanded = !currentToggledStep.expanded;
       if (currentToggledStep.expanded) {
@@ -267,7 +268,6 @@ const sfc = {
     },
 
     appendLogs(stepIndex, logLines) {
-      console.log('append', logLines);
       for (const line of logLines) {
         // TODO: group support: ##[group]GroupTitle , ##[endgroup]
         const el = this.getLogsContainer(stepIndex);
@@ -308,13 +308,13 @@ const sfc = {
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJob.steps.length; i++) {
           if (!this.currentJobStepsStates[i]) {
-            console.log('initial syncing')
+            // initial states for job steps
+            // isInitialExpand is used to check if the expand button of a job is clicked for the first time
             this.currentJobStepsStates[i] = {cursor: null, expanded: false, isInitialExpand: true};
           }
         }
         // append logs to the UI
         for (const logs of response.logs.stepsLog) {
-          console.log('logs.cursor', logs.cursor);
           // save the cursor, it will be passed to backend next time
           this.currentJobStepsStates[logs.step].cursor = logs.cursor;
           this.appendLogs(logs.step, logs.lines);
@@ -444,9 +444,14 @@ export function ansiLogToHTML(line) {
   display: flex;
   align-items: center;
   margin-top: 1rem;
+  justify-content: space-between;
 }
 
-.action-info-summary .action-title {
+.action-info-summary-title {
+  display: flex;
+}
+
+.action-info-summary-title-text {
   font-size: 20px;
   margin: 0;
   padding: 0 5px;
