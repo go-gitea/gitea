@@ -26,11 +26,12 @@ import (
 )
 
 // MockContext mock context for unit tests
+// TODO: move this function to other packages, because it depends on "models" package
 func MockContext(t *testing.T, path string) *context.Context {
 	resp := &mockResponseWriter{}
 	ctx := context.Context{
 		Render: &mockRender{},
-		Data:   make(map[string]interface{}),
+		Data:   make(middleware.ContextData),
 		Flash: &middleware.Flash{
 			Values: make(url.Values),
 		},

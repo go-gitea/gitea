@@ -141,12 +141,19 @@
   font-size: 11px;
 }
 
-.repository .filter.menu .menu {
+/* make all issue filter dropdown menus popup leftward, to avoid go out the viewport (right side) */
+.repository .filter.menu .ui.dropdown .menu {
   max-height: 500px;
   max-width: 300px;
   overflow-x: hidden;
-  right: 0 !important;
-  left: auto !important;
+  right: 0;
+  left: auto;
+}
+
+/* the label-filter is the first dropdown, it shouldn't be shown leftward, otherwise it may go out the viewport (left side) */
+.repository .filter.menu .ui.dropdown.label-filter .menu {
+  right: unset;
+  left: 0;
 }
 
 .repository .select-label .desc {
@@ -214,11 +221,6 @@
 
 .repository.file.list .repo-path {
   word-break: break-word;
-}
-
-.repository.file.list .repo-path .section,
-.repository.file.list .repo-path .divider {
-  display: inline;
 }
 
 .repository.file.list #repo-files-table {
@@ -441,16 +443,15 @@
   width: 16px;
 }
 
-.repository.file.editor .treepath {
+.repo-editor-header {
   width: 100%;
 }
 
-.repository.file.editor .treepath input {
-  vertical-align: middle;
-  box-shadow: rgba(0, 0, 0, 0.0745098) 0 1px 2px inset;
-  width: inherit;
-  padding: 7px 8px;
-  margin-right: 5px;
+.repo-editor-header input {
+  vertical-align: middle !important;
+  width: auto !important;
+  padding: 7px 8px !important;
+  margin-right: 5px !important;
 }
 
 .repository.file.editor .tabular.menu .svg {
@@ -590,85 +591,81 @@
   display: inline-block;
 }
 
-.repository.view.issue .title {
-  padding-bottom: 0 !important;
+.issue-title-header {
+  width: 100%;
+  padding-bottom: 4px;
+  margin-bottom: 1rem;
 }
 
-.repository.view.issue .title .issue-title {
-  margin-bottom: 0.5rem;
-}
-
-.repository.view.issue .title .issue-title.edit-active {
+.issue-title-meta {
   display: flex;
   align-items: center;
 }
 
-.repository.view.issue .title .issue-title.edit-active h1 {
+.repository.view.issue .issue-title-buttons,
+.repository.view.issue .edit-buttons {
   display: flex;
-  width: 100%;
 }
 
 @media (max-width: 767px) {
-  .repository.view.issue .title .issue-title.edit-active {
+  .repository.view.issue .issue-title {
     flex-direction: column;
   }
-  .repository.view.issue .title .issue-title.edit-active h1 {
-    margin-right: 0;
-    margin-bottom: 1rem;
-    padding-right: 0;
-  }
-  .repository.view.issue .title .issue-title.edit-active h1 .ui.input input {
-    width: calc(100% - 2rem);
-  }
-  .repository.view.issue .title .issue-title.edit-active .edit-buttons {
-    padding-bottom: 1rem;
-    width: 100%;
-  }
-  .repository.view.issue .title .issue-title.edit-active .edit-buttons .button {
-    width: 100%;
-    margin-right: 0.5rem;
-  }
-  .repository.view.issue .title .issue-title.edit-active .edit-buttons .button:last-child {
-    margin-right: 0;
+  .repository.view.issue .edit-buttons {
+    margin-top: .5rem;
   }
 }
 
-.repository.view.issue .title .issue-title h1 {
-  font-weight: 300;
-  font-size: 2.3rem;
-  margin: 0;
-  padding-right: 0.5rem;
-}
-
-.repository.view.issue .title .issue-title h1 .ui.input {
-  font-size: 0.5em;
-  width: 100%;
-}
-
-.repository.view.issue .title .issue-title h1 .ui.input input {
-  font-size: 1.5em;
-  padding: 6px 1rem;
-}
-
-.repository.view.issue .title .issue-title .edit-button {
-  float: right;
-  padding-left: 1rem;
-}
-
-.repository.view.issue .title .issue-title .edit-buttons {
+.repository.view.issue .issue-title {
   display: flex;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
-.repository.view.issue .title .issue-title .index {
+.repository.view.issue .issue-title h1 {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  width: 100%;
+  font-weight: 300;
+  font-size: 32px;
+  line-height: 40px;
+  margin: 0;
+  padding-right: 0.25rem;
+  min-height: 41px; /* avoid layout shift on edit */
+}
+
+.repository.view.issue .issue-title h1 .ui.input {
+  font-size: 0.5em;
+}
+
+.repository.view.issue .issue-title h1 .ui.input input {
+  font-size: 1.5em;
+  padding: 2px .5rem;
+}
+
+.repository.view.issue .issue-title .index {
   color: var(--color-text-light-2);
 }
 
-.repository.view.issue .title .issue-title .label {
+.repository.view.issue .issue-title .label {
   margin-right: 10px;
 }
 
-.repository.view.issue .title .issue-title .edit-zone {
+.repository.view.issue .issue-title .edit-zone {
   margin-top: 10px;
+}
+
+.issue-state-label {
+  display: flex !important;
+  align-items: center !important;
+  font-size: 14px !important;
+  padding: 7px 10px !important;
+  border-radius: 6px !important;
+}
+
+.issue-state-label .svg {
+  margin-right: 4px;
 }
 
 .repository.view.issue .pull-desc code {
@@ -694,49 +691,36 @@
   margin-right: 5px;
 }
 
-.repository.view.issue .pull .merge.box .timeline-avatar {
-  margin-top: 3px;
-  margin-left: 4px;
-}
-
-.repository.view.issue .pull .merge.box .branch-update.grid .row {
+.repository.view.issue .merge.box .branch-update.grid .row {
   padding-bottom: 1rem;
 }
 
-.repository.view.issue .pull .merge.box .branch-update.grid .row .icon {
+.repository.view.issue .merge.box .branch-update.grid .row .icon {
   margin-top: 1.1rem;
 }
 
-.repository.view.issue .pull .review-item {
+.repository.view.issue .review-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.repository.view.issue .pull .review-item .review-item-left,
-.repository.view.issue .pull .review-item .review-item-right {
+.review-item-left,
+.review-item-right {
   display: flex;
   align-items: center;
 }
 
-.repository.view.issue .pull .review-item .text {
-  margin: 0.3em 0 0.5em 0.5em;
+.review-item-right {
+  gap: 8px;
+  margin-left: 4px;
 }
 
-.repository.view.issue .pull .review-item .type-icon {
-  align-self: flex-start;
-  margin-right: 1em;
-}
-
-.repository.view.issue .pull .review-item .type-icon i {
-  line-height: 1.8em;
-}
-
-.repository.view.issue .pull .review-item .divider {
+.repository.view.issue .review-item .divider {
   margin: 0.5rem 0;
 }
 
-.repository.view.issue .pull .review-item .review-content {
+.repository.view.issue .review-item .review-content {
   padding: 1em 0 1em 3.8em;
 }
 
@@ -785,6 +769,10 @@
   padding-bottom: 8px;
 }
 
+.repository.view.issue .comment-list .timeline-avatar-offset {
+  margin-top: 48px;
+}
+
 .repository.view.issue .comment-list .timeline-item {
   margin-left: 16px;
   position: relative;
@@ -795,21 +783,9 @@
   left: -68px;
 }
 
-.repository.view.issue .comment-list .timeline-item .timeline-avatar img {
-  width: 40px !important;
-  height: 40px !important;
-}
-
 /* Don't show the mobile oriented avatar ".inline-timeline-avatar" on desktop. Desktop uses the avatar with class ".timeline-avatar" */
 .repository.view.issue .comment-list .timeline-item .inline-timeline-avatar {
   display: none;
-}
-
-.repository.view.issue .comment-list .timeline-item img.avatar,
-.repository.view.issue .comment-list .timeline-item .avatar img {
-  width: 20px;
-  height: 20px;
-  vertical-align: middle;
 }
 
 .repository.view.issue .comment-list .timeline-item:first-child:not(.commit) {
@@ -1070,12 +1046,12 @@
 
 .repository.view.issue .comment-list .code-comment {
   border: 1px solid transparent;
-  padding: 0.25rem 0.5rem;
   margin: 0;
 }
 
-.repository.view.issue .comment-list .code-comment .content {
-  border: none !important;
+/* fix fomantic's border-radius via :first-child with hidden elements */
+.collapsible-comment-box:has(.gt-hidden) {
+  border-radius: var(--border-radius) !important;
 }
 
 .repository.view.issue .comment-list .code-comment .comment-header {
@@ -1098,13 +1074,7 @@
 }
 
 .repository.view.issue .comment-list .comment > .avatar ~ .content {
-  margin-left: 3em;
-}
-
-.repository.view.issue .comment-list .code-comment img.avatar,
-.repository.view.issue .comment-list .comment img.avatar {
-  width: 28px;
-  height: 28px;
+  margin-left: 42px;
 }
 
 .repository.view.issue .comment-list .comment-code-cloud .segment.reactions {
@@ -1192,13 +1162,15 @@
 
 .repository .milestone.list {
   list-style: none;
-  padding-top: 15px;
 }
 
 .repository .milestone.list > .item {
   padding-top: 10px;
   padding-bottom: 10px;
-  border-bottom: 1px dashed var(--color-secondary);
+}
+
+.repository .milestone.list > .item + .item {
+  border-top: 1px solid var(--color-secondary);
 }
 
 .repository .milestone.list > .item progress {
@@ -1358,7 +1330,7 @@
 }
 
 .repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n) {
-  background-color: rgba(0, 0, 0, 0.02) !important;
+  background-color: var(--color-light) !important;
 }
 
 .repository #commits-table td.sha .sha.label,
@@ -2394,10 +2366,6 @@
   margin: 6px 0;
 }
 
-#issue-actions {
-  margin-top: -1rem !important; /* counteract padding from Semantic */
-}
-
 .ui.menu .item > img:not(.ui) {
   width: auto;
 }
@@ -2601,39 +2569,6 @@
   left: 10px;
   width: 15px;
   height: 15px;
-}
-
-#avatar-arrow::before,
-#avatar-arrow::after {
-  right: 100%;
-  top: 20px;
-  border: solid transparent;
-  content: " ";
-  height: 0;
-  width: 0;
-  position: absolute;
-  pointer-events: none;
-}
-
-#avatar-arrow::before {
-  border-right-color: var(--color-secondary);
-  border-width: 9px;
-  margin-top: -9px;
-}
-
-#avatar-arrow::after {
-  border-right-color: var(--color-box-header);
-  border-width: 8px;
-  margin-top: -8px;
-}
-
-#transfer-repo-modal .ui.message,
-#delete-repo-modal .ui.message,
-#delete-wiki-modal .ui.message,
-#convert-fork-repo-modal .ui.message,
-#convert-mirror-repo-modal .ui.message,
-#fork-repo-modal .ui.message {
-  width: 100% !important;
 }
 
 .tab-size-1 {
@@ -3127,6 +3062,7 @@ td.blob-excerpt {
 }
 
 .sidebar-item-link {
+  display: inline-flex;
   align-items: center;
   word-break: break-all;
 }
@@ -3299,10 +3235,8 @@ td.blob-excerpt {
   .repository.view.issue .comment-list .timeline .inline-timeline-avatar {
     display: flex;
     margin-bottom: auto;
-  }
-  .repository.view.issue .comment-list .timeline .inline-timeline-avatar img.avatar {
-    height: 24px;
-    width: 24px;
+    margin-left: 6px;
+    margin-right: 2px;
   }
   .repository.view.issue .comment-list .timeline .comment-header {
     padding-left: 4px;

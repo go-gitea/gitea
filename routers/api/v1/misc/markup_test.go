@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -30,13 +31,13 @@ const (
 )
 
 func createContext(req *http.Request) (*context.Context, *httptest.ResponseRecorder) {
-	_, rnd := templates.HTMLRenderer(req.Context())
+	rnd := templates.HTMLRenderer()
 	resp := httptest.NewRecorder()
 	c := &context.Context{
 		Req:    req,
 		Resp:   context.NewResponse(resp),
 		Render: rnd,
-		Data:   make(map[string]interface{}),
+		Data:   make(middleware.ContextData),
 	}
 	defer c.Close()
 

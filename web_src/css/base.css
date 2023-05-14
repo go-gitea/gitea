@@ -1,7 +1,7 @@
 :root {
   /* fonts */
-  --fonts-proportional: -apple-system, "Segoe UI", system-ui, "Roboto", "Helvetica Neue", "Arial";
-  --fonts-monospace: "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
+  --fonts-proportional: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
+  --fonts-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
   --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
   /* "font-weight: bold" starts from 700, some fonts do not provide "bolding" for weight 600. */
   /* But some users consider "700" is too heavy, so use 601, which is when Segoe UI on Linux */
@@ -332,8 +332,7 @@ progress::-moz-progress-bar {
   user-select: none;
 }
 
-a,
-.ui.breadcrumb a {
+a {
   color: var(--color-primary);
   cursor: pointer;
   text-decoration-skip-ink: all;
@@ -347,8 +346,7 @@ a.muted,
 a:hover,
 a.muted:hover,
 a.muted:hover [class*="color-text"],
-.muted-links a:hover,
-.ui.breadcrumb a:hover {
+.muted-links a:hover {
   color: var(--color-primary);
 }
 
@@ -737,14 +735,6 @@ a.label,
   padding-bottom: 7.42px !important;
 }
 
-.ui.breadcrumb a:hover {
-  text-decoration: underline !important;
-}
-
-.ui.breadcrumb .divider {
-  color: var(--color-text-light-2);
-}
-
 .ui.divider:not(.vertical,.horizontal) {
   border-top-color: var(--color-secondary) !important;
   border-bottom: none !important;
@@ -1056,62 +1046,6 @@ a.label,
   box-shadow: -1px -1px 0 0 var(--color-secondary);
 }
 
-.ui.cards > .card,
-.ui.card {
-  background: var(--color-card);
-  border: 1px solid var(--color-secondary);
-  box-shadow: none;
-}
-
-.ui.cards > .card > .content,
-.ui.card > .content {
-  border-color: var(--color-secondary);
-}
-
-.ui.cards > .card > .extra,
-.ui.card > .extra,
-.ui.cards > .card > .extra a:not(.ui),
-.ui.card > .extra a:not(.ui) {
-  color: var(--color-text);
-}
-
-.ui.cards > .card > .extra a:not(.ui):hover,
-.ui.card > .extra a:not(.ui):hover {
-  color: var(--color-primary);
-}
-
-.ui.cards > .card > .content > .header,
-.ui.card > .content > .header {
-  color: var(--color-text);
-}
-
-.ui.cards > .card > .content > .description,
-.ui.card > .content > .description {
-  color: var(--color-text);
-}
-
-.ui.cards > .card .meta > a:not(.ui),
-.ui.card .meta > a:not(.ui) {
-  color: var(--color-text-light-2);
-}
-
-.ui.cards > .card .meta > a:not(.ui):hover,
-.ui.card .meta > a:not(.ui):hover {
-  color: var(--color-text);
-}
-
-.ui.cards a.card:hover,
-a.ui.card:hover {
-  border: 1px solid var(--color-secondary);
-  background: var(--color-card);
-}
-
-.ui.cards > .card > .extra,
-.ui.card > .extra {
-  color: var(--color-text);
-  border-top-color: var(--color-secondary-light-1) !important;
-}
-
 .ui.comments .comment .text {
   margin: 0;
 }
@@ -1158,6 +1092,12 @@ a.ui.card:hover {
   border-top-color: var(--color-secondary-alpha-50);
 }
 
+.ui.striped.table > tr:nth-child(2n),
+.ui.striped.table > tbody > tr:nth-child(2n),
+.ui.basic.striped.table > tbody > tr:nth-child(2n) {
+  background: var(--color-light);
+}
+
 .ui.ui.ui.ui.table tr.active,
 .ui.ui.table td.active {
   color: var(--color-text);
@@ -1187,12 +1127,10 @@ a.ui.card:hover {
 
 img.ui.avatar,
 .ui.avatar img,
-.ui.avatar svg,
-.ui.cards > .card img.avatar,
-.ui.cards > .card .avatar img,
-.ui.card img.avatar,
-.ui.card .avatar img {
+.ui.avatar svg {
   border-radius: var(--border-radius);
+  object-fit: contain;
+  aspect-ratio: 1;
 }
 
 .ui.divided.list > .item {
@@ -1238,8 +1176,6 @@ img.ui.avatar,
 }
 
 .following.bar {
-  z-index: 900;
-  left: 0;
   margin: 0 !important;
 }
 
@@ -1250,24 +1186,6 @@ img.ui.avatar,
 
 .following.bar .column .menu {
   margin-top: 0;
-}
-
-.following.bar .top.menu a.item.brand {
-  padding-left: 0;
-}
-
-.following.bar .top.menu a.item:hover,
-.following.bar .top.menu .dropdown.item:hover,
-.following.bar .top.menu .dropdown.item.active {
-  background-color: transparent;
-}
-
-.following.bar .top.menu a.item:hover {
-  color: rgba(0, 0, 0, 0.45);
-}
-
-.following.bar .top.menu .menu {
-  z-index: 900;
 }
 
 .following.bar .fitted .svg {
@@ -1586,7 +1504,7 @@ img.ui.avatar,
   vertical-align: middle;
 }
 
-.ui .message {
+.ui .message.flash-message {
   text-align: center;
 }
 
@@ -1925,7 +1843,7 @@ img.ui.avatar,
 }
 
 .ui.menu.new-menu .item {
-  margin: 0 !important;
+  margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
 }
 
 @media (max-width: 767px) {
@@ -1934,8 +1852,13 @@ img.ui.avatar,
   }
 }
 
+.ui.menu.new-menu .item:first-child {
+  margin-left: auto; /* "justify-content: center" doesn't work with "overflow: auto", so use margin: auto */
+}
+
 .ui.menu.new-menu .item:last-child {
   padding-right: 30px !important;
+  margin-right: auto;
 }
 
 .ui.menu.new-menu::-webkit-scrollbar {
@@ -1978,11 +1901,6 @@ img.ui.avatar,
   flex: 1;
   word-break: break-all;
   color: var(--color-text-light);
-}
-
-.repo-title .avatar {
-  width: 32px !important;
-  height: 32px !important;
 }
 
 .repo-title .labels {
@@ -2048,6 +1966,13 @@ i.icon.centerlock {
 a.ui.label:hover {
   background: var(--color-hover);
   border-color: var(--color-hover);
+  color: var(--color-text);
+}
+
+.ui.labels a.active.label:hover,
+a.ui.active.label:hover {
+  background: var(--color-active);
+  border-color: var(--color-active);
   color: var(--color-text);
 }
 
@@ -2250,6 +2175,19 @@ a.ui.label:hover {
   border-left: none;
 }
 
+/* a ghost button can be used as inline text, it doesn't have obvious styles */
+.button.button-ghost {
+  background: transparent;
+  border: none;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+.button.button-ghost:hover {
+  color: var(--color-primary);
+}
+
 .two-toggle-buttons .button:not(.active):first-of-type {
   border-right: none;
 }
@@ -2341,19 +2279,6 @@ a.ui.label:hover {
 .ui.basic.secondary.buttons .button:focus {
   color: var(--color-secondary-dark-8) !important;
   border-color: var(--color-secondary-dark-3) !important;
-}
-
-.ui.tertiary.button {
-  color: var(--color-text-light);
-  border: none;
-}
-
-.ui.tertiary.button:hover {
-  color: var(--color-text);
-}
-
-.ui.tertiary.button:focus {
-  color: var(--color-text-dark);
 }
 
 .ui.primary.label,
@@ -2577,18 +2502,23 @@ a.ui.basic.label:hover {
 
 .notification_count {
   position: absolute;
-  left: 5px;
-  top: -8px;
+  left: 7px;
+  top: -9px;
   min-width: 1.5em;
   text-align: center;
   background: var(--color-primary);
   border: 2px solid var(--color-header-bar);
   color: var(--color-header-bar);
-  padding: 2px;
+  padding: 2.75px;
   border-radius: 1em;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  line-height: 0.7;
+  line-height: .67em;
+}
+
+.rss-icon {
+  display: inline-flex;
+  color: var(--color-text-light-1);
 }
 
 table th[data-sortt-asc]:hover,
@@ -2603,6 +2533,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.dropdown .svg.dropdown.icon,
+.ui.dropdown .svg.remove.icon,
 .svg.dropdown.icon {
   margin-top: 0 !important; /* reset the "ui.selection.dropdown > .dropdown.icon {margin-top}", for the Issue Dependencies dropdown */
   margin-right: -0.5rem !important; /* fix up SVG dropdown triangles because Fomantic thinks they are icon fonts */
@@ -2613,6 +2544,16 @@ table th[data-sortt-desc] .svg {
 .ui.selection.dropdown > .svg.delete.icon,
 .ui.selection.dropdown > .svg.dropdown.icon {
   top: 0 !important; /* reset the ".ui.selection.dropdown > .xxx.icon {top}" if the icon is svg instead of the fomantic icon */
+}
+
+.ui.selection.dropdown > .svg.remove.icon {
+  top: .5px;
+  right: 32px;
+  width: auto;
+}
+
+.ui.selection.dropdown > .svg.remove.icon:hover {
+  opacity: 1;
 }
 
 .ui.dropdown.no-text > .dropdown.icon {
@@ -2783,19 +2724,6 @@ table th[data-sortt-desc] .svg {
   float: left;
   width: 15px;
   height: 15px;
-}
-
-.g-menu-stackable-scrollable {
-  overflow-y: hidden;
-  overflow-x: auto;
-}
-
-@media (max-width: 767.98px) {
-  /* also respect Fomantic's "stackable" definition, use the same breakpoint to reset our styles */
-  .g-menu-stackable-scrollable {
-    overflow-x: unset;
-    overflow-y: unset;
-  }
 }
 
 .color-text-light-2 {
