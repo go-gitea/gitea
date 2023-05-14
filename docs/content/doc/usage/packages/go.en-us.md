@@ -72,5 +72,6 @@ GOPROXY=https://gitea.example.com/api/packages/{owner}/go go install {package_na
 | `package_name`    | The package name. |
 | `package_version` | The package version. |
 
-If the owner of the packages is private you need to provide credentials.
-For more information see [the Go documentation](https://go.dev/ref/mod#private-module-proxy-auth).
+If the owner of the packages is private you need to [provide credentials](https://go.dev/ref/mod#private-module-proxy-auth).
+
+More information about the `GOPROXY` environment variable and how to protect against data leaks can be found in [the documentation](https://go.dev/ref/mod#private-modules).
