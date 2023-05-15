@@ -85,7 +85,7 @@ adduser \
    git
 
 # On Fedora/RHEL/CentOS:
-groupadd git
+groupadd --system git
 adduser \
    --system \
    --shell /bin/bash \
