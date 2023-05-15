@@ -22,7 +22,7 @@ Publish [R](https://www.r-project.org/) packages to a [CRAN](https://cran.r-proj
 
 ## Requirements
 
-To work with the CRAN package registry, you need to install [the R toolset](https://cran.r-project.org/).
+To work with the CRAN package registry, you need to install [R](https://cran.r-project.org/).
 
 ## Configuring the package registry
 
@@ -79,7 +79,7 @@ You cannot publish a package if a package of the same name and version already e
 To install a R package from the package registry, execute the following command:
 
 ```shell
-install.packages({package_name})
+install.packages("{package_name}")
 ```
 
 | Parameter      | Description |
