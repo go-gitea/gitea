@@ -67,7 +67,9 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
-	ctx.Data["Err_RepoSize"] = ctx.Repo.Repository.RepoSizeIsOversized(ctx.Repo.Repository.SizeLimit / 10) // less than 10% left
+	ctx.Data["Err_RepoSize"] = ctx.Repo.Repository.RepoSizeIsOversized(ctx.Repo.Repository.GetActualSizeLimit() / 10) // less than 10% left
+	ctx.Data["ActualSizeLimit"] = ctx.Repo.Repository.GetActualSizeLimit()
+	ctx.Data["EnableSizeLimit"] = setting.EnableSizeLimit
 
 	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0

@@ -162,8 +162,8 @@ type Repository struct {
 	BaseRepo                        *Repository        `xorm:"-"`
 	IsTemplate                      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	TemplateID                      int64              `xorm:"INDEX"`
-	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
 	SizeLimit                       int64              `xorm:"NOT NULL DEFAULT 0"`
+	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
 	EnableSizeLimit                 bool               `xorm:"NOT NULL DEFAULT true"`
 	CodeIndexerStatus               *RepoIndexerStatus `xorm:"-"`
 	StatsIndexerStatus              *RepoIndexerStatus `xorm:"-"`
@@ -538,9 +538,17 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 // 	return repo.updateSize(ctx.e)
 // }
 
+func (repo *Repository) GetActualSizeLimit() int64 {
+	sizeLimit := repo.SizeLimit
+	if setting.RepoSizeLimit > 0 && sizeLimit == 0 {
+		sizeLimit = setting.RepoSizeLimit
+	}
+	return sizeLimit
+}
+
 // RepoSizeIsOversized return if is over size limitation
 func (repo *Repository) RepoSizeIsOversized(additionalSize int64) bool {
-	return repo.SizeLimit > 0 && repo.Size+additionalSize > repo.SizeLimit
+	return setting.EnableSizeLimit && repo.GetActualSizeLimit() > 0 && repo.Size+additionalSize > repo.GetActualSizeLimit()
 }
 
 // CanCreateBranch returns true if repository meets the requirements for creating new branches.

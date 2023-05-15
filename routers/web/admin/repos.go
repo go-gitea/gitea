@@ -66,9 +66,6 @@ func UpdateRepoPost(ctx *context.Context) {
 	}
 
 	setting.SaveGlobalRepositorySetting(form.EnableSizeLimit, repo_size_limit)
-	ctx.Flash.Success(ctx.Tr("admin.config.repository_setting_success"))
-
-	ctx.Data["RepoSizeLimit"] = base.FileSize(setting.RepoSizeLimit)
 
 	ctx.Flash.Success(ctx.Tr("admin.config.repository_setting_success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/repos")

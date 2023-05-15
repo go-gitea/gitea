@@ -289,8 +289,8 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 
 	// Determine and create root git repository path.
 	sec := rootCfg.Section("repository")
-	EnableSizeLimit = sec.Key("ENABLE_SIZE_LIMIT").MustBool()
-	RepoSizeLimit = sec.Key("REPO_SIZE_LIMIT").MustInt64(0)
+	EnableSizeLimit = sec.Key("ENABLE_SIZE_LIMIT").MustBool(true)
+	RepoSizeLimit = sec.Key("REPO_SIZE_LIMIT").MustInt64(1024 * 1024 * 10)
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
