@@ -29,6 +29,7 @@ func TestAPITeam(t *testing.T) {
 
 	teamUser := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 1})
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamUser.TeamID})
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: teamUser.OrgID})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser.UID})
 
 	session := loginUser(t, user.Name)
@@ -40,6 +41,7 @@ func TestAPITeam(t *testing.T) {
 	DecodeJSON(t, resp, &apiTeam)
 	assert.EqualValues(t, team.ID, apiTeam.ID)
 	assert.Equal(t, team.Name, apiTeam.Name)
+	assert.EqualValues(t, convert.ToOrganization(db.DefaultContext, org), apiTeam.Organization)
 
 	// non team member user will not access the teams details
 	teamUser2 := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 3})
@@ -58,7 +60,7 @@ func TestAPITeam(t *testing.T) {
 	session = loginUser(t, user.Name)
 	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAdminOrg)
 
-	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 6})
+	org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 6})
 
 	// Create team.
 	teamToCreate := &api.CreateTeamOption{

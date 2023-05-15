@@ -170,7 +170,7 @@
 
 .organization.members .list .item .ui.avatar {
   width: 48px;
-  height: auto;
+  height: 48px;
   margin-right: 1rem;
   align-self: flex-start;
 }

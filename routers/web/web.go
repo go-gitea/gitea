@@ -112,6 +112,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	routes.RouteMethods("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.RouteMethods("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 	routes.RouteMethods("/apple-touch-icon.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
+	routes.RouteMethods("/apple-touch-icon-precomposed.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.RouteMethods("/favicon.ico", "GET, HEAD", misc.StaticRedirect("/assets/img/favicon.png"))
 
 	_ = templates.HTMLRenderer()
