@@ -10,7 +10,7 @@ export function initCopyContent() {
 
   btn.addEventListener('click', async () => {
     if (btn.classList.contains('is-loading')) return;
-    let content, isRasterImage;
+    let content, isRasterImage = false;
     const link = btn.getAttribute('data-link');
 
     // when data-link is present, we perform a fetch. this is either because
