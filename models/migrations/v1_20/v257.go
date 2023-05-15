@@ -24,7 +24,7 @@ func CreateActionArtifactTable(x *xorm.Engine) error {
 		ContentEncoding    string             // The content encoding of the artifact
 		ArtifactPath       string             // The path to the artifact when runner uploads it
 		ArtifactName       string             `xorm:"UNIQUE(runid_name)"` // The name of the artifact when runner uploads it
-		UploadStatus       int64              `xorm:"index"`              // The status of the artifact upload
+		Status             int64              `xorm:"index"`              // The status of the artifact
 		CreatedUnix        timeutil.TimeStamp `xorm:"created"`
 		UpdatedUnix        timeutil.TimeStamp `xorm:"updated index"`
 	}

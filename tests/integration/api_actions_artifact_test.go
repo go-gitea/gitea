@@ -122,7 +122,7 @@ func TestActionsArtifactDownload(t *testing.T) {
 	)
 
 	idx := strings.Index(listResp.Value[0].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-	url := listResp.Value[0].FileContainerResourceURL[idx:]
+	url := listResp.Value[0].FileContainerResourceURL[idx+1:]
 	req = NewRequest(t, "GET", url)
 	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp = MakeRequest(t, req, http.StatusOK)

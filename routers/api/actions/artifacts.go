@@ -453,7 +453,7 @@ func (ar artifactRoutes) mergeArtifactChunks(ctx *context.Context, runID int64) 
 		// save storage path to artifact
 		log.Debug("[artifact] merge chunks to artifact: %d, %s", artifact.ID, storagePath)
 		artifact.StoragePath = storagePath
-		artifact.UploadStatus = actions.ArtifactUploadStatusConfirmed
+		artifact.Status = actions.ArtifactStatusUploadConfirmed
 		if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 			return fmt.Errorf("update artifact error: %v", err)
 		}

@@ -16,12 +16,12 @@ import (
 )
 
 const (
-	// ArtifactUploadStatusPending is the status of an artifact upload that is pending
-	ArtifactUploadStatusPending = 1
-	// ArtifactUploadStatusConfirmed is the status of an artifact upload that is confirmed
-	ArtifactUploadStatusConfirmed = 2
-	// ArtifactUploadStatusError is the status of an artifact upload that is errored
-	ArtifactUploadStatusError = 3
+	// ArtifactStatusUploadPending is the status of an artifact upload that is pending
+	ArtifactStatusUploadPending = 1
+	// ArtifactStatusUploadConfirmed is the status of an artifact upload that is confirmed
+	ArtifactStatusUploadConfirmed = 2
+	// ArtifactStatusUploadError is the status of an artifact upload that is errored
+	ArtifactStatusUploadError = 3
 )
 
 func init() {
@@ -42,7 +42,7 @@ type ActionArtifact struct {
 	ContentEncoding    string             // The content encoding of the artifact
 	ArtifactPath       string             // The path to the artifact when runner uploads it
 	ArtifactName       string             `xorm:"UNIQUE(runid_name)"` // The name of the artifact when runner uploads it
-	UploadStatus       int64              `xorm:"index"`              // The status of the artifact upload
+	Status             int64              `xorm:"index"`              // The status of the artifact, uploading, expired or need-delete
 	CreatedUnix        timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix        timeutil.TimeStamp `xorm:"updated index"`
 }
@@ -55,12 +55,12 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName string) (*A
 	artifact, err := getArtifactByArtifactName(ctx, t.Job.RunID, artifactName)
 	if errors.Is(err, util.ErrNotExist) {
 		artifact := &ActionArtifact{
-			RunID:        t.Job.RunID,
-			RunnerID:     t.RunnerID,
-			RepoID:       t.RepoID,
-			OwnerID:      t.OwnerID,
-			CommitSHA:    t.CommitSHA,
-			UploadStatus: ArtifactUploadStatusPending,
+			RunID:     t.Job.RunID,
+			RunnerID:  t.RunnerID,
+			RepoID:    t.RepoID,
+			OwnerID:   t.OwnerID,
+			CommitSHA: t.CommitSHA,
+			Status:    ArtifactStatusUploadPending,
 		}
 		if _, err := db.GetEngine(ctx).Insert(artifact); err != nil {
 			return nil, err
@@ -112,7 +112,7 @@ func ListArtifactsByRunID(ctx context.Context, runID int64) ([]*ActionArtifact, 
 // ListUploadedArtifactsByRunID returns all uploaded artifacts of a run
 func ListUploadedArtifactsByRunID(ctx context.Context, runID int64) ([]*ActionArtifact, error) {
 	arts := make([]*ActionArtifact, 0, 10)
-	return arts, db.GetEngine(ctx).Where("run_id=? AND upload_status=?", runID, ArtifactUploadStatusConfirmed).Find(&arts)
+	return arts, db.GetEngine(ctx).Where("run_id=? AND status=?", runID, ArtifactStatusUploadConfirmed).Find(&arts)
 }
 
 // ListArtifactsByRepoID returns all artifacts of a repo
