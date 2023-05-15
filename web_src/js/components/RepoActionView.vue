@@ -70,7 +70,10 @@
         <div class="job-step-container">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="toggleStepLogs(i)" :class="currentJobStepsStates[i].expanded ? 'selected' : ''">
-              <SvgIcon v-if="currentJobStepsStates[i].isLoading" name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
+              <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
+                currentJobStepsStates[i].cursor === null means the log is loaded for the first time
+              -->
+              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
               <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" class="gt-mr-3"/>
               <ActionRunStatus :status="jobStep.status" class="gt-mr-3"/>
 
@@ -211,20 +214,10 @@ const sfc = {
     },
 
     // show/hide the step logs for a step
-    async toggleStepLogs(idx) {
-      const currentToggledStep = this.currentJobStepsStates[idx];
-      currentToggledStep.expanded = !currentToggledStep.expanded;
-      if (currentToggledStep.expanded) {
-        // If the job is done and the job step log is expanded for the first time,
-        // wait for fetching job and show the loading icon
-        if (this.isDone(this.run.status) && currentToggledStep.isInitialExpand) {
-          currentToggledStep.isInitialExpand = false;
-          currentToggledStep.isLoading = true;
-          await this.loadJob();
-          currentToggledStep.isLoading = false;
-        } else {
-          this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
-        }
+    toggleStepLogs(idx) {
+      this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
+      if (this.currentJobStepsStates[idx].expanded) {
+        this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
       }
     },
     // rerun a job
@@ -309,8 +302,7 @@ const sfc = {
         for (let i = 0; i < this.currentJob.steps.length; i++) {
           if (!this.currentJobStepsStates[i]) {
             // initial states for job steps
-            // isInitialExpand is used to check if the expand button of a job is clicked for the first time
-            this.currentJobStepsStates[i] = {cursor: null, expanded: false, isInitialExpand: true};
+            this.currentJobStepsStates[i] = {cursor: null, expanded: false};
           }
         }
         // append logs to the UI
