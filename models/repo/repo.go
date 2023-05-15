@@ -164,6 +164,7 @@ type Repository struct {
 	TemplateID                      int64              `xorm:"INDEX"`
 	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
 	SizeLimit                       int64              `xorm:"NOT NULL DEFAULT 0"`
+	EnableSizeLimit                 bool               `xorm:"NOT NULL DEFAULT true"`
 	CodeIndexerStatus               *RepoIndexerStatus `xorm:"-"`
 	StatsIndexerStatus              *RepoIndexerStatus `xorm:"-"`
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
