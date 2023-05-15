@@ -80,13 +80,23 @@ git --version
 Create a user to run Gitea (e.g. `git`)
 
 ```sh
+# On Ubuntu/Debian:
+adduser \
+   --system \
+   --shell /bin/bash \
+   --gecos 'Git Version Control' \
+   --group \
+   --disabled-password \
+   --home /home/git \
+   git
+
+# On Fedora/RHEL/CentOS:
 groupadd git
 adduser \
    --system \
    --shell /bin/bash \
    --comment 'Git Version Control' \
    --gid git \
-   --disabled-password \
    --home /home/git \
    git
 ```
