@@ -241,17 +241,17 @@ func updateIssue(ctx context.Context, issue *issues_model.Issue) error {
 func upsertIssue(ctx context.Context, issue *issues_model.Issue) (isInsert bool, err error) {
 	sess := db.GetEngine(ctx)
 
-	exists, err := sess.Exist(&issues_model.Issue{
-		RepoID: issue.RepoID,
-		Index:  issue.Index,
-	})
+	var issueIDs []int64
+	err = sess.Table("issue").Where("repo_id = ? AND `index` = ?", issue.RepoID, issue.Index).Cols("id").Find(&issueIDs)
 	if err != nil {
 		return false, err
 	}
 
-	if !exists {
+	if len(issueIDs) == 0 {
 		return true, insertIssue(ctx, issue)
 	}
+
+	issue.ID = issueIDs[0]
 	return false, updateIssue(ctx, issue)
 }
 
