@@ -4,6 +4,7 @@
 
 .code-line-menu {
   width: auto !important;
+  border: none !important; /* the border is provided by tippy, not using the `.ui.menu` border */
 }
 
 .code-line-button {

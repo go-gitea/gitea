@@ -30,7 +30,7 @@ import {
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
-  initRepoPullRequestReview, initRepoIssueSidebarList, initRepoIssueGotoID
+  initRepoPullRequestReview, initRepoIssueSidebarList
 } from './features/repo-issue.js';
 import {
   initRepoEllipsisButton,
@@ -81,6 +81,7 @@ import {initGlobalTooltips} from './modules/tippy.js';
 import {initGiteaFomantic} from './modules/fomantic.js';
 import {onDomReady} from './utils/dom.js';
 import {initRepoIssueList} from './features/repo-issue-list.js';
+import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
 import {initSettingVariables} from './features/shared.js';
 
 // Init Gitea's Fomantic settings
@@ -99,6 +100,7 @@ onDomReady(() => {
   initGlobalLinkActions();
 
   initCommonOrganization();
+  initCommonIssueListQuickGoto();
 
   initCompSearchUserBox();
   initCompWebHookEditor();
