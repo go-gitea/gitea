@@ -257,7 +257,6 @@ const sfc = {
     nextTick(() => {
       this.$refs.search.focus();
       this.$refs.search.addEventListener('keydown', (e) => {
-        const firstItems = document.querySelector('#dashboard-repo-list .repo-owner-name-list a');
         const activeItem = document.querySelector('#dashboard-repo-list .primary');
         const rightPage = document.querySelector('#dashboard-repo-list .octicon-chevron-right');
         const leftPage = document.querySelector('#dashboard-repo-list .octicon-chevron-left');
@@ -267,14 +266,16 @@ const sfc = {
               activeItem.click();
               break;
             case 'ArrowUp':
-              activeItem.classList.remove(...activeClass);
-              if (activeItem.closest('li').previousSibling.querySelector) activeItem.closest('li').previousSibling.querySelector('a').classList.add(...activeClass);
-              else firstItems.classList.add(...activeClass);
+              if (activeItem.closest('li').previousSibling.querySelector) {
+                activeItem.classList.remove(...activeClass);
+                activeItem.closest('li').previousSibling.querySelector('a').classList.add(...activeClass);
+              } else if (leftPage && !leftPage.parentElement.classList.contains('disabled')) leftPage.parentElement.click();
               break;
             case 'ArrowDown':
-              activeItem.classList.remove(...activeClass);
-              if (activeItem.closest('li').nextSibling.querySelector) activeItem.closest('li').nextSibling.querySelector('a').classList.add(...activeClass);
-              else firstItems.classList.add(...activeClass);
+              if (activeItem.closest('li').nextSibling.querySelector) {
+                activeItem.classList.remove(...activeClass);
+                activeItem.closest('li').nextSibling.querySelector('a').classList.add(...activeClass);
+              } else if (rightPage && !rightPage.parentElement.classList.contains('disabled')) rightPage.parentElement.click();
               break;
             case 'ArrowRight':
               if (rightPage && !rightPage.parentElement.classList.contains('disabled')) rightPage.parentElement.click();
