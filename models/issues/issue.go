@@ -516,9 +516,6 @@ func (issue *Issue) isIssueVisibleToDoer(ctx context.Context, doer *user_model.U
 		return false, nil
 	}
 	// TODO: what about Mirror repo
-	if issue.Repo.IsArchived {
-		return false, nil
-	}
 
 	if issue.Repo.Owner.IsOrganization() && issue.Repo.IsPrivate {
 		collaboration, err := repo_model.GetCollaboration(ctx, issue.Repo.ID, doer.ID)
