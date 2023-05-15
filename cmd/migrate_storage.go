@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/migrations"
@@ -32,7 +33,7 @@ var CmdMigrateStorage = cli.Command{
 		cli.StringFlag{
 			Name:  "type, t",
 			Value: "",
-			Usage: "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages'",
+			Usage: "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log'",
 		},
 		cli.StringFlag{
 			Name:  "storage, s",
@@ -134,6 +135,22 @@ func migratePackages(ctx context.Context, dstStorage storage.ObjectStorage) erro
 	})
 }
 
+func migrateActionsLog(ctx context.Context, dstStorage storage.ObjectStorage) error {
+	return db.Iterate(ctx, nil, func(ctx context.Context, task *actions_model.ActionTask) error {
+		if task.LogExpired {
+			// the log has been cleared
+			return nil
+		}
+		if !task.LogInStorage {
+			// running tasks store logs in DBFS
+			return nil
+		}
+		p := task.LogFilename
+		_, err := storage.Copy(dstStorage, p, storage.Actions, p)
+		return err
+	})
+}
+
 func runMigrateStorage(ctx *cli.Context) error {
 	stdCtx, cancel := installSignals()
 	defer cancel()
@@ -201,6 +218,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 		"repo-avatars":   migrateRepoAvatars,
 		"repo-archivers": migrateRepoArchivers,
 		"packages":       migratePackages,
+		"actions-log":    migrateActionsLog,
 	}
 
 	tp := strings.ToLower(ctx.String("type"))

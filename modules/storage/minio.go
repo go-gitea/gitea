@@ -129,7 +129,11 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
-	return util.PathJoinRelX(m.basePath, p)
+	p = util.PathJoinRelX(m.basePath, p)
+	if p == "." {
+		p = "" // minio doesn't use dot as relative path
+	}
+	return p
 }
 
 // Open opens a file
@@ -224,14 +228,15 @@ func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
 }
 
 // IterateObjects iterates across the objects in the miniostorage
-func (m *MinioStorage) IterateObjects(prefix string, fn func(path string, obj Object) error) error {
+func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
 	opts := minio.GetObjectOptions{}
 	lobjectCtx, cancel := context.WithCancel(m.ctx)
 	defer cancel()
 
 	basePath := m.basePath
-	if prefix != "" {
-		basePath = m.buildMinioPath(prefix)
+	if dirName != "" {
+		// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
+		basePath = m.buildMinioPath(dirName) + "/"
 	}
 
 	for mObjInfo := range m.client.ListObjects(lobjectCtx, m.bucket, minio.ListObjectsOptions{
@@ -244,7 +249,7 @@ func (m *MinioStorage) IterateObjects(prefix string, fn func(path string, obj Ob
 		}
 		if err := func(object *minio.Object, fn func(path string, obj Object) error) error {
 			defer object.Close()
-			return fn(strings.TrimPrefix(mObjInfo.Key, basePath), &minioObject{object})
+			return fn(strings.TrimPrefix(mObjInfo.Key, m.basePath), &minioObject{object})
 		}(object, fn); err != nil {
 			return convertMinioErr(err)
 		}

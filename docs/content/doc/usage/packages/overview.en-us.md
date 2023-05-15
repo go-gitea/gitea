@@ -27,6 +27,7 @@ The following package managers are currently supported:
 
 | Name | Language | Package client |
 | ---- | -------- | -------------- |
+| [Alpine]({{< relref "doc/usage/packages/alpine.en-us.md" >}}) | - | `apk` |
 | [Cargo]({{< relref "doc/usage/packages/cargo.en-us.md" >}}) | Rust | `cargo` |
 | [Chef]({{< relref "doc/usage/packages/chef.en-us.md" >}}) | - | `knife` |
 | [Composer]({{< relref "doc/usage/packages/composer.en-us.md" >}}) | PHP | `composer` |
@@ -35,6 +36,7 @@ The following package managers are currently supported:
 | [Container]({{< relref "doc/usage/packages/container.en-us.md" >}}) | - | any OCI compliant client |
 | [Debian]({{< relref "doc/usage/packages/debian.en-us.md" >}}) | - | `apt` |
 | [Generic]({{< relref "doc/usage/packages/generic.en-us.md" >}}) | - | any HTTP client |
+| [Go]({{< relref "doc/usage/packages/go.en-us.md" >}}) | Go | `go` |
 | [Helm]({{< relref "doc/usage/packages/helm.en-us.md" >}}) | - | any HTTP client, `cm-push` |
 | [Maven]({{< relref "doc/usage/packages/maven.en-us.md" >}}) | Java | `mvn`, `gradle` |
 | [npm]({{< relref "doc/usage/packages/npm.en-us.md" >}}) | JavaScript | `npm`, `yarn`, `pnpm` |
