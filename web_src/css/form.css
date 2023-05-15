@@ -398,10 +398,6 @@ textarea:focus,
   margin-top: 15px;
 }
 
-.oauth2 .oauth-login-link img {
-  object-fit: contain;
-}
-
 .repository.new.repo form,
 .repository.new.migrate form,
 .repository.new.fork form {
