@@ -391,7 +391,7 @@ func runSyncGit(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult,
 
 // runSyncMisc runs the sync of Issues, Pull Requests, Reviews, Topics, Releases, Labels, and Milestones.
 // It returns true if the sync was successful.
-func runSyncMisc(ctx context.Context, m *repo_model.Mirror) bool {
+func runSyncMisc(ctx context.Context, m *repo_model.Mirror, lastSynced time.Time) bool {
 	repo := m.GetRepository()
 
 	remoteURL, remoteErr := git.GetRemoteURL(ctx, repo.RepoPath(), m.GetRemoteName())
@@ -427,7 +427,8 @@ func runSyncMisc(ctx context.Context, m *repo_model.Mirror) bool {
 		MigrateToRepoID: repo.ID,
 		MirrorInterval:  m.Interval.String(),
 	}
-	_, err := migrations.SyncRepository(ctx, repo.Owner, repo, opts, nil, m.UpdatedUnix.AsTime())
+
+	_, err := migrations.SyncRepository(ctx, m.Repo.MustOwner(ctx), repo, opts, nil, lastSynced)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to sync repository: %v", m.Repo, err)
 		return false
@@ -455,6 +456,9 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	}
 	_ = m.GetRepository() // force load repository of mirror
 
+	// UpdatedUnix will be updated by runSyncGit, but we need to store it here to use it in runSyncMisc
+	lastSynced := m.UpdatedUnix.AsTime()
+
 	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing Mirror %s/%s", m.Repo.OwnerName, m.Repo.Name))
 	defer finished()
 
@@ -467,7 +471,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		return false
 	}
 
-	if ok := runSyncMisc(ctx, m); !ok {
+	if ok := runSyncMisc(ctx, m, lastSynced); !ok {
 		if err = repo_model.TouchMirror(ctx, m); err != nil {
 			log.Error("SyncMirrors [repo: %-v]: failed to TouchMirror: %v", m.Repo, err)
 		}
