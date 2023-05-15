@@ -31,25 +31,25 @@
 					{{if .PackageDescriptor.Metadata.Imports}}
 						<tr>
 							<td>Imports</td>
-							<td>{{Join .PackageDescriptor.Metadata.Imports ", "}}</td>
+							<td>{{StringUtils.Join .PackageDescriptor.Metadata.Imports ", "}}</td>
 						</tr>
 					{{end}}
 					{{if .PackageDescriptor.Metadata.Depends}}
 						<tr>
 							<td>Depends</td>
-							<td>{{Join .PackageDescriptor.Metadata.Depends ", "}}</td>
+							<td>{{StringUtils.Join .PackageDescriptor.Metadata.Depends ", "}}</td>
 						</tr>
 					{{end}}
 					{{if .PackageDescriptor.Metadata.LinkingTo}}
 						<tr>
 							<td>LinkingTo</td>
-							<td>{{Join .PackageDescriptor.Metadata.LinkingTo ", "}}</td>
+							<td>{{StringUtils.Join .PackageDescriptor.Metadata.LinkingTo ", "}}</td>
 						</tr>
 					{{end}}
 					{{if .PackageDescriptor.Metadata.Suggests}}
 						<tr>
 							<td>Suggests</td>
-							<td>{{Join .PackageDescriptor.Metadata.Suggests ", "}}</td>
+							<td>{{StringUtils.Join .PackageDescriptor.Metadata.Suggests ", "}}</td>
 						</tr>
 					{{end}}
 				</tbody>
