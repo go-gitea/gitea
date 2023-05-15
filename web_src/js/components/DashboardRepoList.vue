@@ -256,26 +256,34 @@ const sfc = {
     nextTick(() => {
       this.$refs.search.focus();
       this.$refs.search.addEventListener('keydown', (e) => {
-          const firstItems = document.querySelector('#dashboard-repo-list .repo-owner-name-list a');
-          const activeItem = document.querySelector('#dashboard-repo-list .primary');
-          if (activeItem) {
-            switch (e.key) {
-              case 'Enter':
-                activeItem.click();
-                break;
-              case 'ArrowUp':
-                activeItem.classList.remove('button', 'primary');
-                if (activeItem.closest('li').previousSibling.querySelector) activeItem.closest('li').previousSibling.querySelector('a').classList.add('button', 'primary');
-                else firstItems.classList.add('button', 'primary');
-                break;
-              case 'ArrowDown':
-                activeItem.classList.remove('button', 'primary');
-                if (activeItem.closest('li').nextSibling.querySelector) activeItem.closest('li').nextSibling.querySelector('a').classList.add('button', 'primary');
-                else firstItems.classList.add('button', 'primary');
-                break;
-            }
+        const firstItems = document.querySelector('#dashboard-repo-list .repo-owner-name-list a');
+        const activeItem = document.querySelector('#dashboard-repo-list .primary');
+        const rightPage = document.querySelector('#dashboard-repo-list .octicon-chevron-right');
+        const leftPage = document.querySelector('#dashboard-repo-list .octicon-chevron-left');
+        if (activeItem) {
+          switch (e.key) {
+            case 'Enter':
+              activeItem.click();
+              break;
+            case 'ArrowUp':
+              activeItem.classList.remove('button', 'primary');
+              if (activeItem.closest('li').previousSibling.querySelector) activeItem.closest('li').previousSibling.querySelector('a').classList.add('button', 'primary');
+              else firstItems.classList.add('button', 'primary');
+              break;
+            case 'ArrowDown':
+              activeItem.classList.remove('button', 'primary');
+              if (activeItem.closest('li').nextSibling.querySelector) activeItem.closest('li').nextSibling.querySelector('a').classList.add('button', 'primary');
+              else firstItems.classList.add('button', 'primary');
+              break;
+            case 'ArrowRight':
+              if (rightPage && !rightPage.parentElement.classList.contains('disabled')) rightPage.parentElement.click();
+              break;
+            case 'ArrowLeft':
+              if (leftPage && !leftPage.parentElement.classList.contains('disabled')) leftPage.parentElement.click();
+              break;
           }
-        });
+        }
+      });
     });
 
     this.textArchivedFilterTitles = {
