@@ -1,14 +1,10 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings lfs">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings lfs")}}
+	<div class="repo-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "repo.settings.lfs_filelist"}} ({{.locale.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui tiny show-panel button" href="{{.Link}}/locks">{{.locale.Tr "repo.settings.lfs_locks"}}</a>
-				<a class="ui primary tiny show-panel button" href="{{.Link}}/pointers">&nbsp;{{.locale.Tr "repo.settings.lfs_findpointerfiles"}}</a>
+				<a class="ui tiny button" href="{{.Link}}/locks">{{.locale.Tr "repo.settings.lfs_locks"}}</a>
+				<a class="ui primary tiny button" href="{{.Link}}/pointers">&nbsp;{{.locale.Tr "repo.settings.lfs_findpointerfiles"}}</a>
 			</div>
 		</h4>
 		<table id="lfs-files-table" class="ui attached segment single line table">
@@ -25,9 +21,9 @@
 						<td>{{FileSize .Size}}</td>
 						<td>{{TimeSince .CreatedUnix.AsTime $.locale}}</td>
 						<td class="right aligned">
-							<a class="ui primary show-panel button" href="{{$.Link}}/find?oid={{.Oid}}&size={{.Size}}">{{$.locale.Tr "repo.settings.lfs_findcommits"}}</a>
+							<a class="ui primary button" href="{{$.Link}}/find?oid={{.Oid}}&size={{.Size}}">{{$.locale.Tr "repo.settings.lfs_findcommits"}}</a>
 							<button class="ui basic show-modal icon button" data-modal="#delete-{{.Oid}}">
-								<span class="btn-octicon btn-octicon-danger tooltip"  data-content="{{$.locale.Tr "repo.editor.delete_this_file"}}" data-position="bottom center">{{svg "octicon-trash"}}</span>
+								<span class="btn-octicon btn-octicon-danger"  data-tooltip-content="{{$.locale.Tr "repo.editor.delete_this_file"}}">{{svg "octicon-trash"}}</span>
 							</button>
 						</td>
 					</tr>
@@ -40,24 +36,20 @@
 		</table>
 		{{template "base/paginate" .}}
 		{{range .LFSFiles}}
-			<div class="ui basic modal" id="delete-{{.Oid}}">
-				<div class="ui icon header">
+			<div class="ui g-modal-confirm modal" id="delete-{{.Oid}}">
+				<div class="header">
 					{{$.locale.Tr "repo.settings.lfs_delete" .Oid}}
 				</div>
-				<div class="content center">
+				<div class="content">
 					<p>
 						{{$.locale.Tr "repo.settings.lfs_delete_warning"}}
 					</p>
 					<form class="ui form" action="{{$.Link}}/delete/{{.Oid}}" method="post">
 						{{$.CsrfTokenHtml}}
-						<div class="center actions">{{/* TODO: Convert to base/delete_modal_actions */}}
-							<button class="ui basic cancel inverted button">{{$.locale.Tr "settings.cancel"}}</button>
-							<button class="ui basic inverted yellow button">{{$.locale.Tr "modal.yes"}}</button>
-						</div>
+						{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonColors" "yellow")}}
 					</form>
 				</div>
 			</div>
 		{{end}}
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "repo/settings/layout_footer" .}}

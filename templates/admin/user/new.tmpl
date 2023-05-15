@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin new user">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin new user")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.users.new_account"}}
 		</h4>
@@ -39,11 +36,11 @@
 						<div class="menu">
 							{{range $mode := .AllowedUserVisibilityModes}}
 								{{if $mode.IsPublic}}
-									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.locale.Tr "settings.visibility.public"}}</div>
+									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.locale.Tr "settings.visibility.public"}}</div>
 								{{else if $mode.IsLimited}}
-									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.locale.Tr "settings.visibility.limited"}}</div>
+									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.locale.Tr "settings.visibility.limited"}}</div>
 								{{else if $mode.IsPrivate}}
-									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.locale.Tr "settings.visibility.private"}}</div>
+									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.locale.Tr "settings.visibility.private"}}</div>
 								{{end}}
 							{{end}}
 						</div>
@@ -90,5 +87,4 @@
 			</form>
 		</div>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

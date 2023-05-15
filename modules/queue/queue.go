@@ -1,201 +1,31 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+// Package queue implements a specialized queue system for Gitea.
+//
+// There are two major kinds of concepts:
+//
+// * The "base queue": channel, level, redis:
+//   - They have the same abstraction, the same interface, and they are tested by the same testing code.
+//   - The dummy(immediate) queue is special, it's not a real queue, it's only used as a no-op queue or a testing queue.
+//
+// * The WorkerPoolQueue: it uses the "base queue" to provide "worker pool" function.
+//   - It calls the "handler" to process the data in the base queue.
+//   - Its "Push" function doesn't block forever,
+//     it will return an error if the queue is full after the timeout.
+//
+// A queue can be "simple" or "unique". A unique queue will try to avoid duplicate items.
+// Unique queue's "Has" function can be used to check whether an item is already in the queue,
+// although it's not 100% reliable due to there is no proper transaction support.
+// Simple queue's "Has" function always returns "has=false".
+//
+// The HandlerFuncT function is called by the WorkerPoolQueue to process the data in the base queue.
+// If the handler returns "unhandled" items, they will be re-queued to the base queue after a slight delay,
+// in case the item processor (eg: document indexer) is not available.
 package queue
 
-import (
-	"context"
-	"fmt"
-	"time"
-)
+import "code.gitea.io/gitea/modules/util"
 
-// ErrInvalidConfiguration is called when there is invalid configuration for a queue
-type ErrInvalidConfiguration struct {
-	cfg interface{}
-	err error
-}
+type HandlerFuncT[T any] func(...T) (unhandled []T)
 
-func (err ErrInvalidConfiguration) Error() string {
-	if err.err != nil {
-		return fmt.Sprintf("Invalid Configuration Argument: %v: Error: %v", err.cfg, err.err)
-	}
-	return fmt.Sprintf("Invalid Configuration Argument: %v", err.cfg)
-}
-
-// IsErrInvalidConfiguration checks if an error is an ErrInvalidConfiguration
-func IsErrInvalidConfiguration(err error) bool {
-	_, ok := err.(ErrInvalidConfiguration)
-	return ok
-}
-
-// Type is a type of Queue
-type Type string
-
-// Data defines an type of queuable data
-type Data interface{}
-
-// HandlerFunc is a function that takes a variable amount of data and processes it
-type HandlerFunc func(...Data) (unhandled []Data)
-
-// NewQueueFunc is a function that creates a queue
-type NewQueueFunc func(handler HandlerFunc, config, exemplar interface{}) (Queue, error)
-
-// Shutdownable represents a queue that can be shutdown
-type Shutdownable interface {
-	Shutdown()
-	Terminate()
-}
-
-// Named represents a queue with a name
-type Named interface {
-	Name() string
-}
-
-// Queue defines an interface of a queue-like item
-//
-// Queues will handle their own contents in the Run method
-type Queue interface {
-	Flushable
-	Run(atShutdown, atTerminate func(func()))
-	Push(Data) error
-}
-
-// PushBackable queues can be pushed back to
-type PushBackable interface {
-	// PushBack pushes data back to the top of the fifo
-	PushBack(Data) error
-}
-
-// DummyQueueType is the type for the dummy queue
-const DummyQueueType Type = "dummy"
-
-// NewDummyQueue creates a new DummyQueue
-func NewDummyQueue(handler HandlerFunc, opts, exemplar interface{}) (Queue, error) {
-	return &DummyQueue{}, nil
-}
-
-// DummyQueue represents an empty queue
-type DummyQueue struct{}
-
-// Run does nothing
-func (*DummyQueue) Run(_, _ func(func())) {}
-
-// Push fakes a push of data to the queue
-func (*DummyQueue) Push(Data) error {
-	return nil
-}
-
-// PushFunc fakes a push of data to the queue with a function. The function is never run.
-func (*DummyQueue) PushFunc(Data, func() error) error {
-	return nil
-}
-
-// Has always returns false as this queue never does anything
-func (*DummyQueue) Has(Data) (bool, error) {
-	return false, nil
-}
-
-// Flush always returns nil
-func (*DummyQueue) Flush(time.Duration) error {
-	return nil
-}
-
-// FlushWithContext always returns nil
-func (*DummyQueue) FlushWithContext(context.Context) error {
-	return nil
-}
-
-// IsEmpty asserts that the queue is empty
-func (*DummyQueue) IsEmpty() bool {
-	return true
-}
-
-// ImmediateType is the type to execute the function when push
-const ImmediateType Type = "immediate"
-
-// NewImmediate creates a new false queue to execute the function when push
-func NewImmediate(handler HandlerFunc, opts, exemplar interface{}) (Queue, error) {
-	return &Immediate{
-		handler: handler,
-	}, nil
-}
-
-// Immediate represents an direct execution queue
-type Immediate struct {
-	handler HandlerFunc
-}
-
-// Run does nothing
-func (*Immediate) Run(_, _ func(func())) {}
-
-// Push fakes a push of data to the queue
-func (q *Immediate) Push(data Data) error {
-	return q.PushFunc(data, nil)
-}
-
-// PushFunc fakes a push of data to the queue with a function. The function is never run.
-func (q *Immediate) PushFunc(data Data, f func() error) error {
-	if f != nil {
-		if err := f(); err != nil {
-			return err
-		}
-	}
-	q.handler(data)
-	return nil
-}
-
-// Has always returns false as this queue never does anything
-func (*Immediate) Has(Data) (bool, error) {
-	return false, nil
-}
-
-// Flush always returns nil
-func (*Immediate) Flush(time.Duration) error {
-	return nil
-}
-
-// FlushWithContext always returns nil
-func (*Immediate) FlushWithContext(context.Context) error {
-	return nil
-}
-
-// IsEmpty asserts that the queue is empty
-func (*Immediate) IsEmpty() bool {
-	return true
-}
-
-var queuesMap = map[Type]NewQueueFunc{
-	DummyQueueType: NewDummyQueue,
-	ImmediateType:  NewImmediate,
-}
-
-// RegisteredTypes provides the list of requested types of queues
-func RegisteredTypes() []Type {
-	types := make([]Type, len(queuesMap))
-	i := 0
-	for key := range queuesMap {
-		types[i] = key
-		i++
-	}
-	return types
-}
-
-// RegisteredTypesAsString provides the list of requested types of queues
-func RegisteredTypesAsString() []string {
-	types := make([]string, len(queuesMap))
-	i := 0
-	for key := range queuesMap {
-		types[i] = string(key)
-		i++
-	}
-	return types
-}
-
-// NewQueue takes a queue Type, HandlerFunc, some options and possibly an exemplar and returns a Queue or an error
-func NewQueue(queueType Type, handlerFunc HandlerFunc, opts, exemplar interface{}) (Queue, error) {
-	newFn, ok := queuesMap[queueType]
-	if !ok {
-		return nil, fmt.Errorf("unsupported queue type: %v", queueType)
-	}
-	return newFn(handlerFunc, opts, exemplar)
-}
+var ErrAlreadyInQueue = util.NewAlreadyExistErrorf("already in queue")

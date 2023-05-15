@@ -3,7 +3,7 @@
 	{{template "org/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<div class="ui grid">
+		<div class="ui stackable grid">
 			{{template "org/team/sidebar" .}}
 			<div class="ui ten wide column">
 				{{template "org/team/navbar" .}}
@@ -25,19 +25,19 @@
 				{{end}}
 				<div class="ui bottom attached table segment members">
 					{{range .Team.Members}}
-						<div class="item">
+						<div class="item gt-df gt-ac gt-fw">
+							<a href="{{.HomeLink}}">{{avatar $.Context . 48 "gt-mr-3 gt-mb-0"}}</a>
+							<a class="gt-f1" href="{{.HomeLink}}">
+								<strong>{{.DisplayName}}</strong>
+							</a>
 							{{if and $.IsOrganizationOwner (not (and ($.Team.IsOwnerTeam) (eq (len $.Team.Members) 1)))}}
 								<form>
-									<button class="ui red button delete-button right" data-modal-id="remove-team-member"
+									<button class="ui red button delete-button" data-modal-id="remove-team-member"
 										data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove" data-datauid="{{.ID}}"
 										data-name="{{.DisplayName}}"
 										data-data-team-name="{{$.Team.Name}}">{{$.locale.Tr "org.members.remove"}}</button>
 								</form>
 							{{end}}
-							<a href="{{.HomeLink}}">
-								{{avatar $.Context .}}
-								{{.DisplayName}}
-							</a>
 						</div>
 					{{else}}
 						<div class="item">
@@ -49,13 +49,13 @@
 				<h4 class="ui top attached header">{{$.locale.Tr "org.teams.invite_team_member.list"}}</h4>
 				<div class="ui bottom attached table segment members">
 					{{range .Invites}}
-						<div class="item">
+						<div class="item gt-df gt-ac gt-fw">
+							<span class="gt-f1">{{.Email}}</span>
 							<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
 								{{$.CsrfTokenHtml}}
-								<input type="hidden" name="iid" value="{{.ID}}" />
-								<button class="ui red button right">{{$.locale.Tr "org.members.remove"}}</button>
+								<input type="hidden" name="iid" value="{{.ID}}">
+								<button class="ui red button">{{$.locale.Tr "org.members.remove"}}</button>
 							</form>
-							{{.Email}}
 						</div>
 					{{end}}
 				</div>
@@ -64,14 +64,13 @@
 		</div>
 	</div>
 </div>
-<div class="ui small basic delete modal" id="remove-team-member">
-	<div class="ui icon header">
-		{{svg "octicon-x" 16 "close inside"}}
+<div class="ui g-modal-confirm delete modal" id="remove-team-member">
+	<div class="header">
 		{{$.locale.Tr "org.members.remove"}}
 	</div>
 	<div class="content">
 		<p>{{$.locale.Tr "org.members.remove.detail" `<span class="name"></span>` `<span class="dataTeamName"></span>` | Safe}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 {{template "base/footer" .}}

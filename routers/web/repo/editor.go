@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/upload"
@@ -81,7 +82,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	}
 
 	// Check if the filename (and additional path) is specified in the querystring
-	// (filename is a misnomer, but kept for compatibility with Github)
+	// (filename is a misnomer, but kept for compatibility with GitHub)
 	filePath, fileName := path.Split(ctx.Req.URL.Query().Get("filename"))
 	filePath = strings.Trim(filePath, "/")
 	treeNames, treePaths := getParentTreeFields(path.Join(ctx.Repo.TreePath, filePath))
@@ -155,9 +156,8 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	}
 	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
-	ctx.Data["MarkdownFileExts"] = strings.Join(setting.Markdown.FileExtensions, ",")
+	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
-	ctx.Data["PreviewableFileModes"] = strings.Join(setting.Repository.Editor.PreviewableFileModes, ",")
 	ctx.Data["Editorconfig"] = GetEditorConfig(ctx, treePath)
 
 	ctx.HTML(http.StatusOK, tplEditFile)
@@ -165,7 +165,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 // GetEditorConfig returns a editorconfig JSON string for given treePath or "null"
 func GetEditorConfig(ctx *context.Context, treePath string) string {
-	ec, err := ctx.Repo.GetEditorconfig()
+	ec, _, err := ctx.Repo.GetEditorconfig()
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {
@@ -207,9 +207,8 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	ctx.Data["commit_choice"] = form.CommitChoice
 	ctx.Data["new_branch_name"] = form.NewBranchName
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
-	ctx.Data["MarkdownFileExts"] = strings.Join(setting.Markdown.FileExtensions, ",")
+	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
-	ctx.Data["PreviewableFileModes"] = strings.Join(setting.Repository.Editor.PreviewableFileModes, ",")
 	ctx.Data["Editorconfig"] = GetEditorConfig(ctx, form.TreePath)
 
 	if ctx.HasError() {
@@ -326,6 +325,10 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 			}
 			ctx.RenderWithErr(flashError, tplEditFile, &form)
 		}
+	}
+
+	if ctx.Repo.Repository.IsEmpty {
+		_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
 	}
 
 	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) {
@@ -539,7 +542,6 @@ func DeleteFilePost(ctx *context.Context) {
 // UploadFile render upload file page
 func UploadFile(ctx *context.Context) {
 	ctx.Data["PageIsUpload"] = true
-	ctx.Data["RequireTribute"] = true
 	upload.AddUploadContext(ctx, "repo")
 	canCommit := renderCommitRights(ctx)
 	treePath := cleanUploadFileName(ctx.Repo.TreePath)
@@ -574,7 +576,6 @@ func UploadFile(ctx *context.Context) {
 func UploadFilePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UploadRepoFileForm)
 	ctx.Data["PageIsUpload"] = true
-	ctx.Data["RequireTribute"] = true
 	upload.AddUploadContext(ctx, "repo")
 	canCommit := renderCommitRights(ctx)
 
@@ -620,25 +621,25 @@ func UploadFilePost(ctx *context.Context) {
 		return
 	}
 
-	var newTreePath string
-	for _, part := range treeNames {
-		newTreePath = path.Join(newTreePath, part)
-		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(newTreePath)
-		if err != nil {
-			if git.IsErrNotExist(err) {
-				// Means there is no item with that name, so we're good
-				break
+	if !ctx.Repo.Repository.IsEmpty {
+		var newTreePath string
+		for _, part := range treeNames {
+			newTreePath = path.Join(newTreePath, part)
+			entry, err := ctx.Repo.Commit.GetTreeEntryByPath(newTreePath)
+			if err != nil {
+				if git.IsErrNotExist(err) {
+					break // Means there is no item with that name, so we're good
+				}
+				ctx.ServerError("Repo.Commit.GetTreeEntryByPath", err)
+				return
 			}
 
-			ctx.ServerError("Repo.Commit.GetTreeEntryByPath", err)
-			return
-		}
-
-		// User can only upload files to a directory.
-		if !entry.IsDir() {
-			ctx.Data["Err_TreePath"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", part), tplUploadFile, &form)
-			return
+			// User can only upload files to a directory, the directory name shouldn't be an existing file.
+			if !entry.IsDir() {
+				ctx.Data["Err_TreePath"] = true
+				ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", part), tplUploadFile, &form)
+				return
+			}
 		}
 	}
 
@@ -717,6 +718,10 @@ func UploadFilePost(ctx *context.Context) {
 		return
 	}
 
+	if ctx.Repo.Repository.IsEmpty {
+		_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
+	}
+
 	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.Repo.BranchName) + "..." + util.PathEscapeSegments(form.NewBranchName))
 	} else {
@@ -726,7 +731,7 @@ func UploadFilePost(ctx *context.Context) {
 
 func cleanUploadFileName(name string) string {
 	// Rebase the filename
-	name = strings.Trim(util.CleanPath(name), "/")
+	name = util.PathJoinRel(name)
 	// Git disallows any filenames to have a .git directory in them.
 	for _, part := range strings.Split(name, "/") {
 		if strings.ToLower(part) == ".git" {

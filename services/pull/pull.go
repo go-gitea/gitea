@@ -52,7 +52,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 	}
 
 	for _, assigneeID := range assigneeIDs {
-		if err := issue_service.AddAssigneeIfNotAssigned(pull, pull.Poster, assigneeID); err != nil {
+		if err := issue_service.AddAssigneeIfNotAssigned(ctx, pull, pull.Poster, assigneeID); err != nil {
 			return err
 		}
 	}
@@ -122,7 +122,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 			Content:     string(dataJSON),
 		}
 
-		_, _ = issue_service.CreateComment(ops)
+		_, _ = issue_service.CreateComment(ctx, ops)
 	}
 
 	return nil
@@ -221,7 +221,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		OldRef: oldBranch,
 		NewRef: targetBranch,
 	}
-	if _, err = issue_service.CreateComment(options); err != nil {
+	if _, err = issue_service.CreateComment(ctx, options); err != nil {
 		return fmt.Errorf("CreateChangeTargetBranchComment: %w", err)
 	}
 
@@ -257,7 +257,8 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 		// If you don't let it run all the way then you will lose data
 		// TODO: graceful: AddTestPullRequestTask needs to become a queue!
 
-		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repoID, branch, true)
+		// GetUnmergedPullRequestsByHeadInfo() only return open and unmerged PR.
+		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
 		if err != nil {
 			log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repoID, branch, err)
 			return
@@ -496,7 +497,7 @@ func (errs errlist) Error() string {
 
 // CloseBranchPulls close all the pull requests who's head branch is the branch
 func CloseBranchPulls(doer *user_model.User, repoID int64, branch string) error {
-	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repoID, branch, false)
+	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
 	if err != nil {
 		return err
 	}
@@ -532,7 +533,7 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 
 	var errs errlist
 	for _, branch := range branches {
-		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repo.ID, branch.Name, false)
+		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repo.ID, branch.Name)
 		if err != nil {
 			return err
 		}

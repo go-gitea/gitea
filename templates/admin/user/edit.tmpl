@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin edit user">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin edit user")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.users.edit_account"}}
 		</h4>
@@ -45,11 +42,11 @@
 						<div class="menu">
 							{{range $mode := .AllowedUserVisibilityModes}}
 								{{if $mode.IsPublic}}
-									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.locale.Tr "settings.visibility.public"}}</div>
+									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.locale.Tr "settings.visibility.public"}}</div>
 								{{else if $mode.IsLimited}}
-									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.locale.Tr "settings.visibility.limited"}}</div>
+									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.locale.Tr "settings.visibility.limited"}}</div>
 								{{else if $mode.IsPrivate}}
-									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.locale.Tr "settings.visibility.private"}}</div>
+									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.locale.Tr "settings.visibility.private"}}</div>
 								{{end}}
 							{{end}}
 						</div>
@@ -117,7 +114,7 @@
 					</div>
 				</div>
 				<div class="inline field {{if DisableGitHooks}}gt-hidden{{end}}">
-					<div class="ui checkbox tooltip" data-content="{{.locale.Tr "admin.users.allow_git_hook_tooltip"}}">
+					<div class="ui checkbox" data-tooltip-content="{{.locale.Tr "admin.users.allow_git_hook_tooltip"}}">
 						<label><strong>{{.locale.Tr "admin.users.allow_git_hook"}}</strong></label>
 						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
 					</div>
@@ -171,7 +168,7 @@
 				</div>
 				<div class="field {{if .Err_Gravatar}}error{{end}}">
 					<label for="gravatar">Avatar {{.locale.Tr "email"}}</label>
-					<input id="gravatar" name="gravatar" value="{{.User.AvatarEmail}}" />
+					<input id="gravatar" name="gravatar" value="{{.User.AvatarEmail}}">
 				</div>
 				{{end}}
 
@@ -194,10 +191,9 @@
 			</form>
 		</div>
 	</div>
-</div>
 
-<div class="ui small basic delete modal" id="delete-user-modal">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal" id="delete-user-modal">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.delete_account_title"}}
 	</div>
@@ -213,7 +209,8 @@
 			</div>
 			<p class="help">{{.locale.Tr "admin.users.purge_help"}}</p>
 		</div>
-		{{template "base/delete_modal_actions" .}}
+		{{template "base/modal_actions_confirm" .}}
 	</form>
 </div>
-{{template "base/footer" .}}
+
+{{template "admin/layout_footer" .}}

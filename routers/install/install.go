@@ -5,7 +5,6 @@
 package install
 
 import (
-	goctx "context"
 	"fmt"
 	"net/http"
 	"os"
@@ -53,33 +52,32 @@ func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
 	return dbTypeNames
 }
 
-// Init prepare for rendering installation page
-func Init(ctx goctx.Context) func(next http.Handler) http.Handler {
-	_, rnd := templates.HTMLRenderer(ctx)
+// Contexter prepare for rendering installation page
+func Contexter() func(next http.Handler) http.Handler {
+	rnd := templates.HTMLRenderer()
 	dbTypeNames := getSupportedDbTypeNames()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			locale := middleware.Locale(resp, req)
-			startTime := time.Now()
 			ctx := context.Context{
 				Resp:    context.NewResponse(resp),
 				Flash:   &middleware.Flash{},
-				Locale:  locale,
+				Locale:  middleware.Locale(resp, req),
 				Render:  rnd,
+				Data:    middleware.GetContextData(req.Context()),
 				Session: session.GetSession(req),
-				Data: map[string]interface{}{
-					"locale":        locale,
-					"Title":         locale.Tr("install.install"),
-					"PageIsInstall": true,
-					"DbTypeNames":   dbTypeNames,
-					"AllLangs":      translation.AllLangs(),
-					"PageStartTime": startTime,
-
-					"PasswordHashAlgorithms": hash.RecommendedHashAlgorithms,
-				},
 			}
 			defer ctx.Close()
 
+			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
+			ctx.Data.MergeFrom(middleware.ContextData{
+				"locale":        ctx.Locale,
+				"Title":         ctx.Locale.Tr("install.install"),
+				"PageIsInstall": true,
+				"DbTypeNames":   dbTypeNames,
+				"AllLangs":      translation.AllLangs(),
+
+				"PasswordHashAlgorithms": hash.RecommendedHashAlgorithms,
+			})
 			ctx.Req = context.WithContext(req, &ctx)
 			next.ServeHTTP(resp, ctx.Req)
 		})
@@ -559,7 +557,7 @@ func SubmitInstall(ctx *context.Context) {
 		}
 
 		days := 86400 * setting.LogInRememberDays
-		ctx.SetCookie(setting.CookieUserName, u.Name, days)
+		ctx.SetSiteCookie(setting.CookieUserName, u.Name, days)
 
 		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
 			setting.CookieRememberName, u.Name, days)

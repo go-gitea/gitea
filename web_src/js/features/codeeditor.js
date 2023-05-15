@@ -1,4 +1,5 @@
 import {basename, extname, isObject, isDarkTheme} from '../utils.js';
+import {onInputDebounce} from '../utils/dom.js';
 
 const languagesByFilename = {};
 const languagesByExt = {};
@@ -13,7 +14,6 @@ const baseOptions = {
   overviewRulerLanes: 0,
   renderLineHighlight: 'all',
   renderLineHighlightOnlyWhenFocus: true,
-  renderWhitespace: 'none',
   rulers: false,
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6},
   scrollBeyondLastLine: false,
@@ -66,7 +66,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
 
   const container = document.createElement('div');
   container.className = 'monaco-editor-container';
-  textarea.parentNode.appendChild(container);
+  textarea.parentNode.append(container);
 
   // https://github.com/microsoft/monaco-editor/issues/2427
   const styles = window.getComputedStyle(document.documentElement);
@@ -130,23 +130,33 @@ function getFileBasedOptions(filename, lineWrapExts) {
   };
 }
 
-export async function createCodeEditor(textarea, filenameInput, previewFileModes) {
-  const filename = basename(filenameInput.value);
-  const previewLink = document.querySelector('a[data-tab=preview]');
-  const markdownExts = (textarea.getAttribute('data-markdown-file-exts') || '').split(',');
-  const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
-  const isMarkdown = markdownExts.includes(extname(filename));
-  const editorConfig = getEditorconfig(filenameInput);
+function togglePreviewDisplay(previewable) {
+  const previewTab = document.querySelector('a[data-tab="preview"]');
+  if (!previewTab) return;
 
-  if (previewLink) {
-    if (isMarkdown && (previewFileModes || []).includes('markdown')) {
-      const newUrl = (previewLink.getAttribute('data-url') || '').replace(/(.*)\/.*/i, `$1/markdown`);
-      previewLink.setAttribute('data-url', newUrl);
-      previewLink.style.display = '';
-    } else {
-      previewLink.style.display = 'none';
+  if (previewable) {
+    const newUrl = (previewTab.getAttribute('data-url') || '').replace(/(.*)\/.*/, `$1/markup`);
+    previewTab.setAttribute('data-url', newUrl);
+    previewTab.style.display = '';
+  } else {
+    previewTab.style.display = 'none';
+    // If the "preview" tab was active, user changes the filename to a non-previewable one,
+    // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
+    if (previewTab.classList.contains('active')) {
+      const writeTab = document.querySelector('a[data-tab="write"]');
+      writeTab.click();
     }
   }
+}
+
+export async function createCodeEditor(textarea, filenameInput) {
+  const filename = basename(filenameInput.value);
+  const previewableExts = new Set((textarea.getAttribute('data-previewable-extensions') || '').split(','));
+  const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
+  const previewable = previewableExts.has(extname(filename));
+  const editorConfig = getEditorconfig(filenameInput);
+
+  togglePreviewDisplay(previewable);
 
   const {monaco, editor} = await createMonaco(textarea, filename, {
     ...baseOptions,
@@ -154,10 +164,12 @@ export async function createCodeEditor(textarea, filenameInput, previewFileModes
     ...getEditorConfigOptions(editorConfig),
   });
 
-  filenameInput.addEventListener('keyup', () => {
+  filenameInput.addEventListener('input', onInputDebounce(() => {
     const filename = filenameInput.value;
+    const previewable = previewableExts.has(extname(filename));
+    togglePreviewDisplay(previewable);
     updateEditor(monaco, editor, filename, lineWrapExts);
-  });
+  }));
 
   return editor;
 }

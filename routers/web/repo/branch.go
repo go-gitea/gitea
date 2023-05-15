@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -65,21 +66,17 @@ func Branches(ctx *context.Context) {
 	if page <= 1 {
 		page = 1
 	}
+	pageSize := setting.Git.BranchesRangeSize
 
-	limit := ctx.FormInt("limit")
-	if limit <= 0 || limit > setting.Git.BranchesRangeSize {
-		limit = setting.Git.BranchesRangeSize
-	}
-
-	skip := (page - 1) * limit
-	log.Debug("Branches: skip: %d limit: %d", skip, limit)
-	defaultBranchBranch, branches, branchesCount := loadBranches(ctx, skip, limit)
+	skip := (page - 1) * pageSize
+	log.Debug("Branches: skip: %d limit: %d", skip, pageSize)
+	defaultBranchBranch, branches, branchesCount := loadBranches(ctx, skip, pageSize)
 	if ctx.Written() {
 		return
 	}
 	ctx.Data["Branches"] = branches
 	ctx.Data["DefaultBranchBranch"] = defaultBranchBranch
-	pager := context.NewPagination(branchesCount, setting.Git.BranchesRangeSize, page, 5)
+	pager := context.NewPagination(branchesCount, pageSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
@@ -165,7 +162,7 @@ func RestoreBranchPost(ctx *context.Context) {
 
 func redirect(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/branches",
+		"redirect": ctx.Repo.RepoLink + "/branches?page=" + url.QueryEscape(ctx.FormString("page")),
 	})
 }
 

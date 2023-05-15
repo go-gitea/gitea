@@ -21,7 +21,7 @@
 			<div class="gt-df gt-mb-4 gt-fw">
 				<h3 class="gt-mb-0 gt-f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
 				{{if not $.PageIsWiki}}
-					<div class="ui">
+					<div>
 						<a class="ui primary tiny button" href="{{.SourcePath}}">
 							{{.locale.Tr "repo.diff.browse_source"}}
 						</a>
@@ -32,14 +32,14 @@
 									<div class="ui header">{{.locale.Tr "repo.commit.operations"}}</div>
 									<div class="divider"></div>
 									<div class="item show-create-branch-modal"
-										data-content="{{$.locale.Tr "repo.branch.new_branch_from" (.CommitID)}}"
+										data-content="{{$.locale.Tr "repo.branch.new_branch_from" (.CommitID)}}" {{/* used by the form */}}
 										data-branch-from="{{ShortSha .CommitID}}"
 										data-branch-from-urlcomponent="{{.CommitID}}"
 										data-modal="#create-branch-modal">
 										{{.locale.Tr "repo.branch.create_branch_operation"}}
 									</div>
 									<div class="item show-create-branch-modal"
-										data-content="{{$.locale.Tr "repo.branch.new_branch_from" (.CommitID)}}"
+										data-content="{{$.locale.Tr "repo.branch.new_branch_from" (.CommitID)}}" {{/* used by the form */}}
 										data-branch-from="{{ShortSha .CommitID}}"
 										data-branch-from-urlcomponent="{{.CommitID}}"
 										data-modal="#create-tag-modal"
@@ -59,11 +59,11 @@
 										data-modal-cherry-pick-header="{{$.locale.Tr "repo.commit.cherry-pick-header" (ShortSha .CommitID)}}"
 										data-modal-cherry-pick-content="{{$.locale.Tr "repo.commit.cherry-pick-content"}}"
 										data-modal-cherry-pick-submit="{{.locale.Tr "repo.commit.cherry-pick"}}">{{.locale.Tr "repo.commit.cherry-pick"}}</div>
-									<div class="ui basic modal" id="cherry-pick-modal">
-										<div class="ui icon header">
+									<div class="ui g-modal-confirm modal" id="cherry-pick-modal">
+										<div class="header">
 											<span id="cherry-pick-header"></span>
 										</div>
-										<div class="content center">
+										<div class="content">
 											<p id="cherry-pick-content" class="branch-dropdown"></p>
 											{{template "repo/branch_dropdown" dict "root" .
 												"noTag" true "disableCreateBranch" true
@@ -73,7 +73,7 @@
 											<form method="GET" action="{{$.RepoLink}}/_cherrypick/{{.CommitID}}/{{if $.BranchName}}{{PathEscapeSegments $.BranchName}}{{else}}{{PathEscapeSegments $.Repository.DefaultBranch}}{{end}}" id="branch-dropdown-form">
 												<input type="hidden" name="ref" value="{{if $.BranchName}}{{$.BranchName}}{{else}}{{$.Repository.DefaultBranch}}{{end}}">
 												<input type="hidden" name="refType" value="branch">
-												<input type="hidden" id="cherry-pick-type" name="cherry-pick-type"><br/>
+												<input type="hidden" id="cherry-pick-type" name="cherry-pick-type"><br>
 												<button type="submit" id="cherry-pick-submit" class="ui green button"></button>
 											</form>
 										</div>
@@ -216,7 +216,7 @@
 				<div class="gt-df gt-ac">
 					{{if .Verification.Verified}}
 						{{if ne .Verification.SigningUser.ID 0}}
-							{{svg "octicon-shield-check" 16 "gt-mr-3"}}
+							{{svg "octicon-verified" 16 "gt-mr-3"}}
 							{{if .Verification.SigningSSHKey}}
 								<span class="ui text gt-mr-3">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 								{{.Verification.SigningSSHKey.Fingerprint}}
@@ -225,17 +225,17 @@
 								{{.Verification.SigningKey.PaddedKeyID}}
 							{{end}}
 						{{else}}
-							{{svg "octicon-shield-lock" 16 "gt-mr-3"}}
+							{{svg "octicon-unverified" 16 "gt-mr-3"}}
 							{{if .Verification.SigningSSHKey}}
-								<span class="ui text gt-mr-3 tooltip" data-content="{{.locale.Tr "gpg.default_key"}}">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
+								<span class="ui text gt-mr-3" data-tooltip-content="{{.locale.Tr "gpg.default_key"}}">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 								{{.Verification.SigningSSHKey.Fingerprint}}
 							{{else}}
-								<span class="ui text gt-mr-3 tooltip" data-content="{{.locale.Tr "gpg.default_key"}}">{{.locale.Tr "repo.commits.gpg_key_id"}}:</span>
+								<span class="ui text gt-mr-3" data-tooltip-content="{{.locale.Tr "gpg.default_key"}}">{{.locale.Tr "repo.commits.gpg_key_id"}}:</span>
 								{{.Verification.SigningKey.PaddedKeyID}}
 							{{end}}
 						{{end}}
 					{{else if .Verification.Warning}}
-						{{svg "octicon-shield" 16 "gt-mr-3"}}
+						{{svg "octicon-unverified" 16 "gt-mr-3"}}
 						{{if .Verification.SigningSSHKey}}
 							<span class="ui text gt-mr-3">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 							{{.Verification.SigningSSHKey.Fingerprint}}
@@ -246,14 +246,14 @@
 					{{else}}
 						{{if .Verification.SigningKey}}
 							{{if ne .Verification.SigningKey.KeyID ""}}
-								{{svg "octicon-shield" 16 "gt-mr-3"}}
+								{{svg "octicon-verified" 16 "gt-mr-3"}}
 								<span class="ui text gt-mr-3">{{.locale.Tr "repo.commits.gpg_key_id"}}:</span>
 								{{.Verification.SigningKey.PaddedKeyID}}
 							{{end}}
 						{{end}}
 						{{if .Verification.SigningSSHKey}}
 							{{if ne .Verification.SigningSSHKey.Fingerprint ""}}
-								{{svg "octicon-shield" 16 "gt-mr-3"}}
+								{{svg "octicon-verified" 16 "gt-mr-3"}}
 								<span class="ui text gt-mr-3">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 								{{.Verification.SigningSSHKey.Fingerprint}}
 							{{end}}

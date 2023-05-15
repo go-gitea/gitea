@@ -99,6 +99,6 @@ func (l *MultiChannelledLogger) SendLog(level Level, caller, filename string, li
 		time:       time.Now(),
 		stacktrace: stack,
 	}
-	l.LogEvent(event)
+	l.LogEvent(event) //nolint:errcheck
 	return nil
 }

@@ -8,15 +8,32 @@
 	<div class="twelve wide column">
 		<div class="ui comments">
 			<div class="comment">
-				{{template "shared/user/avatarlink" Dict "Context" $.Context "user" .SignedUser}}
+				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .SignedUser}}
 				<div class="ui segment content">
 					<div class="field">
 						<input name="title" id="issue_title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255" autocomplete="off">
 						{{if .PageIsComparePull}}
-							<div class="title_wip_desc" data-wip-prefixes="{{Json .PullRequestWorkInProgressPrefixes}}">{{.locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
+							<div class="title_wip_desc" data-wip-prefixes="{{JsonUtils.EncodeToString .PullRequestWorkInProgressPrefixes}}">{{.locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
 						{{end}}
 					</div>
-					{{template "repo/issue/comment_tab" .}}
+					{{if .Fields}}
+						<input type="hidden" name="template-file" value="{{.TemplateFile}}">
+						{{range .Fields}}
+							{{if eq .Type "input"}}
+								{{template "repo/issue/fields/input" dict "Context" $.Context "item" .}}
+							{{else if eq .Type "markdown"}}
+								{{template "repo/issue/fields/markdown" dict "Context" $.Context "item" .}}
+							{{else if eq .Type "textarea"}}
+								{{template "repo/issue/fields/textarea" dict "Context" $.Context "item" . "root" $}}
+							{{else if eq .Type "dropdown"}}
+								{{template "repo/issue/fields/dropdown" dict "Context" $.Context "item" .}}
+							{{else if eq .Type "checkboxes"}}
+								{{template "repo/issue/fields/checkboxes" dict "Context" $.Context "item" .}}
+							{{end}}
+						{{end}}
+					{{else}}
+						{{template "repo/issue/comment_tab" .}}
+					{{end}}
 					<div class="text right">
 						<button class="ui green button loading-button" tabindex="6">
 							{{if .PageIsComparePull}}
@@ -50,44 +67,7 @@
 					{{end}}
 				</span>
 				<div class="menu">
-					<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_milestone_title"}}</div>
-					{{if or .OpenMilestones .ClosedMilestones}}
-					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestones"}}">
-					</div>
-					{{end}}
-					<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_milestone"}}</div>
-					{{if and (not .OpenMilestones) (not .ClosedMilestones)}}
-						<div class="header" style="text-transform: none;font-size:14px;">
-							{{.locale.Tr "repo.issues.new.no_items"}}
-						</div>
-					{{else}}
-						{{if .OpenMilestones}}
-							<div class="divider"></div>
-							<div class="header">
-								{{.locale.Tr "repo.issues.new.open_milestone"}}
-							</div>
-							{{range .OpenMilestones}}
-								<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">
-									{{svg "octicon-milestone" 16 "gt-mr-2"}}
-									{{.Name}}
-								</a>
-							{{end}}
-						{{end}}
-						{{if .ClosedMilestones}}
-							<div class="divider"></div>
-							<div class="header">
-								{{.locale.Tr "repo.issues.new.closed_milestone"}}
-							</div>
-							{{range .ClosedMilestones}}
-								<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">
-									{{svg "octicon-milestone" 16 "gt-mr-2"}}
-									{{.Name}}
-								</a>
-							{{end}}
-						{{end}}
-					{{end}}
+					{{template "repo/issue/milestone/select_menu" .}}
 				</div>
 			</div>
 			<div class="ui select-milestone list">
@@ -134,8 +114,7 @@
 							</div>
 							{{range .OpenProjects}}
 								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-									{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-									{{.Title}}
+									{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 								</a>
 							{{end}}
 						{{end}}
@@ -146,8 +125,7 @@
 							</div>
 							{{range .ClosedProjects}}
 								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-									{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-									{{.Title}}
+									{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 								</a>
 							{{end}}
 						{{end}}
@@ -159,8 +137,7 @@
 				<div class="selected">
 					{{if .Project}}
 						<a class="item muted sidebar-item-link" href="{{.Project.Link}}">
-							{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-							{{.Project.Title}}
+							{{svg .Project.IconName 18 "gt-mr-3"}}{{.Project.Title}}
 						</a>
 					{{end}}
 				</div>
@@ -186,7 +163,7 @@
 							<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
 								<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
 								<span class="text">
-									{{avatar $.Context . 28 "gt-mr-3"}}{{.GetDisplayName}}
+									{{avatar $.Context . 28 "gt-mr-3"}}{{template "repo/search_name" .}}
 								</span>
 							</a>
 						{{end}}
@@ -206,7 +183,7 @@
 				<div class="ui divider"></div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label class="tooltip" data-content="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
+						<label data-tooltip-content="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
 						<input name="allow_maintainer_edit" type="checkbox" {{if .AllowMaintainerEdit}}checked{{end}}>
 					</div>
 				</div>

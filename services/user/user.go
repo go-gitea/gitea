@@ -6,7 +6,6 @@ package user
 import (
 	"context"
 	"fmt"
-	"image/png"
 	"io"
 	"time"
 
@@ -26,6 +25,22 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/packages"
 )
+
+// RenameUser renames a user
+func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	if err := renameUser(ctx, u, newUserName); err != nil {
+		return err
+	}
+	if err := committer.Commit(); err != nil {
+		return err
+	}
+	return err
+}
 
 // DeleteUser completely and permanently deletes everything of a user,
 // but issues/comments/pulls will be kept and shown as someone has been deleted,
@@ -228,7 +243,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 
 // UploadAvatar saves custom avatar for user.
 func UploadAvatar(u *user_model.User, data []byte) error {
-	m, err := avatar.Prepare(data)
+	avatarData, err := avatar.ProcessAvatarImage(data)
 	if err != nil {
 		return err
 	}
@@ -246,9 +261,7 @@ func UploadAvatar(u *user_model.User, data []byte) error {
 	}
 
 	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, *m); err != nil {
-			log.Error("Encode: %v", err)
-		}
+		_, err := w.Write(avatarData)
 		return err
 	}); err != nil {
 		return fmt.Errorf("Failed to create dir %s: %w", u.CustomAvatarRelativePath(), err)

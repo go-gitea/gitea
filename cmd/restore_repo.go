@@ -4,11 +4,8 @@
 package cmd
 
 import (
-	"errors"
-	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -54,13 +51,12 @@ func runRestoreRepository(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setting.InitProviderFromExistingFile()
-	setting.LoadCommonSettings()
+	setting.Init(&setting.Options{})
 	var units []string
 	if s := c.String("units"); s != "" {
 		units = strings.Split(s, ",")
 	}
-	statusCode, errStr := private.RestoreRepo(
+	extra := private.RestoreRepo(
 		ctx,
 		c.String("repo_dir"),
 		c.String("owner_name"),
@@ -68,10 +64,5 @@ func runRestoreRepository(c *cli.Context) error {
 		units,
 		c.Bool("validation"),
 	)
-	if statusCode == http.StatusOK {
-		return nil
-	}
-
-	log.Fatal("Failed to restore repository: %v", errStr)
-	return errors.New(errStr)
+	return handleCliResponseExtra(extra)
 }
