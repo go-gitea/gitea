@@ -88,7 +88,7 @@
 						</tr>
 					</thead>
 					{{end}}
-					{{if .Repository.IsMirror}}
+					{{if and .Repository.IsMirror .Mirror}}
 					<tbody>
 						<tr>
 							<td>{{(MirrorRemoteAddress $.Context .Repository .Mirror.GetRemoteName false).Address}}</td>
