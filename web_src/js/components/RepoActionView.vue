@@ -623,7 +623,7 @@ export function ansiLogToHTML(line) {
 
   .action-view-left {
     max-width: none;
-    overflow-y: visible;
+    overflow-y: hidden;
   }
 }
 </style>
