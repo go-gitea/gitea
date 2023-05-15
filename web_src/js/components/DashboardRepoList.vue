@@ -70,8 +70,8 @@
       </div>
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
-          <li v-for="repo in repos" :key="repo.id">
-            <a class="repo-list-link gt-df gt-ac gt-sb" :href="repo.link">
+          <li v-for="repo, index in repos" :key="repo.id">
+            <a class="repo-list-link gt-df gt-ac gt-sb ui attached" :class="{'button primary': index === 0}" :href="repo.link">
               <div class="item-name gt-df gt-ac gt-f1">
                 <svg-icon :name="repoIcon(repo)" :size="16" class-name="gt-mr-2"/>
                 <div class="text gt-bold truncate gt-ml-1">{{ repo.full_name }}</div>
@@ -255,6 +255,27 @@ const sfc = {
     $(el).find('.dropdown').dropdown();
     nextTick(() => {
       this.$refs.search.focus();
+      this.$refs.search.addEventListener('keydown', (e) => {
+          const firstItems = document.querySelector('#dashboard-repo-list .repo-owner-name-list a');
+          const activeItem = document.querySelector('#dashboard-repo-list .primary');
+          if (activeItem) {
+            switch (e.key) {
+              case 'Enter':
+                activeItem.click();
+                break;
+              case 'ArrowUp':
+                activeItem.classList.remove('button', 'primary');
+                if (activeItem.closest('li').previousSibling.querySelector) activeItem.closest('li').previousSibling.querySelector('a').classList.add('button', 'primary');
+                else firstItems.classList.add('button', 'primary');
+                break;
+              case 'ArrowDown':
+                activeItem.classList.remove('button', 'primary');
+                if (activeItem.closest('li').nextSibling.querySelector) activeItem.closest('li').nextSibling.querySelector('a').classList.add('button', 'primary');
+                else firstItems.classList.add('button', 'primary');
+                break;
+            }
+          }
+        });
     });
 
     this.textArchivedFilterTitles = {
