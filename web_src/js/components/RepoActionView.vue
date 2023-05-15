@@ -510,6 +510,10 @@ export function ansiLogToHTML(line) {
   align-items: center;
 }
 
+.job-group-section .job-brief-list .job-brief-item:first-of-type {
+  margin-top: 0;
+}
+
 .job-group-section .job-brief-list .job-brief-item .job-brief-rerun {
   cursor: pointer;
   transition: transform 0.2s;
