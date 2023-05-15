@@ -86,7 +86,7 @@ export function initRepoSettingBranches() {
 
   // show the `Matched` mark for the status checks that match the pattern
   const markMatchedStatusChecks = () => {
-    const patterns = document.getElementById('status_check_contexts')?.value.split(/[\r\n]+/);
+    const patterns = (document.getElementById('status_check_contexts')?.value || '').split(/[\r\n]+/);
     const validPatterns = patterns.map((item) => item.trim()).filter(Boolean);
     const marks = document.getElementsByClassName('status-check-matched-mark');
     for (const el of marks) {
