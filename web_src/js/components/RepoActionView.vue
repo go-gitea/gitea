@@ -536,6 +536,7 @@ export function ansiLogToHTML(line) {
 .job-group-section .job-brief-list .job-brief-item .job-brief-link .job-brief-name {
   display: block;
   width: 70%;
+  color: var(--color-text);
 }
 
 .job-group-section .job-brief-list .job-brief-item .job-brief-link:hover {
@@ -548,12 +549,12 @@ export function ansiLogToHTML(line) {
 }
 
 .job-group-section .job-brief-list .job-brief-item:hover {
-  background-color: var(--color-secondary-light-2);
+  background-color: var(--color-secondary);
 }
 
 .job-group-section .job-brief-list .job-brief-item.selected {
   font-weight: 600;
-  background-color: var(--color-secondary);
+  background-color: var(--color-secondary-dark-1);
 }
 
 /* ================ */
