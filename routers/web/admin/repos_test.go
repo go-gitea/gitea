@@ -23,4 +23,5 @@ func TestUpdateRepoPost(t *testing.T) {
 	UpdateRepoPost(ctx)
 
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+
 }
