@@ -18,10 +18,9 @@
 		<div class="item">
 			<div class="right floated content">
 				<i class="color-text-light-2 gt-mr-5">
-					{{$.locale.Tr "settings.add_on"}}
-					<span>{{.CreatedUnix.FormatShort}}</span>
+					{{$.locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}}
 				</i>
-				<button class="ui tertiary button show-modal show-variable-edit-modal gt-mx-3"
+				<button class="ui button button-ghost show-modal show-variable-edit-modal gt-mx-3"
 					data-is-new="false"
 					data-old-name="{{.Name}}"
 					data-old-value="{{.Data}}"
@@ -32,7 +31,7 @@
 				>
 					{{svg "octicon-pencil"}}
 				</button>
-				<button class="ui tertiary button delete-button gt-mx-3"
+				<button class="ui button button-ghost delete-button gt-mx-3"
 					data-url="{{$.Link}}/{{.ID}}/delete"
 					data-tooltip-content="{{$.locale.Tr "actions.variables.delete" .Name}}"
 				>
