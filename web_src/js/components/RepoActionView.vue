@@ -21,10 +21,10 @@
       <div class="action-commit-summary">
         {{ run.commit.localeCommit }}
         <a :href="run.commit.link">{{ run.commit.shortSHA }}</a>
-        &nbsp;<span class="ui label" v-if="run.commit.shortSHA">
+        <span class="ui label" v-if="run.commit.shortSHA">
           <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
         </span>
-        &nbsp;{{ run.commit.localePushedBy }}
+        {{ run.commit.localePushedBy }}
         <a :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
       </div>
     </div>
@@ -453,13 +453,14 @@ export function ansiLogToHTML(line) {
 
 .action-info-summary-title-text {
   font-size: 20px;
-  margin: 0;
-  padding: 0 5px;
+  margin: 0 0 0 5px;
   flex: 1;
 }
 
 .action-commit-summary {
-  padding: 10px;
+  display: flex;
+  gap: 5px;
+  margin: 10px 0px 10px 25px;
 }
 
 /* ================ */
