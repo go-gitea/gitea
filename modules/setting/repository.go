@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -265,12 +266,31 @@ var (
 	RepoArchive = struct {
 		Storage
 	}{}
+
+	EnableSizeLimit       = true
+	RepoSizeLimit   int64 = 0
 )
+
+func SaveGlobalRepositorySetting(enable_size_limit bool, repo_size_limit int64) {
+	EnableSizeLimit = enable_size_limit
+	RepoSizeLimit = repo_size_limit
+	sec := CfgProvider.Section("repository")
+	if EnableSizeLimit {
+		sec.Key("ENABLE_SIZE_LIMIT").SetValue("true")
+	} else {
+		sec.Key("ENABLE_SIZE_LIMIT").SetValue("false")
+	}
+
+	sec.Key("REPO_SIZE_LIMIT").SetValue(strconv.FormatInt(RepoSizeLimit, 10))
+}
 
 func loadRepositoryFrom(rootCfg ConfigProvider) {
 	var err error
+
 	// Determine and create root git repository path.
 	sec := rootCfg.Section("repository")
+	EnableSizeLimit = sec.Key("ENABLE_SIZE_LIMIT").MustBool()
+	RepoSizeLimit = sec.Key("REPO_SIZE_LIMIT").MustInt64(0)
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)

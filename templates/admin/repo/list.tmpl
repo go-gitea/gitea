@@ -1,6 +1,27 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
+			{{.locale.Tr "admin.config.repository_config"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<div class="inline field">
+					<label>{{.locale.Tr "admin.config.enable_size_limit"}}</label>
+					<div class="ui checkbox">
+						<input name="enable_size_limit" type="checkbox" {{if .EnableSizeLimit}}checked{{end}}>
+					</div>
+				</div>
+				<div class="inline field {{if .Err_Repo_Size_Limit}}error{{end}}">
+					<label for="repo_size_limit">{{.locale.Tr "admin.config.repo_size_limit"}}</label>
+					<input id="repo_size_limit" name="repo_size_limit" value="{{.RepoSizeLimit}}">
+				</div>
+				<div class="field">
+					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
+				</div>
+			</form>
+		</div>
+		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.repos.repo_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 			<div class="ui right">
 				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/repos/unadopted">{{.locale.Tr "admin.repos.unadopted"}}</a>

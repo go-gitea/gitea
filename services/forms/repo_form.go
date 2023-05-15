@@ -28,6 +28,12 @@ import (
 //  |____|_  /_______  / |____|   \_______  /_______  /|___| |____|   \_______  /____|_  // ______|
 //         \/        \/                   \/        \/                        \/       \/ \/
 
+// UpdateGlobalRepoFrom for updating global repository setting
+type UpdateGlobalRepoFrom struct {
+	RepoSizeLimit   string
+	EnableSizeLimit bool
+}
+
 // CreateRepoForm form for creating repository
 type CreateRepoForm struct {
 	UID           int64  `binding:"Required"`

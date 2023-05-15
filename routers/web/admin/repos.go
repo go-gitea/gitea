@@ -17,7 +17,9 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
+	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -31,12 +33,46 @@ func Repos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
 	ctx.Data["PageIsAdminRepositories"] = true
 
+	ctx.Data["EnableSizeLimit"] = setting.EnableSizeLimit
+	ctx.Data["RepoSizeLimit"] = base.FileSize(setting.RepoSizeLimit)
+
 	explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
 		Private:          true,
 		PageSize:         setting.UI.Admin.RepoPagingNum,
 		TplName:          tplRepos,
 		OnlyShowRelevant: false,
 	})
+}
+
+func UpdateRepoPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.UpdateGlobalRepoFrom)
+	ctx.Data["Title"] = ctx.Tr("admin.repositories")
+	ctx.Data["PageIsAdminRepositories"] = true
+
+	repo_size_limit, err := base.GetFileSize(form.RepoSizeLimit)
+
+	ctx.Data["EnableSizeLimit"] = form.EnableSizeLimit
+	ctx.Data["RepoSizeLimit"] = form.RepoSizeLimit
+
+	if err != nil {
+		ctx.Data["Err_Repo_Size_Limit"] = true
+		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
+			Private:          true,
+			PageSize:         setting.UI.Admin.RepoPagingNum,
+			TplName:          tplRepos,
+			OnlyShowRelevant: false,
+		})
+		return
+	}
+
+	setting.SaveGlobalRepositorySetting(form.EnableSizeLimit, repo_size_limit)
+	ctx.Flash.Success(ctx.Tr("admin.config.repository_setting_success"))
+
+	ctx.Data["RepoSizeLimit"] = base.FileSize(setting.RepoSizeLimit)
+
+	ctx.Flash.Success(ctx.Tr("admin.config.repository_setting_success"))
+	ctx.Redirect(setting.AppSubURL + "/admin/repos")
+
 }
 
 // DeleteRepo delete one repository

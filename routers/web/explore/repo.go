@@ -141,6 +141,11 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	pager.AddParamString(relevantReposOnlyParam, fmt.Sprint(opts.OnlyShowRelevant))
 	ctx.Data["Page"] = pager
 
+	if ctx.Data["Err_Repo_Size_Limit"] != nil {
+		ctx.RenderWithErr(ctx.Tr("admin.config.invalid_repo_size"), opts.TplName, nil)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, opts.TplName)
 }
 
