@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.js';
-import {onInputDebounce} from '../utils/dom.js';
+import {onInputDebounce, toggleElem} from '../utils/dom.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -99,11 +99,8 @@ export function initRepoSettingBranches() {
           break;
         }
       }
-      if (matched) {
-        el.classList.remove('gt-hidden');
-      } else {
-        el.classList.add('gt-hidden');
-      }
+
+      toggleElem(el, matched);
     }
   };
   markMatchedStatusChecks();
