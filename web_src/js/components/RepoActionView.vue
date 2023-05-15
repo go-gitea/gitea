@@ -38,7 +38,7 @@
                 <span class="job-brief-name gt-mx-3 gt-ellipsis">{{ job.name }}</span>
               </a>
               <span class="job-brief-info">
-                <SvgIcon name="octicon-sync" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-show="job.canRerun && onHoverRerunIndex === job.id"/>
+                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-show="job.canRerun && onHoverRerunIndex === job.id"/>
                 <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
             </div>
