@@ -97,7 +97,8 @@ adduser \
    --shell /bin/bash \
    --comment 'Git Version Control' \
    --gid git \
-   --home /home/git \
+   --home-dir /home/git \
+   --create-home \
    git
 ```
 
