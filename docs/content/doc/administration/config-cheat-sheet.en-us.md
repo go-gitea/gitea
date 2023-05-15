@@ -112,6 +112,9 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `ALLOW_DELETION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to delete unadopted repositories
 - `DISABLE_DOWNLOAD_SOURCE_ARCHIVES`: **false**: Don't allow download source archive files from UI
 - `ALLOW_FORK_WITHOUT_MAXIMUM_LIMIT`: **true**: Allow fork repositories without maximum number limit
+- `ENABLE_SIZE_LIMIT`: **false**: Enable global per repository size
+limit defined in `REPO_SIZE_LIMIT` or at the repository itself.
+- `REPO_SIZE_LIMIT`: **0**: The global default size limit to apply per repository in bytes when `ENABLE_SIZE_LIMIT` is `true`. Value `0` - no limit. The repository limit set via user interface by admin takes precedence over this value.
 
 ### Repository - Editor (`repository.editor`)
 
