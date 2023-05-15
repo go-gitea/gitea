@@ -128,7 +128,6 @@ func UpdateVariable(ctx context.Context, variable *ActionVariable) (bool, error)
 		return false, err
 	}
 	count, err := db.GetEngine(ctx).ID(variable.ID).Cols("name", "data").
-		Where("owner_id = ? and repo_id = ?", variable.OwnerID, variable.RepoID).
 		Update(&ActionVariable{
 			Name: variable.Name,
 			Data: variable.Data,
