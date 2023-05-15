@@ -251,6 +251,7 @@ const sfc = {
 
   mounted() {
     const el = document.getElementById('dashboard-repo-list');
+    const activeClass = ['button', 'primary'];
     this.changeReposFilter(this.reposFilter);
     $(el).find('.dropdown').dropdown();
     nextTick(() => {
@@ -266,14 +267,14 @@ const sfc = {
               activeItem.click();
               break;
             case 'ArrowUp':
-              activeItem.classList.remove('button', 'primary');
-              if (activeItem.closest('li').previousSibling.querySelector) activeItem.closest('li').previousSibling.querySelector('a').classList.add('button', 'primary');
-              else firstItems.classList.add('button', 'primary');
+              activeItem.classList.remove(...activeClass);
+              if (activeItem.closest('li').previousSibling.querySelector) activeItem.closest('li').previousSibling.querySelector('a').classList.add(...activeClass);
+              else firstItems.classList.add(...activeClass);
               break;
             case 'ArrowDown':
-              activeItem.classList.remove('button', 'primary');
-              if (activeItem.closest('li').nextSibling.querySelector) activeItem.closest('li').nextSibling.querySelector('a').classList.add('button', 'primary');
-              else firstItems.classList.add('button', 'primary');
+              activeItem.classList.remove(...activeClass);
+              if (activeItem.closest('li').nextSibling.querySelector) activeItem.closest('li').nextSibling.querySelector('a').classList.add(...activeClass);
+              else firstItems.classList.add(...activeClass);
               break;
             case 'ArrowRight':
               if (rightPage && !rightPage.parentElement.classList.contains('disabled')) rightPage.parentElement.click();
