@@ -89,6 +89,7 @@ export function initRepoSettingBranches() {
     const patterns = (document.getElementById('status_check_contexts')?.value || '').split(/[\r\n]+/);
     const validPatterns = patterns.map((item) => item.trim()).filter(Boolean);
     const marks = document.getElementsByClassName('status-check-matched-mark');
+
     for (const el of marks) {
       let matched = false;
       const statusCheck = el.getAttribute('data-status-check');
