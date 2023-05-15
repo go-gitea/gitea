@@ -338,6 +338,9 @@ a {
   text-decoration-skip-ink: all;
 }
 
+/* muted link = uncolored unless hovered */
+/* silenced link = never colored */
+
 a.muted,
 a.silenced,
 .muted-links a {
