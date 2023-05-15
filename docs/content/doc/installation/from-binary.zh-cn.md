@@ -77,7 +77,7 @@ git --version
 adduser \
    --system \
    --shell /bin/bash \
-   --gecos 'Git Version Control' \
+   --comment 'Git Version Control' \
    --group \
    --disabled-password \
    --home /home/git \

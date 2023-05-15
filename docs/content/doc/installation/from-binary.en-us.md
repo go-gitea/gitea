@@ -83,7 +83,7 @@ Create a user to run Gitea (e.g. `git`)
 adduser \
    --system \
    --shell /bin/bash \
-   --gecos 'Git Version Control' \
+   --comment 'Git Version Control' \
    --group \
    --disabled-password \
    --home /home/git \
