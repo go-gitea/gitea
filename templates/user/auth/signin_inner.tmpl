@@ -67,6 +67,8 @@
 								{{svg "octicon-mark-github" 40}}
 							{{else if eq $provider.Name "gitlab"}}
 								{{svg "gitea-gitlab" 40}}
+							{{else if eq $provider.Name "openidConnect"}}
+								{{svg "gitea-openid" 40}}
 							{{else}}
 								<img
 									class="gt-object-contain"
