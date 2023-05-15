@@ -80,11 +80,12 @@ git --version
 Create a user to run Gitea (e.g. `git`)
 
 ```sh
+groupadd git
 adduser \
    --system \
    --shell /bin/bash \
    --comment 'Git Version Control' \
-   --group \
+   --gid git \
    --disabled-password \
    --home /home/git \
    git

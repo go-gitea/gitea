@@ -74,11 +74,12 @@ git --version
 创建用户（推荐使用名称 `git`）
 
 ```sh
+groupadd git
 adduser \
    --system \
    --shell /bin/bash \
    --comment 'Git Version Control' \
-   --group \
+   --gid git \
    --disabled-password \
    --home /home/git \
    git
