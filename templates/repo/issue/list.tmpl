@@ -19,7 +19,7 @@
 							<div class="pinned-issue-icon">
 								{{template "shared/issueicon" .}}
 							</div>
-							<a class="pinned-issue-title muted" href="{{.Link}}">{{.Title}}</a>
+							<a class="pinned-issue-title muted issue-title" href="{{.Link}}">{{.Title | RenderEmoji $.Context | RenderCodeBlock}}</a>
 							{{if $.IsRepoAdmin}}
 								<a role="button" class="pinned-issue-unpin muted gt-df gt-ac" data-tooltip-content={{$.locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Link}}/unpin/{{.ID}}">
 									{{svg "octicon-x" 16}}
