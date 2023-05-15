@@ -9,7 +9,7 @@ parserOptions:
   ecmaVersion: latest
 
 plugins:
-  - "@eslint-community/eslint-comments"
+  - "@eslint-community/eslint-plugin-eslint-comments"
   - eslint-plugin-custom-elements
   - eslint-plugin-import
   - eslint-plugin-jquery
