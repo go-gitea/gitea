@@ -23,17 +23,16 @@ var Indexer = struct {
 	IssueIndexerName string
 	StartupTimeout   time.Duration
 
-	RepoIndexerEnabled     bool
-	RepoIndexerSkipForks   bool
-	RepoIndexerSkipMirrors bool
-	RepoType               string
-	RepoPath               string
-	RepoConnStr            string
-	RepoIndexerName        string
-	MaxIndexerFileSize     int64
-	IncludePatterns        []glob.Glob
-	ExcludePatterns        []glob.Glob
-	ExcludeVendored        bool
+	RepoIndexerEnabled bool
+	RepoIndexerUnits   []string
+	RepoType           string
+	RepoPath           string
+	RepoConnStr        string
+	RepoIndexerName    string
+	MaxIndexerFileSize int64
+	IncludePatterns    []glob.Glob
+	ExcludePatterns    []glob.Glob
+	ExcludeVendored    bool
 }{
 	IssueType:        "bleve",
 	IssuePath:        "indexers/issues.bleve",
@@ -41,15 +40,14 @@ var Indexer = struct {
 	IssueConnAuth:    "",
 	IssueIndexerName: "gitea_issues",
 
-	RepoIndexerEnabled:     false,
-	RepoIndexerSkipForks:   false,
-	RepoIndexerSkipMirrors: false,
-	RepoType:               "bleve",
-	RepoPath:               "indexers/repos.bleve",
-	RepoConnStr:            "",
-	RepoIndexerName:        "gitea_codes",
-	MaxIndexerFileSize:     1024 * 1024,
-	ExcludeVendored:        true,
+	RepoIndexerEnabled: false,
+	RepoIndexerUnits:   []string{"repo", "fork", "mirror"},
+	RepoType:           "bleve",
+	RepoPath:           "indexers/repos.bleve",
+	RepoConnStr:        "",
+	RepoIndexerName:    "gitea_codes",
+	MaxIndexerFileSize: 1024 * 1024,
+	ExcludeVendored:    true,
 }
 
 func loadIndexerFrom(rootCfg ConfigProvider) {
@@ -75,8 +73,7 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 	Indexer.IssueIndexerName = sec.Key("ISSUE_INDEXER_NAME").MustString(Indexer.IssueIndexerName)
 
 	Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_ENABLED").MustBool(false)
-	Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_SKIP_FORKS").MustBool(false)
-	Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_SKIP_MIRRORS").MustBool(false)
+	Indexer.RepoIndexerUnits = sec.Key("REPO_INDEXER_UNITS").Strings(",")
 	Indexer.RepoType = sec.Key("REPO_INDEXER_TYPE").MustString("bleve")
 	Indexer.RepoPath = filepath.ToSlash(sec.Key("REPO_INDEXER_PATH").MustString(filepath.ToSlash(filepath.Join(AppDataPath, "indexers/repos.bleve"))))
 	if !filepath.IsAbs(Indexer.RepoPath) {

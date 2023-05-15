@@ -82,6 +82,18 @@ type IndexerData struct {
 
 var indexerQueue *queue.WorkerPoolQueue[*IndexerData]
 
+// https://play.golang.org/p/Qg_uv_inCek
+// contains checks if a string is present in a slice
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
+}
+
 func index(ctx context.Context, indexer Indexer, repoID int64) error {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if repo_model.IsErrRepoNotExist(err) {
@@ -91,13 +103,24 @@ func index(ctx context.Context, indexer Indexer, repoID int64) error {
 		return err
 	}
 
-	// skip forks from being indexed if setting is enabled
-	if setting.Indexer.RepoIndexerSkipForks && repo.IsFork {
+	units := setting.Indexer.RepoIndexerUnits
+
+	if len(units) == 0 {
+		units = []string{"repo"}
+	}
+
+	// skip forks from being indexed if unit is not present
+	if !contains(units, "fork") && repo.IsFork {
 		return nil
 	}
 
-	// skip mirrors from being indexed if setting is enabled
-	if setting.Indexer.RepoIndexerSkipMirrors && repo.IsMirror {
+	// skip mirrors from being indexed if unit is not present
+	if !contains(units, "mirror") && repo.IsMirror {
+		return nil
+	}
+
+	// skip regular repos from being indexed if unit is not present
+	if !contains(units, "repo") && !repo.IsFork && !repo.IsMirror {
 		return nil
 	}
 
