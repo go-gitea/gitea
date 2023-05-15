@@ -32,7 +32,7 @@
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <div class="job-brief-item" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id"  @mouseleave="onHoverRerunIndex = -1">
+            <div class="job-brief-item" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id" @mouseleave="onHoverRerunIndex = -1">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="job-brief-name gt-mx-3 gt-ellipsis">{{ job.name }}</span>
@@ -215,7 +215,7 @@ const sfc = {
       const currentToggledStep = this.currentJobStepsStates[idx];
       currentToggledStep.expanded = !currentToggledStep.expanded;
       if (currentToggledStep.expanded) {
-        // If the job is done and the job step is expanded for the first time,
+        // If the job is done and the job step log is expanded for the first time,
         // wait for fetching job and show the loading icon
         if (this.isDone(this.run.status) && currentToggledStep.isInitialExpand) {
           currentToggledStep.isInitialExpand = false;
@@ -595,6 +595,7 @@ export function ansiLogToHTML(line) {
   padding: 5px 10px;
   display: flex;
   align-items: center;
+  user-select: none;
 }
 
 .job-step-container .job-step-summary .step-summary-msg {
