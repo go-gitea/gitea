@@ -525,9 +525,14 @@ export function ansiLogToHTML(line) {
 
 .job-group-section .job-brief-list .job-brief-item .job-brief-link {
   display: flex;
-  width: 80%;
+  width: 100%;
 }
 
+@media (max-width: 992px) {
+  .job-group-section .job-brief-list .job-brief-item .job-brief-link {
+    width: 80%;
+  }
+}
 .job-group-section .job-brief-list .job-brief-item .job-brief-link span {
   display: flex;
   align-items: center;
