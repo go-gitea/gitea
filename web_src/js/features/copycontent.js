@@ -10,7 +10,7 @@ export function initCopyContent() {
 
   btn.addEventListener('click', async () => {
     if (btn.classList.contains('is-loading')) return;
-    let content, isImage;
+    let content, isRasterImage;
     const link = btn.getAttribute('data-link');
 
     // when data-link is present, we perform a fetch. this is either because
@@ -23,7 +23,7 @@ export function initCopyContent() {
         const contentType = res.headers.get('content-type');
 
         if (contentType.startsWith('image/') && !contentType.startsWith('image/svg')) {
-          isImage = true;
+          isRasterImage = true;
           content = await res.blob();
         } else {
           content = await res.text();
@@ -43,7 +43,7 @@ export function initCopyContent() {
     if (success) {
       showTemporaryTooltip(btn, i18n.copy_success);
     } else {
-      if (isImage) {
+      if (isRasterImage) {
         const success = await clippie(await convertImage(content, 'image/png'));
         showTemporaryTooltip(btn, success ? i18n.copy_success : i18n.copy_error);
       } else {
