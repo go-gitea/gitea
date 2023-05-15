@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.js';
+import {onInputDebounce} from '../utils/dom.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -86,7 +87,7 @@ export function initRepoSettingBranches() {
   // show the `Matched` mark for the status checks that match the pattern
   const markMatchedStatusChecks = () => {
     const patterns = document.getElementById('status_check_contexts')?.value.split(/[\r\n]+/);
-    const validPatterns = patterns.map((item) => item.trim()).filter((item) => item.length > 0);
+    const validPatterns = patterns.map((item) => item.trim()).filter(Boolean);
     const marks = document.getElementsByClassName('status-check-matched-mark');
     for (const el of marks) {
       let matched = false;
@@ -105,5 +106,5 @@ export function initRepoSettingBranches() {
     }
   };
   markMatchedStatusChecks();
-  document.getElementById('status_check_contexts')?.addEventListener('input', markMatchedStatusChecks);
+  document.getElementById('status_check_contexts')?.addEventListener('input', onInputDebounce(markMatchedStatusChecks));
 }
