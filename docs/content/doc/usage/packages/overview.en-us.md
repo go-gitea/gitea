@@ -27,6 +27,7 @@ The following package managers are currently supported:
 
 | Name | Language | Package client |
 | ---- | -------- | -------------- |
+| [Alpine]({{< relref "doc/usage/packages/alpine.en-us.md" >}}) | - | `apk` |
 | [Cargo]({{< relref "doc/usage/packages/cargo.en-us.md" >}}) | Rust | `cargo` |
 | [Chef]({{< relref "doc/usage/packages/chef.en-us.md" >}}) | - | `knife` |
 | [Composer]({{< relref "doc/usage/packages/composer.en-us.md" >}}) | PHP | `composer` |

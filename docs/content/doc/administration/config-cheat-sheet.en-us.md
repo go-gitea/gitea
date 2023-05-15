@@ -792,9 +792,10 @@ and
 - `AVATAR_STORAGE_TYPE`: **default**: Storage type defined in `[storage.xxx]`. Default is `default` which will read `[storage]` if no section `[storage]` will be a type `local`.
 - `AVATAR_UPLOAD_PATH`: **data/avatars**: Path to store user avatar image files.
 - `AVATAR_MAX_WIDTH`: **4096**: Maximum avatar image width in pixels.
-- `AVATAR_MAX_HEIGHT`: **3072**: Maximum avatar image height in pixels.
-- `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): Maximum avatar image file size in bytes.
-- `AVATAR_RENDERED_SIZE_FACTOR`: **3**: The multiplication factor for rendered avatar images. Larger values result in finer rendering on HiDPI devices.
+- `AVATAR_MAX_HEIGHT`: **4096**: Maximum avatar image height in pixels.
+- `AVATAR_MAX_FILE_SIZE`: **1048576** (1MiB): Maximum avatar image file size in bytes.
+- `AVATAR_MAX_ORIGIN_SIZE`: **262144** (256KiB): If the uploaded file is not larger than this byte size, the image will be used as is, without resizing/converting.
+- `AVATAR_RENDERED_SIZE_FACTOR`: **2**: The multiplication factor for rendered avatar images. Larger values result in finer rendering on HiDPI devices.
 
 - `REPOSITORY_AVATAR_STORAGE_TYPE`: **default**: Storage type defined in `[storage.xxx]`. Default is `default` which will read `[storage]` if no section `[storage]` will be a type `local`.
 - `REPOSITORY_AVATAR_UPLOAD_PATH`: **data/repo-avatars**: Path to store repository avatar image files.
@@ -1018,7 +1019,7 @@ Default templates for project boards:
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
 - `SCHEDULE`: **@every 168h**: Cron syntax to set how often to check.
-- `OLDER_THAN`: **@every 8760h**: any action older than this expression will be deleted from database, suggest using `8760h` (1 year) because that's the max length of heatmap.
+- `OLDER_THAN`: **8760h**: any action older than this expression will be deleted from database, suggest using `8760h` (1 year) because that's the max length of heatmap.
 
 #### Cron -  Check for new Gitea versions (`cron.update_checker`)
 
@@ -1034,7 +1035,7 @@ Default templates for project boards:
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
 - `SCHEDULE`: **@every 168h**: Cron syntax to set how often to check.
-- `OLDER_THAN`: **@every 8760h**: any system notice older than this expression will be deleted from database.
+- `OLDER_THAN`: **8760h**: any system notice older than this expression will be deleted from database.
 
 #### Cron -  Garbage collect LFS pointers in repositories (`cron.gc_lfs`)
 
@@ -1213,6 +1214,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `CHUNKED_UPLOAD_PATH`: **tmp/package-upload**: Path for chunked uploads. Defaults to `APP_DATA_PATH` + `tmp/package-upload`
 - `LIMIT_TOTAL_OWNER_COUNT`: **-1**: Maximum count of package versions a single owner can have (`-1` means no limits)
 - `LIMIT_TOTAL_OWNER_SIZE`: **-1**: Maximum size of packages a single owner can use (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_ALPINE`: **-1**: Maximum size of an Alpine upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_CARGO`: **-1**: Maximum size of a Cargo upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_CHEF`: **-1**: Maximum size of a Chef upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_COMPOSER`: **-1**: Maximum size of a Composer upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
@@ -1221,6 +1223,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `LIMIT_SIZE_CONTAINER`: **-1**: Maximum size of a Container upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_DEBIAN`: **-1**: Maximum size of a Debian upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_GENERIC`: **-1**: Maximum size of a Generic upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_GO`: **-1**: Maximum size of a Go upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_HELM`: **-1**: Maximum size of a Helm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_MAVEN`: **-1**: Maximum size of a Maven upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_NPM`: **-1**: Maximum size of a npm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
