@@ -4,11 +4,6 @@ import {convertImage} from '../utils.js';
 
 const {i18n} = window.config;
 
-async function doCopy(content, btn) {
-  const success = await clippie(content);
-  showTemporaryTooltip(btn, success ? i18n.copy_success : i18n.copy_error);
-}
-
 export function initCopyContent() {
   const btn = document.getElementById('copy-content');
   if (!btn || btn.classList.contains('disabled')) return;
@@ -43,15 +38,14 @@ export function initCopyContent() {
       content = Array.from(lineEls).map((el) => el.textContent).join('');
     }
 
-    try {
-      await doCopy(content, btn);
-    } catch {
-      if (isImage) { // convert image to png as last-resort as some browser only support png copy
-        try {
-          await doCopy(await convertImage(content, 'image/png'), btn);
-        } catch {
-          showTemporaryTooltip(btn, i18n.copy_error);
-        }
+    // try copy original first, if that fails and it's an image, convert it to png
+    const success = await clippie(content);
+    if (success) {
+      showTemporaryTooltip(btn, i18n.copy_success);
+    } else {
+      if (isImage) {
+        const success = await clippie(await convertImage(content, 'image/png'));
+        showTemporaryTooltip(btn, success ? i18n.copy_success : i18n.copy_error);
       } else {
         showTemporaryTooltip(btn, i18n.copy_error);
       }
