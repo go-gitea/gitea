@@ -26,8 +26,6 @@
   avatar: avatar1
   avatar_email: user1@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 0
   num_teams: 0
@@ -63,8 +61,6 @@
   avatar: avatar2
   avatar_email: user2@example.com
   use_custom_avatar: false
-  num_followers: 2
-  num_following: 1
   num_stars: 2
   num_repos: 13
   num_teams: 0
@@ -100,8 +96,6 @@
   avatar: avatar3
   avatar_email: user3@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 3
   num_teams: 5
@@ -137,8 +131,6 @@
   avatar: avatar4
   avatar_email: user4@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 1
   num_stars: 0
   num_repos: 0
   num_teams: 0
@@ -174,8 +166,6 @@
   avatar: avatar5
   avatar_email: user5@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 1
   num_teams: 0
@@ -211,8 +201,6 @@
   avatar: avatar6
   avatar_email: user6@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 0
   num_teams: 2
@@ -248,8 +236,6 @@
   avatar: avatar7
   avatar_email: user7@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 0
   num_teams: 1
@@ -285,8 +271,6 @@
   avatar: avatar8
   avatar_email: user8@example.com
   use_custom_avatar: false
-  num_followers: 1
-  num_following: 1
   num_stars: 0
   num_repos: 0
   num_teams: 0
@@ -322,8 +306,6 @@
   avatar: avatar9
   avatar_email: user9@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 0
   num_teams: 0
@@ -359,8 +341,6 @@
   avatar: avatar10
   avatar_email: user10@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 3
   num_teams: 0
@@ -396,8 +376,6 @@
   avatar: avatar11
   avatar_email: user11@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 1
   num_teams: 0
@@ -433,8 +411,6 @@
   avatar: avatar12
   avatar_email: user12@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 1
   num_teams: 0
@@ -470,8 +446,6 @@
   avatar: avatar13
   avatar_email: user13@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 1
   num_teams: 0
@@ -507,8 +481,6 @@
   avatar: avatar14
   avatar_email: user13@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 3
   num_teams: 0
@@ -544,8 +516,6 @@
   avatar: avatar15
   avatar_email: user15@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 4
   num_teams: 0
@@ -581,8 +551,6 @@
   avatar: avatar16
   avatar_email: user16@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 2
   num_teams: 0
@@ -618,8 +586,6 @@
   avatar: avatar17
   avatar_email: user17@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 2
   num_teams: 3
@@ -655,8 +621,6 @@
   avatar: avatar18
   avatar_email: user18@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 0
   num_teams: 0
@@ -692,8 +656,6 @@
   avatar: avatar19
   avatar_email: user19@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 2
   num_teams: 1
@@ -729,8 +691,6 @@
   avatar: avatar20
   avatar_email: user20@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 4
   num_teams: 0
@@ -766,8 +726,6 @@
   avatar: avatar21
   avatar_email: user21@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 2
   num_teams: 0
@@ -803,8 +761,6 @@
   avatar: avatar22
   avatar_email: limited_org@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 2
   num_teams: 1
@@ -840,8 +796,6 @@
   avatar: avatar23
   avatar_email: privated_org@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 2
   num_teams: 2
@@ -877,8 +831,6 @@
   avatar: avatar24
   avatar_email: user24@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 0
   num_teams: 0
@@ -914,8 +866,6 @@
   avatar: avatar25
   avatar_email: org25@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 0
   num_teams: 1
@@ -951,8 +901,6 @@
   avatar: avatar26
   avatar_email: org26@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 4
   num_teams: 1
@@ -988,8 +936,6 @@
   avatar: avatar27
   avatar_email: user27@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 3
   num_teams: 0
@@ -1025,8 +971,6 @@
   avatar: avatar28
   avatar_email: user28@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 0
   num_teams: 0
@@ -1062,8 +1006,6 @@
   avatar: avatar29
   avatar_email: user29@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 0
   num_teams: 0
@@ -1099,8 +1041,6 @@
   avatar: avatar29
   avatar_email: user30@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 4
   num_teams: 0
@@ -1136,8 +1076,6 @@
   avatar: avatar31
   avatar_email: user31@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 1
   num_stars: 0
   num_repos: 0
   num_teams: 0
@@ -1173,8 +1111,6 @@
   avatar: avatar32
   avatar_email: user30@example.com
   use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 0
   num_teams: 0
@@ -1210,8 +1146,6 @@
   avatar: avatar33
   avatar_email: user33@example.com
   use_custom_avatar: false
-  num_followers: 1
-  num_following: 0
   num_stars: 0
   num_repos: 0
   num_teams: 0
@@ -1248,8 +1182,6 @@
   avatar: avatar34
   avatar_email: user34@example.com
   use_custom_avatar: true
-  num_followers: 0
-  num_following: 0
   num_stars: 0
   num_repos: 0
   num_teams: 0
