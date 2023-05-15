@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -23,12 +22,11 @@ var _ Indexer = &ElasticSearchIndexer{}
 
 // ElasticSearchIndexer implements Indexer interface
 type ElasticSearchIndexer struct {
-	client               *elastic.Client
-	indexerName          string
-	available            bool
-	availabilityCallback func(bool)
-	stopTimer            chan struct{}
-	lock                 sync.RWMutex
+	client      *elastic.Client
+	indexerName string
+	available   bool
+	stopTimer   chan struct{}
+	lock        sync.RWMutex
 }
 
 type elasticLogger struct {
@@ -137,13 +135,6 @@ func (b *ElasticSearchIndexer) Init() (bool, error) {
 		return false, nil
 	}
 	return true, nil
-}
-
-// SetAvailabilityChangeCallback sets callback that will be triggered when availability changes
-func (b *ElasticSearchIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-	b.availabilityCallback = callback
 }
 
 // Ping checks if elastic is available
@@ -306,8 +297,4 @@ func (b *ElasticSearchIndexer) setAvailability(available bool) {
 	}
 
 	b.available = available
-	if b.availabilityCallback != nil {
-		// Call the callback from within the lock to ensure that the ordering remains correct
-		b.availabilityCallback(b.available)
-	}
 }

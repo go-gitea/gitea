@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user_test
 
@@ -163,7 +162,7 @@ func TestMakeEmailPrimary(t *testing.T) {
 	err = user_model.MakeEmailPrimary(email)
 	assert.NoError(t, err)
 
-	user, _ := user_model.GetUserByID(int64(10))
+	user, _ := user_model.GetUserByID(db.DefaultContext, int64(10))
 	assert.Equal(t, "user101@example.com", user.Email)
 }
 

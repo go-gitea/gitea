@@ -1,10 +1,10 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // This is primarily coped from /tests/integration/integration_test.go
 //   TODO: Move common functions to shared file
 
+//nolint:forbidigo
 package e2e
 
 import (
@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
@@ -58,7 +59,7 @@ func TestMain(m *testing.M) {
 
 	exitVal := m.Run()
 
-	tests.WriterCloser.Reset()
+	testlogger.WriterCloser.Reset()
 
 	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("util.RemoveAll: %v\n", err)

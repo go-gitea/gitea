@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -15,11 +14,15 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
+	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -84,12 +87,13 @@ func ListPackages(ctx *context.Context) {
 		return
 	}
 
+	shared_user.RenderUserHeader(ctx)
+
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
+	ctx.Data["AvailableTypes"] = packages_model.TypeList
 	ctx.Data["HasPackages"] = hasPackages
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
@@ -156,11 +160,58 @@ func RedirectToLastVersion(ctx *context.Context) {
 func ViewPackageVersion(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
+	shared_user.RenderUserHeader(ctx)
+
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
+
+	switch pd.Package.Type {
+	case packages_model.TypeContainer:
+		ctx.Data["RegistryHost"] = setting.Packages.RegistryHost
+	case packages_model.TypeAlpine:
+		branches := make(container.Set[string])
+		repositories := make(container.Set[string])
+		architectures := make(container.Set[string])
+
+		for _, f := range pd.Files {
+			for _, pp := range f.Properties {
+				switch pp.Name {
+				case alpine_module.PropertyBranch:
+					branches.Add(pp.Value)
+				case alpine_module.PropertyRepository:
+					repositories.Add(pp.Value)
+				case alpine_module.PropertyArchitecture:
+					architectures.Add(pp.Value)
+				}
+			}
+		}
+
+		ctx.Data["Branches"] = branches.Values()
+		ctx.Data["Repositories"] = repositories.Values()
+		ctx.Data["Architectures"] = architectures.Values()
+	case packages_model.TypeDebian:
+		distributions := make(container.Set[string])
+		components := make(container.Set[string])
+		architectures := make(container.Set[string])
+
+		for _, f := range pd.Files {
+			for _, pp := range f.Properties {
+				switch pp.Name {
+				case debian_module.PropertyDistribution:
+					distributions.Add(pp.Value)
+				case debian_module.PropertyComponent:
+					components.Add(pp.Value)
+				case debian_module.PropertyArchitecture:
+					architectures.Add(pp.Value)
+				}
+			}
+		}
+
+		ctx.Data["Distributions"] = distributions.Values()
+		ctx.Data["Components"] = components.Values()
+		ctx.Data["Architectures"] = architectures.Values()
+	}
 
 	var (
 		total int64
@@ -169,8 +220,6 @@ func ViewPackageVersion(ctx *context.Context) {
 	)
 	switch pd.Package.Type {
 	case packages_model.TypeContainer:
-		ctx.Data["RegistryHost"] = setting.Packages.RegistryHost
-
 		pvs, total, err = container_model.SearchImageTags(ctx, &container_model.ImageTagsSearchOptions{
 			Paginator: db.NewAbsoluteListOptions(0, 5),
 			PackageID: pd.Package.ID,
@@ -182,10 +231,6 @@ func ViewPackageVersion(ctx *context.Context) {
 			PackageID:  pd.Package.ID,
 			IsInternal: util.OptionalBoolFalse,
 		})
-		if err != nil {
-			ctx.ServerError("SearchVersions", err)
-			return
-		}
 	}
 	if err != nil {
 		ctx.ServerError("", err)
@@ -235,10 +280,10 @@ func ListPackageVersions(ctx *context.Context) {
 	query := ctx.FormTrim("q")
 	sort := ctx.FormTrim("sort")
 
+	shared_user.RenderUserHeader(ctx)
+
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = &packages_model.PackageDescriptor{
 		Package: p,
 		Owner:   ctx.Package.Owner,
@@ -311,10 +356,10 @@ func ListPackageVersions(ctx *context.Context) {
 func PackageSettings(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
+	shared_user.RenderUserHeader(ctx)
+
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
 	repos, _, _ := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
@@ -337,7 +382,7 @@ func PackageSettingsPost(ctx *context.Context) {
 		success := func() bool {
 			repoID := int64(0)
 			if form.RepoID != 0 {
-				repo, err := repo_model.GetRepositoryByID(form.RepoID)
+				repo, err := repo_model.GetRepositoryByID(ctx, form.RepoID)
 				if err != nil {
 					log.Error("Error getting repository: %v", err)
 					return false
@@ -375,7 +420,7 @@ func PackageSettingsPost(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
 		}
 
-		ctx.Redirect(ctx.Package.Owner.HTMLURL() + "/-/packages")
+		ctx.Redirect(ctx.Package.Owner.HomeLink() + "/-/packages")
 		return
 	}
 }
@@ -402,5 +447,8 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }

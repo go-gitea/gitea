@@ -1,7 +1,8 @@
 import {defineConfig} from 'vitest/dist/config.js';
-import {readFile} from 'fs/promises';
+import {readFile} from 'node:fs/promises';
 import {dataToEsm} from '@rollup/pluginutils';
-import {extname} from 'path';
+import {extname} from 'node:path';
+import vue from '@vitejs/plugin-vue';
 
 function stringPlugin() {
   return {
@@ -25,8 +26,10 @@ export default defineConfig({
     allowOnly: true,
     passWithNoTests: true,
     watch: false,
+    outputDiffLines: Infinity,
   },
   plugins: [
     stringPlugin(),
+    vue(),
   ],
 });

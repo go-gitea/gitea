@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -105,6 +104,17 @@ func GetBranchesByPath(ctx context.Context, path string, skip, limit int) ([]*Br
 	defer gitRepo.Close()
 
 	return gitRepo.GetBranches(skip, limit)
+}
+
+// GetBranchCommitID returns a branch commit ID by its name
+func GetBranchCommitID(ctx context.Context, path, branch string) (string, error) {
+	gitRepo, err := OpenRepository(ctx, path)
+	if err != nil {
+		return "", err
+	}
+	defer gitRepo.Close()
+
+	return gitRepo.GetBranchCommitID(branch)
 }
 
 // GetBranches returns a slice of *git.Branch

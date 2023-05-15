@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -9,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -30,12 +30,12 @@ import (
 )
 
 // CreateRepositoryByExample creates a repository for the user/organization.
-func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt bool) (err error) {
+func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt, isFork bool) (err error) {
 	if err = repo_model.IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
 
-	has, err := repo_model.IsRepositoryExist(ctx, u, repo.Name)
+	has, err := repo_model.IsRepositoryModelExist(ctx, u, repo.Name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
@@ -67,8 +67,12 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 	}
 
 	// insert units for repo
-	units := make([]repo_model.RepoUnit, 0, len(unit.DefaultRepoUnits))
-	for _, tp := range unit.DefaultRepoUnits {
+	defaultUnits := unit.DefaultRepoUnits
+	if isFork {
+		defaultUnits = unit.DefaultForkRepoUnits
+	}
+	units := make([]repo_model.RepoUnit, 0, len(defaultUnits))
+	for _, tp := range defaultUnits {
 		if tp == unit.TypeIssues {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
@@ -126,10 +130,10 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 			return fmt.Errorf("IsUserRepoAdmin: %w", err)
 		} else if !isAdmin {
 			// Make creator repo admin if it wasn't assigned automatically
-			if err = addCollaborator(ctx, repo, doer); err != nil {
-				return fmt.Errorf("addCollaborator: %w", err)
+			if err = AddCollaborator(ctx, repo, doer); err != nil {
+				return fmt.Errorf("AddCollaborator: %w", err)
 			}
-			if err = repo_model.ChangeCollaborationAccessModeCtx(ctx, repo, doer.ID, perm.AccessModeAdmin); err != nil {
+			if err = repo_model.ChangeCollaborationAccessMode(ctx, repo, doer.ID, perm.AccessModeAdmin); err != nil {
 				return fmt.Errorf("ChangeCollaborationAccessModeCtx: %w", err)
 			}
 		}
@@ -185,7 +189,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 
 	// Check if label template exist
 	if len(opts.IssueLabels) > 0 {
-		if _, err := GetLabelTemplateFile(opts.IssueLabels); err != nil {
+		if _, err := LoadTemplateLabelsByDisplayName(opts.IssueLabels); err != nil {
 			return nil, err
 		}
 	}
@@ -207,12 +211,13 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 		IsEmpty:                         !opts.AutoInit,
 		TrustModel:                      opts.TrustModel,
 		IsMirror:                        opts.IsMirror,
+		DefaultBranch:                   opts.DefaultBranch,
 	}
 
 	var rollbackRepo *repo_model.Repository
 
-	if err := db.WithTx(func(ctx context.Context) error {
-		if err := CreateRepositoryByExample(ctx, doer, u, repo, false); err != nil {
+	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		if err := CreateRepositoryByExample(ctx, doer, u, repo, false, false); err != nil {
 			return err
 		}
 
@@ -286,9 +291,36 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 	return repo, nil
 }
 
-// UpdateRepoSize updates the repository size, calculating it using util.GetDirectorySize
+const notRegularFileMode = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
+
+// getDirectorySize returns the disk consumption for a given path
+func getDirectorySize(path string) (int64, error) {
+	var size int64
+	err := filepath.WalkDir(path, func(_ string, info os.DirEntry, err error) error {
+		if err != nil {
+			if os.IsNotExist(err) { // ignore the error because the file maybe deleted during traversing.
+				return nil
+			}
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		f, err := info.Info()
+		if err != nil {
+			return err
+		}
+		if (f.Mode() & notRegularFileMode) == 0 {
+			size += f.Size()
+		}
+		return err
+	})
+	return size, err
+}
+
+// UpdateRepoSize updates the repository size, calculating it using getDirectorySize
 func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
-	size, err := util.GetDirectorySize(repo.RepoPath())
+	size, err := getDirectorySize(repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("updateSize: %w", err)
 	}
@@ -303,7 +335,7 @@ func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
 
 // CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
 func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error {
-	if err := repo.GetOwner(ctx); err != nil {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return err
 	}
 
@@ -347,8 +379,8 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 	}
 
 	if visibilityChanged {
-		if err = repo.GetOwner(ctx); err != nil {
-			return fmt.Errorf("getOwner: %w", err)
+		if err = repo.LoadOwner(ctx); err != nil {
+			return fmt.Errorf("LoadOwner: %w", err)
 		}
 		if repo.Owner.IsOrganization() {
 			// Organization repository need to recalculate access table when visibility is changed.

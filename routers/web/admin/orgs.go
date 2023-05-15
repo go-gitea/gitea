@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package admin
 
@@ -22,8 +21,11 @@ const (
 // Organizations show all the organizations
 func Organizations(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.organizations")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminOrganizations"] = true
+
+	if ctx.FormString("sort") == "" {
+		ctx.SetFormString("sort", explore.UserSearchDefaultAdminSort)
+	}
 
 	explore.RenderUserSearch(ctx, &user_model.SearchUserOptions{
 		Actor: ctx.Doer,

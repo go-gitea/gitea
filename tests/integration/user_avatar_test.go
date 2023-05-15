@@ -1,11 +1,11 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
 import (
 	"bytes"
+	"fmt"
 	"image/png"
 	"io"
 	"mime/multipart"
@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
@@ -74,9 +75,19 @@ func TestUserAvatar(t *testing.T) {
 
 		user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // owner of the repo3, is an org
 
-		req = NewRequest(t, "GET", user2.AvatarLinkWithSize(0))
+		req = NewRequest(t, "GET", user2.AvatarLinkWithSize(db.DefaultContext, 0))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
+		testGetAvatarRedirect(t, user2)
+
 		// Can't test if the response matches because the image is re-generated on upload but checking that this at least doesn't give a 404 should be enough.
+	})
+}
+
+func testGetAvatarRedirect(t *testing.T, user *user_model.User) {
+	t.Run(fmt.Sprintf("getAvatarRedirect_%s", user.Name), func(t *testing.T) {
+		req := NewRequestf(t, "GET", "/%s.png", user.Name)
+		resp := MakeRequest(t, req, http.StatusSeeOther)
+		assert.EqualValues(t, fmt.Sprintf("/avatars/%s", user.Avatar), resp.Header().Get("location"))
 	})
 }

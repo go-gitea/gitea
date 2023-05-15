@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -24,37 +23,19 @@ func (comments CommentList) getPosterIDs() []int64 {
 	return posterIDs.Values()
 }
 
-func (comments CommentList) loadPosters(ctx context.Context) error {
+// LoadPosters loads posters
+func (comments CommentList) LoadPosters(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
 
-	posterIDs := comments.getPosterIDs()
-	posterMaps := make(map[int64]*user_model.User, len(posterIDs))
-	left := len(posterIDs)
-	for left > 0 {
-		limit := db.DefaultMaxInSize
-		if left < limit {
-			limit = left
-		}
-		err := db.GetEngine(ctx).
-			In("id", posterIDs[:limit]).
-			Find(&posterMaps)
-		if err != nil {
-			return err
-		}
-		left -= limit
-		posterIDs = posterIDs[limit:]
+	posterMaps, err := getPosters(ctx, comments.getPosterIDs())
+	if err != nil {
+		return err
 	}
 
 	for _, comment := range comments {
-		if comment.PosterID <= 0 {
-			continue
-		}
-		var ok bool
-		if comment.Poster, ok = posterMaps[comment.PosterID]; !ok {
-			comment.Poster = user_model.NewGhostUser()
-		}
+		comment.Poster = getPoster(comment.PosterID, posterMaps)
 	}
 	return nil
 }
@@ -75,7 +56,7 @@ func (comments CommentList) getLabelIDs() []int64 {
 	return ids.Values()
 }
 
-func (comments CommentList) loadLabels(ctx context.Context) error { //nolint
+func (comments CommentList) loadLabels(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -277,7 +258,8 @@ func (comments CommentList) Issues() IssueList {
 	return issueList
 }
 
-func (comments CommentList) loadIssues(ctx context.Context) error {
+// LoadIssues loads issues of comments
+func (comments CommentList) LoadIssues(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -382,7 +364,8 @@ func (comments CommentList) loadDependentIssues(ctx context.Context) error {
 	return nil
 }
 
-func (comments CommentList) loadAttachments(ctx context.Context) (err error) {
+// LoadAttachments loads attachments
+func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -432,7 +415,7 @@ func (comments CommentList) getReviewIDs() []int64 {
 	return ids.Values()
 }
 
-func (comments CommentList) loadReviews(ctx context.Context) error { //nolint
+func (comments CommentList) loadReviews(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -470,13 +453,21 @@ func (comments CommentList) loadReviews(ctx context.Context) error { //nolint
 
 	for _, comment := range comments {
 		comment.Review = reviews[comment.ReviewID]
+
+		// If the comment dismisses a review, we need to load the reviewer to show whose review has been dismissed.
+		// Otherwise, the reviewer is the poster of the comment, so we don't need to load it.
+		if comment.Type == CommentTypeDismissReview {
+			if err := comment.Review.LoadReviewer(ctx); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
 
 // loadAttributes loads all attributes
 func (comments CommentList) loadAttributes(ctx context.Context) (err error) {
-	if err = comments.loadPosters(ctx); err != nil {
+	if err = comments.LoadPosters(ctx); err != nil {
 		return
 	}
 
@@ -496,7 +487,7 @@ func (comments CommentList) loadAttributes(ctx context.Context) (err error) {
 		return
 	}
 
-	if err = comments.loadAttachments(ctx); err != nil {
+	if err = comments.LoadAttachments(ctx); err != nil {
 		return
 	}
 
@@ -504,7 +495,7 @@ func (comments CommentList) loadAttributes(ctx context.Context) (err error) {
 		return
 	}
 
-	if err = comments.loadIssues(ctx); err != nil {
+	if err = comments.LoadIssues(ctx); err != nil {
 		return
 	}
 
@@ -519,19 +510,4 @@ func (comments CommentList) loadAttributes(ctx context.Context) (err error) {
 // comments
 func (comments CommentList) LoadAttributes() error {
 	return comments.loadAttributes(db.DefaultContext)
-}
-
-// LoadAttachments loads attachments
-func (comments CommentList) LoadAttachments() error {
-	return comments.loadAttachments(db.DefaultContext)
-}
-
-// LoadPosters loads posters
-func (comments CommentList) LoadPosters() error {
-	return comments.loadPosters(db.DefaultContext)
-}
-
-// LoadIssues loads issues of comments
-func (comments CommentList) LoadIssues() error {
-	return comments.loadIssues(db.DefaultContext)
 }

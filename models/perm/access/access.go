@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package access
 
@@ -86,8 +85,8 @@ func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mo
 // FIXME: do cross-comparison so reduce deletions and additions to the minimum?
 func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap map[int64]*userAccess) (err error) {
 	minMode := perm.AccessModeRead
-	if err := repo.GetOwner(ctx); err != nil {
-		return fmt.Errorf("GetOwner: %w", err)
+	if err := repo.LoadOwner(ctx); err != nil {
+		return fmt.Errorf("LoadOwner: %w", err)
 	}
 
 	// If the repo isn't private and isn't owned by a organization,
@@ -144,7 +143,7 @@ func refreshCollaboratorAccesses(ctx context.Context, repoID int64, accessMap ma
 func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, ignTeamID int64) (err error) {
 	accessMap := make(map[int64]*userAccess, 20)
 
-	if err = repo.GetOwner(ctx); err != nil {
+	if err = repo.LoadOwner(ctx); err != nil {
 		return err
 	} else if !repo.Owner.IsOrganization() {
 		return fmt.Errorf("owner is not an organization: %d", repo.OwnerID)
@@ -172,7 +171,7 @@ func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 			continue
 		}
 
-		if err = t.GetMembersCtx(ctx); err != nil {
+		if err = t.LoadMembers(ctx); err != nil {
 			return fmt.Errorf("getMembers '%d': %w", t.ID, err)
 		}
 		for _, m := range t.Members {
@@ -200,7 +199,7 @@ func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid
 		accessMode = collaborator.Mode
 	}
 
-	if err = repo.GetOwner(ctx); err != nil {
+	if err = repo.LoadOwner(ctx); err != nil {
 		return err
 	} else if repo.Owner.IsOrganization() {
 		var teams []organization.Team

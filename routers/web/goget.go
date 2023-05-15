@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package web
 
@@ -53,7 +52,7 @@ func goGet(ctx *context.Context) {
 	}
 	branchName := setting.Repository.DefaultBranch
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ownerName, repoName)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
 	if err == nil && len(repo.DefaultBranch) > 0 {
 		branchName = repo.DefaultBranch
 	}
@@ -67,7 +66,14 @@ func goGet(ctx *context.Context) {
 	}
 
 	goGetImport := context.ComposeGoGetImport(ownerName, trimmedRepoName)
-	goImportContent := fmt.Sprintf("%s git %s", goGetImport, repo_model.ComposeHTTPSCloneURL(ownerName, repoName) /*CloneLink*/)
+
+	var cloneURL string
+	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
+		cloneURL = repo_model.ComposeSSHCloneURL(ownerName, repoName)
+	} else {
+		cloneURL = repo_model.ComposeHTTPSCloneURL(ownerName, repoName)
+	}
+	goImportContent := fmt.Sprintf("%s git %s", goGetImport, cloneURL /*CloneLink*/)
 	goSourceContent := fmt.Sprintf("%s _ %s %s", goGetImport, prefix+"{/dir}" /*GoDocDirectory*/, prefix+"{/dir}/{file}#L{line}" /*GoDocFile*/)
 	goGetCli := fmt.Sprintf("go get %s%s", insecure, goGetImport)
 

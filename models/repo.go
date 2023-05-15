@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
@@ -12,6 +11,7 @@ import (
 
 	_ "image/jpeg" // Needed for jpeg support
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -22,10 +22,12 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
+	secret_model "code.gitea.io/gitea/models/secret"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
+	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
@@ -33,27 +35,32 @@ import (
 	"xorm.io/builder"
 )
 
-// ItemsPerPage maximum items per page in forks, watchers and stars of a repo
-var ItemsPerPage = 40
-
 // Init initialize model
-func Init() error {
-	unit.LoadUnitConfig()
-	return system_model.Init()
+func Init(ctx context.Context) error {
+	if err := unit.LoadUnitConfig(); err != nil {
+		return err
+	}
+	return system_model.Init(ctx)
 }
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
 func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
+	// Query the action tasks of this repo, they will be needed after they have been deleted to remove the logs
+	tasks, err := actions_model.FindTasks(ctx, actions_model.FindTaskOptions{RepoID: repoID})
+	if err != nil {
+		return fmt.Errorf("find actions tasks of repo %v: %w", repoID, err)
+	}
+
 	// In case is a organization.
-	org, err := user_model.GetUserByIDCtx(ctx, uid)
+	org, err := user_model.GetUserByID(ctx, uid)
 	if err != nil {
 		return err
 	}
@@ -151,6 +158,12 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&admin_model.Task{RepoID: repoID},
 		&repo_model.Watch{RepoID: repoID},
 		&webhook.Webhook{RepoID: repoID},
+		&secret_model.Secret{RepoID: repoID},
+		&actions_model.ActionTaskStep{RepoID: repoID},
+		&actions_model.ActionTask{RepoID: repoID},
+		&actions_model.ActionRunJob{RepoID: repoID},
+		&actions_model.ActionRun{RepoID: repoID},
+		&actions_model.ActionRunner{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
@@ -192,7 +205,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		}
 	}
 
-	if err := project_model.DeleteProjectByRepoIDCtx(ctx, repoID); err != nil {
+	if err := project_model.DeleteProjectByRepoID(ctx, repoID); err != nil {
 		return fmt.Errorf("unable to delete projects for repo[%d]: %w", repoID, err)
 	}
 
@@ -311,6 +324,15 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	if len(repo.Avatar) > 0 {
 		if err := storage.RepoAvatars.Delete(repo.CustomAvatarRelativePath()); err != nil {
 			return fmt.Errorf("Failed to remove %s: %w", repo.Avatar, err)
+		}
+	}
+
+	// Finally, delete action logs after the actions have already been deleted to avoid new log files
+	for _, task := range tasks {
+		err := actions_module.RemoveLogs(ctx, task.LogInStorage, task.LogFilename)
+		if err != nil {
+			log.Error("remove log file %q: %v", task.LogFilename, err)
+			// go on
 		}
 	}
 
@@ -444,7 +466,7 @@ func CheckRepoStats(ctx context.Context) error {
 		},
 		// Repository.NumIssues
 		{
-			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", false, false),
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_pull=?)", false),
 			repoStatsCorrectNumIssues,
 			"repository count 'num_issues'",
 		},
@@ -456,7 +478,7 @@ func CheckRepoStats(ctx context.Context) error {
 		},
 		// Repository.NumPulls
 		{
-			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", false, true),
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_pull=?)", true),
 			repoStatsCorrectNumPulls,
 			"repository count 'num_pulls'",
 		},
@@ -524,7 +546,7 @@ func CheckRepoStats(ctx context.Context) error {
 			}
 			log.Trace("Updating repository count 'num_forks': %d", id)
 
-			repo, err := repo_model.GetRepositoryByID(id)
+			repo, err := repo_model.GetRepositoryByID(ctx, id)
 			if err != nil {
 				log.Error("repo_model.GetRepositoryByID[%d]: %v", id, err)
 				continue
@@ -569,7 +591,7 @@ func UpdateRepoStats(ctx context.Context, id int64) error {
 }
 
 func updateUserStarNumbers(users []user_model.User) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -619,7 +641,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 
 	// Check if user has access to delete this key.
 	if !doer.IsAdmin {
-		repo, err := repo_model.GetRepositoryByIDCtx(ctx, key.RepoID)
+		repo, err := repo_model.GetRepositoryByID(ctx, key.RepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %w", err)
 		}

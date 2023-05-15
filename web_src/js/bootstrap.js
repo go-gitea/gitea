@@ -26,9 +26,6 @@ function processWindowErrorEvent(e) {
     return; // ignore such nonsense error event
   }
 
-  // Wait for upstream fix: https://github.com/microsoft/monaco-editor/issues/2962
-  if (e.message.includes('Language id "vs.editor.nullLanguage" is not configured nor known')) return;
-
   showGlobalErrorMessage(`JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}). Open browser console to see more details.`);
 }
 
@@ -36,7 +33,6 @@ function initGlobalErrorHandler() {
   if (!window.config) {
     showGlobalErrorMessage(`Gitea JavaScript code couldn't run correctly, please check your custom templates`);
   }
-
   // we added an event handler for window error at the very beginning of <script> of page head
   // the handler calls `_globalHandlerErrors.push` (array method) to record all errors occur before this init
   // then in this init, we can collect all error events and show them

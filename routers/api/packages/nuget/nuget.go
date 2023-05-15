@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nuget
 
@@ -11,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -95,8 +95,7 @@ func FeedCapabilityResource(ctx *context.Context) {
 
 var searchTermExtract = regexp.MustCompile(`'([^']+)'`)
 
-// https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs
-func SearchServiceV2(ctx *context.Context) {
+func getSearchTerm(ctx *context.Context) string {
 	searchTerm := strings.Trim(ctx.FormTrim("searchTerm"), "'")
 	if searchTerm == "" {
 		// $filter contains a query like:
@@ -107,7 +106,11 @@ func SearchServiceV2(ctx *context.Context) {
 			searchTerm = strings.TrimSpace(match[1])
 		}
 	}
+	return searchTerm
+}
 
+// https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs
+func SearchServiceV2(ctx *context.Context) {
 	skip, take := ctx.FormInt("skip"), ctx.FormInt("take")
 	if skip == 0 {
 		skip = ctx.FormInt("$skip")
@@ -117,9 +120,11 @@ func SearchServiceV2(ctx *context.Context) {
 	}
 
 	pvs, total, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		OwnerID:    ctx.Package.Owner.ID,
-		Type:       packages_model.TypeNuGet,
-		Name:       packages_model.SearchValue{Value: searchTerm},
+		OwnerID: ctx.Package.Owner.ID,
+		Type:    packages_model.TypeNuGet,
+		Name: packages_model.SearchValue{
+			Value: getSearchTerm(ctx),
+		},
 		IsInternal: util.OptionalBoolFalse,
 		Paginator: db.NewAbsoluteListOptions(
 			skip,
@@ -144,6 +149,24 @@ func SearchServiceV2(ctx *context.Context) {
 	)
 
 	xmlResponse(ctx, http.StatusOK, resp)
+}
+
+// http://docs.oasis-open.org/odata/odata/v4.0/errata03/os/complete/part2-url-conventions/odata-v4.0-errata03-os-part2-url-conventions-complete.html#_Toc453752351
+func SearchServiceV2Count(ctx *context.Context) {
+	count, err := packages_model.CountVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID: ctx.Package.Owner.ID,
+		Type:    packages_model.TypeNuGet,
+		Name: packages_model.SearchValue{
+			Value: getSearchTerm(ctx),
+		},
+		IsInternal: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.PlainText(http.StatusOK, strconv.FormatInt(count, 10))
 }
 
 // https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
@@ -289,6 +312,25 @@ func EnumeratePackageVersionsV2(ctx *context.Context) {
 	xmlResponse(ctx, http.StatusOK, resp)
 }
 
+// http://docs.oasis-open.org/odata/odata/v4.0/errata03/os/complete/part2-url-conventions/odata-v4.0-errata03-os-part2-url-conventions-complete.html#_Toc453752351
+func EnumeratePackageVersionsV2Count(ctx *context.Context) {
+	count, err := packages_model.CountVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID: ctx.Package.Owner.ID,
+		Type:    packages_model.TypeNuGet,
+		Name: packages_model.SearchValue{
+			ExactMatch: true,
+			Value:      strings.Trim(ctx.FormTrim("id"), "'"),
+		},
+		IsInternal: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.PlainText(http.StatusOK, strconv.FormatInt(count, 10))
+}
+
 // https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#enumerate-package-versions
 func EnumeratePackageVersionsV3(ctx *context.Context) {
 	packageName := ctx.Params("id")
@@ -342,7 +384,10 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // UploadPackage creates a new package with the metadata contained in the uploaded nupgk file
@@ -374,16 +419,20 @@ func UploadPackage(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: strings.ToLower(fmt.Sprintf("%s.%s.nupkg", np.ID, np.Version)),
 			},
-			Data:   buf,
-			IsLead: true,
+			Creator: ctx.Doer,
+			Data:    buf,
+			IsLead:  true,
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageVersion {
+		switch err {
+		case packages_model.ErrDuplicatePackageVersion:
 			apiError(ctx, http.StatusConflict, err)
-			return
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -405,7 +454,11 @@ func UploadSymbolPackage(ctx *context.Context) {
 
 	pdbs, err := nuget_module.ExtractPortablePdb(buf, buf.Size())
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 	defer pdbs.Close()
@@ -422,14 +475,15 @@ func UploadSymbolPackage(ctx *context.Context) {
 		Version:     np.Version,
 	}
 
-	_, _, err = packages_service.AddFileToExistingPackage(
+	_, err = packages_service.AddFileToExistingPackage(
 		pi,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: strings.ToLower(fmt.Sprintf("%s.%s.snupkg", np.ID, np.Version)),
 			},
-			Data:   buf,
-			IsLead: false,
+			Creator: ctx.Doer,
+			Data:    buf,
+			IsLead:  false,
 		},
 	)
 	if err != nil {
@@ -438,6 +492,8 @@ func UploadSymbolPackage(ctx *context.Context) {
 			apiError(ctx, http.StatusNotFound, err)
 		case packages_model.ErrDuplicatePackageFile:
 			apiError(ctx, http.StatusConflict, err)
+		case packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
@@ -445,15 +501,16 @@ func UploadSymbolPackage(ctx *context.Context) {
 	}
 
 	for _, pdb := range pdbs {
-		_, _, err := packages_service.AddFileToExistingPackage(
+		_, err := packages_service.AddFileToExistingPackage(
 			pi,
 			&packages_service.PackageFileCreationInfo{
 				PackageFileInfo: packages_service.PackageFileInfo{
 					Filename:     strings.ToLower(pdb.Name),
 					CompositeKey: strings.ToLower(pdb.ID),
 				},
-				Data:   pdb.Content,
-				IsLead: false,
+				Creator: ctx.Doer,
+				Data:    pdb.Content,
+				IsLead:  false,
 				Properties: map[string]string{
 					nuget_module.PropertySymbolID: strings.ToLower(pdb.ID),
 				},
@@ -463,6 +520,8 @@ func UploadSymbolPackage(ctx *context.Context) {
 			switch err {
 			case packages_model.ErrDuplicatePackageFile:
 				apiError(ctx, http.StatusConflict, err)
+			case packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+				apiError(ctx, http.StatusForbidden, err)
 			default:
 				apiError(ctx, http.StatusInternalServerError, err)
 			}
@@ -486,7 +545,7 @@ func processUploadedFile(ctx *context.Context, expectedType nuget_module.Package
 		closables = append(closables, upload)
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return nil, nil, closables
@@ -495,7 +554,7 @@ func processUploadedFile(ctx *context.Context, expectedType nuget_module.Package
 
 	np, err := nuget_module.ParsePackageMetaData(buf, buf.Size())
 	if err != nil {
-		if err == nuget_module.ErrMissingNuspecFile || err == nuget_module.ErrNuspecFileTooLarge || err == nuget_module.ErrNuspecInvalidID || err == nuget_module.ErrNuspecInvalidVersion {
+		if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -526,7 +585,7 @@ func DownloadSymbolFile(ctx *context.Context) {
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:     ctx.Package.Owner.ID,
-		PackageType: string(packages_model.TypeNuGet),
+		PackageType: packages_model.TypeNuGet,
 		Query:       filename,
 		Properties: map[string]string{
 			nuget_module.PropertySymbolID: strings.ToLower(guid),
@@ -552,7 +611,10 @@ func DownloadSymbolFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // DeletePackage hard deletes the package

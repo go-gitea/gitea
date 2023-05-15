@@ -1,50 +1,55 @@
 import $ from 'jquery';
+import {hideElem, showElem} from '../utils/dom.js';
 
-const {appSubUrl, csrfToken} = window.config;
+const {appSubUrl} = window.config;
 
 export function initRepoMigrationStatusChecker() {
-  const migrating = $('#repo_migrating');
-  $('#repo_migrating_failed').hide();
-  $('#repo_migrating_failed_image').hide();
-  $('#repo_migrating_progress_message').hide();
-  if (migrating) {
-    const task = migrating.attr('task');
-    if (typeof task === 'undefined') {
-      return;
+  const $repoMigrating = $('#repo_migrating');
+  if (!$repoMigrating.length) return;
+
+  const task = $repoMigrating.attr('data-migrating-task-id');
+
+  // returns true if the refresh still need to be called after a while
+  const refresh = async () => {
+    const res = await fetch(`${appSubUrl}/user/task/${task}`);
+    if (res.status !== 200) return true; // continue to refresh if network error occurs
+
+    const data = await res.json();
+
+    // for all status
+    if (data.message) {
+      $('#repo_migrating_progress_message').text(data.message);
     }
-    $.ajax({
-      type: 'GET',
-      url: `${appSubUrl}/user/task/${task}`,
-      data: {
-        _csrf: csrfToken,
-      },
-      complete(xhr) {
-        if (xhr.status === 200 && xhr.responseJSON) {
-          if (xhr.responseJSON.status === 4) {
-            window.location.reload();
-            return;
-          } else if (xhr.responseJSON.status === 3) {
-            $('#repo_migrating_progress').hide();
-            $('#repo_migrating').hide();
-            $('#repo_migrating_failed').show();
-            $('#repo_migrating_failed_image').show();
-            $('#repo_migrating_failed_error').text(xhr.responseJSON.message);
-            return;
-          }
-          if (xhr.responseJSON.message) {
-            $('#repo_migrating_progress_message').show();
-            $('#repo_migrating_progress_message').text(xhr.responseJSON.message);
-          }
-          setTimeout(() => {
-            initRepoMigrationStatusChecker();
-          }, 2000);
-          return;
-        }
-        $('#repo_migrating_progress').hide();
-        $('#repo_migrating').hide();
-        $('#repo_migrating_failed').show();
-        $('#repo_migrating_failed_image').show();
+
+    // TaskStatusFinished
+    if (data.status === 4) {
+      window.location.reload();
+      return false;
+    }
+
+    // TaskStatusFailed
+    if (data.status === 3) {
+      hideElem('#repo_migrating_progress');
+      hideElem('#repo_migrating');
+      showElem('#repo_migrating_failed');
+      showElem('#repo_migrating_failed_image');
+      $('#repo_migrating_failed_error').text(data.message);
+      return false;
+    }
+
+    return true; // continue to refresh
+  };
+
+  const syncTaskStatus = async () => {
+    let doNextRefresh = true;
+    try {
+      doNextRefresh = await refresh();
+    } finally {
+      if (doNextRefresh) {
+        setTimeout(syncTaskStatus, 2000);
       }
-    });
-  }
+    }
+  };
+
+  syncTaskStatus(); // no await
 }

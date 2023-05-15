@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markdown
 
@@ -35,7 +34,7 @@ func nodeToTable(meta *yaml.Node) ast.Node {
 
 func mappingNodeToTable(meta *yaml.Node) ast.Node {
 	table := east.NewTable()
-	alignments := []east.Alignment{}
+	alignments := make([]east.Alignment, 0, len(meta.Content)/2)
 	for i := 0; i < len(meta.Content); i += 2 {
 		alignments = append(alignments, east.AlignNone)
 	}

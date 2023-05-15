@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Copyright 2018 Jonas Franz. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -11,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -25,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -84,7 +83,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, labels, 12)
 
-	releases, err := repo_model.GetReleasesByRepoID(repo.ID, repo_model.FindReleasesOptions{
+	releases, err := repo_model.GetReleasesByRepoID(db.DefaultContext, repo.ID, repo_model.FindReleasesOptions{
 		ListOptions: db.ListOptions{
 			PageSize: 10,
 			Page:     0,
@@ -94,7 +93,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, releases, 8)
 
-	releases, err = repo_model.GetReleasesByRepoID(repo.ID, repo_model.FindReleasesOptions{
+	releases, err = repo_model.GetReleasesByRepoID(db.DefaultContext, repo.ID, repo_model.FindReleasesOptions{
 		ListOptions: db.ListOptions{
 			PageSize: 10,
 			Page:     0,
@@ -104,14 +103,14 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, releases, 1)
 
-	issues, err := issues_model.Issues(&issues_model.IssuesOptions{
+	issues, err := issues_model.Issues(db.DefaultContext, &issues_model.IssuesOptions{
 		RepoID:   repo.ID,
 		IsPull:   util.OptionalBoolFalse,
 		SortType: "oldest",
 	})
 	assert.NoError(t, err)
 	assert.Len(t, issues, 15)
-	assert.NoError(t, issues[0].LoadDiscussComments())
+	assert.NoError(t, issues[0].LoadDiscussComments(db.DefaultContext))
 	assert.Empty(t, issues[0].Comments)
 
 	pulls, _, err := issues_model.PullRequests(repo.ID, &issues_model.PullRequestsOptions{
@@ -119,8 +118,8 @@ func TestGiteaUploadRepo(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, pulls, 30)
-	assert.NoError(t, pulls[0].LoadIssue())
-	assert.NoError(t, pulls[0].Issue.LoadDiscussComments())
+	assert.NoError(t, pulls[0].LoadIssue(db.DefaultContext))
+	assert.NoError(t, pulls[0].Issue.LoadDiscussComments(db.DefaultContext))
 	assert.Len(t, pulls[0].Issue.Comments, 2)
 }
 
@@ -313,10 +312,11 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	}))
 
 	for _, testCase := range []struct {
-		name          string
-		head          string
-		assertContent func(t *testing.T, content string)
-		pr            base.PullRequest
+		name        string
+		head        string
+		logFilter   []string
+		logFiltered []bool
+		pr          base.PullRequest
 	}{
 		{
 			name: "fork, good Head.SHA",
@@ -363,9 +363,8 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 					OwnerName: forkRepo.OwnerName,
 				},
 			},
-			assertContent: func(t *testing.T, content string) {
-				assert.Contains(t, content, "Fetch branch from")
-			},
+			logFilter:   []string{"Fetch branch from"},
+			logFiltered: []bool{true},
 		},
 		{
 			name: "invalid fork CloneURL",
@@ -389,9 +388,8 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 					OwnerName: "WRONG",
 				},
 			},
-			assertContent: func(t *testing.T, content string) {
-				assert.Contains(t, content, "AddRemote")
-			},
+			logFilter:   []string{"AddRemote"},
+			logFiltered: []bool{true},
 		},
 		{
 			name: "no fork, good Head.SHA",
@@ -438,10 +436,8 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 					OwnerName: fromRepo.OwnerName,
 				},
 			},
-			assertContent: func(t *testing.T, content string) {
-				assert.Contains(t, content, "Empty reference")
-				assert.NotContains(t, content, "Cannot remove local head")
-			},
+			logFilter:   []string{"Empty reference", "Cannot remove local head"},
+			logFiltered: []bool{true, false},
 		},
 		{
 			name: "no fork, invalid Head.SHA",
@@ -465,9 +461,8 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 					OwnerName: fromRepo.OwnerName,
 				},
 			},
-			assertContent: func(t *testing.T, content string) {
-				assert.Contains(t, content, "Deprecated local head")
-			},
+			logFilter:   []string{"Deprecated local head"},
+			logFiltered: []bool{true},
 		},
 		{
 			name: "no fork, not found Head.SHA",
@@ -491,36 +486,29 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 					OwnerName: fromRepo.OwnerName,
 				},
 			},
-			assertContent: func(t *testing.T, content string) {
-				assert.Contains(t, content, "Deprecated local head")
-				assert.NotContains(t, content, "Cannot remove local head")
-			},
+			logFilter:   []string{"Deprecated local head", "Cannot remove local head"},
+			logFiltered: []bool{true, false},
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			logger, ok := log.NamedLoggers.Load(log.DEFAULT)
-			assert.True(t, ok)
-			logger.SetLogger("buffer", "buffer", "{}")
-			defer logger.DelLogger("buffer")
+			stopMark := fmt.Sprintf(">>>>>>>>>>>>>STOP: %s<<<<<<<<<<<<<<<", testCase.name)
+
+			logChecker, cleanup := test.NewLogChecker(log.DEFAULT)
+			logChecker.Filter(testCase.logFilter...).StopMark(stopMark)
+			defer cleanup()
 
 			testCase.pr.EnsuredSafe = true
 
 			head, err := uploader.updateGitForPullRequest(&testCase.pr)
 			assert.NoError(t, err)
 			assert.EqualValues(t, testCase.head, head)
-			if testCase.assertContent != nil {
-				fence := fmt.Sprintf(">>>>>>>>>>>>>FENCE %s<<<<<<<<<<<<<<<", testCase.name)
-				log.Error(fence)
-				var content string
-				for i := 0; i < 5000; i++ {
-					content, err = logger.GetLoggerProviderContent("buffer")
-					assert.NoError(t, err)
-					if strings.Contains(content, fence) {
-						break
-					}
-					time.Sleep(1 * time.Millisecond)
-				}
-				testCase.assertContent(t, content)
+
+			log.Info(stopMark)
+
+			logFiltered, logStopped := logChecker.Check(5 * time.Second)
+			assert.True(t, logStopped)
+			if len(testCase.logFilter) > 0 {
+				assert.EqualValues(t, testCase.logFiltered, logFiltered, "for log message filters: %v", testCase.logFilter)
 			}
 		})
 	}

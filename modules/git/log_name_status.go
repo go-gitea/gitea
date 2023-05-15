@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -56,6 +55,10 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 		}
 	} else if treepath != "" {
 		files = append(files, treepath)
+	}
+	// Use the :(literal) pathspec magic to handle edge cases with files named like ":file.txt" or "*.jpg"
+	for i, file := range files {
+		files[i] = ":(literal)" + file
 	}
 	cmd.AddDashesAndList(files...)
 

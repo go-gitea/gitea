@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -195,14 +194,16 @@ func (opts *FindTopicOptions) toConds() builder.Cond {
 // FindTopics retrieves the topics via FindTopicOptions
 func FindTopics(opts *FindTopicOptions) ([]*Topic, int64, error) {
 	sess := db.GetEngine(db.DefaultContext).Select("topic.*").Where(opts.toConds())
+	orderBy := "topic.repo_count DESC"
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
+		orderBy = "topic.name" // when render topics for a repo, it's better to sort them by name, to get consistent result
 	}
 	if opts.PageSize != 0 && opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, opts)
 	}
 	topics := make([]*Topic, 0, 10)
-	total, err := sess.Desc("topic.repo_count").FindAndCount(&topics)
+	total, err := sess.OrderBy(orderBy).FindAndCount(&topics)
 	return topics, total, err
 }
 
@@ -231,7 +232,7 @@ func GetRepoTopicByName(ctx context.Context, repoID int64, topicName string) (*T
 
 // AddTopic adds a topic name to a repository (if it does not already have it)
 func AddTopic(repoID int64, topicName string) (*Topic, error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +294,7 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

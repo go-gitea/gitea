@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package gitdiff
 
@@ -521,7 +520,7 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
@@ -537,11 +536,10 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2), "")
+	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
-	println(result)
 
 	diff2a := `diff --git "a/A \\ B" b/A/B
 --- "a/A \\ B"
@@ -554,11 +552,10 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a), "")
+	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
-	println(result)
 
 	diff3 := `diff --git a/README.md b/README.md
 --- a/README.md
@@ -571,11 +568,10 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3), "")
+	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
-	println(result)
 }
 
 func setupDefaultDiff() *Diff {
@@ -627,7 +623,7 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 		return
 	}
 	defer gitRepo.Close()
-	for _, behavior := range []git.CmdArg{"-w", "--ignore-space-at-eol", "-b", ""} {
+	for _, behavior := range []git.TrustedCmdArgs{{"-w"}, {"--ignore-space-at-eol"}, {"-b"}, nil} {
 		diffs, err := GetDiff(gitRepo,
 			&DiffOptions{
 				AfterCommitID:      "bd7063cc7c04689c4d082183d32a604ed27a24f9",

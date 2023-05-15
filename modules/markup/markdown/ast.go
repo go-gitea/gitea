@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markdown
 
@@ -179,4 +178,38 @@ func NewColorPreview(color []byte) *ColorPreview {
 func IsColorPreview(node ast.Node) bool {
 	_, ok := node.(*ColorPreview)
 	return ok
+}
+
+const (
+	AttentionNote    string = "Note"
+	AttentionWarning string = "Warning"
+)
+
+// Attention is an inline for a color preview
+type Attention struct {
+	ast.BaseInline
+	AttentionType string
+}
+
+// Dump implements Node.Dump.
+func (n *Attention) Dump(source []byte, level int) {
+	m := map[string]string{}
+	m["AttentionType"] = n.AttentionType
+	ast.DumpHelper(n, source, level, m, nil)
+}
+
+// KindAttention is the NodeKind for Attention
+var KindAttention = ast.NewNodeKind("Attention")
+
+// Kind implements Node.Kind.
+func (n *Attention) Kind() ast.NodeKind {
+	return KindAttention
+}
+
+// NewAttention returns a new Attention node.
+func NewAttention(attentionType string) *Attention {
+	return &Attention{
+		BaseInline:    ast.BaseInline{},
+		AttentionType: attentionType,
+	}
 }

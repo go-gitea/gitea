@@ -1,11 +1,11 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -57,7 +57,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repoPath := repo_model.RepoPath(u.Name, opts.RepoName)
 
 	if u.IsOrganization() {
-		t, err := organization.OrgFromUser(u).GetOwnerTeam()
+		t, err := organization.OrgFromUser(u).GetOwnerTeam(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -79,6 +79,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		Timeout:       migrateTimeout,
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	}); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return repo, fmt.Errorf("Clone timed out. Consider increasing [git.timeout] MIGRATE in app.ini. Underlying Error: %w", err)
+		}
 		return repo, fmt.Errorf("Clone: %w", err)
 	}
 
@@ -169,7 +172,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +287,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 	}
 	for page := 1; ; page++ {
 		opts.Page = page
-		rels, err := repo_model.GetReleasesByRepoID(repo.ID, opts)
+		rels, err := repo_model.GetReleasesByRepoID(gitRepo.Ctx, repo.ID, opts)
 		if err != nil {
 			return fmt.Errorf("unable to GetReleasesByRepoID in Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 		}
@@ -315,7 +318,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 			return nil
 		}
 
-		if err := PushUpdateAddTag(repo, gitRepo, tagName, sha1, refname); err != nil {
+		if err := PushUpdateAddTag(db.DefaultContext, repo, gitRepo, tagName, sha1, refname); err != nil {
 			return fmt.Errorf("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
 		}
 
@@ -325,7 +328,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 }
 
 // PushUpdateAddTag must be called for any push actions to add tag
-func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagName, sha1, refname string) error {
+func PushUpdateAddTag(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, tagName, sha1, refname string) error {
 	tag, err := gitRepo.GetTagWithID(sha1, tagName)
 	if err != nil {
 		return fmt.Errorf("unable to GetTag: %w", err)
@@ -347,7 +350,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 	createdAt := time.Unix(1, 0)
 
 	if sig != nil {
-		author, err = user_model.GetUserByEmail(sig.Email)
+		author, err = user_model.GetUserByEmail(ctx, sig.Email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return fmt.Errorf("unable to GetUserByEmail for %q: %w", sig.Email, err)
 		}
@@ -391,7 +394,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			defer content.Close()
 
-			_, err := git_model.NewLFSMetaObject(&git_model.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
+			_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, p, err)
 				return err
@@ -399,7 +402,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			if err := contentStore.Put(p, content); err != nil {
 				log.Error("Repo[%-v]: Error storing content for LFS meta object %-v: %v", repo, p, err)
-				if _, err2 := git_model.RemoveLFSMetaObjectByOid(repo.ID, p.Oid); err2 != nil {
+				if _, err2 := git_model.RemoveLFSMetaObjectByOid(ctx, repo.ID, p.Oid); err2 != nil {
 					log.Error("Repo[%-v]: Error removing LFS meta object %-v: %v", repo, p, err2)
 				}
 				return err
@@ -418,7 +421,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 	var batch []lfs.Pointer
 	for pointerBlob := range pointerChan {
-		meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, pointerBlob.Oid)
+		meta, err := git_model.GetLFSMetaObjectByOid(ctx, repo.ID, pointerBlob.Oid)
 		if err != nil && err != git_model.ErrLFSObjectNotExist {
 			log.Error("Repo[%-v]: Error querying LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
 			return err
@@ -438,7 +441,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 		if exist {
 			log.Trace("Repo[%-v]: LFS object %-v already present; creating meta object", repo, pointerBlob.Pointer)
-			_, err := git_model.NewLFSMetaObject(&git_model.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
+			_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
 				return err
@@ -485,7 +488,7 @@ func pullMirrorReleaseSync(repo *repo_model.Repository, gitRepo *git.Repository)
 	if err != nil {
 		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
-	err = db.WithTx(func(ctx context.Context) error {
+	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		//
 		// clear out existing releases
 		//

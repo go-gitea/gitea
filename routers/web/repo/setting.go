@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -56,13 +55,12 @@ const (
 	tplGithooks        base.TplName = "repo/settings/githooks"
 	tplGithookEdit     base.TplName = "repo/settings/githook_edit"
 	tplDeployKeys      base.TplName = "repo/settings/deploy_keys"
-	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
 )
 
 // SettingsCtxData is a middleware that sets all the general context data for the
 // settings template.
 func SettingsCtxData(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["Title"] = ctx.Tr("repo.settings.options")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
@@ -136,7 +134,7 @@ func SettingsPost(ctx *context.Context) {
 				ctx.Repo.GitRepo.Close()
 				ctx.Repo.GitRepo = nil
 			}
-			if err := repo_service.ChangeRepositoryName(ctx.Doer, repo, newRepoName); err != nil {
+			if err := repo_service.ChangeRepositoryName(ctx, ctx.Doer, repo, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
 				case repo_model.IsErrRepoAlreadyExist(err):
@@ -185,7 +183,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		repo.IsPrivate = form.Private
-		if err := repo_service.UpdateRepository(repo, visibilityChanged); err != nil {
+		if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -200,6 +198,15 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		pullMirror, err := repo_model.GetMirrorByRepoID(ctx, ctx.Repo.Repository.ID)
+		if err == repo_model.ErrMirrorNotExist {
+			ctx.NotFound("", nil)
+			return
+		}
+		if err != nil {
+			ctx.ServerError("GetMirrorByRepoID", err)
+			return
+		}
 		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
@@ -211,15 +218,15 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		ctx.Repo.Mirror.EnablePrune = form.EnablePrune
-		ctx.Repo.Mirror.Interval = interval
-		ctx.Repo.Mirror.ScheduleNextUpdate()
-		if err := repo_model.UpdateMirror(ctx, ctx.Repo.Mirror); err != nil {
+		pullMirror.EnablePrune = form.EnablePrune
+		pullMirror.Interval = interval
+		pullMirror.ScheduleNextUpdate()
+		if err := repo_model.UpdateMirror(ctx, pullMirror); err != nil {
 			ctx.ServerError("UpdateMirror", err)
 			return
 		}
 
-		u, err := git.GetRemoteURL(ctx, ctx.Repo.Repository.RepoPath(), ctx.Repo.Mirror.GetRemoteName())
+		u, err := git.GetRemoteURL(ctx, ctx.Repo.Repository.RepoPath(), pullMirror.GetRemoteName())
 		if err != nil {
 			ctx.Data["Err_MirrorAddress"] = true
 			handleSettingRemoteAddrError(ctx, err, form)
@@ -239,7 +246,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := mirror_service.UpdateAddress(ctx, ctx.Repo.Mirror, address); err != nil {
+		if err := mirror_service.UpdateAddress(ctx, pullMirror, address); err != nil {
 			ctx.ServerError("UpdateAddress", err)
 			return
 		}
@@ -261,9 +268,9 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
-		ctx.Repo.Mirror.LFS = form.LFS
-		ctx.Repo.Mirror.LFSEndpoint = form.LFSEndpoint
-		if err := repo_model.UpdateMirror(ctx, ctx.Repo.Mirror); err != nil {
+		pullMirror.LFS = form.LFS
+		pullMirror.LFSEndpoint = form.LFSEndpoint
+		if err := repo_model.UpdateMirror(ctx, pullMirror); err != nil {
 			ctx.ServerError("UpdateMirror", err)
 			return
 		}
@@ -398,6 +405,15 @@ func SettingsPost(ctx *context.Context) {
 			repoChanged = true
 		}
 
+		if form.EnableCode && !unit_model.TypeCode.UnitGlobalDisabled() {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeCode,
+			})
+		} else if !unit_model.TypeCode.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeCode)
+		}
+
 		if form.EnableWiki && form.EnableExternalWiki && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 			if !validation.IsValidExternalURL(form.ExternalWikiURL) {
 				ctx.Flash.Error(ctx.Tr("repo.settings.external_wiki_url_error"))
@@ -480,6 +496,15 @@ func SettingsPost(ctx *context.Context) {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
 		}
 
+		if form.EnableReleases && !unit_model.TypeReleases.UnitGlobalDisabled() {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeReleases,
+			})
+		} else if !unit_model.TypeReleases.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeReleases)
+		}
+
 		if form.EnablePackages && !unit_model.TypePackages.UnitGlobalDisabled() {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
@@ -487,6 +512,15 @@ func SettingsPost(ctx *context.Context) {
 			})
 		} else if !unit_model.TypePackages.UnitGlobalDisabled() {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
+		}
+
+		if form.EnableActions && !unit_model.TypeActions.UnitGlobalDisabled() {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeActions,
+			})
+		} else if !unit_model.TypeActions.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeActions)
 		}
 
 		if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
@@ -504,10 +538,17 @@ func SettingsPost(ctx *context.Context) {
 					AllowRebaseUpdate:             form.PullsAllowRebaseUpdate,
 					DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 					DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
+					DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
 				},
 			})
 		} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
+		}
+
+		if len(units) == 0 {
+			ctx.Flash.Error(ctx.Tr("repo.settings.update_settings_no_unit"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
 		}
 
 		if err := repo_model.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
@@ -515,7 +556,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 		if repoChanged {
-			if err := repo_service.UpdateRepository(repo, false); err != nil {
+			if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
@@ -534,7 +575,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if changed {
-			if err := repo_service.UpdateRepository(repo, false); err != nil {
+			if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
@@ -554,7 +595,7 @@ func SettingsPost(ctx *context.Context) {
 			repo.IsFsckEnabled = form.EnableHealthCheck
 		}
 
-		if err := repo_service.UpdateRepository(repo, false); err != nil {
+		if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -624,7 +665,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		if err := repo.GetOwner(ctx); err != nil {
+		if err := repo.LoadOwner(ctx); err != nil {
 			ctx.ServerError("Convert Fork", err)
 			return
 		}
@@ -646,7 +687,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_service.ConvertForkToNormalRepository(repo); err != nil {
+		if err := repo_service.ConvertForkToNormalRepository(ctx, repo); err != nil {
 			log.Error("Unable to convert repository %-v from fork. Error: %v", repo, err)
 			ctx.ServerError("Convert Fork", err)
 			return
@@ -690,7 +731,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.GitRepo = nil
 		}
 
-		if err := repo_service.StartRepositoryTransfer(ctx.Doer, newOwner, repo, nil); err != nil {
+		if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, repo, nil); err != nil {
 			if repo_model.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else if models.IsErrRepoTransferInProgress(err) {
@@ -712,7 +753,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 		if err != nil {
 			if models.IsErrNoPendingTransfer(err) {
 				ctx.Flash.Error("repo.settings.transfer_abort_invalid")
@@ -724,7 +765,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repoTransfer.LoadAttributes(); err != nil {
+		if err := repoTransfer.LoadAttributes(ctx); err != nil {
 			ctx.ServerError("LoadRecipient", err)
 			return
 		}
@@ -854,7 +895,7 @@ func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.R
 
 // Collaboration render a repository's collaboration page
 func Collaboration(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["Title"] = ctx.Tr("repo.settings.collaboration")
 	ctx.Data["PageIsSettingsCollaboration"] = true
 
 	users, err := repo_model.GetCollaborators(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
@@ -930,7 +971,7 @@ func CollaborationPost(ctx *context.Context) {
 		}
 	}
 
-	if err = repo_module.AddCollaborator(ctx.Repo.Repository, u); err != nil {
+	if err = repo_module.AddCollaborator(ctx, ctx.Repo.Repository, u); err != nil {
 		ctx.ServerError("AddCollaborator", err)
 		return
 	}
@@ -946,6 +987,7 @@ func CollaborationPost(ctx *context.Context) {
 // ChangeCollaborationAccessMode response for changing access of a collaboration
 func ChangeCollaborationAccessMode(ctx *context.Context) {
 	if err := repo_model.ChangeCollaborationAccessMode(
+		ctx,
 		ctx.Repo.Repository,
 		ctx.FormInt64("uid"),
 		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
@@ -980,7 +1022,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	team, err := organization.OrgFromUser(ctx.Repo.Owner).GetTeam(name)
+	team, err := organization.OrgFromUser(ctx.Repo.Owner).GetTeam(ctx, name)
 	if err != nil {
 		if organization.IsErrTeamNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("form.team_not_exist"))
@@ -1093,7 +1135,7 @@ func GitHooksEditPost(ctx *context.Context) {
 
 // DeployKeys render the deploy keys list of a repository page
 func DeployKeys(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
+	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys") + " / " + ctx.Tr("secrets.secrets")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
@@ -1132,6 +1174,10 @@ func DeployKeysPost(ctx *context.Context) {
 			ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
 		} else if asymkey_model.IsErrKeyUnableVerify(err) {
 			ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
+		} else if err == asymkey_model.ErrKeyIsPrivate {
+			ctx.Data["HasError"] = true
+			ctx.Data["Err_Content"] = true
+			ctx.Flash.Error(ctx.Tr("form.must_use_public_key"))
 		} else {
 			ctx.Data["HasError"] = true
 			ctx.Data["Err_Content"] = true
@@ -1213,7 +1259,7 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 	if !(st.IsImage() && !st.IsSvgImage()) {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 	}
-	if err = repo_service.UploadAvatar(ctxRepo, data); err != nil {
+	if err = repo_service.UploadAvatar(ctx, ctxRepo, data); err != nil {
 		return fmt.Errorf("UploadAvatar: %w", err)
 	}
 	return nil
@@ -1233,7 +1279,7 @@ func SettingsAvatar(ctx *context.Context) {
 
 // SettingsDeleteAvatar delete repository avatar
 func SettingsDeleteAvatar(ctx *context.Context) {
-	if err := repo_service.DeleteAvatar(ctx.Repo.Repository); err != nil {
+	if err := repo_service.DeleteAvatar(ctx, ctx.Repo.Repository); err != nil {
 		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")

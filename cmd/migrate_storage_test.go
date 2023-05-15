@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -26,7 +25,7 @@ func TestMigratePackages(t *testing.T) {
 	creator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	content := "package main\n\nfunc main() {\nfmt.Println(\"hi\")\n}\n"
-	buf, err := packages_module.CreateHashedBufferFromReader(strings.NewReader(content), 1024)
+	buf, err := packages_module.CreateHashedBufferFromReaderWithSize(strings.NewReader(content), 1024)
 	assert.NoError(t, err)
 	defer buf.Close()
 
@@ -44,8 +43,9 @@ func TestMigratePackages(t *testing.T) {
 		PackageFileInfo: packages_service.PackageFileInfo{
 			Filename: "a.go",
 		},
-		Data:   buf,
-		IsLead: true,
+		Creator: creator,
+		Data:    buf,
+		IsLead:  true,
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, v)
@@ -67,7 +67,7 @@ func TestMigratePackages(t *testing.T) {
 
 	entries, err := os.ReadDir(p)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 2, len(entries))
+	assert.Len(t, entries, 2)
 	assert.EqualValues(t, "01", entries[0].Name())
 	assert.EqualValues(t, "tmp", entries[1].Name())
 }

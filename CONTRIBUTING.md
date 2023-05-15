@@ -121,8 +121,7 @@ See the [hacking instructions](https://docs.gitea.io/en-us/hacking-on-gitea/).
 
 Changes to Gitea must be reviewed before they are accepted—no matter who
 makes the change, even if they are an owner or a maintainer. We use GitHub's
-pull request workflow to do that. And, we also use [LGTM](http://lgtm.co)
-to ensure every PR is reviewed by at least 2 maintainers.
+pull request workflow to do that. Every PR is reviewed by at least 2 maintainers.
 
 Please try to make your pull request easy to review for us. And, please read
 the *[How to get faster PR reviews](https://github.com/kubernetes/community/blob/261cb0fd089b64002c91e8eddceebf032462ccd6/contributors/guide/pull-requests.md#best-practices-for-faster-reviews)* guide;
@@ -190,6 +189,8 @@ To maintain understandable code and avoid circular dependencies it is important 
 - **templates:** Golang templates for generating the html output.
 - **tests/e2e:** End to end tests
 - **tests/integration:** Integration tests
+- **tests/gitea-repositories-meta:** Sample repos used in integration tests. Adding a new repo requires editing `models/fixtures/repositories.yml` and `models/fixtures/repo_unit.yml` to match.
+- **tests/gitea-lfs-meta:** Sample LFS objects used in integration tests. Adding a new object requires editing `models/fixtures/lfs_meta_object.yml` to match.
 - **vendor:** External code that Gitea depends on.
 
 ## Documentation
@@ -265,26 +266,10 @@ with the rest of the summary matching the original PR. Similarly for frontports
 
 ---
 
-The below is a script that may be helpful in creating backports. YMMV.
+A command to help create backports can be found in `contrib/backport` and can be installed (from inside the gitea repo root directory) using:
 
 ```bash
-#!/bin/sh
-PR="$1"
-SHA="$2"
-VERSION="$3"
-
-if [ -z "$SHA" ]; then
-    SHA=$(gh api /repos/go-gitea/gitea/pulls/$PR -q '.merge_commit_sha')
-fi
-
-if [ -z "$VERSION" ]; then
-    VERSION="v1.16"
-fi
-
-echo git checkout origin/release/"$VERSION" -b backport-$PR-$VERSION
-git checkout origin/release/"$VERSION" -b backport-$PR-$VERSION
-git cherry-pick $SHA && git commit --amend && git push zeripath backport-$PR-$VERSION && xdg-open https://github.com/go-gitea/gitea/compare/release/"$VERSION"...zeripath:backport-$PR-$VERSION
-
+go install contrib/backport/backport.go
 ```
 
 ## Developer Certificate of Origin (DCO)
@@ -313,9 +298,7 @@ known as the release freeze. All the feature pull requests should be
 merged before feature freeze. And, during the frozen period, a corresponding
 release branch is open for fixes backported from main branch. Release candidates
 are made during this period for user testing to
-obtain a final version that is maintained in this branch. A release is
-maintained by issuing patch releases to only correct critical problems
-such as crashes or security issues.
+obtain a final version that is maintained in this branch.
 
 Major release cycles are seasonal. They always begin on the 25th and end on
 the 24th (i.e., the 25th of December to March 24th).
@@ -324,6 +307,16 @@ During a development cycle, we may also publish any necessary minor releases
 for the previous version. For example, if the latest, published release is
 v1.2, then minor changes for the previous release—e.g., v1.1.0 -> v1.1.1—are
 still possible.
+
+The previous release gets fixes for:
+
+- Security issues
+- Critical bugs
+- Regressions
+- Build issues
+- Necessary enhancements (including necessary UI/UX fixes)
+
+The backported fixes should avoid breaking downgrade between minor releases as much as possible.
 
 ## Maintainers
 
@@ -439,9 +432,9 @@ be reviewed by two maintainers and must pass the automatic tests.
 Code that you contribute should use the standard copyright header:
 
 ```
-// Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// Copyright <year> The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 ```
 
 Files in the repository contain copyright from the year they are added

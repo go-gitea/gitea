@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package log
 
@@ -117,11 +116,6 @@ func (log *ConnLogger) Init(jsonconfig string) error {
 		Addr:           log.Addr,
 	}, log.Level)
 	return nil
-}
-
-// Content returns the content accumulated in the content provider
-func (log *ConnLogger) Content() (string, error) {
-	return "", fmt.Errorf("not supported")
 }
 
 // Flush does nothing for this implementation

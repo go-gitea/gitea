@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markup
 
@@ -8,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -27,6 +27,7 @@ func TestRender_StandardLinks(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: setting.AppSubURL,
 		}, input)
 		assert.NoError(t, err)
@@ -47,6 +48,7 @@ func TestRender_Images(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: setting.AppSubURL,
 		}, input)
 		assert.NoError(t, err)
@@ -66,6 +68,7 @@ func TestRender_Source(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: setting.AppSubURL,
 		}, input)
 		assert.NoError(t, err)

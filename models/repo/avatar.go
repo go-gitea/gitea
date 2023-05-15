@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -22,6 +21,13 @@ import (
 // CustomAvatarRelativePath returns repository custom avatar file path.
 func (repo *Repository) CustomAvatarRelativePath() string {
 	return repo.Avatar
+}
+
+// ExistsWithAvatarAtStoragePath returns true if there is a user with this Avatar
+func ExistsWithAvatarAtStoragePath(ctx context.Context, storagePath string) (bool, error) {
+	// See func (repo *Repository) CustomAvatarRelativePath()
+	// repo.Avatar is used directly as the storage path - therefore we can check for existence directly using the path
+	return db.GetEngine(ctx).Where("`avatar`=?", storagePath).Exist(new(Repository))
 }
 
 // RelAvatarLink returns a relative link to the repository's avatar.
@@ -79,12 +85,7 @@ func (repo *Repository) relAvatarLink(ctx context.Context) string {
 }
 
 // AvatarLink returns a link to the repository's avatar.
-func (repo *Repository) AvatarLink() string {
-	return repo.avatarLink(db.DefaultContext)
-}
-
-// avatarLink returns user avatar absolute link.
-func (repo *Repository) avatarLink(ctx context.Context) string {
+func (repo *Repository) AvatarLink(ctx context.Context) string {
 	link := repo.relAvatarLink(ctx)
 	// we only prepend our AppURL to our known (relative, internal) avatar link to get an absolute URL
 	if strings.HasPrefix(link, "/") && !strings.HasPrefix(link, "//") {

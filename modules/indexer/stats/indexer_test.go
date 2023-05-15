@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package stats
 
@@ -19,7 +18,6 @@ import (
 	_ "code.gitea.io/gitea/models"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/ini.v1"
 )
 
 func TestMain(m *testing.M) {
@@ -30,20 +28,20 @@ func TestMain(m *testing.M) {
 
 func TestRepoStatsIndex(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	setting.Cfg = ini.Empty()
+	setting.CfgProvider, _ = setting.NewConfigProviderFromData("")
 
-	setting.NewQueueService()
+	setting.LoadQueueSettings()
 
 	err := Init()
 	assert.NoError(t, err)
 
-	repo, err := repo_model.GetRepositoryByID(1)
+	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 
 	err = UpdateRepoIndexer(repo)
 	assert.NoError(t, err)
 
-	queue.GetManager().FlushAll(context.Background(), 5*time.Second)
+	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), 5*time.Second))
 
 	status, err := repo_model.GetIndexerStatus(db.DefaultContext, repo, repo_model.RepoIndexerTypeStats)
 	assert.NoError(t, err)

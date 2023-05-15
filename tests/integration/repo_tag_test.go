@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -9,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -32,12 +32,12 @@ func TestCreateNewTagProtected(t *testing.T) {
 		err := release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1", "first tag")
 		assert.NoError(t, err)
 
-		err = git_model.InsertProtectedTag(&git_model.ProtectedTag{
+		err = git_model.InsertProtectedTag(db.DefaultContext, &git_model.ProtectedTag{
 			RepoID:      repo.ID,
 			NamePattern: "v-*",
 		})
 		assert.NoError(t, err)
-		err = git_model.InsertProtectedTag(&git_model.ProtectedTag{
+		err = git_model.InsertProtectedTag(db.DefaultContext, &git_model.ProtectedTag{
 			RepoID:           repo.ID,
 			NamePattern:      "v-1.1",
 			AllowlistUserIDs: []int64{repo.OwnerID},
@@ -74,22 +74,22 @@ func TestCreateNewTagProtected(t *testing.T) {
 	})
 
 	// Cleanup
-	releases, err := repo_model.GetReleasesByRepoID(repo.ID, repo_model.FindReleasesOptions{
+	releases, err := repo_model.GetReleasesByRepoID(db.DefaultContext, repo.ID, repo_model.FindReleasesOptions{
 		IncludeTags: true,
 		TagNames:    []string{"v-1", "v-1.1"},
 	})
 	assert.NoError(t, err)
 
 	for _, release := range releases {
-		err = repo_model.DeleteReleaseByID(release.ID)
+		err = repo_model.DeleteReleaseByID(db.DefaultContext, release.ID)
 		assert.NoError(t, err)
 	}
 
-	protectedTags, err := git_model.GetProtectedTags(repo.ID)
+	protectedTags, err := git_model.GetProtectedTags(db.DefaultContext, repo.ID)
 	assert.NoError(t, err)
 
 	for _, protectedTag := range protectedTags {
-		err = git_model.DeleteProtectedTag(protectedTag)
+		err = git_model.DeleteProtectedTag(db.DefaultContext, protectedTag)
 		assert.NoError(t, err)
 	}
 }

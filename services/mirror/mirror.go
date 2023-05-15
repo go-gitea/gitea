@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mirror
 
@@ -121,9 +120,8 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 	return nil
 }
 
-func queueHandle(data ...queue.Data) []queue.Data {
-	for _, datum := range data {
-		req := datum.(*mirror_module.SyncRequest)
+func queueHandler(items ...*mirror_module.SyncRequest) []*mirror_module.SyncRequest {
+	for _, req := range items {
 		doMirrorSync(graceful.GetManager().ShutdownContext(), req)
 	}
 	return nil
@@ -131,5 +129,5 @@ func queueHandle(data ...queue.Data) []queue.Data {
 
 // InitSyncMirrors initializes a go routine to sync the mirrors
 func InitSyncMirrors() {
-	mirror_module.StartSyncMirrors(queueHandle)
+	mirror_module.StartSyncMirrors(queueHandler)
 }

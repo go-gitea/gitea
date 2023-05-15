@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package code
 
@@ -55,16 +54,6 @@ func (w *wrappedIndexer) get() (Indexer, error) {
 		}
 	}
 	return w.internal, nil
-}
-
-// SetAvailabilityChangeCallback sets callback that will be triggered when availability changes
-func (w *wrappedIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
-	indexer, err := w.get()
-	if err != nil {
-		log.Error("Failed to get indexer: %v", err)
-		return
-	}
-	indexer.SetAvailabilityChangeCallback(callback)
 }
 
 // Ping checks if elastic is available

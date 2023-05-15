@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -10,6 +9,7 @@ import (
 	"net/url"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -25,7 +25,7 @@ func TestAPIListReleases(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	token := getUserToken(t, user2.LowerName)
+	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeRepo)
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name))
 	link.RawQuery = url.Values{"token": {token}}.Encode()
@@ -80,7 +80,7 @@ func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, 
 		IsPrerelease: false,
 		Target:       target,
 	})
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 
 	var newRelease api.Release
 	DecodeJSON(t, resp, &newRelease)
@@ -101,7 +101,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	assert.NoError(t, err)
@@ -118,7 +118,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d?token=%s",
 		owner.Name, repo.Name, newRelease.ID, token)
 	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var release api.Release
 	DecodeJSON(t, resp, &release)
@@ -135,7 +135,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 		IsPrerelease: &release.IsPrerelease,
 		Target:       release.Target,
 	})
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &newRelease)
 	rel := &repo_model.Release{
@@ -153,7 +153,7 @@ func TestAPICreateReleaseToDefaultBranch(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 
 	createNewReleaseUsingAPI(t, session, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
 }
@@ -164,7 +164,7 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	assert.NoError(t, err)
@@ -176,12 +176,29 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 	createNewReleaseUsingAPI(t, session, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
 }
 
+func TestAPIGetLatestRelease(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/latest",
+		owner.Name, repo.Name)
+
+	req := NewRequestf(t, "GET", urlStr)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var release *api.Release
+	DecodeJSON(t, resp, &release)
+
+	assert.Equal(t, "testing-release", release.Title)
+}
+
 func TestAPIGetReleaseByTag(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, owner.LowerName)
 
 	tag := "v1.1"
 
@@ -189,7 +206,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 		owner.Name, repo.Name, tag)
 
 	req := NewRequestf(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var release *api.Release
 	DecodeJSON(t, resp, &release)
@@ -202,7 +219,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 		owner.Name, repo.Name, nonexistingtag)
 
 	req = NewRequestf(t, "GET", urlStr)
-	resp = session.MakeRequest(t, req, http.StatusNotFound)
+	resp = MakeRequest(t, req, http.StatusNotFound)
 
 	var err *api.APIError
 	DecodeJSON(t, resp, &err)
@@ -215,19 +232,19 @@ func TestAPIDeleteReleaseByTagName(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 
 	createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
 
 	// delete release
 	req := NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag?token=%s", owner.Name, repo.Name, token))
-	_ = session.MakeRequest(t, req, http.StatusNoContent)
+	_ = MakeRequest(t, req, http.StatusNoContent)
 
 	// make sure release is deleted
 	req = NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag?token=%s", owner.Name, repo.Name, token))
-	_ = session.MakeRequest(t, req, http.StatusNotFound)
+	_ = MakeRequest(t, req, http.StatusNotFound)
 
 	// delete release tag too
 	req = NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/tags/release-tag?token=%s", owner.Name, repo.Name, token))
-	_ = session.MakeRequest(t, req, http.StatusNoContent)
+	_ = MakeRequest(t, req, http.StatusNoContent)
 }

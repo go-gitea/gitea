@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -70,7 +69,7 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.Equal(t, user.Name, oidcToken.Name)
 	assert.Equal(t, user.Name, oidcToken.PreferredUsername)
 	assert.Equal(t, user.HTMLURL(), oidcToken.Profile)
-	assert.Equal(t, user.AvatarLink(), oidcToken.Picture)
+	assert.Equal(t, user.AvatarLink(db.DefaultContext), oidcToken.Picture)
 	assert.Equal(t, user.Website, oidcToken.Website)
 	assert.Equal(t, user.UpdatedUnix, oidcToken.UpdatedAt)
 	assert.Equal(t, user.Email, oidcToken.Email)
@@ -88,7 +87,7 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.Equal(t, user.FullName, oidcToken.Name)
 	assert.Equal(t, user.Name, oidcToken.PreferredUsername)
 	assert.Equal(t, user.HTMLURL(), oidcToken.Profile)
-	assert.Equal(t, user.AvatarLink(), oidcToken.Picture)
+	assert.Equal(t, user.AvatarLink(db.DefaultContext), oidcToken.Picture)
 	assert.Equal(t, user.Website, oidcToken.Website)
 	assert.Equal(t, user.UpdatedUnix, oidcToken.UpdatedAt)
 	assert.Equal(t, user.Email, oidcToken.Email)

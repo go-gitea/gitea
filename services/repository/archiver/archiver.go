@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package archiver
 
@@ -174,7 +173,7 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 }
 
 func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
-	txCtx, committer, err := db.TxContext()
+	txCtx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +226,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 		rd.Close()
 	}()
 	done := make(chan error, 1) // Ensure that there is some capacity which will ensure that the goroutine below can always finish
-	repo, err := repo_model.GetRepositoryByID(archiver.RepoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, archiver.RepoID)
 	if err != nil {
 		return nil, fmt.Errorf("archiver.LoadRepo failed: %w", err)
 	}
@@ -296,26 +295,21 @@ func ArchiveRepository(request *ArchiveRequest) (*repo_model.RepoArchiver, error
 	return doArchive(request)
 }
 
-var archiverQueue queue.UniqueQueue
+var archiverQueue *queue.WorkerPoolQueue[*ArchiveRequest]
 
 // Init initlize archive
 func Init() error {
-	handler := func(data ...queue.Data) []queue.Data {
-		for _, datum := range data {
-			archiveReq, ok := datum.(*ArchiveRequest)
-			if !ok {
-				log.Error("Unable to process provided datum: %v - not possible to cast to IndexerData", datum)
-				continue
-			}
+	handler := func(items ...*ArchiveRequest) []*ArchiveRequest {
+		for _, archiveReq := range items {
 			log.Trace("ArchiverData Process: %#v", archiveReq)
 			if _, err := doArchive(archiveReq); err != nil {
-				log.Error("Archive %v failed: %v", datum, err)
+				log.Error("Archive %v failed: %v", archiveReq, err)
 			}
 		}
 		return nil
 	}
 
-	archiverQueue = queue.CreateUniqueQueue("repo-archive", handler, new(ArchiveRequest))
+	archiverQueue = queue.CreateUniqueQueue("repo-archive", handler)
 	if archiverQueue == nil {
 		return errors.New("unable to create codes indexer queue")
 	}

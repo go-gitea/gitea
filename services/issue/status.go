@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issue
 
@@ -15,13 +14,13 @@ import (
 )
 
 // ChangeStatus changes issue status to open or closed.
-func ChangeStatus(issue *issues_model.Issue, doer *user_model.User, closed bool) error {
-	return changeStatusCtx(db.DefaultContext, issue, doer, closed)
+func ChangeStatus(issue *issues_model.Issue, doer *user_model.User, commitID string, closed bool) error {
+	return changeStatusCtx(db.DefaultContext, issue, doer, commitID, closed)
 }
 
 // changeStatusCtx changes issue status to open or closed.
 // TODO: if context is not db.DefaultContext we get a deadlock!!!
-func changeStatusCtx(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, closed bool) error {
+func changeStatusCtx(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string, closed bool) error {
 	comment, err := issues_model.ChangeIssueStatus(ctx, issue, doer, closed)
 	if err != nil {
 		if issues_model.IsErrDependenciesLeft(err) && closed {
@@ -38,7 +37,7 @@ func changeStatusCtx(ctx context.Context, issue *issues_model.Issue, doer *user_
 		}
 	}
 
-	notification.NotifyIssueChangeStatus(doer, issue, comment, closed)
+	notification.NotifyIssueChangeStatus(ctx, doer, commitID, issue, comment, closed)
 
 	return nil
 }

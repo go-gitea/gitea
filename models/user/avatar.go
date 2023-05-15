@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -59,7 +58,7 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 }
 
 // AvatarLinkWithSize returns a link to the user's avatar with size. size <= 0 means default size
-func (u *User) AvatarLinkWithSize(size int) string {
+func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
 	if u.ID == -1 {
 		// ghost user
 		return avatars.DefaultAvatarLink()
@@ -68,11 +67,7 @@ func (u *User) AvatarLinkWithSize(size int) string {
 	useLocalAvatar := false
 	autoGenerateAvatar := false
 
-	var disableGravatar bool
-	disableGravatarSetting, _ := system_model.GetSetting(system_model.KeyPictureDisableGravatar)
-	if disableGravatarSetting != nil {
-		disableGravatar = disableGravatarSetting.GetValueBool()
-	}
+	disableGravatar := system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
 
 	switch {
 	case u.UseCustomAvatar:
@@ -84,7 +79,7 @@ func (u *User) AvatarLinkWithSize(size int) string {
 
 	if useLocalAvatar {
 		if u.Avatar == "" && autoGenerateAvatar {
-			if err := GenerateRandomAvatar(db.DefaultContext, u); err != nil {
+			if err := GenerateRandomAvatar(ctx, u); err != nil {
 				log.Error("GenerateRandomAvatar: %v", err)
 			}
 		}
@@ -93,12 +88,12 @@ func (u *User) AvatarLinkWithSize(size int) string {
 		}
 		return avatars.GenerateUserAvatarImageLink(u.Avatar, size)
 	}
-	return avatars.GenerateEmailAvatarFastLink(u.AvatarEmail, size)
+	return avatars.GenerateEmailAvatarFastLink(ctx, u.AvatarEmail, size)
 }
 
 // AvatarLink returns the full avatar link with http host
-func (u *User) AvatarLink() string {
-	link := u.AvatarLinkWithSize(0)
+func (u *User) AvatarLink(ctx context.Context) string {
+	link := u.AvatarLinkWithSize(ctx, 0)
 	if !strings.HasPrefix(link, "//") && !strings.Contains(link, "://") {
 		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL+"/")
 	}
@@ -112,4 +107,11 @@ func (u *User) IsUploadAvatarChanged(data []byte) bool {
 	}
 	avatarID := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
 	return u.Avatar != avatarID
+}
+
+// ExistsWithAvatarAtStoragePath returns true if there is a user with this Avatar
+func ExistsWithAvatarAtStoragePath(ctx context.Context, storagePath string) (bool, error) {
+	// See func (u *User) CustomAvatarRelativePath()
+	// u.Avatar is used directly as the storage path - therefore we can check for existence directly using the path
+	return db.GetEngine(ctx).Where("`avatar`=?", storagePath).Exist(new(User))
 }

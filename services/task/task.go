@@ -1,6 +1,5 @@
 // Copyright 2019 Gitea. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package task
 
@@ -24,7 +23,7 @@ import (
 )
 
 // taskQueue is a global queue of tasks
-var taskQueue queue.Queue
+var taskQueue *queue.WorkerPoolQueue[*admin_model.Task]
 
 // Run a task
 func Run(t *admin_model.Task) error {
@@ -38,7 +37,7 @@ func Run(t *admin_model.Task) error {
 
 // Init will start the service to get all unfinished tasks and run them
 func Init() error {
-	taskQueue = queue.CreateQueue("task", handle, &admin_model.Task{})
+	taskQueue = queue.CreateSimpleQueue("task", handler)
 
 	if taskQueue == nil {
 		return fmt.Errorf("Unable to create Task Queue")
@@ -49,9 +48,8 @@ func Init() error {
 	return nil
 }
 
-func handle(data ...queue.Data) []queue.Data {
-	for _, datum := range data {
-		task := datum.(*admin_model.Task)
+func handler(items ...*admin_model.Task) []*admin_model.Task {
+	for _, task := range items {
 		if err := Run(task); err != nil {
 			log.Error("Run task failed: %v", err)
 		}
@@ -97,7 +95,7 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*adm
 		DoerID:         doer.ID,
 		OwnerID:        u.ID,
 		Type:           structs.TaskTypeMigrateRepo,
-		Status:         structs.TaskStatusQueue,
+		Status:         structs.TaskStatusQueued,
 		PayloadContent: string(bs),
 	}
 

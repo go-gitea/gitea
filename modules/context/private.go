@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -12,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 // PrivateContext represents a context for private routes
@@ -63,7 +63,7 @@ func PrivateContexter() func(http.Handler) http.Handler {
 			ctx := &PrivateContext{
 				Context: &Context{
 					Resp: NewResponse(w),
-					Data: map[string]interface{}{},
+					Data: middleware.GetContextData(req.Context()),
 				},
 			}
 			defer ctx.Close()

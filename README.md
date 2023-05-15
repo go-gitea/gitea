@@ -12,14 +12,14 @@
   <a href="https://discord.gg/Gitea" title="Join the Discord chat at https://discord.gg/Gitea">
     <img src="https://img.shields.io/discord/322538954119184384.svg">
   </a>
-  <a href="https://codecov.io/gh/go-gitea/gitea" title="Codecov">
+  <a href="https://app.codecov.io/gh/go-gitea/gitea" title="Codecov">
     <img src="https://codecov.io/gh/go-gitea/gitea/branch/main/graph/badge.svg">
   </a>
   <a href="https://goreportcard.com/report/code.gitea.io/gitea" title="Go Report Card">
     <img src="https://goreportcard.com/badge/code.gitea.io/gitea">
   </a>
-  <a href="https://godoc.org/code.gitea.io/gitea" title="GoDoc">
-    <img src="https://godoc.org/code.gitea.io/gitea?status.svg">
+  <a href="https://pkg.go.dev/code.gitea.io/gitea" title="GoDoc">
+    <img src="https://pkg.go.dev/badge/code.gitea.io/gitea?status.svg">
   </a>
   <a href="https://github.com/go-gitea/gitea/releases/latest" title="GitHub release">
     <img src="https://img.shields.io/github/release/go-gitea/gitea.svg">
@@ -45,7 +45,7 @@
   <a href="https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea&branch=main" title="TODOs">
     <img src="https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea/main">
   </a>
-  <a href="https://www.bountysource.com/teams/gitea" title="Bountysource">
+  <a href="https://app.bountysource.com/teams/gitea" title="Bountysource">
     <img src="https://img.shields.io/bountysource/team/gitea/activity">
   </a>
 </p>
@@ -110,7 +110,7 @@ Translations are done through Crowdin. If you want to translate to a new languag
 
 You can also just create an issue for adding a language or ask on discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord. For general translation questions there is a section in the docs. Currently a bit empty but we hope to fill it as questions pop up.
 
-https://docs.gitea.io/en-us/translation-guidelines/
+https://docs.gitea.io/en-us/contributing/translation-guidelines/
 
 [![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
 

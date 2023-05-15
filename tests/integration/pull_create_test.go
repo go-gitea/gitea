@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -23,7 +22,7 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, titl
 
 	// Click the PR button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("#new-pull-request").Parent().Attr("href")
+	link, exists := htmlDoc.doc.Find("#new-pull-request").Attr("href")
 	assert.True(t, exists, "The template has changed")
 	if branch != "master" {
 		link = strings.Replace(link, ":master", ":"+branch, 1)
@@ -68,7 +67,7 @@ func TestPullCreate(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
 		assert.Regexp(t, "diff", resp.Body)
-		assert.Regexp(t, `Subject: \[PATCH\] Update 'README.md'`, resp.Body)
+		assert.Regexp(t, `Subject: \[PATCH\] Update README.md`, resp.Body)
 		assert.NotRegexp(t, "diff.*diff", resp.Body) // not two diffs, just one
 	})
 }

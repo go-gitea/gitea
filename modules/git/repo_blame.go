@@ -1,10 +1,11 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // FileBlame return the Blame object of file
 func (repo *Repository) FileBlame(revision, path, file string) ([]byte, error) {
@@ -15,8 +16,8 @@ func (repo *Repository) FileBlame(revision, path, file string) ([]byte, error) {
 // LineBlame returns the latest commit at the given line
 func (repo *Repository) LineBlame(revision, path, file string, line uint) (*Commit, error) {
 	res, _, err := NewCommand(repo.Ctx, "blame").
-		AddArguments(CmdArg(fmt.Sprintf("-L %d,%d", line, line))).
-		AddArguments("-p").AddDynamicArguments(revision).
+		AddOptionFormat("-L %d,%d", line, line).
+		AddOptionValues("-p", revision).
 		AddDashesAndList(file).RunStdString(&RunOpts{Dir: path})
 	if err != nil {
 		return nil, err

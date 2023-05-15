@@ -1,14 +1,11 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
 import (
 	"context"
-	"crypto/md5"
 	"fmt"
-	"image/png"
 	"io"
 	"time"
 
@@ -28,6 +25,22 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/packages"
 )
+
+// RenameUser renames a user
+func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	if err := renameUser(ctx, u, newUserName); err != nil {
+		return err
+	}
+	if err := committer.Commit(); err != nil {
+		return err
+	}
+	return err
+}
 
 // DeleteUser completely and permanently deletes everything of a user,
 // but issues/comments/pulls will be kept and shown as someone has been deleted,
@@ -78,7 +91,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 				Actor:   u,
 			})
 			if err != nil {
-				return fmt.Errorf("SearchRepositoryByName: %w", err)
+				return fmt.Errorf("GetUserRepositories: %w", err)
 			}
 			if len(repos) == 0 {
 				break
@@ -132,7 +145,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -165,7 +178,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		return models.ErrUserOwnPackages{UID: u.ID}
 	}
 
-	if err := models.DeleteUser(ctx, u, purge); err != nil {
+	if err := deleteUser(ctx, u, purge); err != nil {
 		return fmt.Errorf("DeleteUser: %w", err)
 	}
 
@@ -230,31 +243,25 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 
 // UploadAvatar saves custom avatar for user.
 func UploadAvatar(u *user_model.User, data []byte) error {
-	m, err := avatar.Prepare(data)
+	avatarData, err := avatar.ProcessAvatarImage(data)
 	if err != nil {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
 	u.UseCustomAvatar = true
-	// Different users can upload same image as avatar
-	// If we prefix it with u.ID, it will be separated
-	// Otherwise, if any of the users delete his avatar
-	// Other users will lose their avatars too.
-	u.Avatar = fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
+	u.Avatar = avatar.HashAvatar(u.ID, data)
 	if err = user_model.UpdateUserCols(ctx, u, "use_custom_avatar", "avatar"); err != nil {
 		return fmt.Errorf("updateUser: %w", err)
 	}
 
 	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, *m); err != nil {
-			log.Error("Encode: %v", err)
-		}
+		_, err := w.Write(avatarData)
 		return err
 	}); err != nil {
 		return fmt.Errorf("Failed to create dir %s: %w", u.CustomAvatarRelativePath(), err)

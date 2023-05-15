@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -151,6 +150,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		return
 	}
 
+	// FIXME: code from #19689, what if the file is large ... OOM ...
 	buf, err := io.ReadAll(dataRc)
 	if err != nil {
 		_ = dataRc.Close()
@@ -165,7 +165,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	// Check if the blob represents a pointer
 	pointer, _ := lfs.ReadPointer(bytes.NewReader(buf))
 
-	// if its not a pointer just serve the data directly
+	// if it's not a pointer, just serve the data directly
 	if !pointer.IsValid() {
 		// First handle caching for the blob
 		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
@@ -173,25 +173,21 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		}
 
 		// OK not cached - serve!
-		if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf)); err != nil {
-			ctx.ServerError("ServeBlob", err)
-		}
+		common.ServeContentByReader(ctx.Context, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
 		return
 	}
 
-	// Now check if there is a meta object for this pointer
-	meta, err := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+	// Now check if there is a MetaObject for this pointer
+	meta, err := git_model.GetLFSMetaObjectByOid(ctx, ctx.Repo.Repository.ID, pointer.Oid)
 
-	// If there isn't one just serve the data directly
+	// If there isn't one, just serve the data directly
 	if err == git_model.ErrLFSObjectNotExist {
 		// Handle caching for the blob SHA (not the LFS object OID)
 		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 			return
 		}
 
-		if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf)); err != nil {
-			ctx.ServerError("ServeBlob", err)
-		}
+		common.ServeContentByReader(ctx.Context, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
 		return
 	} else if err != nil {
 		ctx.ServerError("GetLFSMetaObjectByOid", err)
@@ -219,9 +215,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 	defer lfsDataRc.Close()
 
-	if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, meta.Size, lfsDataRc); err != nil {
-		ctx.ServerError("ServeData", err)
-	}
+	common.ServeContentByReadSeeker(ctx.Context, ctx.Repo.TreePath, lastModified, lfsDataRc)
 }
 
 func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEntry, lastModified time.Time) {
@@ -341,7 +335,11 @@ func download(ctx *context.APIContext, archiveName string, archiver *repo_model.
 		return
 	}
 	defer fr.Close()
-	ctx.ServeContent(downloadName, fr, archiver.CreatedUnix.AsLocalTime())
+
+	ctx.ServeContent(fr, &context.ServeHeaderOptions{
+		Filename:     downloadName,
+		LastModified: archiver.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // GetEditorconfig get editor config of a repository
@@ -378,7 +376,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	ec, err := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
+	ec, _, err := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(err)

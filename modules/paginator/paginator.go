@@ -1,5 +1,6 @@
 // Copyright 2022 The Gitea Authors.
 // Copyright 2015 https://github.com/unknwon. Licensed under the Apache License, Version 2.0
+// SPDX-License-Identifier: Apache-2.0
 
 package paginator
 

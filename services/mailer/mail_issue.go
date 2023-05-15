@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mailer
 
@@ -25,11 +24,12 @@ func fallbackMailSubject(issue *issues_model.Issue) string {
 
 type mailCommentContext struct {
 	context.Context
-	Issue      *issues_model.Issue
-	Doer       *user_model.User
-	ActionType activities_model.ActionType
-	Content    string
-	Comment    *issues_model.Comment
+	Issue                 *issues_model.Issue
+	Doer                  *user_model.User
+	ActionType            activities_model.ActionType
+	Content               string
+	Comment               *issues_model.Comment
+	ForceDoerNotification bool
 }
 
 const (
@@ -44,13 +44,13 @@ const (
 func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_model.User) error {
 	// Required by the mail composer; make sure to load these before calling the async function
 	if err := ctx.Issue.LoadRepo(ctx); err != nil {
-		return fmt.Errorf("LoadRepo(): %w", err)
+		return fmt.Errorf("LoadRepo: %w", err)
 	}
-	if err := ctx.Issue.LoadPoster(); err != nil {
-		return fmt.Errorf("LoadPoster(): %w", err)
+	if err := ctx.Issue.LoadPoster(ctx); err != nil {
+		return fmt.Errorf("LoadPoster: %w", err)
 	}
-	if err := ctx.Issue.LoadPullRequest(); err != nil {
-		return fmt.Errorf("LoadPullRequest(): %w", err)
+	if err := ctx.Issue.LoadPullRequest(ctx); err != nil {
+		return fmt.Errorf("LoadPullRequest: %w", err)
 	}
 
 	// Enough room to avoid reallocations
@@ -60,14 +60,14 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	unfiltered[0] = ctx.Issue.PosterID
 
 	// =========== Assignees ===========
-	ids, err := issues_model.GetAssigneeIDsByIssue(ctx.Issue.ID)
+	ids, err := issues_model.GetAssigneeIDsByIssue(ctx, ctx.Issue.ID)
 	if err != nil {
 		return fmt.Errorf("GetAssigneeIDsByIssue(%d): %w", ctx.Issue.ID, err)
 	}
 	unfiltered = append(unfiltered, ids...)
 
 	// =========== Participants (i.e. commenters, reviewers) ===========
-	ids, err = issues_model.GetParticipantsIDsByIssueID(ctx.Issue.ID)
+	ids, err = issues_model.GetParticipantsIDsByIssueID(ctx, ctx.Issue.ID)
 	if err != nil {
 		return fmt.Errorf("GetParticipantsIDsByIssueID(%d): %w", ctx.Issue.ID, err)
 	}
@@ -93,7 +93,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	visited := make(container.Set[int64], len(unfiltered)+len(mentions)+1)
 
 	// Avoid mailing the doer
-	if ctx.Doer.EmailNotificationsPreference != user_model.EmailNotificationsAndYourOwn {
+	if ctx.Doer.EmailNotificationsPreference != user_model.EmailNotificationsAndYourOwn && !ctx.ForceDoerNotification {
 		visited.Add(ctx.Doer.ID)
 	}
 
@@ -109,7 +109,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	}
 	visited.AddMultiple(ids...)
 
-	unfilteredUsers, err := user_model.GetMaileableUsersByIDs(unfiltered, false)
+	unfilteredUsers, err := user_model.GetMaileableUsersByIDs(ctx, unfiltered, false)
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
-func MailParticipants(issue *issues_model.Issue, doer *user_model.User, opType activities_model.ActionType, mentions []*user_model.User) error {
+func MailParticipants(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, opType activities_model.ActionType, mentions []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
@@ -181,17 +181,19 @@ func MailParticipants(issue *issues_model.Issue, doer *user_model.User, opType a
 	content := issue.Content
 	if opType == activities_model.ActionCloseIssue || opType == activities_model.ActionClosePullRequest ||
 		opType == activities_model.ActionReopenIssue || opType == activities_model.ActionReopenPullRequest ||
-		opType == activities_model.ActionMergePullRequest {
+		opType == activities_model.ActionMergePullRequest || opType == activities_model.ActionAutoMergePullRequest {
 		content = ""
 	}
+	forceDoerNotification := opType == activities_model.ActionAutoMergePullRequest
 	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
-			Context:    context.TODO(), // TODO: use a correct context
-			Issue:      issue,
-			Doer:       doer,
-			ActionType: opType,
-			Content:    content,
-			Comment:    nil,
+			Context:               ctx,
+			Issue:                 issue,
+			Doer:                  doer,
+			ActionType:            opType,
+			Content:               content,
+			Comment:               nil,
+			ForceDoerNotification: forceDoerNotification,
 		}, mentions); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)
 	}
