@@ -178,6 +178,5 @@ onDomReady(() => {
   initUserAuthWebAuthnRegister();
   initUserSettings();
   initRepoDiffView();
-  initRepoIssueGotoID();
   initSettingVariables();
 });
