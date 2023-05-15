@@ -8,6 +8,8 @@
 					<a class="ui card gt-df gt-ac" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
 						{{if eq .Name "github"}}
 							{{svg "octicon-mark-github" 184 "gt-p-4"}}
+						{{else if eq .Name "gitlab"}}
+							{{svg "gitea-gitlab" 184 "gt-p-4"}}
 						{{else if eq .Name "gitbucket"}}
 							{{svg "gitea-gitbucket" 184 "gt-p-4"}}
 						{{else}}
