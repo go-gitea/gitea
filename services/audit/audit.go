@@ -44,7 +44,7 @@ type Event struct {
 
 var (
 	appenders  = make([]Appender, 0, 5)
-	auditQueue queue.Queue
+	auditQueue *queue.WorkerPoolQueue[*Event]
 )
 
 func Init() {
@@ -82,21 +82,18 @@ func Init() {
 		}
 	}
 
-	auditQueue = queue.CreateQueue(
+	auditQueue = queue.CreateSimpleQueue(
 		"audit",
-		func(data ...queue.Data) []queue.Data {
+		func(data ...*Event) []*Event {
 			ctx := graceful.GetManager().ShutdownContext()
 
-			for _, d := range data {
-				e := d.(*Event)
-
+			for _, e := range data {
 				for _, a := range appenders {
 					a.Record(ctx, e)
 				}
 			}
 			return nil
 		},
-		&Event{},
 	)
 
 	go graceful.GetManager().RunWithShutdownFns(auditQueue.Run)
