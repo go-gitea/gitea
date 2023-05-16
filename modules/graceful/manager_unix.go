@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/pprof"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -45,12 +46,47 @@ type Manager struct {
 
 func newGracefulManager(ctx context.Context) *Manager {
 	manager := &Manager{
-		isChild: len(os.Getenv(listenFDs)) > 0 && os.Getppid() > 1,
+		isChild: len(os.Getenv(listenFDsEnv)) > 0 && os.Getppid() > 1,
 		lock:    &sync.RWMutex{},
 	}
 	manager.createServerWaitGroup.Add(numberOfServersToCreate)
 	manager.start(ctx)
 	return manager
+}
+
+type systemdNotifyMsg string
+
+const (
+	readyMsg     systemdNotifyMsg = "READY=1"
+	stoppingMsg  systemdNotifyMsg = "STOPPING=1"
+	reloadingMsg systemdNotifyMsg = "RELOADING=1"
+	watchdogMsg  systemdNotifyMsg = "WATCHDOG=1"
+)
+
+func statusMsg(msg string) systemdNotifyMsg {
+	return systemdNotifyMsg("STATUS=" + msg)
+}
+
+func pidMsg() systemdNotifyMsg {
+	return systemdNotifyMsg("MAINPID=" + strconv.Itoa(os.Getpid()))
+}
+
+// Notify systemd of status via the notify protocol
+func (g *Manager) notify(msg systemdNotifyMsg) {
+	conn, err := getNotifySocket()
+	if err != nil {
+		// the err is logged in getNotifySocket
+		return
+	}
+	if conn == nil {
+		return
+	}
+	defer conn.Close()
+
+	if _, err = conn.Write([]byte(msg)); err != nil {
+		log.Warn("Failed to notify NOTIFY_SOCKET: %v", err)
+		return
+	}
 }
 
 func (g *Manager) start(ctx context.Context) {
@@ -72,6 +108,8 @@ func (g *Manager) start(ctx context.Context) {
 
 	// Set the running state & handle signals
 	g.setState(stateRunning)
+	g.notify(statusMsg("Starting Gitea"))
+	g.notify(pidMsg())
 	go g.handleSignals(g.managerCtx)
 
 	// Handle clean up of unused provided listeners	and delayed start-up
@@ -84,6 +122,7 @@ func (g *Manager) start(ctx context.Context) {
 		// Ignore the error here there's not much we can do with it
 		// They're logged in the CloseProvidedListeners function
 		_ = CloseProvidedListeners()
+		g.notify(readyMsg)
 	}()
 	if setting.StartupTimeout > 0 {
 		go func() {
@@ -104,6 +143,8 @@ func (g *Manager) start(ctx context.Context) {
 				return
 			case <-time.After(setting.StartupTimeout):
 				log.Error("Startup took too long! Shutting down")
+				g.notify(statusMsg("Startup took too long! Shutting down"))
+				g.notify(stoppingMsg)
 				g.doShutdown()
 			}
 		}()
@@ -126,6 +167,13 @@ func (g *Manager) handleSignals(ctx context.Context) {
 		syscall.SIGTSTP,
 	)
 
+	watchdogTimeout := getWatchdogTimeout()
+	t := &time.Ticker{}
+	if watchdogTimeout != 0 {
+		g.notify(watchdogMsg)
+		t = time.NewTicker(watchdogTimeout / 2)
+	}
+
 	pid := syscall.Getpid()
 	for {
 		select {
@@ -136,6 +184,7 @@ func (g *Manager) handleSignals(ctx context.Context) {
 				g.DoGracefulRestart()
 			case syscall.SIGUSR1:
 				log.Warn("PID %d. Received SIGUSR1. Releasing and reopening logs", pid)
+				g.notify(statusMsg("Releasing and reopening logs"))
 				if err := log.ReleaseReopen(); err != nil {
 					log.Error("Error whilst releasing and reopening logs: %v", err)
 				}
@@ -153,6 +202,8 @@ func (g *Manager) handleSignals(ctx context.Context) {
 			default:
 				log.Info("PID %d. Received %v.", pid, sig)
 			}
+		case <-t.C:
+			g.notify(watchdogMsg)
 		case <-ctx.Done():
 			log.Warn("PID: %d. Background context for manager closed - %v - Shutting down...", pid, ctx.Err())
 			g.DoGracefulShutdown()
@@ -169,6 +220,9 @@ func (g *Manager) doFork() error {
 	}
 	g.forked = true
 	g.lock.Unlock()
+
+	g.notify(reloadingMsg)
+
 	// We need to move the file logs to append pids
 	setting.RestartLogsWithPIDSuffix()
 
@@ -191,18 +245,27 @@ func (g *Manager) DoGracefulRestart() {
 		}
 	} else {
 		log.Info("PID: %d. Not set restartable. Shutting down...", os.Getpid())
-
+		g.notify(stoppingMsg)
 		g.doShutdown()
 	}
 }
 
 // DoImmediateHammer causes an immediate hammer
 func (g *Manager) DoImmediateHammer() {
+	g.notify(statusMsg("Sending immediate hammer"))
 	g.doHammerTime(0 * time.Second)
 }
 
 // DoGracefulShutdown causes a graceful shutdown
 func (g *Manager) DoGracefulShutdown() {
+	g.lock.Lock()
+	if !g.forked {
+		g.lock.Unlock()
+		g.notify(stoppingMsg)
+	} else {
+		g.lock.Unlock()
+		g.notify(statusMsg("Shutting down after fork"))
+	}
 	g.doShutdown()
 }
 
