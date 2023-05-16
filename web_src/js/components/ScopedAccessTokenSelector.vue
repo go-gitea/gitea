@@ -63,7 +63,7 @@ const sfc = {
     },
 
     /**
-     * When an individual category is toggled
+     * When an individual level of category is toggled
      * @param {Event} event
      */
     onIndividualInput(event) {
