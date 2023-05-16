@@ -305,7 +305,6 @@ STDERR = true
 
 	dump = manager.GetLogger("access").DumpWriters()
 	require.JSONEq(t, writerDumpAccess, toJSON(dump))
-
 }
 
 func TestLogConfigModeFile(t *testing.T) {

@@ -215,7 +215,7 @@ Settings:
 The Router logger logs the following message types when Gitea's route handlers work:
 
 - `started` messages will be logged at TRACE level
-- `polling`/`completed` routers will be logged at INFO
+- `polling`/`completed` routers will be logged at INFO. Exception: "/assets" static resource requests are also logged at TRACE.
 - `slow` routers will be logged at WARN
 - `failed` routers will be logged at WARN
 
