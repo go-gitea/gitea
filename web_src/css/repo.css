@@ -2148,6 +2148,10 @@
   background: var(--color-hover);
 }
 
+.reactions-grid a:active {
+  background: var(--color-active);
+}
+
 .repository .segment.reactions {
   padding: 0;
   display: flex;
