@@ -7,7 +7,7 @@ on:
       - "*.md"
 
 jobs:
-  lint-backend:
+  compliance-docs:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "No build required"'
+      - run: echo "No build required"

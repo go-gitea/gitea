@@ -10,4 +10,4 @@ jobs:
   test-e2e:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "No build required"'
+      - run: echo "No build required"

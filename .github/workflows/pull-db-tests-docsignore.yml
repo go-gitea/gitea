@@ -10,4 +10,29 @@ jobs:
   test-pgsql:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "No build required"'
+      - run: echo "No build required"
+
+  test-sqlite:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No build required"
+
+  test-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No build required"
+
+  test-mysql5:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No build required"
+
+  test-mysql8:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No build required"
+
+  test-mssql:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No build required"
