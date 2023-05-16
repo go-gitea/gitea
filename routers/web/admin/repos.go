@@ -55,7 +55,7 @@ func UpdateRepoPost(ctx *context.Context) {
 	ctx.Data["RepoSizeLimit"] = form.RepoSizeLimit
 
 	if err != nil {
-		ctx.Data["Err_Repo_Size_Limit"] = true
+		ctx.Data["Err_Repo_Size_Limit"] = err.Error()
 		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
 			Private:          true,
 			PageSize:         setting.UI.Admin.RepoPagingNum,
@@ -65,7 +65,18 @@ func UpdateRepoPost(ctx *context.Context) {
 		return
 	}
 
-	setting.SaveGlobalRepositorySetting(form.EnableSizeLimit, repo_size_limit)
+	err = setting.SaveGlobalRepositorySetting(form.EnableSizeLimit, repo_size_limit)
+
+	if err != nil {
+		ctx.Data["Err_Repo_Size_Save"] = err.Error()
+		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
+			Private:          true,
+			PageSize:         setting.UI.Admin.RepoPagingNum,
+			TplName:          tplRepos,
+			OnlyShowRelevant: false,
+		})
+		return
+	}
 
 	ctx.Flash.Success(ctx.Tr("admin.config.repository_setting_success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/repos")

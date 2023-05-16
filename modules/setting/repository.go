@@ -7,10 +7,10 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"github.com/dustin/go-humanize"
 )
 
 // enumerates all the policy repository creating
@@ -271,7 +271,7 @@ var (
 	RepoSizeLimit   int64 = 0
 )
 
-func SaveGlobalRepositorySetting(enable_size_limit bool, repo_size_limit int64) {
+func SaveGlobalRepositorySetting(enable_size_limit bool, repo_size_limit int64) error {
 	EnableSizeLimit = enable_size_limit
 	RepoSizeLimit = repo_size_limit
 	sec := CfgProvider.Section("repository")
@@ -281,7 +281,12 @@ func SaveGlobalRepositorySetting(enable_size_limit bool, repo_size_limit int64) 
 		sec.Key("ENABLE_SIZE_LIMIT").SetValue("false")
 	}
 
-	sec.Key("REPO_SIZE_LIMIT").SetValue(strconv.FormatInt(RepoSizeLimit, 10))
+	sec.Key("REPO_SIZE_LIMIT").SetValue(humanize.Bytes(uint64(RepoSizeLimit)))
+	if err := CfgProvider.Save(); err != nil {
+		log.Fatal("Failed to save config file: %v", err)
+		return err
+	}
+	return nil
 }
 
 func loadRepositoryFrom(rootCfg ConfigProvider) {
@@ -289,8 +294,16 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 
 	// Determine and create root git repository path.
 	sec := rootCfg.Section("repository")
-	EnableSizeLimit = sec.Key("ENABLE_SIZE_LIMIT").MustBool(true)
-	RepoSizeLimit = sec.Key("REPO_SIZE_LIMIT").MustInt64(1024 * 1024 * 10)
+	EnableSizeLimit = sec.Key("ENABLE_SIZE_LIMIT").MustBool(false)
+
+	v, err := humanize.ParseBytes(sec.Key("REPO_SIZE_LIMIT").MustString("0"))
+
+	if err == nil {
+		RepoSizeLimit = int64(v)
+	} else {
+		RepoSizeLimit = 0
+	}
+
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
