@@ -61,7 +61,6 @@ type Repository struct {
 	RepoLink     string
 	CloneLink    repo_model.CloneLink
 	CommitsCount int64
-	Mirror       *repo_model.Mirror
 
 	PullRequest *PullRequest
 }
@@ -380,13 +379,9 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	ctx.Data["Permission"] = &ctx.Repo.Permission
 
 	if repo.IsMirror {
-		ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(ctx, repo.ID)
+		pullMirror, err := repo_model.GetMirrorByRepoID(ctx, repo.ID)
 		if err == nil {
-			ctx.Repo.Mirror.Repo = repo
-			ctx.Data["IsPullMirror"] = true
-			ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
-			ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
-			ctx.Data["Mirror"] = ctx.Repo.Mirror
+			ctx.Data["PullMirror"] = pullMirror
 		} else if err != repo_model.ErrMirrorNotExist {
 			ctx.ServerError("GetMirrorByRepoID", err)
 			return
