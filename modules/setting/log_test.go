@@ -262,3 +262,83 @@ STDERR = true
 	dump := manager.GetLogger("xorm").DumpWriters()
 	require.JSONEq(t, writerDump, toJSON(dump))
 }
+
+func TestLogConfigModeFile(t *testing.T) {
+	tempDir := t.TempDir()
+
+	tempPath := func(file string) string {
+		return filepath.Join(tempDir, file)
+	}
+
+	manager, managerClose := initLoggersByConfig(t, `
+[log]
+ROOT_PATH = `+tempDir+`
+BUFFER_LEN = 10
+MODE = file, file1
+
+[log.file1]
+MODE = file
+LEVEL = error
+STACKTRACE_LEVEL = fatal
+EXPRESSION = filter
+FLAGS = medfile
+PREFIX = "[Prefix] "
+FILE_NAME = file-xxx.log
+LOG_ROTATE = false
+MAX_SIZE_SHIFT = 1
+DAILY_ROTATE = false
+MAX_DAYS = 90
+COMPRESS = false
+COMPRESSION_LEVEL = 4
+`)
+
+	writerDump := `
+{
+	"file": {
+		"BufferLen": 10,
+		"Colorize": false,
+		"Expression": "",
+		"Flags": "stdflags",
+		"Level": "info",
+		"Prefix": "",
+		"StacktraceLevel": "none",
+		"WriterOption": {
+			"Compress": true,
+			"CompressionLevel": -1,
+			"DailyRotate": true,
+			"FileName": "$FILENAME-0",
+			"LogRotate": true,
+			"MaxDays": 7,
+			"MaxSize": 268435456
+		},
+		"WriterType": "file"
+	},
+	"file1": {
+		"BufferLen": 10,
+		"Colorize": false,
+		"Expression": "filter",
+		"Flags": "medfile",
+		"Level": "error",
+		"Prefix": "[Prefix] ",
+		"StacktraceLevel": "fatal",
+		"WriterOption": {
+			"Compress": false,
+			"CompressionLevel": 4,
+			"DailyRotate": false,
+			"FileName": "$FILENAME-1",
+			"LogRotate": false,
+			"MaxDays": 90,
+			"MaxSize": 2
+		},
+		"WriterType": "file"
+	}
+}
+`
+	defer managerClose()
+
+	dump := manager.GetLogger(log.DEFAULT).DumpWriters()
+	expected := writerDump
+	expected = strings.ReplaceAll(expected, "$FILENAME-0", tempPath("gitea.log"))
+	expected = strings.ReplaceAll(expected, "$FILENAME-1", tempPath("file-xxx.log"))
+	require.JSONEq(t, expected, toJSON(dump))
+}

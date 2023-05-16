@@ -27,7 +27,6 @@ func (nopCloser) Close() error { return nil }
 func NewEventWriterConsole(name string, mode WriterMode) EventWriter {
 	w := &eventWriterConsole{EventWriterBaseImpl: NewEventWriterBase(name, "console", mode)}
 	opt := mode.WriterOption.(WriterConsoleOption)
-	w.FormatMessage = EventFormatTextMessage
 	if opt.Stderr {
 		w.OutputWriteCloser = nopCloser{os.Stderr}
 	} else {

@@ -39,7 +39,6 @@ func NewEventWriterFile(name string, mode WriterMode) EventWriter {
 	if err != nil {
 		FallbackErrorf("unable to open log file %q: %v", opt.FileName, err)
 	}
-	w.FormatMessage = EventFormatTextMessage
 	w.OutputWriteCloser = w.fileWriter
 	return w
 }

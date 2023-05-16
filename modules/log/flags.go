@@ -60,26 +60,25 @@ var flagFromString = map[string]uint32{
 	"stdflags": LstdFlags,
 }
 
-var flagToString = map[uint32]string{
-	Ldate:          "date",
-	Ltime:          "time",
-	Lmicroseconds:  "microseconds",
-	Llongfile:      "longfile",
-	Lshortfile:     "shortfile",
-	Lfuncname:      "funcname",
-	Lshortfuncname: "shortfuncname",
-	LUTC:           "utc",
-	Llevelinitial:  "levelinitial",
-	Llevel:         "level",
-	Lgopid:         "gopid",
-}
-
 var flagComboToString = []struct {
 	flag uint32
 	name string
 }{
+	// name with more bits comes first
 	{LstdFlags, "stdflags"},
 	{Lmedfile, "medfile"},
+
+	{Ldate, "date"},
+	{Ltime, "time"},
+	{Lmicroseconds, "microseconds"},
+	{Llongfile, "longfile"},
+	{Lshortfile, "shortfile"},
+	{Lfuncname, "funcname"},
+	{Lshortfuncname, "shortfuncname"},
+	{LUTC, "utc"},
+	{Llevelinitial, "levelinitial"},
+	{Llevel, "level"},
+	{Lgopid, "gopid"},
 }
 
 func (f Flags) Bits() uint32 {
@@ -94,13 +93,8 @@ func (f Flags) String() string {
 	var flagNames []string
 	for _, it := range flagComboToString {
 		if flags&it.flag == it.flag {
-			flags = flags &^ it.flag
+			flags &^= it.flag
 			flagNames = append(flagNames, it.name)
-		}
-	}
-	for flag, name := range flagToString {
-		if flags&flag != 0 {
-			flagNames = append(flagNames, name)
 		}
 	}
 	if len(flagNames) == 0 {

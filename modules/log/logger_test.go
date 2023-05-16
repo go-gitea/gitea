@@ -45,9 +45,8 @@ func (d *dummyWriter) GetLogs() []string {
 func newDummyWriter(name string, level Level, delay time.Duration) *dummyWriter {
 	w := &dummyWriter{
 		EventWriterBaseImpl: NewEventWriterBase(name, "dummy", WriterMode{Level: level, Flags: FlagsFromBits(0)}),
-
-		delay: delay,
 	}
+	w.delay = delay
 	w.Base().OutputWriteCloser = w
 	return w
 }
@@ -117,12 +116,13 @@ func TestLoggerLogString(t *testing.T) {
 	logger := NewLoggerWithWriters()
 
 	w1 := newDummyWriter("dummy-1", DEBUG, 0)
+	w1.Mode.Colorize = true
 	logger.AddWriters(w1)
 
-	logger.Info("%s %s", testLogString{}, &testLogString{})
+	logger.Info("%s %s %s", testLogString{}, &testLogString{}, NewColoredValue(testLogString{}, FgRed))
 	logger.Close()
 
-	assert.Equal(t, []string{"log-string log-string\n"}, w1.GetLogs())
+	assert.Equal(t, []string{"log-string log-string \x1b[31mlog-string\x1b[0m\n"}, w1.GetLogs())
 }
 
 func TestLoggerExpressionFilter(t *testing.T) {

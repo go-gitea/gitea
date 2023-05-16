@@ -56,7 +56,7 @@ func (l *LoggerImpl) SendLogEvent(event *Event) {
 		}
 		formatted := &EventFormatted{
 			Origin: event,
-			Msg:    w.Base().FormatMessage(w.Base().Mode, event, msgFormat, msgArgs),
+			Msg:    w.Base().FormatMessage(w.Base().Mode, event, msgFormat, msgArgs...),
 		}
 		select {
 		case w.Base().Queue <- formatted:

@@ -31,7 +31,6 @@ func NewEventWriterConn(name string, mode WriterMode) EventWriter {
 		Net:            opt.Protocol,
 		Addr:           opt.Addr,
 	}
-	w.FormatMessage = EventFormatTextMessage
 	w.OutputWriteCloser = &w.connWriter
 	return w
 }
