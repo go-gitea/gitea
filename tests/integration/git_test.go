@@ -82,6 +82,7 @@ func testGit(t *testing.T, u *url.URL) {
 		mediaTest(t, &httpContext, little, big, littleLFS, bigLFS)
 
 		t.Run("SizeLimit", func(t *testing.T) {
+			setting.SaveGlobalRepositorySetting(true, 0)
 			t.Run("Under", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 				doCommitAndPush(t, littleSize, dstPath, "data-file-")

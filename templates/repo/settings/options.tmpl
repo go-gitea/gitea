@@ -15,10 +15,10 @@
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.repo_size"}}</label>
 					<span {{if .Err_RepoSize}}class="ui text red"{{end}}>{{FileSize .Repository.Size}}
-						{{if .ActualSizeLimit  }}
-						{{if .EnableSizeLimit }}
+						{{if .ActualSizeLimit}}
+						{{if .EnableSizeLimit}}
 							/{{FileSize .ActualSizeLimit}}
-						{{end }}
+						{{end}}
 						{{end}}
 					</span>
 				</div>
