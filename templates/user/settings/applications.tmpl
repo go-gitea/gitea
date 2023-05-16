@@ -18,9 +18,7 @@
 						</div>
 						<i class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.token_state_desc"}}"{{end}}>{{svg "fontawesome-send" 36}}</i>
 						<div class="content">
-							<!--Temporarily disable-->
-							<strong>{{.Name}}</strong>
-							<details class="gt-hidden"><summary><strong>{{.Name}}</strong></summary>
+							<details><summary><strong>{{.Name}}</strong></summary>
 								<p class="gt-my-2">{{$.locale.Tr "settings.scopes_list"}}</p>
 								<ul class="gt-my-2">
 								{{range .Scope.StringSlice}}
@@ -47,213 +45,25 @@
 					<label for="name">{{.locale.Tr "settings.token_name"}}</label>
 					<input id="name" name="name" value="{{.name}}" autofocus required maxlength="255">
 				</div>
-				<!--Temporarily disable-->
-				<details class="gt-hidden ui optional field">
+				<details class="ui optional field">
 					<summary class="gt-p-2">
 						{{.locale.Tr "settings.select_scopes"}}
 					</summary>
-					<div class="field gt-pl-2">
+					<div class="field gt-pl-2" style="padding-top: 5px">
 						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="repo">
-							<label>repo</label>
+							<input class="enable-system" type="checkbox" name="scope" value="public">
+							<label>Public Repos Only</label>
 						</div>
 					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="repo:status">
-								<label>repo:status</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="public_repo">
-								<label>public_repo</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="admin:org">
-							<label>admin:org</label>
-						</div>
-					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="write:org">
-								<label>write:org</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="read:org">
-								<label>read:org</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="admin:public_key">
-							<label>admin:public_key</label>
-						</div>
-					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="write:public_key">
-								<label>write:public_key</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="read:public_key">
-								<label>read:public_key</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="admin:repo_hook">
-							<label>admin:repo_hook</label>
-						</div>
-					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="write:repo_hook">
-								<label>write:repo_hook</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="read:repo_hook">
-								<label>read:repo_hook</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="admin:org_hook">
-							<label>admin:org_hook</label>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="admin:user_hook">
-							<label>admin:user_hook</label>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="notification">
-							<label>notification</label>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="user">
-							<label>user</label>
-						</div>
-					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="read:user">
-								<label>read:user</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="user:email">
-								<label>user:email</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="user:follow">
-								<label>user:follow</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="delete_repo">
-							<label>delete_repo</label>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="package">
-							<label>package</label>
-						</div>
-					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="write:package">
-								<label>write:package</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="read:package">
-								<label>read:package</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="delete:package">
-								<label>delete:package</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="admin:gpg_key">
-							<label>admin:gpg_key</label>
-						</div>
-					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="write:gpg_key">
-								<label>write:gpg_key</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="read:gpg_key">
-								<label>read:gpg_key</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="admin:application">
-							<label>admin:application</label>
-						</div>
-					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="write:application">
-								<label>write:application</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="read:application">
-								<label>read:application</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="sudo">
-							<label>sudo</label>
-						</div>
-					</div>
+					<scoped-access-token-category category="activitypub"></scoped-access-token-category>
+					<scoped-access-token-category category="admin"></scoped-access-token-category>
+					<scoped-access-token-category category="misc"></scoped-access-token-category>
+					<scoped-access-token-category category="notification"></scoped-access-token-category>
+					<scoped-access-token-category category="organization"></scoped-access-token-category>
+					<scoped-access-token-category category="package"></scoped-access-token-category>
+					<scoped-access-token-category category="issue"></scoped-access-token-category>
+					<scoped-access-token-category category="repository"></scoped-access-token-category>
+					<scoped-access-token-category category="user"></scoped-access-token-category>
 				</details>
 				<button class="ui green button">
 					{{.locale.Tr "settings.generate_token"}}
