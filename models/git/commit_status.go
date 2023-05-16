@@ -63,10 +63,35 @@ func postgresGetCommitStatusIndex(ctx context.Context, repoID int64, sha string)
 	return strconv.ParseInt(string(res[0]["max_index"]), 10, 64)
 }
 
+func mysqlGetCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
+	var idx int64
+	// start a transaction to lock the mysql thread so that LAST_INSERT_ID return the correct value
+	return idx, db.WithTx(ctx, func(ctx context.Context) error {
+		if _, err := db.GetEngine(ctx).Exec("INSERT INTO `commit_status_index` (repo_id, sha, max_index) "+
+			"VALUES (?,?,1) ON DUPLICATE KEY UPDATE SET max_index = LAST_INSERT_ID(`commit_status_index`.max_index+1)",
+			// if LAST_INSERT_ID(expr) is used, next time when use LAST_INSERT_ID(), it will be given the expr value
+			repoID, sha); err != nil {
+			return err
+		}
+
+		_, err := db.GetEngine(ctx).SQL("SELECT LAST_INSERT_ID()").Get(&idx)
+		if err != nil {
+			return err
+		}
+		if idx == 0 {
+			return errors.New("cannot get the correct index")
+		}
+		return nil
+	})
+}
+
 // GetNextCommitStatusIndex retried 3 times to generate a resource index
 func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
-	if setting.Database.Type.IsPostgreSQL() {
+	switch {
+	case setting.Database.Type.IsPostgreSQL():
 		return postgresGetCommitStatusIndex(ctx, repoID, sha)
+	case setting.Database.Type.IsMySQL():
+		return mysqlGetCommitStatusIndex(ctx, repoID, sha)
 	}
 
 	e := db.GetEngine(ctx)
