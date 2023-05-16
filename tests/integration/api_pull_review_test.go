@@ -28,7 +28,7 @@ func TestAPIPullReview(t *testing.T) {
 
 	// test ListPullReviews
 	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeleteRepository)
 	req := NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
@@ -231,7 +231,7 @@ func TestAPIPullReviewRequest(t *testing.T) {
 
 	// Test add Review Request
 	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeleteRepository)
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user4@example.com", "user8"},
 	})

@@ -14,8 +14,7 @@ import (
 type AccessTokenScopeCategory int
 
 const (
-	NoCategory AccessTokenScopeCategory = iota
-	AccessTokenScopeCategoryActivityPub
+	AccessTokenScopeCategoryActivityPub = iota
 	AccessTokenScopeCategoryAdmin
 	AccessTokenScopeCategoryMisc
 	AccessTokenScopeCategoryNotification
@@ -220,9 +219,23 @@ var accessTokenScopes = map[AccessTokenScopeLevel]map[AccessTokenScopeCategory]A
 	},
 }
 
-// GetRequiredScope gets the specific scope for a given level and category
-func GetRequiredScope(level AccessTokenScopeLevel, scopeCategory AccessTokenScopeCategory) AccessTokenScope {
-	return accessTokenScopes[level][scopeCategory]
+// GetRequiredScopes gets the specific scopes for a given level and categories
+func GetRequiredScopes(level AccessTokenScopeLevel, scopeCategories ...AccessTokenScopeCategory) []AccessTokenScope {
+	scopes := make([]AccessTokenScope, 0)
+	for _, cat := range scopeCategories {
+		scopes = append(scopes, accessTokenScopes[level][cat])
+	}
+	return scopes
+}
+
+// ContainsCategory checks if a list of categories contains a specific category
+func ContainsCategory(categories []AccessTokenScopeCategory, category AccessTokenScopeCategory) bool {
+	for _, c := range categories {
+		if c == category {
+			return true
+		}
+	}
+	return false
 }
 
 // GetScopeLevelFromAccessMode converts permission access mode to scope level
@@ -307,13 +320,19 @@ func (s AccessTokenScope) PublicOnly() (bool, error) {
 }
 
 // HasScope returns true if the string has the given scope
-func (s AccessTokenScope) HasScope(scope AccessTokenScope) (bool, error) {
+func (s AccessTokenScope) HasScope(scopes ...AccessTokenScope) (bool, error) {
 	bitmap, err := s.parse()
 	if err != nil {
 		return false, err
 	}
 
-	return bitmap.hasScope(scope)
+	for _, s := range scopes {
+		if has, err := bitmap.hasScope(s); !has || err != nil {
+			return has, err
+		}
+	}
+
+	return true, nil
 }
 
 // hasScope returns true if the string has the given scope

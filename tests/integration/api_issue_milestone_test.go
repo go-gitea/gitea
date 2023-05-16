@@ -29,7 +29,7 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	assert.Equal(t, structs.StateOpen, milestone.State())
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeleteRepository)
 
 	// update values of issue
 	milestoneState := "closed"

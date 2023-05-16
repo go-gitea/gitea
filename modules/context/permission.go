@@ -121,7 +121,7 @@ func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, level auth_
 	if ok { // it's a personal access token but not oauth2 token
 		var scopeMatched bool
 
-		requiredScope := auth_model.GetRequiredScope(level, auth_model.AccessTokenScopeCategoryRepository)
+		requiredScopes := auth_model.GetRequiredScopes(level, auth_model.AccessTokenScopeCategoryRepository)
 
 		// check if scope only applies to public resources
 		publicOnly, err := scope.PublicOnly()
@@ -135,7 +135,7 @@ func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, level auth_
 			return
 		}
 
-		scopeMatched, err = scope.HasScope(requiredScope)
+		scopeMatched, err = scope.HasScope(requiredScopes...)
 		if err != nil {
 			ctx.ServerError("HasScope", err)
 			return

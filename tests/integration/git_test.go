@@ -44,11 +44,11 @@ func TestGit(t *testing.T) {
 
 func testGit(t *testing.T, u *url.URL) {
 	username := "user2"
-	baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeDeleteRepository)
+	baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeDeleteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	u.Path = baseAPITestContext.GitPath()
 
-	forkedUserCtx := NewAPITestContext(t, "user4", "repo1", auth_model.AccessTokenScopeReadRepository)
+	forkedUserCtx := NewAPITestContext(t, "user4", "repo1", auth_model.AccessTokenScopeDeleteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	t.Run("HTTP", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -603,7 +603,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 	return func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, auth_model.AccessTokenScopeWriteRepository)
+		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, auth_model.AccessTokenScopeDeleteRepository)
 
 		t.Run("CheckoutProtected", doGitCheckoutBranch(dstPath, "protected"))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))

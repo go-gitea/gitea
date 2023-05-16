@@ -86,7 +86,7 @@ func testAPIListOAuth2Applications(t *testing.T) {
 func testAPIDeleteOAuth2Application(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeleteUser)
 
 	oldApp := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{
 		UID:  user.ID,

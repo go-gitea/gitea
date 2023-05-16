@@ -171,7 +171,7 @@ func TestAPIEditIssue(t *testing.T) {
 func TestAPISearchIssues(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	token := getUserToken(t, "user2")
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
 
 	// as this API was used in the frontend, it uses UI page size
 	expectedIssueCount := 16 // from the fixtures
@@ -180,7 +180,7 @@ func TestAPISearchIssues(t *testing.T) {
 	}
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
-	query := url.Values{"token": {getUserToken(t, "user1")}}
+	query := url.Values{"token": {getUserToken(t, "user1", auth_model.AccessTokenScopeReadRepository)}}
 	var apiIssues []*api.Issue
 
 	link.RawQuery = query.Encode()
@@ -278,7 +278,7 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	}
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
-	query := url.Values{"token": {getUserToken(t, "user1")}}
+	query := url.Values{"token": {getUserToken(t, "user1", auth_model.AccessTokenScopeReadRepository)}}
 	var apiIssues []*api.Issue
 
 	link.RawQuery = query.Encode()
