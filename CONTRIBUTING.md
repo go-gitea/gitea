@@ -283,7 +283,7 @@ This tool does the things listed below automatically:
 
 ### Final call
 
-If a PR has been ignored for more than 7 days with no comments or reviews, and the author or any maintainer believes it will not survive a long wait (such as a refactoring PR), they can send "one last call" to the TOC by mentioning them in a comment.
+If a PR has been ignored for more than 7 days with no comments or reviews, and the author or any maintainer believes it will not survive a long wait (such as a refactoring PR), they can send "final call" to the TOC by mentioning them in a comment.
 
 After another 7 days, if there is still zero approval, this is considered a polite refusal, and the PR will be closed to avoid wasting further time. Therefore, the "final call" has a cost, and should be used cautiously.
 
