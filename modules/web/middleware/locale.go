@@ -6,7 +6,6 @@ package middleware
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/translation/i18n"
 
@@ -49,23 +48,12 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 }
 
 // SetLocaleCookie convenience function to set the locale cookie consistently
-func SetLocaleCookie(resp http.ResponseWriter, lang string, expiry int) {
-	SetCookie(resp, "lang", lang, expiry,
-		setting.AppSubURL,
-		setting.SessionConfig.Domain,
-		setting.SessionConfig.Secure,
-		true,
-		SameSite(setting.SessionConfig.SameSite))
+func SetLocaleCookie(resp http.ResponseWriter, lang string, maxAge int) {
+	SetSiteCookie(resp, "lang", lang, maxAge)
 }
 
 // DeleteLocaleCookie convenience function to delete the locale cookie consistently
 // Setting the lang cookie will trigger the middleware to reset the language to previous state.
 func DeleteLocaleCookie(resp http.ResponseWriter) {
-	SetCookie(resp, "lang", "",
-		-1,
-		setting.AppSubURL,
-		setting.SessionConfig.Domain,
-		setting.SessionConfig.Secure,
-		true,
-		SameSite(setting.SessionConfig.SameSite))
+	SetSiteCookie(resp, "lang", "", -1)
 }

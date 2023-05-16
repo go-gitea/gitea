@@ -59,7 +59,7 @@ func newSecret(ownerID, repoID int64, name, data string) *Secret {
 
 // InsertEncryptedSecret Creates, encrypts, and validates a new secret with yet unencrypted data and insert into database
 func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, data string) (*Secret, error) {
-	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, strings.TrimSpace(data))
+	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
 	if err != nil {
 		return nil, err
 	}

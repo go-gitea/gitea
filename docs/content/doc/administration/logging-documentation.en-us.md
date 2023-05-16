@@ -1,10 +1,12 @@
 ---
 date: "2019-04-02T17:06:00+01:00"
-title: "Advanced: Logging Configuration"
+title: "Logging Configuration"
 slug: "logging-configuration"
-weight: 55
+weight: 40
 toc: false
 draft: false
+aliases:
+  - /en-us/logging-configuration
 menu:
   sidebar:
     parent: "administration"
@@ -29,7 +31,7 @@ As mentioned below, there is a fully functional log output by default, so it is 
 
 ## Collecting Logs for Help
 
-To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
+To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/support.en-us.md" >}}).
 
 ## The `[log]` section
 
@@ -304,7 +306,7 @@ log using the value: `ACCESS = ,`
 
 This value represent a go template. It's default value is:
 
-`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`
+`{{.Ctx.RemoteHost}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}" "{{.Ctx.Req.UserAgent}}"`
 
 The template is passed following options:
 

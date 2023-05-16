@@ -534,7 +534,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
 	if ctx.Repo.CanWrite(unit.TypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
-		err = issue_service.UpdateAssignees(issue, form.Assignee, form.Assignees, ctx.Doer)
+		err = issue_service.UpdateAssignees(ctx, issue, form.Assignee, form.Assignees, ctx.Doer)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
@@ -1318,7 +1318,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 
 	apiCommits := make([]*api.Commit, 0, end-start)
 	for i := start; i < end; i++ {
-		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, baseGitRepo, commits[i], userCache, true)
+		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, baseGitRepo, commits[i], userCache, convert.ToCommitOptions{Stat: true})
 		if err != nil {
 			ctx.ServerError("toCommit", err)
 			return

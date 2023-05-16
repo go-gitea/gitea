@@ -1,10 +1,12 @@
 ---
 date: "2019-02-14T11:51:04+08:00"
-title: "横向对比 Gitea 与其它 Git 托管工具"
+title: "对比 Gitea 与其它 Git 托管工具"
 slug: "comparison"
 weight: 5
 toc: false
 draft: false
+aliases:
+  - /zh-cn/comparison
 menu:
   sidebar:
     parent: "installation"
@@ -13,7 +15,7 @@ menu:
     identifier: "comparison"
 ---
 
-# 横向对比 Gitea 与其它 Git 托管工具
+# 对比 Gitea 与其它 Git 托管工具
 
 这里列出了 Gitea 与其它一些 Git 托管工具之间的异同，以便确认 Gitea 是否能够满足您的需求。
 
@@ -29,6 +31,8 @@ _表格中的符号含义:_
 
 * _? - 不确定_
 
+* _⚙️ - 由第三方服务或插件支持_
+
 #### 主要特性
 
 | 特性                  | Gitea                                              | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket      | RhodeCode CE |
@@ -42,7 +46,7 @@ _表格中的符号含义:_
 | 支持 Orgmode          | ✓                                                  | ✘    | ✓         | ✘         | ✘         | ✘              | ?            |
 | 支持 CSV              | ✓                                                  | ✘    | ✓         | ✘         | ✘         | ✓              | ?            |
 | 支持第三方渲染工具    | ✓                                                  | ✘    | ✘         | ✘         | ✘         | ✓              | ?            |
-| Git 驱动的静态 pages  | [✘](https://github.com/go-gitea/gitea/issues/302)  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
+| Git 驱动的静态 pages  | [⚙️][gitea-pages-server], [⚙️][gitea-caddy-plugin]   | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
 | Git 驱动的集成化 wiki | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓ (cloud only) | ✘            |
 | 部署令牌              | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓              | ✓            |
 | 仓库写权限令牌        | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ✓            |
@@ -129,3 +133,6 @@ _表格中的符号含义:_
 | 集成 Discord               | ✓                                                  | ✓                                             | ✓         | ✓         | ✓         | ✘         | ✘            |
 | 集成 Microsoft Teams       | ✓                                                  | ✘                                             | ✓         | ✓         | ✓         | ✓         | ✘            |
 | 显示外部 CI/CD 的状态      | ✓                                                  | ✘                                             | ✓         | ✓         | ✓         | ✓         | ✓            |
+
+[gitea-caddy-plugin]: https://github.com/42wim/caddy-gitea
+[gitea-pages-server]: https://codeberg.org/Codeberg/pages-server

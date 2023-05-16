@@ -1,3 +1,20 @@
+.ui.input textarea,
+.ui.form textarea,
+.ui.form input:not([type]),
+.ui.form input[type="date"],
+.ui.form input[type="datetime-local"],
+.ui.form input[type="email"],
+.ui.form input[type="number"],
+.ui.form input[type="password"],
+.ui.form input[type="search"],
+.ui.form input[type="tel"],
+.ui.form input[type="time"],
+.ui.form input[type="text"],
+.ui.form input[type="file"],
+.ui.form input[type="url"] {
+  transition: none;
+}
+
 input,
 textarea,
 .ui.input > input,
@@ -94,6 +111,15 @@ textarea:focus,
   color: var(--color-text);
 }
 
+.ui.form .required.fields:not(.grouped) > .field > label::after,
+.ui.form .required.fields.grouped > label::after,
+.ui.form .required.field > label::after,
+.ui.form .required.fields:not(.grouped) > .field > .checkbox::after,
+.ui.form .required.field > .checkbox::after,
+.ui.form label.required::after {
+  color: var(--color-red);
+}
+
 .ui.input,
 .ui.checkbox input:focus ~ label::after,
 .ui.checkbox input:checked ~ label::after,
@@ -178,32 +204,6 @@ textarea:focus,
   #create-page-form form .inline.field > label {
     display: block;
   }
-}
-
-.signin .oauth2 div {
-  display: inline-block;
-}
-
-.signin .oauth2 div p {
-  margin: 10px 5px 0 0;
-  float: left;
-}
-
-.signin .oauth2 a {
-  margin-right: 3px;
-}
-
-.signin .oauth2 a:last-child {
-  margin-right: 0;
-}
-
-.signin .oauth2 img {
-  width: 32px;
-  height: 32px;
-}
-
-.signin .oauth2 img.openidConnect {
-  width: auto;
 }
 
 @media (min-width: 768px) {

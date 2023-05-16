@@ -7,9 +7,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
-	goPath "path"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -27,14 +28,47 @@ type LicenseEntry struct {
 }
 
 func main() {
+	if len(os.Args) != 3 {
+		fmt.Println("usage: go run generate-go-licenses.go <base-dir> <out-json-file>")
+		os.Exit(1)
+	}
+
 	base, out := os.Args[1], os.Args[2]
 
-	paths := []string{}
+	// Add ext for excluded files because license_test.go will be included for some reason.
+	// And there are more files that should be excluded, check with:
+	//
+	// go run github.com/google/go-licenses@v1.6.0 save . --force --save_path=.go-licenses 2>/dev/null
+	// find .go-licenses -type f | while read FILE; do echo "${$(basename $FILE)##*.}"; done | sort -u
+	//    AUTHORS
+	//    COPYING
+	//    LICENSE
+	//    Makefile
+	//    NOTICE
+	//    gitignore
+	//    go
+	//    md
+	//    mod
+	//    sum
+	//    toml
+	//    txt
+	//    yml
+	//
+	// It could be removed once we have a better regex.
+	excludedExt := map[string]bool{
+		".gitignore": true,
+		".go":        true,
+		".mod":       true,
+		".sum":       true,
+		".toml":      true,
+		".yml":       true,
+	}
+	var paths []string
 	err := filepath.WalkDir(base, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if entry.IsDir() || !licenseRe.MatchString(entry.Name()) {
+		if entry.IsDir() || !licenseRe.MatchString(entry.Name()) || excludedExt[filepath.Ext(entry.Name())] {
 			return nil
 		}
 		paths = append(paths, path)
@@ -46,28 +80,27 @@ func main() {
 
 	sort.Strings(paths)
 
-	entries := []LicenseEntry{}
-	for _, path := range paths {
-		path := filepath.ToSlash(path)
-
-		licenseText, err := os.ReadFile(path)
+	var entries []LicenseEntry
+	for _, filePath := range paths {
+		licenseText, err := os.ReadFile(filePath)
 		if err != nil {
 			panic(err)
 		}
 
-		path = strings.Replace(path, base+"/", "", 1)
-		name := goPath.Dir(path)
+		pkgPath := filepath.ToSlash(filePath)
+		pkgPath = strings.TrimPrefix(pkgPath, base+"/")
+		pkgName := path.Dir(pkgPath)
 
 		// There might be a bug somewhere in go-licenses that sometimes interprets the
 		// root package as "." and sometimes as "code.gitea.io/gitea". Workaround by
 		// removing both of them for the sake of stable output.
-		if name == "." || name == "code.gitea.io/gitea" {
+		if pkgName == "." || pkgName == "code.gitea.io/gitea" {
 			continue
 		}
 
 		entries = append(entries, LicenseEntry{
-			Name:        name,
-			Path:        path,
+			Name:        pkgName,
+			Path:        pkgPath,
 			LicenseText: string(licenseText),
 		})
 	}
@@ -75,6 +108,11 @@ func main() {
 	jsonBytes, err := json.MarshalIndent(entries, "", "  ")
 	if err != nil {
 		panic(err)
+	}
+
+	// Ensure file has a final newline
+	if jsonBytes[len(jsonBytes)-1] != '\n' {
+		jsonBytes = append(jsonBytes, '\n')
 	}
 
 	err = os.WriteFile(out, jsonBytes, 0o644)

@@ -10,7 +10,7 @@
           {{ textMyRepos }}
           <span class="ui grey label gt-ml-3">{{ reposTotalCount }}</span>
         </div>
-        <a :href="subUrl + '/repo/create'" :data-tooltip-content="textNewRepo">
+        <a :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
           <svg-icon name="octicon-plus"/>
           <span class="sr-only">{{ textNewRepo }}</span>
         </a>
@@ -70,7 +70,7 @@
       </div>
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
-          <li v-for="repo in repos" :class="{'private': repo.private || repo.internal}" :key="repo.id">
+          <li v-for="repo in repos" :key="repo.id">
             <a class="repo-list-link gt-df gt-ac gt-sb" :href="repo.link">
               <div class="item-name gt-df gt-ac gt-f1">
                 <svg-icon :name="repoIcon(repo)" :size="16" class-name="gt-mr-2"/>
@@ -79,6 +79,8 @@
                   <svg-icon name="octicon-archive" :size="16" class-name="gt-ml-2"/>
                 </span>
               </div>
+              <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
+              <svg-icon v-if="repo.latest_commit_status_state" :name="statusIcon(repo.latest_commit_status_state)" :class-name="'commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
             </a>
           </li>
         </ul>
@@ -131,6 +133,9 @@
               <div class="text truncate item-name gt-f1">
                 <svg-icon name="octicon-organization" :size="16" class-name="gt-mr-2"/>
                 <strong>{{ org.name }}</strong>
+                <span class="ui tiny basic label gt-ml-3" v-if="org.org_visibility !== 'public'">
+                  {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
+                </span>
               </div>
               <div class="text light grey gt-df gt-ac">
                 {{ org.num_repos }}
@@ -150,6 +155,15 @@ import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
+
+const commitStatus = {
+  pending: {name: 'octicon-dot-fill', color: 'grey'},
+  running: {name: 'octicon-dot-fill', color: 'yellow'},
+  success: {name: 'octicon-check', color: 'green'},
+  error: {name: 'gitea-exclamation', color: 'red'},
+  failure: {name: 'octicon-x', color: 'red'},
+  warning: {name: 'gitea-exclamation', color: 'yellow'},
+};
 
 const sfc = {
   components: {SvgIcon},
@@ -199,6 +213,7 @@ const sfc = {
       isOrganization: true,
       canCreateOrganization: false,
       organizationsTotalCount: 0,
+      organizationId: 0,
 
       subUrl: appSubUrl,
       ...pageData.dashboardRepoList,
@@ -383,7 +398,7 @@ const sfc = {
       }
 
       if (searchedURL === this.searchURL) {
-        this.repos = json.data;
+        this.repos = json.data.map((webSearchRepo) => {return {...webSearchRepo.repository, latest_commit_status_state: webSearchRepo.latest_commit_status.State}});
         const count = response.headers.get('X-Total-Count');
         if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
           this.reposTotalCount = count;
@@ -408,6 +423,14 @@ const sfc = {
         return 'octicon-repo';
       }
       return 'octicon-repo';
+    },
+
+    statusIcon(status) {
+      return commitStatus[status].name;
+    },
+
+    statusColor(status) {
+      return commitStatus[status].color;
     }
   },
 };

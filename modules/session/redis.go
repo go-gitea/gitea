@@ -26,7 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/nosql"
 
 	"gitea.com/go-chi/session"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 // RedisStore represents a redis session store implementation.
@@ -183,16 +183,21 @@ func (p *RedisProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err 
 		}
 	}
 
-	if err = p.c.Rename(graceful.GetManager().HammerContext(), poldsid, psid).Err(); err != nil {
-		return nil, err
-	}
-
-	var kv map[interface{}]interface{}
-	kvs, err := p.c.Get(graceful.GetManager().HammerContext(), psid).Result()
+	// do not use Rename here, because the old sid and new sid may be in different redis cluster slot.
+	kvs, err := p.c.Get(graceful.GetManager().HammerContext(), poldsid).Result()
 	if err != nil {
 		return nil, err
 	}
 
+	if err = p.c.Del(graceful.GetManager().HammerContext(), poldsid).Err(); err != nil {
+		return nil, err
+	}
+
+	if err = p.c.Set(graceful.GetManager().HammerContext(), psid, kvs, p.duration).Err(); err != nil {
+		return nil, err
+	}
+
+	var kv map[interface{}]interface{}
 	if len(kvs) == 0 {
 		kv = make(map[interface{}]interface{})
 	} else {

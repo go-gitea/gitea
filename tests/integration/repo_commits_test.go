@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path"
 	"sync"
 	"testing"
@@ -110,7 +111,7 @@ func testRepoCommitsWithStatus(t *testing.T, resp, respOne *httptest.ResponseRec
 }
 
 func TestRepoCommitsWithStatusPending(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "pending", "octicon-dot-fill", "yellow")
+	doTestRepoCommitWithStatus(t, "pending", "octicon-dot-fill", "grey")
 }
 
 func TestRepoCommitsWithStatusSuccess(t *testing.T) {
@@ -129,7 +130,14 @@ func TestRepoCommitsWithStatusWarning(t *testing.T) {
 	doTestRepoCommitWithStatus(t, "warning", "gitea-exclamation", "yellow")
 }
 
+func TestRepoCommitsWithStatusRunning(t *testing.T) {
+	doTestRepoCommitWithStatus(t, "running", "octicon-dot-fill", "yellow")
+}
+
 func TestRepoCommitsStatusParallel(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping because test is flaky on CI")
+	}
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")

@@ -173,11 +173,35 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	if len(opt.OldBranchName) == 0 {
-		opt.OldBranchName = ctx.Repo.Repository.DefaultBranch
+	var oldCommit *git.Commit
+	var err error
+
+	if len(opt.OldRefName) > 0 {
+		oldCommit, err = ctx.Repo.GitRepo.GetCommit(opt.OldRefName)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+			return
+		}
+	} else if len(opt.OldBranchName) > 0 { //nolint
+		if ctx.Repo.GitRepo.IsBranchExist(opt.OldBranchName) { //nolint
+			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.OldBranchName) //nolint
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
+				return
+			}
+		} else {
+			ctx.Error(http.StatusNotFound, "", "The old branch does not exist")
+			return
+		}
+	} else {
+		oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
+			return
+		}
 	}
 
-	err := repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
+	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, oldCommit.ID.String(), opt.BranchName)
 	if err != nil {
 		if models.IsErrBranchDoesNotExist(err) {
 			ctx.Error(http.StatusNotFound, "", "The old branch does not exist")
@@ -189,7 +213,7 @@ func CreateBranch(ctx *context.APIContext) {
 		} else if models.IsErrBranchNameConflict(err) {
 			ctx.Error(http.StatusConflict, "", "The branch with the same name already exists.")
 		} else {
-			ctx.Error(http.StatusInternalServerError, "CreateRepoBranch", err)
+			ctx.Error(http.StatusInternalServerError, "CreateNewBranchFromCommit", err)
 		}
 		return
 	}
@@ -421,6 +445,10 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	if ruleName == "" {
 		ruleName = form.BranchName //nolint
 	}
+	if len(ruleName) == 0 {
+		ctx.Error(http.StatusBadRequest, "both rule_name and branch_name are empty", "both rule_name and branch_name are empty")
+		return
+	}
 
 	isPlainRule := !git_model.IsRuleNameSpecial(ruleName)
 	var isBranchExist bool
@@ -502,7 +530,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 
 	protectBranch = &git_model.ProtectedBranch{
 		RepoID:                        ctx.Repo.Repository.ID,
-		RuleName:                      form.RuleName,
+		RuleName:                      ruleName,
 		CanPush:                       form.EnablePush,
 		EnableWhitelist:               form.EnablePush && form.EnablePushWhitelist,
 		EnableMergeWhitelist:          form.EnableMergeWhitelist,
@@ -534,7 +562,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	}
 
 	if isBranchExist {
-		if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, form.RuleName); err != nil {
+		if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, ruleName); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CheckPRsForBaseBranch", err)
 			return
 		}
@@ -552,7 +580,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 				}()
 			}
 			// FIXME: since we only need to recheck files protected rules, we could improve this
-			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.GitRepo, form.RuleName)
+			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.GitRepo, ruleName)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "FindAllMatchedBranches", err)
 				return
@@ -568,7 +596,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	}
 
 	// Reload from db to get all whitelists
-	bp, err := git_model.GetProtectedBranchRuleByName(ctx, ctx.Repo.Repository.ID, form.RuleName)
+	bp, err := git_model.GetProtectedBranchRuleByName(ctx, ctx.Repo.Repository.ID, ruleName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return

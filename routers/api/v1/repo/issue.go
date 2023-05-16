@@ -651,7 +651,7 @@ func CreateIssue(ctx *context.APIContext) {
 		form.Labels = make([]int64, 0)
 	}
 
-	if err := issue_service.NewIssue(ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs); err != nil {
+	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
 			return
@@ -752,7 +752,7 @@ func EditIssue(ctx *context.APIContext) {
 		issue.Content = *form.Body
 	}
 	if form.Ref != nil {
-		err = issue_service.ChangeIssueRef(issue, ctx.Doer, *form.Ref)
+		err = issue_service.ChangeIssueRef(ctx, issue, ctx.Doer, *form.Ref)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateRef", err)
 			return
@@ -790,7 +790,7 @@ func EditIssue(ctx *context.APIContext) {
 			oneAssignee = *form.Assignee
 		}
 
-		err = issue_service.UpdateAssignees(issue, oneAssignee, form.Assignees, ctx.Doer)
+		err = issue_service.UpdateAssignees(ctx, issue, oneAssignee, form.Assignees, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateAssignees", err)
 			return
@@ -887,7 +887,7 @@ func DeleteIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if err = issue_service.DeleteIssue(ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
+	if err = issue_service.DeleteIssue(ctx, ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteIssueByID", err)
 		return
 	}
