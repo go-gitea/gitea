@@ -2145,7 +2145,7 @@
 }
 
 .reactions-grid a:hover {
-  background: var(--color-primary);
+  background: var(--color-hover);
 }
 
 .repository .segment.reactions {

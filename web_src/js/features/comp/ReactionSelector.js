@@ -34,7 +34,6 @@ export function initCompReactionSelector(parent) {
         content: $(this).attr('data-reaction-content'),
       }
     }).done((resp) => {
-      e.target._tippy?.destroy();
       if (resp && (resp.html || resp.empty)) {
         const content = $(this).closest('.content');
         let react = content.find('.segment.reactions');

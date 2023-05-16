@@ -8,7 +8,7 @@
 		<div class="divider"></div>
 		<div class="reactions-grid">
 			{{range $value := AllowedReactions}}
-				<a class="item reaction" data-tooltip-content="{{$value}}" data-reaction-content="{{$value}}">{{ReactionToEmoji $value}}</a>
+				<a class="item reaction" data-reaction-content="{{$value}}">{{ReactionToEmoji $value}}</a>
 			{{end}}
 		</div>
 	</div>
