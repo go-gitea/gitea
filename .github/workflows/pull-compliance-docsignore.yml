@@ -1,0 +1,13 @@
+name: compliance
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "*.md"
+
+jobs:
+  compliance-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No build required"
