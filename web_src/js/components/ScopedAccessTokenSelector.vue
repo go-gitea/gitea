@@ -9,7 +9,7 @@
     <div class="field gt-pl-4">
       <div class="field">
         <div class="ui checkbox">
-          <input ref="read" v-model="readSelected" :disabled="categorySelected" class="enable-system" type="checkbox" name="scope" :value="'read:' + category" @change="onIndividualInput">
+          <input ref="read" v-model="readSelected" :disabled="categorySelected || writeSelected" class="enable-system" type="checkbox" name="scope" :value="'read:' + category" @change="onIndividualInput">
           <label>read:{{ category }}</label>
         </div>
       </div>
@@ -52,33 +52,41 @@ const sfc = {
 
   methods: {
     /**
-     * When entire category is selected
+     * When entire category is toggled
+     * @param {Event} event
      */
     onCategoryInput(event) {
       event.preventDefault();
-      this.readSelected = this.$refs.category.checked;
-      this.writeSelected = this.$refs.category.checked;
       this.deleteSelected = this.$refs.category.checked;
+      this.writeSelected = this.$refs.category.checked;
+      this.readSelected = this.$refs.category.checked;
     },
 
     /**
-     * When entire category is selected
+     * When an individual category is toggled
+     * @param {Event} event
      */
     onIndividualInput(event) {
       event.preventDefault();
-      this.categorySelected = this.$refs.read.checked && this.$refs.write.checked && this.$refs.delete.checked;
+      if (this.$refs.delete.checked) {
+        this.readSelected = true;
+        this.writeSelected = true;
+        this.categorySelected = true;
+      }
+      if (this.$refs.write.checked) {
+        this.readSelected = true;
+      }
     },
   }
 };
 
 export default sfc;
 
+/**
+ * Initialize category toggle sections
+ */
 export function initScopedAccessTokenCategories() {
-  const els = [
-    ...document.getElementsByTagName('scoped-access-token-category'),
-  ];
-
-  for (const el of els) {
+  for (const el of document.getElementsByTagName('scoped-access-token-category')) {
     createApp(sfc, {
       category: el.getAttribute('category'),
     }).mount(el);
