@@ -5,6 +5,7 @@ package user
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -19,6 +20,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/eventsource"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -286,4 +288,32 @@ func DeleteAvatar(u *user_model.User) error {
 		return fmt.Errorf("UpdateUser: %w", err)
 	}
 	return nil
+}
+
+var ErrProfileRepoNotExist = errors.New("profile repo not exist")
+
+// OpenUserProfileRepo open profile repo for a user
+func OpenUserProfileRepo(ctx context.Context, user *user_model.User) (*repo_model.Repository, *git.Repository, error) {
+	repoName, err := user_model.GetSetting(user.ID, user_model.SettingsKeyProfileRepoName)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
+		return nil, nil, err
+	}
+	if len(repoName) == 0 {
+		repoName = ".profile"
+	}
+
+	repo, err := repo_model.GetRepositoryByName(user.ID, repoName)
+	if err != nil && !repo_model.IsErrRepoNotExist(err) {
+		return nil, nil, err
+	}
+	if repo == nil || repo.IsEmpty {
+		return nil, nil, ErrProfileRepoNotExist
+	}
+
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return repo, gitRepo, nil
 }

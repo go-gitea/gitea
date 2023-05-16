@@ -39,10 +39,12 @@ const (
 )
 
 // Profile render user's profile page
+// .....
 func Profile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.profile")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+	ctx.Data["ProfileRepoName"], _ = user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsKeyProfileRepoName)
 
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
@@ -112,6 +114,11 @@ func ProfilePost(ctx *context.Context) {
 			return
 		}
 		ctx.ServerError("UpdateUser", err)
+		return
+	}
+
+	if err := user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsKeyProfileRepoName, form.ProfileRepoName); err != nil {
+		ctx.ServerError("SetUserSetting", err)
 		return
 	}
 

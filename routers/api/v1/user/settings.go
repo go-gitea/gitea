@@ -78,5 +78,13 @@ func UpdateUserSettings(ctx *context.APIContext) {
 		return
 	}
 
+	if form.ProfileRepoName != nil {
+		err := user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsKeyProfileRepoName, *form.ProfileRepoName)
+		if err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+	}
+
 	ctx.JSON(http.StatusOK, convert.User2UserSettings(ctx.Doer))
 }

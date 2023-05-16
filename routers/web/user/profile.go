@@ -5,8 +5,10 @@
 package user
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -16,13 +18,15 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
+	"code.gitea.io/gitea/routers/web/repo/render"
+	"code.gitea.io/gitea/services/user"
 )
 
 // Profile render user's profile page
@@ -92,37 +96,7 @@ func Profile(ctx *context.Context) {
 		ctx.Data["RenderedDescription"] = content
 	}
 
-	repo, err := repo_model.GetRepositoryByName(ctx.ContextUser.ID, ".profile")
-	if err == nil && !repo.IsEmpty {
-		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
-		if err != nil {
-			ctx.ServerError("OpenRepository", err)
-			return
-		}
-		defer gitRepo.Close()
-		commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
-		if err != nil {
-			ctx.ServerError("GetBranchCommit", err)
-			return
-		}
-		blob, err := commit.GetBlobByPath("README.md")
-		if err == nil {
-			bytes, err := blob.GetBlobContent()
-			if err != nil {
-				ctx.ServerError("GetBlobContent", err)
-				return
-			}
-			profileContent, err := markdown.RenderString(&markup.RenderContext{
-				Ctx:     ctx,
-				GitRepo: gitRepo,
-			}, bytes)
-			if err != nil {
-				ctx.ServerError("RenderString", err)
-				return
-			}
-			ctx.Data["ProfileReadme"] = profileContent
-		}
-	}
+	renderProfileReadme(ctx)
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 
@@ -364,4 +338,50 @@ func Action(ctx *context.Context) {
 	}
 	// FIXME: We should check this URL and make sure that it's a valid Gitea URL
 	ctx.RedirectToFirst(ctx.FormString("redirect_to"), ctx.ContextUser.HomeLink())
+}
+
+func renderProfileReadme(ctx *context.Context) {
+	repo, gitRepo, err := user.OpenUserProfileRepo(ctx, ctx.ContextUser)
+	if err != nil {
+		if !errors.Is(err, user.ErrProfileRepoNotExist) {
+			log.Error("OpenUserProfileRepo: %v", err)
+		}
+
+		return
+	}
+
+	commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+	if err != nil {
+		log.Error("GetBranchCommit: %v", err)
+		return
+	}
+	entry, err := commit.SubTree("/")
+	if err != nil {
+		log.Error("GetBranchCommit: %v", err)
+		return
+	}
+	allEntrys, err := entry.ListEntries()
+	if err != nil {
+		log.Error("entry.Tree().ListEntries: %v", err)
+		return
+	}
+	subfolder, readmeFile, err := render.FindReadmeFileInEntries(ctx, allEntrys, true)
+	if err != nil {
+		log.Error("FindReadmeFileInEntries: %v", err)
+		return
+	}
+
+	ctx.Repo = &context.Repository{
+		GitRepo:    gitRepo,
+		Repository: repo,
+		TreePath:   "/",
+	}
+	render.ReadmeFile(ctx, subfolder, readmeFile, repo.Link()+"/src/branch/"+repo.DefaultBranch)
+	if !ctx.Written() {
+		ctx.Data["ProfileReadme"] = true
+	}
+
+	if fileName, ok := ctx.Data["FileName"].(string); ok {
+		ctx.Data["FileName"] = path.Join(repo.Name, fileName)
+	}
 }

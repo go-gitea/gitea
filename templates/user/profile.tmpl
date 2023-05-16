@@ -150,7 +150,7 @@
 					{{template "explore/repo_list" .}}
 					{{template "base/paginate" .}}
 				{{else if .ProfileReadme}}
-					<div id="readme_profile" class="render-content markup"> {{$.ProfileReadme|Str2html}} </div>
+					{{template "repo/view_file" .}}
 				{{end}}
 			</div>
 		</div>
