@@ -267,13 +267,13 @@ var (
 		Storage
 	}{}
 
-	EnableSizeLimit       = true
-	RepoSizeLimit   int64 = 0
+	EnableSizeLimit = true
+	RepoSizeLimit   int64
 )
 
-func SaveGlobalRepositorySetting(enable_size_limit bool, repo_size_limit int64) error {
-	EnableSizeLimit = enable_size_limit
-	RepoSizeLimit = repo_size_limit
+func SaveGlobalRepositorySetting(enableSizeLimit bool, repoSizeLimit int64) error {
+	EnableSizeLimit = enableSizeLimit
+	RepoSizeLimit = repoSizeLimit
 	sec := CfgProvider.Section("repository")
 	if EnableSizeLimit {
 		sec.Key("ENABLE_SIZE_LIMIT").SetValue("true")

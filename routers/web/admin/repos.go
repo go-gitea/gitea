@@ -49,7 +49,7 @@ func UpdateRepoPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
 	ctx.Data["PageIsAdminRepositories"] = true
 
-	repo_size_limit, err := base.GetFileSize(form.RepoSizeLimit)
+	repoSizeLimit, err := base.GetFileSize(form.RepoSizeLimit)
 
 	ctx.Data["EnableSizeLimit"] = form.EnableSizeLimit
 	ctx.Data["RepoSizeLimit"] = form.RepoSizeLimit
@@ -65,7 +65,7 @@ func UpdateRepoPost(ctx *context.Context) {
 		return
 	}
 
-	err = setting.SaveGlobalRepositorySetting(form.EnableSizeLimit, repo_size_limit)
+	err = setting.SaveGlobalRepositorySetting(form.EnableSizeLimit, repoSizeLimit)
 
 	if err != nil {
 		ctx.Data["Err_Repo_Size_Save"] = err.Error()
@@ -80,7 +80,6 @@ func UpdateRepoPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("admin.config.repository_setting_success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/repos")
-
 }
 
 // DeleteRepo delete one repository
