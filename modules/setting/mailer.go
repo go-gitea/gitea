@@ -265,9 +265,7 @@ func tryResolveAddr(addr string) []net.IPAddr {
 	}
 	ip := net.ParseIP(addr)
 	if ip != nil {
-		ips := make([]net.IPAddr, 1)
-		ips[0] = net.IPAddr{IP: ip}
-		return ips
+		return []net.IPAddr{{IP: ip}}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
