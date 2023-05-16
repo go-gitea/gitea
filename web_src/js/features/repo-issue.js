@@ -4,7 +4,6 @@ import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
-import {parseIssueHref} from '../utils.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -292,8 +291,8 @@ export function initRepoIssueReferenceRepositorySearch() {
           const filteredResponse = {success: true, results: []};
           $.each(response.data, (_r, repo) => {
             filteredResponse.results.push({
-              name: htmlEscape(repo.full_name),
-              value: repo.full_name
+              name: htmlEscape(repo.repository.full_name),
+              value: repo.repository.full_name
             });
           });
           return filteredResponse;
@@ -638,30 +637,58 @@ export function initRepoIssueBranchSelect() {
   $('#branch-select > .item').on('click', changeBranchSelect);
 }
 
-export function initRepoIssueGotoID() {
-  const issueidre = /^(?:\w+\/\w+#\d+|#\d+|\d+)$/;
-  const isGlobalIssuesArea = $('.repo.name.item').length > 0; // for global issues area or repository issues area
-  $('form.list-header-search').on('submit', (e) => {
-    const qval = e.target.q.value;
-    const aElm = document.activeElement;
-    if (!$('#hashtag-button').length || aElm.id === 'search-button' || (aElm.name === 'q' && !qval.includes('#')) || (isGlobalIssuesArea && !qval.includes('/')) || !issueidre.test(qval)) return;
-    const pathname = window.location.pathname;
-    let gotoUrl = qval.includes('/') ? `${qval.replace('#', '/issues/')}` : `${pathname}/${qval.replace('#', '')}`;
-    if (appSubUrl.length) {
-      gotoUrl = qval.includes('/') ? `/${appSubUrl}/${qval.replace('#', '/issues/')}` : `/${appSubUrl}/${pathname}/${qval.replace('#', '')}`;
-    }
-    const {owner, repo, type, index} = parseIssueHref(gotoUrl);
-    if (owner && repo && type && index) {
+export function initSingleCommentEditor($commentForm) {
+  // pages:
+  // * normal new issue/pr page, no status-button
+  // * issue/pr view page, with comment form, has status-button
+  const opts = {};
+  const $statusButton = $('#status-button');
+  if ($statusButton.length) {
+    $statusButton.on('click', (e) => {
       e.preventDefault();
-      window.location.href = gotoUrl;
-    }
-  });
-  $('form.list-header-search input[name=q]').on('input', (e) => {
-    const qval = e.target.value;
-    if (isGlobalIssuesArea && qval.includes('/') && issueidre.test(qval) || !isGlobalIssuesArea && issueidre.test(qval)) {
-      showElem($('#hashtag-button'));
-    } else {
-      hideElem($('#hashtag-button'));
-    }
-  });
+      $('#status').val($statusButton.data('status-val'));
+      $('#comment-form').trigger('submit');
+    });
+    opts.onContentChanged = (editor) => {
+      $statusButton.text($statusButton.attr(editor.value().trim() ? 'data-status-and-comment' : 'data-status'));
+    };
+  }
+  initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
+}
+
+export function initIssueTemplateCommentEditors($commentForm) {
+  // pages:
+  // * new issue with issue template
+  const $comboFields = $commentForm.find('.combo-editor-dropzone');
+
+  const initCombo = async ($combo) => {
+    const $dropzoneContainer = $combo.find('.form-field-dropzone');
+    const $formField = $combo.find('.form-field-real');
+    const $markdownEditor = $combo.find('.combo-markdown-editor');
+
+    const editor = await initComboMarkdownEditor($markdownEditor, {
+      onContentChanged: (editor) => {
+        $formField.val(editor.value());
+      }
+    });
+
+    $formField.on('focus', async () => {
+      // deactivate all markdown editors
+      showElem($commentForm.find('.combo-editor-dropzone .form-field-real'));
+      hideElem($commentForm.find('.combo-editor-dropzone .combo-markdown-editor'));
+      hideElem($commentForm.find('.combo-editor-dropzone .form-field-dropzone'));
+
+      // activate this markdown editor
+      hideElem($formField);
+      showElem($markdownEditor);
+      showElem($dropzoneContainer);
+
+      await editor.switchToUserPreference();
+      editor.focus();
+    });
+  };
+
+  for (const el of $comboFields) {
+    initCombo($(el));
+  }
 }
