@@ -71,7 +71,7 @@
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
           <li v-for="repo, index in repos" :key="repo.id">
-            <a class="repo-list-link gt-df gt-ac gt-sb ui attached" :class="{'button primary': index === 0}" :href="repo.link">
+            <a class="repo-list-link gt-df gt-ac gt-sb ui attached" :ref="'repoIndex'+ index" :class="{'button primary': index === repoIndex}" :href="repo.link">
               <div class="item-name gt-df gt-ac gt-f1">
                 <svg-icon :name="repoIcon(repo)" :size="16" class-name="gt-mr-2"/>
                 <div class="text gt-bold truncate gt-ml-1">{{ repo.full_name }}</div>
@@ -93,14 +93,14 @@
               <svg-icon name="gitea-double-chevron-left" :size="16" class-name="gt-mr-2"/>
             </a>
             <a
-              class="item navigation gt-py-2" :class="{'disabled': page === 1}"
+              class="item navigation gt-py-2" ref="previousPageLink" :class="{'disabled': page === 1}"
               @click="changePage(page - 1)" :title="textPreviousPage"
             >
               <svg-icon name="octicon-chevron-left" :size="16" clsas-name="gt-mr-2"/>
             </a>
             <a class="active item gt-py-2">{{ page }}</a>
             <a
-              class="item navigation" :class="{'disabled': page === finalPage}"
+              class="item navigation" ref="nextPageLink" :class="{'disabled': page === finalPage}"
               @click="changePage(page + 1)" :title="textNextPage"
             >
               <svg-icon name="octicon-chevron-right" :size="16" class-name="gt-ml-2"/>
@@ -217,6 +217,7 @@ const sfc = {
 
       subUrl: appSubUrl,
       ...pageData.dashboardRepoList,
+      repoIndex: 0,
     };
   },
 
@@ -251,39 +252,33 @@ const sfc = {
 
   mounted() {
     const el = document.getElementById('dashboard-repo-list');
-    const activeClass = ['button', 'primary'];
     this.changeReposFilter(this.reposFilter);
     $(el).find('.dropdown').dropdown();
     nextTick(() => {
       this.$refs.search.focus();
       this.$refs.search.addEventListener('keydown', (e) => {
-        const activeItem = document.querySelector('#dashboard-repo-list .primary');
-        const rightPage = document.querySelector('#dashboard-repo-list .octicon-chevron-right');
-        const leftPage = document.querySelector('#dashboard-repo-list .octicon-chevron-left');
-        if (activeItem) {
-          switch (e.key) {
-            case 'Enter':
-              activeItem.click();
-              break;
-            case 'ArrowUp':
-              if (activeItem.closest('li').previousSibling.querySelector) {
-                activeItem.classList.remove(...activeClass);
-                activeItem.closest('li').previousSibling.querySelector('a').classList.add(...activeClass);
-              } else if (leftPage && !leftPage.parentElement.classList.contains('disabled')) leftPage.parentElement.click();
-              break;
-            case 'ArrowDown':
-              if (activeItem.closest('li').nextSibling.querySelector) {
-                activeItem.classList.remove(...activeClass);
-                activeItem.closest('li').nextSibling.querySelector('a').classList.add(...activeClass);
-              } else if (rightPage && !rightPage.parentElement.classList.contains('disabled')) rightPage.parentElement.click();
-              break;
-            case 'ArrowRight':
-              if (rightPage && !rightPage.parentElement.classList.contains('disabled')) rightPage.parentElement.click();
-              break;
-            case 'ArrowLeft':
-              if (leftPage && !leftPage.parentElement.classList.contains('disabled')) leftPage.parentElement.click();
-              break;
-          }
+        const selectedRepo = this.$refs[`repoIndex${this.repoIndex}`];
+        switch (e.key) {
+          case 'Enter':
+            selectedRepo[0].click();
+            break;
+          case 'ArrowUp':
+            if (this.repoIndex > 0) this.repoIndex--;
+            else if (this.$refs.previousPageLink && !this.$refs.previousPageLink.classList.contains('disabled')) this.$refs.previousPageLink.click();
+            break;
+          case 'ArrowDown':
+            if (this.repoIndex < this.repos.length - 1) this.repoIndex++;
+            else if (this.$refs.nextPageLink && this.$refs.nextPageLink.classList && !this.$refs.nextPageLink.classList.contains('disabled')) {
+              this.repoIndex = 0;
+              this.$refs.nextPageLink.click();
+            }
+            break;
+          case 'ArrowRight':
+            if (this.$refs.nextPageLink && !this.$refs.nextPageLink.classList.contains('disabled')) this.$refs.nextPageLink.click();
+            break;
+          case 'ArrowLeft':
+            if (this.$refs.previousPageLink && !this.$refs.previousPageLink.classList.contains('disabled')) this.$refs.previousPageLink.click();
+            break;
         }
       });
     });

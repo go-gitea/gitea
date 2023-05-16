@@ -176,7 +176,7 @@
   display: block;
 }
 
-.feeds .list ul li .repo-list-link .svg {
+.feeds .list ul li .repo-list-link:not(.primary) .svg {
   color: var(--color-text-light-2);
 }
 
