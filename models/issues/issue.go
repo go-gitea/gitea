@@ -1322,7 +1322,7 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 				if labelID > 0 {
 					sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
 						fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
-				} else {
+				} else if labelID < 0 { // 0 is not supported here, so just ignore it
 					sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
 				}
 			}
@@ -1723,7 +1723,7 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 						if labelID > 0 {
 							sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
 								fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
-						} else {
+						} else if labelID < 0 { // 0 is not supported here, so just ignore it
 							sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label WHERE label_id = ?)", -labelID)
 						}
 					}
