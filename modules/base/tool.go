@@ -138,7 +138,10 @@ func CreateTimeLimitCode(data string, minutes int, startInf interface{}) string 
 
 // FileSize calculates the file size and generate user-friendly string.
 func FileSize(s int64) string {
-	return humanize.Bytes(uint64(s))
+	// sizes := []string{"B", "kB", "MB", "GB", "TB", "PB", "EB"}
+	// return humanize.humanateBytes(uint64(s), 1000, sizes)
+	// return humanize.Bytes(uint64(s))
+	return humanize.IBytes(uint64(s))
 }
 
 // Get FileSize bytes value from  String.

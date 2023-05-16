@@ -45,7 +45,18 @@ func Repos(ctx *context.Context) {
 }
 
 func UpdateRepoPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.UpdateGlobalRepoFrom)
+	temp := web.GetForm(ctx)
+	if temp == nil {
+		ctx.Data["Err_Repo_Size_Limit"] = ""
+		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
+			Private:          true,
+			PageSize:         setting.UI.Admin.RepoPagingNum,
+			TplName:          tplRepos,
+			OnlyShowRelevant: false,
+		})
+		return
+	}
+	form := temp.(*forms.UpdateGlobalRepoFrom)
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
 	ctx.Data["PageIsAdminRepositories"] = true
 

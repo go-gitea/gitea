@@ -114,6 +114,13 @@ func TestFileSize(t *testing.T) {
 	assert.Equal(t, "2.0 EiB", FileSize(size))
 }
 
+func TestGetFileSize(t *testing.T) {
+	var size int64 = 512 * 1024 * 1024 * 1024
+	s, err := GetFileSize("512 GiB")
+	assert.Equal(t, s, size)
+	assert.Equal(t, err, nil)
+}
+
 func TestEllipsisString(t *testing.T) {
 	assert.Equal(t, "...", EllipsisString("foobar", 0))
 	assert.Equal(t, "...", EllipsisString("foobar", 1))
