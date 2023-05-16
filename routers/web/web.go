@@ -502,6 +502,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("/actions", func() {
 			m.Get("", user_setting.RedirectToDefaultSetting)
 			addSettingsSecretsRoutes()
+			addSettingVariablesRoutes()
 		}, actions.MustEnableActions)
 
 		m.Get("/organization", user_setting.Organization)

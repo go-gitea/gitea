@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 	shared "code.gitea.io/gitea/routers/web/shared/variables"
 )
 
@@ -16,6 +17,7 @@ const (
 	// TODO: Separate from runners when layout is ready
 	tplRepoVariables base.TplName = "repo/settings/actions"
 	tplOrgVariables  base.TplName = "org/settings/actions"
+	tplUserVariables base.TplName = "user/settings/actions"
 )
 
 type variablesCtx struct {
@@ -23,6 +25,7 @@ type variablesCtx struct {
 	RepoID            int64
 	IsRepo            bool
 	IsOrg             bool
+	IsUser            bool
 	VariablesTemplate base.TplName
 	RedirectLink      string
 }
@@ -43,6 +46,15 @@ func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 			IsOrg:             true,
 			VariablesTemplate: tplOrgVariables,
 			RedirectLink:      ctx.Org.OrgLink + "/settings/actions/variables",
+		}, nil
+	}
+
+	if ctx.Data["PageIsUserSettings"] == true {
+		return &variablesCtx{
+			OwnerID:           ctx.Doer.ID,
+			IsUser:            true,
+			VariablesTemplate: tplUserVariables,
+			RedirectLink:      setting.AppSubURL + "/user/settings/actions/variables",
 		}, nil
 	}
 

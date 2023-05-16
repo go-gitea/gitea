@@ -93,7 +93,7 @@ func getSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[s
 func getVariablesOfTask(ctx context.Context, task *actions_model.ActionTask) map[string]string {
 	variables := map[string]string{}
 
-	// Org level
+	// Org / User level
 	ownerVariables, err := variable_model.FindVariables(ctx, variable_model.FindVariablesOpts{OwnerID: task.Job.Run.Repo.OwnerID})
 	if err != nil {
 		log.Error("find variables of org: %d, error: %v", task.Job.Run.Repo.OwnerID, err)
@@ -107,7 +107,7 @@ func getVariablesOfTask(ctx context.Context, task *actions_model.ActionTask) map
 
 	// TODO: Env level
 
-	// Level precedence: ENV > REPO > ORG
+	// Level precedence: Env > Repo > Org / User
 	for _, v := range append(ownerVariables, repoVariables...) {
 		variables[v.Name] = v.Data
 	}
