@@ -41,7 +41,7 @@ var Indexer = struct {
 	IssueIndexerName: "gitea_issues",
 
 	RepoIndexerEnabled: false,
-	RepoIndexerUnits:   []string{"repo", "fork", "mirror"},
+	RepoIndexerUnits:   []string{"sources", "fork", "mirror", "templates"},
 	RepoType:           "bleve",
 	RepoPath:           "indexers/repos.bleve",
 	RepoConnStr:        "",
