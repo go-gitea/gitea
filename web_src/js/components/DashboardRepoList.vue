@@ -257,10 +257,9 @@ const sfc = {
     nextTick(() => {
       this.$refs.search.focus();
       this.$refs.search.addEventListener('keydown', (e) => {
-        const selectedRepo = this.$refs[`repoIndex${this.repoIndex}`];
         switch (e.key) {
           case 'Enter':
-            selectedRepo[0].click();
+            this.$refs[`repoIndex${this.repoIndex}`][0].click();
             break;
           case 'ArrowUp':
             if (this.repoIndex > 0) this.repoIndex--;
