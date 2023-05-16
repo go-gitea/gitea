@@ -186,11 +186,34 @@ ACCESS = file
 	}
 }
 `
+	writerDumpAccess := `
+{
+	"file": {
+		"BufferLen": 10000,
+		"Colorize": false,
+		"Expression": "",
+		"Flags": "none",
+		"Level": "info",
+		"Prefix": "",
+		"StacktraceLevel": "none",
+		"WriterOption": {
+			"Compress": true,
+			"CompressionLevel": -1,
+			"DailyRotate": true,
+			"FileName": "$FILENAME",
+			"LogRotate": true,
+			"MaxDays": 7,
+			"MaxSize": 268435456
+		},
+		"WriterType": "file"
+	}
+}
+`
 	dump := manager.GetLogger(log.DEFAULT).DumpWriters()
 	require.JSONEq(t, strings.ReplaceAll(writerDump, "$FILENAME", tempPath("gitea.log")), toJSON(dump))
 
 	dump = manager.GetLogger("access").DumpWriters()
-	require.JSONEq(t, strings.ReplaceAll(writerDump, "$FILENAME", tempPath("access.log")), toJSON(dump))
+	require.JSONEq(t, strings.ReplaceAll(writerDumpAccess, "$FILENAME", tempPath("access.log")), toJSON(dump))
 
 	dump = manager.GetLogger("router").DumpWriters()
 	require.JSONEq(t, strings.ReplaceAll(writerDump, "$FILENAME", tempPath("router.log")), toJSON(dump))
@@ -216,6 +239,7 @@ ENABLE_ACCESS_LOG = false
 func TestLogConfigNewConfig(t *testing.T) {
 	manager, managerClose := initLoggersByConfig(t, `
 [log]
+logger.access.MODE = console
 logger.xorm.MODE = console, console-1
 
 [log.console]
@@ -226,6 +250,8 @@ MODE = console
 LEVEL = error
 STDERR = true
 `)
+
+	defer managerClose()
 
 	writerDump := `
 {
@@ -257,10 +283,29 @@ STDERR = true
 	}
 }
 `
-	defer managerClose()
-
+	writerDumpAccess := `
+{
+	"console": {
+		"BufferLen": 10000,
+		"Colorize": false,
+		"Expression": "",
+		"Flags": "none",
+		"Level": "warn",
+		"Prefix": "",
+		"StacktraceLevel": "none",
+		"WriterOption": {
+			"Stderr": false
+		},
+		"WriterType": "console"
+	}
+}
+`
 	dump := manager.GetLogger("xorm").DumpWriters()
 	require.JSONEq(t, writerDump, toJSON(dump))
+
+	dump = manager.GetLogger("access").DumpWriters()
+	require.JSONEq(t, writerDumpAccess, toJSON(dump))
+
 }
 
 func TestLogConfigModeFile(t *testing.T) {

@@ -117,15 +117,21 @@ func loadLogModeByName(rootCfg ConfigProvider, loggerName, modeName string) (wri
 	sec := rootCfg.Section("log." + modeName)
 
 	writerMode = log.WriterMode{}
-	writerType = KeyInSectionString(sec, "MODE")
+	writerType = ConfigSectionKeyString(sec, "MODE")
 	if writerType == "" {
 		writerType = modeName
 	}
-	writerMode.Level = log.LevelFromString(sec.Key("LEVEL").MustString(Log.Level.String()))
-	writerMode.StacktraceLevel = log.LevelFromString(sec.Key("STACKTRACE_LEVEL").MustString(Log.StacktraceLogLevel.String()))
-	writerMode.Prefix = sec.Key("PREFIX").MustString("")
-	writerMode.Flags = log.FlagsFromString(sec.Key("FLAGS").MustString("stdflags"))
-	writerMode.Expression = sec.Key("EXPRESSION").MustString("")
+
+	writerMode.Level = log.LevelFromString(ConfigInheritedKeyString(sec, "LEVEL", Log.Level.String()))
+	writerMode.StacktraceLevel = log.LevelFromString(ConfigInheritedKeyString(sec, "STACKTRACE_LEVEL", Log.StacktraceLogLevel.String()))
+	writerMode.Prefix = ConfigInheritedKeyString(sec, "PREFIX")
+	writerMode.Expression = ConfigInheritedKeyString(sec, "EXPRESSION")
+
+	defaultFlags := "stdflags"
+	if loggerName == "access" {
+		defaultFlags = "none" // "access" logger is special, by default it doesn't have output flags
+	}
+	writerMode.Flags = log.FlagsFromString(ConfigInheritedKeyString(sec, "FLAGS", defaultFlags))
 
 	switch writerType {
 	case "console":
