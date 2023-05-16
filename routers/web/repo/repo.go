@@ -156,7 +156,7 @@ func Create(ctx *context.Context) {
 	ctx.Data["Readmes"] = repo_module.Readmes
 	ctx.Data["readme"] = "Default"
 	ctx.Data["private"] = getRepoPrivate(ctx)
-	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["ForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
 
 	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
@@ -281,7 +281,7 @@ func CreatePost(ctx *context.Context) {
 			IssueLabels:   form.IssueLabels,
 			License:       form.License,
 			Readme:        form.Readme,
-			IsPrivate:     form.Private || setting.Repository.ForcePrivate,
+			IsPrivate:     false,
 			DefaultBranch: form.DefaultBranch,
 			AutoInit:      form.AutoInit,
 			IsTemplate:    form.Template,

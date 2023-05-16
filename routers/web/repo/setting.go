@@ -178,9 +178,15 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		visibilityChanged := repo.IsPrivate != form.Private
-		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
-		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private && !ctx.Doer.IsAdmin {
+		// when ForcePrivate is set to private, you could change public repo to private, but only admin users can change private to public
+		if visibilityChanged && setting.Repository.ForcePrivate == "private" && !form.Private && !ctx.Doer.IsAdmin {
 			ctx.RenderWithErr(ctx.Tr("form.repository_force_private"), tplSettingsOptions, form)
+			return
+		}
+
+		// when ForcePrivate is set to public, you could change private repo to public, but only admin users can change public to private
+		if visibilityChanged && setting.Repository.ForcePrivate == "public" && form.Private && !ctx.Doer.IsAdmin {
+			ctx.RenderWithErr(ctx.Tr("form.repository_force_public"), tplSettingsOptions, form)
 			return
 		}
 
