@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // SearchResult result of performing a search in a repo
@@ -82,18 +83,6 @@ type IndexerData struct {
 
 var indexerQueue *queue.WorkerPoolQueue[*IndexerData]
 
-// https://play.golang.org/p/Qg_uv_inCek
-// contains checks if a string is present in a slice
-func contains(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
-	}
-
-	return false
-}
-
 func index(ctx context.Context, indexer Indexer, repoID int64) error {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if repo_model.IsErrRepoNotExist(err) {
@@ -110,17 +99,17 @@ func index(ctx context.Context, indexer Indexer, repoID int64) error {
 	}
 
 	// skip forks from being indexed if unit is not present
-	if !contains(units, "fork") && repo.IsFork {
+	if !util.SliceContains(units, "forks") && repo.IsFork {
 		return nil
 	}
 
 	// skip mirrors from being indexed if unit is not present
-	if !contains(units, "mirror") && repo.IsMirror {
+	if !util.SliceContains(units, "mirrors") && repo.IsMirror {
 		return nil
 	}
 
 	// skip regular repos from being indexed if unit is not present
-	if !contains(units, "repo") && !repo.IsFork && !repo.IsMirror {
+	if !util.SliceContains(units, "repos") && !repo.IsFork && !repo.IsMirror {
 		return nil
 	}
 

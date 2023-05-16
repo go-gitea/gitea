@@ -465,8 +465,7 @@ relation to port exhaustion.
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search; available when ISSUE_INDEXER_TYPE is bleve and elasticsearch. Relative paths will be made absolute against _`AppWorkPath`_.
 
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
-- `REPO_INDEXER_SKIP_FORKS`: **false**: Code search indexing will skip forks from being indexed if setting is enabled.
-- `REPO_INDEXER_SKIP_MIRRORS`: **false**: Code search indexing will skip mirrors from being indexed if setting is enabled.
+- `REPO_INDEXER_UNITS`: **repos,forks,mirrors**: Repo indexer units. The items to index could be `repos`, `forks`, `mirrors` or any combination of them separated by a comma
 - `REPO_INDEXER_TYPE`: **bleve**: Code search engine type, could be `bleve` or `elasticsearch`.
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
 - `REPO_INDEXER_CONN_STR`: ****: Code indexer connection string, available when `REPO_INDEXER_TYPE` is elasticsearch. i.e. http://elastic:changeme@localhost:9200
