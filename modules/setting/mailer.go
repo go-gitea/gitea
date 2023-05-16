@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"context"
 	"net"
 	"net/mail"
 	"strings"
@@ -199,7 +198,7 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 		ips := tryResolveAddr(MailService.SMTPAddr)
 		if MailService.Protocol == "smtp" {
 			for _, ip := range ips {
-				if !ip.IP.IsLoopback() {
+				if !ip.IsLoopback() {
 					log.Warn("connecting over insecure SMTP protocol to non-local address is not recommended")
 					break
 				}
@@ -259,23 +258,20 @@ func loadNotifyMailFrom(rootCfg ConfigProvider) {
 	log.Info("Notify Mail Service Enabled")
 }
 
-func tryResolveAddr(addr string) []net.IPAddr {
+func tryResolveAddr(addr string) []net.IP {
 	if strings.HasPrefix(addr, "[") && strings.HasSuffix(addr, "]") {
 		addr = addr[1 : len(addr)-1]
 	}
 	ip := net.ParseIP(addr)
 	if ip != nil {
-		ips := make([]net.IPAddr, 1)
-		ips[0] = net.IPAddr{IP: ip}
+		ips := make([]net.IP, 1)
+		ips[0] = ip
 		return ips
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	ips, err := net.DefaultResolver.LookupIPAddr(ctx, addr)
+	ips, err := net.LookupIP(addr)
 	if err != nil {
 		log.Warn("could not look up mailer.SMTP_ADDR: %v", err)
-		return nil
+		return make([]net.IP, 0)
 	}
 	return ips
 }
