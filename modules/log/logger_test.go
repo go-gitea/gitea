@@ -92,7 +92,6 @@ func TestLoggerPause(t *testing.T) {
 
 	w1 := newDummyWriter("dummy-1", DEBUG, 0)
 	logger.AddWriters(w1)
-	assert.EqualValues(t, DEBUG, logger.GetLevel())
 
 	logger.Pause()
 
@@ -106,4 +105,38 @@ func TestLoggerPause(t *testing.T) {
 	assert.Equal(t, []string{"info-level\n"}, w1.GetLogs())
 
 	logger.Close()
+}
+
+type testLogString struct{}
+
+func (t testLogString) LogString() string {
+	return "log-string"
+}
+
+func TestLoggerLogString(t *testing.T) {
+	logger := NewLoggerWithWriters()
+
+	w1 := newDummyWriter("dummy-1", DEBUG, 0)
+	logger.AddWriters(w1)
+
+	logger.Info("%s %s", testLogString{}, &testLogString{})
+	logger.Close()
+
+	assert.Equal(t, []string{"log-string log-string\n"}, w1.GetLogs())
+}
+
+func TestLoggerExpressionFilter(t *testing.T) {
+	logger := NewLoggerWithWriters()
+
+	w1 := newDummyWriter("dummy-1", DEBUG, 0)
+	w1.Mode.Expression = "foo.*"
+	logger.AddWriters(w1)
+
+	logger.Info("foo")
+	logger.Info("bar")
+	logger.Info("foo bar")
+	logger.SendLogEvent(&Event{Level: INFO, Filename: "foo.go", MsgSimpleText: "by filename"})
+	logger.Close()
+
+	assert.Equal(t, []string{"foo\n", "foo bar\n", "by filename\n"}, w1.GetLogs())
 }

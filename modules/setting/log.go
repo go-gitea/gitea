@@ -15,8 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// Log settings
-var Log struct {
+type LogGlobalConfig struct {
 	RootPath string
 
 	Mode               string
@@ -29,6 +28,8 @@ var Log struct {
 	AccessLogTemplate string
 	RequestIDHeaders  []string
 }
+
+var Log LogGlobalConfig
 
 const accessLogTemplateDefault = `{{.Ctx.RemoteHost}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}" "{{.Ctx.Req.UserAgent}}"`
 
@@ -55,48 +56,48 @@ func loadLogGlobalFrom(rootCfg ConfigProvider) {
 func prepareLoggerConfig(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("log")
 
-	if !sec.HasKey("logger.DEFAULT.MODE") {
-		sec.Key("logger.DEFAULT.MODE").MustString(",")
+	if !sec.HasKey("logger.default.MODE") {
+		sec.Key("logger.default.MODE").MustString(",")
 	}
 
-	deprecatedSetting(rootCfg, "log", "ACCESS", "log", "logger.ACCESS.MODE", "1.21")
-	deprecatedSetting(rootCfg, "log", "ENABLE_ACCESS_LOG", "log", "logger.ACCESS.MODE", "1.21")
+	deprecatedSetting(rootCfg, "log", "ACCESS", "log", "logger.access.MODE", "1.21")
+	deprecatedSetting(rootCfg, "log", "ENABLE_ACCESS_LOG", "log", "logger.access.MODE", "1.21")
 	if val := sec.Key("ACCESS").String(); val != "" {
-		sec.Key("logger.ACCESS.MODE").MustString(val)
+		sec.Key("logger.access.MODE").MustString(val)
 	}
 	if sec.HasKey("ENABLE_ACCESS_LOG") && !sec.Key("ENABLE_ACCESS_LOG").MustBool() {
-		sec.Key("logger.ACCESS.MODE").SetValue("")
+		sec.Key("logger.access.MODE").SetValue("")
 	}
 
-	deprecatedSetting(rootCfg, "log", "ROUTER", "log", "logger.ROUTER.MODE", "1.21")
-	deprecatedSetting(rootCfg, "log", "DISABLE_ROUTER_LOG", "log", "logger.ROUTER.MODE", "1.21")
+	deprecatedSetting(rootCfg, "log", "ROUTER", "log", "logger.router.MODE", "1.21")
+	deprecatedSetting(rootCfg, "log", "DISABLE_ROUTER_LOG", "log", "logger.router.MODE", "1.21")
 	if val := sec.Key("ROUTER").String(); val != "" {
-		sec.Key("logger.ROUTER.MODE").MustString(val)
+		sec.Key("logger.router.MODE").MustString(val)
 	}
-	if !sec.HasKey("logger.ROUTER.MODE") {
-		sec.Key("logger.ROUTER.MODE").MustString(",") // use default logger
+	if !sec.HasKey("logger.router.MODE") {
+		sec.Key("logger.router.MODE").MustString(",") // use default logger
 	}
 	if sec.HasKey("DISABLE_ROUTER_LOG") && sec.Key("DISABLE_ROUTER_LOG").MustBool() {
-		sec.Key("logger.ROUTER.MODE").SetValue("")
+		sec.Key("logger.router.MODE").SetValue("")
 	}
 
-	deprecatedSetting(rootCfg, "log", "XORM", "log", "logger.XORM.MODE", "1.21")
-	deprecatedSetting(rootCfg, "log", "ENABLE_XORM_LOG", "log", "logger.XORM.MODE", "1.21")
+	deprecatedSetting(rootCfg, "log", "XORM", "log", "logger.xorm.MODE", "1.21")
+	deprecatedSetting(rootCfg, "log", "ENABLE_XORM_LOG", "log", "logger.xorm.MODE", "1.21")
 	if val := sec.Key("XORM").String(); val != "" {
-		sec.Key("logger.XORM.MODE").MustString(val)
+		sec.Key("logger.xorm.MODE").MustString(val)
 	}
-	if !sec.HasKey("logger.XORM.MODE") {
-		sec.Key("logger.XORM.MODE").MustString(",") // use default logger
+	if !sec.HasKey("logger.xorm.MODE") {
+		sec.Key("logger.xorm.MODE").MustString(",") // use default logger
 	}
 	if sec.HasKey("ENABLE_XORM_LOG") && !sec.Key("ENABLE_XORM_LOG").MustBool() {
-		sec.Key("logger.XORM.MODE").SetValue("")
+		sec.Key("logger.xorm.MODE").SetValue("")
 	}
 }
 
-func LogPrepareFilenameForWriter(modeName, fileName string) string {
+func LogPrepareFilenameForWriter(loggerName, fileName string) string {
 	defaultFileName := "gitea.log"
-	if modeName != "file" {
-		defaultFileName = modeName + ".log"
+	if loggerName != "default" {
+		defaultFileName = loggerName + ".log"
 	}
 	if fileName == "" {
 		fileName = defaultFileName
@@ -112,7 +113,7 @@ func LogPrepareFilenameForWriter(modeName, fileName string) string {
 	return fileName
 }
 
-func loadLogModeByName(rootCfg ConfigProvider, modeName string) (writerType string, writerMode log.WriterMode) {
+func loadLogModeByName(rootCfg ConfigProvider, loggerName, modeName string) (writerType string, writerMode log.WriterMode, err error) {
 	sec := rootCfg.Section("log." + modeName)
 
 	writerMode = log.WriterMode{}
@@ -137,7 +138,7 @@ func loadLogModeByName(rootCfg ConfigProvider, modeName string) (writerType stri
 		}
 		writerMode.WriterOption = writerOption
 	case "file":
-		fileName := LogPrepareFilenameForWriter(modeName, sec.Key("FILE_NAME").String())
+		fileName := LogPrepareFilenameForWriter(loggerName, sec.Key("FILE_NAME").String())
 		writerOption := log.WriterFileOption{}
 		writerOption.FileName = fileName + filenameSuffix // FIXME: the suffix doesn't seem right, see its related comments
 		writerOption.LogRotate = sec.Key("LOG_ROTATE").MustBool(true)
@@ -156,11 +157,11 @@ func loadLogModeByName(rootCfg ConfigProvider, modeName string) (writerType stri
 		writerMode.WriterOption = writerOption
 	default:
 		if !log.HasEventWriter(writerType) {
-			panic(fmt.Sprintf("invalid log writer type (mode): %s", writerType))
+			return "", writerMode, fmt.Errorf("invalid log writer type (mode): %s", writerType)
 		}
 	}
 
-	return writerType, writerMode
+	return writerType, writerMode, nil
 }
 
 var filenameSuffix = ""
@@ -178,22 +179,26 @@ func InitLoggersForTest() {
 
 // initAllLoggers creates all the log services
 func initAllLoggers() {
-	loadLogGlobalFrom(CfgProvider)
-	prepareLoggerConfig(CfgProvider)
-
-	initLoggerByName(CfgProvider, log.DEFAULT) // default
-	initLoggerByName(CfgProvider, "access")
-	initLoggerByName(CfgProvider, "router")
-	initLoggerByName(CfgProvider, "xorm")
+	initManagedLoggers(log.GetManager(), CfgProvider)
 
 	golog.SetFlags(0)
 	golog.SetPrefix("")
 	golog.SetOutput(log.LoggerToWriter(log.GetLogger(log.DEFAULT).Info))
 }
 
-func initLoggerByName(rootCfg ConfigProvider, loggerName string) {
+func initManagedLoggers(manager *log.LoggerManager, cfg ConfigProvider) {
+	loadLogGlobalFrom(cfg)
+	prepareLoggerConfig(cfg)
+
+	initLoggerByName(manager, cfg, log.DEFAULT) // default
+	initLoggerByName(manager, cfg, "access")
+	initLoggerByName(manager, cfg, "router")
+	initLoggerByName(manager, cfg, "xorm")
+}
+
+func initLoggerByName(manager *log.LoggerManager, rootCfg ConfigProvider, loggerName string) {
 	sec := rootCfg.Section("log")
-	keyPrefix := "logger." + strings.ToUpper(loggerName)
+	keyPrefix := "logger." + loggerName
 
 	disabled := sec.HasKey(keyPrefix+".MODE") && sec.Key(keyPrefix+".MODE").String() == ""
 	if disabled {
@@ -213,7 +218,11 @@ func initLoggerByName(rootCfg ConfigProvider, loggerName string) {
 			continue
 		}
 		writerName := modeName
-		writerType, writerMode := loadLogModeByName(rootCfg, modeName)
+		writerType, writerMode, err := loadLogModeByName(rootCfg, loggerName, modeName)
+		if err != nil {
+			log.FallbackErrorf("Failed to load writer mode %q for logger %s: %v", modeName, loggerName, err)
+			continue
+		}
 		if writerMode.BufferLen == 0 {
 			writerMode.BufferLen = Log.BufferLen
 		}
@@ -225,7 +234,7 @@ func initLoggerByName(rootCfg ConfigProvider, loggerName string) {
 		eventWriters = append(eventWriters, eventWriter)
 	}
 
-	log.GetManager().GetLogger(loggerName).RemoveAllWriters().AddWriters(eventWriters...)
+	manager.GetLogger(loggerName).RemoveAllWriters().AddWriters(eventWriters...)
 }
 
 func InitSQLLoggersForCli(level log.Level) {

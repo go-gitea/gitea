@@ -21,7 +21,7 @@ The logging configuration of Gitea mainly consists of 3 types of components:
 
 - The `[log]` section for general configuration
 - `[log.<mode-name>]` sections for the configuration of different log writers to output logs, aka: "writer mode", the mode name is also used as "writer name".
-- `[log]` section could contain sub-loggers like`logger.LOGGER-NAME.CONFIG-KEY`
+- `[log]` section could contain sub-loggers like`logger.<logger-name>.<CONFIG-KEY>`
 
 There is a fully functional log output by default, so it is not necessary to define one.
 
@@ -46,9 +46,9 @@ In the top level `[log]` section the following configurations can be placed:
 
 And it can contain the following sub-loggers:
 
-- `logger.ROUTER.MODE`: (Default: **,**): List of log outputs to use for the Router logger.
-- `logger.ACCESS.MODE`: (Default: **\<empty\>**)  List of log outputs to use for the Access logger. By default, the access logger is disabled.
-- `logger.XORM.MODE`: (Default: **,**) List of log outputs to use for the XORM logger.
+- `logger.router.MODE`: (Default: **,**): List of log outputs to use for the Router logger.
+- `logger.access.MODE`: (Default: **\<empty\>**)  List of log outputs to use for the Access logger. By default, the access logger is disabled.
+- `logger.xorm.MODE`: (Default: **,**) List of log outputs to use for the XORM logger.
 
 Setting a comma (`,`) to sub-logger's mode means making it use the default global `MODE`.
 
@@ -64,9 +64,9 @@ ROOT_PATH = %(GITEA_WORK_DIR)/log
 MODE = console
 LEVEL = Info
 STACKTRACE_LEVEL = None
-logger.ROUTER.MODE = ,
-logger.XORM.MODE = ,
-logger.ACCESS.MODE =
+logger.router.MODE = ,
+logger.xorm.MODE = ,
+logger.access.MODE =
 
 ; this is the config options of "console" mode (used by MODE=console above)
 [log.console]
@@ -86,8 +86,8 @@ The Router logger is disabled, the access logs (>=Warn) goes into `access.log`:
 
 ```ini
 [log]
-logger.ROUTER.MODE =
-logger.ACCESS.MODE = access-file
+logger.router.MODE =
+logger.access.MODE = access-file
 
 [log.access-file]
 MODE = file
@@ -231,7 +231,7 @@ should be taken when changing its template. The main benefit of this
 logger is that Gitea can now log accesses in a standard log format so
 standard tools may be used.
 
-You can enable this logger using `logger.ACCESS.MODE = ...`.
+You can enable this logger using `logger.access.MODE = ...`.
 
 If desired the format of the Access logger can be changed by changing
 the value of the `ACCESS_LOG_TEMPLATE`.

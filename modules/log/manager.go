@@ -80,14 +80,14 @@ func (m *LoggerManager) DumpLoggers() map[string]any {
 	return dump
 }
 
-var manager *LoggerManager
+var manager = NewManager()
 
 func GetManager() *LoggerManager {
 	return manager
 }
 
-func init() {
-	manager = &LoggerManager{
+func NewManager() *LoggerManager {
+	return &LoggerManager{
 		loggers: map[string]*LoggerImpl{},
 	}
 }
