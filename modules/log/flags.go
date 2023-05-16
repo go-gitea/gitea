@@ -74,6 +74,14 @@ var flagToString = map[uint32]string{
 	Lgopid:         "gopid",
 }
 
+var flagComboToString = []struct {
+	flag uint32
+	name string
+}{
+	{LstdFlags, "stdflags"},
+	{Lmedfile, "medfile"},
+}
+
 func (f Flags) Bits() uint32 {
 	if !f.defined {
 		return Ldefault
@@ -84,6 +92,12 @@ func (f Flags) Bits() uint32 {
 func (f Flags) String() string {
 	flags := f.Bits()
 	var flagNames []string
+	for _, it := range flagComboToString {
+		if flags&it.flag == it.flag {
+			flags = flags &^ it.flag
+			flagNames = append(flagNames, it.name)
+		}
+	}
 	for flag, name := range flagToString {
 		if flags&flag != 0 {
 			flagNames = append(flagNames, name)

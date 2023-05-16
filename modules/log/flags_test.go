@@ -18,6 +18,9 @@ func TestFlags(t *testing.T) {
 	assert.EqualValues(t, 0, FlagsFromString("none", Lgopid).Bits())
 	assert.EqualValues(t, Ldate|Ltime, FlagsFromString("date,time", Lgopid).Bits())
 
+	assert.EqualValues(t, "stdflags", FlagsFromString("stdflags").String())
+	assert.EqualValues(t, "medfile", FlagsFromString("medfile").String())
+
 	bs, err := json.Marshal(FlagsFromString("utc,level"))
 	assert.NoError(t, err)
 	assert.EqualValues(t, `"level,utc"`, string(bs))
