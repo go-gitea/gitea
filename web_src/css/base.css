@@ -1055,8 +1055,13 @@ a.label,
 }
 
 .ui.pointing.dropdown > .menu:not(.hidden)::after {
-  background: var(--color-box-body);
+  background: var(--color-menu);
   box-shadow: -1px -1px 0 0 var(--color-secondary);
+}
+
+.ui.pointing.upward.dropdown .menu::after,
+.ui.top.pointing.upward.dropdown .menu::after {
+  box-shadow: 1px 1px 0 0 var(--color-secondary);
 }
 
 .ui.comments .comment .text {

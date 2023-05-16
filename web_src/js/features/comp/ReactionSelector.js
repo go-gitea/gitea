@@ -11,10 +11,15 @@ export function initCompReactionSelector(parent) {
   }
 
   for (const el of parent[0].querySelectorAll(selector)) {
-    createTippy(el, {placement: 'bottom-start', content: el.getAttribute('data-title')});
+    createTippy(el, {
+      placement: 'bottom-start',
+      content: el.getAttribute('data-title'),
+      theme: 'tooltip',
+      hideOnClick: true,
+    });
   }
 
-  parent.find(`.select-reaction > .menu > .item, ${selector}`).on('click', function (e) {
+  parent.find(`.select-reaction > .menu .item, ${selector}`).on('click', function (e) {
     e.preventDefault();
 
     if ($(this).hasClass('disabled')) return;
@@ -29,6 +34,7 @@ export function initCompReactionSelector(parent) {
         content: $(this).attr('data-reaction-content'),
       }
     }).done((resp) => {
+      e.target._tippy?.destroy();
       if (resp && (resp.html || resp.empty)) {
         const content = $(this).closest('.content');
         let react = content.find('.segment.reactions');
