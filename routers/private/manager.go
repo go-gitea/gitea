@@ -96,7 +96,7 @@ func AddLogger(ctx *context.PrivateContext) {
 	}
 
 	writerMode := log.WriterMode{}
-	writerMode.WriterType = opts.Mode
+	writerType := opts.Mode
 
 	var flags string
 	var ok bool
@@ -133,7 +133,7 @@ func AddLogger(ctx *context.PrivateContext) {
 	writerMode.Prefix, _ = opts.Config["prefix"].(string)
 	writerMode.Expression, _ = opts.Config["expression"].(string)
 
-	switch opts.Mode {
+	switch writerType {
 	case "console":
 		writerOption := log.WriterConsoleOption{}
 		writerOption.Stderr, _ = opts.Config["stderr"].(bool)
@@ -167,9 +167,9 @@ func AddLogger(ctx *context.PrivateContext) {
 		writerOption.Addr, _ = opts.Config["address"].(string)
 		writerMode.WriterOption = writerOption
 	default:
-		panic(fmt.Sprintf("invalid log writer mode: %s", writerMode.WriterType))
+		panic(fmt.Sprintf("invalid log writer mode: %s", writerType))
 	}
-	writer, err := log.NewEventWriter(opts.Writer, writerMode)
+	writer, err := log.NewEventWriter(opts.Writer, writerType, writerMode)
 	if err != nil {
 		log.Error("Failed to create new log writer: %v", err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{

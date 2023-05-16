@@ -60,7 +60,7 @@ func confirm() (bool, error) {
 func initDB(ctx context.Context) error {
 	setting.Init(&setting.Options{})
 	setting.LoadDBSetting()
-	setting.InitSQLLoggersForCli()
+	setting.InitSQLLoggersForCli(log.INFO)
 
 	if setting.Database.Type == "" {
 		log.Fatal(`Database settings are missing from the configuration file: %q.
@@ -101,16 +101,10 @@ func setupConsoleLogger(level log.Level, colorize bool, out io.Writer) {
 	}
 
 	writeMode := log.WriterMode{
-		WriterType:   "console",
 		Level:        level,
 		Colorize:     colorize,
 		WriterOption: log.WriterConsoleOption{Stderr: out == os.Stderr},
 	}
-	writer, err := log.NewEventWriter("console", writeMode)
-	if err != nil {
-		log.FallbackErrorf("unable to create console log writer: %v", err)
-		return
-	}
-
+	writer := log.NewEventWriterConsole("console-default", writeMode)
 	log.GetManager().GetLogger(log.DEFAULT).RemoveAllWriters().AddWriters(writer)
 }

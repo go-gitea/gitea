@@ -40,15 +40,15 @@ func (lc *LogChecker) Run(ctx context.Context) {
 	}
 }
 
-func (lc *LogChecker) checkLogEvent(event *log.Event) {
+func (lc *LogChecker) checkLogEvent(event *log.EventFormatted) {
 	lc.mu.Lock()
 	defer lc.mu.Unlock()
 	for i, msg := range lc.filterMessages {
-		if strings.Contains(event.Msg, msg) {
+		if strings.Contains(event.Origin.MsgSimpleText, msg) {
 			lc.filtered[i] = true
 		}
 	}
-	if strings.Contains(event.Msg, lc.stopMark) {
+	if strings.Contains(event.Origin.MsgSimpleText, lc.stopMark) {
 		lc.stopped = true
 	}
 }
@@ -61,7 +61,7 @@ func NewLogChecker(namePrefix string) (logChecker *LogChecker, cancel func()) {
 	writerName := namePrefix + "-" + fmt.Sprint(newCheckerIndex)
 
 	lc := &LogChecker{}
-	lc.EventWriterBaseImpl = log.NewEventWriterBase(writerName, log.WriterMode{})
+	lc.EventWriterBaseImpl = log.NewEventWriterBase(writerName, "test-log-checker", log.WriterMode{})
 	logger.AddWriters(lc)
 	return lc, func() { _ = logger.RemoveWriter(writerName) }
 }

@@ -61,7 +61,7 @@ func (m *LoggerManager) Close() {
 	defer m.mu.Unlock()
 
 	for _, logger := range m.loggers {
-		logger.RemoveAllWriters()
+		logger.Close()
 	}
 }
 

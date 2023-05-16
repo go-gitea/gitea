@@ -23,11 +23,13 @@ type EventWriterBase interface {
 type EventWriterBaseImpl struct {
 	LoggerImpl *LoggerImpl
 
+	writerType string
+
 	Name  string
 	Mode  *WriterMode
-	Queue chan *Event
+	Queue chan *EventFormatted
 
-	Formatter         EventFormatter // format the Event to a message and write it to output
+	FormatMessage     EventFormatter // format the Event to a message and write it to output
 	OutputWriteCloser io.WriteCloser // it will be closed when the event writer is stopped
 
 	stopped chan struct{}
@@ -40,7 +42,7 @@ func (b *EventWriterBaseImpl) Base() *EventWriterBaseImpl {
 }
 
 func (b *EventWriterBaseImpl) GetWriterType() string {
-	return b.Mode.WriterType
+	return b.writerType
 }
 
 func (b *EventWriterBaseImpl) GetWriterName() string {
@@ -55,14 +57,13 @@ func (b *EventWriterBaseImpl) Run(ctx context.Context) {
 	defer b.OutputWriteCloser.Close()
 
 	var exprRegexp *regexp.Regexp
-	var err error
 	if b.Mode.Expression != "" {
+		var err error
 		if exprRegexp, err = regexp.Compile(b.Mode.Expression); err != nil {
 			FallbackErrorf("unable to compile expression %q for writer %q: %v", b.Mode.Expression, b.Name, err)
 		}
 	}
 
-	var buf []byte
 	for {
 		pause := b.LoggerImpl.GetPauseChan()
 		if pause != nil {
@@ -81,26 +82,32 @@ func (b *EventWriterBaseImpl) Run(ctx context.Context) {
 			}
 
 			if exprRegexp != nil {
-				matched := exprRegexp.Match([]byte(fmt.Sprintf("%s:%d:%s", event.Filename, event.Line, event.Caller))) ||
-					exprRegexp.Match([]byte(event.Msg))
+				matched := exprRegexp.Match([]byte(fmt.Sprintf("%s:%d:%s", event.Origin.Filename, event.Origin.Line, event.Origin.Caller))) ||
+					exprRegexp.Match([]byte(event.Origin.MsgSimpleText))
 				if !matched {
 					continue
 				}
 			}
 
-			buf = EventFormatTextMessage(b.Mode, event, buf[:0])
-			_, err := b.OutputWriteCloser.Write(buf)
-			if err != nil {
-				FallbackErrorf("unable to write log message of %q (%v): %s", b.Name, err, string(buf))
+			var err error
+			switch msg := event.Msg.(type) {
+			case string:
+				_, err = b.OutputWriteCloser.Write([]byte(msg))
+			case []byte:
+				_, err = b.OutputWriteCloser.Write(msg)
+			case io.WriterTo:
+				_, err = msg.WriteTo(b.OutputWriteCloser)
+			default:
+				_, err = b.OutputWriteCloser.Write([]byte(fmt.Sprint(msg)))
 			}
-			if len(buf) > 2048 {
-				buf = nil // do not waste too much memory
+			if err != nil {
+				FallbackErrorf("unable to write log message of %q (%v): %v", b.Name, err, event.Msg)
 			}
 		}
 	}
 }
 
-func NewEventWriterBase(name string, mode WriterMode) *EventWriterBaseImpl {
+func NewEventWriterBase(name, writerType string, mode WriterMode) *EventWriterBaseImpl {
 	if mode.BufferLen == 0 {
 		mode.BufferLen = 1000
 	}
@@ -111,9 +118,14 @@ func NewEventWriterBase(name string, mode WriterMode) *EventWriterBaseImpl {
 		mode.StacktraceLevel = NONE
 	}
 	b := &EventWriterBaseImpl{
-		Name:    name,
-		Mode:    &mode,
-		Queue:   make(chan *Event, mode.BufferLen),
+		writerType: writerType,
+
+		Name:  name,
+		Mode:  &mode,
+		Queue: make(chan *EventFormatted, mode.BufferLen),
+
+		FormatMessage: EventFormatTextMessage,
+
 		stopped: make(chan struct{}),
 	}
 	return b

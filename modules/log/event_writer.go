@@ -25,16 +25,12 @@ func HasEventWriter(writerType string) bool {
 }
 
 type WriterMode struct {
-	WriterType string
-	// ModeName   string
-
 	BufferLen int
 
-	Level Level
-
+	Level    Level
 	Prefix   string
 	Colorize bool
-	Flags    int
+	Flags    Flags
 
 	Expression string
 
@@ -43,9 +39,9 @@ type WriterMode struct {
 	WriterOption any
 }
 
-func NewEventWriter(name string, mode WriterMode) (EventWriter, error) {
-	if p, ok := eventWriterProviders[mode.WriterType]; ok {
+func NewEventWriter(name, writerType string, mode WriterMode) (EventWriter, error) {
+	if p, ok := eventWriterProviders[writerType]; ok {
 		return p(name, mode), nil
 	}
-	return nil, fmt.Errorf("unknown event writer type %q for writer %q", mode.WriterType, name)
+	return nil, fmt.Errorf("unknown event writer type %q for writer %q", writerType, name)
 }

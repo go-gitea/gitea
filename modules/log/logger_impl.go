@@ -41,16 +41,25 @@ func (l *LoggerImpl) SendLogEvent(event *Event) {
 	defer l.eventWriterMu.RUnlock()
 
 	if len(l.eventWriters) == 0 {
-		FallbackErrorf("[no logger writer]: %s", event.Msg)
+		FallbackErrorf("[no logger writer]: %s", event.MsgSimpleText)
 		return
 	}
+
+	// the writers have their own goroutines, the message arguments (with Stringer) shouldn't be used in other goroutines
+	// so the event message must be formatted here
+	msgFormat, msgArgs := event.msgFormat, event.msgArgs
+	event.msgFormat, event.msgArgs = "(already processed by formatters)", nil
 
 	for _, w := range l.eventWriters {
 		if event.Level < w.GetLevel() {
 			continue
 		}
+		formatted := &EventFormatted{
+			Origin: event,
+			Msg:    w.Base().FormatMessage(w.Base().Mode, event, msgFormat, msgArgs),
+		}
 		select {
-		case w.Base().Queue <- event:
+		case w.Base().Queue <- formatted:
 		default:
 			bs, _ := json.Marshal(event)
 			FallbackErrorf("log writer %q queue is full, event: %v", w.GetWriterName(), string(bs))
@@ -155,6 +164,11 @@ func (l *LoggerImpl) Resume() {
 	l.pauseMu.Unlock()
 }
 
+func (l *LoggerImpl) Close() {
+	l.RemoveAllWriters()
+	l.ctxCancel()
+}
+
 func (l *LoggerImpl) GetPauseChan() chan struct{} {
 	l.pauseMu.RLock()
 	defer l.pauseMu.RUnlock()
@@ -185,7 +199,7 @@ func (l *LoggerImpl) Log(skip int, level Level, format string, logArgs ...any) {
 			event.Caller = fn.Name() + "()"
 		}
 	}
-	event.Filename, event.Line = strings.TrimPrefix(filename, prefix), line
+	event.Filename, event.Line = strings.TrimPrefix(filename, projectPackagePrefix), line
 
 	if l.stacktraceLevel.Load() <= int32(level) {
 		event.Stacktrace = Stack(skip + 1)
@@ -196,26 +210,24 @@ func (l *LoggerImpl) Log(skip int, level Level, format string, logArgs ...any) {
 		event.GoroutinePid = labels["pid"]
 	}
 
+	// get a simple text message without color
 	msgArgs := make([]any, len(logArgs))
 	copy(msgArgs, logArgs)
-	for i, v := range logArgs {
+
+	// handle LogStringer values
+	for i, v := range msgArgs {
 		if cv, ok := v.(*ColoredValue); ok {
-			msgArgs[i] = cv.v
-		}
-	}
-	msg, frozenArgs := frozenMsgFormat(format, msgArgs...)
-	for i, v := range logArgs {
-		if cv, ok := v.(*ColoredValue); ok {
-			newCV := *cv
-			newCV.v = frozenArgs[i]
-			msgArgs[i] = &newCV
-		} else {
-			msgArgs[i] = frozenArgs[i]
+			if s, ok := cv.v.(LogStringer); ok {
+				cv.v = s.LogString()
+			}
+		} else if s, ok := v.(LogStringer); ok {
+			msgArgs[i] = s.LogString()
 		}
 	}
 
-	event.Msg, event.MsgFormat, event.MsgFrozenArgs = msg, format, msgArgs
-
+	event.MsgSimpleText = colorSprintf(false, format, msgArgs...)
+	event.msgFormat = format
+	event.msgArgs = msgArgs
 	l.SendLogEvent(event)
 }
 

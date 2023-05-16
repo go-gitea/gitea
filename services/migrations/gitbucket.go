@@ -66,7 +66,7 @@ func (g *GitBucketDownloader) LogString() string {
 	if g == nil {
 		return "<GitBucketDownloader nil>"
 	}
-	return fmt.Sprintf("<GitBucketDownloader  %s %s/%s>", g.baseURL, g.repoOwner, g.repoName)
+	return fmt.Sprintf("<GitBucketDownloader %s %s/%s>", g.baseURL, g.repoOwner, g.repoName)
 }
 
 // NewGitBucketDownloader creates a GitBucket downloader

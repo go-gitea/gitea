@@ -10,12 +10,12 @@ import (
 	"code.gitea.io/gitea/modules/process"
 )
 
-var prefix string
+var projectPackagePrefix string
 
 func init() {
 	_, filename, _, _ := runtime.Caller(0)
-	prefix = strings.TrimSuffix(filename, "modules/log/init.go")
-	if prefix == filename {
+	projectPackagePrefix = strings.TrimSuffix(filename, "modules/log/init.go")
+	if projectPackagePrefix == filename {
 		// in case the source code file is moved, we can not trim the suffix, the code above should also be updated.
 		panic("unable to detect correct package prefix, please update file: " + filename)
 	}

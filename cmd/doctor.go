@@ -95,9 +95,9 @@ func runRecreateTable(ctx *cli.Context) error {
 	setting.LoadDBSetting()
 
 	if debug {
-		setting.InitSQLLoggersForCliDebug()
+		setting.InitSQLLoggersForCli(log.DEBUG)
 	} else {
-		setting.InitSQLLoggersForCli()
+		setting.InitSQLLoggersForCli(log.INFO)
 	}
 
 	setting.Database.LogSQL = debug
@@ -145,8 +145,8 @@ func setupDoctorDefaultLogger(ctx *cli.Context, colorize bool) {
 		setupConsoleLogger(log.TRACE, colorize, os.Stdout)
 	} else {
 		logFile, _ = filepath.Abs(logFile)
-		writeMode := log.WriterMode{WriterType: "file", Level: log.TRACE, WriterOption: log.WriterFileOption{FileName: logFile}}
-		writer, err := log.NewEventWriter("console-to-file", writeMode)
+		writeMode := log.WriterMode{Level: log.TRACE, WriterOption: log.WriterFileOption{FileName: logFile}}
+		writer, err := log.NewEventWriter("console-to-file", "file", writeMode)
 		if err != nil {
 			log.FallbackErrorf("unable to create file log writer: %v", err)
 			return

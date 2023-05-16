@@ -173,8 +173,8 @@ type TestLogEventWriter struct {
 // NewTestLoggerWriter creates a TestLogEventWriter as a log.LoggerProvider
 func NewTestLoggerWriter(name string, mode log.WriterMode) log.EventWriter {
 	w := &TestLogEventWriter{}
-	w.EventWriterBaseImpl = log.NewEventWriterBase(name, mode)
-	w.Formatter = log.EventFormatTextMessage
+	w.EventWriterBaseImpl = log.NewEventWriterBase(name, "test-log-writer", mode)
+	w.FormatMessage = log.EventFormatTextMessage
 	w.OutputWriteCloser = WriterCloser
 	return w
 }

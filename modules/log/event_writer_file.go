@@ -25,7 +25,7 @@ type eventWriterFile struct {
 var _ EventWriter = (*eventWriterFile)(nil)
 
 func NewEventWriterFile(name string, mode WriterMode) EventWriter {
-	w := &eventWriterFile{EventWriterBaseImpl: NewEventWriterBase(name, mode)}
+	w := &eventWriterFile{EventWriterBaseImpl: NewEventWriterBase(name, "file", mode)}
 	opt := mode.WriterOption.(WriterFileOption)
 	var err error
 	w.fileWriter, err = rotatingfilewriter.Open(opt.FileName, &rotatingfilewriter.Options{
@@ -39,7 +39,7 @@ func NewEventWriterFile(name string, mode WriterMode) EventWriter {
 	if err != nil {
 		FallbackErrorf("unable to open log file %q: %v", opt.FileName, err)
 	}
-	w.Formatter = EventFormatTextMessage
+	w.FormatMessage = EventFormatTextMessage
 	w.OutputWriteCloser = w.fileWriter
 	return w
 }

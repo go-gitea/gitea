@@ -74,9 +74,8 @@ func IsLoggerEnabled(name string) bool {
 
 func SetConsoleLogger(loggerName, writerName string, level Level) {
 	writer := NewEventWriterConsole(writerName, WriterMode{
-		WriterType:   "console",
 		Level:        level,
-		Flags:        LstdFlags,
+		Flags:        FlagsFromBits(LstdFlags),
 		Colorize:     CanColorStdout,
 		WriterOption: WriterConsoleOption{},
 	})

@@ -18,7 +18,33 @@
 // Call graph:
 // -> log.Info()
 // -> LoggerImpl.Log()
-// -> prepare log event, freeze all Stringer arguments (because the Event might be used in another goroutine)
 // -> LoggerImpl.SendLogEvent, then the event goes into writer's goroutines
 // -> EventWriter.Run() handles the events
 package log
+
+// BaseLogger provides the basic logging functions
+type BaseLogger interface {
+	Log(skip int, level Level, format string, v ...any)
+	GetLevel() Level
+}
+
+// LevelLogger provides level-related logging functions
+type LevelLogger interface {
+	LevelEnabled(level Level) bool
+
+	Trace(format string, v ...any)
+	Debug(format string, v ...any)
+	Info(format string, v ...any)
+	Warn(format string, v ...any)
+	Error(format string, v ...any)
+	Critical(format string, v ...any)
+}
+
+type Logger interface {
+	BaseLogger
+	LevelLogger
+}
+
+type LogStringer interface { //nolint:revive
+	LogString() string
+}

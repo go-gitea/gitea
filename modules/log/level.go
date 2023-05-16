@@ -34,6 +34,7 @@ var toString = map[Level]string{
 	INFO:  "info",
 	WARN:  "warn",
 	ERROR: "error",
+
 	FATAL: "fatal",
 	NONE:  "none",
 }
@@ -41,11 +42,13 @@ var toString = map[Level]string{
 var toLevel = map[string]Level{
 	"undefined": UNDEFINED,
 
-	"trace": TRACE,
-	"debug": DEBUG,
-	"info":  INFO,
-	"warn":  WARN,
-	"error": ERROR,
+	"trace":   TRACE,
+	"debug":   DEBUG,
+	"info":    INFO,
+	"warn":    WARN,
+	"warning": WARN,
+	"error":   ERROR,
+
 	"fatal": FATAL,
 	"none":  NONE,
 }

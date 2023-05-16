@@ -112,13 +112,13 @@ func LogPrepareFilenameForWriter(modeName, fileName string) string {
 	return fileName
 }
 
-func loadLogModeByName(rootCfg ConfigProvider, modeName string) log.WriterMode {
+func loadLogModeByName(rootCfg ConfigProvider, modeName string) (writerType string, writerMode log.WriterMode) {
 	sec := rootCfg.Section("log." + modeName)
 
-	writerMode := log.WriterMode{}
-	writerMode.WriterType = KeyInSectionString(sec, "MODE")
-	if writerMode.WriterType == "" {
-		writerMode.WriterType = modeName
+	writerMode = log.WriterMode{}
+	writerType = KeyInSectionString(sec, "MODE")
+	if writerType == "" {
+		writerType = modeName
 	}
 	writerMode.Level = log.LevelFromString(sec.Key("LEVEL").MustString(Log.Level.String()))
 	writerMode.StacktraceLevel = log.LevelFromString(sec.Key("STACKTRACE_LEVEL").MustString(Log.StacktraceLogLevel.String()))
@@ -126,7 +126,7 @@ func loadLogModeByName(rootCfg ConfigProvider, modeName string) log.WriterMode {
 	writerMode.Flags = log.FlagsFromString(sec.Key("FLAGS").MustString("stdflags"))
 	writerMode.Expression = sec.Key("EXPRESSION").MustString("")
 
-	switch writerMode.WriterType {
+	switch writerType {
 	case "console":
 		useStderr := sec.Key("STDERR").MustBool(false)
 		writerOption := log.WriterConsoleOption{Stderr: useStderr}
@@ -155,12 +155,12 @@ func loadLogModeByName(rootCfg ConfigProvider, modeName string) log.WriterMode {
 		writerOption.Addr = sec.Key("ADDR").MustString(":7020")
 		writerMode.WriterOption = writerOption
 	default:
-		if !log.HasEventWriter(writerMode.WriterType) {
-			panic(fmt.Sprintf("invalid log writer type (mode): %s", writerMode.WriterType))
+		if !log.HasEventWriter(writerType) {
+			panic(fmt.Sprintf("invalid log writer type (mode): %s", writerType))
 		}
 	}
 
-	return writerMode
+	return writerType, writerMode
 }
 
 var filenameSuffix = ""
@@ -212,9 +212,12 @@ func initLoggerByName(rootCfg ConfigProvider, loggerName string) {
 		if modeName == "" {
 			continue
 		}
-		opt := loadLogModeByName(rootCfg, modeName)
-		opt.BufferLen = Log.BufferLen
-		eventWriter, err := log.NewEventWriter(modeName, opt)
+		writerName := modeName
+		writerType, writerMode := loadLogModeByName(rootCfg, modeName)
+		if writerMode.BufferLen == 0 {
+			writerMode.BufferLen = Log.BufferLen
+		}
+		eventWriter, err := log.NewEventWriter(writerName, writerType, writerMode)
 		if err != nil {
 			log.FallbackErrorf("Failed to create event writer for logger %s: %v", loggerName, err)
 			continue
@@ -225,12 +228,8 @@ func initLoggerByName(rootCfg ConfigProvider, loggerName string) {
 	log.GetManager().GetLogger(loggerName).RemoveAllWriters().AddWriters(eventWriters...)
 }
 
-func InitSQLLoggersForCli() {
-	log.SetConsoleLogger("xorm", "console", log.INFO)
-}
-
-func InitSQLLoggersForCliDebug() {
-	log.SetConsoleLogger("xorm", "console", log.DEBUG)
+func InitSQLLoggersForCli(level log.Level) {
+	log.SetConsoleLogger("xorm", "console", level)
 }
 
 func IsAccessLogEnabled() bool {

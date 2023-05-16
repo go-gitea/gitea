@@ -23,7 +23,7 @@ type eventWriterConn struct {
 var _ EventWriter = (*eventWriterConn)(nil)
 
 func NewEventWriterConn(name string, mode WriterMode) EventWriter {
-	w := &eventWriterConn{EventWriterBaseImpl: NewEventWriterBase(name, mode)}
+	w := &eventWriterConn{EventWriterBaseImpl: NewEventWriterBase(name, "conn", mode)}
 	opt := mode.WriterOption.(WriterConnOption)
 	w.connWriter = connWriter{
 		ReconnectOnMsg: opt.ReconnectOnMsg,
@@ -31,7 +31,7 @@ func NewEventWriterConn(name string, mode WriterMode) EventWriter {
 		Net:            opt.Protocol,
 		Addr:           opt.Addr,
 	}
-	w.Formatter = EventFormatTextMessage
+	w.FormatMessage = EventFormatTextMessage
 	w.OutputWriteCloser = &w.connWriter
 	return w
 }

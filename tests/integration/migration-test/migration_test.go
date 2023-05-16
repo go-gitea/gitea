@@ -296,7 +296,7 @@ func doMigrationTest(t *testing.T, version string) {
 		return
 	}
 
-	setting.InitSQLLoggersForCli()
+	setting.InitSQLLoggersForCli(log.INFO)
 
 	err := db.InitEngineWithMigration(context.Background(), wrappedMigrate)
 	assert.NoError(t, err)
