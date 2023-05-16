@@ -338,7 +338,11 @@ a {
   text-decoration-skip-ink: all;
 }
 
+/* muted link = only colored when hovered */
+/* silenced link = never colored */
+
 a.muted,
+a.silenced,
 .muted-links a {
   color: inherit;
 }
@@ -348,6 +352,10 @@ a.muted:hover,
 a.muted:hover [class*="color-text"],
 .muted-links a:hover {
   color: var(--color-primary);
+}
+
+a.silenced:hover {
+  color: inherit;
 }
 
 .delete-button,
