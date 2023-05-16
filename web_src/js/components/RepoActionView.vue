@@ -38,8 +38,8 @@
                 <span class="job-brief-name gt-mx-3 gt-ellipsis">{{ job.name }}</span>
               </a>
               <span class="job-brief-info">
-                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-show="job.canRerun && onHoverRerunIndex === job.id"/>
                 <span class="step-summary-duration">{{ job.duration }}</span>
+                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-show="job.canRerun && onHoverRerunIndex === job.id"/>
               </span>
             </div>
           </div>
@@ -490,7 +490,7 @@ export function ansiLogToHTML(line) {
   padding-right: 3px;
 }
 
-.job-group-section .job-brief-list .job-brief-item {
+.job-brief-item {
   margin: 5px 0;
   padding: 10px;
   background: var(--color-info-bg);
@@ -502,50 +502,46 @@ export function ansiLogToHTML(line) {
   align-items: center;
 }
 
-.job-group-section .job-brief-list .job-brief-item:first-of-type {
+.job-brief-item:first-of-type {
   margin-top: 0;
 }
 
-.job-group-section .job-brief-list .job-brief-item .job-brief-rerun {
+.job-brief-item .job-brief-rerun {
   cursor: pointer;
   transition: transform 0.2s;
 }
 
-.job-group-section .job-brief-list .job-brief-item .job-brief-rerun:hover {
+.job-brief-item .job-brief-rerun:hover {
   transform: scale(130%);
 }
 
-.job-group-section .job-brief-list .job-brief-item .job-brief-link {
+.job-brief-item .job-brief-link {
   display: flex;
   width: 100%;
 }
 
-@media (max-width: 992px) {
-  .job-group-section .job-brief-list .job-brief-item .job-brief-link {
-    width: 80%;
-  }
-}
-.job-group-section .job-brief-list .job-brief-item .job-brief-link span {
+.job-brief-item .job-brief-link span {
   display: flex;
   align-items: center;
 }
 
-.job-group-section .job-brief-list .job-brief-item .job-brief-link .job-brief-name {
+.job-brief-item .job-brief-link .job-brief-name {
   display: block;
   width: 70%;
   color: var(--color-text);
 }
 
-.job-group-section .job-brief-list .job-brief-item .job-brief-link:hover {
+.job-brief-item .job-brief-link:hover {
   text-decoration: none;
 }
 
-.job-group-section .job-brief-list .job-brief-item .job-brief-info {
+.job-brief-item .job-brief-info {
   display: flex;
   align-items: center;
+  width: 55px;
 }
 
-.job-group-section .job-brief-list .job-brief-item:hover {
+.job-brief-item:hover {
   background-color: var(--color-secondary);
 }
 
@@ -654,7 +650,7 @@ export function ansiLogToHTML(line) {
 
 .job-step-section .job-step-logs .job-log-line:hover {
   color: var(--color-console-fg);
-  background-color: var(--color-black-light);
+  background-color: var(--color-console-hover-bg);
 }
 
 .job-step-section .job-step-logs .job-log-line .line-num {
