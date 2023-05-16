@@ -5,7 +5,7 @@ ignoreFiles:
   - "**/*.go"
 
 overrides:
-  - files: ["**/chroma/*", "**/codemirror/*", "**/standalone/*", "**/console/*"]
+  - files: ["**/chroma/*", "**/codemirror/*", "**/standalone/*", "**/console.css"]
     rules:
       scale-unlimited/declaration-strict-value: null
   - files: ["**/chroma/*", "**/codemirror/*"]
