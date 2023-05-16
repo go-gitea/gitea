@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path"
 	"sync"
 	"testing"
@@ -135,9 +134,6 @@ func TestRepoCommitsWithStatusRunning(t *testing.T) {
 }
 
 func TestRepoCommitsStatusParallel(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping because test is flaky on CI")
-	}
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
