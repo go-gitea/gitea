@@ -550,7 +550,7 @@ export function ansiLogToHTML(line) {
 }
 
 .job-group-section .job-brief-list .job-brief-item.selected {
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   background-color: var(--color-secondary-dark-1);
 }
 
