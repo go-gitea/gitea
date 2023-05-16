@@ -3,14 +3,7 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		{{template "repo/sub_menu_release_tag" .}}
-
-		{{if .CanCreateRelease}}
-			<a class="ui right small green button" href="{{$.RepoLink}}/releases/new">
-				{{.locale.Tr "repo.release.new_release"}}
-			</a>
-		{{end}}
-
+		{{template "repo/release_tag_header" .}}
 		<ul id="release-list">
 			{{range $idx, $release := .Releases}}
 				<li class="ui grid">
@@ -56,7 +49,7 @@
 								{{end}}
 								|
 								{{end}}
-								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}{{if .Target}}...{{.Target | PathEscapeSegments}}{{end}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.tag.ahead.target" $.DefaultBranch}}</span>
+								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.TargetBehind | PathEscapeSegments}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.tag.ahead.target" .TargetBehind}}</span>
 							</p>
 						{{else}}
 							<p class="text grey">
@@ -77,7 +70,7 @@
 									<span class="time">{{TimeSinceUnix .CreatedUnix $.locale}}</span>
 								{{end}}
 								{{if not .IsDraft}}
-									| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.Target | PathEscapeSegments}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.release.ahead.target" .Target}}</span>
+									| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.TargetBehind | PathEscapeSegments}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.release.ahead.target" .TargetBehind}}</span>
 								{{end}}
 							</p>
 						{{end}}

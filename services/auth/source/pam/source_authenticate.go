@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/audit"
-	"code.gitea.io/gitea/services/mailer"
 
 	"github.com/google/uuid"
 )
@@ -69,8 +68,6 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	}
 
 	audit.Record(audit.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
-
-	mailer.SendRegisterNotifyMail(user)
 
 	return user, nil
 }

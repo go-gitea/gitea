@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/audit"
-	"code.gitea.io/gitea/services/mailer"
 
 	gouuid "github.com/google/uuid"
 )
@@ -174,8 +173,6 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 	}
 
 	audit.Record(audit.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
-
-	mailer.SendRegisterNotifyMail(user)
 
 	return user
 }

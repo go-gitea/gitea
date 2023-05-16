@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/audit"
 	source_service "code.gitea.io/gitea/services/auth/source"
-	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -124,8 +123,6 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		}
 
 		audit.Record(audit.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
-
-		mailer.SendRegisterNotifyMail(user)
 
 		if isAttributeSSHPublicKeySet {
 			if addedKeys := asymkey_model.AddPublicKeysBySource(user, source.authSource, sr.SSHPublicKey); len(addedKeys) > 0 {

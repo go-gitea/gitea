@@ -13,7 +13,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/audit"
-	"code.gitea.io/gitea/services/mailer"
 )
 
 // Authenticate queries if the provided login/password is authenticates against the SMTP server
@@ -84,8 +83,6 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	}
 
 	audit.Record(audit.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
-
-	mailer.SendRegisterNotifyMail(user)
 
 	return user, nil
 }
