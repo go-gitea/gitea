@@ -1059,7 +1059,7 @@ func (g *GiteaLocalUploader) PatchPullRequests(prs ...*base.PullRequest) error {
 	if err != nil {
 		return err
 	}
-	if err := models.InsertPullRequests(gprs...); err != nil {
+	if err := models.UpsertPullRequests(gprs...); err != nil {
 		return err
 	}
 	for _, pr := range gprs {
