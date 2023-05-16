@@ -95,7 +95,7 @@ func index(ctx context.Context, indexer Indexer, repoID int64) error {
 	units := setting.Indexer.RepoIndexerUnits
 
 	if len(units) == 0 {
-		units = []string{"repo"}
+		units = []string{"sources"}
 	}
 
 	// skip forks from being indexed if unit is not present
@@ -108,8 +108,13 @@ func index(ctx context.Context, indexer Indexer, repoID int64) error {
 		return nil
 	}
 
+	// skip templates from being indexed if unit is not present
+	if !util.SliceContains(units, "templates") && repo.IsTemplate {
+		return nil
+	}
+
 	// skip regular repos from being indexed if unit is not present
-	if !util.SliceContains(units, "repos") && !repo.IsFork && !repo.IsMirror {
+	if !util.SliceContains(units, "sources") && !repo.IsFork && !repo.IsMirror && !repo.IsTemplate {
 		return nil
 	}
 
