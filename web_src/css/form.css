@@ -206,32 +206,6 @@ textarea:focus,
   }
 }
 
-.signin .oauth2 div {
-  display: inline-block;
-}
-
-.signin .oauth2 div p {
-  margin: 10px 5px 0 0;
-  float: left;
-}
-
-.signin .oauth2 a {
-  margin-right: 3px;
-}
-
-.signin .oauth2 a:last-child {
-  margin-right: 0;
-}
-
-.signin .oauth2 img {
-  width: 32px;
-  height: 32px;
-}
-
-.signin .oauth2 img.openidConnect {
-  width: auto;
-}
-
 @media (min-width: 768px) {
   .g-recaptcha-style,
   .h-captcha-style {

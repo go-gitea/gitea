@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"html"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -28,32 +27,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
-	"gopkg.in/yaml.v3"
 )
-
-// IssueTemplateDirCandidates issue templates directory
-var IssueTemplateDirCandidates = []string{
-	"ISSUE_TEMPLATE",
-	"issue_template",
-	".gitea/ISSUE_TEMPLATE",
-	".gitea/issue_template",
-	".github/ISSUE_TEMPLATE",
-	".github/issue_template",
-	".gitlab/ISSUE_TEMPLATE",
-	".gitlab/issue_template",
-}
-
-var IssueConfigCandidates = []string{
-	".gitea/ISSUE_TEMPLATE/config",
-	".gitea/issue_template/config",
-	".github/ISSUE_TEMPLATE/config",
-	".github/issue_template/config",
-}
 
 // PullRequest contains information to make a pull request
 type PullRequest struct {
@@ -83,7 +61,6 @@ type Repository struct {
 	RepoLink     string
 	CloneLink    repo_model.CloneLink
 	CommitsCount int64
-	Mirror       *repo_model.Mirror
 
 	PullRequest *PullRequest
 }
@@ -341,7 +318,14 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
 	}
-	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(username, reponame), repo_model.ComposeHTTPSCloneURL(username, reponame))
+
+	var cloneURL string
+	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
+		cloneURL = repo_model.ComposeSSHCloneURL(username, reponame)
+	} else {
+		cloneURL = repo_model.ComposeHTTPSCloneURL(username, reponame)
+	}
+	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(username, reponame), cloneURL)
 	htmlMeta := fmt.Sprintf(`<meta name="go-import" content="%s">`, html.EscapeString(goImportContent))
 	ctx.PlainText(http.StatusOK, htmlMeta)
 }
@@ -395,13 +379,9 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	ctx.Data["Permission"] = &ctx.Repo.Permission
 
 	if repo.IsMirror {
-		ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(ctx, repo.ID)
+		pullMirror, err := repo_model.GetMirrorByRepoID(ctx, repo.ID)
 		if err == nil {
-			ctx.Repo.Mirror.Repo = repo
-			ctx.Data["IsPullMirror"] = true
-			ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
-			ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
-			ctx.Data["Mirror"] = ctx.Repo.Mirror
+			ctx.Data["PullMirror"] = pullMirror
 		} else if err != repo_model.ErrMirrorNotExist {
 			ctx.ServerError("GetMirrorByRepoID", err)
 			return
@@ -1061,75 +1041,4 @@ func UnitTypes() func(ctx *Context) {
 		ctx.Data["UnitTypePackages"] = unit_model.TypePackages
 		ctx.Data["UnitTypeActions"] = unit_model.TypeActions
 	}
-}
-
-func GetDefaultIssueConfig() api.IssueConfig {
-	return api.IssueConfig{
-		BlankIssuesEnabled: true,
-		ContactLinks:       make([]api.IssueConfigContactLink, 0),
-	}
-}
-
-// GetIssueConfig loads the given issue config file.
-// It never returns a nil config.
-func (r *Repository) GetIssueConfig(path string, commit *git.Commit) (api.IssueConfig, error) {
-	if r.GitRepo == nil {
-		return GetDefaultIssueConfig(), nil
-	}
-
-	var err error
-
-	treeEntry, err := commit.GetTreeEntryByPath(path)
-	if err != nil {
-		return GetDefaultIssueConfig(), err
-	}
-
-	reader, err := treeEntry.Blob().DataAsync()
-	if err != nil {
-		log.Debug("DataAsync: %v", err)
-		return GetDefaultIssueConfig(), nil
-	}
-
-	defer reader.Close()
-
-	configContent, err := io.ReadAll(reader)
-	if err != nil {
-		return GetDefaultIssueConfig(), err
-	}
-
-	issueConfig := api.IssueConfig{}
-	if err := yaml.Unmarshal(configContent, &issueConfig); err != nil {
-		return GetDefaultIssueConfig(), err
-	}
-
-	for pos, link := range issueConfig.ContactLinks {
-		if link.Name == "" {
-			return GetDefaultIssueConfig(), fmt.Errorf("contact_link at position %d is missing name key", pos+1)
-		}
-
-		if link.URL == "" {
-			return GetDefaultIssueConfig(), fmt.Errorf("contact_link at position %d is missing url key", pos+1)
-		}
-
-		if link.About == "" {
-			return GetDefaultIssueConfig(), fmt.Errorf("contact_link at position %d is missing about key", pos+1)
-		}
-
-		_, err = url.ParseRequestURI(link.URL)
-		if err != nil {
-			return GetDefaultIssueConfig(), fmt.Errorf("%s is not a valid URL", link.URL)
-		}
-	}
-
-	return issueConfig, nil
-}
-
-// IsIssueConfig returns if the given path is a issue config file.
-func (r *Repository) IsIssueConfig(path string) bool {
-	for _, configName := range IssueConfigCandidates {
-		if path == configName+".yaml" || path == configName+".yml" {
-			return true
-		}
-	}
-	return false
 }
