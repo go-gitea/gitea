@@ -73,6 +73,8 @@ Gitea's private styles use `g-` prefix.
 .gt-whitespace-nowrap { white-space: nowrap !important; }
 .gt-whitespace-pre { white-space: pre !important; }
 .gt-whitespace-pre-wrap { white-space: pre-wrap !important; }
+.gt-object-contain { object-fit: contain !important; }
+.gt-self-center { align-self: center !important; }
 
 .gt-overflow-x-auto { overflow-x: auto !important; }
 .gt-overflow-x-scroll { overflow-x: scroll !important; }

@@ -97,10 +97,6 @@ func handleRequest(w http.ResponseWriter, req *http.Request, fs http.FileSystem,
 		return true
 	}
 
-	if httpcache.HandleFileETagCache(req, w, fi) {
-		return true
-	}
-
 	serveContent(w, req, fi, fi.ModTime(), f)
 	return true
 }
@@ -124,11 +120,11 @@ func serveContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modt
 				w.Header().Set("Content-Type", "application/octet-stream")
 			}
 			w.Header().Set("Content-Encoding", "gzip")
-			http.ServeContent(w, req, fi.Name(), modtime, rdGzip)
+			httpcache.ServeContentWithCacheControl(w, req, fi.Name(), modtime, rdGzip)
 			return
 		}
 	}
 
-	http.ServeContent(w, req, fi.Name(), modtime, content)
+	httpcache.ServeContentWithCacheControl(w, req, fi.Name(), modtime, content)
 	return
 }

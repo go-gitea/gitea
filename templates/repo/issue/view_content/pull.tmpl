@@ -115,7 +115,7 @@
 	{{- else if .Issue.PullRequest.IsChecking}}yellow
 	{{- else if .Issue.PullRequest.IsEmpty}}grey
 	{{- else if .Issue.PullRequest.CanAutoMerge}}green
-	{{- else}}red{{end}}">{{svg "octicon-git-merge" 32}}</a>
+	{{- else}}red{{end}}">{{svg "octicon-git-merge" 40}}</a>
 	<div class="content">
 		{{template "repo/pulls/status" .}}
 		{{$showGeneralMergeForm := false}}
