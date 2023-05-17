@@ -40,6 +40,14 @@
 				{{end}}
 				&nbsp;
 				<b>{{.locale.Tr "repo.milestones.completeness" .Milestone.Completeness}}</b>
+				&nbsp;&nbsp;
+				{{if .Milestone.Labels}}
+					<span class="labels-list">
+						{{range .Milestone.Labels}}
+							{{RenderLabel $.Context .}}
+						{{end}}
+					</span>
+				{{end}}
 			</div>
 		</div>
 		<div class="ui divider"></div>
