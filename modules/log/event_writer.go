@@ -7,23 +7,16 @@ import (
 	"fmt"
 )
 
+// EventWriter is the general interface for all event writers
+// EventWriterBase is only used as its base interface
+// A writer implementation could override the default EventWriterBase functions
+// eg: a writer can override the Run to handle events in its own way with its own goroutine
 type EventWriter interface {
 	EventWriterBase
 }
 
-type EventWriterProvider func(writerName string, writerMode WriterMode) EventWriter
-
-var eventWriterProviders = map[string]EventWriterProvider{}
-
-func RegisterEventWriter(writerType string, p EventWriterProvider) {
-	eventWriterProviders[writerType] = p
-}
-
-func HasEventWriter(writerType string) bool {
-	_, ok := eventWriterProviders[writerType]
-	return ok
-}
-
+// WriterMode is the mode for creating a new EventWriter, it contains common options for all writers
+// Its WriterOption field is the specified options for a writer, it should be passed by value but not by pointer
 type WriterMode struct {
 	BufferLen int
 
@@ -37,6 +30,20 @@ type WriterMode struct {
 	StacktraceLevel Level
 
 	WriterOption any
+}
+
+// EventWriterProvider is the function for creating a new EventWriter
+type EventWriterProvider func(writerName string, writerMode WriterMode) EventWriter
+
+var eventWriterProviders = map[string]EventWriterProvider{}
+
+func RegisterEventWriter(writerType string, p EventWriterProvider) {
+	eventWriterProviders[writerType] = p
+}
+
+func HasEventWriter(writerType string) bool {
+	_, ok := eventWriterProviders[writerType]
+	return ok
 }
 
 func NewEventWriter(name, writerType string, mode WriterMode) (EventWriter, error) {

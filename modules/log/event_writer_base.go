@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+// EventWriterBase is the base interface for most event writers
+// It provides default implementations for most methods
 type EventWriterBase interface {
 	Base() *EventWriterBaseImpl
 	GetWriterType() string
@@ -53,6 +55,7 @@ func (b *EventWriterBaseImpl) GetLevel() Level {
 	return b.Mode.Level
 }
 
+// Run is the default implementation for EventWriter.Run
 func (b *EventWriterBaseImpl) Run(ctx context.Context) {
 	defer b.OutputWriteCloser.Close()
 
@@ -133,6 +136,7 @@ func NewEventWriterBase(name, writerType string, mode WriterMode) *EventWriterBa
 	return b
 }
 
+// eventWriterStartGo use "go" to start an event worker's Run method
 func eventWriterStartGo(ctx context.Context, w EventWriter, shared bool) {
 	if w.Base().stopped != nil {
 		return // already started
@@ -145,6 +149,7 @@ func eventWriterStartGo(ctx context.Context, w EventWriter, shared bool) {
 	}()
 }
 
+// eventWriterStopWait stops an event writer and waits for it to finish flushing (with a timeout)
 func eventWriterStopWait(w EventWriter) {
 	close(w.Base().Queue)
 	select {

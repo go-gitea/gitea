@@ -33,6 +33,7 @@ var (
 	_ LevelLogger = (*LoggerImpl)(nil)
 )
 
+// SendLogEvent sends a log event to all writers
 func (l *LoggerImpl) SendLogEvent(event *Event) {
 	l.eventWriterMu.RLock()
 	defer l.eventWriterMu.RUnlock()
@@ -64,6 +65,7 @@ func (l *LoggerImpl) SendLogEvent(event *Event) {
 	}
 }
 
+// syncLevelInternal syncs the level of the logger with the levels of the writers
 func (l *LoggerImpl) syncLevelInternal() {
 	lowestLevel := NONE
 	for _, w := range l.eventWriters {
@@ -82,6 +84,7 @@ func (l *LoggerImpl) syncLevelInternal() {
 	l.stacktraceLevel.Store(int32(lowestLevel))
 }
 
+// removeWriterInternal removes a writer from the logger, and stops it if it's not shared
 func (l *LoggerImpl) removeWriterInternal(w EventWriter) {
 	if !w.Base().shared {
 		eventWriterStopWait(w) // only stop non-shared writers, shared writers are managed by the manager
@@ -89,6 +92,7 @@ func (l *LoggerImpl) removeWriterInternal(w EventWriter) {
 	delete(l.eventWriters, w.GetWriterName())
 }
 
+// AddWriters adds writers to the logger, and starts them. Existing writers will be replaced by new ones.
 func (l *LoggerImpl) AddWriters(writer ...EventWriter) {
 	l.eventWriterMu.Lock()
 	defer l.eventWriterMu.Unlock()
@@ -107,6 +111,7 @@ func (l *LoggerImpl) AddWriters(writer ...EventWriter) {
 	l.syncLevelInternal()
 }
 
+// RemoveWriter removes a writer from the logger, and the writer is closed and flushed if it is not shared
 func (l *LoggerImpl) RemoveWriter(modeName string) error {
 	l.eventWriterMu.Lock()
 	defer l.eventWriterMu.Unlock()
@@ -121,6 +126,7 @@ func (l *LoggerImpl) RemoveWriter(modeName string) error {
 	return nil
 }
 
+// RemoveAllWriters removes all writers from the logger, non-shared writers are closed and flushed
 func (l *LoggerImpl) RemoveAllWriters() *LoggerImpl {
 	l.eventWriterMu.Lock()
 	defer l.eventWriterMu.Unlock()
@@ -133,6 +139,7 @@ func (l *LoggerImpl) RemoveAllWriters() *LoggerImpl {
 	return l
 }
 
+// DumpWriters dumps the writers as a JSON map, it's used for debugging and display purposes.
 func (l *LoggerImpl) DumpWriters() map[string]any {
 	l.eventWriterMu.RLock()
 	defer l.eventWriterMu.RUnlock()
@@ -152,17 +159,21 @@ func (l *LoggerImpl) DumpWriters() map[string]any {
 	return writers
 }
 
+// Close closes the logger, non-shared writers are closed and flushed
 func (l *LoggerImpl) Close() {
 	l.RemoveAllWriters()
 	l.ctxCancel()
 }
 
+// IsEnabled returns true if the logger is enabled: it has a working level and has writers
+// Fatal is not considered as enabled, because it's a special case and the process just exits
 func (l *LoggerImpl) IsEnabled() bool {
 	l.eventWriterMu.RLock()
 	defer l.eventWriterMu.RUnlock()
 	return l.level.Load() < int32(FATAL) && len(l.eventWriters) > 0
 }
 
+// Log prepares the log event, if the level matches, the event will be sent to the writers
 func (l *LoggerImpl) Log(skip int, level Level, format string, logArgs ...any) {
 	if Level(l.level.Load()) > level {
 		return

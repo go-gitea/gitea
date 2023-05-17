@@ -12,6 +12,7 @@ import (
 
 const DEFAULT = "default"
 
+// LoggerManager manages loggers and shared event writers
 type LoggerManager struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
@@ -25,6 +26,7 @@ type LoggerManager struct {
 	pauseChan chan struct{}
 }
 
+// GetLogger returns a logger with the given name. If the logger doesn't exist, a new empty one will be created.
 func (m *LoggerManager) GetLogger(name string) *LoggerImpl {
 	if name == DEFAULT {
 		if logger := m.defaultLogger.Load(); logger != nil {
@@ -47,12 +49,14 @@ func (m *LoggerManager) GetLogger(name string) *LoggerImpl {
 	return logger
 }
 
+// PauseAll pauses all event writers
 func (m *LoggerManager) PauseAll() {
 	m.pauseMu.Lock()
 	m.pauseChan = make(chan struct{})
 	m.pauseMu.Unlock()
 }
 
+// ResumeAll resumes all event writers
 func (m *LoggerManager) ResumeAll() {
 	m.pauseMu.Lock()
 	close(m.pauseChan)
@@ -60,12 +64,14 @@ func (m *LoggerManager) ResumeAll() {
 	m.pauseMu.Unlock()
 }
 
+// GetPauseChan returns a channel for writer pausing
 func (m *LoggerManager) GetPauseChan() chan struct{} {
 	m.pauseMu.RLock()
 	defer m.pauseMu.RUnlock()
 	return m.pauseChan
 }
 
+// Close closes the logger manager, all loggers and writers will be closed, the messages are flushed.
 func (m *LoggerManager) Close() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -79,8 +85,11 @@ func (m *LoggerManager) Close() {
 		eventWriterStopWait(writer)
 	}
 	m.writers = map[string]EventWriter{}
+
+	m.ctxCancel()
 }
 
+// DumpLoggers returns a map of all loggers and their event writers, for debugging and display purposes.
 func (m *LoggerManager) DumpLoggers() map[string]any {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -96,12 +105,7 @@ func (m *LoggerManager) DumpLoggers() map[string]any {
 	return dump
 }
 
-func (m *LoggerManager) GetSharedWriter(writerName string) EventWriter {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return m.writers[writerName]
-}
-
+// NewSharedWriter creates a new shared event writer, it can be used by multiple loggers, and a shared writer won't be closed if a logger is closed.
 func (m *LoggerManager) NewSharedWriter(writerName, writerType string, mode WriterMode) (writer EventWriter, err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -117,6 +121,12 @@ func (m *LoggerManager) NewSharedWriter(writerName, writerType string, mode Writ
 	m.writers[writerName] = writer
 	eventWriterStartGo(m.ctx, writer, true)
 	return writer, nil
+}
+
+func (m *LoggerManager) GetSharedWriter(writerName string) EventWriter {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.writers[writerName]
 }
 
 var loggerManager = NewManager()

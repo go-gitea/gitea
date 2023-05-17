@@ -72,6 +72,7 @@ func (p *loggerToWriter) Write(bs []byte) (int, error) {
 	return len(bs), nil
 }
 
+// LoggerToWriter wraps a log function to an io.Writer
 func LoggerToWriter(logf func(format string, args ...any)) io.Writer {
 	return &loggerToWriter{logf: logf}
 }

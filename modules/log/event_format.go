@@ -22,15 +22,15 @@ type Event struct {
 
 	MsgSimpleText string
 
-	msgFormat string
-	msgArgs   []any
+	msgFormat string // the format and args is only valid in the caller's goroutine
+	msgArgs   []any  // they are discarded before the event is passed to the writer's channel
 
 	Stacktrace string
 }
 
 type EventFormatted struct {
 	Origin *Event
-	Msg    any
+	Msg    any // the message formatted by the writer's formatter, the writer knows its type
 }
 
 type EventFormatter func(mode *WriterMode, event *Event, msgFormat string, msgArgs ...any) []byte
