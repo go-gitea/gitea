@@ -96,6 +96,7 @@ func loadApplicationsData(ctx *context.Context) {
 	}
 	ctx.Data["Tokens"] = tokens
 	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
+	ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
 	if setting.OAuth2.Enable {
 		ctx.Data["Applications"], err = auth_model.GetOAuth2ApplicationsByUserID(ctx, ctx.Doer.ID)
 		if err != nil {
