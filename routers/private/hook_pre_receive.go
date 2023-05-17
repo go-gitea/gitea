@@ -17,6 +17,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -131,11 +132,15 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		refFullName := opts.RefFullNames[i]
 
 		// Check size
-		if newCommitID != git.EmptySHA && repo.RepoSizeIsOversized(pushSize.Size) { // Check next size if we are not deleting a reference
-			log.Warn("Forbidden: new repo size is over limitation: %d", repo.SizeLimit)
-			ctx.JSON(http.StatusForbidden, map[string]interface{}{
-				"err": fmt.Sprintf("new repo size is over limitation: %d", repo.SizeLimit),
+		if newCommitID != git.EmptySHA && pushSize.Size > 0 && repo.RepoSizeIsOversized(pushSize.Size) { // Check next size if we are not deleting a reference
+			log.Warn("Forbidden: new repo size is over limitation: %s", base.FileSize(repo.GetActualSizeLimit()))
+			ctx.JSON(http.StatusForbidden, private.Response{
+				UserMsg: fmt.Sprintf("new repo size is over limitation: %s", base.FileSize(repo.GetActualSizeLimit())),
 			})
+			return
+			// ctx.JSON(http.StatusForbidden, map[string]interface{}{
+			// 	"err": fmt.Sprintf("new repo size is over limitation: %d", repo.GetActualSizeLimit()),
+			// })
 		}
 		// TODO investigate why on force push some git objects are not cleaned on server side.
 		// TODO corner-case force push and branch creation -> git.EmptySHA == oldCommitID
