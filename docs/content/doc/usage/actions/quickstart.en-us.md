@@ -85,7 +85,7 @@ And you can see the new runner in the management page:
 
 ![view runner](/images/usage/actions/view-runner.png)
 
-You can find more information by visiting [Act runner]({{< relref "doc/actions/act-runner.en-us.md" >}}).
+You can find more information by visiting [Act runner]({{< relref "doc/usage/actions/act-runner.en-us.md" >}}).
 
 ### Use Actions
 
