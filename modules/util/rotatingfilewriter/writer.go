@@ -39,6 +39,15 @@ type RotatingFileWriter struct {
 	cancelReleaseReopen func()
 }
 
+var ErrorPrintf func(format string, args ...interface{})
+
+// errorf tries to print error messages. Since this writer could be used by a logger system, this is the last chance to show the error in some cases
+func errorf(format string, args ...interface{}) {
+	if ErrorPrintf != nil {
+		ErrorPrintf("rotatingfilewriter: "+format+"\n", args...)
+	}
+}
+
 // Open creates a new rotating file writer.
 // Notice: if a file is opened by two rotators, there will be conflicts when rotating.
 // In the future, there should be "rotating file manager"
@@ -62,10 +71,8 @@ func Open(filename string, options *Options) (*RotatingFileWriter, error) {
 func (rfw *RotatingFileWriter) Write(b []byte) (int, error) {
 	if rfw.options.Rotate && ((rfw.options.MaximumSize > 0 && rfw.currentSize >= rfw.options.MaximumSize) || (rfw.options.RotateDaily && time.Now().Day() != rfw.openDate)) {
 		if err := rfw.DoRotate(); err != nil {
-			// This should be
-			// return 0, err
-			// but the old behaviour does not return. This may lead to other errors.
-			fmt.Fprintf(os.Stderr, "RotatingFileWriter: %s\n", err)
+			// if this writer is used by a logger system, it's the logger system's responsibility to handle/show the error
+			return 0, err
 		}
 	}
 
@@ -150,7 +157,7 @@ func (rfw *RotatingFileWriter) DoRotate() error {
 	}
 
 	if rfw.options.Compress {
-		go compressOldFile(fname, rfw.options.CompressionLevel) //nolint:errcheck
+		go compressOldFile(fname, rfw.options.CompressionLevel)
 	}
 
 	if err := rfw.open(fd.Name()); err != nil {
@@ -166,40 +173,46 @@ func (rfw *RotatingFileWriter) DoRotate() error {
 	return nil
 }
 
-func compressOldFile(fname string, compressionLevel int) error {
+func compressOldFile(fname string, compressionLevel int) {
 	reader, err := os.Open(fname)
 	if err != nil {
-		return err
+		errorf("compressOldFile: failed to open existing file %s: %v", fname, err)
+		return
 	}
 	defer reader.Close()
 
 	buffer := bufio.NewReader(reader)
-	fw, err := os.OpenFile(fname+".gz", os.O_WRONLY|os.O_CREATE, 0o660)
+	fnameGz := fname + ".gz"
+	fw, err := os.OpenFile(fnameGz, os.O_WRONLY|os.O_CREATE, 0o660)
 	if err != nil {
-		return err
+		errorf("compressOldFile: failed to open new file %s: %v", fnameGz, err)
+		return
 	}
 	defer fw.Close()
 
 	zw, err := gzip.NewWriterLevel(fw, compressionLevel)
 	if err != nil {
-		return err
+		errorf("compressOldFile: failed to create gzip writer: %v", err)
+		return
 	}
 	defer zw.Close()
 
 	_, err = buffer.WriteTo(zw)
 	if err != nil {
-		zw.Close()
-		fw.Close()
-		util.Remove(fname + ".gz") //nolint:errcheck
-		return err
+		_ = zw.Close()
+		_ = fw.Close()
+		_ = util.Remove(fname + ".gz")
+		errorf("compressOldFile: failed to write to gz file: %v", err)
+		return
 	}
-	reader.Close()
+	_ = reader.Close()
 
-	return util.Remove(fname)
+	err = util.Remove(fname)
+	errorf("compressOldFile: failed to delete old file: %v", err)
 }
 
 func deleteOldFiles(dir, prefix string, removeBefore time.Time) {
-	_ = filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) (returnErr error) {
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) (returnErr error) {
 		defer func() {
 			if r := recover(); r != nil {
 				returnErr = fmt.Errorf("unable to delete old file '%s', error: %+v", path, r)
@@ -223,4 +236,7 @@ func deleteOldFiles(dir, prefix string, removeBefore time.Time) {
 		}
 		return nil
 	})
+	if err != nil {
+		errorf("deleteOldFiles: failed to delete old file: %v", err)
+	}
 }

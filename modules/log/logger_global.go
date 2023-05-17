@@ -8,9 +8,9 @@ import (
 	"os"
 )
 
+// FallbackErrorf is the last chance to show an error if the logger has internal errors
 func FallbackErrorf(format string, args ...any) {
-	s := fmt.Sprintf(format, args...)
-	_, _ = fmt.Fprintln(os.Stderr, s)
+	_, _ = fmt.Fprintf(os.Stderr, format+"\n", args)
 }
 
 func GetLevel() Level {

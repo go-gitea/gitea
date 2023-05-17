@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/util/rotatingfilewriter"
 )
 
 var projectPackagePrefix string
@@ -19,6 +20,8 @@ func init() {
 		// in case the source code file is moved, we can not trim the suffix, the code above should also be updated.
 		panic("unable to detect correct package prefix, please update file: " + filename)
 	}
+
+	rotatingfilewriter.ErrorPrintf = FallbackErrorf
 
 	process.Trace = func(start bool, pid process.IDType, description string, parentPID process.IDType, typ string) {
 		if start && parentPID != "" {
