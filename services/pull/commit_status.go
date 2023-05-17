@@ -34,9 +34,9 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 			}
 		}
 
-		for _, gp := range requiredContextsGlob {
+		for _, commitStatus := range commitStatuses {
 			var targetStatus structs.CommitStatusState
-			for _, commitStatus := range commitStatuses {
+			for _, gp := range requiredContextsGlob {
 				if gp.Match(commitStatus.Context) {
 					targetStatus = commitStatus.State
 					matchedCount++
