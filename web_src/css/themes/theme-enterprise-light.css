@@ -8,13 +8,13 @@
   --color-primary-dark-5: #20446e;
   --color-primary-dark-6: #19395e;
   --color-primary-dark-7: #112D4E;
-  --color-primary-light-1: #5a86ba;
-  --color-primary-light-2: #769ac6;
-  --color-primary-light-3: #91aed1;
-  --color-primary-light-4: #adc3dd;
-  --color-primary-light-4: #c8d7e8;
-  --color-primary-light-6: #e4ebf4;
-  --color-primary-light-7: #ffffff;
+  --color-primary-light-1: #5884b9;
+  --color-primary-light-2: #7297c4;
+  --color-primary-light-3: #8ba9ce;
+  --color-primary-light-4: #a4bcd9;
+  --color-primary-light-4: #becee3;
+  --color-primary-light-6: #d7e1ee;
+  --color-primary-light-7: #f0f3f8;
   --color-primary-alpha-10: rgba(63, 114, 175, 0.1);
   --color-primary-alpha-20: rgba(63, 114, 175, 0.2);
   --color-primary-alpha-30: rgba(63, 114, 175, 0.3);
@@ -38,10 +38,10 @@
   --color-secondary-dark-11: #304967;
   --color-secondary-dark-12: #213b5a;
   --color-secondary-dark-13: #112D4E;
-  --color-secondary-light-1: #ffffff;
-  --color-secondary-light-2: #ffffff;
-  --color-secondary-light-3: #ffffff;
-  --color-secondary-light-4: #ffffff;
+  --color-secondary-light-1: #e2e8f2;
+  --color-secondary-light-2: #e9edf5;
+  --color-secondary-light-3: #f0f3f8;
+  --color-secondary-light-4: #f7f9fc;
   --color-secondary-alpha-10: rgba(219, 226, 239, 0.1);
   --color-secondary-alpha-20: rgba(219, 226, 239, 0.2);
   --color-secondary-alpha-30: rgba(219, 226, 239, 0.3);
@@ -89,7 +89,7 @@
   --color-diff-removed-row-border: #fa9792;
   --color-diff-moved-row-border: #82c4f8;
   --color-diff-added-row-border: #9ad29d;
-  --color-diff-inactive: #ffffff;
+  --color-diff-inactive: #f0f3f8;
   --color-error-border: #fa9792;
   --color-error-bg: #ffebee;
   --color-error-text: #f44336;
@@ -104,42 +104,42 @@
   --color-info-text: #2196f3;
   /* target-based colors */
   --color-body: #ffffff;
-  --color-box-header: #ffffff;
-  --color-box-body: #ffffff;
-  --color-box-body-highlight: #ffffff;
-  --color-text: #112D4E;
-  --color-text-dark: #0d1b2a;
-  --color-text-light: #555555;
-  --color-text-light-1: #6a6a6a;
-  --color-text-light-2: #808080;
-  --color-text-light-3: #a0a0a0;
-  --color-footer: #ffffff;
-  --color-timeline: #ffffff;
-  --color-input-text: #112D4E;
+  --color-box-header: #e9edf5;
+  --color-box-body: #f0f3f8;
+  --color-box-body-highlight: #f7f9fc;
+  --color-text: #212121;
+  --color-text-dark: #141414;
+  --color-text-light: #545454;
+  --color-text-light-1: #7a7a7a;
+  --color-text-light-2: #a1a1a1;
+  --color-text-light-3: #c7c7c7;
+  --color-footer: #f0f3f8;
+  --color-timeline: #e2e8f2;
+  --color-input-text: #212121;
   --color-input-background: #ffffff;
-  --color-input-toggle-background: #ffffff;
+  --color-input-toggle-background: #f0f3f8;
   --color-input-border: #DBE2EF;
   --color-input-border-hover: var(--color-secondary-dark-1);
-  --color-navbar: #ffffff;
-  --color-navbar-transparent: rgba(255, 255, 255, 0.1);
-  --color-light: #ffffff;
+  --color-navbar: #f0f3f8;
+  --color-navbar-transparent: rgba(240, 243, 248, 0.1);
+  --color-light: #f7f9fc;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(40 / 255 * 222 / 255 / var(--opacity-disabled)));
-  --color-light-border: #ffffff;
-  --color-hover: rgba(255, 255, 255, 0.5);
-  --color-active: rgba(255, 255, 255, 0.5);
+  --color-light-border: #e2e8f2;
+  --color-hover: rgba(226, 232, 242, 0.5);
+  --color-active: rgba(226, 232, 242, 0.5);
   --color-menu: #ffffff;
   --color-card: #ffffff;
-  --color-markup-table-row: #ffffff;
+  --color-markup-table-row: #e9edf5;
   --color-markup-code-block: #00000010;
-  --color-button: #ffffff;
+  --color-button: #e9edf5;
   --color-code-bg: #ffffff;
   --color-code-sidebar-bg: #f5f5f5;
   --color-shadow: #00000060;
-  --color-secondary-bg: #ffffff;
+  --color-secondary-bg: #f0f3f8;
   --color-text-focus: #fff;
-  --color-expand-button: #ffffff;
+  --color-expand-button: #f0f3f8;
   --color-placeholder-text: #9e9e9e;
-  --color-editor-line-highlight: #ffffff;
+  --color-editor-line-highlight: #f0f3f8;
   --color-project-board-bg: #ffffff;
   --color-project-board-light-label: #a6aab5;
   --color-caret: var(--color-text);
@@ -149,7 +149,7 @@
   --color-tooltip-bg: #000000f0;
   --color-tooltip-text: #ffffff;
   --color-header-bar: #ffffff;
-  --color-label-active-bg: #ffffff;
+  --color-label-active-bg: #e2e8f2;
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-5);
   --color-active-line: #fffbdd;
@@ -191,7 +191,7 @@
 .chroma .sx,
 .chroma .nt,
 .chroma .cpf {
-  color: #00bcd4;
+  color: #2196f3;
 }
 .chroma .m,
 .chroma .mb,
