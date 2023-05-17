@@ -6,6 +6,7 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -23,6 +24,8 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
+
+	"github.com/gobwas/glob"
 )
 
 const (
@@ -115,21 +118,10 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(rule.WhitelistUserIDs), ",")
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.MergeWhitelistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistUserIDs), ",")
+	c.Data["status_check_contexts"] = strings.Join(rule.StatusCheckContexts, "\n")
 	contexts, _ := git_model.FindRepoRecentCommitStatusContexts(c, c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
-	for _, ctx := range rule.StatusCheckContexts {
-		var found bool
-		for i := range contexts {
-			if contexts[i] == ctx {
-				found = true
-				break
-			}
-		}
-		if !found {
-			contexts = append(contexts, ctx)
-		}
-	}
+	c.Data["recent_status_checks"] = contexts
 
-	c.Data["branch_status_check_contexts"] = contexts
 	if c.Repo.Owner.IsOrganization() {
 		teams, err := organization.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c.Repo.Repository.ID, perm.AccessModeRead)
 		if err != nil {
@@ -237,7 +229,27 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 
 	protectBranch.EnableStatusCheck = f.EnableStatusCheck
 	if f.EnableStatusCheck {
-		protectBranch.StatusCheckContexts = f.StatusCheckContexts
+		patterns := strings.Split(strings.ReplaceAll(f.StatusCheckContexts, "\r", "\n"), "\n")
+		validPatterns := make([]string, 0, len(patterns))
+		for _, pattern := range patterns {
+			trimmed := strings.TrimSpace(pattern)
+			if trimmed == "" {
+				continue
+			}
+			if _, err := glob.Compile(trimmed); err != nil {
+				ctx.Flash.Error(ctx.Tr("repo.settings.protect_invalid_status_check_pattern", pattern))
+				ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, url.QueryEscape(protectBranch.RuleName)))
+				return
+			}
+			validPatterns = append(validPatterns, trimmed)
+		}
+		if len(validPatterns) == 0 {
+			// if status check is enabled, patterns slice is not allowed to be empty
+			ctx.Flash.Error(ctx.Tr("repo.settings.protect_no_valid_status_check_patterns"))
+			ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, url.QueryEscape(protectBranch.RuleName)))
+			return
+		}
+		protectBranch.StatusCheckContexts = validPatterns
 	} else {
 		protectBranch.StatusCheckContexts = nil
 	}

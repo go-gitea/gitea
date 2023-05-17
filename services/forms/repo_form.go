@@ -207,7 +207,7 @@ type ProtectBranchForm struct {
 	MergeWhitelistUsers           string
 	MergeWhitelistTeams           string
 	EnableStatusCheck             bool
-	StatusCheckContexts           []string
+	StatusCheckContexts           string
 	RequiredApprovals             int64
 	EnableApprovalsWhitelist      bool
 	ApprovalsWhitelistUsers       string
