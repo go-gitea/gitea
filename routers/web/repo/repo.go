@@ -281,7 +281,7 @@ func CreatePost(ctx *context.Context) {
 			IssueLabels:   form.IssueLabels,
 			License:       form.License,
 			Readme:        form.Readme,
-			IsPrivate:     false,
+			IsPrivate:     getPrivate(form.Private),
 			DefaultBranch: form.DefaultBranch,
 			AutoInit:      form.AutoInit,
 			IsTemplate:    form.Template,
