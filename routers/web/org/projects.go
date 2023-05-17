@@ -201,7 +201,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 	}
 	id := ctx.ParamsInt64(":id")
 
-	if err := project_model.ChangeProjectStatusByRepoIDAndID(int64(0), id, toClose); err != nil {
+	if err := project_model.ChangeProjectStatusByRepoIDAndID(0, id, toClose); err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", err)
 		} else {

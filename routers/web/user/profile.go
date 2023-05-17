@@ -16,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -89,6 +90,38 @@ func Profile(ctx *context.Context) {
 			return
 		}
 		ctx.Data["RenderedDescription"] = content
+	}
+
+	repo, err := repo_model.GetRepositoryByName(ctx.ContextUser.ID, ".profile")
+	if err == nil && !repo.IsEmpty {
+		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+		if err != nil {
+			ctx.ServerError("OpenRepository", err)
+			return
+		}
+		defer gitRepo.Close()
+		commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+		if err != nil {
+			ctx.ServerError("GetBranchCommit", err)
+			return
+		}
+		blob, err := commit.GetBlobByPath("README.md")
+		if err == nil {
+			bytes, err := blob.GetBlobContent()
+			if err != nil {
+				ctx.ServerError("GetBlobContent", err)
+				return
+			}
+			profileContent, err := markdown.RenderString(&markup.RenderContext{
+				Ctx:     ctx,
+				GitRepo: gitRepo,
+			}, bytes)
+			if err != nil {
+				ctx.ServerError("RenderString", err)
+				return
+			}
+			ctx.Data["ProfileReadme"] = profileContent
+		}
 	}
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)

@@ -20,7 +20,7 @@
 				<div class="content">
 					<strong>{{$grant.Application.Name}}</strong>
 					<div class="activity meta">
-						<i>{{$.locale.Tr "settings.add_on"}} <span>{{DateTime "short" $grant.CreatedUnix}}</span></i>
+						<i>{{$.locale.Tr "settings.added_on" (DateTime "short" $grant.CreatedUnix) | Safe}}</i>
 					</div>
 				</div>
 			</div>

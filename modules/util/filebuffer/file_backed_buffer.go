@@ -7,10 +7,9 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"math"
 	"os"
 )
-
-const maxInt = int(^uint(0) >> 1) // taken from bytes.Buffer
 
 var (
 	// ErrInvalidMemorySize occurs if the memory size is not in a valid range
@@ -37,7 +36,7 @@ type FileBackedBuffer struct {
 
 // New creates a file backed buffer with a specific maximum memory size
 func New(maxMemorySize int) (*FileBackedBuffer, error) {
-	if maxMemorySize < 0 || maxMemorySize > maxInt {
+	if maxMemorySize < 0 || maxMemorySize > math.MaxInt32 {
 		return nil, ErrInvalidMemorySize
 	}
 

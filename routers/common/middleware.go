@@ -10,9 +10,9 @@ import (
 
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/modules/web/routing"
 
 	"gitea.com/go-chi/session"
@@ -20,13 +20,26 @@ import (
 	chi "github.com/go-chi/chi/v5"
 )
 
-// ProtocolMiddlewares returns HTTP protocol related middlewares
+// ProtocolMiddlewares returns HTTP protocol related middlewares, and it provides a global panic recovery
 func ProtocolMiddlewares() (handlers []any) {
+	// first, normalize the URL path
+	handlers = append(handlers, stripSlashesMiddleware)
+
+	// prepare the ContextData and panic recovery
 	handlers = append(handlers, func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			// First of all escape the URL RawPath to ensure that all routing is done using a correctly escaped URL
-			req.URL.RawPath = req.URL.EscapedPath()
+			defer func() {
+				if err := recover(); err != nil {
+					RenderPanicErrorPage(resp, req, err) // it should never panic
+				}
+			}()
+			req = req.WithContext(middleware.WithContextData(req.Context()))
+			next.ServeHTTP(resp, req)
+		})
+	})
 
+	handlers = append(handlers, func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			ctx, _, finished := process.GetManager().AddTypedContext(req.Context(), fmt.Sprintf("%s: %s", req.Method, req.RequestURI), process.RequestProcessType, true)
 			defer finished()
 			next.ServeHTTP(context.NewResponse(resp), req.WithContext(cache.WithCacheContext(ctx)))
@@ -47,9 +60,6 @@ func ProtocolMiddlewares() (handlers []any) {
 		handlers = append(handlers, proxy.ForwardedHeaders(opt))
 	}
 
-	// Strip slashes.
-	handlers = append(handlers, stripSlashesMiddleware)
-
 	if !setting.Log.DisableRouterLog {
 		handlers = append(handlers, routing.NewLoggerHandler())
 	}
@@ -58,40 +68,18 @@ func ProtocolMiddlewares() (handlers []any) {
 		handlers = append(handlers, context.AccessLogger())
 	}
 
-	handlers = append(handlers, func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			// Why we need this? The Recovery() will try to render a beautiful
-			// error page for user, but the process can still panic again, and other
-			// middleware like session also may panic then we have to recover twice
-			// and send a simple error page that should not panic anymore.
-			defer func() {
-				if err := recover(); err != nil {
-					routing.UpdatePanicError(req.Context(), err)
-					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
-					log.Error("%v", combinedErr)
-					if setting.IsProd {
-						http.Error(resp, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-					} else {
-						http.Error(resp, combinedErr, http.StatusInternalServerError)
-					}
-				}
-			}()
-			next.ServeHTTP(resp, req)
-		})
-	})
 	return handlers
 }
 
 func stripSlashesMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		var urlPath string
+		// First of all escape the URL RawPath to ensure that all routing is done using a correctly escaped URL
+		req.URL.RawPath = req.URL.EscapedPath()
+
+		urlPath := req.URL.RawPath
 		rctx := chi.RouteContext(req.Context())
 		if rctx != nil && rctx.RoutePath != "" {
 			urlPath = rctx.RoutePath
-		} else if req.URL.RawPath != "" {
-			urlPath = req.URL.RawPath
-		} else {
-			urlPath = req.URL.Path
 		}
 
 		sanitizedPath := &strings.Builder{}

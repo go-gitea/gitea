@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 )
@@ -203,44 +202,18 @@ func PrepareAppDataPath() error {
 	return nil
 }
 
-// InitProviderFromExistingFile initializes config provider from an existing config file (app.ini)
-func InitProviderFromExistingFile() {
+func Init(opts *Options) {
+	if opts.CustomConf == "" {
+		opts.CustomConf = CustomConf
+	}
 	var err error
-	CfgProvider, err = newConfigProviderFromFile(CustomConf, false, "")
+	CfgProvider, err = newConfigProviderFromFile(opts)
 	if err != nil {
-		log.Fatal("InitProviderFromExistingFile: %v", err)
+		log.Fatal("Init[%v]: %v", opts, err)
 	}
-}
-
-// InitProviderAllowEmpty initializes config provider from file, it's also fine that if the config file (app.ini) doesn't exist
-func InitProviderAllowEmpty() {
-	var err error
-	CfgProvider, err = newConfigProviderFromFile(CustomConf, true, "")
-	if err != nil {
-		log.Fatal("InitProviderAllowEmpty: %v", err)
+	if !opts.DisableLoadCommonSettings {
+		loadCommonSettingsFrom(CfgProvider)
 	}
-}
-
-// InitProviderAndLoadCommonSettingsForTest initializes config provider and load common setttings for tests
-func InitProviderAndLoadCommonSettingsForTest(extraConfigs ...string) {
-	var err error
-	CfgProvider, err = newConfigProviderFromFile(CustomConf, true, strings.Join(extraConfigs, "\n"))
-	if err != nil {
-		log.Fatal("InitProviderAndLoadCommonSettingsForTest: %v", err)
-	}
-	loadCommonSettingsFrom(CfgProvider)
-	if err := PrepareAppDataPath(); err != nil {
-		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
-	}
-	// register the dummy hash algorithm function used in the test fixtures
-	_ = hash.Register("dummy", hash.NewDummyHasher)
-
-	PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
-}
-
-// LoadCommonSettings loads common configurations from a configuration provider.
-func LoadCommonSettings() {
-	loadCommonSettingsFrom(CfgProvider)
 }
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.

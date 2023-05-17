@@ -46,10 +46,6 @@
   white-space: nowrap;
 }
 
-#git-graph-container #flow-select-refs-dropdown .dropdown.icon {
-  display: none;
-}
-
 #git-graph-container #flow-select-refs-dropdown .default.text {
   padding-top: 4px;
   padding-bottom: 4px;

@@ -2,41 +2,39 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository projects milestones">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<div class="navbar">
-			{{template "repo/issue/navbar" .}}
-			{{if and .CanWriteProjects (not .Repository.IsArchived)}}
-				<div class="ui right">
-					<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
-				</div>
-			{{end}}
-		</div>
-		<div class="ui divider"></div>
-		{{template "base/alert" .}}
-		<div class="small-pill-buttons ui compact tiny menu">
-			<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/projects?state=open">
-				{{svg "octicon-project" 16 "gt-mr-3"}}
-				{{.locale.PrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
-			</a>
-			<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/projects?state=closed">
-				{{svg "octicon-check" 16 "gt-mr-3"}}
-				{{.locale.PrettyNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
-			</a>
-		</div>
-
-		<div class="ui right floated secondary filter menu">
-			<!-- Sort -->
-			<div class="ui dropdown type jump item">
-				<span class="text">
-					{{.locale.Tr "repo.issues.filter_sort"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				</span>
-				<div class="menu">
-					<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort=oldest&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-					<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort=recentupdate&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-					<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort=leastupdate&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+		<div class="navbar gt-mb-4">
+			<div>
+				<div class="small-menu-items ui compact tiny menu">
+					<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/projects?state=open">
+						{{svg "octicon-project" 16 "gt-mr-3"}}
+						{{.locale.PrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
+					</a>
+					<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/projects?state=closed">
+						{{svg "octicon-check" 16 "gt-mr-3"}}
+						{{.locale.PrettyNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
+					</a>
 				</div>
 			</div>
+			<div>
+				<!-- Sort -->
+				<div class="ui small dropdown type jump item">
+					<span class="text">
+						{{.locale.Tr "repo.issues.filter_sort"}}
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					</span>
+					<div class="menu">
+						<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort=oldest&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+						<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort=recentupdate&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+						<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort=leastupdate&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+					</div>
+				</div>
+				{{if and .CanWriteProjects (not .Repository.IsArchived)}}
+					<a class="ui small green button gt-ml-4" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
+				{{end}}
+			</div>
 		</div>
+		{{template "base/alert" .}}
+
 		<div class="milestone list">
 			{{range .Projects}}
 				<li class="item">
