@@ -80,7 +80,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/activitypub"
@@ -276,7 +275,7 @@ func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeC
 			}
 
 			if publicOnly && auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryOrganization) &&
-				ctx.Org.Organization != nil && ctx.Org.Organization.Visibility != structs.VisibleTypePublic {
+				ctx.Org.Organization != nil && ctx.Org.Organization.Visibility != api.VisibleTypePublic {
 				ctx.Error(http.StatusForbidden, "tokenRequiresScope", "token scope is limited to public orgs: "+scope)
 				return
 			}
