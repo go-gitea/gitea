@@ -33,6 +33,7 @@ var (
 		LimitSizeContainer   int64
 		LimitSizeDebian      int64
 		LimitSizeGeneric     int64
+		LimitSizeGo          int64
 		LimitSizeHelm        int64
 		LimitSizeMaven       int64
 		LimitSizeNpm         int64
@@ -79,6 +80,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) {
 	Packages.LimitSizeContainer = mustBytes(sec, "LIMIT_SIZE_CONTAINER")
 	Packages.LimitSizeDebian = mustBytes(sec, "LIMIT_SIZE_DEBIAN")
 	Packages.LimitSizeGeneric = mustBytes(sec, "LIMIT_SIZE_GENERIC")
+	Packages.LimitSizeGo = mustBytes(sec, "LIMIT_SIZE_GO")
 	Packages.LimitSizeHelm = mustBytes(sec, "LIMIT_SIZE_HELM")
 	Packages.LimitSizeMaven = mustBytes(sec, "LIMIT_SIZE_MAVEN")
 	Packages.LimitSizeNpm = mustBytes(sec, "LIMIT_SIZE_NPM")

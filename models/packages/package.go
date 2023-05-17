@@ -39,6 +39,7 @@ const (
 	TypeContainer Type = "container"
 	TypeDebian    Type = "debian"
 	TypeGeneric   Type = "generic"
+	TypeGo        Type = "go"
 	TypeHelm      Type = "helm"
 	TypeMaven     Type = "maven"
 	TypeNpm       Type = "npm"
@@ -61,6 +62,7 @@ var TypeList = []Type{
 	TypeContainer,
 	TypeDebian,
 	TypeGeneric,
+	TypeGo,
 	TypeHelm,
 	TypeMaven,
 	TypeNpm,
@@ -94,6 +96,8 @@ func (pt Type) Name() string {
 		return "Debian"
 	case TypeGeneric:
 		return "Generic"
+	case TypeGo:
+		return "Go"
 	case TypeHelm:
 		return "Helm"
 	case TypeMaven:
@@ -139,6 +143,8 @@ func (pt Type) SVGName() string {
 		return "gitea-debian"
 	case TypeGeneric:
 		return "octicon-package"
+	case TypeGo:
+		return "gitea-go"
 	case TypeHelm:
 		return "gitea-helm"
 	case TypeMaven:
