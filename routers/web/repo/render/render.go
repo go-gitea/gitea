@@ -35,7 +35,7 @@ type FileInfo struct {
 }
 
 func (f *FileInfo) IsTextFile() bool {
-	return f.isLFSFile
+	return f.isTextFile
 }
 
 func (f *FileInfo) IsLFSFile() bool {
