@@ -15,9 +15,26 @@ Make sure to perform a clean build before running tests:
 make clean build
 ```
 
-## Run all tests via local drone
+## Run tests via local act_runner
+
+### run all jobs
+
 ```
-drone exec --local --build-event "pull_request"
+act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest
+```
+
+Warning: because of many jobs was defined in this file, this operation will 
+cost too much cpu and memory to run. so not suggest do this.
+
+### run one job
+
+```SHELL
+act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -j <job_name>
+```
+
+you can can list all job names by:
+```SHELL
+act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -l
 ```
 
 ## Run sqlite integration tests
