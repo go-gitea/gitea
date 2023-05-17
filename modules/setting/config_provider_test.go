@@ -10,20 +10,25 @@ import (
 )
 
 func TestConfigProviderBehaviors(t *testing.T) {
-	// buggy overwritten behavior
-	cfg, _ := NewConfigProviderFromData(`
+	t.Run("BuggyKeyOverwritten", func(t *testing.T) {
+		cfg, _ := NewConfigProviderFromData(`
 [foo]
 key =
 `)
-	cfg.Section("foo.bar").Key("key").MustString("1")            // try to read a key from subsection
-	assert.Equal(t, "1", cfg.Section("foo").Key("key").String()) // TODO: BUGGY! the key in [foo] is overwritten
+		sec := cfg.Section("foo")
+		secSub := cfg.Section("foo.bar")
+		secSub.Key("key").MustString("1")             // try to read a key from subsection
+		assert.Equal(t, "1", sec.Key("key").String()) // TODO: BUGGY! the key in [foo] is overwritten
+	})
 
-	// subsection can see parent keys
-	cfg, _ = NewConfigProviderFromData(`
+	t.Run("SubsectionSeeParentKeys", func(t *testing.T) {
+		cfg, _ := NewConfigProviderFromData(`
 [foo]
 key = 123
 `)
-	assert.Equal(t, "123", cfg.Section("foo.bar.xxx").Key("key").String())
+		secSub := cfg.Section("foo.bar.xxx")
+		assert.Equal(t, "123", secSub.Key("key").String())
+	})
 }
 
 func TestConfigProviderHelper(t *testing.T) {
@@ -33,14 +38,29 @@ empty =
 key = 123
 `)
 
-	assert.Equal(t, "def", ConfigSectionKeyString(cfg.Section("foo"), "empty", "def"))
+	sec := cfg.Section("foo")
+	secSub := cfg.Section("foo.bar")
 
-	assert.NotNil(t, ConfigSectionKey(cfg.Section("foo"), "key"))
-	assert.Nil(t, ConfigSectionKey(cfg.Section("foo.bar"), "key"))
+	// test empty key
+	assert.Equal(t, "def", ConfigSectionKeyString(sec, "empty", "def"))
+	assert.Equal(t, "xyz", ConfigSectionKeyString(secSub, "empty", "xyz"))
 
-	assert.Equal(t, "123", ConfigSectionKeyString(cfg.Section("foo"), "key"))
-	assert.Equal(t, "", ConfigSectionKeyString(cfg.Section("foo.bar"), "key"))
-	assert.Equal(t, "def", ConfigSectionKeyString(cfg.Section("foo.bar"), "key", "def"))
+	// test non-inherited key, only see the keys in current section
+	assert.NotNil(t, ConfigSectionKey(sec, "key"))
+	assert.Nil(t, ConfigSectionKey(secSub, "key"))
 
-	assert.Equal(t, "123", ConfigInheritedKeyString(cfg.Section("foo.bar"), "key"))
+	// test default behavior
+	assert.Equal(t, "123", ConfigSectionKeyString(sec, "key"))
+	assert.Equal(t, "", ConfigSectionKeyString(secSub, "key"))
+	assert.Equal(t, "def", ConfigSectionKeyString(secSub, "key", "def"))
+
+	assert.Equal(t, "123", ConfigInheritedKeyString(secSub, "key"))
+
+	// Workaround for ini package's BuggyKeyOverwritten behavior
+	assert.Equal(t, "", ConfigSectionKeyString(sec, "empty"))
+	assert.Equal(t, "", ConfigSectionKeyString(secSub, "empty"))
+	assert.Equal(t, "def", ConfigInheritedKey(secSub, "empty").MustString("def"))
+	assert.Equal(t, "def", ConfigInheritedKey(secSub, "empty").MustString("xyz"))
+	assert.Equal(t, "", ConfigSectionKeyString(sec, "empty"))
+	assert.Equal(t, "def", ConfigSectionKeyString(secSub, "empty"))
 }

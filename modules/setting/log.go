@@ -135,31 +135,31 @@ func loadLogModeByName(rootCfg ConfigProvider, loggerName, modeName string) (wri
 
 	switch writerType {
 	case "console":
-		useStderr := sec.Key("STDERR").MustBool(false)
+		useStderr := ConfigInheritedKey(sec, "STDERR").MustBool(false)
 		writerOption := log.WriterConsoleOption{Stderr: useStderr}
 		if useStderr {
-			writerMode.Colorize = sec.Key("COLORIZE").MustBool(log.CanColorStderr)
+			writerMode.Colorize = ConfigInheritedKey(sec, "COLORIZE").MustBool(log.CanColorStderr)
 		} else {
-			writerMode.Colorize = sec.Key("COLORIZE").MustBool(log.CanColorStdout)
+			writerMode.Colorize = ConfigInheritedKey(sec, "COLORIZE").MustBool(log.CanColorStdout)
 		}
 		writerMode.WriterOption = writerOption
 	case "file":
-		fileName := LogPrepareFilenameForWriter(loggerName, sec.Key("FILE_NAME").String())
+		fileName := LogPrepareFilenameForWriter(loggerName, ConfigInheritedKey(sec, "FILE_NAME").String())
 		writerOption := log.WriterFileOption{}
 		writerOption.FileName = fileName + filenameSuffix // FIXME: the suffix doesn't seem right, see its related comments
-		writerOption.LogRotate = sec.Key("LOG_ROTATE").MustBool(true)
-		writerOption.MaxSize = 1 << uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28))
-		writerOption.DailyRotate = sec.Key("DAILY_ROTATE").MustBool(true)
-		writerOption.MaxDays = sec.Key("MAX_DAYS").MustInt(7)
-		writerOption.Compress = sec.Key("COMPRESS").MustBool(true)
-		writerOption.CompressionLevel = sec.Key("COMPRESSION_LEVEL").MustInt(-1)
+		writerOption.LogRotate = ConfigInheritedKey(sec, "LOG_ROTATE").MustBool(true)
+		writerOption.MaxSize = 1 << uint(ConfigInheritedKey(sec, "MAX_SIZE_SHIFT").MustInt(28))
+		writerOption.DailyRotate = ConfigInheritedKey(sec, "DAILY_ROTATE").MustBool(true)
+		writerOption.MaxDays = ConfigInheritedKey(sec, "MAX_DAYS").MustInt(7)
+		writerOption.Compress = ConfigInheritedKey(sec, "COMPRESS").MustBool(true)
+		writerOption.CompressionLevel = ConfigInheritedKey(sec, "COMPRESSION_LEVEL").MustInt(-1)
 		writerMode.WriterOption = writerOption
 	case "conn":
 		writerOption := log.WriterConnOption{}
-		writerOption.ReconnectOnMsg = sec.Key("RECONNECT_ON_MSG").MustBool()
-		writerOption.Reconnect = sec.Key("RECONNECT").MustBool()
-		writerOption.Protocol = sec.Key("PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"})
-		writerOption.Addr = sec.Key("ADDR").MustString(":7020")
+		writerOption.ReconnectOnMsg = ConfigInheritedKey(sec, "RECONNECT_ON_MSG").MustBool()
+		writerOption.Reconnect = ConfigInheritedKey(sec, "RECONNECT").MustBool()
+		writerOption.Protocol = ConfigInheritedKey(sec, "PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"})
+		writerOption.Addr = ConfigInheritedKey(sec, "ADDR").MustString(":7020")
 		writerMode.WriterOption = writerOption
 	default:
 		if !log.HasEventWriter(writerType) {
