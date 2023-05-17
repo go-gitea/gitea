@@ -39,7 +39,7 @@
               </a>
               <span class="job-brief-info">
                 <span class="step-summary-duration">{{ job.duration }}</span>
-                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-show="job.canRerun && onHoverRerunIndex === job.id"/>
+                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
               </span>
             </div>
           </div>
@@ -502,6 +502,15 @@ export function ansiLogToHTML(line) {
   align-items: center;
 }
 
+.job-brief-item:hover {
+  background-color: var(--color-secondary);
+}
+
+.job-brief-item.selected {
+  font-weight: var(--font-weight-bold);
+  background-color: var(--color-secondary-dark-1);
+}
+
 .job-brief-item:first-of-type {
   margin-top: 0;
 }
@@ -539,15 +548,6 @@ export function ansiLogToHTML(line) {
   display: flex;
   align-items: center;
   width: 55px;
-}
-
-.job-brief-item:hover {
-  background-color: var(--color-secondary);
-}
-
-.job-group-section .job-brief-list .job-brief-item.selected {
-  font-weight: var(--font-weight-bold);
-  background-color: var(--color-secondary-dark-1);
 }
 
 /* ================ */
