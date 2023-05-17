@@ -94,11 +94,7 @@ func prepareLoggerConfig(rootCfg ConfigProvider) {
 	}
 }
 
-func LogPrepareFilenameForWriter(loggerName, fileName string) string {
-	defaultFileName := "gitea.log"
-	if loggerName != "default" {
-		defaultFileName = loggerName + ".log"
-	}
+func LogPrepareFilenameForWriter(fileName, defaultFileName string) string {
 	if fileName == "" {
 		fileName = defaultFileName
 	}
@@ -113,7 +109,7 @@ func LogPrepareFilenameForWriter(loggerName, fileName string) string {
 	return fileName
 }
 
-func loadLogModeByName(rootCfg ConfigProvider, loggerName, modeName string) (writerType string, writerMode log.WriterMode, err error) {
+func loadLogModeByName(rootCfg ConfigProvider, loggerName, modeName string) (writerName, writerType string, writerMode log.WriterMode, err error) {
 	sec := rootCfg.Section("log." + modeName)
 
 	writerMode = log.WriterMode{}
@@ -122,29 +118,35 @@ func loadLogModeByName(rootCfg ConfigProvider, loggerName, modeName string) (wri
 		writerType = modeName
 	}
 
+	writerName = modeName
+	defaultFlags := "stdflags"
+	defaultFilaName := "gitea.log"
+	if loggerName == "access" {
+		// "access" logger is special, by default it doesn't have output flags, so it also needs a new writer name to avoid conflicting with other writers.
+		// so "access" logger's writer name is usually "file.access" or "console.access"
+		writerName += ".access"
+		defaultFlags = "none"
+		defaultFilaName = "access.log"
+	}
+
 	writerMode.Level = log.LevelFromString(ConfigInheritedKeyString(sec, "LEVEL", Log.Level.String()))
 	writerMode.StacktraceLevel = log.LevelFromString(ConfigInheritedKeyString(sec, "STACKTRACE_LEVEL", Log.StacktraceLogLevel.String()))
 	writerMode.Prefix = ConfigInheritedKeyString(sec, "PREFIX")
 	writerMode.Expression = ConfigInheritedKeyString(sec, "EXPRESSION")
-
-	defaultFlags := "stdflags"
-	if loggerName == "access" {
-		defaultFlags = "none" // "access" logger is special, by default it doesn't have output flags
-	}
 	writerMode.Flags = log.FlagsFromString(ConfigInheritedKeyString(sec, "FLAGS", defaultFlags))
 
 	switch writerType {
 	case "console":
 		useStderr := ConfigInheritedKey(sec, "STDERR").MustBool(false)
-		writerOption := log.WriterConsoleOption{Stderr: useStderr}
+		defaultCanColor := log.CanColorStdout
 		if useStderr {
-			writerMode.Colorize = ConfigInheritedKey(sec, "COLORIZE").MustBool(log.CanColorStderr)
-		} else {
-			writerMode.Colorize = ConfigInheritedKey(sec, "COLORIZE").MustBool(log.CanColorStdout)
+			defaultCanColor = log.CanColorStderr
 		}
+		writerOption := log.WriterConsoleOption{Stderr: useStderr}
+		writerMode.Colorize = ConfigInheritedKey(sec, "COLORIZE").MustBool(defaultCanColor)
 		writerMode.WriterOption = writerOption
 	case "file":
-		fileName := LogPrepareFilenameForWriter(loggerName, ConfigInheritedKey(sec, "FILE_NAME").String())
+		fileName := LogPrepareFilenameForWriter(ConfigInheritedKey(sec, "FILE_NAME").String(), defaultFilaName)
 		writerOption := log.WriterFileOption{}
 		writerOption.FileName = fileName + filenameSuffix // FIXME: the suffix doesn't seem right, see its related comments
 		writerOption.LogRotate = ConfigInheritedKey(sec, "LOG_ROTATE").MustBool(true)
@@ -163,11 +165,11 @@ func loadLogModeByName(rootCfg ConfigProvider, loggerName, modeName string) (wri
 		writerMode.WriterOption = writerOption
 	default:
 		if !log.HasEventWriter(writerType) {
-			return "", writerMode, fmt.Errorf("invalid log writer type (mode): %s", writerType)
+			return "", "", writerMode, fmt.Errorf("invalid log writer type (mode): %s", writerType)
 		}
 	}
 
-	return writerType, writerMode, nil
+	return writerName, writerType, writerMode, nil
 }
 
 var filenameSuffix = ""
@@ -223,8 +225,7 @@ func initLoggerByName(manager *log.LoggerManager, rootCfg ConfigProvider, logger
 		if modeName == "" {
 			continue
 		}
-		writerName := modeName
-		writerType, writerMode, err := loadLogModeByName(rootCfg, loggerName, modeName)
+		writerName, writerType, writerMode, err := loadLogModeByName(rootCfg, loggerName, modeName)
 		if err != nil {
 			log.FallbackErrorf("Failed to load writer mode %q for logger %s: %v", modeName, loggerName, err)
 			continue
@@ -232,10 +233,13 @@ func initLoggerByName(manager *log.LoggerManager, rootCfg ConfigProvider, logger
 		if writerMode.BufferLen == 0 {
 			writerMode.BufferLen = Log.BufferLen
 		}
-		eventWriter, err := log.NewEventWriter(writerName, writerType, writerMode)
-		if err != nil {
-			log.FallbackErrorf("Failed to create event writer for logger %s: %v", loggerName, err)
-			continue
+		eventWriter := manager.GetSharedWriter(writerName)
+		if eventWriter == nil {
+			eventWriter, err = manager.NewSharedWriter(writerName, writerType, writerMode)
+			if err != nil {
+				log.FallbackErrorf("Failed to create event writer for logger %s: %v", loggerName, err)
+				continue
+			}
 		}
 		eventWriters = append(eventWriters, eventWriter)
 	}

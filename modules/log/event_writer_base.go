@@ -21,8 +21,6 @@ type EventWriterBase interface {
 }
 
 type EventWriterBaseImpl struct {
-	LoggerImpl *LoggerImpl
-
 	writerType string
 
 	Name  string
@@ -31,7 +29,9 @@ type EventWriterBaseImpl struct {
 
 	FormatMessage     EventFormatter // format the Event to a message and write it to output
 	OutputWriteCloser io.WriteCloser // it will be closed when the event writer is stopped
+	GetPauseChan      func() chan struct{}
 
+	shared  bool
 	stopped chan struct{}
 }
 
@@ -65,14 +65,17 @@ func (b *EventWriterBaseImpl) Run(ctx context.Context) {
 	}
 
 	for {
-		pause := b.LoggerImpl.GetPauseChan()
-		if pause != nil {
-			select {
-			case <-pause:
-			case <-ctx.Done():
-				return
+		if b.GetPauseChan != nil {
+			pause := b.GetPauseChan()
+			if pause != nil {
+				select {
+				case <-pause:
+				case <-ctx.Done():
+					return
+				}
 			}
 		}
+
 		select {
 		case <-ctx.Done():
 			return
@@ -124,14 +127,18 @@ func NewEventWriterBase(name, writerType string, mode WriterMode) *EventWriterBa
 		Mode:  &mode,
 		Queue: make(chan *EventFormatted, mode.BufferLen),
 
+		GetPauseChan:  GetManager().GetPauseChan, // by default, use the global pause channel
 		FormatMessage: EventFormatTextMessage,
-
-		stopped: make(chan struct{}),
 	}
 	return b
 }
 
-func eventWriterStartGo(ctx context.Context, w EventWriter) {
+func eventWriterStartGo(ctx context.Context, w EventWriter, shared bool) {
+	if w.Base().stopped != nil {
+		return // already started
+	}
+	w.Base().shared = shared
+	w.Base().stopped = make(chan struct{})
 	go func() {
 		defer close(w.Base().stopped)
 		w.Run(ctx)

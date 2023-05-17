@@ -4,6 +4,7 @@
 package log
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -39,7 +40,7 @@ func TestConnLogger(t *testing.T) {
 	level := INFO
 	flags := LstdFlags | LUTC | Lfuncname
 
-	logger := NewLoggerWithWriters(NewEventWriterConn("test-conn", WriterMode{
+	logger := NewLoggerWithWriters(context.Background(), NewEventWriterConn("test-conn", WriterMode{
 		Level:        level,
 		Prefix:       prefix,
 		Flags:        FlagsFromBits(flags),

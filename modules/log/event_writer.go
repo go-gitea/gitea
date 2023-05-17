@@ -11,7 +11,7 @@ type EventWriter interface {
 	EventWriterBase
 }
 
-type EventWriterProvider func(name string, mode WriterMode) EventWriter
+type EventWriterProvider func(writerName string, writerMode WriterMode) EventWriter
 
 var eventWriterProviders = map[string]EventWriterProvider{}
 

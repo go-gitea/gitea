@@ -180,7 +180,7 @@ In this mode the logger will save log messages to a file.
 
 Settings:
 
-- `FILE_NAME`: The file to write the log events to. Default to `%(ROOT_PATH)/gitea.log` if the section name is `log.file`, or `%(ROOT_PATH)/<sub-section-name>.log` otherwise.
+- `FILE_NAME`: The file to write the log events to. Default to `%(ROOT_PATH)/gitea.log`. Exception: access log will default to `%(ROOT_PATH)/access.log`.
 - `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file. 28 represents 256Mb. For details see below.
 - `LOG_ROTATE` **true**: Whether to rotate the log files. TODO: if false, will it delete instead on daily rotate, or do nothing?.
 - `DAILY_ROTATE`: **true**: Whether to rotate logs daily.

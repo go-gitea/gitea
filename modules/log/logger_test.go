@@ -4,6 +4,7 @@
 package log
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
@@ -52,7 +53,7 @@ func newDummyWriter(name string, level Level, delay time.Duration) *dummyWriter 
 }
 
 func TestLogger(t *testing.T) {
-	logger := NewLoggerWithWriters()
+	logger := NewLoggerWithWriters(context.Background())
 
 	dump := logger.DumpWriters()
 	assert.EqualValues(t, 0, len(dump))
@@ -87,18 +88,18 @@ func TestLogger(t *testing.T) {
 }
 
 func TestLoggerPause(t *testing.T) {
-	logger := NewLoggerWithWriters()
+	logger := NewLoggerWithWriters(context.Background())
 
 	w1 := newDummyWriter("dummy-1", DEBUG, 0)
 	logger.AddWriters(w1)
 
-	logger.Pause()
+	GetManager().PauseAll()
 
-	time.Sleep(100 * time.Millisecond)
 	logger.Info("info-level")
+	time.Sleep(100 * time.Millisecond)
 	assert.Equal(t, []string{}, w1.GetLogs())
 
-	logger.Resume()
+	GetManager().ResumeAll()
 
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(t, []string{"info-level\n"}, w1.GetLogs())
@@ -113,7 +114,7 @@ func (t testLogString) LogString() string {
 }
 
 func TestLoggerLogString(t *testing.T) {
-	logger := NewLoggerWithWriters()
+	logger := NewLoggerWithWriters(context.Background())
 
 	w1 := newDummyWriter("dummy-1", DEBUG, 0)
 	w1.Mode.Colorize = true
@@ -126,7 +127,7 @@ func TestLoggerLogString(t *testing.T) {
 }
 
 func TestLoggerExpressionFilter(t *testing.T) {
-	logger := NewLoggerWithWriters()
+	logger := NewLoggerWithWriters(context.Background())
 
 	w1 := newDummyWriter("dummy-1", DEBUG, 0)
 	w1.Mode.Expression = "foo.*"

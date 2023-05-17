@@ -141,7 +141,7 @@ func AddLogger(ctx *context.PrivateContext) {
 	case "file":
 		writerOption := log.WriterFileOption{}
 		fileName, _ := opts.Config["filename"].(string)
-		writerOption.FileName = setting.LogPrepareFilenameForWriter(opts.Writer, fileName)
+		writerOption.FileName = setting.LogPrepareFilenameForWriter(fileName, opts.Writer+".log")
 		writerOption.LogRotate = opts.Config["rotate"].(bool)
 		maxSizeShift, _ := opts.Config["maxsize"].(int)
 		if maxSizeShift == 0 {

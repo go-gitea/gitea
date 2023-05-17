@@ -26,9 +26,6 @@ type LoggerImpl struct {
 
 	eventWriterMu sync.RWMutex
 	eventWriters  map[string]EventWriter
-
-	pauseMu   sync.RWMutex
-	pauseChan chan struct{}
 }
 
 var (
@@ -85,21 +82,26 @@ func (l *LoggerImpl) syncLevelInternal() {
 	l.stacktraceLevel.Store(int32(lowestLevel))
 }
 
+func (l *LoggerImpl) removeWriterInternal(w EventWriter) {
+	if !w.Base().shared {
+		eventWriterStopWait(w) // only stop non-shared writers, shared writers are managed by the manager
+	}
+	delete(l.eventWriters, w.GetWriterName())
+}
+
 func (l *LoggerImpl) AddWriters(writer ...EventWriter) {
 	l.eventWriterMu.Lock()
 	defer l.eventWriterMu.Unlock()
 
 	for _, w := range writer {
 		if old, ok := l.eventWriters[w.GetWriterName()]; ok {
-			eventWriterStopWait(old)
-			delete(l.eventWriters, old.GetWriterName())
+			l.removeWriterInternal(old)
 		}
 	}
 
 	for _, w := range writer {
 		l.eventWriters[w.GetWriterName()] = w
-		w.Base().LoggerImpl = l
-		eventWriterStartGo(l.ctx, w)
+		eventWriterStartGo(l.ctx, w, false)
 	}
 
 	l.syncLevelInternal()
@@ -114,8 +116,7 @@ func (l *LoggerImpl) RemoveWriter(modeName string) error {
 		return util.ErrNotExist
 	}
 
-	eventWriterStopWait(w)
-	delete(l.eventWriters, w.GetWriterName())
+	l.removeWriterInternal(w)
 	l.syncLevelInternal()
 	return nil
 }
@@ -125,7 +126,7 @@ func (l *LoggerImpl) RemoveAllWriters() *LoggerImpl {
 	defer l.eventWriterMu.Unlock()
 
 	for _, w := range l.eventWriters {
-		eventWriterStopWait(w)
+		l.removeWriterInternal(w)
 	}
 	l.eventWriters = map[string]EventWriter{}
 	l.syncLevelInternal()
@@ -151,28 +152,9 @@ func (l *LoggerImpl) DumpWriters() map[string]any {
 	return writers
 }
 
-func (l *LoggerImpl) Pause() {
-	l.pauseMu.Lock()
-	l.pauseChan = make(chan struct{})
-	l.pauseMu.Unlock()
-}
-
-func (l *LoggerImpl) Resume() {
-	l.pauseMu.Lock()
-	close(l.pauseChan)
-	l.pauseChan = nil
-	l.pauseMu.Unlock()
-}
-
 func (l *LoggerImpl) Close() {
 	l.RemoveAllWriters()
 	l.ctxCancel()
-}
-
-func (l *LoggerImpl) GetPauseChan() chan struct{} {
-	l.pauseMu.RLock()
-	defer l.pauseMu.RUnlock()
-	return l.pauseChan
 }
 
 func (l *LoggerImpl) IsEnabled() bool {
@@ -235,9 +217,9 @@ func (l *LoggerImpl) GetLevel() Level {
 	return Level(l.level.Load())
 }
 
-func NewLoggerWithWriters(writer ...EventWriter) *LoggerImpl {
+func NewLoggerWithWriters(ctx context.Context, writer ...EventWriter) *LoggerImpl {
 	l := &LoggerImpl{}
-	l.ctx, l.ctxCancel = context.WithCancel(context.Background())
+	l.ctx, l.ctxCancel = context.WithCancel(ctx)
 	l.LevelLogger = BaseLoggerToGeneralLogger(l)
 	l.eventWriters = map[string]EventWriter{}
 	l.syncLevelInternal()

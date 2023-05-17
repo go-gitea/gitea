@@ -22,9 +22,9 @@ type eventWriterConn struct {
 
 var _ EventWriter = (*eventWriterConn)(nil)
 
-func NewEventWriterConn(name string, mode WriterMode) EventWriter {
-	w := &eventWriterConn{EventWriterBaseImpl: NewEventWriterBase(name, "conn", mode)}
-	opt := mode.WriterOption.(WriterConnOption)
+func NewEventWriterConn(writerName string, writerMode WriterMode) EventWriter {
+	w := &eventWriterConn{EventWriterBaseImpl: NewEventWriterBase(writerName, "conn", writerMode)}
+	opt := writerMode.WriterOption.(WriterConnOption)
 	w.connWriter = connWriter{
 		ReconnectOnMsg: opt.ReconnectOnMsg,
 		Reconnect:      opt.Reconnect,

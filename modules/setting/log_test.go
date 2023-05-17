@@ -37,6 +37,7 @@ func toJSON(v interface{}) string {
 
 func TestLogConfigDefault(t *testing.T) {
 	manager, managerClose := initLoggersByConfig(t, ``)
+	defer managerClose()
 
 	writerDump := `
 {
@@ -55,7 +56,6 @@ func TestLogConfigDefault(t *testing.T) {
 	}
 }
 `
-	defer managerClose()
 
 	dump := manager.GetLogger(log.DEFAULT).DumpWriters()
 	require.JSONEq(t, writerDump, toJSON(dump))
@@ -76,6 +76,7 @@ func TestLogConfigDisable(t *testing.T) {
 logger.router.MODE =
 logger.xorm.MODE =
 `)
+	defer managerClose()
 
 	writerDump := `
 {
@@ -94,7 +95,6 @@ logger.xorm.MODE =
 	}
 }
 `
-	defer managerClose()
 
 	dump := manager.GetLogger(log.DEFAULT).DumpWriters()
 	require.JSONEq(t, writerDump, toJSON(dump))
@@ -114,6 +114,7 @@ func TestLogConfigLegacyDefault(t *testing.T) {
 [log]
 MODE = console
 `)
+	defer managerClose()
 
 	writerDump := `
 {
@@ -132,7 +133,6 @@ MODE = console
 	}
 }
 `
-	defer managerClose()
 
 	dump := manager.GetLogger(log.DEFAULT).DumpWriters()
 	require.JSONEq(t, writerDump, toJSON(dump))
@@ -188,7 +188,7 @@ ACCESS = file
 `
 	writerDumpAccess := `
 {
-	"file": {
+	"file.access": {
 		"BufferLen": 10000,
 		"Colorize": false,
 		"Expression": "",
@@ -216,7 +216,7 @@ ACCESS = file
 	require.JSONEq(t, strings.ReplaceAll(writerDumpAccess, "$FILENAME", tempPath("access.log")), toJSON(dump))
 
 	dump = manager.GetLogger("router").DumpWriters()
-	require.JSONEq(t, strings.ReplaceAll(writerDump, "$FILENAME", tempPath("router.log")), toJSON(dump))
+	require.JSONEq(t, strings.ReplaceAll(writerDump, "$FILENAME", tempPath("gitea.log")), toJSON(dump))
 }
 
 func TestLogConfigLegacyModeDisable(t *testing.T) {
@@ -250,7 +250,6 @@ MODE = console
 LEVEL = error
 STDERR = true
 `)
-
 	defer managerClose()
 
 	writerDump := `
@@ -285,7 +284,7 @@ STDERR = true
 `
 	writerDumpAccess := `
 {
-	"console": {
+	"console.access": {
 		"BufferLen": 10000,
 		"Colorize": false,
 		"Expression": "",
@@ -335,6 +334,7 @@ MAX_DAYS = 90
 COMPRESS = false
 COMPRESSION_LEVEL = 4
 `)
+	defer managerClose()
 
 	writerDump := `
 {
@@ -378,7 +378,6 @@ COMPRESSION_LEVEL = 4
 	}
 }
 `
-	defer managerClose()
 
 	dump := manager.GetLogger(log.DEFAULT).DumpWriters()
 	expected := writerDump
