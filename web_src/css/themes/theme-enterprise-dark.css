@@ -155,7 +155,7 @@
   --color-small-accent: var(--color-primary-light-5);
   --color-active-line: #fffbdd;
   accent-color: var(--color-accent);
-  color-scheme: true;
+  color-scheme: dark;
 }
 .chroma .nx {
   color: #e5e5e5;
