@@ -14,8 +14,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/golang-jwt/jwt/v4"
-
 	"code.gitea.io/gitea/models/auth"
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
@@ -38,6 +36,7 @@ import (
 	user_service "code.gitea.io/gitea/services/user"
 
 	"gitea.com/go-chi/binding"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 )
