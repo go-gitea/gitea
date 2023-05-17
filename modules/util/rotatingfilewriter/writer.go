@@ -157,7 +157,12 @@ func (rfw *RotatingFileWriter) DoRotate() error {
 	}
 
 	if rfw.options.Compress {
-		go compressOldFile(fname, rfw.options.CompressionLevel)
+		go func() {
+			err := compressOldFile(fname, rfw.options.CompressionLevel)
+			if err != nil {
+				errorf("DoRotate: %v", err)
+			}
+		}()
 	}
 
 	if err := rfw.open(fd.Name()); err != nil {
@@ -173,11 +178,10 @@ func (rfw *RotatingFileWriter) DoRotate() error {
 	return nil
 }
 
-func compressOldFile(fname string, compressionLevel int) {
+func compressOldFile(fname string, compressionLevel int) error {
 	reader, err := os.Open(fname)
 	if err != nil {
-		errorf("compressOldFile: failed to open existing file %s: %v", fname, err)
-		return
+		return fmt.Errorf("compressOldFile: failed to open existing file %s: %w", fname, err)
 	}
 	defer reader.Close()
 
@@ -185,15 +189,13 @@ func compressOldFile(fname string, compressionLevel int) {
 	fnameGz := fname + ".gz"
 	fw, err := os.OpenFile(fnameGz, os.O_WRONLY|os.O_CREATE, 0o660)
 	if err != nil {
-		errorf("compressOldFile: failed to open new file %s: %v", fnameGz, err)
-		return
+		return fmt.Errorf("compressOldFile: failed to open new file %s: %w", fnameGz, err)
 	}
 	defer fw.Close()
 
 	zw, err := gzip.NewWriterLevel(fw, compressionLevel)
 	if err != nil {
-		errorf("compressOldFile: failed to create gzip writer: %v", err)
-		return
+		return fmt.Errorf("compressOldFile: failed to create gzip writer: %w", err)
 	}
 	defer zw.Close()
 
@@ -202,13 +204,15 @@ func compressOldFile(fname string, compressionLevel int) {
 		_ = zw.Close()
 		_ = fw.Close()
 		_ = util.Remove(fname + ".gz")
-		errorf("compressOldFile: failed to write to gz file: %v", err)
-		return
+		return fmt.Errorf("compressOldFile: failed to write to gz file: %w", err)
 	}
 	_ = reader.Close()
 
 	err = util.Remove(fname)
-	errorf("compressOldFile: failed to delete old file: %v", err)
+	if err != nil {
+		return fmt.Errorf("compressOldFile: failed to delete old file: %w", err)
+	}
+	return nil
 }
 
 func deleteOldFiles(dir, prefix string, removeBefore time.Time) {
