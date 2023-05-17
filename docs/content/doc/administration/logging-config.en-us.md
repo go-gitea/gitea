@@ -155,11 +155,11 @@ Possible values are:
 - `funcname` - function name of the caller: `runtime.Caller()`.
 - `shortfuncname` - last part of the function name. Overrides `funcname`.
 - `utc` - if date or time is set, use UTC rather than the local time zone.
-- `levelinitial` - Initial character of the provided level in brackets eg. `[I]` for info.
-- `level` - Provided level in brackets `[INFO]`.
-- `gopid` - The Goroutine-PID of the context.
-- `medfile` - Last 20 characters of the filename - equivalent to `shortfile,longfile`.
-- `stdflags` - Equivalent to `date,time,medfile,shortfuncname,levelinitial`.
+- `levelinitial` - initial character of the provided level in brackets eg. `[I]` for info.
+- `level` - level in brackets `[INFO]`.
+- `gopid` - the Goroutine-PID of the context.
+- `medfile` - last 20 characters of the filename - equivalent to `shortfile,longfile`.
+- `stdflags` - equivalent to `date,time,medfile,shortfuncname,levelinitial`.
 
 ### Console mode
 
@@ -180,17 +180,13 @@ In this mode the logger will save log messages to a file.
 
 Settings:
 
-- `FILE_NAME`: The file to write the log events to. Default to `%(ROOT_PATH)/gitea.log`. Exception: access log will default to `%(ROOT_PATH)/access.log`.
+- `FILE_NAME`: The file to write the log events to, relative to `ROOT_PATH`, Default to `%(ROOT_PATH)/gitea.log`. Exception: access log will default to `%(ROOT_PATH)/access.log`.
 - `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file. 28 represents 256Mb. For details see below.
 - `LOG_ROTATE` **true**: Whether to rotate the log files. TODO: if false, will it delete instead on daily rotate, or do nothing?.
 - `DAILY_ROTATE`: **true**: Whether to rotate logs daily.
 - `MAX_DAYS`: **7**: Delete rotated log files after this number of days.
 - `COMPRESS`: **true**: Whether to compress old log files by default with gzip.
 - `COMPRESSION_LEVEL`: **-1**: Compression level. For details see below.
-
-The default value of `FILE_NAME` depends on the respective logger facility.
-If unset, their own default will be used.
-If set it will be relative to the provided `ROOT_PATH` in the master `[log]` section.
 
 `MAX_SIZE_SHIFT` defines the maximum size of a file by left shifting 1 the given number of times (`1 << x`).
 The exact behavior at the time of v1.17.3 can be seen [here](https://github.com/go-gitea/gitea/blob/v1.17.3/modules/setting/log.go#L185).

@@ -28,9 +28,9 @@ const (
 	Lfuncname                         // function name of the caller: runtime.Caller()
 	Lshortfuncname                    // last part of the function name
 	LUTC                              // if Ldate or Ltime is set, use UTC rather than the local time zone
-	Llevelinitial                     // Initial character of the provided level in brackets eg. [I] for info
+	Llevelinitial                     // Initial character of the provided level in brackets, eg. [I] for info
 	Llevel                            // Provided level in brackets [INFO]
-	Lgopid
+	Lgopid                            // the Goroutine-PID of the context
 
 	Lmedfile  = Lshortfile | Llongfile                                    // last 20 characters of the filename
 	LstdFlags = Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial // default
