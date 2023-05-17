@@ -141,7 +141,7 @@ func TestAPIReposGitCommitListWithoutSelectFields(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Test getting commits without files, verification, and stats
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits?token="+token+"&sha=good-sign&stat=false&files=false&verification=false", user.Name)
