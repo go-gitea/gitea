@@ -27,9 +27,11 @@
 		<a class="{{if .PageIsSettingsKeys}}active {{end}}item" href="{{.RepoLink}}/settings/keys">
 			{{.locale.Tr "repo.settings.deploy_keys"}}
 		</a>
+		{{if .EnableActions}}
 		<a class="{{if .PageIsSettingsSecrets}}active {{end}}item" href="{{.RepoLink}}/settings/secrets">
 			{{.locale.Tr "secrets.secrets"}}
 		</a>
+		{{end}}
 		{{if .LFSStartServer}}
 			<a class="{{if .PageIsSettingsLFS}}active {{end}}item" href="{{.RepoLink}}/settings/lfs">
 				{{.locale.Tr "repo.settings.lfs"}}
