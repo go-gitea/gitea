@@ -21,7 +21,7 @@ The logging configuration of Gitea mainly consists of 3 types of components:
 
 - The `[log]` section for general configuration
 - `[log.<mode-name>]` sections for the configuration of different log writers to output logs, aka: "writer mode", the mode name is also used as "writer name".
-- `[log]` section could contain sub-loggers like`logger.<logger-name>.<CONFIG-KEY>`
+- The `[log]` section can also contain sub-logger configurations following the key schema `logger.<logger-name>.<CONFIG-KEY>`
 
 There is a fully functional log output by default, so it is not necessary to define one.
 
