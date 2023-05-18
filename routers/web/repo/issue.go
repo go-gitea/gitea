@@ -206,10 +206,10 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	if forceEmpty {
 		issueStats = &issues_model.IssueStats{}
 	} else {
-		issueStats, err = issues_model.GetIssueStats(&issues_model.IssueStatsOptions{
+		issueStats, err = issues_model.GetIssueStats(&issues_model.IssuesOptions{
 			RepoID:            repo.ID,
-			Labels:            selectLabels,
-			MilestoneID:       milestoneID,
+			LabelIDs:          labelIDs,
+			MilestoneIDs:      []int64{milestoneID},
 			ProjectID:         projectID,
 			AssigneeID:        assigneeID,
 			MentionedID:       mentionedID,
