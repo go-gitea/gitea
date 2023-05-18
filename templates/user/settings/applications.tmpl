@@ -45,25 +45,29 @@
 					<label for="name">{{.locale.Tr "settings.token_name"}}</label>
 					<input id="name" name="name" value="{{.name}}" autofocus required maxlength="255">
 				</div>
+				<div class="field gt-pl-2" style="padding-top: 5px">
+					<label style="cursor: pointer">
+						<input class="enable-system" type="radio" name="scope" value="public" style="margin: 4px 5px 0 0">
+						Scopes apply to public repositories and organizations only
+					</label>
+					<label style="cursor: pointer">
+						<input class="enable-system" type="radio" name="scope" value="" style="margin: 4px 5px 0 0" checked>
+						Scopes apply to public and private repos and organizations
+					</label>
+				</div>
 				<details class="ui optional field">
 					<summary class="gt-p-2">
 						{{.locale.Tr "settings.select_scopes"}}
 					</summary>
-					<div class="field gt-pl-2" style="padding-top: 5px">
-						<label style="cursor: pointer">
-							<input class="enable-system" type="checkbox" name="scope" value="public" style="margin: 4px 5px 0 0">
-							Public Repos Only
-						</label>
-					</div>
 					<scoped-access-token-category category="activitypub"></scoped-access-token-category>
 					{{if .IsAdmin}}
 						<scoped-access-token-category category="admin"></scoped-access-token-category>
 					{{end}}
+					<scoped-access-token-category category="issue"></scoped-access-token-category>
 					<scoped-access-token-category category="misc"></scoped-access-token-category>
 					<scoped-access-token-category category="notification"></scoped-access-token-category>
 					<scoped-access-token-category category="organization"></scoped-access-token-category>
 					<scoped-access-token-category category="package"></scoped-access-token-category>
-					<scoped-access-token-category category="issue"></scoped-access-token-category>
 					<scoped-access-token-category category="repository"></scoped-access-token-category>
 					<scoped-access-token-category category="user"></scoped-access-token-category>
 				</details>
