@@ -42,7 +42,6 @@ func ToUserWithAccessMode(ctx context.Context, user *user_model.User, accessMode
 // toUser convert user_model.User to api.User
 // accessMode is only used if doer is nil
 func toUser(ctx context.Context, user, doer *user_model.User, accessMode perm.AccessMode) *api.User {
-
 	result := &api.User{
 		ID:          user.ID,
 		UserName:    user.Name,
