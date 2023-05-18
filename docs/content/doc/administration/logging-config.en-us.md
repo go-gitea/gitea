@@ -35,7 +35,7 @@ To collect logs for help and issue report, see [Support Options]({{< relref "doc
 
 ## The `[log]` section
 
-Configuration of logging facilities in Gitea happen in the `[log]` section and it's subsections.
+Configuration of logging facilities in Gitea happen in the `[log]` section and its subsections.
 
 In the top level `[log]` section the following configurations can be placed:
 
@@ -142,7 +142,7 @@ Please note this expression will be run in the writer's goroutine but not the lo
 `FLAGS` represents the preceding logging context information that is
 printed before each message. It is a comma-separated string set. The order of values does not matter.
 
-It is default to `stdflags` (Equal to `date,time,medfile,shortfuncname,levelinitial`)
+It defaults to `stdflags` (= `date,time,medfile,shortfuncname,levelinitial`)
 
 Possible values are:
 
@@ -221,7 +221,7 @@ To make XORM outputs SQL logs, the `LOG_SQL` in `[database]` section should also
 
 ### The "Access" logger
 
-The Access logger is a new logger for version 1.9. It provides a NCSA
+The Access logger is a new logger since Gitea 1.9. It provides a NCSA
 Common Log compliant log format. It's highly configurable but caution
 should be taken when changing its template. The main benefit of this
 logger is that Gitea can now log accesses in a standard log format so
@@ -237,9 +237,9 @@ Please note, the access logger will log at `INFO` level, setting the
 
 #### The ACCESS_LOG_TEMPLATE
 
-This value represent a go template. It's default value is:
+This value represents a go template. Its default value is
 
-```
+```tmpl
 {{.Ctx.RemoteHost}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}" "{{.Ctx.Req.UserAgent}}"`
 ```
 

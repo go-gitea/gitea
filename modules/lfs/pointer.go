@@ -113,9 +113,9 @@ func (p Pointer) RelativePath() string {
 
 func (p Pointer) LogString() string {
 	if p.Oid == "" && p.Size == 0 {
-		return "<Pointer empty>"
+		return "<LFSPointer empty>"
 	}
-	return fmt.Sprintf("<Pointer %s:%d>", p.Oid, p.Size)
+	return fmt.Sprintf("<LFSPointer %s:%d>", p.Oid, p.Size)
 }
 
 // GeneratePointer generates a pointer for arbitrary content
