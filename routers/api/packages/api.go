@@ -563,7 +563,7 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				})
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
-	}, context_service.UserAssignmentWeb(), context.PackageAssignmentWeb())
+	}, context_service.UserAssignmentWeb(), context.PackageAssignment())
 
 	return r
 }
@@ -730,7 +730,7 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 
 			ctx.Status(http.StatusNotFound)
 		})
-	}, container.ReqContainerAccess, context_service.UserAssignmentWeb(), context.PackageAssignmentWeb(), reqPackageAccess(perm.AccessModeRead))
+	}, container.ReqContainerAccess, context_service.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 
 	return r
 }

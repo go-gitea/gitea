@@ -25,19 +25,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type mockRender struct{}
-
-func (tr *mockRender) TemplateLookup(tmpl string) (templates.TemplateExecutor, error) {
-	return nil, nil
-}
-
-func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}) error {
-	if resp, ok := w.(http.ResponseWriter); ok {
-		resp.WriteHeader(status)
-	}
-	return nil
-}
-
 // MockContext mock context for unit tests
 // TODO: move this function to other packages, because it depends on "models" package
 func MockContext(t *testing.T, path string) *context.Context {
@@ -157,4 +144,17 @@ func LoadGitRepo(t *testing.T, ctx *context.Context) {
 	var err error
 	ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
+}
+
+type mockRender struct{}
+
+func (tr *mockRender) TemplateLookup(tmpl string) (templates.TemplateExecutor, error) {
+	return nil, nil
+}
+
+func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}) error {
+	if resp, ok := w.(http.ResponseWriter); ok {
+		resp.WriteHeader(status)
+	}
+	return nil
 }

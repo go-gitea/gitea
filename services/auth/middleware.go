@@ -40,6 +40,7 @@ func APIAuth(authMethod Method) func(*context.APIContext) {
 		ar, err := authShared(ctx.Base, nil, authMethod)
 		if err != nil {
 			ctx.Error(http.StatusUnauthorized, "APIAuth", err)
+			return
 		}
 		ctx.Doer = ar.Doer
 		ctx.IsSigned = ar.Doer != nil

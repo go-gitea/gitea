@@ -30,8 +30,8 @@ type packageAssignmentCtx struct {
 	ContextUser *user_model.User
 }
 
-// PackageAssignmentWeb returns a middleware to handle Context.Package assignment
-func PackageAssignmentWeb() func(ctx *Context) {
+// PackageAssignment returns a middleware to handle Context.Package assignment
+func PackageAssignment() func(ctx *Context) {
 	return func(ctx *Context) {
 		errorFn := func(status int, title string, obj interface{}) {
 			err, ok := obj.(error)
