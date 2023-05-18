@@ -257,26 +257,28 @@ const sfc = {
     nextTick(() => {
       this.$refs.search.focus();
       this.$refs.search.addEventListener('keydown', (e) => {
+        const previousPageLink = this.$refs.previousPageLink;
+        const nextPageLink = this.$refs.nextPageLink;
         switch (e.key) {
           case 'Enter':
             this.$refs[`repoIndex${this.repoIndex}`][0].click();
             break;
           case 'ArrowUp':
             if (this.repoIndex > 0) this.repoIndex--;
-            else if (this.$refs.previousPageLink && !this.$refs.previousPageLink.classList.contains('disabled')) this.$refs.previousPageLink.click();
+            else if (previousPageLink && !previousPageLink.classList.contains('disabled')) previousPageLink.click();
             break;
           case 'ArrowDown':
             if (this.repoIndex < this.repos.length - 1) this.repoIndex++;
-            else if (this.$refs.nextPageLink && this.$refs.nextPageLink.classList && !this.$refs.nextPageLink.classList.contains('disabled')) {
+            else if (nextPageLink && nextPageLink.classList && !nextPageLink.classList.contains('disabled')) {
               this.repoIndex = 0;
-              this.$refs.nextPageLink.click();
+              nextPageLink.click();
             }
             break;
           case 'ArrowRight':
-            if (this.$refs.nextPageLink && !this.$refs.nextPageLink.classList.contains('disabled')) this.$refs.nextPageLink.click();
+            if (nextPageLink && !nextPageLink.classList.contains('disabled')) nextPageLink.click();
             break;
           case 'ArrowLeft':
-            if (this.$refs.previousPageLink && !this.$refs.previousPageLink.classList.contains('disabled')) this.$refs.previousPageLink.click();
+            if (previousPageLink && !previousPageLink.classList.contains('disabled')) previousPageLink.click();
             break;
         }
       });
