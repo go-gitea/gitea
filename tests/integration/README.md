@@ -31,7 +31,7 @@ Warning: This file defines many jobs, so it will be resource-intensive and there
 act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -j <job_name>
 ```
 
-You can can list all job names via:
+You can list all job names via:
 
 ```SHELL
 act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -l
