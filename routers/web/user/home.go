@@ -580,11 +580,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// -------------------------------
 	var issueStats *issues_model.IssueStats
 	if !forceEmpty {
-		statsOpts := issues_model.UserIssueStatsOptions{
-			UserID:     ctx.Doer.ID,
-			FilterMode: filterMode,
-			IsPull:     isPullList,
-			IsClosed:   isShowClosed,
+		statsOpts := issues_model.IssuesOptions{
+			User:       ctx.Doer,
+			IsPull:     util.OptionalBoolOf(isPullList),
+			IsClosed:   util.OptionalBoolOf(isShowClosed),
 			IssueIDs:   issueIDsFromSearch,
 			IsArchived: util.OptionalBoolFalse,
 			LabelIDs:   opts.LabelIDs,
@@ -593,7 +592,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			RepoCond:   opts.RepoCond,
 		}
 
-		issueStats, err = issues_model.GetUserIssueStats(statsOpts)
+		issueStats, err = issues_model.GetUserIssueStats(filterMode, statsOpts)
 		if err != nil {
 			ctx.ServerError("GetUserIssueStats Shown", err)
 			return

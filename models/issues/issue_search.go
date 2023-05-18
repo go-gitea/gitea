@@ -22,7 +22,7 @@ import (
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct { //nolint
 	db.ListOptions
-	RepoID             int64 // overwrites RepoCond if not 0
+	RepoIDs            []int64 // overwrites RepoCond if not 0
 	RepoCond           builder.Cond
 	AssigneeID         int64
 	PosterID           int64
@@ -155,17 +155,24 @@ func applyMilestoneCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Sess
 	return sess
 }
 
+func applyRepoConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+	if len(opts.RepoIDs) == 1 {
+		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoIDs[0]}
+	} else if len(opts.RepoIDs) > 1 {
+		opts.RepoCond = builder.In("issue.repo_id", opts.RepoIDs)
+	}
+	if opts.RepoCond != nil {
+		sess.And(opts.RepoCond)
+	}
+	return sess
+}
+
 func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 	if len(opts.IssueIDs) > 0 {
 		sess.In("issue.id", opts.IssueIDs)
 	}
 
-	if opts.RepoID != 0 {
-		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoID}
-	}
-	if opts.RepoCond != nil {
-		sess.And(opts.RepoCond)
-	}
+	applyRepoConditions(sess, opts)
 
 	if !opts.IsClosed.IsNone() {
 		sess.And("issue.is_closed=?", opts.IsClosed.IsTrue())
