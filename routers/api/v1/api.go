@@ -300,12 +300,16 @@ func reqToken() func(ctx *context.APIContext) {
 		}
 
 		if true == ctx.Data["IsApiToken"] {
-			if ctx.Data["ApiTokenScopePublicRepoOnly"].(bool) && ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
+			publicRepo, pubRepoExists := ctx.Data["ApiTokenScopePublicRepoOnly"]
+			publicOrg, pubOrgExists := ctx.Data["ApiTokenScopePublicOrgOnly"]
+
+			if pubRepoExists && publicRepo.(bool) && ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
 				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public repos")
 				return
 			}
 
-			if ctx.Data["ApiTokenScopePublicOrgOnly"].(bool) && ctx.Org.Organization != nil && ctx.Org.Organization.Visibility != api.VisibleTypePublic {
+			if pubOrgExists && publicOrg.(bool) && ctx.Data["ApiTokenScopePublicOrgOnly"].(bool) &&
+				ctx.Org.Organization != nil && ctx.Org.Organization.Visibility != api.VisibleTypePublic {
 				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public orgs")
 				return
 			}
@@ -864,7 +868,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					Get(user.ListOauth2Applications).
 					Post(bind(api.CreateOAuth2ApplicationOptions{}), user.CreateOauth2Application) // TODO reqToken()?
 				m.Combo("/oauth2/{id}").
-					Delete(user.DeleteOauth2Application).                                            // TODO reqToken()?
+					Delete(user.DeleteOauth2Application). // TODO reqToken()?
 					Patch(bind(api.CreateOAuth2ApplicationOptions{}), user.UpdateOauth2Application). // TODO reqToken()?
 					Get(user.GetOauth2Application)
 			})
