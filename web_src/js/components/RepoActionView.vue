@@ -253,8 +253,8 @@ const sfc = {
       // TODO: Support displaying time optionally
       const logTimeStamp = document.createElement('span');
       logTimeStamp.className = 'log-time-stamp';
-      const date = new Date(parseFloat(line.timestamp));
-      console.log('line.timestamp:', line.timestamp);
+      const date = new Date(parseFloat(line.timestamp*1000));
+      console.log('date', date);
       const timeStamp = date.toLocaleString(undefined, {year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long', hour: '2-digit', hour12: false, minute: '2-digit', second: '2-digit'})
       console.log('parsed date:', timeStamp);
       logTimeStamp.innerHTML = timeStamp;
