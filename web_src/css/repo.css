@@ -1990,6 +1990,11 @@
   padding-left: 26px;
 }
 
+.repository.settings.branches .branch-protection .status-check-matched-mark {
+  font-weight: var(--font-weight-bold);
+  font-style: italic;
+}
+
 .repository.settings.webhook .events .column {
   padding-bottom: 0;
 }

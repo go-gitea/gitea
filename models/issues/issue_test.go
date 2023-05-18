@@ -494,7 +494,7 @@ func TestCorrectIssueStats(t *testing.T) {
 
 	// Now we will call the GetIssueStats with these IDs and if working,
 	// get the correct stats back.
-	issueStats, err := issues_model.GetIssueStats(&issues_model.IssueStatsOptions{
+	issueStats, err := issues_model.GetIssueStats(&issues_model.IssuesOptions{
 		RepoID:   1,
 		IssueIDs: ids,
 	})

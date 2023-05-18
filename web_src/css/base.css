@@ -321,6 +321,16 @@ progress::-moz-progress-bar {
   opacity: 1 !important;
 }
 
+.svg {
+  display: inline-block;
+  vertical-align: text-top;
+  fill: currentcolor;
+}
+
+.middle .svg {
+  vertical-align: middle;
+}
+
 .unselectable,
 .button,
 .lines-num,
