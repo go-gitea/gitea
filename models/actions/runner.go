@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/shared/types"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
@@ -29,7 +30,7 @@ type ActionRunner struct {
 	Version     string                 `xorm:"VARCHAR(64)"`
 	OwnerID     int64                  `xorm:"index"` // org level runner, 0 means system
 	Owner       *user_model.User       `xorm:"-"`
-	RepoID      int64                  `xorm:"index"` // repo level runner, if orgid also is zero, then it's a global
+	RepoID      int64                  `xorm:"index"` // repo level runner, if OwnerID also is zero, then it's a global
 	Repo        *repo_model.Repository `xorm:"-"`
 	Description string                 `xorm:"TEXT"`
 	Base        int                    // 0 native 1 docker 2 virtual machine
@@ -53,38 +54,25 @@ type ActionRunner struct {
 	Deleted timeutil.TimeStamp `xorm:"deleted"`
 }
 
-// RunnerType defines the runner type
-type RunnerType int //revive:disable-line:exported
-
-const (
-	// RunnerTypeGlobal defines a global runner
-	RunnerTypeGlobal RunnerType = iota
-
-	// RunnerTypeOrganization defines an organization runner
-	RunnerTypeOrganization
-
-	// RunnerTypeRepository defines a repository runner
-	RunnerTypeRepository
-)
-
-func (r *ActionRunner) Type() RunnerType {
+// BelongsToOwnerName before calling, should guarantee that all attributes are loaded
+func (r *ActionRunner) BelongsToOwnerName() string {
 	if r.RepoID != 0 {
-		return RunnerTypeRepository
+		return r.Repo.FullName()
 	}
 	if r.OwnerID != 0 {
-		return RunnerTypeOrganization
+		return r.Owner.Name
 	}
-	return RunnerTypeGlobal
+	return ""
 }
 
-func (r *ActionRunner) OwnType() string {
+func (r *ActionRunner) BelongsToOwnerType() types.OwnerType {
 	if r.RepoID != 0 {
-		return fmt.Sprintf("Repo(%s)", r.Repo.FullName())
+		return types.OwnerTypeRepository
 	}
 	if r.OwnerID != 0 {
-		return fmt.Sprintf("Org(%s)", r.Owner.Name)
+		return types.OwnerTypeOrganization
 	}
-	return "Global"
+	return types.OwnerTypeSystemGlobal
 }
 
 func (r *ActionRunner) Status() runnerv1.RunnerStatus {

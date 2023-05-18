@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli"
 )
@@ -141,7 +140,7 @@ func (d *delayWriter) Close() error {
 	if d == nil {
 		return nil
 	}
-	stopped := util.StopTimer(d.timer)
+	stopped := d.timer.Stop()
 	if stopped || d.buf == nil {
 		return nil
 	}

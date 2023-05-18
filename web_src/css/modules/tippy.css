@@ -29,10 +29,6 @@
   color: var(--color-tooltip-text);
 }
 
-.tippy-box[data-theme="menu"] .ui.menu {
-  border: none;
-}
-
 .tippy-content {
   position: relative;
   padding: 1rem;

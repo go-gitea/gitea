@@ -1,5 +1,7 @@
 import tippy from 'tippy.js';
 
+const visibleInstances = new Set();
+
 export function createTippy(target, opts = {}) {
   const instance = tippy(target, {
     appendTo: document.body,
@@ -9,6 +11,21 @@ export function createTippy(target, opts = {}) {
     interactiveBorder: 20,
     ignoreAttributes: true,
     maxWidth: 500, // increase over default 350px
+    onHide: (instance) => {
+      visibleInstances.delete(instance);
+    },
+    onDestroy: (instance) => {
+      visibleInstances.delete(instance);
+    },
+    onShow: (instance) => {
+      // hide other tooltip instances so only one tooltip shows at a time
+      for (const visibleInstance of visibleInstances) {
+        if (visibleInstance.role === 'tooltip') {
+          visibleInstance.hide();
+        }
+      }
+      visibleInstances.add(instance);
+    },
     arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
     ...(opts?.role && {theme: opts.role}),
     ...opts,
