@@ -133,7 +133,7 @@ func (r *ActionRunner) EditLink() string {
 }
 
 // Editable checks if the runner is editable by the user
-func (r *ActionRunner) Editable(doer, owner *user_model.User, repo *repo_model.Repository) (bool, error) {
+func (r *ActionRunner) Editable(ctx context.Context, doer, owner *user_model.User, repo *repo_model.Repository) (bool, error) {
 	if doer == nil {
 		return false, nil
 	}
@@ -149,7 +149,7 @@ func (r *ActionRunner) Editable(doer, owner *user_model.User, repo *repo_model.R
 			return true, nil
 		}
 
-		if err := repo.LoadOwner(db.DefaultContext); err != nil {
+		if err := repo.LoadOwner(ctx); err != nil {
 			return false, err
 		}
 		// org runner in repo runners list

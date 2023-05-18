@@ -74,7 +74,7 @@ func RunnerDetails(ctx *context.Context, page int, runnerID int64, owner *user.U
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
-	if editable, err := runner.Editable(ctx.Doer, owner, repo); err != nil {
+	if editable, err := runner.Editable(ctx, ctx.Doer, owner, repo); err != nil {
 		ctx.ServerError("Editable", err)
 		return
 	} else if !editable {
@@ -124,7 +124,7 @@ func RunnerDetailsEditPost(ctx *context.Context, runnerID int64, redirectTo stri
 		ctx.ServerError("RunnerDetailsEditPost.GetRunnerByID", err)
 		return
 	}
-	if editable, err := runner.Editable(ctx.Doer, owner, repo); err != nil {
+	if editable, err := runner.Editable(ctx, ctx.Doer, owner, repo); err != nil {
 		ctx.ServerError("Editable", err)
 		return
 	} else if !editable {
