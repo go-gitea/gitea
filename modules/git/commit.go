@@ -100,6 +100,14 @@ func AddChangesWithArgs(repoPath string, globalArgs TrustedCmdArgs, all bool, fi
 	return err
 }
 
+// DeleteChangesWithArgs marks local changes to be ready for commit.
+func DeleteChangesWithArgs(repoPath string, globalArgs TrustedCmdArgs, files ...string) error {
+	cmd := NewCommandContextNoGlobals(DefaultContext, globalArgs...).AddArguments("rm")
+	cmd.AddDashesAndList(files...)
+	_, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
+	return err
+}
+
 // CommitChangesOptions the options when a commit created
 type CommitChangesOptions struct {
 	Committer *Signature
