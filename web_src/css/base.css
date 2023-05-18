@@ -183,7 +183,10 @@
   --color-tooltip-bg: #000000f0;
   --color-tooltip-text: #ffffff;
   --color-header-bar: #ffffff;
-  --color-label-active-bg: #d0d0d0;
+  --color-label-fg: #232323;
+  --color-label-bg: #b8b8b84b;
+  --color-label-hover-bg: #b8b8b880;
+  --color-label-active-bg: #b8b8b8;
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-6);
   --color-active-line: #fffbdd;
@@ -818,16 +821,6 @@ a.label,
 
 .ui.menu .item > .svg {
   margin-right: 0.35em;
-}
-
-.ui.menu .item > .label {
-  background: var(--color-grey);
-}
-
-.ui.active.label {
-  background: var(--color-label-active-bg);
-  border-color: var(--color-label-active-bg);
-  color: var(--color-text-dark);
 }
 
 .ui.menu .dropdown.item:hover,
@@ -1976,22 +1969,32 @@ i.icon.centerlock {
 
 .ui.label {
   padding: 0.3em 0.5em;
-  background: var(--color-light);
-  color: var(--color-text-light);
+}
+
+.ui.label,
+.ui.menu .item > .label {
+  background: var(--color-label-bg);
+  color: var(--color-label-fg);
+}
+
+.ui.active.label {
+  background: var(--color-label-active-bg);
+  border-color: var(--color-label-active-bg);
+  color: var(--color-label-fg);
 }
 
 .ui.labels a.label:hover,
 a.ui.label:hover {
-  background: var(--color-hover);
-  border-color: var(--color-hover);
-  color: var(--color-text);
+  background: var(--color-label-hover-bg);
+  border-color: var(--color-label-hover-bg);
+  color: var(--color-label-fg);
 }
 
 .ui.labels a.active.label:hover,
 a.ui.active.label:hover {
-  background: var(--color-active);
-  border-color: var(--color-active);
-  color: var(--color-text);
+  background: var(--color-label-active-bg);
+  border-color: var(--color-label-active-bg);
+  color: var(--color-label-fg);
 }
 
 .ui.label > .detail .icons {
