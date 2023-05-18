@@ -19,7 +19,6 @@ import (
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/google/go-github/v51/github"
 	"golang.org/x/oauth2"
@@ -164,7 +163,7 @@ func (g *GithubDownloaderV3) waitAndPickClient() {
 		timer := time.NewTimer(time.Until(g.rates[g.curClientIdx].Reset.Time))
 		select {
 		case <-g.ctx.Done():
-			util.StopTimer(timer)
+			timer.Stop()
 			return
 		case <-timer.C:
 		}
