@@ -17,22 +17,22 @@ make clean build
 
 ## Run tests via local act_runner
 
-### run all jobs
+### Run all jobs
 
 ```
 act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest
 ```
 
-Warning: because of many jobs was defined in this file, this operation will 
-cost too much cpu and memory to run. so not suggest do this.
+Warning: This file defines many jobs, so it will be resource-intensive and therefor not recommended.
 
-### run one job
+### Run single job
 
 ```SHELL
 act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -j <job_name>
 ```
 
-you can can list all job names by:
+You can can list all job names via:
+
 ```SHELL
 act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -l
 ```
