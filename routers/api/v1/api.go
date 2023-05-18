@@ -242,6 +242,9 @@ func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeC
 	return func(ctx *context.APIContext) {
 		// If OAuth2 token is present
 		if _, ok := ctx.Data["ApiTokenScope"]; ctx.Data["IsApiToken"] == true && ok {
+			ctx.Data["ApiTokenScopePublicRepoOnly"] = false
+			ctx.Data["ApiTokenScopePublicOrgOnly"] = false
+
 			// no scope required
 			if len(requiredScopeCategories) == 0 {
 				return
@@ -268,17 +271,9 @@ func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeC
 				return
 			}
 
-			if publicOnly && auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryRepository) &&
-				ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
-				ctx.Error(http.StatusForbidden, "tokenRequiresScope", "token scope is limited to public repos: "+scope)
-				return
-			}
-
-			if publicOnly && auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryOrganization) &&
-				ctx.Org.Organization != nil && ctx.Org.Organization.Visibility != api.VisibleTypePublic {
-				ctx.Error(http.StatusForbidden, "tokenRequiresScope", "token scope is limited to public orgs: "+scope)
-				return
-			}
+			// this context is used by the middleware in the specific route
+			ctx.Data["ApiTokenScopePublicRepoOnly"] = publicOnly && auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryRepository)
+			ctx.Data["ApiTokenScopePublicOrgOnly"] = publicOnly && auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryOrganization)
 
 			allow, err := scope.HasScope(requiredScopes...)
 			if err != nil {
@@ -305,7 +300,16 @@ func reqToken() func(ctx *context.APIContext) {
 		}
 
 		if true == ctx.Data["IsApiToken"] {
-			// token scope checked at top level
+			if ctx.Data["ApiTokenScopePublicRepoOnly"].(bool) && ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
+				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public repos")
+				return
+			}
+
+			if ctx.Data["ApiTokenScopePublicOrgOnly"].(bool) && ctx.Org.Organization != nil && ctx.Org.Organization.Visibility != api.VisibleTypePublic {
+				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public orgs")
+				return
+			}
+
 			return
 		}
 

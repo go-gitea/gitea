@@ -50,10 +50,10 @@
 						{{.locale.Tr "settings.select_scopes"}}
 					</summary>
 					<div class="field gt-pl-2" style="padding-top: 5px">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="public">
-							<label>Public Repos Only</label>
-						</div>
+						<label style="cursor: pointer">
+							<input class="enable-system" type="checkbox" name="scope" value="public" style="margin: 4px 5px 0 0">
+							Public Repos Only
+						</label>
 					</div>
 					<scoped-access-token-category category="activitypub"></scoped-access-token-category>
 					{{if .IsAdmin}}
