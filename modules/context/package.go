@@ -14,6 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 )
 
 // Package contains owner, access mode and optional the package descriptor
@@ -139,10 +140,14 @@ func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.A
 
 // PackageContexter initializes a package context for a request.
 func PackageContexter() func(next http.Handler) http.Handler {
+	renderer := templates.HTMLRenderer()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base, baseCleanUp := NewBaseContext(resp, req)
-			ctx := &Context{Base: base}
+			ctx := &Context{
+				Base:   base,
+				Render: renderer, // it is still needed when rendering 500 page in a package handler
+			}
 			defer baseCleanUp()
 
 			ctx.Base.AppendContextValue(contextKey, ctx)

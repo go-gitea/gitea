@@ -5,6 +5,7 @@ package test
 
 import (
 	gocontext "context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -16,11 +17,26 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	chi "github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
+
+type mockRender struct{}
+
+func (tr *mockRender) TemplateLookup(tmpl string) (templates.TemplateExecutor, error) {
+	return nil, nil
+}
+
+func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}) error {
+	if resp, ok := w.(http.ResponseWriter); ok {
+		resp.WriteHeader(status)
+	}
+	return nil
+}
 
 // MockContext mock context for unit tests
 // TODO: move this function to other packages, because it depends on "models" package
@@ -34,9 +50,12 @@ func MockContext(t *testing.T, path string) *context.Context {
 	}
 
 	base, baseCleanUp := context.NewBaseContext(resp, req)
+	base.Data = middleware.ContextData{}
+	base.Locale = &translation.MockLocale{}
 	ctx := &context.Context{
-		Base:  base,
-		Flash: &middleware.Flash{Values: url.Values{}},
+		Base:   base,
+		Render: &mockRender{},
+		Flash:  &middleware.Flash{Values: url.Values{}},
 	}
 	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
 
@@ -57,6 +76,8 @@ func MockAPIContext(t *testing.T, path string) *context.APIContext {
 	}
 
 	base, baseCleanUp := context.NewBaseContext(resp, req)
+	base.Data = middleware.ContextData{}
+	base.Locale = &translation.MockLocale{}
 	ctx := &context.APIContext{Base: base}
 	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
 

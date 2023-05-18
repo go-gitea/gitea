@@ -18,6 +18,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -31,6 +32,7 @@ const (
 func createAPIContext(req *http.Request) (*context.APIContext, *httptest.ResponseRecorder) {
 	resp := httptest.NewRecorder()
 	base, baseCleanUp := context.NewBaseContext(resp, req)
+	base.Data = middleware.ContextData{}
 	c := &context.APIContext{Base: base}
 	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
 
