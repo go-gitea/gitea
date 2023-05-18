@@ -303,12 +303,13 @@ func reqToken() func(ctx *context.APIContext) {
 			publicRepo, pubRepoExists := ctx.Data["ApiTokenScopePublicRepoOnly"]
 			publicOrg, pubOrgExists := ctx.Data["ApiTokenScopePublicOrgOnly"]
 
-			if pubRepoExists && publicRepo.(bool) && ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
+			if pubRepoExists && publicRepo.(bool) &&
+				ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
 				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public repos")
 				return
 			}
 
-			if pubOrgExists && publicOrg.(bool) && ctx.Data["ApiTokenScopePublicOrgOnly"].(bool) &&
+			if pubOrgExists && publicOrg.(bool) &&
 				ctx.Org.Organization != nil && ctx.Org.Organization.Visibility != api.VisibleTypePublic {
 				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public orgs")
 				return
