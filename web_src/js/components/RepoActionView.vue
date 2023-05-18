@@ -262,6 +262,7 @@ const sfc = {
       logMessage.className = 'log-msg';
       logMessage.innerHTML = ansiLogToHTML(line.message);
       div.append(logTimeStamp);
+      div.append(logMessage);
 
       return div;
     },
