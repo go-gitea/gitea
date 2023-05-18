@@ -24,13 +24,13 @@ func Auth(authMethod Method) func(*context.Context) {
 			ctx.Error(http.StatusUnauthorized, "Verify")
 			return
 		}
+		ctx.Doer = ar.Doer
+		ctx.IsSigned = ar.Doer != nil
+		ctx.IsBasicAuth = ar.IsBasicAuth
 		if ctx.Doer == nil {
 			// ensure the session uid is deleted
 			_ = ctx.Session.Delete("uid")
 		}
-		ctx.Doer = ar.Doer
-		ctx.IsSigned = ar.Doer != nil
-		ctx.IsBasicAuth = ar.IsBasicAuth
 	}
 }
 
@@ -41,6 +41,7 @@ func APIAuth(authMethod Method) func(*context.APIContext) {
 		if err != nil {
 			ctx.Error(http.StatusUnauthorized, "APIAuth", err)
 		}
+		ctx.Doer = ar.Doer
 		ctx.IsSigned = ar.Doer != nil
 		ctx.IsBasicAuth = ar.IsBasicAuth
 	}
@@ -80,7 +81,7 @@ type VerifyOptions struct {
 	DisableCSRF     bool
 }
 
-// Checks authentication according to options
+// VerifyAuthWithOptions checks authentication according to options
 func VerifyAuthWithOptions(options *VerifyOptions) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
 		// Check prohibit login users.
