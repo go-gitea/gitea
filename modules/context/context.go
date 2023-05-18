@@ -70,9 +70,26 @@ type contextKeyType struct{}
 
 var contextKey interface{} = contextKeyType{}
 
-// GetContext retrieves install context from request
 func GetContext(req *http.Request) *Context {
-	return req.Context().Value(contextKey).(*Context)
+	ctx, _ := req.Context().Value(contextKey).(*Context)
+	return ctx
+}
+
+type ValidateContext struct {
+	*Base
+	Locale translation.Locale
+}
+
+// GetValidateContext gets a context for middleware form validation
+func GetValidateContext(req *http.Request) (ctx *ValidateContext) {
+	if ctxAPI, ok := req.Context().Value(apiContextKey).(*APIContext); ok {
+		ctx = &ValidateContext{Base: ctxAPI.Base, Locale: ctxAPI.Base.Locale}
+	} else if ctxWeb, ok := req.Context().Value(contextKey).(*Context); ok {
+		ctx = &ValidateContext{Base: ctxWeb.Base, Locale: ctxWeb.Base.Locale}
+	} else {
+		panic("invalid context, expect either APIContext or Context")
+	}
+	return ctx
 }
 
 // Contexter initializes a classic context for a request.

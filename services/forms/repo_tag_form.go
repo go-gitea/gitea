@@ -21,6 +21,6 @@ type ProtectTagForm struct {
 
 // Validate validates the fields
 func (f *ProtectTagForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

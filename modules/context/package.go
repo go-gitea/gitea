@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -28,22 +27,6 @@ type packageAssignmentCtx struct {
 	*Base
 	Doer        *user_model.User
 	ContextUser *user_model.User
-}
-
-func PackageContexter() func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			base, baseCleanUp := NewBaseContext(resp, req)
-			ctx := &Context{
-				Base:  base,
-				Cache: mc.GetCache(),
-			}
-			defer baseCleanUp()
-
-			ctx.Base.AppendContextValue(contextKey, ctx)
-			next.ServeHTTP(ctx.Resp, ctx.Req)
-		})
-	}
 }
 
 // PackageAssignmentWeb returns a middleware to handle Context.Package assignment
@@ -152,4 +135,18 @@ func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.A
 	}
 
 	return accessMode, nil
+}
+
+// PackageContexter initializes a package context for a request.
+func PackageContexter() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			base, baseCleanUp := NewBaseContext(resp, req)
+			ctx := &Context{Base: base}
+			defer baseCleanUp()
+
+			ctx.Base.AppendContextValue(contextKey, ctx)
+			next.ServeHTTP(ctx.Resp, ctx.Req)
+		})
+	}
 }
