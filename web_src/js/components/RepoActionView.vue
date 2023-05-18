@@ -44,7 +44,7 @@
         </div>
         <div class="job-artifacts" v-if="artifacts.length > 0">
           <div class="job-artifacts-title">
-            {{ local.artifactsTitle }}
+            {{ locale.artifactsTitle }}
           </div>
           <ul class="job-artifacts-list">
             <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.id">
@@ -347,6 +347,7 @@ export function initRepositoryActionView() {
       approve: el.getAttribute('data-locale-approve'),
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
+      artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       status: {
         unknown: el.getAttribute('data-locale-status-unknown'),
         waiting: el.getAttribute('data-locale-status-waiting'),
@@ -356,7 +357,6 @@ export function initRepositoryActionView() {
         cancelled: el.getAttribute('data-locale-status-cancelled'),
         skipped: el.getAttribute('data-locale-status-skipped'),
         blocked: el.getAttribute('data-locale-status-blocked'),
-        artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       }
     }
   });
