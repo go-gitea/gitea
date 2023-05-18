@@ -58,15 +58,14 @@ func Contexter() func(next http.Handler) http.Handler {
 	dbTypeNames := getSupportedDbTypeNames()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			base, baseCleanUp := context.NewBaseContext(resp, req)
 			ctx := context.Context{
-				Resp:    context.NewResponse(resp),
+				Base:    base,
 				Flash:   &middleware.Flash{},
-				Locale:  middleware.Locale(resp, req),
 				Render:  rnd,
-				Data:    middleware.GetContextData(req.Context()),
 				Session: session.GetSession(req),
 			}
-			defer ctx.Close()
+			defer baseCleanUp()
 
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data.MergeFrom(middleware.ContextData{
@@ -78,7 +77,6 @@ func Contexter() func(next http.Handler) http.Handler {
 
 				"PasswordHashAlgorithms": hash.RecommendedHashAlgorithms,
 			})
-			ctx.Req = context.WithContext(req, &ctx)
 			next.ServeHTTP(resp, ctx.Req)
 		})
 	}

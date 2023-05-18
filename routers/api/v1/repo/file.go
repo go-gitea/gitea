@@ -80,7 +80,7 @@ func GetRawFile(ctx *context.APIContext) {
 
 	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
-	if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
+	if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
 	}
 }
@@ -137,7 +137,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		}
 
 		// OK not cached - serve!
-		if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
+		if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
 			ctx.ServerError("ServeBlob", err)
 		}
 		return
@@ -159,7 +159,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 
 	if err := dataRc.Close(); err != nil {
-		log.Error("Error whilst closing blob %s reader in %-v. Error: %v", blob.ID, ctx.Context.Repo.Repository, err)
+		log.Error("Error whilst closing blob %s reader in %-v. Error: %v", blob.ID, ctx.Repo.Repository, err)
 	}
 
 	// Check if the blob represents a pointer
@@ -173,7 +173,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		}
 
 		// OK not cached - serve!
-		common.ServeContentByReader(ctx.Context, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
+		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
 		return
 	}
 
@@ -187,7 +187,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 			return
 		}
 
-		common.ServeContentByReader(ctx.Context, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
+		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
 		return
 	} else if err != nil {
 		ctx.ServerError("GetLFSMetaObjectByOid", err)
@@ -215,7 +215,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 	defer lfsDataRc.Close()
 
-	common.ServeContentByReadSeeker(ctx.Context, ctx.Repo.TreePath, lastModified, lfsDataRc)
+	common.ServeContentByReadSeeker(ctx.Base, ctx.Repo.TreePath, lastModified, lfsDataRc)
 }
 
 func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEntry, lastModified time.Time) {

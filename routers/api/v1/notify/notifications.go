@@ -25,7 +25,7 @@ func NewAvailable(ctx *context.APIContext) {
 }
 
 func getFindNotificationOptions(ctx *context.APIContext) *activities_model.FindNotificationOptions {
-	before, since, err := context.GetQueryBeforeSince(ctx.Context)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return nil

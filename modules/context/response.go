@@ -83,8 +83,7 @@ func (r *Response) Before(f func(ResponseWriter)) {
 	r.befores = append(r.befores, f)
 }
 
-// NewResponse creates a response
-func NewResponse(resp http.ResponseWriter) *Response {
+func WrapResponseWriter(resp http.ResponseWriter) *Response {
 	if v, ok := resp.(*Response); ok {
 		return v
 	}

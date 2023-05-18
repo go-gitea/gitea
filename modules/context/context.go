@@ -5,7 +5,6 @@
 package context
 
 import (
-	"context"
 	"html"
 	"html/template"
 	"io"
@@ -36,14 +35,11 @@ type Render interface {
 
 // Context represents context of a request.
 type Context struct {
-	Resp   ResponseWriter
-	Req    *http.Request
-	Render Render
+	*Base
 
-	Data     middleware.ContextData // data used by MVC templates
-	PageData map[string]any         // data used by JavaScript modules in one page, it's `window.config.pageData`
+	Render   Render
+	PageData map[string]any // data used by JavaScript modules in one page, it's `window.config.pageData`
 
-	Locale  translation.Locale
 	Cache   cache.Cache
 	Csrf    CSRFProtector
 	Flash   *middleware.Flash
@@ -60,16 +56,6 @@ type Context struct {
 	Package     *Package
 }
 
-// Close frees all resources hold by Context
-func (ctx *Context) Close() error {
-	var err error
-	if ctx.Req != nil && ctx.Req.MultipartForm != nil {
-		err = ctx.Req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
-	}
-	// TODO: close opened repo, and more
-	return err
-}
-
 // TrHTMLEscapeArgs runs ".Locale.Tr()" but pre-escapes all arguments with html.EscapeString.
 // This is useful if the locale message is intended to only produce HTML content.
 func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
@@ -80,55 +66,13 @@ func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
 	return ctx.Locale.Tr(msg, trArgs...)
 }
 
-func (ctx *Context) Tr(msg string, args ...any) string {
-	return ctx.Locale.Tr(msg, args...)
-}
-
-func (ctx *Context) TrN(cnt any, key1, keyN string, args ...any) string {
-	return ctx.Locale.TrN(cnt, key1, keyN, args...)
-}
-
-// Deadline is part of the interface for context.Context and we pass this to the request context
-func (ctx *Context) Deadline() (deadline time.Time, ok bool) {
-	return ctx.Req.Context().Deadline()
-}
-
-// Done is part of the interface for context.Context and we pass this to the request context
-func (ctx *Context) Done() <-chan struct{} {
-	return ctx.Req.Context().Done()
-}
-
-// Err is part of the interface for context.Context and we pass this to the request context
-func (ctx *Context) Err() error {
-	return ctx.Req.Context().Err()
-}
-
-// Value is part of the interface for context.Context and we pass this to the request context
-func (ctx *Context) Value(key interface{}) interface{} {
-	if key == git.RepositoryContextKey && ctx.Repo != nil {
-		return ctx.Repo.GitRepo
-	}
-	if key == translation.ContextKey && ctx.Locale != nil {
-		return ctx.Locale
-	}
-	return ctx.Req.Context().Value(key)
-}
-
 type contextKeyType struct{}
 
 var contextKey interface{} = contextKeyType{}
 
-// WithContext set up install context in request
-func WithContext(req *http.Request, ctx *Context) *http.Request {
-	return req.WithContext(context.WithValue(req.Context(), contextKey, ctx))
-}
-
 // GetContext retrieves install context from request
 func GetContext(req *http.Request) *Context {
-	if ctx, ok := req.Context().Value(contextKey).(*Context); ok {
-		return ctx
-	}
-	return nil
+	return req.Context().Value(contextKey).(*Context)
 }
 
 // Contexter initializes a classic context for a request.
@@ -150,20 +94,17 @@ func Contexter() func(next http.Handler) http.Handler {
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			ctx := Context{
-				Resp:    NewResponse(resp),
+			base, baseCleanUp := NewBaseContext(resp, req)
+			ctx := &Context{
+				Base:    base,
 				Cache:   mc.GetCache(),
-				Locale:  middleware.Locale(resp, req),
 				Link:    setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/"),
 				Render:  rnd,
 				Session: session.GetSession(req),
-				Repo: &Repository{
-					PullRequest: &PullRequest{},
-				},
-				Org:  &Organization{},
-				Data: middleware.GetContextData(req.Context()),
+				Repo:    &Repository{PullRequest: &PullRequest{}},
+				Org:     &Organization{},
 			}
-			defer ctx.Close()
+			defer baseCleanUp()
 
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data["Context"] = &ctx
@@ -175,15 +116,17 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.PageData = map[string]any{}
 			ctx.Data["PageData"] = ctx.PageData
 
-			ctx.Req = WithContext(req, &ctx)
-			ctx.Csrf = PrepareCSRFProtector(csrfOpts, &ctx)
+			ctx.Base.AppendContextValue(contextKey, ctx)
+			ctx.Base.AppendContextValueFunc(git.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
+
+			ctx.Csrf = PrepareCSRFProtector(csrfOpts, ctx)
 
 			// Get the last flash message from cookie
 			lastFlashCookie := middleware.GetSiteCookie(ctx.Req, CookieNameFlash)
 			if vals, _ := url.ParseQuery(lastFlashCookie); len(vals) > 0 {
 				// store last Flash message into the template data, to render it
 				ctx.Data["Flash"] = &middleware.Flash{
-					DataStore:  &ctx,
+					DataStore:  ctx,
 					Values:     vals,
 					ErrorMsg:   vals.Get("error"),
 					SuccessMsg: vals.Get("success"),
@@ -193,7 +136,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 
 			// prepare an empty Flash message for current request
-			ctx.Flash = &middleware.Flash{DataStore: &ctx, Values: url.Values{}}
+			ctx.Flash = &middleware.Flash{DataStore: ctx, Values: url.Values{}}
 			ctx.Resp.Before(func(resp ResponseWriter) {
 				if val := ctx.Flash.Encode(); val != "" {
 					middleware.SetSiteCookie(ctx.Resp, CookieNameFlash, val, 0)
@@ -234,4 +177,16 @@ func Contexter() func(next http.Handler) http.Handler {
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
+}
+
+// HasError returns true if error occurs in form validation.
+// Attention: this function changes ctx.Data and ctx.Flash
+func (ctx *Context) HasError() bool {
+	hasErr, ok := ctx.Data["HasError"]
+	if !ok {
+		return false
+	}
+	ctx.Flash.ErrorMsg = ctx.Data["ErrorMsg"].(string)
+	ctx.Data["Flash"] = ctx.Flash
+	return hasErr.(bool)
 }

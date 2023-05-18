@@ -153,7 +153,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 	}
 	defer fr.Close()
 
-	common.ServeContentByReadSeeker(ctx, attach.Name, attach.CreatedUnix.AsTime(), fr)
+	common.ServeContentByReadSeeker(ctx.Base, attach.Name, attach.CreatedUnix.AsTime(), fr)
 }
 
 // GetAttachment serve attachments

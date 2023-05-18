@@ -98,8 +98,6 @@ func verifyAuth(r *web.Route, authMethods []auth.Method) {
 func CommonRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
-	r.Use(context.PackageContexter(ctx))
-
 	verifyAuth(r, []auth.Method{
 		&auth.OAuth2{},
 		&auth.Basic{},
@@ -563,7 +561,7 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				})
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
-	}, context_service.UserAssignmentWeb(), context.PackageAssignment())
+	}, context_service.UserAssignmentWeb(), context.PackageAssignmentWebAPI())
 
 	return r
 }
@@ -573,8 +571,6 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md
 func ContainerRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
-
-	r.Use(context.PackageContexter(ctx))
 
 	verifyAuth(r, []auth.Method{
 		&auth.Basic{},
@@ -730,7 +726,7 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 
 			ctx.Status(http.StatusNotFound)
 		})
-	}, container.ReqContainerAccess, context_service.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+	}, container.ReqContainerAccess, context_service.UserAssignmentWeb(), context.PackageAssignmentWebAPI(), reqPackageAccess(perm.AccessModeRead))
 
 	return r
 }

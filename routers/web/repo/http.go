@@ -109,7 +109,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			if redirectRepoID, err := repo_model.LookupRedirect(owner.ID, reponame); err == nil {
-				context.RedirectToRepo(ctx, redirectRepoID)
+				context.RedirectToRepo(ctx.Base, redirectRepoID)
 				return
 			}
 			repoExist = false

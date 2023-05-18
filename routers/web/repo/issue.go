@@ -2344,7 +2344,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 // SearchIssues searches for issues across the repositories that the user has access to
 func SearchIssues(ctx *context.Context) {
-	before, since, err := context.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, err.Error())
 		return
@@ -2545,7 +2545,7 @@ func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
 
 // ListIssues list the issues of a repository
 func ListIssues(ctx *context.Context) {
-	before, since, err := context.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, err.Error())
 		return
