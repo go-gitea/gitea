@@ -243,6 +243,7 @@ type FindReviewOptions struct {
 	IssueID      int64
 	ReviewerID   int64
 	OfficialOnly bool
+	Distinct     bool
 }
 
 func (opts *FindReviewOptions) toCond() builder.Cond {
@@ -269,9 +270,14 @@ func FindReviews(ctx context.Context, opts FindReviewOptions) ([]*Review, error)
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 	}
+	distinct := ""
+	if opts.Distinct {
+		distinct = "reviewer_id"
+	}
 	return reviews, sess.
 		Asc("created_unix").
 		Asc("id").
+		Distinct(distinct).
 		Find(&reviews)
 }
 
