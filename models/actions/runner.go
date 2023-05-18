@@ -118,6 +118,20 @@ func (r *ActionRunner) AllLabels() []string {
 	return append(r.AgentLabels, r.CustomLabels...)
 }
 
+// EditLink returns edit runner link
+// Should ensure attributes are loaded before call this function
+func (r *ActionRunner) EditLink() string {
+	switch r.Type() {
+	case RunnerTypeGlobal:
+		return fmt.Sprintf("/admin/actions/runners/%d", r.ID)
+	case RunnerTypeRepository:
+		return fmt.Sprintf("%s/settings/actions/runners/%d", r.Repo.Link(), r.ID)
+	case RunnerTypeOrganization:
+		return fmt.Sprintf("%s/settings/actions/runners/%d", r.Owner.OrganisationLink(), r.ID)
+	}
+	return ""
+}
+
 // Editable checks if the runner is editable by the user
 func (r *ActionRunner) Editable(doer, owner *user_model.User, repo *repo_model.Repository) (bool, error) {
 	if doer == nil {
