@@ -110,7 +110,7 @@ func (rfw *RotatingFileWriter) open(filename string) error {
 		return err
 	}
 	rfw.currentSize = finfo.Size()
-	rfw.openDate = time.Now().Day()
+	rfw.openDate = finfo.ModTime().Day()
 
 	return nil
 }
