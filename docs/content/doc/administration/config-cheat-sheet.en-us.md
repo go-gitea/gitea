@@ -859,7 +859,7 @@ Default templates for project boards:
   - Configuration in app.ini:     REQUEST_ID_HEADERS = X-Request-ID
   - Print in log:                 127.0.0.1:58384 - - [14/Feb/2023:16:33:51 +0800]  "**test-id-123**" ...
 
-### Log subsections (`log.writer-mode-name`)
+### Log subsections (`log.<writer-mode-name>`)
 
 - `MODE`: **name**: Sets the mode of this log writer - Defaults to the provided subsection name. This allows you to have two different file loggers at different levels.
 - `LEVEL`: **log.LEVEL**: Sets the log-level of this writer. Defaults to the `LEVEL` set in the global `[log]` section.
