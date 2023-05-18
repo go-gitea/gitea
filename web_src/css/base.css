@@ -184,9 +184,9 @@
   --color-tooltip-text: #ffffff;
   --color-header-bar: #ffffff;
   --color-label-fg: #232323;
-  --color-label-bg: #b8b8b84b;
-  --color-label-hover-bg: #b8b8b880;
-  --color-label-active-bg: #b8b8b8;
+  --color-label-bg: #cacaca5b;
+  --color-label-hover-bg: #cacacaa0;
+  --color-label-active-bg: #cacacaff;
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-6);
   --color-active-line: #fffbdd;
