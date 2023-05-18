@@ -414,13 +414,10 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		} else if review.Reviewer == nil {
 			continue
 		}
-		if _, err := writer.Write([]byte("Reviewed-by: ")); err != nil {
-			return err
-		}
-		if _, err := writer.Write([]byte(review.Reviewer.NewGitSig().String())); err != nil {
-			return err
-		}
-		if _, err := writer.Write([]byte{'\n'}); err != nil {
+
+		reviewerSignature := review.Reviewer.NewGitSig().String()
+		trailer := fmt.Sprintf("%s: %s\n", setting.Repository.PullRequest.ApproverTrailerToken, reviewerSignature)
+		if _, err := writer.Write([]byte(trailer)); err != nil {
 			return err
 		}
 		reviewersWritten++

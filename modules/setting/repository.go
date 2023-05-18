@@ -85,6 +85,7 @@ var (
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
+			ApproverTrailerToken                     string
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -208,6 +209,7 @@ var (
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
+			ApproverTrailerToken                     string
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -222,6 +224,7 @@ var (
 			DefaultMergeMessageOfficialApproversOnly: true,
 			PopulateSquashCommentWithCommitMessages:  false,
 			AddCoCommitterTrailers:                   true,
+			ApproverTrailerToken:                     "Reviewed-by",
 		},
 
 		// Issue settings
