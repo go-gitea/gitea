@@ -190,3 +190,12 @@ func (ctx *Context) HasError() bool {
 	ctx.Data["Flash"] = ctx.Flash
 	return hasErr.(bool)
 }
+
+// GetErrMsg returns error message in form validation.
+func (ctx *Context) GetErrMsg() string {
+	msg, _ := ctx.Data["ErrorMsg"].(string)
+	if msg == "" {
+		msg = "invalid form data"
+	}
+	return msg
+}

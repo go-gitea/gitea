@@ -247,15 +247,8 @@ func SubmitInstall(ctx *context.Context) {
 	ctx.Data["CurDbType"] = form.DbType
 
 	if ctx.HasError() {
-		if ctx.HasValue("Err_SMTPUser") {
-			ctx.Data["Err_SMTP"] = true
-		}
-		if ctx.HasValue("Err_AdminName") ||
-			ctx.HasValue("Err_AdminPasswd") ||
-			ctx.HasValue("Err_AdminEmail") {
-			ctx.Data["Err_Admin"] = true
-		}
-
+		ctx.Data["Err_SMTP"] = ctx.Data["Err_SMTPUser"] != nil
+		ctx.Data["Err_Admin"] = ctx.Data["Err_AdminName"] != nil || ctx.Data["Err_AdminPasswd"] != nil || ctx.Data["Err_AdminEmail"] != nil
 		ctx.HTML(http.StatusOK, tplInstall)
 		return
 	}

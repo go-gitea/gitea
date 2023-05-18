@@ -34,10 +34,9 @@ type Base struct {
 
 	Resp ResponseWriter
 	Req  *http.Request
+	Data middleware.ContextData // data used by MVC templates, it's also used to pass data between middlewares/handler
 
 	Locale translation.Locale
-
-	Data middleware.ContextData // data used by MVC templates
 }
 
 func (b *Base) Deadline() (deadline time.Time, ok bool) {
@@ -73,15 +72,6 @@ func (b *Base) AppendContextValue(key, value any) any {
 
 func (b *Base) GetData() middleware.ContextData {
 	return b.Data
-}
-
-func (b *Base) GetErrMsg() string {
-	return b.Data["ErrorMsg"].(string)
-}
-
-func (b *Base) HasValue(name string) bool {
-	_, ok := b.Data[name]
-	return ok
 }
 
 // AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
