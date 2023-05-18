@@ -109,12 +109,12 @@ func (r *ActionRunner) AllLabels() []string {
 // EditLink returns edit runner link
 // Should ensure attributes are loaded before call this function
 func (r *ActionRunner) EditLink() string {
-	switch r.Type() {
-	case RunnerTypeGlobal:
+	switch r.BelongsToOwnerType() {
+	case types.OwnerTypeSystemGlobal:
 		return fmt.Sprintf("/admin/actions/runners/%d", r.ID)
-	case RunnerTypeRepository:
+	case types.OwnerTypeRepository:
 		return fmt.Sprintf("%s/settings/actions/runners/%d", r.Repo.Link(), r.ID)
-	case RunnerTypeOrganization:
+	case types.OwnerTypeOrganization:
 		return fmt.Sprintf("%s/settings/actions/runners/%d", r.Owner.OrganisationLink(), r.ID)
 	}
 	return ""
@@ -133,7 +133,7 @@ func (r *ActionRunner) Editable(ctx context.Context, doer, owner *user_model.Use
 
 	if repo != nil {
 		// repo runner in repo runners list
-		if r.Type() == RunnerTypeRepository && r.RepoID == repo.ID {
+		if r.BelongsToOwnerType() == types.OwnerTypeRepository && r.RepoID == repo.ID {
 			return true, nil
 		}
 
@@ -141,7 +141,7 @@ func (r *ActionRunner) Editable(ctx context.Context, doer, owner *user_model.Use
 			return false, err
 		}
 		// org runner in repo runners list
-		if r.Type() == RunnerTypeOrganization && repo.Owner.IsOrganization() {
+		if r.BelongsToOwnerType() == types.OwnerTypeOrganization && repo.Owner.IsOrganization() {
 			isOrgOwner, err := (*organization.Organization)(repo.Owner).IsOwnedBy(doer.ID)
 			if err != nil {
 				return false, err
@@ -154,7 +154,7 @@ func (r *ActionRunner) Editable(ctx context.Context, doer, owner *user_model.Use
 		return false, nil
 	}
 	// org runner in org runners list
-	return r.Type() == RunnerTypeOrganization && r.OwnerID == owner.ID && owner.IsOrganization(), nil
+	return r.BelongsToOwnerType() == types.OwnerTypeOrganization && r.OwnerID == owner.ID && owner.IsOrganization(), nil
 }
 
 // LoadAttributes loads the attributes of the runner
