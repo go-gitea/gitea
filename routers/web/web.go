@@ -814,7 +814,7 @@ func registerRoutes(m *web.Route) {
 						}, reqPackageAccess(perm.AccessModeWrite))
 					})
 				})
-			}, context.PackageAssignmentWebAPI(), reqPackageAccess(perm.AccessModeRead))
+			}, context.PackageAssignmentWeb(), reqPackageAccess(perm.AccessModeRead))
 		}
 
 		m.Group("/projects", func() {

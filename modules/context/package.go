@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -23,8 +24,30 @@ type Package struct {
 	Descriptor *packages_model.PackageDescriptor
 }
 
-// PackageAssignmentWebAPI returns a middleware to handle Context.Package assignment
-func PackageAssignmentWebAPI() func(ctx *Context) {
+type packageAssignmentCtx struct {
+	*Base
+	Doer        *user_model.User
+	ContextUser *user_model.User
+}
+
+func PackageContexter() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			base, baseCleanUp := NewBaseContext(resp, req)
+			ctx := &Context{
+				Base:  base,
+				Cache: mc.GetCache(),
+			}
+			defer baseCleanUp()
+
+			ctx.Base.AppendContextValue(contextKey, ctx)
+			next.ServeHTTP(ctx.Resp, ctx.Req)
+		})
+	}
+}
+
+// PackageAssignmentWeb returns a middleware to handle Context.Package assignment
+func PackageAssignmentWeb() func(ctx *Context) {
 	return func(ctx *Context) {
 		errorFn := func(status int, title string, obj interface{}) {
 			err, ok := obj.(error)
@@ -37,23 +60,25 @@ func PackageAssignmentWebAPI() func(ctx *Context) {
 				ctx.ServerError(title, err)
 			}
 		}
-
-		ctx.Package = packageAssignment(ctx.Base, ctx.Doer, errorFn)
+		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer, ContextUser: ctx.ContextUser}
+		ctx.Package = packageAssignment(paCtx, errorFn)
 	}
 }
 
 // PackageAssignmentAPI returns a middleware to handle Context.Package assignment
 func PackageAssignmentAPI() func(ctx *APIContext) {
 	return func(ctx *APIContext) {
-		ctx.Package = packageAssignment(ctx.Base, ctx.Doer, ctx.Error)
+		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer, ContextUser: ctx.ContextUser}
+		ctx.Package = packageAssignment(paCtx, ctx.Error)
 	}
 }
 
-func packageAssignment(ctx *Base, doer *user_model.User, errCb func(int, string, interface{})) *Package {
-	pkg := &Package{}
-
+func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string, interface{})) *Package {
+	pkg := &Package{
+		Owner: ctx.ContextUser,
+	}
 	var err error
-	pkg.AccessMode, err = determineAccessMode(ctx, pkg, doer)
+	pkg.AccessMode, err = determineAccessMode(ctx.Base, pkg, ctx.Doer)
 	if err != nil {
 		errCb(http.StatusInternalServerError, "determineAccessMode", err)
 		return pkg
