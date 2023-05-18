@@ -6,6 +6,7 @@ package convert
 import (
 	"context"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -17,13 +18,7 @@ func ToUser(ctx context.Context, user, doer *user_model.User) *api.User {
 	if user == nil {
 		return nil
 	}
-	authed := false
-	signed := false
-	if doer != nil {
-		signed = true
-		authed = doer.ID == user.ID || doer.IsAdmin
-	}
-	return toUser(ctx, user, signed, authed)
+	return toUser(ctx, user, doer, perm.AccessModeNone)
 }
 
 // ToUsers convert list of user_model.User to list of api.User
@@ -41,12 +36,13 @@ func ToUserWithAccessMode(ctx context.Context, user *user_model.User, accessMode
 	if user == nil {
 		return nil
 	}
-	return toUser(ctx, user, accessMode != perm.AccessModeNone, false)
+	return toUser(ctx, user, nil, accessMode)
 }
 
 // toUser convert user_model.User to api.User
-// signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
-func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *api.User {
+// accessMode is only used if doer is nil
+func toUser(ctx context.Context, user, doer *user_model.User, accessMode perm.AccessMode) *api.User {
+
 	result := &api.User{
 		ID:          user.ID,
 		UserName:    user.Name,
@@ -63,6 +59,26 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 	}
 
 	result.Visibility = user.Visibility.String()
+
+	authed := false
+	signed := false
+	if doer != nil {
+		signed = true
+		authed = doer.ID == user.ID || doer.IsAdmin
+
+		_, followersCount, err := user_model.GetUserFollowers(ctx, user, doer, db.ListOptions{ListAll: true})
+		if err != nil {
+			return nil
+		}
+		result.Followers = int(followersCount)
+		_, followingCount, err := user_model.GetUserFollowing(ctx, user, doer, db.ListOptions{ListAll: true})
+		if err != nil {
+			return nil
+		}
+		result.Following = int(followingCount)
+	} else if accessMode != perm.AccessModeNone {
+		signed = true
+	}
 
 	// hide primary email if API caller is anonymous or user keep email private
 	if signed && (!user.KeepEmailPrivate || authed) {
