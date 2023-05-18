@@ -509,9 +509,6 @@ func (issue *Issue) isIssueVisibleToDoer(ctx context.Context, doer *user_model.U
 		return false, nil
 	}
 
-	if unit.TypeIssues.UnitGlobalDisabled() {
-		return false, nil
-	}
 	if !issue.Repo.UnitEnabled(ctx, unit.TypeIssues) {
 		return false, nil
 	}

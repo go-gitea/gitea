@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -58,8 +59,11 @@ func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 
 // LoadIssuesFromBoard load issues assigned to this board
 func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user_model.User, isClosed util.OptionalBool) (IssueList, error) {
-	var issueList IssueList
+	if unit.TypeIssues.UnitGlobalDisabled() {
+		return nil, nil
+	}
 
+	var issueList IssueList
 	if b.ID != 0 {
 		issues, err := Issues(ctx, &IssuesOptions{
 			ProjectBoardID: b.ID,
