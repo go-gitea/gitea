@@ -77,7 +77,7 @@
 							<div class="notifications-updated gt-df gt-ac">
 								{{TimeSinceUnix .Issue.UpdatedUnix $locale}}
 							</div>
-							<div class="notifications-buttons gt-df gt-ac gt-gap-2 gt-px-2">
+							<div class="notifications-buttons gt-df gt-ac gt-je gt-gap-2 gt-px-2">
 								{{if ne .Status 3}}
 									<form action="{{AppSubUrl}}/notifications/status" method="POST">
 										{{$.CsrfTokenHtml}}
