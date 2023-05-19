@@ -309,7 +309,7 @@ func GetUserIssueStats(filterMode int, opts IssuesOptions) (*IssueStats, error) 
 		}
 	}
 
-	cond = cond.And(builder.Eq{"issue.is_closed": opts.IsClosed})
+	cond = cond.And(builder.Eq{"issue.is_closed": opts.IsClosed.IsTrue()})
 	stats.AssignCount, err = applyAssigneeCondition(sess(cond), opts.User.ID).Count(new(Issue))
 	if err != nil {
 		return nil, err
