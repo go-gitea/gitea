@@ -14,8 +14,7 @@ import (
 
 // EditRunnerForm form for admin to create runner
 type EditRunnerForm struct {
-	Description  string
-	CustomLabels string // comma-separated
+	Description string
 }
 
 // Validate validates form fields

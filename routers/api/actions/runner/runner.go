@@ -57,12 +57,11 @@ func (s *Service) Register(
 	// create new runner
 	name, _ := util.SplitStringAtByteN(req.Msg.Name, 255)
 	runner := &actions_model.ActionRunner{
-		UUID:         gouuid.New().String(),
-		Name:         name,
-		OwnerID:      runnerToken.OwnerID,
-		RepoID:       runnerToken.RepoID,
-		AgentLabels:  req.Msg.AgentLabels,
-		CustomLabels: req.Msg.CustomLabels,
+		UUID:    gouuid.New().String(),
+		Name:    name,
+		OwnerID: runnerToken.OwnerID,
+		RepoID:  runnerToken.RepoID,
+		Labels:  req.Msg.Labels,
 	}
 	if err := runner.GenerateToken(); err != nil {
 		return nil, errors.New("can't generate token")
@@ -81,16 +80,28 @@ func (s *Service) Register(
 
 	res := connect.NewResponse(&runnerv1.RegisterResponse{
 		Runner: &runnerv1.Runner{
-			Id:           runner.ID,
-			Uuid:         runner.UUID,
-			Token:        runner.Token,
-			Name:         runner.Name,
-			AgentLabels:  runner.AgentLabels,
-			CustomLabels: runner.CustomLabels,
+			Id:     runner.ID,
+			Uuid:   runner.UUID,
+			Token:  runner.Token,
+			Name:   runner.Name,
+			Labels: runner.Labels,
 		},
 	})
 
 	return res, nil
+}
+
+func (s *Service) Declare(
+	ctx context.Context,
+	req *connect.Request[runnerv1.DeclareRequest],
+) (*connect.Response[runnerv1.DeclareResponse], error) {
+	runner := GetRunner(ctx)
+	runner.Labels = req.Msg.Labels
+	if err := actions_model.UpdateRunner(ctx, runner, "labels"); err != nil {
+		return nil, status.Errorf(codes.Internal, "update runner: %v", err)
+	}
+
+	return connect.NewResponse(&runnerv1.DeclareResponse{}), nil
 }
 
 // FetchTask assigns a task to the runner

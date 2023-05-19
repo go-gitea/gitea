@@ -241,8 +241,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 
 	// TODO: a more efficient way to filter labels
 	var job *ActionRunJob
-	labels := runner.AgentLabels
-	labels = append(labels, runner.CustomLabels...)
+	labels := runner.Labels
 	log.Trace("runner labels: %v", labels)
 	for _, v := range jobs {
 		if isSubset(labels, v.RunsOn) {

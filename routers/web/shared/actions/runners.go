@@ -126,9 +126,8 @@ func RunnerDetailsEditPost(ctx *context.Context, runnerID, ownerID, repoID int64
 
 	form := web.GetForm(ctx).(*forms.EditRunnerForm)
 	runner.Description = form.Description
-	runner.CustomLabels = splitLabels(form.CustomLabels)
 
-	err = actions_model.UpdateRunner(ctx, runner, "description", "custom_labels")
+	err = actions_model.UpdateRunner(ctx, runner, "description")
 	if err != nil {
 		log.Warn("RunnerDetailsEditPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.Flash.Warning(ctx.Tr("actions.runners.update_runner_failed"))

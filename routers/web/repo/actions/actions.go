@@ -83,8 +83,7 @@ func List(ctx *context.Context) {
 		}
 		allRunnerLabels := make(container.Set[string])
 		for _, r := range runners {
-			allRunnerLabels.AddMultiple(r.AgentLabels...)
-			allRunnerLabels.AddMultiple(r.CustomLabels...)
+			allRunnerLabels.AddMultiple(r.Labels...)
 		}
 
 		workflows = make([]Workflow, 0, len(entries))

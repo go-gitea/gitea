@@ -43,10 +43,12 @@ type ActionRunner struct {
 	LastOnline timeutil.TimeStamp `xorm:"index"`
 	LastActive timeutil.TimeStamp `xorm:"index"`
 
-	// Store OS and Artch.
+	// Deprecated: Store OS and Artch.
 	AgentLabels []string
-	// Store custom labes use defined.
+	// Deprecated: Store custom labes use defined.
 	CustomLabels []string
+	// Combine “agent labels” and “custom labels” to “labels”.
+	Labels []string `xorm:"TEXT"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
@@ -100,7 +102,7 @@ func (r *ActionRunner) IsOnline() bool {
 	return false
 }
 
-// AllLabels returns agent and custom labels
+// Deprecated: AllLabels returns agent and custom labels
 func (r *ActionRunner) AllLabels() []string {
 	return append(r.AgentLabels, r.CustomLabels...)
 }
