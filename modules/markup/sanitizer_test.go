@@ -52,6 +52,10 @@ func Test_Sanitizer(t *testing.T) {
 		`<span style="bad-color: red">Hello World</span>`, `<span>Hello World</span>`,
 		`<p style="bad-color: red">Hello World</p>`, `<p>Hello World</p>`,
 		`<code style="bad-color: red">Hello World</code>`, `<code>Hello World</code>`,
+
+		// URLs
+		`[my custom URL scheme](cbthunderlink://somebase64string)`, `[my custom URL scheme](cbthunderlink://somebase64string)`,
+		`[my custom URL scheme](matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join&via=feneas.org&via=sorunome.de&via=the-apothecary.club&via=pirateriot.net&via=matrix.org)`, `[my custom URL scheme](matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join&via=feneas.org&via=sorunome.de&via=the-apothecary.club&via=pirateriot.net&via=matrix.org)`,
 	}
 
 	for i := 0; i < len(testCases); i += 2 {
