@@ -7,7 +7,7 @@ package actions
 //
 // 1. Upload artifact
 // 1.1. Post upload url
-// Post: /api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts?api-version=6.0-preview
+// Post: /api/actions_pipeline/_apis/pipelines/workflows/{run_id}/artifacts?api-version=6.0-preview
 // Request:
 // {
 //  "Type": "actions_storage",
@@ -15,11 +15,11 @@ package actions
 // }
 // Response:
 // {
-// 	"fileContainerResourceUrl":"/api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts/{artifactID}/upload"
+// 	"fileContainerResourceUrl":"/api/actions_pipeline/_apis/pipelines/workflows/{run_id}/artifacts/{artifact_id}/upload"
 // }
 // it acquires an upload url for artifact upload
 // 1.2. Upload artifact
-// PUT: /api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts/{artifactID}/upload?itemPath=artifact%2Ffilename
+// PUT: /api/actions_pipeline/_apis/pipelines/workflows/{run_id}/artifacts/{artifact_id}/upload?itemPath=artifact%2Ffilename
 // it upload chunk with headers:
 //    x-tfs-filelength: 1024 					// total file length
 //    content-length: 1024 						// chunk length
@@ -27,36 +27,36 @@ package actions
 //    content-range: bytes 0-1023/1024 // chunk range
 // we save all chunks to one storage directory after md5sum check
 // 1.3. Confirm upload
-// PATCH: /api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts/{artifactID}/upload?itemPath=artifact%2Ffilename
+// PATCH: /api/actions_pipeline/_apis/pipelines/workflows/{run_id}/artifacts/{artifact_id}/upload?itemPath=artifact%2Ffilename
 // it confirm upload and merge all chunks to one file, save this file to storage
 //
 // 2. Download artifact
 // 2.1 list artifacts
-// GET: /api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts?api-version=6.0-preview
+// GET: /api/actions_pipeline/_apis/pipelines/workflows/{run_id}/artifacts?api-version=6.0-preview
 // Response:
 // {
 // 	"count": 1,
 // 	"value": [
 // 		{
 // 			"name": "artifact",
-// 			"fileContainerResourceUrl": "/api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts/{artifactID}/path"
+// 			"fileContainerResourceUrl": "/api/actions_pipeline/_apis/pipelines/workflows/{run_id}/artifacts/{artifact_id}/path"
 // 		}
 // 	]
 // }
 // 2.2 download artifact
-// GET: /api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts/{artifactID}/path?api-version=6.0-preview
+// GET: /api/actions_pipeline/_apis/pipelines/workflows/{run_id}/artifacts/{artifact_id}/path?api-version=6.0-preview
 // Response:
 // {
 //   "value": [
 // 			{
-// 	 			"contentLocation": "/api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts/{artifactID}/download",
+// 	 			"contentLocation": "/api/actions_pipeline/_apis/pipelines/workflows/{run_id}/artifacts/{artifact_id}/download",
 // 				"path": "artifact/filename",
 // 				"itemType": "file"
 // 			}
 //   ]
 // }
 // 2.3 download artifact file
-// GET: /api/actions_pipeline/_apis/pipelines/workflows/{runID}/artifacts/{artifactID}/download?itemPath=artifact%2Ffilename
+// GET: /api/actions_pipeline/_apis/pipelines/workflows/{run_id}/artifacts/{artifact_id}/download?itemPath=artifact%2Ffilename
 // Response:
 // download file
 //
@@ -90,7 +90,7 @@ const (
 	artifactXActionsResultsMD5Header = "x-actions-results-md5"
 )
 
-const artifactRouteBase = "/_apis/pipelines/workflows/{runID}/artifacts"
+const artifactRouteBase = "/_apis/pipelines/workflows/{run_id}/artifacts"
 
 func ArtifactsRoutes(goctx gocontext.Context, prefix string) *web.Route {
 	m := web.NewRoute()
@@ -105,7 +105,7 @@ func ArtifactsRoutes(goctx gocontext.Context, prefix string) *web.Route {
 		// retrieve, list and confirm artifacts
 		m.Combo("").Get(r.listArtifacts).Post(r.getUploadArtifactURL).Patch(r.comfirmUploadArtifact)
 		// handle container artifacts list and download
-		m.Group("/{artifactID}", func() {
+		m.Group("/{artifact_id}", func() {
 			m.Put("/upload", r.uploadArtifact)
 			m.Get("/path", r.getDownloadArtifactURL)
 			m.Get("/download", r.downloadArtifact)
@@ -161,7 +161,7 @@ type artifactRoutes struct {
 
 func (ar artifactRoutes) buildArtifactURL(runID, artifactID int64, suffix string) string {
 	uploadURL := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ar.prefix, "/") +
-		strings.ReplaceAll(artifactRouteBase, "{runID}", strconv.FormatInt(runID, 10)) +
+		strings.ReplaceAll(artifactRouteBase, "{run_id}", strconv.FormatInt(runID, 10)) +
 		"/" + strconv.FormatInt(artifactID, 10) + "/" + suffix
 	return uploadURL
 }
@@ -182,7 +182,7 @@ func (ar artifactRoutes) validateRunID(ctx *context.Context) (*actions.ActionTas
 		ctx.Error(http.StatusInternalServerError, "Error getting task in context")
 		return nil, 0, false
 	}
-	runID := ctx.ParamsInt64("runID")
+	runID := ctx.ParamsInt64("run_id")
 	if task.Job.RunID != runID {
 		log.Error("Error runID not match")
 		ctx.Error(http.StatusBadRequest, "run-id does not match")
@@ -278,7 +278,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
 	if !ok {
 		return
 	}
-	artifactID := ctx.ParamsInt64("artifactID")
+	artifactID := ctx.ParamsInt64("artifact_id")
 
 	artifact, err := actions.GetArtifactByID(ctx, artifactID)
 	if errors.Is(err, util.ErrNotExist) {
@@ -523,7 +523,7 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *context.Context) {
 		return
 	}
 
-	artifactID := ctx.ParamsInt64("artifactID")
+	artifactID := ctx.ParamsInt64("artifact_id")
 	artifact, err := actions.GetArtifactByID(ctx, artifactID)
 	if errors.Is(err, util.ErrNotExist) {
 		log.Error("Error getting artifact: %v", err)
@@ -552,7 +552,7 @@ func (ar artifactRoutes) downloadArtifact(ctx *context.Context) {
 		return
 	}
 
-	artifactID := ctx.ParamsInt64("artifactID")
+	artifactID := ctx.ParamsInt64("artifact_id")
 	artifact, err := actions.GetArtifactByID(ctx, artifactID)
 	if errors.Is(err, util.ErrNotExist) {
 		log.Error("Error getting artifact: %v", err)
