@@ -23,9 +23,8 @@ export function initNotificationsTable() {
 
   // mark clicked unread links for deletion on bfcache restore
   for (const link of table.querySelectorAll('.notifications-link[data-status="1"]')) {
-    const item = link.closest('.notifications-item');
-    link.addEventListener('click', () => {
-      item.setAttribute('data-remove', 'true');
+    link.addEventListener('click', (e) => {
+      e.target.closest('.notifications-item').setAttribute('data-remove', 'true');
     }, {capture: true});
   }
 
