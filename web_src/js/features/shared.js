@@ -36,7 +36,7 @@ export function initSettingVariables() {
           data: $modal.find('textarea[name=data]').val(),
         }),
       });
-      const data = res.json();
+      const data = await res.json();
       if (data.redirect) window.location.href = data.redirect;
       else window.location.reload();
     });
