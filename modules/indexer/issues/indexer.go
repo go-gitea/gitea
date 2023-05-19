@@ -302,7 +302,7 @@ func populateIssueIndexer(ctx context.Context) {
 // UpdateRepoIndexer add/update all issues of the repositories
 func UpdateRepoIndexer(ctx context.Context, repo *repo_model.Repository) {
 	is, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-		RepoID:   repo.ID,
+		RepoIDs:  []int64{repo.ID},
 		IsClosed: util.OptionalBoolNone,
 		IsPull:   util.OptionalBoolNone,
 	})

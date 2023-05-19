@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -113,7 +112,7 @@ func (l *Label) CalOpenIssues() {
 // CalOpenOrgIssues calculates the open issues of a label for a specific repo
 func (l *Label) CalOpenOrgIssues(ctx context.Context, repoID, labelID int64) {
 	counts, _ := CountIssuesByRepo(ctx, &IssuesOptions{
-		RepoID:   repoID,
+		RepoIDs:  []int64{repoID},
 		LabelIDs: []int64{labelID},
 		IsClosed: util.OptionalBoolFalse,
 	})
@@ -282,13 +281,6 @@ func GetLabelsByIDs(labelIDs []int64) ([]*Label, error) {
 		Find(&labels)
 }
 
-// __________                           .__  __
-// \______   \ ____ ______   ____  _____|__|/  |_  ___________ ___.__.
-//  |       _// __ \\____ \ /  _ \/  ___/  \   __\/  _ \_  __ <   |  |
-//  |    |   \  ___/|  |_> >  <_> )___ \|  ||  | (  <_> )  | \/\___  |
-//  |____|_  /\___  >   __/ \____/____  >__||__|  \____/|__|   / ____|
-//         \/     \/|__|              \/                       \/
-
 // GetLabelInRepoByName returns a label by name in given repository.
 func GetLabelInRepoByName(ctx context.Context, repoID int64, labelName string) (*Label, error) {
 	if len(labelName) == 0 || repoID <= 0 {
@@ -393,13 +385,6 @@ func CountLabelsByRepoID(repoID int64) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Where("repo_id = ?", repoID).Count(&Label{})
 }
 
-// ________
-// \_____  \_______  ____
-//  /   |   \_  __ \/ ___\
-// /    |    \  | \/ /_/  >
-// \_______  /__|  \___  /
-//         \/     /_____/
-
 // GetLabelInOrgByName returns a label by name in given organization.
 func GetLabelInOrgByName(ctx context.Context, orgID int64, labelName string) (*Label, error) {
 	if len(labelName) == 0 || orgID <= 0 {
@@ -496,22 +481,6 @@ func CountLabelsByOrgID(orgID int64) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Where("org_id = ?", orgID).Count(&Label{})
 }
 
-// .___
-// |   | ______ ________ __   ____
-// |   |/  ___//  ___/  |  \_/ __ \
-// |   |\___ \ \___ \|  |  /\  ___/
-// |___/____  >____  >____/  \___ |
-//          \/     \/            \/
-
-// GetLabelsByIssueID returns all labels that belong to given issue by ID.
-func GetLabelsByIssueID(ctx context.Context, issueID int64) ([]*Label, error) {
-	var labels []*Label
-	return labels, db.GetEngine(ctx).Where("issue_label.issue_id = ?", issueID).
-		Join("LEFT", "issue_label", "issue_label.label_id = label.id").
-		Asc("label.name").
-		Find(&labels)
-}
-
 func updateLabelCols(ctx context.Context, l *Label, cols ...string) error {
 	_, err := db.GetEngine(ctx).ID(l.ID).
 		SetExpr("num_issues",
@@ -528,308 +497,4 @@ func updateLabelCols(ctx context.Context, l *Label, cols ...string) error {
 		).
 		Cols(cols...).Update(l)
 	return err
-}
-
-// .___                            .____          ___.          .__
-// |   | ______ ________ __   ____ |    |   _____ \_ |__   ____ |  |
-// |   |/  ___//  ___/  |  \_/ __ \|    |   \__  \ | __ \_/ __ \|  |
-// |   |\___ \ \___ \|  |  /\  ___/|    |___ / __ \| \_\ \  ___/|  |__
-// |___/____  >____  >____/  \___  >_______ (____  /___  /\___  >____/
-//          \/     \/            \/        \/    \/    \/     \/
-
-// IssueLabel represents an issue-label relation.
-type IssueLabel struct {
-	ID      int64 `xorm:"pk autoincr"`
-	IssueID int64 `xorm:"UNIQUE(s)"`
-	LabelID int64 `xorm:"UNIQUE(s)"`
-}
-
-// HasIssueLabel returns true if issue has been labeled.
-func HasIssueLabel(ctx context.Context, issueID, labelID int64) bool {
-	has, _ := db.GetEngine(ctx).Where("issue_id = ? AND label_id = ?", issueID, labelID).Get(new(IssueLabel))
-	return has
-}
-
-// newIssueLabel this function creates a new label it does not check if the label is valid for the issue
-// YOU MUST CHECK THIS BEFORE THIS FUNCTION
-func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) (err error) {
-	if err = db.Insert(ctx, &IssueLabel{
-		IssueID: issue.ID,
-		LabelID: label.ID,
-	}); err != nil {
-		return err
-	}
-
-	if err = issue.LoadRepo(ctx); err != nil {
-		return
-	}
-
-	opts := &CreateCommentOptions{
-		Type:    CommentTypeLabel,
-		Doer:    doer,
-		Repo:    issue.Repo,
-		Issue:   issue,
-		Label:   label,
-		Content: "1",
-	}
-	if _, err = CreateComment(ctx, opts); err != nil {
-		return err
-	}
-
-	return updateLabelCols(ctx, label, "num_issues", "num_closed_issue")
-}
-
-// Remove all issue labels in the given exclusive scope
-func RemoveDuplicateExclusiveIssueLabels(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) (err error) {
-	scope := label.ExclusiveScope()
-	if scope == "" {
-		return nil
-	}
-
-	var toRemove []*Label
-	for _, issueLabel := range issue.Labels {
-		if label.ID != issueLabel.ID && issueLabel.ExclusiveScope() == scope {
-			toRemove = append(toRemove, issueLabel)
-		}
-	}
-
-	for _, issueLabel := range toRemove {
-		if err = deleteIssueLabel(ctx, issue, issueLabel, doer); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// NewIssueLabel creates a new issue-label relation.
-func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error) {
-	if HasIssueLabel(db.DefaultContext, issue.ID, label.ID) {
-		return nil
-	}
-
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = issue.LoadRepo(ctx); err != nil {
-		return err
-	}
-
-	// Do NOT add invalid labels
-	if issue.RepoID != label.RepoID && issue.Repo.OwnerID != label.OrgID {
-		return nil
-	}
-
-	if err = RemoveDuplicateExclusiveIssueLabels(ctx, issue, label, doer); err != nil {
-		return nil
-	}
-
-	if err = newIssueLabel(ctx, issue, label, doer); err != nil {
-		return err
-	}
-
-	issue.Labels = nil
-	if err = issue.LoadLabels(ctx); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
-// newIssueLabels add labels to an issue. It will check if the labels are valid for the issue
-func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *user_model.User) (err error) {
-	if err = issue.LoadRepo(ctx); err != nil {
-		return err
-	}
-	for _, l := range labels {
-		// Don't add already present labels and invalid labels
-		if HasIssueLabel(ctx, issue.ID, l.ID) ||
-			(l.RepoID != issue.RepoID && l.OrgID != issue.Repo.OwnerID) {
-			continue
-		}
-
-		if err = newIssueLabel(ctx, issue, l, doer); err != nil {
-			return fmt.Errorf("newIssueLabel: %w", err)
-		}
-	}
-
-	return nil
-}
-
-// NewIssueLabels creates a list of issue-label relations.
-func NewIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = newIssueLabels(ctx, issue, labels, doer); err != nil {
-		return err
-	}
-
-	issue.Labels = nil
-	if err = issue.LoadLabels(ctx); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
-func deleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) (err error) {
-	if count, err := db.DeleteByBean(ctx, &IssueLabel{
-		IssueID: issue.ID,
-		LabelID: label.ID,
-	}); err != nil {
-		return err
-	} else if count == 0 {
-		return nil
-	}
-
-	if err = issue.LoadRepo(ctx); err != nil {
-		return
-	}
-
-	opts := &CreateCommentOptions{
-		Type:  CommentTypeLabel,
-		Doer:  doer,
-		Repo:  issue.Repo,
-		Issue: issue,
-		Label: label,
-	}
-	if _, err = CreateComment(ctx, opts); err != nil {
-		return err
-	}
-
-	return updateLabelCols(ctx, label, "num_issues", "num_closed_issue")
-}
-
-// DeleteIssueLabel deletes issue-label relation.
-func DeleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) error {
-	if err := deleteIssueLabel(ctx, issue, label, doer); err != nil {
-		return err
-	}
-
-	issue.Labels = nil
-	return issue.LoadLabels(ctx)
-}
-
-// DeleteLabelsByRepoID  deletes labels of some repository
-func DeleteLabelsByRepoID(ctx context.Context, repoID int64) error {
-	deleteCond := builder.Select("id").From("label").Where(builder.Eq{"label.repo_id": repoID})
-
-	if _, err := db.GetEngine(ctx).In("label_id", deleteCond).
-		Delete(&IssueLabel{}); err != nil {
-		return err
-	}
-
-	_, err := db.DeleteByBean(ctx, &Label{RepoID: repoID})
-	return err
-}
-
-// CountOrphanedLabels return count of labels witch are broken and not accessible via ui anymore
-func CountOrphanedLabels(ctx context.Context) (int64, error) {
-	noref, err := db.GetEngine(ctx).Table("label").Where("repo_id=? AND org_id=?", 0, 0).Count()
-	if err != nil {
-		return 0, err
-	}
-
-	norepo, err := db.GetEngine(ctx).Table("label").
-		Where(builder.And(
-			builder.Gt{"repo_id": 0},
-			builder.NotIn("repo_id", builder.Select("id").From("`repository`")),
-		)).
-		Count()
-	if err != nil {
-		return 0, err
-	}
-
-	noorg, err := db.GetEngine(ctx).Table("label").
-		Where(builder.And(
-			builder.Gt{"org_id": 0},
-			builder.NotIn("org_id", builder.Select("id").From("`user`")),
-		)).
-		Count()
-	if err != nil {
-		return 0, err
-	}
-
-	return noref + norepo + noorg, nil
-}
-
-// DeleteOrphanedLabels delete labels witch are broken and not accessible via ui anymore
-func DeleteOrphanedLabels(ctx context.Context) error {
-	// delete labels with no reference
-	if _, err := db.GetEngine(ctx).Table("label").Where("repo_id=? AND org_id=?", 0, 0).Delete(new(Label)); err != nil {
-		return err
-	}
-
-	// delete labels with none existing repos
-	if _, err := db.GetEngine(ctx).
-		Where(builder.And(
-			builder.Gt{"repo_id": 0},
-			builder.NotIn("repo_id", builder.Select("id").From("`repository`")),
-		)).
-		Delete(Label{}); err != nil {
-		return err
-	}
-
-	// delete labels with none existing orgs
-	if _, err := db.GetEngine(ctx).
-		Where(builder.And(
-			builder.Gt{"org_id": 0},
-			builder.NotIn("org_id", builder.Select("id").From("`user`")),
-		)).
-		Delete(Label{}); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// CountOrphanedIssueLabels return count of IssueLabels witch have no label behind anymore
-func CountOrphanedIssueLabels(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Table("issue_label").
-		NotIn("label_id", builder.Select("id").From("label")).
-		Count()
-}
-
-// DeleteOrphanedIssueLabels delete IssueLabels witch have no label behind anymore
-func DeleteOrphanedIssueLabels(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).
-		NotIn("label_id", builder.Select("id").From("label")).
-		Delete(IssueLabel{})
-	return err
-}
-
-// CountIssueLabelWithOutsideLabels count label comments with outside label
-func CountIssueLabelWithOutsideLabels(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where(builder.Expr("(label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id)")).
-		Table("issue_label").
-		Join("inner", "label", "issue_label.label_id = label.id ").
-		Join("inner", "issue", "issue.id = issue_label.issue_id ").
-		Join("inner", "repository", "issue.repo_id = repository.id").
-		Count(new(IssueLabel))
-}
-
-// FixIssueLabelWithOutsideLabels fix label comments with outside label
-func FixIssueLabelWithOutsideLabels(ctx context.Context) (int64, error) {
-	res, err := db.GetEngine(ctx).Exec(`DELETE FROM issue_label WHERE issue_label.id IN (
-		SELECT il_too.id FROM (
-			SELECT il_too_too.id
-				FROM issue_label AS il_too_too
-					INNER JOIN label ON il_too_too.label_id = label.id
-					INNER JOIN issue on issue.id = il_too_too.issue_id
-					INNER JOIN repository on repository.id = issue.repo_id
-				WHERE
-					(label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id)
-	) AS il_too )`)
-	if err != nil {
-		return 0, err
-	}
-
-	return res.RowsAffected()
 }
