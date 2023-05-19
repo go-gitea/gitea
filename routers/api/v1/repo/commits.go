@@ -69,15 +69,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 		return
 	}
 
-	stat := ctx.FormString("stat") == "" || ctx.FormBool("stat")
-	files := ctx.FormString("files") == "" || ctx.FormBool("files")
-	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
-
-	getCommit(ctx, sha, convert.ToCommitOptions{
-		Stat:         stat,
-		Files:        files,
-		Verification: verification,
-	})
+	getCommit(ctx, sha, convert.ParseCommitOptions(ctx))
 }
 
 func getCommit(ctx *context.APIContext, identifier string, toCommitOpts convert.ToCommitOptions) {
@@ -265,19 +257,9 @@ func GetAllCommits(ctx *context.APIContext) {
 	userCache := make(map[string]*user_model.User)
 	apiCommits := make([]*api.Commit, len(commits))
 
-	stat := ctx.FormString("stat") == "" || ctx.FormBool("stat")
-	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
-	files := ctx.FormString("files") == "" || ctx.FormBool("files")
-
 	for i, commit := range commits {
 		// Create json struct
-		apiCommits[i], err = convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, userCache,
-			convert.ToCommitOptions{
-				Stat:         stat,
-				Verification: verification,
-				Files:        files,
-			})
-
+		apiCommits[i], err = convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, userCache, convert.ParseCommitOptions(ctx))
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "toCommit", err)
 			return

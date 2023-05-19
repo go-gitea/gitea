@@ -72,6 +72,7 @@ type Release struct {
 	OriginalAuthorID int64 `xorm:"index"`
 	LowerTagName     string
 	Target           string
+	TargetBehind     string `xorm:"-"` // to handle non-existing or empty target
 	Title            string
 	Sha1             string `xorm:"VARCHAR(40)"`
 	NumCommits       int64
