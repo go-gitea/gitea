@@ -102,9 +102,6 @@ func createDefaultPolicy() *bluemonday.Policy {
 	// Allow 'style' attribute on text elements.
 	policy.AllowAttrs("style").OnElements("span", "p")
 
-	// Allow 'dir' attribute on elements that may contain rtl content.
-	policy.AllowAttrs("dir").OnElements("span", "div", "p", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6")
-
 	// Allow 'color' and 'background-color' properties for the style attribute on text elements.
 	policy.AllowStyles("color", "background-color").OnElements("span", "p")
 
