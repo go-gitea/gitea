@@ -2,26 +2,61 @@
   <div class="scoped-access-token-category">
     <div class="field gt-pl-2">
       <label class="checkbox-label">
-        <input ref="category" v-model="categorySelected" class="scope-checkbox" type="checkbox" name="scope" :value="'delete:' + category" @change="onCategoryInput">
+        <input
+          ref="category"
+          v-model="categorySelected"
+          class="scope-checkbox scoped-access-token-input"
+          type="checkbox"
+          name="scope"
+          :value="'delete:' + category"
+          @change="onCategoryInput"
+        >
         {{ category }}
       </label>
     </div>
     <div class="field gt-pl-4">
       <div class="inline field">
         <label class="checkbox-label">
-          <input ref="read" v-model="readSelected" :disabled="categorySelected || writeSelected" class="scope-checkbox" type="checkbox" name="scope" :value="'read:' + category" @change="onIndividualInput">
+          <input
+            ref="read"
+            v-model="readSelected"
+            :disabled="categorySelected || writeSelected"
+            class="scope-checkbox scoped-access-token-input"
+            type="checkbox"
+            name="scope"
+            :value="'read:' + category"
+            @change="onIndividualInput"
+          >
           read:{{ category }}
         </label>
       </div>
       <div class="inline field">
         <label class="checkbox-label">
-          <input ref="write" v-model="writeSelected" :disabled="categorySelected" class="scope-checkbox" type="checkbox" name="scope" :value="'write:' + category" @change="onIndividualInput">
+          <input
+            ref="write"
+            v-model="writeSelected"
+            :disabled="categorySelected"
+            class="scope-checkbox scoped-access-token-input"
+            type="checkbox"
+            name="scope"
+            :value="'write:' + category"
+            @change="onIndividualInput"
+          >
           write:{{ category }}
         </label>
       </div>
       <div class="inline field">
         <label class="checkbox-label">
-          <input ref="delete" v-model="deleteSelected" :disabled="categorySelected" class="scope-checkbox" type="checkbox" name="scope" :value="'delete:' + category" @change="onIndividualInput">
+          <input
+            ref="delete"
+            v-model="deleteSelected"
+            :disabled="categorySelected"
+            class="scope-checkbox scoped-access-token-input"
+            type="checkbox"
+            name="scope"
+            :value="'delete:' + category"
+            @change="onIndividualInput"
+          >
           delete:{{ category }}
         </label>
       </div>
@@ -91,6 +126,18 @@ export function initScopedAccessTokenCategories() {
       category: el.getAttribute('category'),
     }).mount(el);
   }
+
+  document.getElementById('scoped-access-submit').addEventListener('click', (e) => {
+    e.preventDefault();
+    // check that at least one scope has been selected
+    for (const el of document.getElementsByClassName('scoped-access-token-input')) {
+      if (el.checked) {
+        document.getElementById('scoped-access-form').submit();
+      }
+    }
+    // no scopes selected, show validation error
+    document.getElementById('scoped-access-warning').style.display = 'block';
+  });
 }
 
 </script>
