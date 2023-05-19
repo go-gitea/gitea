@@ -113,6 +113,7 @@ Gitea's private styles use `g-` prefix.
 .gt-bg-brown { background: var(--color-brown) !important; }
 .gt-bg-grey { background: var(--color-grey) !important; }
 .gt-bg-gold { background: var(--color-gold) !important; }
+.gt-bg-transparent { background: transparent !important; }
 
 .gt-text-white { color: var(--color-white) !important; }
 

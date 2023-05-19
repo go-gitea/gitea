@@ -42,6 +42,18 @@
             </div>
           </div>
         </div>
+        <div class="job-artifacts" v-if="artifacts.length > 0">
+          <div class="job-artifacts-title">
+            {{ locale.artifactsTitle }}
+          </div>
+          <ul class="job-artifacts-list">
+            <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.id">
+              <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.id">
+                <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon" />{{ artifact.name }}
+              </a>
+            </li>
+          </ul>
+        </div>
       </div>
 
       <div class="action-view-right">
@@ -102,6 +114,7 @@ const sfc = {
       loading: false,
       intervalID: null,
       currentJobStepsStates: [],
+      artifacts: [],
 
       // provided by backend
       run: {
@@ -154,6 +167,15 @@ const sfc = {
     // load job data and then auto-reload periodically
     this.loadJob();
     this.intervalID = setInterval(this.loadJob, 1000);
+  },
+
+  unmounted() {
+    // clear the interval timer when the component is unmounted
+    // even our page is rendered once, not spa style
+    if (this.intervalID) {
+      clearInterval(this.intervalID);
+      this.intervalID = null;
+    }
   },
 
   methods: {
@@ -259,6 +281,11 @@ const sfc = {
       try {
         this.loading = true;
 
+        // refresh artifacts if upload-artifact step done
+        const resp = await this.fetchPost(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
+        const artifacts = await resp.json();
+        this.artifacts = artifacts['artifacts'] || [];
+
         const response = await this.fetchJob();
 
         // save the state to Vue data, then the UI will be updated
@@ -286,6 +313,7 @@ const sfc = {
         this.loading = false;
       }
     },
+
 
     fetchPost(url, body) {
       return fetch(url, {
@@ -319,6 +347,7 @@ export function initRepositoryActionView() {
       approve: el.getAttribute('data-locale-approve'),
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
+      artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       status: {
         unknown: el.getAttribute('data-locale-status-unknown'),
         waiting: el.getAttribute('data-locale-status-waiting'),
@@ -421,6 +450,27 @@ export function ansiLogToHTML(line) {
 .job-group-section .job-group-summary {
   margin: 5px 0;
   padding: 10px;
+}
+
+.job-artifacts-title {
+  font-size: 18px;
+  margin-top: 16px;
+  padding: 16px 10px 0px 20px;
+  border-top: 1px solid var(--color-secondary);
+}
+
+.job-artifacts-item {
+  margin: 5px 0;
+  padding: 6px;
+}
+
+.job-artifacts-list {
+  padding-left: 12px;
+  list-style: none;
+}
+
+.job-artifacts-icon {
+  padding-right: 3px;
 }
 
 .job-group-section .job-brief-list .job-brief-item {
