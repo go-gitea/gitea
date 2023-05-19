@@ -64,10 +64,10 @@
 								<div class="notifications-top-row gt-font-13">
 									{{.Repository.FullName}} <span class="text light-3">#{{.Issue.Index}}</span>
 								</div>
-								<div class="notifications-bottom-row gt-font-16">
+								<div class="notifications-bottom-row gt-font-16 gt-py-1">
 									<span class="issue-title">
 										{{if .Issue}}
-											#{{.Issue.Index}} - {{.Issue.Title | RenderEmoji $.Context | RenderCodeBlock}}
+											{{.Issue.Title | RenderEmoji $.Context | RenderCodeBlock}}
 										{{else}}
 											{{.Repository.FullName}}
 										{{end}}
