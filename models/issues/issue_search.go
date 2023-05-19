@@ -435,12 +435,12 @@ func Issues(ctx context.Context, opts *IssuesOptions) ([]*Issue, error) {
 	applyConditions(sess, opts)
 	applySorts(sess, opts.SortType, opts.PriorityRepoID)
 
-	issues := make([]*Issue, 0, opts.ListOptions.PageSize)
+	issues := make(IssueList, 0, opts.ListOptions.PageSize)
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("unable to query Issues: %w", err)
 	}
 
-	if err := IssueList(issues).LoadAttributes(); err != nil {
+	if err := issues.LoadAttributes(); err != nil {
 		return nil, fmt.Errorf("unable to LoadAttributes for Issues: %w", err)
 	}
 

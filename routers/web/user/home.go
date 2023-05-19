@@ -521,10 +521,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Parse ctx.FormString("repos") and remember matched repo IDs for later.
 	// Gets set when clicking filters on the issues overview page.
-	repoIDs := getRepoIDs(ctx.FormString("repos"))
-	if len(repoIDs) > 0 {
-		opts.RepoCond = builder.In("issue.repo_id", repoIDs)
-	}
+	opts.RepoIDs = getRepoIDs(ctx.FormString("repos"))
 
 	// ------------------------------
 	// Get issues as defined by opts.
@@ -608,9 +605,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	} else {
 		shownIssues = int(issueStats.ClosedCount)
 	}
-	if len(repoIDs) != 0 {
+	if len(opts.RepoIDs) != 0 {
 		shownIssues = 0
-		for _, repoID := range repoIDs {
+		for _, repoID := range opts.RepoIDs {
 			shownIssues += int(issueCountByRepo[repoID])
 		}
 	}
@@ -621,8 +618,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 	ctx.Data["TotalIssueCount"] = allIssueCount
 
-	if len(repoIDs) == 1 {
-		repo := showReposMap[repoIDs[0]]
+	if len(opts.RepoIDs) == 1 {
+		repo := showReposMap[opts.RepoIDs[0]]
 		if repo != nil {
 			ctx.Data["SingleRepoLink"] = repo.Link()
 		}
@@ -664,7 +661,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
-	ctx.Data["RepoIDs"] = repoIDs
+	ctx.Data["RepoIDs"] = opts.RepoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["SelectLabels"] = selectedLabels
 
@@ -675,7 +672,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 
 	// Convert []int64 to string
-	reposParam, _ := json.Marshal(repoIDs)
+	reposParam, _ := json.Marshal(opts.RepoIDs)
 
 	ctx.Data["ReposParam"] = string(reposParam)
 

@@ -17,6 +17,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
@@ -204,14 +205,15 @@ func TestIssues(t *testing.T) {
 func TestGetUserIssueStats(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	for _, test := range []struct {
-		Opts               issues_model.UserIssueStatsOptions
+		FilterMode         int
+		Opts               issues_model.IssuesOptions
 		ExpectedIssueStats issues_model.IssueStats
 	}{
 		{
-			issues_model.UserIssueStatsOptions{
-				UserID:     1,
-				RepoIDs:    []int64{1},
-				FilterMode: issues_model.FilterModeAll,
+			issues_model.FilterModeAll,
+			issues_model.IssuesOptions{
+				User:    unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
+				RepoIDs: []int64{1},
 			},
 			issues_model.IssueStats{
 				YourRepositoriesCount: 1, // 6
@@ -222,11 +224,11 @@ func TestGetUserIssueStats(t *testing.T) {
 			},
 		},
 		{
-			issues_model.UserIssueStatsOptions{
-				UserID:     1,
-				RepoIDs:    []int64{1},
-				FilterMode: issues_model.FilterModeAll,
-				IsClosed:   true,
+			issues_model.FilterModeAll,
+			issues_model.IssuesOptions{
+				User:     unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
+				RepoIDs:  []int64{1},
+				IsClosed: util.OptionalBoolTrue,
 			},
 			issues_model.IssueStats{
 				YourRepositoriesCount: 1, // 6
@@ -237,9 +239,9 @@ func TestGetUserIssueStats(t *testing.T) {
 			},
 		},
 		{
-			issues_model.UserIssueStatsOptions{
-				UserID:     1,
-				FilterMode: issues_model.FilterModeAssign,
+			issues_model.FilterModeAssign,
+			issues_model.IssuesOptions{
+				User: unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
 			},
 			issues_model.IssueStats{
 				YourRepositoriesCount: 1, // 6
@@ -250,9 +252,9 @@ func TestGetUserIssueStats(t *testing.T) {
 			},
 		},
 		{
-			issues_model.UserIssueStatsOptions{
-				UserID:     1,
-				FilterMode: issues_model.FilterModeCreate,
+			issues_model.FilterModeCreate,
+			issues_model.IssuesOptions{
+				User: unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
 			},
 			issues_model.IssueStats{
 				YourRepositoriesCount: 1, // 6
@@ -263,9 +265,9 @@ func TestGetUserIssueStats(t *testing.T) {
 			},
 		},
 		{
-			issues_model.UserIssueStatsOptions{
-				UserID:     1,
-				FilterMode: issues_model.FilterModeMention,
+			issues_model.FilterModeMention,
+			issues_model.IssuesOptions{
+				User: unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
 			},
 			issues_model.IssueStats{
 				YourRepositoriesCount: 1, // 6
@@ -277,10 +279,10 @@ func TestGetUserIssueStats(t *testing.T) {
 			},
 		},
 		{
-			issues_model.UserIssueStatsOptions{
-				UserID:     1,
-				FilterMode: issues_model.FilterModeCreate,
-				IssueIDs:   []int64{1},
+			issues_model.FilterModeCreate,
+			issues_model.IssuesOptions{
+				User:     unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
+				IssueIDs: []int64{1},
 			},
 			issues_model.IssueStats{
 				YourRepositoriesCount: 1, // 1
@@ -291,11 +293,11 @@ func TestGetUserIssueStats(t *testing.T) {
 			},
 		},
 		{
-			issues_model.UserIssueStatsOptions{
-				UserID:     2,
-				Org:        unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}),
-				Team:       unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 7}),
-				FilterMode: issues_model.FilterModeAll,
+			issues_model.FilterModeAll,
+			issues_model.IssuesOptions{
+				User: unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}),
+				Org:  unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}),
+				Team: unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 7}),
 			},
 			issues_model.IssueStats{
 				YourRepositoriesCount: 2,
@@ -306,7 +308,7 @@ func TestGetUserIssueStats(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("%#v", test.Opts), func(t *testing.T) {
-			stats, err := issues_model.GetUserIssueStats(test.Opts)
+			stats, err := issues_model.GetUserIssueStats(test.FilterMode, test.Opts)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -495,7 +497,7 @@ func TestCorrectIssueStats(t *testing.T) {
 	// Now we will call the GetIssueStats with these IDs and if working,
 	// get the correct stats back.
 	issueStats, err := issues_model.GetIssueStats(&issues_model.IssuesOptions{
-		RepoID:   1,
+		RepoIDs:  []int64{1},
 		IssueIDs: ids,
 	})
 
