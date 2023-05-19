@@ -22,7 +22,7 @@ import (
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct { //nolint
 	db.ListOptions
-	RepoIDs            []int64 // overwrites RepoCond if not 0
+	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
 	RepoCond           builder.Cond
 	AssigneeID         int64
 	PosterID           int64
