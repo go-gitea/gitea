@@ -81,7 +81,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 	}
 
 	// Update issue count of labels
-	if err := issue.getLabels(ctx); err != nil {
+	if err := issue.LoadLabels(ctx); err != nil {
 		return nil, err
 	}
 	for idx := range issue.Labels {
