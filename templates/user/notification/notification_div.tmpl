@@ -12,7 +12,7 @@
 				</a>
 			</div>
 			{{if and (eq .Status 1)}}
-				<form class="gt-ml-auto" action="{{AppSubUrl}}/notifications/purge" method="POST">
+				<form action="{{AppSubUrl}}/notifications/purge" method="POST">
 					{{$.CsrfTokenHtml}}
 					<div class="{{if not $notificationUnreadCount}}gt-hidden{{end}}">
 						<button class="ui mini button primary gt-mr-0" title='{{$.locale.Tr "notification.mark_all_as_read"}}'>
