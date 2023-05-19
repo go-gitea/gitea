@@ -198,7 +198,7 @@
   color: var(--color-text);
 }
 
-a.blob-excerpt {
+.blob-excerpt {
   color: var(--color-text-light);
   height: 28px;
   display: flex;
@@ -208,7 +208,7 @@ a.blob-excerpt {
   background: var(--color-expand-button);
 }
 
-a.blob-excerpt:hover {
+.blob-excerpt:hover {
   background: var(--color-primary);
   color: var(--color-primary-contrast);
 }
