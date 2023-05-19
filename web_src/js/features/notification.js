@@ -8,8 +8,8 @@ export function initNotificationsTable() {
   if (!table) return;
 
   // when page restores from bfcache, delete clicked items
-  window.addEventListener('pageshow', (event) => {
-    if (event.persisted) { // page was restored from bfcache
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) { // page was restored from bfcache
       const table = document.getElementById('notification_table');
       const unreadCountEl = document.querySelector('.notifications-unread-count');
       let unreadCount = parseInt(unreadCountEl.textContent);
