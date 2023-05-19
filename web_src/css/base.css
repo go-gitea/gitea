@@ -2216,7 +2216,7 @@ a.ui.active.label:hover {
   border: none;
   color: inherit;
   margin: 0;
-  padding: 0;
+  padding: 8px;
 }
 
 .button.button-ghost:hover {
