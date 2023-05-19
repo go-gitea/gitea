@@ -1,9 +1,5 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-params="{{.Page.GetParams}}" data-sequence-number="{{.SequenceNumber}}">
 	<div class="ui container">
-		<h1 class="ui header gt-df gt-ac">
-			{{svg "octicon-bell" 28 "gt-mr-3 gt-mt-1"}}
-			{{.locale.Tr "notification.notifications"}}
-		</h1>
 		<div class="ui top attached tabular menu">
 			{{$notificationUnreadCount := call .NotificationUnreadCount}}
 			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active {{end}}item">
