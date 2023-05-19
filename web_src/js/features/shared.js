@@ -21,18 +21,24 @@ export function initSettingVariables() {
       $modal.find('textarea[name=data]').val(oldValue);
     }
 
-    const url = $(this).attr('data-base-action');
     const commitButton = $modal.find('.actions > .ok.button');
-    $(commitButton).on('click', (e) => {
+    $(commitButton).on('click', async (e) => {
       e.preventDefault();
-      $.post(url, {
-        _csrf: csrfToken,
-        name: $modal.find('input[name=name]').val(),
-        data: $modal.find('textarea[name=data]').val(),
-      }, (data) => {
-        if (data.redirect) window.location.href = data.redirect;
-        else window.location.reload();
+      const url = $(this).attr('data-base-action');
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Csrf-Token': csrfToken,
+        },
+        body: JSON.stringify({
+          name: $modal.find('input[name=name]').val(),
+          data: $modal.find('textarea[name=data]').val(),
+        }),
       });
+      const data = res.json();
+      if (data.redirect) window.location.href = data.redirect;
+      else window.location.reload();
     });
   });
 }
