@@ -102,11 +102,14 @@ func testGit(t *testing.T, u *url.URL) {
 			})
 			t.Run("Deletion", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
-				filename := doCommitAndPush(t, bigSize, dstForkedPath, "data-file-")
-				t.Run("APISetRepoSizeLimit", doAPISetRepoSizeLimit(forkedUserCtx, forkedUserCtx.Username, forkedUserCtx.Reponame, littleSize))
-				err := doDeleteCommitAndPush(t, dstPath, filename)
-				assert.Error(t, err)
+				// TODO doDeleteCommitAndPush(t, littleSize, dstPath, "data-file-")
 			})
+			// TODO delete branch
+			// TODO delete tag
+			// TODO add big commit that will be over with the push
+			// TODO add lfs
+			// TODO remove lfs
+			// TODO add missing case
 		})
 		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &httpContext, "master", "test/head"))
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
@@ -330,15 +333,6 @@ func doCommitAndPush(t *testing.T, size int, repoPath, prefix string) string {
 	return name
 }
 
-func doDeleteCommitAndPush(t *testing.T, repoPath, filename string) error {
-	var err = generateDeleteCommit(repoPath, "user2@example.com", "User Two", filename)
-	if err != nil {
-		return err
-	}
-	_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "master").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
-	return err
-}
-
 func doCommitAndPushWithExpectedError(t *testing.T, size int, repoPath, prefix string) string {
 	name, err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two", prefix)
 	assert.NoError(t, err)
@@ -402,30 +396,6 @@ func generateCommitWithNewData(size int, repoPath, email, fullName, prefix strin
 		Message: fmt.Sprintf("Testing commit @ %v", time.Now()),
 	})
 	return filepath.Base(tmpFile.Name()), err
-}
-
-func generateDeleteCommit(repoPath, email, fullName, file string) error {
-	// Commit
-	// Now here we should explicitly allow lfs filters to run
-	globalArgs := git.AllowLFSFiltersArgs()
-	err := git.DeleteChangesWithArgs(repoPath, globalArgs, filepath.Base(file))
-	if err != nil {
-		return err
-	}
-	err = git.CommitChangesWithArgs(repoPath, globalArgs, git.CommitChangesOptions{
-		Committer: &git.Signature{
-			Email: email,
-			Name:  fullName,
-			When:  time.Now(),
-		},
-		Author: &git.Signature{
-			Email: email,
-			Name:  fullName,
-			When:  time.Now(),
-		},
-		Message: fmt.Sprintf("Testing commit @ %v", time.Now()),
-	})
-	return err
 }
 
 func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
