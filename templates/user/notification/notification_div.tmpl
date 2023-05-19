@@ -5,7 +5,7 @@
 			<div class="small-menu-items ui compact tiny menu">
 				<a class="{{if eq .Status 1}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=unread">
 					{{.locale.Tr "notification.unread"}}
-					<div class="ui label {{if not $notificationUnreadCount}}gt-hidden{{end}}">{{$notificationUnreadCount}}</div>
+					<div class="notifications-unread-count ui label {{if not $notificationUnreadCount}}gt-hidden{{end}}">{{$notificationUnreadCount}}</div>
 				</a>
 				<a class="{{if eq .Status 2}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=read">
 					{{.locale.Tr "notification.read"}}
@@ -60,7 +60,7 @@
 									{{end}}
 								{{end}}
 							</div>
-							<a class="notifications-link gt-df gt-f1 gt-fc silenced" href="{{.Link}}">
+							<a class="notifications-link gt-df gt-f1 gt-fc silenced" href="{{.Link}}" data-status="{{.Status}}">
 								<div class="notifications-top-row gt-font-13">
 									{{.Repository.FullName}} <span class="text light-3">#{{.Issue.Index}}</span>
 								</div>

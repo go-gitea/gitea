@@ -4,6 +4,31 @@ const {appSubUrl, csrfToken, notificationSettings, assetVersionEncoded} = window
 let notificationSequenceNumber = 0;
 
 export function initNotificationsTable() {
+  const table = document.getElementById('notification_table');
+  if (!table) return;
+
+  // when page restores from bfcache, delete clicked items
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) { // page was restored from bfcache
+      const table = document.getElementById('notification_table');
+      const unreadCountEl = document.querySelector('.notifications-unread-count');
+      let unreadCount = parseInt(unreadCountEl.textContent);
+      for (const item of table.querySelectorAll('.notifications-item[data-remove="true"]')) {
+        item.remove();
+        unreadCount -= 1;
+      }
+      unreadCountEl.textContent = unreadCount;
+    }
+  });
+
+  // for each unread link, mark it for deletion on click
+  for (const link of table.querySelectorAll('.notifications-link[data-status="1"]')) {
+    const item = link.closest('.notifications-item');
+    link.addEventListener('click', () => {
+      item.setAttribute('data-remove', 'true');
+    }, {capture: true});
+  }
+
   $('#notification_table .button').on('click', function () {
     (async () => {
       const data = await updateNotification(
