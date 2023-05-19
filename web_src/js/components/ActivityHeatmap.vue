@@ -31,8 +31,8 @@ export default {
   },
   data: () => ({
     colorRange: [
-      'var(--color-secondary-alpha-70)',
-      'var(--color-secondary-alpha-70)',
+      'var(--color-secondary-alpha-60)',
+      'var(--color-secondary-alpha-60)',
       'var(--color-primary-light-4)',
       'var(--color-primary-light-2)',
       'var(--color-primary)',

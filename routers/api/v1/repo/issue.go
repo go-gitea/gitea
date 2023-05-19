@@ -470,7 +470,7 @@ func ListIssues(ctx *context.APIContext) {
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issuesOpt := &issues_model.IssuesOptions{
 			ListOptions:       listOptions,
-			RepoID:            ctx.Repo.Repository.ID,
+			RepoIDs:           []int64{ctx.Repo.Repository.ID},
 			IsClosed:          isClosed,
 			IssueIDs:          issueIDs,
 			LabelIDs:          labelIDs,

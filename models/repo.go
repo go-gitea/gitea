@@ -59,6 +59,12 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		return fmt.Errorf("find actions tasks of repo %v: %w", repoID, err)
 	}
 
+	// Query the artifacts of this repo, they will be needed after they have been deleted to remove artifacts files in ObjectStorage
+	artifacts, err := actions_model.ListArtifactsByRepoID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("list actions artifacts of repo %v: %w", repoID, err)
+	}
+
 	// In case is a organization.
 	org, err := user_model.GetUserByID(ctx, uid)
 	if err != nil {
@@ -164,6 +170,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&actions_model.ActionRunJob{RepoID: repoID},
 		&actions_model.ActionRun{RepoID: repoID},
 		&actions_model.ActionRunner{RepoID: repoID},
+		&actions_model.ActionArtifact{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
@@ -332,6 +339,14 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		err := actions_module.RemoveLogs(ctx, task.LogInStorage, task.LogFilename)
 		if err != nil {
 			log.Error("remove log file %q: %v", task.LogFilename, err)
+			// go on
+		}
+	}
+
+	// delete actions artifacts in ObjectStorage after the repo have already been deleted
+	for _, art := range artifacts {
+		if err := storage.ActionsArtifacts.Delete(art.StoragePath); err != nil {
+			log.Error("remove artifact file %q: %v", art.StoragePath, err)
 			// go on
 		}
 	}
