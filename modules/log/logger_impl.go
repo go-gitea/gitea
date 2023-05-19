@@ -211,10 +211,10 @@ func (l *LoggerImpl) Log(skip int, level Level, format string, logArgs ...any) {
 	for i, v := range msgArgs {
 		if cv, ok := v.(*ColoredValue); ok {
 			if s, ok := cv.v.(LogStringer); ok {
-				cv.v = s.LogString()
+				cv.v = logStringFormatter{v: s}
 			}
 		} else if s, ok := v.(LogStringer); ok {
-			msgArgs[i] = s.LogString()
+			msgArgs[i] = logStringFormatter{v: s}
 		}
 	}
 

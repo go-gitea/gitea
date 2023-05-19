@@ -35,6 +35,20 @@ type EventFormatted struct {
 
 type EventFormatter func(mode *WriterMode, event *Event, msgFormat string, msgArgs ...any) []byte
 
+type logStringFormatter struct {
+	v LogStringer
+}
+
+var _ fmt.Formatter = logStringFormatter{}
+
+func (l logStringFormatter) Format(f fmt.State, verb rune) {
+	if f.Flag('#') && verb == 'v' {
+		_, _ = fmt.Fprintf(f, "%#v", l.v)
+		return
+	}
+	_, _ = f.Write([]byte(l.v.LogString()))
+}
+
 // Copy of cheap integer to fixed-width decimal to ascii from logger.
 // TODO: legacy bugs: doesn't support negative number, overflow if wid it too large.
 func itoa(buf []byte, i, wid int) []byte {

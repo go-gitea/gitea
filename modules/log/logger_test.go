@@ -107,7 +107,9 @@ func TestLoggerPause(t *testing.T) {
 	logger.Close()
 }
 
-type testLogString struct{}
+type testLogString struct {
+	Field string
+}
 
 func (t testLogString) LogString() string {
 	return "log-string"
@@ -120,10 +122,10 @@ func TestLoggerLogString(t *testing.T) {
 	w1.Mode.Colorize = true
 	logger.AddWriters(w1)
 
-	logger.Info("%s %s %s", testLogString{}, &testLogString{}, NewColoredValue(testLogString{}, FgRed))
+	logger.Info("%s %s %#v %v", testLogString{}, &testLogString{}, testLogString{Field: "detail"}, NewColoredValue(testLogString{}, FgRed))
 	logger.Close()
 
-	assert.Equal(t, []string{"log-string log-string \x1b[31mlog-string\x1b[0m\n"}, w1.GetLogs())
+	assert.Equal(t, []string{"log-string log-string log.testLogString{Field:\"detail\"} \x1b[31mlog-string\x1b[0m\n"}, w1.GetLogs())
 }
 
 func TestLoggerExpressionFilter(t *testing.T) {
