@@ -298,13 +298,7 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("repository")
 	EnableSizeLimit = sec.Key("ENABLE_SIZE_LIMIT").MustBool(false)
 
-	v, err := humanize.ParseBytes(sec.Key("REPO_SIZE_LIMIT").MustString("0"))
-
-	if err == nil {
-		RepoSizeLimit = int64(v)
-	} else {
-		RepoSizeLimit = 0
-	}
+	RepoSizeLimit, _ = humanize.ParseBytes(sec.Key("REPO_SIZE_LIMIT").MustString("0"))
 
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
