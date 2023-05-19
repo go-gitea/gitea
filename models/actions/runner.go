@@ -45,7 +45,7 @@ type ActionRunner struct {
 
 	// Deprecated: Store OS and Artch.
 	AgentLabels []string
-	// Deprecated: Store custom labes use defined.
+	// Deprecated: Store custom labels use defined.
 	CustomLabels []string
 	// Store labels defined in config file (yaml or state file) of `act_runner`
 	Labels []string `xorm:"TEXT"`
