@@ -24,13 +24,14 @@ func (r *Manager) Register(rr ReleaseReopener) (cancel func()) {
 	defer r.mu.Unlock()
 
 	r.counter++
+	currentCounter := r.counter
 	r.releaseReopeners[r.counter] = rr
 
 	return func() {
 		r.mu.Lock()
 		defer r.mu.Unlock()
 
-		delete(r.releaseReopeners, r.counter)
+		delete(r.releaseReopeners, currentCounter)
 	}
 }
 
@@ -51,10 +52,10 @@ func GetManager() *Manager {
 	return manager
 }
 
-var manager *Manager
-
-func init() {
-	manager = &Manager{
+func NewManager() *Manager {
+	return &Manager{
 		releaseReopeners: make(map[int64]ReleaseReopener),
 	}
 }
+
+var manager = NewManager()
