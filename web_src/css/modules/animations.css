@@ -46,6 +46,11 @@ code.language-math.is-loading::after {
   height: 1.25rem;
 }
 
+#oauth2-login-navigator.is-loading::after {
+  width: 40px;
+  height: 40px;
+}
+
 @keyframes fadein {
   0% {
     opacity: 0;
