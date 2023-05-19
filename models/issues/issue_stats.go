@@ -117,7 +117,8 @@ func getIssueStatsChunk(opts *IssuesOptions, issueIDs []int64) (*IssueStats, err
 	stats := &IssueStats{}
 
 	countSession := func(opts *IssuesOptions, issueIDs []int64) *xorm.Session {
-		sess := db.GetEngine(db.DefaultContext).Table("issue")
+		sess := db.GetEngine(db.DefaultContext).
+			Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 		if len(opts.RepoIDs) > 1 {
 			sess.In("issue.repo_id", opts.RepoIDs)
 		} else if len(opts.RepoIDs) == 1 {
@@ -187,14 +188,17 @@ func GetUserIssueStats(filterMode int, opts IssuesOptions) (*IssueStats, error) 
 	if opts.User == nil {
 		return nil, errors.New("issue stats without user")
 	}
+	if opts.IsPull.IsNone() {
+		return nil, errors.New("unaccepted ispull option")
+	}
 
 	var err error
 	stats := &IssueStats{}
 
 	cond := builder.NewCond()
-	if !opts.IsPull.IsNone() {
-		cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull.IsTrue()})
-	}
+
+	cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull.IsTrue()})
+
 	if len(opts.RepoIDs) > 0 {
 		cond = cond.And(builder.In("issue.repo_id", opts.RepoIDs))
 	}
@@ -205,21 +209,21 @@ func GetUserIssueStats(filterMode int, opts IssuesOptions) (*IssueStats, error) 
 		cond = cond.And(opts.RepoCond)
 	}
 
-	if opts.User.ID > 0 {
+	if opts.User != nil {
 		cond = cond.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()))
 	}
 
 	sess := func(cond builder.Cond) *xorm.Session {
-		s := db.GetEngine(db.DefaultContext).Where(cond)
+		s := db.GetEngine(db.DefaultContext).
+			Join("INNER", "repository", "`issue`.repo_id = `repository`.id").
+			Where(cond)
 		if len(opts.LabelIDs) > 0 {
 			s.Join("INNER", "issue_label", "issue_label.issue_id = issue.id").
 				In("issue_label.label_id", opts.LabelIDs)
 		}
+
 		if opts.IsArchived != util.OptionalBoolNone {
-			s.Join("INNER", "repository", "issue.repo_id = repository.id")
-			if opts.IsArchived != util.OptionalBoolNone {
-				s.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
-			}
+			s.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
 		}
 		return s
 	}

@@ -214,6 +214,7 @@ func TestGetUserIssueStats(t *testing.T) {
 			issues_model.IssuesOptions{
 				User:    unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
 				RepoIDs: []int64{1},
+				IsPull:  util.OptionalBoolFalse,
 			},
 			issues_model.IssueStats{
 				YourRepositoriesCount: 1, // 6
@@ -228,6 +229,7 @@ func TestGetUserIssueStats(t *testing.T) {
 			issues_model.IssuesOptions{
 				User:     unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
 				RepoIDs:  []int64{1},
+				IsPull:   util.OptionalBoolFalse,
 				IsClosed: util.OptionalBoolTrue,
 			},
 			issues_model.IssueStats{
@@ -241,7 +243,8 @@ func TestGetUserIssueStats(t *testing.T) {
 		{
 			issues_model.FilterModeAssign,
 			issues_model.IssuesOptions{
-				User: unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
+				User:   unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
+				IsPull: util.OptionalBoolFalse,
 			},
 			issues_model.IssueStats{
 				YourRepositoriesCount: 1, // 6
@@ -254,7 +257,8 @@ func TestGetUserIssueStats(t *testing.T) {
 		{
 			issues_model.FilterModeCreate,
 			issues_model.IssuesOptions{
-				User: unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
+				User:   unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
+				IsPull: util.OptionalBoolFalse,
 			},
 			issues_model.IssueStats{
 				YourRepositoriesCount: 1, // 6
@@ -267,7 +271,8 @@ func TestGetUserIssueStats(t *testing.T) {
 		{
 			issues_model.FilterModeMention,
 			issues_model.IssuesOptions{
-				User: unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
+				User:   unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
+				IsPull: util.OptionalBoolFalse,
 			},
 			issues_model.IssueStats{
 				YourRepositoriesCount: 1, // 6
@@ -283,6 +288,7 @@ func TestGetUserIssueStats(t *testing.T) {
 			issues_model.IssuesOptions{
 				User:     unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
 				IssueIDs: []int64{1},
+				IsPull:   util.OptionalBoolFalse,
 			},
 			issues_model.IssueStats{
 				YourRepositoriesCount: 1, // 1
@@ -295,9 +301,10 @@ func TestGetUserIssueStats(t *testing.T) {
 		{
 			issues_model.FilterModeAll,
 			issues_model.IssuesOptions{
-				User: unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}),
-				Org:  unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}),
-				Team: unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 7}),
+				User:   unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}),
+				Org:    unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}),
+				Team:   unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 7}),
+				IsPull: util.OptionalBoolFalse,
 			},
 			issues_model.IssueStats{
 				YourRepositoriesCount: 2,
