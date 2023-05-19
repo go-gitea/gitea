@@ -77,9 +77,7 @@ func createDefaultPolicy() *bluemonday.Policy {
 	// Custom URL-Schemes
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
-	}
-
-	if setting.Markdown.AllowAllURLSchemes {
+	} else {
 		policy.AllowURLSchemesMatching(allowAllRegex)
 	}
 
