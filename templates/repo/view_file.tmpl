@@ -36,8 +36,8 @@
 					{{end}}
 					<a class="ui mini basic button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{.locale.Tr "repo.file_history"}}</a>
 					{{if .EscapeStatus.Escaped}}
-						<a class="ui mini basic button unescape-button gt-hidden">{{.locale.Tr "repo.unescape_control_characters"}}</a>
-						<a class="ui mini basic button escape-button">{{.locale.Tr "repo.escape_control_characters"}}</a>
+						<button class="ui mini basic button unescape-button gt-hidden">{{.locale.Tr "repo.unescape_control_characters"}}</button>
+						<button class="ui mini basic button escape-button">{{.locale.Tr "repo.escape_control_characters"}}</button>
 					{{end}}
 				</div>
 				<a download href="{{$.RawFileLink}}"><span class="btn-octicon" data-tooltip-content="{{.locale.Tr "repo.download_file"}}">{{svg "octicon-download"}}</span></a>
@@ -58,8 +58,8 @@
 					{{end}}
 				{{end}}
 			{{else if .EscapeStatus.Escaped}}
-				<a class="ui mini basic button unescape-button gt-mr-2 gt-hidden">{{.locale.Tr "repo.unescape_control_characters"}}</a>
-				<a class="ui mini basic button escape-button gt-mr-2">{{.locale.Tr "repo.escape_control_characters"}}</a>
+				<button class="ui mini basic button unescape-button gt-mr-2 gt-hidden">{{.locale.Tr "repo.unescape_control_characters"}}</button>
+				<button class="ui mini basic button escape-button gt-mr-2">{{.locale.Tr "repo.escape_control_characters"}}</button>
 			{{end}}
 		</div>
 	</h4>
@@ -107,7 +107,7 @@
 						<tr>
 							<td id="L{{$line}}" class="lines-num"><span id="L{{$line}}" data-line-number="{{$line}}"></span></td>
 							{{if $.EscapeStatus.Escaped}}
-								<td class="lines-escape">{{if (index $.LineEscapeStatus $idx).Escaped}}<a href="" class="toggle-escape-button" title="{{if (index $.LineEscapeStatus $idx).HasInvisible}}{{$.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if (index $.LineEscapeStatus $idx).HasAmbiguous}}{{$.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"></a>{{end}}</td>
+								<td class="lines-escape">{{if (index $.LineEscapeStatus $idx).Escaped}}<button class="toggle-escape-button button button-ghost" title="{{if (index $.LineEscapeStatus $idx).HasInvisible}}{{$.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if (index $.LineEscapeStatus $idx).HasAmbiguous}}{{$.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"></button>{{end}}</td>
 							{{end}}
 							<td rel="L{{$line}}" class="lines-code chroma"><code class="code-inner">{{$code | Safe}}</code></td>
 						</tr>

@@ -38,7 +38,7 @@ export function initViewedCheckboxListenerFor() {
     // The checkbox consists of a div containing the real checkbox with its label and the CSRF token,
     // hence the actual checkbox first has to be found
     const checkbox = form.querySelector('input[type=checkbox]');
-    checkbox.addEventListener('change', function() {
+    checkbox.addEventListener('input', function() {
       // Mark the file as viewed visually - will especially change the background
       if (this.checked) {
         form.classList.add(viewedStyleClass);

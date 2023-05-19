@@ -177,9 +177,9 @@ export function initRepoIssueCommentDelete() {
           const idx = $conversationHolder.data('idx');
           const lineType = $conversationHolder.closest('tr').data('line-type');
           if (lineType === 'same') {
-            $(`[data-path="${path}"] a.add-code-comment[data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('invisible');
           } else {
-            $(`[data-path="${path}"] a.add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
           }
           $conversationHolder.remove();
         }
@@ -488,7 +488,7 @@ export function initRepoPullRequestReview() {
     });
   }
 
-  $(document).on('click', 'a.add-code-comment', async function (e) {
+  $(document).on('click', '.add-code-comment', async function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
 

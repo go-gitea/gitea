@@ -21,7 +21,7 @@
   transform: scale(1.1);
 }
 
-.lines-escape a.toggle-escape-button::before {
+.lines-escape .toggle-escape-button::before {
   visibility: visible;
   content: "⚠️";
   font-family: var(--fonts-emoji);
