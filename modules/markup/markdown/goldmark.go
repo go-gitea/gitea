@@ -69,6 +69,9 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 				header.ID = util.BytesToReadOnlyString(id.([]byte))
 			}
 			tocList = append(tocList, header)
+			v.SetAttributeString("dir", []byte("auto"))
+		case *ast.Paragraph:
+			v.SetAttributeString("dir", []byte("auto"))
 		case *ast.Image:
 			// Images need two things:
 			//
@@ -171,6 +174,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 					v.AppendChild(v, newChild)
 				}
 			}
+			v.SetAttributeString("dir", []byte("auto"))
 		case *ast.Text:
 			if v.SoftLineBreak() && !v.HardLineBreak() {
 				renderMetas := pc.Get(renderMetasKey).(map[string]string)
