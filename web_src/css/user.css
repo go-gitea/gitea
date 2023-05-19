@@ -121,14 +121,6 @@
   object-fit: contain;
 }
 
-#notification_div .tab.segment {
-  overflow-x: auto;
-}
-
-#notification_div .tabular.menu .active.item {
-  background: var(--color-box-body);
-}
-
 #readme_profile {
   padding: 10px;
   border-radius: 0.28571429rem;
