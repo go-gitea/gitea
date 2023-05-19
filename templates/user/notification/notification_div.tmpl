@@ -24,7 +24,7 @@
 				</form>
 			{{end}}
 		</div>
-		<div class="ui bottom attached active tab segment gt-p-3">
+		<div class="ui bottom attached active tab segment gt-p-0">
 			{{if eq (len .Notifications) 0}}
 				<div class="gt-df gt-ac gt-fc gt-p-4">
 					{{svg "octicon-inbox" 56 "gt-mb-4"}}
@@ -35,101 +35,101 @@
 					{{end}}
 				</div>
 			{{else}}
-				<table class="ui unstackable very compact small table" id="notification_table">
-					<tbody>
-						{{range $notification := .Notifications}}
-							{{$issue := .Issue}}
-							{{$repo := .Repository}}
-							<tr id="notification_{{.ID}}">
-								<td class="collapsing gt-pl-4">
-									{{if eq .Status 3}}
-										{{svg "octicon-pin" 16 "text blue"}}
-									{{else if not $issue}}
-										{{svg "octicon-repo" 16 "text grey"}}
-									{{else if $issue.IsPull}}
-										{{if $issue.IsClosed}}
-											{{if $issue.GetPullRequest.HasMerged}}
-												{{svg "octicon-git-merge" 16 "text purple"}}
-											{{else}}
-												{{svg "octicon-git-pull-request" 16 "text red"}}
-											{{end}}
+				<div id="notification_table">
+					{{$locale := .locale}}
+					{{range $notification := .Notifications}}
+						<div class="notifications-item gt-df gt-ac gt-fw gt-gap-3 gt-p-3" id="notification_{{.ID}}">
+							<div class="notifications-icon gt-mx-3 gt-self-start gt-mt-2">
+								{{if eq .Status 3}}
+									{{svg "octicon-pin" 16 "text blue"}}
+								{{else if not .Issue}}
+									{{svg "octicon-repo" 16 "text grey"}}
+								{{else if .Issue.IsPull}}
+									{{if .Issue.IsClosed}}
+										{{if .Issue.GetPullRequest.HasMerged}}
+											{{svg "octicon-git-merge" 16 "text purple"}}
 										{{else}}
-											{{svg "octicon-git-pull-request" 16 "text green"}}
+											{{svg "octicon-git-pull-request" 16 "text red"}}
 										{{end}}
 									{{else}}
-										{{if $issue.IsClosed}}
-											{{svg "octicon-issue-closed" 16 "text red"}}
+										{{svg "octicon-git-pull-request" 16 "text green"}}
+									{{end}}
+								{{else}}
+									{{if .Issue.IsClosed}}
+										{{svg "octicon-issue-closed" 16 "text red"}}
+									{{else}}
+										{{svg "octicon-issue-opened" 16 "text green"}}
+									{{end}}
+								{{end}}
+							</div>
+							<a class="notifications-link gt-df gt-f1 gt-fc silenced" href="{{.Link}}">
+								<div class="notifications-top-row gt-font-13">
+									{{.Repository.FullName}} <span class="text light-3">#{{.Issue.Index}}</span>
+								</div>
+								<div class="notifications-bottom-row gt-font-16">
+									<span class="issue-title">
+										{{if .Issue}}
+											#{{.Issue.Index}} - {{.Issue.Title | RenderEmoji $.Context | RenderCodeBlock}}
 										{{else}}
-											{{svg "octicon-issue-opened" 16 "text green"}}
+											{{.Repository.FullName}}
 										{{end}}
-									{{end}}
-								</td>
-								<td class="eleven wide">
-									<a class="item issue-title muted" href="{{.Link}}">
-										{{if $issue}}
-											#{{$issue.Index}} - {{$issue.Title | RenderEmoji $.Context | RenderCodeBlock}}
-										{{else}}
-											{{$repo.FullName}}
-										{{end}}
-									</a>
-								</td>
-								<td>
-									<a class="item muted" href="{{$repo.Link}}">{{$repo.FullName}}</a>
-								</td>
-								<td class="collapsing">
-									{{if ne .Status 3}}
-										<form action="{{AppSubUrl}}/notifications/status" method="POST">
-											{{$.CsrfTokenHtml}}
-											<input type="hidden" name="notification_id" value="{{.ID}}">
-											<input type="hidden" name="status" value="pinned">
-											<button class="ui mini button button-ghost" title='{{$.locale.Tr "notification.pin"}}'
-												data-url="{{AppSubUrl}}/notifications/status"
-												data-status="pinned"
-												data-page="{{$.Page.Paginater.Current}}"
-												data-notification-id="{{.ID}}"
-												data-q="{{$.Keyword}}">
-												{{svg "octicon-pin"}}
-											</button>
-										</form>
-									{{end}}
-								</td>
-								<td class="collapsing">
-									{{if or (eq .Status 1) (eq .Status 3)}}
-										<form action="{{AppSubUrl}}/notifications/status" method="POST">
-											{{$.CsrfTokenHtml}}
-											<input type="hidden" name="notification_id" value="{{.ID}}">
-											<input type="hidden" name="status" value="read">
-											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-											<button class="ui mini button button-ghost" title='{{$.locale.Tr "notification.mark_as_read"}}'
-												data-url="{{AppSubUrl}}/notifications/status"
-												data-status="read"
-												data-page="{{$.Page.Paginater.Current}}"
-												data-notification-id="{{.ID}}"
-												data-q="{{$.Keyword}}">
-												{{svg "octicon-check"}}
-											</button>
-										</form>
-									{{else if eq .Status 2}}
-										<form action="{{AppSubUrl}}/notifications/status" method="POST">
-											{{$.CsrfTokenHtml}}
-											<input type="hidden" name="notification_id" value="{{.ID}}">
-											<input type="hidden" name="status" value="unread">
-											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-											<button class="ui mini button button-ghost" title='{{$.locale.Tr "notification.mark_as_unread"}}'
-												data-url="{{AppSubUrl}}/notifications/status"
-												data-status="unread"
-												data-page="{{$.Page.Paginater.Current}}"
-												data-notification-id="{{.ID}}"
-												data-q="{{$.Keyword}}">
-												{{svg "octicon-bell"}}
-											</button>
-										</form>
-									{{end}}
-								</td>
-							</tr>
-						{{end}}
-					</tbody>
-				</table>
+									</span>
+								</div>
+							</a>
+							<div class="notifications-updated gt-df gt-ac">
+								{{TimeSinceUnix .Issue.UpdatedUnix $locale}}
+							</div>
+							<div class="notifications-buttons gt-df gt-ac gt-gap-2 gt-px-2">
+								{{if ne .Status 3}}
+									<form action="{{AppSubUrl}}/notifications/status" method="POST">
+										{{$.CsrfTokenHtml}}
+										<input type="hidden" name="notification_id" value="{{.ID}}">
+										<input type="hidden" name="status" value="pinned">
+										<button class="ui mini button button-ghost gt-p-3" title='{{$.locale.Tr "notification.pin"}}'
+											data-url="{{AppSubUrl}}/notifications/status"
+											data-status="pinned"
+											data-page="{{$.Page.Paginater.Current}}"
+											data-notification-id="{{.ID}}"
+											data-q="{{$.Keyword}}">
+											{{svg "octicon-pin"}}
+										</button>
+									</form>
+								{{end}}
+								{{if or (eq .Status 1) (eq .Status 3)}}
+									<form action="{{AppSubUrl}}/notifications/status" method="POST">
+										{{$.CsrfTokenHtml}}
+										<input type="hidden" name="notification_id" value="{{.ID}}">
+										<input type="hidden" name="status" value="read">
+										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
+										<button class="ui mini button button-ghost gt-p-3" title='{{$.locale.Tr "notification.mark_as_read"}}'
+											data-url="{{AppSubUrl}}/notifications/status"
+											data-status="read"
+											data-page="{{$.Page.Paginater.Current}}"
+											data-notification-id="{{.ID}}"
+											data-q="{{$.Keyword}}">
+											{{svg "octicon-check"}}
+										</button>
+									</form>
+								{{else if eq .Status 2}}
+									<form action="{{AppSubUrl}}/notifications/status" method="POST">
+										{{$.CsrfTokenHtml}}
+										<input type="hidden" name="notification_id" value="{{.ID}}">
+										<input type="hidden" name="status" value="unread">
+										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
+										<button class="ui mini button button-ghost gt-p-3" title='{{$.locale.Tr "notification.mark_as_unread"}}'
+											data-url="{{AppSubUrl}}/notifications/status"
+											data-status="unread"
+											data-page="{{$.Page.Paginater.Current}}"
+											data-notification-id="{{.ID}}"
+											data-q="{{$.Keyword}}">
+											{{svg "octicon-bell"}}
+										</button>
+									</form>
+								{{end}}
+							</div>
+						</div>
+					{{end}}
+				</div>
 			{{end}}
 		</div>
 		{{template "base/paginate" .}}

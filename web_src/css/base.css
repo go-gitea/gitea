@@ -369,6 +369,7 @@ a.muted:hover [class*="color-text"],
 
 a.silenced:hover {
   color: inherit;
+  text-decoration: none;
 }
 
 .delete-button,
@@ -1413,6 +1414,18 @@ img.ui.avatar,
   color: var(--color-text-light) !important;
 }
 
+.text.light {
+  color: var(--color-text-light) !important;
+}
+
+.text.light-2 {
+  color: var(--color-text-light-2) !important;
+}
+
+.text.light-3 {
+  color: var(--color-text-light-3) !important;
+}
+
 .text.light.grey {
   color: var(--color-grey-light) !important;
 }
@@ -2207,7 +2220,11 @@ a.ui.active.label:hover {
 }
 
 .button.button-ghost:hover {
-  color: var(--color-primary);
+  background: var(--color-primary-alpha-20);
+}
+
+.button.button-ghost:active {
+  background: var(--color-primary-alpha-50);
 }
 
 .two-toggle-buttons .button:not(.active):first-of-type {
