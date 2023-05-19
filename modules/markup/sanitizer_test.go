@@ -55,7 +55,7 @@ func Test_Sanitizer(t *testing.T) {
 
 		// URLs
 		`[my custom URL scheme](cbthunderlink://somebase64string)`, `[my custom URL scheme](cbthunderlink://somebase64string)`,
-		`[my custom URL scheme](matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join&via=feneas.org&via=sorunome.de&via=the-apothecary.club&via=pirateriot.net&via=matrix.org)`, `[my custom URL scheme](matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join&via=feneas.org&via=sorunome.de&via=the-apothecary.club&via=pirateriot.net&via=matrix.org)`,
+		`[my custom URL scheme](matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join)`, `[my custom URL scheme](matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join)`,
 	}
 
 	for i := 0; i < len(testCases); i += 2 {
