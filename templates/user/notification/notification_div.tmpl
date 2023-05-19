@@ -1,14 +1,16 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-params="{{.Page.GetParams}}" data-sequence-number="{{.SequenceNumber}}">
 	<div class="ui container">
-		<div class="ui top attached tabular menu">
-			{{$notificationUnreadCount := call .NotificationUnreadCount}}
-			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active {{end}}item">
-				{{.locale.Tr "notification.unread"}}
-				<div class="ui label {{if not $notificationUnreadCount}}gt-hidden{{end}}">{{$notificationUnreadCount}}</div>
-			</a>
-			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active {{end}}item">
-				{{.locale.Tr "notification.read"}}
-			</a>
+		{{$notificationUnreadCount := call .NotificationUnreadCount}}
+		<div class="gt-df gt-ac gt-sb gt-mb-4">
+			<div class="small-menu-items ui compact tiny menu">
+				<a class="{{if eq .Status 1}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=unread">
+					{{.locale.Tr "notification.unread"}}
+					<div class="ui label {{if not $notificationUnreadCount}}gt-hidden{{end}}">{{$notificationUnreadCount}}</div>
+				</a>
+				<a class="{{if eq .Status 2}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=read">
+					{{.locale.Tr "notification.read"}}
+				</a>
+			</div>
 			{{if and (eq .Status 1)}}
 				<form class="gt-ml-auto" action="{{AppSubUrl}}/notifications/purge" method="POST">
 					{{$.CsrfTokenHtml}}
@@ -20,18 +22,18 @@
 				</form>
 			{{end}}
 		</div>
-		<div class="ui bottom attached active tab segment gt-p-0">
-			{{if eq (len .Notifications) 0}}
-				<div class="gt-df gt-ac gt-fc gt-p-4">
-					{{svg "octicon-inbox" 56 "gt-mb-4"}}
-					{{if eq .Status 1}}
-						{{.locale.Tr "notification.no_unread"}}
-					{{else}}
-						{{.locale.Tr "notification.no_read"}}
-					{{end}}
-				</div>
-			{{else}}
-				<div id="notification_table">
+		<div class="gt-p-0">
+			<div id="notification_table">
+				{{if eq (len .Notifications) 0}}
+					<div class="gt-df gt-ac gt-fc gt-p-4">
+						{{svg "octicon-inbox" 56 "gt-mb-4"}}
+						{{if eq .Status 1}}
+							{{.locale.Tr "notification.no_unread"}}
+						{{else}}
+							{{.locale.Tr "notification.no_read"}}
+						{{end}}
+					</div>
+				{{else}}
 					{{$locale := .locale}}
 					{{range $notification := .Notifications}}
 						<div class="notifications-item gt-df gt-ac gt-fw gt-gap-3 gt-p-3" id="notification_{{.ID}}">
@@ -125,8 +127,8 @@
 							</div>
 						</div>
 					{{end}}
-				</div>
-			{{end}}
+				{{end}}
+			</div>
 		</div>
 		{{template "base/paginate" .}}
 	</div>
