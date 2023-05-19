@@ -28,6 +28,7 @@ var Markdown = struct {
 	EnableHardLineBreakInComments  bool
 	EnableHardLineBreakInDocuments bool
 	CustomURLSchemes               []string `ini:"CUSTOM_URL_SCHEMES"`
+	AllowAllURLSchemes             bool     `ini:"ALLOW_ALL_URL_SCHEMES"`
 	FileExtensions                 []string
 	EnableMath                     bool
 }{
@@ -59,6 +60,7 @@ type MarkupSanitizerRule struct {
 }
 
 func loadMarkupFrom(rootCfg ConfigProvider) {
+	rootCfg.Section("markdown").Key("ALLOW_ALL_URL_SCHEMES").MustBool(true)
 	mustMapSetting(rootCfg, "markdown", &Markdown)
 
 	MermaidMaxSourceCharacters = rootCfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(5000)
