@@ -10,8 +10,8 @@ import (
 // Actions settings
 var (
 	Actions = struct {
-		Storage                   // how the created logs should be stored
-		Artifacts         Storage // how the created artifacts should be stored
+		LogStorage        Storage // how the created logs should be stored
+		ArtifactStorage   Storage // how the created artifacts should be stored
 		Enabled           bool
 		DefaultActionsURL string `ini:"DEFAULT_ACTIONS_URL"`
 	}{
@@ -29,6 +29,6 @@ func loadActionsFrom(rootCfg ConfigProvider) {
 	actionsSec := rootCfg.Section("actions.artifacts")
 	storageType := actionsSec.Key("STORAGE_TYPE").MustString("")
 
-	Actions.Storage = getStorage(rootCfg, "actions_log", "", nil)
-	Actions.Artifacts = getStorage(rootCfg, "actions_artifacts", storageType, actionsSec)
+	Actions.LogStorage = getStorage(rootCfg, "actions_log", "", nil)
+	Actions.ArtifactStorage = getStorage(rootCfg, "actions_artifacts", storageType, actionsSec)
 }

@@ -217,11 +217,11 @@ func initActions() (err error) {
 		ActionsArtifacts = discardStorage("ActionsArtifacts isn't enabled")
 		return nil
 	}
-	log.Info("Initialising Actions storage with type: %s", setting.Actions.Storage.Type)
-	if Actions, err = NewStorage(setting.Actions.Storage.Type, &setting.Actions.Storage); err != nil {
+	log.Info("Initialising Actions storage with type: %s", setting.Actions.LogStorage.Type)
+	if Actions, err = NewStorage(setting.Actions.LogStorage.Type, &setting.Actions.LogStorage); err != nil {
 		return err
 	}
-	log.Info("Initialising ActionsArtifacts storage with type: %s", setting.Actions.Artifacts.Type)
-	ActionsArtifacts, err = NewStorage(setting.Actions.Artifacts.Type, &setting.Actions.Artifacts)
+	log.Info("Initialising ActionsArtifacts storage with type: %s", setting.Actions.ArtifactStorage.Type)
+	ActionsArtifacts, err = NewStorage(setting.Actions.ArtifactStorage.Type, &setting.Actions.ArtifactStorage)
 	return err
 }
