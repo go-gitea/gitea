@@ -170,8 +170,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 
 	repo := ctx.Repo.Repository
 	var labelIDs []int64
+	// 1,-2 means including label 1 and excluding label 2
+	// 0 means issues with no label
+	// blank means labels will not be filtered for issues
 	selectLabels := ctx.FormString("labels")
-	if len(selectLabels) > 0 && selectLabels != "0" {
+	if len(selectLabels) > 0 {
 		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
 		if err != nil {
 			ctx.ServerError("StringsToInt64s", err)
@@ -203,10 +206,10 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	if forceEmpty {
 		issueStats = &issues_model.IssueStats{}
 	} else {
-		issueStats, err = issues_model.GetIssueStats(&issues_model.IssueStatsOptions{
+		issueStats, err = issues_model.GetIssueStats(&issues_model.IssuesOptions{
 			RepoID:            repo.ID,
-			Labels:            selectLabels,
-			MilestoneID:       milestoneID,
+			LabelIDs:          labelIDs,
+			MilestoneIDs:      []int64{milestoneID},
 			ProjectID:         projectID,
 			AssigneeID:        assigneeID,
 			MentionedID:       mentionedID,

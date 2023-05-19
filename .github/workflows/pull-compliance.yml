@@ -1,6 +1,10 @@
 name: compliance
 
-on: [pull_request]
+on:
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
