@@ -65,6 +65,7 @@ import octiconTag from '../../public/img/svg/octicon-tag.svg';
 import octiconTriangleDown from '../../public/img/svg/octicon-triangle-down.svg';
 import octiconX from '../../public/img/svg/octicon-x.svg';
 import octiconXCircleFill from '../../public/img/svg/octicon-x-circle-fill.svg';
+import octiconTools from '../../public/img/svg/octicon-tools.svg';
 
 const svgs = {
   'gitea-double-chevron-left': giteaDoubleChevronLeft,
@@ -132,7 +133,8 @@ const svgs = {
   'octicon-tag': octiconTag,
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
-  'octicon-x-circle-fill': octiconXCircleFill
+  'octicon-x-circle-fill': octiconXCircleFill,
+  'octicon-tools': octiconTools,
 };
 
 // TODO: use a more general approach to access SVG icons.

@@ -60,12 +60,29 @@
 
       <div class="action-view-right">
         <div class="job-info-header">
-          <h3 class="job-info-header-title">
-            {{ currentJob.title }}
-          </h3>
-          <p class="job-info-header-detail">
-            {{ currentJob.detail }}
-          </p>
+          <div class="job-info-header-left">
+            <h3 class="job-info-header-title">
+              {{ currentJob.title }}
+            </h3>
+            <p class="job-info-header-detail">
+              {{ currentJob.detail }}
+            </p>
+          </div>
+          <div class="job-info-header-right">
+            <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+              <SvgIcon name="octicon-tools"/>
+              <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
+                <a class="item" @click="toggleTimeStamps()">
+                  <SvgIcon v-show="timeStampVisible" name="octicon-check"/>
+                  {{ locale.jobOptions.showTimeStamp }}
+                </a>
+                <a class="item" @click="">
+                  <SvgIcon name="octicon-check"/>
+                  {{ locale.jobOptions.showFullScreen }}
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="job-step-container">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
@@ -95,6 +112,7 @@ import {SvgIcon} from '../svg.js';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
 import AnsiToHTML from 'ansi-to-html';
+import { element } from 'prop-types';
 
 const {csrfToken} = window.config;
 
@@ -121,6 +139,8 @@ const sfc = {
       currentJobStepsStates: [],
       artifacts: [],
       onHoverRerunIndex: -1,
+      menuVisible: false,
+      timeStampVisible: false,
 
       // provided by backend
       run: {
@@ -173,6 +193,12 @@ const sfc = {
     // load job data and then auto-reload periodically
     this.loadJob();
     this.intervalID = setInterval(this.loadJob, 1000);
+
+    document.body.addEventListener('click', this.closeDropdown);
+  },
+
+  beforeDestroy() {
+    document.body.removeEventListener('click', this.closeDropdown);
   },
 
   unmounted() {
@@ -254,7 +280,6 @@ const sfc = {
       const logTimeStamp = document.createElement('span');
       logTimeStamp.className = 'log-time-stamp';
       const date = new Date(parseFloat(line.timestamp*1000));
-      console.log('date', date);
       const timeStamp = date.toLocaleString(undefined, {year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long', hour: '2-digit', hour12: false, minute: '2-digit', second: '2-digit'})
       console.log('parsed date:', timeStamp);
       logTimeStamp.innerHTML = timeStamp;
@@ -342,6 +367,17 @@ const sfc = {
 
     isDone(status) {
       return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
+    },
+
+    closeDropdown() {
+      if (this.menuVisible) this.menuVisible = false;
+    },
+
+    toggleTimeStamps() {
+      this.timeStampVisible = !this.timeStampVisible;
+      for (const el of document.querySelectorAll('.log-time-stamp')) {
+        el.style.display = this.timeStampVisible? 'block' : 'none';
+      }
     }
   },
 };
@@ -376,7 +412,11 @@ export function initRepositoryActionView() {
         cancelled: el.getAttribute('data-locale-status-cancelled'),
         skipped: el.getAttribute('data-locale-status-skipped'),
         blocked: el.getAttribute('data-locale-status-blocked'),
-      }
+      },
+      jobOptions: {
+        showTimeStamp: el.getAttribute('data-locale-show-timestamp'),
+        showFullScreen: el.getAttribute('data-locale-show-full-screen'),
+      },
     }
   });
   view.mount(el);
@@ -582,6 +622,13 @@ export function ansiLogToHTML(line) {
 }
 
 .job-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.job-info-header .job-info-header-title {
+  font-size: 150%;
   padding: 10px;
   border-bottom: 1px solid var(--color-console-border);
   background-color: var(--color-console-bg);
@@ -701,6 +748,11 @@ export function ansiLogToHTML(line) {
   word-break: break-all;
   white-space: break-spaces;
   margin-left: 10px;
+}
+
+.log-time-stamp {
+  margin-left: 10px;
+  display: none;
 }
 
 /* TODO: group support
