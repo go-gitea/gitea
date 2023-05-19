@@ -61,13 +61,10 @@
 .comment-code-cloud {
   padding: 0.5rem 1rem !important;
   position: relative;
-  margin: 0 auto;
-  max-width: 1000px;
 }
 
 .conversation-holder .comment-code-cloud {
   max-width: 820px;
-  margin: unset;
 }
 
 @media (max-width: 767px) {
