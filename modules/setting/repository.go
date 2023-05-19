@@ -310,7 +310,7 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
 	}
 
-	if !rootCfg.Section("actions").Key("ENABLED").MustBool(true) {
+	if !rootCfg.Section("actions").Key("ENABLED").MustBool(false) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.actions")
 	}
 
