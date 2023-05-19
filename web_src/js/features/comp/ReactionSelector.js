@@ -19,40 +19,53 @@ export function initCompReactionSelector(parent) {
     });
   }
 
-  parent.find(`.select-reaction > .menu .item, ${selector}`).on('click', function (e) {
+  parent.find(`.select-reaction > .menu .item, ${selector}`).on('click', async function (e) {
     e.preventDefault();
 
     if ($(this).hasClass('disabled')) return;
 
-    const actionURL = $(this).hasClass('item') ? $(this).closest('.select-reaction').data('action-url') : $(this).data('action-url');
-    const url = `${actionURL}/${$(this).hasClass('primary') ? 'unreact' : 'react'}`;
-    $.ajax({
-      type: 'POST',
-      url,
-      data: {
+    const reactionContent = $(this).attr('data-reaction-content');
+    let actionUrl, hasReacted;
+    if ($(this).hasClass('item')) { // in dropdown menu
+      actionUrl = $(this).closest('.select-reaction').data('action-url');
+      const parent = $(this).closest('.segment.reactions');
+      const el = parent.find(`[data-reaction-content="${reactionContent}"]`);
+      hasReacted = el.attr('data-has-reacted') === 'true';
+    } else { // not in menu
+      actionUrl = $(this).data('action-url');
+      hasReacted = $(this).attr('data-has-reacted') === 'true';
+    }
+
+    const res = await fetch(`${actionUrl}/${hasReacted ? 'unreact' : 'react'}`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
         _csrf: csrfToken,
-        content: $(this).attr('data-reaction-content'),
-      }
-    }).done((resp) => {
-      if (resp && (resp.html || resp.empty)) {
-        const content = $(this).closest('.content');
-        let react = content.find('.segment.reactions');
-        if ((!resp.empty || resp.html === '') && react.length > 0) {
-          react.remove();
-        }
-        if (!resp.empty) {
-          react = $('<div class="ui attached segment reactions"></div>');
-          const attachments = content.find('.segment.bottom:first');
-          if (attachments.length > 0) {
-            react.insertBefore(attachments);
-          } else {
-            react.appendTo(content);
-          }
-          react.html(resp.html);
-          react.find('.dropdown').dropdown();
-          initCompReactionSelector(react);
-        }
-      }
+        content: reactionContent,
+      }),
     });
+
+    const data = await res.json();
+    if (data && (data.html || data.empty)) {
+      const content = $(this).closest('.content');
+      let react = content.find('.segment.reactions');
+      if ((!data.empty || data.html === '') && react.length > 0) {
+        react.remove();
+      }
+      if (!data.empty) {
+        react = $('<div class="ui attached segment reactions"></div>');
+        const attachments = content.find('.segment.bottom:first');
+        if (attachments.length > 0) {
+          react.insertBefore(attachments);
+        } else {
+          react.appendTo(content);
+        }
+        react.html(data.html);
+        react.find('.dropdown').dropdown();
+        initCompReactionSelector(react);
+      }
+    }
   });
 }

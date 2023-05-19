@@ -2129,6 +2129,10 @@
   background: var(--color-secondary);
 }
 
+.reaction-header {
+  background: none !important;
+}
+
 .reactions-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

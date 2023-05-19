@@ -1,5 +1,6 @@
 {{range $key, $value := .Reactions}}
-	<a class="ui label basic{{if $value.HasUser $.ctxData.SignedUserID}} primary{{end}}{{if not $.ctxData.IsSigned}} disabled{{end}}" data-title="{{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{$.ctxData.locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}" data-reaction-content="{{$key}}" data-action-url="{{$.ActionURL}}">
+	{{$hasReacted := $value.HasUser $.ctxData.SignedUserID}}
+	<a class="ui label basic{{if $hasReacted}} primary{{end}}{{if not $.ctxData.IsSigned}} disabled{{end}}"data-title="{{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{$.ctxData.locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}" data-reaction-content="{{$key}}" data-action-url="{{$.ActionURL}}" data-has-reacted="{{$hasReacted}}">
 		<span class="reaction">{{ReactionToEmoji $key}}</span>
 		<span class="reaction-count">{{len $value}}</span>
 	</a>

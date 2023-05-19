@@ -1,10 +1,10 @@
 {{if .ctxData.IsSigned}}
 <div class="item action ui dropdown jump pointing top right select-reaction" data-action-url="{{.ActionURL}}">
-	<a class="add-reaction">
+	<a role="button" class="add-reaction">
 		{{svg "octicon-smiley"}}
 	</a>
 	<div class="menu">
-		<div class="header">{{.ctxData.locale.Tr "repo.pick_reaction"}}</div>
+		<div class="header reactions-header">{{.ctxData.locale.Tr "repo.pick_reaction"}}</div>
 		<div class="divider"></div>
 		<div class="reactions-grid">
 			{{range $value := AllowedReactions}}
