@@ -26,6 +26,10 @@ var argTypeProvider = map[reflect.Type]func(req *http.Request) ResponseStatusPro
 	reflect.TypeOf(&context.PrivateContext{}): func(req *http.Request) ResponseStatusProvider { return context.GetPrivateContext(req) },
 }
 
+func RegisterHandleTypeProvider[T any](fn func(req *http.Request) ResponseStatusProvider) {
+	argTypeProvider[reflect.TypeOf((*T)(nil)).Elem()] = fn
+}
+
 // responseWriter is a wrapper of http.ResponseWriter, to check whether the response has been written
 type responseWriter struct {
 	respWriter http.ResponseWriter
