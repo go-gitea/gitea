@@ -47,7 +47,7 @@ type ActionRunner struct {
 	AgentLabels []string
 	// Deprecated: Store custom labes use defined.
 	CustomLabels []string
-	// Combine “agent labels” and “custom labels” to “labels”.
+	// Store labels defined in config file (yaml or state file) of `act_runner`
 	Labels []string `xorm:"TEXT"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
