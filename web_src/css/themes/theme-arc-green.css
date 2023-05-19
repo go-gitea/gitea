@@ -165,8 +165,10 @@
   --color-caret: var(--color-text); /* should ideally be --color-text-dark, see #15651 */
   --color-reaction-bg: #ffffff12;
   --color-reaction-active-bg: var(--color-primary-alpha-40);
+  --color-tooltip-text: #ffffff;
+  --color-tooltip-bg: #000000f0;
   --color-header-bar: #2e323e;
-  --color-label-fg: #dfe3ec;
+  --color-label-text: #dfe3ec;
   --color-label-bg: #7c84974b;
   --color-label-hover-bg: #7c8497a0;
   --color-label-active-bg: #7c8497ff;

@@ -180,10 +180,10 @@
   --color-caret: var(--color-text-dark);
   --color-reaction-bg: #0000000a;
   --color-reaction-active-bg: var(--color-primary-alpha-20);
-  --color-tooltip-bg: #000000f0;
   --color-tooltip-text: #ffffff;
+  --color-tooltip-bg: #000000f0;
   --color-header-bar: #ffffff;
-  --color-label-fg: #232323;
+  --color-label-text: #232323;
   --color-label-bg: #cacaca5b;
   --color-label-hover-bg: #cacacaa0;
   --color-label-active-bg: #cacacaff;
@@ -1974,27 +1974,27 @@ i.icon.centerlock {
 .ui.label,
 .ui.menu .item > .label {
   background: var(--color-label-bg);
-  color: var(--color-label-fg);
+  color: var(--color-label-text);
 }
 
 .ui.active.label {
   background: var(--color-label-active-bg);
   border-color: var(--color-label-active-bg);
-  color: var(--color-label-fg);
+  color: var(--color-label-text);
 }
 
 .ui.labels a.label:hover,
 a.ui.label:hover {
   background: var(--color-label-hover-bg);
   border-color: var(--color-label-hover-bg);
-  color: var(--color-label-fg);
+  color: var(--color-label-text);
 }
 
 .ui.labels a.active.label:hover,
 a.ui.active.label:hover {
   background: var(--color-label-active-bg);
   border-color: var(--color-label-active-bg);
-  color: var(--color-label-fg);
+  color: var(--color-label-text);
 }
 
 .ui.label > .detail .icons {
