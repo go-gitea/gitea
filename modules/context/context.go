@@ -45,15 +45,17 @@ type Context struct {
 	Flash   *middleware.Flash
 	Session session.Store
 
-	Link        string // current request URL (without query string)
-	Doer        *user_model.User
+	Link string // current request URL (without query string)
+
+	Doer        *user_model.User // current signed-in user
 	IsSigned    bool
 	IsBasicAuth bool
 
-	ContextUser *user_model.User
-	Repo        *Repository
-	Org         *Organization
-	Package     *Package
+	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
+
+	Repo    *Repository
+	Org     *Organization
+	Package *Package
 }
 
 // TrHTMLEscapeArgs runs ".Locale.Tr()" but pre-escapes all arguments with html.EscapeString.
@@ -75,17 +77,17 @@ func GetContext(req *http.Request) *Context {
 	return ctx
 }
 
+// ValidateContext is a special context for form validation middleware. It may be different from other contexts.
 type ValidateContext struct {
 	*Base
-	Locale translation.Locale
 }
 
 // GetValidateContext gets a context for middleware form validation
 func GetValidateContext(req *http.Request) (ctx *ValidateContext) {
 	if ctxAPI, ok := req.Context().Value(apiContextKey).(*APIContext); ok {
-		ctx = &ValidateContext{Base: ctxAPI.Base, Locale: ctxAPI.Base.Locale}
+		ctx = &ValidateContext{Base: ctxAPI.Base}
 	} else if ctxWeb, ok := req.Context().Value(contextKey).(*Context); ok {
-		ctx = &ValidateContext{Base: ctxWeb.Base, Locale: ctxWeb.Base.Locale}
+		ctx = &ValidateContext{Base: ctxWeb.Base}
 	} else {
 		panic("invalid context, expect either APIContext or Context")
 	}
@@ -203,7 +205,7 @@ func (ctx *Context) HasError() bool {
 	if !ok {
 		return false
 	}
-	ctx.Flash.ErrorMsg = ctx.Data["ErrorMsg"].(string)
+	ctx.Flash.ErrorMsg = ctx.GetErrMsg()
 	ctx.Data["Flash"] = ctx.Flash
 	return hasErr.(bool)
 }

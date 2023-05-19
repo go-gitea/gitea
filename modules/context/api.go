@@ -30,14 +30,15 @@ type APIContext struct {
 
 	Cache cache.Cache
 
-	Doer        *user_model.User
+	Doer        *user_model.User // current signed-in user
 	IsSigned    bool
 	IsBasicAuth bool
 
-	ContextUser *user_model.User
-	Repo        *Repository
-	Org         *APIOrganization
-	Package     *Package
+	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
+
+	Repo    *Repository
+	Org     *APIOrganization
+	Package *Package
 }
 
 // Currently, we have the following common fields in error response:

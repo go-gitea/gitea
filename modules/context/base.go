@@ -34,8 +34,12 @@ type Base struct {
 
 	Resp ResponseWriter
 	Req  *http.Request
-	Data middleware.ContextData // data used by MVC templates, it's also used to pass data between middlewares/handler
 
+	// Data is prepared by ContextDataStore middleware, this field only refers to the pre-created/prepared ContextData.
+	// Although it's mainly used for MVC templates, sometimes it's also used to pass data between middlewares/handler
+	Data middleware.ContextData
+
+	// Locale is mainly for Web context, although the API context also uses it in some cases: message response, form validation
 	Locale translation.Locale
 }
 
