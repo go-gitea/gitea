@@ -7,7 +7,7 @@ export function initNotificationsTable() {
   const table = document.getElementById('notification_table');
   if (!table) return;
 
-  // when page restores from bfcache, delete clicked items
+  // when page restores from bfcache, delete previously clicked items
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) { // page was restored from bfcache
       const table = document.getElementById('notification_table');
@@ -21,7 +21,7 @@ export function initNotificationsTable() {
     }
   });
 
-  // for each unread link, mark it for deletion on click
+  // mark clicked unread links for deletion on bfcache restore
   for (const link of table.querySelectorAll('.notifications-link[data-status="1"]')) {
     const item = link.closest('.notifications-item');
     link.addEventListener('click', () => {
