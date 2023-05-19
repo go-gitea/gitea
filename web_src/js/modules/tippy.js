@@ -20,7 +20,7 @@ export function createTippy(target, opts = {}) {
     onShow: (instance) => {
       // hide other tooltip instances so only one tooltip shows at a time
       for (const visibleInstance of visibleInstances) {
-        if (visibleInstance.role === 'tooltip') {
+        if (visibleInstance.props.role === 'tooltip') {
           visibleInstance.hide();
         }
       }
