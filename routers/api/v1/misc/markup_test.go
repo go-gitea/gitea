@@ -115,8 +115,8 @@ func TestAPI_RenderGFM(t *testing.T) {
 - [[Tips]]
 - Bezier widget (by @r-lyeh) https://github.com/ocornut/imgui/issues/786`,
 		// rendered
-		`<p dir="auto">Wiki! Enjoy :)</p>
-<ul dir="auto">
+		`<p>Wiki! Enjoy :)</p>
+<ul>
 <li><a href="` + AppSubURL + `wiki/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
 <li><a href="` + AppSubURL + `wiki/Tips" rel="nofollow">Tips</a></li>
 <li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">https://github.com/ocornut/imgui/issues/786</a></li>
@@ -125,12 +125,12 @@ func TestAPI_RenderGFM(t *testing.T) {
 		// Guard wiki sidebar: special syntax
 		`[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]`,
 		// rendered
-		`<p dir="auto"><a href="` + AppSubURL + `wiki/Guardfile-DSL---Configuring-Guard" rel="nofollow">Guardfile-DSL / Configuring-Guard</a></p>
+		`<p><a href="` + AppSubURL + `wiki/Guardfile-DSL---Configuring-Guard" rel="nofollow">Guardfile-DSL / Configuring-Guard</a></p>
 `,
 		// special syntax
 		`[[Name|Link]]`,
 		// rendered
-		`<p dir="auto"><a href="` + AppSubURL + `wiki/Link" rel="nofollow">Name</a></p>
+		`<p><a href="` + AppSubURL + `wiki/Link" rel="nofollow">Name</a></p>
 `,
 		// empty
 		``,
@@ -150,11 +150,11 @@ Here are some links to the most important topics. You can find the full list of 
 [[images/icon-bug.png]]
 `,
 		// rendered
-		`<h2 id="user-content-what-is-wine-staging" dir="auto">What is Wine Staging?</h2>
-<p dir="auto"><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
-<h2 id="user-content-quick-links" dir="auto">Quick Links</h2>
-<p dir="auto">Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
-<p dir="auto"><a href="` + AppSubURL + `wiki/Configuration" rel="nofollow">Configuration</a>
+		`<h2 id="user-content-what-is-wine-staging">What is Wine Staging?</h2>
+<p><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
+<h2 id="user-content-quick-links">Quick Links</h2>
+<p>Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
+<p><a href="` + AppSubURL + `wiki/Configuration" rel="nofollow">Configuration</a>
 <a href="` + AppSubURL + `wiki/raw/images/icon-bug.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images/icon-bug.png" title="icon-bug.png" alt="images/icon-bug.png"/></a></p>
 `,
 	}
@@ -185,12 +185,12 @@ var simpleCases = []string{
 	// Guard wiki sidebar: special syntax
 	`[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]`,
 	// rendered
-	`<p dir="auto">[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]</p>
+	`<p>[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]</p>
 `,
 	// special syntax
 	`[[Name|Link]]`,
 	// rendered
-	`<p dir="auto">[[Name|Link]]</p>
+	`<p>[[Name|Link]]</p>
 `,
 	// empty
 	``,
