@@ -4,6 +4,7 @@
 package admin
 
 import (
+	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/models/webhook"
@@ -74,7 +75,7 @@ func GetHook(ctx *context.APIContext) {
 	hookID := ctx.ParamsInt64(":id")
 	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
 	if err != nil {
-		if webhook.IsErrWebhookNotExist(err) {
+		if errors.Is(err, util.ErrNotExist) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err)
@@ -164,7 +165,7 @@ func DeleteHook(ctx *context.APIContext) {
 
 	hookID := ctx.ParamsInt64(":id")
 	if err := webhook.DeleteDefaultSystemWebhook(ctx, hookID); err != nil {
-		if webhook.IsErrWebhookNotExist(err) {
+		if errors.Is(err, util.ErrNotExist) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteDefaultSystemWebhook", err)
