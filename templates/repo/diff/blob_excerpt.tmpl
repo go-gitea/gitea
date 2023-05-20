@@ -3,21 +3,23 @@
 	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}">
 		{{if eq .GetType 4}}
 			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}">
+				<div class="gt-df">
 				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5)}}
-					<button class="blob-excerpt button button-ghost" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
+					<button class="blob-excerpt button button-ghost gt-f1" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold-down"}}
 					</button>
 				{{end}}
 				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4)}}
-					<button class="blob-excerpt button button-ghost" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
+					<button class="blob-excerpt button button-ghost gt-f1" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold-up"}}
 					</button>
 				{{end}}
 				{{if eq $line.GetExpandDirection 2}}
-					<button class="blob-excerpt button button-ghost" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
+					<button class="blob-excerpt button button-ghost gt-f1" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold"}}
 					</button>
 				{{end}}
+				</div>
 			</td>
 			<td colspan="7" class="lines-code lines-code-old ">{{$inlineDiff := $.section.GetComputedInlineDiffFor $line $.locale}}{{/*
 				*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.locale}}</td>
