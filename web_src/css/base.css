@@ -890,6 +890,11 @@ a.label,
   background: var(--color-hover);
 }
 
+.ui.dropdown .menu > .item:active {
+  color: var(--color-text);
+  background: var(--color-active);
+}
+
 .ui.dropdown .menu .active.item {
   color: var(--color-text);
   background: var(--color-active);
