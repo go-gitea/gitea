@@ -2133,27 +2133,45 @@
   background: none !important;
 }
 
-.reactions-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin: 0 3px 3px;
+.repository .segment.reactions.dropdown .menu,
+.repository .select-reaction.dropdown .menu {
+  right: 0 !important;
+  left: auto !important;
+  min-width: 15em;
 }
 
-.reactions-grid a {
-  display: flex;
-  justify-content: center;
+.repository .segment.reactions.dropdown .menu > .header,
+.repository .select-reaction.dropdown .menu > .header {
+  margin: 0.75rem 0 0.5rem;
+}
+
+.repository .segment.reactions.dropdown .menu > .item,
+.repository .select-reaction.dropdown .menu > .item {
+  float: left;
+  margin: 4px;
+  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  min-height: 0 !important;
+  left: 3px;
+  top: -2px;
+  border-radius: 6px;
+  display: flex !important;
   align-items: center;
-  padding: 8px;
-  border-radius: 6px !important;
+  justify-content: center;
 }
 
-.reactions-grid a:hover {
-  background: var(--color-hover);
+.repository .segment.reactions.dropdown .menu > .item img.emoji,
+.repository .select-reaction.dropdown .menu > .item img.emoji {
+  margin-right: 0;
 }
 
-.reactions-grid a:active {
-  background: var(--color-active);
+.repository .segment.reactions.dropdown .menu > .item:hover {
+  background: var(--color-hover) !important;
+}
+
+.repository .segment.reactions.dropdown .menu > .item:active {
+  background: var(--color-active) !important;
 }
 
 .repository .segment.reactions {

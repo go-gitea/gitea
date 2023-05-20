@@ -31,7 +31,7 @@ export function initCompReactionSelector(parent) {
       const parent = $(this).closest('.segment.reactions');
       const el = parent.find(`[data-reaction-content="${reactionContent}"]`);
       hasReacted = el.attr('data-has-reacted') === 'true';
-    } else { // not in menu
+    } else { // outside of dropdown menu
       actionUrl = $(this).data('action-url');
       hasReacted = $(this).attr('data-has-reacted') === 'true';
     }
