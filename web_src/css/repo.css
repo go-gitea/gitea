@@ -2149,11 +2149,11 @@
 .repository .select-reaction.dropdown .menu > .item {
   float: left;
   margin: 4px;
-  font-size: 20px;
-  width: 32px;
-  height: 32px;
+  font-size: 19px;
+  width: 30px;
+  height: 30px;
   min-height: 0 !important;
-  left: 3px;
+  left: 5px;
   top: -2px;
   border-radius: 6px;
   display: flex !important;
