@@ -1091,6 +1091,7 @@ a.label,
   color: var(--color-text);
   background: var(--color-box-body);
   border-color: var(--color-secondary);
+  text-align: start;
 }
 
 .ui.table th,
