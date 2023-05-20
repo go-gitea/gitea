@@ -137,7 +137,7 @@ func GetIssueStats(opts *IssuesOptions) (*IssueStats, error) {
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
-func GetUserIssueStats(filterMode int, opts IssuesOptions) (*IssueStats, error) {
+func GetUserIssueStats(filterMode int, opts *IssuesOptions) (*IssueStats, error) {
 	if opts.User == nil {
 		return nil, errors.New("issue stats without user")
 	}
@@ -150,29 +150,20 @@ func GetUserIssueStats(filterMode int, opts IssuesOptions) (*IssueStats, error) 
 
 	cond := builder.NewCond()
 
-	cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull.IsTrue()})
-
-	if len(opts.RepoIDs) > 0 {
-		cond = cond.And(builder.In("issue.repo_id", opts.RepoIDs))
-	}
-	if opts.RepoCond != nil {
-		cond = cond.And(opts.RepoCond)
-	}
-
-	if opts.User != nil {
-		cond = cond.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()))
-	}
 
 	sess := func(cond builder.Cond) *xorm.Session {
 		s := db.GetEngine(db.DefaultContext).
-			Join("INNER", "repository", "`issue`.repo_id = `repository`.id").
-			Where(cond)
+			Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
+
+			applyIsPullCondition(s, opts)
+			applyRepoConditions(s, opts)
+			applyUserCondition(s, opts)
 		if len(opts.LabelIDs) > 0 {
 			s.Join("INNER", "issue_label", "issue_label.issue_id = issue.id").
 				In("issue_label.label_id", opts.LabelIDs)
 		}
 
-		applyKeywordCondition(s, &opts)
+		applyKeywordCondition(s, opts)
 
 		if opts.IsArchived != util.OptionalBoolNone {
 			s.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})

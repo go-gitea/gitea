@@ -124,7 +124,7 @@ func applyKeywordCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Sessio
 			db.BuildCaseInsensitiveLike("issue.name", opts.Keyword),
 			db.BuildCaseInsensitiveLike("issue.content", opts.Keyword),
 			builder.If(!opts.DontSearchComment,
-				builder.In("id", builder.Select("issue_id").
+				builder.In("issue.id", builder.Select("issue_id").
 					From("comment").
 					Where(builder.And(
 						builder.Expr("comment.issue_id = issue.id"),
@@ -199,6 +199,13 @@ func applyIsPullCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session
 	return sess
 }
 
+func applyUserCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+	if opts.User != nil {
+		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()))
+	}
+	return sess
+}
+
 func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 	/*if len(opts.IssueIDs) > 0 {
 		sess.In("issue.id", opts.IssueIDs)
@@ -266,9 +273,7 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 
 	applyLabelsCondition(sess, opts)
 
-	if opts.User != nil {
-		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()))
-	}
+	applyUserCondition(sess, opts)
 
 	return sess
 }
