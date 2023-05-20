@@ -22,7 +22,7 @@ import (
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct { //nolint
 	db.ListOptions
-	RepoID             int64 // overwrites RepoCond if not 0
+	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
 	RepoCond           builder.Cond
 	AssigneeID         int64
 	PosterID           int64
@@ -155,17 +155,24 @@ func applyMilestoneCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Sess
 	return sess
 }
 
+func applyRepoConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+	if len(opts.RepoIDs) == 1 {
+		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoIDs[0]}
+	} else if len(opts.RepoIDs) > 1 {
+		opts.RepoCond = builder.In("issue.repo_id", opts.RepoIDs)
+	}
+	if opts.RepoCond != nil {
+		sess.And(opts.RepoCond)
+	}
+	return sess
+}
+
 func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 	if len(opts.IssueIDs) > 0 {
 		sess.In("issue.id", opts.IssueIDs)
 	}
 
-	if opts.RepoID != 0 {
-		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoID}
-	}
-	if opts.RepoCond != nil {
-		sess.And(opts.RepoCond)
-	}
+	applyRepoConditions(sess, opts)
 
 	if !opts.IsClosed.IsNone() {
 		sess.And("issue.is_closed=?", opts.IsClosed.IsTrue())
@@ -400,31 +407,6 @@ func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Sess
 	)
 }
 
-// CountIssuesByRepo map from repoID to number of issues matching the options
-func CountIssuesByRepo(ctx context.Context, opts *IssuesOptions) (map[int64]int64, error) {
-	sess := db.GetEngine(ctx).
-		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
-
-	applyConditions(sess, opts)
-
-	countsSlice := make([]*struct {
-		RepoID int64
-		Count  int64
-	}, 0, 10)
-	if err := sess.GroupBy("issue.repo_id").
-		Select("issue.repo_id AS repo_id, COUNT(*) AS count").
-		Table("issue").
-		Find(&countsSlice); err != nil {
-		return nil, fmt.Errorf("unable to CountIssuesByRepo: %w", err)
-	}
-
-	countMap := make(map[int64]int64, len(countsSlice))
-	for _, c := range countsSlice {
-		countMap[c.RepoID] = c.Count
-	}
-	return countMap, nil
-}
-
 // GetRepoIDsForIssuesOptions find all repo ids for the given options
 func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]int64, error) {
 	repoIDs := make([]int64, 0, 5)
@@ -453,349 +435,16 @@ func Issues(ctx context.Context, opts *IssuesOptions) ([]*Issue, error) {
 	applyConditions(sess, opts)
 	applySorts(sess, opts.SortType, opts.PriorityRepoID)
 
-	issues := make([]*Issue, 0, opts.ListOptions.PageSize)
+	issues := make(IssueList, 0, opts.ListOptions.PageSize)
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("unable to query Issues: %w", err)
 	}
 
-	if err := IssueList(issues).LoadAttributes(); err != nil {
+	if err := issues.LoadAttributes(); err != nil {
 		return nil, fmt.Errorf("unable to LoadAttributes for Issues: %w", err)
 	}
 
 	return issues, nil
-}
-
-// CountIssues number return of issues by given conditions.
-func CountIssues(ctx context.Context, opts *IssuesOptions) (int64, error) {
-	sess := db.GetEngine(ctx).
-		Select("COUNT(issue.id) AS count").
-		Table("issue").
-		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
-	applyConditions(sess, opts)
-
-	return sess.Count()
-}
-
-// IssueStats represents issue statistic information.
-type IssueStats struct {
-	OpenCount, ClosedCount int64
-	YourRepositoriesCount  int64
-	AssignCount            int64
-	CreateCount            int64
-	MentionCount           int64
-	ReviewRequestedCount   int64
-	ReviewedCount          int64
-}
-
-// Filter modes.
-const (
-	FilterModeAll = iota
-	FilterModeAssign
-	FilterModeCreate
-	FilterModeMention
-	FilterModeReviewRequested
-	FilterModeReviewed
-	FilterModeYourRepositories
-)
-
-const (
-	// MaxQueryParameters represents the max query parameters
-	// When queries are broken down in parts because of the number
-	// of parameters, attempt to break by this amount
-	MaxQueryParameters = 300
-)
-
-// GetIssueStats returns issue statistic information by given conditions.
-func GetIssueStats(opts *IssuesOptions) (*IssueStats, error) {
-	if len(opts.IssueIDs) <= MaxQueryParameters {
-		return getIssueStatsChunk(opts, opts.IssueIDs)
-	}
-
-	// If too long a list of IDs is provided, we get the statistics in
-	// smaller chunks and get accumulates. Note: this could potentially
-	// get us invalid results. The alternative is to insert the list of
-	// ids in a temporary table and join from them.
-	accum := &IssueStats{}
-	for i := 0; i < len(opts.IssueIDs); {
-		chunk := i + MaxQueryParameters
-		if chunk > len(opts.IssueIDs) {
-			chunk = len(opts.IssueIDs)
-		}
-		stats, err := getIssueStatsChunk(opts, opts.IssueIDs[i:chunk])
-		if err != nil {
-			return nil, err
-		}
-		accum.OpenCount += stats.OpenCount
-		accum.ClosedCount += stats.ClosedCount
-		accum.YourRepositoriesCount += stats.YourRepositoriesCount
-		accum.AssignCount += stats.AssignCount
-		accum.CreateCount += stats.CreateCount
-		accum.OpenCount += stats.MentionCount
-		accum.ReviewRequestedCount += stats.ReviewRequestedCount
-		accum.ReviewedCount += stats.ReviewedCount
-		i = chunk
-	}
-	return accum, nil
-}
-
-func getIssueStatsChunk(opts *IssuesOptions, issueIDs []int64) (*IssueStats, error) {
-	stats := &IssueStats{}
-
-	countSession := func(opts *IssuesOptions, issueIDs []int64) *xorm.Session {
-		sess := db.GetEngine(db.DefaultContext).
-			Where("issue.repo_id = ?", opts.RepoID)
-
-		if len(issueIDs) > 0 {
-			sess.In("issue.id", issueIDs)
-		}
-
-		applyLabelsCondition(sess, opts)
-
-		applyMilestoneCondition(sess, opts)
-
-		if opts.ProjectID > 0 {
-			sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
-				And("project_issue.project_id=?", opts.ProjectID)
-		}
-
-		if opts.AssigneeID > 0 {
-			applyAssigneeCondition(sess, opts.AssigneeID)
-		} else if opts.AssigneeID == db.NoConditionID {
-			sess.Where("id NOT IN (SELECT issue_id FROM issue_assignees)")
-		}
-
-		if opts.PosterID > 0 {
-			applyPosterCondition(sess, opts.PosterID)
-		}
-
-		if opts.MentionedID > 0 {
-			applyMentionedCondition(sess, opts.MentionedID)
-		}
-
-		if opts.ReviewRequestedID > 0 {
-			applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
-		}
-
-		if opts.ReviewedID > 0 {
-			applyReviewedCondition(sess, opts.ReviewedID)
-		}
-
-		switch opts.IsPull {
-		case util.OptionalBoolTrue:
-			sess.And("issue.is_pull=?", true)
-		case util.OptionalBoolFalse:
-			sess.And("issue.is_pull=?", false)
-		}
-
-		return sess
-	}
-
-	var err error
-	stats.OpenCount, err = countSession(opts, issueIDs).
-		And("issue.is_closed = ?", false).
-		Count(new(Issue))
-	if err != nil {
-		return stats, err
-	}
-	stats.ClosedCount, err = countSession(opts, issueIDs).
-		And("issue.is_closed = ?", true).
-		Count(new(Issue))
-	return stats, err
-}
-
-// UserIssueStatsOptions contains parameters accepted by GetUserIssueStats.
-type UserIssueStatsOptions struct {
-	UserID     int64
-	RepoIDs    []int64
-	FilterMode int
-	IsPull     bool
-	IsClosed   bool
-	IssueIDs   []int64
-	IsArchived util.OptionalBool
-	LabelIDs   []int64
-	RepoCond   builder.Cond
-	Org        *organization.Organization
-	Team       *organization.Team
-}
-
-// GetUserIssueStats returns issue statistic information for dashboard by given conditions.
-func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
-	var err error
-	stats := &IssueStats{}
-
-	cond := builder.NewCond()
-	cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull})
-	if len(opts.RepoIDs) > 0 {
-		cond = cond.And(builder.In("issue.repo_id", opts.RepoIDs))
-	}
-	if len(opts.IssueIDs) > 0 {
-		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
-	}
-	if opts.RepoCond != nil {
-		cond = cond.And(opts.RepoCond)
-	}
-
-	if opts.UserID > 0 {
-		cond = cond.And(issuePullAccessibleRepoCond("issue.repo_id", opts.UserID, opts.Org, opts.Team, opts.IsPull))
-	}
-
-	sess := func(cond builder.Cond) *xorm.Session {
-		s := db.GetEngine(db.DefaultContext).Where(cond)
-		if len(opts.LabelIDs) > 0 {
-			s.Join("INNER", "issue_label", "issue_label.issue_id = issue.id").
-				In("issue_label.label_id", opts.LabelIDs)
-		}
-		if opts.UserID > 0 || opts.IsArchived != util.OptionalBoolNone {
-			s.Join("INNER", "repository", "issue.repo_id = repository.id")
-			if opts.IsArchived != util.OptionalBoolNone {
-				s.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
-			}
-		}
-		return s
-	}
-
-	switch opts.FilterMode {
-	case FilterModeAll, FilterModeYourRepositories:
-		stats.OpenCount, err = sess(cond).
-			And("issue.is_closed = ?", false).
-			Count(new(Issue))
-		if err != nil {
-			return nil, err
-		}
-		stats.ClosedCount, err = sess(cond).
-			And("issue.is_closed = ?", true).
-			Count(new(Issue))
-		if err != nil {
-			return nil, err
-		}
-	case FilterModeAssign:
-		stats.OpenCount, err = applyAssigneeCondition(sess(cond), opts.UserID).
-			And("issue.is_closed = ?", false).
-			Count(new(Issue))
-		if err != nil {
-			return nil, err
-		}
-		stats.ClosedCount, err = applyAssigneeCondition(sess(cond), opts.UserID).
-			And("issue.is_closed = ?", true).
-			Count(new(Issue))
-		if err != nil {
-			return nil, err
-		}
-	case FilterModeCreate:
-		stats.OpenCount, err = applyPosterCondition(sess(cond), opts.UserID).
-			And("issue.is_closed = ?", false).
-			Count(new(Issue))
-		if err != nil {
-			return nil, err
-		}
-		stats.ClosedCount, err = applyPosterCondition(sess(cond), opts.UserID).
-			And("issue.is_closed = ?", true).
-			Count(new(Issue))
-		if err != nil {
-			return nil, err
-		}
-	case FilterModeMention:
-		stats.OpenCount, err = applyMentionedCondition(sess(cond), opts.UserID).
-			And("issue.is_closed = ?", false).
-			Count(new(Issue))
-		if err != nil {
-			return nil, err
-		}
-		stats.ClosedCount, err = applyMentionedCondition(sess(cond), opts.UserID).
-			And("issue.is_closed = ?", true).
-			Count(new(Issue))
-		if err != nil {
-			return nil, err
-		}
-	case FilterModeReviewRequested:
-		stats.OpenCount, err = applyReviewRequestedCondition(sess(cond), opts.UserID).
-			And("issue.is_closed = ?", false).
-			Count(new(Issue))
-		if err != nil {
-			return nil, err
-		}
-		stats.ClosedCount, err = applyReviewRequestedCondition(sess(cond), opts.UserID).
-			And("issue.is_closed = ?", true).
-			Count(new(Issue))
-		if err != nil {
-			return nil, err
-		}
-	case FilterModeReviewed:
-		stats.OpenCount, err = applyReviewedCondition(sess(cond), opts.UserID).
-			And("issue.is_closed = ?", false).
-			Count(new(Issue))
-		if err != nil {
-			return nil, err
-		}
-		stats.ClosedCount, err = applyReviewedCondition(sess(cond), opts.UserID).
-			And("issue.is_closed = ?", true).
-			Count(new(Issue))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	cond = cond.And(builder.Eq{"issue.is_closed": opts.IsClosed})
-	stats.AssignCount, err = applyAssigneeCondition(sess(cond), opts.UserID).Count(new(Issue))
-	if err != nil {
-		return nil, err
-	}
-
-	stats.CreateCount, err = applyPosterCondition(sess(cond), opts.UserID).Count(new(Issue))
-	if err != nil {
-		return nil, err
-	}
-
-	stats.MentionCount, err = applyMentionedCondition(sess(cond), opts.UserID).Count(new(Issue))
-	if err != nil {
-		return nil, err
-	}
-
-	stats.YourRepositoriesCount, err = sess(cond).Count(new(Issue))
-	if err != nil {
-		return nil, err
-	}
-
-	stats.ReviewRequestedCount, err = applyReviewRequestedCondition(sess(cond), opts.UserID).Count(new(Issue))
-	if err != nil {
-		return nil, err
-	}
-
-	stats.ReviewedCount, err = applyReviewedCondition(sess(cond), opts.UserID).Count(new(Issue))
-	if err != nil {
-		return nil, err
-	}
-
-	return stats, nil
-}
-
-// GetRepoIssueStats returns number of open and closed repository issues by given filter mode.
-func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen, numClosed int64) {
-	countSession := func(isClosed, isPull bool, repoID int64) *xorm.Session {
-		sess := db.GetEngine(db.DefaultContext).
-			Where("is_closed = ?", isClosed).
-			And("is_pull = ?", isPull).
-			And("repo_id = ?", repoID)
-
-		return sess
-	}
-
-	openCountSession := countSession(false, isPull, repoID)
-	closedCountSession := countSession(true, isPull, repoID)
-
-	switch filterMode {
-	case FilterModeAssign:
-		applyAssigneeCondition(openCountSession, uid)
-		applyAssigneeCondition(closedCountSession, uid)
-	case FilterModeCreate:
-		applyPosterCondition(openCountSession, uid)
-		applyPosterCondition(closedCountSession, uid)
-	}
-
-	openResult, _ := openCountSession.Count(new(Issue))
-	closedResult, _ := closedCountSession.Count(new(Issue))
-
-	return openResult, closedResult
 }
 
 // SearchIssueIDsByKeyword search issues on database

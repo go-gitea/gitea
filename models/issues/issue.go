@@ -8,10 +8,8 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"sort"
 
 	"code.gitea.io/gitea/models/db"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -210,17 +208,6 @@ func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
 	}
 	pr.Issue = issue
 	return pr, err
-}
-
-// LoadLabels loads labels
-func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
-	if issue.Labels == nil && issue.ID != 0 {
-		issue.Labels, err = GetLabelsByIssueID(ctx, issue.ID)
-		if err != nil {
-			return fmt.Errorf("getLabelsByIssueID [%d]: %w", issue.ID, err)
-		}
-	}
-	return nil
 }
 
 // LoadPoster loads poster
@@ -459,175 +446,6 @@ func (issue *Issue) IsPoster(uid int64) bool {
 	return issue.OriginalAuthorID == 0 && issue.PosterID == uid
 }
 
-func (issue *Issue) getLabels(ctx context.Context) (err error) {
-	if len(issue.Labels) > 0 {
-		return nil
-	}
-
-	issue.Labels, err = GetLabelsByIssueID(ctx, issue.ID)
-	if err != nil {
-		return fmt.Errorf("getLabelsByIssueID: %w", err)
-	}
-	return nil
-}
-
-func clearIssueLabels(ctx context.Context, issue *Issue, doer *user_model.User) (err error) {
-	if err = issue.getLabels(ctx); err != nil {
-		return fmt.Errorf("getLabels: %w", err)
-	}
-
-	for i := range issue.Labels {
-		if err = deleteIssueLabel(ctx, issue, issue.Labels[i], doer); err != nil {
-			return fmt.Errorf("removeLabel: %w", err)
-		}
-	}
-
-	return nil
-}
-
-// ClearIssueLabels removes all issue labels as the given user.
-// Triggers appropriate WebHooks, if any.
-func ClearIssueLabels(issue *Issue, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := issue.LoadRepo(ctx); err != nil {
-		return err
-	} else if err = issue.LoadPullRequest(ctx); err != nil {
-		return err
-	}
-
-	perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
-	if err != nil {
-		return err
-	}
-	if !perm.CanWriteIssuesOrPulls(issue.IsPull) {
-		return ErrRepoLabelNotExist{}
-	}
-
-	if err = clearIssueLabels(ctx, issue, doer); err != nil {
-		return err
-	}
-
-	if err = committer.Commit(); err != nil {
-		return fmt.Errorf("Commit: %w", err)
-	}
-
-	return nil
-}
-
-type labelSorter []*Label
-
-func (ts labelSorter) Len() int {
-	return len([]*Label(ts))
-}
-
-func (ts labelSorter) Less(i, j int) bool {
-	return []*Label(ts)[i].ID < []*Label(ts)[j].ID
-}
-
-func (ts labelSorter) Swap(i, j int) {
-	[]*Label(ts)[i], []*Label(ts)[j] = []*Label(ts)[j], []*Label(ts)[i]
-}
-
-// Ensure only one label of a given scope exists, with labels at the end of the
-// array getting preference over earlier ones.
-func RemoveDuplicateExclusiveLabels(labels []*Label) []*Label {
-	validLabels := make([]*Label, 0, len(labels))
-
-	for i, label := range labels {
-		scope := label.ExclusiveScope()
-		if scope != "" {
-			foundOther := false
-			for _, otherLabel := range labels[i+1:] {
-				if otherLabel.ExclusiveScope() == scope {
-					foundOther = true
-					break
-				}
-			}
-			if foundOther {
-				continue
-			}
-		}
-		validLabels = append(validLabels, label)
-	}
-
-	return validLabels
-}
-
-// ReplaceIssueLabels removes all current labels and add new labels to the issue.
-// Triggers appropriate WebHooks, if any.
-func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = issue.LoadRepo(ctx); err != nil {
-		return err
-	}
-
-	if err = issue.LoadLabels(ctx); err != nil {
-		return err
-	}
-
-	labels = RemoveDuplicateExclusiveLabels(labels)
-
-	sort.Sort(labelSorter(labels))
-	sort.Sort(labelSorter(issue.Labels))
-
-	var toAdd, toRemove []*Label
-
-	addIndex, removeIndex := 0, 0
-	for addIndex < len(labels) && removeIndex < len(issue.Labels) {
-		addLabel := labels[addIndex]
-		removeLabel := issue.Labels[removeIndex]
-		if addLabel.ID == removeLabel.ID {
-			// Silently drop invalid labels
-			if removeLabel.RepoID != issue.RepoID && removeLabel.OrgID != issue.Repo.OwnerID {
-				toRemove = append(toRemove, removeLabel)
-			}
-
-			addIndex++
-			removeIndex++
-		} else if addLabel.ID < removeLabel.ID {
-			// Only add if the label is valid
-			if addLabel.RepoID == issue.RepoID || addLabel.OrgID == issue.Repo.OwnerID {
-				toAdd = append(toAdd, addLabel)
-			}
-			addIndex++
-		} else {
-			toRemove = append(toRemove, removeLabel)
-			removeIndex++
-		}
-	}
-	toAdd = append(toAdd, labels[addIndex:]...)
-	toRemove = append(toRemove, issue.Labels[removeIndex:]...)
-
-	if len(toAdd) > 0 {
-		if err = newIssueLabels(ctx, issue, toAdd, doer); err != nil {
-			return fmt.Errorf("addLabels: %w", err)
-		}
-	}
-
-	for _, l := range toRemove {
-		if err = deleteIssueLabel(ctx, issue, l, doer); err != nil {
-			return fmt.Errorf("removeLabel: %w", err)
-		}
-	}
-
-	issue.Labels = nil
-	if err = issue.LoadLabels(ctx); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
 // GetTasks returns the amount of tasks in the issues content
 func (issue *Issue) GetTasks() int {
 	return len(issueTasksPat.FindAllStringIndex(issue.Content, -1))
@@ -861,16 +679,6 @@ func (issue *Issue) GetExternalName() string { return issue.OriginalAuthor }
 
 // GetExternalID ExternalUserRemappable interface
 func (issue *Issue) GetExternalID() int64 { return issue.OriginalAuthorID }
-
-// CountOrphanedIssues count issues without a repo
-func CountOrphanedIssues(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).
-		Table("issue").
-		Join("LEFT", "repository", "issue.repo_id=repository.id").
-		Where(builder.IsNull{"repository.id"}).
-		Select("COUNT(`issue`.`id`)").
-		Count()
-}
 
 // HasOriginalAuthor returns if an issue was migrated and has an original author.
 func (issue *Issue) HasOriginalAuthor() bool {
