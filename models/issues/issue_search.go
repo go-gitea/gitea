@@ -40,15 +40,18 @@ type IssuesOptions struct { //nolint
 	ExcludedLabelNames []string
 	IncludeMilestones  []string
 	SortType           string
-	IssueIDs           []int64
-	UpdatedAfterUnix   int64
-	UpdatedBeforeUnix  int64
+	// IssueIDs           []int64
+	UpdatedAfterUnix  int64
+	UpdatedBeforeUnix int64
 	// prioritize issues from this repo
 	PriorityRepoID int64
 	IsArchived     util.OptionalBool
 	Org            *organization.Organization // issues permission scope
 	Team           *organization.Team         // issues permission scope
 	User           *user_model.User           // issues permission scope
+
+	Keyword           string
+	DontSearchComment bool // whether to search in comments
 }
 
 // applySorts sort an issues-related session based on the provided
@@ -111,6 +114,29 @@ func applyLimit(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 	return sess
 }
 
+func applyKeywordCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+	if opts.Keyword == "" {
+		return sess
+	}
+
+	return sess.Where(
+		builder.Or(
+			db.BuildCaseInsensitiveLike("issue.name", opts.Keyword),
+			db.BuildCaseInsensitiveLike("issue.content", opts.Keyword),
+			builder.If(!opts.DontSearchComment,
+				builder.In("id", builder.Select("issue_id").
+					From("comment").
+					Where(builder.And(
+						builder.Expr("comment.issue_id = issue.id"),
+						builder.Eq{"type": CommentTypeComment},
+						db.BuildCaseInsensitiveLike("content", opts.Keyword),
+					)),
+				),
+			),
+		),
+	)
+}
+
 func applyLabelsCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 	if len(opts.LabelIDs) > 0 {
 		if opts.LabelIDs[0] == 0 {
@@ -157,20 +183,28 @@ func applyMilestoneCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Sess
 
 func applyRepoConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 	if len(opts.RepoIDs) == 1 {
-		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoIDs[0]}
+		sess.And(builder.Eq{"issue.repo_id": opts.RepoIDs[0]})
 	} else if len(opts.RepoIDs) > 1 {
-		opts.RepoCond = builder.In("issue.repo_id", opts.RepoIDs)
-	}
-	if opts.RepoCond != nil {
+		sess.And(builder.In("issue.repo_id", opts.RepoIDs))
+	} else if opts.RepoCond != nil {
 		sess.And(opts.RepoCond)
 	}
 	return sess
 }
 
-func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
-	if len(opts.IssueIDs) > 0 {
-		sess.In("issue.id", opts.IssueIDs)
+func applyIsPullCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+	if !opts.IsPull.IsNone() {
+		sess.And("issue.is_pull=?", opts.IsPull.IsTrue())
 	}
+	return sess
+}
+
+func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+	/*if len(opts.IssueIDs) > 0 {
+		sess.In("issue.id", opts.IssueIDs)
+	}*/
+
+	applyKeywordCondition(sess, opts)
 
 	applyRepoConditions(sess, opts)
 
@@ -178,11 +212,7 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 		sess.And("issue.is_closed=?", opts.IsClosed.IsTrue())
 	}
 
-	if opts.AssigneeID > 0 {
-		applyAssigneeCondition(sess, opts.AssigneeID)
-	} else if opts.AssigneeID == db.NoConditionID {
-		sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_assignees)")
-	}
+	applyAssigneeCondition(sess, opts.AssigneeID)
 
 	if opts.PosterID > 0 {
 		applyPosterCondition(sess, opts.PosterID)
@@ -228,12 +258,7 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 		}
 	}
 
-	switch opts.IsPull {
-	case util.OptionalBoolTrue:
-		sess.And("issue.is_pull=?", true)
-	case util.OptionalBoolFalse:
-		sess.And("issue.is_pull=?", false)
-	}
+	applyIsPullCondition(sess, opts)
 
 	if opts.IsArchived != util.OptionalBoolNone {
 		sess.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
@@ -323,8 +348,15 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 }
 
 func applyAssigneeCondition(sess *xorm.Session, assigneeID int64) *xorm.Session {
-	return sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
-		And("issue_assignees.assignee_id = ?", assigneeID)
+	switch assigneeID {
+	case 0:
+		return sess
+	case db.NoConditionID:
+		return sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_assignees)")
+	default:
+		return sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+			And("issue_assignees.assignee_id = ?", assigneeID)
+	}
 }
 
 func applyPosterCondition(sess *xorm.Session, posterID int64) *xorm.Session {

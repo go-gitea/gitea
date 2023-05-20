@@ -12,6 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -602,4 +603,13 @@ func (issues IssueList) GetApprovalCounts(ctx context.Context) (map[int64][]*Rev
 	}
 
 	return approvalCountMap, nil
+}
+
+func FindIssuesByIDs(ctx context.Context, ids []int64, isPull util.OptionalBool) (IssueList, error) {
+	sess := db.GetEngine(ctx).In("id", ids)
+	if !isPull.IsNone() {
+		sess.And("is_pull=?", isPull.IsTrue())
+	}
+	var issues IssueList
+	return issues, sess.Find(&issues)
 }

@@ -339,10 +339,7 @@ func ViewProject(ctx *context.Context) {
 			}
 
 			if len(referencedIds) > 0 {
-				if linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-					IssueIDs: referencedIds,
-					IsPull:   util.OptionalBoolTrue,
-				}); err == nil {
+				if linkedPrs, err := issues_model.FindIssuesByIDs(ctx, referencedIds, util.OptionalBoolTrue); err == nil {
 					linkedPrsMap[issue.ID] = linkedPrs
 				}
 			}

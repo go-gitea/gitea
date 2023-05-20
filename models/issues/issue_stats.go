@@ -82,52 +82,14 @@ func CountIssues(ctx context.Context, opts *IssuesOptions) (int64, error) {
 
 // GetIssueStats returns issue statistic information by given conditions.
 func GetIssueStats(opts *IssuesOptions) (*IssueStats, error) {
-	if len(opts.IssueIDs) <= MaxQueryParameters {
-		return getIssueStatsChunk(opts, opts.IssueIDs)
-	}
-
-	// If too long a list of IDs is provided, we get the statistics in
-	// smaller chunks and get accumulates. Note: this could potentially
-	// get us invalid results. The alternative is to insert the list of
-	// ids in a temporary table and join from them.
-	accum := &IssueStats{}
-	for i := 0; i < len(opts.IssueIDs); {
-		chunk := i + MaxQueryParameters
-		if chunk > len(opts.IssueIDs) {
-			chunk = len(opts.IssueIDs)
-		}
-		stats, err := getIssueStatsChunk(opts, opts.IssueIDs[i:chunk])
-		if err != nil {
-			return nil, err
-		}
-		accum.OpenCount += stats.OpenCount
-		accum.ClosedCount += stats.ClosedCount
-		accum.YourRepositoriesCount += stats.YourRepositoriesCount
-		accum.AssignCount += stats.AssignCount
-		accum.CreateCount += stats.CreateCount
-		accum.OpenCount += stats.MentionCount
-		accum.ReviewRequestedCount += stats.ReviewRequestedCount
-		accum.ReviewedCount += stats.ReviewedCount
-		i = chunk
-	}
-	return accum, nil
-}
-
-func getIssueStatsChunk(opts *IssuesOptions, issueIDs []int64) (*IssueStats, error) {
 	stats := &IssueStats{}
 
-	countSession := func(opts *IssuesOptions, issueIDs []int64) *xorm.Session {
+	countSession := func(opts *IssuesOptions) *xorm.Session {
 		sess := db.GetEngine(db.DefaultContext).
 			Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
-		if len(opts.RepoIDs) > 1 {
-			sess.In("issue.repo_id", opts.RepoIDs)
-		} else if len(opts.RepoIDs) == 1 {
-			sess.And("issue.repo_id = ?", opts.RepoIDs[0])
-		}
+		applyRepoConditions(sess, opts)
 
-		if len(issueIDs) > 0 {
-			sess.In("issue.id", issueIDs)
-		}
+		applyKeywordCondition(sess, opts)
 
 		applyLabelsCondition(sess, opts)
 
@@ -138,11 +100,7 @@ func getIssueStatsChunk(opts *IssuesOptions, issueIDs []int64) (*IssueStats, err
 				And("project_issue.project_id=?", opts.ProjectID)
 		}
 
-		if opts.AssigneeID > 0 {
-			applyAssigneeCondition(sess, opts.AssigneeID)
-		} else if opts.AssigneeID == db.NoConditionID {
-			sess.Where("id NOT IN (SELECT issue_id FROM issue_assignees)")
-		}
+		applyAssigneeCondition(sess, opts.AssigneeID)
 
 		if opts.PosterID > 0 {
 			applyPosterCondition(sess, opts.PosterID)
@@ -160,24 +118,19 @@ func getIssueStatsChunk(opts *IssuesOptions, issueIDs []int64) (*IssueStats, err
 			applyReviewedCondition(sess, opts.ReviewedID)
 		}
 
-		switch opts.IsPull {
-		case util.OptionalBoolTrue:
-			sess.And("issue.is_pull=?", true)
-		case util.OptionalBoolFalse:
-			sess.And("issue.is_pull=?", false)
-		}
+		applyIsPullCondition(sess, opts)
 
 		return sess
 	}
 
 	var err error
-	stats.OpenCount, err = countSession(opts, issueIDs).
+	stats.OpenCount, err = countSession(opts).
 		And("issue.is_closed = ?", false).
 		Count(new(Issue))
 	if err != nil {
 		return stats, err
 	}
-	stats.ClosedCount, err = countSession(opts, issueIDs).
+	stats.ClosedCount, err = countSession(opts).
 		And("issue.is_closed = ?", true).
 		Count(new(Issue))
 	return stats, err
@@ -202,9 +155,6 @@ func GetUserIssueStats(filterMode int, opts IssuesOptions) (*IssueStats, error) 
 	if len(opts.RepoIDs) > 0 {
 		cond = cond.And(builder.In("issue.repo_id", opts.RepoIDs))
 	}
-	if len(opts.IssueIDs) > 0 {
-		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
-	}
 	if opts.RepoCond != nil {
 		cond = cond.And(opts.RepoCond)
 	}
@@ -221,6 +171,8 @@ func GetUserIssueStats(filterMode int, opts IssuesOptions) (*IssueStats, error) 
 			s.Join("INNER", "issue_label", "issue_label.issue_id = issue.id").
 				In("issue_label.label_id", opts.LabelIDs)
 		}
+
+		applyKeywordCondition(s, &opts)
 
 		if opts.IsArchived != util.OptionalBoolNone {
 			s.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})

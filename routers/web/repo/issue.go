@@ -32,7 +32,6 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -187,21 +186,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		keyword = ""
 	}
 
-	var issueIDs []int64
-	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{repo.ID}, keyword)
-		if err != nil {
-			if issue_indexer.IsAvailable() {
-				ctx.ServerError("issueIndexer.Search", err)
-				return
-			}
-			ctx.Data["IssueIndexerUnavailable"] = true
-		}
-		if len(issueIDs) == 0 {
-			forceEmpty = true
-		}
-	}
-
 	var issueStats *issues_model.IssueStats
 	if forceEmpty {
 		issueStats = &issues_model.IssueStats{}
@@ -217,7 +201,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			ReviewRequestedID: reviewRequestedID,
 			ReviewedID:        reviewedID,
 			IsPull:            isPullOption,
-			IssueIDs:          issueIDs,
+			Keyword:           keyword,
 		})
 		if err != nil {
 			ctx.ServerError("GetIssueStats", err)
@@ -270,7 +254,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			IsPull:            isPullOption,
 			LabelIDs:          labelIDs,
 			SortType:          sortType,
-			IssueIDs:          issueIDs,
+			Keyword:           keyword,
 		})
 		if err != nil {
 			ctx.ServerError("Issues", err)
@@ -2408,7 +2392,6 @@ func SearchIssues(ctx *context.Context) {
 	}
 
 	repoCond := repo_model.SearchRepositoryCondition(opts)
-	repoIDs, _, err := repo_model.SearchRepositoryIDs(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchRepositoryIDs", err.Error())
 		return
@@ -2420,13 +2403,6 @@ func SearchIssues(ctx *context.Context) {
 	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
-	}
-	var issueIDs []int64
-	if len(keyword) > 0 && len(repoIDs) > 0 {
-		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword); err != nil {
-			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err.Error())
-			return
-		}
 	}
 
 	var isPull util.OptionalBool
@@ -2464,7 +2440,7 @@ func SearchIssues(ctx *context.Context) {
 
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
-	if len(keyword) == 0 || len(issueIDs) > 0 || len(includedLabelNames) > 0 || len(includedMilestones) > 0 {
+	if len(keyword) == 0 || len(includedLabelNames) > 0 || len(includedMilestones) > 0 {
 		issuesOpt := &issues_model.IssuesOptions{
 			ListOptions: db.ListOptions{
 				Page:     ctx.FormInt("page"),
@@ -2472,7 +2448,6 @@ func SearchIssues(ctx *context.Context) {
 			},
 			RepoCond:           repoCond,
 			IsClosed:           isClosed,
-			IssueIDs:           issueIDs,
 			IncludedLabelNames: includedLabelNames,
 			IncludeMilestones:  includedMilestones,
 			ProjectID:          projectID,
@@ -2481,6 +2456,7 @@ func SearchIssues(ctx *context.Context) {
 			IsPull:             isPull,
 			UpdatedBeforeUnix:  before,
 			UpdatedAfterUnix:   since,
+			Keyword:            keyword,
 		}
 
 		ctxUserID := int64(0)
@@ -2568,16 +2544,8 @@ func ListIssues(ctx *context.Context) {
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}
-	var issueIDs []int64
-	var labelIDs []int64
-	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{ctx.Repo.Repository.ID}, keyword)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
-			return
-		}
-	}
 
+	var labelIDs []int64
 	if splitted := strings.Split(ctx.FormString("labels"), ","); len(splitted) > 0 {
 		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx.Repo.Repository.ID, splitted)
 		if err != nil {
@@ -2649,35 +2617,30 @@ func ListIssues(ctx *context.Context) {
 
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
-	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
-		issuesOpt := &issues_model.IssuesOptions{
-			ListOptions:       listOptions,
-			RepoIDs:           []int64{ctx.Repo.Repository.ID},
-			IsClosed:          isClosed,
-			IssueIDs:          issueIDs,
-			LabelIDs:          labelIDs,
-			MilestoneIDs:      mileIDs,
-			ProjectID:         projectID,
-			IsPull:            isPull,
-			UpdatedBeforeUnix: before,
-			UpdatedAfterUnix:  since,
-			PosterID:          createdByID,
-			AssigneeID:        assignedByID,
-			MentionedID:       mentionedByID,
-		}
+	issuesOpt := &issues_model.IssuesOptions{
+		ListOptions:       listOptions,
+		RepoIDs:           []int64{ctx.Repo.Repository.ID},
+		IsClosed:          isClosed,
+		LabelIDs:          labelIDs,
+		MilestoneIDs:      mileIDs,
+		ProjectID:         projectID,
+		IsPull:            isPull,
+		UpdatedBeforeUnix: before,
+		UpdatedAfterUnix:  since,
+		PosterID:          createdByID,
+		AssigneeID:        assignedByID,
+		MentionedID:       mentionedByID,
+		Keyword:           keyword,
+	}
 
-		if issues, err = issues_model.Issues(ctx, issuesOpt); err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
-			return
-		}
+	if issues, err = issues_model.Issues(ctx, issuesOpt); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
 
-		issuesOpt.ListOptions = db.ListOptions{
-			Page: -1,
-		}
-		if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
-			return
-		}
+	if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	ctx.SetTotalCountHeader(filteredCount)

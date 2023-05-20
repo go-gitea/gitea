@@ -284,21 +284,6 @@ func TestGetUserIssueStats(t *testing.T) {
 			},
 		},
 		{
-			issues_model.FilterModeCreate,
-			issues_model.IssuesOptions{
-				User:     unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
-				IssueIDs: []int64{1},
-				IsPull:   util.OptionalBoolFalse,
-			},
-			issues_model.IssueStats{
-				YourRepositoriesCount: 1, // 1
-				AssignCount:           1, // 1
-				CreateCount:           1, // 1
-				OpenCount:             1, // 1
-				ClosedCount:           0,
-			},
-		},
-		{
 			issues_model.FilterModeAll,
 			issues_model.IssuesOptions{
 				User:   unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}),
@@ -494,18 +479,11 @@ func TestCorrectIssueStats(t *testing.T) {
 	}
 	wg.Wait()
 
-	// Now we will get all issueID's that match the "Bugs are nasty" query.
-	total, ids, err := issues_model.SearchIssueIDsByKeyword(context.TODO(), "Bugs are nasty", []int64{1}, issueAmount, 0)
-
-	// Just to be sure.
-	assert.NoError(t, err)
-	assert.EqualValues(t, issueAmount, total)
-
 	// Now we will call the GetIssueStats with these IDs and if working,
 	// get the correct stats back.
 	issueStats, err := issues_model.GetIssueStats(&issues_model.IssuesOptions{
-		RepoIDs:  []int64{1},
-		IssueIDs: ids,
+		RepoIDs: []int64{1},
+		Keyword: "Bugs are nasty",
 	})
 
 	// Now check the values.
