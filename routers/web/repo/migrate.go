@@ -277,9 +277,9 @@ func MigrateCancelPost(ctx *context.Context) {
 }
 
 func getPrivate(private bool) bool {
-	if (setting.Repository.ForcePrivate == "private" ){
+	if setting.Repository.ForcePrivate == "private" {
 		return true
-	} else if (setting.Repository.ForcePrivate == "public" ){
+	} else if setting.Repository.ForcePrivate == "public" {
 		return false
 	} else {
 		return private
