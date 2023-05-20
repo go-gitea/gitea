@@ -211,7 +211,9 @@ func VerifyAuthWithOptionsAPI(options *VerifyOptions) func(ctx *context.APIConte
 				return
 			} else if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.JSON(http.StatusOK, map[string]any{"ok": true})
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "This account is not activated.",
+				})
 				return
 			}
 			if ctx.IsSigned && ctx.IsBasicAuth {
