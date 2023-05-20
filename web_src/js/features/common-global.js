@@ -56,7 +56,7 @@ export function initGlobalEnterQuickSubmit() {
 }
 
 export function initGlobalButtonClickOnEnter() {
-  $(document).on('keypress', '.ui.button:not(button,a)', (e) => {
+  $(document).on('keypress', 'div.ui.button,span.ui.button', (e) => {
     if (e.code === ' ' || e.code === 'Enter') {
       $(e.target).trigger('click');
       e.preventDefault();
