@@ -5,17 +5,17 @@
 			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}">
 				<div class="gt-df">
 				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5)}}
-					<button class="blob-excerpt button button-ghost gt-f1" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
+					<button class="code-expander-button gt-f1" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold-down"}}
 					</button>
 				{{end}}
 				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4)}}
-					<button class="blob-excerpt button button-ghost gt-f1" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
+					<button class="code-expander-button gt-f1" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold-up"}}
 					</button>
 				{{end}}
 				{{if eq $line.GetExpandDirection 2}}
-					<button class="blob-excerpt button button-ghost gt-f1" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
+					<button class="code-expander-button gt-f1" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold"}}
 					</button>
 				{{end}}
@@ -50,17 +50,17 @@
 		{{if eq .GetType 4}}
 			<td colspan="2" class="lines-num">
 				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5)}}
-					<button class="blob-excerpt button button-ghost" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
+					<button class="code-expander-button" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold-down"}}
 					</button>
 				{{end}}
 				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4)}}
-					<button class="blob-excerpt button button-ghost" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
+					<button class="code-expander-button" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold-up"}}
 					</button>
 				{{end}}
 				{{if eq $line.GetExpandDirection 2}}
-					<button class="blob-excerpt button button-ghost" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
+					<button class="code-expander-button" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold"}}
 					</button>
 				{{end}}

@@ -198,7 +198,8 @@
   color: var(--color-text);
 }
 
-.blob-excerpt {
+.code-expander-button {
+  border: none;
   color: var(--color-text-light);
   height: 28px;
   display: flex;
@@ -208,7 +209,7 @@
   background: var(--color-expand-button);
 }
 
-.blob-excerpt:hover {
+.code-expander-button:hover {
   background: var(--color-primary);
   color: var(--color-primary-contrast);
 }
