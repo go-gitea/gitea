@@ -207,6 +207,7 @@
   align-items: center;
   width: 100%;
   background: var(--color-expand-button);
+  flex: 1;
 }
 
 .code-expander-button:hover {
