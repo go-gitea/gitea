@@ -68,14 +68,14 @@ func TestRender_StandardLinks(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
 	}
 
-	googleRendered := `<p><a href="https://google.com/" rel="nofollow">https://google.com/</a></p>`
+	googleRendered := `<p dir="auto"><a href="https://google.com/" rel="nofollow">https://google.com/</a></p>`
 	test("<https://google.com/>", googleRendered, googleRendered)
 
 	lnk := util.URLJoin(AppSubURL, "WikiPage")
 	lnkWiki := util.URLJoin(AppSubURL, "wiki", "WikiPage")
 	test("[WikiPage](WikiPage)",
-		`<p><a href="`+lnk+`" rel="nofollow">WikiPage</a></p>`,
-		`<p><a href="`+lnkWiki+`" rel="nofollow">WikiPage</a></p>`)
+		`<p dir="auto"><a href="`+lnk+`" rel="nofollow">WikiPage</a></p>`,
+		`<p dir="auto"><a href="`+lnkWiki+`" rel="nofollow">WikiPage</a></p>`)
 }
 
 func TestRender_Images(t *testing.T) {
@@ -99,38 +99,38 @@ func TestRender_Images(t *testing.T) {
 
 	test(
 		"!["+title+"]("+url+")",
-		`<p><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+		`<p dir="auto"><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 
 	test(
 		"[["+title+"|"+url+"]]",
-		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" title="`+title+`" alt="`+title+`"/></a></p>`)
+		`<p dir="auto"><a href="`+result+`" rel="nofollow"><img src="`+result+`" title="`+title+`" alt="`+title+`"/></a></p>`)
 	test(
 		"[!["+title+"]("+url+")]("+href+")",
-		`<p><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+		`<p dir="auto"><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 
 	url = "/../../.images/src/02/train.jpg"
 	test(
 		"!["+title+"]("+url+")",
-		`<p><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+		`<p dir="auto"><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 
 	test(
 		"[["+title+"|"+url+"]]",
-		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" title="`+title+`" alt="`+title+`"/></a></p>`)
+		`<p dir="auto"><a href="`+result+`" rel="nofollow"><img src="`+result+`" title="`+title+`" alt="`+title+`"/></a></p>`)
 	test(
 		"[!["+title+"]("+url+")]("+href+")",
-		`<p><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+		`<p dir="auto"><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 }
 
 func testAnswers(baseURLContent, baseURLImages string) []string {
 	return []string{
-		`<p>Wiki! Enjoy :)</p>
-<ul>
+		`<p dir="auto">Wiki! Enjoy :)</p>
+<ul dir="auto">
 <li><a href="` + baseURLContent + `/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
 <li><a href="` + baseURLContent + `/Tips" rel="nofollow">Tips</a></li>
 </ul>
-<p>See commit <a href="http://localhost:3000/gogits/gogs/commit/65f1bf27bc" rel="nofollow"><code>65f1bf27bc</code></a></p>
-<p>Ideas and codes</p>
-<ul>
+<p dir="auto">See commit <a href="http://localhost:3000/gogits/gogs/commit/65f1bf27bc" rel="nofollow"><code>65f1bf27bc</code></a></p>
+<p dir="auto">Ideas and codes</p>
+<ul dir="auto">
 <li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/ocornut/imgui/issues/786" class="ref-issue" rel="nofollow">ocornut/imgui#786</a></li>
 <li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/gogits/gogs/issues/786" class="ref-issue" rel="nofollow">#786</a></li>
 <li>Node graph editors <a href="https://github.com/ocornut/imgui/issues/306" rel="nofollow">https://github.com/ocornut/imgui/issues/306</a></li>
@@ -138,10 +138,10 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <li><a href="` + baseURLContent + `/plot_var_example" rel="nofollow">Plot var helper</a></li>
 </ul>
 `,
-		`<h2 id="user-content-what-is-wine-staging">What is Wine Staging?</h2>
-<p><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
-<h2 id="user-content-quick-links">Quick Links</h2>
-<p>Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
+		`<h2 id="user-content-what-is-wine-staging" dir="auto">What is Wine Staging?</h2>
+<p dir="auto"><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
+<h2 id="user-content-quick-links" dir="auto">Quick Links</h2>
+<p dir="auto">Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
 <table>
 <thead>
 <tr>
@@ -157,22 +157,22 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 </tbody>
 </table>
 `,
-		`<p><a href="http://www.excelsiorjet.com/" rel="nofollow">Excelsior JET</a> allows you to create native executables for Windows, Linux and Mac OS X.</p>
-<ol>
+		`<p dir="auto"><a href="http://www.excelsiorjet.com/" rel="nofollow">Excelsior JET</a> allows you to create native executables for Windows, Linux and Mac OS X.</p>
+<ol dir="auto">
 <li><a href="https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop" rel="nofollow">Package your libGDX application</a><br/>
 <a href="` + baseURLImages + `/images/1.png" rel="nofollow"><img src="` + baseURLImages + `/images/1.png" title="1.png" alt="images/1.png"/></a></li>
 <li>Perform a test run by hitting the Run! button.<br/>
 <a href="` + baseURLImages + `/images/2.png" rel="nofollow"><img src="` + baseURLImages + `/images/2.png" title="2.png" alt="images/2.png"/></a></li>
 </ol>
-<h2 id="user-content-custom-id">More tests</h2>
-<p>(from <a href="https://www.markdownguide.org/extended-syntax/" rel="nofollow">https://www.markdownguide.org/extended-syntax/</a>)</p>
-<h3 id="user-content-checkboxes">Checkboxes</h3>
-<ul>
+<h2 id="user-content-custom-id" dir="auto">More tests</h2>
+<p dir="auto">(from <a href="https://www.markdownguide.org/extended-syntax/" rel="nofollow">https://www.markdownguide.org/extended-syntax/</a>)</p>
+<h3 id="user-content-checkboxes" dir="auto">Checkboxes</h3>
+<ul dir="auto">
 <li class="task-list-item"><input type="checkbox" disabled="" data-source-position="434"/>unchecked</li>
 <li class="task-list-item"><input type="checkbox" disabled="" data-source-position="450" checked=""/>checked</li>
 <li class="task-list-item"><input type="checkbox" disabled="" data-source-position="464"/>still unchecked</li>
 </ul>
-<h3 id="user-content-definition-list">Definition list</h3>
+<h3 id="user-content-definition-list" dir="auto">Definition list</h3>
 <dl>
 <dt>First Term</dt>
 <dd>This is the definition of the first term.</dd>
@@ -180,27 +180,27 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <dd>This is one definition of the second term.</dd>
 <dd>This is another definition of the second term.</dd>
 </dl>
-<h3 id="user-content-footnotes">Footnotes</h3>
-<p>Here is a simple footnote,<sup id="fnref:user-content-1"><a href="#fn:user-content-1" rel="nofollow">1</a></sup> and here is a longer one.<sup id="fnref:user-content-bignote"><a href="#fn:user-content-bignote" rel="nofollow">2</a></sup></p>
+<h3 id="user-content-footnotes" dir="auto">Footnotes</h3>
+<p dir="auto">Here is a simple footnote,<sup id="fnref:user-content-1"><a href="#fn:user-content-1" rel="nofollow">1</a></sup> and here is a longer one.<sup id="fnref:user-content-bignote"><a href="#fn:user-content-bignote" rel="nofollow">2</a></sup></p>
 <div>
 <hr/>
-<ol>
+<ol dir="auto">
 <li id="fn:user-content-1">
-<p>This is the first footnote. <a href="#fnref:user-content-1" rel="nofollow">↩︎</a></p>
+<p dir="auto">This is the first footnote. <a href="#fnref:user-content-1" rel="nofollow">↩︎</a></p>
 </li>
 <li id="fn:user-content-bignote">
-<p>Here is one with multiple paragraphs and code.</p>
-<p>Indent paragraphs to include them in the footnote.</p>
-<p><code>{ my code }</code></p>
-<p>Add as many paragraphs as you like. <a href="#fnref:user-content-bignote" rel="nofollow">↩︎</a></p>
+<p dir="auto">Here is one with multiple paragraphs and code.</p>
+<p dir="auto">Indent paragraphs to include them in the footnote.</p>
+<p dir="auto"><code>{ my code }</code></p>
+<p dir="auto">Add as many paragraphs as you like. <a href="#fnref:user-content-bignote" rel="nofollow">↩︎</a></p>
 </li>
 </ol>
 </div>
-`, `<ul>
+`, `<ul dir="auto">
 <li class="task-list-item"><input type="checkbox" disabled="" data-source-position="3"/> If you want to rebase/retry this PR, click this checkbox.</li>
 </ul>
 <hr/>
-<p>This PR has been generated by <a href="https://github.com/renovatebot/renovate" rel="nofollow">Renovate Bot</a>.</p>
+<p dir="auto">This PR has been generated by <a href="https://github.com/renovatebot/renovate" rel="nofollow">Renovate Bot</a>.</p>
 `,
 	}
 }
@@ -304,12 +304,12 @@ func TestTotal_RenderWiki(t *testing.T) {
 		// Guard wiki sidebar: special syntax
 		`[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]`,
 		// rendered
-		`<p><a href="` + AppSubURL + `wiki/Guardfile-DSL---Configuring-Guard" rel="nofollow">Guardfile-DSL / Configuring-Guard</a></p>
+		`<p dir="auto"><a href="` + AppSubURL + `wiki/Guardfile-DSL---Configuring-Guard" rel="nofollow">Guardfile-DSL / Configuring-Guard</a></p>
 `,
 		// special syntax
 		`[[Name|Link]]`,
 		// rendered
-		`<p><a href="` + AppSubURL + `wiki/Link" rel="nofollow">Name</a></p>
+		`<p dir="auto"><a href="` + AppSubURL + `wiki/Link" rel="nofollow">Name</a></p>
 `,
 	}
 
@@ -401,7 +401,7 @@ func TestRenderSiblingImages_Issue12925(t *testing.T) {
 	testcase := `![image1](/image1)
 ![image2](/image2)
 `
-	expected := `<p><a href="/image1" target="_blank" rel="nofollow noopener"><img src="/image1" alt="image1"></a><br>
+	expected := `<p dir="auto"><a href="/image1" target="_blank" rel="nofollow noopener"><img src="/image1" alt="image1"></a><br>
 <a href="/image2" target="_blank" rel="nofollow noopener"><img src="/image2" alt="image2"></a></p>
 `
 	res, err := RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, testcase)
@@ -411,7 +411,7 @@ func TestRenderSiblingImages_Issue12925(t *testing.T) {
 
 func TestRenderEmojiInLinks_Issue12331(t *testing.T) {
 	testcase := `[Link with emoji :moon: in text](https://gitea.io)`
-	expected := `<p><a href="https://gitea.io" rel="nofollow">Link with emoji <span class="emoji" aria-label="waxing gibbous moon">🌔</span> in text</a></p>
+	expected := `<p dir="auto"><a href="https://gitea.io" rel="nofollow">Link with emoji <span class="emoji" aria-label="waxing gibbous moon">🌔</span> in text</a></p>
 `
 	res, err := RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, testcase)
 	assert.NoError(t, err)
@@ -426,23 +426,23 @@ func TestColorPreview(t *testing.T) {
 	}{
 		{ // hex
 			"`#FF0000`",
-			`<p><code>#FF0000<span class="color-preview" style="background-color: #FF0000"></span></code></p>` + nl,
+			`<p dir="auto"><code>#FF0000<span class="color-preview" style="background-color: #FF0000"></span></code></p>` + nl,
 		},
 		{ // rgb
 			"`rgb(16, 32, 64)`",
-			`<p><code>rgb(16, 32, 64)<span class="color-preview" style="background-color: rgb(16, 32, 64)"></span></code></p>` + nl,
+			`<p dir="auto"><code>rgb(16, 32, 64)<span class="color-preview" style="background-color: rgb(16, 32, 64)"></span></code></p>` + nl,
 		},
 		{ // short hex
 			"This is the color white `#000`",
-			`<p>This is the color white <code>#000<span class="color-preview" style="background-color: #000"></span></code></p>` + nl,
+			`<p dir="auto">This is the color white <code>#000<span class="color-preview" style="background-color: #000"></span></code></p>` + nl,
 		},
 		{ // hsl
 			"HSL stands for hue, saturation, and lightness. An example: `hsl(0, 100%, 50%)`.",
-			`<p>HSL stands for hue, saturation, and lightness. An example: <code>hsl(0, 100%, 50%)<span class="color-preview" style="background-color: hsl(0, 100%, 50%)"></span></code>.</p>` + nl,
+			`<p dir="auto">HSL stands for hue, saturation, and lightness. An example: <code>hsl(0, 100%, 50%)<span class="color-preview" style="background-color: hsl(0, 100%, 50%)"></span></code>.</p>` + nl,
 		},
 		{ // uppercase hsl
 			"HSL stands for hue, saturation, and lightness. An example: `HSL(0, 100%, 50%)`.",
-			`<p>HSL stands for hue, saturation, and lightness. An example: <code>HSL(0, 100%, 50%)<span class="color-preview" style="background-color: HSL(0, 100%, 50%)"></span></code>.</p>` + nl,
+			`<p dir="auto">HSL stands for hue, saturation, and lightness. An example: <code>HSL(0, 100%, 50%)<span class="color-preview" style="background-color: HSL(0, 100%, 50%)"></span></code>.</p>` + nl,
 		},
 	}
 
@@ -481,31 +481,31 @@ func TestMathBlock(t *testing.T) {
 	}{
 		{
 			"$a$",
-			`<p><code class="language-math is-loading">a</code></p>` + nl,
+			`<p dir="auto"><code class="language-math is-loading">a</code></p>` + nl,
 		},
 		{
 			"$ a $",
-			`<p><code class="language-math is-loading">a</code></p>` + nl,
+			`<p dir="auto"><code class="language-math is-loading">a</code></p>` + nl,
 		},
 		{
 			"$a$ $b$",
-			`<p><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
+			`<p dir="auto"><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
 		},
 		{
 			`\(a\) \(b\)`,
-			`<p><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
+			`<p dir="auto"><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
 		},
 		{
 			`$a a$b b$`,
-			`<p><code class="language-math is-loading">a a$b b</code></p>` + nl,
+			`<p dir="auto"><code class="language-math is-loading">a a$b b</code></p>` + nl,
 		},
 		{
 			`a a$b b`,
-			`<p>a a$b b</p>` + nl,
+			`<p dir="auto">a a$b b</p>` + nl,
 		},
 		{
 			`a$b $a a$b b$`,
-			`<p>a$b <code class="language-math is-loading">a a$b b</code></p>` + nl,
+			`<p dir="auto">a$b <code class="language-math is-loading">a a$b b</code></p>` + nl,
 		},
 		{
 			"$$a$$",
