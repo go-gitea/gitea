@@ -41,14 +41,37 @@ const (
 	frmCommitChoiceNewBranch string = "commit-to-new-branch"
 )
 
+func canCreateBasePullRequest(ctx *context.Context) bool {
+	baseRepo := ctx.Repo.Repository.BaseRepo
+	return baseRepo != nil && baseRepo.UnitEnabled(ctx, unit.TypePullRequests)
+}
+
 func renderCommitRights(ctx *context.Context) bool {
 	canCommitToBranch, err := ctx.Repo.CanCommitToBranch(ctx, ctx.Doer)
 	if err != nil {
 		log.Error("CanCommitToBranch: %v", err)
 	}
 	ctx.Data["CanCommitToBranch"] = canCommitToBranch
+	ctx.Data["CanCreatePullRequest"] = ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) || canCreateBasePullRequest(ctx)
 
 	return canCommitToBranch.CanCommitToBranch
+}
+
+// redirect to pull request after commit to branch
+func redirectToPullRequest(ctx *context.Context, newBranchName string) bool {
+	repo := ctx.Repo.Repository
+	baseBranch := util.PathEscapeSegments(ctx.Repo.BranchName)
+	headBranch := util.PathEscapeSegments(newBranchName)
+	if !repo.UnitEnabled(ctx, unit.TypePullRequests) {
+		if !canCreateBasePullRequest(ctx) {
+			return false
+		}
+		baseBranch = util.PathEscapeSegments(repo.BaseRepo.DefaultBranch)
+		headBranch = util.PathEscapeSegments(repo.Owner.Name) + "/" + util.PathEscapeSegments(repo.Name) + ":" + headBranch
+		repo = repo.BaseRepo
+	}
+	ctx.Redirect(repo.Link() + "/compare/" + baseBranch + "..." + headBranch)
+	return true
 }
 
 // getParentTreeFields returns list of parent tree names and corresponding tree paths
@@ -331,9 +354,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
 	}
 
-	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) {
-		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.Repo.BranchName) + "..." + util.PathEscapeSegments(form.NewBranchName))
-	} else {
+	if !(form.CommitChoice == frmCommitChoiceNewBranch && redirectToPullRequest(ctx, branchName)) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
 	}
 }
@@ -517,9 +538,7 @@ func DeleteFilePost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", ctx.Repo.TreePath))
-	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) {
-		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.Repo.BranchName) + "..." + util.PathEscapeSegments(form.NewBranchName))
-	} else {
+	if !(form.CommitChoice == frmCommitChoiceNewBranch && redirectToPullRequest(ctx, branchName)) {
 		treePath := path.Dir(ctx.Repo.TreePath)
 		if treePath == "." {
 			treePath = "" // the file deleted was in the root, so we return the user to the root directory
@@ -722,9 +741,7 @@ func UploadFilePost(ctx *context.Context) {
 		_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
 	}
 
-	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) {
-		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.Repo.BranchName) + "..." + util.PathEscapeSegments(form.NewBranchName))
-	} else {
+	if !(form.CommitChoice == frmCommitChoiceNewBranch && redirectToPullRequest(ctx, branchName)) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
 	}
 }
