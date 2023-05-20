@@ -23,9 +23,9 @@
 }
 
 .markup .anchor {
+  float: left;
   padding-right: 4px;
   margin-left: -20px;
-  line-height: 1;
   color: inherit;
 }
 
@@ -35,6 +35,10 @@
 
 .markup .anchor:focus {
   outline: none;
+}
+
+.markup h1 .anchor {
+  margin-top: -2px; /* re-align to center */
 }
 
 .markup h1 .anchor .svg,
