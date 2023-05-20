@@ -2130,7 +2130,7 @@
 }
 
 .reactions-header {
-  background: none !important; /* conflict from .repository .diff-file-box .header */
+  background: none !important; /* conflict from .repository .diff-file-box .header in files tab emoji dropdown */
 }
 
 .repository .segment.reactions.dropdown .menu,
