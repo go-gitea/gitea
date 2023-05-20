@@ -54,6 +54,13 @@ func (s *Service) Register(
 		return nil, errors.New("runner token has already been activated")
 	}
 
+	labels := req.Msg.Labels
+	// TODO: agent_labels should be not be used after Gitea 1.20 released.
+	// old version runner's agent_labels slice is not empty and labels slice is empty.
+	if len(req.Msg.AgentLabels) > 0 && len(req.Msg.Labels) == 0 {
+		labels = req.Msg.AgentLabels
+	}
+
 	// create new runner
 	name, _ := util.SplitStringAtByteN(req.Msg.Name, 255)
 	runner := &actions_model.ActionRunner{
@@ -61,7 +68,8 @@ func (s *Service) Register(
 		Name:    name,
 		OwnerID: runnerToken.OwnerID,
 		RepoID:  runnerToken.RepoID,
-		Labels:  req.Msg.Labels,
+		Version: req.Msg.Version,
+		Labels:  labels,
 	}
 	if err := runner.GenerateToken(); err != nil {
 		return nil, errors.New("can't generate token")
@@ -80,11 +88,12 @@ func (s *Service) Register(
 
 	res := connect.NewResponse(&runnerv1.RegisterResponse{
 		Runner: &runnerv1.Runner{
-			Id:     runner.ID,
-			Uuid:   runner.UUID,
-			Token:  runner.Token,
-			Name:   runner.Name,
-			Labels: runner.Labels,
+			Id:      runner.ID,
+			Uuid:    runner.UUID,
+			Token:   runner.Token,
+			Name:    runner.Name,
+			Version: runner.Version,
+			Labels:  runner.Labels,
 		},
 	})
 
@@ -101,7 +110,16 @@ func (s *Service) Declare(
 		return nil, status.Errorf(codes.Internal, "update runner: %v", err)
 	}
 
-	return connect.NewResponse(&runnerv1.DeclareResponse{}), nil
+	return connect.NewResponse(&runnerv1.DeclareResponse{
+		Runner: &runnerv1.Runner{
+			Id:      runner.ID,
+			Uuid:    runner.UUID,
+			Token:   runner.Token,
+			Name:    runner.Name,
+			Version: runner.Version,
+			Labels:  runner.Labels,
+		},
+	}), nil
 }
 
 // FetchTask assigns a task to the runner

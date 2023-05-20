@@ -24,8 +24,6 @@ const (
 	uuidHeaderKey    = "x-runner-uuid"
 	tokenHeaderKey   = "x-runner-token"
 	versionHeaderKey = "x-runner-version"
-
-	versionUnknown = "Unknown"
 )
 
 var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unaryFunc connect.UnaryFunc) connect.UnaryFunc {
@@ -36,11 +34,7 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		}
 		uuid := request.Header().Get(uuidHeaderKey)
 		token := request.Header().Get(tokenHeaderKey)
-		version := request.Header().Get(versionHeaderKey)
-		if util.IsEmptyString(version) {
-			version = versionUnknown
-		}
-		version, _ = util.SplitStringAtByteN(version, 64)
+		version := request.Header().Get(versionHeaderKey) // old version runner use request header to pass its version
 
 		runner, err := actions_model.GetRunnerByUUID(ctx, uuid)
 		if err != nil {
@@ -54,7 +48,10 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		}
 
 		cols := []string{"last_online"}
-		if runner.Version != version {
+
+		version, _ = util.SplitStringAtByteN(version, 64)
+		if !util.IsEmptyString(version) && runner.Version != version {
+			// version is not empty string, the runner is old version runner that passing version by request header.
 			runner.Version = version
 			cols = append(cols, "version")
 		}
