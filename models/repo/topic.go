@@ -357,15 +357,8 @@ func GenerateTopics(ctx context.Context, templateRepo, generateRepo *Repository)
 			return err
 		}
 	}
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	if err := syncTopicsInRepository(db.GetEngine(ctx), generateRepo.ID); err != nil {
-		return err
-	}
-	return committer.Commit()
+
+	return syncTopicsInRepository(db.GetEngine(ctx), generateRepo.ID)
 }
 
 // syncTopicsInRepository makes sure topics in the topics table are copied into the topics field of the repository
