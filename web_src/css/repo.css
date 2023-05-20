@@ -2129,8 +2129,8 @@
   background: var(--color-secondary);
 }
 
-.reaction-header {
-  background: none !important;
+.reactions-header {
+  background: none !important; /* conflict from .repository .diff-file-box .header */
 }
 
 .repository .segment.reactions.dropdown .menu,
