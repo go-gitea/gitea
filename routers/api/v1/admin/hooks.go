@@ -74,7 +74,11 @@ func GetHook(ctx *context.APIContext) {
 	hookID := ctx.ParamsInt64(":id")
 	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err)
+		if webhook.IsErrWebhookNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err)
+		}
 		return
 	}
 	h, err := webhook_service.ToHook("/admin/", hook)
