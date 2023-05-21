@@ -116,8 +116,6 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 		}
 		return err
 	}
-
-	log.Trace("User name changed: %s -> %s", oldUserName, newUserName)
 	return nil
 }
 

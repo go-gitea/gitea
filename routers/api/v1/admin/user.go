@@ -502,6 +502,7 @@ func RenameUser(ctx *context.APIContext) {
 		return
 	}
 
+	oldName := ctx.ContextUser.Name
 	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
 
 	// Check if user name has been changed
@@ -523,5 +524,7 @@ func RenameUser(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	log.Trace("User name changed: %s -> %s", oldName, newName)
 	ctx.Status(http.StatusOK)
 }

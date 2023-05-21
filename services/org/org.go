@@ -13,7 +13,6 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	user_service "code.gitea.io/gitea/services/user"
@@ -71,11 +70,5 @@ func DeleteOrganization(org *org_model.Organization) error {
 
 // RenameOrganization renames an organization.
 func RenameOrganization(ctx context.Context, org *org_model.Organization, newName string) error {
-	oldName := org.Name
-	if err := user_service.RenameUser(ctx, org.AsUser(), newName); err != nil {
-		return err
-	}
-
-	log.Trace("Org name changed: %s -> %s", oldName, newName)
-	return nil
+	return user_service.RenameUser(ctx, org.AsUser(), newName)
 }

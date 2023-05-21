@@ -49,6 +49,7 @@ func Profile(ctx *context.Context) {
 
 // HandleUsernameChange handle username changes from user settings and admin interface
 func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName string) error {
+	oldName := user.Name
 	// rename user
 	if err := user_service.RenameUser(ctx, user, newName); err != nil {
 		switch {
@@ -73,7 +74,7 @@ func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName s
 		}
 		return err
 	}
-
+	log.Trace("User name changed: %s -> %s", oldName, newName)
 	return nil
 }
 
