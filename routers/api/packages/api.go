@@ -98,7 +98,7 @@ func verifyAuth(r *web.Route, authMethods []auth.Method) {
 func CommonRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
-	r.Use(context.PackageContexter(ctx))
+	r.Use(context.PackageContexter())
 
 	verifyAuth(r, []auth.Method{
 		&auth.OAuth2{},
@@ -574,7 +574,7 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 func ContainerRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
-	r.Use(context.PackageContexter(ctx))
+	r.Use(context.PackageContexter())
 
 	verifyAuth(r, []auth.Method{
 		&auth.Basic{},
