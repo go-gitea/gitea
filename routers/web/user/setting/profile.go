@@ -48,10 +48,13 @@ func Profile(ctx *context.Context) {
 }
 
 // HandleUsernameChange handle username changes from user settings and admin interface
-func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName string, onlyCapitalization bool) error {
+func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName string) error {
 	// rename user
-	if err := user_service.RenameUser(ctx, user, newName, onlyCapitalization); err != nil {
+	if err := user_service.RenameUser(ctx, user, newName); err != nil {
 		switch {
+		// Noop as username is not changed
+		case user_model.IsErrUsernameNotChanged(err):
+			ctx.Flash.Error(ctx.Tr("form.username_has_not_been_changed"))
 		// Non-local users are not allowed to change their username.
 		case user_model.IsErrUserIsNotLocal(err):
 			ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
@@ -87,7 +90,7 @@ func ProfilePost(ctx *context.Context) {
 
 	if len(form.Name) != 0 && ctx.Doer.Name != form.Name {
 		log.Debug("Changing name for %s to %s", ctx.Doer.Name, form.Name)
-		if err := HandleUsernameChange(ctx, ctx.Doer, form.Name, ctx.Doer.LowerName == strings.ToLower(form.Name)); err != nil {
+		if err := HandleUsernameChange(ctx, ctx.Doer, form.Name); err != nil {
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
 			return
 		}

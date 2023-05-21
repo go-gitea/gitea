@@ -73,7 +73,7 @@ func DeleteOrganization(org *org_model.Organization) error {
 }
 
 // RenameOrganization renames an organization.
-func RenameOrganization(ctx context.Context, org *org_model.Organization, newName string, onlyCapitalization bool) error {
+func RenameOrganization(ctx context.Context, org *org_model.Organization, newName string) error {
 	if !org.AsUser().IsOrganization() {
 		return fmt.Errorf("cannot rename user")
 	}
@@ -82,12 +82,7 @@ func RenameOrganization(ctx context.Context, org *org_model.Organization, newNam
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
+	onlyCapitalization := strings.EqualFold(org.Name, newName)
 	oldName := org.Name
 
 	if onlyCapitalization {
@@ -96,12 +91,14 @@ func RenameOrganization(ctx context.Context, org *org_model.Organization, newNam
 			org.Name = oldName
 			return err
 		}
-		if err := committer.Commit(); err != nil {
-			org.Name = oldName
-			return err
-		}
 		return nil
 	}
+
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
 
 	isExist, err := user_model.IsUserExist(ctx, org.ID, newName)
 	if err != nil {

@@ -88,7 +88,7 @@ func (err ErrUserInactive) Error() string {
 	return fmt.Sprintf("user is inactive [uid: %d, name: %s]", err.UID, err.Name)
 }
 
-// Unwrap unwraps this error as a ErrUserInactive error
+// Unwrap unwraps this error as a ErrPermission error
 func (err ErrUserInactive) Unwrap() error {
 	return util.ErrPermissionDenied
 }
@@ -106,5 +106,20 @@ func (err ErrUserIsNotLocal) Error() string {
 // IsErrUserIsNotLocal
 func IsErrUserIsNotLocal(err error) bool {
 	_, ok := err.(ErrUserIsNotLocal)
+	return ok
+}
+
+type ErrUsernameNotChanged struct {
+	UID  int64
+	Name string
+}
+
+func (err ErrUsernameNotChanged) Error() string {
+	return fmt.Sprintf("username hasn't been changed[uid: %d, name: %s]", err.UID, err.Name)
+}
+
+// IsErrUsernameNotChanged
+func IsErrUsernameNotChanged(err error) bool {
+	_, ok := err.(ErrUsernameNotChanged)
 	return ok
 }

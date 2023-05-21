@@ -66,7 +66,7 @@ func SettingsPost(ctx *context.Context) {
 
 	// Check if organization name has been changed.
 	if nameChanged {
-		err := org_service.RenameOrganization(ctx, org, form.Name, org.LowerName == strings.ToLower(form.Name))
+		err := org_service.RenameOrganization(ctx, org, form.Name)
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["OrgName"] = true

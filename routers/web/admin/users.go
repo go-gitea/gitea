@@ -332,7 +332,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if len(form.UserName) != 0 && u.Name != form.UserName {
-		if err := user_setting.HandleUsernameChange(ctx, u, form.UserName, u.LowerName == strings.ToLower(form.UserName)); err != nil {
+		if err := user_setting.HandleUsernameChange(ctx, u, form.UserName); err != nil {
 			if ctx.Written() {
 				return
 			}

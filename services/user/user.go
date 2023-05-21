@@ -29,7 +29,7 @@ import (
 )
 
 // RenameUser renames a user
-func RenameUser(ctx context.Context, u *user_model.User, newUserName string, onlyCapitalization bool) error {
+func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
 	if u.IsOrganization() {
 		return fmt.Errorf("cannot rename organization")
 	}
@@ -41,6 +41,15 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, onl
 			Name: u.Name,
 		}
 	}
+
+	if newUserName == u.Name {
+		return user_model.ErrUsernameNotChanged{
+			UID:  u.ID,
+			Name: u.Name,
+		}
+	}
+
+	onlyCapitalization := strings.EqualFold(newUserName, u.Name)
 
 	if err := user_model.IsUsableUsername(newUserName); err != nil {
 		return err

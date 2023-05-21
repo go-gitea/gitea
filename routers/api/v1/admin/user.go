@@ -505,15 +505,13 @@ func RenameUser(ctx *context.APIContext) {
 	}
 
 	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
-	if newName == ctx.ContextUser.Name {
-		// Noop as username is not changed
-		ctx.Status(http.StatusNoContent)
-		return
-	}
 
 	// Check if user name has been changed
-	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName, strings.EqualFold(newName, ctx.ContextUser.Name)); err != nil {
+	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName); err != nil {
 		switch {
+		case user_model.IsErrUsernameNotChanged(err):
+			// Noop as username is not changed
+			ctx.Status(http.StatusNoContent)
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("form.username_been_taken"))
 		case db.IsErrNameReserved(err):
