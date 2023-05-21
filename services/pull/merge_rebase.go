@@ -15,12 +15,12 @@ import (
 // getRebaseAmendMessage composes the message to amend commits in rebase merge of a pull request.
 func getRebaseAmendMessage(ctx *mergeContext, baseGitRepo *git.Repository) (message string, err error) {
 	// Get existing commit message.
-	var commitMessage strings.Builder
-	if err := git.NewCommand(ctx, "show", "--format=%B", "-s").Run(&git.RunOpts{Dir: ctx.tmpBasePath, Stdout: &commitMessage}); err != nil {
+	commitMessage, _, err := git.NewCommand(ctx, "show", "--format=%B", "-s").RunStdString(&git.RunOpts{Dir: ctx.tmpBasePath})
+	if err != nil {
 		return "", err
 	}
 
-	commitTitle, commitBody, _ := strings.Cut(commitMessage.String(), "\n")
+	commitTitle, commitBody, _ := strings.Cut(commitMessage, "\n")
 	extraVars := map[string]string{"CommitTitle": strings.TrimSpace(commitTitle), "CommitBody": strings.TrimSpace(commitBody)}
 
 	message, body, err := getMergeMessage(ctx, baseGitRepo, ctx.pr, repo_model.MergeStyleRebase, extraVars)
