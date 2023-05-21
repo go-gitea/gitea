@@ -86,6 +86,7 @@ var (
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
+			CheckOnlyLastUpdatedDays                 int
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -211,6 +212,7 @@ var (
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
+			CheckOnlyLastUpdatedDays                 int
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -226,6 +228,7 @@ var (
 			PopulateSquashCommentWithCommitMessages:  false,
 			AddCoCommitterTrailers:                   true,
 			RetargetChildrenOnMerge:                  true,
+			CheckOnlyLastUpdatedDays:                 -1,
 		},
 
 		// Issue settings

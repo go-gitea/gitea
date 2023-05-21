@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -26,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -44,18 +46,82 @@ var (
 	ErrDependenciesLeft      = errors.New("is blocked by an open dependency")
 )
 
-// AddToTaskQueue adds itself to pull request test task queue.
-func AddToTaskQueue(ctx context.Context, pr *issues_model.PullRequest) {
+// Change the pull request status to checking.
+func setStatusChecking(ctx context.Context, pr *issues_model.PullRequest) bool {
 	pr.Status = issues_model.PullRequestStatusChecking
 	err := pr.UpdateColsIfNotMerged(ctx, "status")
 	if err != nil {
-		log.Error("AddToTaskQueue(%-v).UpdateCols.(add to queue): %v", pr, err)
-		return
+		log.Error("setStatusChecking(%-v).UpdateCols.(add to queue): %v", pr, err)
+		return false
 	}
+	return true
+}
+
+// Add pull request in the actual queue.
+func addToTaskQueue(pr *issues_model.PullRequest) {
 	log.Trace("Adding %-v to the test pull requests queue", pr)
-	err = prPatchCheckerQueue.Push(strconv.FormatInt(pr.ID, 10))
+	err := prPatchCheckerQueue.Push(strconv.FormatInt(pr.ID, 10))
 	if err != nil && err != queue.ErrAlreadyInQueue {
 		log.Error("Error adding %-v to the test pull requests queue: %v", pr, err)
+	}
+}
+
+// Test if check should be delayed.
+func shouldDelayCheck(ctx context.Context, pr *issues_model.PullRequest) bool {
+	if setting.Repository.PullRequest.CheckOnlyLastUpdatedDays >= 0 {
+		if err := pr.LoadIssue(ctx); err != nil {
+			return true
+		}
+		delay := time.Hour * 24 * time.Duration(setting.Repository.PullRequest.CheckOnlyLastUpdatedDays)
+		if pr.Issue.UpdatedUnix.AddDuration(delay) < timeutil.TimeStampNow() {
+			log.Trace("Delaying %-v patch checking because it was not updated recently", pr)
+			return true
+		}
+	}
+	return false
+}
+
+// When base branch is updated.
+func AddToTaskQueueOnBaseUpdate(ctx context.Context, pr *issues_model.PullRequest) {
+	if !setStatusChecking(ctx, pr) {
+		return
+	}
+	if shouldDelayCheck(ctx, pr) {
+		return
+	}
+	addToTaskQueue(pr)
+}
+
+// When pull request is viewed by a user or through the API.
+func AddToTaskQueueOnView(ctx context.Context, pr *issues_model.PullRequest) {
+	if setting.Repository.PullRequest.CheckOnlyLastUpdatedDays >= 0 &&
+		pr.Status == issues_model.PullRequestStatusChecking {
+		addToTaskQueue(pr)
+	}
+}
+
+// When Gitea restarts.
+func AddToTaskQueueOnInit(ctx context.Context, prID int64) {
+	if setting.Repository.PullRequest.CheckOnlyLastUpdatedDays >= 0 {
+		pr, err := issues_model.GetPullRequestByID(ctx, prID)
+		if err != nil {
+			return
+		}
+		if shouldDelayCheck(ctx, pr) {
+			return
+		}
+	}
+
+	log.Trace("Adding PR[%d] to the pull requests patch checking queue", prID)
+	if err := prPatchCheckerQueue.Push(strconv.FormatInt(prID, 10)); err != nil {
+		log.Error("Error adding PR[%d] to the pull requests patch checking queue %v", prID, err)
+	}
+}
+
+// When pull request must be checked immediately without delay.
+func AddToTaskQueue(ctx context.Context, pr *issues_model.PullRequest) {
+	if setStatusChecking(ctx, pr) {
+		addToTaskQueue(pr)
 	}
 }
 
@@ -317,10 +383,7 @@ func InitializePullRequests(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
-			log.Trace("Adding PR[%d] to the pull requests patch checking queue", prID)
-			if err := prPatchCheckerQueue.Push(strconv.FormatInt(prID, 10)); err != nil {
-				log.Error("Error adding PR[%d] to the pull requests patch checking queue %v", prID, err)
-			}
+			AddToTaskQueueOnInit(ctx, prID)
 		}
 	}
 }

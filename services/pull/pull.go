@@ -431,7 +431,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 					log.Error("UpdateCommitDivergence: %v", err)
 				}
 			}
-			AddToTaskQueue(ctx, pr)
+			AddToTaskQueueOnBaseUpdate(ctx, pr)
 		}
 	})
 }

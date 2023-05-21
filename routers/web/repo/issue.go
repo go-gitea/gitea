@@ -1824,6 +1824,8 @@ func ViewIssue(ctx *context.Context) {
 		allowMerge := false
 		canWriteToHeadRepo := false
 
+		pull_service.AddToTaskQueueOnView(ctx, pull)
+
 		if ctx.IsSigned {
 			if err := pull.LoadHeadRepo(ctx); err != nil {
 				log.Error("LoadHeadRepo: %v", err)
