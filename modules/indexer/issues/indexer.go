@@ -154,6 +154,8 @@ func InitIssueIndexer(syncReindex bool) {
 		log.Info("PID %d: Initializing Issue Indexer: %s", os.Getpid(), setting.Indexer.IssueType)
 		var populate bool
 		switch setting.Indexer.IssueType {
+		case "db":
+			// Do nothing because search code will detect and place this here to prevent error prompt
 		case "bleve":
 			defer func() {
 				if err := recover(); err != nil {

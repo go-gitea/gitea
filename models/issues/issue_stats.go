@@ -87,38 +87,28 @@ func GetIssueStats(opts *IssuesOptions) (*IssueStats, error) {
 	countSession := func(opts *IssuesOptions) *xorm.Session {
 		sess := db.GetEngine(db.DefaultContext).
 			Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
+
 		applyRepoConditions(sess, opts)
+
+		applyIsPullCondition(sess, opts)
+
+		applyMilestoneCondition(sess, opts)
+
+		applyPosterCondition(sess, opts.PosterID)
 
 		applyKeywordCondition(sess, opts)
 
 		applyLabelsCondition(sess, opts)
 
-		applyMilestoneCondition(sess, opts)
-
-		if opts.ProjectID > 0 {
-			sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
-				And("project_issue.project_id=?", opts.ProjectID)
-		}
+		applyProjectConditions(sess, opts)
 
 		applyAssigneeCondition(sess, opts.AssigneeID)
 
-		if opts.PosterID > 0 {
-			applyPosterCondition(sess, opts.PosterID)
-		}
+		applyMentionedCondition(sess, opts.MentionedID)
 
-		if opts.MentionedID > 0 {
-			applyMentionedCondition(sess, opts.MentionedID)
-		}
+		applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
 
-		if opts.ReviewRequestedID > 0 {
-			applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
-		}
-
-		if opts.ReviewedID > 0 {
-			applyReviewedCondition(sess, opts.ReviewedID)
-		}
-
-		applyIsPullCondition(sess, opts)
+		applyReviewedCondition(sess, opts.ReviewedID)
 
 		return sess
 	}

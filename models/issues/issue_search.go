@@ -206,50 +206,7 @@ func applyUserCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 	return sess
 }
 
-func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
-	/*if len(opts.IssueIDs) > 0 {
-		sess.In("issue.id", opts.IssueIDs)
-	}*/
-
-	applyKeywordCondition(sess, opts)
-
-	applyRepoConditions(sess, opts)
-
-	if !opts.IsClosed.IsNone() {
-		sess.And("issue.is_closed=?", opts.IsClosed.IsTrue())
-	}
-
-	applyAssigneeCondition(sess, opts.AssigneeID)
-
-	if opts.PosterID > 0 {
-		applyPosterCondition(sess, opts.PosterID)
-	}
-
-	if opts.MentionedID > 0 {
-		applyMentionedCondition(sess, opts.MentionedID)
-	}
-
-	if opts.ReviewRequestedID > 0 {
-		applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
-	}
-
-	if opts.ReviewedID > 0 {
-		applyReviewedCondition(sess, opts.ReviewedID)
-	}
-
-	if opts.SubscriberID > 0 {
-		applySubscribedCondition(sess, opts.SubscriberID)
-	}
-
-	applyMilestoneCondition(sess, opts)
-
-	if opts.UpdatedAfterUnix != 0 {
-		sess.And(builder.Gte{"issue.updated_unix": opts.UpdatedAfterUnix})
-	}
-	if opts.UpdatedBeforeUnix != 0 {
-		sess.And(builder.Lte{"issue.updated_unix": opts.UpdatedBeforeUnix})
-	}
-
+func applyProjectConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 	if opts.ProjectID > 0 {
 		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
 			And("project_issue.project_id=?", opts.ProjectID)
@@ -265,15 +222,50 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 		}
 	}
 
-	applyIsPullCondition(sess, opts)
+	return sess
+}
+
+func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+	applyRepoConditions(sess, opts)
 
 	if opts.IsArchived != util.OptionalBoolNone {
 		sess.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
 	}
 
+	if !opts.IsClosed.IsNone() {
+		sess.And("issue.is_closed=?", opts.IsClosed.IsTrue())
+	}
+
+	applyIsPullCondition(sess, opts)
+
+	applyMilestoneCondition(sess, opts)
+
+	applyPosterCondition(sess, opts.PosterID)
+
+	if opts.UpdatedAfterUnix != 0 {
+		sess.And(builder.Gte{"issue.updated_unix": opts.UpdatedAfterUnix})
+	}
+	if opts.UpdatedBeforeUnix != 0 {
+		sess.And(builder.Lte{"issue.updated_unix": opts.UpdatedBeforeUnix})
+	}
+
+	applyAssigneeCondition(sess, opts.AssigneeID)
+
+	applyMentionedCondition(sess, opts.MentionedID)
+
+	applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
+
+	applyReviewedCondition(sess, opts.ReviewedID)
+
+	applySubscribedCondition(sess, opts)
+
+	applyProjectConditions(sess, opts)
+
 	applyLabelsCondition(sess, opts)
 
 	applyUserCondition(sess, opts)
+
+	applyKeywordCondition(sess, opts)
 
 	return sess
 }
@@ -365,25 +357,38 @@ func applyAssigneeCondition(sess *xorm.Session, assigneeID int64) *xorm.Session 
 }
 
 func applyPosterCondition(sess *xorm.Session, posterID int64) *xorm.Session {
-	return sess.And("issue.poster_id=?", posterID)
+	if posterID > 0 {
+		return sess.And("issue.poster_id=?", posterID)
+	}
+	return sess
 }
 
 func applyMentionedCondition(sess *xorm.Session, mentionedID int64) *xorm.Session {
-	return sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
-		And("issue_user.is_mentioned = ?", true).
-		And("issue_user.uid = ?", mentionedID)
+	if mentionedID > 0 {
+		return sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
+			And("issue_user.is_mentioned = ?", true).
+			And("issue_user.uid = ?", mentionedID)
+	}
+	return sess
 }
 
 func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) *xorm.Session {
-	return sess.Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
-		And("issue.poster_id <> ?", reviewRequestedID).
-		And("r.type = ?", ReviewTypeRequest).
-		And("r.reviewer_id = ? and r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))"+
-			" or r.reviewer_team_id in (select team_id from team_user where uid = ?)",
-			reviewRequestedID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, reviewRequestedID)
+	if reviewRequestedID > 0 {
+		return sess.Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
+			And("issue.poster_id <> ?", reviewRequestedID).
+			And("r.type = ?", ReviewTypeRequest).
+			And("r.reviewer_id = ? and r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))"+
+				" or r.reviewer_team_id in (select team_id from team_user where uid = ?)",
+				reviewRequestedID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, reviewRequestedID)
+	}
+	return sess
 }
 
 func applyReviewedCondition(sess *xorm.Session, reviewedID int64) *xorm.Session {
+	if reviewedID == 0 {
+		return sess
+	}
+
 	// Query for pull requests where you are a reviewer or commenter, excluding
 	// any pull requests already returned by the the review requested filter.
 	notPoster := builder.Neq{"issue.poster_id": reviewedID}
@@ -413,31 +418,35 @@ func applyReviewedCondition(sess *xorm.Session, reviewedID int64) *xorm.Session 
 	return sess.And(notPoster, builder.Or(reviewed, commented))
 }
 
-func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Session {
+func applySubscribedCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+	if opts.SubscriberID == 0 {
+		return sess
+	}
+
 	return sess.And(
 		builder.
 			NotIn("issue.id",
 				builder.Select("issue_id").
 					From("issue_watch").
-					Where(builder.Eq{"is_watching": false, "user_id": subscriberID}),
+					Where(builder.Eq{"is_watching": false, "user_id": opts.SubscriberID}),
 			),
 	).And(
 		builder.Or(
 			builder.In("issue.id", builder.
 				Select("issue_id").
 				From("issue_watch").
-				Where(builder.Eq{"is_watching": true, "user_id": subscriberID}),
+				Where(builder.Eq{"is_watching": true, "user_id": opts.SubscriberID}),
 			),
 			builder.In("issue.id", builder.
 				Select("issue_id").
 				From("comment").
-				Where(builder.Eq{"poster_id": subscriberID}),
+				Where(builder.Eq{"poster_id": opts.SubscriberID}),
 			),
-			builder.Eq{"issue.poster_id": subscriberID},
+			builder.Eq{"issue.poster_id": opts.SubscriberID},
 			builder.In("issue.repo_id", builder.
 				Select("id").
 				From("watch").
-				Where(builder.And(builder.Eq{"user_id": subscriberID},
+				Where(builder.And(builder.Eq{"user_id": opts.SubscriberID},
 					builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto))),
 			),
 		),
