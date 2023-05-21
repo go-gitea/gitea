@@ -250,7 +250,7 @@ func TestGetUserRss(t *testing.T) {
 		title, _ := rssDoc.ChildrenFiltered("title").Html()
 		assert.EqualValues(t, "Feed of &#34;the_1-user.with.all.allowedChars&#34;", title)
 		description, _ := rssDoc.ChildrenFiltered("description").Html()
-		assert.EqualValues(t, "&lt;p&gt;some &lt;a href=&#34;https://commonmark.org/&#34; rel=&#34;nofollow&#34;&gt;commonmark&lt;/a&gt;!&lt;/p&gt;\n", description)
+		assert.EqualValues(t, "&lt;p dir=&#34;auto&#34;&gt;some &lt;a href=&#34;https://commonmark.org/&#34; rel=&#34;nofollow&#34;&gt;commonmark&lt;/a&gt;!&lt;/p&gt;\n", description)
 	}
 }
 

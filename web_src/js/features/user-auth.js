@@ -1,24 +1,22 @@
 import $ from 'jquery';
-import {hideElem, showElem} from '../utils/dom.js';
 
 export function initUserAuthOauth2() {
-  const $oauth2LoginNav = $('#oauth2-login-navigator');
-  if ($oauth2LoginNav.length === 0) return;
+  const outer = document.getElementById('oauth2-login-navigator');
+  if (!outer) return;
+  const inner = document.getElementById('oauth2-login-navigator-inner');
 
-  $oauth2LoginNav.find('.oauth-login-image').on('click', () => {
-    const oauthLoader = $('#oauth2-login-loader');
-    const oauthNav = $('#oauth2-login-navigator');
-
-    hideElem(oauthNav);
-    oauthLoader.removeClass('disabled');
-
-    setTimeout(() => {
-      // recover previous content to let user try again
-      // usually redirection will be performed before this action
-      oauthLoader.addClass('disabled');
-      showElem(oauthNav);
-    }, 5000);
-  });
+  for (const link of outer.querySelectorAll('.oauth-login-link')) {
+    link.addEventListener('click', () => {
+      inner.classList.add('gt-invisible');
+      outer.classList.add('is-loading');
+      setTimeout(() => {
+        // recover previous content to let user try again
+        // usually redirection will be performed before this action
+        outer.classList.remove('is-loading');
+        inner.classList.remove('gt-invisible');
+      }, 5000);
+    });
+  }
 }
 
 export function initUserAuthLinkAccountView() {

@@ -10,7 +10,7 @@ import (
 
 func TestMinioStorageIterator(t *testing.T) {
 	if os.Getenv("CI") == "" {
-		t.Skip("minioStorage not present on CI")
+		t.Skip("minioStorage not present outside of CI")
 		return
 	}
 	testStorageIterator(t, string(MinioStorageType), MinioStorageConfig{
