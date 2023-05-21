@@ -22,10 +22,9 @@ func getRebaseAmendMessage(ctx *mergeContext, baseGitRepo *git.Repository) (mess
 	}
 
 	commitTitle, commitBody, _ := strings.Cut(commitMessage.String(), "\n")
-	commitTitle = strings.TrimSpace(commitTitle)
-	commitBody = strings.TrimSpace(commitBody)
+	extraVars := map[string]string{"CommitTitle": strings.TrimSpace(commitTitle), "CommitBody": strings.TrimSpace(commitBody)}
 
-	message, body, err := getMergeMessage(ctx, baseGitRepo, ctx.pr, repo_model.MergeStyleRebase, commitTitle, commitBody)
+	message, body, err := getMergeMessage(ctx, baseGitRepo, ctx.pr, repo_model.MergeStyleRebase, extraVars)
 	if err != nil || message == "" {
 		return "", err
 	}

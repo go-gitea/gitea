@@ -35,7 +35,7 @@ import (
 )
 
 // Compose message used when merging pull request.
-func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle, commitTitle, commitBody string) (message, body string, err error) {
+func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle, extraVars map[string]string) (message, body string, err error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return "", "", err
 	}
@@ -62,8 +62,6 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 		if err != nil {
 			if !git.IsErrNotExist(err) {
 				return "", "", err
-			} else if mergeStyle == repo_model.MergeStyleRebase {
-				return "", "", nil
 			}
 		} else {
 			vars := map[string]string{
@@ -79,13 +77,12 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 				"PullRequestIndex":       strconv.FormatInt(pr.Index, 10),
 				"PullRequestReference":   fmt.Sprintf("%s%d", issueReference, pr.Index),
 			}
-			if mergeStyle == repo_model.MergeStyleRebase {
-				vars["CommitTitle"] = commitTitle
-				vars["CommitBody"] = commitBody
-			}
 			if pr.HeadRepo != nil {
 				vars["HeadRepoOwnerName"] = pr.HeadRepo.OwnerName
 				vars["HeadRepoName"] = pr.HeadRepo.Name
+			}
+			for extraKey, extraValue := range extraVars {
+				vars[extraKey] = extraValue
 			}
 			refs, err := pr.ResolveCrossReferences(ctx)
 			if err == nil {
@@ -141,7 +138,7 @@ func expandDefaultMergeMessage(template string, vars map[string]string) (message
 
 // GetDefaultMergeMessage returns default message used when merging pull request
 func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle) (message, body string, err error) {
-	return getMergeMessage(ctx, baseGitRepo, pr, mergeStyle, "", "")
+	return getMergeMessage(ctx, baseGitRepo, pr, mergeStyle, map[string]string{})
 }
 
 // Merge merges pull request to base repository.
