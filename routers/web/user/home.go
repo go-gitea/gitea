@@ -561,7 +561,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		Keyword:    keyword,
 	}
 
-	issueStats, err := issues_model.GetUserIssueStats(filterMode, statsOpts)
+	issueStats, err := issues_model.GetUserIssueStats(filterMode, &statsOpts)
 	if err != nil {
 		ctx.ServerError("GetUserIssueStats Shown", err)
 		return

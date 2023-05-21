@@ -300,7 +300,7 @@ func TestGetUserIssueStats(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("%#v", test.Opts), func(t *testing.T) {
-			stats, err := issues_model.GetUserIssueStats(test.FilterMode, test.Opts)
+			stats, err := issues_model.GetUserIssueStats(test.FilterMode, &test.Opts)
 			if !assert.NoError(t, err) {
 				return
 			}
