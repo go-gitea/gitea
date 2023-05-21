@@ -369,7 +369,7 @@ func Search(ctx context.Context, options issues_model.IssuesOptions) (int64, []i
 	}
 	// reset the result
 	options.PageSize = 50
-	options.Page = 0
+	options.Page = 1
 	res, err := indexer.Search(ctx, &options)
 	if err != nil {
 		return 0, nil, err
@@ -377,7 +377,7 @@ func Search(ctx context.Context, options issues_model.IssuesOptions) (int64, []i
 	for _, r := range res.Hits {
 		issueIDs = append(issueIDs, r.ID)
 	}
-	return 0, issueIDs, nil
+	return res.Total, issueIDs, nil
 }
 
 // IsAvailable checks if issue indexer is available

@@ -262,7 +262,8 @@ func (b *BleveIndexer) Search(ctx context.Context, opts *issues_model.IssuesOpti
 	}
 
 	ret := SearchResult{
-		Hits: make([]Match, 0, len(result.Hits)),
+		Total: int64(result.Total),
+		Hits:  make([]Match, 0, len(result.Hits)),
 	}
 	for _, hit := range result.Hits {
 		id, err := idOfIndexerID(hit.ID)
