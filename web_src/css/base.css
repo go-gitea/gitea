@@ -2227,20 +2227,6 @@ a.ui.active.label:hover {
   background: var(--color-primary-alpha-50);
 }
 
-/* a link button that look and acts like a link */
-.button.button-link {
-  background: transparent !important;
-  border: none;
-  color: inherit;
-  margin: 0;
-  padding: 0;
-}
-
-.button.button-link:hover {
-  color: var(--color-primary);
-  text-decoration: underline;
-}
-
 .two-toggle-buttons .button:not(.active):first-of-type {
   border-right: none;
 }
