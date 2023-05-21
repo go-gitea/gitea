@@ -71,7 +71,7 @@
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
           <li v-for="repo, index in repos" :key="repo.id">
-            <a class="repo-list-link muted gt-df gt-ac gt-sb ui attached" :ref="'repoIndex'+ index" :class="{'button primary': index === repoIndex}" :href="repo.link">
+            <a class="repo-list-link muted gt-df gt-ac gt-sb" :ref="'activeIndex'+ index" :class="{'active': index === activeIndex}" :href="repo.link">
               <div class="item-name gt-df gt-ac gt-f1">
                 <svg-icon :name="repoIcon(repo)" :size="16" class-name="gt-mr-2"/>
                 <div class="text gt-bold truncate gt-ml-1">{{ repo.full_name }}</div>
@@ -217,7 +217,7 @@ const sfc = {
 
       subUrl: appSubUrl,
       ...pageData.dashboardRepoList,
-      repoIndex: 0,
+      activeIndex: 0,
     };
   },
 
@@ -261,24 +261,32 @@ const sfc = {
         const nextPageLink = this.$refs.nextPageLink;
         switch (e.key) {
           case 'Enter':
-            this.$refs[`repoIndex${this.repoIndex}`][0].click();
+            this.$refs[`activeIndex${this.activeIndex}`][0].click();
             break;
           case 'ArrowUp':
-            if (this.repoIndex > 0) this.repoIndex--;
-            else if (previousPageLink && !previousPageLink.classList.contains('disabled')) previousPageLink.click();
+            if (this.activeIndex > 0) {
+              this.activeIndex--;
+            } else if (previousPageLink && !previousPageLink.classList.contains('disabled')) {
+              previousPageLink.click();
+            }
             break;
           case 'ArrowDown':
-            if (this.repoIndex < this.repos.length - 1) this.repoIndex++;
-            else if (nextPageLink && nextPageLink.classList && !nextPageLink.classList.contains('disabled')) {
-              this.repoIndex = 0;
+            if (this.activeIndex < this.repos.length - 1) {
+              this.activeIndex++;
+            } else if (nextPageLink && nextPageLink.classList && !nextPageLink.classList.contains('disabled')) {
+              this.activeIndex = 0;
               nextPageLink.click();
             }
             break;
           case 'ArrowRight':
-            if (nextPageLink && !nextPageLink.classList.contains('disabled')) nextPageLink.click();
+            if (nextPageLink && !nextPageLink.classList.contains('disabled')) {
+              nextPageLink.click();
+            }
             break;
           case 'ArrowLeft':
-            if (previousPageLink && !previousPageLink.classList.contains('disabled')) previousPageLink.click();
+            if (previousPageLink && !previousPageLink.classList.contains('disabled')) {
+              previousPageLink.click();
+            }
             break;
         }
       });

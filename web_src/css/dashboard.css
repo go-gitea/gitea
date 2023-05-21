@@ -176,12 +176,21 @@
   display: block;
 }
 
-.feeds .list ul li .repo-list-link:not(.primary) .svg {
+.feeds .list ul li .repo-list-link .svg {
   color: var(--color-text-light-2);
 }
 
 .feeds .list ul li .repo-list-link .star-num {
   font-size: 12px;
+}
+
+.feeds .list ul li .repo-list-link.active {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.feeds .list ul li .repo-list-link.active svg {
+  color: inherit;
 }
 
 .feeds .list #privateFilterCheckbox .svg {
