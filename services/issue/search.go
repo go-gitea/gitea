@@ -27,7 +27,7 @@ func Search(ctx context.Context, opts *issues_model.IssuesOptions) (int64, issue
 		return total, issues, nil
 	}
 
-	total, issueIDs, err := issues_indexer.Search(ctx, opts)
+	total, issueIDs, err := issues_indexer.Search(ctx, *opts)
 	if err != nil {
 		return 0, nil, err
 	}

@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	issues_model "code.gitea.io/gitea/models/issues"
 	"github.com/meilisearch/meilisearch-go"
 )
 
@@ -112,16 +113,16 @@ func (b *MeilisearchIndexer) Delete(ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *MeilisearchIndexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*SearchResult, error) {
-	repoFilters := make([]string, 0, len(repoIDs))
-	for _, repoID := range repoIDs {
+func (b *MeilisearchIndexer) Search(ctx context.Context, opts *issues_model.IssuesOptions) (*SearchResult, error) {
+	repoFilters := make([]string, 0, len(opts.RepoIDs))
+	for _, repoID := range opts.RepoIDs {
 		repoFilters = append(repoFilters, "repo_id = "+strconv.FormatInt(repoID, 10))
 	}
 	filter := strings.Join(repoFilters, " OR ")
-	searchRes, err := b.client.Index(b.indexerName).Search(keyword, &meilisearch.SearchRequest{
+	searchRes, err := b.client.Index(b.indexerName).Search(opts.Keyword, &meilisearch.SearchRequest{
 		Filter: filter,
-		Limit:  int64(limit),
-		Offset: int64(start),
+		Limit:  int64(opts.PageSize),
+		Offset: int64((opts.Page - 1) * opts.PageSize),
 	})
 	if err != nil {
 		return nil, b.checkError(err)

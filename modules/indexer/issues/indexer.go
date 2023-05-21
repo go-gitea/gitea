@@ -51,7 +51,7 @@ type Indexer interface {
 	Ping() bool
 	Index(issue []*IndexerData) error
 	Delete(ids ...int64) error
-	Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*SearchResult, error)
+	Search(ctx context.Context, opts *issues_model.IssuesOptions) (*SearchResult, error)
 	Close()
 }
 
@@ -359,7 +359,7 @@ func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 
 // Search search issue ids by keywords and repo id
 // WARNNING: You have to ensure user have permission to visit repoIDs' issues
-func Search(ctx context.Context, options *issues_model.IssuesOptions) (int64, []int64, error) {
+func Search(ctx context.Context, options issues_model.IssuesOptions) (int64, []int64, error) {
 	var issueIDs []int64
 	indexer := holder.get()
 
@@ -367,7 +367,10 @@ func Search(ctx context.Context, options *issues_model.IssuesOptions) (int64, []
 		log.Error("Search(): unable to get indexer!")
 		return 0, nil, fmt.Errorf("unable to get issue indexer")
 	}
-	res, err := indexer.Search(ctx, options.Keyword, options.RepoIDs, 50, 0)
+	// reset the result
+	options.PageSize = 50
+	options.Page = 0
+	res, err := indexer.Search(ctx, &options)
 	if err != nil {
 		return 0, nil, err
 	}

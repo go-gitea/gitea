@@ -51,7 +51,7 @@ func TestBleveSearchIssues(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	total, ids, err := Search(context.TODO(), &issues_model.IssuesOptions{
+	total, ids, err := Search(context.TODO(), issues_model.IssuesOptions{
 		RepoIDs: []int64{1},
 		Keyword: "issue2",
 	})
@@ -59,7 +59,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	assert.EqualValues(t, []int64{2}, ids)
 	assert.EqualValues(t, 1, total)
 
-	total, ids, err = Search(context.TODO(), &issues_model.IssuesOptions{
+	total, ids, err = Search(context.TODO(), issues_model.IssuesOptions{
 		RepoIDs: []int64{1},
 		Keyword: "first",
 	})
@@ -67,7 +67,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	assert.EqualValues(t, []int64{1}, ids)
 	assert.EqualValues(t, 1, total)
 
-	total, ids, err = Search(context.TODO(), &issues_model.IssuesOptions{
+	total, ids, err = Search(context.TODO(), issues_model.IssuesOptions{
 		RepoIDs: []int64{1},
 		Keyword: "for",
 	})
@@ -75,7 +75,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
 	assert.EqualValues(t, 5, total)
 
-	total, ids, err = Search(context.TODO(), &issues_model.IssuesOptions{
+	total, ids, err = Search(context.TODO(), issues_model.IssuesOptions{
 		RepoIDs: []int64{1},
 		Keyword: "good",
 	})

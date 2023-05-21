@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 
@@ -217,13 +218,13 @@ func (b *ElasticSearchIndexer) Delete(ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *ElasticSearchIndexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*SearchResult, error) {
-	kwQuery := elastic.NewMultiMatchQuery(keyword, "title", "content", "comments")
+func (b *ElasticSearchIndexer) Search(ctx context.Context, opts *issues_model.IssuesOptions) (*SearchResult, error) {
+	kwQuery := elastic.NewMultiMatchQuery(opts.Keyword, "title", "content", "comments")
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
-	if len(repoIDs) > 0 {
-		repoStrs := make([]interface{}, 0, len(repoIDs))
-		for _, repoID := range repoIDs {
+	if len(opts.RepoIDs) > 0 {
+		repoStrs := make([]interface{}, 0, len(opts.RepoIDs))
+		for _, repoID := range opts.RepoIDs {
 			repoStrs = append(repoStrs, repoID)
 		}
 		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
@@ -233,13 +234,13 @@ func (b *ElasticSearchIndexer) Search(ctx context.Context, keyword string, repoI
 		Index(b.indexerName).
 		Query(query).
 		Sort("_score", false).
-		From(start).Size(limit).
+		From((opts.Page - 1) * opts.PageSize).Size(opts.PageSize).
 		Do(ctx)
 	if err != nil {
 		return nil, b.checkError(err)
 	}
 
-	hits := make([]Match, 0, limit)
+	hits := make([]Match, 0, opts.PageSize)
 	for _, hit := range searchResult.Hits.Hits {
 		id, _ := strconv.ParseInt(hit.Id, 10, 64)
 		hits = append(hits, Match{

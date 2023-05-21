@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 
+	issues_model "code.gitea.io/gitea/models/issues"
 	gitea_bleve "code.gitea.io/gitea/modules/indexer/bleve"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -235,9 +236,9 @@ func (b *BleveIndexer) Delete(ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *BleveIndexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*SearchResult, error) {
+func (b *BleveIndexer) Search(ctx context.Context, opts *issues_model.IssuesOptions) (*SearchResult, error) {
 	var repoQueriesP []*query.NumericRangeQuery
-	for _, repoID := range repoIDs {
+	for _, repoID := range opts.RepoIDs {
 		repoQueriesP = append(repoQueriesP, numericEqualityQuery(repoID, "RepoID"))
 	}
 	repoQueries := make([]query.Query, len(repoQueriesP))
@@ -248,11 +249,11 @@ func (b *BleveIndexer) Search(ctx context.Context, keyword string, repoIDs []int
 	indexerQuery := bleve.NewConjunctionQuery(
 		bleve.NewDisjunctionQuery(repoQueries...),
 		bleve.NewDisjunctionQuery(
-			newMatchPhraseQuery(keyword, "Title", issueIndexerAnalyzer),
-			newMatchPhraseQuery(keyword, "Content", issueIndexerAnalyzer),
-			newMatchPhraseQuery(keyword, "Comments", issueIndexerAnalyzer),
+			newMatchPhraseQuery(opts.Keyword, "Title", issueIndexerAnalyzer),
+			newMatchPhraseQuery(opts.Keyword, "Content", issueIndexerAnalyzer),
+			newMatchPhraseQuery(opts.Keyword, "Comments", issueIndexerAnalyzer),
 		))
-	search := bleve.NewSearchRequestOptions(indexerQuery, limit, start, false)
+	search := bleve.NewSearchRequestOptions(indexerQuery, opts.PageSize, (opts.Page-1)*opts.PageSize, false)
 	search.SortBy([]string{"-_score"})
 
 	result, err := b.indexer.SearchInContext(ctx, search)

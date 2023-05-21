@@ -7,6 +7,9 @@ import (
 	"context"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -75,7 +78,13 @@ func TestBleveIndexAndSearch(t *testing.T) {
 	}
 
 	for _, kw := range keywords {
-		res, err := indexer.Search(context.TODO(), kw.Keyword, []int64{2}, 10, 0)
+		res, err := indexer.Search(context.TODO(), &issues_model.IssuesOptions{
+			ListOptions: db.ListOptions{
+				PageSize: 10,
+			},
+			Keyword: kw.Keyword,
+			RepoIDs: []int64{2},
+		})
 		assert.NoError(t, err)
 
 		ids := make([]int64, 0, len(res.Hits))
