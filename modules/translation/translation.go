@@ -38,10 +38,12 @@ type LangType struct {
 }
 
 var (
-	lock          *sync.RWMutex
+	lock *sync.RWMutex
+
+	allLangs   []*LangType
+	allLangMap map[string]*LangType
+
 	matcher       language.Matcher
-	allLangs      []*LangType
-	allLangMap    map[string]*LangType
 	supportedTags []language.Tag
 )
 
@@ -250,4 +252,10 @@ func (l *locale) PrettyNumber(v any) string {
 		}
 	}
 	return l.msgPrinter.Sprintf("%v", number.Decimal(v))
+}
+
+func init() {
+	// prepare a default matcher, especially for tests
+	supportedTags = []language.Tag{language.English}
+	matcher = language.NewMatcher(supportedTags)
 }
