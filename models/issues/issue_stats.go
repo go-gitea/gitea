@@ -269,35 +269,6 @@ func GetUserIssueStats(filterMode int, opts *IssuesOptions) (*IssueStats, error)
 	return stats, nil
 }
 
-// GetRepoIssueStats returns number of open and closed repository issues by given filter mode.
-func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen, numClosed int64) {
-	countSession := func(isClosed, isPull bool, repoID int64) *xorm.Session {
-		sess := db.GetEngine(db.DefaultContext).
-			Where("is_closed = ?", isClosed).
-			And("is_pull = ?", isPull).
-			And("repo_id = ?", repoID)
-
-		return sess
-	}
-
-	openCountSession := countSession(false, isPull, repoID)
-	closedCountSession := countSession(true, isPull, repoID)
-
-	switch filterMode {
-	case FilterModeAssign:
-		applyAssigneeCondition(openCountSession, uid)
-		applyAssigneeCondition(closedCountSession, uid)
-	case FilterModeCreate:
-		applyPosterCondition(openCountSession, uid)
-		applyPosterCondition(closedCountSession, uid)
-	}
-
-	openResult, _ := openCountSession.Count(new(Issue))
-	closedResult, _ := closedCountSession.Count(new(Issue))
-
-	return openResult, closedResult
-}
-
 // CountOrphanedIssues count issues without a repo
 func CountOrphanedIssues(ctx context.Context) (int64, error) {
 	return db.GetEngine(ctx).

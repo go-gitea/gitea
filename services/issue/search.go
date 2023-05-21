@@ -14,6 +14,7 @@ import (
 
 // Search search issues with sort acorrding the given conditions
 func Search(ctx context.Context, opts *issues_model.IssuesOptions) (int64, issues_model.IssueList, error) {
+	// If the issue indexer is database or the keyword is empty, use the database search
 	if setting.Indexer.IssueType == "db" || opts.Keyword == "" {
 		issues, err := issues_model.Issues(ctx, opts)
 		if err != nil {
