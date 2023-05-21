@@ -28,8 +28,9 @@ var localMetas = map[string]string{
 }
 
 func TestMain(m *testing.M) {
-	setting.InitProviderAllowEmpty()
-	setting.LoadCommonSettings()
+	setting.Init(&setting.Options{
+		AllowEmpty: true,
+	})
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
@@ -593,5 +594,5 @@ func TestIssue18471(t *testing.T) {
 	}, strings.NewReader(data), &res)
 
 	assert.NoError(t, err)
-	assert.Equal(t, res.String(), "<a href=\"http://domain/org/repo/compare/783b039...da951ce\" class=\"compare\"><code class=\"nohighlight\">783b039...da951ce</code></a>")
+	assert.Equal(t, "<a href=\"http://domain/org/repo/compare/783b039...da951ce\" class=\"compare\"><code class=\"nohighlight\">783b039...da951ce</code></a>", res.String())
 }

@@ -1,7 +1,7 @@
 ---
 date: "2021-01-22T00:00:00+02:00"
 title: "Translation Guidelines"
-weight: 10
+weight: 70
 toc: true
 draft: false
 menu:

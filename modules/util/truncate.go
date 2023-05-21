@@ -35,27 +35,3 @@ func SplitStringAtByteN(input string, n int) (left, right string) {
 
 	return input[:end] + utf8Ellipsis, utf8Ellipsis + input[end:]
 }
-
-// SplitStringAtRuneN splits a string at rune n accounting for rune boundaries. (Combining characters are not accounted for.)
-func SplitStringAtRuneN(input string, n int) (left, right string) {
-	if !utf8.ValidString(input) {
-		if len(input) <= n || n-3 < 0 {
-			return input, ""
-		}
-		return input[:n-3] + asciiEllipsis, asciiEllipsis + input[n-3:]
-	}
-
-	if utf8.RuneCountInString(input) <= n {
-		return input, ""
-	}
-
-	count := 0
-	end := 0
-	for count < n-1 {
-		_, size := utf8.DecodeRuneInString(input[end:])
-		end += size
-		count++
-	}
-
-	return input[:end] + utf8Ellipsis, utf8Ellipsis + input[end:]
-}

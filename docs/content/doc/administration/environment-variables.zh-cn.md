@@ -2,9 +2,11 @@
 date: "2017-04-08T11:34:00+02:00"
 title: "环境变量清单"
 slug: "environment-variables"
-weight: 20
+weight: 10
 toc: false
 draft: false
+aliases:
+  - /zh-cn/environment-variables
 menu:
   sidebar:
     parent: "administration"

@@ -82,7 +82,7 @@ func (l *ChannelledLog) Start() {
 				l.closeLogger()
 				return
 			}
-			l.loggerProvider.LogEvent(event)
+			l.loggerProvider.LogEvent(event) //nolint:errcheck
 		case _, ok := <-l.flush:
 			if !ok {
 				l.closeLogger()
@@ -119,7 +119,7 @@ func (l *ChannelledLog) emptyQueue() bool {
 			if !ok {
 				return false
 			}
-			l.loggerProvider.LogEvent(event)
+			l.loggerProvider.LogEvent(event) //nolint:errcheck
 		default:
 			return true
 		}
@@ -247,12 +247,6 @@ func (m *MultiChannelledLog) GetEventLogger(name string) EventLogger {
 	return m.loggers[name]
 }
 
-// GetEventProvider returns a sub logger provider content from this MultiChannelledLog
-func (m *MultiChannelledLog) GetLoggerProviderContent(name string) (string, error) {
-	channelledLogger := m.GetEventLogger(name).(*ChannelledLog)
-	return channelledLogger.loggerProvider.Content()
-}
-
 // GetEventLoggerNames returns a list of names
 func (m *MultiChannelledLog) GetEventLoggerNames() []string {
 	m.rwmutex.RLock()
@@ -351,7 +345,7 @@ func (m *MultiChannelledLog) Start() {
 			for _, logger := range m.loggers {
 				err := logger.LogEvent(event)
 				if err != nil {
-					fmt.Println(err)
+					fmt.Println(err) //nolint:forbidigo
 				}
 			}
 			m.rwmutex.RUnlock()
@@ -385,7 +379,7 @@ func (m *MultiChannelledLog) emptyQueue() bool {
 			for _, logger := range m.loggers {
 				err := logger.LogEvent(event)
 				if err != nil {
-					fmt.Println(err)
+					fmt.Println(err) //nolint:forbidigo
 				}
 			}
 			m.rwmutex.RUnlock()
@@ -459,4 +453,8 @@ func (m *MultiChannelledLog) ResetLevel() Level {
 // GetName gets the name of this MultiChannelledLog
 func (m *MultiChannelledLog) GetName() string {
 	return m.name
+}
+
+func (e *Event) GetMsg() string {
+	return e.msg
 }

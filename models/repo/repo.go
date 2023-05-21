@@ -149,8 +149,8 @@ type Repository struct {
 	IsEmpty    bool `xorm:"INDEX"`
 	IsArchived bool `xorm:"INDEX"`
 	IsMirror   bool `xorm:"INDEX"`
-	*Mirror    `xorm:"-"`
-	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
+
+	Status RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
 	RenderingMetas         map[string]string `xorm:"-"`
 	DocumentRenderingMetas map[string]string `xorm:"-"`
@@ -174,8 +174,9 @@ type Repository struct {
 	// Avatar: ID(10-20)-md5(32) - must fit into 64 symbols
 	Avatar string `xorm:"VARCHAR(64)"`
 
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
+	ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT 0"`
 }
 
 func init() {
@@ -223,6 +224,12 @@ func (repo *Repository) IsBeingCreated() bool {
 // IsBroken indicates that repository is broken
 func (repo *Repository) IsBroken() bool {
 	return repo.Status == RepositoryBroken
+}
+
+// MarkAsBrokenEmpty marks the repo as broken and empty
+func (repo *Repository) MarkAsBrokenEmpty() {
+	repo.Status = RepositoryBroken
+	repo.IsEmpty = true
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
@@ -540,15 +547,8 @@ func ComposeHTTPSCloneURL(owner, repo string) string {
 	return fmt.Sprintf("%s%s/%s.git", setting.AppURL, url.PathEscape(owner), url.PathEscape(repo))
 }
 
-func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
-	repoName := repo.Name
-	if isWiki {
-		repoName += ".wiki"
-	}
-
+func ComposeSSHCloneURL(ownerName, repoName string) string {
 	sshUser := setting.SSH.User
-
-	cl := new(CloneLink)
 
 	// if we have a ipv6 literal we need to put brackets around it
 	// for the git cloning to work.
@@ -559,12 +559,25 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 	}
 
 	if setting.SSH.Port != 22 {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)), url.PathEscape(repo.OwnerName), url.PathEscape(repoName))
-	} else if setting.Repository.UseCompatSSHURI {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, url.PathEscape(repo.OwnerName), url.PathEscape(repoName))
-	} else {
-		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshDomain, url.PathEscape(repo.OwnerName), url.PathEscape(repoName))
+		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser,
+			net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)),
+			url.PathEscape(ownerName),
+			url.PathEscape(repoName))
 	}
+	if setting.Repository.UseCompatSSHURI {
+		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, url.PathEscape(ownerName), url.PathEscape(repoName))
+	}
+	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshDomain, url.PathEscape(ownerName), url.PathEscape(repoName))
+}
+
+func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
+	repoName := repo.Name
+	if isWiki {
+		repoName += ".wiki"
+	}
+
+	cl := new(CloneLink)
+	cl.SSH = ComposeSSHCloneURL(repo.OwnerName, repoName)
 	cl.HTTPS = ComposeHTTPSCloneURL(repo.OwnerName, repoName)
 	return cl
 }
@@ -658,6 +671,49 @@ func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
 	return repo, err
 }
 
+// getRepositoryURLPathSegments returns segments (owner, reponame) extracted from a url
+func getRepositoryURLPathSegments(repoURL string) []string {
+	if strings.HasPrefix(repoURL, setting.AppURL) {
+		return strings.Split(strings.TrimPrefix(repoURL, setting.AppURL), "/")
+	}
+
+	sshURLVariants := [4]string{
+		setting.SSH.Domain + ":",
+		setting.SSH.User + "@" + setting.SSH.Domain + ":",
+		"git+ssh://" + setting.SSH.Domain + "/",
+		"git+ssh://" + setting.SSH.User + "@" + setting.SSH.Domain + "/",
+	}
+
+	for _, sshURL := range sshURLVariants {
+		if strings.HasPrefix(repoURL, sshURL) {
+			return strings.Split(strings.TrimPrefix(repoURL, sshURL), "/")
+		}
+	}
+
+	return nil
+}
+
+// GetRepositoryByURL returns the repository by given url
+func GetRepositoryByURL(ctx context.Context, repoURL string) (*Repository, error) {
+	// possible urls for git:
+	//  https://my.domain/sub-path/<owner>/<repo>.git
+	//  https://my.domain/sub-path/<owner>/<repo>
+	//  git+ssh://user@my.domain/<owner>/<repo>.git
+	//  git+ssh://user@my.domain/<owner>/<repo>
+	//  user@my.domain:<owner>/<repo>.git
+	//  user@my.domain:<owner>/<repo>
+
+	pathSegments := getRepositoryURLPathSegments(repoURL)
+
+	if len(pathSegments) != 2 {
+		return nil, fmt.Errorf("unknown or malformed repository URL")
+	}
+
+	ownerName := pathSegments[0]
+	repoName := strings.TrimSuffix(pathSegments[1], ".git")
+	return GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
+}
+
 // GetRepositoryByID returns the repository by given id if exists.
 func GetRepositoryByID(ctx context.Context, id int64) (*Repository, error) {
 	repo := new(Repository)
@@ -676,17 +732,21 @@ func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
 	return repos, db.GetEngine(db.DefaultContext).In("id", ids).Find(&repos)
 }
 
-// IsRepositoryExist returns true if the repository with given name under user has already existed.
-func IsRepositoryExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
-	has, err := db.GetEngine(ctx).Get(&Repository{
-		OwnerID:   u.ID,
-		LowerName: strings.ToLower(repoName),
-	})
+// IsRepositoryModelOrDirExist returns true if the repository with given name under user has already existed.
+func IsRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
+	has, err := IsRepositoryModelExist(ctx, u, repoName)
 	if err != nil {
 		return false, err
 	}
 	isDir, err := util.IsDir(RepoPath(u.Name, repoName))
-	return has && isDir, err
+	return has || isDir, err
+}
+
+func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
+	return db.GetEngine(ctx).Get(&Repository{
+		OwnerID:   u.ID,
+		LowerName: strings.ToLower(repoName),
+	})
 }
 
 // GetTemplateRepo populates repo.TemplateRepo for a generated repository and

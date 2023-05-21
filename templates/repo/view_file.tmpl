@@ -1,9 +1,12 @@
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
 	{{- if .FileError}}
+		<div class="ui error message">
+			<div class="text left gt-whitespace-pre">{{.FileError}}</div>
+		</div>
+	{{end}}
+	{{- if .FileWarning}}
 		<div class="ui warning message">
-			<div class="text left">
-				<div>{{.FileError}}</div>
-			</div>
+			<div class="text left gt-whitespace-pre">{{.FileWarning}}</div>
 		</div>
 	{{end}}
 	<h4 class="file-header ui top attached header gt-df gt-ac gt-sb gt-fw">
@@ -18,8 +21,8 @@
 		<div class="file-header-right file-actions gt-df gt-ac gt-fw">
 			{{if .HasSourceRenderedToggle}}
 				<div class="ui compact icon buttons two-toggle-buttons">
-					<a href="{{$.Link}}?display=source" class="ui mini basic button tooltip {{if .IsDisplayingSource}}active{{end}}" data-content="{{.locale.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code" 15}}</a>
-					<a href="{{$.Link}}" class="ui mini basic button tooltip {{if .IsDisplayingRendered}}active{{end}}" data-content="{{.locale.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file" 15}}</a>
+					<a href="{{$.Link}}?display=source" class="ui mini basic button {{if .IsDisplayingSource}}active{{end}}" data-tooltip-content="{{.locale.Tr "repo.file_view_source"}}">{{svg "octicon-code" 15}}</a>
+					<a href="{{$.Link}}" class="ui mini basic button {{if .IsDisplayingRendered}}active{{end}}" data-tooltip-content="{{.locale.Tr "repo.file_view_rendered"}}">{{svg "octicon-file" 15}}</a>
 				</div>
 			{{end}}
 			{{if not .ReadmeInList}}
@@ -37,18 +40,21 @@
 						<a class="ui mini basic button escape-button">{{.locale.Tr "repo.escape_control_characters"}}</a>
 					{{end}}
 				</div>
-				<a download href="{{$.RawFileLink}}"><span class="btn-octicon tooltip" data-content="{{.locale.Tr "repo.download_file"}}" data-position="bottom center">{{svg "octicon-download"}}</span></a>
-				<a id="copy-content" class="btn-octicon tooltip{{if not .CanCopyContent}} disabled{{end}}"{{if or .IsImageFile (and .HasSourceRenderedToggle (not .IsDisplayingSource))}} data-link="{{$.RawFileLink}}"{{end}} data-content="{{if .CanCopyContent}}{{.locale.Tr "copy_content"}}{{else}}{{.locale.Tr "copy_type_unsupported"}}{{end}}">{{svg "octicon-copy" 14}}</a>
+				<a download href="{{$.RawFileLink}}"><span class="btn-octicon" data-tooltip-content="{{.locale.Tr "repo.download_file"}}">{{svg "octicon-download"}}</span></a>
+				<a id="copy-content" class="btn-octicon {{if not .CanCopyContent}} disabled{{end}}"{{if or .IsImageFile (and .HasSourceRenderedToggle (not .IsDisplayingSource))}} data-link="{{$.RawFileLink}}"{{end}} data-tooltip-content="{{if .CanCopyContent}}{{.locale.Tr "copy_content"}}{{else}}{{.locale.Tr "copy_type_unsupported"}}{{end}}">{{svg "octicon-copy" 14}}</a>
+				{{if .EnableFeed}}
+				<a class="btn-octicon" href="{{$.FeedURL}}/rss/{{$.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{svg "octicon-rss" 14}}</a>
+				{{end}}
 				{{if .Repository.CanEnableEditor}}
 					{{if .CanEditFile}}
-						<a href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}"><span class="btn-octicon tooltip" data-content="{{.EditFileTooltip}}" data-position="bottom center">{{svg "octicon-pencil"}}</span></a>
+						<a href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}"><span class="btn-octicon" data-tooltip-content="{{.EditFileTooltip}}">{{svg "octicon-pencil"}}</span></a>
 					{{else}}
-						<span class="btn-octicon tooltip disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center">{{svg "octicon-pencil"}}</span>
+						<span class="btn-octicon disabled" data-tooltip-content="{{.EditFileTooltip}}">{{svg "octicon-pencil"}}</span>
 					{{end}}
 					{{if .CanDeleteFile}}
-						<a href="{{.RepoLink}}/_delete/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}"><span class="btn-octicon btn-octicon-danger tooltip"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center">{{svg "octicon-trash"}}</span></a>
+						<a href="{{.RepoLink}}/_delete/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}"><span class="btn-octicon btn-octicon-danger"  data-tooltip-content="{{.DeleteFileTooltip}}">{{svg "octicon-trash"}}</span></a>
 					{{else}}
-						<span class="btn-octicon tooltip disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center">{{svg "octicon-trash"}}</span>
+						<span class="btn-octicon disabled" data-tooltip-content="{{.DeleteFileTooltip}}">{{svg "octicon-trash"}}</span>
 					{{end}}
 				{{end}}
 			{{else if .EscapeStatus.Escaped}}
@@ -97,7 +103,7 @@
 				<table>
 					<tbody>
 						{{range $idx, $code := .FileContent}}
-						{{$line := Add $idx 1}}
+						{{$line := Eval $idx "+" 1}}
 						<tr>
 							<td id="L{{$line}}" class="lines-num"><span id="L{{$line}}" data-line-number="{{$line}}"></span></td>
 							{{if $.EscapeStatus.Escaped}}

@@ -245,7 +245,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	packageName := params.GroupID + "-" + params.ArtifactID
 
-	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings lfs">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container repository file list">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings lfs")}}
+	<div class="user-main-content twelve wide column content repository file list">
 		<div class="tab-size-8 non-diff-file-content">
 			<h4 class="ui top attached header">
 				<a href="{{.LFSFilesLink}}">{{.locale.Tr "repo.settings.lfs"}}</a> / {{.locale.Tr "repo.settings.lfs_locks"}} ({{.locale.Tr "admin.total" .Total}})
@@ -27,10 +23,10 @@
 								<a href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments $.Repository.DefaultBranch}}/{{PathEscapeSegments $lock.Path}}" title="{{$lock.Path}}">{{$lock.Path}}</a>
 								{{else}}
 									{{svg "octicon-diff"}}
-								<span class="tooltip" title="{{$.locale.Tr "repo.settings.lfs_lock_file_no_exist"}}">{{$lock.Path}}</span>
+								<span data-tooltip-content="{{$.locale.Tr "repo.settings.lfs_lock_file_no_exist"}}">{{$lock.Path}}</span>
 								{{end}}
 								{{if not (index $.Lockables $index)}}
-									<span class="tooltip" title="{{$.locale.Tr "repo.settings.lfs_noattribute"}}">{{svg "octicon-alert"}}</span>
+									<span data-tooltip-content="{{$.locale.Tr "repo.settings.lfs_noattribute"}}">{{svg "octicon-alert"}}</span>
 								{{end}}
 							</td>
 							<td>
@@ -57,5 +53,4 @@
 			{{template "base/paginate" .}}
 		</div>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "repo/settings/layout_footer" .}}

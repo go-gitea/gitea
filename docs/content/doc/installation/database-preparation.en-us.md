@@ -5,17 +5,19 @@ slug: "database-prep"
 weight: 10
 toc: false
 draft: false
+aliases:
+  - /en-us/database-prep
 menu:
   sidebar:
     parent: "installation"
     name: "Database preparation"
-    weight: 5
+    weight: 10
     identifier: "database-prep"
 ---
 
 # Database Preparation
 
-You need a database to use Gitea. Gitea supports PostgreSQL (>=10), MySQL (>=5.7), SQLite, and MSSQL (>=2008R2 SP3). This page will guide into preparing database. Only PostgreSQL and MySQL will be covered here since those database engines are widely-used in production.
+You need a database to use Gitea. Gitea supports PostgreSQL (>=10), MySQL (>=5.7), SQLite, and MSSQL (>=2008R2 SP3). This page will guide into preparing database. Only PostgreSQL and MySQL will be covered here since those database engines are widely-used in production. If you plan to use SQLite, you can ignore this chapter.
 
 Database instance can be on same machine as Gitea (local database setup), or on different machine (remote database).
 

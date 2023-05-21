@@ -118,11 +118,6 @@ func (log *ConnLogger) Init(jsonconfig string) error {
 	return nil
 }
 
-// Content returns the content accumulated in the content provider
-func (log *ConnLogger) Content() (string, error) {
-	return "", fmt.Errorf("not supported")
-}
-
 // Flush does nothing for this implementation
 func (log *ConnLogger) Flush() {
 }

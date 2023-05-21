@@ -2,7 +2,7 @@
 	<div class="twelve wide computer column">
 		<div class="ui attached left aligned segment">
 			<p>{{.locale.Tr "repo.issues.label_templates.info"}}</p>
-			<br/>
+			<br>
 			<form class="ui form center" action="{{.Link}}/initialize" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="field">
@@ -10,8 +10,8 @@
 						<input type="hidden" name="template_name" value="Default">
 						<div class="default text">{{.locale.Tr "repo.issues.label_templates.helper"}}</div>
 						<div class="menu">
-							{{range $template, $labels := .LabelTemplates}}
-								<div class="item" data-value="{{$template}}">{{$template}}<br/><i>({{$labels}})</i></div>
+							{{range .LabelTemplateFiles}}
+								<div class="item" data-value="{{.DisplayName}}">{{.DisplayName}}<br><i>({{.Description}})</i></div>
 							{{end}}
 						</div>
 						{{svg "octicon-triangle-down" 18 "dropdown icon"}}

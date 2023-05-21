@@ -102,8 +102,9 @@ function attachStaticElements($dropdown, $focusable, $menu) {
   });
 
   // use tooltip's content as aria-label if there is no aria-label
-  if ($dropdown.hasClass('tooltip') && $dropdown.attr('data-content') && !$dropdown.attr('aria-label')) {
-    $dropdown.attr('aria-label', $dropdown.attr('data-content'));
+  const tooltipContent = $dropdown.attr('data-tooltip-content');
+  if (tooltipContent && !$dropdown.attr('aria-label')) {
+    $dropdown.attr('aria-label', tooltipContent);
   }
 }
 
@@ -131,6 +132,11 @@ function attachInit($dropdown) {
   const $focusable = $textSearch.length ? $textSearch : $dropdown; // the primary element for focus, see comment above
   if (!$focusable.length) return;
 
+  // as a combobox, the input should not have autocomplete by default
+  if ($textSearch.length && !$textSearch.attr('autocomplete')) {
+    $textSearch.attr('autocomplete', 'off');
+  }
+
   let $menu = $dropdown.find('> .menu');
   if (!$menu.length) {
     // some "multiple selection" dropdowns don't have a static menu element in HTML, we need to pre-create it to make it have correct aria attributes
@@ -142,8 +148,8 @@ function attachInit($dropdown) {
   // Since #19861 we have prepared the "combobox" solution, but didn't get enough time to put it into practice and test before.
   const isComboBox = $dropdown.find('input').length > 0;
 
-  dropdown[ariaPatchKey].focusableRole = isComboBox ? 'combobox' : 'button';
-  dropdown[ariaPatchKey].listPopupRole = isComboBox ? 'listbox' : 'menu';
+  dropdown[ariaPatchKey].focusableRole = isComboBox ? 'combobox' : 'menu';
+  dropdown[ariaPatchKey].listPopupRole = isComboBox ? 'listbox' : '';
   dropdown[ariaPatchKey].listItemRole = isComboBox ? 'option' : 'menuitem';
 
   attachDomEvents($dropdown, $focusable, $menu);

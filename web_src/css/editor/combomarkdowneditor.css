@@ -1,0 +1,133 @@
+.combo-markdown-editor {
+  width: 100%;
+}
+
+.combo-markdown-editor markdown-toolbar {
+  cursor: default;
+  display: flex;
+  align-items: center;
+  padding-bottom: 10px;
+}
+
+.combo-markdown-editor .markdown-toolbar-group {
+  display: flex;
+}
+
+.combo-markdown-editor .markdown-toolbar-group:last-child {
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.combo-markdown-editor .markdown-toolbar-button {
+  border: none;
+  background: none;
+  user-select: none;
+  padding: 5px;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.combo-markdown-editor .markdown-toolbar-button:hover {
+  color: var(--color-primary);
+}
+
+.ui.form .combo-markdown-editor textarea.markdown-text-editor,
+.combo-markdown-editor textarea.markdown-text-editor {
+  display: block;
+  width: 100%;
+  min-height: 200px;
+  max-height: calc(100vh - 200px);
+  resize: vertical;
+}
+
+.combo-markdown-editor .CodeMirror-scroll {
+  max-height: calc(100vh - 200px);
+}
+
+/* use the same styles as markup/content.css */
+.combo-markdown-editor .CodeMirror-scroll .cm-header-1 {
+  font-size: 2em;
+}
+
+.combo-markdown-editor .CodeMirror-scroll .cm-header-2 {
+  font-size: 1.5em;
+}
+
+.combo-markdown-editor .CodeMirror-scroll .cm-header-3 {
+  font-size: 1.25em;
+}
+
+.combo-markdown-editor .CodeMirror-scroll .cm-header-4 {
+  font-size: 1em;
+}
+
+.combo-markdown-editor .CodeMirror-scroll .cm-header-5 {
+  font-size: 0.875em;
+}
+
+.combo-markdown-editor .CodeMirror-scroll .cm-header-6 {
+  font-size: 0.85em;
+}
+
+text-expander {
+  display: block;
+  position: relative;
+}
+
+text-expander .suggestions {
+  position: absolute;
+  min-width: 180px;
+  padding: 0;
+  margin-top: 24px;
+  list-style: none;
+  background: var(--color-box-body);
+  border-radius: 5px;
+  border: 1px solid var(--color-secondary);
+  box-shadow: 0 .5rem 1rem var(--color-shadow);
+}
+
+text-expander .suggestions li {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-weight: 500;
+}
+
+text-expander .suggestions li + li {
+  border-top: 1px solid var(--color-secondary-alpha-40);
+}
+
+text-expander .suggestions li:first-child {
+  border-radius: 4px 4px 0 0;
+}
+
+text-expander .suggestions li:last-child {
+  border-radius: 0 0 4px 4px;
+}
+
+text-expander .suggestions li:only-child {
+  border-radius: 4px;
+}
+
+text-expander .suggestions li:hover {
+  background: var(--color-hover);
+}
+
+text-expander .suggestions .fullname {
+  font-weight: normal;
+  margin-left: 4px;
+  color: var(--color-text-light-1);
+}
+
+text-expander .suggestions li[aria-selected="true"],
+text-expander .suggestions li[aria-selected="true"] span {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+text-expander .suggestions img {
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+}

@@ -80,6 +80,7 @@ type Repository struct {
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
 	Updated                       time.Time        `json:"updated_at"`
+	ArchivedAt                    time.Time        `json:"archived_at"`
 	Permissions                   *Permission      `json:"permissions,omitempty"`
 	HasIssues                     bool             `json:"has_issues"`
 	InternalTracker               *InternalTracker `json:"internal_tracker,omitempty"`
@@ -248,10 +249,16 @@ type CreateBranchRepoOption struct {
 	// unique: true
 	BranchName string `json:"new_branch_name" binding:"Required;GitRefName;MaxSize(100)"`
 
+	// Deprecated: true
 	// Name of the old branch to create from
 	//
 	// unique: true
 	OldBranchName string `json:"old_branch_name" binding:"GitRefName;MaxSize(100)"`
+
+	// Name of the old branch/tag/commit to create from
+	//
+	// unique: true
+	OldRefName string `json:"old_ref_name" binding:"GitRefName;MaxSize(100)"`
 }
 
 // TransferRepoOption options when transfer a repository's ownership

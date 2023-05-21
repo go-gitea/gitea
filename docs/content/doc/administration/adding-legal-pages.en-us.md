@@ -2,9 +2,11 @@
 date: "2019-12-28"
 title: "Adding Legal Pages"
 slug: adding-legal-pages
-weight: 9
+weight: 110
 toc: false
 draft: false
+aliases:
+  - /en-us/adding-legal-pages
 menu:
   sidebar:
     parent: "administration"

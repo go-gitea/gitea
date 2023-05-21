@@ -11,11 +11,14 @@ import (
 )
 
 func TestRoutes(t *testing.T) {
+	// TODO: this test seems not really testing the handlers
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	routes := Routes(ctx)
-	assert.NotNil(t, routes)
-	assert.EqualValues(t, "/", routes.R.Routes()[0].Pattern)
-	assert.Nil(t, routes.R.Routes()[0].SubRoutes)
-	assert.Len(t, routes.R.Routes()[0].Handlers, 2)
+	base := Routes(ctx)
+	assert.NotNil(t, base)
+	r := base.R.Routes()[1]
+	routes := r.SubRoutes.Routes()[0]
+	assert.EqualValues(t, "/", routes.Pattern)
+	assert.Nil(t, routes.SubRoutes)
+	assert.Len(t, routes.Handlers, 2)
 }

@@ -12,8 +12,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 
 	"github.com/stretchr/testify/assert"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func changeDefaultFileBlockSize(n int64) (restore func()) {

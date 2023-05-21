@@ -5,6 +5,8 @@ slug: "backup-and-restore"
 weight: 11
 toc: false
 draft: false
+aliases:
+  - /zh-tw/backup-and-restore
 menu:
   sidebar:
     parent: "administration"

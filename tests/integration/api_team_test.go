@@ -12,6 +12,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
@@ -28,6 +29,7 @@ func TestAPITeam(t *testing.T) {
 
 	teamUser := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 1})
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamUser.TeamID})
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: teamUser.OrgID})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser.UID})
 
 	session := loginUser(t, user.Name)
@@ -39,6 +41,7 @@ func TestAPITeam(t *testing.T) {
 	DecodeJSON(t, resp, &apiTeam)
 	assert.EqualValues(t, team.ID, apiTeam.ID)
 	assert.Equal(t, team.Name, apiTeam.Name)
+	assert.EqualValues(t, convert.ToOrganization(db.DefaultContext, org), apiTeam.Organization)
 
 	// non team member user will not access the teams details
 	teamUser2 := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 3})
@@ -57,7 +60,7 @@ func TestAPITeam(t *testing.T) {
 	session = loginUser(t, user.Name)
 	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAdminOrg)
 
-	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 6})
+	org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 6})
 
 	// Create team.
 	teamToCreate := &api.CreateTeamOption{
@@ -184,6 +187,36 @@ func TestAPITeam(t *testing.T) {
 	assert.NoError(t, teamRead.LoadUnits(db.DefaultContext))
 	checkTeamResponse(t, "ReadTeam2", &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
 		teamRead.AccessMode.String(), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
+
+	// Delete team.
+	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d?token="+token, teamID)
+	MakeRequest(t, req, http.StatusNoContent)
+	unittest.AssertNotExistsBean(t, &organization.Team{ID: teamID})
+
+	// Create admin team
+	teamToCreate = &api.CreateTeamOption{
+		Name:                    "teamadmin",
+		Description:             "team admin",
+		IncludesAllRepositories: true,
+		Permission:              "admin",
+	}
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams?token=%s", org.Name, token), teamToCreate)
+	resp = MakeRequest(t, req, http.StatusCreated)
+	apiTeam = api.Team{}
+	DecodeJSON(t, resp, &apiTeam)
+	for _, ut := range unit.AllRepoUnitTypes {
+		up := perm.AccessModeAdmin
+		if ut == unit.TypeExternalTracker || ut == unit.TypeExternalWiki {
+			up = perm.AccessModeRead
+		}
+		unittest.AssertExistsAndLoadBean(t, &organization.TeamUnit{
+			OrgID:      org.ID,
+			TeamID:     apiTeam.ID,
+			Type:       ut,
+			AccessMode: up,
+		})
+	}
+	teamID = apiTeam.ID
 
 	// Delete team.
 	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d?token="+token, teamID)

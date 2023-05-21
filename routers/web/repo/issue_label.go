@@ -28,8 +28,7 @@ func Labels(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsLabels"] = true
-	ctx.Data["RequireTribute"] = true
-	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 	ctx.HTML(http.StatusOK, tplLabels)
 }
 

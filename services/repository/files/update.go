@@ -458,6 +458,11 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 	if err != nil {
 		return nil, err
 	}
+
+	if repo.IsEmpty {
+		_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: repo.ID, IsEmpty: false}, "is_empty")
+	}
+
 	return file, nil
 }
 

@@ -49,12 +49,12 @@ func TestAPIViewPulls(t *testing.T) {
 		t.Run(fmt.Sprintf("APIGetPullFiles_%d", pull.ID),
 			doAPIGetPullFiles(ctx, pull, func(t *testing.T, files []*api.ChangedFile) {
 				if assert.Len(t, files, 1) {
-					assert.EqualValues(t, "File-WoW", files[0].Filename)
-					assert.EqualValues(t, "", files[0].PreviousFilename)
+					assert.Equal(t, "File-WoW", files[0].Filename)
+					assert.Empty(t, files[0].PreviousFilename)
 					assert.EqualValues(t, 1, files[0].Additions)
 					assert.EqualValues(t, 1, files[0].Changes)
 					assert.EqualValues(t, 0, files[0].Deletions)
-					assert.EqualValues(t, "added", files[0].Status)
+					assert.Equal(t, "added", files[0].Status)
 				}
 			}))
 	}
@@ -67,7 +67,7 @@ func TestAPIMergePullWIP(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{Status: issues_model.PullRequestStatusMergeable}, unittest.Cond("has_merged = ?", false))
 	pr.LoadIssue(db.DefaultContext)
-	issue_service.ChangeTitle(pr.Issue, owner, setting.Repository.PullRequest.WorkInProgressPrefixes[0]+" "+pr.Issue.Title)
+	issue_service.ChangeTitle(db.DefaultContext, pr.Issue, owner, setting.Repository.PullRequest.WorkInProgressPrefixes[0]+" "+pr.Issue.Title)
 
 	// force reload
 	pr.LoadAttributes(db.DefaultContext)

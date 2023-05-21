@@ -65,25 +65,25 @@
 
 	{{range .OAuth2Providers}}{{if .CustomURLSettings}}
 		<input id="{{.Name}}_customURLSettings" type="hidden" data-required="{{.CustomURLSettings.Required}}" data-available="true">
-		<input id="{{.Name}}_token_url" value="{{.CustomURLSettings.TokenURL.Value}}" data-available="{{.CustomURLSettings.TokenURL.Available}}" data-required="{{.CustomURLSettings.TokenURL.Required}}" type="hidden" />
-		<input id="{{.Name}}_auth_url" value="{{.CustomURLSettings.AuthURL.Value}}" data-available="{{.CustomURLSettings.AuthURL.Available}}" data-required="{{.CustomURLSettings.AuthURL.Required}}" type="hidden" />
-		<input id="{{.Name}}_profile_url" value="{{.CustomURLSettings.ProfileURL.Value}}" data-available="{{.CustomURLSettings.ProfileURL.Available}}" data-required="{{.CustomURLSettings.ProfileURL.Required}}" type="hidden" />
-		<input id="{{.Name}}_email_url" value="{{.CustomURLSettings.EmailURL.Value}}" data-available="{{.CustomURLSettings.EmailURL.Available}}" data-required="{{.CustomURLSettings.EmailURL.Required}}" type="hidden" />
-		<input id="{{.Name}}_tenant" value="{{.CustomURLSettings.Tenant.Value}}" data-available="{{.CustomURLSettings.Tenant.Available}}" data-required="{{.CustomURLSettings.Tenant.Required}}" type="hidden" />
+		<input id="{{.Name}}_token_url" value="{{.CustomURLSettings.TokenURL.Value}}" data-available="{{.CustomURLSettings.TokenURL.Available}}" data-required="{{.CustomURLSettings.TokenURL.Required}}" type="hidden">
+		<input id="{{.Name}}_auth_url" value="{{.CustomURLSettings.AuthURL.Value}}" data-available="{{.CustomURLSettings.AuthURL.Available}}" data-required="{{.CustomURLSettings.AuthURL.Required}}" type="hidden">
+		<input id="{{.Name}}_profile_url" value="{{.CustomURLSettings.ProfileURL.Value}}" data-available="{{.CustomURLSettings.ProfileURL.Available}}" data-required="{{.CustomURLSettings.ProfileURL.Required}}" type="hidden">
+		<input id="{{.Name}}_email_url" value="{{.CustomURLSettings.EmailURL.Value}}" data-available="{{.CustomURLSettings.EmailURL.Available}}" data-required="{{.CustomURLSettings.EmailURL.Required}}" type="hidden">
+		<input id="{{.Name}}_tenant" value="{{.CustomURLSettings.Tenant.Value}}" data-available="{{.CustomURLSettings.Tenant.Available}}" data-required="{{.CustomURLSettings.Tenant.Required}}" type="hidden">
 	{{end}}{{end}}
 
 	<div class="field">
 		<label for="oauth2_scopes">{{.locale.Tr "admin.auths.oauth2_scopes"}}</label>
-		<input id="oauth2_scopes" name="oauth2_scopes" values="{{.oauth2_scopes}}">
+		<input id="oauth2_scopes" name="oauth2_scopes" value="{{.oauth2_scopes}}">
 	</div>
 	<div class="field">
 		<label for="oauth2_required_claim_name">{{.locale.Tr "admin.auths.oauth2_required_claim_name"}}</label>
-		<input id="oauth2_required_claim_name" name="oauth2_required_claim_name" values="{{.oauth2_required_claim_name}}">
+		<input id="oauth2_required_claim_name" name="oauth2_required_claim_name" value="{{.oauth2_required_claim_name}}">
 		<p class="help">{{.locale.Tr "admin.auths.oauth2_required_claim_name_helper"}}</p>
 	</div>
 	<div class="field">
 		<label for="oauth2_required_claim_value">{{.locale.Tr "admin.auths.oauth2_required_claim_value"}}</label>
-		<input id="oauth2_required_claim_value" name="oauth2_required_claim_value" values="{{.oauth2_required_claim_value}}">
+		<input id="oauth2_required_claim_value" name="oauth2_required_claim_value" value="{{.oauth2_required_claim_value}}">
 		<p class="help">{{.locale.Tr "admin.auths.oauth2_required_claim_value_helper"}}</p>
 	</div>
 	<div class="field">
@@ -92,18 +92,18 @@
 	</div>
 	<div class="field">
 		<label for="oauth2_admin_group">{{.locale.Tr "admin.auths.oauth2_admin_group"}}</label>
-		<input id="oauth2_admin_group" name="oauth2_admin_group" value="{{.oauth2_group_claim_name}}">
+		<input id="oauth2_admin_group" name="oauth2_admin_group" value="{{.oauth2_admin_group}}">
 	</div>
 	<div class="field">
 		<label for="oauth2_restricted_group">{{.locale.Tr "admin.auths.oauth2_restricted_group"}}</label>
-		<input id="oauth2_restricted_group" name="oauth2_restricted_group" value="{{.oauth2_group_claim_name}}">
+		<input id="oauth2_restricted_group" name="oauth2_restricted_group" value="{{.oauth2_restricted_group}}">
 	</div>
 	<div class="field">
 		<label>{{.locale.Tr "admin.auths.oauth2_map_group_to_team"}}</label>
-		<input name="oauth2_group_team_map" value="{{.group_team_map}}" placeholder='e.g. {"Developer": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>
+		<input name="oauth2_group_team_map" value="{{.oauth2_group_team_map}}" placeholder='e.g. {"Developer": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>
 	</div>
 	<div class="ui checkbox">
 		<label>{{.locale.Tr "admin.auths.oauth2_map_group_to_team_removal"}}</label>
-		<input name="oauth2_group_team_map_removal" type="checkbox" {{if .group_team_map_removal}}checked{{end}}>
+		<input name="oauth2_group_team_map_removal" type="checkbox" {{if .oauth2_group_team_map_removal}}checked{{end}}>
 	</div>
 </div>

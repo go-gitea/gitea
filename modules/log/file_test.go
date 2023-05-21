@@ -51,7 +51,7 @@ func TestFileLogger(t *testing.T) {
 
 	fileLogger := NewFileLogger()
 	realFileLogger, ok := fileLogger.(*FileLogger)
-	assert.Equal(t, true, ok)
+	assert.True(t, ok)
 
 	location, _ := time.LoadLocation("EST")
 

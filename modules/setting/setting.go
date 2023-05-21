@@ -15,19 +15,15 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
-	"code.gitea.io/gitea/modules/util"
-
-	ini "gopkg.in/ini.v1"
 )
 
 // settings
 var (
 	// AppVer is the version of the current build of Gitea. It is set in main.go from main.Version.
 	AppVer string
-	// AppBuiltWith represents a human readable version go runtime build version and build tags. (See main.go formatBuiltWith().)
+	// AppBuiltWith represents a human-readable version go runtime build version and build tags. (See main.go formatBuiltWith().)
 	AppBuiltWith string
 	// AppStartTime store time gitea has started
 	AppStartTime time.Time
@@ -40,7 +36,8 @@ var (
 	// AppWorkPath is used as the base path for several other paths.
 	AppWorkPath string
 
-	// Global setting objects
+	// Other global setting objects
+
 	CfgProvider ConfigProvider
 	CustomPath  string // Custom directory path
 	CustomConf  string
@@ -48,6 +45,10 @@ var (
 	RunUser     string
 	IsProd      bool
 	IsWindows   bool
+
+	// IsInTesting indicates whether the testing is running. A lot of unreliable code causes a lot of nonsense error logs during testing
+	// TODO: this is only a temporary solution, we should make the test code more reliable
+	IsInTesting = false
 )
 
 func getAppPath() (string, error) {
@@ -108,8 +109,12 @@ func getWorkPath(appPath string) string {
 
 func init() {
 	IsWindows = runtime.GOOS == "windows"
+	if AppVer == "" {
+		AppVer = "dev"
+	}
+
 	// We can rely on log.CanColorStdout being set properly because modules/log/console_windows.go comes before modules/setting/setting.go lexicographically
-	// By default set this logger at Info - we'll change it later but we need to start with something.
+	// By default set this logger at Info - we'll change it later, but we need to start with something.
 	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "info", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
 
 	var err error
@@ -197,59 +202,18 @@ func PrepareAppDataPath() error {
 	return nil
 }
 
-// InitProviderFromExistingFile initializes config provider from an existing config file (app.ini)
-func InitProviderFromExistingFile() {
-	CfgProvider = newFileProviderFromConf(CustomConf, false, "")
-}
-
-// InitProviderAllowEmpty initializes config provider from file, it's also fine that if the config file (app.ini) doesn't exist
-func InitProviderAllowEmpty() {
-	CfgProvider = newFileProviderFromConf(CustomConf, true, "")
-}
-
-// InitProviderAndLoadCommonSettingsForTest initializes config provider and load common setttings for tests
-func InitProviderAndLoadCommonSettingsForTest(extraConfigs ...string) {
-	CfgProvider = newFileProviderFromConf(CustomConf, true, strings.Join(extraConfigs, "\n"))
-	loadCommonSettingsFrom(CfgProvider)
-	if err := PrepareAppDataPath(); err != nil {
-		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
+func Init(opts *Options) {
+	if opts.CustomConf == "" {
+		opts.CustomConf = CustomConf
 	}
-	// register the dummy hash algorithm function used in the test fixtures
-	_ = hash.Register("dummy", hash.NewDummyHasher)
-
-	PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
-}
-
-// newFileProviderFromConf initializes configuration context.
-// NOTE: do not print any log except error.
-func newFileProviderFromConf(customConf string, allowEmpty bool, extraConfig string) *ini.File {
-	cfg := ini.Empty()
-
-	isFile, err := util.IsFile(customConf)
+	var err error
+	CfgProvider, err = newConfigProviderFromFile(opts)
 	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", customConf, err)
+		log.Fatal("Init[%v]: %v", opts, err)
 	}
-	if isFile {
-		if err := cfg.Append(customConf); err != nil {
-			log.Fatal("Failed to load custom conf '%s': %v", customConf, err)
-		}
-	} else if !allowEmpty {
-		log.Fatal("Unable to find configuration file: %q.\nEnsure you are running in the correct environment or set the correct configuration file with -c.", CustomConf)
-	} // else: no config file, a config file might be created at CustomConf later (might not)
-
-	if extraConfig != "" {
-		if err = cfg.Append([]byte(extraConfig)); err != nil {
-			log.Fatal("Unable to append more config: %v", err)
-		}
+	if !opts.DisableLoadCommonSettings {
+		loadCommonSettingsFrom(CfgProvider)
 	}
-
-	cfg.NameMapper = ini.SnackCase
-	return cfg
-}
-
-// LoadCommonSettings loads common configurations from a configuration provider.
-func LoadCommonSettings() {
-	loadCommonSettingsFrom(CfgProvider)
 }
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.
@@ -259,6 +223,9 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 	loadLogFrom(cfg)
 	loadServerFrom(cfg)
 	loadSSHFrom(cfg)
+
+	mustCurrentRunUserMatch(cfg) // it depends on the SSH config, only non-builtin SSH server requires this check
+
 	loadOAuth2From(cfg)
 	loadSecurityFrom(cfg)
 	loadAttachmentFrom(cfg)
@@ -291,14 +258,6 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 		RunMode = rootSec.Key("RUN_MODE").MustString("prod")
 	}
 	IsProd = strings.EqualFold(RunMode, "prod")
-	// Does not check run user when the install lock is off.
-	installLock := rootCfg.Section("security").Key("INSTALL_LOCK").MustBool(false)
-	if installLock {
-		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
-		if !match {
-			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)
-		}
-	}
 
 	// check if we run as root
 	if os.Getuid() == 0 {
@@ -310,47 +269,13 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 	}
 }
 
-// CreateOrAppendToCustomConf creates or updates the custom config.
-// Use the callback to set individual values.
-func CreateOrAppendToCustomConf(purpose string, callback func(cfg *ini.File)) {
-	if CustomConf == "" {
-		log.Error("Custom config path must not be empty")
-		return
-	}
-
-	cfg := ini.Empty()
-	isFile, err := util.IsFile(CustomConf)
-	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
-	}
-	if isFile {
-		if err := cfg.Append(CustomConf); err != nil {
-			log.Error("failed to load custom conf %s: %v", CustomConf, err)
-			return
-		}
-	}
-
-	callback(cfg)
-
-	if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-		log.Fatal("failed to create '%s': %v", CustomConf, err)
-		return
-	}
-	if err := cfg.SaveTo(CustomConf); err != nil {
-		log.Fatal("error saving to custom config: %v", err)
-	}
-	log.Info("Settings for %s saved to: %q", purpose, CustomConf)
-
-	// Change permissions to be more restrictive
-	fi, err := os.Stat(CustomConf)
-	if err != nil {
-		log.Error("Failed to determine current conf file permissions: %v", err)
-		return
-	}
-
-	if fi.Mode().Perm() > 0o600 {
-		if err = os.Chmod(CustomConf, 0o600); err != nil {
-			log.Warn("Failed changing conf file permissions to -rw-------. Consider changing them manually.")
+func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
+	// Does not check run user when the "InstallLock" is off.
+	installLock := rootCfg.Section("security").Key("INSTALL_LOCK").MustBool(false)
+	if installLock {
+		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
+		if !match {
+			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)
 		}
 	}
 }

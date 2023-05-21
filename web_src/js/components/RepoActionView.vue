@@ -2,16 +2,28 @@
   <div class="action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary">
-        <ActionRunStatus :status="run.status" :size="20"/>
+        <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
         <div class="action-title">
           {{ run.title }}
         </div>
-        <button class="run_approve" @click="approveRun()" v-if="run.canApprove">
-          <i class="play circle outline icon"/>
+        <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
+          <SvgIcon class="gt-mr-2" name="octicon-play" :size="20"/> {{ locale.approve }}
         </button>
-        <button class="run_cancel" @click="cancelRun()" v-else-if="run.canCancel">
-          <i class="stop circle outline icon"/>
+        <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
+          <SvgIcon class="gt-mr-2" name="octicon-x-circle-fill" :size="20"/> {{ locale.cancel }}
         </button>
+        <button class="ui basic small compact button secondary" @click="rerun()" v-else-if="run.canRerun">
+          <SvgIcon class="gt-mr-2" name="octicon-sync" :size="20"/> {{ locale.rerun }}
+        </button>
+      </div>
+      <div class="action-commit-summary">
+        {{ run.commit.localeCommit }}
+        <a :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+        &nbsp;<span class="ui label" v-if="run.commit.shortSHA">
+          <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
+        </span>
+        &nbsp;{{ run.commit.localePushedBy }}
+        <a :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
       </div>
     </div>
     <div class="action-view-body">
@@ -20,14 +32,27 @@
           <div class="job-brief-list">
             <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
-                <ActionRunStatus :status="job.status"/>
-                <span class="ui text">{{ job.name }}</span>
+                <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
+                <span class="ui text gt-mx-3">{{ job.name }}</span>
               </a>
-              <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
+              <span class="step-summary-duration">{{ job.duration }}</span>
+              <button :data-tooltip-content="locale.rerun" class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
             </div>
           </div>
+        </div>
+        <div class="job-artifacts" v-if="artifacts.length > 0">
+          <div class="job-artifacts-title">
+            {{ locale.artifactsTitle }}
+          </div>
+          <ul class="job-artifacts-list">
+            <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.id">
+              <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.id">
+                <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon" />{{ artifact.name }}
+              </a>
+            </li>
+          </ul>
         </div>
       </div>
 
@@ -48,7 +73,7 @@
               <ActionRunStatus :status="jobStep.status" class="gt-mr-3"/>
 
               <span class="step-summary-msg">{{ jobStep.summary }}</span>
-              <span class="step-summary-dur">{{ jobStep.duration }}</span>
+              <span class="step-summary-duration">{{ jobStep.duration }}</span>
             </div>
 
             <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
@@ -68,6 +93,8 @@ import AnsiToHTML from 'ansi-to-html';
 
 const {csrfToken} = window.config;
 
+const ansiLogRender = new AnsiToHTML({escapeXML: true});
+
 const sfc = {
   name: 'RepoActionView',
   components: {
@@ -78,16 +105,16 @@ const sfc = {
     runIndex: String,
     jobIndex: String,
     actionsURL: String,
+    locale: Object,
   },
 
   data() {
     return {
-      ansiToHTML: new AnsiToHTML({escapeXML: true}),
-
       // internal state
       loading: false,
       intervalID: null,
       currentJobStepsStates: [],
+      artifacts: [],
 
       // provided by backend
       run: {
@@ -96,6 +123,7 @@ const sfc = {
         status: '',
         canCancel: false,
         canApprove: false,
+        canRerun: false,
         done: false,
         jobs: [
           // {
@@ -103,8 +131,23 @@ const sfc = {
           //   name: '',
           //   status: '',
           //   canRerun: false,
+          //   duration: '',
           // },
         ],
+        commit: {
+          localeCommit: '',
+          localePushedBy: '',
+          shortSHA: '',
+          link: '',
+          pusher: {
+            displayName: '',
+            link: '',
+          },
+          branch: {
+            name: '',
+            link: '',
+          },
+        }
       },
       currentJob: {
         title: '',
@@ -126,6 +169,15 @@ const sfc = {
     this.intervalID = setInterval(this.loadJob, 1000);
   },
 
+  unmounted() {
+    // clear the interval timer when the component is unmounted
+    // even our page is rendered once, not spa style
+    if (this.intervalID) {
+      clearInterval(this.intervalID);
+      this.intervalID = null;
+    }
+  },
+
   methods: {
     // get the active container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
     getLogsContainer(idx) {
@@ -145,8 +197,8 @@ const sfc = {
       const elJobLogList = document.createElement('div');
       elJobLogList.classList.add('job-log-list');
 
-      elJobLogGroup.appendChild(elJobLogGroupSummary);
-      elJobLogGroup.appendChild(elJobLogList);
+      elJobLogGroup.append(elJobLogGroupSummary);
+      elJobLogGroup.append(elJobLogList);
       el._stepLogsActiveContainer = elJobLogList;
     },
     // end a log group
@@ -168,6 +220,11 @@ const sfc = {
       await this.fetchPost(`${jobLink}/rerun`);
       window.location.href = jobLink;
     },
+    // rerun workflow
+    async rerun() {
+      await this.fetchPost(`${this.run.link}/rerun`);
+      window.location.href = this.run.link;
+    },
     // cancel a run
     cancelRun() {
       this.fetchPost(`${this.run.link}/cancel`);
@@ -184,15 +241,15 @@ const sfc = {
 
       const lineNumber = document.createElement('div');
       lineNumber.className = 'line-num';
-      lineNumber.innerText = line.index;
-      div.appendChild(lineNumber);
+      lineNumber.textContent = line.index;
+      div.append(lineNumber);
 
       // TODO: Support displaying time optionally
 
       const logMessage = document.createElement('div');
       logMessage.className = 'log-msg';
-      logMessage.innerHTML = this.ansiToHTML.toHtml(line.message);
-      div.appendChild(logMessage);
+      logMessage.innerHTML = ansiLogToHTML(line.message);
+      div.append(logMessage);
 
       return div;
     },
@@ -224,6 +281,11 @@ const sfc = {
       try {
         this.loading = true;
 
+        // refresh artifacts if upload-artifact step done
+        const resp = await this.fetchPost(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
+        const artifacts = await resp.json();
+        this.artifacts = artifacts['artifacts'] || [];
+
         const response = await this.fetchJob();
 
         // save the state to Vue data, then the UI will be updated
@@ -251,6 +313,7 @@ const sfc = {
         this.loading = false;
       }
     },
+
 
     fetchPost(url, body) {
       return fetch(url, {
@@ -280,8 +343,66 @@ export function initRepositoryActionView() {
     runIndex: el.getAttribute('data-run-index'),
     jobIndex: el.getAttribute('data-job-index'),
     actionsURL: el.getAttribute('data-actions-url'),
+    locale: {
+      approve: el.getAttribute('data-locale-approve'),
+      cancel: el.getAttribute('data-locale-cancel'),
+      rerun: el.getAttribute('data-locale-rerun'),
+      artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
+      status: {
+        unknown: el.getAttribute('data-locale-status-unknown'),
+        waiting: el.getAttribute('data-locale-status-waiting'),
+        running: el.getAttribute('data-locale-status-running'),
+        success: el.getAttribute('data-locale-status-success'),
+        failure: el.getAttribute('data-locale-status-failure'),
+        cancelled: el.getAttribute('data-locale-status-cancelled'),
+        skipped: el.getAttribute('data-locale-status-skipped'),
+        blocked: el.getAttribute('data-locale-status-blocked'),
+      }
+    }
   });
   view.mount(el);
+}
+
+// some unhandled control sequences by AnsiToHTML
+// https://man7.org/linux/man-pages/man4/console_codes.4.html
+const ansiRegexpRemove = /\x1b\[\d+[A-H]/g; // Move cursor, treat them as no-op.
+const ansiRegexpNewLine = /\x1b\[\d?[JK]/g; // Erase display/line, treat them as a Carriage Return
+
+function ansiCleanControlSequences(line) {
+  if (line.includes('\x1b')) {
+    line = line.replace(ansiRegexpRemove, '');
+    line = line.replace(ansiRegexpNewLine, '\r');
+  }
+  return line;
+}
+
+export function ansiLogToHTML(line) {
+  if (line.endsWith('\r\n')) {
+    line = line.substring(0, line.length - 2);
+  } else if (line.endsWith('\n')) {
+    line = line.substring(0, line.length - 1);
+  }
+
+  // usually we do not need to process control chars like "\033[", let AnsiToHTML do it
+  // but AnsiToHTML has bugs, so we need to clean some control sequences first
+  line = ansiCleanControlSequences(line);
+
+  if (!line.includes('\r')) {
+    return ansiLogRender.toHtml(line);
+  }
+
+  // handle "\rReading...1%\rReading...5%\rReading...100%",
+  // convert it into a multiple-line string: "Reading...1%\nReading...5%\nReading...100%"
+  const lines = [];
+  for (const part of line.split('\r')) {
+    if (part === '') continue;
+    const partHtml = ansiLogRender.toHtml(part);
+    if (partHtml !== '') {
+      lines.push(partHtml);
+    }
+  }
+  // the log message element is with "white-space: break-spaces;", so use "\n" to break lines
+  return lines.join('\n');
 }
 
 </script>
@@ -299,37 +420,21 @@ export function initRepositoryActionView() {
   margin: 0 20px 20px 20px;
 }
 
-.action-view-header .run_cancel {
-  border: none;
-  color: var(--color-red);
-  background-color: transparent;
-  outline: none;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.action-view-header .run_approve {
-  border: none;
-  color: var(--color-green);
-  background-color: transparent;
-  outline: none;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.action-view-header .run_cancel:hover,
-.action-view-header .run_approve:hover {
-  transform: scale(130%);
-}
-
 .action-info-summary {
   font-size: 150%;
   height: 20px;
   display: flex;
+  align-items: center;
+  margin-top: 1rem;
 }
 
 .action-info-summary .action-title {
   padding: 0 5px;
+  flex: 1;
+}
+
+.action-commit-summary {
+  padding: 10px 10px;
 }
 
 /* ================ */
@@ -345,6 +450,27 @@ export function initRepositoryActionView() {
 .job-group-section .job-group-summary {
   margin: 5px 0;
   padding: 10px;
+}
+
+.job-artifacts-title {
+  font-size: 18px;
+  margin-top: 16px;
+  padding: 16px 10px 0px 20px;
+  border-top: 1px solid var(--color-secondary);
+}
+
+.job-artifacts-item {
+  margin: 5px 0;
+  padding: 6px;
+}
+
+.job-artifacts-list {
+  padding-left: 12px;
+  list-style: none;
+}
+
+.job-artifacts-icon {
+  padding-right: 3px;
 }
 
 .job-group-section .job-brief-list .job-brief-item {
@@ -377,7 +503,6 @@ export function initRepositoryActionView() {
 }
 
 .job-group-section .job-brief-list .job-brief-item .job-brief-link span {
-  margin-right: 8px;
   display: flex;
   align-items: center;
 }
@@ -424,7 +549,7 @@ export function initRepositoryActionView() {
   flex: 1;
 }
 
-.job-step-container .job-step-summary .step-summary-dur {
+.job-step-container .job-step-summary .step-summary-duration {
   margin-left: 16px;
 }
 
@@ -461,6 +586,7 @@ export function initRepositoryActionView() {
   width: 48px;
   color: var(--color-grey-light);
   text-align: right;
+  user-select: none;
 }
 
 .job-step-section .job-step-logs .job-log-line .log-time {

@@ -1,6 +1,6 @@
 {{if .DiffNotAvailable}}
-	<div class="diff-detail-box diff-box sticky">
-		<div>
+	<div>
+		<div class="diff-detail-box diff-box sticky">
 			<div class="ui right">
 				{{template "repo/diff/whitespace_dropdown" .}}
 				{{template "repo/diff/options_dropdown" .}}
@@ -15,11 +15,18 @@
 	<div>
 		<div class="diff-detail-box diff-box sticky gt-df gt-sb gt-ac gt-fw">
 			<div class="gt-df gt-ac gt-fw">
-				<a class="diff-toggle-file-tree-button muted gt-df gt-ac">
+				<button class="diff-toggle-file-tree-button gt-df gt-ac" data-show-text="{{.locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{.locale.Tr "repo.diff.hide_file_tree"}}">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
-					{{svg "octicon-sidebar-collapse" 20 "icon hide"}}
-					{{svg "octicon-sidebar-expand" 20 "icon"}}
-				</a>
+					{{svg "octicon-sidebar-collapse" 20 "icon gt-hidden"}}
+					{{svg "octicon-sidebar-expand" 20 "icon gt-hidden"}}
+				</button>
+				<script>
+					const diffTreeVisible = localStorage?.getItem('diff_file_tree_visible') === 'true';
+					const diffTreeBtn = document.querySelector('.diff-toggle-file-tree-button');
+					const diffTreeIcon = `.octicon-sidebar-${diffTreeVisible ? 'expand' : 'collapse'}`;
+					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('gt-hidden');
+					diffTreeBtn.setAttribute('data-tooltip-content', diffTreeBtn.getAttribute(diffTreeVisible ? 'data-hide-text' : 'data-show-text'));
+				</script>
 				<div class="diff-detail-stats gt-df gt-ac gt-ml-3">
 					{{svg "octicon-diff" 16 "gt-mr-2"}}{{.locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 				</div>
@@ -68,6 +75,9 @@
 		<div id="diff-file-list"></div>
 		<div id="diff-container">
 				<div id="diff-file-tree" class="gt-hidden"></div>
+				<script>
+					if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('gt-hidden');
+				</script>
 				<div id="diff-file-boxes" class="sixteen wide column">
 					{{range $i, $file := .Diff.Files}}
 						{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
@@ -107,8 +117,8 @@
 								<div class="diff-file-header-actions gt-df gt-ac">
 									{{if $showFileViewToggle}}
 										<div class="ui compact icon buttons">
-											<button class="ui tiny basic button tooltip file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-content="{{$.locale.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code"}}</button>
-											<button class="ui tiny basic button tooltip file-view-toggle active" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-content="{{$.locale.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file"}}</button>
+											<button class="ui tiny basic button file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{$.locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
+											<button class="ui tiny basic button file-view-toggle active" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-tooltip-content="{{$.locale.Tr "repo.file_view_rendered"}}">{{svg "octicon-file"}}</button>
 										</div>
 									{{end}}
 									{{if $file.IsProtected}}
@@ -188,24 +198,21 @@
 		</div>
 
 		{{if not $.Repository.IsArchived}}
-			<div class="gt-hidden" id="edit-content-form">
+			<template id="issue-comment-editor-template">
 				<div class="ui comment form">
-					<div class="ui top attached tabular menu">
-						<a class="active write item">{{$.locale.Tr "write"}}</a>
-						<a class="preview item" data-url="{{$.Repository.Link}}/markup" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
-					</div>
-					<div class="ui bottom attached active write tab segment">
-						<textarea class="review-textarea js-quick-submit" tabindex="1" name="content"></textarea>
-					</div>
-					<div class="ui bottom attached tab preview segment markup">
-					{{$.locale.Tr "loading"}}
-					</div>
+					{{template "shared/combomarkdowneditor" (dict
+						"locale" $.locale
+						"MarkdownPreviewUrl" (print $.Repository.Link "/markup")
+						"MarkdownPreviewContext" $.RepoLink
+						"TextareaName" "content"
+						"DropzoneParentContainer" ".ui.form"
+					)}}
 					<div class="text right edit buttons">
 						<button class="ui basic primary cancel button" tabindex="3">{{.locale.Tr "repo.issues.cancel"}}</button>
 						<button class="ui green save button" tabindex="2">{{.locale.Tr "repo.issues.save"}}</button>
 					</div>
 				</div>
-			</div>
+			</template>
 		{{end}}
 
 		{{template "repo/issue/view_content/reference_issue_dialog" .}}

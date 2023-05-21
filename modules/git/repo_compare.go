@@ -92,8 +92,11 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 
 		// We have a common base - therefore we know that ... should work
 		if !fileOnly {
+			// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
 			var logs []byte
-			logs, _, err = NewCommand(repo.Ctx, "log").AddDynamicArguments(baseCommitID + separator + headBranch).AddArguments(prettyLogFormat).RunStdBytes(&RunOpts{Dir: repo.Path})
+			logs, _, err = NewCommand(repo.Ctx, "log").AddArguments(prettyLogFormat).
+				AddDynamicArguments(baseCommitID + separator + headBranch).AddArguments("--").
+				RunStdBytes(&RunOpts{Dir: repo.Path})
 			if err != nil {
 				return nil, err
 			}
@@ -146,7 +149,8 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 		separator = ".."
 	}
 
-	if err := NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddDynamicArguments(base + separator + head).
+	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
+	if err := NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddDynamicArguments(base + separator + head).AddArguments("--").
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
@@ -157,7 +161,7 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 			// previously it would return the results of git diff -z --name-only base head so let's try that...
 			w = &lineCountWriter{}
 			stderr.Reset()
-			if err = NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddDynamicArguments(base, head).Run(&RunOpts{
+			if err = NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddDynamicArguments(base, head).AddArguments("--").Run(&RunOpts{
 				Dir:    repo.Path,
 				Stdout: w,
 				Stderr: stderr,

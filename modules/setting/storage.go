@@ -6,15 +6,13 @@ package setting
 import (
 	"path/filepath"
 	"reflect"
-
-	ini "gopkg.in/ini.v1"
 )
 
 // Storage represents configuration of storages
 type Storage struct {
 	Type        string
 	Path        string
-	Section     *ini.Section
+	Section     ConfigSection
 	ServeDirect bool
 }
 
@@ -30,7 +28,7 @@ func (s *Storage) MapTo(v interface{}) error {
 	return nil
 }
 
-func getStorage(rootCfg ConfigProvider, name, typ string, targetSec *ini.Section) Storage {
+func getStorage(rootCfg ConfigProvider, name, typ string, targetSec ConfigSection) Storage {
 	const sectionName = "storage"
 	sec := rootCfg.Section(sectionName)
 
@@ -42,6 +40,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, targetSec *ini.Section
 	sec.Key("MINIO_LOCATION").MustString("us-east-1")
 	sec.Key("MINIO_USE_SSL").MustBool(false)
 	sec.Key("MINIO_INSECURE_SKIP_VERIFY").MustBool(false)
+	sec.Key("MINIO_CHECKSUM_ALGORITHM").MustString("default")
 
 	if targetSec == nil {
 		targetSec, _ = rootCfg.NewSection(name)
@@ -51,7 +50,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, targetSec *ini.Section
 	storage.Section = targetSec
 	storage.Type = typ
 
-	overrides := make([]*ini.Section, 0, 3)
+	overrides := make([]ConfigSection, 0, 3)
 	nameSec, err := rootCfg.GetSection(sectionName + "." + name)
 	if err == nil {
 		overrides = append(overrides, nameSec)

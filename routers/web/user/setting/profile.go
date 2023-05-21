@@ -326,7 +326,7 @@ func Repos(ctx *context.Context) {
 
 		ctx.Data["Repos"] = repos
 	}
-	ctx.Data["Owner"] = ctxUser
+	ctx.Data["ContextUser"] = ctxUser
 	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager

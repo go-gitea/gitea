@@ -121,8 +121,7 @@ See the [hacking instructions](https://docs.gitea.io/en-us/hacking-on-gitea/).
 
 Changes to Gitea must be reviewed before they are accepted—no matter who
 makes the change, even if they are an owner or a maintainer. We use GitHub's
-pull request workflow to do that. And, we also use [LGTM](http://lgtm.co)
-to ensure every PR is reviewed by at least 2 maintainers.
+pull request workflow to do that. Every PR is reviewed by at least 2 maintainers.
 
 Please try to make your pull request easy to review for us. And, please read
 the *[How to get faster PR reviews](https://github.com/kubernetes/community/blob/261cb0fd089b64002c91e8eddceebf032462ccd6/contributors/guide/pull-requests.md#best-practices-for-faster-reviews)* guide;

@@ -100,7 +100,6 @@ func shadowPassword(provider, cfgItem string) string {
 // Config show admin config page
 func Config(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminConfig"] = true
 
 	systemSettings, err := system_model.GetAllSettings(ctx)
@@ -115,6 +114,7 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["CustomConf"] = setting.CustomConf
 	ctx.Data["AppUrl"] = setting.AppURL
+	ctx.Data["AppBuiltWith"] = setting.AppBuiltWith
 	ctx.Data["Domain"] = setting.Domain
 	ctx.Data["OfflineMode"] = setting.OfflineMode
 	ctx.Data["DisableRouterLog"] = setting.Log.DisableRouterLog

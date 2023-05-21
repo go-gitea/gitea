@@ -53,7 +53,7 @@ type LevelLoggerLogger struct {
 
 // Trace records trace log
 func (l *LevelLoggerLogger) Trace(format string, v ...interface{}) {
-	l.Log(1, TRACE, format, v...)
+	l.Log(1, TRACE, format, v...) //nolint:errcheck
 }
 
 // IsTrace returns true if the logger is TRACE
@@ -63,7 +63,7 @@ func (l *LevelLoggerLogger) IsTrace() bool {
 
 // Debug records debug log
 func (l *LevelLoggerLogger) Debug(format string, v ...interface{}) {
-	l.Log(1, DEBUG, format, v...)
+	l.Log(1, DEBUG, format, v...) //nolint:errcheck
 }
 
 // IsDebug returns true if the logger is DEBUG
@@ -73,7 +73,7 @@ func (l *LevelLoggerLogger) IsDebug() bool {
 
 // Info records information log
 func (l *LevelLoggerLogger) Info(format string, v ...interface{}) {
-	l.Log(1, INFO, format, v...)
+	l.Log(1, INFO, format, v...) //nolint:errcheck
 }
 
 // IsInfo returns true if the logger is INFO
@@ -83,7 +83,7 @@ func (l *LevelLoggerLogger) IsInfo() bool {
 
 // Warn records warning log
 func (l *LevelLoggerLogger) Warn(format string, v ...interface{}) {
-	l.Log(1, WARN, format, v...)
+	l.Log(1, WARN, format, v...) //nolint:errcheck
 }
 
 // IsWarn returns true if the logger is WARN
@@ -93,12 +93,12 @@ func (l *LevelLoggerLogger) IsWarn() bool {
 
 // Error records error log
 func (l *LevelLoggerLogger) Error(format string, v ...interface{}) {
-	l.Log(1, ERROR, format, v...)
+	l.Log(1, ERROR, format, v...) //nolint:errcheck
 }
 
 // ErrorWithSkip records error log from "skip" calls back from this function
 func (l *LevelLoggerLogger) ErrorWithSkip(skip int, format string, v ...interface{}) {
-	l.Log(skip+1, ERROR, format, v...)
+	l.Log(skip+1, ERROR, format, v...) //nolint:errcheck
 }
 
 // IsError returns true if the logger is ERROR
@@ -108,12 +108,12 @@ func (l *LevelLoggerLogger) IsError() bool {
 
 // Critical records critical log
 func (l *LevelLoggerLogger) Critical(format string, v ...interface{}) {
-	l.Log(1, CRITICAL, format, v...)
+	l.Log(1, CRITICAL, format, v...) //nolint:errcheck
 }
 
 // CriticalWithSkip records critical log from "skip" calls back from this function
 func (l *LevelLoggerLogger) CriticalWithSkip(skip int, format string, v ...interface{}) {
-	l.Log(skip+1, CRITICAL, format, v...)
+	l.Log(skip+1, CRITICAL, format, v...) //nolint:errcheck
 }
 
 // IsCritical returns true if the logger is CRITICAL
@@ -123,14 +123,14 @@ func (l *LevelLoggerLogger) IsCritical() bool {
 
 // Fatal records fatal log and exit the process
 func (l *LevelLoggerLogger) Fatal(format string, v ...interface{}) {
-	l.Log(1, FATAL, format, v...)
+	l.Log(1, FATAL, format, v...) //nolint:errcheck
 	l.Close()
 	os.Exit(1)
 }
 
 // FatalWithSkip records fatal log from "skip" calls back from this function and exits the process
 func (l *LevelLoggerLogger) FatalWithSkip(skip int, format string, v ...interface{}) {
-	l.Log(skip+1, FATAL, format, v...)
+	l.Log(skip+1, FATAL, format, v...) //nolint:errcheck
 	l.Close()
 	os.Exit(1)
 }

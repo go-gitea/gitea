@@ -1,7 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
 package private
 
 import (
@@ -16,19 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// _________                        .__  __
-// \_   ___ \  ____   _____   _____ |__|/  |_
-// /    \  \/ /  _ \ /     \ /     \|  \   __\
-// \     \___(  <_> )  Y Y  \  Y Y  \  ||  |
-//  \______  /\____/|__|_|  /__|_|  /__||__|
-//         \/             \/      \/
-// ____   ____           .__  _____.__               __  .__
-// \   \ /   /___________|__|/ ____\__| ____ _____ _/  |_|__| ____   ____
-//  \   Y   // __ \_  __ \  \   __\|  |/ ___\\__  \\   __\  |/  _ \ /    \
-//   \     /\  ___/|  | \/  ||  |  |  \  \___ / __ \|  | |  (  <_> )   |  \
-//    \___/  \___  >__|  |__||__|  |__|\___  >____  /__| |__|\____/|___|  /
-//               \/                        \/     \/                    \/
-//
 // This file contains commit verification functions for refs passed across in hooks
 
 func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []string) error {

@@ -199,7 +199,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "PUT", url, &updateFileOptions)
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &fileResponse)
-		expectedMessage := "Update '" + treePath + "'\n"
+		expectedMessage := "Update " + treePath + "\n"
 		assert.EqualValues(t, expectedMessage, fileResponse.Commit.Message)
 
 		// Test updating a file with the wrong SHA

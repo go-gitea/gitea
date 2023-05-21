@@ -202,7 +202,7 @@ func (logger *WriterLogger) createMsg(buf *[]byte, event *Event) {
 	(&protectedANSIWriter{
 		w:    &baw,
 		mode: pawMode,
-	}).Write(msg)
+	}).Write(msg) //nolint:errcheck
 	*buf = baw
 
 	if event.stacktrace != "" && logger.StacktraceLevel <= event.level {
@@ -249,7 +249,7 @@ func (logger *WriterLogger) Match(event *Event) bool {
 	(&protectedANSIWriter{
 		w:    &baw,
 		mode: removeColor,
-	}).Write([]byte(event.msg))
+	}).Write([]byte(event.msg)) //nolint:errcheck
 	msg = baw
 	return logger.regexp.Match(msg)
 }

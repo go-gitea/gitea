@@ -5,6 +5,8 @@ slug: "faq"
 weight: 5
 toc: false
 draft: false
+aliases:
+  - /en-us/faq
 menu:
   sidebar:
     parent: "help"
@@ -17,7 +19,7 @@ menu:
 
 This page contains some common questions and answers.
 
-For more help resources, check all [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
+For more help resources, check all [Support Options]({{< relref "doc/help/support.en-us.md" >}}).
 
 **Table of Contents**
 
@@ -117,6 +119,14 @@ The correct path for the template(s) will be relative to the `CustomPath`
 
 2. If you are still unable to find a path, the default can be [calculated above](#where-does-gitea-store-what-file)
 3. Once you have figured out the correct custom path, you can refer to the [customizing Gitea]({{< relref "doc/administration/customizing-gitea.en-us.md" >}}) page to add your template to the correct location.
+
+## Does Gitea have a "GitHub/GitLab pages" feature?
+
+Gitea doesn't provide a built-in Pages server. You need a dedicated domain to serve static pages to avoid CSRF security risks.
+
+For simple usage, you can use a reverse proxy to rewrite & serve static contents from Gitea's raw file URLs.
+
+And there are already available third-party services, like a standalone [pages server](https://codeberg.org/Codeberg/pages-server) or a [caddy plugin](https://github.com/42wim/caddy-gitea), that can provide the required functionality.
 
 ## Active user vs login prohibited user
 
@@ -400,7 +410,7 @@ Stdout on systemd goes to the journal by default. Try using `journalctl`, `journ
 
 Similarly, stdout on docker can be viewed using `docker logs <container>`.
 
-To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
+To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/support.en-us.md" >}}).
 
 ## Initial logging
 

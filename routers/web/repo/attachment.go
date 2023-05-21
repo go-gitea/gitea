@@ -86,9 +86,9 @@ func DeleteAttachment(ctx *context.Context) {
 	})
 }
 
-// GetAttachment serve attachments
-func GetAttachment(ctx *context.Context) {
-	attach, err := repo_model.GetAttachmentByUUID(ctx, ctx.Params(":uuid"))
+// GetAttachment serve attachments with the given UUID
+func ServeAttachment(ctx *context.Context, uuid string) {
+	attach, err := repo_model.GetAttachmentByUUID(ctx, uuid)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
@@ -110,6 +110,11 @@ func GetAttachment(ctx *context.Context) {
 			return
 		}
 	} else { // If we have the repository we check access
+		context.CheckRepoScopedToken(ctx, repository)
+		if ctx.Written() {
+			return
+		}
+
 		perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err.Error())
@@ -148,8 +153,10 @@ func GetAttachment(ctx *context.Context) {
 	}
 	defer fr.Close()
 
-	if err = common.ServeData(ctx, attach.Name, attach.Size, fr); err != nil {
-		ctx.ServerError("ServeData", err)
-		return
-	}
+	common.ServeContentByReadSeeker(ctx.Base, attach.Name, attach.CreatedUnix.AsTime(), fr)
+}
+
+// GetAttachment serve attachments
+func GetAttachment(ctx *context.Context) {
+	ServeAttachment(ctx, ctx.Params(":uuid"))
 }

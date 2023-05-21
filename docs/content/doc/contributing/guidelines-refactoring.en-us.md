@@ -5,6 +5,8 @@ slug: "guidelines-refactoring"
 weight: 20
 toc: false
 draft: false
+aliases:
+  - /en-us/guidelines-refactoring
 menu:
   sidebar:
     parent: "contributing"

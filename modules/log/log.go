@@ -245,7 +245,7 @@ func Close() {
 func Log(skip int, level Level, format string, v ...interface{}) {
 	l, ok := NamedLoggers.Load(DEFAULT)
 	if ok {
-		l.Log(skip+1, level, format, v...)
+		l.Log(skip+1, level, format, v...) //nolint:errcheck
 	}
 }
 
@@ -273,7 +273,7 @@ func (l *LoggerAsWriter) Write(p []byte) (int, error) {
 	for _, logger := range l.ourLoggers {
 		// Skip = 3 because this presumes that we have been called by log.Println()
 		// If the caller has used log.Output or the like this will be wrong
-		logger.Log(3, l.level, string(p))
+		logger.Log(3, l.level, string(p)) //nolint:errcheck
 	}
 	return len(p), nil
 }

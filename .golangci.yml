@@ -5,6 +5,7 @@ linters:
     - depguard
     - dupl
     - errcheck
+    - forbidigo
     - gocritic
     # - gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
     - gofmt
@@ -22,7 +23,7 @@ linters:
     - unconvert
     - unused
     # - varcheck # deprecated - https://github.com/golangci/golangci-lint/issues/1841
-    # - wastedassign # disabled - https://github.com/golangci/golangci-lint/issues/2649
+    - wastedassign
   enable-all: false
   disable-all: true
   fast: false
@@ -105,73 +106,25 @@ issues:
         - errcheck
         - dupl
         - gosec
+    - path: cmd
+      linters:
+        - forbidigo
     - linters:
         - dupl
       text: "webhook"
     - linters:
         - gocritic
       text: "`ID' should not be capitalized"
-    - path: modules/templates/helper.go
-      linters:
-        - gocritic
     - linters:
         - unused
         - deadcode
       text: "swagger"
-    - path: contrib/pr/checkout.go
-      linters:
-        - errcheck
-    - path: models/issue.go
-      linters:
-        - errcheck
-    - path: models/migrations/
-      linters:
-        - errcheck
-    - path: modules/log/
-      linters:
-        - errcheck
-    - path: routers/api/v1/repo/issue_subscription.go
-      linters:
-        - dupl
-    - path: routers/repo/view.go
-      linters:
-        - dupl
-    - path: models/migrations/
-      linters:
-        - unused
     - linters:
         - staticcheck
       text: "argument x is overwritten before first use"
-    - path: modules/httplib/httplib.go
-      linters:
-        - staticcheck
-    # Enabling this would require refactoring the methods and how they are called.
-    - path: models/issue_comment_list.go
-      linters:
-        - dupl
-    - path: models/update.go
-      linters:
-        - unused
-    - path: cmd/dump.go
-      linters:
-        - dupl
-    - path: services/webhook/webhook.go
-      linters:
-        - structcheck
     - text: "commentFormatting: put a space between `//` and comment text"
       linters:
         - gocritic
     - text: "exitAfterDefer:"
       linters:
         - gocritic
-    - path: modules/graceful/manager_windows.go
-      linters:
-        - staticcheck
-      text: "svc.IsAnInteractiveSession is deprecated: Use IsWindowsService instead."
-    - path: models/user/openid.go
-      linters:
-        - golint
-    - path: models/user/badge.go
-      linters:
-        - revive
-      text: "exported: type name will be used as user.UserBadge by other packages, and that stutters; consider calling this Badge"

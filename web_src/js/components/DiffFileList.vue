@@ -4,12 +4,12 @@
       <div class="gt-bold gt-df gt-ac pull-right">
         <span v-if="file.IsBin" class="gt-ml-1 gt-mr-3">{{ binaryFileMessage }}</span>
         {{ file.IsBin ? '' : file.Addition + file.Deletion }}
-        <span v-if="!file.IsBin" class="diff-stats-bar tooltip gt-mx-3" :data-content="statisticsMessage.replace('%d', (file.Addition + file.Deletion)).replace('%d', file.Addition).replace('%d', file.Deletion)">
+        <span v-if="!file.IsBin" class="diff-stats-bar gt-mx-3" :data-tooltip-content="statisticsMessage.replace('%d', (file.Addition + file.Deletion)).replace('%d', file.Addition).replace('%d', file.Deletion)">
           <div class="diff-stats-add-bar" :style="{ 'width': diffStatsWidth(file.Addition, file.Deletion) }" />
         </span>
       </div>
       <!-- todo finish all file status, now modify, add, delete and rename -->
-      <span :class="['status', diffTypeToString(file.Type), 'tooltip']" :data-content="diffTypeToString(file.Type)" data-position="right center">&nbsp;</span>
+      <span :class="['status', diffTypeToString(file.Type)]" :data-tooltip-content="diffTypeToString(file.Type)">&nbsp;</span>
       <a class="file gt-mono" :href="'#diff-' + file.NameHash">{{ file.Name }}</a>
     </li>
     <li v-if="isIncomplete" id="diff-too-many-files-stats" class="gt-pt-2">

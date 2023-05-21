@@ -95,11 +95,6 @@ func (log *SMTPLogger) sendMail(p []byte) (int, error) {
 	)
 }
 
-// Content returns the content accumulated in the content provider
-func (log *SMTPLogger) Content() (string, error) {
-	return "", fmt.Errorf("not supported")
-}
-
 // Flush when log should be flushed
 func (log *SMTPLogger) Flush() {
 }

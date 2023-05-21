@@ -217,7 +217,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 
 		metadata := &container_module.Metadata{
 			Type:      container_module.TypeOCI,
-			MultiArch: make(map[string]string),
+			Manifests: make([]*container_module.Manifest, 0, len(index.Manifests)),
 		}
 
 		for _, manifest := range index.Manifests {
@@ -233,7 +233,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 				}
 			}
 
-			_, err := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
+			pfd, err := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
 				OwnerID:    mci.Owner.ID,
 				Image:      mci.Image,
 				Digest:     string(manifest.Digest),
@@ -246,7 +246,18 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 				return err
 			}
 
-			metadata.MultiArch[platform] = string(manifest.Digest)
+			size, err := packages_model.CalculateFileSize(ctx, &packages_model.PackageFileSearchOptions{
+				VersionID: pfd.File.VersionID,
+			})
+			if err != nil {
+				return err
+			}
+
+			metadata.Manifests = append(metadata.Manifests, &container_module.Manifest{
+				Platform: platform,
+				Digest:   string(manifest.Digest),
+				Size:     size,
+			})
 		}
 
 		pv, err := createPackageAndVersion(ctx, mci, metadata)
@@ -369,8 +380,8 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 			return nil, err
 		}
 	}
-	for _, digest := range metadata.MultiArch {
-		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, digest); err != nil {
+	for _, manifest := range metadata.Manifests {
+		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, manifest.Digest); err != nil {
 			log.Error("Error setting package version property: %v", err)
 			return nil, err
 		}

@@ -2,14 +2,16 @@
 date: "2017-06-19T12:00:00+02:00"
 title: "Installation from binary"
 slug: "install-from-binary"
-weight: 10
+weight: 15
 toc: false
 draft: false
+aliases:
+  - /en-us/install-from-binary
 menu:
   sidebar:
     parent: "installation"
     name: "From binary"
-    weight: 20
+    weight: 15
     identifier: "install-from-binary"
 ---
 
@@ -78,6 +80,7 @@ git --version
 Create a user to run Gitea (e.g. `git`)
 
 ```sh
+# On Ubuntu/Debian:
 adduser \
    --system \
    --shell /bin/bash \
@@ -85,6 +88,17 @@ adduser \
    --group \
    --disabled-password \
    --home /home/git \
+   git
+
+# On Fedora/RHEL/CentOS:
+groupadd --system git
+adduser \
+   --system \
+   --shell /bin/bash \
+   --comment 'Git Version Control' \
+   --gid git \
+   --home-dir /home/git \
+   --create-home \
    git
 ```
 

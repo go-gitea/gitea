@@ -2,9 +2,11 @@
 date: "2019-04-15T17:29:00+08:00"
 title: "整合"
 slug: "integrations"
-weight: 40
+weight: 65
 toc: false
 draft: false
+aliases:
+  - /zh-tw/integrations
 menu:
   sidebar:
     parent: "development"

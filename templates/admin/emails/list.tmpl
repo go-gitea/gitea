@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin user">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.emails.email_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 		</h4>
@@ -73,11 +70,11 @@
 
 		{{template "base/paginate" .}}
 
-		<div class="ui basic modal" id="change-email-modal">
-			<div class="ui icon header">
+		<div class="ui g-modal-confirm modal" id="change-email-modal">
+			<div class="header">
 				{{.locale.Tr "admin.emails.change_email_header"}}
 			</div>
-			<div class="content center">
+			<div class="content">
 				<p class="center">{{.locale.Tr "admin.emails.change_email_text"}}</p>
 
 				<form class="ui form" id="email-action-form" action="{{AppSubUrl}}/admin/emails/activate" method="post">
@@ -94,12 +91,11 @@
 					<input type="hidden" id="form-activate" name="activate" value="" required>
 
 					<div class="center">
-						{{template "base/delete_modal_actions" .}}
+						{{template "base/modal_actions_confirm" .}}
 					</div>
 				</form>
 			</div>
 		</div>
 
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

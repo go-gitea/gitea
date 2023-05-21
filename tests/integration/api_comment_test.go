@@ -85,7 +85,7 @@ func TestAPIListIssueComments(t *testing.T) {
 	DecodeJSON(t, resp, &comments)
 	expectedCount := unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID},
 		unittest.Cond("type = ?", issues_model.CommentTypeComment))
-	assert.EqualValues(t, expectedCount, len(comments))
+	assert.Len(t, comments, expectedCount)
 }
 
 func TestAPICreateComment(t *testing.T) {
@@ -196,5 +196,5 @@ func TestAPIListIssueTimeline(t *testing.T) {
 	var comments []*api.TimelineComment
 	DecodeJSON(t, resp, &comments)
 	expectedCount := unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID})
-	assert.EqualValues(t, expectedCount, len(comments))
+	assert.Len(t, comments, expectedCount)
 }

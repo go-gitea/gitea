@@ -3,15 +3,6 @@
   font-size: 16px;
   line-height: 1.5 !important;
   word-wrap: break-word;
-  background: var(--color-box-body);
-}
-
-.markup.ui.segment {
-  padding: 3em;
-}
-
-.markup.file-view {
-  padding: 2em !important;
 }
 
 .markup > *:first-child {
@@ -32,9 +23,9 @@
 }
 
 .markup .anchor {
+  float: left;
   padding-right: 4px;
   margin-left: -20px;
-  line-height: 1;
   color: inherit;
 }
 
@@ -44,6 +35,10 @@
 
 .markup .anchor:focus {
   outline: none;
+}
+
+.markup h1 .anchor {
+  margin-top: -2px; /* re-align to center */
 }
 
 .markup h1 .anchor .svg,
@@ -79,7 +74,7 @@
 .markup h6 {
   margin-top: 24px;
   margin-bottom: 16px;
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   line-height: 1.25;
 }
 
@@ -257,7 +252,7 @@
   margin-top: 16px;
   font-size: 1em;
   font-style: italic;
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
 }
 
 .markup dl dd {
@@ -289,7 +284,7 @@
 }
 
 .markup table th {
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
 }
 
 .markup table th,
@@ -309,6 +304,14 @@
 .markup img {
   max-width: 100%;
   box-sizing: initial;
+}
+
+/* this background ensures images can break <hr>. We can only do this on
+   cases where the background is known and not transparent. */
+.markup.file-view img,
+.comment-body .markup img, /* regular comment */
+.comment-content .markup img, /* code comment */
+.wiki .markup img {
   background: var(--color-box-body);
 }
 
@@ -542,7 +545,8 @@
 }
 
 .markup-block-error {
-  border: 1px solid var(--color-error-border) !important;
+  display: block !important; /* override fomantic .ui.form .error.message {display: none} */
+  border: none !important;
   margin-bottom: 0 !important;
   border-bottom-left-radius: 0 !important;
   border-bottom-right-radius: 0 !important;

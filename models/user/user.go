@@ -41,6 +41,18 @@ const (
 
 	// UserTypeOrganization defines an organization
 	UserTypeOrganization
+
+	// UserTypeReserved reserves a (non-existing) user, i.e. to prevent a spam user from re-registering after being deleted, or to reserve the name until the user is actually created later on
+	UserTypeUserReserved
+
+	// UserTypeOrganizationReserved reserves a (non-existing) organization, to be used in combination with UserTypeUserReserved
+	UserTypeOrganizationReserved
+
+	// UserTypeBot defines a bot user
+	UserTypeBot
+
+	// UserTypeRemoteUser defines a remote user for federated users
+	UserTypeRemoteUser
 )
 
 const (
@@ -50,7 +62,7 @@ const (
 	EmailNotificationsOnMention = "onmention"
 	// EmailNotificationsDisabled indicates that the user would not like to be notified via email.
 	EmailNotificationsDisabled = "disabled"
-	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications and your own
+	// EmailNotificationsAndYourOwn indicates that the user would like to receive all email notifications and your own
 	EmailNotificationsAndYourOwn = "andyourown"
 )
 
@@ -312,6 +324,7 @@ func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListO
 		Select("`user`.*").
 		Join("LEFT", "follow", "`user`.id=follow.user_id").
 		Where("follow.follow_id=?", u.ID).
+		And("`user`.type=?", UserTypeIndividual).
 		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page != 0 {
@@ -333,6 +346,7 @@ func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListO
 		Select("`user`.*").
 		Join("LEFT", "follow", "`user`.id=follow.follow_id").
 		Where("follow.user_id=?", u.ID).
+		And("`user`.type IN (?, ?)", UserTypeIndividual, UserTypeOrganization).
 		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page != 0 {
@@ -537,7 +551,8 @@ var (
 		"gitea-actions",
 	}
 
-	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom"}
+	// DON'T ADD ANY NEW STUFF, WE SOLVE THIS WITH `/user/{obj}` PATHS!
+	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom", "*.png"}
 )
 
 // IsUsableUsername returns an error when a username is reserved
@@ -958,7 +973,7 @@ func GetUserByName(ctx context.Context, name string) (*User, error) {
 	if len(name) == 0 {
 		return nil, ErrUserNotExist{0, name, 0}
 	}
-	u := &User{LowerName: strings.ToLower(name)}
+	u := &User{LowerName: strings.ToLower(name), Type: UserTypeIndividual}
 	has, err := db.GetEngine(ctx).Get(u)
 	if err != nil {
 		return nil, err
@@ -1195,23 +1210,25 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 	return builder.Neq{
 		"`user`.visibility": structs.VisibleTypePrivate,
 	}.Or(
+		// viewer's following
 		builder.In("`user`.id",
 			builder.
 				Select("`follow`.user_id").
 				From("follow").
 				Where(builder.Eq{"`follow`.follow_id": viewer.ID})),
-		builder.In("`user`.id",
-			builder.
-				Select("`team_user`.uid").
-				From("team_user").
-				Join("INNER", "`team_user` AS t2", "`team_user`.id = `t2`.id").
-				Where(builder.Eq{"`t2`.uid": viewer.ID})),
+		// viewer's org user
 		builder.In("`user`.id",
 			builder.
 				Select("`team_user`.uid").
 				From("team_user").
 				Join("INNER", "`team_user` AS t2", "`team_user`.org_id = `t2`.org_id").
-				Where(builder.Eq{"`t2`.uid": viewer.ID})))
+				Where(builder.Eq{"`t2`.uid": viewer.ID})),
+		// viewer's org
+		builder.In("`user`.id",
+			builder.
+				Select("`team_user`.org_id").
+				From("team_user").
+				Where(builder.Eq{"`team_user`.uid": viewer.ID})))
 }
 
 // IsUserVisibleToViewer check if viewer is able to see user profile
