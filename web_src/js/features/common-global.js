@@ -7,6 +7,7 @@ import {showGlobalErrorMessage} from '../bootstrap.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
+import {htmlEscape} from 'escape-goat';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -170,7 +171,7 @@ export function initGlobalDropzone() {
             if (file.type.startsWith('image/')) {
               fileMarkdown = `!${fileMarkdown}`;
             } else if (file.type.startsWith('video/')) {
-              fileMarkdown = `<video src="/attachments/${file.uuid}" title="${file.name}" controls></video>`;
+              fileMarkdown = `<video src="/attachments/${file.uuid}" title="${htmlEscape(file.name)}" controls></video>`;
             }
             navigator.clipboard.writeText(fileMarkdown);
           });
