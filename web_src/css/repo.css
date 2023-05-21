@@ -2137,7 +2137,7 @@
 .repository .select-reaction.dropdown .menu {
   right: 0 !important;
   left: auto !important;
-  min-width: 15em;
+  min-width: 170px;
 }
 
 .repository .segment.reactions.dropdown .menu > .header,
