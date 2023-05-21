@@ -4,6 +4,7 @@
 package unit
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -106,12 +107,6 @@ var (
 		TypeExternalTracker,
 	}
 
-	// MustRepoUnits contains the units could not be disabled currently
-	MustRepoUnits = []Type{
-		TypeCode,
-		TypeReleases,
-	}
-
 	// DisabledRepoUnits contains the units that have been globally disabled
 	DisabledRepoUnits = []Type{}
 )
@@ -122,18 +117,13 @@ func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
 
 	// Use setting if not empty
 	if len(settingDefaultUnits) > 0 {
-		// MustRepoUnits required as default
-		units = make([]Type, len(MustRepoUnits))
-		copy(units, MustRepoUnits)
+		units = make([]Type, 0, len(settingDefaultUnits))
 		for _, settingUnit := range settingDefaultUnits {
 			if !settingUnit.CanBeDefault() {
 				log.Warn("Not allowed as default unit: %s", settingUnit.String())
 				continue
 			}
-			// MustRepoUnits already added
-			if settingUnit.CanDisable() {
-				units = append(units, settingUnit)
-			}
+			units = append(units, settingUnit)
 		}
 	}
 
@@ -150,18 +140,11 @@ func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
 }
 
 // LoadUnitConfig load units from settings
-func LoadUnitConfig() {
+func LoadUnitConfig() error {
 	var invalidKeys []string
 	DisabledRepoUnits, invalidKeys = FindUnitTypes(setting.Repository.DisabledRepoUnits...)
 	if len(invalidKeys) > 0 {
 		log.Warn("Invalid keys in disabled repo units: %s", strings.Join(invalidKeys, ", "))
-	}
-	// Check that must units are not disabled
-	for i, disabledU := range DisabledRepoUnits {
-		if !disabledU.CanDisable() {
-			log.Warn("Not allowed to global disable unit %s", disabledU.String())
-			DisabledRepoUnits = append(DisabledRepoUnits[:i], DisabledRepoUnits[i+1:]...)
-		}
 	}
 
 	setDefaultRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
@@ -169,11 +152,18 @@ func LoadUnitConfig() {
 		log.Warn("Invalid keys in default repo units: %s", strings.Join(invalidKeys, ", "))
 	}
 	DefaultRepoUnits = validateDefaultRepoUnits(DefaultRepoUnits, setDefaultRepoUnits)
+	if len(DefaultRepoUnits) == 0 {
+		return errors.New("no default repository units found")
+	}
 	setDefaultForkRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultForkRepoUnits...)
 	if len(invalidKeys) > 0 {
 		log.Warn("Invalid keys in default fork repo units: %s", strings.Join(invalidKeys, ", "))
 	}
 	DefaultForkRepoUnits = validateDefaultRepoUnits(DefaultForkRepoUnits, setDefaultForkRepoUnits)
+	if len(DefaultForkRepoUnits) == 0 {
+		return errors.New("no default fork repository units found")
+	}
+	return nil
 }
 
 // UnitGlobalDisabled checks if unit type is global disabled
@@ -184,16 +174,6 @@ func (u Type) UnitGlobalDisabled() bool {
 		}
 	}
 	return false
-}
-
-// CanDisable checks if this unit type can be disabled.
-func (u *Type) CanDisable() bool {
-	for _, mu := range MustRepoUnits {
-		if *u == mu {
-			return false
-		}
-	}
-	return true
 }
 
 // CanBeDefault checks if the unit type can be a default repo unit
@@ -214,11 +194,6 @@ type Unit struct {
 	DescKey       string
 	Idx           int
 	MaxAccessMode perm.AccessMode // The max access mode of the unit. i.e. Read means this unit can only be read.
-}
-
-// CanDisable returns if this unit could be disabled.
-func (u *Unit) CanDisable() bool {
-	return u.Type.CanDisable()
 }
 
 // IsLessThan compares order of two units

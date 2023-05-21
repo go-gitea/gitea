@@ -8,7 +8,7 @@
 </colgroup>
 {{range $j, $section := $file.Sections}}
 	{{range $k, $line := $section.Lines}}
-		<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{DiffLineTypeToStr .GetType}}">
+		<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{.GetHTMLDiffLineType}}">
 			{{if eq .GetType 4}}
 				{{if $.root.AfterCommitID}}
 					<td colspan="2" class="lines-num">
@@ -55,7 +55,7 @@
 			{{end}}
 		</tr>
 		{{if gt (len $line.Comments) 0}}
-			<tr class="add-comment" data-line-type="{{DiffLineTypeToStr .GetType}}">
+			<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
 				<td class="add-comment-left add-comment-right" colspan="5">
 					{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
 				</td>

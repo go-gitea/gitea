@@ -18,7 +18,7 @@
 					{{else if .Location}}
 						{{svg "octicon-location"}} {{.Location}}
 					{{else}}
-						{{svg "octicon-clock"}} {{$.locale.Tr "user.join_on"}} {{DateTime "short" .CreatedUnix}}
+						{{svg "octicon-clock"}} {{$.locale.Tr "user.joined_on" (DateTime "short" .CreatedUnix) | Safe}}
 					{{end}}
 				</div>
 			</li>

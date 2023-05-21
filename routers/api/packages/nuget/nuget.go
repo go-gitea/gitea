@@ -585,7 +585,7 @@ func DownloadSymbolFile(ctx *context.Context) {
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:     ctx.Package.Owner.ID,
-		PackageType: string(packages_model.TypeNuGet),
+		PackageType: packages_model.TypeNuGet,
 		Query:       filename,
 		Properties: map[string]string{
 			nuget_module.PropertySymbolID: strings.ToLower(guid),

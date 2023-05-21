@@ -104,7 +104,7 @@ function showLineButton() {
   td.prepend(btn);
 
   // put a copy of the menu back into DOM for the next click
-  btn.closest('.code-view').appendChild(menu.cloneNode(true));
+  btn.closest('.code-view').append(menu.cloneNode(true));
 
   createTippy(btn, {
     trigger: 'click',

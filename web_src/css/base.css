@@ -180,10 +180,13 @@
   --color-caret: var(--color-text-dark);
   --color-reaction-bg: #0000000a;
   --color-reaction-active-bg: var(--color-primary-alpha-20);
-  --color-tooltip-bg: #000000f0;
   --color-tooltip-text: #ffffff;
+  --color-tooltip-bg: #000000f0;
   --color-header-bar: #ffffff;
-  --color-label-active-bg: #d0d0d0;
+  --color-label-text: #232323;
+  --color-label-bg: #cacaca5b;
+  --color-label-hover-bg: #cacacaa0;
+  --color-label-active-bg: #cacacaff;
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-6);
   --color-active-line: #fffbdd;
@@ -321,6 +324,16 @@ progress::-moz-progress-bar {
   opacity: 1 !important;
 }
 
+.svg {
+  display: inline-block;
+  vertical-align: text-top;
+  fill: currentcolor;
+}
+
+.middle .svg {
+  vertical-align: middle;
+}
+
 .unselectable,
 .button,
 .lines-num,
@@ -338,7 +351,11 @@ a {
   text-decoration-skip-ink: all;
 }
 
+/* muted link = only colored when hovered */
+/* silenced link = never colored */
+
 a.muted,
+a.silenced,
 .muted-links a {
   color: inherit;
 }
@@ -348,6 +365,10 @@ a.muted:hover,
 a.muted:hover [class*="color-text"],
 .muted-links a:hover {
   color: var(--color-primary);
+}
+
+a.silenced:hover {
+  color: inherit;
 }
 
 .delete-button,
@@ -802,16 +823,6 @@ a.label,
   margin-right: 0.35em;
 }
 
-.ui.menu .item > .label {
-  background: var(--color-grey);
-}
-
-.ui.active.label {
-  background: var(--color-label-active-bg);
-  border-color: var(--color-label-active-bg);
-  color: var(--color-text-dark);
-}
-
 .ui.menu .dropdown.item:hover,
 .ui.menu a.item:hover {
   color: var(--color-text);
@@ -1046,62 +1057,6 @@ a.label,
   box-shadow: -1px -1px 0 0 var(--color-secondary);
 }
 
-.ui.cards > .card,
-.ui.card {
-  background: var(--color-card);
-  border: 1px solid var(--color-secondary);
-  box-shadow: none;
-}
-
-.ui.cards > .card > .content,
-.ui.card > .content {
-  border-color: var(--color-secondary);
-}
-
-.ui.cards > .card > .extra,
-.ui.card > .extra,
-.ui.cards > .card > .extra a:not(.ui),
-.ui.card > .extra a:not(.ui) {
-  color: var(--color-text);
-}
-
-.ui.cards > .card > .extra a:not(.ui):hover,
-.ui.card > .extra a:not(.ui):hover {
-  color: var(--color-primary);
-}
-
-.ui.cards > .card > .content > .header,
-.ui.card > .content > .header {
-  color: var(--color-text);
-}
-
-.ui.cards > .card > .content > .description,
-.ui.card > .content > .description {
-  color: var(--color-text);
-}
-
-.ui.cards > .card .meta > a:not(.ui),
-.ui.card .meta > a:not(.ui) {
-  color: var(--color-text-light-2);
-}
-
-.ui.cards > .card .meta > a:not(.ui):hover,
-.ui.card .meta > a:not(.ui):hover {
-  color: var(--color-text);
-}
-
-.ui.cards a.card:hover,
-a.ui.card:hover {
-  border: 1px solid var(--color-secondary);
-  background: var(--color-card);
-}
-
-.ui.cards > .card > .extra,
-.ui.card > .extra {
-  color: var(--color-text);
-  border-top-color: var(--color-secondary-light-1) !important;
-}
-
 .ui.comments .comment .text {
   margin: 0;
 }
@@ -1136,6 +1091,7 @@ a.ui.card:hover {
   color: var(--color-text);
   background: var(--color-box-body);
   border-color: var(--color-secondary);
+  text-align: start; /* Override fomantic's `text-align: left` to make RTL work via HTML `dir="auto"` */
 }
 
 .ui.table th,
@@ -1146,6 +1102,12 @@ a.ui.card:hover {
 .ui.table > tr > td,
 .ui.table > tbody > tr > td {
   border-top-color: var(--color-secondary-alpha-50);
+}
+
+.ui.striped.table > tr:nth-child(2n),
+.ui.striped.table > tbody > tr:nth-child(2n),
+.ui.basic.striped.table > tbody > tr:nth-child(2n) {
+  background: var(--color-light);
 }
 
 .ui.ui.ui.ui.table tr.active,
@@ -1177,12 +1139,10 @@ a.ui.card:hover {
 
 img.ui.avatar,
 .ui.avatar img,
-.ui.avatar svg,
-.ui.cards > .card img.avatar,
-.ui.cards > .card .avatar img,
-.ui.card img.avatar,
-.ui.card .avatar img {
+.ui.avatar svg {
   border-radius: var(--border-radius);
+  object-fit: contain;
+  aspect-ratio: 1;
 }
 
 .ui.divided.list > .item {
@@ -1955,11 +1915,6 @@ img.ui.avatar,
   color: var(--color-text-light);
 }
 
-.repo-title .avatar {
-  width: 32px !important;
-  height: 32px !important;
-}
-
 .repo-title .labels {
   margin-left: 0.5rem;
 }
@@ -2015,22 +1970,32 @@ i.icon.centerlock {
 
 .ui.label {
   padding: 0.3em 0.5em;
-  background: var(--color-light);
-  color: var(--color-text-light);
+}
+
+.ui.label,
+.ui.menu .item > .label {
+  background: var(--color-label-bg);
+  color: var(--color-label-text);
+}
+
+.ui.active.label {
+  background: var(--color-label-active-bg);
+  border-color: var(--color-label-active-bg);
+  color: var(--color-label-text);
 }
 
 .ui.labels a.label:hover,
 a.ui.label:hover {
-  background: var(--color-hover);
-  border-color: var(--color-hover);
-  color: var(--color-text);
+  background: var(--color-label-hover-bg);
+  border-color: var(--color-label-hover-bg);
+  color: var(--color-label-text);
 }
 
 .ui.labels a.active.label:hover,
 a.ui.active.label:hover {
-  background: var(--color-active);
-  border-color: var(--color-active);
-  color: var(--color-text);
+  background: var(--color-label-active-bg);
+  border-color: var(--color-label-active-bg);
+  color: var(--color-label-text);
 }
 
 .ui.label > .detail .icons {
@@ -2232,6 +2197,19 @@ a.ui.active.label:hover {
   border-left: none;
 }
 
+/* a ghost button can be used as inline text, it doesn't have obvious styles */
+.button.button-ghost {
+  background: transparent;
+  border: none;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+.button.button-ghost:hover {
+  color: var(--color-primary);
+}
+
 .two-toggle-buttons .button:not(.active):first-of-type {
   border-right: none;
 }
@@ -2323,19 +2301,6 @@ a.ui.active.label:hover {
 .ui.basic.secondary.buttons .button:focus {
   color: var(--color-secondary-dark-8) !important;
   border-color: var(--color-secondary-dark-3) !important;
-}
-
-.ui.tertiary.button {
-  color: var(--color-text-light);
-  border: none;
-}
-
-.ui.tertiary.button:hover {
-  color: var(--color-text);
-}
-
-.ui.tertiary.button:focus {
-  color: var(--color-text-dark);
 }
 
 .ui.primary.label,
@@ -2571,6 +2536,11 @@ a.ui.basic.label:hover {
   font-size: 11px;
   font-weight: 700;
   line-height: .67em;
+}
+
+.rss-icon {
+  display: inline-flex;
+  color: var(--color-text-light-1);
 }
 
 table th[data-sortt-asc]:hover,

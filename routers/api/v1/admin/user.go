@@ -103,7 +103,6 @@ func CreateUser(ctx *context.APIContext) {
 		if err != nil {
 			log.Error(err.Error())
 		}
-		ctx.Data["Err_Password"] = true
 		ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
 		return
 	}
@@ -201,7 +200,6 @@ func EditUser(ctx *context.APIContext) {
 			if err != nil {
 				log.Error(err.Error())
 			}
-			ctx.Data["Err_Password"] = true
 			ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
 			return
 		}

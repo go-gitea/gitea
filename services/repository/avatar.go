@@ -6,7 +6,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"image/png"
 	"io"
 	"strconv"
 	"strings"
@@ -21,7 +20,7 @@ import (
 // UploadAvatar saves custom avatar for repository.
 // FIXME: split uploads to different subdirs in case we have massive number of repos.
 func UploadAvatar(ctx context.Context, repo *repo_model.Repository, data []byte) error {
-	m, err := avatar.Prepare(data)
+	avatarData, err := avatar.ProcessAvatarImage(data)
 	if err != nil {
 		return err
 	}
@@ -47,9 +46,7 @@ func UploadAvatar(ctx context.Context, repo *repo_model.Repository, data []byte)
 	}
 
 	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, *m); err != nil {
-			log.Error("Encode: %v", err)
-		}
+		_, err := w.Write(avatarData)
 		return err
 	}); err != nil {
 		return fmt.Errorf("UploadAvatar %s failed: Failed to remove old repo avatar %s: %w", repo.RepoPath(), newAvatar, err)

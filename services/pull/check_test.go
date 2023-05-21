@@ -12,6 +12,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,27 +21,18 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	idChan := make(chan int64, 10)
-
-	q, err := queue.NewChannelUniqueQueue(func(data ...queue.Data) []queue.Data {
-		for _, datum := range data {
-			id, _ := strconv.ParseInt(datum.(string), 10, 64)
+	testHandler := func(items ...string) []string {
+		for _, s := range items {
+			id, _ := strconv.ParseInt(s, 10, 64)
 			idChan <- id
 		}
 		return nil
-	}, queue.ChannelUniqueQueueConfiguration{
-		WorkerPoolConfiguration: queue.WorkerPoolConfiguration{
-			QueueLength: 10,
-			BatchLength: 1,
-			Name:        "temporary-queue",
-		},
-		Workers: 1,
-	}, "")
+	}
+
+	cfg, err := setting.GetQueueSettings(setting.CfgProvider, "pr_patch_checker")
 	assert.NoError(t, err)
-
-	queueShutdown := []func(){}
-	queueTerminate := []func(){}
-
-	prPatchCheckerQueue = q.(queue.UniqueQueue)
+	prPatchCheckerQueue, err = queue.NewWorkerPoolQueueBySetting("pr_patch_checker", cfg, testHandler, true)
+	assert.NoError(t, err)
 
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	AddToTaskQueue(pr)
@@ -54,7 +46,8 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	assert.True(t, has)
 	assert.NoError(t, err)
 
-	prPatchCheckerQueue.Run(func(shutdown func()) {
+	var queueShutdown, queueTerminate []func()
+	go prPatchCheckerQueue.Run(func(shutdown func()) {
 		queueShutdown = append(queueShutdown, shutdown)
 	}, func(terminate func()) {
 		queueTerminate = append(queueTerminate, terminate)

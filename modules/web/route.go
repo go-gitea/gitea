@@ -25,12 +25,12 @@ func Bind[T any](_ T) any {
 }
 
 // SetForm set the form object
-func SetForm(data middleware.DataStore, obj interface{}) {
+func SetForm(data middleware.ContextDataStore, obj interface{}) {
 	data.GetData()["__form"] = obj
 }
 
 // GetForm returns the validate form information
-func GetForm(data middleware.DataStore) interface{} {
+func GetForm(data middleware.ContextDataStore) interface{} {
 	return data.GetData()["__form"]
 }
 

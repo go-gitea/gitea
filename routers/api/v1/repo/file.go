@@ -80,7 +80,7 @@ func GetRawFile(ctx *context.APIContext) {
 
 	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
-	if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
+	if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
 	}
 }
@@ -137,7 +137,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		}
 
 		// OK not cached - serve!
-		if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
+		if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
 			ctx.ServerError("ServeBlob", err)
 		}
 		return
@@ -150,6 +150,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		return
 	}
 
+	// FIXME: code from #19689, what if the file is large ... OOM ...
 	buf, err := io.ReadAll(dataRc)
 	if err != nil {
 		_ = dataRc.Close()
@@ -158,13 +159,13 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 
 	if err := dataRc.Close(); err != nil {
-		log.Error("Error whilst closing blob %s reader in %-v. Error: %v", blob.ID, ctx.Context.Repo.Repository, err)
+		log.Error("Error whilst closing blob %s reader in %-v. Error: %v", blob.ID, ctx.Repo.Repository, err)
 	}
 
 	// Check if the blob represents a pointer
 	pointer, _ := lfs.ReadPointer(bytes.NewReader(buf))
 
-	// if its not a pointer just serve the data directly
+	// if it's not a pointer, just serve the data directly
 	if !pointer.IsValid() {
 		// First handle caching for the blob
 		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
@@ -172,25 +173,21 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		}
 
 		// OK not cached - serve!
-		if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf)); err != nil {
-			ctx.ServerError("ServeBlob", err)
-		}
+		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
 		return
 	}
 
-	// Now check if there is a meta object for this pointer
+	// Now check if there is a MetaObject for this pointer
 	meta, err := git_model.GetLFSMetaObjectByOid(ctx, ctx.Repo.Repository.ID, pointer.Oid)
 
-	// If there isn't one just serve the data directly
+	// If there isn't one, just serve the data directly
 	if err == git_model.ErrLFSObjectNotExist {
 		// Handle caching for the blob SHA (not the LFS object OID)
 		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 			return
 		}
 
-		if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf)); err != nil {
-			ctx.ServerError("ServeBlob", err)
-		}
+		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
 		return
 	} else if err != nil {
 		ctx.ServerError("GetLFSMetaObjectByOid", err)
@@ -218,9 +215,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 	defer lfsDataRc.Close()
 
-	if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, meta.Size, lfsDataRc); err != nil {
-		ctx.ServerError("ServeData", err)
-	}
+	common.ServeContentByReadSeeker(ctx.Base, ctx.Repo.TreePath, lastModified, lfsDataRc)
 }
 
 func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEntry, lastModified time.Time) {

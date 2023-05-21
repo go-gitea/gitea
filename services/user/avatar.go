@@ -5,7 +5,6 @@ package user
 
 import (
 	"fmt"
-	"image/png"
 	"io"
 
 	"code.gitea.io/gitea/models/db"
@@ -17,7 +16,7 @@ import (
 
 // UploadAvatar saves custom avatar for user.
 func UploadAvatar(u *user_model.User, data []byte) error {
-	m, err := avatar.Prepare(data)
+	avatarData, err := avatar.ProcessAvatarImage(data)
 	if err != nil {
 		return err
 	}
@@ -35,9 +34,7 @@ func UploadAvatar(u *user_model.User, data []byte) error {
 	}
 
 	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, *m); err != nil {
-			log.Error("Encode: %v", err)
-		}
+		_, err := w.Write(avatarData)
 		return err
 	}); err != nil {
 		return fmt.Errorf("Failed to create dir %s: %w", u.CustomAvatarRelativePath(), err)

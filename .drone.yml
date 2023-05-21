@@ -33,7 +33,7 @@ steps:
       - git fetch --tags --force
 
   - name: deps-frontend
-    image: node:18
+    image: node:20
     pull: always
     commands:
       - make deps-frontend
@@ -51,7 +51,7 @@ steps:
     image: techknowlogick/xgo:go-1.20.x
     pull: always
     commands:
-      # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
+      # Upgrade to node 20 once https://github.com/techknowlogick/xgo/issues/163 is resolved
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get -qqy install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
@@ -161,7 +161,7 @@ steps:
       - git fetch --tags --force
 
   - name: deps-frontend
-    image: node:18
+    image: node:20
     pull: always
     commands:
       - make deps-frontend
@@ -179,7 +179,7 @@ steps:
     image: techknowlogick/xgo:go-1.20.x
     pull: always
     commands:
-      # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
+      # Upgrade to node 20 once https://github.com/techknowlogick/xgo/issues/163 is resolved
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get -qqy install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release

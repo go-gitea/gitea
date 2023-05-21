@@ -42,6 +42,18 @@ func GetSingleCommit(ctx *context.APIContext) {
 	//   description: a git ref or commit sha
 	//   type: string
 	//   required: true
+	// - name: stat
+	//   in: query
+	//   description: include diff stats for every commit (disable for speedup, default 'true')
+	//   type: boolean
+	// - name: verification
+	//   in: query
+	//   description: include verification for every commit (disable for speedup, default 'true')
+	//   type: boolean
+	// - name: files
+	//   in: query
+	//   description: include a list of affected files for every commit (disable for speedup, default 'true')
+	//   type: boolean
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Commit"
@@ -55,10 +67,11 @@ func GetSingleCommit(ctx *context.APIContext) {
 		ctx.Error(http.StatusUnprocessableEntity, "no valid ref or sha", fmt.Sprintf("no valid ref or sha: %s", sha))
 		return
 	}
-	getCommit(ctx, sha)
+
+	getCommit(ctx, sha, convert.ParseCommitOptions(ctx))
 }
 
-func getCommit(ctx *context.APIContext, identifier string) {
+func getCommit(ctx *context.APIContext, identifier string, toCommitOpts convert.ToCommitOptions) {
 	commit, err := ctx.Repo.GitRepo.GetCommit(identifier)
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -69,7 +82,7 @@ func getCommit(ctx *context.APIContext, identifier string) {
 		return
 	}
 
-	json, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil, true)
+	json, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil, toCommitOpts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "toCommit", err)
 		return
@@ -106,6 +119,14 @@ func GetAllCommits(ctx *context.APIContext) {
 	// - name: stat
 	//   in: query
 	//   description: include diff stats for every commit (disable for speedup, default 'true')
+	//   type: boolean
+	// - name: verification
+	//   in: query
+	//   description: include verification for every commit (disable for speedup, default 'true')
+	//   type: boolean
+	// - name: files
+	//   in: query
+	//   description: include a list of affected files for every commit (disable for speedup, default 'true')
 	//   type: boolean
 	// - name: page
 	//   in: query
@@ -146,6 +167,7 @@ func GetAllCommits(ctx *context.APIContext) {
 
 	sha := ctx.FormString("sha")
 	path := ctx.FormString("path")
+	not := ctx.FormString("not")
 
 	var (
 		commitsCountTotal int64
@@ -178,14 +200,18 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Total commit count
-		commitsCountTotal, err = baseCommit.CommitsCount()
+		commitsCountTotal, err = git.CommitsCount(ctx.Repo.GitRepo.Ctx, git.CommitsCountOptions{
+			RepoPath: ctx.Repo.GitRepo.Path,
+			Not:      not,
+			Revision: []string{baseCommit.ID.String()},
+		})
+
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetCommitsCount", err)
 			return
 		}
 
 		// Query commits
-		not := ctx.FormString("not")
 		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize, not)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CommitsByRange", err)
@@ -196,7 +222,14 @@ func GetAllCommits(ctx *context.APIContext) {
 			sha = ctx.Repo.Repository.DefaultBranch
 		}
 
-		commitsCountTotal, err = ctx.Repo.GitRepo.FileCommitsCount(sha, path)
+		commitsCountTotal, err = git.CommitsCount(ctx,
+			git.CommitsCountOptions{
+				RepoPath: ctx.Repo.GitRepo.Path,
+				Not:      not,
+				Revision: []string{sha},
+				RelPath:  []string{path},
+			})
+
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "FileCommitsCount", err)
 			return
@@ -205,7 +238,14 @@ func GetAllCommits(ctx *context.APIContext) {
 			return
 		}
 
-		commits, err = ctx.Repo.GitRepo.CommitsByFileAndRange(sha, path, listOptions.Page)
+		commits, err = ctx.Repo.GitRepo.CommitsByFileAndRange(
+			git.CommitsByFileAndRangeOptions{
+				Revision: sha,
+				File:     path,
+				Not:      not,
+				Page:     listOptions.Page,
+			})
+
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRange", err)
 			return
@@ -213,16 +253,12 @@ func GetAllCommits(ctx *context.APIContext) {
 	}
 
 	pageCount := int(math.Ceil(float64(commitsCountTotal) / float64(listOptions.PageSize)))
-
 	userCache := make(map[string]*user_model.User)
-
 	apiCommits := make([]*api.Commit, len(commits))
-
-	stat := ctx.FormString("stat") == "" || ctx.FormBool("stat")
 
 	for i, commit := range commits {
 		// Create json struct
-		apiCommits[i], err = convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, userCache, stat)
+		apiCommits[i], err = convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, userCache, convert.ParseCommitOptions(ctx))
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "toCommit", err)
 			return

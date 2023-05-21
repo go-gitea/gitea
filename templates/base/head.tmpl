@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{.locale.Lang}}" class="theme-{{if .SignedUser.Theme}}{{.SignedUser.Theme}}{{else}}{{DefaultTheme}}{{end}}">
 <head>
-	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}}{{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
 	{{if .ManifestData}}<link rel="manifest" href="data:{{.ManifestData}}">{{end}}

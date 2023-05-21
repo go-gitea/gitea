@@ -433,6 +433,10 @@ func (pr *PullRequest) GetGitRefName() string {
 	return fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index)
 }
 
+func (pr *PullRequest) GetGitHeadBranchRefName() string {
+	return fmt.Sprintf("%s%s", git.BranchPrefix, pr.HeadBranch)
+}
+
 // IsChecking returns true if this pull request is still checking conflict.
 func (pr *PullRequest) IsChecking() bool {
 	return pr.Status == PullRequestStatusChecking

@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -36,24 +38,32 @@ const (
 
 // calReleaseNumCommitsBehind calculates given release has how many commits behind release target.
 func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *repo_model.Release, countCache map[string]int64) error {
-	// Get count if not exists
-	if _, ok := countCache[release.Target]; !ok {
-		// short-circuit for the default branch
-		if repoCtx.Repository.DefaultBranch == release.Target || repoCtx.GitRepo.IsBranchExist(release.Target) {
-			commit, err := repoCtx.GitRepo.GetBranchCommit(release.Target)
-			if err != nil {
+	target := release.Target
+	if target == "" {
+		target = repoCtx.Repository.DefaultBranch
+	}
+	// Get count if not cached
+	if _, ok := countCache[target]; !ok {
+		commit, err := repoCtx.GitRepo.GetBranchCommit(target)
+		if err != nil {
+			var errNotExist git.ErrNotExist
+			if target == repoCtx.Repository.DefaultBranch || !errors.As(err, &errNotExist) {
 				return fmt.Errorf("GetBranchCommit: %w", err)
 			}
-			countCache[release.Target], err = commit.CommitsCount()
+			// fallback to default branch
+			target = repoCtx.Repository.DefaultBranch
+			commit, err = repoCtx.GitRepo.GetBranchCommit(target)
 			if err != nil {
-				return fmt.Errorf("CommitsCount: %w", err)
+				return fmt.Errorf("GetBranchCommit(DefaultBranch): %w", err)
 			}
-		} else {
-			// Use NumCommits of the newest release on that target
-			countCache[release.Target] = release.NumCommits
+		}
+		countCache[target], err = commit.CommitsCount()
+		if err != nil {
+			return fmt.Errorf("CommitsCount: %w", err)
 		}
 	}
-	release.NumCommitsBehind = countCache[release.Target] - release.NumCommits
+	release.NumCommitsBehind = countCache[target] - release.NumCommits
+	release.TargetBehind = target
 	return nil
 }
 

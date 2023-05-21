@@ -283,7 +283,7 @@ func Init() error {
 		},
 	}
 
-	hookQueue = queue.CreateUniqueQueue("webhook_sender", handle, int64(0))
+	hookQueue = queue.CreateUniqueQueue("webhook_sender", handler)
 	if hookQueue == nil {
 		return fmt.Errorf("Unable to create webhook_sender Queue")
 	}

@@ -1,6 +1,6 @@
 {{if $.IsSplitStyle}}
 	{{range $k, $line := $.section.Lines}}
-	<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
+	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}">
 		{{if eq .GetType 4}}
 			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}">
 				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5)}}
@@ -44,7 +44,7 @@
 	{{end}}
 {{else}}
 	{{range $k, $line := $.section.Lines}}
-	<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
+	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}">
 		{{if eq .GetType 4}}
 			<td colspan="2" class="lines-num">
 				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5)}}

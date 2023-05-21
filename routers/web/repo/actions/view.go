@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	context_module "code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -209,8 +210,18 @@ func ViewPost(ctx *context_module.Context) {
 			step := steps[cursor.Step]
 
 			logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead fo 'null' in json
-			if c := cursor.Cursor; c < step.LogLength && c >= 0 {
-				index := step.LogIndex + c
+
+			index := step.LogIndex + cursor.Cursor
+			validCursor := cursor.Cursor >= 0 &&
+				// !(cursor.Cursor < step.LogLength) when the frontend tries to fetch next line before it's ready.
+				// So return the same cursor and empty lines to let the frontend retry.
+				cursor.Cursor < step.LogLength &&
+				// !(index < task.LogIndexes[index]) when task data is older than step data.
+				// It can be fixed by making sure write/read tasks and steps in the same transaction,
+				// but it's easier to just treat it as fetching the next line before it's ready.
+				index < int64(len(task.LogIndexes))
+
+			if validCursor {
 				length := step.LogLength - cursor.Cursor
 				offset := task.LogIndexes[index]
 				var err error
@@ -407,4 +418,81 @@ func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions
 		return jobs[jobIndex], jobs
 	}
 	return jobs[0], jobs
+}
+
+type ArtifactsViewResponse struct {
+	Artifacts []*ArtifactsViewItem `json:"artifacts"`
+}
+
+type ArtifactsViewItem struct {
+	Name string `json:"name"`
+	Size int64  `json:"size"`
+	ID   int64  `json:"id"`
+}
+
+func ArtifactsView(ctx *context_module.Context) {
+	runIndex := ctx.ParamsInt64("run")
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, err.Error())
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	artifacts, err := actions_model.ListUploadedArtifactsByRunID(ctx, run.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	artifactsResponse := ArtifactsViewResponse{
+		Artifacts: make([]*ArtifactsViewItem, 0, len(artifacts)),
+	}
+	for _, art := range artifacts {
+		artifactsResponse.Artifacts = append(artifactsResponse.Artifacts, &ArtifactsViewItem{
+			Name: art.ArtifactName,
+			Size: art.FileSize,
+			ID:   art.ID,
+		})
+	}
+	ctx.JSON(http.StatusOK, artifactsResponse)
+}
+
+func ArtifactsDownloadView(ctx *context_module.Context) {
+	runIndex := ctx.ParamsInt64("run")
+	artifactID := ctx.ParamsInt64("id")
+
+	artifact, err := actions_model.GetArtifactByID(ctx, artifactID)
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.Error(http.StatusNotFound, err.Error())
+	} else if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, err.Error())
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	if artifact.RunID != run.ID {
+		ctx.Error(http.StatusNotFound, "artifact not found")
+		return
+	}
+
+	f, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer f.Close()
+
+	ctx.ServeContent(f, &context_module.ServeHeaderOptions{
+		Filename:     artifact.ArtifactName,
+		LastModified: artifact.CreatedUnix.AsLocalTime(),
+	})
 }

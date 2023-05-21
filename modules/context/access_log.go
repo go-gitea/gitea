@@ -5,7 +5,6 @@ package context
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -13,8 +12,10 @@ import (
 	"text/template"
 	"time"
 
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 type routerLoggerOptions struct {
@@ -25,8 +26,6 @@ type routerLoggerOptions struct {
 	Ctx            map[string]interface{}
 	RequestID      *string
 }
-
-var signedUserNameStringPointerKey interface{} = "signedUserNameStringPointerKey"
 
 const keyOfRequestIDInTemplate = ".RequestID"
 
@@ -60,8 +59,6 @@ func AccessLogger() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			start := time.Now()
-			identity := "-"
-			r := req.WithContext(context.WithValue(req.Context(), signedUserNameStringPointerKey, &identity))
 
 			var requestID string
 			if needRequestID {
@@ -73,9 +70,14 @@ func AccessLogger() func(http.Handler) http.Handler {
 				reqHost = req.RemoteAddr
 			}
 
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, req)
 			rw := w.(ResponseWriter)
 
+			identity := "-"
+			data := middleware.GetContextData(req.Context())
+			if signedUser, ok := data[middleware.ContextDataKeySignedUser].(*user_model.User); ok {
+				identity = signedUser.Name
+			}
 			buf := bytes.NewBuffer([]byte{})
 			err = logTemplate.Execute(buf, routerLoggerOptions{
 				req:            req,
