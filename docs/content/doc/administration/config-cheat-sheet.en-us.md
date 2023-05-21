@@ -651,9 +651,8 @@ And the following unique queues:
 - `ENABLE_TIMETRACKING`: **true**: Enable Timetracking feature.
 - `DEFAULT_ENABLE_TIMETRACKING`: **true**: Allow repositories to use timetracking by default.
 - `DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME`: **true**: Only allow users with write permissions to track time.
-- `EMAIL_DOMAIN_WHITELIST`: **\<empty\>**: If non-empty, list of domain names that can only be used to register
-  on this instance.
-- `EMAIL_DOMAIN_BLOCKLIST`: **\<empty\>**: If non-empty, list of domain names that cannot be used to register on this instance
+- `EMAIL_DOMAIN_ALLOWLIST`: **\<empty\>**: If non-empty, comma separated list of domain names that can only be used to register on this instance, wildcard is supported.
+- `EMAIL_DOMAIN_BLOCKLIST`: **\<empty\>**: If non-empty, comma separated list of domain names that cannot be used to register on this instance, wildcard is supported.
 - `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
 - `SHOW_MILESTONES_DASHBOARD_PAGE`: **true** Enable this to show the milestones dashboard page - a view of all the user's milestones
 - `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
