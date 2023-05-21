@@ -139,5 +139,18 @@
 }
 
 .notifications-buttons {
+  display: none;
   min-width: 74px;
+}
+
+.notifications-updated {
+  display: flex;
+}
+
+.notifications-item:hover .notifications-buttons {
+  display: flex;
+}
+
+.notifications-item:hover .notifications-updated {
+  display: none;
 }

@@ -36,33 +36,16 @@
 				{{else}}
 					{{$locale := .locale}}
 					{{range $notification := .Notifications}}
-						<div class="notifications-item gt-df gt-ac gt-fw gt-gap-3 gt-p-3" id="notification_{{.ID}}">
+						<div class="notifications-item gt-df gt-ac gt-fw gt-gap-3 gt-p-3" id="notification_{{.ID}}" data-status="{{.Status}}">
 							<div class="notifications-icon gt-ml-3 gt-mr-2 gt-self-start gt-mt-2">
-								{{if eq .Status 3}}
-									{{svg "octicon-pin" 16 "text blue"}}
-								{{else if not .Issue}}
-									{{svg "octicon-repo" 16 "text grey"}}
-								{{else if .Issue.IsPull}}
-									{{if .Issue.IsClosed}}
-										{{if .Issue.GetPullRequest.HasMerged}}
-											{{svg "octicon-git-merge" 16 "text purple"}}
-										{{else}}
-											{{svg "octicon-git-pull-request" 16 "text red"}}
-										{{end}}
-									{{else}}
-										{{svg "octicon-git-pull-request" 16 "text green"}}
-									{{end}}
-								{{else}}
-									{{if .Issue.IsClosed}}
-										{{svg "octicon-issue-closed" 16 "text red"}}
-									{{else}}
-										{{svg "octicon-issue-opened" 16 "text green"}}
-									{{end}}
-								{{end}}
+								{{template "shared/issueicon" .Issue}}
 							</div>
-							<a class="notifications-link gt-df gt-f1 gt-fc silenced" href="{{.Link}}" data-status="{{.Status}}">
+							<a class="notifications-link gt-df gt-f1 gt-fc silenced" href="{{.Link}}">
 								<div class="notifications-top-row gt-font-13">
 									{{.Repository.FullName}} <span class="text light-3">#{{.Issue.Index}}</span>
+									{{if eq .Status 3}}
+										{{svg "octicon-pin" 13 "text blue gt-mt-1 gt-ml-1"}}
+									{{end}}
 								</div>
 								<div class="notifications-bottom-row gt-font-16 gt-py-1">
 									<span class="issue-title">
@@ -74,10 +57,10 @@
 									</span>
 								</div>
 							</a>
-							<div class="notifications-updated gt-df gt-ac">
+							<div class="notifications-updated gt-ac gt-mr-3">
 								{{TimeSinceUnix .Issue.UpdatedUnix $locale}}
 							</div>
-							<div class="notifications-buttons gt-df gt-ac gt-je gt-gap-2 gt-px-2">
+							<div class="notifications-buttons gt-ac gt-je gt-gap-2 gt-px-2">
 								{{if ne .Status 3}}
 									<form action="{{AppSubUrl}}/notifications/status" method="POST">
 										{{$.CsrfTokenHtml}}

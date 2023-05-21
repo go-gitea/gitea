@@ -22,7 +22,7 @@ export function initNotificationsTable() {
   });
 
   // mark clicked unread links for deletion on bfcache restore
-  for (const link of table.querySelectorAll('.notifications-link[data-status="1"]')) {
+  for (const link of table.querySelectorAll('.notifications-item[data-status="1"] .notifications-link')) {
     link.addEventListener('click', (e) => {
       e.target.closest('.notifications-item').setAttribute('data-remove', 'true');
     }, {capture: true});
