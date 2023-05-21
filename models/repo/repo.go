@@ -832,3 +832,11 @@ func FixNullArchivedRepository(ctx context.Context) (int64, error) {
 		IsArchived: false,
 	})
 }
+
+// UpdateRepositoryOwnerName updates the owner name of all repositories owned by the user
+func UpdateRepositoryOwnerName(ctx context.Context, oldUserName, newUserName string) error {
+	if _, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, oldUserName); err != nil {
+		return fmt.Errorf("change repo owner name: %w", err)
+	}
+	return nil
+}
