@@ -34,7 +34,7 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
-// Compose message used when merging pull request.
+// getMergeMessage composes the message used when merging a pull request.
 func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle, extraVars map[string]string) (message, body string, err error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return "", "", err
@@ -138,7 +138,7 @@ func expandDefaultMergeMessage(template string, vars map[string]string) (message
 
 // GetDefaultMergeMessage returns default message used when merging pull request
 func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle) (message, body string, err error) {
-	return getMergeMessage(ctx, baseGitRepo, pr, mergeStyle, map[string]string{})
+	return getMergeMessage(ctx, baseGitRepo, pr, mergeStyle, nil)
 }
 
 // Merge merges pull request to base repository.
