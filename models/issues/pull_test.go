@@ -10,6 +10,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -324,4 +325,15 @@ func TestParseCodeOwnersLine(t *testing.T) {
 		tokens := issues_model.TokenizeCodeOwnersLine(g.Line)
 		assert.Equal(t, g.Tokens, tokens, "Codeowners tokenizer failed")
 	}
+}
+
+func TestGetApprovers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 5})
+	// Official reviews are already deduplicated. Allow unofficial reviews
+	// to assert that there are no duplicated approvers.
+	setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly = false
+	approvers := pr.GetApprovers()
+	expected := "Reviewed-by: User Five <user5@example.com>\nReviewed-by: User Six <user6@example.com>\n"
+	assert.EqualValues(t, expected, approvers)
 }

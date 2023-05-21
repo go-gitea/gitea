@@ -408,7 +408,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		Type:         ReviewTypeApprove,
 		IssueID:      pr.IssueID,
 		OfficialOnly: setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly,
-		Distinct:     true,
+		LatestOnly:   true,
 	})
 	if err != nil {
 		log.Error("Unable to FindReviews for PR ID %d: %v", pr.ID, err)

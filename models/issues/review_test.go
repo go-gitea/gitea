@@ -71,6 +71,31 @@ func TestFindReviews(t *testing.T) {
 	assert.Equal(t, "Demo Review", reviews[0].Content)
 }
 
+func TestFindReviews_NotLatestOnly(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	reviews, err := issues_model.FindReviews(db.DefaultContext, issues_model.FindReviewOptions{
+		Type:       issues_model.ReviewTypeApprove,
+		IssueID:    11,
+		LatestOnly: false,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, reviews, 3)
+	assert.Equal(t, "old review from user5", reviews[0].Content)
+}
+
+func TestFindReviews_LatestOnly(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	reviews, err := issues_model.FindReviews(db.DefaultContext, issues_model.FindReviewOptions{
+		Type:       issues_model.ReviewTypeApprove,
+		IssueID:    11,
+		LatestOnly: true,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, reviews, 2)
+	assert.Equal(t, "duplicate review from user5 (latest)", reviews[0].Content)
+	assert.Equal(t, "singular review from user6 and final review for this pr", reviews[1].Content)
+}
+
 func TestGetCurrentReview(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
