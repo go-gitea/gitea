@@ -317,7 +317,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	RedirectorUseProxyProtocol = sec.Key("REDIRECTOR_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
-	Log.DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	if len(StaticRootPath) == 0 {
 		StaticRootPath = AppWorkPath
 	}

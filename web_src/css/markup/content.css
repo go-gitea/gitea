@@ -301,7 +301,8 @@
   background-color: var(--color-markup-table-row);
 }
 
-.markup img {
+.markup img,
+.markup video {
   max-width: 100%;
   box-sizing: initial;
 }
@@ -309,17 +310,23 @@
 /* this background ensures images can break <hr>. We can only do this on
    cases where the background is known and not transparent. */
 .markup.file-view img,
+.markup.file-view video,
 .comment-body .markup img, /* regular comment */
+.comment-body .markup video,
 .comment-content .markup img, /* code comment */
-.wiki .markup img {
+.comment-content .markup video,
+.wiki .markup img,
+.wiki .markup video {
   background: var(--color-box-body);
 }
 
-.markup img[align="right"] {
+.markup img[align="right"],
+.markup video[align="right"] {
   padding-left: 20px;
 }
 
-.markup img[align="left"] {
+.markup img[align="left"],
+.markup video[align="left"] {
   padding-right: 20px;
 }
 
@@ -343,7 +350,8 @@
   border: 1px solid var(--color-secondary);
 }
 
-.markup span.frame span img {
+.markup span.frame span img,
+.markup span.frame span video {
   display: block;
   float: left;
 }
@@ -368,7 +376,8 @@
   text-align: center;
 }
 
-.markup span.align-center span img {
+.markup span.align-center span img
+.markup span.align-center span video {
   margin: 0 auto;
   text-align: center;
 }
@@ -386,7 +395,8 @@
   text-align: right;
 }
 
-.markup span.align-right span img {
+.markup span.align-right span img,
+.markup span.align-right span video {
   margin: 0;
   text-align: right;
 }

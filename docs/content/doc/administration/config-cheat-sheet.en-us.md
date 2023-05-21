@@ -835,22 +835,16 @@ Default templates for project boards:
 ## Log (`log`)
 
 - `ROOT_PATH`: **\<empty\>**: Root path for log files.
-- `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values. You can configure each mode in per mode log subsections `\[log.modename\]`. By default the file mode will log to `$ROOT_PATH/gitea.log`.
+- `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values. You can configure each mode in per mode log subsections `\[log.writer-mode-name\]`.
 - `LEVEL`: **Info**: General log level. \[Trace, Debug, Info, Warn, Error, Critical, Fatal, None\]
-- `STACKTRACE_LEVEL`: **None**: Default log level at which to log create stack traces. \[Trace, Debug, Info, Warn, Error, Critical, Fatal, None\]
+- `STACKTRACE_LEVEL`: **None**: Default log level at which to log create stack traces (rarely useful, do not set it). \[Trace, Debug, Info, Warn, Error, Critical, Fatal, None\]
 - `ENABLE_SSH_LOG`: **false**: save ssh log to log file
-- `ENABLE_XORM_LOG`: **true**: Set whether to perform XORM logging. Please note SQL statement logging can be disabled by setting `LOG_SQL` to false in the `[database]` section.
-
-### Router Log (`log`)
-
-- `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
-- `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default Gitea logger.)
-  NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take effect. Configure each mode in per mode log subsections `\[log.modename.router\]`.
+- `logger.access.MODE`: **\<empty\>**: The "access" logger
+- `logger.router.MODE`: **,**: The "router" logger, a single comma means it will use the default MODE above
+- `logger.xorm.MODE`: **,**: The "xorm" logger
 
 ### Access Log (`log`)
 
-- `ENABLE_ACCESS_LOG`: **false**: Creates an access.log in NCSA common log format, or as per the following template
-- `ACCESS`: **file**: Logging mode for the access logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.modename.access\]`. By default the file mode will log to `$ROOT_PATH/access.log`. (If you set this to `,` it will log to the default Gitea logger.)
 - `ACCESS_LOG_TEMPLATE`: **`{{.Ctx.RemoteHost}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}" "{{.Ctx.Req.UserAgent}}"`**: Sets the template used to create the access log.
   - The following variables are available:
   - `Ctx`: the `context.Context` of the request.
@@ -858,31 +852,31 @@ Default templates for project boards:
   - `Start`: the start time of the request.
   - `ResponseWriter`: the responseWriter from the request.
   - `RequestID`: the value matching REQUEST_ID_HEADERS（default: `-`, if not matched）.
-  - You must be very careful to ensure that this template does not throw errors or panics as this template runs outside of the panic/recovery script.
+  - You must be very careful to ensure that this template does not throw errors or panics as this template runs outside the panic/recovery script.
 - `REQUEST_ID_HEADERS`: **\<empty\>**: You can configure multiple values that are splited by comma here. It will match in the order of configuration, and the first match will be finally printed in the access log.
   - e.g.
   - In the Request Header:        X-Request-ID: **test-id-123**
   - Configuration in app.ini:     REQUEST_ID_HEADERS = X-Request-ID
   - Print in log:                 127.0.0.1:58384 - - [14/Feb/2023:16:33:51 +0800]  "**test-id-123**" ...
 
-### Log subsections (`log.name`, `log.name.*`)
+### Log subsections (`log.<writer-mode-name>`)
 
-- `LEVEL`: **log.LEVEL**: Sets the log-level of this sublogger. Defaults to the `LEVEL` set in the global `[log]` section.
+- `MODE`: **name**: Sets the mode of this log writer - Defaults to the provided subsection name. This allows you to have two different file loggers at different levels.
+- `LEVEL`: **log.LEVEL**: Sets the log-level of this writer. Defaults to the `LEVEL` set in the global `[log]` section.
 - `STACKTRACE_LEVEL`: **log.STACKTRACE_LEVEL**: Sets the log level at which to log stack traces.
-- `MODE`: **name**: Sets the mode of this sublogger - Defaults to the provided subsection name. This allows you to have two different file loggers at different levels.
 - `EXPRESSION`: **""**: A regular expression to match either the function name, file or message. Defaults to empty. Only log messages that match the expression will be saved in the logger.
 - `FLAGS`: **stdflags**: A comma separated string representing the log flags. Defaults to `stdflags` which represents the prefix: `2009/01/23 01:23:23 ...a/b/c/d.go:23:runtime.Caller() [I]: message`. `none` means don't prefix log lines. See `modules/log/flags.go` for more information.
 - `PREFIX`: **""**: An additional prefix for every log line in this logger. Defaults to empty.
 - `COLORIZE`: **false**: Whether to colorize the log lines
 
-### Console log mode (`log.console`, `log.console.*`, or `MODE=console`)
+### Console log mode (`log.console`, or `MODE=console`)
 
 - For the console logger `COLORIZE` will default to `true` if not on windows or the terminal is determined to be able to color.
 - `STDERR`: **false**: Use Stderr instead of Stdout.
 
-### File log mode (`log.file`, `log.file.*` or `MODE=file`)
+### File log mode (`log.file`, or `MODE=file`)
 
-- `FILE_NAME`: Set the file name for this logger. Defaults as described above. If relative will be relative to the `ROOT_PATH`
+- `FILE_NAME`: Set the file name for this logger. Defaults to `gitea.log` (exception: access log defaults to `access.log`). If relative will be relative to the `ROOT_PATH`
 - `LOG_ROTATE`: **true**: Rotate the log files.
 - `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
 - `DAILY_ROTATE`: **true**: Rotate logs daily.
@@ -890,20 +884,12 @@ Default templates for project boards:
 - `COMPRESS`: **true**: Compress old log files by default with gzip
 - `COMPRESSION_LEVEL`: **-1**: Compression level
 
-### Conn log mode (`log.conn`, `log.conn.*` or `MODE=conn`)
+### Conn log mode (`log.conn`, or `MODE=conn`)
 
 - `RECONNECT_ON_MSG`: **false**: Reconnect host for every single message.
 - `RECONNECT`: **false**: Try to reconnect when connection is lost.
 - `PROTOCOL`: **tcp**: Set the protocol, either "tcp", "unix" or "udp".
 - `ADDR`: **:7020**: Sets the address to connect to.
-
-### SMTP log mode (`log.smtp`, `log.smtp.*` or `MODE=smtp`)
-
-- `USER`: User email address to send from.
-- `PASSWD`: Password for the smtp server.
-- `HOST`: **127.0.0.1:25**: The SMTP host to connect to.
-- `RECEIVERS`: Email addresses to send to.
-- `SUBJECT`: **Diagnostic message from Gitea**
 
 ## Cron (`cron`)
 

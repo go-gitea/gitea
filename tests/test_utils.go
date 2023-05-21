@@ -36,6 +36,8 @@ func exitf(format string, args ...interface{}) {
 }
 
 func InitTest(requireGitea bool) {
+	log.RegisterEventWriter("test", testlogger.NewTestLoggerWriter)
+
 	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
 		exitf("Environment variable $GITEA_ROOT not set")
@@ -245,8 +247,4 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 // Printf takes a format and args and prints the string to os.Stdout
 func Printf(format string, args ...interface{}) {
 	testlogger.Printf(format, args...)
-}
-
-func init() {
-	log.Register("test", testlogger.NewTestLogger)
 }

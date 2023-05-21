@@ -95,10 +95,7 @@ func AccessLogger() func(http.Handler) http.Handler {
 				log.Error("Could not set up chi access logger: %v", err.Error())
 			}
 
-			err = logger.SendLog(log.INFO, "", "", 0, buf.String(), "")
-			if err != nil {
-				log.Error("Could not set up chi access logger: %v", err.Error())
-			}
+			logger.Info("%s", buf.String())
 		})
 	}
 }
