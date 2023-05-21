@@ -169,6 +169,8 @@ export function initGlobalDropzone() {
             let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
             if (file.type.startsWith('image/')) {
               fileMarkdown = `!${fileMarkdown}`;
+            } else if (file.type.startsWith('video/')) {
+              fileMarkdown = `<video src="/attachments/${file.uuid}" title="${file.name}" controls></video>`;
             }
             navigator.clipboard.writeText(fileMarkdown);
           });
