@@ -2943,7 +2943,7 @@ tbody.commit-list {
   padding-top: 0 !important;
 }
 
-td.blob-excerpt {
+.blob-excerpt {
   background-color: var(--color-secondary-alpha-30);
 }
 

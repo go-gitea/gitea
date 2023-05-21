@@ -90,13 +90,13 @@
 						<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} gt-mt-3" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
 							<h4 class="diff-file-header sticky-2nd-row ui top attached normal header gt-df gt-ac gt-sb">
 								<div class="diff-file-name gt-df gt-ac gt-mr-3">
-									<a role="button" class="fold-file muted gt-mr-2" {{if not $isExpandable}}style="visibility: hidden"{{end}}>
+									<button class="fold-file ui button button-ghost gt-p-0 gt-mr-3{{if not $isExpandable}} gt-invisible{{end}}">
 										{{if $file.ShouldBeHidden}}
 											{{svg "octicon-chevron-right" 18}}
 										{{else}}
 											{{svg "octicon-chevron-down" 18}}
 										{{end}}
-									</a>
+									</button>
 									<div class="gt-bold gt-df gt-ac gt-mono">
 										{{if $file.IsBin}}
 											<span class="gt-ml-1 gt-mr-3">
@@ -125,8 +125,8 @@
 										<span class="ui basic label">{{$.locale.Tr "repo.diff.protected"}}</span>
 									{{end}}
 									{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
-										<a class="ui basic tiny button unescape-button">{{$.locale.Tr "repo.unescape_control_characters"}}</a>
-										<a class="ui basic tiny button escape-button gt-hidden">{{$.locale.Tr "repo.escape_control_characters"}}</a>
+										<button class="ui basic tiny button unescape-button">{{$.locale.Tr "repo.unescape_control_characters"}}</button>
+										<button class="ui basic tiny button escape-button gt-hidden">{{$.locale.Tr "repo.escape_control_characters"}}</button>
 									{{end}}
 									{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
 										{{if $file.IsDeleted}}
