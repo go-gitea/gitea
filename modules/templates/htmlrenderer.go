@@ -96,6 +96,12 @@ func HTMLRenderer() *HTMLRender {
 	return htmlRender
 }
 
+func ReloadHTMLTemplates() {
+	if err := htmlRender.CompileTemplates(); err != nil {
+		log.Error("Template error: %v\n%s", err, log.Stack(2))
+	}
+}
+
 func initHTMLRenderer() {
 	rendererType := "static"
 	if !setting.IsProd {
@@ -115,9 +121,7 @@ func initHTMLRenderer() {
 
 	if !setting.IsProd {
 		go AssetFS().WatchLocalChanges(graceful.GetManager().ShutdownContext(), func() {
-			if err := htmlRender.CompileTemplates(); err != nil {
-				log.Error("Template error: %v\n%s", err, log.Stack(2))
-			}
+			ReloadHTMLTemplates()
 		})
 	}
 }

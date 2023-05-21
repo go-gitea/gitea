@@ -15,8 +15,15 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 )
+
+// ReloadTemplates reloads all the templates
+func ReloadTemplates(ctx *context.PrivateContext) {
+	templates.ReloadHTMLTemplates()
+	ctx.PlainText(http.StatusOK, "success")
+}
 
 // FlushQueues flushes all the Queues
 func FlushQueues(ctx *context.PrivateContext) {
