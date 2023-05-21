@@ -92,12 +92,12 @@ func AccessLogger() func(http.Handler) http.Handler {
 				RequestID: &requestID,
 			})
 			if err != nil {
-				log.Error("Could not set up chi access logger: %v", err.Error())
+				log.Error("Could not execute access logger template: %v", err.Error())
 			}
 
 			err = logger.SendLog(log.INFO, "", "", 0, buf.String(), "")
 			if err != nil {
-				log.Error("Could not set up chi access logger: %v", err.Error())
+				log.Error("Could not send access log: %v", err.Error())
 			}
 		})
 	}
