@@ -310,7 +310,7 @@ func UpdateRepoIndexer(ctx context.Context, repo *repo_model.Repository) {
 		log.Error("Issues: %v", err)
 		return
 	}
-	if err = issues_model.IssueList(is).LoadDiscussComments(ctx); err != nil {
+	if err = is.LoadDiscussComments(ctx); err != nil {
 		log.Error("LoadDiscussComments: %v", err)
 		return
 	}

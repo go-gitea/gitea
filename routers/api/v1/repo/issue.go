@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -179,26 +178,17 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.TeamID = team.ID
 	}
 
+	// TODO:
 	repoCond := repo_model.SearchRepositoryCondition(opts)
-	repoIDs, _, err := repo_model.SearchRepositoryIDs(opts)
+	// repoIDs, _, err := repo_model.SearchRepositoryIDs(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchRepositoryIDs", err)
 		return
 	}
 
-	var issues []*issues_model.Issue
-	var filteredCount int64
-
 	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
-	}
-	var issueIDs []int64
-	if len(keyword) > 0 && len(repoIDs) > 0 {
-		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword); err != nil {
-			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
-			return
-		}
 	}
 
 	var isPull util.OptionalBool
@@ -234,58 +224,49 @@ func SearchIssues(ctx *context.APIContext) {
 
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
-	if len(keyword) == 0 || len(issueIDs) > 0 || len(includedLabelNames) > 0 || len(includedMilestones) > 0 {
-		issuesOpt := &issues_model.IssuesOptions{
-			ListOptions: db.ListOptions{
-				Page:     ctx.FormInt("page"),
-				PageSize: limit,
-			},
-			RepoCond:           repoCond,
-			IsClosed:           isClosed,
-			IncludedLabelNames: includedLabelNames,
-			IncludeMilestones:  includedMilestones,
-			SortType:           "priorityrepo",
-			PriorityRepoID:     ctx.FormInt64("priority_repo_id"),
-			IsPull:             isPull,
-			UpdatedBeforeUnix:  before,
-			UpdatedAfterUnix:   since,
-			Keyword:            keyword,
-		}
+	issuesOpt := &issues_model.IssuesOptions{
+		ListOptions: db.ListOptions{
+			Page:     ctx.FormInt("page"),
+			PageSize: limit,
+		},
+		RepoCond:           repoCond,
+		IsClosed:           isClosed,
+		IncludedLabelNames: includedLabelNames,
+		IncludeMilestones:  includedMilestones,
+		SortType:           "priorityrepo",
+		PriorityRepoID:     ctx.FormInt64("priority_repo_id"),
+		IsPull:             isPull,
+		UpdatedBeforeUnix:  before,
+		UpdatedAfterUnix:   since,
+		Keyword:            keyword,
+	}
 
-		ctxUserID := int64(0)
-		if ctx.IsSigned {
-			ctxUserID = ctx.Doer.ID
-		}
+	ctxUserID := int64(0)
+	if ctx.IsSigned {
+		ctxUserID = ctx.Doer.ID
+	}
 
-		// Filter for: Created by User, Assigned to User, Mentioning User, Review of User Requested
-		if ctx.FormBool("created") {
-			issuesOpt.PosterID = ctxUserID
-		}
-		if ctx.FormBool("assigned") {
-			issuesOpt.AssigneeID = ctxUserID
-		}
-		if ctx.FormBool("mentioned") {
-			issuesOpt.MentionedID = ctxUserID
-		}
-		if ctx.FormBool("review_requested") {
-			issuesOpt.ReviewRequestedID = ctxUserID
-		}
-		if ctx.FormBool("reviewed") {
-			issuesOpt.ReviewedID = ctxUserID
-		}
+	// Filter for: Created by User, Assigned to User, Mentioning User, Review of User Requested
+	if ctx.FormBool("created") {
+		issuesOpt.PosterID = ctxUserID
+	}
+	if ctx.FormBool("assigned") {
+		issuesOpt.AssigneeID = ctxUserID
+	}
+	if ctx.FormBool("mentioned") {
+		issuesOpt.MentionedID = ctxUserID
+	}
+	if ctx.FormBool("review_requested") {
+		issuesOpt.ReviewRequestedID = ctxUserID
+	}
+	if ctx.FormBool("reviewed") {
+		issuesOpt.ReviewedID = ctxUserID
+	}
 
-		if issues, err = issues_model.Issues(ctx, issuesOpt); err != nil {
-			ctx.Error(http.StatusInternalServerError, "Issues", err)
-			return
-		}
-
-		issuesOpt.ListOptions = db.ListOptions{
-			Page: -1,
-		}
-		if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
-			ctx.Error(http.StatusInternalServerError, "CountIssues", err)
-			return
-		}
+	filteredCount, issues, err := issue_service.Search(ctx, issuesOpt)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Issues", err)
+		return
 	}
 
 	ctx.SetLinkHeader(int(filteredCount), limit)
@@ -384,9 +365,6 @@ func ListIssues(ctx *context.APIContext) {
 		isClosed = util.OptionalBoolFalse
 	}
 
-	var issues []*issues_model.Issue
-	var filteredCount int64
-
 	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
@@ -474,16 +452,9 @@ func ListIssues(ctx *context.APIContext) {
 		Keyword:           keyword,
 	}
 
-	if issues, err = issues_model.Issues(ctx, issuesOpt); err != nil {
+	filteredCount, issues, err := issue_service.Search(ctx, issuesOpt)
+	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Issues", err)
-		return
-	}
-
-	issuesOpt.ListOptions = db.ListOptions{
-		Page: -1,
-	}
-	if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
-		ctx.Error(http.StatusInternalServerError, "CountIssues", err)
 		return
 	}
 

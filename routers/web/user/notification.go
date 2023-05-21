@@ -252,17 +252,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 		}
 	}
 
-	count, err := issues_model.CountIssues(ctx, &issues_model.IssuesOptions{
-		SubscriberID: ctx.Doer.ID,
-		IsClosed:     showClosed,
-		IsPull:       issueTypeBool,
-		LabelIDs:     labelIDs,
-	})
-	if err != nil {
-		ctx.ServerError("CountIssues", err)
-		return
-	}
-	issues, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
+	opts := &issues_model.IssuesOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.IssuePagingNum,
 			Page:     page,
@@ -272,9 +262,11 @@ func NotificationSubscriptions(ctx *context.Context) {
 		IsClosed:     showClosed,
 		IsPull:       issueTypeBool,
 		LabelIDs:     labelIDs,
-	})
+	}
+
+	count, issues, err := issue_service.Search(ctx, opts)
 	if err != nil {
-		ctx.ServerError("Issues", err)
+		ctx.ServerError("CountIssues", err)
 		return
 	}
 
@@ -296,8 +288,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 	}
 	ctx.Data["CommitStatus"] = commitStatus
 
-	issueList := issues_model.IssueList(issues)
-	approvalCounts, err := issueList.GetApprovalCounts(ctx)
+	approvalCounts, err := issues.GetApprovalCounts(ctx)
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
 		return
