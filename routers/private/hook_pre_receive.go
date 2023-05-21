@@ -207,7 +207,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			// Objects that are in newCommitID but not in oldCommitID are added
 			addedObjects, _, err := git.NewCommand(ctx, "rev-list", "--objects").AddDynamicArguments(newCommitID, "^"+oldCommitID).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: ourCtx.env})
 			if err != nil {
-				log.Error("Unable to list objects added between commits: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
+				log.Error("Unable to list objects in %s and not in %s in %-v Error: %v", newCommitID, oldCommitID, repo, err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{
 					Err: fmt.Sprintf("Fail to list objects added: %v", err),
 				})
@@ -218,7 +218,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			// Objects that are in oldCommitID but not in newCommitID are removed
 			removedObjects, _, err := git.NewCommand(ctx, "rev-list", "--objects").AddDynamicArguments(oldCommitID, "^"+newCommitID).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: ourCtx.env})
 			if err != nil {
-				log.Error("Unable to list objects removed between commits: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
+				log.Error("Unable to list objects in %s and not in %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{
 					Err: fmt.Sprintf("Fail to list objects removed: %v", err),
 				})
