@@ -57,8 +57,15 @@
 			{{range .Milestones}}
 				<li class="item">
 					<div class="gt-df gt-ac gt-sb">
-						<h3 class="gt-df gt-ac gt-m-0 gt-fw">
-							{{svg "octicon-milestone" 16 "gt-mr-3"}}<a class="muted" href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
+						<h3 class="gt-m-0 gt-word-break">
+							<a class="muted" href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
+							{{if .Labels}}
+								<span class="gt-ml-3 labels-list">
+									{{range .Labels}}
+										{{RenderLabel $.Context .}}
+									{{end}}
+								</span>
+							{{end}}
 						</h3>
 						<div class="gt-df gt-ac">
 							<span class="gt-mr-3">{{.Completeness}}%</span>
@@ -100,15 +107,6 @@
 					{{if .Content}}
 						<div class="markup content">
 							{{.RenderedContent|Str2html}}
-						</div>
-					{{end}}
-					{{if .Labels}}
-						<div class="ui labels list">
-							<span class="labels-list">
-								{{range .Labels}}
-									{{RenderLabel $.Context .}}
-								{{end}}
-							</span>
 						</div>
 					{{end}}
 				</li>
