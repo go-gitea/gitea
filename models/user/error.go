@@ -9,13 +9,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-//  ____ ___
-// |    |   \______ ___________
-// |    |   /  ___// __ \_  __ \
-// |    |  /\___ \\  ___/|  | \/
-// |______//____  >\___  >__|
-//              \/     \/
-
 // ErrUserAlreadyExist represents a "user already exists" error.
 type ErrUserAlreadyExist struct {
 	Name string
@@ -98,4 +91,35 @@ func (err ErrUserInactive) Error() string {
 // Unwrap unwraps this error as a ErrPermission error
 func (err ErrUserInactive) Unwrap() error {
 	return util.ErrPermissionDenied
+}
+
+// ErrUserIsNotLocal represents a "ErrUserIsNotLocal" kind of error.
+type ErrUserIsNotLocal struct {
+	UID  int64
+	Name string
+}
+
+func (err ErrUserIsNotLocal) Error() string {
+	return fmt.Sprintf("user is not local type [uid: %d, name: %s]", err.UID, err.Name)
+}
+
+// IsErrUserIsNotLocal
+func IsErrUserIsNotLocal(err error) bool {
+	_, ok := err.(ErrUserIsNotLocal)
+	return ok
+}
+
+type ErrUsernameNotChanged struct {
+	UID  int64
+	Name string
+}
+
+func (err ErrUsernameNotChanged) Error() string {
+	return fmt.Sprintf("username hasn't been changed[uid: %d, name: %s]", err.UID, err.Name)
+}
+
+// IsErrUsernameNotChanged
+func IsErrUsernameNotChanged(err error) bool {
+	_, ok := err.(ErrUsernameNotChanged)
+	return ok
 }
