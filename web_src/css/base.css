@@ -1091,6 +1091,7 @@ a.label,
   color: var(--color-text);
   background: var(--color-box-body);
   border-color: var(--color-secondary);
+  text-align: start; /* Override fomantic's `text-align: left` to make RTL work via HTML `dir="auto"` */
 }
 
 .ui.table th,
