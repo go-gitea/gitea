@@ -2220,11 +2220,11 @@ a.ui.active.label:hover {
 }
 
 .button.button-ghost:hover {
-  background: var(--color-primary-alpha-20);
+  background: var(--color-hover);
 }
 
 .button.button-ghost:active {
-  background: var(--color-primary-alpha-50);
+  background: var(--color-active);
 }
 
 .two-toggle-buttons .button:not(.active):first-of-type {
