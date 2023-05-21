@@ -149,7 +149,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		mentionedID       int64
 		reviewRequestedID int64
 		reviewedID        int64
-		forceEmpty        bool
 	)
 
 	if ctx.IsSigned {
@@ -186,27 +185,30 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		keyword = ""
 	}
 
-	var issueStats *issues_model.IssueStats
-	if forceEmpty {
-		issueStats = &issues_model.IssueStats{}
-	} else {
-		issueStats, err = issues_model.GetIssueStats(&issues_model.IssuesOptions{
-			RepoIDs:           []int64{repo.ID},
-			LabelIDs:          labelIDs,
-			MilestoneIDs:      []int64{milestoneID},
-			ProjectID:         projectID,
-			AssigneeID:        assigneeID,
-			MentionedID:       mentionedID,
-			PosterID:          posterID,
-			ReviewRequestedID: reviewRequestedID,
-			ReviewedID:        reviewedID,
-			IsPull:            isPullOption,
-			Keyword:           keyword,
-		})
-		if err != nil {
-			ctx.ServerError("GetIssueStats", err)
-			return
-		}
+	var mileIDs []int64
+	if milestoneID > 0 || milestoneID == db.NoConditionID { // -1 to get those issues which have no any milestone assigned
+		mileIDs = []int64{milestoneID}
+	}
+
+	opts := &issues_model.IssuesOptions{
+		RepoIDs:           []int64{repo.ID},
+		AssigneeID:        assigneeID,
+		PosterID:          posterID,
+		MentionedID:       mentionedID,
+		ReviewRequestedID: reviewRequestedID,
+		ReviewedID:        reviewedID,
+		MilestoneIDs:      mileIDs,
+		ProjectID:         projectID,
+		IsPull:            isPullOption,
+		LabelIDs:          labelIDs,
+		SortType:          sortType,
+		Keyword:           keyword,
+	}
+
+	issueStats, err := issues_model.GetIssueStats(opts)
+	if err != nil {
+		ctx.ServerError("GetIssueStats", err)
+		return
 	}
 
 	isShowClosed := ctx.FormString("state") == "closed"
@@ -228,42 +230,19 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 
-	var mileIDs []int64
-	if milestoneID > 0 || milestoneID == db.NoConditionID { // -1 to get those issues which have no any milestone assigned
-		mileIDs = []int64{milestoneID}
+	opts.ListOptions = db.ListOptions{
+		Page:     pager.Paginater.Current(),
+		PageSize: setting.UI.IssuePagingNum,
+	}
+	opts.IsClosed = util.OptionalBoolOf(isShowClosed)
+
+	issues, err := issues_model.Issues(ctx, opts)
+	if err != nil {
+		ctx.ServerError("Issues", err)
+		return
 	}
 
-	var issues []*issues_model.Issue
-	if forceEmpty {
-		issues = []*issues_model.Issue{}
-	} else {
-		issues, err = issues_model.Issues(ctx, &issues_model.IssuesOptions{
-			ListOptions: db.ListOptions{
-				Page:     pager.Paginater.Current(),
-				PageSize: setting.UI.IssuePagingNum,
-			},
-			RepoIDs:           []int64{repo.ID},
-			AssigneeID:        assigneeID,
-			PosterID:          posterID,
-			MentionedID:       mentionedID,
-			ReviewRequestedID: reviewRequestedID,
-			ReviewedID:        reviewedID,
-			MilestoneIDs:      mileIDs,
-			ProjectID:         projectID,
-			IsClosed:          util.OptionalBoolOf(isShowClosed),
-			IsPull:            isPullOption,
-			LabelIDs:          labelIDs,
-			SortType:          sortType,
-			Keyword:           keyword,
-		})
-		if err != nil {
-			ctx.ServerError("Issues", err)
-			return
-		}
-	}
-
-	issueList := issues_model.IssueList(issues)
-	approvalCounts, err := issueList.GetApprovalCounts(ctx)
+	approvalCounts, err := issues.GetApprovalCounts(ctx)
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
 		return

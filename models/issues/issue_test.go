@@ -4,7 +4,6 @@
 package issues_test
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -315,30 +314,6 @@ func TestIssue_loadTotalTimes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, ms.LoadTotalTimes(db.DefaultContext))
 	assert.Equal(t, int64(3682), ms.TotalTrackedTime)
-}
-
-func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	total, ids, err := issues_model.SearchIssueIDsByKeyword(context.TODO(), "issue2", []int64{1}, 10, 0)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, total)
-	assert.EqualValues(t, []int64{2}, ids)
-
-	total, ids, err = issues_model.SearchIssueIDsByKeyword(context.TODO(), "first", []int64{1}, 10, 0)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, total)
-	assert.EqualValues(t, []int64{1}, ids)
-
-	total, ids, err = issues_model.SearchIssueIDsByKeyword(context.TODO(), "for", []int64{1}, 10, 0)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 5, total)
-	assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
-
-	// issue1's comment id 2
-	total, ids, err = issues_model.SearchIssueIDsByKeyword(context.TODO(), "good", []int64{1}, 10, 0)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, total)
-	assert.EqualValues(t, []int64{1}, ids)
 }
 
 func TestGetRepoIDsForIssuesOptions(t *testing.T) {

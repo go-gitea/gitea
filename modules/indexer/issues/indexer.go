@@ -197,10 +197,6 @@ func InitIssueIndexer(syncReindex bool) {
 				holder.set(issueIndexer)
 				atTerminate(finished)
 			})
-		case "db":
-			issueIndexer := &DBIndexer{}
-			holder.set(issueIndexer)
-			graceful.GetManager().RunAtTerminate(finished)
 		case "meilisearch":
 			graceful.GetManager().RunWithShutdownFns(func(_, atTerminate func(func())) {
 				pprof.SetGoroutineLabels(ctx)
@@ -361,24 +357,24 @@ func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 	}
 }
 
-// SearchIssuesByKeyword search issue ids by keywords and repo id
+// Search search issue ids by keywords and repo id
 // WARNNING: You have to ensure user have permission to visit repoIDs' issues
-func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string) ([]int64, error) {
+func Search(ctx context.Context, options *issues_model.IssuesOptions) (int64, []int64, error) {
 	var issueIDs []int64
 	indexer := holder.get()
 
 	if indexer == nil {
-		log.Error("SearchIssuesByKeyword(): unable to get indexer!")
-		return nil, fmt.Errorf("unable to get issue indexer")
+		log.Error("Search(): unable to get indexer!")
+		return 0, nil, fmt.Errorf("unable to get issue indexer")
 	}
-	res, err := indexer.Search(ctx, keyword, repoIDs, 50, 0)
+	res, err := indexer.Search(ctx, options.Keyword, options.RepoIDs, 50, 0)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 	for _, r := range res.Hits {
 		issueIDs = append(issueIDs, r.ID)
 	}
-	return issueIDs, nil
+	return 0, issueIDs, nil
 }
 
 // IsAvailable checks if issue indexer is available

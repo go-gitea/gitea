@@ -5,10 +5,11 @@ package issue
 
 import (
 	"context"
-	"errors"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	issues_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Search search issues with sort acorrding the given conditions
@@ -25,5 +26,14 @@ func Search(ctx context.Context, opts *issues_model.IssuesOptions) (int64, issue
 		return total, issues, nil
 	}
 
-	return 0, nil, errors.New("unimplementated search type")
+	total, issueIDs, err := issues_indexer.Search(ctx, opts)
+	if err != nil {
+		return 0, nil, err
+	}
+	issues, err := issues_model.FindIssuesByIDs(ctx, issueIDs, util.OptionalBoolNone)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return total, issues, nil
 }
