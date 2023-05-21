@@ -1533,7 +1533,7 @@
 }
 
 .repository .data-table th {
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
   background: var(--color-box-header);
   border-top: 0;
 }
@@ -1991,7 +1991,7 @@
 }
 
 .repository.settings.branches .branch-protection .status-check-matched-mark {
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
   font-style: italic;
 }
 

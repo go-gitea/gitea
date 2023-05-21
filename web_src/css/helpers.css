@@ -29,7 +29,7 @@ Gitea's private styles use `g-` prefix.
   font-size: .95em !important; /* compensate for monospace fonts being usually slightly larger */
 }
 
-.gt-bold { font-weight: var(--font-weight-bold) !important; }
+.gt-bold { font-weight: var(--font-weight-semibold) !important; }
 
 .gt-word-break {
   word-wrap: break-word !important;
