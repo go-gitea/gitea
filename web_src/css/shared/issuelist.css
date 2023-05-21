@@ -45,7 +45,8 @@
   word-break: break-all;
 }
 
-.issue.list > .item .labels-list {
+.issue.list .labels-list,
+.milestone.list .labels-list {
   position: relative;
   top: -1.5px;
 }
