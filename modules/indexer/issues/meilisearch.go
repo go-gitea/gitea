@@ -11,6 +11,7 @@ import (
 	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+
 	"github.com/meilisearch/meilisearch-go"
 )
 
