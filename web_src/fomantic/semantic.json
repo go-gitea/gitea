@@ -23,9 +23,7 @@
   "components": [
     "api",
     "button",
-    "card",
     "checkbox",
-    "comment",
     "container",
     "dimmer",
     "divider",

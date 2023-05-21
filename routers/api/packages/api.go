@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/packages/alpine"
 	"code.gitea.io/gitea/routers/api/packages/cargo"
 	"code.gitea.io/gitea/routers/api/packages/chef"
 	"code.gitea.io/gitea/routers/api/packages/composer"
@@ -23,6 +24,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/container"
 	"code.gitea.io/gitea/routers/api/packages/debian"
 	"code.gitea.io/gitea/routers/api/packages/generic"
+	"code.gitea.io/gitea/routers/api/packages/goproxy"
 	"code.gitea.io/gitea/routers/api/packages/helm"
 	"code.gitea.io/gitea/routers/api/packages/maven"
 	"code.gitea.io/gitea/routers/api/packages/npm"
@@ -96,7 +98,7 @@ func verifyAuth(r *web.Route, authMethods []auth.Method) {
 func CommonRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
-	r.Use(context.PackageContexter(ctx))
+	r.Use(context.PackageContexter())
 
 	verifyAuth(r, []auth.Method{
 		&auth.OAuth2{},
@@ -107,6 +109,19 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 	})
 
 	r.Group("/{username}", func() {
+		r.Group("/alpine", func() {
+			r.Get("/key", alpine.GetRepositoryKey)
+			r.Group("/{branch}/{repository}", func() {
+				r.Put("", reqPackageAccess(perm.AccessModeWrite), alpine.UploadPackageFile)
+				r.Group("/{architecture}", func() {
+					r.Get("/APKINDEX.tar.gz", alpine.GetRepositoryFile)
+					r.Group("/{filename}", func() {
+						r.Get("", alpine.DownloadPackageFile)
+						r.Delete("", reqPackageAccess(perm.AccessModeWrite), alpine.DeletePackageFile)
+					})
+				})
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cargo", func() {
 			r.Group("/api/v1/crates", func() {
 				r.Get("", cargo.SearchPackages)
@@ -296,6 +311,64 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 					r.Put("/upload", debian.UploadPackageFile)
 					r.Delete("/{name}/{version}/{architecture}", debian.DeletePackageFile)
 				}, reqPackageAccess(perm.AccessModeWrite))
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/go", func() {
+			r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), goproxy.UploadPackage)
+			r.Get("/sumdb/sum.golang.org/supported", func(ctx *context.Context) {
+				ctx.Status(http.StatusNotFound)
+			})
+
+			// Manual mapping of routes because the package name contains slashes which chi does not support
+			// https://go.dev/ref/mod#goproxy-protocol
+			r.Get("/*", func(ctx *context.Context) {
+				path := ctx.Params("*")
+
+				if strings.HasSuffix(path, "/@latest") {
+					ctx.SetParams("name", path[:len(path)-len("/@latest")])
+					ctx.SetParams("version", "latest")
+
+					goproxy.PackageVersionMetadata(ctx)
+					return
+				}
+
+				parts := strings.SplitN(path, "/@v/", 2)
+				if len(parts) != 2 {
+					ctx.Status(http.StatusNotFound)
+					return
+				}
+
+				ctx.SetParams("name", parts[0])
+
+				// <package/name>/@v/list
+				if parts[1] == "list" {
+					goproxy.EnumeratePackageVersions(ctx)
+					return
+				}
+
+				// <package/name>/@v/<version>.zip
+				if strings.HasSuffix(parts[1], ".zip") {
+					ctx.SetParams("version", parts[1][:len(parts[1])-len(".zip")])
+
+					goproxy.DownloadPackageFile(ctx)
+					return
+				}
+				// <package/name>/@v/<version>.info
+				if strings.HasSuffix(parts[1], ".info") {
+					ctx.SetParams("version", parts[1][:len(parts[1])-len(".info")])
+
+					goproxy.PackageVersionMetadata(ctx)
+					return
+				}
+				// <package/name>/@v/<version>.mod
+				if strings.HasSuffix(parts[1], ".mod") {
+					ctx.SetParams("version", parts[1][:len(parts[1])-len(".mod")])
+
+					goproxy.PackageVersionGoModContent(ctx)
+					return
+				}
+
+				ctx.Status(http.StatusNotFound)
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
@@ -501,7 +574,7 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 func ContainerRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
-	r.Use(context.PackageContexter(ctx))
+	r.Use(context.PackageContexter())
 
 	verifyAuth(r, []auth.Method{
 		&auth.Basic{},
