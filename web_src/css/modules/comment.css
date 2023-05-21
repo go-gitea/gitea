@@ -61,7 +61,7 @@
 
 .ui.comments .comment .author {
   font-size: 1em;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .ui.comments .comment a.author {
