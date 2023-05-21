@@ -6,8 +6,6 @@ package org
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -18,8 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/agit"
-	container_service "code.gitea.io/gitea/services/packages/container"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 // DeleteOrganization completely and permanently deletes everything of organization.
@@ -74,79 +71,8 @@ func DeleteOrganization(org *org_model.Organization) error {
 
 // RenameOrganization renames an organization.
 func RenameOrganization(ctx context.Context, org *org_model.Organization, newName string) error {
-	if !org.AsUser().IsOrganization() {
-		return fmt.Errorf("cannot rename user")
-	}
-
-	if err := user_model.IsUsableUsername(newName); err != nil {
-		return err
-	}
-
-	onlyCapitalization := strings.EqualFold(org.Name, newName)
 	oldName := org.Name
-
-	if onlyCapitalization {
-		org.Name = newName
-		if err := user_model.UpdateUserCols(ctx, org.AsUser(), "name"); err != nil {
-			org.Name = oldName
-			return err
-		}
-		return nil
-	}
-
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	isExist, err := user_model.IsUserExist(ctx, org.ID, newName)
-	if err != nil {
-		return err
-	}
-	if isExist {
-		return user_model.ErrUserAlreadyExist{
-			Name: newName,
-		}
-	}
-
-	if err = repo_model.UpdateRepositoryOwnerName(ctx, oldName, newName); err != nil {
-		return err
-	}
-
-	if err = user_model.NewUserRedirect(ctx, org.ID, oldName, newName); err != nil {
-		return err
-	}
-
-	if err := agit.UserNameChanged(ctx, org.AsUser(), newName); err != nil {
-		return err
-	}
-	if err := container_service.UpdateRepositoryNames(ctx, org.AsUser(), newName); err != nil {
-		return err
-	}
-
-	org.Name = newName
-	org.LowerName = strings.ToLower(newName)
-	if err := user_model.UpdateUserCols(ctx, org.AsUser(), "name", "lower_name"); err != nil {
-		org.Name = oldName
-		org.LowerName = strings.ToLower(oldName)
-		return err
-	}
-
-	// Do not fail if directory does not exist
-	if err = util.Rename(user_model.UserPath(oldName), user_model.UserPath(newName)); err != nil && !os.IsNotExist(err) {
-		org.Name = oldName
-		org.LowerName = strings.ToLower(oldName)
-		return fmt.Errorf("rename user directory: %w", err)
-	}
-
-	if err = committer.Commit(); err != nil {
-		org.Name = oldName
-		org.LowerName = strings.ToLower(oldName)
-		if err2 := util.Rename(user_model.UserPath(newName), user_model.UserPath(oldName)); err2 != nil && !os.IsNotExist(err2) {
-			log.Critical("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldName, newName, err, err2)
-			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldName, newName, err, err2)
-		}
+	if err := user_service.RenameUser(ctx, org.AsUser(), newName); err != nil {
 		return err
 	}
 

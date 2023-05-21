@@ -30,12 +30,8 @@ import (
 
 // RenameUser renames a user
 func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
-	if u.IsOrganization() {
-		return fmt.Errorf("cannot rename organization")
-	}
-
 	// Non-local users are not allowed to change their username.
-	if !u.IsLocal() {
+	if !u.IsOrganization() && !u.IsLocal() {
 		return user_model.ErrUserIsNotLocal{
 			UID:  u.ID,
 			Name: u.Name,
@@ -49,18 +45,11 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 		}
 	}
 
-	onlyCapitalization := strings.EqualFold(newUserName, u.Name)
-
 	if err := user_model.IsUsableUsername(newUserName); err != nil {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
+	onlyCapitalization := strings.EqualFold(newUserName, u.Name)
 	oldUserName := u.Name
 
 	if onlyCapitalization {
@@ -69,12 +58,14 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 			u.Name = oldUserName
 			return err
 		}
-		if err := committer.Commit(); err != nil {
-			u.Name = oldUserName
-			return err
-		}
 		return nil
 	}
+
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
 
 	isExist, err := user_model.IsUserExist(ctx, u.ID, newUserName)
 	if err != nil {
