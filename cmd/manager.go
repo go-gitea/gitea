@@ -54,10 +54,6 @@ var (
 			cli.BoolFlag{
 				Name: "debug",
 			},
-			cli.BoolFlag{
-				Name:  "test",
-				Usage: "Test templates for errors without actually reloading",
-			},
 		},
 		Action: runReloadTemplates,
 	}
@@ -135,7 +131,7 @@ func runReloadTemplates(c *cli.Context) error {
 	defer cancel()
 
 	setup(ctx, c.Bool("debug"))
-	extra := private.ReloadTemplates(ctx, c.Bool("test"))
+	extra := private.ReloadTemplates(ctx)
 	return handleCliResponseExtra(extra)
 }
 

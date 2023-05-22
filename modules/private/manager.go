@@ -30,8 +30,8 @@ func Restart(ctx context.Context) ResponseExtra {
 }
 
 // ReloadTemplates calls the internal reload-templates function
-func ReloadTemplates(ctx context.Context, test bool) ResponseExtra {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/reload-templates?test=%t", test)
+func ReloadTemplates(ctx context.Context) ResponseExtra {
+	reqURL := setting.LocalURL + "api/internal/manager/reload-templates"
 	req := newInternalRequest(ctx, reqURL, "POST")
 	return requestJSONUserMsg(req, "Reloaded")
 }

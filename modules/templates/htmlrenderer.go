@@ -62,7 +62,7 @@ func (h *HTMLRender) TemplateLookup(name string) (TemplateExecutor, error) {
 	return tmpls.Executor(name, NewFuncMap())
 }
 
-func (h *HTMLRender) CompileTemplates(test bool) error {
+func (h *HTMLRender) CompileTemplates() error {
 	assets := AssetFS()
 	extSuffix := ".tmpl"
 	tmpls := scopedtmpl.NewScopedTemplate()
@@ -85,9 +85,6 @@ func (h *HTMLRender) CompileTemplates(test bool) error {
 			return err
 		}
 	}
-	if test {
-		return nil
-	}
 	tmpls.Freeze()
 	h.templates.Store(tmpls)
 	return nil
@@ -99,11 +96,9 @@ func HTMLRenderer() *HTMLRender {
 	return htmlRender
 }
 
-func ReloadHTMLTemplates(test bool) error {
-	if err := htmlRender.CompileTemplates(test); err != nil {
-		if !test {
-			log.Error("Template error: %v\n%s", err, log.Stack(2))
-		}
+func ReloadHTMLTemplates() error {
+	if err := htmlRender.CompileTemplates(); err != nil {
+		log.Error("Template error: %v\n%s", err, log.Stack(2))
 		return err
 	}
 	return nil
@@ -117,7 +112,7 @@ func initHTMLRenderer() {
 	log.Debug("Creating %s HTML Renderer", rendererType)
 
 	htmlRender = &HTMLRender{}
-	if err := htmlRender.CompileTemplates(false); err != nil {
+	if err := htmlRender.CompileTemplates(); err != nil {
 		p := &templateErrorPrettier{assets: AssetFS()}
 		wrapFatal(p.handleFuncNotDefinedError(err))
 		wrapFatal(p.handleUnexpectedOperandError(err))
@@ -128,7 +123,7 @@ func initHTMLRenderer() {
 
 	if !setting.IsProd {
 		go AssetFS().WatchLocalChanges(graceful.GetManager().ShutdownContext(), func() {
-			_ = ReloadHTMLTemplates(false)
+			_ = ReloadHTMLTemplates()
 		})
 	}
 }
