@@ -7,7 +7,7 @@
 						{{.ctxData.CsrfTokenHtml}}
 					</form>
 					<div class="header">{{.ctxData.locale.Tr "repo.issues.del_time"}}</div>
-					{{template "base/modal_actions_confirm" .}}
+					{{template "base/modal_actions_confirm" (dict "locale" .ctxData.locale)}}
 				</div>
 				<button class="ui icon button compact mini issue-delete-time" data-id="{{.comment.Time.ID}}" data-tooltip-content="{{.ctxData.locale.Tr "repo.issues.del_time"}}">
 					{{svg "octicon-trash"}}
