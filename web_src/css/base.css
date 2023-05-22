@@ -3,7 +3,8 @@
   --fonts-proportional: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
   --fonts-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
   --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
-  /* font weights - use between 400 and 600 for general purposes */
+  /* font weights - use between 400 and 600 for general purposes. Default "bold(700)" is excessively bold, so Gitea prefers to use "semibold(600)".
+  If user's font system doesn't have proper weight support (eg: Segoe UI on Linux), weight 600 looks like normal(400), the user should fix their font system. */
   --font-weight-light: 300;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
