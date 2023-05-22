@@ -671,7 +671,6 @@ export function ansiLogToHTML(line) {
 }
 
 .job-step-section .job-step-logs .job-log-line:hover {
-  color: var(--color-console-fg);
   background-color: var(--color-console-hover-bg);
 }
 
