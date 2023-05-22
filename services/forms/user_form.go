@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
+	"github.com/gobwas/glob"
 )
 
 // InstallForm form for installation page
@@ -105,8 +106,8 @@ func (f *RegisterForm) Validate(req *http.Request, errs binding.Errors) binding.
 
 // IsEmailDomainListed checks whether the domain of an email address
 // matches a list of domains
-func IsEmailDomainListed(list []string, email string) bool {
-	if len(list) == 0 {
+func IsEmailDomainListed(globs []glob.Glob, email string) bool {
+	if len(globs) == 0 {
 		return false
 	}
 
@@ -117,8 +118,8 @@ func IsEmailDomainListed(list []string, email string) bool {
 
 	domain := strings.ToLower(email[n+1:])
 
-	for _, v := range list {
-		if strings.ToLower(v) == domain {
+	for _, g := range globs {
+		if g.Match(domain) {
 			return true
 		}
 	}
@@ -131,12 +132,12 @@ func IsEmailDomainListed(list []string, email string) bool {
 // The email is marked as allowed if it matches any of the
 // domains in the whitelist or if it doesn't match any of
 // domains in the blocklist, if any such list is not empty.
-func (f RegisterForm) IsEmailDomainAllowed() bool {
-	if len(setting.Service.EmailDomainWhitelist) == 0 {
-		return !IsEmailDomainListed(setting.Service.EmailDomainBlocklist, f.Email)
+func (f *RegisterForm) IsEmailDomainAllowed() bool {
+	if len(setting.Service.EmailDomainAllowList) == 0 {
+		return !IsEmailDomainListed(setting.Service.EmailDomainBlockList, f.Email)
 	}
 
-	return IsEmailDomainListed(setting.Service.EmailDomainWhitelist, f.Email)
+	return IsEmailDomainListed(setting.Service.EmailDomainAllowList, f.Email)
 }
 
 // MustChangePasswordForm form for updating your password after account creation
