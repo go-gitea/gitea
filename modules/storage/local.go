@@ -133,8 +133,8 @@ func (l *LocalStorage) URL(path, name string) (*url.URL, error) {
 }
 
 // IterateObjects iterates across the objects in the local storage
-func (l *LocalStorage) IterateObjects(prefix string, fn func(path string, obj Object) error) error {
-	dir := l.buildLocalPath(prefix)
+func (l *LocalStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
+	dir := l.buildLocalPath(dirName)
 	return filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err

@@ -214,8 +214,8 @@ menu:
 - `AVATAR_STORAGE_TYPE`: **local**: 头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
 - `AVATAR_UPLOAD_PATH`: **data/avatars**: 存储头像的文件系统路径。
 - `AVATAR_MAX_WIDTH`: **4096**: 头像最大宽度，单位像素。
-- `AVATAR_MAX_HEIGHT`: **3072**: 头像最大高度，单位像素。
-- `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): 头像最大大小。
+- `AVATAR_MAX_HEIGHT`: **4096**: 头像最大高度，单位像素。
+- `AVATAR_MAX_FILE_SIZE`: **1048576** (1MiB): 头像最大大小。
 
 - `REPOSITORY_AVATAR_STORAGE_TYPE`: **local**: 仓库头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
 - `REPOSITORY_AVATAR_UPLOAD_PATH`: **data/repo-avatars**: 存储仓库头像的路径。

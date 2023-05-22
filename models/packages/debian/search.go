@@ -88,44 +88,42 @@ func SearchLatestPackages(ctx context.Context, opts *PackageSearchOptions) ([]*p
 
 // GetDistributions gets all available distributions
 func GetDistributions(ctx context.Context, ownerID int64) ([]string, error) {
-	return getDistinctPropertyValues(ctx, ownerID, "", debian_module.PropertyDistribution)
+	return packages.GetDistinctPropertyValues(
+		ctx,
+		packages.TypeDebian,
+		ownerID,
+		packages.PropertyTypeFile,
+		debian_module.PropertyDistribution,
+		nil,
+	)
 }
 
 // GetComponents gets all available components for the given distribution
 func GetComponents(ctx context.Context, ownerID int64, distribution string) ([]string, error) {
-	return getDistinctPropertyValues(ctx, ownerID, distribution, debian_module.PropertyComponent)
+	return packages.GetDistinctPropertyValues(
+		ctx,
+		packages.TypeDebian,
+		ownerID,
+		packages.PropertyTypeFile,
+		debian_module.PropertyComponent,
+		&packages.DistinctPropertyDependency{
+			Name:  debian_module.PropertyDistribution,
+			Value: distribution,
+		},
+	)
 }
 
 // GetArchitectures gets all available architectures for the given distribution
 func GetArchitectures(ctx context.Context, ownerID int64, distribution string) ([]string, error) {
-	return getDistinctPropertyValues(ctx, ownerID, distribution, debian_module.PropertyArchitecture)
-}
-
-func getDistinctPropertyValues(ctx context.Context, ownerID int64, distribution, propName string) ([]string, error) {
-	var cond builder.Cond = builder.Eq{
-		"package_property.ref_type": packages.PropertyTypeFile,
-		"package_property.name":     propName,
-		"package.type":              packages.TypeDebian,
-		"package.owner_id":          ownerID,
-	}
-	if distribution != "" {
-		innerCond := builder.
-			Expr("pp.ref_id = package_property.ref_id").
-			And(builder.Eq{
-				"pp.ref_type": packages.PropertyTypeFile,
-				"pp.name":     debian_module.PropertyDistribution,
-				"pp.value":    distribution,
-			})
-		cond = cond.And(builder.Exists(builder.Select("pp.ref_id").From("package_property pp").Where(innerCond)))
-	}
-
-	values := make([]string, 0, 5)
-	return values, db.GetEngine(ctx).
-		Table("package_property").
-		Distinct("package_property.value").
-		Join("INNER", "package_file", "package_file.id = package_property.ref_id").
-		Join("INNER", "package_version", "package_version.id = package_file.version_id").
-		Join("INNER", "package", "package.id = package_version.package_id").
-		Where(cond).
-		Find(&values)
+	return packages.GetDistinctPropertyValues(
+		ctx,
+		packages.TypeDebian,
+		ownerID,
+		packages.PropertyTypeFile,
+		debian_module.PropertyArchitecture,
+		&packages.DistinctPropertyDependency{
+			Name:  debian_module.PropertyDistribution,
+			Value: distribution,
+		},
+	)
 }
