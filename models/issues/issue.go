@@ -825,6 +825,9 @@ func (issue *Issue) MovePin(ctx context.Context, newPosition int) error {
 		Update(map[string]interface{}{
 			"pin_order": newPosition,
 		})
+	if err != nil {
+		return err
+	}
 
 	return committer.Commit()
 }
