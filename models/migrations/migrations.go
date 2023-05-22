@@ -492,6 +492,8 @@ var migrations = []Migration{
 	// v256 -> v257
 	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
 	// v257 -> v258
+	NewMigration("Add Actions Artifact table", v1_20.CreateActionArtifactTable),
+	// v258 -> v259
 	NewMigration("Add variable table", v1_20.CreateVariableTable),
 }
 
