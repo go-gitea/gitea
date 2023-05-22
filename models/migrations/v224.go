@@ -14,5 +14,5 @@ func addDescriptionAndReadmeColsForPackage(x *xorm.Engine) error {
 		Readme      string `xorm:"LONGBLOB"`
 	}
 
-	return x.Sync2(new(Package))
+	return x.Sync(new(Package))
 }
