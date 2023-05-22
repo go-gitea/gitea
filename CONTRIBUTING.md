@@ -96,7 +96,7 @@ We welcome submissions. \
 If you want to change or add something, please let everyone know what you're working on — [file an issue](https://github.com/go-gitea/gitea/issues/new) or comment on an existing one before starting your work!
 
 Significant changes such as new features must go through the change proposal process before they can be accepted. \
-This is mainly to save yourself the trouble of implementing it, only to find out that your proposed implementation is too problematic to be merged. \
+This is mainly to save yourself the trouble of implementing it, only to find out that your proposed implementation has some potential problems. \
 Furthermore, this process gives everyone a chance to validate the design, helps prevent duplication of effort, and ensures that the idea fits inside
 the goals for the project and tools.
 
