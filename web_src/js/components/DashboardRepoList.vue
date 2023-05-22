@@ -435,37 +435,37 @@ const sfc = {
     },
 
     reposFilterKeyControl(e) {
-        switch (e.key) {
-          case 'Enter':
-            this.$refs[`activeIndex${this.activeIndex}`][0].click();
-            break;
-          case 'ArrowUp':
-            if (this.activeIndex > 0) {
-              this.activeIndex--;
-            } else if (this.page > 1) {
-              this.changePage(this.page - 1);
-            }
-            break;
-          case 'ArrowDown':
-            if (this.activeIndex < this.repos.length - 1) {
-              this.activeIndex++;
-            } else if (this.page < this.finalPage) {
-              this.activeIndex = 0;
-              this.changePage(this.page + 1);
-            }
-            break;
-          case 'ArrowRight':
-            if (this.page < this.finalPage) {
-              this.changePage(this.page + 1);
-            }
-            break;
-          case 'ArrowLeft':
-            if (this.page > 1) {
-              this.changePage(this.page - 1);
-            }
-            break;
-        }
+      switch (e.key) {
+        case 'Enter':
+          this.$refs[`activeIndex${this.activeIndex}`][0].click();
+          break;
+        case 'ArrowUp':
+          if (this.activeIndex > 0) {
+            this.activeIndex--;
+          } else if (this.page > 1) {
+            this.changePage(this.page - 1);
+          }
+          break;
+        case 'ArrowDown':
+          if (this.activeIndex < this.repos.length - 1) {
+            this.activeIndex++;
+          } else if (this.page < this.finalPage) {
+            this.activeIndex = 0;
+            this.changePage(this.page + 1);
+          }
+          break;
+        case 'ArrowRight':
+          if (this.page < this.finalPage) {
+            this.changePage(this.page + 1);
+          }
+          break;
+        case 'ArrowLeft':
+          if (this.page > 1) {
+            this.changePage(this.page - 1);
+          }
+          break;
       }
+    }
   },
 };
 
