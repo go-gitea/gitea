@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/graceful/releasereopen"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -34,8 +35,22 @@ type RotatingFileWriter struct {
 	openDate    int
 
 	options Options
+
+	cancelReleaseReopen func()
 }
 
+var ErrorPrintf func(format string, args ...interface{})
+
+// errorf tries to print error messages. Since this writer could be used by a logger system, this is the last chance to show the error in some cases
+func errorf(format string, args ...interface{}) {
+	if ErrorPrintf != nil {
+		ErrorPrintf("rotatingfilewriter: "+format+"\n", args...)
+	}
+}
+
+// Open creates a new rotating file writer.
+// Notice: if a file is opened by two rotators, there will be conflicts when rotating.
+// In the future, there should be "rotating file manager"
 func Open(filename string, options *Options) (*RotatingFileWriter, error) {
 	if options == nil {
 		options = &Options{}
@@ -49,16 +64,15 @@ func Open(filename string, options *Options) (*RotatingFileWriter, error) {
 		return nil, err
 	}
 
+	rfw.cancelReleaseReopen = releasereopen.GetManager().Register(rfw)
 	return rfw, nil
 }
 
 func (rfw *RotatingFileWriter) Write(b []byte) (int, error) {
 	if rfw.options.Rotate && ((rfw.options.MaximumSize > 0 && rfw.currentSize >= rfw.options.MaximumSize) || (rfw.options.RotateDaily && time.Now().Day() != rfw.openDate)) {
 		if err := rfw.DoRotate(); err != nil {
-			// This should be
-			// return 0, err
-			// but the old behaviour does not return. This may lead to other errors.
-			fmt.Fprintf(os.Stderr, "RotatingFileWriter: %s\n", err)
+			// if this writer is used by a logger system, it's the logger system's responsibility to handle/show the error
+			return 0, err
 		}
 	}
 
@@ -74,6 +88,12 @@ func (rfw *RotatingFileWriter) Flush() error {
 }
 
 func (rfw *RotatingFileWriter) Close() error {
+	rfw.mu.Lock()
+	if rfw.cancelReleaseReopen != nil {
+		rfw.cancelReleaseReopen()
+		rfw.cancelReleaseReopen = nil
+	}
+	rfw.mu.Unlock()
 	return rfw.fd.Close()
 }
 
@@ -90,7 +110,7 @@ func (rfw *RotatingFileWriter) open(filename string) error {
 		return err
 	}
 	rfw.currentSize = finfo.Size()
-	rfw.openDate = time.Now().Day()
+	rfw.openDate = finfo.ModTime().Day()
 
 	return nil
 }
@@ -102,7 +122,7 @@ func (rfw *RotatingFileWriter) ReleaseReopen() error {
 	)
 }
 
-// Rotate the log file creating a backup like xx.2013-01-01.2
+// DoRotate the log file creating a backup like xx.2013-01-01.2
 func (rfw *RotatingFileWriter) DoRotate() error {
 	if !rfw.options.Rotate {
 		return nil
@@ -137,7 +157,12 @@ func (rfw *RotatingFileWriter) DoRotate() error {
 	}
 
 	if rfw.options.Compress {
-		go compressOldFile(fname, rfw.options.CompressionLevel) //nolint:errcheck
+		go func() {
+			err := compressOldFile(fname, rfw.options.CompressionLevel)
+			if err != nil {
+				errorf("DoRotate: %v", err)
+			}
+		}()
 	}
 
 	if err := rfw.open(fd.Name()); err != nil {
@@ -156,37 +181,42 @@ func (rfw *RotatingFileWriter) DoRotate() error {
 func compressOldFile(fname string, compressionLevel int) error {
 	reader, err := os.Open(fname)
 	if err != nil {
-		return err
+		return fmt.Errorf("compressOldFile: failed to open existing file %s: %w", fname, err)
 	}
 	defer reader.Close()
 
 	buffer := bufio.NewReader(reader)
-	fw, err := os.OpenFile(fname+".gz", os.O_WRONLY|os.O_CREATE, 0o660)
+	fnameGz := fname + ".gz"
+	fw, err := os.OpenFile(fnameGz, os.O_WRONLY|os.O_CREATE, 0o660)
 	if err != nil {
-		return err
+		return fmt.Errorf("compressOldFile: failed to open new file %s: %w", fnameGz, err)
 	}
 	defer fw.Close()
 
 	zw, err := gzip.NewWriterLevel(fw, compressionLevel)
 	if err != nil {
-		return err
+		return fmt.Errorf("compressOldFile: failed to create gzip writer: %w", err)
 	}
 	defer zw.Close()
 
 	_, err = buffer.WriteTo(zw)
 	if err != nil {
-		zw.Close()
-		fw.Close()
-		util.Remove(fname + ".gz") //nolint:errcheck
-		return err
+		_ = zw.Close()
+		_ = fw.Close()
+		_ = util.Remove(fname + ".gz")
+		return fmt.Errorf("compressOldFile: failed to write to gz file: %w", err)
 	}
-	reader.Close()
+	_ = reader.Close()
 
-	return util.Remove(fname)
+	err = util.Remove(fname)
+	if err != nil {
+		return fmt.Errorf("compressOldFile: failed to delete old file: %w", err)
+	}
+	return nil
 }
 
 func deleteOldFiles(dir, prefix string, removeBefore time.Time) {
-	_ = filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) (returnErr error) {
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) (returnErr error) {
 		defer func() {
 			if r := recover(); r != nil {
 				returnErr = fmt.Errorf("unable to delete old file '%s', error: %+v", path, r)
@@ -210,4 +240,7 @@ func deleteOldFiles(dir, prefix string, removeBefore time.Time) {
 		}
 		return nil
 	})
+	if err != nil {
+		errorf("deleteOldFiles: failed to delete old file: %v", err)
+	}
 }

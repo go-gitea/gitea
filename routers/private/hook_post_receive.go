@@ -11,6 +11,7 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -111,10 +112,19 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
 			})
+			return
 		}
 
 		if oldIsPrivate != repo.IsPrivate {
-			audit.Record(audit.RepositoryVisibility, ctx.Doer, repo, repo, "Changed visibility of repository %s to %s.", repo.FullName(), audit.PublicString(!repo.IsPrivate))
+			doer, err := user_model.GetUserByID(ctx, opts.UserID)
+			if err != nil {
+				ctx.JSON(http.StatusInternalServerError, private.Response{
+					Err: fmt.Sprintf("Failed to get user by id: %v Error: %v", opts.UserID, err),
+				})
+				return
+			}
+
+			audit.Record(audit.RepositoryVisibility, doer, repo, repo, "Changed visibility of repository %s to %s.", repo.FullName(), audit.PublicString(!repo.IsPrivate))
 		}
 	}
 

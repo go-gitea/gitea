@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var Audit = struct {
@@ -47,7 +48,7 @@ func loadAuditFrom(rootCfg ConfigProvider) {
 
 		opts := &AppenderOptions{
 			Filename:         path.Join(Log.RootPath, "audit.log"),
-			Rotate:           false,
+			Rotate:           true,
 			RotateDaily:      true,
 			KeepDays:         7,
 			CompressionLevel: gzip.DefaultCompression,
@@ -57,7 +58,7 @@ func loadAuditFrom(rootCfg ConfigProvider) {
 			log.Error("audit.%s: %v", name, err.Error())
 		}
 
-		forcePathSeparator(opts.Filename)
+		opts.Filename = util.FilePathJoinAbs(opts.Filename)
 		if !filepath.IsAbs(opts.Filename) {
 			opts.Filename = path.Join(Log.RootPath, opts.Filename)
 		}

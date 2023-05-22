@@ -1,7 +1,7 @@
 <template>
   <ol class="diff-detail-box diff-stats gt-m-0" ref="root" v-if="fileListIsVisible">
     <li v-for="file in files" :key="file.NameHash">
-      <div class="gt-bold gt-df gt-ac pull-right">
+      <div class="gt-font-semibold gt-df gt-ac pull-right">
         <span v-if="file.IsBin" class="gt-ml-1 gt-mr-3">{{ binaryFileMessage }}</span>
         {{ file.IsBin ? '' : file.Addition + file.Deletion }}
         <span v-if="!file.IsBin" class="diff-stats-bar gt-mx-3" :data-tooltip-content="statisticsMessage.replace('%d', (file.Addition + file.Deletion)).replace('%d', file.Addition).replace('%d', file.Deletion)">

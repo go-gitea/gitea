@@ -36,7 +36,7 @@ export function initCopyContent() {
       }
     } else { // text, read from DOM
       const lineEls = document.querySelectorAll('.file-view .lines-code');
-      content = Array.from(lineEls).map((el) => el.textContent).join('');
+      content = Array.from(lineEls, (el) => el.textContent).join('');
     }
 
     // try copy original first, if that fails and it's an image, convert it to png
