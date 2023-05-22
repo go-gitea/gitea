@@ -531,7 +531,7 @@
 		{{if and .IsRepoAdmin (not .Repository.IsArchived)}}
 			<div class="ui divider"></div>
 
-			{{if .PinEnabled}}
+			{{if or .PinEnabled .Issue.IsPinned}}
 				<form class="gt-mt-2" method="POST" {{if $.NewPinAllowed}}action="{{.Issue.Link}}/pin"{{else}}data-tooltip-content="{{.locale.Tr "repo.issues.max_pinned"}}"{{end}}>
 					{{$.CsrfTokenHtml}}
 					<button class="fluid ui button gt-df gt-jc {{if not $.NewPinAllowed}}disabled{{end}}">
