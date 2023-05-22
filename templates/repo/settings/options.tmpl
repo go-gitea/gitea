@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings options">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings options")}}
+	<div class="user-main-content twelve wide column">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "repo.settings.basic_settings"}}
 		</h4>
@@ -60,7 +56,7 @@
 				{{.CsrfTokenHtml}}
 				<div class="inline field">
 					<label for="avatar">{{.locale.Tr "settings.choose_new_avatar"}}</label>
-					<input name="avatar" type="file" >
+					<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>
 
 				<div class="field">
@@ -88,14 +84,23 @@
 						</tr>
 					</thead>
 					{{end}}
-					{{if .Repository.IsMirror}}
+					{{if and .Repository.IsMirror (not .PullMirror)}}
+						{{/* even if a repo is a pull mirror (IsMirror=true), the PullMirror might still be nil if the mirror migration is broken */}}
+						<tbody>
+							<tr>
+								<td colspan="4">
+									<span class="text red gt-db gt-py-4 gt-border-secondary-bottom">{{$.locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{$.locale.Tr "error.occurred"}}</span>
+								</td>
+							</tr>
+						</tbody>
+					{{else if .PullMirror}}
 					<tbody>
 						<tr>
-							<td>{{(MirrorRemoteAddress $.Context .Repository .Mirror.GetRemoteName false).Address}}</td>
+							<td>{{(MirrorRemoteAddress $.Context .Repository .PullMirror.GetRemoteName false).Address}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
-							<td>{{template "shared/datetime/full" (dict "Datetime" .Mirror.UpdatedUnix.FormatLong "Fallback" .Mirror.UpdatedUnix.AsTime)}}</td>
+							<td>{{DateTime "full" .PullMirror.UpdatedUnix}}</td>
 							<td class="right aligned">
-								<form method="post" style="display: inline-block">
+								<form method="post" class="gt-dib">
 									{{.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="mirror-sync">
 									<button class="ui primary tiny button inline text-thin">{{$.locale.Tr "repo.settings.sync_mirror"}}</button>
@@ -111,15 +116,15 @@
 									<div class="inline field {{if .Err_EnablePrune}}error{{end}}">
 										<label>{{.locale.Tr "repo.mirror_prune"}}</label>
 										<div class="ui checkbox">
-									<input id="enable_prune" name="enable_prune" type="checkbox" {{if .MirrorEnablePrune}}checked{{end}}>
+									<input id="enable_prune" name="enable_prune" type="checkbox" {{if .PullMirror.EnablePrune}}checked{{end}}>
 									<label>{{.locale.Tr "repo.mirror_prune_desc"}}</label>
 										</div>
 									</div>
 									<div class="inline field {{if .Err_Interval}}error{{end}}">
 										<label for="interval">{{.locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
-										<input id="interval" name="interval" value="{{.MirrorInterval}}">
+										<input id="interval" name="interval" value="{{.PullMirror.Interval}}">
 									</div>
-									{{$address := MirrorRemoteAddress $.Context .Repository .Mirror.GetRemoteName false}}
+									{{$address := MirrorRemoteAddress $.Context .Repository .PullMirror.GetRemoteName false}}
 									<div class="field {{if .Err_MirrorAddress}}error{{end}}">
 										<label for="mirror_address">{{.locale.Tr "repo.mirror_address"}}</label>
 										<input id="mirror_address" name="mirror_address" value="{{$address.Address}}" required>
@@ -146,40 +151,40 @@
 									<div class="inline field">
 										<label>{{.locale.Tr "repo.mirror_lfs"}}</label>
 										<div class="ui checkbox">
-											<input id="mirror_lfs" name="mirror_lfs" type="checkbox" {{if .Mirror.LFS}}checked{{end}}>
+											<input id="mirror_lfs" name="mirror_lfs" type="checkbox" {{if .PullMirror.LFS}}checked{{end}}>
 											<label>{{.locale.Tr "repo.mirror_lfs_desc"}}</label>
 										</div>
 									</div>
 									<div class="field {{if .Err_LFSEndpoint}}error{{end}}">
 										<label for="mirror_lfs_endpoint">{{.locale.Tr "repo.mirror_lfs_endpoint"}}</label>
-										<input id="mirror_lfs_endpoint" name="mirror_lfs_endpoint" value="{{.Mirror.LFSEndpoint}}" placeholder="{{.locale.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
+										<input id="mirror_lfs_endpoint" name="mirror_lfs_endpoint" value="{{.PullMirror.LFSEndpoint}}" placeholder="{{.locale.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
 										<p class="help">{{.locale.Tr "repo.mirror_lfs_endpoint_desc" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery" | Str2html}}</p>
 									</div>
 									{{end}}
 									<div class="field">
-										<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
+										<button class="ui green button">{{$.locale.Tr "repo.settings.update_mirror_settings"}}</button>
 									</div>
 								</form>
 							</td>
 						</tr>
 					</tbody>
 					<thead><tr><th colspan="4"></th></tr></thead>
-					{{end}}
+					{{end}}{{/* end if: IsMirror */}}
 					<tbody>
 						{{range .PushMirrors}}
 						<tr>
 							{{$address := MirrorRemoteAddress $.Context $.Repository .GetRemoteName true}}
-							<td>{{$address.Address}}</td>
+							<td class="gt-word-break">{{$address.Address}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
-							<td>{{if .LastUpdateUnix}}{{template "shared/datetime/full" (dict "Datetime" .LastUpdateUnix.FormatLong "Fallback" .LastUpdateUnix.AsTime)}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
+							<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
-								<form method="post" style="display: inline-block">
+								<form method="post" class="gt-dib">
 									{{$.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="push-mirror-remove">
 									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
 									<button class="ui basic red tiny button inline text-thin">{{$.locale.Tr "remove"}}</button>
 								</form>
-								<form method="post" style="display: inline-block">
+								<form method="post" class="gt-dib">
 									{{$.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="push-mirror-sync">
 									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
@@ -798,7 +803,7 @@
 		</div>
 		{{end}}
 	</div>
-</div>
+{{template "repo/settings/layout_footer" .}}
 
 {{if .Permission.IsOwner}}
 	{{if .Repository.IsMirror}}
@@ -807,7 +812,7 @@
 				{{.locale.Tr "repo.settings.convert"}}
 			</div>
 			<div class="content">
-				<div class="ui warning message text left">
+				<div class="ui warning message">
 					{{.locale.Tr "repo.settings.convert_notices_1"}}
 				</div>
 				<form class="ui form" action="{{.Link}}" method="post">
@@ -838,7 +843,7 @@
 				{{.locale.Tr "repo.settings.convert_fork"}}
 			</div>
 			<div class="content">
-				<div class="ui warning message text left">
+				<div class="ui warning message">
 					{{.locale.Tr "repo.settings.convert_fork_notices_1"}}
 				</div>
 				<form class="ui form" action="{{.Link}}" method="post">
@@ -868,7 +873,7 @@
 			{{.locale.Tr "repo.settings.transfer"}}
 		</div>
 		<div class="content">
-			<div class="ui warning message text left">
+			<div class="ui warning message">
 				{{.locale.Tr "repo.settings.transfer_notices_1"}} <br>
 				{{.locale.Tr "repo.settings.transfer_notices_2"}} <br>
 				{{.locale.Tr "repo.settings.transfer_notices_3"}}
@@ -904,7 +909,7 @@
 			{{.locale.Tr "repo.settings.delete"}}
 		</div>
 		<div class="content">
-			<div class="ui warning message text left">
+			<div class="ui warning message">
 				{{.locale.Tr "repo.settings.delete_notices_1" | Safe}}<br>
 				{{.locale.Tr "repo.settings.delete_notices_2" .Repository.FullName | Safe}}
 				{{if .Repository.NumForks}}<br>
@@ -939,7 +944,7 @@
 			{{.locale.Tr "repo.settings.wiki_delete"}}
 		</div>
 		<div class="content">
-			<div class="ui warning message text left">
+			<div class="ui warning message">
 				{{.locale.Tr "repo.settings.delete_notices_1" | Safe}}<br>
 				{{.locale.Tr "repo.settings.wiki_delete_notices_1" .Repository.Name | Safe}}
 			</div>
@@ -967,15 +972,15 @@
 	{{end}}
 
 	{{if not .Repository.IsMirror}}
-		<div class="ui basic modal" id="archive-repo-modal">
-			<div class="ui icon header">
+		<div class="ui g-modal-confirm modal" id="archive-repo-modal">
+			<div class="header">
 				{{if .Repository.IsArchived}}
 					{{.locale.Tr "repo.settings.unarchive.header"}}
 				{{else}}
 					{{.locale.Tr "repo.settings.archive.header"}}
 				{{end}}
 			</div>
-			<div class="content center">
+			<div class="content">
 				<p>
 					{{if .Repository.IsArchived}}
 						{{.locale.Tr "repo.settings.unarchive.text"}}
@@ -988,10 +993,8 @@
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="{{if .Repository.IsArchived}}unarchive{{else}}archive{{end}}">
 				<input type="hidden" name="repo_id" value="{{.Repository.ID}}">
-				{{template "base/delete_modal_actions" .}}
+				{{template "base/modal_actions_confirm" .}}
 			</form>
 		</div>
 	{{end}}
 {{end}}
-
-{{template "base/footer" .}}

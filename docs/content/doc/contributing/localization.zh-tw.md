@@ -5,6 +5,8 @@ slug: "localization"
 weight: 20
 toc: false
 draft: false
+aliases:
+  - /zh-tw/localization
 menu:
   sidebar:
     parent: "contributing"

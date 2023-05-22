@@ -5,6 +5,8 @@ slug: "clone-filters"
 weight: 25
 draft: false
 toc: false
+aliases:
+  - /en-us/clone-filters
 menu:
   sidebar:
     parent: "usage"

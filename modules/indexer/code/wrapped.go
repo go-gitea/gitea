@@ -56,16 +56,6 @@ func (w *wrappedIndexer) get() (Indexer, error) {
 	return w.internal, nil
 }
 
-// SetAvailabilityChangeCallback sets callback that will be triggered when availability changes
-func (w *wrappedIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
-	indexer, err := w.get()
-	if err != nil {
-		log.Error("Failed to get indexer: %v", err)
-		return
-	}
-	indexer.SetAvailabilityChangeCallback(callback)
-}
-
 // Ping checks if elastic is available
 func (w *wrappedIndexer) Ping() bool {
 	indexer, err := w.get()

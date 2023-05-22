@@ -19,19 +19,23 @@
 					<div class="ui divider"></div>
 				</div>
 				<div class="twelve wide column">
+					{{template "package/content/alpine" .}}
 					{{template "package/content/cargo" .}}
 					{{template "package/content/chef" .}}
 					{{template "package/content/composer" .}}
 					{{template "package/content/conan" .}}
 					{{template "package/content/conda" .}}
 					{{template "package/content/container" .}}
+					{{template "package/content/debian" .}}
 					{{template "package/content/generic" .}}
+					{{template "package/content/go" .}}
 					{{template "package/content/helm" .}}
 					{{template "package/content/maven" .}}
 					{{template "package/content/npm" .}}
 					{{template "package/content/nuget" .}}
 					{{template "package/content/pub" .}}
 					{{template "package/content/pypi" .}}
+					{{template "package/content/rpm" .}}
 					{{template "package/content/rubygems" .}}
 					{{template "package/content/swift" .}}
 					{{template "package/content/vagrant" .}}
@@ -46,12 +50,14 @@
 							{{end}}
 							<div class="item">{{svg "octicon-calendar" 16 "gt-mr-3"}} {{TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.locale}}</div>
 							<div class="item">{{svg "octicon-download" 16 "gt-mr-3"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
+							{{template "package/metadata/alpine" .}}
 							{{template "package/metadata/cargo" .}}
 							{{template "package/metadata/chef" .}}
 							{{template "package/metadata/composer" .}}
 							{{template "package/metadata/conan" .}}
 							{{template "package/metadata/conda" .}}
 							{{template "package/metadata/container" .}}
+							{{template "package/metadata/debian" .}}
 							{{template "package/metadata/generic" .}}
 							{{template "package/metadata/helm" .}}
 							{{template "package/metadata/maven" .}}
@@ -59,6 +65,7 @@
 							{{template "package/metadata/nuget" .}}
 							{{template "package/metadata/pub" .}}
 							{{template "package/metadata/pypi" .}}
+							{{template "package/metadata/rpm" .}}
 							{{template "package/metadata/rubygems" .}}
 							{{template "package/metadata/swift" .}}
 							{{template "package/metadata/vagrant" .}}
@@ -86,7 +93,7 @@
 							{{range .LatestVersions}}
 								<div class="item gt-df">
 									<a class="gt-f1" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
-									<span class="text small">{{template "shared/datetime/short" (dict "Datetime" (.CreatedUnix.FormatDate) "Fallback" (.CreatedUnix.FormatDate))}}</span>
+									<span class="text small">{{DateTime "short" .CreatedUnix}}</span>
 								</div>
 							{{end}}
 							</div>

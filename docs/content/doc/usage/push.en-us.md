@@ -5,6 +5,9 @@ slug: "push"
 weight: 15
 toc: false
 draft: false
+aliases:
+  - /en-us/push-to-create
+  - /en-us/push-options
 menu:
   sidebar:
     parent: "usage"

@@ -321,7 +321,13 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
 		Remote: DefaultRemote,
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, DefaultBranch),
-		Env:    repo_module.PushingEnvironment(doer, repo),
+		Env: repo_module.FullPushingEnvironment(
+			doer,
+			doer,
+			repo,
+			repo.Name+".wiki",
+			0,
+		),
 	}); err != nil {
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err

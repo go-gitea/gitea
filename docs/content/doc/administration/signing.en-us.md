@@ -5,6 +5,8 @@ slug: "signing"
 weight: 50
 toc: false
 draft: false
+aliases:
+  - /en-us/signing
 menu:
   sidebar:
     parent: "administration"

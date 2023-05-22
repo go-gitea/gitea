@@ -5,6 +5,8 @@ slug: "reverse-proxies"
 weight: 16
 toc: false
 draft: false
+aliases:
+  - /en-us/reverse-proxies
 menu:
   sidebar:
     parent: "administration"
@@ -23,12 +25,13 @@ menu:
 
 If you want Nginx to serve your Gitea instance, add the following `server` section to the `http` section of `nginx.conf`:
 
-```apacheconf
+```
 server {
     listen 80;
     server_name git.example.com;
 
     location / {
+        client_max_body_size 512M;
         proxy_pass http://localhost:3000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -38,23 +41,32 @@ server {
 }
 ```
 
+### Resolving Error: 413 Request Entity Too Large
+
+This error indicates nginx is configured to restrict the file upload size,
+it affects attachment uploading, form posting, package uploading and LFS pushing, etc.
+You can fine tune the `client_max_body_size` option according to [nginx document](http://nginx.org/en/docs/http/ngx_http_core_module.html#client_max_body_size).
+
 ## Nginx with a sub-path
 
 In case you already have a site, and you want Gitea to share the domain name, you can setup Nginx to serve Gitea under a sub-path by adding the following `server` section inside the `http` section of `nginx.conf`:
 
-```apacheconf
+```
 server {
     listen 80;
     server_name git.example.com;
 
     # Note: Trailing slash
-    location /git/ {
-        # Note: Trailing slash
-        proxy_pass http://localhost:3000/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+    location /gitea/ {
+        client_max_body_size 512M;
+
+        # make nginx use unescaped URI, keep "%2F" as is
+        rewrite ^ $request_uri;
+        rewrite ^/gitea(/.*) $1 break;
+        proxy_pass http://127.0.0.1:3000$uri;
+
+        # other common HTTP headers, see the "Nginx" config section above
+        proxy_set_header ...
     }
 }
 ```
@@ -129,14 +141,6 @@ server {
     }
 }
 ```
-
-## Resolving Error: 413 Request Entity Too Large
-
-This error indicates nginx is configured to restrict the file upload size.
-
-In your nginx config file containing your Gitea proxy directive, find the `location { ... }` block for Gitea and add the line
-`client_max_body_size 16M;` to set this limit to 16 megabytes or any other number of choice.
-If you use Git LFS, this will also limit the size of the largest file you will be able to push.
 
 ## Apache HTTPD
 
@@ -385,3 +389,13 @@ gitea:
 This config assumes that you are handling HTTPS on the traefik side and using HTTP between Gitea and traefik.
 
 Then you **MUST** set something like `[server] ROOT_URL = http://example.com/gitea/` correctly in your configuration.
+
+## General sub-path configuration
+
+Usually it's not recommended to put Gitea in a sub-path, it's not widely used and may have some issues in rare cases.
+
+If you really need to do so, to make Gitea works with sub-path (eg: `http://example.com/gitea/`), here are the requirements:
+
+1. Set `[server] ROOT_URL = http://example.com/gitea/` in your `app.ini` file.
+2. Make the reverse-proxy pass `http://example.com/gitea/foo` to `http://gitea-server:3000/foo`.
+3. Make sure the reverse-proxy not decode the URI, the request `http://example.com/gitea/a%2Fb` should be passed as `http://gitea-server:3000/a%2Fb`.

@@ -414,7 +414,7 @@ func TestConflictChecking(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Ensure conflictedFiles is populated.
-		assert.Equal(t, 1, len(conflictingPR.ConflictedFiles))
+		assert.Len(t, conflictingPR.ConflictedFiles, 1)
 		// Check if status is correct.
 		assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
 		// Ensure that mergeable returns false

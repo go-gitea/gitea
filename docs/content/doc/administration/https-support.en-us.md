@@ -5,6 +5,8 @@ slug: "https-setup"
 weight: 12
 toc: false
 draft: false
+aliases:
+  - /en-us/https-setup
 menu:
   sidebar:
     parent: "administration"

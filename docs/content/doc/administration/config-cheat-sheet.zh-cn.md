@@ -5,6 +5,8 @@ slug: "config-cheat-sheet"
 weight: 30
 toc: false
 draft: false
+aliases:
+  - /zh-cn/config-cheat-sheet
 menu:
   sidebar:
     parent: "administration"
@@ -41,7 +43,6 @@ menu:
 - `DEFAULT_PRIVATE`: 默认创建的git工程为私有。 可以是`last`, `private` 或 `public`。默认值是 `last`表示用户最后创建的Repo的选择。
 - `DEFAULT_PUSH_CREATE_PRIVATE`: **true**:  通过 ``push-to-create`` 方式创建的仓库是否默认为私有仓库.
 - `MAX_CREATION_LIMIT`: 全局最大每个用户创建的git工程数目， `-1` 表示没限制。
-- `PULL_REQUEST_QUEUE_LENGTH`: 小心：合并请求测试队列的长度，尽量放大。
 
 ### Repository - Release (`repository.release`)
 
@@ -109,10 +110,6 @@ menu:
 - `ISSUE_INDEXER_CONN_STR`: ****: 工单索引连接字符串，仅当 ISSUE_INDEXER_TYPE 为 `elasticsearch` 时有效。例如: http://elastic:changeme@localhost:9200
 - `ISSUE_INDEXER_NAME`: **gitea_issues**: 工单索引名称，仅当 ISSUE_INDEXER_TYPE 为 `elasticsearch` 时有效。
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: 工单索引文件存放路径，当索引类型为 `bleve` 时有效。
-- `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: 工单索引队列类型，当前支持 `channel`， `levelqueue` 或 `redis`。
-- `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: 当 `ISSUE_INDEXER_QUEUE_TYPE` 为 `levelqueue` 时，保存索引队列的磁盘路径。
-- `ISSUE_INDEXER_QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: 当 `ISSUE_INDEXER_QUEUE_TYPE` 为 `redis` 时，保存Redis队列的连接字符串。
-- `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: 队列处理中批量提交数量。
 
 - `REPO_INDEXER_ENABLED`: **false**: 是否启用代码搜索（启用后会占用比较大的磁盘空间，如果是bleve可能需要占用约6倍存储空间）。
 - `REPO_INDEXER_TYPE`: **bleve**: 代码搜索引擎类型，可以为 `bleve` 或者 `elasticsearch`。
@@ -120,7 +117,6 @@ menu:
 - `REPO_INDEXER_CONN_STR`: ****: 代码搜索引擎连接字符串，当 `REPO_INDEXER_TYPE` 为 `elasticsearch` 时有效。例如： http://elastic:changeme@localhost:9200
 - `REPO_INDEXER_NAME`: **gitea_codes**: 代码搜索引擎的名字，当 `REPO_INDEXER_TYPE` 为 `elasticsearch` 时有效。
 
-- `UPDATE_BUFFER_LEN`: **20**: 代码索引请求的缓冲区长度。
 - `MAX_FILE_SIZE`: **1048576**: 进行解析的源代码文件的最大长度，小于该值时才会索引。
 
 ## Security (`security`)
@@ -218,8 +214,8 @@ menu:
 - `AVATAR_STORAGE_TYPE`: **local**: 头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
 - `AVATAR_UPLOAD_PATH`: **data/avatars**: 存储头像的文件系统路径。
 - `AVATAR_MAX_WIDTH`: **4096**: 头像最大宽度，单位像素。
-- `AVATAR_MAX_HEIGHT`: **3072**: 头像最大高度，单位像素。
-- `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): 头像最大大小。
+- `AVATAR_MAX_HEIGHT`: **4096**: 头像最大高度，单位像素。
+- `AVATAR_MAX_FILE_SIZE`: **1048576** (1MiB): 头像最大大小。
 
 - `REPOSITORY_AVATAR_STORAGE_TYPE`: **local**: 仓库头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
 - `REPOSITORY_AVATAR_UPLOAD_PATH`: **data/repo-avatars**: 存储仓库头像的路径。
@@ -483,5 +479,4 @@ PROXY_HOSTS = *.github.com
 
 ## Other (`other`)
 
-- `SHOW_FOOTER_BRANDING`: 为真则在页面底部显示Gitea的字样。
 - `SHOW_FOOTER_VERSION`: 为真则在页面底部显示Gitea的版本。

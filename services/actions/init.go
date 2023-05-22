@@ -15,7 +15,7 @@ func Init() {
 		return
 	}
 
-	jobEmitterQueue = queue.CreateUniqueQueue("actions_ready_job", jobEmitterQueueHandle, new(jobUpdate))
+	jobEmitterQueue = queue.CreateUniqueQueue("actions_ready_job", jobEmitterQueueHandler)
 	go graceful.GetManager().RunWithShutdownFns(jobEmitterQueue.Run)
 
 	notification.RegisterNotifier(NewNotifier())

@@ -5,6 +5,8 @@ slug: "hacking-on-gitea"
 weight: 10
 toc: false
 draft: false
+aliases:
+  - /zh-cn/hacking-on-gitea
 menu:
   sidebar:
     parent: "development"
@@ -166,7 +168,7 @@ make lint-backend
 
 ### 处理 JS 和 CSS
 
-前端开发应遵循 [Guidelines for Frontend Development]({{ < 相关参考 "doc/development/guidelines-frontend.en-us.md" > }})
+前端开发应遵循 [Guidelines for Frontend Development]({{< relref "doc/contributing/guidelines-frontend.zh-cn.md" >}})。
 
 要使用前端资源构建，请使用上面提到的“watch-frontend”目标或只构建一次：
 

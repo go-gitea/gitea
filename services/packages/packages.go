@@ -187,19 +187,33 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 }
 
 // AddFileToExistingPackage adds a file to an existing package. If the package does not exist, ErrPackageNotExist is returned
-func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
+func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, error) {
+	return addFileToPackageWrapper(func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
+		if err != nil {
+			return nil, nil, false, err
+		}
+
+		return addFileToPackageVersion(ctx, pv, pvi, pfci)
+	})
+}
+
+// AddFileToPackageVersionInternal adds a file to the package
+// This method skips quota checks and should only be used for system-managed packages.
+func AddFileToPackageVersionInternal(pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, error) {
+	return addFileToPackageWrapper(func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+		return addFileToPackageVersionUnchecked(ctx, pv, pfci)
+	})
+}
+
+func addFileToPackageWrapper(fn func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error)) (*packages_model.PackageFile, error) {
 	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer committer.Close()
 
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	pf, pb, blobCreated, err := addFileToPackageVersion(ctx, pv, pvi, pfci)
+	pf, pb, blobCreated, err := fn(ctx)
 	removeBlob := false
 	defer func() {
 		if removeBlob {
@@ -211,15 +225,15 @@ func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (
 	}()
 	if err != nil {
 		removeBlob = blobCreated
-		return nil, nil, err
+		return nil, err
 	}
 
 	if err := committer.Commit(); err != nil {
 		removeBlob = blobCreated
-		return nil, nil, err
+		return nil, err
 	}
 
-	return pv, pf, nil
+	return pf, nil
 }
 
 // NewPackageBlob creates a package blob instance
@@ -236,11 +250,15 @@ func NewPackageBlob(hsr packages_module.HashedSizeReader) *packages_model.Packag
 }
 
 func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
-	log.Trace("Adding package file: %v, %s", pv.ID, pfci.Filename)
-
 	if err := CheckSizeQuotaExceeded(ctx, pfci.Creator, pvi.Owner, pvi.PackageType, pfci.Data.Size()); err != nil {
 		return nil, nil, false, err
 	}
+
+	return addFileToPackageVersionUnchecked(ctx, pv, pfci)
+}
+
+func addFileToPackageVersionUnchecked(ctx context.Context, pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+	log.Trace("Adding package file: %v, %s", pv.ID, pfci.Filename)
 
 	pb, exists, err := packages_model.GetOrInsertBlob(ctx, NewPackageBlob(pfci.Data))
 	if err != nil {
@@ -333,6 +351,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 
 	var typeSpecificSize int64
 	switch packageType {
+	case packages_model.TypeAlpine:
+		typeSpecificSize = setting.Packages.LimitSizeAlpine
 	case packages_model.TypeCargo:
 		typeSpecificSize = setting.Packages.LimitSizeCargo
 	case packages_model.TypeChef:
@@ -345,8 +365,12 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizeConda
 	case packages_model.TypeContainer:
 		typeSpecificSize = setting.Packages.LimitSizeContainer
+	case packages_model.TypeDebian:
+		typeSpecificSize = setting.Packages.LimitSizeDebian
 	case packages_model.TypeGeneric:
 		typeSpecificSize = setting.Packages.LimitSizeGeneric
+	case packages_model.TypeGo:
+		typeSpecificSize = setting.Packages.LimitSizeGo
 	case packages_model.TypeHelm:
 		typeSpecificSize = setting.Packages.LimitSizeHelm
 	case packages_model.TypeMaven:
@@ -359,6 +383,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizePub
 	case packages_model.TypePyPI:
 		typeSpecificSize = setting.Packages.LimitSizePyPI
+	case packages_model.TypeRpm:
+		typeSpecificSize = setting.Packages.LimitSizeRpm
 	case packages_model.TypeRubyGems:
 		typeSpecificSize = setting.Packages.LimitSizeRubyGems
 	case packages_model.TypeSwift:
@@ -384,6 +410,46 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 	}
 
 	return nil
+}
+
+// GetOrCreateInternalPackageVersion gets or creates an internal package
+// Some package types need such internal packages for housekeeping.
+func GetOrCreateInternalPackageVersion(ownerID int64, packageType packages_model.Type, name, version string) (*packages_model.PackageVersion, error) {
+	var pv *packages_model.PackageVersion
+
+	return pv, db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		p := &packages_model.Package{
+			OwnerID:    ownerID,
+			Type:       packageType,
+			Name:       name,
+			LowerName:  name,
+			IsInternal: true,
+		}
+		var err error
+		if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
+			if err != packages_model.ErrDuplicatePackage {
+				log.Error("Error inserting package: %v", err)
+				return err
+			}
+		}
+
+		pv = &packages_model.PackageVersion{
+			PackageID:    p.ID,
+			CreatorID:    ownerID,
+			Version:      version,
+			LowerVersion: version,
+			IsInternal:   true,
+			MetadataJSON: "null",
+		}
+		if pv, err = packages_model.GetOrInsertVersion(ctx, pv); err != nil {
+			if err != packages_model.ErrDuplicatePackageVersion {
+				log.Error("Error inserting package version: %v", err)
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 // RemovePackageVersionByNameAndVersion deletes a package version and all associated files
@@ -420,6 +486,47 @@ func RemovePackageVersion(doer *user_model.User, pv *packages_model.PackageVersi
 	}
 
 	notification.NotifyPackageDelete(db.DefaultContext, doer, pd)
+
+	return nil
+}
+
+// RemovePackageFileAndVersionIfUnreferenced deletes the package file and the version if there are no referenced files afterwards
+func RemovePackageFileAndVersionIfUnreferenced(doer *user_model.User, pf *packages_model.PackageFile) error {
+	var pd *packages_model.PackageDescriptor
+
+	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		if err := DeletePackageFile(ctx, pf); err != nil {
+			return err
+		}
+
+		has, err := packages_model.HasVersionFileReferences(ctx, pf.VersionID)
+		if err != nil {
+			return err
+		}
+		if !has {
+			pv, err := packages_model.GetVersionByID(ctx, pf.VersionID)
+			if err != nil {
+				return err
+			}
+
+			pd, err = packages_model.GetPackageDescriptor(ctx, pv)
+			if err != nil {
+				return err
+			}
+
+			if err := DeletePackageVersionAndReferences(ctx, pv); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	if pd != nil {
+		notification.NotifyPackageDelete(db.DefaultContext, doer, pd)
+	}
 
 	return nil
 }

@@ -106,7 +106,7 @@
 						<span class="due-date" data-tooltip-content="{{$.locale.Tr "repo.issues.due_date"}}">
 							<span{{if .IsOverdue}} class="overdue"{{end}}>
 								{{svg "octicon-calendar" 14 "gt-mr-2"}}
-								{{template "shared/datetime/short" (dict "Datetime" .DeadlineUnix.FormatDate "Fallback" .DeadlineUnix.FormatShort)}}
+								{{DateTime "short" .DeadlineUnix}}
 							</span>
 						</span>
 					{{end}}
@@ -153,7 +153,7 @@
 				<div class="issue-item-icon-right text grey">
 					{{range .Assignees}}
 						<a class="ui assignee gt-tdn" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
-							{{avatar $.Context .}}
+							{{avatar $.Context . 20}}
 						</a>
 					{{end}}
 				</div>

@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings sshkeys">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings sshkeys")}}
+	<div class="user-setting-content">
 
 		<!-- Theme -->
 		<h4 class="ui top attached header">
@@ -170,6 +167,4 @@
 			</form>
 		</div>
 	</div>
-</div>
-
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}

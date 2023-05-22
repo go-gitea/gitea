@@ -5,6 +5,8 @@ slug: "migrations-interfaces"
 weight: 55
 toc: false
 draft: false
+aliases:
+  - /zh-tw/migrations-interfaces
 menu:
   sidebar:
     parent: "development"

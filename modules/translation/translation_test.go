@@ -21,7 +21,12 @@ func TestPrettyNumber(t *testing.T) {
 
 	l := NewLocale("id-ID")
 	assert.EqualValues(t, "1.000.000", l.PrettyNumber(1000000))
+	assert.EqualValues(t, "1.000.000,1", l.PrettyNumber(1000000.1))
+	assert.EqualValues(t, "1.000.000", l.PrettyNumber("1000000"))
+	assert.EqualValues(t, "1.000.000", l.PrettyNumber("1000000.0"))
+	assert.EqualValues(t, "1.000.000,1", l.PrettyNumber("1000000.1"))
 
 	l = NewLocale("nosuch")
 	assert.EqualValues(t, "1,000,000", l.PrettyNumber(1000000))
+	assert.EqualValues(t, "1,000,000.1", l.PrettyNumber(1000000.1))
 }

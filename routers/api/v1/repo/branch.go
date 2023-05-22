@@ -173,11 +173,35 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	if len(opt.OldBranchName) == 0 {
-		opt.OldBranchName = ctx.Repo.Repository.DefaultBranch
+	var oldCommit *git.Commit
+	var err error
+
+	if len(opt.OldRefName) > 0 {
+		oldCommit, err = ctx.Repo.GitRepo.GetCommit(opt.OldRefName)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+			return
+		}
+	} else if len(opt.OldBranchName) > 0 { //nolint
+		if ctx.Repo.GitRepo.IsBranchExist(opt.OldBranchName) { //nolint
+			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.OldBranchName) //nolint
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
+				return
+			}
+		} else {
+			ctx.Error(http.StatusNotFound, "", "The old branch does not exist")
+			return
+		}
+	} else {
+		oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
+			return
+		}
 	}
 
-	err := repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
+	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, oldCommit.ID.String(), opt.BranchName)
 	if err != nil {
 		if models.IsErrBranchDoesNotExist(err) {
 			ctx.Error(http.StatusNotFound, "", "The old branch does not exist")
@@ -189,7 +213,7 @@ func CreateBranch(ctx *context.APIContext) {
 		} else if models.IsErrBranchNameConflict(err) {
 			ctx.Error(http.StatusConflict, "", "The branch with the same name already exists.")
 		} else {
-			ctx.Error(http.StatusInternalServerError, "CreateRepoBranch", err)
+			ctx.Error(http.StatusInternalServerError, "CreateNewBranchFromCommit", err)
 		}
 		return
 	}

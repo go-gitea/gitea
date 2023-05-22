@@ -5,6 +5,8 @@ slug: "issue-pull-request-templates"
 weight: 15
 toc: true
 draft: false
+aliases:
+  - /zh-cn/issue-pull-request-templates
 menu:
   sidebar:
     parent: "usage"

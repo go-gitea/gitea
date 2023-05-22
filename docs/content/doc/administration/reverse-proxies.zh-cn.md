@@ -5,6 +5,8 @@ slug: "reverse-proxies"
 weight: 16
 toc: false
 draft: false
+aliases:
+  - /zh-cn/reverse-proxies
 menu:
   sidebar:
     parent: "administration"

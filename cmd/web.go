@@ -24,7 +24,6 @@ import (
 
 	"github.com/felixge/fgprof"
 	"github.com/urfave/cli"
-	ini "gopkg.in/ini.v1"
 )
 
 // PIDFile could be set from build tag
@@ -104,11 +103,9 @@ func createPIDFile(pidPath string) {
 
 func runWeb(ctx *cli.Context) error {
 	if ctx.Bool("verbose") {
-		_ = log.DelLogger("console")
-		log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "trace", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
+		setupConsoleLogger(log.TRACE, log.CanColorStdout, os.Stdout)
 	} else if ctx.Bool("quiet") {
-		_ = log.DelLogger("console")
-		log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "fatal", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
+		setupConsoleLogger(log.FATAL, log.CanColorStdout, os.Stdout)
 	}
 	defer func() {
 		if panicked := recover(); panicked != nil {
@@ -157,7 +154,7 @@ func runWeb(ctx *cli.Context) error {
 		case <-graceful.GetManager().IsShutdown():
 			<-graceful.GetManager().Done()
 			log.Info("PID: %d Gitea Web Finished", os.Getpid())
-			log.Close()
+			log.GetManager().Close()
 			return err
 		default:
 		}
@@ -178,8 +175,7 @@ func runWeb(ctx *cli.Context) error {
 
 	log.Info("Global init")
 	// Perform global initialization
-	setting.InitProviderFromExistingFile()
-	setting.LoadCommonSettings()
+	setting.Init(&setting.Options{})
 	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 
 	// We check that AppDataPath exists here (it should have been created during installation)
@@ -201,7 +197,7 @@ func runWeb(ctx *cli.Context) error {
 	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
-	log.Close()
+	log.GetManager().Close()
 	return err
 }
 
@@ -223,9 +219,10 @@ func setPort(port string) error {
 		defaultLocalURL += ":" + setting.HTTPPort + "/"
 
 		// Save LOCAL_ROOT_URL if port changed
-		setting.CreateOrAppendToCustomConf("server.LOCAL_ROOT_URL", func(cfg *ini.File) {
-			cfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
-		})
+		setting.CfgProvider.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
+		if err := setting.CfgProvider.Save(); err != nil {
+			return fmt.Errorf("Failed to save config file: %v", err)
+		}
 	}
 	return nil
 }

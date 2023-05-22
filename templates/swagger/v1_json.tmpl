@@ -297,6 +297,31 @@
           }
         }
       },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete a hook",
+        "operationId": "adminDeleteHook",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the hook to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
       "patch": {
         "consumes": [
           "application/json"
@@ -858,29 +883,94 @@
         }
       }
     },
-    "/amdin/hooks/{id}": {
-      "delete": {
+    "/gitignore/templates": {
+      "get": {
         "produces": [
           "application/json"
         ],
         "tags": [
-          "admin"
+          "miscellaneous"
         ],
-        "summary": "Delete a hook",
-        "operationId": "adminDeleteHook",
+        "summary": "Returns a list of all gitignore templates",
+        "operationId": "listGitignoresTemplates",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GitignoreTemplateList"
+          }
+        }
+      }
+    },
+    "/gitignore/templates/{name}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns information about a gitignore template",
+        "operationId": "getGitignoreTemplateInfo",
         "parameters": [
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the hook to delete",
-            "name": "id",
+            "type": "string",
+            "description": "name of the template",
+            "name": "name",
             "in": "path",
             "required": true
           }
         ],
         "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
+          "200": {
+            "$ref": "#/responses/GitignoreTemplateInfo"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/licenses": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns a list of all license templates",
+        "operationId": "listLicenseTemplates",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/LicenseTemplateList"
+          }
+        }
+      }
+    },
+    "/licenses/{name}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns information about a license template",
+        "operationId": "getLicenseTemplateInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the license",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/LicenseTemplateInfo"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -2319,19 +2409,23 @@
           },
           {
             "enum": [
+              "alpine",
               "cargo",
               "chef",
               "composer",
               "conan",
               "conda",
               "container",
+              "debian",
               "generic",
+              "go",
               "helm",
               "maven",
               "npm",
               "nuget",
               "pub",
               "pypi",
+              "rpm",
               "rubygems",
               "swift",
               "vagrant"
@@ -3703,6 +3797,18 @@
             "in": "query"
           },
           {
+            "type": "boolean",
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "name": "files",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -3712,6 +3818,12 @@
             "type": "integer",
             "description": "page size of results (ignored if used with 'path')",
             "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "commits that match the given specifier will not be listed.",
+            "name": "not",
             "in": "query"
           }
         ],
@@ -4388,6 +4500,24 @@
             "name": "sha",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "include diff stats for every commit (disable for speedup, default 'true')",
+            "name": "stat",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "name": "files",
+            "in": "query"
           }
         ],
         "responses": {
@@ -16035,10 +16165,16 @@
           "x-go-name": "BranchName"
         },
         "old_branch_name": {
-          "description": "Name of the old branch to create from",
+          "description": "Deprecated: true\nName of the old branch to create from",
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "OldBranchName"
+        },
+        "old_ref_name": {
+          "description": "Name of the old branch/tag/commit to create from",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "OldRefName"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -18298,6 +18434,21 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "GitignoreTemplateInfo": {
+      "description": "GitignoreTemplateInfo name and text of a gitignore template",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "source": {
+          "type": "string",
+          "x-go-name": "Source"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Hook": {
       "description": "Hook a hook is a web hook when one repository changed",
       "type": "object",
@@ -18694,6 +18845,52 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "LicenseTemplateInfo": {
+      "description": "LicensesInfo contains information about a License",
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "implementation": {
+          "type": "string",
+          "x-go-name": "Implementation"
+        },
+        "key": {
+          "type": "string",
+          "x-go-name": "Key"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "LicensesTemplateListEntry": {
+      "description": "LicensesListEntry is used for the API",
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "x-go-name": "Key"
         },
         "name": {
           "type": "string",
@@ -20131,6 +20328,11 @@
           "type": "boolean",
           "x-go-name": "Archived"
         },
+        "archived_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "ArchivedAt"
+        },
         "avatar_url": {
           "type": "string",
           "x-go-name": "AvatarURL"
@@ -21519,6 +21721,21 @@
         "$ref": "#/definitions/GitTreeResponse"
       }
     },
+    "GitignoreTemplateInfo": {
+      "description": "GitignoreTemplateInfo",
+      "schema": {
+        "$ref": "#/definitions/GitignoreTemplateInfo"
+      }
+    },
+    "GitignoreTemplateList": {
+      "description": "GitignoreTemplateList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
     "Hook": {
       "description": "Hook",
       "schema": {
@@ -21586,6 +21803,21 @@
         "additionalProperties": {
           "type": "integer",
           "format": "int64"
+        }
+      }
+    },
+    "LicenseTemplateInfo": {
+      "description": "LicenseTemplateInfo",
+      "schema": {
+        "$ref": "#/definitions/LicenseTemplateInfo"
+      }
+    },
+    "LicenseTemplateList": {
+      "description": "LicenseTemplateList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/LicensesTemplateListEntry"
         }
       }
     },
