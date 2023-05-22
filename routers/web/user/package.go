@@ -366,22 +366,14 @@ func PackageSettingsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Link)
 		return
 	case "update":
-		success := func() bool {
-			description := form.Description
-			readme := form.Readme
+		description := form.Description
+		readme := form.Readme
 
-			if err := packages_model.SetDescriptions(ctx, pd.Package.ID, description, readme); err != nil {
-				log.Error("Error updating package: %v", err)
-				return false
-			}
-
-			return true
-		}()
-
-		if success {
-			ctx.Flash.Success(ctx.Tr("packages.settings.descriptions.success"))
-		} else {
+		if err := packages_model.SetDescriptions(ctx, pd.Package.ID, description, readme); err != nil {
+			log.Error("Error updating package: %v", err)
 			ctx.Flash.Error(ctx.Tr("packages.settings.descriptions.error"))
+		} else {
+			ctx.Flash.Success(ctx.Tr("packages.settings.descriptions.success"))
 		}
 
 		ctx.Redirect(ctx.Link)
