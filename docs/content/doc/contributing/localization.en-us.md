@@ -36,4 +36,4 @@ If you use a bleeding edge build, it should appear as soon as you update after t
 
 # How to Contribute
 
-Different Languages have different translation guidelines. Please go to their own page to get more informations.
+Different Languages have different translation guidelines. Please visit the respective page for more information.
