@@ -2207,6 +2207,9 @@
 .repository .segment.reactions .select-reaction {
   display: flex;
   align-items: center;
+}
+
+.repository .segment.reactions .select-reaction a {
   padding: 0 14px;
 }
 
@@ -2510,14 +2513,6 @@
 .comment-header.arrow-top::after {
   top: -8px;
   left: 7px;
-}
-
-.comment-header a {
-  color: var(--color-text);
-}
-
-.comment-header a:hover {
-  color: var(--color-primary);
 }
 
 .comment-header .actions a {
