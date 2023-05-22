@@ -17,7 +17,7 @@
       </h4>
       <div class="ui attached segment repos-search">
         <div class="ui fluid right action left icon input" :class="{loading: isLoading}">
-          <input @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" :placeholder="textSearchRepos">
+          <input @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
           <i class="icon gt-df gt-ac gt-jc"><svg-icon name="octicon-search" :size="16"/></i>
           <div class="ui dropdown icon button" :title="textFilter">
             <i class="icon gt-df gt-ac gt-jc gt-m-0"><svg-icon name="octicon-filter" :size="16"/></i>
@@ -93,14 +93,14 @@
               <svg-icon name="gitea-double-chevron-left" :size="16" class-name="gt-mr-2"/>
             </a>
             <a
-              class="item navigation gt-py-2" ref="previousPageLink" :class="{'disabled': page === 1}"
+              class="item navigation gt-py-2" :class="{'disabled': page === 1}"
               @click="changePage(page - 1)" :title="textPreviousPage"
             >
               <svg-icon name="octicon-chevron-left" :size="16" clsas-name="gt-mr-2"/>
             </a>
             <a class="active item gt-py-2">{{ page }}</a>
             <a
-              class="item navigation" ref="nextPageLink" :class="{'disabled': page === finalPage}"
+              class="item navigation" :class="{'disabled': page === finalPage}"
               @click="changePage(page + 1)" :title="textNextPage"
             >
               <svg-icon name="octicon-chevron-right" :size="16" class-name="gt-ml-2"/>
@@ -256,40 +256,6 @@ const sfc = {
     $(el).find('.dropdown').dropdown();
     nextTick(() => {
       this.$refs.search.focus();
-      this.$refs.search.addEventListener('keydown', (e) => {
-        const previousPageLink = this.$refs.previousPageLink;
-        const nextPageLink = this.$refs.nextPageLink;
-        switch (e.key) {
-          case 'Enter':
-            this.$refs[`activeIndex${this.activeIndex}`][0].click();
-            break;
-          case 'ArrowUp':
-            if (this.activeIndex > 0) {
-              this.activeIndex--;
-            } else if (previousPageLink && !previousPageLink.classList.contains('disabled')) {
-              previousPageLink.click();
-            }
-            break;
-          case 'ArrowDown':
-            if (this.activeIndex < this.repos.length - 1) {
-              this.activeIndex++;
-            } else if (nextPageLink && nextPageLink.classList && !nextPageLink.classList.contains('disabled')) {
-              this.activeIndex = 0;
-              nextPageLink.click();
-            }
-            break;
-          case 'ArrowRight':
-            if (nextPageLink && !nextPageLink.classList.contains('disabled')) {
-              nextPageLink.click();
-            }
-            break;
-          case 'ArrowLeft':
-            if (previousPageLink && !previousPageLink.classList.contains('disabled')) {
-              previousPageLink.click();
-            }
-            break;
-        }
-      });
     });
 
     this.textArchivedFilterTitles = {
@@ -466,7 +432,40 @@ const sfc = {
 
     statusColor(status) {
       return commitStatus[status].color;
-    }
+    },
+
+    reposFilterKeyControl(e) {
+        switch (e.key) {
+          case 'Enter':
+            this.$refs[`activeIndex${this.activeIndex}`][0].click();
+            break;
+          case 'ArrowUp':
+            if (this.activeIndex > 0) {
+              this.activeIndex--;
+            } else if (this.page > 1) {
+              this.changePage(this.page - 1);
+            }
+            break;
+          case 'ArrowDown':
+            if (this.activeIndex < this.repos.length - 1) {
+              this.activeIndex++;
+            } else if (this.page < this.finalPage) {
+              this.activeIndex = 0;
+              this.changePage(this.page + 1);
+            }
+            break;
+          case 'ArrowRight':
+            if (this.page < this.finalPage) {
+              this.changePage(this.page + 1);
+            }
+            break;
+          case 'ArrowLeft':
+            if (this.page > 1) {
+              this.changePage(this.page - 1);
+            }
+            break;
+        }
+      }
   },
 };
 
