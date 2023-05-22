@@ -27,7 +27,7 @@
 									{{svg (MigrationIcon .Repository.GetOriginalURLHostname)}}
 									{{.Issue.OriginalAuthor}}
 								</span>
-								<span class="text grey">
+								<span class="text grey muted-links">
 									{{.locale.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe}}
 								</span>
 								<span class="text migrate">
@@ -37,7 +37,7 @@
 								<a class="inline-timeline-avatar" href="{{.Issue.Poster.HomeLink}}">
 									{{avatar $.Context .Issue.Poster 24}}
 								</a>
-								<span class="text grey">
+								<span class="text grey muted-links">
 									{{template "shared/user/authorlink" .Issue.Poster}}
 									{{.locale.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe}}
 								</span>
