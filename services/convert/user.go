@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -65,12 +66,18 @@ func toUser(ctx context.Context, user, doer *user_model.User, accessMode perm.Ac
 		signed = true
 		authed = doer.ID == user.ID || doer.IsAdmin
 
-		_, followersCount, err := user_model.GetUserFollowers(ctx, user, doer, db.ListOptions{ListAll: true})
+		_, followersCount, err := user_model.GetUserFollowers(ctx, user, doer, db.ListOptions{
+			Page:     1,
+			PageSize: setting.API.DefaultPagingNum,
+		})
 		if err != nil {
 			return nil
 		}
 		result.Followers = int(followersCount)
-		_, followingCount, err := user_model.GetUserFollowing(ctx, user, doer, db.ListOptions{ListAll: true})
+		_, followingCount, err := user_model.GetUserFollowing(ctx, user, doer, db.ListOptions{
+			Page:     1,
+			PageSize: setting.API.DefaultPagingNum,
+		})
 		if err != nil {
 			return nil
 		}
