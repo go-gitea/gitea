@@ -290,11 +290,11 @@ Starting with Gitea 1.20, you can customize the git configuration via the `git.c
 
 To enable signed git pushes, set these two options:
 
-````
+```ini
 [git.config]
 receive.advertisePushOptions = true
 receive.certNonceSeed = <randomstring>
-````
+```
 
 `certNonceSeed` should be set to a sufficiently random string and be kept secret.
 
