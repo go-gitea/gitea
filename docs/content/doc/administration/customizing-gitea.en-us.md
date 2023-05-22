@@ -296,7 +296,7 @@ receive.advertisePushOptions = true
 receive.certNonceSeed = <randomstring>
 ```
 
-`certNonceSeed` should be set to a sufficiently random string and be kept secret.
+`certNonceSeed` should be set to a random string and be kept secret.
 
 ### Labels
 
