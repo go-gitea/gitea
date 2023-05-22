@@ -361,66 +361,23 @@
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
-				{{range .Loggers.default.SubLogDescriptions}}
-					<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
-					<dd>{{.Name}} ({{.Provider}})</dd>
-					<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-					<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
-				{{end}}
-				<div class="ui divider"></div>
-				<dt>{{$.locale.Tr "admin.config.router_log_mode"}}</dt>
-				{{if .DisableRouterLog}}
-					<dd>{{$.locale.Tr "admin.config.disabled_logger"}}</dd>
-				{{else}}
-					{{if .Loggers.router.SubLogDescriptions}}
-						<dd>{{$.locale.Tr "admin.config.own_named_logger"}}</dd>
-						{{range .Loggers.router.SubLogDescriptions}}
-							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
-							<dd>{{.Name}} ({{.Provider}})</dd>
-							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
-						{{end}}
-					{{else}}
-						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
-					{{end}}
-				{{end}}
-				<div class="ui divider"></div>
-				<dt>{{$.locale.Tr "admin.config.access_log_mode"}}</dt>
-				{{if .EnableAccessLog}}
-					{{if .Loggers.access.SubLogDescriptions}}
-						<dd>{{$.locale.Tr "admin.config.own_named_logger"}}</dd>
-						{{range .Loggers.access.SubLogDescriptions}}
-							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
-							<dd>{{.Name}} ({{.Provider}})</dd>
-							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
-						{{end}}
-					{{else}}
-						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
-					{{end}}
-					<dt>{{$.locale.Tr "admin.config.access_log_template"}}</dt>
-					<dd><code>{{$.AccessLogTemplate}}</code></dd>
-				{{else}}
-					<dd>{{$.locale.Tr "admin.config.disabled_logger"}}</dd>
-				{{end}}
-				<div class="ui divider"></div>
-				<dt>{{$.locale.Tr "admin.config.xorm_log_mode"}}</dt>
-				{{if .EnableXORMLog}}
-					{{if .Loggers.xorm.SubLogDescriptions}}
-						<dd>{{$.locale.Tr "admin.config.own_named_logger"}}</dd>
-						{{range .Loggers.xorm.SubLogDescriptions}}
-							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
-							<dd>{{.Name}} ({{.Provider}})</dd>
-							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
-						{{end}}
-					{{else}}
-						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
-					{{end}}
+				{{if .Loggers.xorm.IsEnabled}}
 					<dt>{{$.locale.Tr "admin.config.xorm_log_sql"}}</dt>
 					<dd>{{if $.LogSQL}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				{{else}}
-					<dd>{{$.locale.Tr "admin.config.disabled_logger"}}</dd>
+				{{end}}
+
+				{{if .Loggers.access.IsEnabled}}
+					<dt>{{$.locale.Tr "admin.config.access_log_template"}}</dt>
+					<dd><code>{{$.AccessLogTemplate}}</code></dd>
+				{{end}}
+
+				{{range $loggerName, $loggerDetail := .Loggers}}
+					<dt>{{$.locale.Tr "admin.config.logger_name_fmt" $loggerName}}</dt>
+					{{if $loggerDetail.IsEnabled}}
+						<dd><pre class="gt-m-0">{{$loggerDetail.EventWriters | JsonUtils.EncodeToString | JsonUtils.PrettyIndent}}</pre></dd>
+					{{else}}
+						<dd>{{$.locale.Tr "admin.config.disabled_logger"}}</dd>
+					{{end}}
 				{{end}}
 			</dl>
 		</div>

@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/conan"
 	"code.gitea.io/gitea/routers/api/packages/conda"
 	"code.gitea.io/gitea/routers/api/packages/container"
+	"code.gitea.io/gitea/routers/api/packages/cran"
 	"code.gitea.io/gitea/routers/api/packages/debian"
 	"code.gitea.io/gitea/routers/api/packages/generic"
 	"code.gitea.io/gitea/routers/api/packages/goproxy"
@@ -98,7 +99,7 @@ func verifyAuth(r *web.Route, authMethods []auth.Method) {
 func CommonRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
-	r.Use(context.PackageContexter(ctx))
+	r.Use(context.PackageContexter())
 
 	verifyAuth(r, []auth.Method{
 		&auth.OAuth2{},
@@ -293,6 +294,24 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				ctx.SetParams("filename", m[2])
 
 				conda.UploadPackageFile(ctx)
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/cran", func() {
+			r.Group("/src", func() {
+				r.Group("/contrib", func() {
+					r.Get("/PACKAGES", cran.EnumerateSourcePackages)
+					r.Get("/PACKAGES{format}", cran.EnumerateSourcePackages)
+					r.Get("/{filename}", cran.DownloadSourcePackageFile)
+				})
+				r.Put("", reqPackageAccess(perm.AccessModeWrite), cran.UploadSourcePackageFile)
+			})
+			r.Group("/bin", func() {
+				r.Group("/{platform}/contrib/{rversion}", func() {
+					r.Get("/PACKAGES", cran.EnumerateBinaryPackages)
+					r.Get("/PACKAGES{format}", cran.EnumerateBinaryPackages)
+					r.Get("/{filename}", cran.DownloadBinaryPackageFile)
+				})
+				r.Put("", reqPackageAccess(perm.AccessModeWrite), cran.UploadBinaryPackageFile)
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/debian", func() {
@@ -574,7 +593,7 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 func ContainerRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
-	r.Use(context.PackageContexter(ctx))
+	r.Use(context.PackageContexter())
 
 	verifyAuth(r, []auth.Method{
 		&auth.Basic{},

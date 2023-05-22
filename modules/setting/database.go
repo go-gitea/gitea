@@ -92,7 +92,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	Database.MaxOpenConns = sec.Key("MAX_OPEN_CONNS").MustInt(0)
 
 	Database.IterateBufferSize = sec.Key("ITERATE_BUFFER_SIZE").MustInt(50)
-	Database.LogSQL = sec.Key("LOG_SQL").MustBool(true)
+	Database.LogSQL = sec.Key("LOG_SQL").MustBool(false)
 	Database.DBConnectRetries = sec.Key("DB_RETRIES").MustInt(10)
 	Database.DBConnectBackoff = sec.Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
 	Database.AutoMigration = sec.Key("AUTO_MIGRATION").MustBool(true)
