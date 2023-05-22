@@ -5,8 +5,6 @@ package log
 
 import (
 	"bytes"
-	"fmt"
-	"os"
 	"strings"
 
 	"code.gitea.io/gitea/modules/json"
@@ -16,53 +14,53 @@ import (
 type Level int
 
 const (
-	// TRACE represents the lowest log level
-	TRACE Level = iota
-	// DEBUG is for debug logging
+	UNDEFINED Level = iota
+	TRACE
 	DEBUG
-	// INFO is for information
 	INFO
-	// WARN is for warning information
 	WARN
-	// ERROR is for error reporting
 	ERROR
-	// CRITICAL is for critical errors
-	CRITICAL
-	// FATAL is for fatal errors
 	FATAL
-	// NONE is for no logging
 	NONE
 )
 
+const CRITICAL = ERROR // most logger frameworks doesn't support CRITICAL, and it doesn't seem useful
+
 var toString = map[Level]string{
-	TRACE:    "trace",
-	DEBUG:    "debug",
-	INFO:     "info",
-	WARN:     "warn",
-	ERROR:    "error",
-	CRITICAL: "critical",
-	FATAL:    "fatal",
-	NONE:     "none",
+	UNDEFINED: "undefined",
+
+	TRACE: "trace",
+	DEBUG: "debug",
+	INFO:  "info",
+	WARN:  "warn",
+	ERROR: "error",
+
+	FATAL: "fatal",
+	NONE:  "none",
 }
 
 var toLevel = map[string]Level{
-	"trace":    TRACE,
-	"debug":    DEBUG,
-	"info":     INFO,
-	"warn":     WARN,
-	"error":    ERROR,
-	"critical": CRITICAL,
-	"fatal":    FATAL,
-	"none":     NONE,
+	"undefined": UNDEFINED,
+
+	"trace":   TRACE,
+	"debug":   DEBUG,
+	"info":    INFO,
+	"warn":    WARN,
+	"warning": WARN,
+	"error":   ERROR,
+
+	"fatal": FATAL,
+	"none":  NONE,
 }
 
-// Levels returns all the possible logging levels
-func Levels() []string {
-	keys := make([]string, 0)
-	for key := range toLevel {
-		keys = append(keys, key)
-	}
-	return keys
+var levelToColor = map[Level][]ColorAttribute{
+	TRACE: {Bold, FgCyan},
+	DEBUG: {Bold, FgBlue},
+	INFO:  {Bold, FgGreen},
+	WARN:  {Bold, FgYellow},
+	ERROR: {Bold, FgRed},
+	FATAL: {Bold, BgRed},
+	NONE:  {Reset},
 }
 
 func (l Level) String() string {
@@ -73,14 +71,13 @@ func (l Level) String() string {
 	return "info"
 }
 
-// Color returns the color string for this Level
-func (l Level) Color() *[]byte {
+func (l Level) ColorAttributes() []ColorAttribute {
 	color, ok := levelToColor[l]
 	if ok {
-		return &(color)
+		return color
 	}
 	none := levelToColor[NONE]
-	return &none
+	return none
 }
 
 // MarshalJSON takes a Level and turns it into text
@@ -91,31 +88,29 @@ func (l Level) MarshalJSON() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-// FromString takes a level string and returns a Level
-func FromString(level string) Level {
-	temp, ok := toLevel[strings.ToLower(level)]
-	if !ok {
-		return INFO
-	}
-	return temp
-}
-
 // UnmarshalJSON takes text and turns it into a Level
 func (l *Level) UnmarshalJSON(b []byte) error {
-	var tmp interface{}
+	var tmp any
 	err := json.Unmarshal(b, &tmp)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Err: %v", err)
 		return err
 	}
 
 	switch v := tmp.(type) {
 	case string:
-		*l = FromString(v)
+		*l = LevelFromString(v)
 	case int:
-		*l = FromString(Level(v).String())
+		*l = LevelFromString(Level(v).String())
 	default:
 		*l = INFO
 	}
 	return nil
+}
+
+// LevelFromString takes a level string and returns a Level
+func LevelFromString(level string) Level {
+	if l, ok := toLevel[strings.ToLower(level)]; ok {
+		return l
+	}
+	return INFO
 }
