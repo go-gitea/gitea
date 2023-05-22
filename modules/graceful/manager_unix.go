@@ -244,6 +244,10 @@ func (g *Manager) DoGracefulRestart() {
 				log.Error("Error whilst forking from PID: %d : %v", os.Getpid(), err)
 			}
 		}
+		// doFork calls RestartProcess which starts a new Gitea process, so this parent process needs to exit
+		// Otherwise some resources (eg: leveldb lock) will be held by this parent process and the new process will fail to start
+		log.Info("PID: %d. Shutting down after forking ...", os.Getpid())
+		g.doShutdown()
 	} else {
 		log.Info("PID: %d. Not set restartable. Shutting down...", os.Getpid())
 		g.notify(stoppingMsg)
