@@ -47,10 +47,10 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 	return repo.SHAsToCommits(parts)
 }
 
-func (repo *Repository) SHAsToCommits(SHAs []string) ([]*Commit, error) {
+func (repo *Repository) SHAsToCommits(shas []string) ([]*Commit, error) {
 	var commits []*Commit
 
-	for _, commitID := range SHAs {
+	for _, commitID := range shas {
 		commit, err := repo.GetCommit(commitID)
 		if err != nil {
 			return nil, err
