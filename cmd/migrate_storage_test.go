@@ -25,7 +25,7 @@ func TestMigratePackages(t *testing.T) {
 	creator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	content := "package main\n\nfunc main() {\nfmt.Println(\"hi\")\n}\n"
-	buf, err := packages_module.CreateHashedBufferFromReader(strings.NewReader(content), 1024)
+	buf, err := packages_module.CreateHashedBufferFromReaderWithSize(strings.NewReader(content), 1024)
 	assert.NoError(t, err)
 	defer buf.Close()
 
@@ -67,7 +67,7 @@ func TestMigratePackages(t *testing.T) {
 
 	entries, err := os.ReadDir(p)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 2, len(entries))
+	assert.Len(t, entries, 2)
 	assert.EqualValues(t, "01", entries[0].Name())
 	assert.EqualValues(t, "tmp", entries[1].Name())
 }

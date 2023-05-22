@@ -1,7 +1,7 @@
 <template>
   <div v-show="show" :title="item.name">
     <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
-    <div class="item" :class="item.isFile ? 'filewrapper gt-p-1 gt-ac' : ''">
+    <div class="item" :class="[item.isFile ? 'filewrapper gt-p-1 gt-ac' : '', store.selectedItem === '#diff-' + item.file?.NameHash ? 'selected' : '']">
       <!-- Files -->
       <SvgIcon
         v-if="item.isFile"
@@ -32,7 +32,7 @@
         <span class="gt-ellipsis">{{ item.name }}</span>
       </div>
       <div v-show="!collapsed">
-        <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem" class="list" />
+        <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem" class="list"/>
       </div>
     </div>
   </div>
@@ -40,6 +40,7 @@
 
 <script>
 import {SvgIcon} from '../svg.js';
+import {DiffTreeStore} from '../modules/stores.js';
 
 export default {
   components: {SvgIcon},
@@ -52,9 +53,10 @@ export default {
       type: Boolean,
       required: false,
       default: true
-    }
+    },
   },
   data: () => ({
+    store: DiffTreeStore,
     collapsed: false,
   }),
   methods: {
@@ -113,9 +115,15 @@ export default {
   padding-left: 18px !important;
 }
 
-.item.filewrapper:hover {
+.item.filewrapper:hover, div.directory:hover {
   color: var(--color-text);
   background: var(--color-hover);
+  border-radius: 4px;
+}
+
+.item.filewrapper.selected {
+  color: var(--color-text);
+  background: var(--color-active);
   border-radius: 4px;
 }
 
@@ -124,12 +132,6 @@ div.directory {
   grid-template-columns: 18px 20px auto;
   user-select: none;
   cursor: pointer;
-}
-
-div.directory:hover {
-  color: var(--color-text);
-  background: var(--color-hover);
-  border-radius: 4px;
 }
 
 div.list {

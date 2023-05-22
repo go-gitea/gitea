@@ -14,7 +14,6 @@ import (
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/util"
 	source_service "code.gitea.io/gitea/services/auth/source"
-	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -99,8 +98,6 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		if err != nil {
 			return user, err
 		}
-
-		mailer.SendRegisterNotifyMail(user)
 
 		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(user, source.authSource, sr.SSHPublicKey) {
 			if err := asymkey_model.RewriteAllPublicKeys(); err != nil {

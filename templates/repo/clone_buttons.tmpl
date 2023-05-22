@@ -1,7 +1,7 @@
 <!-- there is always at least one button (by context/repo.go) -->
 {{if $.CloneButtonShowHTTPS}}
 	<button class="ui basic small compact clone button gt-no-transition" id="repo-clone-https" data-link="{{$.CloneButtonOriginLink.HTTPS}}">
-		{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
+		HTTPS
 	</button>
 {{end}}
 {{if $.CloneButtonShowSSH}}

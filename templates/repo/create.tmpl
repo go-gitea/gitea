@@ -117,8 +117,8 @@
 								<div class="default text">{{.locale.Tr "repo.issue_labels_helper"}}</div>
 								<div class="menu">
 									<div class="item" data-value="">{{.locale.Tr "repo.issue_labels_helper"}}</div>
-									{{range $template, $labels := .LabelTemplates}}
-										<div class="item" data-value="{{$template}}">{{$template}}<br><i>({{$labels}})</i></div>
+									{{range .LabelTemplateFiles}}
+										<div class="item" data-value="{{.DisplayName}}">{{.DisplayName}}<br><i>({{.Description}})</i></div>
 									{{end}}
 								</div>
 							</div>

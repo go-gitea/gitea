@@ -141,55 +141,6 @@ func FileSize(s int64) string {
 	return humanize.IBytes(uint64(s))
 }
 
-// Subtract deals with subtraction of all types of number.
-func Subtract(left, right interface{}) interface{} {
-	var rleft, rright int64
-	var fleft, fright float64
-	isInt := true
-	switch v := left.(type) {
-	case int:
-		rleft = int64(v)
-	case int8:
-		rleft = int64(v)
-	case int16:
-		rleft = int64(v)
-	case int32:
-		rleft = int64(v)
-	case int64:
-		rleft = v
-	case float32:
-		fleft = float64(v)
-		isInt = false
-	case float64:
-		fleft = v
-		isInt = false
-	}
-
-	switch v := right.(type) {
-	case int:
-		rright = int64(v)
-	case int8:
-		rright = int64(v)
-	case int16:
-		rright = int64(v)
-	case int32:
-		rright = int64(v)
-	case int64:
-		rright = v
-	case float32:
-		fright = float64(v)
-		isInt = false
-	case float64:
-		fright = v
-		isInt = false
-	}
-
-	if isInt {
-		return rleft - rright
-	}
-	return fleft + float64(rleft) - (fright + float64(rright))
-}
-
 // EllipsisString returns a truncated short string,
 // it appends '...' in the end of the length of string is too large.
 func EllipsisString(str string, length int) string {

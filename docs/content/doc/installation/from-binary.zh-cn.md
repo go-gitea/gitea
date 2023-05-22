@@ -5,6 +5,8 @@ slug: "install-from-binary"
 weight: 15
 toc: false
 draft: false
+aliases:
+  - /zh-cn/install-from-binary
 menu:
   sidebar:
     parent: "installation"
@@ -72,6 +74,7 @@ git --version
 创建用户（推荐使用名称 `git`）
 
 ```sh
+# On Ubuntu/Debian:
 adduser \
    --system \
    --shell /bin/bash \
@@ -79,6 +82,17 @@ adduser \
    --group \
    --disabled-password \
    --home /home/git \
+   git
+
+# On Fedora/RHEL/CentOS:
+groupadd --system git
+adduser \
+   --system \
+   --shell /bin/bash \
+   --comment 'Git Version Control' \
+   --gid git \
+   --home-dir /home/git \
+   --create-home \
    git
 ```
 
@@ -161,4 +175,4 @@ GITEA_WORK_DIR=/var/lib/gitea/ /usr/local/bin/gitea web -c /etc/gitea/app.ini
 
 > 更多经验总结，请参考英文版 [Troubleshooting](/en-us/install-from-binary/#troubleshooting)
 
-如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "seek-help.zh-cn.md" >}})
+如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "support.zh-cn.md" >}})

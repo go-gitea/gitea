@@ -5,6 +5,8 @@ slug: "install-on-kubernetes"
 weight: 80
 toc: false
 draft: false
+aliases:
+  - /zh-cn/install-on-kubernetes
 menu:
   sidebar:
     parent: "installation"

@@ -5,6 +5,8 @@ slug: "install-from-package"
 weight: 20
 toc: false
 draft: false
+aliases:
+  - /zh-tw/install-from-package
 menu:
   sidebar:
     parent: "installation"

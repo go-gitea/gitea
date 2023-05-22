@@ -2,7 +2,7 @@
 <tr>
 	<td colspan="2">
 		<div class="image-diff" data-path-before="{{.root.BeforeRawPath}}/{{PathEscapeSegments .file.OldName}}" data-path-after="{{.root.RawPath}}/{{PathEscapeSegments .file.Name}}">
-			<div class="ui secondary pointing tabular top attached borderless menu stackable new-menu">
+			<div class="ui secondary pointing tabular top attached borderless menu new-menu">
 				<div class="new-menu-inner">
 					<a class="item active" data-tab="diff-side-by-side-{{.file.Index}}">{{.root.locale.Tr "repo.diff.image.side_by_side"}}</a>
 					{{if and .blobBase .blobHead}}

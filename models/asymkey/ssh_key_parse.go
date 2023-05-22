@@ -16,7 +16,6 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -158,10 +157,6 @@ func parseKeyString(content string) (string, error) {
 // CheckPublicKeyString checks if the given public key string is recognized by SSH.
 // It returns the actual public key line on success.
 func CheckPublicKeyString(content string) (_ string, err error) {
-	if setting.SSH.Disabled {
-		return "", db.ErrSSHDisabled{}
-	}
-
 	content, err = parseKeyString(content)
 	if err != nil {
 		return "", err
@@ -184,7 +179,7 @@ func CheckPublicKeyString(content string) (_ string, err error) {
 		keyType string
 		length  int
 	)
-	if setting.SSH.StartBuiltinServer {
+	if len(setting.SSH.KeygenPath) == 0 {
 		fnName = "SSHNativeParsePublicKey"
 		keyType, length, err = SSHNativeParsePublicKey(content)
 	} else {
@@ -290,7 +285,12 @@ func SSHKeyGenParsePublicKey(key string) (string, int, error) {
 		}
 	}()
 
-	stdout, stderr, err := process.GetManager().Exec("SSHKeyGenParsePublicKey", setting.SSH.KeygenPath, "-lf", tmpName)
+	keygenPath := setting.SSH.KeygenPath
+	if len(keygenPath) == 0 {
+		keygenPath = "ssh-keygen"
+	}
+
+	stdout, stderr, err := process.GetManager().Exec("SSHKeyGenParsePublicKey", keygenPath, "-lf", tmpName)
 	if err != nil {
 		return "", 0, fmt.Errorf("fail to parse public key: %s - %s", err, stderr)
 	}

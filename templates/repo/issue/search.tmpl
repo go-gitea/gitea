@@ -1,5 +1,5 @@
-<form class="ui form ignore-dirty">
-	<div class="ui search fluid action input">
+<form class="list-header-search ui form ignore-dirty">
+	<div class="ui small search fluid action input">
 		<input type="hidden" name="type" value="{{$.ViewType}}">
 		<input type="hidden" name="state" value="{{$.State}}">
 		<input type="hidden" name="labels" value="{{.SelectLabels}}">
@@ -8,6 +8,9 @@
 		<input type="hidden" name="assignee" value="{{$.AssigneeID}}">
 		<input type="hidden" name="poster" value="{{$.PosterID}}">
 		<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
-		<button class="ui primary button" type="submit">{{.locale.Tr "explore.search"}}</button>
+		{{if .PageIsIssueList}}
+			<button id="issue-list-quick-goto" class="ui small icon button gt-hidden" data-tooltip-content="{{.locale.Tr "explore.go_to"}}" data-repo-link="{{.RepoLink}}">{{svg "octicon-hash"}}</button>
+		{{end}}
+		<button class="ui small icon button" aria-label="{{.locale.Tr "explore.search"}}">{{svg "octicon-search"}}</button>
 	</div>
 </form>

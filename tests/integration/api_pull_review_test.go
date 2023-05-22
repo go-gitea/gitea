@@ -170,8 +170,8 @@ func TestAPIPullReview(t *testing.T) {
 	DecodeJSON(t, resp, &commentReview)
 	assert.EqualValues(t, "COMMENT", commentReview.State)
 	assert.EqualValues(t, 2, commentReview.CodeCommentsCount)
-	assert.EqualValues(t, "", commentReview.Body)
-	assert.EqualValues(t, false, commentReview.Dismissed)
+	assert.Empty(t, commentReview.Body)
+	assert.False(t, commentReview.Dismissed)
 
 	// test CreatePullReview Comment with body but without comments
 	commentBody := "This is a body of the comment."
@@ -186,7 +186,7 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, "COMMENT", commentReview.State)
 	assert.EqualValues(t, 0, commentReview.CodeCommentsCount)
 	assert.EqualValues(t, commentBody, commentReview.Body)
-	assert.EqualValues(t, false, commentReview.Dismissed)
+	assert.False(t, commentReview.Dismissed)
 
 	// test CreatePullReview Comment without body and no comments
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{

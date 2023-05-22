@@ -578,12 +578,15 @@ func GrantApplicationOAuth(ctx *context.Context) {
 
 // OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
 func OIDCWellKnown(ctx *context.Context) {
-	t := ctx.Render.TemplateLookup("user/auth/oidc_wellknown")
+	t, err := ctx.Render.TemplateLookup("user/auth/oidc_wellknown")
+	if err != nil {
+		ctx.ServerError("unable to find template", err)
+		return
+	}
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	ctx.Data["SigningKey"] = oauth2.DefaultSigningKey
-	if err := t.Execute(ctx.Resp, ctx.Data); err != nil {
-		log.Error("%v", err)
-		ctx.Error(http.StatusInternalServerError)
+	if err = t.Execute(ctx.Resp, ctx.Data); err != nil {
+		ctx.ServerError("unable to execute template", err)
 	}
 }
 
@@ -963,7 +966,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 
 			overwriteDefault := &user_model.CreateUserOverwriteOptions{
-				IsActive: util.OptionalBoolOf(!setting.OAuth2Client.RegisterEmailConfirm),
+				IsActive: util.OptionalBoolOf(!setting.OAuth2Client.RegisterEmailConfirm && !setting.Service.RegisterManualConfirm),
 			}
 
 			source := authSource.Cfg.(*oauth2.Source)
@@ -1109,7 +1112,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 
 		// Clear whatever CSRF cookie has right now, force to generate a new one
-		middleware.DeleteCSRFCookie(ctx.Resp)
+		ctx.Csrf.DeleteCookie(ctx)
 
 		// Register last login
 		u.SetLastLogin()
@@ -1145,7 +1148,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			return
 		}
 
-		if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 {
+		if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 {
 			middleware.DeleteRedirectToCookie(ctx.Resp)
 			ctx.RedirectToFirst(redirectTo)
 			return

@@ -25,7 +25,7 @@ func TestSplitString(t *testing.T) {
 				assert.Equal(t, c.ellipsis+c.input[len(c.leftSub):], r, "test split %s at %d, expected rightSub: %q", c.input, c.n, c.input[len(c.leftSub):])
 			} else {
 				assert.Equal(t, c.leftSub, l, "test split %q at %d, expected leftSub: %q", c.input, c.n, c.leftSub)
-				assert.Equal(t, "", r, "test split %q at %d, expected rightSub: %q", c.input, c.n, "")
+				assert.Empty(t, r, "test split %q at %d, expected rightSub: %q", c.input, c.n, "")
 			}
 		}
 	}

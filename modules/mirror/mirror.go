@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-var mirrorQueue queue.UniqueQueue
+var mirrorQueue *queue.WorkerPoolQueue[*SyncRequest]
 
 // SyncType type of sync request
 type SyncType int
@@ -29,11 +29,11 @@ type SyncRequest struct {
 }
 
 // StartSyncMirrors starts a go routine to sync the mirrors
-func StartSyncMirrors(queueHandle func(data ...queue.Data) []queue.Data) {
+func StartSyncMirrors(queueHandle func(data ...*SyncRequest) []*SyncRequest) {
 	if !setting.Mirror.Enabled {
 		return
 	}
-	mirrorQueue = queue.CreateUniqueQueue("mirror", queueHandle, new(SyncRequest))
+	mirrorQueue = queue.CreateUniqueQueue("mirror", queueHandle)
 
 	go graceful.GetManager().RunWithShutdownFns(mirrorQueue.Run)
 }

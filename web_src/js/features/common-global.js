@@ -7,6 +7,7 @@ import {showGlobalErrorMessage} from '../bootstrap.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
+import {htmlEscape} from 'escape-goat';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -56,9 +57,8 @@ export function initGlobalEnterQuickSubmit() {
 }
 
 export function initGlobalButtonClickOnEnter() {
-  $(document).on('keypress', '.ui.button', (e) => {
-    if (e.keyCode === 13 || e.keyCode === 32) { // enter key or space bar
-      if (e.target.nodeName === 'BUTTON') return; // button already handles space&enter correctly
+  $(document).on('keypress', 'div.ui.button,span.ui.button', (e) => {
+    if (e.code === ' ' || e.code === 'Enter') {
       $(e.target).trigger('click');
       e.preventDefault();
     }
@@ -68,7 +68,7 @@ export function initGlobalButtonClickOnEnter() {
 export function initGlobalCommon() {
   // Undo Safari emoji glitch fix at high enough zoom levels
   if (navigator.userAgent.match('Safari')) {
-    $(window).resize(() => {
+    $(window).on('resize', () => {
       const px = mqBinarySearch('width', 0, 4096, 1, 'px');
       const em = mqBinarySearch('width', 0, 1024, 0.01, 'em');
       if (em * 16 * 1.25 - px <= -1) {
@@ -169,10 +169,12 @@ export function initGlobalDropzone() {
             let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
             if (file.type.startsWith('image/')) {
               fileMarkdown = `!${fileMarkdown}`;
+            } else if (file.type.startsWith('video/')) {
+              fileMarkdown = `<video src="/attachments/${file.uuid}" title="${htmlEscape(file.name)}" controls></video>`;
             }
             navigator.clipboard.writeText(fileMarkdown);
           });
-          file.previewTemplate.appendChild(copyLinkElement);
+          file.previewTemplate.append(copyLinkElement);
         });
         this.on('removedfile', (file) => {
           $(`#${file.uuid}`).remove();
@@ -194,8 +196,8 @@ export function initGlobalLinkActions() {
     const $this = $(this);
     const dataArray = $this.data();
     let filter = '';
-    if ($this.data('modal-id')) {
-      filter += `#${$this.data('modal-id')}`;
+    if ($this.attr('data-modal-id')) {
+      filter += `#${$this.attr('data-modal-id')}`;
     }
 
     const dialog = $(`.delete.modal${filter}`);
@@ -237,8 +239,8 @@ export function initGlobalLinkActions() {
     e.preventDefault();
     const $this = $(this);
     let filter = '';
-    if ($this.attr('id')) {
-      filter += `#${$this.attr('id')}`;
+    if ($this.attr('data-modal-id')) {
+      filter += `#${$this.attr('data-modal-id')}`;
     }
 
     const dialog = $(`.addall.modal${filter}`);

@@ -129,7 +129,8 @@ func SetDefaultBranch(ctx context.Context, ownerName, repoName, branch string) R
 		url.PathEscape(branch),
 	)
 	req := newInternalRequest(ctx, reqURL, "POST")
-	return requestJSONUserMsg(req, "")
+	_, extra := requestJSONResp(req, &responseText{})
+	return extra
 }
 
 // SSHLog sends ssh error log response

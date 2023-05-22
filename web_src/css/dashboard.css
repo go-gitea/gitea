@@ -84,7 +84,6 @@
 }
 
 .dashboard .dashboard-navbar {
-  width: 100vw;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
 }
@@ -170,10 +169,6 @@
 
 .feeds .list ul li:not(:last-child) {
   border-bottom: 1px solid var(--color-secondary);
-}
-
-.feeds .list ul li.private {
-  background-color: var(--color-box-body-highlight);
 }
 
 .feeds .list ul li .repo-list-link {
