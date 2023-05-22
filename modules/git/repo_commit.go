@@ -13,7 +13,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/cache"
+	container "code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
+	slice "code.gitea.io/gitea/modules/util"
 )
 
 // GetBranchCommitID returns last commit ID string of given branch.
@@ -91,22 +93,70 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 }
 
 func (repo *Repository) commitsByRange(id SHA1, page, pageSize int, not string) ([]*Commit, error) {
-	cmd := NewCommand(repo.Ctx, "log").
-		AddOptionFormat("--skip=%d", (page-1)*pageSize).
-		AddOptionFormat("--max-count=%d", pageSize).
-		AddArguments(prettyLogFormat).
-		AddDynamicArguments(id.String())
+	if not == "" {
+		cmd := NewCommand(repo.Ctx, "log").
+			AddOptionFormat("--skip=%d", (page-1)*pageSize).
+			AddOptionFormat("--max-count=%d", pageSize).
+			AddArguments(prettyLogFormat).
+			AddDynamicArguments(id.String())
 
-	if not != "" {
-		cmd.AddOptionValues("--not", not)
+		stdout, _, err := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
+		if err != nil {
+			return nil, err
+		}
+
+		return repo.parsePrettyFormatLogToList(stdout)
 	}
+
+	return repo.commitsByRangeWithoutBranch(id, page, pageSize, not)
+}
+
+func (repo *Repository) getAllReachableCommits(id SHA1) ([]string, error) {
+	cmd := NewCommand(repo.Ctx, "rev-list").
+		AddDynamicArguments(id.String())
 
 	stdout, _, err := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}
 
-	return repo.parsePrettyFormatLogToList(stdout)
+	return repo.rawToList(stdout)
+}
+
+func (repo *Repository) commitsByRangeWithoutBranch(id SHA1, page, pageSize int, not string) ([]*Commit, error) {
+	// Get all commits reachable from the given ref
+	allCommits, allCommitErr := repo.getAllReachableCommits(id)
+	if allCommitErr != nil {
+		return nil, allCommitErr
+	}
+
+	// Get all commits that must be excluded
+	exclude, excludeErr := repo.commitsReachableByFirstParent(not)
+	if excludeErr != nil {
+		return nil, excludeErr
+	}
+
+	// Do set difference
+	allSet := container.SetOf(allCommits...)
+	excludeSet := container.SetOf(exclude...)
+	difference := allSet.Difference(excludeSet)
+
+	// Now paginate
+	commits := slice.PaginateSlice(difference.Values(), page, pageSize).([]string)
+	return repo.SHAsToCommits(commits)
+}
+
+func (repo *Repository) commitsReachableByFirstParent(startingSHA string) ([]string, error) {
+	cmdGetExclude := NewCommand(repo.Ctx, "rev-list").
+		AddArguments("--first-parent").
+		AddDynamicArguments(startingSHA)
+
+	stdout, _, err := cmdGetExclude.RunStdBytes(&RunOpts{Dir: repo.Path})
+	if err != nil {
+		return nil, err
+	}
+
+	return repo.rawToList(stdout)
 }
 
 func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Commit, error) {

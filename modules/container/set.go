@@ -46,6 +46,19 @@ func (s Set[T]) Remove(value T) bool {
 	return false
 }
 
+// Performs a set difference
+func (s Set[T]) Difference(other Set[T]) Set[T] {
+	difference := SetOf(make([]T, 0)...)
+
+	for item := range s {
+		if !other.Contains(item) {
+			difference.Add(item)
+		}
+	}
+
+	return difference
+}
+
 // Values gets a list of all elements in the set.
 func (s Set[T]) Values() []T {
 	keys := make([]T, 0, len(s))
