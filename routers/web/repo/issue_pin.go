@@ -18,13 +18,13 @@ func IssuePinOrUnpin(ctx *context.Context) {
 	// If we don't do this, it will crash when trying to add the pin event to the comment history
 	err := issue.LoadRepo(ctx)
 	if err != nil {
-		ctx.ServerError("LoadRepo", err)
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
 	err = issue.PinOrUnpin(ctx, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("PinOrUnpinIssue", err)
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
@@ -35,20 +35,20 @@ func IssuePinOrUnpin(ctx *context.Context) {
 func IssueUnpin(ctx *context.Context) {
 	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err.Error())
+		ctx.Status(http.StatusNoContent)
 		return
 	}
 
 	// If we don't do this, it will crash when trying to add the pin event to the comment history
 	err = issue.LoadRepo(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err.Error())
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
 	err = issue.Unpin(ctx, ctx.Doer)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err.Error())
+		ctx.Status(http.StatusInternalServerError)
 	}
 
 	ctx.Status(http.StatusNoContent)
@@ -68,16 +68,21 @@ func IssuePinMove(ctx *context.Context) {
 
 	form := &movePinIssueForm{}
 	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
-		ctx.JSON(http.StatusInternalServerError, err.Error())
+		ctx.Status(http.StatusInternalServerError)
+		return
 	}
 
 	issue, err := issues_model.GetIssueByID(ctx, form.ID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err.Error())
+		ctx.Status(http.StatusInternalServerError)
+		return
 	}
 
-	err = issue.MovePin(form.Position)
+	err = issue.MovePin(ctx, form.Position)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err.Error())
+		ctx.Status(http.StatusInternalServerError)
+		return
 	}
+
+	ctx.Status(http.StatusNoContent)
 }

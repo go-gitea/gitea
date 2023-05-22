@@ -388,7 +388,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return
 	}
 
-	pinned, err := issues_model.GetPinnedIssues(repo.ID, isPullOption.IsTrue())
+	pinned, err := issues_model.GetPinnedIssues(ctx, repo.ID, isPullOption.IsTrue())
 	if err != nil {
 		ctx.ServerError("GetPinnedIssues", err)
 		return
@@ -1864,7 +1864,7 @@ func ViewIssue(ctx *context.Context) {
 
 	var pinAllowed bool
 	if !issue.IsPinned() {
-		pinAllowed, err = issues_model.IsNewPinAllowed(issue.RepoID, issue.IsPull)
+		pinAllowed, err = issues_model.IsNewPinAllowed(ctx, issue.RepoID, issue.IsPull)
 		if err != nil {
 			ctx.ServerError("IsNewPinAllowed", err)
 			return

@@ -14,7 +14,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -780,7 +779,7 @@ func (issue *Issue) PinOrUnpin(ctx context.Context, user *user_model.User) error
 }
 
 // MovePin moves a Pinned Issue to a new Position
-func (issue *Issue) MovePin(newPosition int) error {
+func (issue *Issue) MovePin(ctx context.Context, newPosition int) error {
 	// If the Issue is not pinned, we can't move them
 	if !issue.IsPinned() {
 		return nil
@@ -790,13 +789,14 @@ func (issue *Issue) MovePin(newPosition int) error {
 		return fmt.Errorf("The Position can't be lower than 1")
 	}
 
-	var (
-		err    error
-		maxPin int
-	)
+	dbctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
 
-	_, err = db.GetEngine(db.DefaultContext).SQL("SELECT MAX(pin_order) FROM issue WHERE repo_id = ? AND is_pull = ?", issue.RepoID, issue.IsPull).Get(&maxPin)
-
+	var maxPin int
+	_, err = db.GetEngine(dbctx).SQL("SELECT MAX(pin_order) FROM issue WHERE repo_id = ? AND is_pull = ?", issue.RepoID, issue.IsPull).Get(&maxPin)
 	if err != nil {
 		return err
 	}
@@ -809,31 +809,31 @@ func (issue *Issue) MovePin(newPosition int) error {
 	// TODO: Run the following commands in a Transaction and Rollback, if one fails
 
 	// Lower the Position of all Pinned Issue that came after the current Position
-	_, err = db.GetEngine(db.DefaultContext).Exec("UPDATE issue SET pin_order = pin_order - 1 WHERE repo_id = ? AND is_pull = ? AND pin_order > ?", issue.RepoID, issue.IsPull, issue.PinOrder)
+	_, err = db.GetEngine(dbctx).Exec("UPDATE issue SET pin_order = pin_order - 1 WHERE repo_id = ? AND is_pull = ? AND pin_order > ?", issue.RepoID, issue.IsPull, issue.PinOrder)
 	if err != nil {
 		return err
 	}
 
 	// Higher the Position of all Pinned Issues that comes after the new Position
-	_, err = db.GetEngine(db.DefaultContext).Exec("UPDATE issue SET pin_order = pin_order + 1 WHERE repo_id = ? AND is_pull = ? AND pin_order >= ?", issue.RepoID, issue.IsPull, newPosition)
+	_, err = db.GetEngine(dbctx).Exec("UPDATE issue SET pin_order = pin_order + 1 WHERE repo_id = ? AND is_pull = ? AND pin_order >= ?", issue.RepoID, issue.IsPull, newPosition)
 	if err != nil {
 		return err
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).Table("issue").
+	_, err = db.GetEngine(dbctx).Table("issue").
 		Where("id = ?", issue.ID).
 		Update(map[string]interface{}{
 			"pin_order": newPosition,
 		})
 
-	return err
+	return committer.Commit()
 }
 
 // GetPinnedIssues returns the pinned Issues for the given Repo and type
-func GetPinnedIssues(repoID int64, isPull bool) ([]*Issue, error) {
+func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) ([]*Issue, error) {
 	issues := make([]*Issue, 0)
 
-	err := db.GetEngine(db.DefaultContext).
+	err := db.GetEngine(ctx).
 		Table("issue").
 		Where("repo_id = ?", repoID).
 		And("is_pull = ?", isPull).
@@ -853,9 +853,9 @@ func GetPinnedIssues(repoID int64, isPull bool) ([]*Issue, error) {
 }
 
 // IsNewPinnedAllowed returns if a new Issue or Pull request can be pinned
-func IsNewPinAllowed(repoID int64, isPull bool) (bool, error) {
+func IsNewPinAllowed(ctx context.Context, repoID int64, isPull bool) (bool, error) {
 	var maxPin int
-	_, err := db.GetEngine(db.DefaultContext).SQL("SELECT MAX(pin_order) FROM issue WHERE repo_id = ? AND is_pull = ?", repoID, isPull).Get(&maxPin)
+	_, err := db.GetEngine(ctx).SQL("SELECT MAX(pin_order) FROM issue WHERE repo_id = ? AND is_pull = ?", repoID, isPull).Get(&maxPin)
 	if err != nil {
 		return false, err
 	}

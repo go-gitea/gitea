@@ -163,7 +163,7 @@ func MoveIssuePin(ctx *context.APIContext) {
 		return
 	}
 
-	err = issue.MovePin(int(ctx.ParamsInt64(":position")))
+	err = issue.MovePin(ctx, int(ctx.ParamsInt64(":position")))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "MovePin", err)
 	}
@@ -192,7 +192,7 @@ func ListPinnedIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	issues, err := issues_model.GetPinnedIssues(ctx.Repo.Repository.ID, false)
+	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo.Repository.ID, false)
 
 	if err == nil {
 		ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
@@ -222,7 +222,7 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
-	issues, err := issues_model.GetPinnedIssues(ctx.Repo.Repository.ID, true)
+	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPinnedPullRequests", err)
 	}
@@ -285,13 +285,13 @@ func AreNewIssuePinsAllowed(ctx *context.APIContext) {
 	pinsAllowed := api.NewIssuePinsAllowed{}
 	var err error
 
-	pinsAllowed.Issues, err = issues_model.IsNewPinAllowed(ctx.Repo.Repository.ID, false)
+	pinsAllowed.Issues, err = issues_model.IsNewPinAllowed(ctx, ctx.Repo.Repository.ID, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsNewIssuePinAllowed", err)
 		return
 	}
 
-	pinsAllowed.PullRequests, err = issues_model.IsNewPinAllowed(ctx.Repo.Repository.ID, true)
+	pinsAllowed.PullRequests, err = issues_model.IsNewPinAllowed(ctx, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsNewPullRequestPinAllowed", err)
 		return

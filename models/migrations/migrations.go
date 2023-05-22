@@ -495,7 +495,7 @@ var migrations = []Migration{
 	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
 	// v257 -> v258
 	NewMigration("Add Actions Artifact table", v1_20.CreateActionArtifactTable),
-  // v258 -> 259
+	// v258 -> 259
 	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
 }
 
