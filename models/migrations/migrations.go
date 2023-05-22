@@ -491,7 +491,7 @@ var migrations = []Migration{
 	NewMigration("Add ArchivedUnix Column", v1_20.AddArchivedUnixToRepository),
 	// v256 -> v257
 	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
-	// v257 -> 258
+	// v258 -> 259
 	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
 }
 
