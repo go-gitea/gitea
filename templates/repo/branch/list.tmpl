@@ -42,7 +42,7 @@
 									</a>
 								{{end}}
 								{{if not $.DisableDownloadSourceArchives}}
-									<div class="ui dropdown button button-ghost  gt-p-3" data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranch)}}">
+									<div class="ui dropdown button button-ghost gt-p-3" data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranch)}}">
 										{{svg "octicon-download"}}
 										<div class="menu">
 											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
