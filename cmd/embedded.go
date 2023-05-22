@@ -97,13 +97,7 @@ type assetFile struct {
 }
 
 func initEmbeddedExtractor(c *cli.Context) error {
-	// FIXME: there is a bug, if the user runs `gitea embedded` with a different user or root,
-	// The setting.Init (loadRunModeFrom) will fail and do log.Fatal
-	// But the console logger has been deleted, so nothing is printed, the user sees nothing and Gitea just exits.
-
-	// Silence the console logger
-	log.DelNamedLogger("console")
-	log.DelNamedLogger(log.DEFAULT)
+	setupConsoleLogger(log.ERROR, log.CanColorStderr, os.Stderr)
 
 	// Read configuration file
 	setting.Init(&setting.Options{
