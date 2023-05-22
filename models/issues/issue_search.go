@@ -311,11 +311,11 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 	} else {
 		cond = cond.And(
 			builder.Or(
-				repo_model.UserOwnedRepoCond(userID),                          // owned repos
-				repo_model.UserAccessRepoCond(repoIDstr, userID),              // user can access repo in a unit independent way
-				repo_model.UserAssignedRepoCond(repoIDstr, userID),            // user has been assigned accessible public repos
-				repo_model.UserMentionedRepoCond(repoIDstr, userID),           // user has been mentioned accessible public repos
-				repo_model.UserCreateIssueRepoCond(repoIDstr, userID, isPull), // user has created issue/pr accessible public repos
+				repo_model.UserOwnedRepoCond(userID),                           // owned repos
+				repo_model.UserUnitAccessRepoCond(repoIDstr, userID, unitType), // user can access repo in a unit independent way
+				UserAssignedIssueCond(userID),                                  // user has been assigned accessible public repos
+				UserMentionedIssueCond(userID),                                 // user has been mentioned accessible public repos
+				UserCreateIssueCond(userID, isPull),                            // user has created issue/pr accessible public repos
 			),
 		)
 	}

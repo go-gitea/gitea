@@ -603,3 +603,50 @@ func (issues IssueList) GetApprovalCounts(ctx context.Context) (map[int64][]*Rev
 
 	return approvalCountMap, nil
 }
+
+// UserAssignedIssueCond return user as assignee issues list
+func UserAssignedIssueCond(userID int64) builder.Cond {
+	return builder.And(
+		builder.Eq{
+			"repository.is_private": false,
+		},
+		builder.In("issue.id",
+			builder.Select("issue_assignees.issue_id").From("issue_assignees").
+				Where(builder.Eq{
+					"issue_assignees.assignee_id": userID,
+				}),
+		),
+	)
+}
+
+// UserMentionedIssueCond return user metinoed issues list
+func UserMentionedIssueCond(userID int64) builder.Cond {
+	return builder.And(
+		builder.Eq{
+			"repository.is_private": false,
+		},
+		builder.In("issue.id",
+			builder.Select("issue_user.issue_id").From("issue_user").
+				Where(builder.Eq{
+					"issue_user.is_mentioned": true,
+					"issue_user.uid":          userID,
+				}),
+		),
+	)
+}
+
+// UserCreateIssueCond return user created issues list
+func UserCreateIssueCond(userID int64, isPull bool) builder.Cond {
+	return builder.And(
+		builder.Eq{
+			"repository.is_private": false,
+		},
+		builder.In("issue.id",
+			builder.Select("issue.id").From("issue").
+				Where(builder.Eq{
+					"issue.poster_id": userID,
+					"issue.is_pull":   isPull,
+				}),
+		),
+	)
+}
