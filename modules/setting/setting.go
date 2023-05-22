@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 )
@@ -116,19 +115,13 @@ func init() {
 
 	// We can rely on log.CanColorStdout being set properly because modules/log/console_windows.go comes before modules/setting/setting.go lexicographically
 	// By default set this logger at Info - we'll change it later, but we need to start with something.
-	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "info", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
+	log.SetConsoleLogger(log.DEFAULT, "console", log.INFO)
 
 	var err error
 	if AppPath, err = getAppPath(); err != nil {
 		log.Fatal("Failed to get app path: %v", err)
 	}
 	AppWorkPath = getWorkPath(AppPath)
-}
-
-func forcePathSeparator(path string) {
-	if strings.Contains(path, "\\") {
-		log.Fatal("Do not use '\\' or '\\\\' in paths, instead, please use '/' in all places")
-	}
 }
 
 // IsRunUserMatchCurrentUser returns false if configured run user does not match
@@ -203,51 +196,25 @@ func PrepareAppDataPath() error {
 	return nil
 }
 
-// InitProviderFromExistingFile initializes config provider from an existing config file (app.ini)
-func InitProviderFromExistingFile() {
+func Init(opts *Options) {
+	if opts.CustomConf == "" {
+		opts.CustomConf = CustomConf
+	}
 	var err error
-	CfgProvider, err = newConfigProviderFromFile(CustomConf, false, "")
+	CfgProvider, err = newConfigProviderFromFile(opts)
 	if err != nil {
-		log.Fatal("InitProviderFromExistingFile: %v", err)
+		log.Fatal("Init[%v]: %v", opts, err)
 	}
-}
-
-// InitProviderAllowEmpty initializes config provider from file, it's also fine that if the config file (app.ini) doesn't exist
-func InitProviderAllowEmpty() {
-	var err error
-	CfgProvider, err = newConfigProviderFromFile(CustomConf, true, "")
-	if err != nil {
-		log.Fatal("InitProviderAllowEmpty: %v", err)
+	if !opts.DisableLoadCommonSettings {
+		loadCommonSettingsFrom(CfgProvider)
 	}
-}
-
-// InitProviderAndLoadCommonSettingsForTest initializes config provider and load common setttings for tests
-func InitProviderAndLoadCommonSettingsForTest(extraConfigs ...string) {
-	var err error
-	CfgProvider, err = newConfigProviderFromFile(CustomConf, true, strings.Join(extraConfigs, "\n"))
-	if err != nil {
-		log.Fatal("InitProviderAndLoadCommonSettingsForTest: %v", err)
-	}
-	loadCommonSettingsFrom(CfgProvider)
-	if err := PrepareAppDataPath(); err != nil {
-		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
-	}
-	// register the dummy hash algorithm function used in the test fixtures
-	_ = hash.Register("dummy", hash.NewDummyHasher)
-
-	PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
-}
-
-// LoadCommonSettings loads common configurations from a configuration provider.
-func LoadCommonSettings() {
-	loadCommonSettingsFrom(CfgProvider)
 }
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.
 func loadCommonSettingsFrom(cfg ConfigProvider) {
-	// WARNNING: don't change the sequence except you know what you are doing.
+	// WARNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
-	loadLogFrom(cfg)
+	loadLogGlobalFrom(cfg)
 	loadServerFrom(cfg)
 	loadSSHFrom(cfg)
 
@@ -309,10 +276,11 @@ func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
 
 // LoadSettings initializes the settings for normal start up
 func LoadSettings() {
+	initAllLoggers()
+
 	loadDBSetting(CfgProvider)
 	loadServiceFrom(CfgProvider)
 	loadOAuth2ClientFrom(CfgProvider)
-	InitLogs(false)
 	loadCacheFrom(CfgProvider)
 	loadSessionFrom(CfgProvider)
 	loadCorsFrom(CfgProvider)

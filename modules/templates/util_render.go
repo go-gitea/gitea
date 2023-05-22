@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
@@ -133,7 +134,9 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 	labelScope := label.ExclusiveScope()
 
 	textColor := "#111"
-	if label.UseLightTextColor() {
+	r, g, b := util.HexToRBGColor(label.Color)
+	// Determine if label text should be light or dark to be readable on background color
+	if util.UseLightTextOnBackground(r, g, b) {
 		textColor = "#eee"
 	}
 
@@ -150,34 +153,30 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 	scopeText := RenderEmoji(ctx, labelScope)
 	itemText := RenderEmoji(ctx, label.Name[len(labelScope)+1:])
 
-	itemColor := label.Color
-	scopeColor := label.Color
-	if r, g, b, err := label.ColorRGB(); err == nil {
-		// Make scope and item background colors slightly darker and lighter respectively.
-		// More contrast needed with higher luminance, empirically tweaked.
-		luminance := (0.299*r + 0.587*g + 0.114*b) / 255
-		contrast := 0.01 + luminance*0.03
-		// Ensure we add the same amount of contrast also near 0 and 1.
-		darken := contrast + math.Max(luminance+contrast-1.0, 0.0)
-		lighten := contrast + math.Max(contrast-luminance, 0.0)
-		// Compute factor to keep RGB values proportional.
-		darkenFactor := math.Max(luminance-darken, 0.0) / math.Max(luminance, 1.0/255.0)
-		lightenFactor := math.Min(luminance+lighten, 1.0) / math.Max(luminance, 1.0/255.0)
+	// Make scope and item background colors slightly darker and lighter respectively.
+	// More contrast needed with higher luminance, empirically tweaked.
+	luminance := util.GetLuminance(r, g, b)
+	contrast := 0.01 + luminance*0.03
+	// Ensure we add the same amount of contrast also near 0 and 1.
+	darken := contrast + math.Max(luminance+contrast-1.0, 0.0)
+	lighten := contrast + math.Max(contrast-luminance, 0.0)
+	// Compute factor to keep RGB values proportional.
+	darkenFactor := math.Max(luminance-darken, 0.0) / math.Max(luminance, 1.0/255.0)
+	lightenFactor := math.Min(luminance+lighten, 1.0) / math.Max(luminance, 1.0/255.0)
 
-		scopeBytes := []byte{
-			uint8(math.Min(math.Round(r*darkenFactor), 255)),
-			uint8(math.Min(math.Round(g*darkenFactor), 255)),
-			uint8(math.Min(math.Round(b*darkenFactor), 255)),
-		}
-		itemBytes := []byte{
-			uint8(math.Min(math.Round(r*lightenFactor), 255)),
-			uint8(math.Min(math.Round(g*lightenFactor), 255)),
-			uint8(math.Min(math.Round(b*lightenFactor), 255)),
-		}
-
-		itemColor = "#" + hex.EncodeToString(itemBytes)
-		scopeColor = "#" + hex.EncodeToString(scopeBytes)
+	scopeBytes := []byte{
+		uint8(math.Min(math.Round(r*darkenFactor), 255)),
+		uint8(math.Min(math.Round(g*darkenFactor), 255)),
+		uint8(math.Min(math.Round(b*darkenFactor), 255)),
 	}
+	itemBytes := []byte{
+		uint8(math.Min(math.Round(r*lightenFactor), 255)),
+		uint8(math.Min(math.Round(g*lightenFactor), 255)),
+		uint8(math.Min(math.Round(b*lightenFactor), 255)),
+	}
+
+	itemColor := "#" + hex.EncodeToString(itemBytes)
+	scopeColor := "#" + hex.EncodeToString(scopeBytes)
 
 	s := fmt.Sprintf("<span class='ui label scope-parent' title='%s'>"+
 		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+

@@ -13,7 +13,7 @@
 			{{if eq .Status 1}}
 				<div class="ui stackable grid">
 					<div class="six wide column">
-						<div class="small-pill-buttons ui compact tiny menu">
+						<div class="small-menu-items ui compact tiny menu">
 							<a class="{{if eq .State "all"}}active {{end}}item" href="{{$.Link}}?sort={{$.SortType}}&state=all&issueType={{$.IssueType}}&labels={{$.Labels}}">
 								{{.locale.Tr "all"}}
 							</a>

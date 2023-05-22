@@ -44,7 +44,7 @@
 	</div>
 	<div class="required field">
 		<label for="filter">{{.locale.Tr "admin.auths.filter"}}</label>
-		<input id="filter" name="filter" value="{{.filter}}" placeholder="e.g. (&(objectClass=posixAccount)(uid=%s))">
+		<input id="filter" name="filter" value="{{.filter}}" placeholder="e.g. (&(objectClass=posixAccount)(|(uid=%[1]s)(mail=%[1]s)))">
 	</div>
 	<div class="field">
 		<label for="admin_filter">{{.locale.Tr "admin.auths.admin_filter"}}</label>

@@ -1,19 +1,38 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
-	<div class="admin-setting-content">
-		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.monitor.stacktrace"}}: {{.locale.Tr "admin.monitor.goroutines" .GoroutineCount}}
-			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/monitor">{{.locale.Tr "admin.monitor"}}</a>
-			</div>
-		</h4>
-		<div class="ui attached segment">
-			<div class="ui relaxed divided list">
-				{{range .ProcessStacks}}
-					{{template "admin/stacktrace-row" dict "Process" . "root" $}}
-				{{end}}
+<div class="admin-setting-content">
+
+	<div class="gt-df gt-ac">
+		<div class="gt-f1">
+			<div class="ui compact small menu">
+				<a class="{{if eq .ShowGoroutineList "process"}}active {{end}}item" href="{{.Link}}?show=process">{{.locale.Tr "admin.monitor.process"}}</a>
+				<a class="{{if eq .ShowGoroutineList "stacktrace"}}active {{end}}item" href="{{.Link}}?show=stacktrace">{{.locale.Tr "admin.monitor.stacktrace"}}</a>
 			</div>
 		</div>
+		<form target="_blank" action="{{AppSubUrl}}/admin/monitor/diagnosis" class="ui form">
+			<div class="ui inline field">
+				<button class="ui primary small button">{{.locale.Tr "admin.monitor.download_diagnosis_report"}}</button>
+				<input name="seconds" size="3" maxlength="3" value="10"> {{.locale.Tr "tool.raw_seconds"}}
+			</div>
+		</form>
 	</div>
+
+	<div class="ui divider"></div>
+
+	<h4 class="ui top attached header">
+		{{printf "%d Goroutines" .GoroutineCount}}{{/* Goroutine is non-translatable*/}}
+		{{- if .ProcessCount -}}, {{.locale.Tr "admin.monitor.processes_count" .ProcessCount}}{{- end -}}
+	</h4>
+
+	{{if .ProcessStacks}}
+	<div class="ui attached segment">
+		<div class="ui relaxed divided list">
+			{{range .ProcessStacks}}
+				{{template "admin/stacktrace-row" dict "Process" . "root" $}}
+			{{end}}
+		</div>
+	</div>
+	{{end}}
+</div>
 
 <div class="ui g-modal-confirm delete modal">
 	<div class="header">

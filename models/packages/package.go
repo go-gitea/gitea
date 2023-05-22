@@ -30,40 +30,48 @@ type Type string
 
 // List of supported packages
 const (
+	TypeAlpine    Type = "alpine"
 	TypeCargo     Type = "cargo"
 	TypeChef      Type = "chef"
 	TypeComposer  Type = "composer"
 	TypeConan     Type = "conan"
 	TypeConda     Type = "conda"
 	TypeContainer Type = "container"
+	TypeCran      Type = "cran"
 	TypeDebian    Type = "debian"
 	TypeGeneric   Type = "generic"
+	TypeGo        Type = "go"
 	TypeHelm      Type = "helm"
 	TypeMaven     Type = "maven"
 	TypeNpm       Type = "npm"
 	TypeNuGet     Type = "nuget"
 	TypePub       Type = "pub"
 	TypePyPI      Type = "pypi"
+	TypeRpm       Type = "rpm"
 	TypeRubyGems  Type = "rubygems"
 	TypeSwift     Type = "swift"
 	TypeVagrant   Type = "vagrant"
 )
 
 var TypeList = []Type{
+	TypeAlpine,
 	TypeCargo,
 	TypeChef,
 	TypeComposer,
 	TypeConan,
 	TypeConda,
 	TypeContainer,
+	TypeCran,
 	TypeDebian,
 	TypeGeneric,
+	TypeGo,
 	TypeHelm,
 	TypeMaven,
 	TypeNpm,
 	TypeNuGet,
 	TypePub,
 	TypePyPI,
+	TypeRpm,
 	TypeRubyGems,
 	TypeSwift,
 	TypeVagrant,
@@ -72,6 +80,8 @@ var TypeList = []Type{
 // Name gets the name of the package type
 func (pt Type) Name() string {
 	switch pt {
+	case TypeAlpine:
+		return "Alpine"
 	case TypeCargo:
 		return "Cargo"
 	case TypeChef:
@@ -84,10 +94,14 @@ func (pt Type) Name() string {
 		return "Conda"
 	case TypeContainer:
 		return "Container"
+	case TypeCran:
+		return "CRAN"
 	case TypeDebian:
 		return "Debian"
 	case TypeGeneric:
 		return "Generic"
+	case TypeGo:
+		return "Go"
 	case TypeHelm:
 		return "Helm"
 	case TypeMaven:
@@ -100,6 +114,8 @@ func (pt Type) Name() string {
 		return "Pub"
 	case TypePyPI:
 		return "PyPI"
+	case TypeRpm:
+		return "RPM"
 	case TypeRubyGems:
 		return "RubyGems"
 	case TypeSwift:
@@ -113,6 +129,8 @@ func (pt Type) Name() string {
 // SVGName gets the name of the package type svg image
 func (pt Type) SVGName() string {
 	switch pt {
+	case TypeAlpine:
+		return "gitea-alpine"
 	case TypeCargo:
 		return "gitea-cargo"
 	case TypeChef:
@@ -125,10 +143,14 @@ func (pt Type) SVGName() string {
 		return "gitea-conda"
 	case TypeContainer:
 		return "octicon-container"
+	case TypeCran:
+		return "gitea-cran"
 	case TypeDebian:
 		return "gitea-debian"
 	case TypeGeneric:
 		return "octicon-package"
+	case TypeGo:
+		return "gitea-go"
 	case TypeHelm:
 		return "gitea-helm"
 	case TypeMaven:
@@ -141,6 +163,8 @@ func (pt Type) SVGName() string {
 		return "gitea-pub"
 	case TypePyPI:
 		return "gitea-python"
+	case TypeRpm:
+		return "gitea-rpm"
 	case TypeRubyGems:
 		return "gitea-rubygems"
 	case TypeSwift:

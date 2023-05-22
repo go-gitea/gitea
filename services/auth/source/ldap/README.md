@@ -81,9 +81,9 @@ share the following fields:
 
 * User Filter **(required)**
   * An LDAP filter declaring how to find the user record that is attempting to
-      authenticate. The '%s' matching parameter will be substituted with the
+      authenticate. The '%[1]s' matching parameter will be substituted with the
       user's username.
-  * Example: (&(objectClass=posixAccount)(uid=%s))
+  * Example: (&(objectClass=posixAccount)(|(uid=%[1]s)(mail=%[1]s)))
 
 **LDAP using simple auth** adds the following fields:
 
@@ -98,10 +98,10 @@ share the following fields:
   * Example: ou=Users,dc=mydomain,dc=com
 
 * User Filter **(required)**
-  * An LDAP filter declaring when a user should be allowed to log in. The `%s`
+  * An LDAP filter declaring when a user should be allowed to log in. The `%[1]s`
       matching parameter will be substituted with the user's username.
-  * Example: (&(objectClass=posixAccount)(cn=%s))
-  * Example: (&(objectClass=posixAccount)(uid=%s))
+  * Example: (&(objectClass=posixAccount)(|(cn=%[1]s)(mail=%[1]s)))
+  * Example: (&(objectClass=posixAccount)(|(uid=%[1]s)(mail=%[1]s)))
 
 **Verify group membership in LDAP** uses the following fields:
 

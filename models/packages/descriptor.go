@@ -12,12 +12,14 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/packages/alpine"
 	"code.gitea.io/gitea/modules/packages/cargo"
 	"code.gitea.io/gitea/modules/packages/chef"
 	"code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/packages/conda"
 	"code.gitea.io/gitea/modules/packages/container"
+	"code.gitea.io/gitea/modules/packages/cran"
 	"code.gitea.io/gitea/modules/packages/debian"
 	"code.gitea.io/gitea/modules/packages/helm"
 	"code.gitea.io/gitea/modules/packages/maven"
@@ -25,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/packages/pub"
 	"code.gitea.io/gitea/modules/packages/pypi"
+	"code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/packages/rubygems"
 	"code.gitea.io/gitea/modules/packages/swift"
 	"code.gitea.io/gitea/modules/packages/vagrant"
@@ -135,6 +138,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 
 	var metadata interface{}
 	switch p.Type {
+	case TypeAlpine:
+		metadata = &alpine.VersionMetadata{}
 	case TypeCargo:
 		metadata = &cargo.Metadata{}
 	case TypeChef:
@@ -147,10 +152,14 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &conda.VersionMetadata{}
 	case TypeContainer:
 		metadata = &container.Metadata{}
+	case TypeCran:
+		metadata = &cran.Metadata{}
 	case TypeDebian:
 		metadata = &debian.Metadata{}
 	case TypeGeneric:
 		// generic packages have no metadata
+	case TypeGo:
+		// go packages have no metadata
 	case TypeHelm:
 		metadata = &helm.Metadata{}
 	case TypeNuGet:
@@ -163,6 +172,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &pub.Metadata{}
 	case TypePyPI:
 		metadata = &pypi.Metadata{}
+	case TypeRpm:
+		metadata = &rpm.VersionMetadata{}
 	case TypeRubyGems:
 		metadata = &rubygems.Metadata{}
 	case TypeSwift:

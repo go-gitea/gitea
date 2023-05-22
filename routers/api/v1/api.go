@@ -149,7 +149,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
-						context.RedirectToUser(ctx.Context, userName, redirectUserID)
+						context.RedirectToUser(ctx.Base, userName, redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetUserByName", err)
 					} else {
@@ -170,7 +170,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			if repo_model.IsErrRepoNotExist(err) {
 				redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
 				if err == nil {
-					context.RedirectToRepo(ctx.Context, redirectRepoID)
+					context.RedirectToRepo(ctx.Base, redirectRepoID)
 				} else if repo_model.IsErrRedirectNotExist(err) {
 					ctx.NotFound()
 				} else {
@@ -274,7 +274,7 @@ func reqToken(requiredScope auth_model.AccessTokenScope) func(ctx *context.APICo
 			ctx.Error(http.StatusForbidden, "reqToken", "token does not have required scope: "+requiredScope)
 			return
 		}
-		if ctx.Context.IsBasicAuth {
+		if ctx.IsBasicAuth {
 			ctx.CheckForOTP()
 			return
 		}
@@ -295,7 +295,7 @@ func reqExploreSignIn() func(ctx *context.APIContext) {
 
 func reqBasicAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.Context.IsBasicAuth {
+		if !ctx.IsBasicAuth {
 			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "auth required")
 			return
 		}
@@ -316,7 +316,7 @@ func reqSiteAdmin() func(ctx *context.APIContext) {
 // reqOwner user should be the owner of the repo or site admin.
 func reqOwner() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.IsUserRepoOwner() && !ctx.IsUserSiteAdmin() {
+		if !ctx.Repo.IsOwner() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqOwner", "user should be the owner of the repo")
 			return
 		}
@@ -355,7 +355,7 @@ func reqRepoBranchWriter(ctx *context.APIContext) {
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
 func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.IsUserRepoReaderSpecific(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
+		if !ctx.Repo.CanRead(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqRepoReader", "user should have specific read permission or be a repo admin or a site admin")
 			return
 		}
@@ -365,7 +365,7 @@ func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 // reqAnyRepoReader user should have any permission to read repository or permissions of site admin
 func reqAnyRepoReader() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.IsUserRepoReaderAny() && !ctx.IsUserSiteAdmin() {
+		if !ctx.Repo.HasAccess() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqAnyRepoReader", "user should have any permission to read repository or permissions of site admin")
 			return
 		}
@@ -375,7 +375,7 @@ func reqAnyRepoReader() func(ctx *context.APIContext) {
 // reqOrgOwnership user should be an organization owner, or a site admin
 func reqOrgOwnership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.Context.IsUserSiteAdmin() {
+		if ctx.IsUserSiteAdmin() {
 			return
 		}
 
@@ -407,7 +407,7 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 // reqTeamMembership user should be an team member, or a site admin
 func reqTeamMembership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.Context.IsUserSiteAdmin() {
+		if ctx.IsUserSiteAdmin() {
 			return
 		}
 		if ctx.Org.Team == nil {
@@ -444,7 +444,7 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 // reqOrgMembership user should be an organization member, or a site admin
 func reqOrgMembership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.Context.IsUserSiteAdmin() {
+		if ctx.IsUserSiteAdmin() {
 			return
 		}
 
@@ -512,7 +512,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 				if organization.IsErrOrgNotExist(err) {
 					redirectUserID, err := user_model.LookupUserRedirect(ctx.Params(":org"))
 					if err == nil {
-						context.RedirectToUser(ctx.Context, ctx.Params(":org"), redirectUserID)
+						context.RedirectToUser(ctx.Base, ctx.Params(":org"), redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetOrgByName", err)
 					} else {

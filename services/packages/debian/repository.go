@@ -14,11 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	debian_model "code.gitea.io/gitea/models/packages/debian"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	"code.gitea.io/gitea/modules/setting"
@@ -35,43 +33,7 @@ import (
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
 // The Debian registry needs multiple index files which are stored in this package.
 func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion, error) {
-	var repositoryVersion *packages_model.PackageVersion
-
-	return repositoryVersion, db.WithTx(db.DefaultContext, func(ctx context.Context) error {
-		p := &packages_model.Package{
-			OwnerID:    ownerID,
-			Type:       packages_model.TypeDebian,
-			Name:       debian_module.RepositoryPackage,
-			LowerName:  debian_module.RepositoryPackage,
-			IsInternal: true,
-		}
-		var err error
-		if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
-			if err != packages_model.ErrDuplicatePackage {
-				log.Error("Error inserting package: %v", err)
-				return err
-			}
-		}
-
-		pv := &packages_model.PackageVersion{
-			PackageID:    p.ID,
-			CreatorID:    ownerID,
-			Version:      debian_module.RepositoryVersion,
-			LowerVersion: debian_module.RepositoryVersion,
-			IsInternal:   true,
-			MetadataJSON: "null",
-		}
-		if pv, err = packages_model.GetOrInsertVersion(ctx, pv); err != nil {
-			if err != packages_model.ErrDuplicatePackageVersion {
-				log.Error("Error inserting package version: %v", err)
-				return err
-			}
-		}
-
-		repositoryVersion = pv
-
-		return nil
-	})
+	return packages_service.GetOrCreateInternalPackageVersion(ownerID, packages_model.TypeDebian, debian_module.RepositoryPackage, debian_module.RepositoryVersion)
 }
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository files

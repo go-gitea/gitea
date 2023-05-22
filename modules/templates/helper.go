@@ -179,7 +179,6 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// misc
-		"DiffLineTypeToStr":        DiffLineTypeToStr,
 		"ShortSha":                 base.ShortSha,
 		"ActionContent2Commits":    ActionContent2Commits,
 		"IsMultilineCommitMessage": IsMultilineCommitMessage,

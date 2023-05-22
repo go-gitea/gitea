@@ -19,7 +19,7 @@ import (
 )
 
 // RenderMarkup renders markup text for the /markup and /markdown endpoints
-func RenderMarkup(ctx *context.Context, mode, text, urlPrefix, filePath string, wiki bool) {
+func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPrefix, filePath string, wiki bool) {
 	var markupType string
 	relativePath := ""
 
@@ -63,11 +63,11 @@ func RenderMarkup(ctx *context.Context, mode, text, urlPrefix, filePath string, 
 	}
 
 	meta := map[string]string{}
-	if ctx.Repo != nil && ctx.Repo.Repository != nil {
+	if repo != nil && repo.Repository != nil {
 		if mode == "comment" {
-			meta = ctx.Repo.Repository.ComposeMetas()
+			meta = repo.Repository.ComposeMetas()
 		} else {
-			meta = ctx.Repo.Repository.ComposeDocumentMetas()
+			meta = repo.Repository.ComposeDocumentMetas()
 		}
 	}
 	if mode != "comment" {

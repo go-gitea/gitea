@@ -30,7 +30,6 @@ Gitea can search through the files of the repositories by enabling this function
 ; ...
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = indexers/repos.bleve
-UPDATE_BUFFER_LEN = 20
 MAX_FILE_SIZE = 1048576
 REPO_INDEXER_INCLUDE =
 REPO_INDEXER_EXCLUDE = resources/bin/**

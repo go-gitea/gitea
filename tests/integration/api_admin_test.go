@@ -241,3 +241,44 @@ func TestAPICreateRepoForUser(t *testing.T) {
 	)
 	MakeRequest(t, req, http.StatusCreated)
 }
+
+func TestAPIRenameUser(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	adminUsername := "user1"
+	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeSudo)
+	urlStr := fmt.Sprintf("/api/v1/admin/users/%s/rename?token=%s", "user2", token)
+	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
+		// required
+		"new_name": "User2",
+	})
+	MakeRequest(t, req, http.StatusOK)
+
+	urlStr = fmt.Sprintf("/api/v1/admin/users/%s/rename?token=%s", "User2", token)
+	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
+		// required
+		"new_name": "User2-2-2",
+	})
+	MakeRequest(t, req, http.StatusOK)
+
+	urlStr = fmt.Sprintf("/api/v1/admin/users/%s/rename?token=%s", "User2", token)
+	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
+		// required
+		"new_name": "user1",
+	})
+	// the old user name still be used by with a redirect
+	MakeRequest(t, req, http.StatusTemporaryRedirect)
+
+	urlStr = fmt.Sprintf("/api/v1/admin/users/%s/rename?token=%s", "User2-2-2", token)
+	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
+		// required
+		"new_name": "user1",
+	})
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	urlStr = fmt.Sprintf("/api/v1/admin/users/%s/rename?token=%s", "User2-2-2", token)
+	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
+		// required
+		"new_name": "user2",
+	})
+	MakeRequest(t, req, http.StatusOK)
+}

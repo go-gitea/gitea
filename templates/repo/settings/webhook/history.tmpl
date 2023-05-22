@@ -21,7 +21,7 @@
 						<a class="ui primary sha label toggle button show-panel" data-panel="#info-{{.ID}}">{{.UUID}}</a>
 						<div class="ui right">
 							<span class="text grey time">
-								{{.DeliveredString}}
+								{{TimeSince .Delivered.AsTime $.locale}}
 							</span>
 						</div>
 					</div>

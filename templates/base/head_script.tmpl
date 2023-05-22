@@ -6,7 +6,6 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 <script>
 	window.addEventListener('error', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 	window.config = {
-		initCount: (window.config?.initCount ?? 0) + 1,
 		appUrl: '{{AppUrl}}',
 		appSubUrl: '{{AppSubUrl}}',
 		assetVersionEncoded: encodeURIComponent('{{AssetVersion}}'), // will be used in URL construction directly

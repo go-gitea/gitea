@@ -4,6 +4,19 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.19.3](https://github.com/go-gitea/gitea/releases/tag/1.19.3) - 2023-05-03
+
+* SECURITY
+  * Use golang 1.20.4 to fix CVE-2023-24539, CVE-2023-24540, and CVE-2023-29400
+* ENHANCEMENTS
+  * Enable whitespace rendering on selection in Monaco (#24444) (#24485)
+  * Improve milestone filter on issues page (#22423) (#24440)
+* BUGFIXES
+  * Fix api error message if fork exists (#24487) (#24493)
+  * Fix user-cards format (#24428) (#24431)
+  * Fix incorrect CurrentUser check for docker rootless (#24435)
+  * Getting the tag list does not require being signed in (#24413) (#24416)
+
 ## [1.19.2](https://github.com/go-gitea/gitea/releases/tag/1.19.2) - 2023-04-26
 
 * SECURITY

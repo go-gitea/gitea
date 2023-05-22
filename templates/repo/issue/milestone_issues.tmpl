@@ -51,7 +51,7 @@
 			<div class="issue-list-toolbar-right">
 				<div class="ui secondary filter stackable menu labels">
 					<!-- Label -->
-					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter" style="margin-left: auto">
+					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter gt-ml-auto">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_label"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -153,9 +153,9 @@
 				<div class="ui secondary filter stackable menu">
 					<!-- Action Button -->
 					{{if .IsShowClosed}}
-						<button class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_open"}}</button>
+						<button class="ui green active basic button issue-action gt-ml-auto" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_open"}}</button>
 					{{else}}
-						<button class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_close"}}</button>
+						<button class="ui red active basic button issue-action gt-ml-auto" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_close"}}</button>
 					{{end}}
 					<!-- Labels -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
