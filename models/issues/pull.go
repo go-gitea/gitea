@@ -224,40 +224,27 @@ func DeletePullsByBaseRepoID(ctx context.Context, repoID int64) error {
 	return err
 }
 
-// ColorFormat writes a colored string to identify this struct
-func (pr *PullRequest) ColorFormat(s fmt.State) {
+func (pr *PullRequest) String() string {
 	if pr == nil {
-		log.ColorFprintf(s, "PR[%d]%s#%d[%s...%s:%s]",
-			log.NewColoredIDValue(0),
-			log.NewColoredValue("<nil>/<nil>"),
-			log.NewColoredIDValue(0),
-			log.NewColoredValue("<nil>"),
-			log.NewColoredValue("<nil>/<nil>"),
-			log.NewColoredValue("<nil>"),
-		)
-		return
+		return "<PullRequest nil>"
 	}
 
-	log.ColorFprintf(s, "PR[%d]", log.NewColoredIDValue(pr.ID))
+	s := new(strings.Builder)
+	fmt.Fprintf(s, "<PullRequest [%d]", pr.ID)
 	if pr.BaseRepo != nil {
-		log.ColorFprintf(s, "%s#%d[%s...", log.NewColoredValue(pr.BaseRepo.FullName()),
-			log.NewColoredIDValue(pr.Index), log.NewColoredValue(pr.BaseBranch))
+		fmt.Fprintf(s, "%s#%d[%s...", pr.BaseRepo.FullName(), pr.Index, pr.BaseBranch)
 	} else {
-		log.ColorFprintf(s, "Repo[%d]#%d[%s...", log.NewColoredIDValue(pr.BaseRepoID),
-			log.NewColoredIDValue(pr.Index), log.NewColoredValue(pr.BaseBranch))
+		fmt.Fprintf(s, "Repo[%d]#%d[%s...", pr.BaseRepoID, pr.Index, pr.BaseBranch)
 	}
 	if pr.HeadRepoID == pr.BaseRepoID {
-		log.ColorFprintf(s, "%s]", log.NewColoredValue(pr.HeadBranch))
+		fmt.Fprintf(s, "%s]", pr.HeadBranch)
 	} else if pr.HeadRepo != nil {
-		log.ColorFprintf(s, "%s:%s]", log.NewColoredValue(pr.HeadRepo.FullName()), log.NewColoredValue(pr.HeadBranch))
+		fmt.Fprintf(s, "%s:%s]", pr.HeadRepo.FullName(), pr.HeadBranch)
 	} else {
-		log.ColorFprintf(s, "Repo[%d]:%s]", log.NewColoredIDValue(pr.HeadRepoID), log.NewColoredValue(pr.HeadBranch))
+		fmt.Fprintf(s, "Repo[%d]:%s]", pr.HeadRepoID, pr.HeadBranch)
 	}
-}
-
-// String represents the pr as a simple string
-func (pr *PullRequest) String() string {
-	return log.ColorFormatAsString(pr)
+	s.WriteByte('>')
+	return s.String()
 }
 
 // MustHeadUserName returns the HeadRepo's username if failed return blank

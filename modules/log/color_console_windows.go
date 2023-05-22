@@ -20,7 +20,7 @@ func enableVTMode(console windows.Handle) bool {
 	// EnableVirtualTerminalProcessing is the console mode to allow ANSI code
 	// interpretation on the console. See:
 	// https://docs.microsoft.com/en-us/windows/console/setconsolemode
-	// It only works on windows 10. Earlier terminals will fail with an err which we will
+	// It only works on Windows 10. Earlier terminals will fail with an err which we will
 	// handle to say don't color
 	mode |= windows.ENABLE_VIRTUAL_TERMINAL_PROCESSING
 	err = windows.SetConsoleMode(console, mode)
