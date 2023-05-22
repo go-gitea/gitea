@@ -493,7 +493,7 @@ var migrations = []Migration{
 	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
 	// v257 -> v258
 	NewMigration("Add Actions Artifact table", v1_20.CreateActionArtifactTable),
-  // v258 -> v259
+	// v258 -> v259
 	NewMigration("Drop column NumFollowers and NumFollowing on User", v1_20.DropColumnNumFollowersAndNumFollowingOnUser),
 }
 
