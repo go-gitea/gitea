@@ -71,6 +71,7 @@
   /* console colors */
   --color-console-fg: #ffffff;
   --color-console-bg: #171717;
+  --color-console-hover-bg: #ffffff16;
   /* named colors */
   --color-red: #db2828;
   --color-orange: #f2711c;
