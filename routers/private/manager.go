@@ -21,7 +21,13 @@ import (
 
 // ReloadTemplates reloads all the templates
 func ReloadTemplates(ctx *context.PrivateContext) {
-	templates.ReloadHTMLTemplates()
+	err := templates.ReloadHTMLTemplates()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			UserMsg: fmt.Sprintf("Template error: %v", err),
+		})
+		return
+	}
 	ctx.PlainText(http.StatusOK, "success")
 }
 
