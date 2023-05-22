@@ -2,55 +2,60 @@
 
 <details><summary>Table of Contents</summary>
 
-- [Introduction](#introduction)
-- [Issues](#issues)
-  - [How to report issues](#how-to-report-issues)
-  - [Types of issues](#types-of-issues)
-  - [Discuss your design before the implementation](#discuss-your-design-before-the-implementation)
-- [Building Gitea](#building-gitea)
-- [Dependencies](#dependencies)
-  - [Backend](#backend)
-  - [Frontend](#frontend)
-- [Design guideline](#design-guideline)
-- [Styleguide](#styleguide)
-- [Copyright](#copyright)
-- [Testing](#testing)
-- [Translation](#translation)
-- [Code review](#code-review)
-  - [Pull request format](#pull-request-format)
-  - [PR title and summary](#pr-title-and-summary)
-  - [Milestone](#milestone)
-  - [Labels](#labels)
-  - [Breaking PRs](#breaking-prs)
-  - [Maintaining open PRs](#maintaining-open-prs)
-  - [Getting PRs merged](#getting-prs-merged)
-  - [Final call](#final-call)
-  - [Commit messages](#commit-messages)
-- [Documentation](#documentation)
-- [API v1](#api-v1)
-  - [GitHub API compatability](#github-api-compatability)
-  - [Adding/Maintaining API routes](#addingmaintaining-api-routes)
-  - [When to use what HTTP method](#when-to-use-what-http-method)
-  - [Requirements for API routes](#requirements-for-api-routes)
-- [Backports and Frontports](#backports-and-frontports)
-  - [What is backported?](#what-is-backported)
-  - [How to backport?](#how-to-backport)
-  - [Format of backport PRs](#format-of-backport-prs)
-  - [Frontports](#frontports)
-- [Developer Certificate of Origin (DCO)](#developer-certificate-of-origin-dco)
-- [Release Cycle](#release-cycle)
-- [Maintainers](#maintainers)
-- [TOC](#technical-oversight-committee-toc)
-  - [Current TOC members](#current-toc-members)
-  - [Previous TOC/owners members](#previous-tocowners-members)
-- [Governance Compensation](#governance-compensation)
-- [TOC \& Working groups](#toc--working-groups)
-- [Roadmap](#roadmap)
-- [Versions](#versions)
-- [Releasing Gitea](#releasing-gitea)
+- [Contribution Guidelines](#contribution-guidelines)
+  - [Introduction](#introduction)
+  - [Issues](#issues)
+    - [How to report issues](#how-to-report-issues)
+    - [Types of issues](#types-of-issues)
+    - [Discuss your design before the implementation](#discuss-your-design-before-the-implementation)
+  - [Building Gitea](#building-gitea)
+  - [Dependencies](#dependencies)
+    - [Backend](#backend)
+    - [Frontend](#frontend)
+  - [Design guideline](#design-guideline)
+  - [Styleguide](#styleguide)
+  - [Copyright](#copyright)
+  - [Testing](#testing)
+  - [Translation](#translation)
+  - [Code review](#code-review)
+    - [Pull request format](#pull-request-format)
+    - [PR title and summary](#pr-title-and-summary)
+    - [Milestone](#milestone)
+    - [Labels](#labels)
+    - [Breaking PRs](#breaking-prs)
+      - [What is a breaking PR?](#what-is-a-breaking-pr)
+      - [How to handle breaking PRs?](#how-to-handle-breaking-prs)
+    - [Maintaining open PRs](#maintaining-open-prs)
+    - [Getting PRs merged](#getting-prs-merged)
+    - [Final call](#final-call)
+    - [Commit messages](#commit-messages)
+      - [PR Co-authors](#pr-co-authors)
+      - [PRs targeting `main`](#prs-targeting-main)
+      - [Backport PRs](#backport-prs)
+  - [Documentation](#documentation)
+  - [API v1](#api-v1)
+    - [GitHub API compatability](#github-api-compatability)
+    - [Adding/Maintaining API routes](#addingmaintaining-api-routes)
+    - [When to use what HTTP method](#when-to-use-what-http-method)
+    - [Requirements for API routes](#requirements-for-api-routes)
+  - [Backports and Frontports](#backports-and-frontports)
+    - [What is backported?](#what-is-backported)
+    - [How to backport?](#how-to-backport)
+    - [Format of backport PRs](#format-of-backport-prs)
+    - [Frontports](#frontports)
+  - [Developer Certificate of Origin (DCO)](#developer-certificate-of-origin-dco)
+  - [Release Cycle](#release-cycle)
+  - [Maintainers](#maintainers)
+  - [Technical Oversight Committee (TOC)](#technical-oversight-committee-toc)
+    - [Current TOC members](#current-toc-members)
+    - [Previous TOC/owners members](#previous-tocowners-members)
+  - [Governance Compensation](#governance-compensation)
+  - [TOC \& Working groups](#toc--working-groups)
+  - [Roadmap](#roadmap)
+  - [Versions](#versions)
+  - [Releasing Gitea](#releasing-gitea)
 
 </details>
-
 
 ## Introduction
 
@@ -78,6 +83,7 @@ Please be kind, remember that Gitea comes at no cost to you, and you're getting 
 ### Types of issues
 
 Typically, issues fall in one of the following categories:
+
 - `bug`: Something in the frontend or backend behaves unexpectedly
 - `security issue`: bug that has serious implications such as leaking another users data. Please do not file such issues on the public tracker and send a mail to security@gitea.io instead
 - `feature`: Completely new functionality. You should describe this feature in enough detail that anyone who reads the issue can understand how it is supposed to be implemented
@@ -123,6 +129,7 @@ The same restrictions apply for frontend dependencies as for backend dependencie
 ## Design guideline
 
 Depending on your change, please read the
+
 - [backend development guideline](https://docs.gitea.com/contributing/guidelines-backend)
 - [frontend development guideline](https://docs.gitea.com/contributing/guidelines-frontend)
 - [refactoring guideline](https://docs.gitea.com/contributing/guidelines-refactoring)
@@ -191,20 +198,22 @@ Some of the key points:
 - Split big pull requests into multiple small ones. \
   An incremental change will be faster to review than a huge PR.
 - Allow edits by maintainers. This way, the maintainers will take care of merging the PR later on instead of you.
-  
-### PR title and summary 
-  
+
+### PR title and summary
+
 In the PR title, describe the problem you are fixing, not how you are fixing it. \
 Use the first comment as a summary of your PR. \
 In the PR summary, you can describe exactly how you are fixing this problem. \
 Keep this summary up-to-date as the PR evolves. \
-If your PR changes the UI, you must add _after_ screenshots in the PR summary. \
-If you are not implementing a new feature, you should also post _before_ screenshots for comparison. \
+If your PR changes the UI, you must add **after** screenshots in the PR summary. \
+If you are not implementing a new feature, you should also post **before** screenshots for comparison. \
 If your PR closes some issues, you must note that in a way that both GitHub and Gitea understand, i.e. by appending a paragraph like
+
 ```text
 Fixes/Closes/Resolves #<ISSUE_NR_X>.
 Fixes/Closes/Resolves #<ISSUE_NR_Y>.
 ```
+
 to your summary. \
 Each issue that will be closed must stand on a separate line.
 
@@ -219,6 +228,7 @@ PRs without a milestone may not be merged.
 Every PR should be labeled correctly with every label that applies. \
 This includes especially the distinction between `bug` (fixing existing functionality), `feature` (new functionality), `enhancement` (upgrades for existing functionality), and `refactoring` (improving the internal code structure without changing the output (much)). \
 Furthermore,
+
 - the amount of pending required approvals
 - whether this PR is `blocked`, a `backport` or `breaking`
 - if it targets the `ui` or `api`
@@ -232,6 +242,7 @@ are oftentimes notable labels.
 #### What is a breaking PR?
 
 A PR is breaking if it meets one of the following criteria:
+
 - It changes API output in an incompatible way for existing users
 - It removes a setting that an admin could previously set (i.e. via `app.ini`)
 - An admin must do something manually to restore the old behavior
@@ -258,7 +269,6 @@ This reduces unnecessary CI runs. \
 Don't worry about merge commits messing up your commit history as every PR will be squash merged. \
 This means that all changes are joined into a single new commit whose message is as described below.
 
-
 ### Getting PRs merged
 
 Changes to Gitea must be reviewed before they are accepted — no matter who
@@ -277,6 +287,7 @@ The merge queue will be cleared in the order of the list below:
 
 Gitea uses it's own tool, the <https://github.com/GiteaBot/gitea-backporter> to automate parts of the review process. \
 This tool does the things listed below automatically:
+
 - create a backport PR if needed once the initial PR was merged
 - remove the PR from the merge queue after the PR merged
 - keep the oldest branch in the merge queue up to date with merges
@@ -301,7 +312,9 @@ Mergers are required to remove such "false-positive" co-authors when writing the
 The true co-authors must remain in the commit message.
 
 #### PRs targeting `main`
+
 The commit message of PRs targeting `main` is always
+
 ```bash
 $PR_TITLE ($PR_INDEX)
 
@@ -309,7 +322,9 @@ $REWRITTEN_PR_SUMMARY
 ```
 
 #### Backport PRs
+
 The commit message of backport PRs is always
+
 ```bash
 $PR_TITLE ($INITIAL_PR_INDEX) ($BACKPORT_PR_INDEX)
 
@@ -357,6 +372,7 @@ In general, HTTP methods are chosen as follows:
 All parameters of endpoints changing/editing an object must be optional (except the ones to identify the object, which are required).
 
 Endpoints returning lists must
+
 - support pagination (`page` & `limit` options in query)
 - set `X-Total-Count` header via **SetTotalCountHeader** ([example](https://github.com/go-gitea/gitea/blob/7aae98cc5d4113f1e9918b7ee7dd09f67c189e3e/routers/api/v1/repo/issue.go#L444))
 
@@ -365,6 +381,7 @@ Endpoints returning lists must
 ### What is backported?
 
 We backport PRs given the following circumstances:
+
 1. Feature freeze is active, but `<version>-rc0` has not been released yet. Here, we backport as much as possible. <!-- TODO: Is that our definition with the new backport bot? -->
 2. `rc0` has been released. Here, we only backport bug- and security-fixes, and small enhancements. Large PRs such as refactors are not backported anymore. <!-- TODO: Is that our definition with the new backport bot? -->
 3. We never backport new features.
@@ -376,8 +393,9 @@ We backport PRs given the following circumstances:
 
 In the past, it was necessary to manually backport your PRs. \
 Now, that's not a requirement anymore as our [backport bot](https://github.com/GiteaBot) tries to create backports automatically once the PR is merged when the PR
-  - does not have the label `backport/manual`
-  - has the label `backport/<version>`
+
+- does not have the label `backport/manual`
+- has the label `backport/<version>`
 
 The `backport/manual` label signifies either that you want to backport the change yourself, or that there were conflicts when backporting, thus you **must** do it yourself.
 
@@ -483,7 +501,6 @@ Here's the history of the owners and the time they served:
 - [Matti Ranta](https://gitea.com/techknowlogick) - [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872)
 - [Andrew Thornton](https://gitea.com/zeripath) - [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872)
 
-
 ## Governance Compensation
 
 Each member of the community elected TOC will be granted $500 each month as compensation for their work.
@@ -500,15 +517,15 @@ With Gitea covering many projects outside of the main repository, several groups
 
 The currently proposed groups are:
 
-  * **Core Group**: maintain the primary Gitea repository
-  * **Integration Group**: maintain the Gitea ecosystem's related tools, including go-sdk/tea/changelog/bots etc.
-  * **Documentation Group**: maintain related documents and repositories
-  * **Translation Group**: coordinate with translators and maintain translations
-  * **Security Group**: managed by TOC directly, members are decided by TOC, maintains security patches/responsible for security items
+- **Core Group**: maintain the primary Gitea repository
+- **Integration Group**: maintain the Gitea ecosystem's related tools, including go-sdk/tea/changelog/bots etc.
+- **Documentation Group**: maintain related documents and repositories
+- **Translation Group**: coordinate with translators and maintain translations
+- **Security Group**: managed by TOC directly, members are decided by TOC, maintains security patches/responsible for security items
 
 ## Roadmap
 
-Each year a roadmap will be discussed with the entire Gitea maintainers team, and feedback will be solicited from various stakeholders. 
+Each year a roadmap will be discussed with the entire Gitea maintainers team, and feedback will be solicited from various stakeholders.
 TOC members need to review the roadmap every year and work together on the direction of the project.
 
 When a vote is required for a proposal or other change, the vote of community elected TOC members count slightly more than the vote of company elected TOC members. With this approach, we both avoid ties and ensure that changes align with the mission statement and community opinion.
