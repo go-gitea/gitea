@@ -102,45 +102,28 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 	return p.CanWrite(unit.TypeIssues)
 }
 
-// ColorFormat writes a colored string for these Permissions
-func (p *Permission) ColorFormat(s fmt.State) {
-	noColor := log.ColorBytes(log.Reset)
+func (p *Permission) LogString() string {
+	format := "<Permission AccessMode=%s, %d Units, %d UnitsMode(s): [ "
+	args := []any{p.AccessMode.String(), len(p.Units), len(p.UnitsMode)}
 
-	format := "perm_model.AccessMode: %-v, %d Units, %d UnitsMode(s): [ "
-	args := []interface{}{
-		p.AccessMode,
-		log.NewColoredValueBytes(len(p.Units), &noColor),
-		log.NewColoredValueBytes(len(p.UnitsMode), &noColor),
-	}
-	if s.Flag('+') {
-		for i, unit := range p.Units {
-			config := ""
-			if unit.Config != nil {
-				configBytes, err := unit.Config.ToDB()
-				config = string(configBytes)
-				if err != nil {
-					config = err.Error()
-				}
+	for i, unit := range p.Units {
+		config := ""
+		if unit.Config != nil {
+			configBytes, err := unit.Config.ToDB()
+			config = string(configBytes)
+			if err != nil {
+				config = err.Error()
 			}
-			format += "\nUnits[%d]: ID: %d RepoID: %d Type: %-v Config: %s"
-			args = append(args,
-				log.NewColoredValueBytes(i, &noColor),
-				log.NewColoredIDValue(unit.ID),
-				log.NewColoredIDValue(unit.RepoID),
-				unit.Type,
-				config)
 		}
-		for key, value := range p.UnitsMode {
-			format += "\nUnitMode[%-v]: %-v"
-			args = append(args,
-				key,
-				value)
-		}
-	} else {
-		format += "..."
+		format += "\nUnits[%d]: ID: %d RepoID: %d Type: %s Config: %s"
+		args = append(args, i, unit.ID, unit.RepoID, unit.Type.LogString(), config)
 	}
-	format += " ]"
-	log.ColorFprintf(s, format, args...)
+	for key, value := range p.UnitsMode {
+		format += "\nUnitMode[%-v]: %-v"
+		args = append(args, key.LogString(), value.LogString())
+	}
+	format += " ]>"
+	return fmt.Sprintf(format, args...)
 }
 
 // GetUserRepoPermission returns the user permissions to the repository

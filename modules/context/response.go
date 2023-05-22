@@ -13,6 +13,7 @@ type ResponseWriter interface {
 	http.Flusher
 	Status() int
 	Before(func(ResponseWriter))
+	Size() int // used by access logger template
 }
 
 var _ ResponseWriter = &Response{}
@@ -43,6 +44,10 @@ func (r *Response) Write(bs []byte) (int, error) {
 		r.status = http.StatusOK
 	}
 	return size, nil
+}
+
+func (r *Response) Size() int {
+	return r.written
 }
 
 // WriteHeader write status code
