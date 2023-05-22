@@ -30,7 +30,7 @@ type CreateOrgForm struct {
 
 // Validate validates the fields
 func (f *CreateOrgForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -48,7 +48,7 @@ type UpdateOrgSettingForm struct {
 
 // Validate validates the fields
 func (f *UpdateOrgSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -70,6 +70,6 @@ type CreateTeamForm struct {
 
 // Validate validates the fields
 func (f *CreateTeamForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

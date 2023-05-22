@@ -2344,7 +2344,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 // SearchIssues searches for issues across the repositories that the user has access to
 func SearchIssues(ctx *context.Context) {
-	before, since, err := context.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, err.Error())
 		return
@@ -2545,7 +2545,7 @@ func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
 
 // ListIssues list the issues of a repository
 func ListIssues(ctx *context.Context) {
-	before, since, err := context.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, err.Error())
 		return
@@ -2742,7 +2742,7 @@ func NewComment(ctx *context.Context) {
 				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
 					"User in Repo has Permissions: %-+v",
 					ctx.Doer,
-					log.NewColoredIDValue(issue.PosterID),
+					issue.PosterID,
 					issueType,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
@@ -3020,7 +3020,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
 					"User in Repo has Permissions: %-+v",
 					ctx.Doer,
-					log.NewColoredIDValue(issue.PosterID),
+					issue.PosterID,
 					issueType,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
@@ -3122,7 +3122,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
 					"User in Repo has Permissions: %-+v",
 					ctx.Doer,
-					log.NewColoredIDValue(comment.Issue.PosterID),
+					comment.Issue.PosterID,
 					issueType,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)

@@ -1,10 +1,10 @@
 <div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
-	<a class="text gt-df gt-ac muted">
+	<span class="text gt-df gt-ac muted">
 		<strong>{{.locale.Tr "repo.issues.new.labels"}}</strong>
 		{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
 			{{svg "octicon-gear" 16 "gt-ml-2"}}
 		{{end}}
-	</a>
+	</span>
 	<div class="filter menu" {{if .Issue}}data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels"{{else}}data-id="#label_ids"{{end}}>
 		<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_labels_title"}}</div>
 		{{if or .Labels .OrgLabels}}
