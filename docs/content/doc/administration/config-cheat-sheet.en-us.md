@@ -1070,7 +1070,8 @@ Default templates for project boards:
 
 ### Git - Config options (`git.config`)
 
-The key/value pairs in this section will be used as git config:
+The key/value pairs in this section will be used as git config.
+This section only does "set" config, a removed config key from this section won't be removed from git config automatically.
 
 - `diff.algorithm`: **histogram**
 - `other.config-key`: ...
