@@ -64,10 +64,7 @@
 		<div class="repo-button-row gt-df gt-ac gt-sb gt-fw">
 			<div class="gt-df gt-ac gt-fw gt-gap-y-3">
 				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "gt-mr-2"}}
-				{{$n := len .TreeNames}}
-				{{$l := Eval $n "-" 1}}
-				<!-- If home page, show new pr. If not, show breadcrumb -->
-				{{if and (eq $n 0) .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
+				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 					{{$cmpBranch := ""}}
 					{{if ne .Repository.ID .BaseRepo.ID}}
 						{{$cmpBranch = printf "%s/%s:" (.Repository.OwnerName|PathEscape) (.Repository.Name|PathEscape)}}
@@ -79,6 +76,9 @@
 						{{svg "octicon-git-pull-request"}}
 					</a>
 				{{end}}
+				<!-- Show go to file and breadcrumbs if not on home page -->
+				{{$n := len .TreeNames}}
+				{{$l := Eval $n "-" 1}}
 				{{if eq $n 0}}
 					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{.locale.Tr "repo.find_file.go_to_file"}}</a>
 				{{end}}
