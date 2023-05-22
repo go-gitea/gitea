@@ -1,6 +1,7 @@
 <!-- TODO: make template org and user can share -->
-{{with .ContextUser}}
-	<div class="ui container">
+{{if or (.IsPackagesPage) (.PageIsViewProjects)}}
+	{{with .ContextUser}}
+		<div class="ui container">
 		<div class="ui vertically grid head">
 			<div class="column">
 				<div class="ui header">
@@ -14,11 +15,17 @@
 			</div>
 		</div>
 	</div>
+	{{end}}
 {{end}}
 
 <div class="ui tabs container">
 	<div class="ui secondary stackable pointing menu">
-		<a class="item" href="{{.ContextUser.HomeLink}}">
+		{{if .ProfileReadme}}
+		<a class='{{if or (eq .TabName "overview") (and (eq .TabName "") (not .IsPackagesPage) (not .PageIsViewProjects))}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=overview">
+							{{svg "octicon-info"}} {{.locale.Tr "user.overview"}}
+						</a>
+		{{end}}
+		<a class="{{if or (eq .TabName "repositories") (and (eq .TabName "") (not .IsPackagesPage) (not .PageIsViewProjects) (not .ProfileReadme))}}active {{end}} item" href="{{.ContextUser.HomeLink}}?tab=repositories">
 			{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
 			{{if .ContextUser.NumRepos}}
 				<div class="ui small label">{{.ContextUser.NumRepos}}</div>

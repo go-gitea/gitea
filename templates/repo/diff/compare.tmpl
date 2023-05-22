@@ -1,8 +1,8 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository diff {{if .PageIsComparePull}}compare pull{{end}}">
 	{{template "repo/header" .}}
-	<div class="ui container fluid padded">
-
+	{{$showDiffBox := false}}
+	<div class="ui container">
 	<h2 class="ui header">
 		{{if and $.PageIsComparePull $.IsSigned (not .Repository.IsArchived)}}
 			{{.locale.Tr "repo.pulls.compare_changes"}}
@@ -33,11 +33,6 @@
 		{{- $RootRepoCompareName = .RootRepo.OwnerName -}}
 		{{- if eq $.HeadRepo.OwnerName .RootRepo.OwnerName -}}
 			{{- $HeadCompareName = printf "%s/%s" $.HeadRepo.OwnerName $.HeadRepo.Name -}}
-		{{- end -}}
-		{{- if .OwnForkRepo -}}
-			{{- if eq $.OwnForkRepo.OwnerName .RootRepo.OwnerName -}}
-				{{- $OwnForkRepoCompareName = printf "%s/%s" $.OwnForkRepo.OwnerName $.OwnForkRepo.Name -}}
-			{{- end -}}
 		{{- end -}}
 	{{- end -}}
 	<div class="ui segment choose branch">
@@ -203,14 +198,15 @@
 						<span class="index">#{{.PullRequest.Issue.Index}}</span>
 					</h1>
 				</div>
-				<div class="four wide right middle aligned column">
+				<div class="four wide column middle aligned text right">
 				{{- if .PullRequest.HasMerged -}}
 				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button purple show-form">{{svg "octicon-git-merge" 16}} {{.locale.Tr "repo.pulls.view"}}</a>
 				{{else if .Issue.IsClosed}}
 				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button red show-form">{{svg "octicon-issue-closed" 16}} {{.locale.Tr "repo.pulls.view"}}</a>
 				{{else}}
 				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button green show-form">{{svg "octicon-git-pull-request" 16}} {{.locale.Tr "repo.pulls.view"}}</a>
-				{{end}}</div>
+				{{end}}
+				</div>
 			</div>
 		{{else}}
 			{{if and $.IsSigned (not .Repository.IsArchived)}}
@@ -231,13 +227,18 @@
 					{{template "repo/issue/new_form" .}}
 				</div>
 			{{end}}
-			{{template "repo/commits_table" .}}
-			{{template "repo/diff/box" .}}
+			{{$showDiffBox = true}}
 		{{end}}
 	{{else}}
-		{{template "repo/commits_table" .}}
-		{{template "repo/diff/box" .}}
+		{{$showDiffBox = true}}
 	{{end}}
 	</div>
+
+	{{if $showDiffBox}}
+	<div class="ui container">
+		{{template "repo/commits_table" .}}
+		{{template "repo/diff/box" .}}
+	</div>
+	{{end}}
 </div>
 {{template "base/footer" .}}

@@ -2,7 +2,7 @@
 const data = {
 	...window.config.pageData.dashboardRepoList, // it only contains searchLimit and uid
 
-	isMirrorsEnabled: {{.IsMirrorsEnabled}},
+	isMirrorsEnabled: {{.MirrorsEnabled}},
 	isStarsEnabled: {{not .IsDisableStars}},
 
 	textRepository: {{.locale.Tr "repository"}},
@@ -35,6 +35,9 @@ const data = {
 
 	textMyOrgs: {{.locale.Tr "home.my_orgs"}},
 	textNewOrg: {{.locale.Tr "new_org"}},
+
+	textOrgVisibilityLimited: {{.locale.Tr "org.settings.visibility.limited_shortname"}},
+	textOrgVisibilityPrivate: {{.locale.Tr "org.settings.visibility.private_shortname"}},
 };
 
 {{if .Team}}
@@ -42,7 +45,7 @@ data.teamId = {{.Team.ID}};
 {{end}}
 
 {{if not .ContextUser.IsOrganization}}
-data.organizations = [{{range .Orgs}}{'name': {{.Name}}, 'num_repos': {{.NumRepos}}},{{end}}];
+data.organizations = [{{range .Orgs}}{'name': {{.Name}}, 'num_repos': {{.NumRepos}}, 'org_visibility': {{.Visibility}}},{{end}}];
 data.isOrganization = false;
 data.organizationsTotalCount = {{.UserOrgsCount}};
 data.canCreateOrganization = {{.SignedUser.CanCreateOrganization}};

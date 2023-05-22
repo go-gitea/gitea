@@ -23,10 +23,10 @@ func TestDateTime(t *testing.T) {
 	refTime, _ := time.Parse(time.RFC3339, refTimeStr)
 	refTimeStamp := TimeStamp(refTime.Unix())
 
-	assert.EqualValues(t, "N/A", DateTime("short", nil))
-	assert.EqualValues(t, "N/A", DateTime("short", 0))
-	assert.EqualValues(t, "N/A", DateTime("short", time.Time{}))
-	assert.EqualValues(t, "N/A", DateTime("short", TimeStamp(0)))
+	assert.EqualValues(t, "-", DateTime("short", nil))
+	assert.EqualValues(t, "-", DateTime("short", 0))
+	assert.EqualValues(t, "-", DateTime("short", time.Time{}))
+	assert.EqualValues(t, "-", DateTime("short", TimeStamp(0)))
 
 	actual := DateTime("short", "invalid")
 	assert.EqualValues(t, `<relative-time format="datetime" year="numeric" month="short" day="numeric" weekday="" datetime="invalid">invalid</relative-time>`, actual)

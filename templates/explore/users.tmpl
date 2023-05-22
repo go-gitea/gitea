@@ -18,7 +18,7 @@
 								{{svg "octicon-mail"}}
 								<a href="mailto:{{.Email}}" rel="nofollow">{{.Email}}</a>
 							{{end}}
-							{{svg "octicon-clock"}} {{$.locale.Tr "user.join_on"}} {{DateTime "short" .CreatedUnix}}
+							{{svg "octicon-clock"}} {{$.locale.Tr "user.joined_on" (DateTime "short" .CreatedUnix) | Safe}}
 						</div>
 					</div>
 				</div>

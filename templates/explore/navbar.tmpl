@@ -1,4 +1,4 @@
-<div class="ui secondary pointing tabular top attached borderless stackable menu new-menu navbar">
+<div class="ui secondary pointing tabular top attached borderless menu new-menu navbar">
 	<a class="{{if .PageIsExploreRepositories}}active {{end}}item" href="{{AppSubUrl}}/explore/repos">
 		{{svg "octicon-repo"}} {{.locale.Tr "explore.repos"}}
 	</a>
@@ -10,7 +10,7 @@
 	<a class="{{if .PageIsExploreOrganizations}}active {{end}}item" href="{{AppSubUrl}}/explore/organizations">
 		{{svg "octicon-organization"}} {{.locale.Tr "explore.organizations"}}
 	</a>
-	{{if .IsRepoIndexerEnabled}}
+	{{if and (not $.UnitTypeCode.UnitGlobalDisabled) .IsRepoIndexerEnabled}}
 	<a class="{{if .PageIsExploreCode}}active {{end}}item" href="{{AppSubUrl}}/explore/code">
 		{{svg "octicon-code"}} {{.locale.Tr "explore.code"}}
 	</a>

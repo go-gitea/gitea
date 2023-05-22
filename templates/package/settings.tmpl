@@ -20,7 +20,7 @@
 							{{$repoID = .PackageDescriptor.Repository.ID}}
 						{{end}}
 						<input type="hidden" name="repo_id" value="{{$repoID}}">
-						<i class="dropdown icon"></i>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="default text">{{.locale.Tr "packages.settings.link.select"}}</div>
 						<div class="menu">
 							{{range .Repos}}
@@ -51,7 +51,7 @@
 						{{.locale.Tr "packages.settings.delete"}}
 					</div>
 					<div class="content">
-						<div class="ui warning message text left gt-word-break">
+						<div class="ui warning message gt-word-break">
 							{{.locale.Tr "packages.settings.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
 						</div>
 						<form class="ui form" action="{{.Link}}" method="post">

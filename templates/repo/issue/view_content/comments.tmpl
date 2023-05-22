@@ -15,17 +15,19 @@
 		{{if eq .Type 0}}
 			<div class="timeline-item comment" id="{{.HashTag}}">
 			{{if .OriginalAuthor}}
-				<span class="timeline-avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
+				<span class="timeline-avatar">
+					<img src="{{AppSubUrl}}/assets/img/avatar_default.png" width="40" height="40">
+				</span>
 			{{else}}
 				<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-					{{avatar $.Context .Poster}}
+					{{avatar $.Context .Poster 40}}
 				</a>
 			{{end}}
 				<div class="content comment-container">
 					<div class="ui top attached header comment-header gt-df gt-ac gt-sb" role="heading" aria-level="3">
 						<div class="comment-header-left gt-df gt-ac">
 							{{if .OriginalAuthor}}
-								<span class="text black gt-bold gt-mr-2">
+								<span class="text black gt-font-semibold gt-mr-2">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 									{{.OriginalAuthor}}
 								</span>
@@ -38,7 +40,7 @@
 							{{else}}
 								{{if gt .Poster.ID 0}}
 									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
-										{{avatar $.Context .Poster}}
+										{{avatar $.Context .Poster 24}}
 									</a>
 								{{end}}
 								<span class="text grey muted-links">
@@ -125,9 +127,9 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{$link := printf "%s/commit/%s" $.Repository.Link ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
 					{{if eq $.Issue.PullRequest.Status 3}}
-						{{$.locale.Tr "repo.issues.manually_pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.comment_manually_pull_merged_at" (printf "<a class='ui sha' href='%[1]s'><b>%[2]s</b></a>" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
 					{{else}}
-						{{$.locale.Tr "repo.issues.pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.comment_pull_merged_at" (printf "<a class='ui sha' href='%[1]s'><b>%[2]s</b></a>" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>
@@ -372,8 +374,11 @@
 				<div class="timeline-item event">
 					{{if .OriginalAuthor}}
 					{{else}}
-					<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-						{{avatar $.Context .Poster}}
+					{{/* Some timeline avatars need a offset to correctly allign with their speech
+							bubble. The condition depends on review type and for positive reviews whether
+							there is a comment element or not */}}
+					<a class="timeline-avatar{{if or (and (eq .Review.Type 1) (or .Content .Attachments)) (and (eq .Review.Type 2) (or .Content .Attachments)) (eq .Review.Type 3)}} timeline-avatar-offset{{end}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+						{{avatar $.Context .Poster 40}}
 					</a>
 					{{end}}
 					<span class="badge{{if eq .Review.Type 1}} gt-bg-green gt-text-white{{else if eq .Review.Type 3}} gt-bg-red gt-text-white{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon)}}</span>
@@ -408,9 +413,14 @@
 					<div class="content comment-container">
 						<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
 							<div class="comment-header-left gt-df gt-ac">
+								{{if gt .Poster.ID 0}}
+									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
+										{{avatar $.Context .Poster 24}}
+									</a>
+								{{end}}
 								<span class="text grey muted-links">
 									{{if .OriginalAuthor}}
-										<span class="text black gt-bold">
+										<span class="text black gt-font-semibold">
 											{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 											{{.OriginalAuthor}}
 										</span>
@@ -474,7 +484,7 @@
 					{{range $filename, $lines := .Review.CodeComments}}
 						{{range $line, $comms := $lines}}
 								<div class="ui segments">
-									<div class="ui segment gt-py-3 gt-df gt-ac gt-sb">
+									<div class="ui segment collapsible-comment-box gt-py-3 gt-df gt-ac gt-sb">
 										{{$invalid := (index $comms 0).Invalidated}}
 										{{$resolved := (index $comms 0).IsResolved}}
 										{{$resolveDoer := (index $comms 0).ResolveDoer}}
@@ -533,12 +543,12 @@
 															<div class="comment-header-left gt-df gt-ac">
 																{{if not .OriginalAuthor}}
 																	<a class="avatar">
-																		{{avatar $.Context .Poster}}
+																		{{avatar $.Context .Poster 20}}
 																	</a>
 																{{end}}
 																<span class="text grey muted-links">
 																	{{if .OriginalAuthor}}
-																		<span class="text black gt-bold">
+																		<span class="text black gt-font-semibold">
 																			{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 																			{{.OriginalAuthor}}
 																		</span>
@@ -760,9 +770,10 @@
 			<div class="timeline-item-group">
 				<div class="timeline-item event" id="{{.HashTag}}">
 					<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-						<img src="{{.Poster.AvatarLink $.Context}}">
+						<img src="{{.Poster.AvatarLink $.Context}}" width="40" height="40">
 					</a>
 					<span class="badge grey">{{svg "octicon-x" 16}}</span>
+					{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Poster}}
 						{{$reviewerName := ""}}
@@ -777,7 +788,12 @@
 				{{if .Content}}
 					<div class="timeline-item comment">
 						<div class="content">
-							<div class="ui top attached header arrow-top">
+							<div class="ui top attached header comment-header-left gt-df gt-ac arrow-top">
+								{{if gt .Poster.ID 0}}
+									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
+										{{avatar $.Context .Poster 24}}
+									</a>
+								{{end}}
 								<span class="text grey muted-links">
 									{{$.locale.Tr "action.review_dismissed_reason"}}
 								</span>

@@ -1,781 +1,6 @@
 ---
 kind: pipeline
 type: docker
-name: compliance
-
-platform:
-  os: linux
-  arch: amd64
-
-trigger:
-  event:
-    - pull_request
-  paths:
-    exclude:
-      - "docs/**"
-      - "*.md"
-
-volumes:
-  - name: deps
-    temp: {}
-
-steps:
-  - name: deps-frontend
-    image: node:18
-    pull: always
-    commands:
-      - make deps-frontend
-
-  - name: deps-backend
-    image: gitea/test_env:linux-1.20-amd64
-    pull: always
-    commands:
-      - make deps-backend
-      - make deps-tools
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: lint-frontend
-    image: node:18
-    commands:
-      - make lint-frontend
-    depends_on: [deps-frontend]
-
-  - name: lint-backend
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    pull: always
-    commands:
-      - make lint-backend
-    environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
-    depends_on: [deps-backend]
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: lint-backend-windows
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    commands:
-      - make lint-go-windows lint-go-vet
-    environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
-      GOOS: windows
-      GOARCH: amd64
-    depends_on: [deps-backend]
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: lint-backend-gogit
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    commands:
-      - make lint-backend
-    environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata gogit sqlite sqlite_unlock_notify
-    depends_on: [deps-backend]
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: checks-frontend
-    image: node:18
-    commands:
-      - make checks-frontend
-    depends_on: [deps-frontend]
-
-  - name: checks-backend
-    image: gitea/test_env:linux-1.20-amd64
-    commands:
-      - make --always-make checks-backend # ensure the 'go-licenses' make target runs
-    depends_on: [deps-backend]
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: test-frontend
-    image: node:18
-    commands:
-      - make test-frontend
-    depends_on: [lint-frontend]
-
-  - name: build-frontend
-    image: node:18
-    commands:
-      - make frontend
-    depends_on: [deps-frontend]
-
-  - name: build-backend-no-gcc
-    image: gitea/test_env:linux-1.19-amd64 # this step is kept as the lowest version of golang that we support
-    pull: always
-    environment:
-      GOPROXY: https://goproxy.io
-    commands:
-      - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
-    depends_on: [deps-backend, checks-backend]
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: build-backend-arm64
-    image: gitea/test_env:linux-1.20-amd64
-    environment:
-      GOPROXY: https://goproxy.io
-      GOOS: linux
-      GOARCH: arm64
-      TAGS: bindata gogit
-    commands:
-      - make backend # test cross compile
-      - rm ./gitea # clean
-    depends_on: [deps-backend, checks-backend]
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: build-backend-windows
-    image: gitea/test_env:linux-1.20-amd64
-    environment:
-      GOPROXY: https://goproxy.io
-      GOOS: windows
-      GOARCH: amd64
-      TAGS: bindata gogit
-    commands:
-      - go build -o gitea_windows
-    depends_on: [deps-backend, checks-backend]
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: build-backend-386
-    image: gitea/test_env:linux-1.20-amd64
-    environment:
-      GOPROXY: https://goproxy.io
-      GOOS: linux
-      GOARCH: 386
-    commands:
-      - go build -o gitea_linux_386 # test if compatible with 32 bit
-    depends_on: [deps-backend, checks-backend]
-    volumes:
-      - name: deps
-        path: /go
-
----
-kind: pipeline
-type: docker
-name: testing-pgsql
-
-platform:
-  os: linux
-  arch: amd64
-
-depends_on:
-  - compliance
-
-trigger:
-  event:
-    - pull_request
-  paths:
-    exclude:
-      - "docs/**"
-
-volumes:
-  - name: deps
-    temp: {}
-
-services:
-  - name: pgsql
-    pull: default
-    image: postgres:15
-    environment:
-      POSTGRES_DB: test
-      POSTGRES_PASSWORD: postgres
-
-  - name: ldap
-    image: gitea/test-openldap:latest
-    pull: always
-
-  - name: minio
-    image: minio/minio:RELEASE.2021-03-12T00-00-47Z
-    pull: always
-    commands:
-      - minio server /data
-    environment:
-      MINIO_ACCESS_KEY: 123456
-      MINIO_SECRET_KEY: 12345678
-
-steps:
-  - name: fetch-tags
-    image: docker:git
-    pull: always
-    commands:
-      - git fetch --tags --force
-    when:
-      event:
-        exclude:
-          - pull_request
-
-  - name: deps-backend
-    image: gitea/test_env:linux-1.20-amd64
-    pull: always
-    commands:
-      - make deps-backend
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: prepare-test-env
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    pull: always
-    commands:
-      - ./build/test-env-prepare.sh
-
-  - name: build
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    user: gitea
-    commands:
-      - ./build/test-env-check.sh
-      - make backend
-    environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata
-    depends_on: [deps-backend, prepare-test-env]
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: test-pgsql
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    user: gitea
-    commands:
-      - timeout -s ABRT 50m make test-pgsql-migration test-pgsql
-    environment:
-      GOPROXY: https://goproxy.io
-      TAGS: bindata gogit
-      RACE_ENABLED: true
-      TEST_TAGS: gogit
-      TEST_LDAP: 1
-      USE_REPO_TEST_DIR: 1
-    depends_on: [build]
-    volumes:
-      - name: deps
-        path: /go
-
----
-kind: pipeline
-type: docker
-name: compliance-docs
-
-platform:
-  os: linux
-  arch: amd64
-
-trigger:
-  event:
-    - pull_request
-  paths:
-    include:
-      - "docs/**"
-      - "*.md"
-
-steps:
-  - name: deps-frontend
-    image: node:18
-    pull: always
-    commands:
-      - make deps-frontend
-
-  - name: lint-md
-    image: node:18
-    commands:
-      - make lint-md
-
----
-kind: pipeline
-type: docker
-name: testing-mysql
-
-platform:
-  os: linux
-  arch: amd64
-
-depends_on:
-  - compliance
-
-trigger:
-  event:
-    - pull_request
-  paths:
-    exclude:
-      - "docs/**"
-
-volumes:
-  - name: deps
-    temp: {}
-
-services:
-  - name: mysql
-    image: mysql:5.7
-    pull: always
-    environment:
-      MYSQL_ALLOW_EMPTY_PASSWORD: yes
-      MYSQL_DATABASE: test
-
-  - name: elasticsearch
-    image: elasticsearch:7.5.0
-    pull: always
-    environment:
-      discovery.type: single-node
-
-  - name: smtpimap
-    image: tabascoterrier/docker-imap-devel:latest
-    pull: always
-
-steps:
-  - name: fetch-tags
-    image: docker:git
-    pull: always
-    commands:
-      - git fetch --tags --force
-    when:
-      event:
-        exclude:
-          - pull_request
-
-  - name: deps-backend
-    image: gitea/test_env:linux-1.20-amd64
-    pull: always
-    commands:
-      - make deps-backend
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: prepare-test-env
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    pull: always
-    commands:
-      - ./build/test-env-prepare.sh
-
-  - name: build
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    user: gitea
-    commands:
-      - ./build/test-env-check.sh
-      - make backend
-    environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata
-    depends_on: [deps-backend, prepare-test-env]
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: unit-test
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    user: gitea
-    commands:
-      - make unit-test-coverage test-check
-    environment:
-      GOPROXY: https://goproxy.io
-      TAGS: bindata
-      RACE_ENABLED: true
-      GITHUB_READ_TOKEN:
-        from_secret: github_read_token
-    depends_on: [deps-backend, prepare-test-env]
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: unit-test-gogit
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    user: gitea
-    commands:
-      - make unit-test-coverage test-check
-    environment:
-      GOPROXY: https://goproxy.io
-      TAGS: bindata gogit
-      RACE_ENABLED: true
-      GITHUB_READ_TOKEN:
-        from_secret: github_read_token
-    depends_on: [deps-backend, prepare-test-env]
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: test-mysql
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    user: gitea
-    commands:
-      - make test-mysql-migration integration-test-coverage
-    environment:
-      GOPROXY: https://goproxy.io
-      TAGS: bindata
-      RACE_ENABLED: true
-      USE_REPO_TEST_DIR: 1
-      TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
-    depends_on: [build]
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: generate-coverage
-    image: gitea/test_env:linux-1.20-amd64
-    commands:
-      - make coverage
-    environment:
-      GOPROXY: https://goproxy.io
-      TAGS: bindata
-    depends_on: [unit-test, test-mysql]
-    when:
-      branch:
-        - main
-      event:
-        - push
-        - pull_request
-
-  - name: coverage-codecov
-    image: woodpeckerci/plugin-codecov:next-alpine
-    pull: always
-    settings:
-      files:
-        - coverage.all
-      token:
-        from_secret: codecov_token
-    depends_on: [generate-coverage]
-    when:
-      branch:
-        - main
-      event:
-        - push
-        - pull_request
-
----
-kind: pipeline
-type: docker
-name: testing-mysql8
-
-platform:
-  os: linux
-  arch: amd64
-
-depends_on:
-  - compliance
-
-trigger:
-  event:
-    - pull_request
-  paths:
-    exclude:
-      - "docs/**"
-
-volumes:
-  - name: deps
-    temp: {}
-
-services:
-  - name: mysql8
-    image: mysql:8
-    pull: always
-    environment:
-      MYSQL_ALLOW_EMPTY_PASSWORD: yes
-      MYSQL_DATABASE: testgitea
-
-steps:
-  - name: fetch-tags
-    image: docker:git
-    pull: always
-    commands:
-      - git fetch --tags --force
-    when:
-      event:
-        exclude:
-          - pull_request
-
-  - name: deps-backend
-    image: gitea/test_env:linux-1.20-amd64
-    pull: always
-    commands:
-      - make deps-backend
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: prepare-test-env
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    pull: always
-    commands:
-      - ./build/test-env-prepare.sh
-
-  - name: build
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    user: gitea
-    commands:
-      - ./build/test-env-check.sh
-      - make backend
-    environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata
-    depends_on: [deps-backend, prepare-test-env]
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: test-mysql8
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    user: gitea
-    commands:
-      - timeout -s ABRT 50m make test-mysql8-migration test-mysql8
-    environment:
-      GOPROXY: https://goproxy.io
-      TAGS: bindata
-      USE_REPO_TEST_DIR: 1
-    depends_on: [build]
-    volumes:
-      - name: deps
-        path: /go
-
----
-kind: pipeline
-type: docker
-name: testing-mssql
-
-platform:
-  os: linux
-  arch: amd64
-
-depends_on:
-  - compliance
-
-trigger:
-  event:
-    - pull_request
-  paths:
-    exclude:
-      - "docs/**"
-
-volumes:
-  - name: deps
-    temp: {}
-
-services:
-  - name: mssql
-    image: mcr.microsoft.com/mssql/server:latest
-    pull: always
-    environment:
-      ACCEPT_EULA: Y
-      MSSQL_PID: Standard
-      SA_PASSWORD: MwantsaSecurePassword1
-
-steps:
-  - name: fetch-tags
-    image: docker:git
-    pull: always
-    commands:
-      - git fetch --tags --force
-    when:
-      event:
-        exclude:
-          - pull_request
-
-  - name: deps-backend
-    image: gitea/test_env:linux-1.20-amd64
-    pull: always
-    commands:
-      - make deps-backend
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: prepare-test-env
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    pull: always
-    commands:
-      - ./build/test-env-prepare.sh
-
-  - name: build
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    user: gitea
-    commands:
-      - ./build/test-env-check.sh
-      - make backend
-    environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata
-    depends_on: [deps-backend, prepare-test-env]
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: test-mssql
-    image: gitea/test_env:linux-1.20-amd64  # https://gitea.com/gitea/test-env
-    user: gitea
-    commands:
-      - make test-mssql-migration test-mssql
-    environment:
-      GOPROXY: https://goproxy.io
-      TAGS: bindata
-      USE_REPO_TEST_DIR: 1
-    depends_on: [build]
-    volumes:
-      - name: deps
-        path: /go
-
----
-kind: pipeline
-name: testing-sqlite
-
-platform:
-  os: linux
-  arch: arm64
-
-depends_on:
-  - compliance
-
-trigger:
-  event:
-    - pull_request
-  paths:
-    exclude:
-      - "docs/**"
-
-volumes:
-  - name: deps
-    temp: {}
-
-steps:
-  - name: fetch-tags
-    image: docker:git
-    pull: always
-    commands:
-      - git fetch --tags --force
-    when:
-      event:
-        exclude:
-          - pull_request
-
-  - name: deps-backend
-    image: gitea/test_env:linux-1.20-arm64
-    pull: always
-    commands:
-      - make deps-backend
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: prepare-test-env
-    image: gitea/test_env:linux-1.20-arm64  # https://gitea.com/gitea/test-env
-    pull: always
-    commands:
-      - ./build/test-env-prepare.sh
-
-  - name: build
-    image: gitea/test_env:linux-1.20-arm64  # https://gitea.com/gitea/test-env
-    user: gitea
-    commands:
-      - ./build/test-env-check.sh
-      - make backend
-    environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata gogit sqlite sqlite_unlock_notify
-    depends_on: [deps-backend, prepare-test-env]
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: test-sqlite
-    image: gitea/test_env:linux-1.20-arm64  # https://gitea.com/gitea/test-env
-    user: gitea
-    commands:
-      - timeout -s ABRT 50m make test-sqlite-migration test-sqlite
-    environment:
-      GOPROXY: https://goproxy.io
-      TAGS: bindata gogit sqlite sqlite_unlock_notify
-      RACE_ENABLED: true
-      TEST_TAGS: gogit sqlite sqlite_unlock_notify
-      USE_REPO_TEST_DIR: 1
-    depends_on: [build]
-    volumes:
-      - name: deps
-        path: /go
-
----
-kind: pipeline
-type: docker
-name: testing-e2e
-
-platform:
-  os: linux
-  arch: amd64
-
-depends_on:
-  - compliance
-
-trigger:
-  event:
-    - pull_request
-  paths:
-    exclude:
-      - "docs/**"
-
-volumes:
-  - name: deps
-    temp: {}
-
-steps:
-  - name: deps-frontend
-    image: node:18
-    pull: always
-    commands:
-      - make deps-frontend
-
-  - name: build-frontend
-    image: node:18
-    commands:
-      - make frontend
-    depends_on: [deps-frontend]
-
-  - name: deps-backend
-    image: gitea/test_env:linux-1.20-amd64
-    pull: always
-    commands:
-      - make deps-backend
-    volumes:
-      - name: deps
-        path: /go
-
-  # TODO: We should probably build all dependencies into a test image
-  - name: test-e2e
-    image: mcr.microsoft.com/playwright:v1.32.3-focal
-    commands:
-      - apt-get -qq update && apt-get -qqy install jq build-essential
-      - curl -fsSL "https://go.dev/dl/$(curl -s 'https://go.dev/dl/?mode=json' | jq -r '.[].version' | sort -Vr | head -1).linux-amd64.tar.gz" | tar -xz -C /usr/local
-      - groupadd --gid 1001 gitea && useradd -m --gid 1001 --uid 1001 gitea
-      - ./build/test-env-prepare.sh
-      - su gitea bash -c "export PATH=$PATH:/usr/local/go/bin && timeout -s ABRT 40m make test-e2e-sqlite"
-    environment:
-      GOPROXY: https://goproxy.io
-      GOSUMDB: sum.golang.org
-      USE_REPO_TEST_DIR: 1
-      DEBIAN_FRONTEND: noninteractive
-    depends_on: [build-frontend, deps-backend]
-    volumes:
-      - name: deps
-        path: /go
-
----
-kind: pipeline
-type: docker
 name: release-latest
 
 platform:
@@ -796,13 +21,6 @@ trigger:
     exclude:
       - "docs/**"
 
-depends_on:
-  - testing-mysql
-  - testing-mysql8
-  - testing-mssql
-  - testing-pgsql
-  - testing-sqlite
-
 volumes:
   - name: deps
     temp: {}
@@ -815,7 +33,7 @@ steps:
       - git fetch --tags --force
 
   - name: deps-frontend
-    image: node:18
+    image: node:20
     pull: always
     commands:
       - make deps-frontend
@@ -833,7 +51,7 @@ steps:
     image: techknowlogick/xgo:go-1.20.x
     pull: always
     commands:
-      # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
+      # Upgrade to node 20 once https://github.com/techknowlogick/xgo/issues/163 is resolved
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get -qqy install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
@@ -931,13 +149,6 @@ trigger:
   event:
     - tag
 
-depends_on:
-  - testing-mysql
-  - testing-mysql8
-  - testing-mssql
-  - testing-pgsql
-  - testing-sqlite
-
 volumes:
   - name: deps
     temp: {}
@@ -950,7 +161,7 @@ steps:
       - git fetch --tags --force
 
   - name: deps-frontend
-    image: node:18
+    image: node:20
     pull: always
     commands:
       - make deps-frontend
@@ -968,7 +179,7 @@ steps:
     image: techknowlogick/xgo:go-1.20.x
     pull: always
     commands:
-      # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
+      # Upgrade to node 20 once https://github.com/techknowlogick/xgo/issues/163 is resolved
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get -qqy install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
@@ -1036,61 +247,11 @@ steps:
 ---
 kind: pipeline
 type: docker
-name: docs
-
-platform:
-  os: linux
-  arch: arm64
-
-depends_on:
-  - compliance
-
-trigger:
-  event:
-    - push
-    - tag
-    - pull_request
-  paths:
-    include:
-      - "docs/**"
-
-steps:
-  - name: build-docs
-    image: gitea/test_env:linux-1.20-arm64
-    commands:
-      - cd docs
-      - make trans-copy clean build
-
-  - name: publish-docs
-    image: techknowlogick/drone-netlify:latest
-    pull: always
-    settings:
-      path: docs/public/
-      site_id: d2260bae-7861-4c02-8646-8f6440b12672
-    environment:
-      NETLIFY_TOKEN:
-        from_secret: netlify_token
-    when:
-      branch:
-        - main
-      event:
-        - push
-
----
-kind: pipeline
-type: docker
 name: docker-linux-amd64-release-version
 
 platform:
   os: linux
   arch: amd64
-
-depends_on:
-  - testing-mysql
-  - testing-mysql8
-  - testing-mssql
-  - testing-pgsql
-  - testing-sqlite
 
 trigger:
   ref:
@@ -1098,9 +259,6 @@ trigger:
       - "refs/tags/**"
     exclude:
       - "refs/tags/**-rc*"
-  event:
-    exclude:
-    - cron
   paths:
     exclude:
       - "docs/**"
@@ -1165,19 +323,9 @@ platform:
   os: linux
   arch: amd64
 
-depends_on:
-  - testing-mysql
-  - testing-mysql8
-  - testing-mssql
-  - testing-pgsql
-  - testing-sqlite
-
 trigger:
   ref:
     - "refs/tags/**-rc*"
-  event:
-    exclude:
-    - cron
   paths:
     exclude:
       - "docs/**"
@@ -1240,19 +388,9 @@ platform:
   os: linux
   arch: amd64
 
-depends_on:
-  - testing-mysql
-  - testing-mysql8
-  - testing-mssql
-  - testing-pgsql
-  - testing-sqlite
-
 trigger:
   ref:
   - refs/heads/main
-  event:
-    exclude:
-    - cron
 
 steps:
   - name: fetch-tags
@@ -1313,19 +451,9 @@ platform:
   os: linux
   arch: amd64
 
-depends_on:
-  - testing-mysql
-  - testing-mysql8
-  - testing-mssql
-  - testing-pgsql
-  - testing-sqlite
-
 trigger:
   ref:
   - "refs/heads/release/v*"
-  event:
-    exclude:
-    - cron
 
 steps:
   - name: fetch-tags
@@ -1339,7 +467,7 @@ steps:
     pull: always
     settings:
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-amd64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1361,7 +489,7 @@ steps:
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64-rootless
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1381,55 +509,11 @@ steps:
 ---
 kind: pipeline
 type: docker
-name: docker-linux-arm64-dry-run
-
-platform:
-  os: linux
-  arch: arm64
-
-depends_on:
-  - compliance
-
-trigger:
-  event:
-    - pull_request
-  paths:
-    exclude:
-      - "docs/**"
-
-steps:
-  - name: dryrun
-    image: plugins/docker:latest
-    pull: always
-    settings:
-      dry_run: true
-      repo: gitea/gitea
-      tags: linux-arm64
-      build_args:
-        - GOPROXY=https://goproxy.io
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
-      DOCKER_BUILDKIT: 1
-    when:
-      event:
-        - pull_request
-
----
-kind: pipeline
-type: docker
 name: docker-linux-arm64-release-version
 
 platform:
   os: linux
   arch: arm64
-
-depends_on:
-  - testing-mysql
-  - testing-mysql8
-  - testing-mssql
-  - testing-pgsql
-  - testing-sqlite
 
 trigger:
   ref:
@@ -1437,9 +521,6 @@ trigger:
       - "refs/tags/**"
     exclude:
       - "refs/tags/**-rc*"
-  event:
-    exclude:
-    - cron
   paths:
     exclude:
       - "docs/**"
@@ -1504,19 +585,9 @@ platform:
   os: linux
   arch: arm64
 
-depends_on:
-  - testing-mysql
-  - testing-mysql8
-  - testing-mssql
-  - testing-pgsql
-  - testing-sqlite
-
 trigger:
   ref:
     - "refs/tags/**-rc*"
-  event:
-    exclude:
-    - cron
   paths:
     exclude:
       - "docs/**"
@@ -1579,19 +650,9 @@ platform:
   os: linux
   arch: arm64
 
-depends_on:
-  - testing-mysql
-  - testing-mysql8
-  - testing-mssql
-  - testing-pgsql
-  - testing-sqlite
-
 trigger:
   ref:
   - refs/heads/main
-  event:
-    exclude:
-    - cron
   paths:
     exclude:
       - "docs/**"
@@ -1655,19 +716,9 @@ platform:
   os: linux
   arch: arm64
 
-depends_on:
-  - testing-mysql
-  - testing-mysql8
-  - testing-mssql
-  - testing-pgsql
-  - testing-sqlite
-
 trigger:
   ref:
   - "refs/heads/release/v*"
-  event:
-    exclude:
-    - cron
 
 steps:
   - name: fetch-tags
@@ -1681,7 +732,7 @@ steps:
     pull: always
     settings:
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-arm64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1703,7 +754,7 @@ steps:
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
-      tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64-rootless
+      tags: ${DRONE_BRANCH##release/v}-nightly-linux-arm64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1756,9 +807,6 @@ steps:
 trigger:
   ref:
   - "refs/tags/**"
-  event:
-    exclude:
-    - cron
   paths:
     exclude:
       - "docs/**"
@@ -1806,9 +854,6 @@ trigger:
   ref:
   - refs/heads/main
   - "refs/heads/release/v*"
-  event:
-    exclude:
-    - cron
   paths:
     exclude:
       - "docs/**"
@@ -1818,57 +863,3 @@ depends_on:
   - docker-linux-arm64-release
   - docker-linux-amd64-release-branch
   - docker-linux-arm64-release-branch
-
----
-kind: pipeline
-type: docker
-name: notifications
-
-platform:
-  os: linux
-  arch: arm64
-
-clone:
-  disable: true
-
-trigger:
-  branch:
-    - main
-    - "release/*"
-  event:
-    - push
-    - tag
-  status:
-    - success
-    - failure
-
-depends_on:
-  - testing-mysql
-  - testing-mysql8
-  - testing-mssql
-  - testing-pgsql
-  - testing-sqlite
-  - release-version
-  - release-latest
-  - docker-linux-amd64-release
-  - docker-linux-arm64-release
-  - docker-linux-amd64-release-version
-  - docker-linux-arm64-release-version
-  - docker-linux-amd64-release-candidate-version
-  - docker-linux-arm64-release-candidate-version
-  - docker-linux-amd64-release-branch
-  - docker-linux-arm64-release-branch
-  - docker-manifest
-  - docker-manifest-version
-  - docs
-
-steps:
-  - name: discord
-    image: appleboy/drone-discord:1.2.4
-    pull: always
-    settings:
-      message: "{{#success build.status}} ✅  Build #{{build.number}} of `{{repo.name}}` succeeded.\n\n📝 Commit by {{commit.author}} on `{{commit.branch}}`:\n``` {{commit.message}} ```\n\n🌐 {{ build.link }} {{else}} ❌  Build #{{build.number}} of `{{repo.name}}` failed.\n\n📝 Commit by {{commit.author}} on `{{commit.branch}}`:\n``` {{commit.message}} ```\n\n🌐 {{ build.link }} {{/success}}\n"
-      webhook_id:
-        from_secret: discord_webhook_id
-      webhook_token:
-        from_secret: discord_webhook_token

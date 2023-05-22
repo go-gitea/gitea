@@ -27,19 +27,24 @@ The following package managers are currently supported:
 
 | Name | Language | Package client |
 | ---- | -------- | -------------- |
+| [Alpine]({{< relref "doc/usage/packages/alpine.en-us.md" >}}) | - | `apk` |
 | [Cargo]({{< relref "doc/usage/packages/cargo.en-us.md" >}}) | Rust | `cargo` |
 | [Chef]({{< relref "doc/usage/packages/chef.en-us.md" >}}) | - | `knife` |
 | [Composer]({{< relref "doc/usage/packages/composer.en-us.md" >}}) | PHP | `composer` |
 | [Conan]({{< relref "doc/usage/packages/conan.en-us.md" >}}) | C++ | `conan` |
 | [Conda]({{< relref "doc/usage/packages/conda.en-us.md" >}}) | - | `conda` |
 | [Container]({{< relref "doc/usage/packages/container.en-us.md" >}}) | - | any OCI compliant client |
+| [CRAN]({{< relref "doc/usage/packages/cran.en-us.md" >}}) | R | - |
+| [Debian]({{< relref "doc/usage/packages/debian.en-us.md" >}}) | - | `apt` |
 | [Generic]({{< relref "doc/usage/packages/generic.en-us.md" >}}) | - | any HTTP client |
+| [Go]({{< relref "doc/usage/packages/go.en-us.md" >}}) | Go | `go` |
 | [Helm]({{< relref "doc/usage/packages/helm.en-us.md" >}}) | - | any HTTP client, `cm-push` |
 | [Maven]({{< relref "doc/usage/packages/maven.en-us.md" >}}) | Java | `mvn`, `gradle` |
 | [npm]({{< relref "doc/usage/packages/npm.en-us.md" >}}) | JavaScript | `npm`, `yarn`, `pnpm` |
 | [NuGet]({{< relref "doc/usage/packages/nuget.en-us.md" >}}) | .NET | `nuget` |
 | [Pub]({{< relref "doc/usage/packages/pub.en-us.md" >}}) | Dart | `dart`, `flutter` |
 | [PyPI]({{< relref "doc/usage/packages/pypi.en-us.md" >}}) | Python | `pip`, `twine` |
+| [RPM]({{< relref "doc/usage/packages/rpm.en-us.md" >}}) | - | `yum`, `dnf` |
 | [RubyGems]({{< relref "doc/usage/packages/rubygems.en-us.md" >}}) | Ruby | `gem`, `Bundler` |
 | [Swift]({{< relref "doc/usage/packages/rubygems.en-us.md" >}}) | Swift | `swift` |
 | [Vagrant]({{< relref "doc/usage/packages/vagrant.en-us.md" >}}) | - | `vagrant` |

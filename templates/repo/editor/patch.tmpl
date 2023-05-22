@@ -7,17 +7,15 @@
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="last_commit" value="{{.last_commit}}">
 			<input type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
-			<div class="ui secondary menu">
-				<div class="fitted item treepath">
-					<div class="ui breadcrumb field {{if .Err_TreePath}}error{{end}}">
-						{{.locale.Tr "repo.editor.patching"}}
-						<a class="section" href="{{$.RepoLink}}">{{.Repository.FullName}}</a>
-						<div class="divider">:</div>
-						<a class="section" href="{{$.BranchLink}}">{{.BranchName}}</a>
-						<span>{{.locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}">{{.locale.Tr "repo.editor.cancel_lower"}}</a></span>
-						<input type="hidden" id="tree_path" name="tree_path" value="" required>
-						<input id="file-name" type="hidden" value="diff.patch">
-					</div>
+			<div class="repo-editor-header">
+				<div class="ui breadcrumb field {{if .Err_TreePath}}error{{end}}">
+					{{.locale.Tr "repo.editor.patching"}}
+					<a class="section" href="{{$.RepoLink}}">{{.Repository.FullName}}</a>
+					<div class="divider">:</div>
+					<a class="section" href="{{$.BranchLink}}">{{.BranchName}}</a>
+					<span>{{.locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}">{{.locale.Tr "repo.editor.cancel_lower"}}</a></span>
+					<input type="hidden" id="tree_path" name="tree_path" value="" required>
+					<input id="file-name" type="hidden" value="diff.patch">
 				</div>
 			</div>
 			<div class="field">

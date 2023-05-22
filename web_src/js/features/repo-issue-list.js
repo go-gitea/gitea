@@ -23,7 +23,7 @@ function initRepoIssueListCheckboxes() {
     toggleElem($('#issue-filters'), !anyChecked);
     toggleElem($('#issue-actions'), anyChecked);
     // there are two panels but only one select-all checkbox, so move the checkbox to the visible panel
-    $('#issue-filters, #issue-actions').filter(':visible').find('.column:first').prepend($issueSelectAll);
+    $('#issue-filters, #issue-actions').filter(':visible').find('.issue-list-toolbar-left').prepend($issueSelectAll);
   };
 
   $issueCheckboxes.on('change', syncIssueSelectionState);

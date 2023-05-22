@@ -38,7 +38,7 @@ export function initViewedCheckboxListenerFor() {
     // The checkbox consists of a div containing the real checkbox with its label and the CSRF token,
     // hence the actual checkbox first has to be found
     const checkbox = form.querySelector('input[type=checkbox]');
-    checkbox.addEventListener('change', function() {
+    checkbox.addEventListener('input', function() {
       // Mark the file as viewed visually - will especially change the background
       if (this.checked) {
         form.classList.add(viewedStyleClass);
@@ -51,7 +51,7 @@ export function initViewedCheckboxListenerFor() {
       // Update viewed-files summary and remove "has changed" label if present
       refreshViewedFilesSummary();
       const hasChangedLabel = form.parentNode.querySelector('.changed-since-last-review');
-      hasChangedLabel?.parentNode.removeChild(hasChangedLabel);
+      hasChangedLabel?.remove();
 
       // Unfortunately, actual forms cause too many problems, hence another approach is needed
       const files = {};

@@ -122,19 +122,6 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	return push
 }
 
-// DiffLineTypeToStr returns diff line type name
-func DiffLineTypeToStr(diffType int) string {
-	switch diffType {
-	case 2:
-		return "add"
-	case 3:
-		return "del"
-	case 4:
-		return "tag"
-	}
-	return "same"
-}
-
 // MigrationIcon returns a SVG name matching the service an issue/comment was migrated from
 func MigrationIcon(hostname string) string {
 	switch hostname {

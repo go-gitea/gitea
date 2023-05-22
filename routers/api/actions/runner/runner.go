@@ -10,7 +10,6 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	actions_service "code.gitea.io/gitea/services/actions"
@@ -120,27 +119,7 @@ func (s *Service) UpdateTask(
 	ctx context.Context,
 	req *connect.Request[runnerv1.UpdateTaskRequest],
 ) (*connect.Response[runnerv1.UpdateTaskResponse], error) {
-	{
-		// to debug strange runner behaviors, it could be removed if all problems have been solved.
-		stateMsg, _ := json.Marshal(req.Msg.State)
-		log.Trace("update task with state: %s", stateMsg)
-	}
-
-	// Get Task first
-	task, err := actions_model.GetTaskByID(ctx, req.Msg.State.Id)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "can't find the task: %v", err)
-	}
-	if task.Status.IsCancelled() {
-		return connect.NewResponse(&runnerv1.UpdateTaskResponse{
-			State: &runnerv1.TaskState{
-				Id:     req.Msg.State.Id,
-				Result: task.Status.AsResult(),
-			},
-		}), nil
-	}
-
-	task, err = actions_model.UpdateTaskByState(ctx, req.Msg.State)
+	task, err := actions_model.UpdateTaskByState(ctx, req.Msg.State)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
 	}

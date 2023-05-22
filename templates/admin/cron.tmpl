@@ -1,35 +1,39 @@
-<h4 class="ui top attached header">
-	{{.locale.Tr "admin.monitor.cron"}}
-</h4>
-<div class="ui attached table segment">
-	<form method="post" action="{{AppSubUrl}}/admin">
-		<table class="ui very basic striped table unstackable">
-			<thead>
-				<tr>
-					<th></th>
-					<th>{{.locale.Tr "admin.monitor.name"}}</th>
-					<th>{{.locale.Tr "admin.monitor.schedule"}}</th>
-					<th>{{.locale.Tr "admin.monitor.next"}}</th>
-					<th>{{.locale.Tr "admin.monitor.previous"}}</th>
-					<th>{{.locale.Tr "admin.monitor.execute_times"}}</th>
-					<th>{{.locale.Tr "admin.monitor.last_execution_result"}}</th>
-				</tr>
-			</thead>
-			<tbody>
-				{{range .Entries}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
+<div class="admin-setting-content">
+	<h4 class="ui top attached header">
+		{{.locale.Tr "admin.monitor.cron"}}
+	</h4>
+	<div class="ui attached table segment">
+		<form method="post" action="{{AppSubUrl}}/admin">
+			<table class="ui very basic striped table unstackable">
+				<thead>
 					<tr>
-						<td><button type="submit" class="ui green button" name="op" value="{{.Name}}" title="{{$.locale.Tr "admin.dashboard.operation_run"}}">{{svg "octicon-triangle-right"}}</button></td>
-						<td>{{$.locale.Tr (printf "admin.dashboard.%s" .Name)}}</td>
-						<td>{{.Spec}}</td>
-						<td>{{DateTime "full" .Next}}</td>
-						<td>{{if gt .Prev.Year 1}}{{DateTime "full" .Prev}}{{else}}N/A{{end}}</td>
-						<td>{{.ExecTimes}}</td>
-						<td {{if ne .Status ""}}data-tooltip-content="{{.FormatLastMessage $.locale}}"{{end}} >{{if eq .Status ""}}—{{else if eq .Status "finished"}}{{svg "octicon-check" 16}}{{else}}{{svg "octicon-x" 16}}{{end}}</td>
+						<th></th>
+						<th>{{.locale.Tr "admin.monitor.name"}}</th>
+						<th>{{.locale.Tr "admin.monitor.schedule"}}</th>
+						<th>{{.locale.Tr "admin.monitor.next"}}</th>
+						<th>{{.locale.Tr "admin.monitor.previous"}}</th>
+						<th>{{.locale.Tr "admin.monitor.execute_times"}}</th>
+						<th>{{.locale.Tr "admin.monitor.last_execution_result"}}</th>
 					</tr>
-				{{end}}
-			</tbody>
-		</table>
-		<input type="hidden" name="from" value="monitor">
-		{{.CsrfTokenHtml}}
-	</form>
+				</thead>
+				<tbody>
+					{{range .Entries}}
+						<tr>
+							<td><button type="submit" class="ui green button" name="op" value="{{.Name}}" title="{{$.locale.Tr "admin.dashboard.operation_run"}}">{{svg "octicon-triangle-right"}}</button></td>
+							<td>{{$.locale.Tr (printf "admin.dashboard.%s" .Name)}}</td>
+							<td>{{.Spec}}</td>
+							<td>{{DateTime "full" .Next}}</td>
+							<td>{{if gt .Prev.Year 1}}{{DateTime "full" .Prev}}{{else}}-{{end}}</td>
+							<td>{{.ExecTimes}}</td>
+							<td {{if ne .Status ""}}data-tooltip-content="{{.FormatLastMessage $.locale}}"{{end}} >{{if eq .Status ""}}—{{else if eq .Status "finished"}}{{svg "octicon-check" 16}}{{else}}{{svg "octicon-x" 16}}{{end}}</td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+			<input type="hidden" name="from" value="monitor">
+			{{.CsrfTokenHtml}}
+		</form>
+	</div>
 </div>
+{{template "admin/layout_footer" .}}

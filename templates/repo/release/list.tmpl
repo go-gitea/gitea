@@ -3,24 +3,15 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		{{template "repo/sub_menu_release_tag" .}}
-
-		{{if .CanCreateRelease}}
-			<a class="ui right small green button" href="{{$.RepoLink}}/releases/new">
-				{{.locale.Tr "repo.release.new_release"}}
-			</a>
-		{{end}}
-
+		{{template "repo/release_tag_header" .}}
 		<ul id="release-list">
 			{{range $idx, $release := .Releases}}
 				<li class="ui grid">
-					<div class="ui four wide column meta gt-mt-2">
-							<a class="gt-df gt-ac gt-je muted" href="{{if not .Sha1}}#{{else}}{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "gt-mr-2"}}{{.TagName}}</a>
+					<div class="ui four wide column meta">
+							<a class="gt-db muted" href="{{if not .Sha1}}#{{else}}{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "gt-mr-2"}}{{.TagName}}</a>
 							{{if .Sha1}}
-								<span class="commit">
-									<a class="gt-mono muted" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "gt-mr-2"}}{{ShortSha .Sha1}}</a>
-								</span>
-								{{template "repo/branch_dropdown" dict "root" $ "release" .}}
+								<a class="gt-mono muted gt-db gt-mt-4 gt-pt-1" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "gt-mr-2"}}{{ShortSha .Sha1}}</a>
+								{{template "repo/branch_dropdown" dict "root" $ "release" . "ContainerClasses" "gt-mt-4"}}
 							{{end}}
 					</div>
 					<div class="ui twelve wide column detail">
@@ -58,7 +49,7 @@
 								{{end}}
 								|
 								{{end}}
-								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}{{if .Target}}...{{.Target | PathEscapeSegments}}{{end}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.tag.ahead.target" $.DefaultBranch}}</span>
+								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.TargetBehind | PathEscapeSegments}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.tag.ahead.target" .TargetBehind}}</span>
 							</p>
 						{{else}}
 							<p class="text grey">
@@ -79,7 +70,7 @@
 									<span class="time">{{TimeSinceUnix .CreatedUnix $.locale}}</span>
 								{{end}}
 								{{if not .IsDraft}}
-									| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.Target | PathEscapeSegments}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.release.ahead.target" .Target}}</span>
+									| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.TargetBehind | PathEscapeSegments}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.release.ahead.target" .TargetBehind}}</span>
 								{{end}}
 							</p>
 						{{end}}

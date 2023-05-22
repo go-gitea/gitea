@@ -112,41 +112,39 @@ func Routes(ctx gocontext.Context) *web.Route {
 	routes.RouteMethods("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.RouteMethods("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 	routes.RouteMethods("/apple-touch-icon.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
+	routes.RouteMethods("/apple-touch-icon-precomposed.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.RouteMethods("/favicon.ico", "GET, HEAD", misc.StaticRedirect("/assets/img/favicon.png"))
 
-	ctx, _ = templates.HTMLRenderer(ctx)
-	common := []any{
-		common.Sessioner(),
-		RecoveryWith500Page(ctx),
-	}
+	_ = templates.HTMLRenderer()
+
+	var mid []any
 
 	if setting.EnableGzip {
 		h, err := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(GzipMinSize))
 		if err != nil {
 			log.Fatal("GzipHandlerWithOpts failed: %v", err)
 		}
-		common = append(common, h)
+		mid = append(mid, h)
 	}
 
 	if setting.Service.EnableCaptcha {
 		// The captcha http.Handler should only fire on /captcha/* so we can just mount this on that url
-		routes.RouteMethods("/captcha/*", "GET,HEAD", append(common, captcha.Captchaer(context.GetImageCaptcha()))...)
+		routes.RouteMethods("/captcha/*", "GET,HEAD", append(mid, captcha.Captchaer(context.GetImageCaptcha()))...)
 	}
 
 	if setting.HasRobotsTxt {
-		routes.Get("/robots.txt", append(common, misc.RobotsTxt)...)
+		routes.Get("/robots.txt", append(mid, misc.RobotsTxt)...)
 	}
 
-	// prometheus metrics endpoint - do not need to go through contexter
 	if setting.Metrics.Enabled {
 		prometheus.MustRegister(metrics.NewCollector())
-		routes.Get("/metrics", append(common, Metrics)...)
+		routes.Get("/metrics", append(mid, Metrics)...)
 	}
 
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
-	common = append(common, context.Contexter(ctx))
+	mid = append(mid, common.Sessioner(), context.Contexter())
 
 	group := buildAuthGroup()
 	if err := group.Init(ctx); err != nil {
@@ -154,23 +152,23 @@ func Routes(ctx gocontext.Context) *web.Route {
 	}
 
 	// Get user from session if logged in.
-	common = append(common, auth_service.Auth(group))
+	mid = append(mid, auth_service.Auth(group))
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
-	common = append(common, middleware.GetHead)
+	mid = append(mid, middleware.GetHead)
 
 	if setting.API.EnableSwagger {
 		// Note: The route is here but no in API routes because it renders a web page
-		routes.Get("/api/swagger", append(common, misc.Swagger)...) // Render V1 by default
+		routes.Get("/api/swagger", append(mid, misc.Swagger)...) // Render V1 by default
 	}
 
 	// TODO: These really seem like things that could be folded into Contexter or as helper functions
-	common = append(common, user.GetNotificationCount)
-	common = append(common, repo.GetActiveStopwatch)
-	common = append(common, goGet)
+	mid = append(mid, user.GetNotificationCount)
+	mid = append(mid, repo.GetActiveStopwatch)
+	mid = append(mid, goGet)
 
 	others := web.NewRoute()
-	others.Use(common...)
+	others.Use(mid...)
 	registerRoutes(others)
 	routes.Mount("", others)
 	return routes
@@ -179,10 +177,11 @@ func Routes(ctx gocontext.Context) *web.Route {
 // registerRoutes register routes
 func registerRoutes(m *web.Route) {
 	reqSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: true})
+	reqSignOut := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignOutRequired: true})
+	// TODO: rename them to "optSignIn", which means that the "sign-in" could be optional, depends on the VerifyOptions (RequireSignInView)
 	ignSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: setting.Service.RequireSignInView})
 	ignExploreSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
 	ignSignInAndCsrf := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{DisableCSRF: true})
-	reqSignOut := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignOutRequired: true})
 	validation.AddBindingRules()
 
 	linkAccountEnabled := func(ctx *context.Context) {
@@ -263,6 +262,27 @@ func registerRoutes(m *web.Route) {
 		}
 	}
 
+	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode) func(ctx *context.Context) {
+		return func(ctx *context.Context) {
+			if unitType.UnitGlobalDisabled() {
+				ctx.NotFound(unitType.String(), nil)
+				return
+			}
+
+			if ctx.ContextUser == nil {
+				ctx.NotFound(unitType.String(), nil)
+				return
+			}
+
+			if ctx.ContextUser.IsOrganization() {
+				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
+					ctx.NotFound(unitType.String(), nil)
+					return
+				}
+			}
+		}
+	}
+
 	addWebhookAddRoutes := func() {
 		m.Get("/{type}/new", repo.WebhooksNew)
 		m.Post("/gitea/new", web.Bind(forms.NewWebhookForm{}), repo.GiteaHooksNewPost)
@@ -336,7 +356,7 @@ func registerRoutes(m *web.Route) {
 		m.Get("/users", explore.Users)
 		m.Get("/users/sitemap-{idx}.xml", sitemapEnabled, explore.Users)
 		m.Get("/organizations", explore.Organizations)
-		m.Get("/code", explore.Code)
+		m.Get("/code", reqUnitAccess(unit.TypeCode, perm.AccessModeRead), explore.Code)
 		m.Get("/topics/search", explore.TopicSearch)
 	}, ignExploreSignIn)
 	m.Group("/issues", func() {
@@ -492,7 +512,6 @@ func registerRoutes(m *web.Route) {
 	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "AllThemes", setting.UI.Themes, "EnablePackages", setting.Packages.Enabled))
 
 	m.Group("/user", func() {
-		// r.Get("/feeds", binding.Bind(auth.FeedsForm{}), user.Feeds)
 		m.Get("/activate", auth.Activate)
 		m.Post("/activate", auth.ActivatePost)
 		m.Any("/activate_email", auth.ActivateEmail)
@@ -528,18 +547,16 @@ func registerRoutes(m *web.Route) {
 		})
 
 		m.Group("/monitor", func() {
-			m.Get("", admin.Monitor)
-			m.Get("/stacktrace", admin.GoroutineStacktrace)
-			m.Post("/cancel/{pid}", admin.MonitorCancel)
+			m.Get("/cron", admin.CronTasks)
+			m.Get("/stacktrace", admin.Stacktrace)
+			m.Post("/stacktrace/cancel/{pid}", admin.StacktraceCancel)
+			m.Get("/queue", admin.Queues)
 			m.Group("/queue/{qid}", func() {
-				m.Get("", admin.Queue)
-				m.Post("/set", admin.SetQueueSettings)
-				m.Post("/add", admin.AddWorkers)
-				m.Post("/cancel/{pid}", admin.WorkerCancel)
-				m.Post("/flush", admin.Flush)
-				m.Post("/pause", admin.Pause)
-				m.Post("/resume", admin.Resume)
+				m.Get("", admin.QueueManage)
+				m.Post("/set", admin.QueueSet)
+				m.Post("/remove-all-items", admin.QueueRemoveAllItems)
 			})
+			m.Get("/diagnosis", admin.MonitorDiagnosis)
 		})
 
 		m.Group("/users", func() {
@@ -648,21 +665,6 @@ func registerRoutes(m *web.Route) {
 		return func(ctx *context.Context) {
 			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
 				ctx.NotFound("", nil)
-			}
-		}
-	}
-
-	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode) func(ctx *context.Context) {
-		return func(ctx *context.Context) {
-			if ctx.ContextUser == nil {
-				ctx.NotFound(unitType.String(), nil)
-				return
-			}
-			if ctx.ContextUser.IsOrganization() {
-				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
-					ctx.NotFound(unitType.String(), nil)
-					return
-				}
 			}
 		}
 	}
@@ -812,7 +814,7 @@ func registerRoutes(m *web.Route) {
 						}, reqPackageAccess(perm.AccessModeWrite))
 					})
 				})
-			}, ignSignIn, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 
 		m.Group("/projects", func() {
@@ -851,7 +853,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead))
-	}, context_service.UserAssignmentWeb(), context.OrgAssignment())
+	}, ignSignIn, context_service.UserAssignmentWeb(), context.OrgAssignment()) // for "/{username}/-" (packages, projects, code)
 
 	// ***** Release Attachment Download without Signin
 	m.Get("/{username}/{reponame}/releases/download/{vTag}/{fileName}", ignSignIn, context.RepoAssignment, repo.MustBeNotEmpty, repo.RedirectDownload)
@@ -938,12 +940,13 @@ func registerRoutes(m *web.Route) {
 				addSettingsRunnersRoutes()
 				addSettingsSecretsRoutes()
 			}, actions.MustEnableActions)
+			m.Post("/migrate/cancel", repo.MigrateCancelPost) // this handler must be under "settings", otherwise this incomplete repo can't be accessed
 		}, ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer))
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 
 	m.Post("/{username}/{reponame}/action/{action}", reqSignIn, context.RepoAssignment, context.UnitTypes(), repo.Action)
 
-	// Grouping for those endpoints not requiring authentication
+	// Grouping for those endpoints not requiring authentication (but should respect ignSignIn)
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/milestone", func() {
 			m.Get("/{id}", repo.MilestoneIssuesAndPulls)
@@ -956,14 +959,14 @@ func registerRoutes(m *web.Route) {
 		})
 		m.Get("/compare", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists, ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
-			Get(ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
+			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
 			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, web.Bind(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
 		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
 				m.Get("/info", repo.GetIssueInfo)
 			})
 		})
-	}, context.RepoAssignment, context.UnitTypes())
+	}, ignSignIn, context.RepoAssignment, context.UnitTypes()) // for "/{username}/{reponame}" which doesn't require authentication
 
 	// Grouping for those endpoints that do require authentication
 	m.Group("/{username}/{reponame}", func() {
@@ -1185,10 +1188,13 @@ func registerRoutes(m *web.Route) {
 					m.Combo("").
 						Get(actions.View).
 						Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
-					m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
+					m.Post("/rerun", reqRepoActionsWriter, actions.RerunOne)
 				})
 				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 				m.Post("/approve", reqRepoActionsWriter, actions.Approve)
+				m.Post("/artifacts", actions.ArtifactsView)
+				m.Get("/artifacts/{id}", actions.ArtifactsDownloadView)
+				m.Post("/rerun", reqRepoActionsWriter, actions.RerunAll)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
 

@@ -5,7 +5,7 @@
 			</div>
 			<div class="column right aligned">
 				{{if .CanWriteProjects}}
-					<a class="ui green button show-modal item" data-modal="#new-board-item">{{.locale.Tr "new_project_column"}}</a>
+					<a class="ui small green button show-modal item" data-modal="#new-board-item">{{.locale.Tr "new_project_column"}}</a>
 				{{end}}
 				<div class="ui small modal new-board-modal" id="new-board-item">
 					<div class="header">
@@ -73,7 +73,7 @@
 	</div>
 	<div class="ui container fluid padded" id="project-board">
 
-		<div class="board">
+		<div class="board {{if .CanWriteProjects}}sortable{{end}}">
 			{{range $board := .Boards}}
 
 			<div class="ui segment board-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
@@ -109,7 +109,7 @@
 									data-modal-default-project-board-header="{{$.locale.Tr "repo.projects.column.unset_default"}}"
 									data-modal-default-project-board-content="{{$.locale.Tr "repo.projects.column.unset_default_desc"}}"
 									data-url="{{$.Link}}/{{.ID}}/unsetdefault">
-										{{svg "octicon-pin"}}
+										{{svg "octicon-pin-slash"}}
 										{{$.locale.Tr "repo.projects.column.unset_default"}}
 									</a>
 								{{end}}

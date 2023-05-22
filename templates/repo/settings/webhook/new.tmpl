@@ -1,4 +1,4 @@
-{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings webhook")}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings new webhook")}}
 	<div class="repo-setting-content">
 		<h4 class="ui top attached header">
 			{{if .PageIsSettingsHooksNew}}{{.locale.Tr "repo.settings.add_webhook"}}{{else}}{{.locale.Tr "repo.settings.update_webhook"}}{{end}}

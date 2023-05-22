@@ -2,12 +2,10 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository milestone-issue-list">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<div class="ui two column stackable grid">
-			<div class="column">
-				<h1>{{.Milestone.Name}}</h1>
-			</div>
+		<div class="gt-df">
+			<h1>{{.Milestone.Name}}</h1>
 			{{if not .Repository.IsArchived}}
-				<div class="column right aligned">
+				<div class="text right gt-f1">
 					{{if or .CanWriteIssues .CanWritePulls}}
 						{{if .Milestone.IsClosed}}
 							<a class="ui green basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/open">{{$.locale.Tr "repo.milestones.open"}}
@@ -45,14 +43,15 @@
 			</div>
 		</div>
 		<div class="ui divider"></div>
-		<div id="issue-filters" class="ui stackable grid">
-			<div class="six wide column">
+
+		<div id="issue-filters" class="issue-list-toolbar">
+			<div class="issue-list-toolbar-left">
 				{{template "repo/issue/openclose" .}}
 			</div>
-			<div class="ten wide right aligned column">
+			<div class="issue-list-toolbar-right">
 				<div class="ui secondary filter stackable menu labels">
 					<!-- Label -->
-					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter" style="margin-left: auto">
+					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter gt-ml-auto">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_label"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -145,22 +144,18 @@
 				</div>
 			</div>
 		</div>
-		<div id="issue-actions" class="ui stackable grid gt-hidden">
-			<div class="six wide column">
+
+		<div id="issue-actions" class="issue-list-toolbar gt-hidden">
+			<div class="issue-list-toolbar-left">
 				{{template "repo/issue/openclose" .}}
 			</div>
-
-			{{/* Ten wide does not cope well and makes the columns stack.
-			This seems to be related to jQuery's hide/show: in fact, switching
-			issue-actions and issue-filters and having this ten wide will show
-			this one correctly, but not the other one. */}}
-			<div class="nine wide right aligned right floated column">
+			<div class="issue-list-toolbar-right">
 				<div class="ui secondary filter stackable menu">
 					<!-- Action Button -->
 					{{if .IsShowClosed}}
-						<button class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_open"}}</button>
+						<button class="ui green active basic button issue-action gt-ml-auto" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_open"}}</button>
 					{{else}}
-						<button class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_close"}}</button>
+						<button class="ui red active basic button issue-action gt-ml-auto" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_close"}}</button>
 					{{end}}
 					<!-- Labels -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
