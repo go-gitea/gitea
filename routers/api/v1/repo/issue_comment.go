@@ -59,7 +59,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
 
-	before, since, err := context.GetQueryBeforeSince(ctx.Context)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
@@ -90,12 +90,12 @@ func ListIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issues_model.CommentList(comments).LoadPosters(ctx); err != nil {
+	if err := comments.LoadPosters(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
 
-	if err := issues_model.CommentList(comments).LoadAttachments(ctx); err != nil {
+	if err := comments.LoadAttachments(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttachments", err)
 		return
 	}
@@ -156,7 +156,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TimelineList"
 
-	before, since, err := context.GetQueryBeforeSince(ctx.Context)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
@@ -182,7 +182,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issues_model.CommentList(comments).LoadPosters(ctx); err != nil {
+	if err := comments.LoadPosters(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
@@ -259,7 +259,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
 
-	before, since, err := context.GetQueryBeforeSince(ctx.Context)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
@@ -285,25 +285,25 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	if err = issues_model.CommentList(comments).LoadPosters(ctx); err != nil {
+	if err = comments.LoadPosters(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
 
 	apiComments := make([]*api.Comment, len(comments))
-	if err := issues_model.CommentList(comments).LoadIssues(ctx); err != nil {
+	if err := comments.LoadIssues(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssues", err)
 		return
 	}
-	if err := issues_model.CommentList(comments).LoadPosters(ctx); err != nil {
+	if err := comments.LoadPosters(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
-	if err := issues_model.CommentList(comments).LoadAttachments(ctx); err != nil {
+	if err := comments.LoadAttachments(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttachments", err)
 		return
 	}
-	if _, err := issues_model.CommentList(comments).Issues().LoadRepositories(ctx); err != nil {
+	if _, err := comments.Issues().LoadRepositories(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadRepositories", err)
 		return
 	}

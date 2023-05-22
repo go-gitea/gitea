@@ -14,23 +14,23 @@ func Test_getStorageInheritNameSectionTypeForActions(t *testing.T) {
 	[storage]
 	STORAGE_TYPE = minio
 	`
-	cfg, err := newConfigProviderFromData(iniStr)
+	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 	assert.NoError(t, loadActionsFrom(cfg))
 
-	assert.EqualValues(t, "minio", Actions.Storage.Type)
-	assert.EqualValues(t, "actions_log/", Actions.Storage.Section.Key("MINIO_BASE_PATH").String())
+	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
+	assert.EqualValues(t, "actions_log/", Actions.LogStorage.Section.Key("MINIO_BASE_PATH").String())
 
 	iniStr = `
 [storage.actions_log]
 STORAGE_TYPE = minio
 `
-	cfg, err = newConfigProviderFromData(iniStr)
+	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 	assert.NoError(t, loadActionsFrom(cfg))
 
-	assert.EqualValues(t, "minio", Actions.Storage.Type)
-	assert.EqualValues(t, "actions_log/", Actions.Storage.Section.Key("MINIO_BASE_PATH").String())
+	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
+	assert.EqualValues(t, "actions_log/", Actions.LogStorage.Section.Key("MINIO_BASE_PATH").String())
 
 	iniStr = `
 [storage.actions_log]
@@ -39,10 +39,10 @@ STORAGE_TYPE = my_storage
 [storage.my_storage]
 STORAGE_TYPE = minio
 `
-	cfg, err = newConfigProviderFromData(iniStr)
+	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 	assert.NoError(t, loadActionsFrom(cfg))
 
-	assert.EqualValues(t, "minio", Actions.Storage.Type)
-	assert.EqualValues(t, "actions_log/", Actions.Storage.Section.Key("MINIO_BASE_PATH").String())
+	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
+	assert.EqualValues(t, "actions_log/", Actions.LogStorage.Section.Key("MINIO_BASE_PATH").String())
 }

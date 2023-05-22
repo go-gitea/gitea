@@ -33,6 +33,58 @@ type ConfigProvider interface {
 	Save() error
 }
 
+// ConfigSectionKey only searches the keys in the given section, but it is O(n).
+// ini package has a special behavior:  with "[sec] a=1" and an empty "[sec.sub]",
+// then in "[sec.sub]", Key()/HasKey() can always see "a=1" because it always tries parent sections.
+// It returns nil if the key doesn't exist.
+func ConfigSectionKey(sec ConfigSection, key string) *ini.Key {
+	if sec == nil {
+		return nil
+	}
+	for _, k := range sec.Keys() {
+		if k.Name() == key {
+			return k
+		}
+	}
+	return nil
+}
+
+func ConfigSectionKeyString(sec ConfigSection, key string, def ...string) string {
+	k := ConfigSectionKey(sec, key)
+	if k != nil && k.String() != "" {
+		return k.String()
+	}
+	if len(def) > 0 {
+		return def[0]
+	}
+	return ""
+}
+
+// ConfigInheritedKey works like ini.Section.Key(), but it always returns a new key instance, it is O(n) because NewKey is O(n)
+// and the returned key is safe to be used with "MustXxx", it doesn't change the parent's values.
+// Otherwise, ini.Section.Key().MustXxx would pollute the parent section's keys.
+// It never returns nil.
+func ConfigInheritedKey(sec ConfigSection, key string) *ini.Key {
+	k := sec.Key(key)
+	if k != nil && k.String() != "" {
+		newKey, _ := sec.NewKey(k.Name(), k.String())
+		return newKey
+	}
+	newKey, _ := sec.NewKey(key, "")
+	return newKey
+}
+
+func ConfigInheritedKeyString(sec ConfigSection, key string, def ...string) string {
+	k := sec.Key(key)
+	if k != nil && k.String() != "" {
+		return k.String()
+	}
+	if len(def) > 0 {
+		return def[0]
+	}
+	return ""
+}
+
 type iniFileConfigProvider struct {
 	opts *Options
 	*ini.File

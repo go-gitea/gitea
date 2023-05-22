@@ -4,6 +4,7 @@
 package utils
 
 import (
+	gocontext "context"
 	"fmt"
 	"net/http"
 
@@ -33,7 +34,7 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 		}
 	}
 
-	sha = MustConvertToSHA1(ctx.Context, sha)
+	sha = MustConvertToSHA1(ctx, ctx.Repo, sha)
 
 	if ctx.Repo.GitRepo != nil {
 		err := ctx.Repo.GitRepo.AddLastCommitCache(ctx.Repo.Repository.GetCommitsCountCacheKey(ref, ref != sha), ctx.Repo.Repository.FullName(), sha)
@@ -69,7 +70,7 @@ func searchRefCommitByType(ctx *context.APIContext, refType, filter string) (str
 }
 
 // ConvertToSHA1 returns a full-length SHA1 from a potential ID string
-func ConvertToSHA1(ctx *context.Context, commitID string) (git.SHA1, error) {
+func ConvertToSHA1(ctx gocontext.Context, repo *context.Repository, commitID string) (git.SHA1, error) {
 	if len(commitID) == git.SHAFullLength && git.IsValidSHAPattern(commitID) {
 		sha1, err := git.NewIDFromString(commitID)
 		if err == nil {
@@ -77,7 +78,7 @@ func ConvertToSHA1(ctx *context.Context, commitID string) (git.SHA1, error) {
 		}
 	}
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, ctx.Repo.Repository.RepoPath())
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.Repository.RepoPath())
 	if err != nil {
 		return git.SHA1{}, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
 	}
@@ -87,8 +88,8 @@ func ConvertToSHA1(ctx *context.Context, commitID string) (git.SHA1, error) {
 }
 
 // MustConvertToSHA1 returns a full-length SHA1 string from a potential ID string, or returns origin input if it can't convert to SHA1
-func MustConvertToSHA1(ctx *context.Context, commitID string) string {
-	sha, err := ConvertToSHA1(ctx, commitID)
+func MustConvertToSHA1(ctx gocontext.Context, repo *context.Repository, commitID string) string {
+	sha, err := ConvertToSHA1(ctx, repo, commitID)
 	if err != nil {
 		return commitID
 	}

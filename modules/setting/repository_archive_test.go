@@ -15,7 +15,7 @@ func Test_getStorageInheritNameSectionTypeForRepoArchive(t *testing.T) {
 [storage]
 STORAGE_TYPE = minio
 `
-	cfg, err := newConfigProviderFromData(iniStr)
+	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 
@@ -27,7 +27,7 @@ STORAGE_TYPE = minio
 [storage.repo-archive]
 STORAGE_TYPE = minio
 `
-	cfg, err = newConfigProviderFromData(iniStr)
+	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 
@@ -42,7 +42,7 @@ STORAGE_TYPE = my_minio
 [storage.my_minio]
 STORAGE_TYPE = minio
 `
-	cfg, err = newConfigProviderFromData(iniStr)
+	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 
@@ -58,7 +58,7 @@ MINIO_BASE_PATH = my_archive/
 [storage.my_minio]
 STORAGE_TYPE = minio
 `
-	cfg, err = newConfigProviderFromData(iniStr)
+	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 

@@ -74,10 +74,8 @@ func getStorage(rootCfg ConfigProvider, name string, startSec ConfigSection, typ
 					if storageType != "local" && storageType != "minio" {
 						storageType = targetSec.Key("STORAGE_TYPE").MustString("local")
 					}
-				} else {
-					if storageType != "local" && storageType != "minio" {
-						return nil, fmt.Errorf("unknown storage type: %s", storageType)
-					}
+				} else if storageType != "local" && storageType != "minio" {
+					return nil, fmt.Errorf("unknown storage type: %s", storageType)
 				}
 			}
 		}

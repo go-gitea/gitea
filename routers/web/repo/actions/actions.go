@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/model"
@@ -138,37 +137,6 @@ func List(ctx *context.Context) {
 		WorkflowFileName: workflow,
 	}
 
-	// open counts
-	opts.IsClosed = util.OptionalBoolFalse
-	numOpenRuns, err := actions_model.CountRuns(ctx, opts)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
-	}
-	ctx.Data["NumOpenActionRuns"] = numOpenRuns
-
-	// closed counts
-	opts.IsClosed = util.OptionalBoolTrue
-	numClosedRuns, err := actions_model.CountRuns(ctx, opts)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
-	}
-	ctx.Data["NumClosedActionRuns"] = numClosedRuns
-
-	opts.IsClosed = util.OptionalBoolNone
-	isShowClosed := ctx.FormString("state") == "closed"
-	if len(ctx.FormString("state")) == 0 && numOpenRuns == 0 && numClosedRuns != 0 {
-		isShowClosed = true
-	}
-
-	if isShowClosed {
-		opts.IsClosed = util.OptionalBoolTrue
-		ctx.Data["IsShowClosed"] = true
-	} else {
-		opts.IsClosed = util.OptionalBoolFalse
-	}
-
 	runs, total, err := actions_model.FindRuns(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -189,7 +157,6 @@ func List(ctx *context.Context) {
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParamString("workflow", workflow)
-	pager.AddParamString("state", ctx.FormString("state"))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplListActions)

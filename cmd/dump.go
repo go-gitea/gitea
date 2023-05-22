@@ -172,10 +172,7 @@ func runDump(ctx *cli.Context) error {
 	outType := ctx.String("type")
 	if fileName == "-" {
 		file = os.Stdout
-		err := log.DelLogger("console")
-		if err != nil {
-			fatal("Deleting default logger failed. Can not write to stdout: %v", err)
-		}
+		setupConsoleLogger(log.FATAL, log.CanColorStderr, os.Stderr)
 	} else {
 		for _, suffix := range outputTypeEnum.Enum {
 			if strings.HasSuffix(fileName, "."+suffix) {

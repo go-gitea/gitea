@@ -36,7 +36,7 @@ func Test_getStorageInheritNameSectionTypeForPackages(t *testing.T) {
 [storage]
 STORAGE_TYPE = minio
 `
-	cfg, err := newConfigProviderFromData(iniStr)
+	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 	assert.NoError(t, loadPackagesFrom(cfg))
 
@@ -48,7 +48,7 @@ STORAGE_TYPE = minio
 [storage.packages]
 STORAGE_TYPE = minio
 `
-	cfg, err = newConfigProviderFromData(iniStr)
+	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 	assert.NoError(t, loadPackagesFrom(cfg))
 
@@ -63,7 +63,7 @@ STORAGE_TYPE = my_minio
 [storage.my_minio]
 STORAGE_TYPE = minio
 `
-	cfg, err = newConfigProviderFromData(iniStr)
+	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 	assert.NoError(t, loadPackagesFrom(cfg))
 
@@ -79,7 +79,7 @@ MINIO_BASE_PATH = my_packages/
 [storage.my_minio]
 STORAGE_TYPE = minio
 `
-	cfg, err = newConfigProviderFromData(iniStr)
+	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 	assert.NoError(t, loadPackagesFrom(cfg))
 

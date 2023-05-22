@@ -80,9 +80,9 @@ STORAGE_TYPE = minio
 	assert.EqualValues(t, "repo-archive/", RepoArchive.Storage.Section.Key("MINIO_BASE_PATH").MustString(""))
 
 	assert.NoError(t, loadActionsFrom(cfg))
-	assert.EqualValues(t, "minio", Actions.Storage.Type)
-	assert.EqualValues(t, "gitea", Actions.Storage.Section.Key("MINIO_BUCKET").String())
-	assert.EqualValues(t, "actions_log/", Actions.Storage.Section.Key("MINIO_BASE_PATH").MustString(""))
+	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
+	assert.EqualValues(t, "gitea", Actions.LogStorage.Section.Key("MINIO_BUCKET").String())
+	assert.EqualValues(t, "actions_log/", Actions.LogStorage.Section.Key("MINIO_BASE_PATH").MustString(""))
 
 	assert.NoError(t, loadAvatarsFrom(cfg))
 	assert.EqualValues(t, "minio", Avatar.Storage.Type)
