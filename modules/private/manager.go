@@ -33,7 +33,7 @@ func Restart(ctx context.Context) ResponseExtra {
 func ReloadTemplates(ctx context.Context) ResponseExtra {
 	reqURL := setting.LocalURL + "api/internal/manager/reload-templates"
 	req := newInternalRequest(ctx, reqURL, "POST")
-	return requestJSONUserMsg(req, "Reloaded")
+	return requestJSONClientMsg(req, "Reloaded")
 }
 
 // FlushOptions represents the options for the flush call
