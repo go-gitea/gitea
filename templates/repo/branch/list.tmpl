@@ -27,7 +27,7 @@
 							</td>
 							<td class="right aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-									<button class="ui tertiary button show-create-branch-modal gt-mx-3"
+									<button class="ui button button-ghost show-create-branch-modal gt-mx-3"
 										data-modal="#create-branch-modal"
 										data-branch-from="{{$.DefaultBranch}}"
 										data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}"
@@ -37,12 +37,12 @@
 									</button>
 								{{end}}
 								{{if .EnableFeed}}
-									<a role="button" class="ui tertiary button gt-mx-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranch}}">
+									<a role="button" class="ui button button-ghost gt-mx-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranch}}">
 										{{svg "octicon-rss"}}
 									</a>
 								{{end}}
 								{{if not $.DisableDownloadSourceArchives}}
-									<div class="ui dropdown tertiary button gt-mx-3"  data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranch)}}">
+									<div class="ui dropdown button button-ghost gt-mx-3"  data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranch)}}">
 										{{svg "octicon-download"}}
 										<div class="menu">
 											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
@@ -51,7 +51,7 @@
 									</div>
 								{{end}}
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not $.IsMirror)}}
-									<button class="ui tertiary button show-modal show-rename-branch-modal gt-mx-3"
+									<button class="ui button button-ghost show-modal show-rename-branch-modal gt-mx-3"
 										data-is-default-branch="true"
 										data-modal="#rename-branch-modal"
 										data-old-branch-name="{{$.DefaultBranch}}"
@@ -134,7 +134,7 @@
 									</td>
 									<td class="three wide right aligned overflow-visible">
 										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-											<button class="ui tertiary button show-modal show-create-branch-modal gt-mx-3"
+											<button class="ui button button-ghost show-modal show-create-branch-modal gt-mx-3"
 												data-branch-from="{{.Name}}"
 												data-branch-from-urlcomponent="{{PathEscapeSegments .Name}}"
 												data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" .Name}}"
@@ -144,12 +144,12 @@
 											</button>
 										{{end}}
 										{{if $.EnableFeed}}
-											<a role="button" class="ui tertiary button gt-mx-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .Name}}">
+											<a role="button" class="ui button button-ghost gt-mx-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .Name}}">
 												{{svg "octicon-rss"}}
 											</a>
 										{{end}}
 										{{if and (not .IsDeleted) (not $.DisableDownloadSourceArchives)}}
-											<div class="ui dropdown tertiary button gt-mx-3" data-tooltip-content="{{$.locale.Tr "repo.branch.download" (.Name)}}">
+											<div class="ui dropdown button button-ghost gt-mx-3" data-tooltip-content="{{$.locale.Tr "repo.branch.download" (.Name)}}">
 												{{svg "octicon-download"}}
 												<div class="menu">
 													<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .Name}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
@@ -158,7 +158,7 @@
 											</div>
 										{{end}}
 										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not $.IsMirror)}}
-											<button class="ui tertiary button show-modal show-rename-branch-modal gt-mx-3"
+											<button class="ui button button-ghost show-modal show-rename-branch-modal gt-mx-3"
 												data-is-default-branch="false"
 												data-old-branch-name="{{.Name}}"
 												data-modal="#rename-branch-modal"
@@ -169,13 +169,13 @@
 										{{end}}
 										{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
 											{{if .IsDeleted}}
-												<button class="ui tertiary button undo-button gt-mx-3" data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID}}&name={{.DeletedBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.restore" (.Name)}}">
+												<button class="ui button button-ghost undo-button gt-mx-3" data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID}}&name={{.DeletedBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.restore" (.Name)}}">
 													<span class="text blue">
 														{{svg "octicon-reply"}}
 													</span>
 												</button>
 											{{else}}
-												<button class="ui tertiary button delete-button delete-branch-button gt-mx-3" data-url="{{$.Link}}/delete?name={{.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.delete" (.Name)}}" data-name="{{.Name}}">
+												<button class="ui button button-ghost delete-button delete-branch-button gt-mx-3" data-url="{{$.Link}}/delete?name={{.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.delete" (.Name)}}" data-name="{{.Name}}">
 													{{svg "octicon-trash"}}
 												</button>
 											{{end}}

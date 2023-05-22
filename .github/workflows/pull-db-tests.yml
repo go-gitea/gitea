@@ -1,6 +1,10 @@
 name: db-tests
 
-on: [pull_request]
+on:
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -37,7 +41,7 @@ jobs:
         with:
           go-version: ">=1.20.0"
       - name: Add hosts to /etc/hosts
-        run: echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
@@ -102,13 +106,20 @@ jobs:
           --health-retries 10
         ports:
           - 6379:6379
+      minio:
+        image: bitnami/minio:2021.3.17
+        env:
+          MINIO_ACCESS_KEY: 123456
+          MINIO_SECRET_KEY: 12345678
+        ports:
+          - "9000:9000"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
           go-version: ">=1.20.0"
       - name: Add hosts to /etc/hosts
-        run: echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
@@ -155,7 +166,7 @@ jobs:
         with:
           go-version: ">=1.20.0"
       - name: Add hosts to /etc/hosts
-        run: echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
@@ -184,7 +195,7 @@ jobs:
         with:
           go-version: ">=1.20.0"
       - name: Add hosts to /etc/hosts
-        run: echo "127.0.0.1 mysql8" | sudo tee -a /etc/hosts
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql8" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
@@ -212,7 +223,7 @@ jobs:
         with:
           go-version: ">=1.20.0"
       - name: Add hosts to /etc/hosts
-        run: echo "127.0.0.1 mssql" | sudo tee -a /etc/hosts
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:

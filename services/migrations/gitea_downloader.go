@@ -134,13 +134,11 @@ func (g *GiteaDownloader) String() string {
 	return fmt.Sprintf("migration from gitea server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
 }
 
-// ColorFormat provides a basic color format for a GiteaDownloader
-func (g *GiteaDownloader) ColorFormat(s fmt.State) {
+func (g *GiteaDownloader) LogString() string {
 	if g == nil {
-		log.ColorFprintf(s, "<nil: GiteaDownloader>")
-		return
+		return "<GiteaDownloader nil>"
 	}
-	log.ColorFprintf(s, "migration from gitea server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
+	return fmt.Sprintf("<GiteaDownloader %s %s/%s>", g.baseURL, g.repoOwner, g.repoName)
 }
 
 // GetRepoInfo returns a repository information

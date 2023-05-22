@@ -30,6 +30,7 @@ type Type string
 
 // List of supported packages
 const (
+	TypeAlpine    Type = "alpine"
 	TypeCargo     Type = "cargo"
 	TypeChef      Type = "chef"
 	TypeComposer  Type = "composer"
@@ -38,6 +39,7 @@ const (
 	TypeContainer Type = "container"
 	TypeDebian    Type = "debian"
 	TypeGeneric   Type = "generic"
+	TypeGo        Type = "go"
 	TypeHelm      Type = "helm"
 	TypeMaven     Type = "maven"
 	TypeNpm       Type = "npm"
@@ -51,6 +53,7 @@ const (
 )
 
 var TypeList = []Type{
+	TypeAlpine,
 	TypeCargo,
 	TypeChef,
 	TypeComposer,
@@ -59,6 +62,7 @@ var TypeList = []Type{
 	TypeContainer,
 	TypeDebian,
 	TypeGeneric,
+	TypeGo,
 	TypeHelm,
 	TypeMaven,
 	TypeNpm,
@@ -74,6 +78,8 @@ var TypeList = []Type{
 // Name gets the name of the package type
 func (pt Type) Name() string {
 	switch pt {
+	case TypeAlpine:
+		return "Alpine"
 	case TypeCargo:
 		return "Cargo"
 	case TypeChef:
@@ -90,6 +96,8 @@ func (pt Type) Name() string {
 		return "Debian"
 	case TypeGeneric:
 		return "Generic"
+	case TypeGo:
+		return "Go"
 	case TypeHelm:
 		return "Helm"
 	case TypeMaven:
@@ -117,6 +125,8 @@ func (pt Type) Name() string {
 // SVGName gets the name of the package type svg image
 func (pt Type) SVGName() string {
 	switch pt {
+	case TypeAlpine:
+		return "gitea-alpine"
 	case TypeCargo:
 		return "gitea-cargo"
 	case TypeChef:
@@ -133,6 +143,8 @@ func (pt Type) SVGName() string {
 		return "gitea-debian"
 	case TypeGeneric:
 		return "octicon-package"
+	case TypeGo:
+		return "gitea-go"
 	case TypeHelm:
 		return "gitea-helm"
 	case TypeMaven:
