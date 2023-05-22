@@ -1,25 +1,25 @@
 <template>
   <div class="action-view-container">
     <div class="action-view-header">
-      <div class="action-info-summary gt-ac">
-        <ActionRunStatus :status="run.status" :size="20"/>
+      <div class="action-info-summary">
+        <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
         <div class="action-title">
           {{ run.title }}
         </div>
-        <button :data-tooltip-content="locale.approve" class="action-control-button text green" @click="approveRun()" v-if="run.canApprove">
-          <SvgIcon name="octicon-play" :size="20"/>
+        <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
+          <SvgIcon class="gt-mr-2" name="octicon-play" :size="20"/> {{ locale.approve }}
         </button>
-        <button :data-tooltip-content="locale.cancel" class="action-control-button text red" @click="cancelRun()" v-else-if="run.canCancel">
-          <SvgIcon name="octicon-x-circle-fill" :size="20"/>
+        <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
+          <SvgIcon class="gt-mr-2" name="octicon-x-circle-fill" :size="20"/> {{ locale.cancel }}
         </button>
-        <button :data-tooltip-content="locale.rerun" class="action-control-button text green" @click="rerun()" v-else-if="run.canRerun">
-          <SvgIcon name="octicon-sync" :size="20"/>
+        <button class="ui basic small compact button secondary" @click="rerun()" v-else-if="run.canRerun">
+          <SvgIcon class="gt-mr-2" name="octicon-sync" :size="20"/> {{ locale.rerun }}
         </button>
       </div>
       <div class="action-commit-summary">
         {{ run.commit.localeCommit }}
         <a :href="run.commit.link">{{ run.commit.shortSHA }}</a>
-        &nbsp;<span class="ui label">
+        &nbsp;<span class="ui label" v-if="run.commit.shortSHA">
           <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
         </span>
         &nbsp;{{ run.commit.localePushedBy }}
@@ -32,15 +32,27 @@
           <div class="job-brief-list">
             <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
-                <ActionRunStatus :status="job.status"/>
+                <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="ui text gt-mx-3">{{ job.name }}</span>
               </a>
               <span class="step-summary-duration">{{ job.duration }}</span>
-              <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
+              <button :data-tooltip-content="locale.rerun" class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
             </div>
           </div>
+        </div>
+        <div class="job-artifacts" v-if="artifacts.length > 0">
+          <div class="job-artifacts-title">
+            {{ locale.artifactsTitle }}
+          </div>
+          <ul class="job-artifacts-list">
+            <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.id">
+              <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.id">
+                <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon" />{{ artifact.name }}
+              </a>
+            </li>
+          </ul>
         </div>
       </div>
 
@@ -102,6 +114,7 @@ const sfc = {
       loading: false,
       intervalID: null,
       currentJobStepsStates: [],
+      artifacts: [],
 
       // provided by backend
       run: {
@@ -154,6 +167,15 @@ const sfc = {
     // load job data and then auto-reload periodically
     this.loadJob();
     this.intervalID = setInterval(this.loadJob, 1000);
+  },
+
+  unmounted() {
+    // clear the interval timer when the component is unmounted
+    // even our page is rendered once, not spa style
+    if (this.intervalID) {
+      clearInterval(this.intervalID);
+      this.intervalID = null;
+    }
   },
 
   methods: {
@@ -259,6 +281,11 @@ const sfc = {
       try {
         this.loading = true;
 
+        // refresh artifacts if upload-artifact step done
+        const resp = await this.fetchPost(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
+        const artifacts = await resp.json();
+        this.artifacts = artifacts['artifacts'] || [];
+
         const response = await this.fetchJob();
 
         // save the state to Vue data, then the UI will be updated
@@ -286,6 +313,7 @@ const sfc = {
         this.loading = false;
       }
     },
+
 
     fetchPost(url, body) {
       return fetch(url, {
@@ -319,6 +347,17 @@ export function initRepositoryActionView() {
       approve: el.getAttribute('data-locale-approve'),
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
+      artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
+      status: {
+        unknown: el.getAttribute('data-locale-status-unknown'),
+        waiting: el.getAttribute('data-locale-status-waiting'),
+        running: el.getAttribute('data-locale-status-running'),
+        success: el.getAttribute('data-locale-status-success'),
+        failure: el.getAttribute('data-locale-status-failure'),
+        cancelled: el.getAttribute('data-locale-status-cancelled'),
+        skipped: el.getAttribute('data-locale-status-skipped'),
+        blocked: el.getAttribute('data-locale-status-blocked'),
+      }
     }
   });
   view.mount(el);
@@ -381,27 +420,17 @@ export function ansiLogToHTML(line) {
   margin: 0 20px 20px 20px;
 }
 
-.action-view-header .action-control-button {
-  border: none;
-  background-color: transparent;
-  outline: none;
-  cursor: pointer;
-  transition: transform 0.2s;
-  display: flex;
-}
-
-.action-view-header .action-control-button:hover {
-  transform: scale(130%);
-}
-
 .action-info-summary {
   font-size: 150%;
   height: 20px;
   display: flex;
+  align-items: center;
+  margin-top: 1rem;
 }
 
 .action-info-summary .action-title {
   padding: 0 5px;
+  flex: 1;
 }
 
 .action-commit-summary {
@@ -421,6 +450,27 @@ export function ansiLogToHTML(line) {
 .job-group-section .job-group-summary {
   margin: 5px 0;
   padding: 10px;
+}
+
+.job-artifacts-title {
+  font-size: 18px;
+  margin-top: 16px;
+  padding: 16px 10px 0px 20px;
+  border-top: 1px solid var(--color-secondary);
+}
+
+.job-artifacts-item {
+  margin: 5px 0;
+  padding: 6px;
+}
+
+.job-artifacts-list {
+  padding-left: 12px;
+  list-style: none;
+}
+
+.job-artifacts-icon {
+  padding-right: 3px;
 }
 
 .job-group-section .job-brief-list .job-brief-item {

@@ -494,12 +494,27 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 			).From("`user`"),
 		))
 	} else if !opts.Actor.IsAdmin {
-		cond = cond.And(builder.In("act_user_id",
-			builder.Select("`user`.id").Where(
-				builder.Eq{"keep_activity_private": false}.
-					And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).
-				Or(builder.Eq{"id": opts.Actor.ID}).From("`user`"),
-		))
+		uidCond := builder.Select("`user`.id").From("`user`").Where(
+			builder.Eq{"keep_activity_private": false}.
+				And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).
+			Or(builder.Eq{"id": opts.Actor.ID})
+
+		if opts.RequestedUser != nil {
+			if opts.RequestedUser.IsOrganization() {
+				// An organization can always see the activities whose `act_user_id` is the same as its id.
+				uidCond = uidCond.Or(builder.Eq{"id": opts.RequestedUser.ID})
+			} else {
+				// A user can always see the activities of the organizations to which the user belongs.
+				uidCond = uidCond.Or(
+					builder.Eq{"type": user_model.UserTypeOrganization}.
+						And(builder.In("`user`.id", builder.Select("org_id").
+							Where(builder.Eq{"uid": opts.RequestedUser.ID}).
+							From("team_user"))),
+				)
+			}
+		}
+
+		cond = cond.And(builder.In("act_user_id", uidCond))
 	}
 
 	// check readable repositories by doer/actor

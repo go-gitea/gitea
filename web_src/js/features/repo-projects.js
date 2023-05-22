@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {useLightTextOnBackground} from '../utils.js';
+import {useLightTextOnBackground, hexToRGBColor} from '../utils/color.js';
 
 const {csrfToken} = window.config;
 
@@ -15,7 +15,7 @@ function moveIssue({item, from, to, oldIndex}) {
   updateIssueCount(to);
 
   const columnSorting = {
-    issues: [...columnCards].map((card, i) => ({
+    issues: Array.from(columnCards, (card, i) => ({
       issueID: parseInt($(card).attr('data-issue')),
       sorting: i
     }))
@@ -190,7 +190,8 @@ export function initRepoProject() {
 }
 
 function setLabelColor(label, color) {
-  if (useLightTextOnBackground(color)) {
+  const [r, g, b] = hexToRGBColor(color);
+  if (useLightTextOnBackground(r, g, b)) {
     label.removeClass('dark-label').addClass('light-label');
   } else {
     label.removeClass('light-label').addClass('dark-label');

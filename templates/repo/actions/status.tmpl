@@ -11,6 +11,7 @@
 {{- $className = .className -}}
 {{- end -}}
 
+<span data-tooltip-content="{{.locale.Tr (printf "actions.status.%s" .status)}}">
 {{if eq .status "success"}}
 	{{svg "octicon-check-circle-fill" $size (printf "text green %s" $className)}}
 {{else if eq .status "skipped"}}
@@ -24,3 +25,4 @@
 {{else}}
 	{{svg "octicon-x-circle-fill" $size (printf "text red %s" $className)}}
 {{end}}
+</span>

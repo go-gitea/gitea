@@ -58,7 +58,9 @@ func (w *testLoggerWriterCloser) Write(p []byte) (int, error) {
 	}
 
 	if t == nil || *t == nil {
-		return fmt.Fprintf(os.Stdout, "??? [Unknown Test] %s\n", p)
+		// if there is no running test, the log message should be outputted to console, to avoid losing important information.
+		// the "???" prefix is used to match the "===" and "+++" in PrintCurrentTest
+		return fmt.Fprintf(os.Stdout, "??? [TestLogger] %s\n", p)
 	}
 
 	defer func() {

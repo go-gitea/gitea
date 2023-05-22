@@ -10,6 +10,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	ctx "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -76,6 +77,14 @@ type ToCommitOptions struct {
 	Stat         bool
 	Verification bool
 	Files        bool
+}
+
+func ParseCommitOptions(ctx *ctx.APIContext) ToCommitOptions {
+	return ToCommitOptions{
+		Stat:         ctx.FormString("stat") == "" || ctx.FormBool("stat"),
+		Files:        ctx.FormString("files") == "" || ctx.FormBool("files"),
+		Verification: ctx.FormString("verification") == "" || ctx.FormBool("verification"),
+	}
 }
 
 // ToCommit convert a git.Commit to api.Commit

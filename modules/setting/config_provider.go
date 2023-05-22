@@ -30,7 +30,6 @@ type ConfigProvider interface {
 	Section(section string) ConfigSection
 	NewSection(name string) (ConfigSection, error)
 	GetSection(name string) (ConfigSection, error)
-	DeleteSection(name string) error
 	Save() error
 }
 
@@ -38,12 +37,6 @@ type iniFileConfigProvider struct {
 	opts *Options
 	*ini.File
 	newFile bool // whether the file has not existed previously
-}
-
-// NewEmptyConfigProvider create a new empty config provider
-func NewEmptyConfigProvider() ConfigProvider {
-	cp, _ := NewConfigProviderFromData("")
-	return cp
 }
 
 // NewConfigProviderFromData this function is only for testing
@@ -119,11 +112,6 @@ func (p *iniFileConfigProvider) NewSection(name string) (ConfigSection, error) {
 
 func (p *iniFileConfigProvider) GetSection(name string) (ConfigSection, error) {
 	return p.File.GetSection(name)
-}
-
-func (p *iniFileConfigProvider) DeleteSection(name string) error {
-	p.File.DeleteSection(name)
-	return nil
 }
 
 // Save save the content into file

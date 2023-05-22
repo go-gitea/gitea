@@ -6,6 +6,7 @@ package httplib
 import (
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"strings"
@@ -25,12 +26,12 @@ func TestServeContentByReader(t *testing.T) {
 			r.Header.Set("Range", fmt.Sprintf("bytes=%s", rangeStr))
 		}
 		reader := strings.NewReader(data)
-		w := NewMockResponseWriter()
+		w := httptest.NewRecorder()
 		ServeContentByReader(r, w, "test", int64(len(data)), reader)
-		assert.Equal(t, expectedStatusCode, w.StatusCode)
+		assert.Equal(t, expectedStatusCode, w.Code)
 		if expectedStatusCode == http.StatusPartialContent || expectedStatusCode == http.StatusOK {
 			assert.Equal(t, fmt.Sprint(len(expectedContent)), w.Header().Get("Content-Length"))
-			assert.Equal(t, expectedContent, w.BodyBuffer.String())
+			assert.Equal(t, expectedContent, w.Body.String())
 		}
 	}
 
@@ -76,12 +77,12 @@ func TestServeContentByReadSeeker(t *testing.T) {
 		}
 		defer seekReader.Close()
 
-		w := NewMockResponseWriter()
+		w := httptest.NewRecorder()
 		ServeContentByReadSeeker(r, w, "test", time.Time{}, seekReader)
-		assert.Equal(t, expectedStatusCode, w.StatusCode)
+		assert.Equal(t, expectedStatusCode, w.Code)
 		if expectedStatusCode == http.StatusPartialContent || expectedStatusCode == http.StatusOK {
 			assert.Equal(t, fmt.Sprint(len(expectedContent)), w.Header().Get("Content-Length"))
-			assert.Equal(t, expectedContent, w.BodyBuffer.String())
+			assert.Equal(t, expectedContent, w.Body.String())
 		}
 	}
 

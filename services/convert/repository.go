@@ -124,11 +124,10 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 	mirrorInterval := ""
 	var mirrorUpdated time.Time
 	if repo.IsMirror {
-		var err error
-		repo.Mirror, err = repo_model.GetMirrorByRepoID(ctx, repo.ID)
+		pullMirror, err := repo_model.GetMirrorByRepoID(ctx, repo.ID)
 		if err == nil {
-			mirrorInterval = repo.Mirror.Interval.String()
-			mirrorUpdated = repo.Mirror.UpdatedUnix.AsTime()
+			mirrorInterval = pullMirror.Interval.String()
+			mirrorUpdated = pullMirror.UpdatedUnix.AsTime()
 		}
 	}
 

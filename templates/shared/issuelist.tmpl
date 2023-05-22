@@ -153,7 +153,7 @@
 				<div class="issue-item-icon-right text grey">
 					{{range .Assignees}}
 						<a class="ui assignee gt-tdn" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
-							{{avatar $.Context .}}
+							{{avatar $.Context . 20}}
 						</a>
 					{{end}}
 				</div>

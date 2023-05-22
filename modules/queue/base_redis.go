@@ -123,7 +123,10 @@ func (q *baseRedis) Close() error {
 func (q *baseRedis) RemoveAll(ctx context.Context) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
+
 	c1 := q.client.Del(ctx, q.cfg.QueueFullName)
+	// the "set" must be cleared after the "list" because there is no transaction.
+	// it's better to have duplicate items than losing items.
 	c2 := q.client.Del(ctx, q.cfg.SetFullName)
 	if c1.Err() != nil {
 		return c1.Err()

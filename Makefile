@@ -37,7 +37,7 @@ GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.6.0
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@latest
 
 DOCKER_IMAGE ?= ghcr.io/shapeci/gitea
-DOCKER_TAG ?= 7
+DOCKER_TAG ?= 8
 DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 
 ifeq ($(HAS_GO), yes)
@@ -394,7 +394,7 @@ lint-go:
 lint-go-fix:
 	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix
 
-# workaround step for the lint-backend-windows CI task because 'go run' can not
+# workaround step for the lint-go-windows CI task because 'go run' can not
 # have distinct GOOS/GOARCH for its build and run steps
 .PHONY: lint-go-windows
 lint-go-windows:
@@ -409,7 +409,7 @@ lint-go-vet:
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
-	$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) templates
+	$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) templates .github/workflows
 
 .PHONY: watch
 watch:

@@ -56,7 +56,7 @@ func TestBaseRedis(t *testing.T) {
 	}()
 	if !waitRedisReady("redis://127.0.0.1:6379/0", 0) {
 		redisServer = redisServerCmd(t)
-		if redisServer == nil && os.Getenv("CI") != "" {
+		if redisServer == nil && os.Getenv("CI") == "" {
 			t.Skip("redis-server not found")
 			return
 		}
