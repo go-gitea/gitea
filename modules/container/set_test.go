@@ -34,22 +34,3 @@ func TestSet(t *testing.T) {
 	assert.True(t, s.Contains("key6"))
 	assert.True(t, s.Contains("key7"))
 }
-
-func TestDifference(t *testing.T) {
-	s1 := SetOf("1", "2", "4", "5", "9")
-	s2 := SetOf("2", "3", "9")
-
-	diff := s1.Difference(s2)
-	assert.True(t, len(diff) == 3)
-	assert.True(t, diff.Contains("1"))
-	assert.True(t, diff.Contains("4"))
-	assert.True(t, diff.Contains("5"))
-}
-
-func TestEmptyDifference(t *testing.T) {
-	s1 := make(Set[int])
-	s2 := SetOf(1, 2, 3)
-
-	diff := s1.Difference(s2)
-	assert.True(t, len(diff) == 0)
-}

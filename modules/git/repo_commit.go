@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/cache"
-	container "code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
 	slice "code.gitea.io/gitea/modules/util"
 )
@@ -137,12 +136,10 @@ func (repo *Repository) commitsByRangeWithoutBranch(id SHA1, page, pageSize int,
 	}
 
 	// Do set difference
-	allSet := container.SetOf(allCommits...)
-	excludeSet := container.SetOf(exclude...)
-	difference := allSet.Difference(excludeSet)
+	difference := slice.SliceDifference(allCommits, exclude)
 
 	// Now paginate
-	commits := slice.PaginateSlice(difference.Values(), page, pageSize).([]string)
+	commits := slice.PaginateSlice(difference, page, pageSize).([]string)
 	return repo.SHAsToCommits(commits)
 }
 
