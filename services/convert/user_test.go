@@ -20,7 +20,7 @@ func TestUser_ToUser(t *testing.T) {
 
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1, IsAdmin: true})
 
-	apiUser := toUser(db.DefaultContext, user1, nil, perm.AccessModeRead)
+	apiUser := toUser(db.DefaultContext, user1, user1, perm.AccessModeNone)
 	assert.True(t, apiUser.IsAdmin)
 	assert.Contains(t, apiUser.AvatarURL, "://")
 
