@@ -112,7 +112,6 @@ import {SvgIcon} from '../svg.js';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
 import AnsiToHTML from 'ansi-to-html';
-import { element } from 'prop-types';
 
 const {csrfToken} = window.config;
 
@@ -625,10 +624,6 @@ export function ansiLogToHTML(line) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.job-info-header .job-info-header-title {
-  font-size: 150%;
   padding: 10px;
   border-bottom: 1px solid var(--color-console-border);
   background-color: var(--color-console-bg);
