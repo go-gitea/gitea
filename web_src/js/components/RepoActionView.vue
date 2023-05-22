@@ -661,7 +661,7 @@ export function ansiLogToHTML(line) {
 }
 
 .job-step-section .job-step-logs {
-  font-family: monospace, monospace;
+  font-family: var(--fonts-monospace);
   margin: 8px 0px;
   font-size: 12px;
 }
