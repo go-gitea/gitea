@@ -282,7 +282,7 @@ Place custom files in corresponding sub-folder under `custom/options`.
 
 To add custom .gitignore, add a file with existing [.gitignore rules](https://git-scm.com/docs/gitignore) in it to `$GITEA_CUSTOM/options/gitignore`
 
-## Customizing git config
+## Customizing the git configuration
 
 Starting with Gitea 1.20, you can customize the git configuration via the `git.config` section.
 
