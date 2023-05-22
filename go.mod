@@ -196,7 +196,6 @@ require (
 	github.com/go-openapi/validate v0.22.0 // indirect
 	github.com/go-webauthn/revoke v0.1.9 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
-	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/geo v0.0.0-20230421003525-6adc56603217 // indirect
