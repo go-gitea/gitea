@@ -141,6 +141,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 ### Repository - Issue (`repository.issue`)
 
 - `LOCK_REASONS`: **Too heated,Off-topic,Resolved,Spam**: A list of reasons why a Pull Request or Issue can be locked
+- `MAX_PINNED`: **3**: Maximum number of pinned Issues. Set to 0 to disable pinning Issues.
 
 ### Repository - Upload (`repository.upload`)
 

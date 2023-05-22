@@ -231,7 +231,7 @@ var (
 			MaxPinned   int
 		}{
 			LockReasons: strings.Split("Too heated,Off-topic,Spam,Resolved", ","),
-			MaxPinned:   6,
+			MaxPinned:   3,
 		},
 
 		Release: struct {
