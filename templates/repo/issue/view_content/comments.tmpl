@@ -27,7 +27,7 @@
 					<div class="ui top attached header comment-header gt-df gt-ac gt-sb" role="heading" aria-level="3">
 						<div class="comment-header-left gt-df gt-ac">
 							{{if .OriginalAuthor}}
-								<span class="text black gt-bold gt-mr-2">
+								<span class="text black gt-font-semibold gt-mr-2">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 									{{.OriginalAuthor}}
 								</span>
@@ -420,7 +420,7 @@
 								{{end}}
 								<span class="text grey muted-links">
 									{{if .OriginalAuthor}}
-										<span class="text black gt-bold">
+										<span class="text black gt-font-semibold">
 											{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 											{{.OriginalAuthor}}
 										</span>
@@ -548,7 +548,7 @@
 																{{end}}
 																<span class="text grey muted-links">
 																	{{if .OriginalAuthor}}
-																		<span class="text black gt-bold">
+																		<span class="text black gt-font-semibold">
 																			{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 																			{{.OriginalAuthor}}
 																		</span>
