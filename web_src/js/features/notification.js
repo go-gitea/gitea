@@ -25,7 +25,7 @@ export function initNotificationsTable() {
   for (const link of table.querySelectorAll('.notifications-item[data-status="1"] .notifications-link')) {
     link.addEventListener('click', (e) => {
       e.target.closest('.notifications-item').setAttribute('data-remove', 'true');
-    }, {capture: true});
+    });
   }
 
   $('#notification_table .button').on('click', function () {
