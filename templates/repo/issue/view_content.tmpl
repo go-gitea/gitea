@@ -78,9 +78,7 @@
 					</div>
 					{{$reactions := .Issue.Reactions.GroupByType}}
 					{{if $reactions}}
-						<div class="ui attached segment reactions" role="note">
-							{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
-						</div>
+						{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
 					{{end}}
 				</div>
 			</div>

@@ -7,6 +7,7 @@
 		<div class="header reactions-header">{{.ctxData.locale.Tr "repo.pick_reaction"}}</div>
 		<div class="divider"></div>
 		{{range $value := AllowedReactions}}
+			{{/* the popup menu is only used for "adding reaction", so do not put data-has-reacted on it */}}
 			<a class="item reaction" title="{{$value}}" aria-label="{{$value}}" data-reaction-content="{{$value}}">{{ReactionToEmoji $value}}</a>
 		{{end}}
 	</div>
