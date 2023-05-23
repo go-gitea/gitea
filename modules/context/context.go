@@ -68,12 +68,12 @@ func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
 	return ctx.Locale.Tr(msg, trArgs...)
 }
 
-type contextKeyType struct{}
+type webContextKeyType struct{}
 
-var contextKey interface{} = contextKeyType{}
+var WebContextKey = webContextKeyType{}
 
-func GetContext(req *http.Request) *Context {
-	ctx, _ := req.Context().Value(contextKey).(*Context)
+func GetWebContext(req *http.Request) *Context {
+	ctx, _ := req.Context().Value(WebContextKey).(*Context)
 	return ctx
 }
 
@@ -86,7 +86,7 @@ type ValidateContext struct {
 func GetValidateContext(req *http.Request) (ctx *ValidateContext) {
 	if ctxAPI, ok := req.Context().Value(apiContextKey).(*APIContext); ok {
 		ctx = &ValidateContext{Base: ctxAPI.Base}
-	} else if ctxWeb, ok := req.Context().Value(contextKey).(*Context); ok {
+	} else if ctxWeb, ok := req.Context().Value(WebContextKey).(*Context); ok {
 		ctx = &ValidateContext{Base: ctxWeb.Base}
 	} else {
 		panic("invalid context, expect either APIContext or Context")
@@ -135,7 +135,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.PageData = map[string]any{}
 			ctx.Data["PageData"] = ctx.PageData
 
-			ctx.Base.AppendContextValue(contextKey, ctx)
+			ctx.Base.AppendContextValue(WebContextKey, ctx)
 			ctx.Base.AppendContextValueFunc(git.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
 
 			ctx.Csrf = PrepareCSRFProtector(csrfOpts, ctx)

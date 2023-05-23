@@ -1054,12 +1054,7 @@ Default templates for project boards:
 - `DISABLE_CORE_PROTECT_NTFS`: **false** Set to true to forcibly set `core.protectNTFS` to false.
 - `DISABLE_PARTIAL_CLONE`: **false** Disable the usage of using partial clones for git.
 
-## Git - Reflog settings (`git.reflog`)
-
-- `ENABLED`: **true** Set to true to enable Git to write changes to reflogs in each repo.
-- `EXPIRATION`: **90** Reflog entry lifetime, in days. Entries are removed opportunistically by Git.
-
-## Git - Timeout settings (`git.timeout`)
+### Git - Timeout settings (`git.timeout`)
 
 - `DEFAULT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
@@ -1067,6 +1062,18 @@ Default templates for project boards:
 - `CLONE`: **300**: Git clone from internal repositories timeout seconds.
 - `PULL`: **300**: Git pull from internal repositories timeout seconds.
 - `GC`: **60**: Git repository GC timeout seconds.
+
+### Git - Reflog settings (`git.reflog`)
+
+- `ENABLED`: **true** Set to true to enable Git to write changes to reflogs in each repo.
+- `EXPIRATION`: **90** Reflog entry lifetime, in days. Entries are removed opportunistically by Git.
+
+### Git - Config options (`git.config`)
+
+The key/value pairs in this section will be used as git config.
+This section only does "set" config, a removed config key from this section won't be removed from git config automatically. The format is `some.configKey = value`.
+
+- `diff.algorithm`: **histogram**
 
 ## Metrics (`metrics`)
 
