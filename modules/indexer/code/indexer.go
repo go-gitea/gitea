@@ -92,29 +92,29 @@ func index(ctx context.Context, indexer Indexer, repoID int64) error {
 		return err
 	}
 
-	units := setting.Indexer.RepoIndexerUnits
+	repoTypes := setting.Indexer.RepoIndexerRepoTypes
 
-	if len(units) == 0 {
-		units = []string{"sources"}
+	if len(repoTypes) == 0 {
+		repoTypes = []string{"sources"}
 	}
 
 	// skip forks from being indexed if unit is not present
-	if !util.SliceContains(units, "forks") && repo.IsFork {
+	if !util.SliceContains(repoTypes, "forks") && repo.IsFork {
 		return nil
 	}
 
 	// skip mirrors from being indexed if unit is not present
-	if !util.SliceContains(units, "mirrors") && repo.IsMirror {
+	if !util.SliceContains(repoTypes, "mirrors") && repo.IsMirror {
 		return nil
 	}
 
 	// skip templates from being indexed if unit is not present
-	if !util.SliceContains(units, "templates") && repo.IsTemplate {
+	if !util.SliceContains(repoTypes, "templates") && repo.IsTemplate {
 		return nil
 	}
 
 	// skip regular repos from being indexed if unit is not present
-	if !util.SliceContains(units, "sources") && !repo.IsFork && !repo.IsMirror && !repo.IsTemplate {
+	if !util.SliceContains(repoTypes, "sources") && !repo.IsFork && !repo.IsMirror && !repo.IsTemplate {
 		return nil
 	}
 
