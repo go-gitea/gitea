@@ -1,5 +1,5 @@
 ---
-date: "2023-05-23"
+date: "2023-05-23T09:00:00+08:00"
 title: "Email 设置"
 slug: "email-setup"
 weight: 12

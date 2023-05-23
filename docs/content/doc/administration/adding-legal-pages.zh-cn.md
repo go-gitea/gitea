@@ -1,5 +1,5 @@
 ---
-date: "2023-05-23"
+date: "2023-05-23T09:00:00+08:00"
 title: "添加法律页面"
 slug: adding-legal-pages
 weight: 110

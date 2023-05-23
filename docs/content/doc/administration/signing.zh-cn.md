@@ -1,5 +1,5 @@
 ---
-date: "2023-05-23"
+date: "2023-05-23T09:00:00+08:00"
 title: "GPG 提交签名"
 slug: "signing"
 weight: 50

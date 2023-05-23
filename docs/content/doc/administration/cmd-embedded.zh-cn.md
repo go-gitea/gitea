@@ -1,5 +1,5 @@
 ---
-date: "2023-05-23"
+date: "2023-05-23T09:00:00+08:00"
 title: "嵌入式数据提取工具"
 slug: "cmd-embedded"
 weight: 20
