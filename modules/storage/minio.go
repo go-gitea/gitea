@@ -46,7 +46,6 @@ const MinioStorageType Type = "minio"
 
 // MinioStorageConfig represents the configuration for a minio storage
 type MinioStorageConfig struct {
-
 	Endpoint           string `ini:"MINIO_ENDPOINT"`
 	AccessKeyID        string `ini:"MINIO_ACCESS_KEY_ID"`
 	SecretAccessKey    string `ini:"MINIO_SECRET_ACCESS_KEY"`
