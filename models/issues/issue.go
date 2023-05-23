@@ -124,7 +124,7 @@ type Issue struct {
 	ClosedUnix  timeutil.TimeStamp `xorm:"INDEX"`
 
 	Attachments      []*repo_model.Attachment `xorm:"-"`
-	Comments         []*Comment               `xorm:"-"`
+	Comments         CommentList              `xorm:"-"`
 	Reactions        ReactionList             `xorm:"-"`
 	TotalTrackedTime int64                    `xorm:"-"`
 	Assignees        []*user_model.User       `xorm:"-"`
@@ -353,7 +353,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		return err
 	}
 
-	if err = CommentList(issue.Comments).loadAttributes(ctx); err != nil {
+	if err = issue.Comments.loadAttributes(ctx); err != nil {
 		return err
 	}
 	if issue.IsTimetrackerEnabled(ctx) {
