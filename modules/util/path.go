@@ -282,38 +282,47 @@ func CommonSkip(name string) bool {
 	return false
 }
 
-// IsReadmeFileName reports whether name looks like a README file
+type FileType string
+
+const (
+	FileTypeReadme  FileType = "readme"
+	FileTypeLicense FileType = "license"
+)
+
+// IsFileName reports whether name looks like a fileType file
 // based on its name.
-func IsReadmeFileName(name string) bool {
+func IsFileName(name string, fileType FileType) bool {
 	name = strings.ToLower(name)
-	if len(name) < 6 {
+	lenFileType := len(fileType)
+	if len(name) < lenFileType {
 		return false
-	} else if len(name) == 6 {
-		return name == "readme"
+	} else if len(name) == lenFileType {
+		return name == string(fileType)
 	}
-	return name[:7] == "readme."
+	return name[:lenFileType+1] == string(fileType)+"."
 }
 
-// IsReadmeFileExtension reports whether name looks like a README file
+// IsFileExtension reports whether name looks like a fileType file
 // based on its name. It will look through the provided extensions and check if the file matches
 // one of the extensions and provide the index in the extension list.
 // If the filename is `readme.` with an unmatched extension it will match with the index equaling
 // the length of the provided extension list.
 // Note that the '.' should be provided in ext, e.g ".md"
-func IsReadmeFileExtension(name string, ext ...string) (int, bool) {
+func IsFileExtension(name string, fileType FileType, ext ...string) (int, bool) {
 	name = strings.ToLower(name)
-	if len(name) < 6 || name[:6] != "readme" {
+	lenFileType := len(fileType)
+	if len(name) < lenFileType || name[:lenFileType] != string(fileType) {
 		return 0, false
 	}
 
 	for i, extension := range ext {
 		extension = strings.ToLower(extension)
-		if name[6:] == extension {
+		if name[lenFileType:] == extension {
 			return i, true
 		}
 	}
 
-	if name[6] == '.' {
+	if name[lenFileType] == '.' {
 		return len(ext), true
 	}
 

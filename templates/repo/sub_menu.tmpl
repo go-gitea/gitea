@@ -19,6 +19,17 @@
 					{{$fileSizeFields := StringUtils.Split $fileSizeFormatted " "}}
 					<span>{{svg "octicon-database"}} <b>{{.locale.PrettyNumber (index $fileSizeFields 0)}}</b> {{index $fileSizeFields 1}}</span>
 				</div>
+				{{if .MatchedLicenses}}
+					<div class="item">
+						<a href="{{.TreeLink}}/{{PathEscapeSegments .LicenseFileName}}">{{svg "octicon-law"}} <b>
+						{{if eq (len .MatchedLicenses) 1}}
+							{{(index .MatchedLicenses 0).ID}}
+						{{else}}
+							{{.locale.Tr "repo.multiple_licenses"}}
+						</b></a>
+					</div>
+					{{end}}
+				{{end}}
 			{{end}}
 		</div>
 	</div>
