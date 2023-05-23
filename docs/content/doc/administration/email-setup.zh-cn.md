@@ -88,4 +88,4 @@ MAILER_TYPE    = smtp
 IS_TLS_ENABLED = true
 ```
 
-请注意，您需要创建并使用一个 [应用密码](https://support.google.com/accounts/answer/185833?hl=en) 并在您的 Google 帐户上启用双重验证。您将无法直接使用您的 Google 帐户密码。
+请注意，您需要创建并使用一个 [应用密码](https://support.google.com/accounts/answer/185833?hl=en) 并在您的 Google 帐户上启用 2FA。您将无法直接使用您的 Google 帐户密码。
