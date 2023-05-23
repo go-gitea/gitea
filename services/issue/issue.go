@@ -6,10 +6,13 @@ package issue
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	organization_model "code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -190,6 +193,116 @@ func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, do
 	}
 
 	return nil
+}
+
+// AddCodeownerReviewers gets all the codeowners of the files changed in the pull request (as outlined in the base repository's
+// CODEOWNERS file) and requests them for review if they exist and are eligibl to do so. Codeowners can be users or teams.
+func AddCodeownerReviewers(ctx context.Context, pr *issues_model.PullRequest, repo *repo_model.Repository) (err error) {
+	codeownersFileContents := GetCodeownersFileContents(repo.RepoPath())
+	if codeownersFileContents == nil { // TODO: Change to '!='
+		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+		if err != nil {
+			return err
+			// TODO: Where to log?
+		}
+		defer gitRepo.Close()
+
+		changedFiles, err := gitRepo.GetFilesChangedBetween(pr.MergeBase, pr.HeadCommitID)
+		if err != nil {
+			return err
+			// TODO: Where to log?
+		}
+
+		owners, teamOwners, err := ParseCodeowners(changedFiles, codeownersFileContents)
+		if err != nil {
+			// TODO: Log the parsing error?
+		}
+
+		// // Add reviewers to the PR
+		// //		use or replicate routers/api/v1/repo/pull_review.go > apiReviewRequest
+		// // 		with api.PullReviewRequestOptions (string[] reviewers, string[] teamReviewers)
+
+		issue := pr.Issue
+		isAdd := true
+		for _, reviewer := range GetValidUserReviewers(ctx, owners) {
+			_, _ = ReviewRequest(ctx, issue, issue.Poster, reviewer, isAdd)
+			// ignore the error? Seems weird, but we just won't assign them to review if they can't
+		}
+		for _, reviewer := range GetValidTeamReviewers(ctx, teamOwners) {
+			_, _ = TeamReviewRequest(ctx, issue, issue.Poster, reviewer, isAdd)
+			// ignore the error? Seems weird, but we just won't assign them to review if they can't
+		}
+	}
+
+	return nil
+}
+
+// FindCodeownersFile gets the CODEOWNERS file from the top level or .gitea directory of the repo.
+func GetCodeownersFileContents(path string) []byte {
+	// TODO-giteam: Also search in .gitea/ directory
+	content, err := os.ReadFile(path + "CODEOWNERS")
+	if err != nil {
+		return nil
+	}
+	return content
+}
+
+// ParseCodeowners gets the users and teams that own any of the files given CODEOWNERS rules.
+func ParseCodeowners(files []string, codeownersFile []byte) (users []string, teams []string, err error) {
+	return []string{"user3", "not_a_real_username", "user2@g.co"}, []string{}, nil
+	// TODO: Actually use the Parser
+}
+
+// GetValidReviewers gets the Users that actually exist and are authorized to review the pull request
+func GetValidUserReviewers(ctx context.Context, userNamesOrEmails []string) (reviewers []*user_model.User) {
+	reviewers = []*user_model.User{}
+	for _, nameOrEmail := range userNamesOrEmails {
+		var reviewer *user_model.User
+		var err error
+		if strings.Contains(nameOrEmail, "@") {
+			reviewer, err = user_model.GetUserByEmail(ctx, nameOrEmail)
+		} else {
+			reviewer, err = user_model.GetUserByName(ctx, nameOrEmail)
+		}
+		if reviewer != nil && err == nil {
+			// TODO: err = IsValidReviewRequest(ctx, reviewer, ctx.Doer, isAdd, pr.Issue, &permDoer)
+			reviewers = append(reviewers, reviewer)
+		}
+	}
+	return reviewers
+}
+
+// GetValidReviewers gets the Teams that actually exist and are authorized to review the pull request
+func GetValidTeamReviewers(ctx context.Context, teamNames []string) (teamReviewers []*organization_model.Team) {
+	// TODO: All of this, or refactor
+	// if ctx.Repo.Repository.Owner.IsOrganization() && len(opts.TeamReviewers) > 0 {
+	// 	teamReviewers := make([]*organization.Team, 0, len(opts.TeamReviewers))
+	// 	for _, t := range opts.TeamReviewers {
+	// 		var teamReviewer *organization.Team
+	// 		teamReviewer, err = organization.GetTeam(ctx, ctx.Repo.Owner.ID, t)
+	// 		if err != nil {
+	// 			if organization.IsErrTeamNotExist(err) {
+	// 				ctx.NotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", t))
+	// 				return
+	// 			}
+	// 			ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
+	// 			return
+	// 		}
+
+	// 		err = issue_service.IsValidTeamReviewRequest(ctx, teamReviewer, ctx.Doer, isAdd, pr.Issue)
+	// 		if err != nil {
+	// 			if issues_model.IsErrNotValidReviewRequest(err) {
+	// 				ctx.Error(http.StatusUnprocessableEntity, "NotValidReviewRequest", err)
+	// 				return
+	// 			}
+	// 			ctx.Error(http.StatusInternalServerError, "IsValidTeamReviewRequest", err)
+	// 			return
+	// 		}
+
+	// 		teamReviewers = append(teamReviewers, teamReviewer)
+	// 	}
+	// }
+	return []*organization_model.Team{} // empty array for now
 }
 
 // GetRefEndNamesAndURLs retrieves the ref end names (e.g. refs/heads/branch-name -> branch-name)

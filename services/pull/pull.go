@@ -66,6 +66,10 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 	prCtx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("NewPullRequest: %s:%d", repo.FullName(), pr.Index))
 	defer finished()
 
+	if err := issue_service.AddCodeownerReviewers(prCtx, pr, repo); err != nil {
+		return err
+	}
+
 	if pr.Flow == issues_model.PullRequestFlowGithub {
 		err = PushToBaseRepo(prCtx, pr)
 	} else {
