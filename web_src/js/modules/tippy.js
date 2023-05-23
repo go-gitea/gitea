@@ -62,6 +62,7 @@ function attachTooltip(target, content = null) {
     content,
     delay: 100,
     role: 'tooltip',
+    hideOnClick: true,
     placement: target.getAttribute('data-tooltip-placement') || 'top-start',
     ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true, aria: {content: 'describedby', expanded: false}} : {}),
   };

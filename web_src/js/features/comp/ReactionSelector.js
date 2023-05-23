@@ -8,8 +8,6 @@ export function initCompReactionSelector($parent) {
 
     if ($(this).hasClass('disabled')) return;
 
-    this._tippy?.hide();
-
     const actionUrl = $(this).closest('[data-action-url]').attr('data-action-url');
     const reactionContent = $(this).attr('data-reaction-content');
     const hasReacted = $(this).attr('data-has-reacted') === 'true';
