@@ -73,11 +73,11 @@
               <SvgIcon name="octicon-tools"/>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
                 <a class="item" @click="toggleTimeStamps()">
-                  <SvgIcon v-show="timeStampVisible" name="octicon-check"/>
+                  <span><SvgIcon v-show="timeStampVisible" name="octicon-check"/></span>
                   {{ locale.jobOptions.showTimeStamp }}
                 </a>
                 <a class="item" @click="">
-                  <SvgIcon name="octicon-check"/>
+                  <span><SvgIcon name="octicon-check"/></span>
                   {{ locale.jobOptions.showFullScreen }}
                 </a>
               </div>
@@ -642,6 +642,17 @@ export function ansiLogToHTML(line) {
 .job-info-header .job-info-header-detail {
   color: var(--color-secondary-dark-3);
   font-size: 12px;
+}
+
+.action-job-menu, .action-job-menu:after {
+  background-color: var(--color-secondary-dark-8);
+  border-color: var(--color-secondary-dark-7);
+}
+
+.action-job-menu .item span {
+  display: inline-block;
+  height: 16px;
+  width: 16px;
 }
 
 .job-step-container {
