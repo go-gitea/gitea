@@ -213,12 +213,10 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 			if err != nil {
 				return nil, err
 			}
-			if err := t.SetDefaultIndex(); err != nil {
-				return nil, err
-			}
 		default:
 			return nil, fmt.Errorf("Invalid file operation: %s %s", file.Operation, file.TreePath)
 		}
+
 		// If FromTreePath is not set, set it to the opts.TreePath
 		if file.TreePath != "" && file.FromTreePath == "" {
 			file.FromTreePath = file.TreePath
@@ -246,6 +244,15 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 			bom:          false,
 			executable:   false,
 		}
+	}
+
+	if hasOldBranch {
+		if err := t.SetDefaultIndex(); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, file := range opts.Files {
 		if file.Operation == "delete" {
 			// Get the files in the index
 			filesInIndex, err := t.LsFiles(file.TreePath)

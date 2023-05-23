@@ -87,6 +87,11 @@ type ChangeFilesOptions struct {
 	Files []*ChangeFileOperation `json:"files"`
 }
 
+// Branch returns branch name
+func (o *ChangeFilesOptions) Branch() string {
+	return o.FileOptions.BranchName
+}
+
 // FileOptionInterface provides a unified interface for the different file options
 type FileOptionInterface interface {
 	Branch() string
