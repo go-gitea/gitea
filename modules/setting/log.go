@@ -163,6 +163,14 @@ func loadLogModeByName(rootCfg ConfigProvider, loggerName, modeName string) (wri
 		writerOption.Protocol = ConfigInheritedKey(sec, "PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"})
 		writerOption.Addr = ConfigInheritedKey(sec, "ADDR").MustString(":7020")
 		writerMode.WriterOption = writerOption
+	case "smtp":
+		writerOption := log.WriterSMTPOption{}
+		writerOption.Subject = ConfigInheritedKey(sec, "SUBJECT").MustString("Diagnostic message from server")
+		writerOption.Host = ConfigInheritedKey(sec, "HOST").String()
+		writerOption.Username = ConfigInheritedKey(sec, "USER").String()
+		writerOption.Password = ConfigInheritedKey(sec, "PASSWD").String()
+		writerOption.RecipientAddresses = ConfigInheritedKey(sec, "RECEIVERS").Strings(",")
+		writerMode.WriterOption = writerOption
 	default:
 		if !log.HasEventWriter(writerType) {
 			return "", "", writerMode, fmt.Errorf("invalid log writer type (mode): %s", writerType)
