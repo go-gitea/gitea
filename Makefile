@@ -372,11 +372,11 @@ lint-js-fix: node_modules
 
 .PHONY: lint-css
 lint-css: node_modules
-	npx stylelint --color --max-warnings=0 web_src/css
+	npx stylelint --color --max-warnings=0 web_src/css web_src/js/components/*.vue
 
 .PHONY: lint-css-fix
 lint-css-fix: node_modules
-	npx stylelint --color --max-warnings=0 web_src/css --fix
+	npx stylelint --color --max-warnings=0 web_src/css web_src/js/components/*.vue --fix
 
 .PHONY: lint-swagger
 lint-swagger: node_modules
