@@ -93,9 +93,9 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 	defer gitRepo.Close()
 
-	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
-		log.Error("Failed to update size for repository: %v", err)
-	}
+	// if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
+	// 	log.Error("Failed to update size for repository: %v", err)
+	// }
 
 	addTags := make([]string, 0, len(optsList))
 	delTags := make([]string, 0, len(optsList))
@@ -291,6 +291,10 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	// Change repository last updated time.
 	if err := repo_model.UpdateRepositoryUpdatedTime(repo.ID, time.Now()); err != nil {
 		return fmt.Errorf("UpdateRepositoryUpdatedTime: %w", err)
+	}
+
+	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
+		log.Error("Failed to update size for repository: %v", err)
 	}
 
 	return nil

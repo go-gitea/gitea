@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	littleSize = 1024              // 1ko
+	littleSize = 1024 * 10         // 1ko
 	bigSize    = 128 * 1024 * 1024 // 128Mo
 )
 
@@ -60,7 +60,8 @@ func testGit(t *testing.T, u *url.URL) {
 
 		dstPath := t.TempDir()
 
-		dstForkedPath := t.TempDir()
+		// dstForkedPath := t.TempDir()
+		dstForkedPath4Reduce := t.TempDir()
 
 		t.Run("CreateRepoInDifferentUser", doAPICreateRepository(forkedUserCtx, false))
 		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, httpContext.Username, perm.AccessModeRead))
@@ -104,6 +105,38 @@ func testGit(t *testing.T, u *url.URL) {
 				defer tests.PrintCurrentTest(t)()
 				// TODO doDeleteCommitAndPush(t, littleSize, dstPath, "data-file-")
 			})
+
+			t.Run("ReduceRepoSize", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+				u.Path = forkedUserCtx.GitPath()
+				u.User = url.UserPassword(forkedUserCtx.Username, userPassword)
+
+				t.Run("Clone", doGitClone(dstForkedPath4Reduce, u))
+				fmt.Fprintf(os.Stdout, "dstForkedPath4Reduce = %s\n", dstForkedPath4Reduce)
+				doCommitAndPush(t, littleSize, dstForkedPath4Reduce, "data-file-")
+				bigOne := doCommitAndPush(t, bigSize, dstForkedPath4Reduce, "my-file-")
+				repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, forkedUserCtx.Username, forkedUserCtx.Reponame)
+				assert.NoError(t, err)
+				orgGitRepoSize := repo.Size //doGetCountObjects(t, dstForkedPath4Reduce)
+				fmt.Fprintf(os.Stdout, "Original GitSize = %d\n", orgGitRepoSize)
+
+				t.Run("APISetRepoSizeLimit", doAPISetRepoSizeLimit(forkedUserCtx, forkedUserCtx.Username, forkedUserCtx.Reponame, bigSize/2))
+				fmt.Fprintf(os.Stdout, "Original GitSize = %d\n", orgGitRepoSize)
+
+				//Delete Object from Oversized Repository, This should be Accepdted
+				doDeleteObjectAndClean(t, dstForkedPath4Reduce, bigOne)
+
+				repo, err = repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, forkedUserCtx.Username, forkedUserCtx.Reponame)
+				assert.NoError(t, err)
+				reducedGitRepoSize := repo.Size //doGetCountObjects(t, dstForkedPath4Reduce)
+
+				fmt.Fprintf(os.Stdout, "Reduced GitSize = %d\n", reducedGitRepoSize)
+
+				assert.Less(t, reducedGitRepoSize, orgGitRepoSize, "Repo size is not reduced.")
+
+				setting.SaveGlobalRepositorySetting(false, 0)
+			})
+
 			// TODO delete branch
 			// TODO delete tag
 			// TODO add big commit that will be over with the push
@@ -325,6 +358,20 @@ func lockFileTest(t *testing.T, filename, repoPath string) {
 	assert.NoError(t, err)
 }
 
+func doDeleteObjectAndClean(t *testing.T, repoPath, filename string) {
+	var err error
+	err = deleteCommit(repoPath, "user4@example.com", "User Four", filename)
+	assert.NoError(t, err)
+	_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "master").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
+	assert.NoError(t, err)
+
+	// _, _, err = git.NewCommand(git.DefaultContext, "reflog", "expire", "--expire-unreachable=all", "--all").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
+	// assert.NoError(t, err)
+	// _, _, err = git.NewCommand(git.DefaultContext, "gc", "--prune=now").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
+	// assert.NoError(t, err)
+
+}
+
 func doCommitAndPush(t *testing.T, size int, repoPath, prefix string) string {
 	name, err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two", prefix)
 	assert.NoError(t, err)
@@ -339,6 +386,34 @@ func doCommitAndPushWithExpectedError(t *testing.T, size int, repoPath, prefix s
 	_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "master").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
 	assert.Error(t, err)
 	return name
+}
+
+func deleteCommit(repoPath, email, fullName, filename string) error {
+
+	var err error
+	globalArgs := git.AllowLFSFiltersArgs()
+
+	cmd := git.NewCommand(git.DefaultContext, "rm").AddDashesAndList(filename)
+
+	_, _, err = cmd.RunStdString(&git.RunOpts{Dir: repoPath}) // Push
+	if err != nil {
+		return err
+	}
+
+	return git.CommitChangesWithArgs(repoPath, globalArgs, git.CommitChangesOptions{
+		Committer: &git.Signature{
+			Email: email,
+			Name:  fullName,
+			When:  time.Now(),
+		},
+		Author: &git.Signature{
+			Email: email,
+			Name:  fullName,
+			When:  time.Now(),
+		},
+		Message: fmt.Sprintf("Testing commit @ %v", time.Now()),
+	})
+
 }
 
 func generateCommitWithNewData(size int, repoPath, email, fullName, prefix string) (string, error) {

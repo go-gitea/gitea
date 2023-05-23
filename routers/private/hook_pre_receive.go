@@ -204,6 +204,10 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		// If operation is in potential breach of size limit prepare data for analysis
 		if isRepoOversized {
 
+			// ctx.JSON(http.StatusForbidden, private.Response{
+			// 	UserMsg: fmt.Sprintf("oldCommitID(%s) newCommitID(%s)", oldCommitID, newCommitID),
+			// })
+
 			// Objects that are in newCommitID but not in oldCommitID are added
 			addedObjects, _, err := git.NewCommand(ctx, "rev-list", "--objects").AddDynamicArguments(newCommitID, "^"+oldCommitID).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: ourCtx.env})
 			if err != nil {
@@ -246,7 +250,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	if (addedSize > removedSize) && isRepoOversized { // Check next size if we are not deleting a reference
 		log.Warn("Forbidden: new repo size is over limitation: %s", base.FileSize(repo.GetActualSizeLimit()))
 		ctx.JSON(http.StatusForbidden, private.Response{
-			UserMsg: fmt.Sprintf("Repository size is over limitation of %s", base.FileSize(repo.GetActualSizeLimit())),
+			UserMsg: fmt.Sprintf("Repository size is over limitation of %s  addedSize(%d) removedSize(%d)  repo(%s)", base.FileSize(repo.GetActualSizeLimit()), addedSize, removedSize, repo.RepoPath()),
 		})
 		return
 	}
