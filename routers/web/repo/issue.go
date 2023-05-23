@@ -206,10 +206,10 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	if forceEmpty {
 		issueStats = &issues_model.IssueStats{}
 	} else {
-		issueStats, err = issues_model.GetIssueStats(&issues_model.IssueStatsOptions{
-			RepoID:            repo.ID,
-			Labels:            selectLabels,
-			MilestoneID:       milestoneID,
+		issueStats, err = issues_model.GetIssueStats(&issues_model.IssuesOptions{
+			RepoIDs:           []int64{repo.ID},
+			LabelIDs:          labelIDs,
+			MilestoneIDs:      []int64{milestoneID},
 			ProjectID:         projectID,
 			AssigneeID:        assigneeID,
 			MentionedID:       mentionedID,
@@ -258,7 +258,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
 			},
-			RepoID:            repo.ID,
+			RepoIDs:           []int64{repo.ID},
 			AssigneeID:        assigneeID,
 			PosterID:          posterID,
 			MentionedID:       mentionedID,
@@ -2344,7 +2344,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 // SearchIssues searches for issues across the repositories that the user has access to
 func SearchIssues(ctx *context.Context) {
-	before, since, err := context.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, err.Error())
 		return
@@ -2545,7 +2545,7 @@ func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
 
 // ListIssues list the issues of a repository
 func ListIssues(ctx *context.Context) {
-	before, since, err := context.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, err.Error())
 		return
@@ -2652,7 +2652,7 @@ func ListIssues(ctx *context.Context) {
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issuesOpt := &issues_model.IssuesOptions{
 			ListOptions:       listOptions,
-			RepoID:            ctx.Repo.Repository.ID,
+			RepoIDs:           []int64{ctx.Repo.Repository.ID},
 			IsClosed:          isClosed,
 			IssueIDs:          issueIDs,
 			LabelIDs:          labelIDs,

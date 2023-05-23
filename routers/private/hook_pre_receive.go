@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -104,70 +105,72 @@ func (ctx *preReceiveContext) AssertCreatePullRequest() bool {
 	return true
 }
 
-// CalculateSizeOfAddedObjects calculates the total size of objects provided as output from rev-list command
-func CalculateSizeOfAddedObjects(ctx *gitea_context.PrivateContext, opts *git.RunOpts, revlistObjects string) int64 {
-	// Calculate the size of added Objects.
-	var totalSize int64
-	for _, object := range strings.Split(revlistObjects, "\n") {
-		if len(object) == 0 {
-			continue
-		}
-		objectID := strings.Split(object, " ")[0]
-		objectSizeStr, _, err := git.NewCommand(ctx, "cat-file", "-s").AddDynamicArguments(objectID).RunStdString(opts)
-		if err != nil {
-			log.Trace("CalculateSizeOfAddedObjects: Error during git cat-file -s on object %s", objectID)
-			return totalSize
-		}
-		objectSize, _ := strconv.ParseInt(strings.TrimSpace(objectSizeStr), 10, 64)
-		if err != nil {
-			log.Trace("CalculateSizeOfAddedObjects: Error during ParseInt on string: '%s'", objectSizeStr)
-			return totalSize
-		}
-		totalSize += objectSize
+// CalculateSizeOfObject calculates the size of one git object via git cat-file -s command
+func CalculateSizeOfObject(ctx *gitea_context.PrivateContext, opts *git.RunOpts, objectID string) (objectSize int64) {
+	objectSizeStr, _, err := git.NewCommand(ctx, "cat-file", "-s").AddDynamicArguments(objectID).RunStdString(opts)
+	if err != nil {
+		log.Trace("CalculateSizeOfRemovedObjects: Error during git cat-file -s on object: %s", objectID)
+		return
 	}
-	return totalSize
+
+	objectSize, _ = strconv.ParseInt(strings.TrimSpace(objectSizeStr), 10, 64)
+	if err != nil {
+		log.Trace("CalculateSizeOfRemovedObjects: Error during ParseInt on string '%s'", objectID)
+		return
+	}
+	return
 }
 
-// CalculateSizeOfRemovedObjects calculates the size of removed objects provided as output from rev-list command
-// and confirms that the object is not referenced anywhere
-func CalculateSizeOfRemovedObjects(ctx *gitea_context.PrivateContext, opts *git.RunOpts, revlistObjects string) int64 {
-	var totalSize int64
-	for _, object := range strings.Split(revlistObjects, "\n") {
+// CalculateSizeOfObjects calculates the size of objects added and removed from the repository by new commit
+func CalculateSizeOfObjects(ctx *gitea_context.PrivateContext, opts *git.RunOpts, newCommitObjects map[string]bool, oldCommitObjects map[string]bool, otherCommitObjects map[string]bool) (addedSize int64, removedSize int64) {
+
+	// Calculate size of objects that were added
+	for objectID := range newCommitObjects {
+		if _, exists := oldCommitObjects[objectID]; !exists {
+			// objectID is not referenced in the list of objects of old commit so it is a new object
+			// Calculate its size and add it to the addedSize
+			addedSize += CalculateSizeOfObject(ctx, opts, objectID)
+		}
+		// We might check here if new object is not already in the rest of repo to be precise
+		// However our goal is to prevent growth of repository so on determination of addedSize
+		// We can skip this preciseness, addedSize will be more then real addedSize
+		// TODO - do not count size of object that is referenced in other part of repo but not referenced neither in old nor new commit
+		//        git will not add the object twice
+	}
+
+	// Calculate size of objects that were removed
+	for objectID := range oldCommitObjects {
+		if _, exists := newCommitObjects[objectID]; !exists {
+			// objectID is not referenced in the list of new commit objects so it was possibly removed
+			if _, exists := otherCommitObjects[objectID]; !exists {
+				// objectID is not referenced in rest of the objects of the repository so it was removed
+				// Calculate its size and add it to the addedSize
+				removedSize += CalculateSizeOfObject(ctx, opts, objectID)
+			}
+		}
+
+	}
+	return
+}
+
+// ConvertObjectsToMap takes a newline-separated string of git objects and
+// converts it into a map for efficient lookup.
+func ConvertObjectsToMap(objects string) map[string]bool {
+	objectsMap := make(map[string]bool)
+	for _, object := range strings.Split(objects, "\n") {
 		if len(object) == 0 {
 			continue
 		}
 		objectID := strings.Split(object, " ")[0]
-
-		// Confirm that the object is still reachable from anywhere in the repository.
-		isReachable, _, err := git.NewCommand(ctx, "rev-list", "--objects", "--all", "--").AddDynamicArguments(objectID).RunStdString(opts)
-		if err != nil {
-			log.Trace("CalculateSizeOfRemovedObjects: Error during git rev-list --objects --all on object: %s", objectID)
-			return totalSize
-		}
-
-		if isReachable != "" {
-			// The object is still reachable, therefore we don't add it's size
-			continue
-		}
-
-		objectSizeStr, _, err := git.NewCommand(ctx, "cat-file", "-s").AddDynamicArguments(objectID).RunStdString(opts)
-		if err != nil {
-			log.Trace("CalculateSizeOfRemovedObjects: Error during git cat-file -s on object: %s", objectID)
-			return totalSize
-		}
-
-		objectSize, _ := strconv.ParseInt(strings.TrimSpace(objectSizeStr), 10, 64)
-		if err != nil {
-			log.Trace("CalculateSizeOfRemovedObjects: Error during ParseInt on string '%s'", objectID)
-			return totalSize
-		}
-		totalSize += objectSize
+		objectsMap[objectID] = true
 	}
-	return totalSize
+	return objectsMap
 }
 
 // HookPreReceive checks whether a individual commit is acceptable
 func HookPreReceive(ctx *gitea_context.PrivateContext) {
+	startTime := time.Now()
+
 	opts := web.GetForm(ctx).(*private.HookOptions)
 
 	ourCtx := &preReceiveContext{
@@ -178,8 +181,8 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 
 	repo := ourCtx.Repo.Repository
 
-	var removedSize int64
 	var addedSize int64
+	var removedSize int64
 
 	// Calculating total size of the push using git count-objects
 	pushSize, err := git.CountObjectsWithEnv(ctx, repo.RepoPath(), ourCtx.env)
@@ -191,7 +194,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		return
 	}
 
-	// Cash whether the repository would breach the size limit after the operation
+	// Cache whether the repository would breach the size limit after the operation
 	isRepoOversized := repo.RepoSizeIsOversized(pushSize.Size)
 	log.Trace("Push size %d", pushSize.Size)
 
@@ -203,32 +206,41 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 
 		// If operation is in potential breach of size limit prepare data for analysis
 		if isRepoOversized {
-
-			// ctx.JSON(http.StatusForbidden, private.Response{
-			// 	UserMsg: fmt.Sprintf("oldCommitID(%s) newCommitID(%s)", oldCommitID, newCommitID),
-			// })
-
-			// Objects that are in newCommitID but not in oldCommitID are added
-			addedObjects, _, err := git.NewCommand(ctx, "rev-list", "--objects").AddDynamicArguments(newCommitID, "^"+oldCommitID).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: ourCtx.env})
+			// Create cache of objects in old commit
+			gitObjects, _, err := git.NewCommand(ctx, "rev-list", "--objects").AddDynamicArguments(oldCommitID).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: ourCtx.env})
 			if err != nil {
-				log.Error("Unable to list objects added between commits: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
+				log.Error("Unable to list objects in old commit: %s in %-v Error: %v", oldCommitID, repo, err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{
-					Err: fmt.Sprintf("Fail to list objects added: %v", err),
+					Err: fmt.Sprintf("Fail to list objects in old commit: %v", err),
 				})
 				return
 			}
-			addedSize += CalculateSizeOfAddedObjects(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ourCtx.env}, addedObjects)
+			oldCommitObjects := ConvertObjectsToMap(gitObjects)
 
-			// Objects that are in oldCommitID but not in newCommitID are removed
-			removedObjects, _, err := git.NewCommand(ctx, "rev-list", "--objects").AddDynamicArguments(oldCommitID, "^"+newCommitID).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: ourCtx.env})
+			// Create cache of objects in new commit
+			gitObjects, _, err = git.NewCommand(ctx, "rev-list", "--objects").AddDynamicArguments(newCommitID).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: ourCtx.env})
 			if err != nil {
-				log.Error("Unable to list objects removed between commits: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
+				log.Error("Unable to list objects in new commit %s in %-v Error: %v", newCommitID, repo, err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{
-					Err: fmt.Sprintf("Fail to list objects removed: %v", err),
+					Err: fmt.Sprintf("Fail to list objects in new commit: %v", err),
 				})
 				return
 			}
-			removedSize += CalculateSizeOfRemovedObjects(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ourCtx.env}, removedObjects)
+			newCommitObjects := ConvertObjectsToMap(gitObjects)
+
+			// Create cache of objects that are in the repository but not part of old or new commit
+			gitObjects, _, err = git.NewCommand(ctx, "rev-list", "--objects", "--all").AddDynamicArguments("^"+oldCommitID, "^"+newCommitID).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: ourCtx.env})
+			if err != nil {
+				log.Error("Unable to list objects in the repo that are missing from both old %s and new %s commits in %-v Error: %v", oldCommitID, newCommitID, repo, err)
+				ctx.JSON(http.StatusInternalServerError, private.Response{
+					Err: fmt.Sprintf("Fail to list objects missing from both old and new commits: %v", err),
+				})
+				return
+			}
+			otherCommitObjects := ConvertObjectsToMap(gitObjects)
+
+			// Calculate size that was added and removed by the new commit
+			addedSize, removedSize = CalculateSizeOfObjects(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ourCtx.env}, newCommitObjects, oldCommitObjects, otherCommitObjects)
 		}
 
 		switch {
@@ -246,9 +258,12 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
+	duration := time.Since(startTime)
+	log.Warn("Addition in size is: %d, removal in size is: %d, limit size: %s, push size: %d. Took %s seconds.", addedSize, removedSize, base.FileSize(repo.GetActualSizeLimit()), pushSize.Size, duration)
+
 	// If total of commits add more size then they remove and we are in a potential breach of size limit -- abort
-	if (addedSize > removedSize) && isRepoOversized { // Check next size if we are not deleting a reference
-		log.Warn("Forbidden: new repo size is over limitation: %s", base.FileSize(repo.GetActualSizeLimit()))
+	if (addedSize > removedSize) && isRepoOversized {
+		log.Warn("Forbidden: new repo size %s is over limitation of %s. Push size: %s. Took %s seconds.", base.FileSize(addedSize-removedSize), base.FileSize(repo.GetActualSizeLimit()), base.FileSize(pushSize.Size), duration)
 		ctx.JSON(http.StatusForbidden, private.Response{
 			UserMsg: fmt.Sprintf("Repository size is over limitation of %s  addedSize(%d) removedSize(%d)  repo(%s)", base.FileSize(repo.GetActualSizeLimit()), addedSize, removedSize, repo.RepoPath()),
 		})

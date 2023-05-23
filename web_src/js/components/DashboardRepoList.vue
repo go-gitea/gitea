@@ -71,7 +71,7 @@
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
           <li v-for="repo in repos" :key="repo.id">
-            <a class="repo-list-link gt-df gt-ac gt-sb" :href="repo.link">
+            <a class="repo-list-link muted gt-df gt-ac gt-sb" :href="repo.link">
               <div class="item-name gt-df gt-ac gt-f1">
                 <svg-icon :name="repoIcon(repo)" :size="16" class-name="gt-mr-2"/>
                 <div class="text gt-bold truncate gt-ml-1">{{ repo.full_name }}</div>
