@@ -20,7 +20,7 @@ import (
 func TestAPIListLabelTemplates(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/api/v1/label_templates")
+	req := NewRequest(t, "GET", "/api/v1/label/templates")
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var templateList []string
@@ -42,7 +42,7 @@ func TestAPIGetLabelTemplateInfo(t *testing.T) {
 	// Use the first template for the test
 	templateName := repo_module.LabelTemplateFiles[0].DisplayName
 
-	urlStr := fmt.Sprintf("/api/v1/label_templates/%s", url.PathEscape(templateName))
+	urlStr := fmt.Sprintf("/api/v1/label/templates/%s", url.PathEscape(templateName))
 	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
 
