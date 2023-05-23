@@ -113,6 +113,7 @@ import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
 import AnsiToHTML from 'ansi-to-html';
 import {toggleElem} from '../utils/dom.js';
+import {getCurrentLocale} from '../utils.js';
 
 const {csrfToken} = window.config;
 
@@ -280,7 +281,7 @@ const sfc = {
       const logTimeStamp = document.createElement('span');
       logTimeStamp.className = 'log-time-stamp';
       const date = new Date(parseFloat(line.timestamp * 1000));
-      const timeStamp = date.toLocaleString(undefined, {year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long', hour: '2-digit', hour12: false, minute: '2-digit', second: '2-digit'});
+      const timeStamp = date.toLocaleString(getCurrentLocale(), {year: 'numeric', month: 'short', day: '2-digit', weekday: 'short', hour: '2-digit', hour12: false, minute: '2-digit', second: '2-digit', timeZone: 'UTC', timeZoneName: 'short'});
       logTimeStamp.innerHTML = timeStamp;
       logTimeStamp.style.display = this.timeStampVisible ? 'block' : 'none';
       const logMessage = document.createElement('span');
