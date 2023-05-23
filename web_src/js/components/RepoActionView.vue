@@ -76,8 +76,8 @@
                   <span><SvgIcon v-show="timeStampVisible" name="octicon-check"/></span>
                   {{ locale.jobOptions.showTimeStamp }}
                 </a>
-                <a class="item" @click="">
-                  <span><SvgIcon name="octicon-check"/></span>
+                <a class="item" @click="toggleFullScreen()">
+                  <span><SvgIcon v-show="isFullScreen" name="octicon-check"/></span>
                   {{ locale.jobOptions.showFullScreen }}
                 </a>
               </div>
@@ -112,6 +112,7 @@ import {SvgIcon} from '../svg.js';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
 import AnsiToHTML from 'ansi-to-html';
+import {toggleElem} from '../utils/dom.js';
 
 const {csrfToken} = window.config;
 
@@ -140,6 +141,7 @@ const sfc = {
       onHoverRerunIndex: -1,
       menuVisible: false,
       timeStampVisible: false,
+      isFullScreen: false,
 
       // provided by backend
       run: {
@@ -275,13 +277,12 @@ const sfc = {
       lineNumber.textContent = line.index;
       div.append(lineNumber);
 
-      // TODO: Support displaying time optionally
       const logTimeStamp = document.createElement('span');
       logTimeStamp.className = 'log-time-stamp';
-      const date = new Date(parseFloat(line.timestamp*1000));
-      const timeStamp = date.toLocaleString(undefined, {year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long', hour: '2-digit', hour12: false, minute: '2-digit', second: '2-digit'})
-      console.log('parsed date:', timeStamp);
+      const date = new Date(parseFloat(line.timestamp * 1000));
+      const timeStamp = date.toLocaleString(undefined, {year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long', hour: '2-digit', hour12: false, minute: '2-digit', second: '2-digit'});
       logTimeStamp.innerHTML = timeStamp;
+      logTimeStamp.style.display = this.timeStampVisible ? 'block' : 'none';
       const logMessage = document.createElement('span');
       logMessage.className = 'log-msg';
       logMessage.innerHTML = ansiLogToHTML(line.message);
@@ -375,7 +376,26 @@ const sfc = {
     toggleTimeStamps() {
       this.timeStampVisible = !this.timeStampVisible;
       for (const el of document.querySelectorAll('.log-time-stamp')) {
-        el.style.display = this.timeStampVisible? 'block' : 'none';
+        el.style.display = this.timeStampVisible ? 'block' : 'none';
+      }
+    },
+
+    toggleFullScreen() {
+      this.isFullScreen = !this.isFullScreen;
+      const fullScreenEl = document.querySelector('.action-view-right');
+      const outerEl = document.querySelector('.full.height');
+      const actionBodyEl = document.querySelector('.action-view-body');
+      const headerEl = document.querySelector('.ui.main.menu');
+      const contentEl = document.querySelector('.page-content.repository');
+      const footerEl = document.querySelector('.page-footer');
+      toggleElem(headerEl, !this.isFullScreen);
+      toggleElem(contentEl, !this.isFullScreen);
+      toggleElem(footerEl, !this.isFullScreen);
+      // move .action-view-right to new parent
+      if (this.isFullScreen) {
+        outerEl.append(fullScreenEl);
+      } else {
+        actionBodyEl.append(fullScreenEl);
       }
     }
   },
@@ -620,6 +640,11 @@ export function ansiLogToHTML(line) {
   flex-direction: column;
 }
 
+.full.height > .action-view-right {
+  width: 100%;
+  height: 100%;
+}
+
 .job-info-header {
   display: flex;
   justify-content: space-between;
@@ -644,9 +669,19 @@ export function ansiLogToHTML(line) {
   font-size: 12px;
 }
 
-.action-job-menu, .action-job-menu:after {
+.ui.dropdown .action-job-menu, .ui.pointing.dropdown > .menu.action-job-menu:after {
+  background-color: var(--color-secondary-dark-10);
+  border-color: var(--color-secondary-dark-9);
+  box-shadow: -1px -1px 0 0 var(--color-secondary-dark-9);
+}
+
+.ui.dropdown .action-job-menu .item {
+  color: var(--color-secondary-dark-3);
+}
+
+.ui.dropdown .action-job-menu .item:hover {
   background-color: var(--color-secondary-dark-8);
-  border-color: var(--color-secondary-dark-7);
+  color: var(--color-console-fg);
 }
 
 .action-job-menu .item span {
@@ -758,7 +793,6 @@ export function ansiLogToHTML(line) {
 
 .log-time-stamp {
   margin-left: 10px;
-  display: none;
 }
 
 /* TODO: group support
