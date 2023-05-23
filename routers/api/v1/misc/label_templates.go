@@ -14,7 +14,7 @@ import (
 
 // Shows a list of all Label templates
 func ListLabelTemplates(ctx *context.APIContext) {
-	// swagger:operation GET /label_templates miscellaneous listLabelTemplates
+	// swagger:operation GET /label/templates miscellaneous listLabelTemplates
 	// ---
 	// summary: Returns a list of all label templates
 	// produces:
@@ -32,7 +32,7 @@ func ListLabelTemplates(ctx *context.APIContext) {
 
 // Shows all labels in a template
 func GetLabelTemplate(ctx *context.APIContext) {
-	// swagger:operation GET /label_templates/{name} miscellaneous getLabelTemplateInfo
+	// swagger:operation GET /label/templates/{name} miscellaneous getLabelTemplateInfo
 	// ---
 	// summary: Returns all labels in a template
 	// produces:
