@@ -6,7 +6,7 @@
 
 .repository.releases #release-list .release-list-title {
   font-size: 2rem;
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
   margin-top: -4px;
   margin-bottom: 0;
 }
@@ -87,7 +87,7 @@
 
 .repository.tags #tags-table .release-tag-name {
   font-size: 18px;
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
 }
 
 .repository.new.release .target {

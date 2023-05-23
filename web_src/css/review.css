@@ -21,7 +21,7 @@
   transform: scale(1.1);
 }
 
-.lines-escape a.toggle-escape-button::before {
+.lines-escape .toggle-escape-button::before {
   visibility: visible;
   content: "⚠️";
   font-family: var(--fonts-emoji);
@@ -198,7 +198,8 @@
   color: var(--color-text);
 }
 
-a.blob-excerpt {
+.code-expander-button {
+  border: none;
   color: var(--color-text-light);
   height: 28px;
   display: flex;
@@ -206,9 +207,10 @@ a.blob-excerpt {
   align-items: center;
   width: 100%;
   background: var(--color-expand-button);
+  flex: 1;
 }
 
-a.blob-excerpt:hover {
+.code-expander-button:hover {
   background: var(--color-primary);
   color: var(--color-primary-contrast);
 }

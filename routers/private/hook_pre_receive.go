@@ -122,8 +122,7 @@ func CalculateSizeOfObject(ctx *gitea_context.PrivateContext, opts *git.RunOpts,
 }
 
 // CalculateSizeOfObjects calculates the size of objects added and removed from the repository by new commit
-func CalculateSizeOfObjects(ctx *gitea_context.PrivateContext, opts *git.RunOpts, newCommitObjects map[string]bool, oldCommitObjects map[string]bool, otherCommitObjects map[string]bool) (addedSize int64, removedSize int64) {
-
+func CalculateSizeOfObjects(ctx *gitea_context.PrivateContext, opts *git.RunOpts, newCommitObjects, oldCommitObjects, otherCommitObjects map[string]bool) (addedSize, removedSize int64) {
 	// Calculate size of objects that were added
 	for objectID := range newCommitObjects {
 		if _, exists := oldCommitObjects[objectID]; !exists {
@@ -148,7 +147,6 @@ func CalculateSizeOfObjects(ctx *gitea_context.PrivateContext, opts *git.RunOpts
 				removedSize += CalculateSizeOfObject(ctx, opts, objectID)
 			}
 		}
-
 	}
 	return
 }
@@ -259,7 +257,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	}
 
 	duration := time.Since(startTime)
-	log.Warn("Addition in size is: %d, removal in size is: %d, limit size: %s, push size: %d. Took %s seconds.", addedSize, removedSize, base.FileSize(repo.GetActualSizeLimit()), pushSize.Size, duration)
+	log.Trace("During size checking - Addition in size is: %d, removal in size is: %d, limit size: %s, push size: %d. Took %s seconds.", addedSize, removedSize, base.FileSize(repo.GetActualSizeLimit()), pushSize.Size, duration)
 
 	// If total of commits add more size then they remove and we are in a potential breach of size limit -- abort
 	if (addedSize > removedSize) && isRepoOversized {

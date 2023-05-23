@@ -1048,7 +1048,7 @@ func (opts *FindCommentsOptions) ToConds() builder.Cond {
 }
 
 // FindComments returns all comments according options
-func FindComments(ctx context.Context, opts *FindCommentsOptions) ([]*Comment, error) {
+func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := db.GetEngine(ctx).Where(opts.ToConds())
 	if opts.RepoID > 0 {
