@@ -365,7 +365,6 @@ func renderLicenseFile(ctx *context.Context, subfolder string, licenseFile *git.
 		log.Error("Read failed: %v", err)
 	}
 	cov := licensecheck.Scan(contentBuf.Bytes())
-	fmt.Println(cov.Match)
 	ctx.Data["MatchedLicenses"] = cov.Match
 	ctx.Data["LicenseFileName"] = licenseFile.Name()
 }
