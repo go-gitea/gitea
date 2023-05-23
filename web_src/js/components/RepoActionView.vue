@@ -70,7 +70,7 @@
           </div>
           <div class="job-info-header-right">
             <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-              <SvgIcon name="octicon-gear" :size="20"/>
+              <SvgIcon name="octicon-gear" :size="18"/>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
                 <a class="item" @click="toggleTimeStamps()">
                   <span><SvgIcon v-show="timeStampVisible" name="octicon-check"/></span>
@@ -670,9 +670,9 @@ export function ansiLogToHTML(line) {
 }
 
 .ui.dropdown .action-job-menu, .ui.pointing.dropdown > .menu.action-job-menu:after {
-  background-color: var(--color-secondary-dark-10);
-  border-color: var(--color-secondary-dark-9);
-  box-shadow: -1px -1px 0 0 var(--color-secondary-dark-9);
+  background-color: var(--color-console-dropdown-bg);
+  border-color: var(--color-console-dropdown-border);
+  box-shadow: -1px -1px 0 0 var(--color-console-dropdown-shadow);
 }
 
 .ui.dropdown .action-job-menu .item {
@@ -680,7 +680,7 @@ export function ansiLogToHTML(line) {
 }
 
 .ui.dropdown .action-job-menu .item:hover {
-  background-color: var(--color-secondary-dark-8);
+  background-color: var(--color-console-hover-bg);
   color: var(--color-console-fg);
 }
 
