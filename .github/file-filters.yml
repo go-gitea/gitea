@@ -1,0 +1,16 @@
+# This is used by the action https://github.com/dorny/paths-filter (which we have forked to https://github.com/getsentry/paths-filter)
+
+docs: &docs
+  - "docs/**"
+  - "**/*.md"
+
+backend: &backend
+  - "**/*.go"
+  - "go.mod"
+  - "go.sum"
+
+frontend: &frontend
+  - "web_src/**"
+  - "package.json"
+  - "package-lock.json"
+  - "*.js"
