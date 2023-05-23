@@ -768,18 +768,25 @@ func checkDupEmail(ctx context.Context, u *User) error {
 }
 
 // validateUser check if user is valid to insert / update into database
-func validateUser(u *User) error {
-	if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) && !u.IsOrganization() {
-		return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
+func validateUser(u *User, cols ...string) error {
+	if len(cols) == 0 || util.SliceContainsString(cols, "visibility", true) {
+		if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) && !u.IsOrganization() {
+			return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
+		}
 	}
 
-	u.Email = strings.ToLower(u.Email)
-	return ValidateEmail(u.Email)
+	if len(cols) == 0 || util.SliceContainsString(cols, "email", true) {
+		u.Email = strings.ToLower(u.Email)
+		if err := ValidateEmail(u.Email); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // UpdateUser updates user's information.
 func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...string) error {
-	err := validateUser(u)
+	err := validateUser(u, cols...)
 	if err != nil {
 		return err
 	}
@@ -845,7 +852,7 @@ func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 
 // UpdateUserCols update user according special columns
 func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
-	if err := validateUser(u); err != nil {
+	if err := validateUser(u, cols...); err != nil {
 		return err
 	}
 
