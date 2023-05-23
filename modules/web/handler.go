@@ -22,7 +22,7 @@ type ResponseStatusProvider interface {
 // TODO: decouple this from the context package, let the context package register these providers
 var argTypeProvider = map[reflect.Type]func(req *http.Request) ResponseStatusProvider{
 	reflect.TypeOf(&context.APIContext{}):     func(req *http.Request) ResponseStatusProvider { return context.GetAPIContext(req) },
-	reflect.TypeOf(&context.Context{}):        func(req *http.Request) ResponseStatusProvider { return context.GetContext(req) },
+	reflect.TypeOf(&context.Context{}):        func(req *http.Request) ResponseStatusProvider { return context.GetWebContext(req) },
 	reflect.TypeOf(&context.PrivateContext{}): func(req *http.Request) ResponseStatusProvider { return context.GetPrivateContext(req) },
 }
 

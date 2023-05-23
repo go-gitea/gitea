@@ -1,6 +1,6 @@
 ---
 date: "2022-09-07T16:00:00+08:00"
-title: "使用：从模板创建工单与合并请求"
+title: "工单与合并请求模板"
 slug: "issue-pull-request-templates"
 weight: 15
 toc: true
@@ -10,7 +10,7 @@ aliases:
 menu:
   sidebar:
     parent: "usage"
-    name: "从模板创建工单与合并请求"
+    name: "工单与合并请求模板"
     weight: 15
     identifier: "issue-pull-request-templates"
 ---
