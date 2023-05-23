@@ -42,14 +42,14 @@ func TestMain(m *testing.M) {
 	}
 }
 
-func TestGitConfig(t *testing.T) {
-	gitConfigContains := func(sub string) bool {
-		if b, err := os.ReadFile(HomeDir() + "/.gitconfig"); err == nil {
-			return strings.Contains(string(b), sub)
-		}
-		return false
+func gitConfigContains(sub string) bool {
+	if b, err := os.ReadFile(HomeDir() + "/.gitconfig"); err == nil {
+		return strings.Contains(string(b), sub)
 	}
+	return false
+}
 
+func TestGitConfig(t *testing.T) {
 	assert.False(t, gitConfigContains("key-a"))
 
 	assert.NoError(t, configSetNonExist("test.key-a", "val-a"))
@@ -80,4 +80,16 @@ func TestGitConfig(t *testing.T) {
 	assert.NoError(t, configSetNonExist("test.key-x", "*"))
 	assert.NoError(t, configUnsetAll("test.key-x", "*"))
 	assert.False(t, gitConfigContains("key-x = *"))
+}
+
+func TestSyncConfig(t *testing.T) {
+	oldGitConfig := setting.GitConfig
+	defer func() {
+		setting.GitConfig = oldGitConfig
+	}()
+
+	setting.GitConfig.Options["sync-test.cfg-key-a"] = "CfgValA"
+	assert.NoError(t, syncGitConfig())
+	assert.True(t, gitConfigContains("[sync-test]"))
+	assert.True(t, gitConfigContains("cfg-key-a = CfgValA"))
 }

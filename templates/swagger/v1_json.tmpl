@@ -929,6 +929,52 @@
         }
       }
     },
+    "/label/templates": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns a list of all label templates",
+        "operationId": "listLabelTemplates",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/LabelTemplateList"
+          }
+        }
+      }
+    },
+    "/label/templates/{name}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns all labels in a template",
+        "operationId": "getLabelTemplateInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the template",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/LabelTemplateInfo"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/licenses": {
       "get": {
         "produces": [
@@ -18858,6 +18904,31 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "LabelTemplate": {
+      "description": "LabelTemplate info of a Label template",
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "x-go-name": "Color",
+          "example": "00aabb"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "exclusive": {
+          "type": "boolean",
+          "x-go-name": "Exclusive",
+          "example": false
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "LicenseTemplateInfo": {
       "description": "LicensesInfo contains information about a License",
       "type": "object",
@@ -21794,6 +21865,24 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Label"
+        }
+      }
+    },
+    "LabelTemplateInfo": {
+      "description": "LabelTemplateInfo",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/LabelTemplate"
+        }
+      }
+    },
+    "LabelTemplateList": {
+      "description": "LabelTemplateList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "string"
         }
       }
     },
