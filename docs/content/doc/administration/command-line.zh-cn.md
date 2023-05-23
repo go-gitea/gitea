@@ -123,7 +123,7 @@ menu:
     - `add-oauth`：
       - 选项：
         - `--name`：应用程序名称。
-        - `--provider`：OAuth2 提供程序。
+        - `--provider`：OAuth2 提供者。
         - `--key`：客户端 ID（Key）。
         - `--secret`：客户端密钥。
         - `--auto-discover-url`：OpenID Connect 自动发现 URL（仅在使用 OpenID Connect 作为提供程序时需要）。
@@ -149,7 +149,7 @@ menu:
       - 选项：
         - `--id`：要更新的源的 ID。必填。
         - `--name`：应用程序名称。
-        - `--provider`：OAuth2 提供程序。
+        - `--provider`：OAuth2 提供者。
         - `--key`：客户端 ID（Key）。
         - `--secret`：客户端密钥。
         - `--auto-discover-url`：OpenID Connect 自动发现 URL（仅在使用 OpenID Connect 作为提供程序时需要）。
