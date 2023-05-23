@@ -4,6 +4,7 @@
 package issue
 
 import (
+	"context"
 	"fmt"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -131,12 +132,12 @@ func UpdateAssignees(issue *issues_model.Issue, oneAssignee string, multipleAssi
 }
 
 // DeleteIssue deletes an issue
-func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue) error {
+func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue) error {
 	// load issue before deleting it
-	if err := issue.LoadAttributes(gitRepo.Ctx); err != nil {
+	if err := issue.LoadAttributes(ctx); err != nil {
 		return err
 	}
-	if err := issue.LoadPullRequest(gitRepo.Ctx); err != nil {
+	if err := issue.LoadPullRequest(ctx); err != nil {
 		return err
 	}
 
@@ -146,13 +147,13 @@ func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *issues_m
 	}
 
 	// delete pull request related git data
-	if issue.IsPull {
+	if issue.IsPull && gitRepo != nil {
 		if err := gitRepo.RemoveReference(fmt.Sprintf("%s%d/head", git.PullPrefix, issue.PullRequest.Index)); err != nil {
 			return err
 		}
 	}
 
-	notification.NotifyDeleteIssue(gitRepo.Ctx, doer, issue)
+	notification.NotifyDeleteIssue(ctx, doer, issue)
 
 	return nil
 }

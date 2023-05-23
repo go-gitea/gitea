@@ -880,7 +880,7 @@ func DeleteIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if err = issue_service.DeleteIssue(ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
+	if err = issue_service.DeleteIssue(ctx, ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteIssueByID", err)
 		return
 	}
