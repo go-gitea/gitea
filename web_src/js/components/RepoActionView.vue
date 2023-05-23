@@ -80,7 +80,7 @@
                   <span><SvgIcon v-show="timeVisible.stamp" name="octicon-check"/></span>
                   {{ locale.jobOptions.showTimeStamp }}
                 </a>
-                <div class="divider"></div>
+                <div class="divider"/>
                 <a class="item" @click="toggleFullScreen()">
                   <span><SvgIcon v-show="isFullScreen" name="octicon-check"/></span>
                   {{ locale.jobOptions.showFullScreen }}
@@ -392,6 +392,7 @@ const sfc = {
       if (this.menuVisible) this.menuVisible = false;
     },
 
+    // show at most one of log duration and timestamp
     toggleTime(type) {
       const otherType = 'durationstamp'.replace(type, '');
       this.timeVisible[type] = !this.timeVisible[type];
