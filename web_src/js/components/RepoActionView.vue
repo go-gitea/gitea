@@ -72,10 +72,15 @@
             <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
               <SvgIcon name="octicon-gear" :size="18"/>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
-                <a class="item" @click="toggleTimeStamps()">
-                  <span><SvgIcon v-show="timeStampVisible" name="octicon-check"/></span>
+                <a class="item" @click="toggleTime('duration')">
+                  <span><SvgIcon v-show="timeVisible.duration" name="octicon-check"/></span>
+                  {{ locale.jobOptions.showLogduration }}
+                </a>
+                <a class="item" @click="toggleTime('stamp')">
+                  <span><SvgIcon v-show="timeVisible.stamp" name="octicon-check"/></span>
                   {{ locale.jobOptions.showTimeStamp }}
                 </a>
+                <div class="divider"></div>
                 <a class="item" @click="toggleFullScreen()">
                   <span><SvgIcon v-show="isFullScreen" name="octicon-check"/></span>
                   {{ locale.jobOptions.showFullScreen }}
@@ -141,8 +146,11 @@ const sfc = {
       artifacts: [],
       onHoverRerunIndex: -1,
       menuVisible: false,
-      timeStampVisible: false,
       isFullScreen: false,
+      timeVisible: {
+        'stamp': false,
+        'duration': false,
+      },
 
       // provided by backend
       run: {
@@ -268,7 +276,7 @@ const sfc = {
       this.fetchPost(`${this.run.link}/approve`);
     },
 
-    createLogLine(line) {
+    createLogLine(line, startTime) {
       const div = document.createElement('div');
       div.classList.add('job-log-line');
       div._jobLogTime = line.timestamp;
@@ -281,23 +289,33 @@ const sfc = {
       const logTimeStamp = document.createElement('span');
       logTimeStamp.className = 'log-time-stamp';
       const date = new Date(parseFloat(line.timestamp * 1000));
+
+      const logTimeDuration = document.createElement('span');
+      logTimeDuration.className = 'log-time-duration';
+      const duration = Math.floor(parseFloat(line.timestamp) - parseFloat(startTime));
+      logTimeDuration.innerHTML = `${duration}s`;
+      toggleElem(logTimeDuration, this.timeVisible.duration);
+
       const timeStamp = date.toLocaleString(getCurrentLocale(), {year: 'numeric', month: 'short', day: '2-digit', weekday: 'short', hour: '2-digit', hour12: false, minute: '2-digit', second: '2-digit', timeZone: 'UTC', timeZoneName: 'short'});
       logTimeStamp.innerHTML = timeStamp;
-      logTimeStamp.style.display = this.timeStampVisible ? 'block' : 'none';
+      toggleElem(logTimeStamp, this.timeVisible.stamp);
       const logMessage = document.createElement('span');
       logMessage.className = 'log-msg';
       logMessage.innerHTML = ansiLogToHTML(line.message);
       div.append(logTimeStamp);
       div.append(logMessage);
+      div.append(logTimeDuration);
 
       return div;
     },
 
     appendLogs(stepIndex, logLines) {
+      if (!logLines.length) return;
+      const startTime = logLines[0].timestamp;
       for (const line of logLines) {
         // TODO: group support: ##[group]GroupTitle , ##[endgroup]
         const el = this.getLogsContainer(stepIndex);
-        el.append(this.createLogLine(line));
+        el.append(this.createLogLine(line, startTime));
       }
     },
 
@@ -374,10 +392,18 @@ const sfc = {
       if (this.menuVisible) this.menuVisible = false;
     },
 
-    toggleTimeStamps() {
-      this.timeStampVisible = !this.timeStampVisible;
-      for (const el of document.querySelectorAll('.log-time-stamp')) {
-        el.style.display = this.timeStampVisible ? 'block' : 'none';
+    toggleTime(type) {
+      const otherType = 'durationstamp'.replace(type, '');
+      this.timeVisible[type] = !this.timeVisible[type];
+      for (const el of document.querySelectorAll(`.log-time-${type}`)) {
+        toggleElem(el, this.timeVisible[type]);
+      }
+
+      if (this.timeVisible[type] && this.timeVisible[otherType]) {
+        this.timeVisible[otherType] = false;
+        for (const el of document.querySelectorAll(`.log-time-${otherType}`)) {
+          toggleElem(el, false);
+        }
       }
     },
 
@@ -436,6 +462,7 @@ export function initRepositoryActionView() {
       jobOptions: {
         showTimeStamp: el.getAttribute('data-locale-show-timestamp'),
         showFullScreen: el.getAttribute('data-locale-show-full-screen'),
+        showLogduration: el.getAttribute('data-locale-show-log-duration'),
       },
     }
   });
@@ -774,7 +801,7 @@ export function ansiLogToHTML(line) {
   background-color: var(--color-console-hover-bg);
 }
 
-.job-step-section .job-step-logs .job-log-line .line-num {
+.job-step-section .job-step-logs .job-log-line .line-num, .log-time-duration {
   width: 48px;
   color: var(--color-grey-light);
   text-align: right;
