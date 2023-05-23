@@ -39,14 +39,19 @@ func (repo *Repository) GetAllCommitsCount() (int64, error) {
 
 func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, error) {
 	var commits []*Commit
-	if len(logs) == 0 {
-		return commits, nil
+	parts, err := repo.rawToList(logs)
+	if err != nil {
+		return commits, err
 	}
 
-	parts := bytes.Split(logs, []byte{'\n'})
+	return repo.SHAsToCommits(parts)
+}
 
-	for _, commitID := range parts {
-		commit, err := repo.GetCommit(string(commitID))
+func (repo *Repository) SHAsToCommits(shas []string) ([]*Commit, error) {
+	var commits []*Commit
+
+	for _, commitID := range shas {
+		commit, err := repo.GetCommit(commitID)
 		if err != nil {
 			return nil, err
 		}
@@ -54,6 +59,20 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 	}
 
 	return commits, nil
+}
+
+func (repo *Repository) rawToList(logs []byte) ([]string, error) {
+	var list []string
+	if len(logs) == 0 {
+		return list, nil
+	}
+
+	parts := bytes.Split(logs, []byte{'\n'})
+	for _, part := range parts {
+		list = append(list, string(part))
+	}
+
+	return list, nil
 }
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
