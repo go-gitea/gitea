@@ -15,7 +15,7 @@ menu:
 
 # Swift Packages Repository
 
-Publish [Swift](hhttps://www.swift.org/) packages for your user or organization.
+Publish [Swift](https://www.swift.org/) packages for your user or organization.
 
 **Table of Contents**
 

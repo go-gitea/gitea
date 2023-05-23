@@ -77,17 +77,20 @@ func (q *baseLevelQueueUnique) RemoveAll(ctx context.Context) error {
 	}
 	lq := (*levelUniqueQueue)(unsafe.Pointer(q.internal))
 
+	for lq.q.Len() > 0 {
+		if _, err := lq.q.LPop(); err != nil {
+			return err
+		}
+	}
+
+	// the "set" must be cleared after the "list" because there is no transaction.
+	// it's better to have duplicate items than losing items.
 	members, err := lq.set.Members()
 	if err != nil {
 		return err // seriously corrupted
 	}
 	for _, v := range members {
 		_, _ = lq.set.Remove(v)
-	}
-	for lq.q.Len() > 0 {
-		if _, err = lq.q.LPop(); err != nil {
-			return err
-		}
 	}
 	return nil
 }

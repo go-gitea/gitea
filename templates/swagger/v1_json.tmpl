@@ -2455,14 +2455,17 @@
           },
           {
             "enum": [
+              "alpine",
               "cargo",
               "chef",
               "composer",
               "conan",
               "conda",
               "container",
+              "cran",
               "debian",
               "generic",
+              "go",
               "helm",
               "maven",
               "npm",
@@ -4544,6 +4547,24 @@
             "name": "sha",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "include diff stats for every commit (disable for speedup, default 'true')",
+            "name": "stat",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "name": "files",
+            "in": "query"
           }
         ],
         "responses": {
@@ -16191,10 +16212,16 @@
           "x-go-name": "BranchName"
         },
         "old_branch_name": {
-          "description": "Name of the old branch to create from",
+          "description": "Deprecated: true\nName of the old branch to create from",
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "OldBranchName"
+        },
+        "old_ref_name": {
+          "description": "Name of the old branch/tag/commit to create from",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "OldRefName"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

@@ -7,15 +7,15 @@
 			{{template "base/disable_form_autofill"}}
 			{{.CsrfTokenHtml}}
 			<div class="runner-basic-info">
-				<div class="field gt-dib gt-mr-4 disabled">
+				<div class="field gt-dib gt-mr-4">
 					<label>{{.locale.Tr "actions.runners.status"}}</label>
 					<span class="runner-status-{{if .Runner.IsOnline}}online{{else}}offline{{end}}">{{.Runner.StatusLocaleName $.locale}}</span>
 				</div>
-				<div class="field gt-dib gt-mr-4 disabled">
+				<div class="field gt-dib gt-mr-4">
 					<label>{{.locale.Tr "actions.runners.last_online"}}</label>
 					<span>{{if .LastOnline}}{{TimeSinceUnix .LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</span>
 				</div>
-				<div class="field gt-dib gt-mr-4 disabled">
+				<div class="field gt-dib gt-mr-4">
 					<label>{{.locale.Tr "actions.runners.agent_labels"}}</label>
 					<span>
 						{{range .Runner.AgentLabels}}
@@ -23,9 +23,9 @@
 						{{end}}
 					</span>
 				</div>
-				<div class="field gt-dib gt-mr-4 disabled">
+				<div class="field gt-dib gt-mr-4">
 					<label>{{.locale.Tr "actions.runners.owner_type"}}</label>
-					<span>{{.Runner.OwnType}}</span>
+					<span data-tooltip-content="{{.Runner.BelongsToOwnerName}}">{{.Runner.BelongsToOwnerType.LocaleString $.locale}}</span>
 				</div>
 			</div>
 

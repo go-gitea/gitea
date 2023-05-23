@@ -33,6 +33,9 @@ type ManagedWorkerPoolQueue interface {
 	// FlushWithContext tries to make the handler process all items in the queue synchronously.
 	// It is for testing purpose only. It's not designed to be used in a cluster.
 	FlushWithContext(ctx context.Context, timeout time.Duration) error
+
+	// RemoveAllItems removes all items in the base queue (on-the-fly items are not affected)
+	RemoveAllItems(ctx context.Context) error
 }
 
 var manager *Manager

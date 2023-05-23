@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -30,24 +29,14 @@ const (
 	AppSubURL = AppURL + Repo + "/"
 )
 
-func createContext(req *http.Request) (*context.Context, *httptest.ResponseRecorder) {
-	rnd := templates.HTMLRenderer()
+func createAPIContext(req *http.Request) (*context.APIContext, *httptest.ResponseRecorder) {
 	resp := httptest.NewRecorder()
-	c := &context.Context{
-		Req:    req,
-		Resp:   context.NewResponse(resp),
-		Render: rnd,
-		Data:   make(middleware.ContextData),
-	}
-	defer c.Close()
+	base, baseCleanUp := context.NewBaseContext(resp, req)
+	base.Data = middleware.ContextData{}
+	c := &context.APIContext{Base: base}
+	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
 
 	return c, resp
-}
-
-func wrap(ctx *context.Context) *context.APIContext {
-	return &context.APIContext{
-		Context: ctx,
-	}
 }
 
 func testRenderMarkup(t *testing.T, mode, filePath, text, responseBody string, responseCode int) {
@@ -65,8 +54,7 @@ func testRenderMarkup(t *testing.T, mode, filePath, text, responseBody string, r
 		Method: "POST",
 		URL:    requrl,
 	}
-	m, resp := createContext(req)
-	ctx := wrap(m)
+	ctx, resp := createAPIContext(req)
 
 	options.Text = text
 	web.SetForm(ctx, &options)
@@ -90,8 +78,7 @@ func testRenderMarkdown(t *testing.T, mode, text, responseBody string, responseC
 		Method: "POST",
 		URL:    requrl,
 	}
-	m, resp := createContext(req)
-	ctx := wrap(m)
+	ctx, resp := createAPIContext(req)
 
 	options.Text = text
 	web.SetForm(ctx, &options)
@@ -211,8 +198,7 @@ func TestAPI_RenderSimple(t *testing.T) {
 		Method: "POST",
 		URL:    requrl,
 	}
-	m, resp := createContext(req)
-	ctx := wrap(m)
+	ctx, resp := createAPIContext(req)
 
 	for i := 0; i < len(simpleCases); i += 2 {
 		options.Text = simpleCases[i]
@@ -231,8 +217,7 @@ func TestAPI_RenderRaw(t *testing.T) {
 		Method: "POST",
 		URL:    requrl,
 	}
-	m, resp := createContext(req)
-	ctx := wrap(m)
+	ctx, resp := createAPIContext(req)
 
 	for i := 0; i < len(simpleCases); i += 2 {
 		ctx.Req.Body = io.NopCloser(strings.NewReader(simpleCases[i]))

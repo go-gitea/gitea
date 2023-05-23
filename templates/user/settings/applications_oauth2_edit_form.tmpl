@@ -27,7 +27,7 @@
 			<form class="ui form ignore-dirty" action="{{.FormActionPath}}/regenerate_secret" method="post">
 				{{.CsrfTokenHtml}}
 				{{.locale.Tr "settings.oauth2_regenerate_secret_hint"}}
-				<button class="ui tertiary button" type="submit">{{.locale.Tr "settings.oauth2_regenerate_secret"}}</button>
+				<button class="ui button button-ghost" type="submit">{{.locale.Tr "settings.oauth2_regenerate_secret"}}</button>
 			</form>
 		</div>
 	</div>

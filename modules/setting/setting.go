@@ -115,19 +115,13 @@ func init() {
 
 	// We can rely on log.CanColorStdout being set properly because modules/log/console_windows.go comes before modules/setting/setting.go lexicographically
 	// By default set this logger at Info - we'll change it later, but we need to start with something.
-	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "info", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
+	log.SetConsoleLogger(log.DEFAULT, "console", log.INFO)
 
 	var err error
 	if AppPath, err = getAppPath(); err != nil {
 		log.Fatal("Failed to get app path: %v", err)
 	}
 	AppWorkPath = getWorkPath(AppPath)
-}
-
-func forcePathSeparator(path string) {
-	if strings.Contains(path, "\\") {
-		log.Fatal("Do not use '\\' or '\\\\' in paths, instead, please use '/' in all places")
-	}
 }
 
 // IsRunUserMatchCurrentUser returns false if configured run user does not match
@@ -218,9 +212,9 @@ func Init(opts *Options) {
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.
 func loadCommonSettingsFrom(cfg ConfigProvider) {
-	// WARNNING: don't change the sequence except you know what you are doing.
+	// WARNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
-	loadLogFrom(cfg)
+	loadLogGlobalFrom(cfg)
 	loadServerFrom(cfg)
 	loadSSHFrom(cfg)
 
@@ -282,10 +276,11 @@ func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
 
 // LoadSettings initializes the settings for normal start up
 func LoadSettings() {
+	initAllLoggers()
+
 	loadDBSetting(CfgProvider)
 	loadServiceFrom(CfgProvider)
 	loadOAuth2ClientFrom(CfgProvider)
-	InitLogs(false)
 	loadCacheFrom(CfgProvider)
 	loadSessionFrom(CfgProvider)
 	loadCorsFrom(CfgProvider)

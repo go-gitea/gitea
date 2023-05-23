@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	ini "gopkg.in/ini.v1"
 )
 
 func TestMustBytes(t *testing.T) {
 	test := func(value string) int64 {
-		sec, _ := ini.Empty().NewSection("test")
+		cfg, err := NewConfigProviderFromData("[test]")
+		assert.NoError(t, err)
+		sec := cfg.Section("test")
 		sec.NewKey("VALUE", value)
 
 		return mustBytes(sec, "VALUE")
