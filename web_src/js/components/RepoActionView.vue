@@ -480,7 +480,7 @@ export function ansiLogToHTML(line) {
 .job-artifacts-title {
   font-size: 18px;
   margin-top: 16px;
-  padding: 16px 10px 0px 20px;
+  padding: 16px 10px 0 20px;
   border-top: 1px solid var(--color-secondary);
 }
 
@@ -664,7 +664,7 @@ export function ansiLogToHTML(line) {
 
 .job-step-section .job-step-logs {
   font-family: var(--fonts-monospace);
-  margin: 8px 0px;
+  margin: 8px 0;
   font-size: 12px;
 }
 
@@ -696,7 +696,7 @@ export function ansiLogToHTML(line) {
   margin-left: 10px;
 }
 
-/* TODO: group support */
+/* TODO: group support
 
 .job-log-group {
 
@@ -706,5 +706,5 @@ export function ansiLogToHTML(line) {
 }
 .job-log-list {
 
-}
+} */
 </style>
