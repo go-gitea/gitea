@@ -62,11 +62,8 @@ func (u Type) String() string {
 	return fmt.Sprintf("Unknown Type %d", u)
 }
 
-// ColorFormat provides a ColorFormatted version of this Type
-func (u Type) ColorFormat(s fmt.State) {
-	log.ColorFprintf(s, "%d:%s",
-		log.NewColoredIDValue(u),
-		u)
+func (u Type) LogString() string {
+	return fmt.Sprintf("<UnitType:%d:%s>", u, u.String())
 }
 
 var (

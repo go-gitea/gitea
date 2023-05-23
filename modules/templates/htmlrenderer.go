@@ -96,6 +96,14 @@ func HTMLRenderer() *HTMLRender {
 	return htmlRender
 }
 
+func ReloadHTMLTemplates() error {
+	if err := htmlRender.CompileTemplates(); err != nil {
+		log.Error("Template error: %v\n%s", err, log.Stack(2))
+		return err
+	}
+	return nil
+}
+
 func initHTMLRenderer() {
 	rendererType := "static"
 	if !setting.IsProd {
@@ -115,9 +123,7 @@ func initHTMLRenderer() {
 
 	if !setting.IsProd {
 		go AssetFS().WatchLocalChanges(graceful.GetManager().ShutdownContext(), func() {
-			if err := htmlRender.CompileTemplates(); err != nil {
-				log.Error("Template error: %v\n%s", err, log.Stack(2))
-			}
+			_ = ReloadHTMLTemplates()
 		})
 	}
 }
@@ -126,7 +132,7 @@ func wrapFatal(msg string) {
 	if msg == "" {
 		return
 	}
-	log.FatalWithSkip(1, "Unable to compile templates, %s", msg)
+	log.Fatal("Unable to compile templates, %s", msg)
 }
 
 type templateErrorPrettier struct {

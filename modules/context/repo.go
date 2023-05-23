@@ -331,13 +331,14 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 }
 
 // RedirectToRepo redirect to a differently-named repository
-func RedirectToRepo(ctx *Context, redirectRepoID int64) {
+func RedirectToRepo(ctx *Base, redirectRepoID int64) {
 	ownerName := ctx.Params(":username")
 	previousRepoName := ctx.Params(":reponame")
 
 	repo, err := repo_model.GetRepositoryByID(ctx, redirectRepoID)
 	if err != nil {
-		ctx.ServerError("GetRepositoryByID", err)
+		log.Error("GetRepositoryByID: %v", err)
+		ctx.Error(http.StatusInternalServerError, "GetRepositoryByID")
 		return
 	}
 
@@ -456,7 +457,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 				}
 
 				if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
-					RedirectToUser(ctx, userName, redirectUserID)
+					RedirectToUser(ctx.Base, userName, redirectUserID)
 				} else if user_model.IsErrUserRedirectNotExist(err) {
 					ctx.NotFound("GetUserByName", nil)
 				} else {
@@ -498,7 +499,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		if repo_model.IsErrRepoNotExist(err) {
 			redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
 			if err == nil {
-				RedirectToRepo(ctx, redirectRepoID)
+				RedirectToRepo(ctx.Base, redirectRepoID)
 			} else if repo_model.IsErrRedirectNotExist(err) {
 				if ctx.FormString("go-get") == "1" {
 					EarlyResponseForGoGetMeta(ctx)
@@ -781,46 +782,46 @@ func (rt RepoRefType) RefTypeIncludesTags() bool {
 	return false
 }
 
-func getRefNameFromPath(ctx *Context, path string, isExist func(string) bool) string {
+func getRefNameFromPath(ctx *Base, repo *Repository, path string, isExist func(string) bool) string {
 	refName := ""
 	parts := strings.Split(path, "/")
 	for i, part := range parts {
 		refName = strings.TrimPrefix(refName+"/"+part, "/")
 		if isExist(refName) {
-			ctx.Repo.TreePath = strings.Join(parts[i+1:], "/")
+			repo.TreePath = strings.Join(parts[i+1:], "/")
 			return refName
 		}
 	}
 	return ""
 }
 
-func getRefName(ctx *Context, pathType RepoRefType) string {
+func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 	path := ctx.Params("*")
 	switch pathType {
 	case RepoRefLegacy, RepoRefAny:
-		if refName := getRefName(ctx, RepoRefBranch); len(refName) > 0 {
+		if refName := getRefName(ctx, repo, RepoRefBranch); len(refName) > 0 {
 			return refName
 		}
-		if refName := getRefName(ctx, RepoRefTag); len(refName) > 0 {
+		if refName := getRefName(ctx, repo, RepoRefTag); len(refName) > 0 {
 			return refName
 		}
 		// For legacy and API support only full commit sha
 		parts := strings.Split(path, "/")
 		if len(parts) > 0 && len(parts[0]) == git.SHAFullLength {
-			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
+			repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
-		if refName := getRefName(ctx, RepoRefBlob); len(refName) > 0 {
+		if refName := getRefName(ctx, repo, RepoRefBlob); len(refName) > 0 {
 			return refName
 		}
-		ctx.Repo.TreePath = path
-		return ctx.Repo.Repository.DefaultBranch
+		repo.TreePath = path
+		return repo.Repository.DefaultBranch
 	case RepoRefBranch:
-		ref := getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsBranchExist)
+		ref := getRefNameFromPath(ctx, repo, path, repo.GitRepo.IsBranchExist)
 		if len(ref) == 0 {
 			// maybe it's a renamed branch
-			return getRefNameFromPath(ctx, path, func(s string) bool {
-				b, exist, err := git_model.FindRenamedBranch(ctx, ctx.Repo.Repository.ID, s)
+			return getRefNameFromPath(ctx, repo, path, func(s string) bool {
+				b, exist, err := git_model.FindRenamedBranch(ctx, repo.Repository.ID, s)
 				if err != nil {
 					log.Error("FindRenamedBranch", err)
 					return false
@@ -839,15 +840,15 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 
 		return ref
 	case RepoRefTag:
-		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsTagExist)
+		return getRefNameFromPath(ctx, repo, path, repo.GitRepo.IsTagExist)
 	case RepoRefCommit:
 		parts := strings.Split(path, "/")
 		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= git.SHAFullLength {
-			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
+			repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
 	case RepoRefBlob:
-		_, err := ctx.Repo.GitRepo.GetBlob(path)
+		_, err := repo.GitRepo.GetBlob(path)
 		if err != nil {
 			return ""
 		}
@@ -922,7 +923,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 			}
 			ctx.Repo.IsViewBranch = true
 		} else {
-			refName = getRefName(ctx, refType)
+			refName = getRefName(ctx.Base, ctx.Repo, refType)
 			ctx.Repo.RefName = refName
 			isRenamedBranch, has := ctx.Data["IsRenamedBranch"].(bool)
 			if isRenamedBranch && has {

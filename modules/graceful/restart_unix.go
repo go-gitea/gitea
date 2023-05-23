@@ -109,5 +109,7 @@ func RestartProcess() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return process.Pid, nil
+	processPid := process.Pid
+	_ = process.Release() // no wait, so release
+	return processPid, nil
 }

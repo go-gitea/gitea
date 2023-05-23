@@ -10,10 +10,10 @@ import (
 // ResponseWriter represents a response writer for HTTP
 type ResponseWriter interface {
 	http.ResponseWriter
-	Flush()
+	http.Flusher
 	Status() int
 	Before(func(ResponseWriter))
-	Size() int
+	Size() int // used by access logger template
 }
 
 var _ ResponseWriter = &Response{}
@@ -25,11 +25,6 @@ type Response struct {
 	status         int
 	befores        []func(ResponseWriter)
 	beforeExecuted bool
-}
-
-// Size return written size
-func (r *Response) Size() int {
-	return r.written
 }
 
 // Write writes bytes to HTTP endpoint
@@ -51,6 +46,10 @@ func (r *Response) Write(bs []byte) (int, error) {
 	return size, nil
 }
 
+func (r *Response) Size() int {
+	return r.written
+}
+
 // WriteHeader write status code
 func (r *Response) WriteHeader(statusCode int) {
 	if !r.beforeExecuted {
@@ -65,7 +64,7 @@ func (r *Response) WriteHeader(statusCode int) {
 	}
 }
 
-// Flush flush cached data
+// Flush flushes cached data
 func (r *Response) Flush() {
 	if f, ok := r.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
@@ -83,8 +82,7 @@ func (r *Response) Before(f func(ResponseWriter)) {
 	r.befores = append(r.befores, f)
 }
 
-// NewResponse creates a response
-func NewResponse(resp http.ResponseWriter) *Response {
+func WrapResponseWriter(resp http.ResponseWriter) *Response {
 	if v, ok := resp.(*Response); ok {
 		return v
 	}
