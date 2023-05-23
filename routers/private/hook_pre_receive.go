@@ -110,15 +110,15 @@ func CalculateSizeOfObject(ctx *gitea_context.PrivateContext, opts *git.RunOpts,
 	objectSizeStr, _, err := git.NewCommand(ctx, "cat-file", "-s").AddDynamicArguments(objectID).RunStdString(opts)
 	if err != nil {
 		log.Trace("CalculateSizeOfRemovedObjects: Error during git cat-file -s on object: %s", objectID)
-		return
+		return objectSize
 	}
 
 	objectSize, _ = strconv.ParseInt(strings.TrimSpace(objectSizeStr), 10, 64)
 	if err != nil {
 		log.Trace("CalculateSizeOfRemovedObjects: Error during ParseInt on string '%s'", objectID)
-		return
+		return objectSize
 	}
-	return
+	return objectSize
 }
 
 // CalculateSizeOfObjects calculates the size of objects added and removed from the repository by new commit
@@ -148,7 +148,7 @@ func CalculateSizeOfObjects(ctx *gitea_context.PrivateContext, opts *git.RunOpts
 			}
 		}
 	}
-	return
+	return addedSize, removedSize
 }
 
 // ConvertObjectsToMap takes a newline-separated string of git objects and
