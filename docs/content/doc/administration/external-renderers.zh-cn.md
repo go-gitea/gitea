@@ -27,7 +27,7 @@ Gitea 通过外部二进制文件支持自定义文件渲染（例如 Jupyter no
 - 在您的 `app.ini` 文件中添加一些配置
 - 重新启动 Gitea 实例
 
-此功能支持整个文件的渲染。如果您想要在 Markdown 中渲染代码块，您需要使用 JavaScript 进行一些操作。请参阅 [自定义 Gitea]({{< relref "doc/administration/customizing-gitea.zh-cn.md" >}}) 页面上的一些示例。
+此功能支持整个文件的渲染。如果您想要在 Markdown 中渲染代码块，您需要使用 JavaScript 进行一些操作。请参阅 [自定义 Gitea 配置]({{< relref "doc/administration/customizing-gitea.zh-cn.md" >}}) 页面上的一些示例。
 
 ## 安装外部二进制文件
 

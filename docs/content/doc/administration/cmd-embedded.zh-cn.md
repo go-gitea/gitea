@@ -21,7 +21,7 @@ menu:
 
 {{< toc >}}
 
-Gitea 的可执行文件包含了运行所需的所有资源：模板、图片、样式表和翻译文件。你可以通过在 `custom` 目录下的相应路径中放置替换文件来覆盖其中的任何资源（详见 [自定义 Gitea]({{< relref "doc/administration/customizing-gitea.zh-cn.md" >}})）。
+Gitea 的可执行文件包含了运行所需的所有资源：模板、图片、样式表和翻译文件。你可以通过在 `custom` 目录下的相应路径中放置替换文件来覆盖其中的任何资源（详见 [自定义 Gitea 配置]({{< relref "doc/administration/customizing-gitea.zh-cn.md" >}})）。
 
 要获取嵌入资源的副本以进行编辑，可以使用 CLI 中的 `embedded` 命令，通过操作系统的 shell 执行。
 
@@ -75,7 +75,7 @@ gitea [--config {file}] embedded extract [--destination {dir}|--custom] [--overw
 
 `--destination` 选项用于指定提取文件的目标目录。默认为当前目录。
 
-`--custom` 标志告知 Gitea 直接将文件提取到 `custom` 目录中。为使其正常工作，该命令需要知道 `app.ini` 配置文件的位置（通过 `--config` 指定），并且根据配置的不同，需要从 Gitea 通常启动的目录运行。有关详细信息，请参阅 [自定义 Gitea]({{< relref "doc/administration/customizing-gitea.zh-cn.md" >}})。
+`--custom` 标志告知 Gitea 直接将文件提取到 `custom` 目录中。为使其正常工作，该命令需要知道 `app.ini` 配置文件的位置（通过 `--config` 指定），并且根据配置的不同，需要从 Gitea 通常启动的目录运行。有关详细信息，请参阅 [自定义 Gitea 配置]({{< relref "doc/administration/customizing-gitea.zh-cn.md" >}})。
 
 `--overwrite` 标志允许覆盖目标目录中的任何现有文件。
 
