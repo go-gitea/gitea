@@ -41,7 +41,6 @@ export function hideElem(el) {
 }
 
 export function toggleElem(el, force) {
-  console.log('toggle', el, force)
   elementsCall(el, toggleShown, force);
 }
 
