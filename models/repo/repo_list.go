@@ -84,7 +84,11 @@ func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 		return fmt.Errorf("find users: %w", err)
 	}
 	for i := range repos {
-		repos[i].Owner = users[repos[i].OwnerID]
+		if users[repos[i].OwnerID] != nil {
+			repos[i].Owner = users[repos[i].OwnerID]
+		} else {
+			repos[i].Owner = user_model.NewGhostUser()
+		}
 	}
 
 	// Load primary language.
