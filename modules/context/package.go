@@ -150,7 +150,7 @@ func PackageContexter() func(next http.Handler) http.Handler {
 			}
 			defer baseCleanUp()
 
-			ctx.Base.AppendContextValue(contextKey, ctx)
+			ctx.Base.AppendContextValue(WebContextKey, ctx)
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
