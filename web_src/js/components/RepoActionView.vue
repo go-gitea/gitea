@@ -670,7 +670,8 @@ export function ansiLogToHTML(line) {
   font-size: 12px;
 }
 
-.ui.dropdown .action-job-menu, .ui.pointing.dropdown > .menu.action-job-menu:after {
+.ui.dropdown .action-job-menu,
+.ui.pointing.dropdown > .menu.action-job-menu:after {
   background-color: var(--color-console-dropdown-bg);
   border-color: var(--color-console-dropdown-border);
   box-shadow: -1px -1px 0 0 var(--color-console-dropdown-shadow);
@@ -738,6 +739,7 @@ export function ansiLogToHTML(line) {
   .action-view-left {
     max-width: none;
     overflow-y: hidden;
+    flex-shrink: 0;
   }
 }
 </style>
@@ -779,7 +781,8 @@ export function ansiLogToHTML(line) {
   user-select: none;
 }
 
-.job-step-section .job-step-logs .job-log-line .log-time {
+.job-log-line .log-time,
+.log-time-stamp {
   color: var(--color-grey-light);
   margin-left: 10px;
   white-space: nowrap;
@@ -789,10 +792,6 @@ export function ansiLogToHTML(line) {
   flex: 1;
   word-break: break-all;
   white-space: break-spaces;
-  margin-left: 10px;
-}
-
-.log-time-stamp {
   margin-left: 10px;
 }
 
