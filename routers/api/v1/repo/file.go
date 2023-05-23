@@ -407,6 +407,96 @@ func canReadFiles(r *context.Repository) bool {
 	return r.Permission.CanRead(unit.TypeCode)
 }
 
+// ChangeFiles handles API call for creating or updating multiple files
+func ChangeFiles(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/contents repository repoChangeFiles
+	// ---
+	// summary: Create or update multiple files in a repository
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/ChangeFilesOptions"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/FileListResponse"
+	//   "403":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/error"
+
+	apiOpts := web.GetForm(ctx).(*api.ChangeFilesOptions)
+
+	if apiOpts.BranchName == "" {
+		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
+	}
+
+	files := []*files_service.ChangeRepoFile{}
+	for _, file := range apiOpts.Files {
+		changeRepoFile := &files_service.ChangeRepoFile{
+			Operation:    file.Operation,
+			TreePath:     file.Path,
+			FromTreePath: file.FromPath,
+			Content:      file.Content,
+			SHA:          file.SHA,
+		}
+		files = append(files, changeRepoFile)
+	}
+
+	opts := &files_service.ChangeRepoFilesOptions{
+		Files:     files,
+		Message:   apiOpts.Message,
+		OldBranch: apiOpts.BranchName,
+		NewBranch: apiOpts.NewBranchName,
+		Committer: &files_service.IdentityOptions{
+			Name:  apiOpts.Committer.Name,
+			Email: apiOpts.Committer.Email,
+		},
+		Author: &files_service.IdentityOptions{
+			Name:  apiOpts.Author.Name,
+			Email: apiOpts.Author.Email,
+		},
+		Dates: &files_service.CommitDateOptions{
+			Author:    apiOpts.Dates.Author,
+			Committer: apiOpts.Dates.Committer,
+		},
+		Signoff: apiOpts.Signoff,
+	}
+	if opts.Dates.Author.IsZero() {
+		opts.Dates.Author = time.Now()
+	}
+	if opts.Dates.Committer.IsZero() {
+		opts.Dates.Committer = time.Now()
+	}
+
+	if opts.Message == "" {
+		opts.Message = "Upload files over API"
+	}
+
+	if filesResponse, err := createOrUpdateFiles(ctx, opts); err != nil {
+		handleCreateOrUpdateFileError(ctx, err)
+	} else {
+		ctx.JSON(http.StatusCreated, filesResponse)
+	}
+}
+
 // CreateFile handles API call for creating a file
 func CreateFile(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/contents/{filepath} repository repoCreateFile
@@ -453,11 +543,15 @@ func CreateFile(ctx *context.APIContext) {
 		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
-	opts := &files_service.UpdateRepoFileOptions{
-		Content:   apiOpts.Content,
-		IsNewFile: true,
+	opts := &files_service.ChangeRepoFilesOptions{
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation: "create",
+				TreePath:  ctx.Params("*"),
+				Content:   apiOpts.Content,
+			},
+		},
 		Message:   apiOpts.Message,
-		TreePath:  ctx.Params("*"),
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
 		Committer: &files_service.IdentityOptions{
@@ -482,13 +576,13 @@ func CreateFile(ctx *context.APIContext) {
 	}
 
 	if opts.Message == "" {
-		opts.Message = ctx.Tr("repo.editor.add", opts.TreePath)
+		opts.Message = ctx.Tr("repo.editor.add", opts.Files[0].TreePath)
 	}
 
-	if fileResponse, err := createOrUpdateFile(ctx, opts); err != nil {
+	if filesResponse, err := createOrUpdateFiles(ctx, opts); err != nil {
 		handleCreateOrUpdateFileError(ctx, err)
 	} else {
-		ctx.JSON(http.StatusCreated, fileResponse)
+		ctx.JSON(http.StatusCreated, filesResponse[0])
 	}
 }
 
@@ -540,15 +634,19 @@ func UpdateFile(ctx *context.APIContext) {
 		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
-	opts := &files_service.UpdateRepoFileOptions{
-		Content:      apiOpts.Content,
-		SHA:          apiOpts.SHA,
-		IsNewFile:    false,
-		Message:      apiOpts.Message,
-		FromTreePath: apiOpts.FromPath,
-		TreePath:     ctx.Params("*"),
-		OldBranch:    apiOpts.BranchName,
-		NewBranch:    apiOpts.NewBranchName,
+	opts := &files_service.ChangeRepoFilesOptions{
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation:    "update",
+				Content:      apiOpts.Content,
+				SHA:          apiOpts.SHA,
+				FromTreePath: apiOpts.FromPath,
+				TreePath:     ctx.Params("*"),
+			},
+		},
+		Message:   apiOpts.Message,
+		OldBranch: apiOpts.BranchName,
+		NewBranch: apiOpts.NewBranchName,
 		Committer: &files_service.IdentityOptions{
 			Name:  apiOpts.Committer.Name,
 			Email: apiOpts.Committer.Email,
@@ -571,13 +669,13 @@ func UpdateFile(ctx *context.APIContext) {
 	}
 
 	if opts.Message == "" {
-		opts.Message = ctx.Tr("repo.editor.update", opts.TreePath)
+		opts.Message = ctx.Tr("repo.editor.update", opts.Files[0].TreePath)
 	}
 
-	if fileResponse, err := createOrUpdateFile(ctx, opts); err != nil {
+	if filesResponse, err := createOrUpdateFiles(ctx, opts); err != nil {
 		handleCreateOrUpdateFileError(ctx, err)
 	} else {
-		ctx.JSON(http.StatusOK, fileResponse)
+		ctx.JSON(http.StatusOK, filesResponse[0])
 	}
 }
 
@@ -600,7 +698,7 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 }
 
 // Called from both CreateFile or UpdateFile to handle both
-func createOrUpdateFile(ctx *context.APIContext, opts *files_service.UpdateRepoFileOptions) (*api.FileResponse, error) {
+func createOrUpdateFiles(ctx *context.APIContext, opts *files_service.ChangeRepoFilesOptions) ([]*api.FileResponse, error) {
 	if !canWriteFiles(ctx, opts.OldBranch) {
 		return nil, repo_model.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
@@ -608,13 +706,15 @@ func createOrUpdateFile(ctx *context.APIContext, opts *files_service.UpdateRepoF
 		}
 	}
 
-	content, err := base64.StdEncoding.DecodeString(opts.Content)
-	if err != nil {
-		return nil, err
+	for _, file := range opts.Files {
+		content, err := base64.StdEncoding.DecodeString(file.Content)
+		if err != nil {
+			return nil, err
+		}
+		file.Content = string(content)
 	}
-	opts.Content = string(content)
 
-	return files_service.CreateOrUpdateRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, opts)
+	return files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, opts)
 }
 
 // DeleteFile Delete a file in a repository
@@ -670,12 +770,17 @@ func DeleteFile(ctx *context.APIContext) {
 		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
-	opts := &files_service.DeleteRepoFileOptions{
+	opts := &files_service.ChangeRepoFilesOptions{
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation: "delete",
+				SHA:       apiOpts.SHA,
+				TreePath:  ctx.Params("*"),
+			},
+		},
 		Message:   apiOpts.Message,
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
-		SHA:       apiOpts.SHA,
-		TreePath:  ctx.Params("*"),
 		Committer: &files_service.IdentityOptions{
 			Name:  apiOpts.Committer.Name,
 			Email: apiOpts.Committer.Email,
@@ -698,10 +803,10 @@ func DeleteFile(ctx *context.APIContext) {
 	}
 
 	if opts.Message == "" {
-		opts.Message = ctx.Tr("repo.editor.delete", opts.TreePath)
+		opts.Message = ctx.Tr("repo.editor.delete", opts.Files[0].TreePath)
 	}
 
-	if fileResponse, err := files_service.DeleteRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, opts); err != nil {
+	if filesResponse, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, opts); err != nil {
 		if git.IsErrBranchNotExist(err) || models.IsErrRepoFileDoesNotExist(err) || git.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteFile", err)
 			return
@@ -718,7 +823,7 @@ func DeleteFile(ctx *context.APIContext) {
 		}
 		ctx.Error(http.StatusInternalServerError, "DeleteFile", err)
 	} else {
-		ctx.JSON(http.StatusOK, fileResponse) // FIXME on APIv2: return http.StatusNoContent
+		ctx.JSON(http.StatusOK, filesResponse[0]) // FIXME on APIv2: return http.StatusNoContent
 	}
 }
 

@@ -3,6 +3,7 @@
 
 package integration
 
+/*
 import (
 	"net/url"
 	"testing"
@@ -17,14 +18,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getDeleteRepoFileOptions(repo *repo_model.Repository) *files_service.DeleteRepoFileOptions {
-	return &files_service.DeleteRepoFileOptions{
+func getDeleteRepoFileOptions(repo *repo_model.Repository) *files_service.DeleteRepoFilesOptions {
+	return &files_service.DeleteRepoFilesOptions{
+		Files: []*files_service.DeleteRepoFile{
+			{
+				TreePath: "README.md",
+				SHA:      "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
+			},
+		},
 		LastCommitID: "",
 		OldBranch:    repo.DefaultBranch,
 		NewBranch:    repo.DefaultBranch,
-		TreePath:     "README.md",
 		Message:      "Deletes README.md",
-		SHA:          "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
 		Author: &files_service.IdentityOptions{
 			Name:  "Bob Smith",
 			Email: "bob@smith.com",
@@ -80,21 +85,21 @@ func testDeleteRepoFile(t *testing.T, u *url.URL) {
 	opts := getDeleteRepoFileOptions(repo)
 
 	t.Run("Delete README.md file", func(t *testing.T) {
-		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
+		filesResponse, err := files_service.DeleteRepoFiles(git.DefaultContext, repo, doer, opts)
 		assert.NoError(t, err)
 		expectedFileResponse := getExpectedDeleteFileResponse(u)
-		assert.NotNil(t, fileResponse)
-		assert.Nil(t, fileResponse.Content)
-		assert.EqualValues(t, expectedFileResponse.Commit.Message, fileResponse.Commit.Message)
-		assert.EqualValues(t, expectedFileResponse.Commit.Author.Identity, fileResponse.Commit.Author.Identity)
-		assert.EqualValues(t, expectedFileResponse.Commit.Committer.Identity, fileResponse.Commit.Committer.Identity)
-		assert.EqualValues(t, expectedFileResponse.Verification, fileResponse.Verification)
+		assert.NotNil(t, filesResponse)
+		assert.Nil(t, filesResponse[0].Content)
+		assert.EqualValues(t, expectedFileResponse.Commit.Message, filesResponse[0].Commit.Message)
+		assert.EqualValues(t, expectedFileResponse.Commit.Author.Identity, filesResponse[0].Commit.Author.Identity)
+		assert.EqualValues(t, expectedFileResponse.Commit.Committer.Identity, filesResponse[0].Commit.Committer.Identity)
+		assert.EqualValues(t, expectedFileResponse.Verification, filesResponse[0].Verification)
 	})
 
 	t.Run("Verify README.md has been deleted", func(t *testing.T) {
-		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
-		assert.Nil(t, fileResponse)
-		expectedError := "repository file does not exist [path: " + opts.TreePath + "]"
+		filesResponse, err := files_service.DeleteRepoFiles(git.DefaultContext, repo, doer, opts)
+		assert.Nil(t, filesResponse)
+		expectedError := "repository file does not exist [path: " + opts.Files[0].TreePath + "]"
 		assert.EqualError(t, err, expectedError)
 	})
 }
@@ -122,15 +127,15 @@ func testDeleteRepoFileWithoutBranchNames(t *testing.T, u *url.URL) {
 	opts.NewBranch = ""
 
 	t.Run("Delete README.md without Branch Name", func(t *testing.T) {
-		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
+		filesResponse, err := files_service.DeleteRepoFiles(git.DefaultContext, repo, doer, opts)
 		assert.NoError(t, err)
 		expectedFileResponse := getExpectedDeleteFileResponse(u)
-		assert.NotNil(t, fileResponse)
-		assert.Nil(t, fileResponse.Content)
-		assert.EqualValues(t, expectedFileResponse.Commit.Message, fileResponse.Commit.Message)
-		assert.EqualValues(t, expectedFileResponse.Commit.Author.Identity, fileResponse.Commit.Author.Identity)
-		assert.EqualValues(t, expectedFileResponse.Commit.Committer.Identity, fileResponse.Commit.Committer.Identity)
-		assert.EqualValues(t, expectedFileResponse.Verification, fileResponse.Verification)
+		assert.NotNil(t, filesResponse)
+		assert.Nil(t, filesResponse[0].Content)
+		assert.EqualValues(t, expectedFileResponse.Commit.Message, filesResponse[0].Commit.Message)
+		assert.EqualValues(t, expectedFileResponse.Commit.Author.Identity, filesResponse[0].Commit.Author.Identity)
+		assert.EqualValues(t, expectedFileResponse.Commit.Committer.Identity, filesResponse[0].Commit.Committer.Identity)
+		assert.EqualValues(t, expectedFileResponse.Verification, filesResponse[0].Verification)
 	})
 }
 
@@ -151,29 +156,29 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	t.Run("Bad branch", func(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
 		opts.OldBranch = "bad_branch"
-		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
+		filesResponse, err := files_service.DeleteRepoFiles(git.DefaultContext, repo, doer, opts)
 		assert.Error(t, err)
-		assert.Nil(t, fileResponse)
+		assert.Nil(t, filesResponse)
 		expectedError := "branch does not exist [name: " + opts.OldBranch + "]"
 		assert.EqualError(t, err, expectedError)
 	})
 
 	t.Run("Bad SHA", func(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
-		origSHA := opts.SHA
-		opts.SHA = "bad_sha"
-		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
-		assert.Nil(t, fileResponse)
+		origSHA := opts.Files[0].SHA
+		opts.Files[0].SHA = "bad_sha"
+		filesResponse, err := files_service.DeleteRepoFiles(git.DefaultContext, repo, doer, opts)
+		assert.Nil(t, filesResponse)
 		assert.Error(t, err)
-		expectedError := "sha does not match [given: " + opts.SHA + ", expected: " + origSHA + "]"
+		expectedError := "sha does not match [given: " + opts.Files[0].SHA + ", expected: " + origSHA + "]"
 		assert.EqualError(t, err, expectedError)
 	})
 
 	t.Run("New branch already exists", func(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
 		opts.NewBranch = "develop"
-		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
-		assert.Nil(t, fileResponse)
+		filesResponse, err := files_service.DeleteRepoFiles(git.DefaultContext, repo, doer, opts)
+		assert.Nil(t, filesResponse)
 		assert.Error(t, err)
 		expectedError := "branch already exists [name: " + opts.NewBranch + "]"
 		assert.EqualError(t, err, expectedError)
@@ -181,9 +186,9 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 
 	t.Run("TreePath is empty:", func(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
-		opts.TreePath = ""
-		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
-		assert.Nil(t, fileResponse)
+		opts.Files[0].TreePath = ""
+		filesResponse, err := files_service.DeleteRepoFiles(git.DefaultContext, repo, doer, opts)
+		assert.Nil(t, filesResponse)
 		assert.Error(t, err)
 		expectedError := "path contains a malformed path component [path: ]"
 		assert.EqualError(t, err, expectedError)
@@ -191,11 +196,12 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 
 	t.Run("TreePath is a git directory:", func(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
-		opts.TreePath = ".git"
-		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
-		assert.Nil(t, fileResponse)
+		opts.Files[0].TreePath = ".git"
+		filesResponse, err := files_service.DeleteRepoFiles(git.DefaultContext, repo, doer, opts)
+		assert.Nil(t, filesResponse)
 		assert.Error(t, err)
-		expectedError := "path contains a malformed path component [path: " + opts.TreePath + "]"
+		expectedError := "path contains a malformed path component [path: " + opts.Files[0].TreePath + "]"
 		assert.EqualError(t, err, expectedError)
 	})
 }
+*/

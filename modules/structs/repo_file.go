@@ -64,6 +64,29 @@ func (o *UpdateFileOptions) Branch() string {
 	return o.FileOptions.BranchName
 }
 
+// ChangeFileOperation for creating, updating or deleting a file
+type ChangeFileOperation struct {
+	// required: true
+	// enum: create,update,delete
+	Operation string `json:"operation" binding:"Required"`
+	// path to the existing or new file
+	Path string `json:"path" binding:"MaxSize(500)"`
+	// content must be base64 encoded
+	// required: true
+	Content string `json:"content"`
+	// sha is the SHA for the file that already exists
+	SHA string `json:"sha"`
+	// old path of the file to move
+	FromPath string `json:"from_path"`
+}
+
+// ChangeFilesOptions options for creating, updating or deleting multiple files
+// Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
+type ChangeFilesOptions struct {
+	FileOptions
+	Files []*ChangeFileOperation `json:"files"`
+}
+
 // FileOptionInterface provides a unified interface for the different file options
 type FileOptionInterface interface {
 	Branch() string

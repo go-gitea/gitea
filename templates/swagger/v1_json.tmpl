@@ -4063,6 +4063,57 @@
             "$ref": "#/responses/notFound"
           }
         }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create or update multiple files in a repository",
+        "operationId": "repoChangeFiles",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ChangeFilesOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/FileListResponse"
+          },
+          "403": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/error"
+          }
+        }
       }
     },
     "/repos/{owner}/{repo}/contents/{filepath}": {
@@ -21988,6 +22039,17 @@
       "description": "FileDeleteResponse",
       "schema": {
         "$ref": "#/definitions/FileDeleteResponse"
+      }
+    },
+    "FileListResponse": {
+      "description": "FileListResponse",
+      "headers": {
+        "body": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FileResponse"
+          }
+        }
       }
     },
     "FileResponse": {
