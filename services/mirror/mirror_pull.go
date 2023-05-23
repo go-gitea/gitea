@@ -142,11 +142,8 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 				log.Error("Expect two SHAs but not what found: %q", lines[i])
 				continue
 			}
-			if !strings.HasPrefix(refName, git.BranchPrefix) {
-				refName = git.BranchPrefix + refName
-			}
 			results = append(results, &mirrorSyncResult{
-				refName:     refName,
+				refName:     git.BranchPrefix + refName, // the reference name of commits should also has prefix.
 				oldCommitID: shas[0],
 				newCommitID: shas[1],
 			})
