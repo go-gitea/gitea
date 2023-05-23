@@ -12,17 +12,25 @@ import (
 )
 
 func TestDecodeEnvSectionKey(t *testing.T) {
-	section, key := decodeEnvSectionKey("SEC__KEY")
+	ok, section, key := decodeEnvSectionKey("SEC__KEY")
+	assert.True(t, ok)
 	assert.Equal(t, "sec", section)
 	assert.Equal(t, "KEY", key)
 
-	section, key = decodeEnvSectionKey("sec__key")
+	ok, section, key = decodeEnvSectionKey("sec__key")
+	assert.True(t, ok)
 	assert.Equal(t, "sec", section)
 	assert.Equal(t, "key", key)
 
-	section, key = decodeEnvSectionKey("LOG_0x2E_CONSOLE__STDERR")
+	ok, section, key = decodeEnvSectionKey("LOG_0x2E_CONSOLE__STDERR")
+	assert.True(t, ok)
 	assert.Equal(t, "log.console", section)
 	assert.Equal(t, "STDERR", key)
+
+	ok, section, key = decodeEnvSectionKey("SEC")
+	assert.False(t, ok)
+	assert.Equal(t, "", section)
+	assert.Equal(t, "", key)
 }
 
 func TestDecodeEnvironmentKey(t *testing.T) {
@@ -35,11 +43,25 @@ func TestDecodeEnvironmentKey(t *testing.T) {
 	assert.Equal(t, "", key)
 	assert.False(t, file)
 
+	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA__SEC")
+	assert.False(t, ok)
+	assert.Equal(t, "", section)
+	assert.Equal(t, "", key)
+	assert.False(t, file)
+
 	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA__SEC__KEY")
 	assert.True(t, ok)
 	assert.Equal(t, "sec", section)
 	assert.Equal(t, "KEY", key)
 	assert.False(t, file)
+
+	// with "__FILE" suffix, it doesn't support to write "[sec].FILE" to config (no such key FILE is used in Gitea)
+	// but it could be fixed in the future by adding a new suffix like "__VALUE" (no such key VALUE is used in Gitea either)
+	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA__SEC__FILE")
+	assert.False(t, ok)
+	assert.Equal(t, "", section)
+	assert.Equal(t, "", key)
+	assert.True(t, file)
 
 	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA__SEC__KEY__FILE")
 	assert.True(t, ok)

@@ -24,7 +24,7 @@ var escapeRegex = regexp.MustCompile(escapeRegexpString)
 // followed by _. E.g. _0X2C_ for a '-' and _0X2E_ for '.'
 // Section and Key are separated by a plain '__'.
 // The entire section can be encoded as a UTF8 byte string
-func decodeEnvSectionKey(encoded string) (section, key string) {
+func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 	inKey := false
 	last := 0
 	escapeStringIndices := escapeRegex.FindAllStringIndex(encoded, -1)
@@ -67,7 +67,12 @@ func decodeEnvSectionKey(encoded string) (section, key string) {
 		key += remaining
 	}
 	section = strings.ToLower(section)
-	return section, key
+	ok = section != "" && key != ""
+	if !ok {
+		section = ""
+		key = ""
+	}
+	return ok, section, key
 }
 
 // decodeEnvironmentKey decode the environment key to section and key
@@ -80,8 +85,8 @@ func decodeEnvironmentKey(prefixGitea, suffixFile, envKey string) (ok bool, sect
 		useFileValue = true
 		envKey = envKey[:len(envKey)-len(suffixFile)]
 	}
-	section, key = decodeEnvSectionKey(envKey[len(prefixGitea):])
-	return true, section, key, useFileValue
+	ok, section, key = decodeEnvSectionKey(envKey[len(prefixGitea):])
+	return ok, section, key, useFileValue
 }
 
 func EnvironmentToConfig(cfg *ini.File, prefixGitea, suffixFile string, envs []string) (changed bool) {
