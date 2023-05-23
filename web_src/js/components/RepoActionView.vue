@@ -70,7 +70,7 @@
           </div>
           <div class="job-info-header-right">
             <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-              <SvgIcon name="octicon-tools"/>
+              <SvgIcon name="octicon-gear" :size="20"/>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
                 <a class="item" @click="toggleTimeStamps()">
                   <span><SvgIcon v-show="timeStampVisible" name="octicon-check"/></span>
