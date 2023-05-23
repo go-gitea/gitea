@@ -1,6 +1,6 @@
 ---
 date: "2019-04-02T17:06:00+01:00"
-title: "Advanced: Logging Configuration"
+title: "Logging Configuration"
 slug: "logging-configuration"
 weight: 40
 toc: false

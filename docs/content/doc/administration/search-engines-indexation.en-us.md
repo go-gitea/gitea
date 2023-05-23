@@ -1,6 +1,6 @@
 ---
 date: "2019-12-31T13:55:00+05:00"
-title: "Advanced: Search Engines Indexation"
+title: "Search Engines Indexation"
 slug: "search-engines-indexation"
 weight: 60
 toc: false

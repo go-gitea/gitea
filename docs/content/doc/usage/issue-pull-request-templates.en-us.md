@@ -1,6 +1,6 @@
 ---
 date: "2018-05-10T16:00:00+02:00"
-title: "Usage: Issue and Pull Request templates"
+title: "Issue and Pull Request templates"
 slug: "issue-pull-request-templates"
 weight: 15
 toc: false

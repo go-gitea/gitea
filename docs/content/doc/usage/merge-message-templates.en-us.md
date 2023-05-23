@@ -1,6 +1,6 @@
 ---
 date: "2022-08-31T17:35:40+08:00"
-title: "Usage: Merge Message templates"
+title: "Merge Message templates"
 slug: "merge-message-templates"
 weight: 15
 toc: false
