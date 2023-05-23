@@ -96,20 +96,28 @@ func (s *Service) Register(
 // FetchTask assigns a task to the runner
 func (s *Service) FetchTask(
 	ctx context.Context,
-	_ *connect.Request[runnerv1.FetchTaskRequest],
+	req *connect.Request[runnerv1.FetchTaskRequest],
 ) (*connect.Response[runnerv1.FetchTaskResponse], error) {
 	runner := GetRunner(ctx)
 
 	var task *runnerv1.Task
-	if t, ok, err := pickTask(ctx, runner); err != nil {
-		log.Error("pick task failed: %v", err)
-		return nil, status.Errorf(codes.Internal, "pick task: %v", err)
-	} else if ok {
-		task = t
+	taskIndex := req.Msg.TaskIndex
+	cacheIndex := actions_model.ActionsTaskIndexCache.Get()
+	if req.Msg.TaskIndex != cacheIndex {
+		// if the task index in request is not equal to the index in cache,
+		// it means there are some tasks still not be assgined.
+		// try to pick a task for the runner that send the request.
+		if t, ok, err := pickTask(ctx, runner); err != nil {
+			log.Error("pick task failed: %v", err)
+			return nil, status.Errorf(codes.Internal, "pick task: %v", err)
+		} else if ok {
+			task = t
+			taskIndex = cacheIndex
+		}
 	}
-
 	res := connect.NewResponse(&runnerv1.FetchTaskResponse{
-		Task: task,
+		Task:      task,
+		TaskIndex: taskIndex,
 	})
 	return res, nil
 }
