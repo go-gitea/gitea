@@ -14,7 +14,7 @@
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button secondary" @click="rerun()" v-else-if="run.canRerun">
+        <button class="ui basic small compact button secondary gt-mr-0" @click="rerun()" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
@@ -422,19 +422,20 @@ export function ansiLogToHTML(line) {
 <style scoped>
 .action-view-body {
   display: flex;
+  gap: 12px;
 }
 
 /* ================ */
 /* action view header */
 
 .action-view-header {
-  margin: 20px 0px;
+  margin-top: 8px;
+  margin-bottom: 4px;
 }
 
 .action-info-summary {
   display: flex;
   align-items: center;
-  margin-top: 1rem;
   justify-content: space-between;
 }
 
@@ -451,11 +452,12 @@ export function ansiLogToHTML(line) {
 .action-commit-summary {
   display: flex;
   gap: 5px;
-  margin: 10px 0 0 25px;
+  margin: 5px 0 0 25px;
 }
 
 .action-view-left, .action-view-right {
-  padding: 12px;
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 
 /* ================ */
