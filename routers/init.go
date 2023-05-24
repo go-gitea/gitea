@@ -9,6 +9,7 @@ import (
 	"runtime"
 
 	"code.gitea.io/gitea/models"
+	actions_model "code.gitea.io/gitea/models/actions"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -199,6 +200,9 @@ func NormalRoutes(ctx context.Context) *web.Route {
 		// TODO: this prefix should be generated with a token string with runner ?
 		prefix = "/api/actions_pipeline"
 		r.Mount(prefix, actions_router.ArtifactsRoutes(prefix))
+
+		// init task index
+		actions_model.ActionsTaskIndexCache.Init()
 	}
 
 	return r
