@@ -225,23 +225,36 @@ func AddCodeownerReviewers(ctx context.Context, pr *issues_model.PullRequest, re
 			return nil
 		}
 
-		AddValidReviewers(ctx, pr.Issue, repo, owners, teamOwners)
+		err = AddValidReviewers(ctx, pr.Issue, repo, owners, teamOwners)
+		if err != nil {
+			// TODO: Log?
+			return err
+		}
 	}
 	return nil
 }
 
 // AddValidReviewers adds reviewers to the given issue (pull request) if the users and teams are valid and eligible to do so
-func AddValidReviewers(ctx context.Context, issue *issues_model.Issue, repo *repo_model.Repository, owners []string, teamOwners []string) {
+func AddValidReviewers(ctx context.Context, issue *issues_model.Issue, repo *repo_model.Repository, owners []string, teamOwners []string) error {
 	prPoster := issue.Poster
 	isAdd := true
-	for _, userReviewer := range GetValidUserReviewers(ctx, owners) {
+
+	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, prPoster)
+	if err != nil {
+		// TODO: Log?
+		return err
+	}
+
+	for _, userReviewer := range GetValidUserReviewers(ctx, owners, prPoster, isAdd, issue, &permDoer) {
 		_, _ = ReviewRequest(ctx, issue, prPoster, userReviewer, isAdd)
 		// ignore the error? Seems weird, but we just won't assign them to review if they can't
 	}
-	for _, teamReviewer := range GetValidTeamReviewers(ctx, repo, teamOwners, prPoster) {
+	for _, teamReviewer := range GetValidTeamReviewers(ctx, repo, teamOwners, prPoster, isAdd, issue) {
 		_, _ = TeamReviewRequest(ctx, issue, prPoster, teamReviewer, isAdd)
 		// ignore the error? Seems weird, but we just won't assign them to review if they can't
 	}
+
+	return nil
 }
 
 // FindCodeownersFile gets the CODEOWNERS file from the top level or .gitea directory of the repo.
@@ -290,12 +303,12 @@ func GetCodeownersTreeEntry(commit *git.Commit, directoryOptions []string) *git.
 
 // ParseCodeowners gets the users and teams that own any of the files given CODEOWNERS rules.
 func ParseCodeowners(files []string, codeownersFile []byte) (users []string, teams []string, err error) {
-	return []string{"user3", "not_a_real_username", "user2@g.co"}, []string{"Org1/teamA", "Org2/teamA"}, nil
+	return []string{"user1", "user3", "not_a_real_username", "user2@g.co"}, []string{"Org1/teamA", "Org2/teamA"}, nil
 	// TODO: Actually use the Parser
 }
 
 // GetValidReviewers gets the Users that actually exist and are authorized to review the pull request
-func GetValidUserReviewers(ctx context.Context, userNamesOrEmails []string) (reviewers []*user_model.User) {
+func GetValidUserReviewers(ctx context.Context, userNamesOrEmails []string, doer *user_model.User, isAdd bool, issue *issues_model.Issue, permDoer *access_model.Permission) (reviewers []*user_model.User) {
 	reviewers = []*user_model.User{}
 	for _, nameOrEmail := range userNamesOrEmails {
 		var reviewer *user_model.User
@@ -306,23 +319,27 @@ func GetValidUserReviewers(ctx context.Context, userNamesOrEmails []string) (rev
 			reviewer, err = user_model.GetUserByName(ctx, nameOrEmail)
 		}
 		if reviewer != nil && err == nil {
-			// TODO: err = IsValidReviewRequest(ctx, reviewer, ctx.Doer, isAdd, pr.Issue, &permDoer)
-			reviewers = append(reviewers, reviewer)
+			err = IsValidReviewRequest(ctx, reviewer, doer, isAdd, issue, permDoer)
+			if err == nil {
+				reviewers = append(reviewers, reviewer)
+			}
 		}
 	}
 	return reviewers
 }
 
 // GetValidReviewers gets the Teams that actually exist and are authorized to review the pull request
-func GetValidTeamReviewers(ctx context.Context, repo *repo_model.Repository, fullTeamNames []string, doer *user_model.User) (teamReviewers []*organization_model.Team) {
+func GetValidTeamReviewers(ctx context.Context, repo *repo_model.Repository, fullTeamNames []string, doer *user_model.User, isAdd bool, issue *issues_model.Issue) (teamReviewers []*organization_model.Team) {
 	teamReviewers = []*organization_model.Team{}
 
 	if repo.Owner.IsOrganization() {
 		for _, fullTeamName := range fullTeamNames {
-			team := GetTeamFromFullName(fullTeamName, doer, ctx)
-			// TODO: err = IsValidTeamReviewRequest(ctx, teamReviewer, ctx.Doer, isAdd, pr.Issue)
-			if team != nil {
-				teamReviewers = append(teamReviewers, team)
+			teamReviewer := GetTeamFromFullName(fullTeamName, doer, ctx)
+			if teamReviewer != nil {
+				err := IsValidTeamReviewRequest(ctx, teamReviewer, doer, isAdd, issue)
+				if err == nil {
+					teamReviewers = append(teamReviewers, teamReviewer)
+				}
 			}
 		}
 	}
