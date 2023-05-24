@@ -259,7 +259,7 @@ func AddValidReviewers(ctx context.Context, issue *issues_model.Issue, repo *rep
 
 // FindCodeownersFile gets the CODEOWNERS file from the top level or .gitea directory of the repo.
 func GetCodeownersFileContents(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) []byte {
-	directoryOptions := []string{"", ".gitea/"} // accepted directories to search for the CODEOWNERS file
+	directoryOptions := []string{"", ".gitea/", "docs/"} // accepted directories to search for the CODEOWNERS file
 
 	commit, err := gitRepo.GetCommit(pr.BaseBranch)
 	if err != nil {
@@ -279,12 +279,17 @@ func GetCodeownersFileContents(ctx context.Context, pr *issues_model.PullRequest
 			// TODO: log?
 			return nil
 		}
-		content, err := b64.StdEncoding.DecodeString(data)
+		contentBytes, err := b64.StdEncoding.DecodeString(data)
 		if err != nil {
 			// TODO: log?
 			return nil
 		}
-		return content
+		byteLimit := 3 * 1024 * 1024 // 3 MB limit, per GitHub specs
+		if len(contentBytes) >= byteLimit {
+			// TODO: log?
+			return nil
+		}
+		return contentBytes
 	}
 
 	return nil
