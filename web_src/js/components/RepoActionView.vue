@@ -699,7 +699,7 @@ export function ansiLogToHTML(line) {
 }
 
 .ui.dropdown .action-job-menu,
-.ui.pointing.dropdown > .menu.action-job-menu:after {
+.ui.pointing.dropdown > .menu.action-job-menu::after {
   background-color: var(--color-console-dropdown-bg);
   border-color: var(--color-console-dropdown-border);
   box-shadow: -1px -1px 0 0 var(--color-console-dropdown-shadow);
