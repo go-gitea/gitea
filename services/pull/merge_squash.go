@@ -63,8 +63,8 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 		return err
 	}
 
-	if setting.Repository.PullRequest.AddCoCommitterTrailers && ctx.committer.String() != sig.String() {
-		// add trailer
+	if setting.Repository.PullRequest.AddCoCommitterTrailers && ctx.committer.Email != sig.Email {
+		// add trailer if email of user and email of committer don't match
 		message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
 	}
 	cmdCommit := git.NewCommand(ctx, "commit").
