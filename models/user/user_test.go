@@ -5,6 +5,7 @@ package user_test
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"strings"
 	"testing"
