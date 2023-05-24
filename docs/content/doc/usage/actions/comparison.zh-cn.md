@@ -1,6 +1,6 @@
 ---
 date: "2023-05-24T15:00:00+08:00"
-title: "与GitHub Actions对比"
+title: "与GitHub Actions的对比"
 slug: "comparison"
 weight: 30
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "actions-comparison"
 ---
 
-# 与GitHub Actions对比
+# 与GitHub Actions的对比
 
 尽管Gitea Actions旨在与GitHub Actions兼容，但它们之间存在一些差异。
 
@@ -38,49 +38,49 @@ Gitea Actions支持使用Go编写Actions。
 ### `concurrency`
 
 这是用于一次运行一个作业。
-请参阅[使用并发性](https://docs.github.com/en/actions/using-jobs/using-concurrency)。
+请参阅[使用并发](https://docs.github.com/zh/actions/using-jobs/using-concurrency)。
 
 Gitea Actions目前不支持此功能。
 
 ### `run-name`
 
 这是工作流生成的工作流运行的名称。
-请参阅[GitHub Actions 的工作流语法](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#run-name)。
+请参阅[GitHub Actions 的工作流语法](https://docs.github.com/zh/actions/using-workflows/workflow-syntax-for-github-actions#run-name)。
 
 Gitea Actions目前不支持此功能。
 
 ### `permissions`和`jobs.<job_id>.permissions`
 
-请参阅[GitHub Actions的工作流语法](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions)。
+请参阅[GitHub Actions的工作流语法](https://docs.github.com/zh/actions/using-workflows/workflow-syntax-for-github-actions#permissions)。
 
 Gitea Actions目前不支持此功能。
 
 ### `jobs.<job_id>.timeout-minutes`
 
-请参阅[GitHub Actions的工作流语法](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idtimeout-minutes)。
+请参阅[GitHub Actions的工作流语法](https://docs.github.com/zh/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idtimeout-minutes)。
 
 Gitea Actions目前不支持此功能。
 
 ### `jobs.<job_id>.continue-on-error`
 
-请参阅[GitHub Actions的工作流语法](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idcontinue-on-error)。
+请参阅[GitHub Actions的工作流语法](https://docs.github.com/zh/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idcontinue-on-error)。
 
 Gitea Actions目前不支持此功能。
 
 ### `jobs.<job_id>.environment`
 
-请参阅[GitHub Actions的工作流语法](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idenvironment)。
+请参阅[GitHub Actions的工作流语法](https://docs.github.com/zh/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idenvironment)。
 
 Gitea Actions 目前不支持此功能。
 
 ### 复杂的`runs-on`
 
-请参阅[GitHub Actions的工作流语法](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idruns-on)。
+请参阅[GitHub Actions的工作流语法](https://docs.github.com/zh/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idruns-on)。
 
 Gitea Actions目前只支持`runs-on: xyz`或`runs-on: [xyz]`。
 
 ### `workflow_dispatch`
-请参阅[GitHub Actions的工作流语法](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#onworkflow_dispatch)。
+请参阅[GitHub Actions的工作流语法](https://docs.github.com/zh/actions/using-workflows/workflow-syntax-for-github-actions#onworkflow_dispatch)。
 
 Gitea Actions目前不支持此功能。
 
@@ -96,7 +96,7 @@ Gitea Actions目前不支持此功能，如果使用它，结果将始终为空�
 
 ### 变量
 
-请参阅[变量](https://docs.github.com/en/actions/learn-github-actions/variables)。
+请参阅[变量](https://docs.github.com/zh/actions/learn-github-actions/variables)。
 
 目前变量功能正在开发中。
 
@@ -107,9 +107,9 @@ Gitea Actions目前不支持此功能，如果使用它，结果将始终为空�
 
 Gitea Actions目前不支持此功能。
 
-### 创建错误注释
+### 为错误创建注释
 
-请参阅[创建错误的注释](https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#example-creating-an-annotation-for-an-error)。
+请参阅[为错误创建注释](https://docs.github.com/zh/actions/using-workflows/workflow-commands-for-github-actions#example-creating-an-annotation-for-an-error)。
 
 Gitea Actions目前不支持此功能。
 

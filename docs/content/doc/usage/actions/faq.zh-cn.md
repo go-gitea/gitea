@@ -1,6 +1,6 @@
 ---
 date: "2023-05-24T15:00:00+08:00"
-title: "Gitea Actions 常见问题解答"
+title: "Gitea Actions常见问题解答"
 slug: "faq"
 weight: 100
 draft: false
@@ -103,7 +103,7 @@ DEFAULT_REPO_UNITS = ...,repo.actions
 需要注意的一点是，如果选择直接在主机上运行作业而不是在作业容器中运行，操作系统之间的环境差异可能会导致意外的失败。
 
 例如，在大多数情况下，Windows上没有可用的bash，而act尝试默认使用bash运行脚本。
-因此，您需要在工作流文件中将默认shell指定为`powershell`，参考[defaults.run](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#defaultsrun)。
+因此，您需要在工作流文件中将默认shell指定为`powershell`，参考[defaults.run](https://docs.github.com/zh/actions/using-workflows/workflow-syntax-for-github-actions#defaultsrun)。
 
 ```yaml
 defaults:
