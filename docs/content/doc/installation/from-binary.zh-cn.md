@@ -1,6 +1,6 @@
 ---
 date: "2016-12-01T16:00:00+02:00"
-title: "从二进制安装"
+title: "使用二进制文件安装"
 slug: "install-from-binary"
 weight: 15
 toc: false
@@ -10,12 +10,12 @@ aliases:
 menu:
   sidebar:
     parent: "installation"
-    name: "从二进制安装"
+    name: "使用二进制文件安装"
     weight: 15
     identifier: "install-from-binary"
 ---
 
-# 从二进制安装
+# 使用二进制文件安装
 
 所有打包的二进制程序均包含 SQLite，MySQL 和 PostgreSQL 的数据库连接支持，同时网站的静态资源均已嵌入到可执行程序中，这一点和曾经的 Gogs 有所不同。
 
