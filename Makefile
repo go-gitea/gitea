@@ -35,7 +35,7 @@ SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.4
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.6.0
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@latest
-ACTION_LINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@latest
+ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@latest
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -200,7 +200,7 @@ help:
 	@echo " - deps-tools                       install tool dependencies"
 	@echo " - lint                             lint everything"
 	@echo " - lint-fix                         lint everything and fix issues"
-	@echo " - lint-action                      lint action workflow files"
+	@echo " - lint-actions                     lint action workflow files"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-frontend-fix                lint frontend files and fix issues"
 	@echo " - lint-backend                     lint backend files"
@@ -413,9 +413,9 @@ lint-go-vet:
 lint-editorconfig:
 	$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) templates .github/workflows
 
-.PHONY: lint-action
-lint-action:
-	actionlint
+.PHONY: lint-actions
+lint-actions:
+	$(GO) run $(ACTIONLINT_PACKAGE)
 
 .PHONY: watch
 watch:
@@ -914,7 +914,7 @@ deps-tools:
 	$(GO) install $(XGO_PACKAGE)
 	$(GO) install $(GO_LICENSES_PACKAGE)
 	$(GO) install $(GOVULNCHECK_PACKAGE)
-	$(GO) install $(ACTION_LINT_PACKAGE)
+	$(GO) install $(ACTIONLINT_PACKAGE)
 
 node_modules: package-lock.json
 	npm install --no-save
