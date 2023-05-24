@@ -6,7 +6,12 @@ package issue
 import (
 	"context"
 	"fmt"
-	"os"
+
+	// "io/ioutil"
+	// "net/http"
+	b64 "encoding/base64"
+
+	// "os"
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -198,53 +203,88 @@ func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, do
 // AddCodeownerReviewers gets all the codeowners of the files changed in the pull request (as outlined in the base repository's
 // CODEOWNERS file) and requests them for review if they exist and are eligibl to do so. Codeowners can be users or teams.
 func AddCodeownerReviewers(ctx context.Context, pr *issues_model.PullRequest, repo *repo_model.Repository) (err error) {
-	codeownersFileContents := GetCodeownersFileContents(repo.RepoPath())
-	if codeownersFileContents == nil { // TODO: Change to '!='
-		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
-		if err != nil {
-			return err
-			// TODO: Where to log?
-		}
-		defer gitRepo.Close()
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	if err != nil {
+		// TODO: Where to log?
+		return err
+	}
+	defer gitRepo.Close()
 
+	codeownersContents := GetCodeownersFileContents(ctx, pr, gitRepo)
+	if codeownersContents != nil {
 		changedFiles, err := gitRepo.GetFilesChangedBetween(pr.MergeBase, pr.HeadCommitID)
 		if err != nil {
-			return err
 			// TODO: Where to log?
+			return err
 		}
 
-		owners, teamOwners, err := ParseCodeowners(changedFiles, codeownersFileContents)
+		owners, teamOwners, err := ParseCodeowners(changedFiles, codeownersContents)
 		if err != nil {
 			// TODO: Log the parsing error?
+			return nil
 		}
 
-		// // Add reviewers to the PR
-		// //		use or replicate routers/api/v1/repo/pull_review.go > apiReviewRequest
-		// // 		with api.PullReviewRequestOptions (string[] reviewers, string[] teamReviewers)
+		AddValidReviewers(ctx, pr.Issue, owners, teamOwners)
+	}
+	return nil
+}
 
-		issue := pr.Issue
-		isAdd := true
-		for _, reviewer := range GetValidUserReviewers(ctx, owners) {
-			_, _ = ReviewRequest(ctx, issue, issue.Poster, reviewer, isAdd)
-			// ignore the error? Seems weird, but we just won't assign them to review if they can't
+// AddValidReviewers adds reviewers to the given issue (pull request) if the users and teams are valid and eligible to do so
+func AddValidReviewers(ctx context.Context, issue *issues_model.Issue, owners []string, teamOwners []string) {
+	prPoster := issue.Poster
+	isAdd := true
+	for _, userReviewer := range GetValidUserReviewers(ctx, owners) {
+		_, _ = ReviewRequest(ctx, issue, prPoster, userReviewer, isAdd)
+		// ignore the error? Seems weird, but we just won't assign them to review if they can't
+	}
+	for _, teamReviewer := range GetValidTeamReviewers(ctx, teamOwners) {
+		_, _ = TeamReviewRequest(ctx, issue, prPoster, teamReviewer, isAdd)
+		// ignore the error? Seems weird, but we just won't assign them to review if they can't
+	}
+}
+
+// FindCodeownersFile gets the CODEOWNERS file from the top level or .gitea directory of the repo.
+func GetCodeownersFileContents(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) []byte {
+	directoryOptions := []string{"", ".gitea/"} // accepted directories to search for the CODEOWNERS file
+
+	commit, err := gitRepo.GetCommit(pr.BaseBranch)
+	if err != nil {
+		// TODO: log?
+		return nil
+	}
+
+	entry := GetCodeownersTreeEntry(commit, directoryOptions)
+	if entry == nil {
+		return nil
+	}
+
+	if entry.IsRegular() {
+		gitBlob := entry.Blob()
+		data, err := gitBlob.GetBlobContentBase64()
+		if err != nil {
+			// TODO: log?
+			return nil
 		}
-		for _, reviewer := range GetValidTeamReviewers(ctx, teamOwners) {
-			_, _ = TeamReviewRequest(ctx, issue, issue.Poster, reviewer, isAdd)
-			// ignore the error? Seems weird, but we just won't assign them to review if they can't
+		content, err := b64.StdEncoding.DecodeString(data)
+		if err != nil {
+			// TODO: log?
+			return nil
 		}
+		return content
 	}
 
 	return nil
 }
 
-// FindCodeownersFile gets the CODEOWNERS file from the top level or .gitea directory of the repo.
-func GetCodeownersFileContents(path string) []byte {
-	// TODO-giteam: Also search in .gitea/ directory
-	content, err := os.ReadFile(path + "CODEOWNERS")
-	if err != nil {
-		return nil
+// GetCodeownersTreeEntry gets the git tree entry of the CODEOWNERS file, given an array of directories to search in
+func GetCodeownersTreeEntry(commit *git.Commit, directoryOptions []string) *git.TreeEntry {
+	for _, dir := range directoryOptions {
+		entry, _ := commit.GetTreeEntryByPath(dir + "CODEOWNERS")
+		if entry != nil {
+			return entry
+		}
 	}
-	return content
+	return nil
 }
 
 // ParseCodeowners gets the users and teams that own any of the files given CODEOWNERS rules.
