@@ -80,6 +80,7 @@ Gitea Actions 目前不支持此功能。
 Gitea Actions目前只支持`runs-on: xyz`或`runs-on: [xyz]`。
 
 ### `workflow_dispatch`
+
 请参阅[GitHub Actions的工作流语法](https://docs.github.com/zh/actions/using-workflows/workflow-syntax-for-github-actions#onworkflow_dispatch)。
 
 Gitea Actions目前不支持此功能。
