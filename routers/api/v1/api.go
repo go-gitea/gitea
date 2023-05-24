@@ -241,8 +241,8 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) 
 func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeCategory) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		// Need OAuth2 token to be present.
-		scope, scopeOk := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-		if ctx.Data["IsApiToken"] != true || !scopeOk {
+		scope, scopeExists := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+		if ctx.Data["IsApiToken"] != true || !scopeExists {
 			return
 		}
 
