@@ -66,8 +66,7 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 
 	// RFC 1035 - host is case-insensitive, local part is case-sensitive
 	if setting.Repository.PullRequest.AddCoCommitterTrailers &&
-		strings.EqualFold(strings.SplitAfter(ctx.committer.Email, "@")[1], strings.SplitAfter(sig.Email, "@")[1]) &&
-		(strings.SplitAfter(ctx.committer.Email, "@")[0] != strings.SplitAfter(sig.Email, "@")[0]) {
+		strings.EqualFold(ctx.committer.Email, sig.Email) {
 		// add trailer if email of user and email of committer don't match
 		message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
 	}
