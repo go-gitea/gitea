@@ -162,6 +162,26 @@ func (r *Review) LoadReviewer(ctx context.Context) (err error) {
 	return err
 }
 
+func LoadReviewers(ctx context.Context, reviews []*Review) (err error) {
+	reviewerIds := make([]int64, len(reviews))
+	for i := 0; i < len(reviews); i++ {
+		reviewerIds[i] = reviews[i].ReviewerID
+	}
+	reviewers, err := user_model.GetPossibleUserByIDs(ctx, reviewerIds)
+	if err != nil {
+		return err
+	}
+
+	userMap := make(map[int64]*user_model.User, len(reviewers))
+	for _, reviewer := range reviewers {
+		userMap[reviewer.ID] = reviewer
+	}
+	for _, review := range reviews {
+		review.Reviewer = userMap[review.ReviewerID]
+	}
+	return nil
+}
+
 // LoadReviewerTeam loads reviewer team
 func (r *Review) LoadReviewerTeam(ctx context.Context) (err error) {
 	if r.ReviewerTeamID == 0 || r.ReviewerTeam != nil {

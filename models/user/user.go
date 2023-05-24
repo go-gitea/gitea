@@ -954,6 +954,15 @@ func GetUserByID(ctx context.Context, id int64) (*User, error) {
 	return u, nil
 }
 
+// GetUserByIDs returns the user objects by given IDs if exists.
+func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
+	users := make([]*User, 0, len(ids))
+	err := db.GetEngine(ctx).In("id", ids).
+		Table("user").
+		Find(&users)
+	return users, err
+}
+
 // GetPossibleUserByID returns the user if id > 0 or return system usrs if id < 0
 func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
 	switch id {
@@ -966,6 +975,38 @@ func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
 	default:
 		return GetUserByID(ctx, id)
 	}
+}
+
+// GetPossibleUserByIDs returns the users if id > 0 or return system users if id < 0
+func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
+	uniqueIDs := make(map[int64]struct{})
+	users := make([]*User, 0, len(ids))
+	for _, id := range ids {
+		uniqueIDs[id] = struct{}{}
+	}
+	if _, ok := uniqueIDs[0]; ok {
+		return nil, ErrUserNotExist{}
+	}
+
+	if _, ok := uniqueIDs[-1]; ok {
+		users = append(users, NewGhostUser())
+		delete(uniqueIDs, -1)
+	}
+	if _, ok := uniqueIDs[ActionsUserID]; ok {
+		users = append(users, NewActionsUser())
+		delete(uniqueIDs, ActionsUserID)
+	}
+
+	needFindIds := make([]int64, 0, len(uniqueIDs))
+	for id := range uniqueIDs {
+		needFindIds = append(needFindIds, id)
+	}
+	res, err := GetUserByIDs(ctx, needFindIds)
+	if err != nil {
+		return nil, err
+	}
+	users = append(users, res...)
+	return users, nil
 }
 
 // GetUserByNameCtx returns user by given name.
