@@ -6,7 +6,7 @@ weight: 45
 toc: false
 draft: false
 aliases:
-  - /en-us/mail-templates
+  - /zh-cn/mail-templates
 menu:
   sidebar:
     parent: "administration"

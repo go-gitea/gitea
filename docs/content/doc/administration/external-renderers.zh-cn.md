@@ -6,7 +6,7 @@ weight: 60
 toc: false
 draft: false
 aliases:
-  - /en-us/external-renderers
+  - /zh-cn/external-renderers
 menu:
   sidebar:
     parent: "administration"

@@ -6,7 +6,7 @@ weight: 50
 toc: false
 draft: false
 aliases:
-  - /en-us/signing
+  - /zh-cn/signing
 menu:
   sidebar:
     parent: "administration"

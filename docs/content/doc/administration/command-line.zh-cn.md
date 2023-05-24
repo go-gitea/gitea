@@ -6,7 +6,7 @@ weight: 1
 toc: false
 draft: false
 aliases:
-  - /en-us/command-line
+  - /zh-cn/command-line
 menu:
   sidebar:
     parent: "administration"

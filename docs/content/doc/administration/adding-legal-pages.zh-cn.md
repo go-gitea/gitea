@@ -6,7 +6,7 @@ weight: 110
 toc: false
 draft: false
 aliases:
-  - /en-us/adding-legal-pages
+  - /zh-cn/adding-legal-pages
 menu:
   sidebar:
     parent: "administration"

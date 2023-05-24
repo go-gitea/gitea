@@ -6,7 +6,7 @@ weight: 12
 toc: false
 draft: false
 aliases:
-  - /en-us/email-setup
+  - /zh-cn/email-setup
 menu:
   sidebar:
     parent: "administration"

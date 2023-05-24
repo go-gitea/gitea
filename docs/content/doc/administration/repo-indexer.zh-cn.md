@@ -6,7 +6,7 @@ weight: 45
 toc: false
 draft: false
 aliases:
-  - /en-us/repo-indexer
+  - /zh-cn/repo-indexer
 menu:
   sidebar:
     parent: "administration"
