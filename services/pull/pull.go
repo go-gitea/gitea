@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	org_model "code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
@@ -124,7 +125,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 
 		_, _ = issue_service.CreateComment(ctx, ops)
 
-		if coRules, err := repo.GetCodeOwners(ctx, pr.BaseBranch); err == nil {
+		if coRules, err := GetCodeOwners(ctx, repo, pr.BaseBranch); err == nil {
 			changedFiles, err := baseGitRepo.GetFilesChangedBetween(git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
 			if err != nil {
 				return err
@@ -143,8 +144,10 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 			}
 
 			for _, u := range uniqUsers {
-				if _, err := issues_model.AddReviewRequest(pull, pull.Poster, u); err != nil {
-					log.Warn("Failed add assignee user: %s to PR review: %s#%d", u.Name, pr.BaseRepo.Name, pr.ID)
+				if u.ID != pull.Poster.ID {
+					if _, err := issues_model.AddReviewRequest(pull, u, pull.Poster); err != nil {
+						log.Warn("Failed add assignee user: %s to PR review: %s#%d", u.Name, pr.BaseRepo.Name, pr.ID)
+					}
 				}
 			}
 		}
@@ -862,4 +865,159 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 		}
 	}
 	return baseCommit.HasPreviousCommit(headCommit.ID)
+}
+
+// GetCodeOwners returns the code owners configuration
+// Return empty slice if files missing
+// Return error on file system errors
+// We're trying to do the best we can when parsing a file.
+// Invalid lines are skipped. Non-existent users and groups too.
+func GetCodeOwners(ctx context.Context, repo *repo_model.Repository, branch string) ([]*CodeOwnerRule, error) {
+	files := []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+	defer closer.Close()
+
+	if !gitRepo.IsBranchExist(branch) {
+		return nil, &git.ErrBranchNotExist{Name: branch}
+	}
+
+	var data []byte
+	for _, file := range files {
+		data, err = gitRepo.GetFileContent(branch, file)
+		if err == nil {
+			break
+		}
+	}
+
+	if len(data) == 0 {
+		return nil, nil
+	}
+
+	rules := make([]*CodeOwnerRule, 0)
+	lines := strings.Split(string(data), "\n")
+
+	for _, line := range lines {
+		tokens := tokenizeCodeOwnersLine(line)
+		if len(tokens) == 0 {
+			continue
+		} else if len(tokens) < 2 {
+			log.Info("Incorrect codeowner line: %s", line)
+			continue
+		}
+		rule := parseCodeOwnersLine(ctx, tokens)
+		if rule == nil {
+			continue
+		}
+
+		rules = append(rules, rule)
+	}
+
+	return rules, nil
+}
+
+type CodeOwnerRule struct {
+	Rule     *regexp.Regexp
+	Negative bool
+	Users    []*user_model.User
+}
+
+func parseCodeOwnersLine(ctx context.Context, tokens []string) *CodeOwnerRule {
+	var err error
+	rule := &CodeOwnerRule{
+		Users:    make([]*user_model.User, 0),
+		Negative: strings.HasPrefix(tokens[0], "!"),
+	}
+
+	rule.Rule, err = regexp.Compile(fmt.Sprintf("^%s$", strings.TrimPrefix(tokens[0], "!")))
+	if err != nil {
+		log.Info("Incorrect codeowner regexp: %s, error: %s", tokens[0], err)
+		return nil
+	}
+
+	for _, user := range tokens[1:] {
+		user = strings.TrimPrefix(user, "@")
+
+		// Only @org/team can contain slashes
+		if strings.Contains(user, "/") {
+			s := strings.Split(user, "/")
+			if len(s) != 2 {
+				log.Info("Incorrect codeowner group: %s", user)
+				continue
+			}
+			orgName := s[0]
+			teamName := s[1]
+
+			org, err := org_model.GetOrgByName(ctx, orgName)
+			if err != nil {
+				log.Info("Incorrect codeowner org name: %s", user)
+			}
+			teams, err := org.LoadTeams()
+			if err != nil {
+				log.Info("Incorrect codeowner team name: %s", user)
+			}
+
+			for _, team := range teams {
+				if team.Name == teamName {
+					if err := team.LoadMembers(ctx); err != nil {
+						continue
+					}
+					rule.Users = append(rule.Users, team.Members...)
+				}
+			}
+		} else {
+			u, err := user_model.GetUserByName(ctx, user)
+			if err != nil {
+				continue
+			}
+			rule.Users = append(rule.Users, u)
+		}
+	}
+
+	if len(rule.Users) == 0 {
+		return nil
+	}
+
+	return rule
+}
+
+func tokenizeCodeOwnersLine(line string) []string {
+	if len(line) == 0 {
+		return nil
+	}
+
+	line = strings.TrimSpace(line)
+	line = strings.ReplaceAll(line, "\t", " ")
+
+	tokens := make([]string, 0)
+
+	escape := false
+	token := ""
+	for _, char := range line {
+		if escape {
+			token += string(char)
+			escape = false
+		} else if string(char) == "\\" {
+			escape = true
+		} else if string(char) == "#" {
+			break
+			//} else if string(char) == "/" {
+			//	token += "\\/"
+		} else if string(char) == " " {
+			if len(token) > 0 {
+				tokens = append(tokens, token)
+				token = ""
+			}
+		} else {
+			token += string(char)
+		}
+	}
+
+	if len(token) > 0 {
+		tokens = append(tokens, token)
+	}
+
+	return tokens
 }

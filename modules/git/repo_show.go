@@ -7,7 +7,7 @@ import (
 	"fmt"
 )
 
-// GetRefs returns all references of the repository.
+// GetFileContent returns file content for given revision.
 func (repo *Repository) GetFileContent(rev, path string) ([]byte, error) {
 	cmd := NewCommand(repo.Ctx, "show")
 	cmd.AddDynamicArguments(fmt.Sprintf("%s:%s", rev, path))
