@@ -42,7 +42,6 @@ import (
 	"code.gitea.io/gitea/routers/web/feed"
 	issue_service "code.gitea.io/gitea/services/issue"
 
-	"github.com/google/licensecheck"
 	"github.com/nektos/act/pkg/model"
 )
 
@@ -165,13 +164,6 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 	renderReadmeFile(ctx, subfolder, readmeFile, treeLink)
-
-	subfolder, licenseFile, err := findFileInEntries(ctx, util.FileTypeLicense, entries, false)
-	if err != nil {
-		ctx.ServerError("findFileInEntries", err)
-		return
-	}
-	renderLicenseFile(ctx, subfolder, licenseFile, treeLink)
 }
 
 // localizedExtensions prepends the provided language code with and without a
@@ -328,45 +320,6 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 
 		ctx.Data["FileContent"] = buf.String()
 	}
-}
-
-func renderLicenseFile(ctx *context.Context, subfolder string, licenseFile *git.TreeEntry, readmeTreelink string) {
-	target := licenseFile
-	if licenseFile != nil && licenseFile.IsLink() {
-		target, _ = licenseFile.FollowLinks()
-	}
-	if target == nil {
-		// if findFile() failed and/or gave us a broken symlink (which it shouldn't)
-		// simply skip rendering the LICENSE
-		return
-	}
-
-	buf, dataRc, fInfo, err := getFileReader(ctx.Repo.Repository.ID, target.Blob())
-	if err != nil {
-		ctx.ServerError("getFileReader", err)
-		return
-	}
-	defer dataRc.Close()
-
-	// TODO: if fInfo.isLFSFile?
-	if !fInfo.isTextFile {
-		return
-	}
-	if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
-		// License file is too large to calculate
-		return
-	}
-
-	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
-
-	contentBuf := &bytes.Buffer{}
-	ctx.Data["EscapeStatus"], err = charset.EscapeControlStringReader(rd, contentBuf, ctx.Locale)
-	if err != nil {
-		log.Error("Read failed: %v", err)
-	}
-	cov := licensecheck.Scan(contentBuf.Bytes())
-	ctx.Data["MatchedLicenses"] = cov.Match
-	ctx.Data["LicenseFileName"] = licenseFile.Name()
 }
 
 func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink string) {

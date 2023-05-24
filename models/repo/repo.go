@@ -157,6 +157,8 @@ type Repository struct {
 	Units                  []*RepoUnit       `xorm:"-"`
 	PrimaryLanguage        *LanguageStat     `xorm:"-"`
 
+	Licenses []string `xorm:"TEXT JSON"`
+
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID                          int64              `xorm:"INDEX"`
 	BaseRepo                        *Repository        `xorm:"-"`
