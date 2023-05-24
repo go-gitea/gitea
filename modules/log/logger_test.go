@@ -94,6 +94,7 @@ func TestLoggerPause(t *testing.T) {
 	logger.AddWriters(w1)
 
 	GetManager().PauseAll()
+	time.Sleep(50 * time.Millisecond)
 
 	logger.Info("info-level")
 	time.Sleep(100 * time.Millisecond)
