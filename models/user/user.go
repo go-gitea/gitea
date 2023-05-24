@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -153,17 +152,11 @@ type SearchOrganizationsOptions struct {
 	All bool
 }
 
-// ColorFormat writes a colored string to identify this struct
-func (u *User) ColorFormat(s fmt.State) {
+func (u *User) LogString() string {
 	if u == nil {
-		log.ColorFprintf(s, "%d:%s",
-			log.NewColoredIDValue(0),
-			log.NewColoredValue("<nil>"))
-		return
+		return "<User nil>"
 	}
-	log.ColorFprintf(s, "%d:%s",
-		log.NewColoredIDValue(u.ID),
-		log.NewColoredValue(u.Name))
+	return fmt.Sprintf("<User %d:%s>", u.ID, u.Name)
 }
 
 // BeforeUpdate is invoked from XORM before updating this object.
@@ -629,7 +622,7 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	}
 
 	// validate data
-	if err := validateUser(u); err != nil {
+	if err := ValidateUser(u); err != nil {
 		return err
 	}
 
@@ -757,50 +750,6 @@ func VerifyUserActiveCode(code string) (user *User) {
 	return nil
 }
 
-// ChangeUserName changes all corresponding setting from old user name to new one.
-func ChangeUserName(ctx context.Context, u *User, newUserName string) (err error) {
-	oldUserName := u.Name
-	if err = IsUsableUsername(newUserName); err != nil {
-		return err
-	}
-
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	isExist, err := IsUserExist(ctx, 0, newUserName)
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrUserAlreadyExist{newUserName}
-	}
-
-	if _, err = db.GetEngine(ctx).Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, oldUserName); err != nil {
-		return fmt.Errorf("Change repo owner name: %w", err)
-	}
-
-	// Do not fail if directory does not exist
-	if err = util.Rename(UserPath(oldUserName), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("Rename user directory: %w", err)
-	}
-
-	if err = NewUserRedirect(ctx, u.ID, oldUserName, newUserName); err != nil {
-		return err
-	}
-
-	if err = committer.Commit(); err != nil {
-		if err2 := util.Rename(UserPath(newUserName), UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
-			log.Critical("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldUserName, newUserName, err, err2)
-			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldUserName, newUserName, err, err2)
-		}
-		return err
-	}
-
-	return nil
-}
-
 // checkDupEmail checks whether there are the same email with the user
 func checkDupEmail(ctx context.Context, u *User) error {
 	u.Email = strings.ToLower(u.Email)
@@ -819,19 +768,26 @@ func checkDupEmail(ctx context.Context, u *User) error {
 	return nil
 }
 
-// validateUser check if user is valid to insert / update into database
-func validateUser(u *User) error {
-	if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) && !u.IsOrganization() {
-		return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
+// ValidateUser check if user is valid to insert / update into database
+func ValidateUser(u *User, cols ...string) error {
+	if len(cols) == 0 || util.SliceContainsString(cols, "visibility", true) {
+		if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) && !u.IsOrganization() {
+			return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
+		}
 	}
 
-	u.Email = strings.ToLower(u.Email)
-	return ValidateEmail(u.Email)
+	if len(cols) == 0 || util.SliceContainsString(cols, "email", true) {
+		u.Email = strings.ToLower(u.Email)
+		if err := ValidateEmail(u.Email); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // UpdateUser updates user's information.
 func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...string) error {
-	err := validateUser(u)
+	err := ValidateUser(u, cols...)
 	if err != nil {
 		return err
 	}
@@ -897,7 +853,7 @@ func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 
 // UpdateUserCols update user according special columns
 func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
-	if err := validateUser(u); err != nil {
+	if err := ValidateUser(u, cols...); err != nil {
 		return err
 	}
 

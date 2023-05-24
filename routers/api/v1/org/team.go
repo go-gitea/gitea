@@ -126,7 +126,7 @@ func GetTeam(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Team"
 
-	apiTeam, err := convert.ToTeam(ctx, ctx.Org.Team)
+	apiTeam, err := convert.ToTeam(ctx, ctx.Org.Team, true)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

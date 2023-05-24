@@ -112,6 +112,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	routes.RouteMethods("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.RouteMethods("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 	routes.RouteMethods("/apple-touch-icon.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
+	routes.RouteMethods("/apple-touch-icon-precomposed.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.RouteMethods("/favicon.ico", "GET, HEAD", misc.StaticRedirect("/assets/img/favicon.png"))
 
 	_ = templates.HTMLRenderer()
@@ -1191,6 +1192,8 @@ func registerRoutes(m *web.Route) {
 				})
 				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 				m.Post("/approve", reqRepoActionsWriter, actions.Approve)
+				m.Post("/artifacts", actions.ArtifactsView)
+				m.Get("/artifacts/{id}", actions.ArtifactsDownloadView)
 				m.Post("/rerun", reqRepoActionsWriter, actions.RerunAll)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
@@ -1402,7 +1405,7 @@ func registerRoutes(m *web.Route) {
 	}
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
-		ctx := context.GetContext(req)
+		ctx := context.GetWebContext(req)
 		ctx.NotFound("", nil)
 	})
 }
