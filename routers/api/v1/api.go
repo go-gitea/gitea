@@ -240,6 +240,11 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) 
 // if a token is not being used, reqToken will enforce other sign in methods
 func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeCategory) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
+		// no scope required
+		if len(requiredScopeCategories) == 0 {
+			return
+		}
+
 		// Need OAuth2 token to be present.
 		scope, scopeExists := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
 		if ctx.Data["IsApiToken"] != true || !scopeExists {
@@ -248,11 +253,6 @@ func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeC
 
 		ctx.Data["ApiTokenScopePublicRepoOnly"] = false
 		ctx.Data["ApiTokenScopePublicOrgOnly"] = false
-
-		// no scope required
-		if len(requiredScopeCategories) == 0 {
-			return
-		}
 
 		// use the http method to determine the access level
 		requiredScopeLevel := auth_model.Read
