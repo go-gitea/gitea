@@ -320,7 +320,6 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 	return user_model.DeleteInactiveEmailAddresses(ctx)
 }
 
-
 var ErrProfileRepoNotExist = errors.New("profile repo not exist")
 
 // OpenUserProfileRepo open profile repo for a user
