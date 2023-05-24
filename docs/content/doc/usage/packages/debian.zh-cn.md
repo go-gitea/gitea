@@ -1,6 +1,6 @@
 ---
 date: "2023-01-07T00:00:00+00:00"
-title: "Debian Package Registry"
+title: "Debian 软件包注册表"
 slug: "debian"
 draft: false
 toc: false
@@ -12,67 +12,67 @@ menu:
     identifier: "debian"
 ---
 
-# Debian Package Registry
+# Debian 软件包注册表
 
-Publish [Debian](https://www.debian.org/distrib/packages) packages for your user or organization.
+为您的用户或组织发布 [Debian](https://www.debian.org/distrib/packages) 软件包。
 
-**Table of Contents**
+**目录**
 
 {{< toc >}}
 
-## Requirements
+## 要求
 
-To work with the Debian registry, you need to use a HTTP client like `curl` to upload and a package manager like `apt` to consume packages.
+要使用 Debian 注册表，您需要使用类似于 `curl` 的 HTTP 客户端进行上传，并使用类似于 `apt` 的软件包管理器消费软件包。
 
-The following examples use `apt`.
+以下示例使用 `apt`。
 
-## Configuring the package registry
+## 配置软件包注册表
 
-To register the Debian registry add the url to the list of known apt sources:
+要注册 Debian 注册表，请将 URL 添加到已知 apt 源列表中：
 
 ```shell
 echo "deb https://gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
 ```
 
-| Placeholder    | Description               |
-| -------------- | ------------------------- |
-| `owner`        | The owner of the package. |
-| `distribution` | The distribution to use.  |
-| `component`    | The component to use.     |
+| 占位符         | 描述           |
+| -------------- | -------------- |
+| `owner`        | 软件包的所有者 |
+| `distribution` | 要使用的发行版 |
+| `component`    | 要使用的组件   |
 
-If the registry is private, provide credentials in the url. You can use a password or a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}):
+如果注册表是私有的，请在 URL 中提供凭据。您可以使用密码或[个人访问令牌]({{< relref "doc/development/api-usage.zh-cn.md#通过-api-认证" >}})：
 
 ```shell
 echo "deb https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
 ```
 
-The Debian registry files are signed with a PGP key which must be known to apt:
+Debian 注册表文件使用 PGP 密钥进行签名，`apt` 必须知道该密钥：
 
 ```shell
 sudo curl https://gitea.example.com/api/packages/{owner}/debian/repository.key -o /etc/apt/trusted.gpg.d/gitea-{owner}.asc
 ```
 
-Afterwards update the local package index:
+然后更新本地软件包索引：
 
 ```shell
 apt update
 ```
 
-## Publish a package
+## 发布软件包
 
-To publish a Debian package (`*.deb`), perform a HTTP `PUT` operation with the package content in the request body.
+要发布一个 Debian 软件包（`*.deb`），执行 HTTP `PUT` 操作，并将软件包内容放入请求主体中。
 
 ```
 PUT https://gitea.example.com/api/packages/{owner}/debian/pool/{distribution}/{component}/upload
 ```
 
-| Parameter      | Description                                                            |
-| -------------- | ---------------------------------------------------------------------- |
-| `owner`        | The owner of the package.                                              |
-| `distribution` | The distribution may match the release name of the OS, ex: `bionic`.   |
-| `component`    | The component can be used to group packages or just `main` or similar. |
+| 参数           | 描述                                                  |
+| -------------- | ----------------------------------------------------- |
+| `owner`        | 软件包的所有者                                        |
+| `distribution` | 发行版，可能与操作系统的发行版名称匹配，例如 `bionic` |
+| `component`    | 组件，可用于分组软件包，或仅为 `main` 或类似的组件。  |
 
-Example request using HTTP Basic authentication:
+使用 HTTP 基本身份验证的示例请求：
 
 ```shell
 curl --user your_username:your_password_or_token \
@@ -80,51 +80,52 @@ curl --user your_username:your_password_or_token \
      https://gitea.example.com/api/packages/testuser/debian/pool/bionic/main/upload
 ```
 
-If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) instead of the password.
-You cannot publish a file with the same name twice to a package. You must delete the existing package version first.
+如果您使用 2FA 或 OAuth，请使用[个人访问令牌]({{< relref "doc/development/api-usage.zh-cn.md#通过-api-认证" >}})替代密码。
+您无法向软件包中多次发布具有相同名称的文件。您必须首先删除现有的软件包版本。
 
-The server responds with the following HTTP Status codes.
+服务器将使用以下 HTTP 状态代码进行响应。
 
-| HTTP Status Code  | Meaning                                                                         |
-| ----------------- | ------------------------------------------------------------------------------- |
-| `201 Created`     | The package has been published.                                                 |
-| `400 Bad Request` | The package name, version, distribution, component or architecture are invalid. |
-| `409 Conflict`    | A package file with the same combination of parameters exists already.          |
+| HTTP 状态码       | 意义                                     |
+| ----------------- | ---------------------------------------- |
+| `201 Created`     | 软件包已发布                             |
+| `400 Bad Request` | 软件包名称、版本、发行版、组件或架构无效 |
+| `409 Conflict`    | 具有相同参数组合的软件包文件已经存在.    |
 
-## Delete a package
+## 删除软件包
 
-To delete a Debian package perform a HTTP `DELETE` operation. This will delete the package version too if there is no file left.
+要删除 Debian 软件包，请执行 HTTP `DELETE` 操作。如果没有文件留下，这将同时删除软件包版本。
 
 ```
 DELETE https://gitea.example.com/api/packages/{owner}/debian/pool/{distribution}/{component}/{package_name}/{package_version}/{architecture}
 ```
 
-| Parameter         | Description               |
-| ----------------- | ------------------------- |
-| `owner`           | The owner of the package. |
-| `package_name`    | The package name.         |
-| `package_version` | The package version.      |
-| `distribution`    | The package distribution. |
-| `component`       | The package component.    |
-| `architecture`    | The package architecture. |
+| 参数              | 描述           |
+| ----------------- | -------------- |
+| `owner`           | 软件包的所有者 |
+| `package_name`    | 软件包名称     |
+| `package_version` | 软件包版本     |
+| `distribution`    | 软件包发行版   |
+| `component`       | 软件包组件     |
+| `architecture`    | 软件包架构     |
 
-Example request using HTTP Basic authentication:
+使用 HTTP 基本身份验证的示例请求：
+
 
 ```shell
 curl --user your_username:your_token_or_password -X DELETE \
      https://gitea.example.com/api/packages/testuser/debian/pools/bionic/main/test-package/1.0.0/amd64
 ```
 
-The server responds with the following HTTP Status codes.
+服务器将使用以下 HTTP 状态代码进行响应。
 
-| HTTP Status Code | Meaning                            |
-| ---------------- | ---------------------------------- |
-| `204 No Content` | Success                            |
-| `404 Not Found`  | The package or file was not found. |
+| HTTP 状态码      | 含义               |
+| ---------------- | ------------------ |
+| `204 No Content` | 成功               |
+| `404 Not Found`  | 找不到软件包或文件 |
 
-## Install a package
+## 安装软件包
 
-To install a package from the Debian registry, execute the following commands:
+要从 Debian 注册表安装软件包，请执行以下命令:
 
 ```shell
 # use latest version
