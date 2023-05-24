@@ -63,19 +63,19 @@ func redirectForCommitChoice(ctx *context.Context, commitChoice, newBranchName, 
 		// Redirect to a pull request when possible
 		redirectToPullRequest := false
 		repo := ctx.Repo.Repository
-		baseBranch := util.PathEscapeSegments(ctx.Repo.BranchName)
-		headBranch := util.PathEscapeSegments(newBranchName)
+		baseBranch := ctx.Repo.BranchName
+		headBranch := newBranchName
 		if repo.UnitEnabled(ctx, unit.TypePullRequests) {
 			redirectToPullRequest = true
 		} else if canCreateBasePullRequest(ctx) {
 			redirectToPullRequest = true
-			baseBranch = util.PathEscapeSegments(repo.BaseRepo.DefaultBranch)
-			headBranch = util.PathEscapeSegments(repo.Owner.Name) + "/" + util.PathEscapeSegments(repo.Name) + ":" + headBranch
+			baseBranch = repo.BaseRepo.DefaultBranch
+			headBranch = repo.Owner.Name + "/" + repo.Name + ":" + headBranch
 			repo = repo.BaseRepo
 		}
 
 		if redirectToPullRequest {
-			ctx.Redirect(repo.Link() + "/compare/" + baseBranch + "..." + headBranch)
+			ctx.Redirect(repo.Link() + "/compare/" + util.PathEscapeSegments(baseBranch) + "..." + util.PathEscapeSegments(headBranch))
 			return
 		}
 	}
