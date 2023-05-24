@@ -10,7 +10,6 @@ import (
 	// "io/ioutil"
 	// "net/http"
 	b64 "encoding/base64"
-
 	// "os"
 	"strings"
 
@@ -200,6 +199,8 @@ func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, do
 	return nil
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // AddCodeownerReviewers gets all the codeowners of the files changed in the pull request (as outlined in the base repository's
 // CODEOWNERS file) and requests them for review if they exist and are eligibl to do so. Codeowners can be users or teams.
 func AddCodeownerReviewers(ctx context.Context, pr *issues_model.PullRequest, repo *repo_model.Repository) (err error) {
@@ -224,20 +225,20 @@ func AddCodeownerReviewers(ctx context.Context, pr *issues_model.PullRequest, re
 			return nil
 		}
 
-		AddValidReviewers(ctx, pr.Issue, owners, teamOwners)
+		AddValidReviewers(ctx, pr.Issue, repo, owners, teamOwners)
 	}
 	return nil
 }
 
 // AddValidReviewers adds reviewers to the given issue (pull request) if the users and teams are valid and eligible to do so
-func AddValidReviewers(ctx context.Context, issue *issues_model.Issue, owners []string, teamOwners []string) {
+func AddValidReviewers(ctx context.Context, issue *issues_model.Issue, repo *repo_model.Repository, owners []string, teamOwners []string) {
 	prPoster := issue.Poster
 	isAdd := true
 	for _, userReviewer := range GetValidUserReviewers(ctx, owners) {
 		_, _ = ReviewRequest(ctx, issue, prPoster, userReviewer, isAdd)
 		// ignore the error? Seems weird, but we just won't assign them to review if they can't
 	}
-	for _, teamReviewer := range GetValidTeamReviewers(ctx, teamOwners) {
+	for _, teamReviewer := range GetValidTeamReviewers(ctx, repo, teamOwners, prPoster) {
 		_, _ = TeamReviewRequest(ctx, issue, prPoster, teamReviewer, isAdd)
 		// ignore the error? Seems weird, but we just won't assign them to review if they can't
 	}
@@ -289,7 +290,7 @@ func GetCodeownersTreeEntry(commit *git.Commit, directoryOptions []string) *git.
 
 // ParseCodeowners gets the users and teams that own any of the files given CODEOWNERS rules.
 func ParseCodeowners(files []string, codeownersFile []byte) (users []string, teams []string, err error) {
-	return []string{"user3", "not_a_real_username", "user2@g.co"}, []string{}, nil
+	return []string{"user3", "not_a_real_username", "user2@g.co"}, []string{"Org1/teamA", "Org2/teamA"}, nil
 	// TODO: Actually use the Parser
 }
 
@@ -313,37 +314,58 @@ func GetValidUserReviewers(ctx context.Context, userNamesOrEmails []string) (rev
 }
 
 // GetValidReviewers gets the Teams that actually exist and are authorized to review the pull request
-func GetValidTeamReviewers(ctx context.Context, teamNames []string) (teamReviewers []*organization_model.Team) {
-	// TODO: All of this, or refactor
-	// if ctx.Repo.Repository.Owner.IsOrganization() && len(opts.TeamReviewers) > 0 {
-	// 	teamReviewers := make([]*organization.Team, 0, len(opts.TeamReviewers))
-	// 	for _, t := range opts.TeamReviewers {
-	// 		var teamReviewer *organization.Team
-	// 		teamReviewer, err = organization.GetTeam(ctx, ctx.Repo.Owner.ID, t)
-	// 		if err != nil {
-	// 			if organization.IsErrTeamNotExist(err) {
-	// 				ctx.NotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", t))
-	// 				return
-	// 			}
-	// 			ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
-	// 			return
-	// 		}
+func GetValidTeamReviewers(ctx context.Context, repo *repo_model.Repository, fullTeamNames []string, doer *user_model.User) (teamReviewers []*organization_model.Team) {
+	teamReviewers = []*organization_model.Team{}
 
-	// 		err = issue_service.IsValidTeamReviewRequest(ctx, teamReviewer, ctx.Doer, isAdd, pr.Issue)
-	// 		if err != nil {
-	// 			if issues_model.IsErrNotValidReviewRequest(err) {
-	// 				ctx.Error(http.StatusUnprocessableEntity, "NotValidReviewRequest", err)
-	// 				return
-	// 			}
-	// 			ctx.Error(http.StatusInternalServerError, "IsValidTeamReviewRequest", err)
-	// 			return
-	// 		}
+	if repo.Owner.IsOrganization() {
+		for _, fullTeamName := range fullTeamNames {
+			team := GetTeamFromFullName(fullTeamName, doer, ctx)
+			// TODO: err = IsValidTeamReviewRequest(ctx, teamReviewer, ctx.Doer, isAdd, pr.Issue)
+			if team != nil {
+				teamReviewers = append(teamReviewers, team)
+			}
+		}
+	}
 
-	// 		teamReviewers = append(teamReviewers, teamReviewer)
-	// 	}
-	// }
-	return []*organization_model.Team{} // empty array for now
+	return teamReviewers
 }
+
+// GetTeamFromFullName gets the team given its full name ('{organizationName}/{teamName}')
+func GetTeamFromFullName(fullTeamName string, doer *user_model.User, ctx context.Context) *organization_model.Team {
+	teamNameSplit := strings.Split(fullTeamName, "/")
+	if len(teamNameSplit) != 2 {
+		return nil
+	}
+	organizationName, teamName := teamNameSplit[0], teamNameSplit[1]
+
+	opts := organization_model.FindOrgOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		UserID:         doer.ID,
+		IncludePrivate: true,
+	}
+	organizations, err := organization_model.FindOrgs(opts)
+	if err != nil {
+		return nil
+	}
+
+	var organization *organization_model.Organization
+	for _, org := range organizations {
+		if org.Name == organizationName {
+			organization = org
+			break
+		}
+	}
+
+	var team *organization_model.Team
+	if organization != nil {
+		team, _ = organization.GetTeam(ctx, teamName)
+	}
+	return team
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // GetRefEndNamesAndURLs retrieves the ref end names (e.g. refs/heads/branch-name -> branch-name)
 // and their respective URLs.
