@@ -7,8 +7,14 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
+
 	"xorm.io/xorm"
 )
+
+// unknownAccessTokenScope represents the scope for an access token that isn't
+// known be an old token or a new token.
+type unknownAccessTokenScope string
 
 // AccessTokenScope represents the scope for an access token.
 type AccessTokenScope string
@@ -168,8 +174,16 @@ func (bitmap accessTokenScopeBitmap) hasScope(scope AccessTokenScope) (bool, err
 }
 
 // toScope returns a normalized scope string without any duplicates.
-func (bitmap accessTokenScopeBitmap) toScope() AccessTokenScope {
+func (bitmap accessTokenScopeBitmap) toScope(unknownScopes *[]unknownAccessTokenScope) AccessTokenScope {
 	var scopes []string
+
+	// Preserve unknown scopes, and put them at the beginning so that it's clear
+	// when debugging.
+	if unknownScopes != nil {
+		for _, unknownScope := range *unknownScopes {
+			scopes = append(scopes, string(unknownScope))
+		}
+	}
 
 	// iterate over all scopes, and reconstruct the bitmap
 	// if the reconstructed bitmap doesn't change, then the scope is already included
@@ -198,8 +212,9 @@ func (bitmap accessTokenScopeBitmap) toScope() AccessTokenScope {
 }
 
 // parse the scope string into a bitmap, thus removing possible duplicates.
-func (s AccessTokenScope) parse() (accessTokenScopeBitmap, error) {
+func (s AccessTokenScope) parse() (accessTokenScopeBitmap, *[]unknownAccessTokenScope) {
 	var bitmap accessTokenScopeBitmap
+	var unknownScopes []unknownAccessTokenScope
 
 	// The following is the more performant equivalent of 'for _, v := range strings.Split(remainingScope, ",")' as this is hot code
 	remainingScopes := string(s)
@@ -227,22 +242,20 @@ func (s AccessTokenScope) parse() (accessTokenScopeBitmap, error) {
 
 		bits, ok := allAccessTokenScopeBits[singleScope]
 		if !ok {
-			return 0, fmt.Errorf("invalid access token scope: %s", singleScope)
+			unknownScopes = append(unknownScopes, unknownAccessTokenScope(string(singleScope)))
 		}
 		bitmap |= bits
 	}
 
-	return bitmap, nil
+	return bitmap, &unknownScopes
 }
 
-// Normalize returns a normalized scope string without any duplicates.
-func (s AccessTokenScope) Normalize() (AccessTokenScope, error) {
-	bitmap, err := s.parse()
-	if err != nil {
-		return "", err
-	}
+// NormalizePreservingUnknown returns a normalized scope string without any
+// duplicates.  Unknown scopes are included.
+func (s AccessTokenScope) NormalizePreservingUnknown() AccessTokenScope {
+	bitmap, unknownScopes := s.parse()
 
-	return bitmap.toScope(), nil
+	return bitmap.toScope(unknownScopes)
 }
 
 // OldAccessTokenScope represents the scope for an access token.
@@ -341,6 +354,7 @@ func ConvertScopedAccessTokens(x *xorm.Engine) error {
 	}
 
 	for _, token := range tokens {
+		var scopes []string
 		allNewScopesMap := make(map[AccessTokenScope]bool)
 		for _, oldScope := range strings.Split(token.Scope, ",") {
 			if newScopes, exists := accessTokenScopeMap[OldAccessTokenScope(oldScope)]; exists {
@@ -348,26 +362,23 @@ func ConvertScopedAccessTokens(x *xorm.Engine) error {
 					allNewScopesMap[newScope] = true
 				}
 			} else {
-				return fmt.Errorf("old access token scope %s does not exist", oldScope)
+				log.Debug("access token scope not recognized as old token scope %s; preserving it", oldScope)
+				scopes = append(scopes, oldScope)
 			}
 		}
 
-		scopes := make([]string, 0, len(allNewScopesMap))
 		for s := range allNewScopesMap {
 			scopes = append(scopes, string(s))
 		}
 		scope := AccessTokenScope(strings.Join(scopes, ","))
 
 		// normalize the scope
-		normScope, err := scope.Normalize()
-		if err != nil {
-			return err
-		}
+		normScope := scope.NormalizePreservingUnknown()
 
 		token.Scope = string(normScope)
 
 		// update the db entry with the new scope
-		if _, err = x.Cols("scope").Update(token); err != nil {
+		if _, err := x.Cols("scope").Update(token); err != nil {
 			return err
 		}
 	}
