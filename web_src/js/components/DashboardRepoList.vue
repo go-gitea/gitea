@@ -444,6 +444,7 @@ const sfc = {
             this.activeIndex--;
           } else if (this.page > 1) {
             this.changePage(this.page - 1);
+            this.activeIndex = this.searchLimit - 1;
           }
           break;
         case 'ArrowDown':
