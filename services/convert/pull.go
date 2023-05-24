@@ -92,10 +92,8 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		log.Error("LoadRequestedReviewers[%d]: %v", pr.ID, err)
 		return nil
 	}
-	if len(pr.RequestedReviewers) > 0 {
-		for _, reviewer := range pr.RequestedReviewers {
-			apiPullRequest.RequestedReviewers = append(apiPullRequest.RequestedReviewers, ToUser(ctx, reviewer, nil))
-		}
+	for _, reviewer := range pr.RequestedReviewers {
+		apiPullRequest.RequestedReviewers = append(apiPullRequest.RequestedReviewers, ToUser(ctx, reviewer, nil))
 	}
 
 	if pr.Issue.ClosedUnix != 0 {

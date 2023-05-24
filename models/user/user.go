@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -979,15 +980,14 @@ func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
 
 // GetPossibleUserByIDs returns the users if id > 0 or return system users if id < 0
 func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
-	uniqueIDs := make(map[int64]struct{})
+	uniqueIDs := make(container.Set[int64], 32)
+	uniqueIDs.AddMultiple(ids...)
+
 	users := make([]*User, 0, len(ids))
-	for _, id := range ids {
-		uniqueIDs[id] = struct{}{}
-	}
+
 	if _, ok := uniqueIDs[0]; ok {
 		return nil, ErrUserNotExist{}
 	}
-
 	if _, ok := uniqueIDs[-1]; ok {
 		users = append(users, NewGhostUser())
 		delete(uniqueIDs, -1)
