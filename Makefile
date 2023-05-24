@@ -936,7 +936,7 @@ fomantic:
 webpack: $(WEBPACK_DEST)
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json
-	@$(MAKE) -s node-check node_modules
+	@$(MAKE) --no-print-directory -s node-check node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
 	npx webpack
 	@touch $(WEBPACK_DEST)
