@@ -1,6 +1,6 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
-title: "RubyGems Packages Repository"
+title: "RubyGems Package Registry"
 slug: "rubygems"
 weight: 110
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "rubygems"
 ---
 
-# RubyGems Packages Repository
+# RubyGems Package Registry
 
 Publish [RubyGems](https://guides.rubygems.org/) packages for your user or organization.
 

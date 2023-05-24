@@ -1,6 +1,6 @@
 ---
 date: "2023-03-08T00:00:00+00:00"
-title: "RPM Packages Repository"
+title: "RPM Package Registry"
 slug: "packages/rpm"
 draft: false
 toc: false
@@ -12,7 +12,7 @@ menu:
     identifier: "rpm"
 ---
 
-# RPM Packages Repository
+# RPM Package Registry
 
 Publish [RPM](https://rpm.org/) packages for your user or organization.
 
