@@ -16,7 +16,7 @@ type AccessTokenScope string
 // for all categories, delete implies write, write implies read
 const (
 	AccessTokenScopeAll        AccessTokenScope = "all"
-	AccessTokenScopePublicOnly AccessTokenScope = "public" // limited to public orgs/repos
+	AccessTokenScopePublicOnly AccessTokenScope = "public-only" // limited to public orgs/repos
 
 	AccessTokenScopeReadActivityPub   AccessTokenScope = "read:activitypub"
 	AccessTokenScopeWriteActivityPub  AccessTokenScope = "write:activitypub"

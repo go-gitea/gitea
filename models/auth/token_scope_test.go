@@ -19,10 +19,10 @@ type scopeTestNormalize struct {
 func TestAccessTokenScope_Normalize(t *testing.T) {
 	tests := []scopeTestNormalize{
 		{"", "", nil},
-		{"write:misc,delete:notification,read:package,write:notification,public", "public,write:misc,delete:notification,read:package", nil},
+		{"write:misc,delete:notification,read:package,write:notification,public-only", "public-only,write:misc,delete:notification,read:package", nil},
 		{"all", "all", nil},
 		{"delete:activitypub,delete:admin,delete:misc,delete:notification,delete:organization,delete:package,delete:issue,delete:repository,delete:user", "all", nil},
-		{"delete:activitypub,delete:admin,delete:misc,delete:notification,delete:organization,delete:package,delete:issue,delete:repository,delete:user,public", "public,all", nil},
+		{"delete:activitypub,delete:admin,delete:misc,delete:notification,delete:organization,delete:package,delete:issue,delete:repository,delete:user,public-only", "public-only,all", nil},
 	}
 
 	for _, scope := range []string{"activitypub", "admin", "misc", "notification", "organization", "package", "issue", "repository", "user"} {
@@ -56,7 +56,7 @@ func TestAccessTokenScope_HasScope(t *testing.T) {
 		{"read:admin", "delete:package", false, nil},
 		{"all", "delete:package", true, nil},
 		{"delete:package", "all", false, nil},
-		{"public", "read:issue", false, nil},
+		{"public-only", "read:issue", false, nil},
 	}
 
 	for _, scope := range []string{"activitypub", "admin", "misc", "notification", "organization", "package", "issue", "repository", "user"} {
