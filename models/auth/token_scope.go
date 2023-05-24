@@ -221,7 +221,7 @@ var accessTokenScopes = map[AccessTokenScopeLevel]map[AccessTokenScopeCategory]A
 
 // GetRequiredScopes gets the specific scopes for a given level and categories
 func GetRequiredScopes(level AccessTokenScopeLevel, scopeCategories ...AccessTokenScopeCategory) []AccessTokenScope {
-	scopes := make([]AccessTokenScope, 0)
+	scopes := make([]AccessTokenScope, 0, len(scopeCategories))
 	for _, cat := range scopeCategories {
 		scopes = append(scopes, accessTokenScopes[level][cat])
 	}
