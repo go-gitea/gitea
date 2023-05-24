@@ -1417,7 +1417,7 @@ func registerRoutes(m *web.Route) {
 	}
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
-		ctx := context.GetContext(req)
+		ctx := context.GetWebContext(req)
 		ctx.NotFound("", nil)
 	})
 }
