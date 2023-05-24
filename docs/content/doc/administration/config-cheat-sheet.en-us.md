@@ -514,7 +514,7 @@ And the following unique queues:
 
 - `INSTALL_LOCK`: **false**: Controls access to the installation page. When set to "true", the installation page is not accessible.
 - `SECRET_KEY`: **\<random at every install\>**: Global secret key. This key is VERY IMPORTANT, if you lost it, the data encrypted by it (like 2FA secret) can't be decrypted anymore.
-- `SECRET_KEY_URI`: **<empty>**: Instead of defining SECRET_KEY, this option can be used to use the key stored in a file (example value: `file:/etc/gitea/secret_key`). It shouldn't be lost like SECRET_KEY.
+- `SECRET_KEY_URI`: **\<empty\>**: Instead of defining SECRET_KEY, this option can be used to use the key stored in a file (example value: `file:/etc/gitea/secret_key`). It shouldn't be lost like SECRET_KEY.
 - `LOGIN_REMEMBER_DAYS`: **7**: Cookie lifetime, in days.
 - `COOKIE_USERNAME`: **gitea\_awesome**: Name of the cookie used to store the current username.
 - `COOKIE_REMEMBER_NAME`: **gitea\_incredible**: Name of cookie used to store authentication
@@ -540,7 +540,7 @@ And the following unique queues:
 - `ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET`: **true**: Set to `false` to allow local users to push to gitea-repositories without setting up the Gitea environment. This is not recommended and if you want local users to push to Gitea repositories you should set the environment appropriately.
 - `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
 - `INTERNAL_TOKEN`: **\<random at every install if no uri set\>**: Secret used to validate communication within Gitea binary.
-- `INTERNAL_TOKEN_URI`: **<empty>**: Instead of defining INTERNAL_TOKEN in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
+- `INTERNAL_TOKEN_URI`: **\<empty\>**: Instead of defining INTERNAL_TOKEN in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
 - `PASSWORD_HASH_ALGO`: **pbkdf2**: The hash algorithm to use \[argon2, pbkdf2, pbkdf2_v1, pbkdf2_hi, scrypt, bcrypt\], argon2 and scrypt will spend significant amounts of memory.
   - Note: The default parameters for `pbkdf2` hashing have changed - the previous settings are available as `pbkdf2_v1` but are not recommended.
   - The hash functions may be tuned by using `$` after the algorithm:
@@ -571,8 +571,8 @@ And the following unique queues:
 ## Camo (`camo`)
 
 - `ENABLED`: **false**: Enable media proxy, we support images only at the moment.
-- `SERVER_URL`: **<empty>**: URL of camo server, it **is required** if camo is enabled.
-- `HMAC_KEY`: **<empty>**: Provide the HMAC key for encoding URLs, it **is required** if camo is enabled.
+- `SERVER_URL`: **\<empty\>**: URL of camo server, it **is required** if camo is enabled.
+- `HMAC_KEY`: **\<empty\>**: Provide the HMAC key for encoding URLs, it **is required** if camo is enabled.
 - `ALLWAYS`: **false**: Set to true to use camo for both HTTP and HTTPS content, otherwise only non-HTTPS URLs are proxied
 
 ## OpenID (`openid`)
