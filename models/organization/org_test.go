@@ -265,6 +265,12 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 			UID:      4,
 			IsPublic: false,
 		}, *orgUsers[1])
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[2].ID,
+			OrgID:    3,
+			UID:      28,
+			IsPublic: true,
+		}, *orgUsers[2])
 	}
 
 	orgUsers, err = organization.GetOrgUsersByOrgID(db.DefaultContext, &organization.FindOrgMembersOpts{

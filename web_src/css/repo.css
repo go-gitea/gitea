@@ -230,7 +230,7 @@
 .repository.file.list #repo-files-table thead th {
   padding-top: 8px;
   padding-bottom: 5px;
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
 }
 
 .repository.file.list #repo-files-table thead .ui.avatar {
@@ -627,7 +627,7 @@
   align-items: center;
   flex: 1;
   width: 100%;
-  font-weight: 300;
+  font-weight: var(--font-weight-normal);
   font-size: 32px;
   line-height: 40px;
   margin: 0;
@@ -1305,7 +1305,7 @@
 }
 
 .repository.commits .header .search input {
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
   padding: 5px 10px;
 }
 
@@ -1533,7 +1533,7 @@
 }
 
 .repository .data-table th {
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
   background: var(--color-box-header);
   border-top: 0;
 }
@@ -1880,7 +1880,7 @@
 }
 
 .repository.quickstart .guide .item small {
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
 }
 
 .repository.quickstart .guide .clone.button:first-child {
@@ -1991,7 +1991,7 @@
 }
 
 .repository.settings.branches .branch-protection .status-check-matched-mark {
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
   font-style: italic;
 }
 
@@ -2185,7 +2185,7 @@
   border-radius: 0;
   margin: 0;
   font-size: 14px;
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
   border-color: var(--color-secondary) !important;
   background: var(--color-reaction-bg);
 }
@@ -2347,7 +2347,7 @@
 .user-cards .list .item .name {
   margin-top: 0;
   margin-bottom: 0;
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
 }
 
 .user-cards .list .item .meta {
@@ -2465,7 +2465,7 @@
   border: none !important;
   background: var(--color-box-header);
   border-bottom: 1px solid var(--color-secondary) !important;
-  font-weight: normal !important;
+  font-weight: var(--font-weight-normal) !important;
   padding: 0.5rem 1rem;
   margin: 0 !important;
   position: relative;
@@ -2828,7 +2828,7 @@ tbody.commit-list {
 }
 
 #repo-topics .repo-topic {
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
   cursor: pointer;
   margin: 2px;
 }
@@ -2933,7 +2933,7 @@ tbody.commit-list {
 }
 
 .resolved-placeholder {
-  font-weight: normal !important;
+  font-weight: var(--font-weight-normal) !important;
   border: 1px solid var(--color-secondary) !important;
   border-radius: var(--border-radius) !important;
   margin: 4px !important;

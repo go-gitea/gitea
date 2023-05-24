@@ -56,7 +56,13 @@
   --color-secondary-alpha-70: #525767b3;
   --color-secondary-alpha-80: #525767cc;
   --color-secondary-alpha-90: #525767e1;
-  /* colors */
+  /* console colors */
+  --color-console-fg: #ffffff;
+  --color-console-bg: #262936;
+  --color-console-border: #ffffff16;
+  --color-console-hover-bg: #ffffff16;
+  --color-console-active-bg: #383c47;
+  /* named colors */
   --color-red: #cc4848;
   --color-orange: #cc580c;
   --color-yellow: #cc9903;
@@ -175,7 +181,6 @@
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-5);
   --color-active-line: #534d1b;
-
   accent-color: var(--color-accent);
   color-scheme: dark;
 }

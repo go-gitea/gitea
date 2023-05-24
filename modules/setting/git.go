@@ -5,6 +5,7 @@ package setting
 
 import (
 	"path/filepath"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -78,10 +79,26 @@ var Git = struct {
 	},
 }
 
+var GitConfig = struct {
+	Options map[string]string
+}{
+	Options: make(map[string]string),
+}
+
 func loadGitFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("git")
 	if err := sec.MapTo(&Git); err != nil {
 		log.Fatal("Failed to map Git settings: %v", err)
+	}
+
+	secGitConfig := rootCfg.Section("git.config")
+	GitConfig.Options = make(map[string]string)
+	for _, key := range secGitConfig.Keys() {
+		// git config key is case-insensitive, so always use lower-case
+		GitConfig.Options[strings.ToLower(key.Name())] = key.String()
+	}
+	if _, ok := GitConfig.Options["diff.algorithm"]; !ok {
+		GitConfig.Options["diff.algorithm"] = "histogram"
 	}
 
 	Git.HomePath = sec.Key("HOME_PATH").MustString("home")

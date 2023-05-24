@@ -239,7 +239,10 @@ func NewWorkerPoolQueueBySetting[T any](name string, queueSetting setting.QueueS
 				log.Error("Recovered from panic in queue %q handler: %v\n%s", name, err, log.Stack(2))
 			}
 		}()
-		return w.origHandler(t...)
+		if w.origHandler != nil {
+			return w.origHandler(t...)
+		}
+		return nil
 	}
 
 	return &w, nil
