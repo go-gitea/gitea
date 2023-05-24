@@ -413,7 +413,7 @@ lint-editorconfig:
 
 .PHONY: watch
 watch:
-	bash build/watch.sh
+	@bash build/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
