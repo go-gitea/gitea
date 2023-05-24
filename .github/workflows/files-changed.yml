@@ -4,13 +4,13 @@ on:
   workflow_call:
     outputs:
       docs:
-        description: "wehther docs files changed"
+        description: "whether docs files changed"
         value: ${{ jobs.files-changed.outputs.docs }}
       backend:
-        description: "wehther backend files changed"
+        description: "whether backend files changed"
         value: ${{ jobs.files-changed.outputs.backend }}
       frontend:
-        description: "wehther frontend files changed"
+        description: "whether frontend files changed"
         value: ${{ jobs.files-changed.outputs.frontend }}
 
 jobs:
