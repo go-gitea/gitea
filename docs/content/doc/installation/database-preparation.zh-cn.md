@@ -191,7 +191,7 @@ menu:
 Gitea 使用的 PostgreSQL 驱动程序支持双向 TLS。在双向 TLS 中，数据库客户端和服务器通过将各自的证书发送给对方进行验证来相互认证。换句话说，服务器验证客户端证书，客户端验证服务器证书。
 
 1. 在数据库实例所在的服务器上，放置以下凭据：
-   
+
     - `/path/to/postgresql.crt`: 数据库实例证书
     - `/path/to/postgresql.key`: 数据库实例私钥
     - `/path/to/root.crt`: 用于验证客户端证书的CA证书链

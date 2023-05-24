@@ -261,7 +261,6 @@ docker-compose up -d
   - 设置 `START_SSH_SERVER = true`
 - 使用镜像 `gitea/gitea:{{< version >}}-rootless`
 
-
 ## 使用环境变量管理部署
 
 除了上述的环境变量外，`app.ini` 中的任何设置都可以通过形式为 `GITEA__SECTION_NAME__KEY_NAME` 的环境变量进行设置或覆盖。这些设置在每次 Docker 容器启动时都会生效。完整信息请参考[这里](https://github.com/go-gitea/gitea/tree/main/contrib/environment-to-ini).
