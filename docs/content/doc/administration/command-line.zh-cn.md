@@ -56,7 +56,6 @@ menu:
 - 注意：
   - Gitea 不应以 root 用户身份运行。要绑定到低于 1024 的端口，您可以在 Linux 上使用 setcap 命令：`sudo setcap 'cap_net_bind_service=+ep' /path/to/gitea`。每次更新 Gitea 都需要重新执行此操作。
 
-
 ### admin
 
 管理员操作：
@@ -531,7 +530,7 @@ gitea doctor recreate-table
   - `--repo_name tango`：还原目标存储库名称。
   - `--units <units>`：要还原的项目，一个或多个项目应以逗号分隔。允许的项目有 wiki, issues, labels, releases, release_assets, milestones, pull_requests, comments。如果为空，则表示所有项目。
 
-  ### actions generate-runner-token
+### actions generate-runner-token
 
 生成一个供 Runner 使用的新令牌，用于向服务器注册。
 

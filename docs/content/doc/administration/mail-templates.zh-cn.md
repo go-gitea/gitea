@@ -154,7 +154,6 @@ _主题_ 和 _邮件正文_ 由 [Golang的模板引擎](https://golang.org/pkg/t
 
 如果遇到问题，请检查 [Gitea的日志](https://docs.gitea.io/en-us/logging-configuration/) 以获取错误消息。
 
-
 ## 示例
 
 `custom/templates/mail/issue/default.tmpl`:
@@ -222,8 +221,6 @@ _主题_ 和 _邮件正文_ 由 [Golang的模板引擎](https://golang.org/pkg/t
 </body>
 </html>
 ```
-
-## 示例
 
 该模板将生成以下内容：
 
