@@ -72,11 +72,11 @@
             <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
               <SvgIcon name="octicon-gear" :size="18"/>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
-                <a class="item" @click="toggleTime('duration')">
+                <a class="item" @click="toggleTimeDisplay('duration')">
                   <span><SvgIcon v-show="timeVisible.duration" name="octicon-check"/></span>
                   {{ locale.jobOptions.showLogduration }}
                 </a>
-                <a class="item" @click="toggleTime('stamp')">
+                <a class="item" @click="toggleTimeDisplay('stamp')">
                   <span><SvgIcon v-show="timeVisible.stamp" name="octicon-check"/></span>
                   {{ locale.jobOptions.showTimeStamp }}
                 </a>
@@ -286,19 +286,20 @@ const sfc = {
       lineNumber.textContent = line.index;
       div.append(lineNumber);
 
+      // for "Show timestamps"
       const logTimeStamp = document.createElement('span');
       logTimeStamp.className = 'log-time-stamp';
       const date = new Date(parseFloat(line.timestamp * 1000));
-
+      const timeStamp = date.toLocaleString(getCurrentLocale(), {year: 'numeric', month: 'short', day: '2-digit', weekday: 'short', hour: '2-digit', hour12: false, minute: '2-digit', second: '2-digit', timeZone: 'UTC', timeZoneName: 'short'});
+      logTimeStamp.innerHTML = timeStamp;
+      toggleElem(logTimeStamp, this.timeVisible.stamp);
+      // for "Show log duration"
       const logTimeDuration = document.createElement('span');
       logTimeDuration.className = 'log-time-duration';
       const duration = Math.floor(parseFloat(line.timestamp) - parseFloat(startTime));
       logTimeDuration.innerHTML = `${duration}s`;
       toggleElem(logTimeDuration, this.timeVisible.duration);
 
-      const timeStamp = date.toLocaleString(getCurrentLocale(), {year: 'numeric', month: 'short', day: '2-digit', weekday: 'short', hour: '2-digit', hour12: false, minute: '2-digit', second: '2-digit', timeZone: 'UTC', timeZoneName: 'short'});
-      logTimeStamp.innerHTML = timeStamp;
-      toggleElem(logTimeStamp, this.timeVisible.stamp);
       const logMessage = document.createElement('span');
       logMessage.className = 'log-msg';
       logMessage.innerHTML = ansiLogToHTML(line.message);
@@ -392,14 +393,13 @@ const sfc = {
       if (this.menuVisible) this.menuVisible = false;
     },
 
-    // show at most one of log duration and timestamp
-    toggleTime(type) {
+    toggleTimeDisplay(type) {
       const otherType = 'durationstamp'.replace(type, '');
       this.timeVisible[type] = !this.timeVisible[type];
       for (const el of document.querySelectorAll(`.log-time-${type}`)) {
         toggleElem(el, this.timeVisible[type]);
       }
-
+      // show at most one of log duration and timestamp (can be both invisible)
       if (this.timeVisible[type] && this.timeVisible[otherType]) {
         this.timeVisible[otherType] = false;
         for (const el of document.querySelectorAll(`.log-time-${otherType}`)) {
@@ -802,7 +802,8 @@ export function ansiLogToHTML(line) {
   background-color: var(--color-console-hover-bg);
 }
 
-.job-step-section .job-step-logs .job-log-line .line-num, .log-time-duration {
+/* class names 'log-time-duration' and 'log-time-stamp' are used in the method toggleTimeDisplay */
+.job-log-line .line-num, .log-time-duration {
   width: 48px;
   color: var(--color-grey-light);
   text-align: right;
