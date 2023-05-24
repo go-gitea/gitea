@@ -1,6 +1,6 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
-title: "Maven Package Registry"
+title: "Maven 软件包注册表"
 slug: "maven"
 weight: 60
 draft: false
@@ -13,22 +13,22 @@ menu:
     identifier: "maven"
 ---
 
-# Maven Package Registry
+# Maven 软件包注册表
 
-Publish [Maven](https://maven.apache.org) packages for your user or organization.
+为您的用户或组织发布 [Maven](https://maven.apache.org) 软件包。
 
-**Table of Contents**
+**目录**
 
 {{< toc >}}
 
-## Requirements
+## 要求
 
-To work with the Maven package registry, you can use [Maven](https://maven.apache.org/install.html) or [Gradle](https://gradle.org/install/).
-The following examples use `Maven` and `Gradle Groovy`.
+要使用 Maven 软件包注册表，您可以使用 [Maven](https://maven.apache.org/install.html) 或 [Gradle](https://gradle.org/install/)。
+以下示例使用 `Maven` 和 `Gradle Groovy`。
 
-## Configuring the package registry
+## 配置软件包注册表
 
-To register the package registry you first need to add your access token to the [`settings.xml`](https://maven.apache.org/settings.html) file:
+要注册软件包注册表，首先需要将访问令牌添加到 [`settings.xml`](https://maven.apache.org/settings.html) 文件中：
 
 ```xml
 <settings>
@@ -48,7 +48,7 @@ To register the package registry you first need to add your access token to the 
 </settings>
 ```
 
-Afterwards add the following sections to your project `pom.xml` file:
+然后在项目的 `pom.xml` 文件中添加以下部分：
 
 ```xml
 <repositories>
@@ -69,14 +69,14 @@ Afterwards add the following sections to your project `pom.xml` file:
 </distributionManagement>
 ```
 
-| Parameter      | Description                                                                                       |
-| -------------- | ------------------------------------------------------------------------------------------------- |
-| `access_token` | Your [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}). |
-| `owner`        | The owner of the package.                                                                         |
+| 参数           | 描述                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------- |
+| `access_token` | 您的[个人访问令牌]({{< relref "doc/development/api-usage.zh-cn.md#通过-api-认证" >}}) |
+| `owner`        | 软件包的所有者                                                                        |
 
 ### Gradle variant
 
-When you plan to add some packages from Gitea instance in your project, you should add it in repositories section:
+如果您计划在项目中添加来自 Gitea 实例的一些软件包，请将其添加到 repositories 部分中：
 
 ```groovy
 repositories {
@@ -85,11 +85,11 @@ repositories {
 }
 ```
 
-In Groovy gradle you may include next script in your publishing part:
+在 Groovy gradle 中，您可以在发布部分中包含以下脚本：
 
 ```groovy
 publishing {
-    // other settings of publication
+    // 其他发布设置
     repositories {
         maven {
             name = "Gitea"
@@ -108,35 +108,35 @@ publishing {
 }
 ```
 
-## Publish a package
+## 发布软件包
 
-To publish a package simply run:
+要发布软件包，只需运行以下命令：
 
 ```shell
 mvn deploy
 ```
 
-Or call `gradle` with task `publishAllPublicationsToGiteaRepository` in case you are using gradle:
+或者，如果您使用的是 Gradle，请使用 `gradle` 命令和 `publishAllPublicationsToGiteaRepository` 任务：
 
 ```groovy
 ./gradlew publishAllPublicationsToGiteaRepository
 ```
 
-If you want to publish a prebuild package to the registry, you can use [`mvn deploy:deploy-file`](https://maven.apache.org/plugins/maven-deploy-plugin/deploy-file-mojo.html):
+如果您想要将预构建的软件包发布到注册表中，可以使用 [`mvn deploy:deploy-file`](https://maven.apache.org/plugins/maven-deploy-plugin/deploy-file-mojo.html) 命令：
 
 ```shell
 mvn deploy:deploy-file -Durl=https://gitea.example.com/api/packages/{owner}/maven -DrepositoryId=gitea -Dfile=/path/to/package.jar
 ```
 
-| Parameter | Description               |
-| --------- | ------------------------- |
-| `owner`   | The owner of the package. |
+| 参数    | 描述           |
+| ------- | -------------- |
+| `owner` | 软件包的所有者 |
 
-You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
+如果存在相同名称和版本的软件包，您无法发布该软件包。您必须先删除现有的软件包。
 
-## Install a package
+## 安装软件包
 
-To install a Maven package from the package registry, add a new dependency to your project `pom.xml` file:
+要从软件包注册表中安装 Maven 软件包，请在项目的 `pom.xml` 文件中添加新的依赖项：
 
 ```xml
 <dependency>
@@ -146,19 +146,19 @@ To install a Maven package from the package registry, add a new dependency to yo
 </dependency>
 ```
 
-And analog in gradle groovy:
+在 `Gradle Groovy` 中类似的操作如下：
 
 ```groovy
 implementation "com.test.package:test_project:1.0.0"
 ```
 
-Afterwards run:
+然后运行：
 
 ```shell
 mvn install
 ```
 
-## Supported commands
+## 支持的命令
 
 ```
 mvn install
