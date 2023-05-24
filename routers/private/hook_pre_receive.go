@@ -263,7 +263,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	if (addedSize > removedSize) && isRepoOversized {
 		log.Warn("Forbidden: new repo size %s is over limitation of %s. Push size: %s. Took %s seconds.", base.FileSize(addedSize-removedSize), base.FileSize(repo.GetActualSizeLimit()), base.FileSize(pushSize.Size), duration)
 		ctx.JSON(http.StatusForbidden, private.Response{
-			UserMsg: fmt.Sprintf("Repository size is over limitation of %s  addedSize(%d) removedSize(%d)  repo(%s)", base.FileSize(repo.GetActualSizeLimit()), addedSize, removedSize, repo.RepoPath()),
+			UserMsg: fmt.Sprintf("Repository size is over limitation of %s", base.FileSize(repo.GetActualSizeLimit())),
 		})
 		return
 	}

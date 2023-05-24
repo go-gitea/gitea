@@ -332,26 +332,6 @@ func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
 		return fmt.Errorf("updateSize: GetLFSMetaObjects: %w", err)
 	}
 
-	if setting.EnableSizeLimit && repo.GetActualSizeLimit() > 0 && size+lfsSize > repo.GetActualSizeLimit() {
-		// return fmt.Errorf("updateSize: Git Reflog Failed Size(%d) > Limit(%d)", size+lfsSize, repo.GetActualSizeLimit())
-
-		_, _, err = git.NewCommand(git.DefaultContext, "reflog", "expire", "--expire-unreachable=all", "--all").RunStdString(&git.RunOpts{Dir: repo.RepoPath()}) // Push
-		if err != nil {
-			return fmt.Errorf("updateSize: Git Reflog Failed: %w", err)
-		}
-
-		_, _, err = git.NewCommand(git.DefaultContext, "gc", "--prune=now").RunStdString(&git.RunOpts{Dir: repo.RepoPath()}) // Push
-		if err != nil {
-			return fmt.Errorf("updateSize: Git GC Failed: %w", err)
-		}
-
-		size, err = getDirectorySize(repo.RepoPath())
-		if err != nil {
-			return fmt.Errorf("updateSize: %w", err)
-		}
-		// return fmt.Errorf("updateSize: Git Reflog Failed Size(%d) > Limit(%d)", size+lfsSize, repo.GetActualSizeLimit())
-	}
-
 	return repo_model.UpdateRepoSize(ctx, repo.ID, size+lfsSize)
 }
 
