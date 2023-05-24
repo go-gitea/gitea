@@ -64,6 +64,7 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 		return err
 	}
 
+        // RFC 1035 - host is case-insensitive, local part is case-sensitive
 	if setting.Repository.PullRequest.AddCoCommitterTrailers &&
            strings.EqualFold(strings.SplitAfter(ctx.committer.Email, "@")[1], strings.SplitAfter(sig.Email, "@")[1]) &&
            (strings.SplitAfter(ctx.committer.Email, "@")[0] != strings.SplitAfter(sig.Email, "@")[0]) {
