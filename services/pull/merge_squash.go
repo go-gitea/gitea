@@ -5,6 +5,7 @@ package pull
 
 import (
 	"fmt"
+        "strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -63,7 +64,7 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 		return err
 	}
 
-	if setting.Repository.PullRequest.AddCoCommitterTrailers && ctx.committer.Email != sig.Email {
+	if setting.Repository.PullRequest.AddCoCommitterTrailers && strings.EqualFold(ctx.committer.Email, sig.Email) {
 		// add trailer if email of user and email of committer don't match
 		message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
 	}
