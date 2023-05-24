@@ -316,8 +316,8 @@ func registerRoutes(m *web.Route) {
 		m.Group("/variables", func() {
 			m.Get("", repo_setting.Variables)
 			m.Post("/new", web.Bind(forms.EditVariableForm{}), repo_setting.VariableCreate)
-			m.Post("/{variableID}/edit", web.Bind(forms.EditVariableForm{}), repo_setting.VariableUpdate)
-			m.Post("/{variableID}/delete", repo_setting.VariableDelete)
+			m.Post("/{variable_id}/edit", web.Bind(forms.EditVariableForm{}), repo_setting.VariableUpdate)
+			m.Post("/{variable_id}/delete", repo_setting.VariableDelete)
 		})
 	}
 
