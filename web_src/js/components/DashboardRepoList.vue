@@ -437,7 +437,7 @@ const sfc = {
     reposFilterKeyControl(e) {
       switch (e.key) {
         case 'Enter':
-          document.querySelector('.repo-list-link.active').click();
+          document.querySelector('.repo-list-link.active')?.click();
           break;
         case 'ArrowUp':
           if (this.activeIndex > 0) {
