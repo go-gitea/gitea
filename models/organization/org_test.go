@@ -269,7 +269,7 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 			ID:       orgUsers[2].ID,
 			OrgID:    3,
 			UID:      28,
-			IsPublic: false,
+			IsPublic: true,
 		}, *orgUsers[2])
 	}
 
