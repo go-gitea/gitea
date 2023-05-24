@@ -621,7 +621,7 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	}
 
 	// validate data
-	if err := validateUser(u); err != nil {
+	if err := ValidateUser(u); err != nil {
 		return err
 	}
 
@@ -767,8 +767,8 @@ func checkDupEmail(ctx context.Context, u *User) error {
 	return nil
 }
 
-// validateUser check if user is valid to insert / update into database
-func validateUser(u *User, cols ...string) error {
+// ValidateUser check if user is valid to insert / update into database
+func ValidateUser(u *User, cols ...string) error {
 	if len(cols) == 0 || util.SliceContainsString(cols, "visibility", true) {
 		if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) && !u.IsOrganization() {
 			return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
@@ -786,7 +786,7 @@ func validateUser(u *User, cols ...string) error {
 
 // UpdateUser updates user's information.
 func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...string) error {
-	err := validateUser(u, cols...)
+	err := ValidateUser(u, cols...)
 	if err != nil {
 		return err
 	}
@@ -852,7 +852,7 @@ func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 
 // UpdateUserCols update user according special columns
 func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
-	if err := validateUser(u, cols...); err != nil {
+	if err := ValidateUser(u, cols...); err != nil {
 		return err
 	}
 
