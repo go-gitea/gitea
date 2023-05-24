@@ -4,6 +4,10 @@
 package context
 
 import (
+	"net/http"
+
+	auth_model "code.gitea.io/gitea/models/auth"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -104,5 +108,34 @@ func RequireRepoReaderOr(unitTypes ...unit.Type) func(ctx *Context) {
 			log.Trace(format, args...)
 		}
 		ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+	}
+}
+
+// RequireRepoScopedToken check whether personal access token has repo scope
+func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository) {
+	if !ctx.IsBasicAuth || ctx.Data["IsApiToken"] != true {
+		return
+	}
+
+	var err error
+	scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	if ok { // it's a personal access token but not oauth2 token
+		var scopeMatched bool
+		scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeRepo)
+		if err != nil {
+			ctx.ServerError("HasScope", err)
+			return
+		}
+		if !scopeMatched && !repo.IsPrivate {
+			scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopePublicRepo)
+			if err != nil {
+				ctx.ServerError("HasScope", err)
+				return
+			}
+		}
+		if !scopeMatched {
+			ctx.Error(http.StatusForbidden)
+			return
+		}
 	}
 }

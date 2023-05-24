@@ -12,7 +12,7 @@
 				<div class="ui two column grid">
 					<div class="column left aligned">
 						<strong>{{.Name | RenderEmojiPlain}}</strong>
-						<br/>{{.About | RenderEmojiPlain}}
+						<br>{{.About | RenderEmojiPlain}}
 					</div>
 					<div class="column right aligned">
 						<a href="{{$.RepoLink}}/issues/new?template={{.FileName}}{{if $.milestone}}&milestone={{$.milestone}}{{end}}{{if $.project}}&project={{$.project}}{{end}}" class="ui green button">{{$.locale.Tr "repo.issues.choose.get_started"}}</a>
@@ -20,17 +20,40 @@
 				</div>
 			</div>
 		{{end}}
-		<div class="ui attached segment">
-			<div class="ui two column grid">
-				<div class="column left aligned">
-					<strong>{{.locale.Tr "repo.issues.choose.blank"}}</strong>
-					<br/>{{.locale.Tr "repo.issues.choose.blank_about"}}
-				</div>
-				<div class="column right aligned">
-					<a href="{{.RepoLink}}/issues/new?{{if .milestone}}&milestone={{.milestone}}{{end}}{{if $.project}}&project={{$.project}}{{end}}" class="ui green button">{{$.locale.Tr "repo.issues.choose.get_started"}}</a>
+		{{range .IssueConfig.ContactLinks}}
+			<div class="ui attached segment">
+				<div class="ui two column grid">
+					<div class="column left aligned">
+						<strong>{{.Name | RenderEmojiPlain}}</strong>
+						<br>{{.About | RenderEmojiPlain}}
+					</div>
+					<div class="column right aligned">
+						<a href="{{.URL}}" class="ui green button">{{svg "octicon-link-external"}} {{$.locale.Tr "repo.issues.choose.open_external_link"}}</a>
+					</div>
 				</div>
 			</div>
-		</div>
+		{{end}}
+		{{if .IssueConfig.BlankIssuesEnabled}}
+			<div class="ui attached segment">
+				<div class="ui two column grid">
+					<div class="column left aligned">
+						<strong>{{.locale.Tr "repo.issues.choose.blank"}}</strong>
+						<br/>{{.locale.Tr "repo.issues.choose.blank_about"}}
+					</div>
+					<div class="column right aligned">
+						<a href="{{.RepoLink}}/issues/new?{{if .milestone}}&milestone={{.milestone}}{{end}}{{if $.project}}&project={{$.project}}{{end}}" class="ui green button">{{$.locale.Tr "repo.issues.choose.get_started"}}</a>
+					</div>
+				</div>
+			</div>
+		{{end}}
+		{{- if .IssueConfigError}}{{/* normal warning flash makes problems here*/}}
+			<div class="ui warning message">
+				<div class="text left">
+					<div>{{.locale.Tr "repo.issues.choose.invalid_config"}}</div>
+					<diy>{{.IssueConfigError}}</div>
+				</div>
+			</div>
+		{{end}}
 	</div>
 </div>
 {{template "base/footer" .}}

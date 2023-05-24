@@ -29,7 +29,6 @@ const (
 // Repos show all the repositories
 func Repos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRepositories"] = true
 
 	explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
@@ -67,7 +66,6 @@ func DeleteRepo(ctx *context.Context) {
 // UnadoptedRepos lists the unadopted repositories
 func UnadoptedRepos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRepositories"] = true
 
 	opts := db.ListOptions{
@@ -135,7 +133,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	repoName := dirSplit[1]
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, repoName)
+	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, repoName)
 	if err != nil {
 		ctx.ServerError("IsRepositoryExist", err)
 		return

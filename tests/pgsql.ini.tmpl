@@ -15,7 +15,7 @@ REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-pgsql/indexers/repos.bleve
 
 [queue.issue_indexer]
-PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-pgsql/indexers/issues.bleve
+TYPE = level
 DATADIR = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-pgsql/indexers/issues.queue
 
 [queue]
@@ -125,6 +125,10 @@ MINIO_SECRET_ACCESS_KEY = 12345678
 MINIO_BUCKET = gitea
 MINIO_LOCATION = us-east-1
 MINIO_USE_SSL = false
+MINIO_CHECKSUM_ALGORITHM = md5
 
 [packages]
+ENABLED = true
+
+[actions]
 ENABLED = true

@@ -227,7 +227,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 			deletedUUIDs.Add(attach.UUID)
 		}
 
-		if _, err := repo_model.DeleteAttachments(ctx, attachments, false); err != nil {
+		if _, err := repo_model.DeleteAttachments(ctx, attachments, true); err != nil {
 			return fmt.Errorf("DeleteAttachments [uuids: %v]: %w", delAttachmentUUIDs, err)
 		}
 	}

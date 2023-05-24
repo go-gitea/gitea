@@ -232,6 +232,7 @@ func EditProject(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["projectID"] = p.ID
 	ctx.Data["title"] = p.Title
 	ctx.Data["content"] = p.Description
 	ctx.Data["card_type"] = p.CardType
@@ -299,7 +300,7 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	boards, err := project_model.GetBoards(ctx, project.ID)
+	boards, err := project.GetBoards(ctx)
 	if err != nil {
 		ctx.ServerError("GetProjectBoards", err)
 		return
@@ -566,6 +567,23 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 	}
 
 	if err := project_model.SetDefaultBoard(project.ID, board.ID); err != nil {
+		ctx.ServerError("SetDefaultBoard", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"ok": true,
+	})
+}
+
+// UnSetDefaultProjectBoard unset default board for uncategorized issues/pulls
+func UnSetDefaultProjectBoard(ctx *context.Context) {
+	project, _ := checkProjectBoardChangePermissions(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := project_model.SetDefaultBoard(project.ID, 0); err != nil {
 		ctx.ServerError("SetDefaultBoard", err)
 		return
 	}

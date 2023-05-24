@@ -11,17 +11,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
 
 	_ "code.gitea.io/gitea/models/system"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func init() {
-	setting.SetCustomPathAndConf("", "", "")
-	setting.InitProviderAndLoadCommonSettingsForTest()
-}
 
 // TestFixturesAreConsistent assert that test fixtures are consistent
 func TestFixturesAreConsistent(t *testing.T) {

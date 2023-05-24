@@ -520,7 +520,7 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
@@ -536,11 +536,10 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2), "")
+	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
-	println(result)
 
 	diff2a := `diff --git "a/A \\ B" b/A/B
 --- "a/A \\ B"
@@ -553,11 +552,10 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a), "")
+	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
-	println(result)
 
 	diff3 := `diff --git a/README.md b/README.md
 --- a/README.md
@@ -570,11 +568,10 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3), "")
+	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
-	println(result)
 }
 
 func setupDefaultDiff() *Diff {

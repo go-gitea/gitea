@@ -45,6 +45,8 @@ import (
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
+
+	"github.com/gobwas/glob"
 )
 
 const (
@@ -203,6 +205,7 @@ func Fork(ctx *context.Context) {
 func ForkPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_fork")
+	ctx.Data["CanForkRepo"] = true
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -269,6 +272,17 @@ func ForkPost(ctx *context.Context) {
 			ctx.RenderWithErr(msg, tplFork, &form)
 		case repo_model.IsErrRepoAlreadyExist(err):
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
+		case repo_model.IsErrRepoFilesAlreadyExist(err):
+			switch {
+			case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
+				ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tplFork, form)
+			case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
+				ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tplFork, form)
+			case setting.Repository.AllowDeleteOfUnadoptedRepositories:
+				ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tplFork, form)
+			default:
+				ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tplFork, form)
+			}
 		case db.IsErrNameReserved(err):
 			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplFork, &form)
 		case db.IsErrNamePatternNotAllowed(err):
@@ -574,7 +588,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	if pb != nil && pb.EnableStatusCheck {
 		ctx.Data["is_context_required"] = func(context string) bool {
 			for _, c := range pb.StatusCheckContexts {
-				if c == context {
+				if gp, err := glob.Compile(c); err == nil && gp.Match(context) {
 					return true
 				}
 			}
@@ -791,11 +805,13 @@ func ViewPullFiles(ctx *context.Context) {
 
 	setCompareContext(ctx, baseCommit, commit, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 
-	ctx.Data["RequireTribute"] = true
-	if ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository); err != nil {
-		ctx.ServerError("GetAssignees", err)
+	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
+	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
+
 	handleTeamMentions(ctx)
 	if ctx.Written() {
 		return
@@ -1160,7 +1176,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	ctx.Data["PageIsComparePull"] = true
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["IsRepoToolbarCommits"] = true
-	ctx.Data["RequireTribute"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")

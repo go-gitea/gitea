@@ -2,7 +2,7 @@ import $ from 'jquery';
 import {svg} from '../svg.js';
 import {invertFileFolding} from './file-fold.js';
 import {createTippy} from '../modules/tippy.js';
-import {copyToClipboard} from './clipboard.js';
+import {clippie} from 'clippie';
 import {toAbsoluteUrl} from '../utils.js';
 
 export const singleAnchorRegex = /^#(L|n)([1-9][0-9]*)$/;
@@ -104,7 +104,7 @@ function showLineButton() {
   td.prepend(btn);
 
   // put a copy of the menu back into DOM for the next click
-  btn.closest('.code-view').appendChild(menu.cloneNode(true));
+  btn.closest('.code-view').append(menu.cloneNode(true));
 
   createTippy(btn, {
     trigger: 'click',
@@ -181,7 +181,7 @@ export function initRepoCodeView() {
   $(document).on('click', '.fold-file', ({currentTarget}) => {
     invertFileFolding(currentTarget.closest('.file-content'), currentTarget);
   });
-  $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
+  $(document).on('click', '.code-expander-button', async ({currentTarget}) => {
     const url = currentTarget.getAttribute('data-url');
     const query = currentTarget.getAttribute('data-query');
     const anchor = currentTarget.getAttribute('data-anchor');
@@ -190,7 +190,7 @@ export function initRepoCodeView() {
     currentTarget.closest('tr').outerHTML = blob;
   });
   $(document).on('click', '.copy-line-permalink', async (e) => {
-    const success = await copyToClipboard(toAbsoluteUrl(e.currentTarget.getAttribute('data-url')));
+    const success = await clippie(toAbsoluteUrl(e.currentTarget.getAttribute('data-url')));
     if (!success) return;
     document.querySelector('.code-line-button')?._tippy?.hide();
   });

@@ -79,7 +79,7 @@ func Migrate(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.HasError() {
+	if ctx.HasAPIError() {
 		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())
 		return
 	}

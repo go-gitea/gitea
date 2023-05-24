@@ -18,10 +18,6 @@ func (i *DBIndexer) Init() (bool, error) {
 	return false, nil
 }
 
-// SetAvailabilityChangeCallback dummy function
-func (i *DBIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
-}
-
 // Ping checks if database is available
 func (i *DBIndexer) Ping() bool {
 	return db.GetEngine(db.DefaultContext).Ping() != nil

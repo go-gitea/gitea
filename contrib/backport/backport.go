@@ -1,6 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+//nolint:forbidigo
 package main
 
 import (
@@ -16,7 +17,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v51/github"
 	"github.com/urfave/cli"
 	"gopkg.in/yaml.v3"
 )

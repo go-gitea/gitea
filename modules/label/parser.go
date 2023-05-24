@@ -30,31 +30,23 @@ func IsErrTemplateLoad(err error) bool {
 }
 
 func (err ErrTemplateLoad) Error() string {
-	return fmt.Sprintf("Failed to load label template file '%s': %v", err.TemplateFile, err.OriginalError)
+	return fmt.Sprintf("failed to load label template file %q: %v", err.TemplateFile, err.OriginalError)
 }
 
-// GetTemplateFile loads the label template file by given name,
-// then parses and returns a list of name-color pairs and optionally description.
-func GetTemplateFile(name string) ([]*Label, error) {
-	data, err := options.Labels(name + ".yaml")
-	if err == nil && len(data) > 0 {
-		return parseYamlFormat(name+".yaml", data)
-	}
-
-	data, err = options.Labels(name + ".yml")
-	if err == nil && len(data) > 0 {
-		return parseYamlFormat(name+".yml", data)
-	}
-
-	data, err = options.Labels(name)
+// LoadTemplateFile loads the label template file by given file name, returns a slice of Label structs.
+func LoadTemplateFile(fileName string) ([]*Label, error) {
+	data, err := options.Labels(fileName)
 	if err != nil {
-		return nil, ErrTemplateLoad{name, fmt.Errorf("GetRepoInitFile: %w", err)}
+		return nil, ErrTemplateLoad{fileName, fmt.Errorf("LoadTemplateFile: %w", err)}
 	}
 
-	return parseLegacyFormat(name, data)
+	if strings.HasSuffix(fileName, ".yaml") || strings.HasSuffix(fileName, ".yml") {
+		return parseYamlFormat(fileName, data)
+	}
+	return parseLegacyFormat(fileName, data)
 }
 
-func parseYamlFormat(name string, data []byte) ([]*Label, error) {
+func parseYamlFormat(fileName string, data []byte) ([]*Label, error) {
 	lf := &labelFile{}
 
 	if err := yaml.Unmarshal(data, lf); err != nil {
@@ -65,11 +57,11 @@ func parseYamlFormat(name string, data []byte) ([]*Label, error) {
 	for _, l := range lf.Labels {
 		l.Color = strings.TrimSpace(l.Color)
 		if len(l.Name) == 0 || len(l.Color) == 0 {
-			return nil, ErrTemplateLoad{name, errors.New("label name and color are required fields")}
+			return nil, ErrTemplateLoad{fileName, errors.New("label name and color are required fields")}
 		}
 		color, err := NormalizeColor(l.Color)
 		if err != nil {
-			return nil, ErrTemplateLoad{name, fmt.Errorf("bad HTML color code '%s' in label: %s", l.Color, l.Name)}
+			return nil, ErrTemplateLoad{fileName, fmt.Errorf("bad HTML color code '%s' in label: %s", l.Color, l.Name)}
 		}
 		l.Color = color
 	}
@@ -77,7 +69,7 @@ func parseYamlFormat(name string, data []byte) ([]*Label, error) {
 	return lf.Labels, nil
 }
 
-func parseLegacyFormat(name string, data []byte) ([]*Label, error) {
+func parseLegacyFormat(fileName string, data []byte) ([]*Label, error) {
 	lines := strings.Split(string(data), "\n")
 	list := make([]*Label, 0, len(lines))
 	for i := 0; i < len(lines); i++ {
@@ -88,18 +80,18 @@ func parseLegacyFormat(name string, data []byte) ([]*Label, error) {
 
 		parts, description, _ := strings.Cut(line, ";")
 
-		color, name, ok := strings.Cut(parts, " ")
+		color, labelName, ok := strings.Cut(parts, " ")
 		if !ok {
-			return nil, ErrTemplateLoad{name, fmt.Errorf("line is malformed: %s", line)}
+			return nil, ErrTemplateLoad{fileName, fmt.Errorf("line is malformed: %s", line)}
 		}
 
 		color, err := NormalizeColor(color)
 		if err != nil {
-			return nil, ErrTemplateLoad{name, fmt.Errorf("bad HTML color code '%s' in line: %s", color, line)}
+			return nil, ErrTemplateLoad{fileName, fmt.Errorf("bad HTML color code '%s' in line: %s", color, line)}
 		}
 
 		list = append(list, &Label{
-			Name:        strings.TrimSpace(name),
+			Name:        strings.TrimSpace(labelName),
 			Color:       color,
 			Description: strings.TrimSpace(description),
 		})
@@ -108,10 +100,10 @@ func parseLegacyFormat(name string, data []byte) ([]*Label, error) {
 	return list, nil
 }
 
-// LoadFormatted loads the labels' list of a template file as a string separated by comma
-func LoadFormatted(name string) (string, error) {
+// LoadTemplateDescription loads the labels from a template file, returns a description string by joining each Label.Name with comma
+func LoadTemplateDescription(fileName string) (string, error) {
 	var buf strings.Builder
-	list, err := GetTemplateFile(name)
+	list, err := LoadTemplateFile(fileName)
 	if err != nil {
 		return "", err
 	}

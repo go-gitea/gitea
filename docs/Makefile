@@ -2,7 +2,7 @@ THEME := themes/gitea
 PUBLIC := public
 ARCHIVE := https://dl.gitea.com/theme/main.tar.gz
 
-HUGO_PACKAGE := github.com/gohugoio/hugo@v0.82.0
+HUGO_PACKAGE := github.com/gohugoio/hugo@v0.111.3
 
 .PHONY: all
 all: build

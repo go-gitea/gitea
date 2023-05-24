@@ -20,7 +20,7 @@
 
 					<div class="inline field {{if .Err_Auth}}error{{end}}">
 						<label for="auth_token">{{.locale.Tr "access_token"}}</label>
-						<input id="auth_token" name="auth_token" value="{{.auth_token}}" {{if not .auth_token}}data-need-clear="true"{{end}}>
+						<input id="auth_token" name="auth_token" type="password" autocomplete="new-password" value="{{.auth_token}}" {{if not .auth_token}}data-need-clear="true"{{end}}>
 						<a target="_blank" href="https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html">{{svg "octicon-question"}}</a>
 					</div>
 

@@ -55,7 +55,7 @@ var escapeControlTests = []escapeControlTest{
 	{
 		name:   "hebrew",
 		text:   "עד תקופת יוון העתיקה היה העיסוק במתמטיקה תכליתי בלבד: היא שימשה כאוסף של נוסחאות לחישוב קרקע, אוכלוסין וכו'. פריצת הדרך של היוונים, פרט לתרומותיהם הגדולות לידע המתמטי, הייתה בלימוד המתמטיקה כשלעצמה, מתוקף ערכה הרוחני. יחסם של חלק מהיוונים הקדמונים למתמטיקה היה דתי - למשל, הכת שאסף סביבו פיתגורס האמינה כי המתמטיקה היא הבסיס לכל הדברים. היוונים נחשבים ליוצרי מושג ההוכחה המתמטית, וכן לראשונים שעסקו במתמטיקה לשם עצמה, כלומר כתחום מחקרי עיוני ומופשט ולא רק כעזר שימושי. עם זאת, לצדה",
-		result: `עד תקופת <span class="ambiguous-code-point tooltip" data-content="repo.ambiguous_character"><span class="char">י</span></span><span class="ambiguous-code-point tooltip" data-content="repo.ambiguous_character"><span class="char">ו</span></span><span class="ambiguous-code-point tooltip" data-content="repo.ambiguous_character"><span class="char">ו</span></span><span class="ambiguous-code-point tooltip" data-content="repo.ambiguous_character"><span class="char">ן</span></span> העתיקה היה העיסוק במתמטיקה תכליתי בלבד: היא שימשה כאוסף של נוסחאות לחישוב קרקע, אוכלוסין וכו&#39;. פריצת הדרך של היוונים, פרט לתרומותיהם הגדולות לידע המתמטי, הייתה בלימוד המתמטיקה כשלעצמה, מתוקף ערכה הרוחני. יחסם של חלק מהיוונים הקדמונים למתמטיקה היה דתי - למשל, הכת שאסף סביבו פיתגורס האמינה כי המתמטיקה היא הבסיס לכל הדברים. היוונים נחשבים ליוצרי מושג ההוכחה המתמטית, וכן לראשונים שעסקו במתמטיקה לשם עצמה, כלומר כתחום מחקרי עיוני ומופשט ולא רק כעזר שימושי. עם זאת, לצדה`,
+		result: `עד תקופת <span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character"><span class="char">י</span></span><span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character"><span class="char">ו</span></span><span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character"><span class="char">ו</span></span><span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character"><span class="char">ן</span></span> העתיקה היה העיסוק במתמטיקה תכליתי בלבד: היא שימשה כאוסף של נוסחאות לחישוב קרקע, אוכלוסין וכו&#39;. פריצת הדרך של היוונים, פרט לתרומותיהם הגדולות לידע המתמטי, הייתה בלימוד המתמטיקה כשלעצמה, מתוקף ערכה הרוחני. יחסם של חלק מהיוונים הקדמונים למתמטיקה היה דתי - למשל, הכת שאסף סביבו פיתגורס האמינה כי המתמטיקה היא הבסיס לכל הדברים. היוונים נחשבים ליוצרי מושג ההוכחה המתמטית, וכן לראשונים שעסקו במתמטיקה לשם עצמה, כלומר כתחום מחקרי עיוני ומופשט ולא רק כעזר שימושי. עם זאת, לצדה`,
 		status: EscapeStatus{Escaped: true, HasAmbiguous: true},
 	},
 	{
@@ -67,9 +67,9 @@ var escapeControlTests = []escapeControlTest{
 			בשנים 582 לפנה"ס עד 496 לפנה"ס, בקירוב, חי מתמטיקאי חשוב במיוחד - פיתגורס. המקורות הראשוניים עליו מועטים, וההיסטוריונים מתקשים להפריד את העובדות משכבת המסתורין והאגדות שנקשרו בו. ידוע שסביבו התקבצה האסכולה הפיתגוראית מעין כת פסבדו-מתמטית שהאמינה ש"הכל מספר", או ליתר דיוק הכל ניתן לכימות, וייחסה למספרים משמעויות מיסטיות. ככל הנראה הפיתגוראים ידעו לבנות את הגופים האפלטוניים, הכירו את הממוצע האריתמטי, הממוצע הגאומטרי והממוצע ההרמוני והגיעו להישגים חשובים נוספים. ניתן לומר שהפיתגוראים גילו את היותו של השורש הריבועי של 2, שהוא גם האלכסון בריבוע שאורך צלעותיו 1, אי רציונלי, אך תגליתם הייתה למעשה רק שהקטעים "חסרי מידה משותפת", ומושג המספר האי רציונלי מאוחר יותר.[2] אזכור ראשון לקיומם של קטעים חסרי מידה משותפת מופיע בדיאלוג "תאיטיטוס" של אפלטון, אך רעיון זה היה מוכר עוד קודם לכן, במאה החמישית לפנה"ס להיפאסוס, בן האסכולה הפיתגוראית, ואולי לפיתגורס עצמו.[3]`,
 		result: `בתקופה מאוחרת יותר, השתמשו היוונים בשיטת סימון מתקדמת יותר, שבה הוצגו המספרים לפי 22 אותיות האלפבית היווני. לסימון המספרים בין 1 ל-9 נקבעו תשע האותיות הראשונות, בתוספת גרש ( &#39; ) בצד ימין של האות, למעלה; תשע האותיות הבאות ייצגו את העשרות מ-10 עד 90, והבאות את המאות. לסימון הספרות בין 1000 ל-900,000, השתמשו היוונים באותן אותיות, אך הוסיפו לאותיות את הגרש דווקא מצד שמאל של האותיות, למטה. ממיליון ומעלה, כנראה השתמשו היוונים בשני תגים במקום אחד.
 
-			המתמטיקאי הבולט הראשון ביוון העתיקה, ויש האומרים בתולדות האנושות, הוא תאלס (624 לפנה&#34;<span class="ambiguous-code-point tooltip" data-content="repo.ambiguous_character"><span class="char">ס</span></span> - 546 לפנה&#34;<span class="ambiguous-code-point tooltip" data-content="repo.ambiguous_character"><span class="char">ס</span></span> בקירוב).[1] לא יהיה זה משולל יסוד להניח שהוא האדם הראשון שהוכיח משפט מתמטי, ולא רק גילה אותו. תאלס הוכיח שישרים מקבילים חותכים מצד אחד של שוקי זווית קטעים בעלי יחסים שווים (משפט תאלס הראשון), שהזווית המונחת על קוטר במעגל היא זווית ישרה (משפט תאלס השני), שהקוטר מחלק את המעגל לשני חלקים שווים, ושזוויות הבסיס במשולש שווה-שוקיים שוות זו לזו. מיוחסות לו גם שיטות למדידת גובהן של הפירמידות בעזרת מדידת צילן ולקביעת מיקומה של ספינה הנראית מן החוף.
+			המתמטיקאי הבולט הראשון ביוון העתיקה, ויש האומרים בתולדות האנושות, הוא תאלס (624 לפנה&#34;<span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character"><span class="char">ס</span></span> - 546 לפנה&#34;<span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character"><span class="char">ס</span></span> בקירוב).[1] לא יהיה זה משולל יסוד להניח שהוא האדם הראשון שהוכיח משפט מתמטי, ולא רק גילה אותו. תאלס הוכיח שישרים מקבילים חותכים מצד אחד של שוקי זווית קטעים בעלי יחסים שווים (משפט תאלס הראשון), שהזווית המונחת על קוטר במעגל היא זווית ישרה (משפט תאלס השני), שהקוטר מחלק את המעגל לשני חלקים שווים, ושזוויות הבסיס במשולש שווה-שוקיים שוות זו לזו. מיוחסות לו גם שיטות למדידת גובהן של הפירמידות בעזרת מדידת צילן ולקביעת מיקומה של ספינה הנראית מן החוף.
 
-			בשנים 582 לפנה&#34;<span class="ambiguous-code-point tooltip" data-content="repo.ambiguous_character"><span class="char">ס</span></span> עד 496 לפנה&#34;<span class="ambiguous-code-point tooltip" data-content="repo.ambiguous_character"><span class="char">ס</span></span>, בקירוב, חי מתמטיקאי חשוב במיוחד - פיתגורס. המקורות הראשוניים עליו מועטים, וההיסטוריונים מתקשים להפריד את העובדות משכבת המסתורין והאגדות שנקשרו בו. ידוע שסביבו התקבצה האסכולה הפיתגוראית מעין כת פסבדו-מתמטית שהאמינה ש&#34;הכל מספר&#34;, או ליתר דיוק הכל ניתן לכימות, וייחסה למספרים משמעויות מיסטיות. ככל הנראה הפיתגוראים ידעו לבנות את הגופים האפלטוניים, הכירו את הממוצע האריתמטי, הממוצע הגאומטרי והממוצע ההרמוני והגיעו להישגים חשובים נוספים. ניתן לומר שהפיתגוראים גילו את היותו של השורש הריבועי של 2, שהוא גם האלכסון בריבוע שאורך צלעותיו 1, אי רציונלי, אך תגליתם הייתה למעשה רק שהקטעים &#34;חסרי מידה משותפת&#34;, ומושג המספר האי רציונלי מאוחר יותר.[2] אזכור ראשון לקיומם של קטעים חסרי מידה משותפת מופיע בדיאלוג &#34;תאיטיטוס&#34; של אפלטון, אך רעיון זה היה מוכר עוד קודם לכן, במאה החמישית לפנה&#34;<span class="ambiguous-code-point tooltip" data-content="repo.ambiguous_character"><span class="char">ס</span></span> להיפאסוס, בן האסכולה הפיתגוראית, ואולי לפיתגורס עצמו.[3]`,
+			בשנים 582 לפנה&#34;<span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character"><span class="char">ס</span></span> עד 496 לפנה&#34;<span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character"><span class="char">ס</span></span>, בקירוב, חי מתמטיקאי חשוב במיוחד - פיתגורס. המקורות הראשוניים עליו מועטים, וההיסטוריונים מתקשים להפריד את העובדות משכבת המסתורין והאגדות שנקשרו בו. ידוע שסביבו התקבצה האסכולה הפיתגוראית מעין כת פסבדו-מתמטית שהאמינה ש&#34;הכל מספר&#34;, או ליתר דיוק הכל ניתן לכימות, וייחסה למספרים משמעויות מיסטיות. ככל הנראה הפיתגוראים ידעו לבנות את הגופים האפלטוניים, הכירו את הממוצע האריתמטי, הממוצע הגאומטרי והממוצע ההרמוני והגיעו להישגים חשובים נוספים. ניתן לומר שהפיתגוראים גילו את היותו של השורש הריבועי של 2, שהוא גם האלכסון בריבוע שאורך צלעותיו 1, אי רציונלי, אך תגליתם הייתה למעשה רק שהקטעים &#34;חסרי מידה משותפת&#34;, ומושג המספר האי רציונלי מאוחר יותר.[2] אזכור ראשון לקיומם של קטעים חסרי מידה משותפת מופיע בדיאלוג &#34;תאיטיטוס&#34; של אפלטון, אך רעיון זה היה מוכר עוד קודם לכן, במאה החמישית לפנה&#34;<span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character"><span class="char">ס</span></span> להיפאסוס, בן האסכולה הפיתגוראית, ואולי לפיתגורס עצמו.[3]`,
 		status: EscapeStatus{Escaped: true, HasAmbiguous: true},
 	},
 	{
@@ -132,18 +132,10 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 	},
 }
 
-type nullLocale struct{}
-
-func (nullLocale) Language() string                                                   { return "" }
-func (nullLocale) Tr(key string, _ ...interface{}) string                             { return key }
-func (nullLocale) TrN(cnt interface{}, key1, keyN string, args ...interface{}) string { return "" }
-
-var _ (translation.Locale) = nullLocale{}
-
 func TestEscapeControlString(t *testing.T) {
 	for _, tt := range escapeControlTests {
 		t.Run(tt.name, func(t *testing.T) {
-			status, result := EscapeControlString(tt.text, nullLocale{})
+			status, result := EscapeControlString(tt.text, &translation.MockLocale{})
 			if !reflect.DeepEqual(*status, tt.status) {
 				t.Errorf("EscapeControlString() status = %v, wanted= %v", status, tt.status)
 			}
@@ -179,7 +171,7 @@ func TestEscapeControlReader(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			input := strings.NewReader(tt.text)
 			output := &strings.Builder{}
-			status, err := EscapeControlReader(input, output, nullLocale{})
+			status, err := EscapeControlReader(input, output, &translation.MockLocale{})
 			result := output.String()
 			if err != nil {
 				t.Errorf("EscapeControlReader(): err = %v", err)
@@ -201,5 +193,5 @@ func TestEscapeControlReader_panic(t *testing.T) {
 	for i := 0; i < 6826; i++ {
 		bs = append(bs, []byte("—")...)
 	}
-	_, _ = EscapeControlString(string(bs), nullLocale{})
+	_, _ = EscapeControlString(string(bs), &translation.MockLocale{})
 }

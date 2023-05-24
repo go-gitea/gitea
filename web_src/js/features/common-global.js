@@ -5,9 +5,9 @@ import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
-import {initTooltip} from '../modules/tippy.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
+import {htmlEscape} from 'escape-goat';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -57,25 +57,18 @@ export function initGlobalEnterQuickSubmit() {
 }
 
 export function initGlobalButtonClickOnEnter() {
-  $(document).on('keypress', '.ui.button', (e) => {
-    if (e.keyCode === 13 || e.keyCode === 32) { // enter key or space bar
-      if (e.target.nodeName === 'BUTTON') return; // button already handles space&enter correctly
+  $(document).on('keypress', 'div.ui.button,span.ui.button', (e) => {
+    if (e.code === ' ' || e.code === 'Enter') {
       $(e.target).trigger('click');
       e.preventDefault();
     }
   });
 }
 
-export function initGlobalTooltips() {
-  for (const el of document.getElementsByClassName('tooltip')) {
-    initTooltip(el);
-  }
-}
-
 export function initGlobalCommon() {
   // Undo Safari emoji glitch fix at high enough zoom levels
   if (navigator.userAgent.match('Safari')) {
-    $(window).resize(() => {
+    $(window).on('resize', () => {
       const px = mqBinarySearch('width', 0, 4096, 1, 'px');
       const em = mqBinarySearch('width', 0, 1024, 0.01, 'em');
       if (em * 16 * 1.25 - px <= -1) {
@@ -90,7 +83,7 @@ export function initGlobalCommon() {
   const $uiDropdowns = $('.ui.dropdown');
 
   // do not init "custom" dropdowns, "custom" dropdowns are managed by their own code.
-  $uiDropdowns.filter(':not(.custom)').dropdown({fullTextSearch: 'exact'});
+  $uiDropdowns.filter(':not(.custom)').dropdown();
 
   // The "jump" means this dropdown is mainly used for "menu" purpose,
   // clicking an item will jump to somewhere else or trigger an action/function.
@@ -118,33 +111,19 @@ export function initGlobalCommon() {
     },
   });
 
-  // special animations/popup-directions
-  $uiDropdowns.filter('.slide.up').dropdown({transition: 'slide up'});
-  $uiDropdowns.filter('.upward').dropdown({direction: 'upward'});
+  // Special popup-directions, prevent Fomantic from guessing the popup direction.
+  // With default "direction: auto", if the viewport height is small, Fomantic would show the popup upward,
+  //   if the dropdown is at the beginning of the page, then the top part would be clipped by the window view.
+  //   eg: Issue List "Sort" dropdown
+  // But we can not set "direction: downward" for all dropdowns, because there is a bug in dropdown menu positioning when calculating the "left" position,
+  //   which would make some dropdown popups slightly shift out of the right viewport edge in some cases.
+  //   eg: the "Create New Repo" menu on the navbar.
+  $uiDropdowns.filter('.upward').dropdown('setting', 'direction', 'upward');
+  $uiDropdowns.filter('.downward').dropdown('setting', 'direction', 'downward');
 
   $('.ui.checkbox').checkbox();
 
   $('.tabular.menu .item').tab();
-  $('.tabable.menu .item').tab();
-
-  $('.toggle.button').on('click', function () {
-    toggleElem($($(this).data('target')));
-  });
-
-  // make table <tr> and <td> elements clickable like a link
-  $('tr[data-href], td[data-href]').on('click', function (e) {
-    const href = $(this).data('href');
-    if (e.target.nodeName === 'A') {
-      // if a user clicks on <a>, then the <tr> or <td> should not act as a link.
-      return;
-    }
-    if (e.ctrlKey || e.metaKey) {
-      // ctrl+click or meta+click opens a new window in modern browsers
-      window.open(href);
-    } else {
-      window.location = href;
-    }
-  });
 
   // prevent multiple form submissions on forms containing .loading-button
   document.addEventListener('submit', (e) => {
@@ -190,10 +169,12 @@ export function initGlobalDropzone() {
             let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
             if (file.type.startsWith('image/')) {
               fileMarkdown = `!${fileMarkdown}`;
+            } else if (file.type.startsWith('video/')) {
+              fileMarkdown = `<video src="/attachments/${file.uuid}" title="${htmlEscape(file.name)}" controls></video>`;
             }
             navigator.clipboard.writeText(fileMarkdown);
           });
-          file.previewTemplate.appendChild(copyLinkElement);
+          file.previewTemplate.append(copyLinkElement);
         });
         this.on('removedfile', (file) => {
           $(`#${file.uuid}`).remove();
@@ -215,8 +196,8 @@ export function initGlobalLinkActions() {
     const $this = $(this);
     const dataArray = $this.data();
     let filter = '';
-    if ($this.data('modal-id')) {
-      filter += `#${$this.data('modal-id')}`;
+    if ($this.attr('data-modal-id')) {
+      filter += `#${$this.attr('data-modal-id')}`;
     }
 
     const dialog = $(`.delete.modal${filter}`);
@@ -258,8 +239,8 @@ export function initGlobalLinkActions() {
     e.preventDefault();
     const $this = $(this);
     let filter = '';
-    if ($this.attr('id')) {
-      filter += `#${$this.attr('id')}`;
+    if ($this.attr('data-modal-id')) {
+      filter += `#${$this.attr('data-modal-id')}`;
     }
 
     const dialog = $(`.addall.modal${filter}`);
@@ -329,13 +310,20 @@ export function initGlobalButtons() {
   // There are many "cancel button" elements in modal dialogs, Fomantic UI expects they are button-like elements but never submit a form.
   // However, Gitea misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
   // There are a few cancel buttons in non-modal forms, and there are some dynamically created forms (eg: the "Edit Issue Content")
-  $(document).on('click', 'form .ui.cancel.button', (e) => {
+  $(document).on('click', 'form button.ui.cancel.button', (e) => {
     e.preventDefault();
   });
 
   $('.show-panel.button').on('click', function (e) {
+    // a '.show-panel.button' can show a panel, by `data-panel="selector"`
+    // if the button is a "toggle" button, it toggles the panel
     e.preventDefault();
-    showElem($(this).data('panel'));
+    const sel = $(this).attr('data-panel');
+    if (this.classList.contains('toggle')) {
+      toggleElem(sel);
+    } else {
+      showElem(sel);
+    }
   });
 
   $('.hide-panel.button').on('click', function (e) {

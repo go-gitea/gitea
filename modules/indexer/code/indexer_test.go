@@ -69,7 +69,7 @@ func testIndexer(name string, t *testing.T, indexer Indexer) {
 			t.Run(kw.Keyword, func(t *testing.T) {
 				total, res, langs, err := indexer.Search(context.TODO(), kw.RepoIDs, "", kw.Keyword, 1, 10, false)
 				assert.NoError(t, err)
-				assert.EqualValues(t, len(kw.IDs), total)
+				assert.Len(t, kw.IDs, int(total))
 				assert.Len(t, langs, kw.Langs)
 
 				ids := make([]int64, 0, len(res))

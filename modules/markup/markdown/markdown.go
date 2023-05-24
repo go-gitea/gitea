@@ -29,8 +29,8 @@ import (
 )
 
 var (
-	converter goldmark.Markdown
-	once      = sync.Once{}
+	specMarkdown     goldmark.Markdown
+	specMarkdownOnce sync.Once
 )
 
 var (
@@ -56,7 +56,7 @@ func (l *limitWriter) Write(data []byte) (int, error) {
 		if err != nil {
 			return n, err
 		}
-		return n, fmt.Errorf("Rendered content too large - truncating render")
+		return n, fmt.Errorf("rendered content too large - truncating render")
 	}
 	n, err := l.w.Write(data)
 	l.sum += int64(n)
@@ -73,10 +73,10 @@ func newParserContext(ctx *markup.RenderContext) parser.Context {
 	return pc
 }
 
-// actualRender renders Markdown to HTML without handling special links.
-func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
-	once.Do(func() {
-		converter = goldmark.New(
+// SpecializedMarkdown sets up the Gitea specific markdown extensions
+func SpecializedMarkdown() goldmark.Markdown {
+	specMarkdownOnce.Do(func() {
+		specMarkdown = goldmark.New(
 			goldmark.WithExtensions(
 				extension.NewTable(
 					extension.WithTableCellAlignMethod(extension.TableCellAlignAttribute)),
@@ -139,13 +139,18 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 		)
 
 		// Override the original Tasklist renderer!
-		converter.Renderer().AddOptions(
+		specMarkdown.Renderer().AddOptions(
 			renderer.WithNodeRenderers(
 				util.Prioritized(NewHTMLRenderer(), 10),
 			),
 		)
 	})
+	return specMarkdown
+}
 
+// actualRender renders Markdown to HTML without handling special links.
+func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	converter := SpecializedMarkdown()
 	lw := &limitWriter{
 		w:     output,
 		limit: setting.UI.MaxDisplayFileSize * 3,
@@ -174,7 +179,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 	buf = giteautil.NormalizeEOL(buf)
 
 	rc := &RenderConfig{
-		Meta: "table",
+		Meta: renderMetaModeFromString(string(ctx.RenderMetaAs)),
 		Icon: "table",
 		Lang: "",
 	}

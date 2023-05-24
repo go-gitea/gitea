@@ -5,18 +5,12 @@
 		<h2 class="ui dividing header">
 			{{.locale.Tr "repo.forks"}}
 		</h2>
-		<div class="ui list">
-			{{range .Forks}}
-				<div class="item">
-					{{avatar $.Context .Owner}}
-					<div class="link">
-						<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
-						/
-						<a href="{{.Link}}">{{.Name}}</a>
-					</div>
-				</div>
-			{{end}}
-		</div>
+		{{range .Forks}}
+			<div class="gt-df gt-ac gt-py-3">
+				<span class="gt-mr-2">{{avatar $.Context .Owner}}</span>
+				<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a> / <a href="{{.Link}}">{{.Name}}</a>
+			</div>
+		{{end}}
 	</div>
 
 	{{template "base/paginate" .}}

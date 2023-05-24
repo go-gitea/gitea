@@ -2,9 +2,11 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "原始碼安裝"
 slug: "install-from-source"
-weight: 10
+weight: 30
 toc: false
 draft: false
+aliases:
+  - /zh-tw/install-from-source
 menu:
   sidebar:
     parent: "installation"

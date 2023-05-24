@@ -66,7 +66,7 @@
   num_followers: 2
   num_following: 1
   num_stars: 2
-  num_repos: 12
+  num_repos: 13
   num_teams: 0
   num_members: 0
   visibility: 0
@@ -844,8 +844,8 @@
   num_following: 0
   num_stars: 0
   num_repos: 2
-  num_teams: 1
-  num_members: 0
+  num_teams: 2
+  num_members: 1
   visibility: 2
   repo_admin_change_team_access: false
   theme: ""
@@ -1091,7 +1091,7 @@
   max_repo_creation: -1
   is_active: true
   is_admin: false
-  is_restricted: true
+  is_restricted: false
   allow_git_hook: false
   allow_import_local: false
   allow_create_organization: true
@@ -1217,6 +1217,44 @@
   num_teams: 0
   num_members: 0
   visibility: 1
+  repo_admin_change_team_access: false
+  theme: ""
+  keep_activity_private: false
+
+-
+  id: 34
+  lower_name: the_34-user.with.all.allowedchars
+  name: the_34-user.with.all.allowedChars
+  full_name: the_1-user.with.all.allowedChars
+  description: 'some [commonmark](https://commonmark.org/)!'
+  email: user34@example.com
+  keep_email_private: false
+  email_notifications_preference: enabled
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
+  must_change_password: false
+  login_source: 0
+  login_name: the_34-user.with.all.allowedchars
+  type: 0
+  salt: ZogKvWdyEx
+  max_repo_creation: -1
+  is_active: true
+  is_admin: false
+  is_restricted: false
+  allow_git_hook: false
+  allow_import_local: false
+  allow_create_organization: false
+  prohibit_login: false
+  avatar: avatar34
+  avatar_email: user34@example.com
+  use_custom_avatar: true
+  num_followers: 0
+  num_following: 0
+  num_stars: 0
+  num_repos: 0
+  num_teams: 0
+  num_members: 0
+  visibility: 0
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false

@@ -36,6 +36,7 @@ var (
 		DisableHTTPGit                          bool
 		AccessControlAllowOrigin                string
 		UseCompatSSHURI                         bool
+		GoGetCloneURLProtocol                   string
 		DefaultCloseIssuesViaCommitsInAnyBranch bool
 		EnablePushCreateUser                    bool
 		EnablePushCreateOrg                     bool
@@ -53,8 +54,7 @@ var (
 
 		// Repository editor settings
 		Editor struct {
-			LineWrapExtensions   []string
-			PreviewableFileModes []string
+			LineWrapExtensions []string
 		} `ini:"-"`
 
 		// Repository upload settings
@@ -167,11 +167,9 @@ var (
 
 		// Repository editor settings
 		Editor: struct {
-			LineWrapExtensions   []string
-			PreviewableFileModes []string
+			LineWrapExtensions []string
 		}{
-			LineWrapExtensions:   strings.Split(".txt,.md,.markdown,.mdown,.mkd,", ","),
-			PreviewableFileModes: []string{"markdown"},
+			LineWrapExtensions: strings.Split(".txt,.md,.markdown,.mdown,.mkd,.livemd,", ","),
 		},
 
 		// Repository upload settings
@@ -276,10 +274,10 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("repository")
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
+	Repository.GoGetCloneURLProtocol = sec.Key("GO_GET_CLONE_URL_PROTOCOL").MustString("https")
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
 	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString(Repository.DefaultBranch)
 	RepoRootPath = sec.Key("ROOT").MustString(path.Join(AppDataPath, "gitea-repositories"))
-	forcePathSeparator(RepoRootPath)
 	if !filepath.IsAbs(RepoRootPath) {
 		RepoRootPath = filepath.Join(AppWorkPath, RepoRootPath)
 	} else {
@@ -307,8 +305,12 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
 	}
 
-	if !rootCfg.Section("packages").Key("ENABLED").MustBool(true) {
+	if !rootCfg.Section("packages").Key("ENABLED").MustBool(Packages.Enabled) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
+	}
+
+	if !rootCfg.Section("actions").Key("ENABLED").MustBool(Actions.Enabled) {
+		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.actions")
 	}
 
 	// Handle default trustmodel settings

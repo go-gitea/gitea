@@ -85,7 +85,7 @@ func WebfingerQuery(ctx *context.Context) {
 
 	aliases := []string{
 		u.HTMLURL(),
-		appURL.String() + "api/v1/activitypub/user/" + url.PathEscape(u.Name),
+		appURL.String() + "api/v1/activitypub/user-id/" + fmt.Sprint(u.ID),
 	}
 	if !u.KeepEmailPrivate {
 		aliases = append(aliases, fmt.Sprintf("mailto:%s", u.Email))
@@ -104,7 +104,7 @@ func WebfingerQuery(ctx *context.Context) {
 		{
 			Rel:  "self",
 			Type: "application/activity+json",
-			Href: appURL.String() + "api/v1/activitypub/user/" + url.PathEscape(u.Name),
+			Href: appURL.String() + "api/v1/activitypub/user-id/" + fmt.Sprint(u.ID),
 		},
 	}
 

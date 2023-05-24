@@ -235,12 +235,12 @@ func TestSearchRepository(t *testing.T) {
 		{
 			name:  "AllPublic/PublicRepositoriesOfUserIncludingCollaborative",
 			opts:  &repo_model.SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 15, AllPublic: true, Template: util.OptionalBoolFalse},
-			count: 29,
+			count: 30,
 		},
 		{
 			name:  "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
 			opts:  &repo_model.SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 15, Private: true, AllPublic: true, AllLimited: true, Template: util.OptionalBoolFalse},
-			count: 34,
+			count: 35,
 		},
 		{
 			name:  "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborativeByName",
@@ -255,7 +255,7 @@ func TestSearchRepository(t *testing.T) {
 		{
 			name:  "AllPublic/PublicRepositoriesOfOrganization",
 			opts:  &repo_model.SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 17, AllPublic: true, Collaborate: util.OptionalBoolFalse, Template: util.OptionalBoolFalse},
-			count: 29,
+			count: 30,
 		},
 		{
 			name:  "AllTemplates",
