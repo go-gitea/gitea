@@ -1,5 +1,5 @@
 ---
-date: "2019-04-02T17:06:00+01:00"
+date: "2023-05-23T09:00:00+08:00"
 title: "日志配置"
 slug: "logging-config"
 weight: 40
