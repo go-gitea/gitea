@@ -9,19 +9,7 @@ concurrency:
 
 jobs:
   files-changed:
-    name: detect what files changed
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    # Map a step output to a job output
-    outputs:
-      docs: ${{ steps.changes.outputs.docs }}
-    steps:
-      - uses: actions/checkout@v3  # v2
-      - name: Check for backend file changes
-        uses: dorny/paths-filter@v2  # v2
-        id: changes
-        with:
-          filters: .github/file-filters.yml
+    uses: ./.github/workflows/files-changed.yml
 
   compliance-docs:
     if: needs.files-changed.outputs.docs == 'true'

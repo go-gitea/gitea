@@ -9,20 +9,7 @@ concurrency:
 
 jobs:
   files-changed:
-    name: detect what files changed
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    # Map a step output to a job output
-    outputs:
-      backend: ${{ steps.changes.outputs.backend }}
-      frontend: ${{ steps.changes.outputs.frontend }}
-    steps:
-      - uses: actions/checkout@v3  # v2
-      - name: Check for backend file changes
-        uses: dorny/paths-filter@v2  # v2
-        id: changes
-        with:
-          filters: .github/file-filters.yml
+    uses: ./.github/workflows/files-changed.yml
 
   test-pgsql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'

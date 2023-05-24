@@ -1,5 +1,3 @@
-# This is used by the action https://github.com/dorny/paths-filter (which we have forked to https://github.com/dorny/paths-filter)
-
 docs: &docs
   - "docs/**"
   - "**/*.md"
