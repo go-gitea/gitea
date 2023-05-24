@@ -14,7 +14,6 @@ import (
 )
 
 const (
-	// TODO: Separate from runners when layout is ready
 	tplRepoVariables base.TplName = "repo/settings/actions"
 	tplOrgVariables  base.TplName = "org/settings/actions"
 	tplUserVariables base.TplName = "user/settings/actions"
