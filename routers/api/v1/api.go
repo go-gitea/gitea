@@ -868,7 +868,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					Get(user.ListOauth2Applications).
 					Post(bind(api.CreateOAuth2ApplicationOptions{}), user.CreateOauth2Application) // TODO reqToken()?
 				m.Combo("/oauth2/{id}").
-					Delete(user.DeleteOauth2Application). // TODO reqToken()?
+					Delete(user.DeleteOauth2Application).                                            // TODO reqToken()?
 					Patch(bind(api.CreateOAuth2ApplicationOptions{}), user.UpdateOauth2Application). // TODO reqToken()?
 					Get(user.GetOauth2Application)
 			})
