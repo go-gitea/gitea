@@ -34,11 +34,11 @@ To register the Debian registry add the url to the list of known apt sources:
 echo "deb https://gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
 ```
 
-| Placeholder    | Description |
-| -------------- | ----------- |
+| Placeholder    | Description               |
+| -------------- | ------------------------- |
 | `owner`        | The owner of the package. |
-| `distribution` | The distribution to use. |
-| `component`    | The component to use. |
+| `distribution` | The distribution to use.  |
+| `component`    | The component to use.     |
 
 If the registry is private, provide credentials in the url. You can use a password or a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}):
 
@@ -66,10 +66,10 @@ To publish a Debian package (`*.deb`), perform a HTTP `PUT` operation with the p
 PUT https://gitea.example.com/api/packages/{owner}/debian/pool/{distribution}/{component}/upload
 ```
 
-| Parameter      | Description |
-| -------------- | ----------- |
-| `owner`        | The owner of the package. |
-| `distribution` | The distribution may match the release name of the OS, ex: `bionic`. |
+| Parameter      | Description                                                            |
+| -------------- | ---------------------------------------------------------------------- |
+| `owner`        | The owner of the package.                                              |
+| `distribution` | The distribution may match the release name of the OS, ex: `bionic`.   |
 | `component`    | The component can be used to group packages or just `main` or similar. |
 
 Example request using HTTP Basic authentication:
@@ -85,11 +85,11 @@ You cannot publish a file with the same name twice to a package. You must delete
 
 The server responds with the following HTTP Status codes.
 
-| HTTP Status Code  | Meaning |
-| ----------------- | ------- |
-| `201 Created`     | The package has been published. |
+| HTTP Status Code  | Meaning                                                                         |
+| ----------------- | ------------------------------------------------------------------------------- |
+| `201 Created`     | The package has been published.                                                 |
 | `400 Bad Request` | The package name, version, distribution, component or architecture are invalid. |
-| `409 Conflict`    | A package file with the same combination of parameters exists already. |
+| `409 Conflict`    | A package file with the same combination of parameters exists already.          |
 
 ## Delete a package
 
@@ -99,13 +99,13 @@ To delete a Debian package perform a HTTP `DELETE` operation. This will delete t
 DELETE https://gitea.example.com/api/packages/{owner}/debian/pool/{distribution}/{component}/{package_name}/{package_version}/{architecture}
 ```
 
-| Parameter         | Description |
-| ----------------- | ----------- |
+| Parameter         | Description               |
+| ----------------- | ------------------------- |
 | `owner`           | The owner of the package. |
-| `package_name`    | The package name. |
-| `package_version` | The package version. |
+| `package_name`    | The package name.         |
+| `package_version` | The package version.      |
 | `distribution`    | The package distribution. |
-| `component`       | The package component. |
+| `component`       | The package component.    |
 | `architecture`    | The package architecture. |
 
 Example request using HTTP Basic authentication:
@@ -117,10 +117,10 @@ curl --user your_username:your_token_or_password -X DELETE \
 
 The server responds with the following HTTP Status codes.
 
-| HTTP Status Code  | Meaning |
-| ----------------- | ------- |
-| `204 No Content`  | Success |
-| `404 Not Found`   | The package or file was not found. |
+| HTTP Status Code | Meaning                            |
+| ---------------- | ---------------------------------- |
+| `204 No Content` | Success                            |
+| `404 Not Found`  | The package or file was not found. |
 
 ## Install a package
 
