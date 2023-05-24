@@ -1,16 +1,17 @@
 # This is used by the action https://github.com/dorny/paths-filter (which we have forked to https://github.com/dorny/paths-filter)
 
 docs: &docs
-  - "docs/**"
   - "**/*.md"
+  - "docs/**"
 
 backend: &backend
   - "**/*.go"
+  - "**/*.tmpl"
   - "go.mod"
   - "go.sum"
 
 frontend: &frontend
+  - "**/*.js"
   - "web_src/**"
   - "package.json"
   - "package-lock.json"
-  - "*.js"
