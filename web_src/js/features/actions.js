@@ -2,7 +2,7 @@ import $ from 'jquery';
 
 const {csrfToken} = window.config;
 
-export function initSettingVariables() {
+export function initActionsVariables() {
   $('.show-variable-edit-modal').on('click', function () {
     const target = $(this).attr('data-modal');
     const $modal = $(target);
