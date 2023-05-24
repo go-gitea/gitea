@@ -429,7 +429,7 @@ export function ansiLogToHTML(line) {
 /* action view header */
 
 .action-view-header {
-  margin: 20px 0px;
+  margin: 20px 0;
 }
 
 .action-info-summary {
@@ -452,7 +452,7 @@ export function ansiLogToHTML(line) {
 .action-commit-summary {
   display: flex;
   gap: 5px;
-  margin: 10px 0px 10px 25px;
+  margin: 10px 0 10px 25px;
 }
 
 /* ================ */
@@ -472,7 +472,7 @@ export function ansiLogToHTML(line) {
 .job-artifacts-title {
   font-size: 18px;
   margin-top: 16px;
-  padding: 16px 10px 0px 20px;
+  padding: 16px 10px 0 20px;
   border-top: 1px solid var(--color-secondary);
 }
 
@@ -639,8 +639,8 @@ export function ansiLogToHTML(line) {
 }
 
 .job-step-section .job-step-logs {
-  font-family: monospace, monospace;
-  margin: 8px 0px;
+  font-family: monospace;
+  margin: 8px 0;
   font-size: 12px;
 }
 
@@ -673,7 +673,7 @@ export function ansiLogToHTML(line) {
   margin-left: 10px;
 }
 
-/* TODO: group support */
+/* TODO: group support
 
 .job-log-group {
 
@@ -683,5 +683,5 @@ export function ansiLogToHTML(line) {
 }
 .job-log-list {
 
-}
+} */
 </style>
