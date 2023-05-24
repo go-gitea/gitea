@@ -162,6 +162,7 @@ func (r *Review) LoadReviewer(ctx context.Context) (err error) {
 	return err
 }
 
+// LoadReviewers loads reviewers
 func LoadReviewers(ctx context.Context, reviews []*Review) (err error) {
 	reviewerIds := make([]int64, len(reviews))
 	for i := 0; i < len(reviews); i++ {

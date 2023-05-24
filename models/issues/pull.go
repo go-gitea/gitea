@@ -316,6 +316,7 @@ func (pr *PullRequest) LoadHeadRepo(ctx context.Context) (err error) {
 	return nil
 }
 
+// LoadRequestedReviewers loads the requested reviewers.
 func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) error {
 	if len(pr.RequestedReviewers) > 0 {
 		return nil
