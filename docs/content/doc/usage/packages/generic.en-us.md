@@ -1,6 +1,6 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
-title: "Generic Packages Repository"
+title: "Generic Package Registry"
 slug: "generic"
 weight: 40
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "generic"
 ---
 
-# Generic Packages Repository
+# Generic Package Registry
 
 Publish generic files, like release binaries or other output, for your user or organization.
 

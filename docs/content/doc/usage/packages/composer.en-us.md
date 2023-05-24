@@ -1,6 +1,6 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
-title: "Composer Packages Repository"
+title: "Composer Package Registry"
 slug: "composer"
 weight: 10
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "composer"
 ---
 
-# Composer Packages Repository
+# Composer Package Registry
 
 Publish [Composer](https://getcomposer.org/) packages for your user or organization.
 
