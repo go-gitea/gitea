@@ -5,7 +5,7 @@ package pull
 
 import (
 	"fmt"
-        "strings"
+	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -64,10 +64,10 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 		return err
 	}
 
-        // RFC 1035 - host is case-insensitive, local part is case-sensitive
+	// RFC 1035 - host is case-insensitive, local part is case-sensitive
 	if setting.Repository.PullRequest.AddCoCommitterTrailers &&
-           strings.EqualFold(strings.SplitAfter(ctx.committer.Email, "@")[1], strings.SplitAfter(sig.Email, "@")[1]) &&
-           (strings.SplitAfter(ctx.committer.Email, "@")[0] != strings.SplitAfter(sig.Email, "@")[0]) {
+		strings.EqualFold(strings.SplitAfter(ctx.committer.Email, "@")[1], strings.SplitAfter(sig.Email, "@")[1]) &&
+		(strings.SplitAfter(ctx.committer.Email, "@")[0] != strings.SplitAfter(sig.Email, "@")[0]) {
 		// add trailer if email of user and email of committer don't match
 		message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
 	}
