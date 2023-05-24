@@ -137,13 +137,11 @@ func (g *GitlabDownloader) String() string {
 	return fmt.Sprintf("migration from gitlab server %s [%d]/%s", g.baseURL, g.repoID, g.repoName)
 }
 
-// ColorFormat provides a basic color format for a GitlabDownloader
-func (g *GitlabDownloader) ColorFormat(s fmt.State) {
+func (g *GitlabDownloader) LogString() string {
 	if g == nil {
-		log.ColorFprintf(s, "<nil: GitlabDownloader>")
-		return
+		return "<GitlabDownloader nil>"
 	}
-	log.ColorFprintf(s, "migration from gitlab server %s [%d]/%s", g.baseURL, g.repoID, g.repoName)
+	return fmt.Sprintf("<GitlabDownloader %s [%d]/%s>", g.baseURL, g.repoID, g.repoName)
 }
 
 // SetContext set context

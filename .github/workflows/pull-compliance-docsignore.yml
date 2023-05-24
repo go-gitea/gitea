@@ -11,3 +11,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "No build required"
+
+  lint-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No build required"
+
+  lint-go-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No build required"
+
+  lint-go-gogit:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No build required"
+
+  checks-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No build required"
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No build required"
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No build required"

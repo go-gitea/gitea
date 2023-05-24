@@ -3,10 +3,11 @@
   --fonts-proportional: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
   --fonts-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
   --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
-  /* "font-weight: bold" starts from 700, some fonts do not provide "bolding" for weight 600. */
-  /* But some users consider "700" is too heavy, so use 601, which is when Segoe UI on Linux */
-  /* starts bolding. */
-  --font-weight-bold: 601;
+  /* font weights - use between 400 and 600 for general purposes. Avoid 700 as it is perceived too bold */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
   /* backgrounds */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
@@ -70,6 +71,7 @@
   /* console colors */
   --color-console-fg: #ffffff;
   --color-console-bg: #171717;
+  --color-console-hover-bg: #ffffff16;
   /* named colors */
   --color-red: #db2828;
   --color-orange: #f2711c;
@@ -180,10 +182,13 @@
   --color-caret: var(--color-text-dark);
   --color-reaction-bg: #0000000a;
   --color-reaction-active-bg: var(--color-primary-alpha-20);
-  --color-tooltip-bg: #000000f0;
   --color-tooltip-text: #ffffff;
+  --color-tooltip-bg: #000000f0;
   --color-header-bar: #ffffff;
-  --color-label-active-bg: #d0d0d0;
+  --color-label-text: #232323;
+  --color-label-bg: #cacaca5b;
+  --color-label-hover-bg: #cacacaa0;
+  --color-label-active-bg: #cacacaff;
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-6);
   --color-active-line: #fffbdd;
@@ -215,7 +220,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
 }
 
 body {
@@ -820,16 +825,6 @@ a.label,
   margin-right: 0.35em;
 }
 
-.ui.menu .item > .label {
-  background: var(--color-grey);
-}
-
-.ui.active.label {
-  background: var(--color-label-active-bg);
-  border-color: var(--color-label-active-bg);
-  color: var(--color-text-dark);
-}
-
 .ui.menu .dropdown.item:hover,
 .ui.menu a.item:hover {
   color: var(--color-text);
@@ -898,7 +893,7 @@ a.label,
 .ui.dropdown .menu .active.item {
   color: var(--color-text);
   background: var(--color-active);
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
 }
 
 /* fix misaligned images in webhook dropdown */
@@ -1098,6 +1093,7 @@ a.label,
   color: var(--color-text);
   background: var(--color-box-body);
   border-color: var(--color-secondary);
+  text-align: start; /* Override fomantic's `text-align: left` to make RTL work via HTML `dir="auto"` */
 }
 
 .ui.table th,
@@ -1442,7 +1438,7 @@ img.ui.avatar,
 }
 
 .ui.form .ui.button {
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
 }
 
 .ui.floating.label {
@@ -1500,7 +1496,7 @@ img.ui.avatar,
 }
 
 .ui .text.normal {
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
 }
 
 .ui .text.italic {
@@ -1515,7 +1511,7 @@ img.ui.avatar,
 }
 
 .ui .text.thin {
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
 }
 
 .ui .text.middle {
@@ -1552,7 +1548,7 @@ img.ui.avatar,
 }
 
 .ui .normal.header {
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
 }
 
 .ui .form .autofill-dummy {
@@ -1571,7 +1567,7 @@ img.ui.avatar,
   font-family: var(--fonts-monospace);
   font-size: 13px;
   padding: 6px 10px 4px;
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
   margin: 0 6px;
 }
 
@@ -1598,7 +1594,7 @@ img.ui.avatar,
 
 .ui.inline.delete-button {
   padding: 8px 15px;
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
 }
 
 .ui .background.red {
@@ -1742,7 +1738,7 @@ img.ui.avatar,
 }
 
 .scrolling.menu .item.selected {
-  font-weight: var(--font-weight-bold) !important;
+  font-weight: var(--font-weight-semibold) !important;
 }
 
 .ui.dropdown .scrolling.menu {
@@ -1976,22 +1972,32 @@ i.icon.centerlock {
 
 .ui.label {
   padding: 0.3em 0.5em;
-  background: var(--color-light);
-  color: var(--color-text-light);
+}
+
+.ui.label,
+.ui.menu .item > .label {
+  background: var(--color-label-bg);
+  color: var(--color-label-text);
+}
+
+.ui.active.label {
+  background: var(--color-label-active-bg);
+  border-color: var(--color-label-active-bg);
+  color: var(--color-label-text);
 }
 
 .ui.labels a.label:hover,
 a.ui.label:hover {
-  background: var(--color-hover);
-  border-color: var(--color-hover);
-  color: var(--color-text);
+  background: var(--color-label-hover-bg);
+  border-color: var(--color-label-hover-bg);
+  color: var(--color-label-text);
 }
 
 .ui.labels a.active.label:hover,
 a.ui.active.label:hover {
-  background: var(--color-active);
-  border-color: var(--color-active);
-  color: var(--color-text);
+  background: var(--color-label-active-bg);
+  border-color: var(--color-label-active-bg);
+  color: var(--color-label-text);
 }
 
 .ui.label > .detail .icons {
@@ -2482,7 +2488,7 @@ a.ui.basic.label:hover {
 
 .ui.attached.header .right .button {
   padding: 8px 10px;
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
 }
 
 /* reduce height of buttons with dropdown icon */
@@ -2530,7 +2536,7 @@ a.ui.basic.label:hover {
   padding: 2.75px;
   border-radius: 1em;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--font-weight-semibold);
   line-height: .67em;
 }
 
@@ -2610,7 +2616,7 @@ table th[data-sortt-desc] .svg {
   font-size: 1.25em;
   line-height: 1;
   font-style: normal !important;
-  font-weight: normal !important;
+  font-weight: var(--font-weight-normal) !important;
   vertical-align: -0.075em;
 }
 
@@ -2717,7 +2723,7 @@ table th[data-sortt-desc] .svg {
 .ellipsis-button {
   padding: 0 5px 8px !important;
   display: inline-block !important;
-  font-weight: var(--font-weight-bold) !important;
+  font-weight: var(--font-weight-semibold) !important;
   line-height: 6px !important;
   vertical-align: middle !important;
 }
