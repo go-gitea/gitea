@@ -672,6 +672,11 @@ export function ansiLogToHTML(line) {
 .full.height > .action-view-right {
   width: 100%;
   height: 100%;
+  padding: 0;
+}
+
+.full.height > .action-view-right > .job-step-container {
+  height: 100%;
 }
 
 .job-info-header {
@@ -685,6 +690,7 @@ export function ansiLogToHTML(line) {
   top: 0;
   border-radius: var(--border-radius) var(--border-radius) 0 0;
   height: 60px;
+  z-index: 1;
 }
 
 .job-info-header .job-info-header-title {
@@ -767,7 +773,6 @@ export function ansiLogToHTML(line) {
   .action-view-left {
     max-width: none;
     overflow-y: hidden;
-    flex-shrink: 0;
   }
 }
 </style>
