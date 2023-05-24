@@ -541,8 +541,8 @@ func GetReviews(ctx context.Context, opts *GetReviewOptions) ([]*Review, error) 
 	return reviews, sess.Find(&reviews)
 }
 
-// GetReviewersByIssueID gets the latest review of each reviewer for a pull request
-func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
+// GetReviewsByIssueID gets the latest review of each reviewer for a pull request
+func GetReviewsByIssueID(issueID int64) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
 
 	sess := db.GetEngine(db.DefaultContext)

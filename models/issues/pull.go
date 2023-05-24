@@ -322,7 +322,7 @@ func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) error {
 		return nil
 	}
 
-	reviews, err := GetReviewersByIssueID(pr.Issue.ID)
+	reviews, err := GetReviewsByIssueID(pr.Issue.ID)
 	if err != nil {
 		return err
 	}
