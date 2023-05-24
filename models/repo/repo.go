@@ -382,7 +382,7 @@ func (repo *Repository) LoadOwner(ctx context.Context) (err error) {
 	return err
 }
 
-// MustOwner always returns a valid *user_model.Users object to avoid
+// MustOwner always returns a valid *user_model.User object to avoid
 // conceptually impossible error handling.
 // It creates a fake object that contains error details
 // when error occurs.
