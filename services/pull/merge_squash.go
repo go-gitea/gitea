@@ -64,7 +64,9 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 		return err
 	}
 
-	if setting.Repository.PullRequest.AddCoCommitterTrailers && strings.EqualFold(ctx.committer.Email, sig.Email) {
+	if setting.Repository.PullRequest.AddCoCommitterTrailers &&
+           strings.EqualFold(strings.SplitAfter(ctx.committer.Email, "@")[1], strings.SplitAfter(sig.Email, "@")[1]) &&
+           (strings.SplitAfter(ctx.committer.Email, "@")[0] != strings.SplitAfter(sig.Email, "@")[0]) {
 		// add trailer if email of user and email of committer don't match
 		message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
 	}
