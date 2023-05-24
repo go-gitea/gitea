@@ -372,11 +372,11 @@ lint-js-fix: node_modules
 
 .PHONY: lint-css
 lint-css: node_modules
-	npx stylelint --color --max-warnings=0 web_src/css
+	npx stylelint --color --max-warnings=0 web_src/css web_src/js/components/*.vue
 
 .PHONY: lint-css-fix
 lint-css-fix: node_modules
-	npx stylelint --color --max-warnings=0 web_src/css --fix
+	npx stylelint --color --max-warnings=0 web_src/css web_src/js/components/*.vue --fix
 
 .PHONY: lint-swagger
 lint-swagger: node_modules
@@ -413,11 +413,11 @@ lint-editorconfig:
 
 .PHONY: watch
 watch:
-	bash build/watch.sh
+	@bash build/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
-	rm -rf $(WEBPACK_DEST_ENTRIES)
+	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --watch --progress
 
 .PHONY: watch-backend

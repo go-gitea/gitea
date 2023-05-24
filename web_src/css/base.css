@@ -3,7 +3,7 @@
   --fonts-proportional: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
   --fonts-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
   --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
-  /* font weights - use between 400 and 600 for general purposes */
+  /* font weights - use between 400 and 600 for general purposes. Avoid 700 as it is perceived too bold */
   --font-weight-light: 300;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
@@ -70,8 +70,10 @@
   --color-secondary-alpha-90: #dededee1;
   /* console colors */
   --color-console-fg: #ffffff;
-  --color-console-bg: #171717;
+  --color-console-bg: #252a2f;
+  --color-console-border: #ffffff16;
   --color-console-hover-bg: #ffffff16;
+  --color-console-active-bg: #353a3f;
   /* named colors */
   --color-red: #db2828;
   --color-orange: #f2711c;
