@@ -109,6 +109,7 @@ DELETE https://gitea.example.com/api/packages/{owner}/debian/pool/{distribution}
 | `architecture`    | 软件包架构     |
 
 使用 HTTP 基本身份验证的示例请求：
+
 ```shell
 curl --user your_username:your_token_or_password -X DELETE \
      https://gitea.example.com/api/packages/testuser/debian/pools/bionic/main/test-package/1.0.0/amd64
