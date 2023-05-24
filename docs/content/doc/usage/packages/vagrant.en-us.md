@@ -1,6 +1,6 @@
 ---
 date: "2022-08-23T00:00:00+00:00"
-title: "Vagrant Packages Repository"
+title: "Vagrant Package Registry"
 slug: "vagrant"
 weight: 120
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "vagrant"
 ---
 
-# Vagrant Packages Repository
+# Vagrant Package Registry
 
 Publish [Vagrant](https://www.vagrantup.com/) packages for your user or organization.
 
