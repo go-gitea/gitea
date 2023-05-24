@@ -123,6 +123,31 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 		}
 
 		_, _ = issue_service.CreateComment(ctx, ops)
+
+		if coRules, err := repo.GetCodeOwners(ctx, pr.BaseBranch); err == nil {
+			changedFiles, err := baseGitRepo.GetFilesChangedBetween(git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
+			if err != nil {
+				return err
+			}
+
+			uniqUsers := make(map[int64]*user_model.User)
+
+			for _, rule := range coRules {
+				for _, f := range changedFiles {
+					if (rule.Rule.MatchString(f) && !rule.Negative) || (!rule.Rule.MatchString(f) && rule.Negative) {
+						for _, u := range rule.Users {
+							uniqUsers[u.ID] = u
+						}
+					}
+				}
+			}
+
+			for _, u := range uniqUsers {
+				if _, err := issues_model.AddReviewRequest(pull, pull.Poster, u); err != nil {
+					log.Warn("Failed add assignee user: %s to PR review: %s#%d", u.Name, pr.BaseRepo.Name, pr.ID)
+				}
+			}
+		}
 	}
 
 	return nil
