@@ -112,6 +112,7 @@ You can try it out using [the online demo](https://try.gitea.io/).
       - Hooks
     - Repository management
       - See all repository information and manage repositories
+      - Set per repository global size limit, disable/enable the repository limit (runtime only), permanent should be done via Configuration file
     - Authentication sources
       - OAuth
       - PAM
@@ -170,6 +171,7 @@ You can try it out using [the online demo](https://try.gitea.io/).
   - Git LFS
   - Watch, Star, Fork
   - View watchers, stars, and forks
+  - Size limit (excl. LFS)
   - Code
     - Branch browser
     - Web based file upload and creation
