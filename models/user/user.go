@@ -980,28 +980,16 @@ func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
 
 // GetPossibleUserByIDs returns the users if id > 0 or return system users if id < 0
 func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
-	uniqueIDs := make(container.Set[int64], 32)
-	uniqueIDs.AddMultiple(ids...)
-
+	uniqueIDs := container.SetOf(ids...)
 	users := make([]*User, 0, len(ids))
-
-	if _, ok := uniqueIDs[0]; ok {
-		return nil, ErrUserNotExist{}
-	}
-	if _, ok := uniqueIDs[-1]; ok {
+	_ = uniqueIDs.Remove(0)
+	if uniqueIDs.Remove(-1) {
 		users = append(users, NewGhostUser())
-		delete(uniqueIDs, -1)
 	}
-	if _, ok := uniqueIDs[ActionsUserID]; ok {
+	if uniqueIDs.Remove(ActionsUserID) {
 		users = append(users, NewActionsUser())
-		delete(uniqueIDs, ActionsUserID)
 	}
-
-	needFindIds := make([]int64, 0, len(uniqueIDs))
-	for id := range uniqueIDs {
-		needFindIds = append(needFindIds, id)
-	}
-	res, err := GetUserByIDs(ctx, needFindIds)
+	res, err := GetUserByIDs(ctx, uniqueIDs.Values())
 	if err != nil {
 		return nil, err
 	}
