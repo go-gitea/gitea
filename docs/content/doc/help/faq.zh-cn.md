@@ -117,7 +117,7 @@ Gitea的自定义模板必须将其添加到正确的位置，否则Gitea将无�
 
     如果找不到，请尝试`echo $GITEA_CUSTOM`。
 
-2. 如果仍然找不到，默认值可以被以上计算
+2. 如果仍然找不到，默认值可以被[计算]({{< relref "doc/help/faq.en-us.md#where-does-gitea-store-what-file" >}})
 3. 如果仍然找不到路径，则可以参考[自定义Gitea]({{< relref "doc/administration/customizing-gitea.en-us.md" >}})页面，将模板添加到正确的位置。
 
 ## Gitea是否有"GitHub/GitLab Pages"功能？
@@ -215,6 +215,8 @@ Gitea还提供了自己的SSH服务器，用于在SSHD不可用时使用。
 ## 无法创建仓库/文件
 
 请确保Gitea具有足够的权限来写入其主目录和数据目录。
+
+参见[AppDataPath 和 RepoRootPath]({{< relref "doc/help/faq.en-us.md#where-does-gitea-store-what-file" >}})
 
 **适用于Arch用户的注意事项：**在撰写本文时，Arch软件包的systemd文件包含了以下行：
 
