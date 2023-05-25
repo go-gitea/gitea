@@ -1,8 +1,10 @@
 package issue
 
 import (
+	"fmt"
 	"testing"
 
+	"code.gitea.io/gitea/modules/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -91,6 +93,8 @@ func compareLists(list1 []string, list2 []string) bool {
 
 	for i, _ := range list1 {
 		if list1[i] != list2[i] {
+			log.Trace("Mismatched at " + fmt.Sprint(i) + ". List 1: " + fmt.Sprint(list1[i]) +
+				" List 2: " + fmt.Sprint(list2[i]))
 			return false
 		}
 	}
