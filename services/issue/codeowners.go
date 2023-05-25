@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
 	"gopkg.in/godo.v2/glob"
 )
 
@@ -25,10 +26,10 @@ func ParseCodeowners(changedFiles []string, codeownersContents []byte) ([]string
 		codeownersList = append(codeownersList, GetOwners(globMap, file)...)
 	}
 	codeownerIndividuals, codeOwnerTeams := SeparateOwnerAndTeam(codeownersList)
-	fmt.Println(codeownerIndividuals)
-	fmt.Println(codeOwnerTeams)
 
-	// TODO: Do we need to return an error as well?
+	log.Trace("Final result of Codeowner Users: " + fmt.Sprint(codeownerIndividuals))
+	log.Trace("Final result of Codeowner Teams: " + fmt.Sprint(codeOwnerTeams))
+
 	return codeownerIndividuals, codeOwnerTeams, err
 
 }
@@ -45,7 +46,7 @@ func GetOwners(globMap []Codeowners, file string) []string {
 			return globMap[i].owners
 		}
 	}
-	fmt.Println("File did not match:", file)
+	log.Trace("!!!Unmatched file: ", file)
 	return nil
 }
 
@@ -104,10 +105,12 @@ func ParseCodeownerBytes(codeownerBytes []byte) ([]Codeowners, error) {
 func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 
 	var globMap []Codeowners
+	var lineCounter int = 0
 
 	for scanner.Scan() {
 
 		nextLine := scanner.Text()
+		lineCounter++
 
 		// strings.Fields() splits the string by whitespace
 		splitStrings := strings.Fields(nextLine)
@@ -175,21 +178,37 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 		}
 
 		if len(currFileUsers) > 0 {
+			validRule := true
 
-			newCodeowner := Codeowners{
-				glob:   globString,
-				owners: currFileUsers,
+			for _, user := range currFileUsers {
+				if !glob.Globexp("@*").MatchString(user) {
+					if !glob.Globexp("@*/*").MatchString(user) {
+						if !glob.Globexp("*@*.*").MatchString(user) {
+							validRule = false
+						}
+					}
+				}
 			}
 
-			globMap = append(globMap, newCodeowner)
-
-			if globString2 != "" {
-				newCodeowner2 := Codeowners{
-					glob:   globString2,
+			if validRule {
+				newCodeowner := Codeowners{
+					glob:   globString,
 					owners: currFileUsers,
 				}
 
-				globMap = append(globMap, newCodeowner2)
+				globMap = append(globMap, newCodeowner)
+
+				if globString2 != "" {
+					newCodeowner2 := Codeowners{
+						glob:   globString2,
+						owners: currFileUsers,
+					}
+
+					globMap = append(globMap, newCodeowner2)
+				}
+			} else {
+				log.Trace("Invalid syntax given on line " + fmt.Sprint(lineCounter) + ":" +
+					nextLine)
 			}
 		} else {
 
@@ -201,18 +220,18 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 			globMap = append(globMap, newCodeowner)
 		}
 
-		// fmt.Println(nextLine)
-		// fmt.Println("Glob string: ", globString)
-		// fmt.Println("Current users: ", currFileUsers)
+		log.Trace("Line number " + fmt.Sprint(lineCounter) + ":")
+		log.Trace("Parsed as Glob string: " + globString + "," + globString2 +
+			"Users: " + fmt.Sprint(currFileUsers))
 	}
 
 	if scanner.Err() != nil {
-		fmt.Println("Error reading file", scanner.Err())
+		log.Trace(scanner.Err().Error())
 		globMap = nil
 		return globMap, scanner.Err()
 	}
 
-	fmt.Println(globMap)
+	log.Trace("Parsed map from codeowners file: " + fmt.Sprint(globMap))
 	return globMap, scanner.Err()
 
 }
