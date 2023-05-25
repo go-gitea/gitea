@@ -23,12 +23,12 @@ menu:
 
 ## 要求
 
-建议在Docker容器中运行作业，因此您需要首先安装Docker。
+建议在Docker容器中运行Job，因此您需要首先安装Docker。
 并确保Docker守护程序正在运行。
 
 其他与Docker API兼容的OCI容器引擎也应该可以正常工作，但尚未经过测试。
 
-但是，如果您确定要直接在主机上运行作业，则不需要Docker。
+但是，如果您确定要直接在主机上运行Job，则不需要Docker。
 
 ## 安装
 
@@ -87,15 +87,15 @@ docker run -v $(pwd)/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
 
 ## 注册
 
-在运行Act Runner之前，需要进行注册，因为Runner需要知道从哪里获取作业，并且对于Gitea实例来说，识别Runner也很重要。
+在运行Act Runner之前，需要进行注册，因为Runner需要知道从哪里获取Job，并且对于Gitea实例来说，识别Runner也很重要。
 
 ### Runner级别
 
 您可以在不同级别上注册Runner，它可以是：
 
-- 实例级别：Runner将为实例中的所有存储库运行作业。
-- 组织级别：Runner将为组织中的所有存储库运行作业。
-- 存储库级别：Runner将为其所属的存储库运行作业。
+- 实例级别：Runner将为实例中的所有存储库运行Job。
+- 组织级别：Runner将为组织中的所有存储库运行Job。
+- 存储库级别：Runner将为其所属的存储库运行Job。
 
 请注意，即使存储库具有自己的存储库级别Runner，它仍然可以使用实例级别或组织级别Runner。未来的版本可能提供更多对此进行更好控制的选项。
 
@@ -165,24 +165,24 @@ docker run \
 ```
 
 您可能注意到我们已将`/var/run/docker.sock`挂载到容器中。
-这是因为Act Runner将在Docker容器中运行作业，因此它需要与Docker守护程序进行通信。
-如前所述，如果要在主机上直接运行作业，可以将其移除。
+这是因为Act Runner将在Docker容器中运行Job，因此它需要与Docker守护程序进行通信。
+如前所述，如果要在主机上直接运行Job，可以将其移除。
 需要明确的是，这里的 "主机" 实际上指的是当前运行 Act Runner的容器，而不是主机机器本身。
 
 ### 标签
 
-Runner的标签用于确定Runner可以运行哪些作业以及如何运行它们。
+Runner的标签用于确定Runner可以运行哪些Job以及如何运行它们。
 
 默认标签为`ubuntu-latest:docker://node:16-bullseye,ubuntu-22.04:docker://node:16-bullseye,ubuntu-20.04:docker://node:16-bullseye,ubuntu-18.04:docker://node:16-buster`。
 它们是逗号分隔的列表，每个项目都是一个标签。
 
 让我们以 `ubuntu-22.04:docker://node:16-bullseye` 为例。
-它意味着Runner可以运行带有`runs-on: ubuntu-22.04`的作业，并且该作业将在使用`node:16-bullseye`镜像的Docker容器中运行。
+它意味着Runner可以运行带有`runs-on: ubuntu-22.04`的Job，并且该Job将在使用`node:16-bullseye`镜像的Docker容器中运行。
 
 如果默认镜像无法满足您的需求，并且您有足够的磁盘空间可以使用更好、更大的镜像，您可以将其更改为`ubuntu-22.04:docker://<您喜欢的镜像>`。
 您可以在[act 镜像](https://github.com/nektos/act/blob/master/IMAGES.md)上找到更多有用的镜像。
 
-如果您想直接在主机上运行作业，您可以将其更改为`ubuntu-22.04:host`或仅`ubuntu-22.04`，`:host`是可选的。
+如果您想直接在主机上运行Job，您可以将其更改为`ubuntu-22.04:host`或仅`ubuntu-22.04`，`:host`是可选的。
 然而，我们建议您使用类似`linux_amd64:host`或`windows:host`的特殊名称，以避免误用。
 
 还有一点需要注意的是，建议在更改标签时注册Runner。
@@ -198,6 +198,6 @@ Runner的标签用于确定Runner可以运行哪些作业以及如何运行它�
 ./act_runner daemon --config config.yaml
 ```
 
-Runner将从Gitea实例获取作业并自动运行它们。
+Runner将从Gitea实例获取Job并自动运行它们。
 
 由于Act Runner仍处于开发中，建议定期检查最新版本并进行升级。

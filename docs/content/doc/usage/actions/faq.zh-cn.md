@@ -47,7 +47,7 @@ DEFAULT_REPO_UNITS = ...,repo.actions
 目前还不可以。
 从技术上讲是可以实现的，但我们需要讨论是否有必要。
 
-## 使用`actions/checkout@v3`等Actions时，作业容器会从何处下载脚本？
+## 使用`actions/checkout@v3`等Actions时，Job容器会从何处下载脚本？
 
 您可能知道GitHub上有成千上万个[Actions市场](https://github.com/marketplace?type=actions)。
 然而，当您编写`uses: actions/checkout@v3`时，它实际上默认从[gitea.com/actions/checkout](http://gitea.com/actions/checkout)下载脚本（而不是从GitHub下载）。
@@ -72,7 +72,7 @@ DEFAULT_REPO_UNITS = ...,repo.actions
 ## 如何限制Runner的权限？
 
 Runner仅具有连接到您的Gitea实例的权限。
-当任何Runner接收到要运行的作业时，它将临时获得与作业关联的仓库的有限权限。
+当任何Runner接收到要运行的Job时，它将临时获得与Job关联的仓库的有限权限。
 如果您想为Runner提供更多权限，允许它访问更多私有仓库或外部系统，您可以向其传递[密钥](https://docs.gitea.io/en-us/usage/secrets/)。
 
 对于 Actions 的细粒度权限控制是一项复杂的工作。
@@ -90,8 +90,8 @@ Runner仅具有连接到您的Gitea实例的权限。
 对于公共实例，情况略有不同。
 以下是我们在 [gitea.com](http://gitea.com/)上的做法：
 
-- 我们仅为 "gitea" 组织注册Runner，因此我们的Runner不会执行来自其他仓库的作业。
-- 我们的Runner始终在隔离容器中运行作业。虽然可以直接在主机上进行这样的操作，但出于安全考虑，我们选择不这样做。
+- 我们仅为 "gitea" 组织注册Runner，因此我们的Runner不会执行来自其他仓库的Job。
+- 我们的Runner始终在隔离容器中运行Job。虽然可以直接在主机上进行这样的操作，但出于安全考虑，我们选择不这样做。
 - 对于 fork 的拉取请求，需要获得批准才能运行Actions。参见[#22803](https://github.com/go-gitea/gitea/pull/22803)。
 - 如果有人在[gitea.com](http://gitea.com/)为其仓库或组织注册自己的Runner，我们不会反对，只是不会在我们的组织中使用它。然而，他们应该注意确保该Runner不被他们不认识的其他用户使用。
 
@@ -100,7 +100,7 @@ Runner仅具有连接到您的Gitea实例的权限。
 它在Linux、macOS和Windows上运行良好。
 虽然理论上支持其他操作系统，但需要进一步测试。
 
-需要注意的一点是，如果选择直接在主机上运行作业而不是在作业容器中运行，操作系统之间的环境差异可能会导致意外的失败。
+需要注意的一点是，如果选择直接在主机上运行Job而不是在Job容器中运行，操作系统之间的环境差异可能会导致意外的失败。
 
 例如，在大多数情况下，Windows上没有可用的bash，而act尝试默认使用bash运行脚本。
 因此，您需要在工作流文件中将默认shell指定为`powershell`，参考[defaults.run](https://docs.github.com/zh/actions/using-workflows/workflow-syntax-for-github-actions#defaultsrun)。
@@ -136,8 +136,8 @@ defaults:
 - `[ubuntu, with-gpu]` → `ubuntu:22.04_with-gpu`
 
 我们还需要重新设计任务分配给Runner的方式。
-具有`ubuntu`、`centos`或`with-gpu`的Runner并不一定表示它可以接受`[centos, with-gpu]`的作业。
-因此，Runner应该通知Gitea实例它只能接受具有 `[ubuntu]`、`[centos]`、`[with-gpu]` 和 `[ubuntu, with-gpu]`的作业。
+具有`ubuntu`、`centos`或`with-gpu`的Runner并不一定表示它可以接受`[centos, with-gpu]`的Job。
+因此，Runner应该通知Gitea实例它只能接受具有 `[ubuntu]`、`[centos]`、`[with-gpu]` 和 `[ubuntu, with-gpu]`的Job。
 这不是一个技术问题，只是在早期设计中被忽视了。
 参见[runtime.go#L65](https://gitea.com/gitea/act_runner/src/commit/90b8cc6a7a48f45cc28b5ef9660ebf4061fcb336/runtime/runtime.go#L65)。
 
@@ -151,7 +151,7 @@ defaults:
 而自定义标签则是由Gitea的管理员或组织或仓库的所有者手动添加的（取决于Runner所属的级别）。
 
 然而，目前这方面的设计还有待改进，因为它目前存在一些不完善之处。
-您可以向已注册的Runner添加自定义标签，比如 `centos`，这意味着该Runner将接收具有`runs-on: centos`的作业。
+您可以向已注册的Runner添加自定义标签，比如 `centos`，这意味着该Runner将接收具有`runs-on: centos`的Job。
 然而，Runner可能不知道要使用哪个环境来执行该标签，导致它使用默认镜像或导致逻辑死胡同。
 这个默认值可能与用户的期望不符。
 参见[runtime.go#L71](https://gitea.com/gitea/act_runner/src/commit/90b8cc6a7a48f45cc28b5ef9660ebf4061fcb336/runtime/runtime.go#L71)。

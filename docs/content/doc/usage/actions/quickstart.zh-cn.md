@@ -38,7 +38,7 @@ ENABLED=true
 
 ### 设置Runner
 
-Gitea Actions需要[act runner](https://gitea.com/gitea/act_runner) 来运行作业。
+Gitea Actions需要[act runner](https://gitea.com/gitea/act_runner) 来运行Job。
 为了避免消耗过多资源并影响Gitea实例，建议您在与Gitea实例分开的机器上启动Runner。
 
 您可以使用[预构建的二进制文件](http://dl.gitea.com/act_runner)或[容器镜像](https://hub.docker.com/r/gitea/act_runner/tags)来设置Runner。
@@ -46,9 +46,9 @@ Gitea Actions需要[act runner](https://gitea.com/gitea/act_runner) 来运行作
 在进一步操作之前，建议您先使用预构建的二进制文件以命令行方式运行它，以确保它与您的环境兼容，尤其是如果您在本地主机上运行Runner。
 如果出现问题，这样调试起来会更容易。
 
-该Runner可以在隔离的Docker容器中运行作业，因此您需要确保已安装Docker并且Docker守护程序正在运行。
-虽然这不是严格必需的，因为Runner也可以直接在主机上运行作业，这取决于您的配置方式。
-然而，建议使用Docker运行作业，因为它更安全且更易于管理。
+该Runner可以在隔离的Docker容器中运行Job，因此您需要确保已安装Docker并且Docker守护程序正在运行。
+虽然这不是严格必需的，因为Runner也可以直接在主机上运行Job，这取决于您的配置方式。
+然而，建议使用Docker运行Job，因为它更安全且更易于管理。
 
 在运行Runner之前，您需要使用以下命令将其注册到Gitea实例中：
 
@@ -59,7 +59,7 @@ Gitea Actions需要[act runner](https://gitea.com/gitea/act_runner) 来运行作
 需要两个必需的参数：`instance` 和 `token`。
 
 `instance`是您的Gitea实例的地址，如`http://192.168.8.8:3000`或`https://gitea.com`。
-Runner和作业容器（由Runner启动以执行作业）将连接到此地址。
+Runner和Job容器（由Runner启动以执行Job）将连接到此地址。
 这意味着它可能与用于Web访问的`ROOT_URL`不同。
 使用回环地址（例如 `127.0.0.1` 或 `localhost`）是一个不好的选择。
 如果不确定使用哪个地址，通常选择局域网地址即可。

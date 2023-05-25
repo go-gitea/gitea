@@ -33,7 +33,7 @@ Gitea Actions与[GitHub Actions](https://github.com/features/actions)相似且�
 
 ## Runner
 
-和其他CI/CD解决方案一样，Gitea不会自己运行作业，而是将作业委托给Runner。
+和其他CI/CD解决方案一样，Gitea不会自己运行Job，而是将Job委托给Runner。
 Gitea Actions的Runner被称为[act runner](https://gitea.com/gitea/act_runner)，它是一个独立的程序，也是用Go语言编写的。
 它是基于[nektos/act](http://github.com/nektos/act)的一个[分支](https://gitea.com/gitea/act) 。
 

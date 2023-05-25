@@ -37,7 +37,7 @@ Gitea Actions支持使用Go编写Actions。
 
 ### `concurrency`
 
-这是用于一次运行一个作业。
+这是用于一次运行一个Job。
 请参阅[使用并发](https://docs.github.com/zh/actions/using-jobs/using-concurrency)。
 
 Gitea Actions目前不支持此功能。
@@ -118,7 +118,7 @@ Gitea Actions目前不支持此功能。
 
 ### 预处理和后处理步骤
 
-预处理和后处理步骤在作业日志用户界面中没有自己的用户界面。
+预处理和后处理步骤在Job日志用户界面中没有自己的用户界面。
 
 ## 不一样的行为
 
@@ -146,7 +146,7 @@ Gitea Actions默认不从GitHub下载Actions。
 请参阅[act_runner#119](https://gitea.com/gitea/act_runner/issues/119#issuecomment-738294)。
 
 `ACTIONS_RUNTIME_TOKEN`在Gitea Actions中是一个随机字符串，而不是JWT。
-但是`DOCKER/BUILD-PUSH-ACTION@V4尝试将令牌解析为JWT，并且不处理错误，因此作业失败。
+但是`DOCKER/BUILD-PUSH-ACTION@V4尝试将令牌解析为JWT，并且不处理错误，因此Job失败。
 
 有两种解决方法：
 
