@@ -142,22 +142,24 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository) error 
 		return fmt.Errorf("FindFileInEntries: %w", err)
 	}
 
-	// Read license file content
-	blob := licenseFile.Blob()
-	contentBuf, err := blob.GetBlobAll()
-	if err != nil {
-		return fmt.Errorf("GetBlobByPath: %w", err)
-	}
+	if licenseFile != nil {
+		// Read license file content
+		blob := licenseFile.Blob()
+		contentBuf, err := blob.GetBlobAll()
+		if err != nil {
+			return fmt.Errorf("GetBlobByPath: %w", err)
+		}
 
-	// check license
-	var licenses []string
-	cov := licensecheck.Scan(contentBuf)
-	for _, m := range cov.Match {
-		licenses = append(licenses, m.ID)
-	}
-	repo.Licenses = licenses
-	if err := repo_model.UpdateRepositoryCols(ctx, repo, "licenses"); err != nil {
-		return fmt.Errorf("UpdateRepositoryCols: %v", err)
+		// check license
+		var licenses []string
+		cov := licensecheck.Scan(contentBuf)
+		for _, m := range cov.Match {
+			licenses = append(licenses, m.ID)
+		}
+		repo.Licenses = licenses
+		if err := repo_model.UpdateRepositoryCols(ctx, repo, "licenses"); err != nil {
+			return fmt.Errorf("UpdateRepositoryCols: %v", err)
+		}
 	}
 
 	return nil
