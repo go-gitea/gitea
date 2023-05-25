@@ -19,7 +19,7 @@ menu:
 
 本页面包含一些常见问题和答案。
 
-有关更多帮助资源，请查看所有[支持选项]({{< relref "doc/help/support.en-us.md" >}})。
+有关更多帮助资源，请查看所有[支持选项]({{< relref "doc/help/support.zh-cn.md" >}})。
 
 **目录**
 
@@ -45,7 +45,7 @@ menu:
 
 要从Gogs迁移到Gitea：
 
-- [Gogs版本0.9.146或更低]({{< relref "doc/installation/upgrade-from-gogs.en-us.md" >}})
+- [Gogs版本0.9.146或更低]({{< relref "doc/installation/upgrade-from-gogs.zh-cn.md" >}})
 - [Gogs版本0.11.46.0418](https://github.com/go-gitea/gitea/issues/4286)
 
 要从GitHub迁移到Gitea，您可以使用Gitea内置的迁移表单。
@@ -92,7 +92,7 @@ https://github.com/loganinak/MigrateGitlabToGogs
 
 有几个地方可能会导致显示不正确。
 
-1. 如果使用反向代理，请确保按照[反向代理指南]({{< relref "doc/administration/reverse-proxies.en-us.md" >}})中的正确说明进行设置。
+1. 如果使用反向代理，请确保按照[反向代理指南]({{< relref "doc/administration/reverse-proxies.zh-cn.md" >}})中的正确说明进行设置。
 2. 确保在`app.ini`的`server`部分中正确设置了`ROOT_URL`。
 
 如果某些克隆选项未显示（HTTP/S或SSH），可以在`app.ini中`
@@ -105,7 +105,7 @@ https://github.com/loganinak/MigrateGitlabToGogs
 
 当反向代理限制文件上传大小时，会出现此错误。
 
-有关使用nginx解决此问题，请参阅[反向代理指南]({{< relref "doc/administration/reverse-proxies.en-us.md" >}})。
+有关使用nginx解决此问题，请参阅[反向代理指南]({{< relref "doc/administration/reverse-proxies.zh-cn.md" >}})。
 
 ## 自定义模板无法加载或运行错误
 
@@ -117,8 +117,8 @@ Gitea的自定义模板必须将其添加到正确的位置，否则Gitea将无�
 
     如果找不到，请尝试`echo $GITEA_CUSTOM`。
 
-2. 如果仍然找不到，默认值可以被[计算]({{< relref "doc/help/faq.en-us.md#where-does-gitea-store-what-file" >}})
-3. 如果仍然找不到路径，则可以参考[自定义Gitea]({{< relref "doc/administration/customizing-gitea.en-us.md" >}})页面，将模板添加到正确的位置。
+2. 如果仍然找不到，默认值可以被[计算]({{< relref "doc/help/faq.zh-cn.md#where-does-gitea-store-what-file" >}})
+3. 如果仍然找不到路径，则可以参考[自定义Gitea]({{< relref "doc/administration/customizing-gitea.zh-cn.md" >}})页面，将模板添加到正确的位置。
 
 ## Gitea是否有"GitHub/GitLab Pages"功能？
 
@@ -136,7 +136,7 @@ Gitea不提供内置的Pages服务器。您需要一个专用的域名来提供�
 
 ## 设置日志记录
 
-- [官方文档]({{< relref "doc/administration/logging-config.en-us.md" >}})
+- [官方文档]({{< relref "doc/administration/logging-config.zh-cn.md" >}})
 
 ## 什么是Swagger？
 
@@ -144,7 +144,7 @@ Gitea不提供内置的Pages服务器。您需要一个专用的域名来提供�
 
 所有Gitea实例都有内置的API，无法完全禁用它。
 但是，您可以在app.ini的api部分将ENABLE_SWAGGER设置为false，以禁用其文档显示。
-有关更多信息，请参阅Gitea的[API文档]({{< relref "doc/development/api-usage.en-us.md" >}})。
+有关更多信息，请参阅Gitea的[API文档]({{< relref "doc/development/api-usage.zh-cn.md" >}})。
 
 您可以在上查看最新的API（例如）<https://try.gitea.io/api/swagger>。
 
@@ -159,7 +159,7 @@ Gitea不提供内置的Pages服务器。您需要一个专用的域名来提供�
 1. 通过设置电子邮件域名的白名单或黑名单。
 2. 通过设置一些域名或者OpenID白名单（见下文）。
 3. 在您的`app.ini`中将`ENABLE_CAPTCHA`设置为`true`，并正确配置`RECAPTCHA_SECRET`和 `RECAPTCHA_SITEKEY`。
-4. 将`DISABLE_REGISTRATION`设置为`true`，并通过 [CLI]({{< relref "doc/administration/command-line.en-us.md" >}})、[API]({{< relref "doc/development/api-usage.en-us.md" >}}) 或 Gitea 的管理界面创建新用户。
+4. 将`DISABLE_REGISTRATION`设置为`true`，并通过 [CLI]({{< relref "doc/administration/command-line.zh-cn.md" >}})、[API]({{< relref "doc/development/api-usage.zh-cn.md" >}}) 或 Gitea 的管理界面创建新用户。
 
 ### 仅允许/阻止特定的电子邮件域名
 
@@ -185,7 +185,7 @@ Gitea不提供内置的Pages服务器。您需要一个专用的域名来提供�
 
 ### 启用 Fail2ban
 
-使用 [Fail2Ban]({{< relref "doc/administration/fail2ban-setup.en-us.md" >}}) 监视并阻止基于日志模式的自动登录尝试或其他恶意行为。
+使用 [Fail2Ban]({{< relref "doc/administration/fail2ban-setup.zh-cn.md" >}}) 监视并阻止基于日志模式的自动登录尝试或其他恶意行为。
 
 ## 如何添加/使用自定义主题
 
@@ -216,7 +216,7 @@ Gitea还提供了自己的SSH服务器，用于在SSHD不可用时使用。
 
 请确保Gitea具有足够的权限来写入其主目录和数据目录。
 
-参见[AppDataPath 和 RepoRootPath]({{< relref "doc/help/faq.en-us.md#where-does-gitea-store-what-file" >}})
+参见[AppDataPath 和 RepoRootPath]({{< relref "doc/help/faq.zh-cn.md#where-does-gitea-store-what-file" >}})
 
 **适用于Arch用户的注意事项：**在撰写本文时，Arch软件包的systemd文件包含了以下行：
 
@@ -338,24 +338,24 @@ error: failed to push some refs to '<GIT_REPO_URL>'
 
 ## 如何在启动 Gitea 之前创建用户
 
-Gitea 提供了一个子命令`gitea migrate`来初始化数据库，然后您可以使用[管理 CLI 命令]({{< relref "doc/administration/command-line.en-us.md#admin" >}})像正常情况下添加用户。
+Gitea 提供了一个子命令`gitea migrate`来初始化数据库，然后您可以使用[管理 CLI 命令]({{< relref "doc/administration/command-line.zh-cn.md#admin" >}})像正常情况下添加用户。
 
 ## 如何启用密码重置
 
-没有密码重置的设置。当配置了[邮件服务]({{< relref "doc/administration/email-setup.en-us.md" >}})时，密码重置将自动启用；否则将被禁用。
+没有密码重置的设置。当配置了[邮件服务]({{< relref "doc/administration/email-setup.zh-cn.md" >}})时，密码重置将自动启用；否则将被禁用。
 
 ## 如何更改用户的密码
 
 - 作为管理员，您可以更改任何用户的密码（并可选择强制其在下次登录时更改密码）...
   - 转到您的`站点管理 -> 用户账户`页面并编辑用户。
-- 使用[管理 CLI 命令]({{< relref "doc/administration/command-line.en-us.md#admin" >}})。
+- 使用[管理 CLI 命令]({{< relref "doc/administration/command-line.zh-cn.md#admin" >}})。
 
-  请注意，大多数命令还需要一个[全局标志]({{< relref "doc/administration/command-line.en-us.- md#global-options" >}})来指向正确的配置。
+  请注意，大多数命令还需要一个[全局标志]({{< relref "doc/administration/command-line.zh-cn.- md#global-options" >}})来指向正确的配置。
 - 作为**用户**，您可以更改密码...
   - 在您的账户的`设置 -> 账户`页面（此方法**需要**您知道当前密码）。
   - 使用`忘记密码`链接。
 
-  如果`忘记密码/账户恢复`页面被禁用，请联系管理员配置[邮件服务]({{< relref "doc/administration/email-setup.en-us.md" >}})。
+  如果`忘记密码/账户恢复`页面被禁用，请联系管理员配置[邮件服务]({{< relref "doc/administration/email-setup.zh-cn.md" >}})。
 
 ## 为什么我的 Markdown 显示错误
 
@@ -410,7 +410,7 @@ SystemD 上的标准输出默认会写入日志记录中。您可以尝试使用
 
 类似地，Docker 上的标准输出可以使用`docker logs <container>`来查看。
 
-要收集日志以进行帮助和问题报告，请参阅[支持选项]({{< relref "doc/help/support.en-us.md" >}})。
+要收集日志以进行帮助和问题报告，请参阅[支持选项]({{< relref "doc/help/support.zh-cn.md" >}})。
 
 ## 初始日志记录
 
@@ -467,6 +467,6 @@ gitea doctor recreate-table
   - 您还可以在`<ROOT_URL>/admin/config`中检查存储库根路径。
 - 确保存在要采用存储库的用户/组织。
 - 作为管理员，转到`<ROOT_URL>/admin/repos/unadopted`并搜索。
-- 用户也可以通过配置[`ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`]({{< relref "doc/administration/- config-cheat-sheet.en-us.md#repository" >}}) 获得类似的权限。
+- 用户也可以通过配置[`ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`]({{< relref "doc/administration/config-cheat-sheet.zh-cn.md#repository" >}}) 获得类似的权限。
 - 如果上述步骤都正确执行，您应该能够选择要采用的存储库。
-  - 如果没有找到存储库，请启用[调试日志记录]({{< relref "doc/administration/config-cheat-sheet.en-us.- md#repository" >}})以检查是否有特定错误。
+  - 如果没有找到存储库，请启用[调试日志记录]({{< relref "doc/administration/config-cheat-sheet.zh-cn.md#repository" >}})以检查是否有特定错误。
