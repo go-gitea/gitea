@@ -419,11 +419,11 @@ lint-actions:
 
 .PHONY: watch
 watch:
-	bash build/watch.sh
+	@bash build/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
-	rm -rf $(WEBPACK_DEST_ENTRIES)
+	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --watch --progress
 
 .PHONY: watch-backend
