@@ -91,7 +91,7 @@ text-expander .suggestions li {
   align-items: center;
   cursor: pointer;
   padding: 4px 8px;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 text-expander .suggestions li + li {
@@ -115,7 +115,7 @@ text-expander .suggestions li:hover {
 }
 
 text-expander .suggestions .fullname {
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
   margin-left: 4px;
   color: var(--color-text-light-1);
 }

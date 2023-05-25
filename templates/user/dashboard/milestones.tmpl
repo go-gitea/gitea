@@ -4,11 +4,11 @@
 	<div class="ui container">
 		<div class="ui stackable grid">
 			<div class="four wide column">
-				<div class="ui secondary vertical filter menu">
-					<a class="item" href="{{.Link}}?type=your_repositories&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+				<div class="ui secondary vertical filter menu gt-bg-transparent">
+					<div class="item">
 						{{.locale.Tr "home.issues.in_your_repos"}}
 						<strong class="ui right">{{.Total}}</strong>
-					</a>
+					</div>
 					<div class="ui divider"></div>
 					{{range .Repos}}
 						{{with $Repo := .}}

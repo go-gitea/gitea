@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // SearchResult result of performing a search in a repo
@@ -89,6 +90,32 @@ func index(ctx context.Context, indexer Indexer, repoID int64) error {
 	}
 	if err != nil {
 		return err
+	}
+
+	repoTypes := setting.Indexer.RepoIndexerRepoTypes
+
+	if len(repoTypes) == 0 {
+		repoTypes = []string{"sources"}
+	}
+
+	// skip forks from being indexed if unit is not present
+	if !util.SliceContains(repoTypes, "forks") && repo.IsFork {
+		return nil
+	}
+
+	// skip mirrors from being indexed if unit is not present
+	if !util.SliceContains(repoTypes, "mirrors") && repo.IsMirror {
+		return nil
+	}
+
+	// skip templates from being indexed if unit is not present
+	if !util.SliceContains(repoTypes, "templates") && repo.IsTemplate {
+		return nil
+	}
+
+	// skip regular repos from being indexed if unit is not present
+	if !util.SliceContains(repoTypes, "sources") && !repo.IsFork && !repo.IsMirror && !repo.IsTemplate {
+		return nil
 	}
 
 	sha, err := getDefaultBranchSha(ctx, repo)

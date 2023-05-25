@@ -42,7 +42,7 @@ func ProtocolMiddlewares() (handlers []any) {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			ctx, _, finished := process.GetManager().AddTypedContext(req.Context(), fmt.Sprintf("%s: %s", req.Method, req.RequestURI), process.RequestProcessType, true)
 			defer finished()
-			next.ServeHTTP(context.NewResponse(resp), req.WithContext(cache.WithCacheContext(ctx)))
+			next.ServeHTTP(context.WrapResponseWriter(resp), req.WithContext(cache.WithCacheContext(ctx)))
 		})
 	})
 
@@ -60,11 +60,11 @@ func ProtocolMiddlewares() (handlers []any) {
 		handlers = append(handlers, proxy.ForwardedHeaders(opt))
 	}
 
-	if !setting.Log.DisableRouterLog {
+	if setting.IsRouteLogEnabled() {
 		handlers = append(handlers, routing.NewLoggerHandler())
 	}
 
-	if setting.Log.EnableAccessLog {
+	if setting.IsAccessLogEnabled() {
 		handlers = append(handlers, context.AccessLogger())
 	}
 

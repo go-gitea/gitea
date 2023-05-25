@@ -77,7 +77,7 @@
 	</div>
 	<div class="ui container fluid padded" id="project-board">
 
-		<div class="board">
+		<div class="board {{if .CanWriteProjects}}sortable{{end}}">
 			{{range $board := .Boards}}
 
 			<div class="ui segment board-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
@@ -115,7 +115,7 @@
 									data-modal-default-project-board-content="{{$.locale.Tr "repo.projects.column.unset_default_desc"}}"
 									data-type="unset_default"
 									data-url="{{$.Link}}/{{.ID}}/unsetdefault">
-										{{svg "octicon-pin"}}
+										{{svg "octicon-pin-slash"}}
 										{{$.locale.Tr "repo.projects.column.unset_default"}}
 									</a>
 								{{end}}

@@ -1,6 +1,6 @@
 ---
 date: "2023-01-10T00:00:00+00:00"
-title: "Swift Packages Repository"
+title: "Swift Package Registry"
 slug: "swift"
 weight: 95
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "swift"
 ---
 
-# Swift Packages Repository
+# Swift Package Registry
 
 Publish [Swift](https://www.swift.org/) packages for your user or organization.
 
