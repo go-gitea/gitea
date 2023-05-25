@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	repo_service "code.gitea.io/gitea/services/repository"
-	"github.com/google/licensecheck"
 )
 
 // HookPostReceive updates services and users
@@ -202,64 +201,10 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			// If our branch is the default branch of an unforked repo - there's no PR to create or refer to
 			if !repo.IsFork && branch == baseRepo.DefaultBranch {
 				// update license
-				gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+				err := repo_module.UpdateRepoLicenses(ctx, repo, oldCommitID, newCommitID, ownerName, repoName)
 				if err != nil {
-					log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
-					ctx.JSON(http.StatusInternalServerError, private.Response{
-						Err: fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
-					})
-					return
+					ctx.JSON(http.StatusInternalServerError, private.Response{Err: err.Error()})
 				}
-				commit, err := gitRepo.GetCommit(newCommitID)
-				if err != nil {
-					log.Error("Failed to get new commit by id(%s): %s/%s Error: %v", newCommitID, ownerName, repoName, err)
-					ctx.JSON(http.StatusInternalServerError, private.Response{
-						Err: fmt.Sprintf("Failed to get new commit by id(%s): %s/%s Error: %v", newCommitID, ownerName, repoName, err),
-					})
-					return
-				}
-				filesChanged, err := commit.GetFilesChangedSinceCommit(oldCommitID)
-				if err != nil {
-					log.Error("Failed to get changed files from %d to %s: %s/%s Error: %v", oldCommitID, newCommitID, ownerName, repoName, err)
-					ctx.JSON(http.StatusInternalServerError, private.Response{
-						Err: fmt.Sprintf("Failed to get changed files from %d to %s: %s/%s Error: %v", oldCommitID, newCommitID, ownerName, repoName, err),
-					})
-					return
-				}
-				for _, fn := range filesChanged {
-					// support ext
-					if fn == "LICENSE" {
-						blob, err := commit.GetBlobByPath(fn)
-						if err != nil {
-							log.Error("Failed to get license blob %s in commit %s: %s/%s Error: %v", fn, newCommitID, ownerName, repoName, err)
-							ctx.JSON(http.StatusInternalServerError, private.Response{
-								Err: fmt.Sprintf("Failed to get license blob %s in commit %s: %s/%s Error: %v", fn, newCommitID, ownerName, repoName, err),
-							})
-							return
-						}
-						contentBuf, err := blob.GetBlobAll()
-						if err != nil {
-							log.Error("Failed to get license blob content %s in commit %s: %s/%s Error: %v", fn, newCommitID, ownerName, repoName, err)
-							ctx.JSON(http.StatusInternalServerError, private.Response{
-								Err: fmt.Sprintf("Failed to get license blob content %s in commit %s: %s/%s Error: %v", fn, newCommitID, ownerName, repoName, err),
-							})
-							return
-						}
-						var licenses []string
-						cov := licensecheck.Scan(contentBuf)
-						for _, m := range cov.Match {
-							licenses = append(licenses, m.ID)
-						}
-						repo.Licenses = licenses
-						if err := repo_model.UpdateRepositoryCols(ctx, repo, "licenses"); err != nil {
-							log.Error("Failed to Update Repo Licenses: %s/%s Error: %v", ownerName, repoName, err)
-							ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-								Err: fmt.Sprintf("Failed to Update Repo Licenses: %s/%s Error: %v", ownerName, repoName, err),
-							})
-						}
-					}
-				}
-
 				results = append(results, private.HookPostReceiveBranchResult{})
 				continue
 			}

@@ -194,6 +194,10 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 		}
 	}
 
+	var licenses []string
+	if len(opts.License) > 0 {
+		licenses = append(licenses, opts.License)
+	}
 	repo := &repo_model.Repository{
 		OwnerID:                         u.ID,
 		Owner:                           u,
@@ -212,6 +216,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 		TrustModel:                      opts.TrustModel,
 		IsMirror:                        opts.IsMirror,
 		DefaultBranch:                   opts.DefaultBranch,
+		Licenses:                        licenses,
 	}
 
 	var rollbackRepo *repo_model.Repository

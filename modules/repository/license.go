@@ -6,11 +6,15 @@ package repository
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
 
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/options"
+	"github.com/google/licensecheck"
 )
 
 type licenseValues struct {
@@ -110,4 +114,42 @@ func getLicensePlaceholder(name string) *licensePlaceholder {
 		// Other special placeholders can be added here.
 	}
 	return ret
+}
+
+func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, oldCommitID, newCommitID, ownerName, repoName string) error {
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	if err != nil {
+		return fmt.Errorf("failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
+	}
+	commit, err := gitRepo.GetCommit(newCommitID)
+	if err != nil {
+		return fmt.Errorf("failed to get new commit by id(%s): %s/%s Error: %v", newCommitID, ownerName, repoName, err)
+	}
+	filesChanged, err := commit.GetFilesChangedSinceCommit(oldCommitID)
+	if err != nil {
+		return fmt.Errorf("failed to get changed files from %s to %s: %s/%s Error: %v", oldCommitID, newCommitID, ownerName, repoName, err)
+	}
+	for _, fn := range filesChanged {
+		// support ext
+		if fn == "LICENSE" {
+			blob, err := commit.GetBlobByPath(fn)
+			if err != nil {
+				return fmt.Errorf("failed to get license blob %s in commit %s: %s/%s Error: %v", fn, newCommitID, ownerName, repoName, err)
+			}
+			contentBuf, err := blob.GetBlobAll()
+			if err != nil {
+				return fmt.Errorf("failed to get license blob content %s in commit %s: %s/%s Error: %v", fn, newCommitID, ownerName, repoName, err)
+			}
+			var licenses []string
+			cov := licensecheck.Scan(contentBuf)
+			for _, m := range cov.Match {
+				licenses = append(licenses, m.ID)
+			}
+			repo.Licenses = licenses
+			if err := repo_model.UpdateRepositoryCols(ctx, repo, "licenses"); err != nil {
+				return fmt.Errorf("failed to Update Repo Licenses: %s/%s Error: %v", ownerName, repoName, err)
+			}
+		}
+	}
+	return nil
 }
