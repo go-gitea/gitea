@@ -64,6 +64,7 @@ func TestCorruptedLevelQueue(t *testing.T) {
 	// now there should be only 1 key in db: "other-key"
 	keys = lqinternal.ListLevelQueueKeys(db)
 	assert.Len(t, keys, 1)
+	assert.Equal(t, []byte("other-key"), keys[0])
 
 	// re-create a queue from db
 	lq, err = levelqueue.NewUniqueQueue(db, nameQueuePrefix, nameSetPrefix, false)
