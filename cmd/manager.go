@@ -21,6 +21,7 @@ var (
 		Subcommands: []cli.Command{
 			subcmdShutdown,
 			subcmdRestart,
+			subcmdReloadTemplates,
 			subcmdFlushQueues,
 			subcmdLogging,
 			subCmdProcesses,
@@ -45,6 +46,16 @@ var (
 			},
 		},
 		Action: runRestart,
+	}
+	subcmdReloadTemplates = cli.Command{
+		Name:  "reload-templates",
+		Usage: "Reload template files in the running process",
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name: "debug",
+			},
+		},
+		Action: runReloadTemplates,
 	}
 	subcmdFlushQueues = cli.Command{
 		Name:   "flush-queues",
@@ -112,6 +123,15 @@ func runRestart(c *cli.Context) error {
 
 	setup(ctx, c.Bool("debug"))
 	extra := private.Restart(ctx)
+	return handleCliResponseExtra(extra)
+}
+
+func runReloadTemplates(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	setup(ctx, c.Bool("debug"))
+	extra := private.ReloadTemplates(ctx)
 	return handleCliResponseExtra(extra)
 }
 
