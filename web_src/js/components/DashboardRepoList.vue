@@ -426,7 +426,7 @@ const sfc = {
     },
 
     repoIconSize(repo) {
-      return repo.mirror ? 14 : 16;
+      return repo.mirror ? 14 : 16; // octicon-mirror does not have padding
     },
 
     statusIcon(status) {
