@@ -73,22 +73,8 @@ func (db *DBIndexer) Index(id int64) error {
 		log.Error("Unable to update language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
 		return err
 	}
+
 	log.Debug("DBIndexer completed language stats for ID %s for default branch %s in %s. stats count: %d", commitID, repo.DefaultBranch, repo.RepoPath(), len(stats))
-
-	licenses, err := gitRepo.GetLicenseStats(commitID)
-	if err != nil {
-		if !setting.IsInTesting {
-			log.Error("Unable to get license stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
-		}
-		return err
-	}
-	err = repo_model.UpdateLicenseStats(repo, commitID, licenses)
-	if err != nil {
-		log.Error("Unable to update license stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
-		return err
-	}
-	log.Debug("DBIndexer completed license stats for ID %s for default branch %s in %s. stats count: %d", commitID, repo.DefaultBranch, repo.RepoPath(), len(stats))
-
 	return nil
 }
 
