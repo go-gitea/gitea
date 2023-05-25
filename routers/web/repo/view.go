@@ -65,7 +65,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 	}
 
-	subfolder, readmeFile, err := repo_module.FindFileInEntries(repo_module.FileTypeReadme, entries, ctx.Repo.TreePath, ctx.Locale.Language(), true)
+	subfolder, readmeFile, err := repo_module.FindFileInEntries(util.FileTypeReadme, entries, ctx.Repo.TreePath, ctx.Locale.Language(), true)
 	if err != nil {
 		ctx.ServerError("findFileInEntries", err)
 		return
@@ -314,7 +314,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 		shouldRenderSource := ctx.FormString("display") == "source"
-		readmeExist := util.IsFileName(blob.Name(), string(repo_module.FileTypeReadme))
+		readmeExist := util.IsFileName(blob.Name(), util.FileTypeReadme)
 		ctx.Data["ReadmeExist"] = readmeExist
 
 		markupType := markup.Type(blob.Name())

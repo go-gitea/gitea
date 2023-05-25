@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/options"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/google/licensecheck"
 )
@@ -136,7 +137,7 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository) error 
 	}
 
 	// Find license file
-	_, licenseFile, err := FindFileInEntries(FileTypeLicense, entries, "", "", false)
+	_, licenseFile, err := FindFileInEntries(util.FileTypeLicense, entries, "", "", false)
 	if err != nil {
 		return fmt.Errorf("FindFileInEntries: %w", err)
 	}

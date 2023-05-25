@@ -13,13 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-type FileType string
-
-const (
-	FileTypeReadme  FileType = "readme"
-	FileTypeLicense FileType = "license"
-)
-
 // locate a README/LICENSE for a tree in one of the supported paths.
 //
 // entries is passed to reduce calls to ListEntries(), so
@@ -28,7 +21,7 @@ const (
 //	entries == ctx.Repo.Commit.SubTree(ctx.Repo.TreePath).ListEntries()
 //
 // FIXME: There has to be a more efficient way of doing this
-func FindFileInEntries(fileType FileType, entries []*git.TreeEntry, treePath, language string, tryWellKnownDirs bool) (string, *git.TreeEntry, error) {
+func FindFileInEntries(fileType util.FileType, entries []*git.TreeEntry, treePath, language string, tryWellKnownDirs bool) (string, *git.TreeEntry, error) {
 	// Create a list of extensions in priority order
 	// 1. Markdown files - with and without localisation - e.g. README.en-us.md or README.md
 	// 2. Txt files - e.g. README.txt
@@ -60,7 +53,7 @@ func FindFileInEntries(fileType FileType, entries []*git.TreeEntry, treePath, la
 			}
 			continue
 		}
-		if i, ok := util.IsFileExtension(entry.Name(), string(fileType), exts...); ok {
+		if i, ok := util.IsFileExtension(entry.Name(), fileType, exts...); ok {
 			log.Debug("Potential %s file: %s", fileType, entry.Name())
 			if targetFiles[i] == nil || base.NaturalSortLess(targetFiles[i].Name(), entry.Blob().Name()) {
 				if entry.IsLink() {
