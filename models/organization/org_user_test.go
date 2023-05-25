@@ -85,7 +85,7 @@ func TestUserListIsPublicMember(t *testing.T) {
 		{22, map[int64]bool{}},
 	}
 	for _, v := range tt {
-		t.Run(fmt.Sprintf("IsPublicMemberOfOrdIg%d", v.orgid), func(t *testing.T) {
+		t.Run(fmt.Sprintf("IsPublicMemberOfOrgId%d", v.orgid), func(t *testing.T) {
 			testUserListIsPublicMember(t, v.orgid, v.expected)
 		})
 	}
@@ -112,7 +112,7 @@ func TestUserListIsUserOrgOwner(t *testing.T) {
 		{22, map[int64]bool{}},          // No member
 	}
 	for _, v := range tt {
-		t.Run(fmt.Sprintf("IsUserOrgOwnerOfOrdIg%d", v.orgid), func(t *testing.T) {
+		t.Run(fmt.Sprintf("IsUserOrgOwnerOfOrgId%d", v.orgid), func(t *testing.T) {
 			testUserListIsUserOrgOwner(t, v.orgid, v.expected)
 		})
 	}

@@ -1,6 +1,6 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
-title: "Conan Packages Repository"
+title: "Conan Package Registry"
 slug: "conan"
 weight: 20
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "conan"
 ---
 
-# Conan Packages Repository
+# Conan Package Registry
 
 Publish [Conan](https://conan.io/) packages for your user or organization.
 

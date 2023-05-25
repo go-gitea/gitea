@@ -70,8 +70,10 @@
   --color-secondary-alpha-90: #dededee1;
   /* console colors */
   --color-console-fg: #ffffff;
-  --color-console-bg: #171717;
+  --color-console-bg: #252a2f;
+  --color-console-border: #ffffff16;
   --color-console-hover-bg: #ffffff16;
+  --color-console-active-bg: #353a3f;
   /* named colors */
   --color-red: #db2828;
   --color-orange: #f2711c;
