@@ -11,7 +11,7 @@
 		26 = DELETE_TIME_MANUAL, 27 = REVIEW_REQUEST, 28 = MERGE_PULL_REQUEST,
 		29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED
 		32 = DISMISSED_REVIEW, 33 = COMMENT_TYPE_CHANGE_ISSUE_REF, 34 = PR_SCHEDULE_TO_AUTO_MERGE,
-		35 = CANCEL_SCHEDULED_AUTO_MERGE_PR -->
+		35 = CANCEL_SCHEDULED_AUTO_MERGE_PR, 36 = PIN_ISSUE, 37 = UNPIN_ISSUE -->
 		{{if eq .Type 0}}
 			<div class="timeline-item comment" id="{{.HashTag}}">
 			{{if .OriginalAuthor}}
@@ -833,6 +833,16 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{if eq .Type 34}}{{$.locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr | Safe}}
 					{{else}}{{$.locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr | Safe}}{{end}}
+				</span>
+			</div>
+		{{else if or (eq .Type 36) (eq .Type 37)}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-pin" 16}}</span>
+				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
+				<span class="text grey muted-links">
+					{{template "shared/user/authorlink" .Poster}}
+					{{if eq .Type 36}}{{$.locale.Tr "repo.issues.pin_comment" $createdStr | Safe}}
+					{{else}}{{$.locale.Tr "repo.issues.unpin_comment" $createdStr | Safe}}{{end}}
 				</span>
 			</div>
 		{{end}}
