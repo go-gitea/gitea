@@ -100,47 +100,48 @@ func (ref RefName) IsFor() bool {
 	return strings.HasPrefix(string(ref), ForPrefix)
 }
 
-// TagName returns simple tag name if it's an operation to a tag
-func (ref RefName) TagName() string {
-	if ref.IsTag() {
-		return ref.ShortName()
+func (ref RefName) nameWithoutPrefix(prefix string) string {
+	if strings.HasPrefix(string(ref), prefix) {
+		return strings.TrimPrefix(string(ref), prefix)
 	}
 	return ""
+}
+
+// TagName returns simple tag name if it's an operation to a tag
+func (ref RefName) TagName() string {
+	return ref.nameWithoutPrefix(TagPrefix)
 }
 
 // BranchName returns simple branch name if it's an operation to branch
 func (ref RefName) BranchName() string {
-	if ref.IsBranch() {
-		return ref.ShortName()
-	}
-	return ""
+	return ref.nameWithoutPrefix(BranchPrefix)
 }
 
 func (ref RefName) ForBranchName() string {
-	refName := string(ref)
-	if strings.HasPrefix(refName, ForPrefix) {
-		return strings.TrimPrefix(refName, ForPrefix)
-	}
-	return ""
+	return ref.nameWithoutPrefix(ForPrefix)
+}
+
+func (ref RefName) RemoteName() string {
+	return ref.nameWithoutPrefix(RemotePrefix)
 }
 
 // ShortName returns the short name of the reference name
 func (ref RefName) ShortName() string {
 	refName := string(ref)
-	if strings.HasPrefix(refName, BranchPrefix) {
-		return strings.TrimPrefix(refName, BranchPrefix)
+	if ref.IsBranch() {
+		return ref.BranchName()
 	}
-	if strings.HasPrefix(refName, TagPrefix) {
-		return strings.TrimPrefix(refName, TagPrefix)
+	if ref.IsTag() {
+		return ref.TagName()
 	}
-	if strings.HasPrefix(refName, RemotePrefix) {
-		return strings.TrimPrefix(refName, RemotePrefix)
+	if ref.IsRemote() {
+		return ref.RemoteName()
 	}
 	if strings.HasPrefix(refName, PullPrefix) && strings.IndexByte(refName[pullLen:], '/') > -1 {
 		return refName[pullLen : strings.IndexByte(refName[pullLen:], '/')+pullLen]
 	}
-	if strings.HasPrefix(refName, ForPrefix) {
-		return strings.TrimPrefix(refName, ForPrefix)
+	if ref.IsFor() {
+		return ref.ForBranchName()
 	}
 
 	return refName
@@ -149,19 +150,19 @@ func (ref RefName) ShortName() string {
 // RefGroup returns the group type of the reference
 func (ref RefName) RefGroup() string {
 	refName := string(ref)
-	if strings.HasPrefix(refName, BranchPrefix) {
+	if ref.IsBranch() {
 		return "heads"
 	}
-	if strings.HasPrefix(refName, TagPrefix) {
+	if ref.IsTag() {
 		return "tags"
 	}
-	if strings.HasPrefix(refName, RemotePrefix) {
+	if ref.IsRemote() {
 		return "remotes"
 	}
 	if strings.HasPrefix(refName, PullPrefix) && strings.IndexByte(refName[pullLen:], '/') > -1 {
 		return "pull"
 	}
-	if strings.HasPrefix(refName, ForPrefix) {
+	if ref.IsFor() {
 		return "for"
 	}
 	return ""
