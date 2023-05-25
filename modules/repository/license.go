@@ -130,15 +130,25 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository) error 
 	if err != nil {
 		return fmt.Errorf("GetCommit: %w", err)
 	}
-
-	blob, err := commit.GetBlobByPath("LICENSE")
+	entries, err := commit.ListEntries()
 	if err != nil {
-		return fmt.Errorf("GetBlobByPath: %w", err)
+		return fmt.Errorf("ListEntries: %w", err)
 	}
+
+	// Find license file
+	_, licenseFile, err := FindFileInEntries(FileTypeLicense, entries, "", "", false)
+	if err != nil {
+		return fmt.Errorf("FindFileInEntries: %w", err)
+	}
+
+	// Read license file content
+	blob := licenseFile.Blob()
 	contentBuf, err := blob.GetBlobAll()
 	if err != nil {
 		return fmt.Errorf("GetBlobByPath: %w", err)
 	}
+
+	// check license
 	var licenses []string
 	cov := licensecheck.Scan(contentBuf)
 	for _, m := range cov.Match {
