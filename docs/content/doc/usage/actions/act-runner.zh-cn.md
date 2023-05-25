@@ -24,7 +24,7 @@ menu:
 ## 要求
 
 建议在Docker容器中运行Job，因此您需要首先安装Docker。
-并确保Docker守护程序正在运行。
+并确保Docker守护进程正在运行。
 
 其他与Docker API兼容的OCI容器引擎也应该可以正常工作，但尚未经过测试。
 
@@ -165,7 +165,7 @@ docker run \
 ```
 
 您可能注意到我们已将`/var/run/docker.sock`挂载到容器中。
-这是因为Act Runner将在Docker容器中运行Job，因此它需要与Docker守护程序进行通信。
+这是因为Act Runner将在Docker容器中运行Job，因此它需要与Docker守护进程进行通信。
 如前所述，如果要在主机上直接运行Job，可以将其移除。
 需要明确的是，这里的 "主机" 实际上指的是当前运行 Act Runner的容器，而不是主机机器本身。
 

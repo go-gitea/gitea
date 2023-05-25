@@ -46,7 +46,7 @@ Gitea Actions需要[act runner](https://gitea.com/gitea/act_runner) 来运行Job
 在进一步操作之前，建议您先使用预构建的二进制文件以命令行方式运行它，以确保它与您的环境兼容，尤其是如果您在本地主机上运行Runner。
 如果出现问题，这样调试起来会更容易。
 
-该Runner可以在隔离的Docker容器中运行Job，因此您需要确保已安装Docker并且Docker守护程序正在运行。
+该Runner可以在隔离的Docker容器中运行Job，因此您需要确保已安装Docker并且Docker守护进程正在运行。
 虽然这不是严格必需的，因为Runner也可以直接在主机上运行Job，这取决于您的配置方式。
 然而，建议使用Docker运行Job，因为它更安全且更易于管理。
 
