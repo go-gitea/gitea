@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -487,7 +488,7 @@ func ChangeFiles(ctx *context.APIContext) {
 	}
 
 	if opts.Message == "" {
-		opts.Message = "Upload files over API"
+		opts.Message = changeFilesCommitMessage(ctx, files)
 	}
 
 	if filesResponse, err := createOrUpdateFiles(ctx, opts); err != nil {
@@ -576,7 +577,7 @@ func CreateFile(ctx *context.APIContext) {
 	}
 
 	if opts.Message == "" {
-		opts.Message = ctx.Tr("repo.editor.add", opts.Files[0].TreePath)
+		opts.Message = changeFilesCommitMessage(ctx, opts.Files)
 	}
 
 	if filesResponse, err := createOrUpdateFiles(ctx, opts); err != nil {
@@ -669,7 +670,7 @@ func UpdateFile(ctx *context.APIContext) {
 	}
 
 	if opts.Message == "" {
-		opts.Message = ctx.Tr("repo.editor.update", opts.Files[0].TreePath)
+		opts.Message = changeFilesCommitMessage(ctx, opts.Files)
 	}
 
 	if filesResponse, err := createOrUpdateFiles(ctx, opts); err != nil {
@@ -715,6 +716,36 @@ func createOrUpdateFiles(ctx *context.APIContext, opts *files_service.ChangeRepo
 	}
 
 	return files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, opts)
+}
+
+// format commit message if empty
+func changeFilesCommitMessage(ctx *context.APIContext, files []*files_service.ChangeRepoFile) string {
+	var (
+		createFiles []string
+		updateFiles []string
+		deleteFiles []string
+	)
+	for _, file := range files {
+		switch file.Operation {
+		case "create":
+			createFiles = append(createFiles, file.TreePath)
+		case "update":
+			updateFiles = append(updateFiles, file.TreePath)
+		case "delete":
+			deleteFiles = append(deleteFiles, file.TreePath)
+		}
+	}
+	message := ""
+	if len(createFiles) != 0 {
+		message += ctx.Tr("repo.editor.add") + strings.Join(createFiles, ", ") + "\n"
+	}
+	if len(updateFiles) != 0 {
+		message += ctx.Tr("repo.editor.update") + strings.Join(updateFiles, ", ") + "\n"
+	}
+	if len(deleteFiles) != 0 {
+		message += ctx.Tr("repo.editor.delete") + strings.Join(deleteFiles, ", ") + "\n"
+	}
+	return message
 }
 
 // DeleteFile Delete a file in a repository
@@ -803,7 +834,7 @@ func DeleteFile(ctx *context.APIContext) {
 	}
 
 	if opts.Message == "" {
-		opts.Message = ctx.Tr("repo.editor.delete", opts.Files[0].TreePath)
+		opts.Message = changeFilesCommitMessage(ctx, opts.Files)
 	}
 
 	if filesResponse, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, opts); err != nil {
