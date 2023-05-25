@@ -61,14 +61,16 @@ func SeparateOwnerAndTeam(codeownersList []string) ([]string, []string) {
 
 	for _, codeowner := range codeownersList {
 
-		if strings.Compare(codeowner[0:1], "@") == 0 {
-			codeowner = codeowner[1:]
-		}
+		if len(codeowner) > 0 {
+			if strings.Compare(codeowner[0:1], "@") == 0 {
+				codeowner = codeowner[1:]
+			}
 
-		if strings.Contains(codeowner, "/") {
-			codeOwnerTeams = append(codeOwnerTeams, codeowner)
-		} else {
-			codeownerIndividuals = append(codeownerIndividuals, codeowner)
+			if strings.Contains(codeowner, "/") {
+				codeOwnerTeams = append(codeOwnerTeams, codeowner)
+			} else {
+				codeownerIndividuals = append(codeownerIndividuals, codeowner)
+			}
 		}
 	}
 
@@ -187,6 +189,14 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 
 				globMap = append(globMap, newCodeowner2)
 			}
+		} else {
+
+			newCodeowner := Codeowners{
+				glob:   globString,
+				owners: []string{""},
+			}
+
+			globMap = append(globMap, newCodeowner)
 		}
 
 		// fmt.Println(nextLine)

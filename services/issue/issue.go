@@ -306,12 +306,6 @@ func GetCodeownersTreeEntry(commit *git.Commit, directoryOptions []string) *git.
 	return nil
 }
 
-// ParseCodeowners gets the users and teams that own any of the files given CODEOWNERS rules.
-// func ParseCodeowners(files []string, codeownersFile []byte) (users []string, teams []string, err error) {
-// 	return []string{"user1", "user3", "not_a_real_username", "user2@g.co"}, []string{"Org1/teamA", "Org2/teamA"}, nil
-// 	// TODO: Actually use the Parser
-// }
-
 // GetValidReviewers gets the Users that actually exist and are authorized to review the pull request
 func GetValidUserReviewers(ctx context.Context, userNamesOrEmails []string, doer *user_model.User, isAdd bool, issue *issues_model.Issue, permDoer *access_model.Permission) (reviewers []*user_model.User) {
 	reviewers = []*user_model.User{}
