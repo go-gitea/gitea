@@ -61,7 +61,7 @@ func FindFileInEntries(fileType FileType, entries []*git.TreeEntry, treePath, la
 			continue
 		}
 		if i, ok := util.IsFileExtension(entry.Name(), string(fileType), exts...); ok {
-			log.Debug("Potential readme file: %s", entry.Name())
+			log.Debug("Potential %s file: %s", fileType, entry.Name())
 			if targetFiles[i] == nil || base.NaturalSortLess(targetFiles[i].Name(), entry.Blob().Name()) {
 				if entry.IsLink() {
 					target, err := entry.FollowLinks()
