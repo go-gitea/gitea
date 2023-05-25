@@ -43,7 +43,7 @@ dart pub token add https://gitea.example.com/api/packages/{owner}/pub
 
 ## 发布软件包
 
-要发布软件包，请编辑pubspec.yaml文件，并添加以下行：
+要发布软件包，请编辑 `pubspec.yaml` 文件，并添加以下行：
 
 ```yaml
 publish_to: https://gitea.example.com/api/packages/{owner}/pub

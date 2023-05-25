@@ -91,7 +91,7 @@ https://gitea.example.com/api/packages/testuser/nuget/symbols
 
 ## 安装软件包
 
-要从软件包注册表安装NuGet软件包，请执行以下命令：
+要从软件包注册表安装 NuGet 软件包，请执行以下命令：
 
 ```shell
 dotnet add package --source {source_name} --version {package_version} {package_name}

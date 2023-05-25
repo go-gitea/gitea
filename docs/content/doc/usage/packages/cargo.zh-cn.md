@@ -23,7 +23,7 @@ menu:
 
 ## 要求
 
-若要使用 Cargo 软件包注册表, 您需要安装[Rust 和 Cargo](https://www.rust-lang.org/tools/install).
+若要使用 Cargo 软件包注册表, 您需要安装 [Rust 和 Cargo](https://www.rust-lang.org/tools/install).
 
 Cargo 将可用软件包的信息存储在一个存储在 git 仓库中的软件包索引中。
 这个仓库是与注册表交互所必需的。
@@ -46,7 +46,7 @@ Cargo 将可用软件包的信息存储在一个存储在 git 仓库中的软件
 
 ## 配置软件包注册表
 
-要注册这个软件包注册表，必须更新 Carg o的配置。
+要注册这个软件包注册表，必须更新 Cargo 的配置。
 将以下文本添加到位于当前用户主目录中的配置文件中（例如 `~/.cargo/config.toml`）：
 
 ```
@@ -72,9 +72,9 @@ git-fetch-with-cli = true
 token = "Bearer {token}"
 ```
 
-| 参数    | 描述                                                                                   |
-| ------- | -------------------------------------------------------------------------------------- |
-| `token` | 您的[个人访问令牌]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) |
+| 参数    | 描述                                                                                  |
+| ------- | ------------------------------------------------------------------------------------- |
+| `token` | 您的[个人访问令牌]({{< relref "doc/development/api-usage.zh-cn.md#通过-api-认证" >}}) |
 
 ## 发布软件包
 

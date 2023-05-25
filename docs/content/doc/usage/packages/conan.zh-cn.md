@@ -27,7 +27,7 @@ menu:
 
 ## 配置软件包注册表
 
-要注册软件包注册表，您需要配置一个新的Conan远程：
+要注册软件包注册表，您需要配置一个新的 Conan remote：
 
 ```shell
 conan remote add {remote} https://gitea.example.com/api/packages/{owner}/conan
@@ -36,10 +36,10 @@ conan user --remote {remote} --password {password} {username}
 
 | 参数       | 描述                                                                                                                                        |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `remote`   | 远程名称                                                                                                                                    |
-| `username` | 您的 Gitea 用户名                                                                                                                           |
+| `remote`   | 远程名称。                                                                                                                                  |
+| `username` | 您的 Gitea 用户名。                                                                                                                         |
 | `password` | 您的 Gitea 密码。如果您使用 2FA 或 OAuth，请使用[个人访问令牌]({{< relref "doc/development/api-usage.zh-cn.md#通过-api-认证" >}})替代密码。 |
-| `owner`    | 软件包的所有者.                                                                                                                             |
+| `owner`    | 软件包的所有者。                                                                                                                            |
 
 例如:
 
@@ -50,7 +50,7 @@ conan user --remote gitea --password password123 testuser
 
 ## 发布软件包
 
-通过运行以下命令发布Conan软件包：
+通过运行以下命令发布 Conan 软件包：
 
 ```shell
 conan upload --remote={remote} {recipe}

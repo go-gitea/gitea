@@ -27,7 +27,7 @@ menu:
 
 ## 配置软件包注册表
 
-要注册软件包注册表，您需要编辑本地的 ~/.pypirc 文件。添加以下内容：
+要注册软件包注册表，您需要编辑本地的 `~/.pypirc` 文件。添加以下内容：
 
 ```ini
 [distutils]
@@ -59,7 +59,7 @@ python3 -m twine upload --repository gitea /path/to/files/*
 
 ## 安装软件包
 
-要从软件包注册表安装PyPI软件包，请执行以下命令：
+要从软件包注册表安装 PyPI 软件包，请执行以下命令：
 
 ```shell
 pip install --index-url https://{username}:{password}@gitea.example.com/api/packages/{owner}/pypi/simple --no-deps {package_name}

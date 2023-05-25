@@ -54,7 +54,7 @@ https://gitea.example.com/api/packages/testuser/rubygems: Bearer 3bd626f84b01cd2
 gem push --host {host} {package_file}
 ```
 
-| Parameter      | Description              |
+| 参数           | 描述                     |
 | -------------- | ------------------------ |
 | `host`         | 软件包注册表的URL        |
 | `package_file` | 软件包 `.gem` 文件的路径 |
@@ -108,10 +108,10 @@ bundle install
 gem install --host https://gitea.example.com/api/packages/{owner}/rubygems {package_name}
 ```
 
-| Parameter      | Description               |
-| -------------- | ------------------------- |
-| `owner`        | The owner of the package. |
-| `package_name` | The package name.         |
+| 参数           | 描述           |
+| -------------- | -------------- |
+| `owner`        | 软件包的所有者 |
+| `package_name` | 软件包名称     |
 
 例如：
 

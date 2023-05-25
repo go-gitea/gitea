@@ -43,11 +43,11 @@ default_channels:
 
 有关各个设置的解释，请参阅[官方文档](https://conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html)。
 
-如果需要提供凭据，可以将它们作为通道URL的一部分嵌入（`https://user:password@gitea.example.com/...`）。
+如果需要提供凭据，可以将它们作为通道 URL 的一部分嵌入（`https://user:password@gitea.example.com/...`）。
 
 ## 发布软件包
 
-要发布一个软件包，请执行一个HTTP PUT操作，请求正文中包含软件包内容。
+要发布一个软件包，请执行一个HTTP `PUT`操作，请求正文中包含软件包内容。
 
 ```
 PUT https://gitea.example.com/api/packages/{owner}/conda/{channel}/{filename}
@@ -55,7 +55,7 @@ PUT https://gitea.example.com/api/packages/{owner}/conda/{channel}/{filename}
 
 | 占位符     | 描述                                                                                                |
 | ---------- | --------------------------------------------------------------------------------------------------- |
-| `owner`    | 软件包的所有者。                                                                                    |
+| `owner`    | 软件包的所有者                                                                                      |
 | `channel`  | 软件包的[通道](https://conda.io/projects/conda/en/latest/user-guide/concepts/channels.html)（可选） |
 | `filename` | 文件名                                                                                              |
 

@@ -101,7 +101,7 @@ menu:
 
 ## 禁用软件包注册表
 
-The Package Registry is automatically enabled. To disable it for a single repository:
+包注册表已自动启用。要在单个存储库中禁用它：
 
 1. 在导航栏中选择**设置**。
 2. 禁用**启用仓库软件包注册表**.

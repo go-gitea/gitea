@@ -28,7 +28,7 @@ menu:
 
 ## 配置软件包注册表
 
-要注册 Debian 注册表，请将 URL 添加到已知 apt 源列表中：
+要注册 Debian 注册表，请将 URL 添加到已知 `apt` 源列表中：
 
 ```shell
 echo "deb https://gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
@@ -89,7 +89,7 @@ curl --user your_username:your_password_or_token \
 | ----------------- | ---------------------------------------- |
 | `201 Created`     | 软件包已发布                             |
 | `400 Bad Request` | 软件包名称、版本、发行版、组件或架构无效 |
-| `409 Conflict`    | 具有相同参数组合的软件包文件已经存在.    |
+| `409 Conflict`    | 具有相同参数组合的软件包文件已经存在     |
 
 ## 删除软件包
 

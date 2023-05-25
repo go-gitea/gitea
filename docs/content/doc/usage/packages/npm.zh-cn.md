@@ -130,7 +130,7 @@ npm dist-tag add test_package@1.0.2 release
 
 ## 搜索软件包
 
-该注册表支持[搜索](https://docs.npmjs.com/cli/v7/commands/npm-search/)，但不支持像author:gitea这样的特殊搜索限定符。
+该注册表支持[搜索](https://docs.npmjs.com/cli/v7/commands/npm-search/)，但不支持像 `author:gitea` 这样的特殊搜索限定符。
 
 ## 支持的命令
 

@@ -28,7 +28,7 @@ menu:
 ## 发布软件包
 
 要发布 Composer 软件包，请执行 HTTP `PUT` 操作，将软件包内容放入请求体中。
-软件包内容必须是包含 `composer.json` 文件的压缩PHP项目。
+软件包内容必须是包含 `composer.json` 文件的压缩 PHP 项目。
 如果已经存在同名和版本的软件包，则无法发布新的软件包。您必须先删除现有的软件包。
 
 ```
@@ -63,7 +63,7 @@ curl --user your_username:your_password_or_token \
 
 如果您使用 2FA 或 OAuth，请使用[个人访问令牌]({{< relref "doc/development/api-usage.zh-cn.md#通过-api-认证" >}})替代密码。
 
-服务器将以以下HTTP状态码响应。
+服务器将以以下 HTTP 状态码响应。
 
 | HTTP 状态码       | 含义                                                        |
 | ----------------- | ----------------------------------------------------------- |
@@ -111,7 +111,7 @@ curl --user your_username:your_password_or_token \
 composer require {package_name}
 ```
 
-可选地，您可以指定软件包的版本：
+您可以指定软件包的版本，这是可选的：
 
 ```shell
 composer require {package_name}:{package_version}

@@ -66,11 +66,11 @@ apk update
 PUT https://gitea.example.com/api/packages/{owner}/alpine/{branch}/{repository}
 ```
 
-| 参数         | 描述                                                                                               |
-| ------------ | -------------------------------------------------------------------------------------------------- |
-| `owner`      | 包的所有者。                                                                                       |
-| `branch`     | 分支可以与操作系统的发行版本匹配，例如：v3.17。                                                    |
-| `repository` | 仓库可以用于[分组包](https://wiki.alpinelinux.org/wiki/Repositories) 或者只是 `main` 或类似的名称. |
+| 参数         | 描述                                                                                                |
+| ------------ | --------------------------------------------------------------------------------------------------- |
+| `owner`      | 包的所有者。                                                                                        |
+| `branch`     | 分支可以与操作系统的发行版本匹配，例如：v3.17。                                                     |
+| `repository` | 仓库可以用于[分组包](https://wiki.alpinelinux.org/wiki/Repositories) 或者只是 `main` 或类似的名称。 |
 
 使用 HTTP 基本身份验证的示例请求：
 

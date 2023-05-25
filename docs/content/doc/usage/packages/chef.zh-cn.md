@@ -34,7 +34,7 @@ Chef 软件包注册表不使用用户名和密码进行身份验证，而是使
 
 ## 配置软件包注册表
 
-要将 [`knife` 配置](https://docs.chef.io/workstation/knife_setup/)为使用 Gitea 软件包注册表，请将URL添加到 `~/.chef/config.rb` 文件中。
+要将 [`knife` 配置](https://docs.chef.io/workstation/knife_setup/)为使用 Gitea 软件包注册表，请将 URL 添加到 `~/.chef/config.rb` 文件中。
 
 ```
 knife[:supermarket_site] = 'https://gitea.example.com/api/packages/{owner}/chef'
@@ -66,7 +66,7 @@ knife supermarket share {package_name}
 knife supermarket install {package_name}
 ```
 
-可选地，您可以指定软件包的版本：
+您可以指定软件包的版本，这是可选的：
 
 ```shell
 knife supermarket install {package_name} {package_version}

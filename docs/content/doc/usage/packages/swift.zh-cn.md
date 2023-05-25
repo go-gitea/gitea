@@ -49,7 +49,7 @@ swift package-registry set https://gitea.example.com/api/packages/{owner}/swift 
 swift package archive-source
 ```
 
-要发布软件包，请执行一个带有软件包内容的 HTTP PUT 请求，将内容放在请求正文中。
+要发布软件包，请执行一个带有软件包内容的 HTTP `PUT` 请求，将内容放在请求正文中。
 
 ```shell --user your_username:your_password_or_token \
 curl -X PUT --user {username}:{password} \
@@ -73,7 +73,7 @@ curl -X PUT --user {username}:{password} \
 
 ## 安装软件包
 
-要从软件包注册表安装 Swift 软件包，请将其添加到 Package.swift 文件的依赖项列表中：
+要从软件包注册表安装 Swift 软件包，请将其添加到 `Package.swift` 文件的依赖项列表中：
 
 ```
 dependencies: [

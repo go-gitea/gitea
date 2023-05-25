@@ -61,13 +61,13 @@ curl --user your_username:your_password_or_token \
 
 ## 下载软件包
 
-要下载通用软件包，请执行 HTTP GET 操作。
+要下载通用软件包，请执行 HTTP `GET` 操作。
 
 ```
 GET https://gitea.example.com/api/packages/{owner}/generic/{package_name}/{package_version}/{file_name}
 ```
 
-| Parameter         | Description    |
+| 参数              | 描述           |
 | ----------------- | -------------- |
 | `owner`           | 软件包的所有者 |
 | `package_name`    | 软件包名称     |
@@ -83,7 +83,7 @@ curl --user your_username:your_token_or_password \
      https://gitea.example.com/api/packages/testuser/generic/test_package/1.0.0/file.bin
 ```
 
-The server responds with the following HTTP Status codes.
+服务器会以以下 HTTP 状态码进行响应：
 
 | HTTP 状态码     | 含义                 |
 | --------------- | -------------------- |
@@ -98,7 +98,7 @@ The server responds with the following HTTP Status codes.
 DELETE https://gitea.example.com/api/packages/{owner}/generic/{package_name}/{package_version}
 ```
 
-| Parameter         | Description    |
+| 参数              | 描述           |
 | ----------------- | -------------- |
 | `owner`           | 软件包的所有者 |
 | `package_name`    | 软件包名称     |
@@ -120,7 +120,7 @@ The server responds with the following HTTP Status codes.
 
 ## 删除软件包文件
 
-要删除通用软件包的文件，请执行 HTTP DELETE 操作。如果没有文件留下，这将同时删除软件包版本。
+要删除通用软件包的文件，请执行 HTTP `DELETE` 操作。如果没有文件留下，这将同时删除软件包版本。
 
 ```
 DELETE https://gitea.example.com/api/packages/{owner}/generic/{package_name}/{package_version}/{filename}
