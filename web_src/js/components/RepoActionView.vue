@@ -14,7 +14,7 @@
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button secondary" @click="rerun()" v-else-if="run.canRerun">
+        <button class="ui basic small compact button secondary gt-mr-0" @click="rerun()" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
@@ -422,20 +422,20 @@ export function ansiLogToHTML(line) {
 <style scoped>
 .action-view-body {
   display: flex;
-  height: calc(100vh - 266px); /* fine tune this value to make the main view has full height */
+  gap: 12px;
 }
 
 /* ================ */
 /* action view header */
 
 .action-view-header {
-  margin: 20px 0;
+  margin-top: 8px;
+  margin-bottom: 4px;
 }
 
 .action-info-summary {
   display: flex;
   align-items: center;
-  margin-top: 1rem;
   justify-content: space-between;
 }
 
@@ -452,7 +452,12 @@ export function ansiLogToHTML(line) {
 .action-commit-summary {
   display: flex;
   gap: 5px;
-  margin: 10px 0 10px 25px;
+  margin: 5px 0 0 25px;
+}
+
+.action-view-left, .action-view-right {
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 
 /* ================ */
@@ -461,7 +466,10 @@ export function ansiLogToHTML(line) {
 .action-view-left {
   width: 30%;
   max-width: 400px;
-  overflow-y: scroll;
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  overflow-y: auto;
 }
 
 .job-group-section .job-group-summary {
@@ -490,11 +498,15 @@ export function ansiLogToHTML(line) {
   padding-right: 3px;
 }
 
+.job-brief-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .job-brief-item {
-  margin: 5px 0;
   padding: 10px;
-  background: var(--color-info-bg);
-  border-radius: 5px;
+  border-radius: var(--border-radius);
   text-decoration: none;
   display: flex;
   flex-wrap: nowrap;
@@ -503,12 +515,12 @@ export function ansiLogToHTML(line) {
 }
 
 .job-brief-item:hover {
-  background-color: var(--color-secondary);
+  background-color: var(--color-hover);
 }
 
 .job-brief-item.selected {
   font-weight: var(--font-weight-bold);
-  background-color: var(--color-secondary-dark-1);
+  background-color: var(--color-active);
 }
 
 .job-brief-item:first-of-type {
@@ -555,8 +567,7 @@ export function ansiLogToHTML(line) {
 
 .action-view-right {
   flex: 1;
-  background-color: var(--color-console-bg);
-  color: var(--color-secondary-dark-2);
+  color: var(--color-secondary-dark-3);
   max-height: 100%;
   width: 70%;
   display: flex;
@@ -565,7 +576,12 @@ export function ansiLogToHTML(line) {
 
 .job-info-header {
   padding: 10px;
-  border-bottom: 1px solid var(--color-grey);
+  border-bottom: 1px solid var(--color-console-border);
+  background-color: var(--color-console-bg);
+  position: sticky;
+  top: 0;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  height: 60px;
 }
 
 .job-info-header .job-info-header-title {
@@ -580,8 +596,9 @@ export function ansiLogToHTML(line) {
 }
 
 .job-step-container {
+  background-color: var(--color-console-bg);
   max-height: 100%;
-  overflow: auto;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .job-step-container .job-step-summary {
@@ -590,6 +607,7 @@ export function ansiLogToHTML(line) {
   display: flex;
   align-items: center;
   user-select: none;
+  border-radius: var(--border-radius);
 }
 
 .job-step-container .job-step-summary .step-summary-msg {
@@ -600,11 +618,17 @@ export function ansiLogToHTML(line) {
   margin-left: 16px;
 }
 
-.job-step-container .job-step-summary:hover,
+.job-step-container .job-step-summary:hover {
+  color: var(--color-console-fg);
+  background-color: var(--color-console-hover-bg);
+
+}
+
 .job-step-container .job-step-summary.selected {
   color: var(--color-console-fg);
-  background-color: var(--color-black-light);
-  border-radius: 5px;
+  background-color: var(--color-console-active-bg);
+  position: sticky;
+  top: 60px;
 }
 
 @media (max-width: 768px) {
@@ -639,7 +663,7 @@ export function ansiLogToHTML(line) {
 }
 
 .job-step-section .job-step-logs {
-  font-family: monospace;
+  font-family: var(--fonts-monospace);
   margin: 8px 0;
   font-size: 12px;
 }
@@ -649,7 +673,6 @@ export function ansiLogToHTML(line) {
 }
 
 .job-step-section .job-step-logs .job-log-line:hover {
-  color: var(--color-console-fg);
   background-color: var(--color-console-hover-bg);
 }
 
