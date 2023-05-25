@@ -125,7 +125,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 
 		_, _ = issue_service.CreateComment(ctx, ops)
 
-		if coRules, err := GetCodeOwners(ctx, repo, pr.BaseBranch); err == nil {
+		if coRules, err := GetCodeOwners(ctx, repo, pr.BaseBranch); err == nil && len(coRules) > 0 {
 			changedFiles, err := baseGitRepo.GetFilesChangedBetween(git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
 			if err != nil {
 				return err
@@ -1003,8 +1003,6 @@ func tokenizeCodeOwnersLine(line string) []string {
 			escape = true
 		} else if string(char) == "#" {
 			break
-			//} else if string(char) == "/" {
-			//	token += "\\/"
 		} else if string(char) == " " {
 			if len(token) > 0 {
 				tokens = append(tokens, token)
