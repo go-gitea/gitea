@@ -24,7 +24,7 @@ menu:
 ## 设置Gitea
 
 首先，您需要一个Gitea实例。
-您可以按照[文档]({{< relref "doc/installation/from-package.en-us.md" >}}) 来设置一个新实例或升级现有实例。
+您可以按照[文档]({{< relref "doc/installation/from-package.zh-cn.md" >}}) 来设置一个新实例或升级现有实例。
 无论您如何安装或运行Gitea，只要版本号是1.19.0或更高即可。
 
 默认情况下，Actions是禁用的，因此您需要将以下内容添加到配置文件中以启用它：
@@ -34,7 +34,7 @@ menu:
 ENABLED=true
 ```
 
-如果您想了解更多信息或在配置过程中遇到任何问题，请参考[配置速查表]({{< relref "doc/administration/config-cheat-sheet.en-us.md#actions-actions" >}})。
+如果您想了解更多信息或在配置过程中遇到任何问题，请参考[配置速查表]({{< relref "doc/administration/config-cheat-sheet.zh-cn.md#actions-actions" >}})。
 
 ### 设置Runner
 
@@ -128,7 +128,7 @@ jobs:
 请注意，演示文件中包含一些表情符号。
 请确保您的数据库支持它们，特别是在使用MySQL时。
 如果字符集不是`utf8mb4，将出现错误，例如`Error 1366 (HY000): Incorrect string value: '\\xF0\\x9F\\x8E\\x89 T...' for column 'name' at row 1`。
-有关更多信息，请参阅[数据库准备工作]({{< relref "doc/installation/database-preparation.en-us.md#mysql" >}})。
+有关更多信息，请参阅[数据库准备工作]({{< relref "doc/installation/database-preparation.zh-cn.md#mysql" >}})。
 
 或者，您可以从演示文件中删除所有表情符号，然后再尝试一次。
 

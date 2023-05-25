@@ -80,7 +80,7 @@ curl --user your_username:your_password_or_token \
      https://gitea.example.com/api/packages/testuser/alpine/v3.17/main
 ```
 
-如果您使用的是双重身份验证或 OAuth，请使用[个人访问令牌]({{< relref "doc/development/api-usage.en-us.md#authentication" >}})代替密码。
+如果您使用的是双重身份验证或 OAuth，请使用[个人访问令牌]({{< relref "doc/development/api-usage.zh-cn.md#authentication" >}})代替密码。
 您不能将具有相同名称的文件两次发布到一个包中。您必须首先删除现有的包文件。
 
 服务器将以以下的 HTTP 状态码响应：
