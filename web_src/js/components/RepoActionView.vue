@@ -118,7 +118,6 @@ import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
 import AnsiToHTML from 'ansi-to-html';
 import {toggleElem} from '../utils/dom.js';
-import {getCurrentLocale} from '../utils.js';
 
 const {csrfToken} = window.config;
 
