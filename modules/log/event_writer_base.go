@@ -58,8 +58,6 @@ func (b *EventWriterBaseImpl) GetLevel() Level {
 
 // Run is the default implementation for EventWriter.Run
 func (b *EventWriterBaseImpl) Run(ctx context.Context) {
-	pprof.SetGoroutineLabels(ctx)
-
 	defer b.OutputWriteCloser.Close()
 
 	var exprRegexp *regexp.Regexp
@@ -155,6 +153,7 @@ func eventWriterStartGo(ctx context.Context, w EventWriter, shared bool) {
 	go func() {
 		defer writerCancel()
 		defer close(w.Base().stopped)
+		pprof.SetGoroutineLabels(writerCtx)
 		w.Run(writerCtx)
 	}()
 }

@@ -13,8 +13,10 @@ import (
 	"code.gitea.io/gitea/modules/util/rotatingfilewriter"
 )
 
-var projectPackagePrefix string
-var processTraceDisabled atomic.Int64
+var (
+	projectPackagePrefix string
+	processTraceDisabled atomic.Int64
+)
 
 func init() {
 	_, filename, _, _ := runtime.Caller(0)

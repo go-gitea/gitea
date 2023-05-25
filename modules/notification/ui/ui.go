@@ -54,7 +54,7 @@ func handler(items ...issueNotificationOpts) []issueNotificationOpts {
 }
 
 func (ns *notificationService) Run() {
-	graceful.GetManager().RunWithCancel(ns.issueQueue)
+	go graceful.GetManager().RunWithCancel(ns.issueQueue) // TODO: using "go" here doesn't seem right, just leave it as old code
 }
 
 func (ns *notificationService) NotifyCreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,

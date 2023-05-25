@@ -23,9 +23,8 @@ type WorkerPoolQueue[T any] struct {
 	ctxRun       context.Context
 	ctxRunCancel context.CancelFunc
 
-	// ctxShutdown  atomic.Pointer[context.Context]
 	shutdownDone    chan struct{}
-	shutdownTimeout atomic.Int64
+	shutdownTimeout atomic.Int64 // in case some buggy handlers (workers) would hang forever, "shutdown" should finish in predictable time
 
 	origHandler HandlerFuncT[T]
 	safeHandler HandlerFuncT[T]

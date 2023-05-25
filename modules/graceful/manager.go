@@ -60,14 +60,15 @@ func InitManager(ctx context.Context) {
 	})
 }
 
-// RunWithCancel helps to run a function with a custom context, the cancel function will be called at shutdown
+// RunWithCancel helps to run a function with a custom context, the Cancel function will be called at shutdown
+// The Cancel function should stop the Run function in predictable time.
 func (g *Manager) RunWithCancel(rc RunCanceler) {
 	g.RunAtShutdown(context.Background(), rc.Cancel)
 	g.runningServerWaitGroup.Add(1)
 	defer g.runningServerWaitGroup.Done()
 	defer func() {
 		if err := recover(); err != nil {
-			log.Critical("PANIC during RunWithCustomContext: %v\nStacktrace: %s", err, log.Stack(2))
+			log.Critical("PANIC during RunWithCancel: %v\nStacktrace: %s", err, log.Stack(2))
 			g.doShutdown()
 		}
 	}()
