@@ -1,6 +1,6 @@
 ---
 date: "2016-12-01T16:00:00+02:00"
-title: "从源代码安装"
+title: "使用源代码安装"
 slug: "install-from-source"
 weight: 30
 toc: false
@@ -10,12 +10,12 @@ aliases:
 menu:
   sidebar:
     parent: "installation"
-    name: "从源代码安装"
+    name: "使用源代码安装"
     weight: 30
     identifier: "install-from-source"
 ---
 
-# 从源代码安装
+# 使用源代码安装
 
 首先你需要安装Golang，关于Golang的安装，参见[官方文档](https://golang.google.cn/doc/install)。
 

@@ -1,0 +1,32 @@
+name: files changed
+
+on:
+  workflow_call:
+    outputs:
+      docs:
+        description: "whether docs files changed"
+        value: ${{ jobs.files-changed.outputs.docs }}
+      backend:
+        description: "whether backend files changed"
+        value: ${{ jobs.files-changed.outputs.backend }}
+      frontend:
+        description: "whether frontend files changed"
+        value: ${{ jobs.files-changed.outputs.frontend }}
+
+jobs:
+  files-changed:
+    name: detect which files changed
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      docs: ${{ steps.changes.outputs.docs }}
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check for backend file changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: .github/file-filters.yml
