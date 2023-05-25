@@ -113,7 +113,7 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 		splitStrings := strings.Fields(nextLine)
 		var globString string
 		var globString2 string
-		var userStopIndex int = 0
+		var userStopIndex int
 		var currFileUsers []string
 
 		for i := 0; i < len(splitStrings); i++ {
@@ -159,7 +159,7 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 					strings.Compare(globString[len(globString)-1:], "*") != 0 {
 					globString2 = globString + "/**"
 				} else if strings.Compare(globString[len(globString)-1:], "/") == 0 {
-					globString = globString + "**"
+					globString += "**"
 				}
 
 			} else {
