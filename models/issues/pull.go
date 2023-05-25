@@ -175,9 +175,10 @@ type PullRequest struct {
 
 	ChangedProtectedFiles []string `xorm:"TEXT JSON"`
 
-	IssueID int64  `xorm:"INDEX"`
-	Issue   *Issue `xorm:"-"`
-	Index   int64
+	IssueID            int64  `xorm:"INDEX"`
+	Issue              *Issue `xorm:"-"`
+	Index              int64
+	RequestedReviewers []*user_model.User `xorm:"-"`
 
 	HeadRepoID          int64                  `xorm:"INDEX"`
 	HeadRepo            *repo_model.Repository `xorm:"-"`
@@ -298,6 +299,29 @@ func (pr *PullRequest) LoadHeadRepo(ctx context.Context) (err error) {
 			return fmt.Errorf("pr[%d].LoadHeadRepo[%d]: %w", pr.ID, pr.HeadRepoID, err)
 		}
 		pr.isHeadRepoLoaded = true
+	}
+	return nil
+}
+
+// LoadRequestedReviewers loads the requested reviewers.
+func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) error {
+	if len(pr.RequestedReviewers) > 0 {
+		return nil
+	}
+
+	reviews, err := GetReviewsByIssueID(pr.Issue.ID)
+	if err != nil {
+		return err
+	}
+
+	if len(reviews) > 0 {
+		err = LoadReviewers(ctx, reviews)
+		if err != nil {
+			return err
+		}
+		for _, review := range reviews {
+			pr.RequestedReviewers = append(pr.RequestedReviewers, review.Reviewer)
+		}
 	}
 	return nil
 }
