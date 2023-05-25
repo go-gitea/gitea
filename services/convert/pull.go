@@ -88,6 +88,14 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		},
 	}
 
+	if err = pr.LoadRequestedReviewers(ctx); err != nil {
+		log.Error("LoadRequestedReviewers[%d]: %v", pr.ID, err)
+		return nil
+	}
+	for _, reviewer := range pr.RequestedReviewers {
+		apiPullRequest.RequestedReviewers = append(apiPullRequest.RequestedReviewers, ToUser(ctx, reviewer, nil))
+	}
+
 	if pr.Issue.ClosedUnix != 0 {
 		apiPullRequest.Closed = pr.Issue.ClosedUnix.AsTimePtr()
 	}
