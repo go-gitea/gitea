@@ -1,15 +1,16 @@
 ---
 date: "2021-01-22T00:00:00+02:00"
 title: "Übersetzungs Richtlinien"
+slug: "localization"
 weight: 70
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
     parent: "contributing"
     name: "Übersetzungsrichtlinien"
     weight: 70
-    identifier: "translation-guidelines"
+    identifier: "localization"
 ---
 
 ## Allgemeines
