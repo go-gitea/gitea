@@ -67,7 +67,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 	defer finished()
 
 	if err := issue_service.AddCodeownerReviewers(prCtx, pr, repo); err != nil {
-		return err // TODO-giteam: Should this return an err or just log it?
+		return err
 	}
 
 	if pr.Flow == issues_model.PullRequestFlowGithub {

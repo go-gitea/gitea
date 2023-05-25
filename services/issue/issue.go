@@ -5,12 +5,9 @@ package issue
 
 import (
 	"context"
-	"fmt"
-
-	// "io/ioutil"
-	// "net/http"
 	b64 "encoding/base64"
-	// "os"
+	"errors"
+	"fmt"
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -23,6 +20,7 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/storage"
 )
@@ -205,29 +203,33 @@ func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, do
 // CODEOWNERS file) and requests them for review if they exist and are eligibl to do so. Codeowners can be users or teams.
 func AddCodeownerReviewers(ctx context.Context, pr *issues_model.PullRequest, repo *repo_model.Repository) (err error) {
 	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	defer gitRepo.Close()
 	if err != nil {
-		// TODO: Where to log?
+		log.Error("git.OpenRepository: %v", err)
 		return err
 	}
-	defer gitRepo.Close()
 
-	codeownersContents := GetCodeownersFileContents(ctx, pr, gitRepo)
+	codeownersContents, err := GetCodeownersFileContents(ctx, pr, gitRepo)
+	if err != nil {
+		return err
+	}
+
 	if codeownersContents != nil {
 		changedFiles, err := gitRepo.GetFilesChangedBetween(pr.MergeBase, pr.HeadCommitID)
 		if err != nil {
-			// TODO: Where to log?
+			log.Error("git.Repository.GetFilesChangedBetween: %v", err)
 			return err
 		}
 
 		owners, teamOwners, err := ParseCodeowners(changedFiles, codeownersContents)
 		if err != nil {
-			// TODO: Log the parsing error?
+			log.Error("ParseCodeowners: %v", err)
 			return nil
 		}
 
 		err = AddValidReviewers(ctx, pr.Issue, repo, owners, teamOwners)
 		if err != nil {
-			// TODO: Log?
+			log.Error("AddValidReviewers: %v", err)
 			return err
 		}
 	}
@@ -241,61 +243,68 @@ func AddValidReviewers(ctx context.Context, issue *issues_model.Issue, repo *rep
 
 	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, prPoster)
 	if err != nil {
-		// TODO: Log?
 		return err
 	}
 
+	// Errors here should not cause the process to fail.
 	for _, userReviewer := range GetValidUserReviewers(ctx, owners, prPoster, isAdd, issue, &permDoer) {
-		_, _ = ReviewRequest(ctx, issue, prPoster, userReviewer, isAdd)
-		// ignore the error? Seems weird, but we just won't assign them to review if they can't
+		_, err = ReviewRequest(ctx, issue, prPoster, userReviewer, isAdd)
+		if err != nil {
+			log.Warn("AddValidReviewers [repo_id: %d, issue_id: %d, pull_request_poster_user_id: %d, user_reviewer_id: %d]: "+
+				"Error adding user as a reviewer to the pull request", repo.ID, issue.ID, prPoster.ID, userReviewer.ID)
+		}
 	}
 	for _, teamReviewer := range GetValidTeamReviewers(ctx, repo, teamOwners, prPoster, isAdd, issue) {
-		_, _ = TeamReviewRequest(ctx, issue, prPoster, teamReviewer, isAdd)
-		// ignore the error? Seems weird, but we just won't assign them to review if they can't
+		_, err = TeamReviewRequest(ctx, issue, prPoster, teamReviewer, isAdd)
+		if err != nil {
+			log.Warn("AddValidReviewers [repo_id: %d, issue_id: %d, pull_request_poster_user_id: %d, team_reviewer_id: %d]: "+
+				"Error adding team as a reviewer to the pull request", repo.ID, issue.ID, prPoster.ID, teamReviewer.ID)
+		}
 	}
 
 	return nil
 }
 
-// FindCodeownersFile gets the CODEOWNERS file from the top level or .gitea directory of the repo.
-func GetCodeownersFileContents(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) []byte {
-	directoryOptions := []string{"", ".gitea/", "docs/"} // accepted directories to search for the CODEOWNERS file
+// FindCodeownersFile gets the CODEOWNERS file from the top level,'.gitea', or 'docs' directory of the given repository.
+func GetCodeownersFileContents(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) ([]byte, error) {
+	// TODO: include these directories as constants in codeowners.go after refactor
+	possibleDirectories := []string{"", ".gitea/", "docs/"} // accepted directories to search for the CODEOWNERS file
 
 	commit, err := gitRepo.GetCommit(pr.BaseBranch)
 	if err != nil {
-		// TODO: log?
-		return nil
+		return nil, err
 	}
 
-	entry := GetCodeownersTreeEntry(commit, directoryOptions)
+	entry := GetCodeownersTreeEntry(commit, possibleDirectories)
 	if entry == nil {
-		return nil
+		return nil, nil
 	}
 
 	if entry.IsRegular() {
 		gitBlob := entry.Blob()
 		data, err := gitBlob.GetBlobContentBase64()
 		if err != nil {
-			// TODO: log?
-			return nil
+			return nil, err
 		}
 		contentBytes, err := b64.StdEncoding.DecodeString(data)
 		if err != nil {
-			// TODO: log?
-			return nil
+			return nil, err
 		}
-		byteLimit := 3 * 1024 * 1024 // 3 MB limit, per GitHub specs
+		// TODO: Include as constant in codeowners.go after refactor
+		byteLimit := 3 * 1024 * 1024 // 3 MB limit, per GitHub specs,
 		if len(contentBytes) >= byteLimit {
-			// TODO: log?
-			return nil
+			log.Info("GetCodeownersFileContents [repo_id: %d, pr_id: %d, git_tree_entry_id: %d, content_num_bytes: %d, byte_limit: %d]: "+
+				"CODEOWNERS file exceeds accepted size limit", pr.Issue.RepoID, pr.ID, entry.ID, len(contentBytes), byteLimit)
+			return nil, nil
 		}
-		return contentBytes
+		return contentBytes, nil
 	}
+	log.Warn("GetCodeownersFileContents [repo_id: %d, git_tree_entry_id: %d]: CODEOWNERS file found is not a regular file", pr.Issue.RepoID, entry.ID)
 
-	return nil
+	return nil, nil
 }
 
-// GetCodeownersTreeEntry gets the git tree entry of the CODEOWNERS file, given an array of directories to search in
+// GetCodeownersTreeEntry gets the git tree entry of the CODEOWNERS file, given an array of directories to search in. Nil if not found.
 func GetCodeownersTreeEntry(commit *git.Commit, directoryOptions []string) *git.TreeEntry {
 	for _, dir := range directoryOptions {
 		entry, _ := commit.GetTreeEntryByPath(dir + "CODEOWNERS")
@@ -314,13 +323,21 @@ func GetValidUserReviewers(ctx context.Context, userNamesOrEmails []string, doer
 		var err error
 		if strings.Contains(nameOrEmail, "@") {
 			reviewer, err = user_model.GetUserByEmail(ctx, nameOrEmail)
+			if err != nil {
+				log.Info("GetValidUserReviewers [repo_id: %d, owner_email: %s]: user owner in CODEOWNERS file could not be found by email", issue.RepoID, nameOrEmail)
+			}
 		} else {
 			reviewer, err = user_model.GetUserByName(ctx, nameOrEmail)
+			if err != nil {
+				log.Info("GetValidUserReviewers [repo_id: %d, owner_username: %s]: user owner in CODEOWNERS file could not be found by name", issue.RepoID, nameOrEmail)
+			}
 		}
 		if reviewer != nil && err == nil {
 			err = IsValidReviewRequest(ctx, reviewer, doer, isAdd, issue, permDoer)
 			if err == nil {
 				reviewers = append(reviewers, reviewer)
+			} else {
+				log.Info("GetValidUserReviewers [repo_id: %d, user_id: %d]: user reviewer is not a valid review request", issue.RepoID, reviewer.ID)
 			}
 		}
 	}
@@ -330,27 +347,30 @@ func GetValidUserReviewers(ctx context.Context, userNamesOrEmails []string, doer
 // GetValidReviewers gets the Teams that actually exist and are authorized to review the pull request
 func GetValidTeamReviewers(ctx context.Context, repo *repo_model.Repository, fullTeamNames []string, doer *user_model.User, isAdd bool, issue *issues_model.Issue) (teamReviewers []*organization_model.Team) {
 	teamReviewers = []*organization_model.Team{}
-
 	if repo.Owner.IsOrganization() {
 		for _, fullTeamName := range fullTeamNames {
-			teamReviewer := GetTeamFromFullName(fullTeamName, doer, ctx)
-			if teamReviewer != nil {
+			teamReviewer, err := GetTeamFromFullName(ctx, fullTeamName, doer)
+			if err != nil {
+				log.Info("GetTeamFromFullName [repo_id: %d, full_team_name: %s]: error finding the team [%v]", repo.ID, fullTeamName, err)
+			} else if teamReviewer == nil {
+				log.Info("GetTeamFromFullName [repo_id: %d, full_team_name: %s]: no error returned, but the team was nil (could not be found)", repo.ID, fullTeamName)
+			} else {
 				err := IsValidTeamReviewRequest(ctx, teamReviewer, doer, isAdd, issue)
 				if err == nil {
 					teamReviewers = append(teamReviewers, teamReviewer)
 				}
+				log.Info("GetValidTeamReviewers [repo_id: %d, team_id: %d]: team reviewer is not a valid review request", repo.ID, teamReviewer.ID)
 			}
 		}
 	}
-
 	return teamReviewers
 }
 
 // GetTeamFromFullName gets the team given its full name ('{organizationName}/{teamName}')
-func GetTeamFromFullName(fullTeamName string, doer *user_model.User, ctx context.Context) *organization_model.Team {
+func GetTeamFromFullName(ctx context.Context, fullTeamName string, doer *user_model.User) (*organization_model.Team, error) {
 	teamNameSplit := strings.Split(fullTeamName, "/")
 	if len(teamNameSplit) != 2 {
-		return nil
+		return nil, errors.New("Team name must split into exactly 2 parts when split on '/'")
 	}
 	organizationName, teamName := teamNameSplit[0], teamNameSplit[1]
 
@@ -363,7 +383,7 @@ func GetTeamFromFullName(fullTeamName string, doer *user_model.User, ctx context
 	}
 	organizations, err := organization_model.FindOrgs(opts)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	var organization *organization_model.Organization
@@ -376,9 +396,12 @@ func GetTeamFromFullName(fullTeamName string, doer *user_model.User, ctx context
 
 	var team *organization_model.Team
 	if organization != nil {
-		team, _ = organization.GetTeam(ctx, teamName)
+		team, err = organization.GetTeam(ctx, teamName)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return team
+	return team, nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

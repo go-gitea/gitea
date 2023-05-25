@@ -88,7 +88,7 @@ func compareLists(list1 []string, list2 []string) bool {
 		return false
 	}
 
-	for i, _ := range list1 {
+	for i := range list1 {
 		if list1[i] != list2[i] {
 			return false
 		}
