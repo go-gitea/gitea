@@ -449,3 +449,36 @@ export function initDashboardRepoList() {
 export default sfc; // activate the IDE's Vue plugin
 
 </script>
+<style scoped>
+ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 0;
+}
+
+ul li {
+  padding: 0 10px;
+}
+
+ul li:not(:last-child) {
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.repo-list-link {
+  padding: 6px 0;
+}
+
+.repo-list-link .svg {
+  color: var(--color-text-light-2);
+}
+
+.repo-list-icon {
+  min-width: 16px;
+  margin-right: 8px;
+}
+
+.list #privateFilterCheckbox .svg {
+  color: var(--color-grey);
+  margin-right: 0.25rem;
+}
+</style>
