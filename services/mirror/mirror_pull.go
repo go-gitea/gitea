@@ -143,7 +143,7 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 				continue
 			}
 			results = append(results, &mirrorSyncResult{
-				refName:     refName,
+				refName:     git.BranchPrefix + refName,
 				oldCommitID: shas[0],
 				newCommitID: shas[1],
 			})
