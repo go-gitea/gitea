@@ -2,14 +2,14 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "在地化"
 slug: "localization"
-weight: 20
+weight: 70
 toc: false
 draft: false
 menu:
   sidebar:
     parent: "contributing"
     name: "在地化"
-    weight: 20
+    weight: 70
     identifier: "localization"
 ---
 
