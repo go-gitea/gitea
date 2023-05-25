@@ -70,18 +70,18 @@
       </div>
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
-          <li v-for="repo in repos" :key="repo.id">
-            <a class="repo-list-link muted gt-df gt-ac gt-sb" :href="repo.link">
+          <li class="gt-df gt-ac" v-for="repo in repos" :key="repo.id">
+            <a class="repo-list-link muted gt-df gt-ac gt-f1 gt-min-w-0" :href="repo.link">
               <svg-icon :name="repoIcon(repo)" :size="repoIconSize(repo)" class-name="repo-list-icon"/>
               <div class="text truncate">{{ repo.full_name }}</div>
               <div v-if="repo.archived">
                 <svg-icon name="octicon-archive" :size="16"/>
               </div>
-              <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
-              <div class="gt-ml-auto">
-                <svg-icon v-if="repo.latest_commit_status_state" :name="statusIcon(repo.latest_commit_status_state)" :class-name="'commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
-              </div>
             </a>
+            <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
+            <div class="gt-ml-3">
+              <svg-icon v-if="repo.latest_commit_status_state" :name="statusIcon(repo.latest_commit_status_state)" :class-name="'commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
+            </div>
           </li>
         </ul>
         <div v-if="showMoreReposLink" class="center gt-py-3 gt-border-secondary-top">
@@ -137,13 +137,11 @@
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
                 </span>
               </div>
-              <div>
-                <span class="text light grey gt-df gt-ac gt-ml-auto">
-                  {{ org.num_repos }}
-                  <svg-icon name="octicon-repo" :size="16" class-name="gt-ml-2 gt-mt-1"/>
-                </span>
-              </div>
             </a>
+            <div class="text light grey gt-df gt-ac gt-ml-3">
+              {{ org.num_repos }}
+              <svg-icon name="octicon-repo" :size="16" class-name="gt-ml-2 gt-mt-1"/>
+            </div>
           </li>
         </ul>
       </div>
