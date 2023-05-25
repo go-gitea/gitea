@@ -15,7 +15,7 @@ menu:
 
 # Act Runner
 
-本页面将详细介绍[Act Runner](https://gitea.com/gitea/act_runner)，这是Gitea Actions的运行器。
+本页面将详细介绍[Act Runner](https://gitea.com/gitea/act_runner)，这是Gitea Actions的Runner。
 
 **目录**
 
@@ -87,21 +87,21 @@ docker run -v $(pwd)/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
 
 ## 注册
 
-在运行Act Runner之前，需要进行注册，因为运行器需要知道从哪里获取作业，并且对于Gitea实例来说，识别运行器也很重要。
+在运行Act Runner之前，需要进行注册，因为Runner需要知道从哪里获取作业，并且对于Gitea实例来说，识别Runner也很重要。
 
-### 运行器级别
+### Runner级别
 
-您可以在不同级别上注册运行器，它可以是：
+您可以在不同级别上注册Runner，它可以是：
 
-- 实例级别：运行器将为实例中的所有存储库运行作业。
-- 组织级别：运行器将为组织中的所有存储库运行作业。
-- 存储库级别：运行器将为其所属的存储库运行作业。
+- 实例级别：Runner将为实例中的所有存储库运行作业。
+- 组织级别：Runner将为组织中的所有存储库运行作业。
+- 存储库级别：Runner将为其所属的存储库运行作业。
 
-请注意，即使存储库具有自己的存储库级别运行器，它仍然可以使用实例级别或组织级别运行器。未来的版本可能提供更多对此进行更好控制的选项。
+请注意，即使存储库具有自己的存储库级别Runner，它仍然可以使用实例级别或组织级别Runner。未来的版本可能提供更多对此进行更好控制的选项。
 
 ### 获取注册令牌
 
-运行器级别决定了从哪里获取注册令牌。
+Runner级别决定了从哪里获取注册令牌。
 
 - 实例级别：管理员设置页面，例如 `<your_gitea.com>/admin/runners`。
 - 组织级别：组织设置页面，例如 `<your_gitea.com>/<org>/settings/runners`。
@@ -111,7 +111,7 @@ docker run -v $(pwd)/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
 
 注册令牌的格式是一个随机字符串 `D0gvfu2iHfUjNqCYVljVyRV14fISpJxxxxxxxxxx`。
 
-### 注册运行器
+### 注册Runner
 
 可以通过运行以下命令来注册Act Runner：
 
@@ -129,24 +129,24 @@ docker run -v $(pwd)/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
 
 - Gitea 实例的 URL，例如 `https://gitea.com/` 或 `http://192.168.8.8:3000/`。
 - 注册令牌。
-- 运行器名称（可选）。如果留空，将使用主机名。
-- 运行器标签（可选）。如果留空，将使用默认标签。
+- Runner名称（可选）。如果留空，将使用主机名。
+- Runner标签（可选）。如果留空，将使用默认标签。
 
-您可能对运行器标签感到困惑，稍后将对其进行解释。
+您可能对Runner标签感到困惑，稍后将对其进行解释。
 
-如果您想以非交互方式注册运行器，可以使用参数执行以下操作。
+如果您想以非交互方式注册Runner，可以使用参数执行以下操作。
 
 ```bash
 ./act_runner register --no-interactive --instance <instance_url> --token <registration_token> --name <runner_name> --labels <runner_labels>
 ```
 
-注册运行器后，您可以在当前目录中找到一个名为 `.runner` 的新文件。该文件存储注册信息。
+注册Runner后，您可以在当前目录中找到一个名为 `.runner` 的新文件。该文件存储注册信息。
 请不要手动编辑该文件。
 如果此文件丢失或损坏，可以直接删除它并重新注册。
 
 如果您想将注册信息存储在其他位置，请在配置文件中指定，并不要忘记指定 `--config` 选项。
 
-### 使用Docker注册运行器
+### 使用Docker注册Runner
 
 如果您使用的是Docker镜像，注册行为会略有不同。在这种情况下，注册和运行合并为一步，因此您需要在运行Act Runner时指定注册信息。
 
@@ -171,13 +171,13 @@ docker run \
 
 ### 标签
 
-运行器的标签用于确定运行器可以运行哪些作业以及如何运行它们。
+Runner的标签用于确定Runner可以运行哪些作业以及如何运行它们。
 
 默认标签为`ubuntu-latest:docker://node:16-bullseye,ubuntu-22.04:docker://node:16-bullseye,ubuntu-20.04:docker://node:16-bullseye,ubuntu-18.04:docker://node:16-buster`。
 它们是逗号分隔的列表，每个项目都是一个标签。
 
 让我们以 `ubuntu-22.04:docker://node:16-bullseye` 为例。
-它意味着运行器可以运行带有`runs-on: ubuntu-22.04`的作业，并且该作业将在使用`node:16-bullseye`镜像的Docker容器中运行。
+它意味着Runner可以运行带有`runs-on: ubuntu-22.04`的作业，并且该作业将在使用`node:16-bullseye`镜像的Docker容器中运行。
 
 如果默认镜像无法满足您的需求，并且您有足够的磁盘空间可以使用更好、更大的镜像，您可以将其更改为`ubuntu-22.04:docker://<您喜欢的镜像>`。
 您可以在[act 镜像](https://github.com/nektos/act/blob/master/IMAGES.md)上找到更多有用的镜像。
@@ -185,12 +185,12 @@ docker run \
 如果您想直接在主机上运行作业，您可以将其更改为`ubuntu-22.04:host`或仅`ubuntu-22.04`，`:host`是可选的。
 然而，我们建议您使用类似`linux_amd64:host`或`windows:host`的特殊名称，以避免误用。
 
-还有一点需要注意的是，建议在更改标签时注册运行器。
+还有一点需要注意的是，建议在更改标签时注册Runner。
 这可能会有些麻烦，所以我们可能会在将来提供更好的方法来处理。
 
 ## 运行
 
-注册完运行器后，您可以通过运行以下命令来运行它：
+注册完Runner后，您可以通过运行以下命令来运行它：
 
 ```bash
 ./act_runner daemon
@@ -198,6 +198,6 @@ docker run \
 ./act_runner daemon --config config.yaml
 ```
 
-运行器将从Gitea实例获取作业并自动运行它们。
+Runner将从Gitea实例获取作业并自动运行它们。
 
 由于Act Runner仍处于开发中，建议定期检查最新版本并进行升级。

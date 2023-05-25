@@ -31,20 +31,20 @@ Gitea Actions与[GitHub Actions](https://github.com/features/actions)相似且�
 - "Actions"根据上下文的不同可以指代以上任意一个。在本文档中指代的是"Gitea Actions"。
 - "action"或"actions"指代一些要使用的脚本/插件，比如"actions/checkout@v3"或"actions/cache@v3"。
 
-## 运行器
+## Runner
 
-和其他CI/CD解决方案一样，Gitea不会自己运行作业，而是将作业委托给运行器。
-Gitea Actions的运行器被称为[act runner](https://gitea.com/gitea/act_runner)，它是一个独立的程序，也是用Go语言编写的。
+和其他CI/CD解决方案一样，Gitea不会自己运行作业，而是将作业委托给Runner。
+Gitea Actions的Runner被称为[act runner](https://gitea.com/gitea/act_runner)，它是一个独立的程序，也是用Go语言编写的。
 它是基于[nektos/act](http://github.com/nektos/act)的一个[分支](https://gitea.com/gitea/act) 。
 
-由于运行器是独立部署的，可能存在潜在的安全问题。
+由于Runner是独立部署的，可能存在潜在的安全问题。
 为了避免这些问题，请遵循两个简单的规则：
 
-- 不要为你的仓库、组织或实例使用你不信任的运行器。
-- 不要为你不信任的仓库、组织或实例提供运行器。
+- 不要为你的仓库、组织或实例使用你不信任的Runner。
+- 不要为你不信任的仓库、组织或实例提供Runner。
 
 对于内部使用的Gitea实例，比如企业或个人使用的实例，这两个规则不是问题，它们自然而然就是如此。
-然而，对于公共的Gitea实例，比如[gitea.com](https://gitea.com)，在添加或使用运行器时应当牢记这两个规则。
+然而，对于公共的Gitea实例，比如[gitea.com](https://gitea.com)，在添加或使用Runner时应当牢记这两个规则。
 
 ## 状态
 

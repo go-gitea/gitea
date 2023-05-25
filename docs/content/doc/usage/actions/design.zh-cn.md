@@ -47,22 +47,22 @@ Gitea Actions由多个组件组成。本文档将对它们进行逐个描述。
 
 ## act runner
 
-Gitea的运行器被称为act runner，因为它基于act。
+Gitea的Runner被称为act runner，因为它基于act。
 
-与其他CI运行器一样，我们将其设计为Gitea的外部部分，这意味着它应该在与Gitea不同的服务器上运行。
+与其他CIRunner一样，我们将其设计为Gitea的外部部分，这意味着它应该在与Gitea不同的服务器上运行。
 
-为了确保运行器连接到正确的Gitea实例，我们需要使用令牌注册它。
-此外，运行器通过声明自己的标签向Gitea报告它可以运行的作业类型。
+为了确保Runner连接到正确的Gitea实例，我们需要使用令牌注册它。
+此外，Runner通过声明自己的标签向Gitea报告它可以运行的作业类型。
 
-之前，我们提到工作流文件中的 `runs-on: ubuntu-latest` 表示该作业将在具有`ubuntu-latest`标签的运行器上运行。
-但是，运行器如何知道要运行 `ubuntu-latest`？答案在于将标签映射到环境。
+之前，我们提到工作流文件中的 `runs-on: ubuntu-latest` 表示该作业将在具有`ubuntu-latest`标签的Runner上运行。
+但是，Runner如何知道要运行 `ubuntu-latest`？答案在于将标签映射到环境。
 这就是为什么在注册过程中添加自定义标签时，需要输入一些复杂内容，比如`my_custom_label:docker://centos:7`。
-这意味着运行器可以接受需要在`my_custom_label`上运行的作业，并通过使用`centos:7`镜像的Docker容器来运行它。
+这意味着Runner可以接受需要在`my_custom_label`上运行的作业，并通过使用`centos:7`镜像的Docker容器来运行它。
 
 然而，Docker不是唯一的选择。
 act 也支持直接在主机上运行作业。
 这是通过像`linux_arm:host`这样的标签实现的。
-这个标签表示运行器可以接受需要在`linux_arm`上运行的作业，并直接在主机上运行它们。
+这个标签表示Runner可以接受需要在`linux_arm`上运行的作业，并直接在主机上运行它们。
 
 标签的设计遵循格式`label[:schema[:args]]`。
 如果省略了schema，则默认为`host`。
@@ -76,7 +76,7 @@ act 也支持直接在主机上运行作业。
 
 ## 通信协议
 
-由于act runner是Gitea的独立部分，我们需要一种协议让运行器与Gitea实例进行通信。
+由于act runner是Gitea的独立部分，我们需要一种协议让Runner与Gitea实例进行通信。
 然而，我们不认为让Gitea监听一个新端口是个好主意。
 相反，我们希望重用HTTP端口，这意味着我们需要一个与HTTP兼容的协议。
 因此，我们选择使用基于HTTP的gRPC。
@@ -87,7 +87,7 @@ act 也支持直接在主机上运行作业。
 ## 网络架构
 
 让我们来看一下整体的网络架构。
-这将帮助您解决一些问题，并解释为什么使用回环地址注册运行器是个不好的主意。
+这将帮助您解决一些问题，并解释为什么使用回环地址注册Runner是个不好的主意。
 
 ![network](/images/usage/actions/network.png)
 
@@ -99,11 +99,11 @@ act runner 必须能够连接到Gitea以接收任务并发送执行结果回来�
 
 ### 连接 2，作业容器到Gitea实例
 
-即使作业容器位于同一台机器上，它们的网络命名空间与运行器不同。
+即使作业容器位于同一台机器上，它们的网络命名空间与Runner不同。
 举个例子，如果工作流中包含 `actions/checkout@v3`，作业容器需要连接到Gitea来获取代码。
 获取代码并不总是运行某些作业所必需的，但在大多数情况下是必需的。
 
-如果您使用回环地址注册运行器，当运行器与Gitea在同一台机器上时，运行器可以连接到Gitea。
+如果您使用回环地址注册Runner，当Runner与Gitea在同一台机器上时，Runner可以连接到Gitea。
 然而，如果作业容器尝试从本地主机获取代码，它将失败，因为Gitea不在同一个容器中。
 
 ### 连接 3，act runner到互联网
@@ -129,8 +129,8 @@ act runner 必须能够连接到Gitea以接收任务并发送执行结果回来�
 
 ## 总结
 
-使用Gitea Actions只需要确保运行器能够连接到Gitea实例。
+使用Gitea Actions只需要确保Runner能够连接到Gitea实例。
 互联网访问是可选的，但如果没有互联网访问，将需要额外的工作。
-换句话说：当运行器能够自行查询互联网时，它的工作效果最好，但您不需要将其暴露给互联网（无论是单向还是双向）。
+换句话说：当Runner能够自行查询互联网时，它的工作效果最好，但您不需要将其暴露给互联网（无论是单向还是双向）。
 
 如果您在使用Gitea Actions时遇到任何网络问题，希望上面的图片能够帮助您进行故障排除。
