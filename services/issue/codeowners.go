@@ -3,7 +3,6 @@ package issue
 import (
 	"bufio"
 	"fmt"
-	"os"
 	"strings"
 
 	"gopkg.in/godo.v2/glob"
@@ -14,48 +13,30 @@ type Codeowners struct {
 	owners []string
 }
 
-func main() {
+func ParseCodeowners(changedFiles []string, codeownersContents []byte) ([]string, []string, error) {
 
-	codeownerString := "*.txt @user1 @user2 @user3 @user4 @user5\n" +
-		"docs/ @user2 @user3 @user6 @user7 @SBC/user8\n" +
-		"/docs/ @user3\n" +
-		"/docs/github @user10\n"
+	// This calls the actual parser
+	globMap, err := ParseCodeownerBytes(codeownersContents)
 
-	files := []string{
-		"user1.txt",
-		"docs/dir1/user2.txt",
-		"logs/docs/user2.txt",
-		"docs/user3.txt",
-		"newdir/pretty.js",
-		"docs/github/user10.txt",
-		"docs/github",
-		"docs/github/",
-		"properties/prop.txt",
-		"main/properties/go/user1.txt",
-		"docs/maintain/test.txt",
-		"docs/check.txt",
-		"hello_world.txt",
-		"main.c",
-		"build/logs/tobe.fry",
-		"main/go/logs",
-		"apps/consoleApp.cpp",
-	}
-
-	codeownerBytes := []byte(codeownerString)
-	globMap := parseCodeownerBytes(codeownerBytes)
-	// globMap := parseCodeownerFile("CODEOWNERS")
-
+	// We have to declare a new list of strings to be able to append all codeowners
+	//	As we get them file by file in the following for loop
 	var codeownersList []string
-	for _, file := range files {
-		codeownersList = append(codeownersList, getOwners(globMap, file)...)
+	for _, file := range changedFiles {
+		codeownersList = append(codeownersList, GetOwners(globMap, file)...)
 	}
-	codeownerIndividuals, codeOwnerTeams := separateOwnerAndTeam(codeownersList)
+	codeownerIndividuals, codeOwnerTeams := SeparateOwnerAndTeam(codeownersList)
 	fmt.Println(codeownerIndividuals)
 	fmt.Println(codeOwnerTeams)
 
+	// TODO: Do we need to return an error as well?
+	return codeownerIndividuals, codeOwnerTeams, err
+
 }
 
-func getOwners(globMap []Codeowners, file string) []string {
+// GetOwners returns the list of owners (including teams) for a single file. It matches from our globMap
+//
+//	to the changed files that it receives from the for loop in the ParseCodeowners function above.
+func GetOwners(globMap []Codeowners, file string) []string {
 
 	for i := len(globMap) - 1; i >= 0; i-- {
 		if glob.Globexp(globMap[i].glob).MatchString(file) {
@@ -68,12 +49,15 @@ func getOwners(globMap []Codeowners, file string) []string {
 	return nil
 }
 
-func separateOwnerAndTeam(codeownersList []string) ([]string, []string) {
+// SeparateOwnerAndTeam separates owners and teams based on format.
+//
+//	Note that it also calls RemoveDuplicateString to remove duplicates
+func SeparateOwnerAndTeam(codeownersList []string) ([]string, []string) {
 
-	var codeownerIndividuals []string
-	var codeOwnerTeams []string
+	codeownerIndividuals := []string{}
+	codeOwnerTeams := []string{}
 
-	codeownersList = removeDuplicateString(codeownersList)
+	codeownersList = RemoveDuplicateString(codeownersList)
 
 	for _, codeowner := range codeownersList {
 
@@ -93,7 +77,7 @@ func separateOwnerAndTeam(codeownersList []string) ([]string, []string) {
 }
 
 // Removing duplicates has to be done manually in Golang
-func removeDuplicateString(duplicatesPresent []string) []string {
+func RemoveDuplicateString(duplicatesPresent []string) []string {
 	allKeys := make(map[string]bool)
 	duplicatesRemoved := []string{}
 
@@ -108,37 +92,14 @@ func removeDuplicateString(duplicatesPresent []string) []string {
 
 }
 
-func parseCodeownerFile(fileToRead string) []Codeowners {
-
-	file, err := os.Open(fileToRead)
-	if err != nil {
-		fmt.Println("Error opening file:", err)
-		return nil
-	}
-	defer file.Close()
-
-	// Create a new scanner to read from the file
-	scanner := bufio.NewScanner(file)
-	return scanAndParse(*scanner)
-
-}
-
-func parseCodeownerString(codeownerString string) []Codeowners {
-
-	// Create a new scanner to read from the string
-	scanner := bufio.NewScanner(strings.NewReader(codeownerString))
-	return scanAndParse(*scanner)
-
-}
-
-func parseCodeownerBytes(codeownerBytes []byte) []Codeowners {
+func ParseCodeownerBytes(codeownerBytes []byte) ([]Codeowners, error) {
 
 	// Create a new scanner to read from the byte array
 	scanner := bufio.NewScanner(strings.NewReader(string(codeownerBytes)))
-	return scanAndParse(*scanner)
+	return ScanAndParse(*scanner)
 }
 
-func scanAndParse(scanner bufio.Scanner) []Codeowners {
+func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 
 	var globMap []Codeowners
 
@@ -236,10 +197,10 @@ func scanAndParse(scanner bufio.Scanner) []Codeowners {
 	if scanner.Err() != nil {
 		fmt.Println("Error reading file", scanner.Err())
 		globMap = nil
-		return globMap
+		return globMap, scanner.Err()
 	}
 
 	fmt.Println(globMap)
-	return globMap
+	return globMap, scanner.Err()
 
 }
