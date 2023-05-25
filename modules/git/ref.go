@@ -65,6 +65,12 @@ func (ref *Reference) RefGroup() string {
 	return RefName(ref.Name).RefGroup()
 }
 
+// ForPrefix special ref to create a pull request: refs/for/<target-branch>/<topic-branch>
+// or refs/for/<targe-branch> -o topic='<topic-branch>'
+const ForPrefix = "refs/for/"
+
+// TODO: /refs/for-review for suggest change interface
+
 // RefName represents a full git reference name
 type RefName string
 
@@ -117,6 +123,7 @@ func (ref RefName) BranchName() string {
 	return ref.nameWithoutPrefix(BranchPrefix)
 }
 
+// ForBranchName returns the branch name part of refs like refs/for/<branch_name>
 func (ref RefName) ForBranchName() string {
 	return ref.nameWithoutPrefix(ForPrefix)
 }
