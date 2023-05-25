@@ -287,11 +287,12 @@ const sfc = {
       div.append(lineNumber);
 
       // for "Show timestamps"
-      const logTimeStamp = document.createElement('span');
+      const logTimeStamp = document.createElement('relative-time');
       logTimeStamp.className = 'log-time-stamp';
       const date = new Date(parseFloat(line.timestamp * 1000));
-      const timeStamp = date.toLocaleString(getCurrentLocale(), {timeZoneName: 'short'});
-      logTimeStamp.textContent = timeStamp;
+      logTimeStamp.setAttribute('datetime', date);
+      logTimeStamp.setAttribute('format', 'datetime');
+      logTimeStamp.setAttribute('time-zone-name', 'short');
       toggleElem(logTimeStamp, this.timeVisible.stamp);
       // for "Show log duration"
       const logTimeDuration = document.createElement('span');
