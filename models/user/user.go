@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // UserType defines the user type
@@ -309,14 +310,27 @@ func (u *User) GenerateEmailActivateCode(email string) string {
 	return code
 }
 
-// GetUserFollowers returns range of user's followers.
-func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListOptions) ([]*User, int64, error) {
-	sess := db.GetEngine(ctx).
+func searchUserFollowers(ctx context.Context, u, viewer *User) *xorm.Session {
+	return db.GetEngine(ctx).
 		Select("`user`.*").
 		Join("LEFT", "follow", "`user`.id=follow.user_id").
 		Where("follow.follow_id=?", u.ID).
 		And("`user`.type=?", UserTypeIndividual).
 		And(isUserVisibleToViewerCond(viewer))
+}
+
+func searchUserFollowing(ctx context.Context, u, viewer *User) *xorm.Session {
+	return db.GetEngine(db.DefaultContext).
+		Select("`user`.*").
+		Join("LEFT", "follow", "`user`.id=follow.follow_id").
+		Where("follow.user_id=?", u.ID).
+		And("`user`.type IN (?, ?)", UserTypeIndividual, UserTypeOrganization).
+		And(isUserVisibleToViewerCond(viewer))
+}
+
+// GetUserFollowers returns range of user's followers.
+func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListOptions) ([]*User, int64, error) {
+	sess := searchUserFollowers(ctx, u, viewer)
 
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
@@ -333,12 +347,7 @@ func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListO
 
 // GetUserFollowing returns range of user's following.
 func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListOptions) ([]*User, int64, error) {
-	sess := db.GetEngine(db.DefaultContext).
-		Select("`user`.*").
-		Join("LEFT", "follow", "`user`.id=follow.follow_id").
-		Where("follow.user_id=?", u.ID).
-		And("`user`.type IN (?, ?)", UserTypeIndividual, UserTypeOrganization).
-		And(isUserVisibleToViewerCond(viewer))
+	sess := searchUserFollowing(ctx, u, viewer)
 
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
@@ -354,41 +363,15 @@ func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListO
 }
 
 // GetUserFollowersCount returns count of user's followers.
-func GetUserFollowersCount(ctx context.Context, u, viewer *User, listOptions db.ListOptions) (int64, error) {
-	sess := db.GetEngine(ctx).
-		Select("`user`.*").
-		Join("LEFT", "follow", "`user`.id=follow.user_id").
-		Where("follow.follow_id=?", u.ID).
-		And("`user`.type=?", UserTypeIndividual).
-		And(isUserVisibleToViewerCond(viewer))
-
-	if listOptions.Page != 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
-		count, err := sess.Count()
-		return count, err
-	}
-
-	count, err := sess.Count()
-	return count, err
+func GetUserFollowersCount(ctx context.Context, u, viewer *User) (int64, error) {
+	sess := searchUserFollowers(ctx, u, viewer)
+	return sess.Count()
 }
 
 // GetUserFollowingCount returns count of user's following.
-func GetUserFollowingCount(ctx context.Context, u, viewer *User, listOptions db.ListOptions) (int64, error) {
-	sess := db.GetEngine(db.DefaultContext).
-		Select("`user`.*").
-		Join("LEFT", "follow", "`user`.id=follow.follow_id").
-		Where("follow.user_id=?", u.ID).
-		And("`user`.type IN (?, ?)", UserTypeIndividual, UserTypeOrganization).
-		And(isUserVisibleToViewerCond(viewer))
-
-	if listOptions.Page != 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
-		count, err := sess.Count()
-		return count, err
-	}
-
-	count, err := sess.Count()
-	return count, err
+func GetUserFollowingCount(ctx context.Context, u, viewer *User) (int64, error) {
+	sess := searchUserFollowing(ctx, u, viewer)
+	return sess.Count()
 }
 
 // NewGitSig generates and returns the signature of given user.

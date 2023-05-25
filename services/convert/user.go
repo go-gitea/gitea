@@ -6,7 +6,6 @@ package convert
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -65,12 +64,12 @@ func toUser(ctx context.Context, user, doer *user_model.User, accessMode perm.Ac
 		signed = true
 		authed = doer.ID == user.ID || doer.IsAdmin
 
-		count, err := user_model.GetUserFollowersCount(ctx, user, doer, db.ListOptions{ListAll: true})
+		count, err := user_model.GetUserFollowersCount(ctx, user, doer)
 		if err != nil {
 			return nil
 		}
 		result.Followers = int(count)
-		count, err = user_model.GetUserFollowingCount(ctx, user, doer, db.ListOptions{ListAll: true})
+		count, err = user_model.GetUserFollowingCount(ctx, user, doer)
 		if err != nil {
 			return nil
 		}
