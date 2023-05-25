@@ -290,14 +290,14 @@ const sfc = {
       const logTimeStamp = document.createElement('span');
       logTimeStamp.className = 'log-time-stamp';
       const date = new Date(parseFloat(line.timestamp * 1000));
-      const timeStamp = date.toLocaleString(getCurrentLocale(), {year: 'numeric', month: 'short', day: '2-digit', weekday: 'short', hour: '2-digit', hour12: false, minute: '2-digit', second: '2-digit', timeZone: 'UTC', timeZoneName: 'short'});
-      logTimeStamp.innerHTML = timeStamp;
+      const timeStamp = date.toLocaleString(getCurrentLocale(), {timeZoneName: 'short'});
+      logTimeStamp.textContent = timeStamp;
       toggleElem(logTimeStamp, this.timeVisible.stamp);
       // for "Show log duration"
       const logTimeDuration = document.createElement('span');
       logTimeDuration.className = 'log-time-duration';
       const duration = Math.floor(parseFloat(line.timestamp) - parseFloat(startTime));
-      logTimeDuration.innerHTML = `${duration}s`;
+      logTimeDuration.textContent = `${duration}s`;
       toggleElem(logTimeDuration, this.timeVisible.duration);
 
       const logMessage = document.createElement('span');
