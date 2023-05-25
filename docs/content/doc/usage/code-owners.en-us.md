@@ -47,14 +47,14 @@ docs/(aws|google|azure)/[^/]*\\.(md|txt) @user8 @org1/team4
 You can escape characters `#`, ` ` (space) and `\` with `\`, like:
 
 ```
-/dir/with\#hashtag @user1
-/path\ with\ space @user2
-/path/with\\backslash @user3
+dir/with\#hashtag @user1
+path\ with\ space @user2
+path/with\\backslash @user3
 ```
 
 Some character (`.+*?()|[]{}^$\`) should be escaped with `\\` inside regexp, like:
 
 ```
-/path/\\.with\\.dots
-/path/with\\+plus
+path/\\.with\\.dots
+path/with\\+plus
 ```
