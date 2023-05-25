@@ -72,15 +72,15 @@
         <ul class="repo-owner-name-list">
           <li v-for="repo in repos" :key="repo.id">
             <a class="repo-list-link muted gt-df gt-ac gt-sb" :href="repo.link">
-              <div class="item-name gt-df gt-ac gt-f1">
-                <svg-icon :name="repoIcon(repo)" :size="repoIconSize(repo)" class-name="repo-list-icon"/>
-                <div class="text truncate gt-ml-1">{{ repo.full_name }}</div>
-                <span v-if="repo.archived">
-                  <svg-icon name="octicon-archive" :size="16" class-name="gt-ml-2"/>
-                </span>
+              <svg-icon :name="repoIcon(repo)" :size="repoIconSize(repo)" class-name="repo-list-icon"/>
+              <div class="text truncate">{{ repo.full_name }}</div>
+              <div v-if="true">
+                <svg-icon name="octicon-archive" :size="16" class-name="gt-mx-3"/>
               </div>
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
-              <svg-icon v-if="repo.latest_commit_status_state" :name="statusIcon(repo.latest_commit_status_state)" :class-name="'commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
+              <div class="gt-ml-auto">
+                <svg-icon v-if="repo.latest_commit_status_state" :name="statusIcon(repo.latest_commit_status_state)" :class-name="'commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
+              </div>
             </a>
           </li>
         </ul>
@@ -129,11 +129,11 @@
       <div v-if="organizations.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
           <li class="gt-df gt-ac" v-for="org in organizations" :key="org.name">
-            <a class="repo-list-link muted gt-df gt-ac gt-f1" :href="subUrl + '/' + encodeURIComponent(org.name)">
+            <a class="repo-list-link muted gt-df gt-ac gt-f1 gt-min-w-0" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
-              <div class="text truncate gt-ml-1">{{ org.name }}</div>
+              <div class="text truncate">{{ org.name }}</div>
               <div>{{ /* div to avoid underline on <span> during hover */ }}
-                <span class="ui tiny basic label gt-ml-3" v-if="org.org_visibility !== 'public'">
+                <span class="ui tiny basic label gt-mx-3" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
                 </span>
               </div>

@@ -175,13 +175,8 @@
   border-bottom: 1px solid var(--color-secondary);
 }
 
-.repo-list-link {
+.feeds .list ul li .repo-list-link {
   padding: 6px 0;
-  display: block;
-}
-
-.repo-list-link .label {
-  text-decoration: none;
 }
 
 .repo-list-link .svg {
@@ -189,18 +184,11 @@
 }
 
 .repo-list-icon {
-  margin-right: 6px;
+  min-width: 16px;
+  margin-right: 8px;
 }
 
 .feeds .list #privateFilterCheckbox .svg {
   color: var(--color-grey);
   margin-right: 0.25rem;
-}
-
-.feeds .list .repo-owner-name-list .item-name {
-  min-width: 0;
-}
-
-.feeds .list .repo-owner-name-list .item-name svg {
-  min-width: 16px;
 }
