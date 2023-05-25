@@ -353,6 +353,44 @@ func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListO
 	return users, count, err
 }
 
+// GetUserFollowers returns range of user's followers.
+func GetUserFollowersCount(ctx context.Context, u, viewer *User, listOptions db.ListOptions) (int64, error) {
+	sess := db.GetEngine(ctx).
+		Select("`user`.*").
+		Join("LEFT", "follow", "`user`.id=follow.user_id").
+		Where("follow.follow_id=?", u.ID).
+		And("`user`.type=?", UserTypeIndividual).
+		And(isUserVisibleToViewerCond(viewer))
+
+	if listOptions.Page != 0 {
+		sess = db.SetSessionPagination(sess, &listOptions)
+		count, err := sess.Count()
+		return count, err
+	}
+
+	count, err := sess.Count()
+	return count, err
+}
+
+// GetUserFollowing returns range of user's following.
+func GetUserFollowingCount(ctx context.Context, u, viewer *User, listOptions db.ListOptions) (int64, error) {
+	sess := db.GetEngine(db.DefaultContext).
+		Select("`user`.*").
+		Join("LEFT", "follow", "`user`.id=follow.follow_id").
+		Where("follow.user_id=?", u.ID).
+		And("`user`.type IN (?, ?)", UserTypeIndividual, UserTypeOrganization).
+		And(isUserVisibleToViewerCond(viewer))
+
+	if listOptions.Page != 0 {
+		sess = db.SetSessionPagination(sess, &listOptions)
+		count, err := sess.Count()
+		return count, err
+	}
+
+	count, err := sess.Count()
+	return count, err
+}
+
 // NewGitSig generates and returns the signature of given user.
 func (u *User) NewGitSig() *git.Signature {
 	return &git.Signature{
