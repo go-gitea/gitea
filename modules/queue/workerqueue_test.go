@@ -16,17 +16,9 @@ import (
 )
 
 func runWorkerPoolQueue[T any](q *WorkerPoolQueue[T]) func() {
-	var stop func()
-	started := make(chan struct{})
-	stopped := make(chan struct{})
-	go func() {
-		q.Run(func(f func()) { stop = f; close(started) }, nil)
-		close(stopped)
-	}()
-	<-started
+	go q.Run()
 	return func() {
-		stop()
-		<-stopped
+		q.ShutdownWait(1 * time.Second)
 	}
 }
 
@@ -238,7 +230,7 @@ func TestWorkerPoolQueueShutdown(t *testing.T) {
 		if items[0] == 0 {
 			close(handlerCalled)
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(400 * time.Millisecond)
 		return items
 	}
 
@@ -249,7 +241,7 @@ func TestWorkerPoolQueueShutdown(t *testing.T) {
 		assert.NoError(t, q.Push(i))
 	}
 	<-handlerCalled
-	time.Sleep(50 * time.Millisecond) // wait for a while to make sure all workers are active
+	time.Sleep(200 * time.Millisecond) // wait for a while to make sure all workers are active
 	assert.EqualValues(t, 4, q.GetWorkerActiveNumber())
 	stop() // stop triggers shutdown
 	assert.EqualValues(t, 0, q.GetWorkerActiveNumber())

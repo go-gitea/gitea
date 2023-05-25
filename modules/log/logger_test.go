@@ -53,7 +53,7 @@ func newDummyWriter(name string, level Level, delay time.Duration) *dummyWriter 
 }
 
 func TestLogger(t *testing.T) {
-	logger := NewLoggerWithWriters(context.Background())
+	logger := NewLoggerWithWriters(context.Background(), "test")
 
 	dump := logger.DumpWriters()
 	assert.EqualValues(t, 0, len(dump))
@@ -88,7 +88,7 @@ func TestLogger(t *testing.T) {
 }
 
 func TestLoggerPause(t *testing.T) {
-	logger := NewLoggerWithWriters(context.Background())
+	logger := NewLoggerWithWriters(context.Background(), "test")
 
 	w1 := newDummyWriter("dummy-1", DEBUG, 0)
 	logger.AddWriters(w1)
@@ -117,7 +117,7 @@ func (t testLogString) LogString() string {
 }
 
 func TestLoggerLogString(t *testing.T) {
-	logger := NewLoggerWithWriters(context.Background())
+	logger := NewLoggerWithWriters(context.Background(), "test")
 
 	w1 := newDummyWriter("dummy-1", DEBUG, 0)
 	w1.Mode.Colorize = true
@@ -130,7 +130,7 @@ func TestLoggerLogString(t *testing.T) {
 }
 
 func TestLoggerExpressionFilter(t *testing.T) {
-	logger := NewLoggerWithWriters(context.Background())
+	logger := NewLoggerWithWriters(context.Background(), "test")
 
 	w1 := newDummyWriter("dummy-1", DEBUG, 0)
 	w1.Mode.Expression = "foo.*"

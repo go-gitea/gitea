@@ -46,12 +46,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	assert.True(t, has)
 	assert.NoError(t, err)
 
-	var queueShutdown, queueTerminate []func()
-	go prPatchCheckerQueue.Run(func(shutdown func()) {
-		queueShutdown = append(queueShutdown, shutdown)
-	}, func(terminate func()) {
-		queueTerminate = append(queueTerminate, terminate)
-	})
+	go prPatchCheckerQueue.Run()
 
 	select {
 	case id := <-idChan:
@@ -67,12 +62,6 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	assert.Equal(t, issues_model.PullRequestStatusChecking, pr.Status)
 
-	for _, callback := range queueShutdown {
-		callback()
-	}
-	for _, callback := range queueTerminate {
-		callback()
-	}
-
+	prPatchCheckerQueue.ShutdownWait(5 * time.Second)
 	prPatchCheckerQueue = nil
 }

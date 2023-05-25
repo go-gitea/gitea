@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"runtime/pprof"
 	"time"
 )
 
@@ -57,6 +58,8 @@ func (b *EventWriterBaseImpl) GetLevel() Level {
 
 // Run is the default implementation for EventWriter.Run
 func (b *EventWriterBaseImpl) Run(ctx context.Context) {
+	pprof.SetGoroutineLabels(ctx)
+
 	defer b.OutputWriteCloser.Close()
 
 	var exprRegexp *regexp.Regexp
@@ -143,9 +146,16 @@ func eventWriterStartGo(ctx context.Context, w EventWriter, shared bool) {
 	}
 	w.Base().shared = shared
 	w.Base().stopped = make(chan struct{})
+
+	ctxDesc := "Logger: EventWriter: " + w.GetWriterName()
+	if shared {
+		ctxDesc = "Logger: EventWriter (shared): " + w.GetWriterName()
+	}
+	writerCtx, writerCancel := newContext(ctx, ctxDesc)
 	go func() {
+		defer writerCancel()
 		defer close(w.Base().stopped)
-		w.Run(ctx)
+		w.Run(writerCtx)
 	}()
 }
 
