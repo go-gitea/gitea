@@ -115,7 +115,7 @@ func UpdateIssue(ctx context.Context, repoID int64) error {
   - 对于PostgreSQL，你还需要更新ID序列，否则迁移将悄无声息地通过，但后续的插入将失败：
     ``SELECT setval('table_name_id_seq', COALESCE((SELECT MAX(id)+1 FROM `table_name`), 1), false)``
 
-### 未来任务
+### 未来的任务
 
 目前，我们正在进行一些重构，以完成以下任务：
 
