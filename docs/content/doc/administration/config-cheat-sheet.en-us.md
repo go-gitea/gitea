@@ -1118,7 +1118,7 @@ Gitea can support Markup using external tools. The example below will add a mark
 ENABLED = true
 NEED_POSTPROCESS = true
 FILE_EXTENSIONS = .adoc,.asciidoc
-RENDER_COMMAND = "asciidoc --out-file=- -"
+RENDER_COMMAND = "asciidoctor --embedded --safe-mode=secure --out-file=- -"
 IS_INPUT_FILE = false
 ```
 
