@@ -72,7 +72,6 @@ So services must be allowed to create a database transaction. Here is some examp
 // services/repository/repository.go
 func CreateXXXX() error {
     return db.WithTx(func(ctx context.Context) error {
-        e := db.GetEngine(ctx)
         // do something, if err is returned, it will rollback automatically
         if err := issues.UpdateIssue(ctx, repoID); err != nil {
             // ...

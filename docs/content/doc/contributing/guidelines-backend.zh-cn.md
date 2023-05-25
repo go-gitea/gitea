@@ -72,7 +72,6 @@ Gitea使用Golang作为后端编程语言。它使用了许多第三方包，并
 // services/repository/repository.go
 func CreateXXXX() error {
     return db.WithTx(func(ctx context.Context) error {
-        e := db.GetEngine(ctx)
         // do something, if err is returned, it will rollback automatically
         if err := issues.UpdateIssue(ctx, repoID); err != nil {
             // ...
