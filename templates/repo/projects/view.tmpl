@@ -198,24 +198,8 @@
 						{{end}}
 						<div class="content gt-p-0">
 							<div class="header">
-								<span class="gt-dif gt-ac gt-vm {{if .IsClosed}}red{{else}}green{{end}}">
-									{{if .IsPull}}
-										{{if .PullRequest.HasMerged}}
-											{{svg "octicon-git-merge" 16 "text purple"}}
-										{{else}}
-											{{if .IsClosed}}
-												{{svg "octicon-git-pull-request" 16 "text red"}}
-											{{else}}
-												{{svg "octicon-git-pull-request" 16 "text green"}}
-											{{end}}
-										{{end}}
-									{{else}}
-										{{if .IsClosed}}
-											{{svg "octicon-issue-closed" 16 "text red"}}
-										{{else}}
-											{{svg "octicon-issue-opened" 16 "text green"}}
-										{{end}}
-									{{end}}
+								<span class="gt-dif gt-ac gt-vm">
+									{{template "shared/issueicon" .}}
 								</span>
 								<a class="project-board-title gt-vm" href="{{.Link}}">
 									{{.Title}}
