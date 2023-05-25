@@ -75,7 +75,7 @@
               <svg-icon :name="repoIcon(repo)" :size="repoIconSize(repo)" class-name="repo-list-icon"/>
               <div class="text truncate">{{ repo.full_name }}</div>
               <div v-if="repo.archived">
-                <svg-icon name="octicon-archive" :size="16" class-name="gt-mx-3"/>
+                <svg-icon name="octicon-archive" :size="16"/>
               </div>
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
               <div class="gt-ml-auto">
@@ -133,15 +133,17 @@
               <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
               <div class="text truncate">{{ org.name }}</div>
               <div>
-                <span class="ui tiny basic label gt-mx-3" v-if="org.org_visibility !== 'public'">
+                <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
                 </span>
               </div>
+              <div>
+                <span class="text light grey gt-df gt-ac gt-ml-auto">
+                  {{ org.num_repos }}
+                  <svg-icon name="octicon-repo" :size="16" class-name="gt-ml-2 gt-mt-1"/>
+                </span>
+              </div>
             </a>
-            <div class="text light grey gt-df gt-ac gt-ml-auto">
-              {{ org.num_repos }}
-              <svg-icon name="octicon-repo" :size="16" class-name="gt-ml-2 gt-mt-1"/>
-            </div>
           </li>
         </ul>
       </div>
@@ -466,6 +468,7 @@ ul li:not(:last-child) {
 
 .repo-list-link {
   padding: 6px 0;
+  gap: 6px;
 }
 
 .repo-list-link .svg {
@@ -474,7 +477,7 @@ ul li:not(:last-child) {
 
 .repo-list-icon {
   min-width: 16px;
-  margin-right: 8px;
+  margin-right: 2px;
 }
 
 .list #privateFilterCheckbox .svg {
