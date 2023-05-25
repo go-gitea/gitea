@@ -58,22 +58,6 @@ func (opts *PushUpdateOptions) IsDelBranch() bool {
 	return opts.RefFullName.IsBranch() && opts.IsDelRef()
 }
 
-// TagName returns simple tag name if it's an operation to a tag
-func (opts *PushUpdateOptions) TagName() string {
-	if opts.RefFullName.IsTag() {
-		return opts.RefFullName.ShortName()
-	}
-	return ""
-}
-
-// BranchName returns simple branch name if it's an operation to branch
-func (opts *PushUpdateOptions) BranchName() string {
-	if opts.RefFullName.IsBranch() {
-		return opts.RefFullName.ShortName()
-	}
-	return ""
-}
-
 // RefName returns simple name for ref
 func (opts *PushUpdateOptions) RefName() string {
 	return opts.RefFullName.ShortName()

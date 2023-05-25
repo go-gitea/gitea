@@ -129,7 +129,7 @@ func (r *indexerNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 		return
 	}
 
-	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName.ShortName() == repo.DefaultBranch {
+	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName.BranchName() == repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
 	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
@@ -142,7 +142,7 @@ func (r *indexerNotifier) NotifySyncPushCommits(ctx context.Context, pusher *use
 		return
 	}
 
-	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName.ShortName() == repo.DefaultBranch {
+	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName.BranchName() == repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
 	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {

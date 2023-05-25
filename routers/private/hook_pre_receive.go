@@ -136,7 +136,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 }
 
 func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, refFullName git.RefName) {
-	branchName := refFullName.ShortName()
+	branchName := refFullName.BranchName()
 	ctx.branchName = branchName
 
 	if !ctx.AssertCanWriteCode() {
@@ -373,7 +373,7 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID string, refF
 		return
 	}
 
-	tagName := refFullName.ShortName()
+	tagName := refFullName.TagName()
 
 	if !ctx.gotProtectedTags {
 		var err error
@@ -423,7 +423,7 @@ func preReceivePullRequest(ctx *preReceiveContext, oldCommitID, newCommitID stri
 		return
 	}
 
-	baseBranchName := refFullName.ShortName()
+	baseBranchName := refFullName.BranchName()
 
 	baseBranchExist := false
 	if ctx.Repo.GitRepo.IsBranchExist(baseBranchName) {

@@ -100,6 +100,30 @@ func (ref RefName) IsFor() bool {
 	return strings.HasPrefix(string(ref), ForPrefix)
 }
 
+// TagName returns simple tag name if it's an operation to a tag
+func (ref RefName) TagName() string {
+	if ref.IsTag() {
+		return ref.ShortName()
+	}
+	return ""
+}
+
+// BranchName returns simple branch name if it's an operation to branch
+func (ref RefName) BranchName() string {
+	if ref.IsBranch() {
+		return ref.ShortName()
+	}
+	return ""
+}
+
+func (ref RefName) ForBranchName() string {
+	refName := string(ref)
+	if strings.HasPrefix(refName, ForPrefix) {
+		return strings.TrimPrefix(refName, ForPrefix)
+	}
+	return ""
+}
+
 // ShortName returns the short name of the reference name
 func (ref RefName) ShortName() string {
 	refName := string(ref)

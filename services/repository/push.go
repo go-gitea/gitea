@@ -118,7 +118,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}
 				}
 			}
-			tagName := opts.TagName()
+			tagName := opts.RefFullName.TagName()
 			if opts.IsDelRef() {
 				notification.NotifyPushCommits(
 					ctx, pusher, repo,
@@ -163,7 +163,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				}
 			}
 
-			branch := opts.BranchName()
+			branch := opts.RefFullName.BranchName()
 			if !opts.IsDelRef() {
 				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 				go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)

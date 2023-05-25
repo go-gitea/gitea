@@ -67,7 +67,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				RepoName:     repoName,
 			}
 			updates = append(updates, option)
-			if repo.IsEmpty && refFullName.IsBranch() && (option.BranchName() == "master" || option.BranchName() == "main") {
+			if repo.IsEmpty && (refFullName.BranchName() == "master" || refFullName.BranchName() == "main") {
 				// put the master/main branch first
 				copy(updates[1:], updates)
 				updates[0] = option
@@ -79,7 +79,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		if err := repo_service.PushUpdates(updates); err != nil {
 			log.Error("Failed to Update: %s/%s Total Updates: %d", ownerName, repoName, len(updates))
 			for i, update := range updates {
-				log.Error("Failed to Update: %s/%s Update: %d/%d: Branch: %s", ownerName, repoName, i, len(updates), update.BranchName())
+				log.Error("Failed to Update: %s/%s Update: %d/%d: Branch: %s", ownerName, repoName, i, len(updates), update.RefFullName.BranchName())
 			}
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 
@@ -195,7 +195,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				}
 			}
 
-			branch := refFullName.ShortName()
+			branch := refFullName.BranchName()
 
 			// If our branch is the default branch of an unforked repo - there's no PR to create or refer to
 			if !repo.IsFork && branch == baseRepo.DefaultBranch {

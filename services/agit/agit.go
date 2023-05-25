@@ -56,7 +56,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			continue
 		}
 
-		baseBranchName := opts.RefFullNames[i].ShortName()
+		baseBranchName := opts.RefFullNames[i].ForBranchName()
 		curentTopicBranch := ""
 		if !gitRepo.IsBranchExist(baseBranchName) {
 			// try match refs/for/<target-branch>/<topic-branch>

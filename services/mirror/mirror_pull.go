@@ -562,7 +562,7 @@ func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository
 			continue
 		}
 
-		name := result.refName.ShortName()
+		name := result.refName.BranchName()
 		if len(firstName) == 0 {
 			firstName = name
 		}
