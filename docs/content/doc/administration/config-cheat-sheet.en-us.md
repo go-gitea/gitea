@@ -73,7 +73,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `RUN_USER`: **_current OS username_/`$USER`/`$USERNAME` e.g. git**: The user Gitea will run as.
    This should be a dedicated system (non-user) account. Setting this incorrectly will cause Gitea
    to not start.
-- `RUN_MODE`: **prod**: Application run mode, affects performance and debugging. Either "dev", "prod" or "test".
+- `RUN_MODE`: **prod**: Application run mode, affects performance and debugging: `dev` or `prod`, default is `prod`. Mode `dev` makes Gitea easier to develop and debug, values other than `dev` are treated as `prod` which is for production use.
 
 ## Repository (`repository`)
 
@@ -465,6 +465,7 @@ relation to port exhaustion.
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search; available when ISSUE_INDEXER_TYPE is bleve and elasticsearch. Relative paths will be made absolute against _`AppWorkPath`_.
 
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
+- `REPO_INDEXER_REPO_TYPES`: **sources,forks,mirrors,templates**: Repo indexer units. The items to index could be `sources`, `forks`, `mirrors`, `templates` or any combination of them separated by a comma. If empty then it defaults to `sources` only, as if you'd like to disable fully please see `REPO_INDEXER_ENABLED`.
 - `REPO_INDEXER_TYPE`: **bleve**: Code search engine type, could be `bleve` or `elasticsearch`.
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
 - `REPO_INDEXER_CONN_STR`: ****: Code indexer connection string, available when `REPO_INDEXER_TYPE` is elasticsearch. i.e. http://elastic:changeme@localhost:9200
@@ -1118,7 +1119,7 @@ Gitea can support Markup using external tools. The example below will add a mark
 ENABLED = true
 NEED_POSTPROCESS = true
 FILE_EXTENSIONS = .adoc,.asciidoc
-RENDER_COMMAND = "asciidoc --out-file=- -"
+RENDER_COMMAND = "asciidoctor --embedded --safe-mode=secure --out-file=- -"
 IS_INPUT_FILE = false
 ```
 
