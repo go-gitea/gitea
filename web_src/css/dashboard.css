@@ -167,21 +167,29 @@
   padding-left: 0;
 }
 
+.feeds .list ul li {
+  padding: 0 10px;
+}
+
 .feeds .list ul li:not(:last-child) {
   border-bottom: 1px solid var(--color-secondary);
 }
 
-.feeds .list ul li .repo-list-link {
-  padding: 6px 1em;
+.repo-list-link {
+  padding: 6px 0;
   display: block;
 }
 
-.feeds .list ul li .repo-list-link .svg {
+.repo-list-link .label {
+  text-decoration: none;
+}
+
+.repo-list-link .svg {
   color: var(--color-text-light-2);
 }
 
-.feeds .list ul li .repo-list-link .star-num {
-  font-size: 12px;
+.repo-list-icon {
+  margin-right: 6px;
 }
 
 .feeds .list #privateFilterCheckbox .svg {

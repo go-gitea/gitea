@@ -73,8 +73,8 @@
           <li v-for="repo in repos" :key="repo.id">
             <a class="repo-list-link muted gt-df gt-ac gt-sb" :href="repo.link">
               <div class="item-name gt-df gt-ac gt-f1">
-                <svg-icon :name="repoIcon(repo)" :size="16" class-name="gt-mr-2"/>
-                <div class="text gt-font-semibold truncate gt-ml-1">{{ repo.full_name }}</div>
+                <svg-icon :name="repoIcon(repo)" :size="repoIconSize(repo)" class-name="repo-list-icon"/>
+                <div class="text truncate gt-ml-1">{{ repo.full_name }}</div>
                 <span v-if="repo.archived">
                   <svg-icon name="octicon-archive" :size="16" class-name="gt-ml-2"/>
                 </span>
@@ -128,20 +128,20 @@
       </h4>
       <div v-if="organizations.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
-          <li v-for="org in organizations" :key="org.name">
-            <a class="repo-list-link gt-df gt-ac gt-sb" :href="subUrl + '/' + encodeURIComponent(org.name)">
-              <div class="text truncate item-name gt-f1">
-                <svg-icon name="octicon-organization" :size="16" class-name="gt-mr-2"/>
-                <strong>{{ org.name }}</strong>
+          <li class="gt-df gt-ac" v-for="org in organizations" :key="org.name">
+            <a class="repo-list-link muted gt-df gt-ac gt-f1" :href="subUrl + '/' + encodeURIComponent(org.name)">
+              <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
+              <div class="text truncate gt-ml-1">{{ org.name }}</div>
+              <div>{{ /* div to avoid underline on <span> during hover */ }}
                 <span class="ui tiny basic label gt-ml-3" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
                 </span>
               </div>
-              <div class="text light grey gt-df gt-ac">
-                {{ org.num_repos }}
-                <svg-icon name="octicon-repo" :size="16" class-name="gt-ml-2 gt-mt-1"/>
-              </div>
             </a>
+            <div class="text light grey gt-df gt-ac gt-ml-auto">
+              {{ org.num_repos }}
+              <svg-icon name="octicon-repo" :size="16" class-name="gt-ml-2 gt-mt-1"/>
+            </div>
           </li>
         </ul>
       </div>
@@ -423,6 +423,10 @@ const sfc = {
         return 'octicon-repo';
       }
       return 'octicon-repo';
+    },
+
+    repoIconSize(repo) {
+      return repo.mirror ? 14 : 16;
     },
 
     statusIcon(status) {
