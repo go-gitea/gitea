@@ -806,8 +806,6 @@ func (issue *Issue) MovePin(ctx context.Context, newPosition int) error {
 		newPosition = maxPin + 1
 	}
 
-	// TODO: Run the following commands in a Transaction and Rollback, if one fails
-
 	// Lower the Position of all Pinned Issue that came after the current Position
 	_, err = db.GetEngine(dbctx).Exec("UPDATE issue SET pin_order = pin_order - 1 WHERE repo_id = ? AND is_pull = ? AND pin_order > ?", issue.RepoID, issue.IsPull, issue.PinOrder)
 	if err != nil {
