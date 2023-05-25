@@ -10,8 +10,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
-
-	"xorm.io/builder"
 )
 
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
@@ -53,9 +51,6 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		review = &Review{ID: 0}
 	}
 	conds := opts.ToConds()
-	if review.ID == 0 {
-		conds = conds.And(builder.Eq{"invalidated": false})
-	}
 	e := db.GetEngine(ctx)
 	if err := e.Where(conds).
 		Asc("comment.created_unix").
