@@ -14,10 +14,12 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	organization_model "code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -247,14 +249,14 @@ func AddValidReviewers(ctx context.Context, issue *issues_model.Issue, repo *rep
 	}
 
 	// Errors here should not cause the process to fail.
-	for _, userReviewer := range GetValidUserReviewers(ctx, owners, prPoster, isAdd, issue, &permDoer) {
+	for _, userReviewer := range GetValidUserReviewers(ctx, owners, repo, prPoster, isAdd, issue, &permDoer) {
 		_, err = ReviewRequest(ctx, issue, prPoster, userReviewer, isAdd)
 		if err != nil {
 			log.Warn("AddValidReviewers [repo_id: %d, issue_id: %d, pull_request_poster_user_id: %d, user_reviewer_id: %d]: "+
 				"Error adding user as a reviewer to the pull request", repo.ID, issue.ID, prPoster.ID, userReviewer.ID)
 		}
 	}
-	for _, teamReviewer := range GetValidTeamReviewers(ctx, repo, teamOwners, prPoster, isAdd, issue) {
+	for _, teamReviewer := range GetValidTeamReviewers(ctx, teamOwners, repo, prPoster, isAdd, issue) {
 		_, err = TeamReviewRequest(ctx, issue, prPoster, teamReviewer, isAdd)
 		if err != nil {
 			log.Warn("AddValidReviewers [repo_id: %d, issue_id: %d, pull_request_poster_user_id: %d, team_reviewer_id: %d]: "+
@@ -316,7 +318,7 @@ func GetCodeownersTreeEntry(commit *git.Commit, directoryOptions []string) *git.
 }
 
 // GetValidReviewers gets the Users that actually exist and are authorized to review the pull request
-func GetValidUserReviewers(ctx context.Context, userNamesOrEmails []string, doer *user_model.User, isAdd bool, issue *issues_model.Issue, permDoer *access_model.Permission) (reviewers []*user_model.User) {
+func GetValidUserReviewers(ctx context.Context, userNamesOrEmails []string, repo *repo_model.Repository, doer *user_model.User, isAdd bool, issue *issues_model.Issue, permDoer *access_model.Permission) (reviewers []*user_model.User) {
 	reviewers = []*user_model.User{}
 	for _, nameOrEmail := range userNamesOrEmails {
 		var reviewer *user_model.User
@@ -324,20 +326,24 @@ func GetValidUserReviewers(ctx context.Context, userNamesOrEmails []string, doer
 		if strings.Contains(nameOrEmail, "@") {
 			reviewer, err = user_model.GetUserByEmail(ctx, nameOrEmail)
 			if err != nil {
-				log.Info("GetValidUserReviewers [repo_id: %d, owner_email: %s]: user owner in CODEOWNERS file could not be found by email", issue.RepoID, nameOrEmail)
+				log.Info("GetValidUserReviewers [repo_id: %d, owner_email: %s]: user owner in CODEOWNERS file could not be found by email", repo.ID, nameOrEmail)
 			}
 		} else {
 			reviewer, err = user_model.GetUserByName(ctx, nameOrEmail)
 			if err != nil {
-				log.Info("GetValidUserReviewers [repo_id: %d, owner_username: %s]: user owner in CODEOWNERS file could not be found by name", issue.RepoID, nameOrEmail)
+				log.Info("GetValidUserReviewers [repo_id: %d, owner_username: %s]: user owner in CODEOWNERS file could not be found by name", repo.ID, nameOrEmail)
 			}
 		}
 		if reviewer != nil && err == nil {
 			err = IsValidReviewRequest(ctx, reviewer, doer, isAdd, issue, permDoer)
 			if err == nil {
-				reviewers = append(reviewers, reviewer)
+				if UserHasWritePermissions(ctx, repo, reviewer) {
+					reviewers = append(reviewers, reviewer)
+				} else {
+					log.Info("GetValidUserReviewers [repo_id: %d, user_id: %d]: user reviewer does not have write permissions and cannot be a codeowner", repo.ID, reviewer.ID)
+				}
 			} else {
-				log.Info("GetValidUserReviewers [repo_id: %d, user_id: %d]: user reviewer is not a valid review request", issue.RepoID, reviewer.ID)
+				log.Info("GetValidUserReviewers [repo_id: %d, user_id: %d]: user reviewer is not a valid review request", repo.ID, reviewer.ID)
 			}
 		}
 	}
@@ -345,7 +351,7 @@ func GetValidUserReviewers(ctx context.Context, userNamesOrEmails []string, doer
 }
 
 // GetValidReviewers gets the Teams that actually exist and are authorized to review the pull request
-func GetValidTeamReviewers(ctx context.Context, repo *repo_model.Repository, fullTeamNames []string, doer *user_model.User, isAdd bool, issue *issues_model.Issue) (teamReviewers []*organization_model.Team) {
+func GetValidTeamReviewers(ctx context.Context, fullTeamNames []string, repo *repo_model.Repository, doer *user_model.User, isAdd bool, issue *issues_model.Issue) (teamReviewers []*organization_model.Team) {
 	teamReviewers = []*organization_model.Team{}
 	if repo.Owner.IsOrganization() {
 		for _, fullTeamName := range fullTeamNames {
@@ -357,9 +363,14 @@ func GetValidTeamReviewers(ctx context.Context, repo *repo_model.Repository, ful
 			} else {
 				err := IsValidTeamReviewRequest(ctx, teamReviewer, doer, isAdd, issue)
 				if err == nil {
-					teamReviewers = append(teamReviewers, teamReviewer)
+					if TeamHasWritePermissions(ctx, repo, teamReviewer) {
+						teamReviewers = append(teamReviewers, teamReviewer)
+					} else {
+						log.Info("GetValidTeamReviewers [repo_id: %d, team_id: %d]: team reviewer does not have write permissions and cannot be a codeowner", repo.ID, teamReviewer.ID)
+					}
+				} else {
+					log.Info("GetValidTeamReviewers [repo_id: %d, team_id: %d]: team reviewer is not a valid review request", repo.ID, teamReviewer.ID)
 				}
-				log.Info("GetValidTeamReviewers [repo_id: %d, team_id: %d]: team reviewer is not a valid review request", repo.ID, teamReviewer.ID)
 			}
 		}
 	}
@@ -402,6 +413,25 @@ func GetTeamFromFullName(ctx context.Context, fullTeamName string, doer *user_mo
 		}
 	}
 	return team, nil
+}
+
+// UserHasWritePermissions returns true if the user has write permissions to the code in the repository
+func UserHasWritePermissions(ctx context.Context, repo *repo_model.Repository, user *user_model.User) bool {
+	permission, err := access_model.GetUserRepoPermission(ctx, repo, user)
+	if err != nil {
+		log.Debug("models/perm/access/GetUserRepoPermission: %v", err)
+		return false
+	}
+	return permission.CanWrite(unit.TypeCode)
+}
+
+// TeamHasWritePermissions returns true if the team has write permissions to the code in the repository
+func TeamHasWritePermissions(ctx context.Context, repo *repo_model.Repository, team *organization_model.Team) bool {
+	if organization_model.HasTeamRepo(ctx, team.OrgID, team.ID, repo.ID) {
+		return team.UnitAccessMode(ctx, unit.TypeCode) == perm.AccessModeWrite
+	} else {
+		return false
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
