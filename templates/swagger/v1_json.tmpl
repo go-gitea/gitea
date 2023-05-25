@@ -20191,7 +20191,17 @@
           "type": "string",
           "x-go-name": "PatchURL"
         },
-
+        "pin_order": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PinOrder"
+        },
+        "requested_reviewers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/User"
+          },
+          "x-go-name": "RequestedReviewers"
         },
         "state": {
           "$ref": "#/definitions/StateType"
