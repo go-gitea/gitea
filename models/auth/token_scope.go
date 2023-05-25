@@ -25,6 +25,19 @@ const (
 	AccessTokenScopeCategoryUser
 )
 
+// AllAccessTokenScopeCategories contains all access token scope categories
+var AllAccessTokenScopeCategories = []AccessTokenScopeCategory{
+	AccessTokenScopeCategoryActivityPub,
+	AccessTokenScopeCategoryAdmin,
+	AccessTokenScopeCategoryMisc,
+	AccessTokenScopeCategoryNotification,
+	AccessTokenScopeCategoryOrganization,
+	AccessTokenScopeCategoryPackage,
+	AccessTokenScopeCategoryIssue,
+	AccessTokenScopeCategoryRepository,
+	AccessTokenScopeCategoryUser,
+}
+
 // AccessTokenScopeLevel represents the access levels without a given scope category
 type AccessTokenScopeLevel int
 
