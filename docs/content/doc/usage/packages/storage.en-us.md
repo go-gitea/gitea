@@ -77,9 +77,9 @@ The cleanup rules are part of the [clean up job]({{< relref "doc/administration/
 The cleanup rule:
 
 1. Collects all packages of the package type for the owners registry.
-1. For every package it collects all versions.
-1. Excludes from the list the # versions based on the *Keep the most recent* value.
-1. Excludes from the list any versions matching the *Keep versions matching* value.
-1. Excludes from the list the versions more recent than the *Remove versions older than* value.
-1. Excludes from the list any versions not matching the *Remove versions matching* value.
-1. Deletes the remaining versions.
+2. For every package it collects all versions.
+3. Excludes from the list the # versions based on the *Keep the most recent* value.
+4. Excludes from the list any versions matching the *Keep versions matching* value.
+5. Excludes from the list the versions more recent than the *Remove versions older than* value.
+6. Excludes from the list any versions not matching the *Remove versions matching* value.
+7. Deletes the remaining versions.

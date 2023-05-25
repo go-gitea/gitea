@@ -8,6 +8,7 @@
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
+  --font-weight-bold: 700;
   /* backgrounds */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
@@ -373,6 +374,7 @@ a.muted:hover [class*="color-text"],
 
 a.silenced:hover {
   color: inherit;
+  text-decoration: none;
 }
 
 .delete-button,
@@ -1417,6 +1419,18 @@ img.ui.avatar,
   color: var(--color-text-light) !important;
 }
 
+.text.light {
+  color: var(--color-text-light) !important;
+}
+
+.text.light-2 {
+  color: var(--color-text-light-2) !important;
+}
+
+.text.light-3 {
+  color: var(--color-text-light-3) !important;
+}
+
 .text.light.grey {
   color: var(--color-grey-light) !important;
 }
@@ -2201,7 +2215,7 @@ a.ui.active.label:hover {
   border-left: none;
 }
 
-/* a ghost button can be used as inline text, it doesn't have obvious styles */
+/* a ghost button is a button without border */
 .button.button-ghost {
   background: transparent;
   border: none;
@@ -2211,7 +2225,11 @@ a.ui.active.label:hover {
 }
 
 .button.button-ghost:hover {
-  color: var(--color-primary);
+  background: var(--color-hover);
+}
+
+.button.button-ghost:active {
+  background: var(--color-active);
 }
 
 .two-toggle-buttons .button:not(.active):first-of-type {
@@ -2538,8 +2556,8 @@ a.ui.basic.label:hover {
   padding: 2.75px;
   border-radius: 1em;
   font-size: 11px;
-  font-weight: var(--font-weight-semibold);
-  line-height: .67em;
+  font-weight: var(--font-weight-bold);
+  line-height: .7;
 }
 
 .rss-icon {
@@ -2750,8 +2768,4 @@ table th[data-sortt-desc] .svg {
   float: left;
   width: 15px;
   height: 15px;
-}
-
-.color-text-light-2 {
-  color: var(--color-text-light-2);
 }
