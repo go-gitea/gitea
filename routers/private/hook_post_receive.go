@@ -26,7 +26,7 @@ import (
 // HookPostReceive updates services and users
 func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	opts := web.GetForm(ctx).(*private.HookOptions)
-	fmt.Println(opts)
+
 	// We don't rely on RepoAssignment here because:
 	// a) we don't need the git repo in this function
 	// b) our update function will likely change the repository in the db so we will need to refresh it
