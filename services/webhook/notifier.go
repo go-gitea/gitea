@@ -719,6 +719,34 @@ func (m *webhookNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 	}
 }
 
+func (m *webhookNotifier) NotifyPullReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+	if !issue.IsPull {
+		log.Warn("NotifyPullReviewRequest: issue is not a pull request: %v", issue.ID)
+		return
+	}
+	mode, _ := access_model.AccessLevelUnit(ctx, doer, issue.Repo, unit.TypePullRequests)
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		log.Error("LoadPullRequest failed: %v", err)
+		return
+	}
+	apiPullRequest := &api.PullRequestPayload{
+		Index:             issue.Index,
+		PullRequest:       convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+		RequestedReviewer: convert.ToUser(ctx, reviewer, nil),
+		Repository:        convert.ToRepo(ctx, issue.Repo, mode),
+		Sender:            convert.ToUser(ctx, doer, nil),
+	}
+	if isRequest {
+		apiPullRequest.Action = api.HookIssueReviewRequested
+	} else {
+		apiPullRequest.Action = api.HookIssueReviewRequestRemoved
+	}
+	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequestReviewRequest, apiPullRequest); err != nil {
+		log.Error("PrepareWebhooks [review_requested: %v]: %v", isRequest, err)
+		return
+	}
+}
+
 func (m *webhookNotifier) NotifyCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 	apiPusher := convert.ToUser(ctx, pusher, nil)
 	apiRepo := convert.ToRepo(ctx, repo, perm.AccessModeNone)
