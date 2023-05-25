@@ -82,6 +82,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		IsEmpty:       opts.BaseRepo.IsEmpty,
 		IsFork:        true,
 		ForkID:        opts.BaseRepo.ID,
+		Licenses:      opts.BaseRepo.Licenses,
 	}
 
 	oldRepoPath := opts.BaseRepo.RepoPath()
