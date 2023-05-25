@@ -28,7 +28,6 @@ func ParseCodeowners(changedFiles []string, codeownersContents []byte) ([]string
 	fmt.Println(codeownerIndividuals)
 	fmt.Println(codeOwnerTeams)
 
-	// TODO: Do we need to return an error as well?
 	return codeownerIndividuals, codeOwnerTeams, err
 
 }
@@ -175,21 +174,34 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 		}
 
 		if len(currFileUsers) > 0 {
+			validRule := true
 
-			newCodeowner := Codeowners{
-				glob:   globString,
-				owners: currFileUsers,
+			for _, user := range currFileUsers {
+				if !glob.Globexp("@*").MatchString(user) {
+					if !glob.Globexp("@*/*").MatchString(user) {
+						if !glob.Globexp("*@*.*").MatchString(user) {
+							validRule = false
+						}
+					}
+				}
 			}
 
-			globMap = append(globMap, newCodeowner)
-
-			if globString2 != "" {
-				newCodeowner2 := Codeowners{
-					glob:   globString2,
+			if validRule {
+				newCodeowner := Codeowners{
+					glob:   globString,
 					owners: currFileUsers,
 				}
 
-				globMap = append(globMap, newCodeowner2)
+				globMap = append(globMap, newCodeowner)
+
+				if globString2 != "" {
+					newCodeowner2 := Codeowners{
+						glob:   globString2,
+						owners: currFileUsers,
+					}
+
+					globMap = append(globMap, newCodeowner2)
+				}
 			}
 		} else {
 
