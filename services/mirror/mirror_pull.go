@@ -528,6 +528,12 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		return false
 	}
 
+	// Update License
+	if err = repo_module.UpdateRepoLicenses(ctx, m.Repo); err != nil {
+		log.Error("SyncMirrors [repo: %-v]: unable to update repository 'licenses': %v", m.Repo, err)
+		return false
+	}
+
 	log.Trace("SyncMirrors [repo: %-v]: Successfully updated", m.Repo)
 
 	return true
