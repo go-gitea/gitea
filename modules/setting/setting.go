@@ -251,7 +251,13 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 	if RunMode == "" {
 		RunMode = rootSec.Key("RUN_MODE").MustString("prod")
 	}
-	IsProd = strings.EqualFold(RunMode, "prod")
+
+	// non-dev mode is treated as prod mode, to protect users from accidentally running in dev mode if there is a typo in this value.
+	RunMode = strings.ToLower(RunMode)
+	if RunMode != "dev" {
+		RunMode = "prod"
+	}
+	IsProd = RunMode != "dev"
 
 	// check if we run as root
 	if os.Getuid() == 0 {

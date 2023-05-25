@@ -2,16 +2,18 @@ name: db-tests
 
 on:
   pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
+  files-changed:
+    uses: ./.github/workflows/files-changed.yml
+
   test-pgsql:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     services:
       pgsql:
@@ -56,6 +58,8 @@ jobs:
           USE_REPO_TEST_DIR: 1
 
   test-sqlite:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -75,6 +79,8 @@ jobs:
           USE_REPO_TEST_DIR: 1
 
   test-unit:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     services:
       mysql:
@@ -138,6 +144,8 @@ jobs:
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
   test-mysql5:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     services:
       mysql:
@@ -180,6 +188,8 @@ jobs:
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mysql8:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     services:
       mysql8:
@@ -207,6 +217,8 @@ jobs:
           USE_REPO_TEST_DIR: 1
 
   test-mssql:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     services:
       mssql:
