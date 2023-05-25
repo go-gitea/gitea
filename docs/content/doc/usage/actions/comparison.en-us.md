@@ -1,7 +1,7 @@
 ---
 date: "2023-04-27T15:00:00+08:00"
 title: "Compared to GitHub Actions"
-slug: "usage/actions/comparison"
+slug: "comparison"
 weight: 30
 draft: false
 toc: false

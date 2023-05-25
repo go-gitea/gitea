@@ -74,6 +74,7 @@
     "eslint-plugin-wc": "1.5.0",
     "jsdom": "22.0.0",
     "markdownlint-cli": "0.34.0",
+    "postcss-html": "1.5.0",
     "stylelint": "15.6.2",
     "stylelint-declaration-strict-value": "1.9.2",
     "svgo": "3.0.2",
