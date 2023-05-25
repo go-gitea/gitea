@@ -28,15 +28,13 @@ ENABLE_SIZE_LIMIT = true
 ;; If repository has it's own limit set in UI it will override the global setting
 ;; Standard units of measurements for size can be used like B, KB, KiB, ... , EB, EiB, ...
 REPO_SIZE_LIMIT = 500 MB
-```
-This setting is persistent.
 
+This setting is persistent.
 
 The size limitation is triggered when repository `disk size` + `new commit size` > `defined repository size limit`
 
 If size limitation is triggered the feature would prevent commits that increase repository size on disk
 of gitea server and allow those that decrease it
-
 
 # Gitea per repository size limit setup in UI
 

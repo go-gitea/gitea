@@ -102,6 +102,14 @@ func testGit(t *testing.T, u *url.URL) {
 			})
 			t.Run("Deletion", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
+				doCommitAndPush(t, littleSize, dstPath, "data-file-")
+
+				bigFileName := doCommitAndPush(t, bigSize, dstPath, "data-file-")
+				oldRepoSize := doCalculateRepoSize(t, dstPath)
+				doDeleteAndCliean(t, dstPath, bigFileName)
+				newRepoSize := doCalculateRepoSize(t, dstPath)
+				assert.Less(t, newRepoSize, oldRepoSize)
+				setting.SaveGlobalRepositorySetting(false, 0)
 				// TODO doDeleteCommitAndPush(t, littleSize, dstPath, "data-file-")
 			})
 			// TODO delete branch
@@ -322,6 +330,42 @@ func lockFileTest(t *testing.T, filename, repoPath string) {
 	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
 	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("unlock").AddDynamicArguments(filename).RunStdString(&git.RunOpts{Dir: repoPath})
+	assert.NoError(t, err)
+}
+
+const notRegularFileMode = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
+
+func doCalculateRepoSize(t *testing.T, path string) int64 {
+	var size int64
+	err := filepath.WalkDir(path, func(_ string, info os.DirEntry, err error) error {
+		if err != nil {
+			if os.IsNotExist(err) { // ignore the error because the file maybe deleted during traversing.
+				return nil
+			}
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		f, err := info.Info()
+		if err != nil {
+			return err
+		}
+		if (f.Mode() & notRegularFileMode) == 0 {
+			size += f.Size()
+		}
+		return err
+	})
+	assert.NoError(t, err)
+	return size
+}
+
+func doDeleteAndCliean(t *testing.T, repoPath, filename string) {
+	_, _, err := git.NewCommand(git.DefaultContext, "rm").AddDashesAndList(filename).RunStdString(&git.RunOpts{Dir: repoPath}) // Delete
+	assert.NoError(t, err)
+	_, _, err = git.NewCommand(git.DefaultContext, "reflog", "expire", "--expire-unreachable=all", "--all").RunStdString(&git.RunOpts{Dir: repoPath}) // reflog
+	assert.NoError(t, err)
+	_, _, err = git.NewCommand(git.DefaultContext, "gc", "--prune=now").RunStdString(&git.RunOpts{Dir: repoPath}) // reflog
 	assert.NoError(t, err)
 }
 
