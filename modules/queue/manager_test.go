@@ -29,7 +29,7 @@ func TestManager(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		return NewWorkerPoolQueueBySetting(name, qs, func(s ...int) (unhandled []int) { return nil }, false)
+		return newWorkerPoolQueueForTest(name, qs, func(s ...int) (unhandled []int) { return nil }, false)
 	}
 
 	// test invalid CONN_STR
