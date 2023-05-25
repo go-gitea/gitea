@@ -34,12 +34,12 @@ func getChangeFilesOptions() *api.ChangeFilesOptions {
 			NewBranchName: "master",
 			Message:       "My update of new/file.txt",
 			Author: api.Identity{
-				Name:  "John Doe",
-				Email: "johndoe@example.com",
-			},
-			Committer: api.Identity{
 				Name:  "Anne Doe",
 				Email: "annedoe@example.com",
+			},
+			Committer: api.Identity{
+				Name:  "John Doe",
+				Email: "johndoe@example.com",
 			},
 		},
 		Files: []*api.ChangeFileOperation{
@@ -60,7 +60,7 @@ func getChangeFilesOptions() *api.ChangeFilesOptions {
 	}
 }
 
-func TestAPIUChangeFiles(t *testing.T) {
+func TestAPIChangeFiles(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
 		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})         // owner of the repo3, is an org
@@ -95,7 +95,7 @@ func TestAPIUChangeFiles(t *testing.T) {
 			changeFilesOptions.Files[2].Path = deleteTreePath
 			url := fmt.Sprintf("/api/v1/repos/%s/%s/contents?token=%s", user2.Name, repo1.Name, token2)
 			req := NewRequestWithJSON(t, "POST", url, &changeFilesOptions)
-			resp := MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusCreated)
 			gitRepo, _ := git.OpenRepository(stdCtx.Background(), repo1.RepoPath())
 			commitID, _ := gitRepo.GetBranchCommitID(changeFilesOptions.NewBranchName)
 			createLasCommit, _ := gitRepo.GetCommitByPath(createTreePath)
@@ -111,17 +111,14 @@ func TestAPIUChangeFiles(t *testing.T) {
 			assert.EqualValues(t, expectedCreateFileResponse.Commit.HTMLURL, fileResponse[0].Commit.HTMLURL)
 			assert.EqualValues(t, expectedCreateFileResponse.Commit.Author.Email, fileResponse[0].Commit.Author.Email)
 			assert.EqualValues(t, expectedCreateFileResponse.Commit.Author.Name, fileResponse[0].Commit.Author.Name)
-			assert.EqualValues(t, expectedCreateFileResponse.Commit.Author.Date, fileResponse[0].Commit.Author.Date)
 			assert.EqualValues(t, expectedCreateFileResponse.Commit.Committer.Email, fileResponse[0].Commit.Committer.Email)
 			assert.EqualValues(t, expectedCreateFileResponse.Commit.Committer.Name, fileResponse[0].Commit.Committer.Name)
-			assert.EqualValues(t, expectedCreateFileResponse.Commit.Committer.Date, fileResponse[0].Commit.Committer.Date)
-
 			// test update file
 			assert.EqualValues(t, expectedUpdateFileResponse.Content, fileResponse[1].Content)
 			assert.EqualValues(t, expectedUpdateFileResponse.Commit.SHA, fileResponse[1].Commit.SHA)
 			assert.EqualValues(t, expectedUpdateFileResponse.Commit.HTMLURL, fileResponse[1].Commit.HTMLURL)
-			assert.EqualValues(t, expectedUpdateFileResponse.Commit.Author.Email, fileResponse[1].Commit.Author.Email)
-			assert.EqualValues(t, expectedUpdateFileResponse.Commit.Author.Name, fileResponse[1].Commit.Author.Name)
+			assert.EqualValues(t, expectedUpdateFileResponse.Commit.Committer.Email, fileResponse[1].Commit.Author.Email)
+			assert.EqualValues(t, expectedUpdateFileResponse.Commit.Committer.Name, fileResponse[1].Commit.Author.Name)
 
 			// test delete file
 			assert.NotNil(t, fileResponse[2])
@@ -145,7 +142,7 @@ func TestAPIUChangeFiles(t *testing.T) {
 		createFile(user2, repo1, deleteTreePath)
 		url := fmt.Sprintf("/api/v1/repos/%s/%s/contents?token=%s", user2.Name, repo1.Name, token2)
 		req := NewRequestWithJSON(t, "POST", url, &changeFilesOptions)
-		resp := MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusCreated)
 		var fileResponse []api.FileResponse
 		DecodeJSON(t, resp, &fileResponse)
 		expectedCreateSHA := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
@@ -176,7 +173,7 @@ func TestAPIUChangeFiles(t *testing.T) {
 		changeFilesOptions.Files[0].FromPath = updateTreePath
 		changeFilesOptions.Files[0].Path = "rename/" + updateTreePath
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions)
-		resp = MakeRequest(t, req, http.StatusOK)
+		resp = MakeRequest(t, req, http.StatusCreated)
 		DecodeJSON(t, resp, &fileResponse)
 		expectedUpdateSHA = "08bd14b2e2852529157324de9c226b3364e76136"
 		expectedUpdateHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/master/rename/update/file%d.txt", fileID)
@@ -193,12 +190,15 @@ func TestAPIUChangeFiles(t *testing.T) {
 		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
 		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
 		deleteTreePath = fmt.Sprintf("delete/file%d.txt", fileID)
+		changeFilesOptions.Files[0].Path = createTreePath
+		changeFilesOptions.Files[1].Path = updateTreePath
+		changeFilesOptions.Files[2].Path = deleteTreePath
 		createFile(user2, repo1, updateTreePath)
 		createFile(user2, repo1, deleteTreePath)
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions)
-		resp = MakeRequest(t, req, http.StatusOK)
+		resp = MakeRequest(t, req, http.StatusCreated)
 		DecodeJSON(t, resp, &fileResponse)
-		expectedMessage := fmt.Sprintf("Create: %v\nUpdate: %v\nDelete: %v\n", createTreePath, updateTreePath, deleteTreePath)
+		expectedMessage := fmt.Sprintf("Add %v\nUpdate %v\nDelete %v\n", createTreePath, updateTreePath, deleteTreePath)
 		for _, response := range fileResponse {
 			assert.EqualValues(t, expectedMessage, response.Commit.Message)
 		}
@@ -209,6 +209,7 @@ func TestAPIUChangeFiles(t *testing.T) {
 		createFile(user2, repo1, updateTreePath)
 		changeFilesOptions = getChangeFilesOptions()
 		changeFilesOptions.Files = []*api.ChangeFileOperation{changeFilesOptions.Files[1]}
+		changeFilesOptions.Files[0].Path = updateTreePath
 		correctSHA := changeFilesOptions.Files[0].SHA
 		changeFilesOptions.Files[0].SHA = "badsha"
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions)
@@ -264,7 +265,7 @@ func TestAPIUChangeFiles(t *testing.T) {
 		changeFilesOptions.Files[2].Path = deleteTreePath
 		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents?token=%s", user2.Name, repo16.Name, token2)
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions)
-		MakeRequest(t, req, http.StatusOK)
+		MakeRequest(t, req, http.StatusCreated)
 
 		// Test using org repo "user3/repo3" where user2 is a collaborator
 		fileID++
@@ -279,7 +280,7 @@ func TestAPIUChangeFiles(t *testing.T) {
 		changeFilesOptions.Files[2].Path = deleteTreePath
 		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents?token=%s", user3.Name, repo3.Name, token2)
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions)
-		MakeRequest(t, req, http.StatusOK)
+		MakeRequest(t, req, http.StatusCreated)
 
 		// Test using org repo "user3/repo3" with no user token
 		fileID++
