@@ -179,3 +179,7 @@ Copyright (C) 2023 by Gitea teabot@gitea.io
 		})
 	}
 }
+
+func Test_UpdateRepoLicenses(t *testing.T) {
+	// TODO
+}
