@@ -137,6 +137,12 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	}
 	defer gitRepo.Close()
 
+	// Update repo license
+	err = UpdateRepoLicenses(ctx, repo)
+	if err != nil {
+		return repo, fmt.Errorf("UpdateRepoLicenses: %w", err)
+	}
+
 	repo.IsEmpty, err = gitRepo.IsEmpty()
 	if err != nil {
 		return repo, fmt.Errorf("git.IsEmpty: %w", err)

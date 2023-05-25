@@ -121,7 +121,6 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	// Now handle the pull request notification trailers
 	for i := range opts.OldCommitIDs {
 		refFullName := opts.RefFullNames[i]
-		oldCommitID := opts.OldCommitIDs[i]
 		newCommitID := opts.NewCommitIDs[i]
 
 		// post update for agit pull request
@@ -201,7 +200,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			// If our branch is the default branch of an unforked repo - there's no PR to create or refer to
 			if !repo.IsFork && branch == baseRepo.DefaultBranch {
 				// TODO: check IsWiki?
-				err := repo_module.UpdateRepoLicenses(ctx, repo, oldCommitID, newCommitID, ownerName, repoName)
+				err := repo_module.UpdateRepoLicenses(ctx, repo)
 				if err != nil {
 					ctx.JSON(http.StatusInternalServerError, private.Response{Err: err.Error()})
 				}

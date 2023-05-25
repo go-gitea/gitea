@@ -117,40 +117,37 @@ func getLicensePlaceholder(name string) *licensePlaceholder {
 	return ret
 }
 
-func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, oldCommitID, newCommitID, ownerName, repoName string) error {
+func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository) error {
 	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
-		return fmt.Errorf("failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
+		return fmt.Errorf("OpenRepository: %w", err)
 	}
-	commit, err := gitRepo.GetCommit(newCommitID)
+	commitID, err := gitRepo.GetBranchCommitID(repo.DefaultBranch)
 	if err != nil {
-		return fmt.Errorf("failed to get new commit by id(%s): %s/%s Error: %v", newCommitID, ownerName, repoName, err)
+		return fmt.Errorf("GetBranchCommitID: %w", err)
 	}
-	filesChanged, err := commit.GetFilesChangedSinceCommit(oldCommitID)
+	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
-		return fmt.Errorf("failed to get changed files from %s to %s: %s/%s Error: %v", oldCommitID, newCommitID, ownerName, repoName, err)
+		return fmt.Errorf("GetCommit: %w", err)
 	}
-	for _, fn := range filesChanged {
-		// support ext
-		if fn == "LICENSE" {
-			blob, err := commit.GetBlobByPath(fn)
-			if err != nil {
-				return fmt.Errorf("failed to get license blob %s in commit %s: %s/%s Error: %v", fn, newCommitID, ownerName, repoName, err)
-			}
-			contentBuf, err := blob.GetBlobAll()
-			if err != nil {
-				return fmt.Errorf("failed to get license blob content %s in commit %s: %s/%s Error: %v", fn, newCommitID, ownerName, repoName, err)
-			}
-			var licenses []string
-			cov := licensecheck.Scan(contentBuf)
-			for _, m := range cov.Match {
-				licenses = append(licenses, m.ID)
-			}
-			repo.Licenses = licenses
-			if err := repo_model.UpdateRepositoryCols(ctx, repo, "licenses"); err != nil {
-				return fmt.Errorf("failed to Update Repo Licenses: %s/%s Error: %v", ownerName, repoName, err)
-			}
-		}
+
+	blob, err := commit.GetBlobByPath("LICENSE")
+	if err != nil {
+		return fmt.Errorf("GetBlobByPath: %w", err)
 	}
+	contentBuf, err := blob.GetBlobAll()
+	if err != nil {
+		return fmt.Errorf("GetBlobByPath: %w", err)
+	}
+	var licenses []string
+	cov := licensecheck.Scan(contentBuf)
+	for _, m := range cov.Match {
+		licenses = append(licenses, m.ID)
+	}
+	repo.Licenses = licenses
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "licenses"); err != nil {
+		return fmt.Errorf("UpdateRepositoryCols: %v", err)
+	}
+
 	return nil
 }
