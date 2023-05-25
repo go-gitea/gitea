@@ -74,7 +74,7 @@
             <a class="repo-list-link muted gt-df gt-ac gt-sb" :href="repo.link">
               <svg-icon :name="repoIcon(repo)" :size="repoIconSize(repo)" class-name="repo-list-icon"/>
               <div class="text truncate">{{ repo.full_name }}</div>
-              <div v-if="true">
+              <div v-if="repo.archived">
                 <svg-icon name="octicon-archive" :size="16" class-name="gt-mx-3"/>
               </div>
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
