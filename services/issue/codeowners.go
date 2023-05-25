@@ -151,6 +151,8 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 				} else if strings.Compare(globString[0:1], "*") == 0 &&
 					strings.Compare(globString[1:2], "*") != 0 {
 					globString = "**/" + globString
+				} else if strings.Compare(globString[0:1], "*") != 0 {
+					globString = "**/" + globString
 				} else if strings.Compare(globString[(len(globString)-1):], "/") == 0 {
 					globString = "**/" + globString + "**"
 				}
