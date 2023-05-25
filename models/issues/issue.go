@@ -10,8 +10,12 @@ import (
 	"regexp"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -444,6 +448,59 @@ func (issue *Issue) HashTag() string {
 // IsPoster returns true if given user by ID is the poster.
 func (issue *Issue) IsPoster(uid int64) bool {
 	return issue.OriginalAuthorID == 0 && issue.PosterID == uid
+}
+
+func (issues IssueList) FilterValidByDoer(ctx context.Context, doer *user_model.User) (IssueList, error) {
+	repos, err := issues.LoadRepositories(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := repo_model.RepositoryList(repos).LoadOwners(ctx); err != nil {
+		return nil, err
+	}
+
+	issueList := issues[:0]
+	for _, issue := range issues {
+		if isIssueVisibleToDoer, err := issue.isIssueVisibleToDoer(ctx, doer); err != nil {
+			return nil, err
+		} else if isIssueVisibleToDoer {
+			issueList = append(issueList, issue)
+		}
+	}
+	return issueList, nil
+}
+
+// isIssueVisibleToDoer returns whether doer can view the issue
+func (issue *Issue) isIssueVisibleToDoer(ctx context.Context, doer *user_model.User) (bool, error) {
+	if perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer); err != nil {
+		return false, err
+	} else if !perm.HasAccess() {
+		return false, nil
+	}
+
+	if !issue.Repo.UnitEnabled(ctx, unit.TypeIssues) {
+		return false, nil
+	}
+	// TODO: what about Mirror repo
+
+	if issue.Repo.Owner.IsOrganization() && issue.Repo.IsPrivate {
+		collaboration, err := repo_model.GetCollaboration(ctx, issue.Repo.ID, doer.ID)
+		if err != nil {
+			return false, fmt.Errorf("GetCollaboration: %w", err)
+		}
+		if collaboration == nil {
+			if (*organization.Organization)(issue.Repo.Owner).UnitPermission(ctx, doer, unit.TypeIssues) < perm.AccessModeRead {
+				return false, nil
+			}
+		} else {
+			if collaboration.Mode < perm.AccessModeRead {
+				return false, nil
+			}
+		}
+	}
+
+	return true, nil
 }
 
 // GetTasks returns the amount of tasks in the issues content
