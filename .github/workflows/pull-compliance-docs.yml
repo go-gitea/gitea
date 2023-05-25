@@ -22,3 +22,4 @@ jobs:
           node-version: 20
       - run: make deps-frontend
       - run: make lint-md
+      - run: make docs # test if build could succeed
