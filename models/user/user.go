@@ -353,7 +353,7 @@ func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListO
 	return users, count, err
 }
 
-// GetUserFollowers returns range of user's followers.
+// GetUserFollowersCount returns count of user's followers.
 func GetUserFollowersCount(ctx context.Context, u, viewer *User, listOptions db.ListOptions) (int64, error) {
 	sess := db.GetEngine(ctx).
 		Select("`user`.*").
@@ -372,7 +372,7 @@ func GetUserFollowersCount(ctx context.Context, u, viewer *User, listOptions db.
 	return count, err
 }
 
-// GetUserFollowing returns range of user's following.
+// GetUserFollowingCount returns count of user's following.
 func GetUserFollowingCount(ctx context.Context, u, viewer *User, listOptions db.ListOptions) (int64, error) {
 	sess := db.GetEngine(db.DefaultContext).
 		Select("`user`.*").
