@@ -79,9 +79,7 @@
               </div>
             </a>
             <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
-            <div class="gt-ml-3">
-              <svg-icon v-if="repo.latest_commit_status_state" :name="statusIcon(repo.latest_commit_status_state)" :class-name="'commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
-            </div>
+            <svg-icon v-if="repo.latest_commit_status_state" :name="statusIcon(repo.latest_commit_status_state)" :class-name="'gt-ml-3 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
           </li>
         </ul>
         <div v-if="showMoreReposLink" class="center gt-py-3 gt-border-secondary-top">
