@@ -119,6 +119,10 @@ func getLicensePlaceholder(name string) *licensePlaceholder {
 }
 
 func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository) error {
+	if repo.DefaultBranch == "" {
+		return nil
+	}
+
 	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)
