@@ -222,6 +222,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
 
+	// use fetch but not remote update because git fetch support --tags but remote update doesn't
 	cmd := git.NewCommand(ctx, "fetch")
 	if m.EnablePrune {
 		cmd.AddArguments("--prune")
