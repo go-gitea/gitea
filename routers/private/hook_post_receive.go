@@ -198,7 +198,6 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			}
 
 			if branch == baseRepo.DefaultBranch {
-				// TODO: check IsWiki?
 				err := repo_module.UpdateRepoLicenses(ctx, repo, nil)
 				if err != nil {
 					ctx.JSON(http.StatusInternalServerError, private.Response{Err: err.Error()})
