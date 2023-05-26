@@ -418,7 +418,7 @@ func testDeleteRepoFiles(t *testing.T, u *url.URL) {
 		assert.NoError(t, err)
 		expectedFileResponse := getExpectedFileResponseForRepofilesDelete(u)
 		assert.NotNil(t, filesResponse)
-		assert.Nil(t, filesResponse.Files[0].Content)
+		assert.Nil(t, filesResponse.Files[0])
 		assert.EqualValues(t, expectedFileResponse.Commit.Message, filesResponse.Commit.Message)
 		assert.EqualValues(t, expectedFileResponse.Commit.Author.Identity, filesResponse.Commit.Author.Identity)
 		assert.EqualValues(t, expectedFileResponse.Commit.Committer.Identity, filesResponse.Commit.Committer.Identity)
