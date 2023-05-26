@@ -123,7 +123,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		case refFullName.IsTag():
 			preReceiveTag(ourCtx, oldCommitID, newCommitID, refFullName)
 		case git.SupportProcReceive && refFullName.IsFor():
-			preReceivePullRequest(ourCtx, oldCommitID, newCommitID, refFullName)
+			preReceiveFor(ourCtx, oldCommitID, newCommitID, refFullName)
 		default:
 			ourCtx.AssertCanWriteCode()
 		}
@@ -404,7 +404,7 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID string, refF
 	}
 }
 
-func preReceivePullRequest(ctx *preReceiveContext, oldCommitID, newCommitID string, refFullName git.RefName) {
+func preReceiveFor(ctx *preReceiveContext, oldCommitID, newCommitID string, refFullName git.RefName) {
 	if !ctx.AssertCreatePullRequest() {
 		return
 	}
@@ -423,7 +423,7 @@ func preReceivePullRequest(ctx *preReceiveContext, oldCommitID, newCommitID stri
 		return
 	}
 
-	baseBranchName := refFullName.BranchName()
+	baseBranchName := refFullName.ForBranchName()
 
 	baseBranchExist := false
 	if ctx.Repo.GitRepo.IsBranchExist(baseBranchName) {

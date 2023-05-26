@@ -132,7 +132,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				}
 			}
 
-			pullIndexStr := refFullName.ShortName()
+			pullIndexStr := strings.TrimPrefix(refFullName.String(), git.PullPrefix)
 			pullIndexStr = strings.Split(pullIndexStr, "/")[0]
 			pullIndex, _ := strconv.ParseInt(pullIndexStr, 10, 64)
 			if pullIndex <= 0 {
