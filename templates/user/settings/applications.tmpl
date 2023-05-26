@@ -24,7 +24,7 @@
 									{{if .DisplayPublicOnly}}
 										{{$.locale.Tr "settings.permissions_public_only"}}
 									{{else}}
-										{{$.locale.Tr "settings.permissions_public_and_private"}}
+										{{$.locale.Tr "settings.permissions_access_all"}}
 									{{end}}
 								</p>
 								<p class="gt-my-2">{{$.locale.Tr "settings.permissions_list"}}</p>
@@ -62,7 +62,7 @@
 					</label>
 					<label style="cursor: pointer">
 						<input class="enable-system" type="radio" name="scope" value="" style="margin: 4px 5px 0 0" checked>
-						{{.locale.Tr "settings.permissions_public_and_private"}}
+						{{.locale.Tr "settings.permissions_access_all"}}
 					</label>
 				</div>
 				<details class="ui optional field">
