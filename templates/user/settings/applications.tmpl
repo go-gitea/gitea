@@ -19,10 +19,20 @@
 						<i class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.token_state_desc"}}"{{end}}>{{svg "fontawesome-send" 36}}</i>
 						<div class="content">
 							<details><summary><strong>{{.Name}}</strong></summary>
+								<p class="gt-my-2">
+									{{$.locale.Tr "settings.repo_and_org_access"}}:
+									{{if .DisplayPublicOnly}}
+										{{$.locale.Tr "settings.permissions_public_only"}}
+									{{else}}
+										{{$.locale.Tr "settings.permissions_public_and_private"}}
+									{{end}}
+								</p>
 								<p class="gt-my-2">{{$.locale.Tr "settings.permissions_list"}}</p>
 								<ul class="gt-my-2">
 								{{range .Scope.StringSlice}}
-									<li>{{.}}</li>
+									{{if (ne . $.AccessTokenScopePublicOnly)}}
+										<li>{{.}}</li>
+									{{end}}
 								{{end}}
 								</ul>
 							</details>
