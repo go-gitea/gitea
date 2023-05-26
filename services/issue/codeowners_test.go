@@ -1,8 +1,10 @@
 package issue
 
 import (
+	"fmt"
 	"testing"
 
+	"code.gitea.io/gitea/modules/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,8 +26,9 @@ func TestParser(t *testing.T) {
 			"/fakeFolder/DoesntExist.txt @noUserPresent\n" + // no user present should not be a reviewer
 			"/nouser/nofile @user14 @org/user15\n" + // user14 should not be a reviewer
 			"json/folder/ @jsonUser\n" + // jsonuser should NOT be a reviewer
-			"*.json \n"
-		// ".json thisisnotauser\n" // this line should be skipped, and the above line should be used (invalid syntax)
+			"*.json\n" +
+			"* everyUserEndsHere\n" +
+			"*.json thisisnotauser\n" // these bottom two lines should be skipped, and the above line should be used (invalid syntax)
 
 	/* Each of the following is formatted such that the initial user's name
 	(the one they should match) with is contained somehwere in the file name. */
@@ -90,6 +93,8 @@ func compareLists(list1 []string, list2 []string) bool {
 
 	for i := range list1 {
 		if list1[i] != list2[i] {
+			log.Trace("Mismatched at " + fmt.Sprint(i) + ". List 1: " + fmt.Sprint(list1[i]) +
+				" List 2: " + fmt.Sprint(list2[i]))
 			return false
 		}
 	}
