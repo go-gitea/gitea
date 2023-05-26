@@ -619,6 +619,50 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	} else if !ctx.Repo.CanWriteToBranch(ctx.Doer, ctx.Repo.BranchName) {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
+
+	// If this is a CODEOWNERS file, validate its contents
+	ctx.Data["HasCodeownersValidationErrors"] = false
+	if entry.Name() == "CODEOWNERS" {
+		codeownersErrors := make(map[int]string)
+		var fileLines []string = ctx.Data["FileContent"].([]string)
+		for i, line := range fileLines {
+			_, _, currFileOwners := issue_service.ParseCodeownersLine(line)
+			isValid := true
+			if len(currFileOwners) > 0 {
+				isValid = issue_service.IsValidCodeownersLine(currFileOwners)
+			}
+
+			if isValid {
+				invalidAccessOwners := []string{}
+				individuals, teams := issue_service.SeparateOwnerAndTeam(currFileOwners)
+				for _, individual := range individuals {
+					user, err := issue_service.GetUserByNameOrEmail(ctx, individual, ctx.Repo.Repository)
+					if err != nil || user == nil || !issue_service.UserHasWritePermissions(ctx, ctx.Repo.Repository, user) {
+						invalidAccessOwners = append(invalidAccessOwners, individual)
+					}
+				}
+				for _, teamName := range teams {
+					team, err := issue_service.GetTeamFromFullName(ctx, teamName, ctx.Doer)
+					if err != nil || team == nil || !issue_service.TeamHasWritePermissions(ctx, ctx.Repo.Repository, team) {
+						invalidAccessOwners = append(invalidAccessOwners, teamName)
+					}
+				}
+				if len(invalidAccessOwners) > 0 {
+					if len(invalidAccessOwners) == 1 {
+						codeownersErrors[i+1] = "make sure " + invalidAccessOwners[0] + " exists and has write access to the repository"
+					} else {
+						codeownersErrors[i+1] = "make sure " + strings.Join(invalidAccessOwners, ", ") + " all exist and have write access to the repository"
+					}
+				}
+			} else {
+				codeownersErrors[i+1] = "make sure owners are formated like '@user' or '@org-name/team-name'"
+			}
+		}
+		if len(codeownersErrors) > 0 {
+			ctx.Data["HasCodeownersValidationErrors"] = true
+			ctx.Data["CodeownersValidationErrors"] = codeownersErrors
+		}
+	}
 }
 
 func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output string, err error) {

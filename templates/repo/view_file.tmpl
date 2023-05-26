@@ -9,6 +9,18 @@
 			<div class="text left gt-whitespace-pre">{{.FileWarning}}</div>
 		</div>
 	{{end}}
+	{{- if .HasCodeownersValidationErrors}}
+		<div class="ui warning message">
+			<div class="text left">
+				{{"This CODEOWNERS file contains errors:"}}
+				<ul>
+					{{range $lineNum, $validationMessage := .CodeownersValidationErrors}}
+					<li>Error on line {{$lineNum}}: {{$validationMessage}}</li>
+					{{end}}
+				</ul>
+			</div>
+		</div>
+	{{end}}
 	<h4 class="file-header ui top attached header gt-df gt-ac gt-sb gt-fw">
 		<div class="file-header-left gt-df gt-ac gt-py-3 gt-pr-4">
 			{{if .ReadmeInList}}
