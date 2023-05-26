@@ -200,7 +200,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			// If our branch is the default branch of an unforked repo - there's no PR to create or refer to
 			if !repo.IsFork && branch == baseRepo.DefaultBranch {
 				// TODO: check IsWiki?
-				err := repo_module.UpdateRepoLicenses(ctx, repo)
+				err := repo_module.UpdateRepoLicenses(ctx, repo, nil)
 				if err != nil {
 					ctx.JSON(http.StatusInternalServerError, private.Response{Err: err.Error()})
 				}
