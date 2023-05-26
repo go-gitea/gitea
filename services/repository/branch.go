@@ -139,13 +139,14 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	}); err != nil {
 		return "", err
 	}
-	refID, err := gitRepo.GetRefCommitID(git.BranchPrefix + to)
+	refNameTo := git.RefNameFromBranch(to)
+	refID, err := gitRepo.GetRefCommitID(refNameTo.String())
 	if err != nil {
 		return "", err
 	}
 
-	notification.NotifyDeleteRef(ctx, doer, repo, "branch", git.BranchPrefix+from)
-	notification.NotifyCreateRef(ctx, doer, repo, "branch", git.BranchPrefix+to, refID)
+	notification.NotifyDeleteRef(ctx, doer, repo, git.RefNameFromBranch(from))
+	notification.NotifyCreateRef(ctx, doer, repo, refNameTo, refID)
 
 	return "", nil
 }
@@ -187,7 +188,7 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	// Don't return error below this
 	if err := PushUpdate(
 		&repo_module.PushUpdateOptions{
-			RefFullName:  git.BranchPrefix + branchName,
+			RefFullName:  git.RefNameFromBranch(branchName),
 			OldCommitID:  commit.ID.String(),
 			NewCommitID:  git.EmptySHA,
 			PusherID:     doer.ID,

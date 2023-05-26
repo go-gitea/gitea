@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // SearchResult result of performing a search in a repo
@@ -91,6 +92,32 @@ func index(ctx context.Context, indexer Indexer, repoID int64) error {
 		return err
 	}
 
+	repoTypes := setting.Indexer.RepoIndexerRepoTypes
+
+	if len(repoTypes) == 0 {
+		repoTypes = []string{"sources"}
+	}
+
+	// skip forks from being indexed if unit is not present
+	if !util.SliceContains(repoTypes, "forks") && repo.IsFork {
+		return nil
+	}
+
+	// skip mirrors from being indexed if unit is not present
+	if !util.SliceContains(repoTypes, "mirrors") && repo.IsMirror {
+		return nil
+	}
+
+	// skip templates from being indexed if unit is not present
+	if !util.SliceContains(repoTypes, "templates") && repo.IsTemplate {
+		return nil
+	}
+
+	// skip regular repos from being indexed if unit is not present
+	if !util.SliceContains(repoTypes, "sources") && !repo.IsFork && !repo.IsMirror && !repo.IsTemplate {
+		return nil
+	}
+
 	sha, err := getDefaultBranchSha(ctx, repo)
 	if err != nil {
 		return err
@@ -139,7 +166,7 @@ func Init() {
 		handler := func(items ...*IndexerData) (unhandled []*IndexerData) {
 			idx, err := indexer.get()
 			if idx == nil || err != nil {
-				log.Error("Codes indexer handler: unable to get indexer!")
+				log.Warn("Codes indexer handler: indexer is not ready, retry later.")
 				return items
 			}
 
@@ -174,7 +201,7 @@ func Init() {
 			return unhandled
 		}
 
-		indexerQueue = queue.CreateUniqueQueue("code_indexer", handler)
+		indexerQueue = queue.CreateUniqueQueue(ctx, "code_indexer", handler)
 		if indexerQueue == nil {
 			log.Fatal("Unable to create codes indexer queue")
 		}
@@ -232,7 +259,7 @@ func Init() {
 		indexer.set(rIndexer)
 
 		// Start processing the queue
-		go graceful.GetManager().RunWithShutdownFns(indexerQueue.Run)
+		go graceful.GetManager().RunWithCancel(indexerQueue)
 
 		if populate {
 			go graceful.GetManager().RunWithShutdownContext(populateRepoIndexer)
