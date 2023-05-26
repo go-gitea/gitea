@@ -120,8 +120,13 @@ export default sfc;
  */
 export function initScopedAccessTokenCategories() {
   for (const el of document.getElementsByTagName('scoped-access-token-category')) {
+    const category = el.getAttribute('category');
+    if (category === 'issue') {
+      // We don't currently use the issue category.
+      continue;
+    }
     createApp(sfc, {
-      category: el.getAttribute('category'),
+      category,
     }).mount(el);
   }
 
