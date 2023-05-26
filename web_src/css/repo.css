@@ -3402,11 +3402,11 @@ tbody.commit-list {
   background: var(--color-card);
 }
 
-.pinned-issue-card .meta a {
+.pinned-issue-card a {
   color: inherit;
 }
 
-.pinned-issue-card .meta a:hover {
+.pinned-issue-card a:hover {
   color: var(--color-primary);
 }
 

@@ -707,7 +707,7 @@ func (issue *Issue) Pin(ctx context.Context, user *user_model.User) error {
 
 	// Check if the maximum allowed Pins reached
 	if maxPin >= setting.Repository.Issue.MaxPinned {
-		return fmt.Errorf("You have reached the max number of pinned Issues")
+		return util.NewInvalidArgumentErrorf("You have reached the max number of pinned Issues")
 	}
 
 	_, err = db.GetEngine(ctx).Table("issue").
@@ -856,10 +856,15 @@ func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) ([]*Issue, 
 // IsNewPinnedAllowed returns if a new Issue or Pull request can be pinned
 func IsNewPinAllowed(ctx context.Context, repoID int64, isPull bool) (bool, error) {
 	var maxPin int
-	_, err := db.GetEngine(ctx).SQL("SELECT MAX(pin_order) FROM issue WHERE repo_id = ? AND is_pull = ?", repoID, isPull).Get(&maxPin)
+	_, err := db.GetEngine(ctx).SQL("SELECT COUNT(pin_order) FROM issue WHERE repo_id = ? AND is_pull = ? AND pin_order > 0", repoID, isPull).Get(&maxPin)
 	if err != nil {
 		return false, err
 	}
 
 	return maxPin < setting.Repository.Issue.MaxPinned, nil
+}
+
+// IsErrIssueMaxPinReached returns if the error is, that the User can't pin more Issues
+func IsErrIssueMaxPinReached(err error) bool {
+	return err.Error() == "You have reached the max number of pinned Issues"
 }

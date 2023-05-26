@@ -45,6 +45,8 @@ func PinIssue(ctx *context.APIContext) {
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
+		} else if issues_model.IsErrIssueMaxPinReached(err) {
+			ctx.Error(http.StatusBadGateway, "MaxPinReached", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}

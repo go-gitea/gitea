@@ -6,7 +6,7 @@
 	{{if .PinnedIssues}}
 		<div id="issue-pins" {{if .IsRepoAdmin}}data-is-repo-admin{{end}}>
 			{{range .PinnedIssues}}
-				<div class="pinned-issue-card gt-word-break" data-move-url="{{$.Link}}/pin_move" data-issue-id="{{.ID}}">
+				<div class="pinned-issue-card gt-word-break" data-move-url="{{$.Link}}/move_pin" data-issue-id="{{.ID}}">
 					{{if eq $.Project.CardType 1}}
 						<div class="card-attachment-images">
 							{{range (index $.issuesAttachmentMap .ID)}}

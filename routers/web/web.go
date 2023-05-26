@@ -1026,7 +1026,7 @@ func registerRoutes(m *web.Route) {
 			m.Post("/attachments", repo.UploadIssueAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
 			m.Delete("/unpin/{id}", reqRepoAdmin, repo.IssueUnpin)
-			m.Post("/pin_move", reqRepoAdmin, repo.IssuePinMove)
+			m.Post("/move_pin", reqRepoAdmin, repo.IssuePinMove)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/comments/{id}", func() {
 			m.Post("", repo.UpdateCommentContent)
