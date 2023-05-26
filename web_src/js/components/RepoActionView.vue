@@ -394,6 +394,7 @@ const sfc = {
     },
 
     toggleTimeDisplay(type) {
+      if (type !== 'duration' && type !== 'stamp') return;
       const otherType = 'durationstamp'.replace(type, '');
       this.timeVisible[type] = !this.timeVisible[type];
       for (const el of document.querySelectorAll(`.log-time-${type}`)) {
@@ -702,22 +703,6 @@ export function ansiLogToHTML(line) {
 .job-info-header .job-info-header-detail {
   color: var(--color-secondary-dark-3);
   font-size: 12px;
-}
-
-.ui.dropdown .action-job-menu,
-.ui.pointing.dropdown > .menu.action-job-menu::after {
-  background-color: var(--color-console-dropdown-bg);
-  border-color: var(--color-console-dropdown-border);
-  box-shadow: -1px -1px 0 0 var(--color-console-dropdown-shadow);
-}
-
-.ui.dropdown .action-job-menu .item {
-  color: var(--color-secondary-dark-3);
-}
-
-.ui.dropdown .action-job-menu .item:hover {
-  background-color: var(--color-console-hover-bg);
-  color: var(--color-console-fg);
 }
 
 .action-job-menu .item span {
