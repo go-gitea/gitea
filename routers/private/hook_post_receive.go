@@ -197,15 +197,18 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				}
 			}
 
-			// If our branch is the default branch of an unforked repo - there's no PR to create or refer to
-			if !repo.IsFork && branch == baseRepo.DefaultBranch {
+			if branch == baseRepo.DefaultBranch {
 				// TODO: check IsWiki?
 				err := repo_module.UpdateRepoLicenses(ctx, repo, nil)
 				if err != nil {
 					ctx.JSON(http.StatusInternalServerError, private.Response{Err: err.Error()})
 				}
-				results = append(results, private.HookPostReceiveBranchResult{})
-				continue
+
+				// If our branch is the default branch of an unforked repo - there's no PR to create or refer to
+				if !repo.IsFork {
+					results = append(results, private.HookPostReceiveBranchResult{})
+					continue
+				}
 			}
 
 			pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch, issues_model.PullRequestFlowGithub)
