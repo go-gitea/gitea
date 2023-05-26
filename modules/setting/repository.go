@@ -284,10 +284,6 @@ func SaveGlobalRepositorySetting(enableSizeLimit bool, repoSizeLimit int64) erro
 	}
 
 	sec.Key("REPO_SIZE_LIMIT").SetValue(humanize.Bytes(uint64(RepoSizeLimit)))
-	// if err := CfgProvider.Save(); err != nil {
-	// 	log.Fatal("Failed to save config file: %v", err)
-	// 	return err
-	// }
 	return nil
 }
 

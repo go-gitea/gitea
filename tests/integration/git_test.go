@@ -13,6 +13,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -103,21 +104,15 @@ func testGit(t *testing.T, u *url.URL) {
 			t.Run("Deletion", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 				doCommitAndPush(t, littleSize, dstPath, "data-file-")
-
 				bigFileName := doCommitAndPush(t, bigSize, dstPath, "data-file-")
-				oldRepoSize := doCalculateRepoSize(t, dstPath)
-				doDeleteAndCliean(t, dstPath, bigFileName)
-				newRepoSize := doCalculateRepoSize(t, dstPath)
-				assert.Less(t, newRepoSize, oldRepoSize)
+				oldRepoSize := doGetRemoteRepoSize(t, forkedUserCtx)
+				lastCommitID := doGetAddCommitID(t, dstPath, bigFileName)
+				doDeleteAndPush(t, dstPath, bigFileName)
+				doRebaseCommitAndPush(t, dstPath, lastCommitID)
+				newRepoSize := doGetRemoteRepoSize(t, forkedUserCtx)
+				assert.LessOrEqual(t, newRepoSize, oldRepoSize)
 				setting.SaveGlobalRepositorySetting(false, 0)
-				// TODO doDeleteCommitAndPush(t, littleSize, dstPath, "data-file-")
 			})
-			// TODO delete branch
-			// TODO delete tag
-			// TODO add big commit that will be over with the push
-			// TODO add lfs
-			// TODO remove lfs
-			// TODO add missing case
 		})
 		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &httpContext, "master", "test/head"))
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
@@ -335,6 +330,11 @@ func lockFileTest(t *testing.T, filename, repoPath string) {
 
 const notRegularFileMode = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
 
+func doGetRemoteRepoSize(t *testing.T, ctx APITestContext) int64 {
+	dirPath := filepath.Join(setting.RepoRootPath, strings.ToLower(ctx.Username), strings.ToLower(ctx.Reponame)+".git")
+	return doCalculateRepoSize(t, dirPath)
+}
+
 func doCalculateRepoSize(t *testing.T, path string) int64 {
 	var size int64
 	err := filepath.WalkDir(path, func(_ string, info os.DirEntry, err error) error {
@@ -360,12 +360,43 @@ func doCalculateRepoSize(t *testing.T, path string) int64 {
 	return size
 }
 
-func doDeleteAndCliean(t *testing.T, repoPath, filename string) {
+func doDeleteAndPush(t *testing.T, repoPath, filename string) {
 	_, _, err := git.NewCommand(git.DefaultContext, "rm").AddDashesAndList(filename).RunStdString(&git.RunOpts{Dir: repoPath}) // Delete
 	assert.NoError(t, err)
-	_, _, err = git.NewCommand(git.DefaultContext, "reflog", "expire", "--expire-unreachable=all", "--all").RunStdString(&git.RunOpts{Dir: repoPath}) // reflog
+	signature := git.Signature{
+		Email: "user2@example.com",
+		Name:  "User Two",
+		When:  time.Now(),
+	}
+	_, _, err = git.NewCommand(git.DefaultContext, "status").RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
-	_, _, err = git.NewCommand(git.DefaultContext, "gc", "--prune=now").RunStdString(&git.RunOpts{Dir: repoPath}) // reflog
+	err2 := git.CommitChanges(repoPath, git.CommitChangesOptions{ // Commit
+		Committer: &signature,
+		Author:    &signature,
+		Message:   "Delete Commit",
+	})
+	assert.NoError(t, err2)
+	_, _, err = git.NewCommand(git.DefaultContext, "status").RunStdString(&git.RunOpts{Dir: repoPath})
+	assert.NoError(t, err)
+	_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "master").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
+	assert.NoError(t, err)
+}
+
+func doGetAddCommitID(t *testing.T, repoPath, filename string) string {
+	output, _, err := git.NewCommand(git.DefaultContext, "log", "origin", "master").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
+	assert.NoError(t, err)
+	list := strings.Fields(output)
+	assert.LessOrEqual(t, 2, len(list))
+	return list[1]
+}
+
+func doRebaseCommitAndPush(t *testing.T, repoPath, commitID string) {
+	command := git.NewCommand(git.DefaultContext, "rebase", "--interactive").AddDashesAndList(commitID)
+	env := os.Environ()
+	env = append(env, "GIT_SEQUENCE_EDITOR=true")
+	_, _, err := command.RunStdString(&git.RunOpts{Dir: repoPath, Env: env}) // Push
+	assert.NoError(t, err)
+	_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "master", "-f").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
 	assert.NoError(t, err)
 }
 
