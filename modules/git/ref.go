@@ -15,8 +15,6 @@ const (
 	RemotePrefix = "refs/remotes/"
 	// PullPrefix is the base directory of the pull information of git.
 	PullPrefix = "refs/pull/"
-
-	pullLen = len(PullPrefix)
 )
 
 // refNamePatternInvalid is regular expression with unallowed characters in git reference name
@@ -53,11 +51,6 @@ type Reference struct {
 // Commit return the commit of the reference
 func (ref *Reference) Commit() (*Commit, error) {
 	return ref.repo.getCommit(ref.Object)
-}
-
-// ShortName returns the short name of the reference
-func (ref *Reference) ShortName() string {
-	return RefName(ref.Name).ShortName()
 }
 
 // RefGroup returns the group type of the reference
@@ -99,7 +92,7 @@ func (ref RefName) IsRemote() bool {
 }
 
 func (ref RefName) IsPull() bool {
-	return strings.HasPrefix(string(ref), PullPrefix)
+	return strings.HasPrefix(string(ref), PullPrefix) && strings.IndexByte(string(ref)[len(PullPrefix):], '/') > -1
 }
 
 func (ref RefName) IsFor() bool {
@@ -123,6 +116,16 @@ func (ref RefName) BranchName() string {
 	return ref.nameWithoutPrefix(BranchPrefix)
 }
 
+// PullName returns the pull request name part of refs like refs/pull/<pull_name>/head
+func (ref RefName) PullName() string {
+	refName := string(ref)
+	lastIdx := strings.LastIndexByte(refName[len(PullPrefix):], '/')
+	if strings.HasPrefix(refName, PullPrefix) && lastIdx > -1 {
+		return refName[len(PullPrefix) : lastIdx+len(PullPrefix)]
+	}
+	return ""
+}
+
 // ForBranchName returns the branch name part of refs like refs/for/<branch_name>
 func (ref RefName) ForBranchName() string {
 	return ref.nameWithoutPrefix(ForPrefix)
@@ -144,8 +147,8 @@ func (ref RefName) ShortName() string {
 	if ref.IsRemote() {
 		return ref.RemoteName()
 	}
-	if strings.HasPrefix(refName, PullPrefix) && strings.IndexByte(refName[pullLen:], '/') > -1 {
-		return refName[pullLen : strings.IndexByte(refName[pullLen:], '/')+pullLen]
+	if ref.IsPull() {
+		return ref.PullName()
 	}
 	if ref.IsFor() {
 		return ref.ForBranchName()
@@ -156,7 +159,6 @@ func (ref RefName) ShortName() string {
 
 // RefGroup returns the group type of the reference
 func (ref RefName) RefGroup() string {
-	refName := string(ref)
 	if ref.IsBranch() {
 		return "heads"
 	}
@@ -166,7 +168,7 @@ func (ref RefName) RefGroup() string {
 	if ref.IsRemote() {
 		return "remotes"
 	}
-	if strings.HasPrefix(refName, PullPrefix) && strings.IndexByte(refName[pullLen:], '/') > -1 {
+	if ref.IsPull() {
 		return "pull"
 	}
 	if ref.IsFor() {

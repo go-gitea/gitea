@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -124,6 +123,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		newCommitID := opts.NewCommitIDs[i]
 
 		// post update for agit pull request
+		// FIXME: use pr.Flow to test whether it's an Agit PR or a GH PR
 		if git.SupportProcReceive && refFullName.IsPull() {
 			if repo == nil {
 				repo = loadRepository(ctx, ownerName, repoName)
@@ -132,9 +132,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				}
 			}
 
-			pullIndexStr := strings.TrimPrefix(refFullName.String(), git.PullPrefix)
-			pullIndexStr = strings.Split(pullIndexStr, "/")[0]
-			pullIndex, _ := strconv.ParseInt(pullIndexStr, 10, 64)
+			pullIndex, _ := strconv.ParseInt(refFullName.PullName(), 10, 64)
 			if pullIndex <= 0 {
 				continue
 			}
