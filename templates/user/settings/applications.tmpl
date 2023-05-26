@@ -19,7 +19,7 @@
 						<i class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.token_state_desc"}}"{{end}}>{{svg "fontawesome-send" 36}}</i>
 						<div class="content">
 							<details><summary><strong>{{.Name}}</strong></summary>
-								<p class="gt-my-2">{{$.locale.Tr "settings.scopes_list"}}</p>
+								<p class="gt-my-2">{{$.locale.Tr "settings.permissions_list"}}</p>
 								<ul class="gt-my-2">
 								{{range .Scope.StringSlice}}
 									<li>{{.}}</li>
@@ -48,16 +48,16 @@
 				<div class="field gt-pl-2" style="padding-top: 5px">
 					<label style="cursor: pointer">
 						<input class="enable-system" type="radio" name="scope" value="{{$.AccessTokenScopePublicOnly}}" style="margin: 4px 5px 0 0">
-						Scopes apply to public repositories and organizations only
+						{{.locale.Tr "settings.permissions_public_only"}}
 					</label>
 					<label style="cursor: pointer">
 						<input class="enable-system" type="radio" name="scope" value="" style="margin: 4px 5px 0 0" checked>
-						Scopes apply to public and private repos and organizations
+						{{.locale.Tr "settings.permissions_public_and_private"}}
 					</label>
 				</div>
 				<details class="ui optional field">
 					<summary class="gt-p-2">
-						{{.locale.Tr "settings.select_scopes"}}
+						{{.locale.Tr "settings.select_permissions"}}
 					</summary>
 					<scoped-access-token-category category="activitypub"></scoped-access-token-category>
 					{{if .IsAdmin}}
@@ -72,7 +72,7 @@
 					<scoped-access-token-category category="user"></scoped-access-token-category>
 				</details>
 				<div id="scoped-access-warning" class="ui warning message center" style="display: none">
-					You must select at least one scope to create a token
+					{{.locale.Tr "settings.at_least_one_permission"}}
 				</div>
 				<button id="scoped-access-submit" class="ui green button">
 					{{.locale.Tr "settings.generate_token"}}
