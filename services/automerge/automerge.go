@@ -29,11 +29,11 @@ var prAutoMergeQueue *queue.WorkerPoolQueue[string]
 
 // Init runs the task queue to that handles auto merges
 func Init() error {
-	prAutoMergeQueue = queue.CreateUniqueQueue("pr_auto_merge", handler)
+	prAutoMergeQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_auto_merge", handler)
 	if prAutoMergeQueue == nil {
-		return fmt.Errorf("Unable to create pr_auto_merge Queue")
+		return fmt.Errorf("unable to create pr_auto_merge queue")
 	}
-	go graceful.GetManager().RunWithShutdownFns(prAutoMergeQueue.Run)
+	go graceful.GetManager().RunWithCancel(prAutoMergeQueue)
 	return nil
 }
 
