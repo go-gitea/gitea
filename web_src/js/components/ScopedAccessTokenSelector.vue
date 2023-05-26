@@ -69,8 +69,6 @@
 import {createApp} from 'vue';
 
 const sfc = {
-  name: 'ScopedAccessTokenSelector',
-
   props: {
     category: {
       type: String,
