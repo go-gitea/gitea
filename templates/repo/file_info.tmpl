@@ -1,4 +1,11 @@
 <div class="file-info text grey normal gt-mono">
+	{{if .HasCodeowners}}
+		<div class="file-info-entry">
+			<div data-tooltip-content="{{.Codeowners}}">
+				{{svg "octicon-shield-lock"}}
+			</div>
+		</div>
+	{{end}}
 	{{if .FileIsSymlink}}
 		<div class="file-info-entry">
 			{{.locale.Tr "repo.symbolic_link"}}

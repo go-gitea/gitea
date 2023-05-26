@@ -248,13 +248,8 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 }
 
 // FindCodeownersFile gets the CODEOWNERS file from the top level,'.gitea', or 'docs' directory of the given repository.
-func GetCodeownersFileContents(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) ([]byte, error) {
+func GetCodeownersFileContents(ctx context.Context, commit *git.Commit, gitRepo *git.Repository) ([]byte, error) {
 	possibleDirectories := []string{"", ".gitea/", "docs/"} // accepted directories to search for the CODEOWNERS file
-
-	commit, err := gitRepo.GetCommit(pr.BaseBranch)
-	if err != nil {
-		return nil, err
-	}
 
 	entry := GetCodeownersGitTreeEntry(commit, possibleDirectories)
 	if entry == nil {
@@ -273,7 +268,7 @@ func GetCodeownersFileContents(ctx context.Context, pr *issues_model.PullRequest
 		}
 		return contentBytes, nil
 	}
-	log.Warn("GetCodeownersFileContents [repo_id: %d, git_tree_entry_id: %d]: CODEOWNERS file found is not a regular file", pr.Issue.RepoID, entry.ID)
+	log.Warn("GetCodeownersFileContents [commit_id: %d, git_tree_entry_id: %d]: CODEOWNERS file found is not a regular file", commit.ID, entry.ID)
 
 	return nil, nil
 }
@@ -309,19 +304,7 @@ func GetValidUserCodeownerReviewers(ctx context.Context, userNamesOrEmails []str
 	}
 
 	for _, nameOrEmail := range userNamesOrEmails {
-		var reviewer *user_model.User
-		var err error
-		if strings.Contains(nameOrEmail, "@") {
-			reviewer, err = user_model.GetUserByEmail(ctx, nameOrEmail)
-			if err != nil {
-				log.Info("GetValidUserReviewers [repo_id: %d, owner_email: %s]: user owner in CODEOWNERS file could not be found by email", repo.ID, nameOrEmail)
-			}
-		} else {
-			reviewer, err = user_model.GetUserByName(ctx, nameOrEmail)
-			if err != nil {
-				log.Info("GetValidUserReviewers [repo_id: %d, owner_username: %s]: user owner in CODEOWNERS file could not be found by name", repo.ID, nameOrEmail)
-			}
-		}
+		reviewer, err := GetUserByNameOrEmail(ctx, nameOrEmail, repo)
 		if reviewer != nil && err == nil {
 			err = IsValidUserCodeowner(err, ctx, reviewer, doer, isAdd, issue, permDoer, repo)
 			if err == nil {
@@ -330,6 +313,24 @@ func GetValidUserCodeownerReviewers(ctx context.Context, userNamesOrEmails []str
 		}
 	}
 	return reviewers
+}
+
+// GetUserByNameOrEmail gets the user by either its name or email depending on the format of the input
+func GetUserByNameOrEmail(ctx context.Context, nameOrEmail string, repo *repo_model.Repository) (*user_model.User, error) {
+	var reviewer *user_model.User
+	var err error
+	if strings.Contains(nameOrEmail, "@") {
+		reviewer, err = user_model.GetUserByEmail(ctx, nameOrEmail)
+		if err != nil {
+			log.Info("GetValidUserReviewers [repo_id: %d, owner_email: %s]: user owner in CODEOWNERS file could not be found by email", repo.ID, nameOrEmail)
+		}
+	} else {
+		reviewer, err = user_model.GetUserByName(ctx, nameOrEmail)
+		if err != nil {
+			log.Info("GetValidUserReviewers [repo_id: %d, owner_username: %s]: user owner in CODEOWNERS file could not be found by name", repo.ID, nameOrEmail)
+		}
+	}
+	return reviewer, err
 }
 
 // GetValidTeamCodeownerReviewers gets the Teams that actually exist, are authorized to review the pull request, and have explicit write permissions for the repo
@@ -354,7 +355,7 @@ func GetValidTeamCodeownerReviewers(ctx context.Context, fullTeamNames []string,
 }
 
 // IsValidUserCodeowner returns an error if the user is not eligible to be a codeowner for the given repository (must be an eligible reviewer
-// and have explciit write permissions). Nil if valid.
+// and have explcit write permissions). Nil if valid.
 func IsValidUserCodeowner(err error, ctx context.Context, reviewer *user_model.User, doer *user_model.User, isAdd bool, issue *issues_model.Issue, permDoer access_model.Permission, repo *repo_model.Repository) error {
 	err = IsValidReviewRequest(ctx, reviewer, doer, isAdd, issue, &permDoer)
 	if err == nil {
@@ -370,7 +371,7 @@ func IsValidUserCodeowner(err error, ctx context.Context, reviewer *user_model.U
 }
 
 // IsValidTeamCodeowner returns an error if the team is not eligible to be a codeowner for the given repository (must be an eligible reviewer
-// and have explciit write permissions). Nil if valid.
+// and have explcit write permissions). Nil if valid.
 func IsValidTeamCodeowner(ctx context.Context, teamReviewer *organization_model.Team, doer *user_model.User, isAdd bool, issue *issues_model.Issue, repo *repo_model.Repository) error {
 	err := IsValidTeamReviewRequest(ctx, teamReviewer, doer, isAdd, issue)
 	if err == nil {
@@ -385,7 +386,7 @@ func IsValidTeamCodeowner(ctx context.Context, teamReviewer *organization_model.
 	return errors.New(fmt.Sprintf("Team %s is not a valid codeowner in the given repository", teamReviewer.Name))
 }
 
-// GetTeamFromFullName gets the team given its full name ('{organizationName}/{teamName}')
+// GetTeamFromFullName gets the team given its full name ('{organizationName}/{teamName}'). Nil if not found.
 func GetTeamFromFullName(ctx context.Context, fullTeamName string, doer *user_model.User) (*organization_model.Team, error) {
 	teamNameSplit := strings.Split(fullTeamName, "/")
 	if len(teamNameSplit) != 2 {

@@ -203,7 +203,12 @@ func AddCodeownerReviewers(ctx context.Context, pr *issues_model.PullRequest, re
 		return err
 	}
 
-	codeownersContents, err := GetCodeownersFileContents(ctx, pr, gitRepo)
+	commit, err := gitRepo.GetCommit(pr.BaseBranch)
+	if err != nil {
+		return err
+	}
+
+	codeownersContents, err := GetCodeownersFileContents(ctx, commit, gitRepo)
 	if err != nil {
 		return err
 	}
