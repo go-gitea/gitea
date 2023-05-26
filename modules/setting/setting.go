@@ -222,12 +222,16 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 
 	loadOAuth2From(cfg)
 	loadSecurityFrom(cfg)
-	loadAttachmentFrom(cfg)
+	if err := loadAttachmentFrom(cfg); err != nil {
+		log.Fatal("loadAttachmentFrom: %v", err)
+	}
 	loadLFSFrom(cfg)
 	loadTimeFrom(cfg)
 	loadRepositoryFrom(cfg)
 	loadPictureFrom(cfg)
-	loadPackagesFrom(cfg)
+	if err := loadPackagesFrom(cfg); err != nil {
+		log.Fatal("loadPackagesFrom: %v", err)
+	}
 	loadActionsFrom(cfg)
 	loadUIFrom(cfg)
 	loadAdminFrom(cfg)

@@ -20,7 +20,7 @@ var Attachment = struct {
 	Enabled:      true,
 }
 
-func loadAttachmentFrom(rootCfg ConfigProvider) {
+func loadAttachmentFrom(rootCfg ConfigProvider) error {
 	sec := rootCfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
 
@@ -30,4 +30,6 @@ func loadAttachmentFrom(rootCfg ConfigProvider) {
 	Attachment.MaxSize = sec.Key("MAX_SIZE").MustInt64(4)
 	Attachment.MaxFiles = sec.Key("MAX_FILES").MustInt(5)
 	Attachment.Enabled = sec.Key("ENABLED").MustBool(true)
+
+	return nil
 }

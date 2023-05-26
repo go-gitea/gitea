@@ -29,3 +29,25 @@ func TestMustBytes(t *testing.T) {
 	assert.EqualValues(t, 1782579, test("1.7mib"))
 	assert.EqualValues(t, -1, test("1 yib")) // too large
 }
+
+func Test_PackageStorage(t *testing.T) {
+	iniStr := `
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[storage]
+STORAGE_TYPE            = minio
+MINIO_ENDPOINT          = s3.my-domain.net
+MINIO_BUCKET            = gitea
+MINIO_LOCATION          = homenet
+MINIO_USE_SSL           = true
+MINIO_ACCESS_KEY_ID     = correct_key
+MINIO_SECRET_ACCESS_KEY = correct_key
+`
+	cfg, err := NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+
+	assert.NoError(t, loadPackagesFrom(cfg))
+	storage := Packages.Storage
+
+	assert.EqualValues(t, "minio", storage.Type)
+	assert.EqualValues(t, "gitea", storage.Section.Key("MINIO_BUCKET").String())
+}

@@ -359,5 +359,12 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
 
+	if err := loadRepoArchive(rootCfg); err != nil {
+		log.Fatal("Failed to load repository archive settings: %v", err)
+	}
+}
+
+func loadRepoArchive(rootCfg ConfigProvider) error {
 	RepoArchive.Storage = getStorage(rootCfg, "repo-archive", "", nil)
+	return nil
 }

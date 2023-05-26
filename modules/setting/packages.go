@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"fmt"
 	"math"
 	"net/url"
 	"os"
@@ -51,10 +52,10 @@ var (
 	}
 )
 
-func loadPackagesFrom(rootCfg ConfigProvider) {
+func loadPackagesFrom(rootCfg ConfigProvider) error {
 	sec := rootCfg.Section("packages")
 	if err := sec.MapTo(&Packages); err != nil {
-		log.Fatal("Failed to map Packages settings: %v", err)
+		return fmt.Errorf("failed to map Packages settings: %v", err)
 	}
 
 	Packages.Storage = getStorage(rootCfg, "packages", "", nil)
@@ -93,6 +94,8 @@ func loadPackagesFrom(rootCfg ConfigProvider) {
 	Packages.LimitSizeRubyGems = mustBytes(sec, "LIMIT_SIZE_RUBYGEMS")
 	Packages.LimitSizeSwift = mustBytes(sec, "LIMIT_SIZE_SWIFT")
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")
+
+	return nil
 }
 
 func mustBytes(section ConfigSection, key string) int64 {
