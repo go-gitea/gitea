@@ -37,7 +37,10 @@ var _ base.Notifier = &notificationService{}
 // NewNotifier create a new notificationService notifier
 func NewNotifier() base.Notifier {
 	ns := &notificationService{}
-	ns.issueQueue = queue.CreateSimpleQueue("notification-service", handler)
+	ns.issueQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "notification-service", handler)
+	if ns.issueQueue == nil {
+		log.Fatal("Unable to create notification-service queue")
+	}
 	return ns
 }
 
@@ -51,7 +54,7 @@ func handler(items ...issueNotificationOpts) []issueNotificationOpts {
 }
 
 func (ns *notificationService) Run() {
-	go graceful.GetManager().RunWithShutdownFns(ns.issueQueue.Run)
+	go graceful.GetManager().RunWithCancel(ns.issueQueue) // TODO: using "go" here doesn't seem right, just leave it as old code
 }
 
 func (ns *notificationService) NotifyCreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,

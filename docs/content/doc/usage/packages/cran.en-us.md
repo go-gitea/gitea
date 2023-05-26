@@ -1,6 +1,6 @@
 ---
 date: "2023-01-01T00:00:00+00:00"
-title: "CRAN Packages Repository"
+title: "CRAN Package Registry"
 slug: "cran"
 draft: false
 toc: false
@@ -12,7 +12,7 @@ menu:
     identifier: "cran"
 ---
 
-# CRAN Packages Repository
+# CRAN Package Registry
 
 Publish [R](https://www.r-project.org/) packages to a [CRAN](https://cran.r-project.org/)-like registry for your user or organization.
 

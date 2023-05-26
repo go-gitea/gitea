@@ -47,6 +47,7 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 		Comments:    issue.NumComments,
 		Created:     issue.CreatedUnix.AsTime(),
 		Updated:     issue.UpdatedUnix.AsTime(),
+		PinOrder:    issue.PinOrder,
 	}
 
 	if issue.Repo != nil {

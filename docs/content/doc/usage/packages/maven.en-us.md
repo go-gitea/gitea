@@ -1,6 +1,6 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
-title: "Maven Packages Repository"
+title: "Maven Package Registry"
 slug: "maven"
 weight: 60
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "maven"
 ---
 
-# Maven Packages Repository
+# Maven Package Registry
 
 Publish [Maven](https://maven.apache.org) packages for your user or organization.
 

@@ -228,9 +228,9 @@ func (l *LoggerImpl) GetLevel() Level {
 	return Level(l.level.Load())
 }
 
-func NewLoggerWithWriters(ctx context.Context, writer ...EventWriter) *LoggerImpl {
+func NewLoggerWithWriters(ctx context.Context, name string, writer ...EventWriter) *LoggerImpl {
 	l := &LoggerImpl{}
-	l.ctx, l.ctxCancel = context.WithCancel(ctx)
+	l.ctx, l.ctxCancel = newContext(ctx, "Logger: "+name)
 	l.LevelLogger = BaseLoggerToGeneralLogger(l)
 	l.eventWriters = map[string]EventWriter{}
 	l.syncLevelInternal()

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"runtime/pprof"
 	"time"
 )
 
@@ -143,9 +144,17 @@ func eventWriterStartGo(ctx context.Context, w EventWriter, shared bool) {
 	}
 	w.Base().shared = shared
 	w.Base().stopped = make(chan struct{})
+
+	ctxDesc := "Logger: EventWriter: " + w.GetWriterName()
+	if shared {
+		ctxDesc = "Logger: EventWriter (shared): " + w.GetWriterName()
+	}
+	writerCtx, writerCancel := newContext(ctx, ctxDesc)
 	go func() {
+		defer writerCancel()
 		defer close(w.Base().stopped)
-		w.Run(ctx)
+		pprof.SetGoroutineLabels(writerCtx)
+		w.Run(writerCtx)
 	}()
 }
 
