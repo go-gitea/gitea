@@ -71,7 +71,7 @@
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
           <li class="gt-df gt-ac" v-for="repo in repos" :key="repo.id">
-            <a class="repo-list-link muted gt-df gt-ac gt-f1 gt-min-w-0" :href="repo.link">
+            <a class="repo-list-link muted gt-df gt-ac gt-f1" :href="repo.link">
               <svg-icon :name="repoIcon(repo)" :size="repoIconSize(repo)" class-name="repo-list-icon"/>
               <div class="text truncate">{{ repo.full_name }}</div>
               <div v-if="repo.archived">
@@ -127,7 +127,7 @@
       <div v-if="organizations.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
           <li class="gt-df gt-ac" v-for="org in organizations" :key="org.name">
-            <a class="repo-list-link muted gt-df gt-ac gt-f1 gt-min-w-0" :href="subUrl + '/' + encodeURIComponent(org.name)">
+            <a class="repo-list-link muted gt-df gt-ac gt-f1" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
               <div class="text truncate">{{ org.name }}</div>
               <div>
@@ -465,6 +465,7 @@ ul li:not(:last-child) {
 .repo-list-link {
   padding: 6px 0;
   gap: 6px;
+  min-width: 0; /* for text truncation */
 }
 
 .repo-list-link .svg {
