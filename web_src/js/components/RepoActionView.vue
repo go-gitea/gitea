@@ -103,7 +103,8 @@
               <span class="step-summary-duration">{{ jobStep.duration }}</span>
             </div>
 
-            <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
+            <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM,
+            use native DOM elements for "log line" to improve performance, Vue is not suitable for managing so many reactive elements. -->
             <div class="job-step-logs" ref="logs" v-show="currentJobStepsStates[i].expanded"/>
           </div>
         </div>
