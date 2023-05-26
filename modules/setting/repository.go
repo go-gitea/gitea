@@ -316,6 +316,12 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.actions")
 	}
 
+	// for compatibility with force private
+	if sec.Key("FORCE_PRIVATE").MustBool(false) && sec.Key("FORCE_VISIBILITY").MustString("off") == "off" {
+		Repository.ForceVisibility = "private"
+		log.Error("FORCE_PRIVATE is deprecated! Please set FORCE_VISIBILITY to private.")
+	}
+
 	// Handle default trustmodel settings
 	Repository.Signing.DefaultTrustModel = strings.ToLower(strings.TrimSpace(Repository.Signing.DefaultTrustModel))
 	if Repository.Signing.DefaultTrustModel == "default" {
