@@ -142,7 +142,7 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 		"gitea_default_actions_url": setting.Actions.DefaultActionsURL,
 	})
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("structpb.NewStruct failed: %v", err)
 	}
 
 	return taskContext
