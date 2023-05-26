@@ -167,6 +167,7 @@ func (pm *Manager) Add(ctx context.Context, description string, cancel context.C
 
 	pm.processMap[pid] = process
 	pm.mutex.Unlock()
+
 	Trace(true, pid, description, parentPID, processType)
 
 	pprofCtx := pprof.WithLabels(ctx, pprof.Labels(DescriptionPProfLabel, description, PPIDPProfLabel, string(parentPID), PIDPProfLabel, string(pid), ProcessTypePProfLabel, processType))
@@ -200,10 +201,16 @@ func (pm *Manager) nextPID() (start time.Time, pid IDType) {
 }
 
 func (pm *Manager) remove(process *process) {
+	deleted := false
+
 	pm.mutex.Lock()
-	defer pm.mutex.Unlock()
-	if p := pm.processMap[process.PID]; p == process {
+	if pm.processMap[process.PID] == process {
 		delete(pm.processMap, process.PID)
+		deleted = true
+	}
+	pm.mutex.Unlock()
+
+	if deleted {
 		Trace(false, process.PID, process.Description, process.ParentPID, process.Type)
 	}
 }

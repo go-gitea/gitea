@@ -16,17 +16,9 @@ import (
 )
 
 func runWorkerPoolQueue[T any](q *WorkerPoolQueue[T]) func() {
-	var stop func()
-	started := make(chan struct{})
-	stopped := make(chan struct{})
-	go func() {
-		q.Run(func(f func()) { stop = f; close(started) }, nil)
-		close(stopped)
-	}()
-	<-started
+	go q.Run()
 	return func() {
-		stop()
-		<-stopped
+		q.ShutdownWait(1 * time.Second)
 	}
 }
 
@@ -57,7 +49,7 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 			return unhandled
 		}
 
-		q, _ := NewWorkerPoolQueueBySetting("test-workpoolqueue", queueSetting, handler, false)
+		q, _ := newWorkerPoolQueueForTest("test-workpoolqueue", queueSetting, handler, false)
 		stop := runWorkerPoolQueue(q)
 		for i := 0; i < queueSetting.Length; i++ {
 			testRecorder.Record("push:%v", i)
@@ -145,7 +137,7 @@ func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSett
 			return nil
 		}
 
-		q, _ := NewWorkerPoolQueueBySetting("pr_patch_checker_test", queueSetting, testHandler, true)
+		q, _ := newWorkerPoolQueueForTest("pr_patch_checker_test", queueSetting, testHandler, true)
 		stop := runWorkerPoolQueue(q)
 		for i := 0; i < testCount; i++ {
 			_ = q.Push("task-" + strconv.Itoa(i))
@@ -169,7 +161,7 @@ func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSett
 			return nil
 		}
 
-		q, _ := NewWorkerPoolQueueBySetting("pr_patch_checker_test", queueSetting, testHandler, true)
+		q, _ := newWorkerPoolQueueForTest("pr_patch_checker_test", queueSetting, testHandler, true)
 		stop := runWorkerPoolQueue(q)
 		assert.NoError(t, q.FlushWithContext(context.Background(), 0))
 		stop()
@@ -194,7 +186,7 @@ func TestWorkerPoolQueueActiveWorkers(t *testing.T) {
 		return nil
 	}
 
-	q, _ := NewWorkerPoolQueueBySetting("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 1, Length: 100}, handler, false)
+	q, _ := newWorkerPoolQueueForTest("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 1, Length: 100}, handler, false)
 	stop := runWorkerPoolQueue(q)
 	for i := 0; i < 5; i++ {
 		assert.NoError(t, q.Push(i))
@@ -210,7 +202,7 @@ func TestWorkerPoolQueueActiveWorkers(t *testing.T) {
 	assert.EqualValues(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
 	stop()
 
-	q, _ = NewWorkerPoolQueueBySetting("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 3, Length: 100}, handler, false)
+	q, _ = newWorkerPoolQueueForTest("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 3, Length: 100}, handler, false)
 	stop = runWorkerPoolQueue(q)
 	for i := 0; i < 15; i++ {
 		assert.NoError(t, q.Push(i))
@@ -243,7 +235,7 @@ func TestWorkerPoolQueueShutdown(t *testing.T) {
 	}
 
 	qs := setting.QueueSettings{Type: "level", Datadir: t.TempDir() + "/queue", BatchLength: 3, MaxWorkers: 4, Length: 20}
-	q, _ := NewWorkerPoolQueueBySetting("test-workpoolqueue", qs, handler, false)
+	q, _ := newWorkerPoolQueueForTest("test-workpoolqueue", qs, handler, false)
 	stop := runWorkerPoolQueue(q)
 	for i := 0; i < qs.Length; i++ {
 		assert.NoError(t, q.Push(i))
@@ -255,6 +247,6 @@ func TestWorkerPoolQueueShutdown(t *testing.T) {
 	assert.EqualValues(t, 0, q.GetWorkerActiveNumber())
 
 	// no item was ever handled, so we still get all of them again
-	q, _ = NewWorkerPoolQueueBySetting("test-workpoolqueue", qs, handler, false)
+	q, _ = newWorkerPoolQueueForTest("test-workpoolqueue", qs, handler, false)
 	assert.EqualValues(t, 20, q.GetQueueItemNumber())
 }

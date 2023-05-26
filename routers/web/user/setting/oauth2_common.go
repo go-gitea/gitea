@@ -31,6 +31,7 @@ func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context) {
 func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditOAuth2ApplicationForm)
 	if ctx.HasError() {
+		ctx.Flash.Error(ctx.GetErrMsg())
 		// go to the application list page
 		ctx.Redirect(oa.BasePathList)
 		return
