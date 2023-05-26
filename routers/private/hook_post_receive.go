@@ -193,8 +193,8 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				}
 			}
 
-      branch := refFullName.BranchName()
-      
+			branch := refFullName.BranchName()
+
 			if branch == baseRepo.DefaultBranch {
 				err := repo_module.UpdateRepoLicenses(ctx, repo, nil)
 				if err != nil {
