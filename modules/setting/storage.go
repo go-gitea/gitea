@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"fmt"
 	"path/filepath"
 	"reflect"
 )
@@ -76,6 +77,16 @@ func getStorage(rootCfg ConfigProvider, name, typ string, targetSec ConfigSectio
 			storage.Type = override.Key("STORAGE_TYPE").String()
 		}
 	}
+
+	if storage.Type != "minio" && storage.Type != "local" {
+		fmt.Println("=====111")
+		customSec, err := rootCfg.GetSection(sectionName + "." + storage.Type)
+		if err == nil {
+			storage.Type = customSec.Key("STORAGE_TYPE").String()
+			storage.Section = customSec
+		}
+	}
+
 	storage.ServeDirect = storage.Section.Key("SERVE_DIRECT").MustBool(false)
 
 	// Specific defaults
@@ -85,6 +96,8 @@ func getStorage(rootCfg ConfigProvider, name, typ string, targetSec ConfigSectio
 		storage.Section.Key("PATH").SetValue(storage.Path)
 	}
 	storage.Section.Key("MINIO_BASE_PATH").MustString(name + "/")
+
+
 
 	return storage
 }

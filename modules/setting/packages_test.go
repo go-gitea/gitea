@@ -30,9 +30,13 @@ func TestMustBytes(t *testing.T) {
 	assert.EqualValues(t, -1, test("1 yib")) // too large
 }
 
-func Test_PackageStorage(t *testing.T) {
+func Test_PackageStorage1(t *testing.T) {
 	iniStr := `
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[packages]
+MINIO_BASE_PATH = packages/
+SERVE_DIRECT = true
+
 [storage]
 STORAGE_TYPE            = minio
 MINIO_ENDPOINT          = s3.my-domain.net
@@ -50,4 +54,92 @@ MINIO_SECRET_ACCESS_KEY = correct_key
 
 	assert.EqualValues(t, "minio", storage.Type)
 	assert.EqualValues(t, "gitea", storage.Section.Key("MINIO_BUCKET").String())
+	assert.EqualValues(t, "packages/", storage.Section.Key("MINIO_BASE_PATH").String())
+	assert.True(t, storage.Section.Key("SERVE_DIRECT").MustBool(false))
+}
+
+func Test_PackageStorage2(t *testing.T) {
+	iniStr := `
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[storage.packages]
+MINIO_BASE_PATH = packages/
+SERVE_DIRECT = true
+
+[storage]
+STORAGE_TYPE            = minio
+MINIO_ENDPOINT          = s3.my-domain.net
+MINIO_BUCKET            = gitea
+MINIO_LOCATION          = homenet
+MINIO_USE_SSL           = true
+MINIO_ACCESS_KEY_ID     = correct_key
+MINIO_SECRET_ACCESS_KEY = correct_key
+`
+	cfg, err := NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+
+	assert.NoError(t, loadPackagesFrom(cfg))
+	storage := Packages.Storage
+
+	assert.EqualValues(t, "minio", storage.Type)
+	assert.EqualValues(t, "gitea", storage.Section.Key("MINIO_BUCKET").String())
+	assert.EqualValues(t, "packages/", storage.Section.Key("MINIO_BASE_PATH").String())
+	assert.True(t, storage.Section.Key("SERVE_DIRECT").MustBool(false))
+}
+
+func Test_PackageStorage3(t *testing.T) {
+	iniStr := `
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[packages]
+STORAGE_TYPE            = my_cfg
+MINIO_BASE_PATH = packages/
+SERVE_DIRECT = true
+
+[storage.my_cfg]
+STORAGE_TYPE            = minio
+MINIO_ENDPOINT          = s3.my-domain.net
+MINIO_BUCKET            = gitea
+MINIO_LOCATION          = homenet
+MINIO_USE_SSL           = true
+MINIO_ACCESS_KEY_ID     = correct_key
+MINIO_SECRET_ACCESS_KEY = correct_key
+`
+	cfg, err := NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+
+	assert.NoError(t, loadPackagesFrom(cfg))
+	storage := Packages.Storage
+
+	assert.EqualValues(t, "minio", storage.Type)
+	assert.EqualValues(t, "gitea", storage.Section.Key("MINIO_BUCKET").String())
+	assert.EqualValues(t, "packages/", storage.Section.Key("MINIO_BASE_PATH").String())
+	assert.True(t, storage.Section.Key("SERVE_DIRECT").MustBool(false))
+}
+
+func Test_PackageStorage4(t *testing.T) {
+	iniStr := `
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[storage.packages]
+STORAGE_TYPE            = my_cfg
+MINIO_BASE_PATH = packages/
+SERVE_DIRECT = true
+
+[storage.my_cfg]
+STORAGE_TYPE            = minio
+MINIO_ENDPOINT          = s3.my-domain.net
+MINIO_BUCKET            = gitea
+MINIO_LOCATION          = homenet
+MINIO_USE_SSL           = true
+MINIO_ACCESS_KEY_ID     = correct_key
+MINIO_SECRET_ACCESS_KEY = correct_key
+`
+	cfg, err := NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+
+	assert.NoError(t, loadPackagesFrom(cfg))
+	storage := Packages.Storage
+
+	assert.EqualValues(t, "minio", storage.Type)
+	assert.EqualValues(t, "gitea", storage.Section.Key("MINIO_BUCKET").String())
+	assert.EqualValues(t, "packages/", storage.Section.Key("MINIO_BASE_PATH").String())
+	assert.True(t, storage.Section.Key("SERVE_DIRECT").MustBool(false))
 }
