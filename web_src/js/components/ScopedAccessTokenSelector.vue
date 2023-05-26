@@ -127,7 +127,7 @@ export function initScopedAccessTokenCategories() {
     }).mount(el);
   }
 
-  document.getElementById('scoped-access-submit').addEventListener('click', (e) => {
+  document.getElementById('scoped-access-submit')?.addEventListener('click', (e) => {
     e.preventDefault();
     // check that at least one scope has been selected
     for (const el of document.getElementsByClassName('scoped-access-token-input')) {
