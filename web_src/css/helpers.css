@@ -73,6 +73,8 @@ Gitea's private styles use `g-` prefix.
 .gt-whitespace-pre-wrap { white-space: pre-wrap !important; }
 .gt-object-contain { object-fit: contain !important; }
 .gt-self-center { align-self: center !important; }
+.gt-self-start { align-self: flex-start !important; }
+.gt-self-end { align-self: flex-end !important; }
 
 .gt-overflow-x-auto { overflow-x: auto !important; }
 .gt-overflow-x-scroll { overflow-x: scroll !important; }
@@ -88,6 +90,7 @@ Gitea's private styles use `g-` prefix.
 .gt-font-normal { font-weight: var(--font-weight-normal) !important };
 .gt-font-medium { font-weight: var(--font-weight-medium) !important };
 .gt-font-semibold { font-weight: var(--font-weight-semibold) !important };
+.gt-font-bold { font-weight: var(--font-weight-bold) !important };
 
 .gt-rounded { border-radius: var(--border-radius) !important; }
 .gt-rounded-top { border-radius: var(--border-radius) var(--border-radius) 0 0 !important; }
@@ -248,6 +251,13 @@ Gitea's private styles use `g-` prefix.
 .gt-gap-y-5 { row-gap: 2rem !important; }
 
 .gt-shrink-0 { flex-shrink: 0 !important; }
+
+.gt-font-13 { font-size: 13px !important }
+.gt-font-14 { font-size: 14px !important }
+.gt-font-15 { font-size: 15px !important }
+.gt-font-16 { font-size: 16px !important }
+.gt-font-17 { font-size: 17px !important }
+.gt-font-18 { font-size: 18px !important }
 
 @media (max-width: 767px) {
   .gt-db-small { display: block !important; }

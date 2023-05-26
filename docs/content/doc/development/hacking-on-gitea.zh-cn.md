@@ -249,8 +249,8 @@ make swagger-check
 ### 创建新的配置选项
 
 创建新的配置选项时，将它们添加到 `modules/setting` 的对应文件。您应该将信息添加到 `custom/conf/app.ini`
-并到 <a href = '{{ < relref "doc/administration/config-cheat-sheet.en-us.md" > }}'>配置备忘单</a>
-在 `docs/content/doc/advanced/config-cheat-sheet.en-us.md` 中找到
+并到 <a href = '{{ < relref "doc/administration/config-cheat-sheet.zh-cn.md" > }}'>配置备忘单</a>
+在 `docs/content/doc/advanced/config-cheat-sheet.zh-cn.md` 中找到
 
 ### 更改Logo
 

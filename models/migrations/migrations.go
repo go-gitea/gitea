@@ -493,6 +493,8 @@ var migrations = []Migration{
 	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
 	// v257 -> v258
 	NewMigration("Add Actions Artifact table", v1_20.CreateActionArtifactTable),
+	// v258 -> 259
+	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
 	// to modify later
 	NewMigration("Add size limit on repository", v1_20.AddSizeLimitOnRepo),
 }

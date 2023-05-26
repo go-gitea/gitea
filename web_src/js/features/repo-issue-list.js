@@ -2,6 +2,7 @@ import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
 import {toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
+import {Sortable} from 'sortablejs';
 
 function initRepoIssueListCheckboxes() {
   const $issueSelectAll = $('.issue-checkbox-all');
@@ -119,8 +120,67 @@ function initRepoIssueListAuthorDropdown() {
   };
 }
 
+function initPinRemoveButton() {
+  for (const button of document.getElementsByClassName('pinned-issue-unpin')) {
+    button.addEventListener('click', async (event) => {
+      const el = event.currentTarget;
+      const id = Number(el.getAttribute('data-issue-id'));
+
+      // Send the unpin request
+      const response = await fetch(el.getAttribute('data-unpin-url'), {
+        method: 'delete',
+        headers: {
+          'X-Csrf-Token': window.config.csrfToken,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (response.ok) {
+        // Delete the tooltip
+        el._tippy.destroy();
+        // Remove the Card
+        el.closest(`div.pinned-issue-card[data-issue-id="${id}"]`).remove();
+      }
+    });
+  }
+}
+
+async function pinMoveEnd(e) {
+  const url = e.item.getAttribute('data-move-url');
+  const id = Number(e.item.getAttribute('data-issue-id'));
+  await fetch(url, {
+    method: 'post',
+    body: JSON.stringify({id, position: e.newIndex + 1}),
+    headers: {
+      'X-Csrf-Token': window.config.csrfToken,
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
+function initIssuePinSort() {
+  const pinDiv = document.getElementById('issue-pins');
+
+  if (pinDiv === null) return;
+
+  // If the User is not a Repo Admin, we don't need to proceed
+  if (!pinDiv.hasAttribute('data-is-repo-admin')) return;
+
+  initPinRemoveButton();
+
+  // If only one issue pinned, we don't need to make this Sortable
+  if (pinDiv.children.length < 2) return;
+
+  new Sortable(pinDiv, {
+    group: 'shared',
+    animation: 150,
+    ghostClass: 'card-ghost',
+    onEnd: pinMoveEnd,
+  });
+}
+
 export function initRepoIssueList() {
   if (!document.querySelectorAll('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list').length) return;
   initRepoIssueListCheckboxes();
   initRepoIssueListAuthorDropdown();
+  initIssuePinSort();
 }
