@@ -743,9 +743,9 @@ func changeFilesCommitMessage(ctx *context.APIContext, files []*files_service.Ch
 		message += ctx.Tr("repo.editor.update", strings.Join(updateFiles, ", ")+"\n")
 	}
 	if len(deleteFiles) != 0 {
-		message += ctx.Tr("repo.editor.delete", strings.Join(deleteFiles, ", ")+"\n")
+		message += ctx.Tr("repo.editor.delete", strings.Join(deleteFiles, ", "))
 	}
-	return message
+	return strings.Trim(message, "\n")
 }
 
 // DeleteFile Delete a file in a repository
