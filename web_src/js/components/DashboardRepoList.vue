@@ -72,7 +72,7 @@
         <ul class="repo-owner-name-list">
           <li class="gt-df gt-ac" v-for="repo in repos" :key="repo.id">
             <a class="repo-list-link muted gt-df gt-ac gt-f1" :href="repo.link">
-              <svg-icon :name="repoIcon(repo)" :size="repoIconSize(repo)" class-name="repo-list-icon"/>
+              <svg-icon :name="repoIcon(repo)" :size="16" class-name="repo-list-icon"/>
               <div class="text truncate">{{ repo.full_name }}</div>
               <div v-if="repo.archived">
                 <svg-icon name="octicon-archive" :size="16"/>
@@ -423,10 +423,6 @@ const sfc = {
       return 'octicon-repo';
     },
 
-    repoIconSize(repo) {
-      return repo.mirror ? 14 : 16; // octicon-mirror does not have padding
-    },
-
     statusIcon(status) {
       return commitStatus[status].name;
     },
@@ -475,5 +471,13 @@ ul li:not(:last-child) {
 .repo-list-icon {
   min-width: 16px;
   margin-right: 2px;
+}
+
+/* octicon-mirror has no padding inside the SVG */
+.repo-list-icon.octicon-mirror {
+  width: 14px;
+  min-width: 14px;
+  margin-left: 1px;
+  margin-right: 3px;
 }
 </style>
