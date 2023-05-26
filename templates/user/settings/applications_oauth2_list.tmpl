@@ -31,7 +31,7 @@
 		{{.CsrfTokenHtml}}
 		<div class="field {{if .Err_AppName}}error{{end}}">
 			<label for="application-name">{{.locale.Tr "settings.oauth2_application_name"}}</label>
-			<input id="application-name" name="application_name" value="{{.application_name}}" required>
+			<input id="application-name" name="application_name" value="{{.application_name}}" required maxlength="255">
 		</div>
 		<div class="field {{if .Err_RedirectURI}}error{{end}}">
 			<label for="redirect-uri">{{.locale.Tr "settings.oauth2_redirect_uri"}}</label>
