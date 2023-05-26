@@ -45,7 +45,8 @@
 					<label for="name">{{.locale.Tr "settings.token_name"}}</label>
 					<input id="name" name="name" value="{{.name}}" autofocus required maxlength="255">
 				</div>
-				<div class="field gt-pl-2" style="padding-top: 5px">
+				<div class="field">
+					<label>{{.locale.Tr "settings.repo_and_org_access"}}</label>
 					<label style="cursor: pointer">
 						<input class="enable-system" type="radio" name="scope" value="{{$.AccessTokenScopePublicOnly}}" style="margin: 4px 5px 0 0">
 						{{.locale.Tr "settings.permissions_public_only"}}
