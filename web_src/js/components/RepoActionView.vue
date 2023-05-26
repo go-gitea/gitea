@@ -118,6 +118,7 @@ import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
 import AnsiToHTML from 'ansi-to-html';
 import {toggleElem} from '../utils/dom.js';
+import {getCurrentLocale} from '../utils.js';
 
 const {csrfToken} = window.config;
 
@@ -286,12 +287,11 @@ const sfc = {
       div.append(lineNumber);
 
       // for "Show timestamps"
-      const logTimeStamp = document.createElement('relative-time');
+      const logTimeStamp = document.createElement('span');
       logTimeStamp.className = 'log-time-stamp';
       const date = new Date(parseFloat(line.timestamp * 1000));
-      logTimeStamp.setAttribute('datetime', date);
-      logTimeStamp.setAttribute('format', 'datetime');
-      logTimeStamp.setAttribute('time-zone-name', 'short');
+      const timeStamp = date.toLocaleString(getCurrentLocale(), {timeZoneName: 'short'});
+      logTimeStamp.textContent = timeStamp;
       toggleElem(logTimeStamp, this.timeVisible.stamp);
       // for "Show log duration"
       const logTimeDuration = document.createElement('span');
