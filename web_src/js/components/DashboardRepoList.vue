@@ -130,7 +130,7 @@
             <a class="repo-list-link muted gt-df gt-ac gt-f1" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
               <div class="text truncate">{{ org.name }}</div>
-              <div>
+              <div><!-- div to prevent underline of label on hover -->
                 <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
                 </span>
