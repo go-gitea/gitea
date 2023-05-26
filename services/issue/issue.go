@@ -208,7 +208,10 @@ func AddCodeownerReviewers(ctx context.Context, pr *issues_model.PullRequest, re
 		return err
 	}
 
-	if codeownersContents != nil {
+	err = IsCodeownersWithinSizeLimit(codeownersContents)
+	if err != nil {
+		log.Warn("GetCodeownersFileContents [repo_id: %d, pr_id: %d]: %v", pr.Issue.RepoID, pr.ID, err)
+	} else if codeownersContents != nil {
 		changedFiles, err := gitRepo.GetFilesChangedBetween(pr.MergeBase, pr.HeadCommitID)
 		if err != nil {
 			log.Error("git.Repository.GetFilesChangedBetween: %v", err)

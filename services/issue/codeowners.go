@@ -250,7 +250,6 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 // FindCodeownersFile gets the CODEOWNERS file from the top level,'.gitea', or 'docs' directory of the given repository.
 func GetCodeownersFileContents(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) ([]byte, error) {
 	possibleDirectories := []string{"", ".gitea/", "docs/"} // accepted directories to search for the CODEOWNERS file
-	byteLimit := 3 * 1024 * 1024                            // 3 MB limit, per GitHub specs
 
 	commit, err := gitRepo.GetCommit(pr.BaseBranch)
 	if err != nil {
@@ -272,17 +271,20 @@ func GetCodeownersFileContents(ctx context.Context, pr *issues_model.PullRequest
 		if err != nil {
 			return nil, err
 		}
-
-		if len(contentBytes) >= byteLimit {
-			log.Info("GetCodeownersFileContents [repo_id: %d, pr_id: %d, git_tree_entry_id: %d, content_num_bytes: %d, byte_limit: %d]: "+
-				"CODEOWNERS file exceeds accepted size limit", pr.Issue.RepoID, pr.ID, entry.ID, len(contentBytes), byteLimit)
-			return nil, nil
-		}
 		return contentBytes, nil
 	}
 	log.Warn("GetCodeownersFileContents [repo_id: %d, git_tree_entry_id: %d]: CODEOWNERS file found is not a regular file", pr.Issue.RepoID, entry.ID)
 
 	return nil, nil
+}
+
+// IsCodeownersWithinSizeLimit returns an error if the file is too big. Nil if acceptable.
+func IsCodeownersWithinSizeLimit(contentBytes []byte) error {
+	byteLimit := 3 * 1024 * 1024 // 3 MB limit, per GitHub specs
+	if len(contentBytes) >= byteLimit {
+		return errors.New(fmt.Sprintf("CODEOWNERS file exceeds size limit. Is %d bytes but must be under %d", len(contentBytes), byteLimit))
+	}
+	return nil
 }
 
 // GetCodeownersGitTreeEntry gets the git tree entry of the CODEOWNERS file, given an array of directories to search in. Nil if not found.
