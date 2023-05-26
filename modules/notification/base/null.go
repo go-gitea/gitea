@@ -10,6 +10,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/repository"
 )
 
@@ -161,11 +162,11 @@ func (*NullNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model.U
 }
 
 // NotifyCreateRef notifies branch or tag creation to notifiers
-func (*NullNotifier) NotifyCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
+func (*NullNotifier) NotifyCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
 }
 
 // NotifyDeleteRef notifies branch or tag deletion to notifiers
-func (*NullNotifier) NotifyDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (*NullNotifier) NotifyDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 }
 
 // NotifyRenameRepository places a place holder function
@@ -181,11 +182,11 @@ func (*NullNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user_mod
 }
 
 // NotifySyncCreateRef places a place holder function
-func (*NullNotifier) NotifySyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
+func (*NullNotifier) NotifySyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
 }
 
 // NotifySyncDeleteRef places a place holder function
-func (*NullNotifier) NotifySyncDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (*NullNotifier) NotifySyncDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 }
 
 // NotifyRepoPendingTransfer places a place holder function

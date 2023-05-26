@@ -10,6 +10,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
@@ -316,16 +317,16 @@ func NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_
 }
 
 // NotifyCreateRef notifies branch or tag creation to notifiers
-func NotifyCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
+func NotifyCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
 	for _, notifier := range notifiers {
-		notifier.NotifyCreateRef(ctx, pusher, repo, refType, refFullName, refID)
+		notifier.NotifyCreateRef(ctx, pusher, repo, refFullName, refID)
 	}
 }
 
 // NotifyDeleteRef notifies branch or tag deletion to notifiers
-func NotifyDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func NotifyDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 	for _, notifier := range notifiers {
-		notifier.NotifyDeleteRef(ctx, pusher, repo, refType, refFullName)
+		notifier.NotifyDeleteRef(ctx, pusher, repo, refFullName)
 	}
 }
 
@@ -337,16 +338,16 @@ func NotifySyncPushCommits(ctx context.Context, pusher *user_model.User, repo *r
 }
 
 // NotifySyncCreateRef notifies branch or tag creation to notifiers
-func NotifySyncCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
+func NotifySyncCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
 	for _, notifier := range notifiers {
-		notifier.NotifySyncCreateRef(ctx, pusher, repo, refType, refFullName, refID)
+		notifier.NotifySyncCreateRef(ctx, pusher, repo, refFullName, refID)
 	}
 }
 
 // NotifySyncDeleteRef notifies branch or tag deletion to notifiers
-func NotifySyncDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func NotifySyncDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 	for _, notifier := range notifiers {
-		notifier.NotifySyncDeleteRef(ctx, pusher, repo, refType, refFullName)
+		notifier.NotifySyncDeleteRef(ctx, pusher, repo, refFullName)
 	}
 }
 
