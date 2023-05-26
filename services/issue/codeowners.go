@@ -44,7 +44,6 @@ func ParseCodeowners(changedFiles []string, codeownersContents []byte) ([]string
 	log.Trace("Final result of Codeowner Teams: " + fmt.Sprint(codeOwnerTeams))
 
 	return codeownerIndividuals, codeOwnerTeams, err
-
 }
 
 // GetOwners returns the list of owners (including teams) for a single file. It matches from our globMap
@@ -87,7 +86,6 @@ func SeparateOwnerAndTeam(codeownersList []string) ([]string, []string) {
 	}
 
 	return codeownerIndividuals, codeOwnerTeams
-
 }
 
 // Removing duplicates has to be done manually in Golang
@@ -103,7 +101,6 @@ func RemoveDuplicateString(duplicatesPresent []string) []string {
 	}
 
 	return duplicatesRemoved
-
 }
 
 func ParseCodeownerBytes(codeownerBytes []byte) ([]Codeowners, error) {
@@ -122,86 +119,10 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 
 		nextLine := scanner.Text()
 		lineCounter++
-
-		// strings.Fields() splits the string by whitespace
-		splitStrings := strings.Fields(nextLine)
-		var globString string
-		var globString2 string
-		var userStopIndex int
-		var currFileUsers []string
-
-		for i := 0; i < len(splitStrings); i++ {
-
-			// fmt.Println(splitStrings[i])
-
-			// The first two checks here handle comments
-			if strings.Compare(splitStrings[i], "#") == 0 {
-				break
-			} else if strings.Contains(splitStrings[i], "#") {
-				commentStrings := strings.Split(splitStrings[i], "#")
-				if len(commentStrings[0]) > 0 {
-					if i == 0 {
-						globString = commentStrings[0]
-					} else {
-						splitStrings[i] = commentStrings[0]
-						userStopIndex = i
-					}
-				}
-				break
-
-			} else if i == 0 {
-				globString = splitStrings[i]
-
-				// Note the logic here for mapping from Codeowners format to our current globbing library
-				if len(globString) < 1 {
-					// Can we handle a situation where the only file type is /?
-					// I don't think so because I think that they would just have to use *
-				} else if len(globString) == 1 {
-					if strings.Compare(globString[0:1], "*") == 0 {
-						globString = "**/**/**"
-					}
-				} else if strings.Compare(globString[0:1], "/") == 0 {
-					globString = globString[1:] /*+ "**"*/
-				} else if strings.Compare(globString[0:1], "*") == 0 &&
-					strings.Compare(globString[1:2], "*") != 0 {
-					globString = "**/" + globString
-				} else if strings.Compare(globString[0:1], "*") != 0 {
-					globString = "**/" + globString
-				} else if strings.Compare(globString[(len(globString)-1):], "/") == 0 {
-					globString = "**/" + globString + "**"
-				}
-
-				if strings.Compare(globString[len(globString)-1:], "/") != 0 &&
-					strings.Compare(globString[len(globString)-1:], "*") != 0 {
-					globString2 = globString + "/**"
-				} else if strings.Compare(globString[len(globString)-1:], "/") == 0 {
-					globString += "**"
-				}
-
-			} else {
-				userStopIndex = i
-			}
-
-		}
-
-		if userStopIndex > 0 {
-			currFileUsers = splitStrings[1 : userStopIndex+1]
-		}
+		globString, globString2, currFileUsers := ParseCodeownersLine(nextLine)
 
 		if len(currFileUsers) > 0 {
-			validRule := true
-
-			for _, user := range currFileUsers {
-				if !glob.Globexp("@*").MatchString(user) {
-					if !glob.Globexp("@*/*").MatchString(user) {
-						if !glob.Globexp("*@*.*").MatchString(user) {
-							validRule = false
-						}
-					}
-				}
-			}
-
-			if validRule {
+			if IsValidCodeownersLine(currFileUsers) {
 				newCodeowner := Codeowners{
 					glob:   globString,
 					owners: currFileUsers,
@@ -244,12 +165,90 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 
 	log.Trace("Parsed map from codeowners file: " + fmt.Sprint(globMap))
 	return globMap, scanner.Err()
-
 }
 
-// FindCodeownersFile gets the CODEOWNERS file from the top level,'.gitea', or 'docs' directory of the given repository.
+// ParseCodeownersLine extracts two potential globbing rule strings and the owners associated with those rules for a given line
+// of a CODEOWNERS file.
+func ParseCodeownersLine(line string) (globString, globString2 string, currFileUsers []string) {
+	// strings.Fields() splits the string by whitespace
+	splitStrings := strings.Fields(line)
+	var userStopIndex int
+
+	for i := 0; i < len(splitStrings); i++ {
+
+		// The first two checks here handle comments
+		if strings.Compare(splitStrings[i], "#") == 0 {
+			break
+		} else if strings.Contains(splitStrings[i], "#") {
+			commentStrings := strings.Split(splitStrings[i], "#")
+			if len(commentStrings[0]) > 0 {
+				if i == 0 {
+					globString = commentStrings[0]
+				} else {
+					splitStrings[i] = commentStrings[0]
+					userStopIndex = i
+				}
+			}
+			break
+		} else if i == 0 {
+			globString = splitStrings[i]
+
+			// Note the logic here for mapping from Codeowners format to our current globbing library
+			if len(globString) < 1 {
+				// Can we handle a situation where the only file type is /?
+				// I don't think so because I think that they would just have to use *
+			} else if len(globString) == 1 {
+				if strings.Compare(globString[0:1], "*") == 0 {
+					globString = "**/**/**"
+				}
+			} else if strings.Compare(globString[0:1], "/") == 0 {
+				globString = globString[1:] /*+ "**"*/
+			} else if strings.Compare(globString[0:1], "*") == 0 &&
+				strings.Compare(globString[1:2], "*") != 0 {
+				globString = "**/" + globString
+			} else if strings.Compare(globString[0:1], "*") != 0 {
+				globString = "**/" + globString
+			} else if strings.Compare(globString[(len(globString)-1):], "/") == 0 {
+				globString = "**/" + globString + "**"
+			}
+
+			if strings.Compare(globString[len(globString)-1:], "/") != 0 &&
+				strings.Compare(globString[len(globString)-1:], "*") != 0 {
+				globString2 = globString + "/**"
+			} else if strings.Compare(globString[len(globString)-1:], "/") == 0 {
+				globString += "**"
+			}
+		} else {
+			userStopIndex = i
+		}
+	}
+
+	if userStopIndex > 0 {
+		currFileUsers = splitStrings[1 : userStopIndex+1]
+	}
+
+	return globString, globString2, currFileUsers
+}
+
+// IsValidCodeownersLine returns true if the given line of the CODEOWNERS file is valid syntactically (after the file pattern)
+func IsValidCodeownersLine(currFileUsers []string) bool {
+	for _, user := range currFileUsers {
+		if !glob.Globexp("@*").MatchString(user) {
+			if !glob.Globexp("@*/*").MatchString(user) {
+				if !glob.Globexp("*@*.*").MatchString(user) {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
+// GetCodeownersFileContents gets the CODEOWNERS file from the top level,'.gitea', or 'docs' directory of the
+// given repository. It uses whichever is found first if there are multiple (there should not be)
 func GetCodeownersFileContents(ctx context.Context, commit *git.Commit, gitRepo *git.Repository) ([]byte, error) {
-	possibleDirectories := []string{"", ".gitea/", "docs/"} // accepted directories to search for the CODEOWNERS file
+	// Accepted directories to search for the CODEOWNERS file
+	possibleDirectories := []string{"", ".gitea/", "docs/"}
 
 	entry := GetCodeownersGitTreeEntry(commit, possibleDirectories)
 	if entry == nil {
@@ -322,12 +321,12 @@ func GetUserByNameOrEmail(ctx context.Context, nameOrEmail string, repo *repo_mo
 	if strings.Contains(nameOrEmail, "@") {
 		reviewer, err = user_model.GetUserByEmail(ctx, nameOrEmail)
 		if err != nil {
-			log.Info("GetValidUserReviewers [repo_id: %d, owner_email: %s]: user owner in CODEOWNERS file could not be found by email", repo.ID, nameOrEmail)
+			log.Info("GetUserByNameOrEmail [repo_id: %d, owner_email: %s]: user owner in CODEOWNERS file could not be found by email", repo.ID, nameOrEmail)
 		}
 	} else {
 		reviewer, err = user_model.GetUserByName(ctx, nameOrEmail)
 		if err != nil {
-			log.Info("GetValidUserReviewers [repo_id: %d, owner_username: %s]: user owner in CODEOWNERS file could not be found by name", repo.ID, nameOrEmail)
+			log.Info("GetUserByNameOrEmail [repo_id: %d, owner_username: %s]: user owner in CODEOWNERS file could not be found by name", repo.ID, nameOrEmail)
 		}
 	}
 	return reviewer, err
@@ -362,10 +361,10 @@ func IsValidUserCodeowner(err error, ctx context.Context, reviewer *user_model.U
 		if UserHasWritePermissions(ctx, repo, reviewer) {
 			return nil
 		} else {
-			log.Info("GetValidUserReviewers [repo_id: %d, user_id: %d]: user reviewer does not have write permissions and cannot be a codeowner", repo.ID, reviewer.ID)
+			log.Info("IsValidUserCodeowner [repo_id: %d, user_id: %d]: user reviewer does not have write permissions and cannot be a codeowner", repo.ID, reviewer.ID)
 		}
 	} else {
-		log.Info("GetValidUserReviewers [repo_id: %d, user_id: %d]: user reviewer is not a valid review request", repo.ID, reviewer.ID)
+		log.Info("IsValidUserCodeowner [repo_id: %d, user_id: %d]: user reviewer is not a valid review request", repo.ID, reviewer.ID)
 	}
 	return errors.New(fmt.Sprintf("User %s is not a valid codeowner in the given repository", reviewer.Name))
 }
@@ -378,10 +377,10 @@ func IsValidTeamCodeowner(ctx context.Context, teamReviewer *organization_model.
 		if TeamHasWritePermissions(ctx, repo, teamReviewer) {
 			return nil
 		} else {
-			log.Info("GetValidTeamReviewers [repo_id: %d, team_id: %d]: team reviewer does not have write permissions and cannot be a codeowner", repo.ID, teamReviewer.ID)
+			log.Info("IsValidTeamCodeowner [repo_id: %d, team_id: %d]: team reviewer does not have write permissions and cannot be a codeowner", repo.ID, teamReviewer.ID)
 		}
 	} else {
-		log.Info("GetValidTeamReviewers [repo_id: %d, team_id: %d]: team reviewer is not a valid review request", repo.ID, teamReviewer.ID)
+		log.Info("IsValidTeamCodeowner [repo_id: %d, team_id: %d]: team reviewer is not a valid review request", repo.ID, teamReviewer.ID)
 	}
 	return errors.New(fmt.Sprintf("Team %s is not a valid codeowner in the given repository", teamReviewer.Name))
 }
