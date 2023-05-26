@@ -296,11 +296,11 @@ type swaggerFileResponse struct {
 	Body api.FileResponse `json:"body"`
 }
 
-// FileListResponse
-// swagger:response FileListResponse
-type swaggerFileListResponse struct {
+// FilesResponse
+// swagger:response FilesResponse
+type swaggerFilesResponse struct {
 	// in: body
-	Body []api.FileResponse `json:"body"`
+	Body api.FilesResponse `json:"body"`
 }
 
 // ContentsResponse

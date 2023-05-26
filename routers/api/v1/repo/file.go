@@ -435,7 +435,7 @@ func ChangeFiles(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/ChangeFilesOptions"
 	// responses:
 	//   "201":
-	//     "$ref": "#/responses/FileListResponse"
+	//     "$ref": "#/responses/FilesResponse"
 	//   "403":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -583,7 +583,16 @@ func CreateFile(ctx *context.APIContext) {
 	if filesResponse, err := createOrUpdateFiles(ctx, opts); err != nil {
 		handleCreateOrUpdateFileError(ctx, err)
 	} else {
-		ctx.JSON(http.StatusCreated, filesResponse[0])
+		content := &api.ContentsResponse{}
+		if len(filesResponse.Files) > 0 {
+			content = filesResponse.Files[0]
+		}
+		fileResponse := &api.FileResponse{
+			Content:      content,
+			Commit:       filesResponse.Commit,
+			Verification: filesResponse.Verification,
+		}
+		ctx.JSON(http.StatusCreated, fileResponse)
 	}
 }
 
@@ -676,7 +685,16 @@ func UpdateFile(ctx *context.APIContext) {
 	if filesResponse, err := createOrUpdateFiles(ctx, opts); err != nil {
 		handleCreateOrUpdateFileError(ctx, err)
 	} else {
-		ctx.JSON(http.StatusOK, filesResponse[0])
+		content := &api.ContentsResponse{}
+		if len(filesResponse.Files) > 0 {
+			content = filesResponse.Files[0]
+		}
+		fileResponse := &api.FileResponse{
+			Content:      content,
+			Commit:       filesResponse.Commit,
+			Verification: filesResponse.Verification,
+		}
+		ctx.JSON(http.StatusOK, fileResponse)
 	}
 }
 
@@ -699,7 +717,7 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 }
 
 // Called from both CreateFile or UpdateFile to handle both
-func createOrUpdateFiles(ctx *context.APIContext, opts *files_service.ChangeRepoFilesOptions) ([]*api.FileResponse, error) {
+func createOrUpdateFiles(ctx *context.APIContext, opts *files_service.ChangeRepoFilesOptions) (*api.FilesResponse, error) {
 	if !canWriteFiles(ctx, opts.OldBranch) {
 		return nil, repo_model.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
@@ -854,7 +872,16 @@ func DeleteFile(ctx *context.APIContext) {
 		}
 		ctx.Error(http.StatusInternalServerError, "DeleteFile", err)
 	} else {
-		ctx.JSON(http.StatusOK, filesResponse[0]) // FIXME on APIv2: return http.StatusNoContent
+		content := &api.ContentsResponse{}
+		if len(filesResponse.Files) > 0 {
+			content = filesResponse.Files[0]
+		}
+		fileResponse := &api.FileResponse{
+			Content:      content,
+			Commit:       filesResponse.Commit,
+			Verification: filesResponse.Verification,
+		}
+		ctx.JSON(http.StatusOK, fileResponse) // FIXME on APIv2: return http.StatusNoContent
 	}
 }
 

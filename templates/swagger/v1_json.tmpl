@@ -4102,7 +4102,7 @@
         ],
         "responses": {
           "201": {
-            "$ref": "#/responses/FileListResponse"
+            "$ref": "#/responses/FilesResponse"
           },
           "403": {
             "$ref": "#/responses/error"
@@ -18460,6 +18460,26 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "FilesResponse": {
+      "description": "FilesResponse contains information about multiple files from a repo",
+      "type": "object",
+      "properties": {
+        "commit": {
+          "$ref": "#/definitions/FileCommitResponse"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContentsResponse"
+          },
+          "x-go-name": "Files"
+        },
+        "verification": {
+          "$ref": "#/definitions/PayloadCommitVerification"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "GPGKey": {
       "description": "GPGKey a user GPG key to sign commit and tag in repository",
       "type": "object",
@@ -22124,19 +22144,16 @@
         "$ref": "#/definitions/FileDeleteResponse"
       }
     },
-    "FileListResponse": {
-      "description": "FileListResponse",
-      "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/FileResponse"
-        }
-      }
-    },
     "FileResponse": {
       "description": "FileResponse",
       "schema": {
         "$ref": "#/definitions/FileResponse"
+      }
+    },
+    "FilesResponse": {
+      "description": "FilesResponse",
+      "schema": {
+        "$ref": "#/definitions/FilesResponse"
       }
     },
     "GPGKey": {

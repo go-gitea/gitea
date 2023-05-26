@@ -11,7 +11,7 @@ import (
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
-func createFileInBranch(user *user_model.User, repo *repo_model.Repository, treePath, branchName, content string) ([]*api.FileResponse, error) {
+func createFileInBranch(user *user_model.User, repo *repo_model.Repository, treePath, branchName, content string) (*api.FilesResponse, error) {
 	opts := &files_service.ChangeRepoFilesOptions{
 		Files: []*files_service.ChangeRepoFile{
 			{
@@ -27,6 +27,6 @@ func createFileInBranch(user *user_model.User, repo *repo_model.Repository, tree
 	return files_service.ChangeRepoFiles(git.DefaultContext, repo, user, opts)
 }
 
-func createFile(user *user_model.User, repo *repo_model.Repository, treePath string) ([]*api.FileResponse, error) {
+func createFile(user *user_model.User, repo *repo_model.Repository, treePath string) (*api.FilesResponse, error) {
 	return createFileInBranch(user, repo, treePath, repo.DefaultBranch, "This is a NEW file")
 }

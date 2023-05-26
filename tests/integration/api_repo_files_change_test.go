@@ -102,27 +102,25 @@ func TestAPIChangeFiles(t *testing.T) {
 			updateLastCommit, _ := gitRepo.GetCommitByPath(updateTreePath)
 			expectedCreateFileResponse := getExpectedFileResponseForCreate(fmt.Sprintf("%v/%v", user2.Name, repo1.Name), commitID, createTreePath, createLasCommit.ID.String())
 			expectedUpdateFileResponse := getExpectedFileResponseForUpdate(commitID, updateTreePath, updateLastCommit.ID.String())
-			var fileResponse []api.FileResponse
-			DecodeJSON(t, resp, &fileResponse)
+			var filesResponse api.FilesResponse
+			DecodeJSON(t, resp, &filesResponse)
 
-			// test create file
-			assert.EqualValues(t, expectedCreateFileResponse.Content, fileResponse[0].Content)
-			assert.EqualValues(t, expectedCreateFileResponse.Commit.SHA, fileResponse[0].Commit.SHA)
-			assert.EqualValues(t, expectedCreateFileResponse.Commit.HTMLURL, fileResponse[0].Commit.HTMLURL)
-			assert.EqualValues(t, expectedCreateFileResponse.Commit.Author.Email, fileResponse[0].Commit.Author.Email)
-			assert.EqualValues(t, expectedCreateFileResponse.Commit.Author.Name, fileResponse[0].Commit.Author.Name)
-			assert.EqualValues(t, expectedCreateFileResponse.Commit.Committer.Email, fileResponse[0].Commit.Committer.Email)
-			assert.EqualValues(t, expectedCreateFileResponse.Commit.Committer.Name, fileResponse[0].Commit.Committer.Name)
-			// test update file
-			assert.EqualValues(t, expectedUpdateFileResponse.Content, fileResponse[1].Content)
-			assert.EqualValues(t, expectedUpdateFileResponse.Commit.SHA, fileResponse[1].Commit.SHA)
-			assert.EqualValues(t, expectedUpdateFileResponse.Commit.HTMLURL, fileResponse[1].Commit.HTMLURL)
-			assert.EqualValues(t, expectedUpdateFileResponse.Commit.Committer.Email, fileResponse[1].Commit.Author.Email)
-			assert.EqualValues(t, expectedUpdateFileResponse.Commit.Committer.Name, fileResponse[1].Commit.Author.Name)
+			// check create file
+			assert.EqualValues(t, expectedCreateFileResponse.Content, filesResponse.Files[0])
+
+			// check update file
+			assert.EqualValues(t, expectedUpdateFileResponse.Content, filesResponse.Files[1])
+
+			// test commit info
+			assert.EqualValues(t, expectedCreateFileResponse.Commit.SHA, filesResponse.Commit.SHA)
+			assert.EqualValues(t, expectedCreateFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
+			assert.EqualValues(t, expectedCreateFileResponse.Commit.Author.Email, filesResponse.Commit.Author.Email)
+			assert.EqualValues(t, expectedCreateFileResponse.Commit.Author.Name, filesResponse.Commit.Author.Name)
+			assert.EqualValues(t, expectedCreateFileResponse.Commit.Committer.Email, filesResponse.Commit.Committer.Email)
+			assert.EqualValues(t, expectedCreateFileResponse.Commit.Committer.Name, filesResponse.Commit.Committer.Name)
 
 			// test delete file
-			assert.NotNil(t, fileResponse[2])
-			assert.Nil(t, fileResponse[2].Content)
+			assert.Nil(t, filesResponse.Files[2])
 
 			gitRepo.Close()
 		}
@@ -143,25 +141,23 @@ func TestAPIChangeFiles(t *testing.T) {
 		url := fmt.Sprintf("/api/v1/repos/%s/%s/contents?token=%s", user2.Name, repo1.Name, token2)
 		req := NewRequestWithJSON(t, "POST", url, &changeFilesOptions)
 		resp := MakeRequest(t, req, http.StatusCreated)
-		var fileResponse []api.FileResponse
-		DecodeJSON(t, resp, &fileResponse)
+		var filesResponse api.FilesResponse
+		DecodeJSON(t, resp, &filesResponse)
 		expectedCreateSHA := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
 		expectedCreateHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/new_branch/new/file%d.txt", fileID)
 		expectedCreateDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/new/file%d.txt", fileID)
 		expectedUpdateSHA := "08bd14b2e2852529157324de9c226b3364e76136"
 		expectedUpdateHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/new_branch/update/file%d.txt", fileID)
 		expectedUpdateDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/update/file%d.txt", fileID)
-		assert.EqualValues(t, expectedCreateSHA, fileResponse[0].Content.SHA)
-		assert.EqualValues(t, expectedCreateHTMLURL, *fileResponse[0].Content.HTMLURL)
-		assert.EqualValues(t, expectedCreateDownloadURL, *fileResponse[0].Content.DownloadURL)
-		assert.EqualValues(t, changeFilesOptions.Message+"\n", fileResponse[0].Commit.Message)
-		assert.EqualValues(t, expectedUpdateSHA, fileResponse[1].Content.SHA)
-		assert.EqualValues(t, expectedUpdateHTMLURL, *fileResponse[1].Content.HTMLURL)
-		assert.EqualValues(t, expectedUpdateDownloadURL, *fileResponse[1].Content.DownloadURL)
-		assert.EqualValues(t, changeFilesOptions.Message+"\n", fileResponse[1].Commit.Message)
-		assert.NotNil(t, fileResponse[2])
-		assert.Nil(t, fileResponse[2].Content)
-		assert.EqualValues(t, changeFilesOptions.Message+"\n", fileResponse[2].Commit.Message)
+		assert.EqualValues(t, expectedCreateSHA, filesResponse.Files[0].SHA)
+		assert.EqualValues(t, expectedCreateHTMLURL, *filesResponse.Files[0].HTMLURL)
+		assert.EqualValues(t, expectedCreateDownloadURL, *filesResponse.Files[0].DownloadURL)
+		assert.EqualValues(t, expectedUpdateSHA, filesResponse.Files[1].SHA)
+		assert.EqualValues(t, expectedUpdateHTMLURL, *filesResponse.Files[1].HTMLURL)
+		assert.EqualValues(t, expectedUpdateDownloadURL, *filesResponse.Files[1].DownloadURL)
+		assert.Nil(t, filesResponse.Files[2])
+
+		assert.EqualValues(t, changeFilesOptions.Message+"\n", filesResponse.Commit.Message)
 
 		// Test updating a file and renaming it
 		changeFilesOptions = getChangeFilesOptions()
@@ -174,13 +170,13 @@ func TestAPIChangeFiles(t *testing.T) {
 		changeFilesOptions.Files[0].Path = "rename/" + updateTreePath
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions)
 		resp = MakeRequest(t, req, http.StatusCreated)
-		DecodeJSON(t, resp, &fileResponse)
+		DecodeJSON(t, resp, &filesResponse)
 		expectedUpdateSHA = "08bd14b2e2852529157324de9c226b3364e76136"
 		expectedUpdateHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/master/rename/update/file%d.txt", fileID)
 		expectedUpdateDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
-		assert.EqualValues(t, expectedUpdateSHA, fileResponse[0].Content.SHA)
-		assert.EqualValues(t, expectedUpdateHTMLURL, *fileResponse[0].Content.HTMLURL)
-		assert.EqualValues(t, expectedUpdateDownloadURL, *fileResponse[0].Content.DownloadURL)
+		assert.EqualValues(t, expectedUpdateSHA, filesResponse.Files[0].SHA)
+		assert.EqualValues(t, expectedUpdateHTMLURL, *filesResponse.Files[0].HTMLURL)
+		assert.EqualValues(t, expectedUpdateDownloadURL, *filesResponse.Files[0].DownloadURL)
 
 		// Test updating a file without a message
 		changeFilesOptions = getChangeFilesOptions()
@@ -197,11 +193,9 @@ func TestAPIChangeFiles(t *testing.T) {
 		createFile(user2, repo1, deleteTreePath)
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions)
 		resp = MakeRequest(t, req, http.StatusCreated)
-		DecodeJSON(t, resp, &fileResponse)
+		DecodeJSON(t, resp, &filesResponse)
 		expectedMessage := fmt.Sprintf("Add %v\nUpdate %v\nDelete %v\n", createTreePath, updateTreePath, deleteTreePath)
-		for _, response := range fileResponse {
-			assert.EqualValues(t, expectedMessage, response.Commit.Message)
-		}
+		assert.EqualValues(t, expectedMessage, filesResponse.Commit.Message)
 
 		// Test updating a file with the wrong SHA
 		fileID++

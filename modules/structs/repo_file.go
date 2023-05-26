@@ -154,6 +154,13 @@ type FileResponse struct {
 	Verification *PayloadCommitVerification `json:"verification"`
 }
 
+// FilesResponse contains information about multiple files from a repo
+type FilesResponse struct {
+	Files        []*ContentsResponse        `json:"files"`
+	Commit       *FileCommitResponse        `json:"commit"`
+	Verification *PayloadCommitVerification `json:"verification"`
+}
+
 // FileDeleteResponse contains information about a repo's file that was deleted
 type FileDeleteResponse struct {
 	Content      interface{}                `json:"content"` // to be set to nil

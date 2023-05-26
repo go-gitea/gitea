@@ -17,6 +17,22 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, branch string, treeNames []string) (*api.FilesResponse, error) {
+	files := []*api.ContentsResponse{}
+	for _, file := range treeNames {
+		fileContents, _ := GetContents(ctx, repo, file, branch, false) // ok if fails, then will be nil
+		files = append(files, fileContents)
+	}
+	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
+	verification := GetPayloadCommitVerification(ctx, commit)
+	filesResponse := &api.FilesResponse{
+		Files:        files,
+		Commit:       fileCommitResponse,
+		Verification: verification,
+	}
+	return filesResponse, nil
+}
+
 // GetFileResponseFromCommit Constructs a FileResponse from a Commit object
 func GetFileResponseFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, branch, treeName string) (*api.FileResponse, error) {
 	fileContents, _ := GetContents(ctx, repo, treeName, branch, false) // ok if fails, then will be nil
