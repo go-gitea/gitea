@@ -2,16 +2,18 @@ name: compliance
 
 on:
   pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
+  files-changed:
+    uses: ./.github/workflows/files-changed.yml
+
   lint-backend:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -24,6 +26,8 @@ jobs:
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
   lint-go-windows:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -38,6 +42,8 @@ jobs:
           GOOS: windows
           GOARCH: amd64
   lint-go-gogit:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -50,6 +56,8 @@ jobs:
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
   checks-backend:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -60,6 +68,8 @@ jobs:
       - run: make deps-backend deps-tools
       - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
   frontend:
+    if: needs.files-changed.outputs.frontend == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -70,6 +80,8 @@ jobs:
       - run: make lint-frontend
       - run: make checks-frontend
   backend:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
