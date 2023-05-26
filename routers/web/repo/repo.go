@@ -156,7 +156,7 @@ func Create(ctx *context.Context) {
 	ctx.Data["Readmes"] = repo_module.Readmes
 	ctx.Data["readme"] = "Default"
 	ctx.Data["private"] = getRepoPrivate(ctx)
-	ctx.Data["ForcedPrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["ForceVisibility"] = setting.Repository.ForceVisibility
 	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
 
 	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))

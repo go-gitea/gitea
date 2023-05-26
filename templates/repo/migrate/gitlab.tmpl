@@ -99,10 +99,10 @@
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.visibility"}}</label>
 						<div class="ui checkbox">
-							{{if eq .ForcedPrivate "private"}}
+							{{if eq .ForceVisibility "private"}}
 								<input name="private" type="checkbox" checked readonly>
 								<label>{{.locale.Tr "repo.visibility_helper_forced" | Safe}}</label>
-							{{else if eq .ForcedPrivate "public"}}
+							{{else if eq .ForceVisibility "public"}}
 								<input name="private" type="checkbox" readonly>
 								<label>{{.locale.Tr "repo.visibility_helper_forced_public" | Safe}}</label>
 							{{else}}

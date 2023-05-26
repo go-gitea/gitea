@@ -28,7 +28,7 @@ var (
 		DetectedCharsetsOrder                   []string
 		DetectedCharsetScore                    map[string]int `ini:"-"`
 		AnsiCharset                             string
-		ForcePrivate                            string
+		ForceVisibility                         string
 		DefaultPrivate                          string
 		DefaultPushCreatePrivate                bool
 		MaxCreationLimit                        int
@@ -146,7 +146,7 @@ var (
 		},
 		DetectedCharsetScore:                    map[string]int{},
 		AnsiCharset:                             "",
-		ForcePrivate:                            "off",
+		ForceVisibility:                         "off",
 		DefaultPrivate:                          RepoCreatingLastUserVisibility,
 		DefaultPushCreatePrivate:                true,
 		MaxCreationLimit:                        -1,
