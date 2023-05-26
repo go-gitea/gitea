@@ -166,7 +166,7 @@ func Init() {
 		handler := func(items ...*IndexerData) (unhandled []*IndexerData) {
 			idx, err := indexer.get()
 			if idx == nil || err != nil {
-				log.Error("Codes indexer handler: unable to get indexer!")
+				log.Warn("Codes indexer handler: indexer is not ready, retry later.")
 				return items
 			}
 
@@ -201,7 +201,7 @@ func Init() {
 			return unhandled
 		}
 
-		indexerQueue = queue.CreateUniqueQueue("code_indexer", handler)
+		indexerQueue = queue.CreateUniqueQueue(ctx, "code_indexer", handler)
 		if indexerQueue == nil {
 			log.Fatal("Unable to create codes indexer queue")
 		}
@@ -259,7 +259,7 @@ func Init() {
 		indexer.set(rIndexer)
 
 		// Start processing the queue
-		go graceful.GetManager().RunWithShutdownFns(indexerQueue.Run)
+		go graceful.GetManager().RunWithCancel(indexerQueue)
 
 		if populate {
 			go graceful.GetManager().RunWithShutdownContext(populateRepoIndexer)

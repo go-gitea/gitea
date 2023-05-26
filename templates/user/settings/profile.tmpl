@@ -12,14 +12,14 @@
 						<span class="text red gt-hidden" id="name-change-prompt"> {{.locale.Tr "settings.change_username_prompt"}}</span>
 						<span class="text red gt-hidden" id="name-change-redirect-prompt"> {{.locale.Tr "settings.change_username_redirect_prompt"}}</span>
 					</label>
-					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) .IsReverseProxy}}disabled{{end}}>
+					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) .IsReverseProxy}}disabled{{end}} maxlength="40">
 					{{if or (not .SignedUser.IsLocal) .IsReverseProxy}}
 					<p class="help text blue">{{$.locale.Tr "settings.password_username_disabled"}}</p>
 					{{end}}
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
 					<label for="full_name">{{.locale.Tr "settings.full_name"}}</label>
-					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}">
+					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}" maxlength="100">
 				</div>
 				<div class="field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{.locale.Tr "email"}}</label>
@@ -33,15 +33,15 @@
 				</div>
 				<div class="field {{if .Err_Description}}error{{end}}">
 					<label for="description">{{$.locale.Tr "user.user_bio"}}</label>
-					<textarea id="description" name="description" rows="2" placeholder="{{.locale.Tr "settings.biography_placeholder"}}">{{.SignedUser.Description}}</textarea>
+					<textarea id="description" name="description" rows="2" placeholder="{{.locale.Tr "settings.biography_placeholder"}}" maxlength="255">{{.SignedUser.Description}}</textarea>
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
 					<label for="website">{{.locale.Tr "settings.website"}}</label>
-					<input id="website" name="website" type="url" value="{{.SignedUser.Website}}">
+					<input id="website" name="website" type="url" value="{{.SignedUser.Website}}" maxlength="255">
 				</div>
 				<div class="field">
 					<label for="location">{{.locale.Tr "settings.location"}}</label>
-					<input id="location" name="location"  value="{{.SignedUser.Location}}">
+					<input id="location" name="location"  value="{{.SignedUser.Location}}" maxlength="50">
 				</div>
 
 				<div class="ui divider"></div>
