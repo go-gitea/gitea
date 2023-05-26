@@ -191,6 +191,9 @@ func findLicenseFile(ctx context.Context, gitRepo *git.Repository, branchName st
 
 	commitID, err := gitRepo.GetBranchCommitID(branchName)
 	if err != nil {
+		if git.IsErrNotExist(err) {
+			return "", nil, nil
+		}
 		return "", nil, fmt.Errorf("GetBranchCommitID: %w", err)
 	}
 	commit, err := gitRepo.GetCommit(commitID)
