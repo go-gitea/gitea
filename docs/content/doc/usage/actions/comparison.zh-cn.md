@@ -132,7 +132,7 @@ Gitea Actions默认不从GitHub下载Actions。
 这意味着`uses: actions/checkout@v3`将从[gitea.com/actions/checkout](https://gitea.com/actions/checkout)下载该Action，而不是[github.com/actions/checkout](https://github.com/actions/checkout)。
 
 正如前面提到的，这是可配置的。
-如果您希望您的运行程序默认从GitHub或您自己的Gitea实例下载动作，您可以通过设置`[actions].DEFAULT_ACTIONS_URL`进行配置。请参阅[配置备忘单]({{< relref "doc/administration/config-cheat-sheet.en-us.md#actions-actions" >}})。
+如果您希望您的运行程序默认从GitHub或您自己的Gitea实例下载动作，您可以通过设置`[actions].DEFAULT_ACTIONS_URL`进行配置。请参阅[配置备忘单]({{< relref "doc/administration/config-cheat-sheet.zh-cn.md#actions-actions" >}})。
 
 ### 上下文可用性
 
