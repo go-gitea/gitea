@@ -101,7 +101,7 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 	refName := git.RefName(t.Job.Run.Ref)
 	refType := refName.RefGroup()
 
-	taskContext, _ := structpb.NewStruct(map[string]interface{}{
+	taskContext, err := structpb.NewStruct(map[string]interface{}{
 		// standard contexts, see https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 		"action":            "",                                                   // string, The name of the action currently running, or the id of a step. GitHub removes special characters, and uses the name __run when the current step runs a script without an id. If you use the same action more than once in the same job, the name will include a suffix with the sequence number with underscore before it. For example, the first script you run will have the name __run, and the second script will be named __run_2. Similarly, the second invocation of actions/checkout will be actionscheckout2.
 		"action_path":       "",                                                   // string, The path where an action is located. This property is only supported in composite actions. You can use this path to access files located in the same repository as the action.
@@ -119,7 +119,7 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 		"head_ref":          headRef,                                              // string, The head_ref or source branch of the pull request in a workflow run. This property is only available when the event that triggers a workflow run is either pull_request or pull_request_target.
 		"job":               fmt.Sprint(t.JobID),                                  // string, The job_id of the current job.
 		"ref":               t.Job.Run.Ref,                                        // string, The fully-formed ref of the branch or tag that triggered the workflow run. For workflows triggered by push, this is the branch or tag ref that was pushed. For workflows triggered by pull_request, this is the pull request merge branch. For workflows triggered by release, this is the release tag created. For other triggers, this is the branch or tag ref that triggered the workflow run. This is only set if a branch or tag is available for the event type. The ref given is fully-formed, meaning that for branches the format is refs/heads/<branch_name>, for pull requests it is refs/pull/<pr_number>/merge, and for tags it is refs/tags/<tag_name>. For example, refs/heads/feature-branch-1.
-		"ref_name":          refName,                                              // string, The short ref name of the branch or tag that triggered the workflow run. This value matches the branch or tag name shown on GitHub. For example, feature-branch-1.
+		"ref_name":          refName.String(),                                     // string, The short ref name of the branch or tag that triggered the workflow run. This value matches the branch or tag name shown on GitHub. For example, feature-branch-1.
 		"ref_protected":     false,                                                // boolean, true if branch protections are configured for the ref that triggered the workflow run.
 		"ref_type":          refType,                                              // string, The type of ref that triggered the workflow run. Valid values are branch or tag.
 		"path":              "",                                                   // string, Path on the runner to the file that sets system PATH variables from workflow commands. This file is unique to the current step and is a different file for each step in a job. For more information, see "Workflow commands for GitHub Actions."
@@ -141,6 +141,9 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 		// additional contexts
 		"gitea_default_actions_url": setting.Actions.DefaultActionsURL,
 	})
+	if err != nil {
+		log.Error("structpb.NewStruct failed: %v", err)
+	}
 
 	return taskContext
 }

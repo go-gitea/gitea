@@ -42,12 +42,11 @@ func handler(items ...[]*repo_module.PushUpdateOptions) [][]*repo_module.PushUpd
 }
 
 func initPushQueue() error {
-	pushQueue = queue.CreateSimpleQueue("push_update", handler)
+	pushQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "push_update", handler)
 	if pushQueue == nil {
-		return errors.New("unable to create push_update Queue")
+		return errors.New("unable to create push_update queue")
 	}
-
-	go graceful.GetManager().RunWithShutdownFns(pushQueue.Run)
+	go graceful.GetManager().RunWithCancel(pushQueue)
 	return nil
 }
 
