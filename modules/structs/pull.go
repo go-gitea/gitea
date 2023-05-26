@@ -49,6 +49,8 @@ type PullRequest struct {
 	Updated *time.Time `json:"updated_at"`
 	// swagger:strfmt date-time
 	Closed *time.Time `json:"closed_at"`
+
+	PinOrder int `json:"pin_order"`
 }
 
 // PRBranchInfo information about a branch

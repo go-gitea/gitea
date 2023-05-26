@@ -57,7 +57,7 @@ func (t *TelegramPayload) JSONPayload() ([]byte, error) {
 // Create implements PayloadConvertor Create method
 func (t *TelegramPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf(`[<a href="%s">%s</a>] %s <a href="%s">%s</a> created`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
 		p.Repo.HTMLURL+"/src/"+refName, refName)
 
@@ -67,7 +67,7 @@ func (t *TelegramPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 // Delete implements PayloadConvertor Delete method
 func (t *TelegramPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf(`[<a href="%s">%s</a>] %s <a href="%s">%s</a> deleted`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
 		p.Repo.HTMLURL+"/src/"+refName, refName)
 
@@ -84,7 +84,7 @@ func (t *TelegramPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 // Push implements PayloadConvertor Push method
 func (t *TelegramPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	var (
-		branchName = git.RefEndName(p.Ref)
+		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
 	)
 
