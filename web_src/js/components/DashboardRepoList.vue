@@ -476,9 +476,4 @@ ul li:not(:last-child) {
   min-width: 16px;
   margin-right: 2px;
 }
-
-.list #privateFilterCheckbox .svg {
-  color: var(--color-grey);
-  margin-right: 0.25rem;
-}
 </style>
