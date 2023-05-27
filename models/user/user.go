@@ -406,6 +406,11 @@ func (u *User) IsIndividual() bool {
 	return u.Type == UserTypeIndividual
 }
 
+// IsBot returns whether or not the user is of type bot
+func (u *User) IsBot() bool {
+	return u.Type == UserTypeBot
+}
+
 // DisplayName returns full name if it's not empty,
 // returns username otherwise.
 func (u *User) DisplayName() string {
