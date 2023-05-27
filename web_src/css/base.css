@@ -184,8 +184,8 @@
   --color-project-board-light-label: #a6aab5;
   --color-caret: var(--color-text-dark);
   --color-reaction-bg: #0000000a;
-  --color-reaction-hover-bg: var(--color-primary-light-6);
-  --color-reaction-active-bg: var(--color-primary-light-7);
+  --color-reaction-hover-bg: var(--color-primary-light-5);
+  --color-reaction-active-bg: var(--color-primary-light-6);
   --color-tooltip-text: #ffffff;
   --color-tooltip-bg: #000000f0;
   --color-header-bar: #ffffff;

@@ -2198,7 +2198,7 @@
 .repository .segment.reactions .ui.label.basic.primary {
   color: var(--color-primary) !important;
   background-color: var(--color-reaction-active-bg) !important;
-  border-color: var(--color-secondary) !important;
+  border-color: var(--color-secondary-dark-1) !important;
 }
 
 .repository .segment.reactions .ui.label.basic:hover {
