@@ -1,6 +1,6 @@
 ---
 date: "2022-12-28T00:00:00+00:00"
-title: "Conda Packages Repository"
+title: "Conda Package Registry"
 slug: "conda"
 weight: 25
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "conda"
 ---
 
-# Conda Packages Repository
+# Conda Package Registry
 
 Publish [Conda](https://docs.conda.io/en/latest/) packages for your user or organization.
 

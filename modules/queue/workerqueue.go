@@ -10,9 +10,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -21,8 +21,9 @@ import (
 type WorkerPoolQueue[T any] struct {
 	ctxRun       context.Context
 	ctxRunCancel context.CancelFunc
-	ctxShutdown  atomic.Pointer[context.Context]
-	shutdownDone chan struct{}
+
+	shutdownDone    chan struct{}
+	shutdownTimeout atomic.Int64 // in case some buggy handlers (workers) would hang forever, "shutdown" should finish in predictable time
 
 	origHandler HandlerFuncT[T]
 	safeHandler HandlerFuncT[T]
@@ -175,22 +176,19 @@ func (q *WorkerPoolQueue[T]) Has(data T) (bool, error) {
 	return q.baseQueue.HasItem(q.ctxRun, q.marshal(data))
 }
 
-func (q *WorkerPoolQueue[T]) Run(atShutdown, atTerminate func(func())) {
-	atShutdown(func() {
-		// in case some queue handlers are slow or have hanging bugs, at most wait for a short time
-		q.ShutdownWait(1 * time.Second)
-	})
+func (q *WorkerPoolQueue[T]) Run() {
 	q.doRun()
+}
+
+func (q *WorkerPoolQueue[T]) Cancel() {
+	q.ctxRunCancel()
 }
 
 // ShutdownWait shuts down the queue, waits for all workers to finish their jobs, and pushes the unhandled items back to the base queue
 // It waits for all workers (handlers) to finish their jobs, in case some buggy handlers would hang forever, a reasonable timeout is needed
 func (q *WorkerPoolQueue[T]) ShutdownWait(timeout time.Duration) {
-	shutdownCtx, shutdownCtxCancel := context.WithTimeout(context.Background(), timeout)
-	defer shutdownCtxCancel()
-	if q.ctxShutdown.CompareAndSwap(nil, &shutdownCtx) {
-		q.ctxRunCancel()
-	}
+	q.shutdownTimeout.Store(int64(timeout))
+	q.ctxRunCancel()
 	<-q.shutdownDone
 }
 
@@ -207,7 +205,11 @@ func getNewQueueFn(t string) (string, func(cfg *BaseConfig, unique bool) (baseQu
 	}
 }
 
-func NewWorkerPoolQueueBySetting[T any](name string, queueSetting setting.QueueSettings, handler HandlerFuncT[T], unique bool) (*WorkerPoolQueue[T], error) {
+func newWorkerPoolQueueForTest[T any](name string, queueSetting setting.QueueSettings, handler HandlerFuncT[T], unique bool) (*WorkerPoolQueue[T], error) {
+	return NewWorkerPoolQueueWithContext(context.Background(), name, queueSetting, handler, unique)
+}
+
+func NewWorkerPoolQueueWithContext[T any](ctx context.Context, name string, queueSetting setting.QueueSettings, handler HandlerFuncT[T], unique bool) (*WorkerPoolQueue[T], error) {
 	if handler == nil {
 		log.Debug("Use dummy queue for %q because handler is nil and caller doesn't want to process the queue items", name)
 		queueSetting.Type = "dummy"
@@ -224,10 +226,11 @@ func NewWorkerPoolQueueBySetting[T any](name string, queueSetting setting.QueueS
 	}
 	log.Trace("Created queue %q of type %q", name, queueType)
 
-	w.ctxRun, w.ctxRunCancel = context.WithCancel(graceful.GetManager().ShutdownContext())
+	w.ctxRun, _, w.ctxRunCancel = process.GetManager().AddTypedContext(ctx, "Queue: "+w.GetName(), process.SystemProcessType, false)
 	w.batchChan = make(chan []T)
 	w.flushChan = make(chan flushType)
 	w.shutdownDone = make(chan struct{})
+	w.shutdownTimeout.Store(int64(shutdownDefaultTimeout))
 	w.workerMaxNum = queueSetting.MaxWorkers
 	w.batchLength = queueSetting.BatchLength
 
@@ -239,7 +242,10 @@ func NewWorkerPoolQueueBySetting[T any](name string, queueSetting setting.QueueS
 				log.Error("Recovered from panic in queue %q handler: %v\n%s", name, err, log.Stack(2))
 			}
 		}()
-		return w.origHandler(t...)
+		if w.origHandler != nil {
+			return w.origHandler(t...)
+		}
+		return nil
 	}
 
 	return &w, nil

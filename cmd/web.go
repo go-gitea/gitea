@@ -142,10 +142,8 @@ func runWeb(ctx *cli.Context) error {
 				return err
 			}
 		}
-		installCtx, cancel := context.WithCancel(graceful.GetManager().HammerContext())
-		c := install.Routes(installCtx)
+		c := install.Routes()
 		err := listen(c, false)
-		cancel()
 		if err != nil {
 			log.Critical("Unable to open listener for installer. Is Gitea already running?")
 			graceful.GetManager().DoGracefulShutdown()

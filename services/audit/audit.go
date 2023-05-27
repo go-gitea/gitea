@@ -83,6 +83,7 @@ func Init() {
 	}
 
 	auditQueue = queue.CreateSimpleQueue(
+		graceful.GetManager().ShutdownContext(),
 		"audit",
 		func(data ...*Event) []*Event {
 			ctx := graceful.GetManager().ShutdownContext()
@@ -96,7 +97,7 @@ func Init() {
 		},
 	)
 
-	go graceful.GetManager().RunWithShutdownFns(auditQueue.Run)
+	go graceful.GetManager().RunWithCancel(auditQueue)
 }
 
 func Record(action Action, doer *user_model.User, scope, target any, format string, v ...interface{}) {

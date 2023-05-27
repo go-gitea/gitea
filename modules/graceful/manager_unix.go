@@ -41,7 +41,6 @@ type Manager struct {
 	terminateWaitGroup     sync.WaitGroup
 
 	toRunAtShutdown  []func()
-	toRunAtHammer    []func()
 	toRunAtTerminate []func()
 }
 

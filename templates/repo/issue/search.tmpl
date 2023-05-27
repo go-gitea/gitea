@@ -7,7 +7,7 @@
 		<input type="hidden" name="project" value="{{$.ProjectID}}">
 		<input type="hidden" name="assignee" value="{{$.AssigneeID}}">
 		<input type="hidden" name="poster" value="{{$.PosterID}}">
-		<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
+		<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." maxlength="255">
 		{{if .PageIsIssueList}}
 			<button id="issue-list-quick-goto" class="ui small icon button gt-hidden" data-tooltip-content="{{.locale.Tr "explore.go_to"}}" data-repo-link="{{.RepoLink}}">{{svg "octicon-hash"}}</button>
 		{{end}}

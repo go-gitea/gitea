@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -116,6 +117,7 @@ type Issue struct {
 	PullRequest      *PullRequest     `xorm:"-"`
 	NumComments      int
 	Ref              string
+	PinOrder         int `xorm:"DEFAULT 0"`
 
 	DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`
 
@@ -683,4 +685,181 @@ func (issue *Issue) GetExternalID() int64 { return issue.OriginalAuthorID }
 // HasOriginalAuthor returns if an issue was migrated and has an original author.
 func (issue *Issue) HasOriginalAuthor() bool {
 	return issue.OriginalAuthor != "" && issue.OriginalAuthorID != 0
+}
+
+// IsPinned returns if a Issue is pinned
+func (issue *Issue) IsPinned() bool {
+	return issue.PinOrder != 0
+}
+
+// Pin pins a Issue
+func (issue *Issue) Pin(ctx context.Context, user *user_model.User) error {
+	// If the Issue is already pinned, we don't need to pin it twice
+	if issue.IsPinned() {
+		return nil
+	}
+
+	var maxPin int
+	_, err := db.GetEngine(ctx).SQL("SELECT MAX(pin_order) FROM issue WHERE repo_id = ? AND is_pull = ?", issue.RepoID, issue.IsPull).Get(&maxPin)
+	if err != nil {
+		return err
+	}
+
+	// Check if the maximum allowed Pins reached
+	if maxPin >= setting.Repository.Issue.MaxPinned {
+		return fmt.Errorf("You have reached the max number of pinned Issues")
+	}
+
+	_, err = db.GetEngine(ctx).Table("issue").
+		Where("id = ?", issue.ID).
+		Update(map[string]interface{}{
+			"pin_order": maxPin + 1,
+		})
+	if err != nil {
+		return err
+	}
+
+	// Add the pin event to the history
+	opts := &CreateCommentOptions{
+		Type:  CommentTypePin,
+		Doer:  user,
+		Repo:  issue.Repo,
+		Issue: issue,
+	}
+	if _, err = CreateComment(ctx, opts); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UnpinIssue unpins a Issue
+func (issue *Issue) Unpin(ctx context.Context, user *user_model.User) error {
+	// If the Issue is not pinned, we don't need to unpin it
+	if !issue.IsPinned() {
+		return nil
+	}
+
+	// This sets the Pin for all Issues that come after the unpined Issue to the correct value
+	_, err := db.GetEngine(ctx).Exec("UPDATE issue SET pin_order = pin_order - 1 WHERE repo_id = ? AND is_pull = ? AND pin_order > ?", issue.RepoID, issue.IsPull, issue.PinOrder)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetEngine(ctx).Table("issue").
+		Where("id = ?", issue.ID).
+		Update(map[string]interface{}{
+			"pin_order": 0,
+		})
+	if err != nil {
+		return err
+	}
+
+	// Add the unpin event to the history
+	opts := &CreateCommentOptions{
+		Type:  CommentTypeUnpin,
+		Doer:  user,
+		Repo:  issue.Repo,
+		Issue: issue,
+	}
+	if _, err = CreateComment(ctx, opts); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// PinOrUnpin pins or unpins a Issue
+func (issue *Issue) PinOrUnpin(ctx context.Context, user *user_model.User) error {
+	if !issue.IsPinned() {
+		return issue.Pin(ctx, user)
+	}
+
+	return issue.Unpin(ctx, user)
+}
+
+// MovePin moves a Pinned Issue to a new Position
+func (issue *Issue) MovePin(ctx context.Context, newPosition int) error {
+	// If the Issue is not pinned, we can't move them
+	if !issue.IsPinned() {
+		return nil
+	}
+
+	if newPosition < 1 {
+		return fmt.Errorf("The Position can't be lower than 1")
+	}
+
+	dbctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	var maxPin int
+	_, err = db.GetEngine(dbctx).SQL("SELECT MAX(pin_order) FROM issue WHERE repo_id = ? AND is_pull = ?", issue.RepoID, issue.IsPull).Get(&maxPin)
+	if err != nil {
+		return err
+	}
+
+	// If the new Position bigger than the current Maximum, set it to the Maximum
+	if newPosition > maxPin+1 {
+		newPosition = maxPin + 1
+	}
+
+	// Lower the Position of all Pinned Issue that came after the current Position
+	_, err = db.GetEngine(dbctx).Exec("UPDATE issue SET pin_order = pin_order - 1 WHERE repo_id = ? AND is_pull = ? AND pin_order > ?", issue.RepoID, issue.IsPull, issue.PinOrder)
+	if err != nil {
+		return err
+	}
+
+	// Higher the Position of all Pinned Issues that comes after the new Position
+	_, err = db.GetEngine(dbctx).Exec("UPDATE issue SET pin_order = pin_order + 1 WHERE repo_id = ? AND is_pull = ? AND pin_order >= ?", issue.RepoID, issue.IsPull, newPosition)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetEngine(dbctx).Table("issue").
+		Where("id = ?", issue.ID).
+		Update(map[string]interface{}{
+			"pin_order": newPosition,
+		})
+	if err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
+// GetPinnedIssues returns the pinned Issues for the given Repo and type
+func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) ([]*Issue, error) {
+	issues := make([]*Issue, 0)
+
+	err := db.GetEngine(ctx).
+		Table("issue").
+		Where("repo_id = ?", repoID).
+		And("is_pull = ?", isPull).
+		And("pin_order > 0").
+		OrderBy("pin_order").
+		Find(&issues)
+	if err != nil {
+		return nil, err
+	}
+
+	err = IssueList(issues).LoadAttributes()
+	if err != nil {
+		return nil, err
+	}
+
+	return issues, nil
+}
+
+// IsNewPinnedAllowed returns if a new Issue or Pull request can be pinned
+func IsNewPinAllowed(ctx context.Context, repoID int64, isPull bool) (bool, error) {
+	var maxPin int
+	_, err := db.GetEngine(ctx).SQL("SELECT MAX(pin_order) FROM issue WHERE repo_id = ? AND is_pull = ?", repoID, isPull).Get(&maxPin)
+	if err != nil {
+		return false, err
+	}
+
+	return maxPin < setting.Repository.Issue.MaxPinned, nil
 }
