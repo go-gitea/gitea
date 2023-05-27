@@ -16,10 +16,7 @@ var Git = struct {
 	Path                 string
 	HomePath             string
 	DisableDiffHighlight bool
-	Reflog               struct {
-		Enabled    bool
-		Expiration int
-	} `ini:"git.reflog"`
+
 	MaxGitDiffLines           int
 	MaxGitDiffLineCharacters  int
 	MaxGitDiffFiles           int
@@ -42,13 +39,6 @@ var Git = struct {
 		GC      int `ini:"GC"`
 	} `ini:"git.timeout"`
 }{
-	Reflog: struct {
-		Enabled    bool
-		Expiration int
-	}{
-		Enabled:    true,
-		Expiration: 90,
-	},
 	DisableDiffHighlight:      false,
 	MaxGitDiffLines:           1000,
 	MaxGitDiffLineCharacters:  5000,
@@ -79,9 +69,19 @@ var Git = struct {
 	},
 }
 
-var GitConfig = struct {
-	Options map[string]string
-}{
+type GitConfigType struct {
+	Options map[string]string // git config key is case-insensitive, always use lower-case
+}
+
+func (c *GitConfigType) SetOption(key, val string) {
+	c.Options[strings.ToLower(key)] = val
+}
+
+func (c *GitConfigType) GetOption(key string) string {
+	return c.Options[strings.ToLower(key)]
+}
+
+var GitConfig = GitConfigType{
 	Options: make(map[string]string),
 }
 
@@ -93,12 +93,22 @@ func loadGitFrom(rootCfg ConfigProvider) {
 
 	secGitConfig := rootCfg.Section("git.config")
 	GitConfig.Options = make(map[string]string)
-	for _, key := range secGitConfig.Keys() {
-		// git config key is case-insensitive, so always use lower-case
-		GitConfig.Options[strings.ToLower(key.Name())] = key.String()
+	GitConfig.SetOption("diff.algorithm", "histogram")
+	GitConfig.SetOption("core.logAllRefUpdates", "true")
+	GitConfig.SetOption("gc.reflogExpire", "90")
+
+	secGitReflog := rootCfg.Section("git.reflog")
+	if secGitReflog.HasKey("ENABLED") {
+		deprecatedSetting(rootCfg, "git.reflog", "ENABLED", "git.config", "core.logAllRefUpdates", "1.21")
+		GitConfig.SetOption("core.logAllRefUpdates", secGitReflog.Key("ENABLED").In("true", []string{"true", "false"}))
 	}
-	if _, ok := GitConfig.Options["diff.algorithm"]; !ok {
-		GitConfig.Options["diff.algorithm"] = "histogram"
+	if secGitReflog.HasKey("EXPIRATION") {
+		deprecatedSetting(rootCfg, "git.reflog", "EXPIRATION", "git.config", "core.reflogExpire", "1.21")
+		GitConfig.SetOption("gc.reflogExpire", secGitReflog.Key("EXPIRATION").String())
+	}
+
+	for _, key := range secGitConfig.Keys() {
+		GitConfig.SetOption(key.Name(), key.String())
 	}
 
 	Git.HomePath = sec.Key("HOME_PATH").MustString("home")
