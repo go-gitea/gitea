@@ -74,8 +74,6 @@ func ParseDateTimeGraceful(datetime any) (time.Time, error) {
 		return t, nil
 	case int64:
 		switch {
-		case val > 946684800000000: // 2999-12-31 00:00:00 in milliseconds
-			return time.UnixMicro(val), nil
 		case val > 946645200000: // 2000-01-01 00:00:00 in milliseconds
 			return time.UnixMilli(val), nil
 		default:
