@@ -5,12 +5,11 @@ package notify
 
 import (
 	"net/http"
-	"strconv"
-	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -131,23 +130,12 @@ func ReadNotifications(ctx *context.APIContext) {
 	lastRead := int64(0)
 	qLastRead := ctx.FormTrim("last_read_at")
 	if len(qLastRead) > 0 {
-		var tmpLastRead time.Time
-
-		// If qLastRead consists solely digits then parse it as a timestamp
-		if _, err := strconv.Atoi(qLastRead); err == nil {
-			timestamp, err := strconv.ParseInt(qLastRead, 10, 64)
-			if err != nil {
-				ctx.InternalServerError(err)
-				return
-			}
-			tmpLastRead = time.Unix(timestamp, 0)
-		} else {
-			tmpLastRead, err = time.Parse(time.RFC3339, qLastRead)
-			if err != nil {
-				ctx.InternalServerError(err)
-				return
-			}
+		tmpLastRead, err := timeutil.ParseDateTimeGraceful(qLastRead)
+		if err != nil {
+			ctx.InternalServerError(err)
+			return
 		}
+
 		if !tmpLastRead.IsZero() {
 			lastRead = tmpLastRead.Unix()
 		}

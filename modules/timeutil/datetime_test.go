@@ -43,3 +43,75 @@ func TestDateTime(t *testing.T) {
 	actual = DateTime("full", refTimeStamp)
 	assert.EqualValues(t, `<relative-time format="datetime" weekday="" year="numeric" month="short" day="numeric" hour="numeric" minute="numeric" second="numeric" datetime="2017-12-31T19:00:00-05:00">2017-12-31 19:00:00 -05:00</relative-time>`, actual)
 }
+
+func TestParseDateTimeGraceful(t *testing.T) {
+	testData := []struct {
+		value    any
+		expected any
+		isFail   bool
+	}{
+		{
+			value:    "2006-01-02T15:04:05Z",
+			expected: 1136214245,
+		},
+		{
+			value:    "2006-01-02T15:04:05.999Z",
+			expected: 1136214245,
+		},
+		{
+			value:    "2006-01-02T15:04:05-07:00",
+			expected: 1136239445,
+		},
+		{
+			value:    "2006-01-02T15:04:05.999-07:00",
+			expected: 1136239445,
+		},
+		{
+			value:    1136214245,
+			expected: 1136214245,
+		},
+		{
+			value:    "1136214245",
+			expected: 1136214245,
+		},
+		{
+			value:    1622040867000,
+			expected: 1622040867,
+		},
+		{
+			value:    "1622040867000",
+			expected: 1622040867,
+		},
+		{
+			value:    "1622040867000",
+			expected: 1622040867,
+		},
+		{
+			value:    0,
+			expected: -62135596800,
+			isFail:   true,
+		},
+		{
+			value:    nil,
+			expected: -62135596800,
+			isFail:   true,
+		},
+		{
+			value:    "",
+			expected: -62135596800,
+			isFail:   true,
+		},
+	}
+
+	for _, testCase := range testData {
+		actual, err := ParseDateTimeGraceful(testCase.value)
+
+		if testCase.isFail == true {
+			assert.NotNil(t, err)
+		} else {
+			assert.Nil(t, err)
+		}
+
+		assert.EqualValues(t, testCase.expected, actual.Unix())
+	}
+}

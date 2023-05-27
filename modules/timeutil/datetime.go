@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"strconv"
 	"time"
 )
 
@@ -57,4 +58,30 @@ func DateTime(format string, datetime any) template.HTML {
 		return template.HTML(fmt.Sprintf(`<relative-time format="datetime" weekday="" year="numeric" month="short" day="numeric" hour="numeric" minute="numeric" second="numeric" datetime="%s">%s</relative-time>`, datetimeEscaped, textEscaped))
 	}
 	panic(fmt.Sprintf("Unsupported format %s", format))
+}
+
+func ParseDateTimeGraceful(datetime any) (time.Time, error) {
+	switch val := datetime.(type) {
+	case string:
+		if timestamp, err := strconv.ParseInt(val, 10, 64); err == nil {
+			return ParseDateTimeGraceful(timestamp)
+		} else {
+			t, err := time.Parse(time.RFC3339, val)
+			if err != nil {
+				return time.Time{}, err
+			}
+			return t, nil
+		}
+	case int64:
+		switch {
+		case val > 946684800000000: // 2999-12-31 00:00:00 in milliseconds
+			return time.UnixMicro(val), nil
+		case val > 946645200000: // 2000-01-01 00:00:00 in milliseconds
+			return time.UnixMilli(val), nil
+		default:
+			return time.Unix(val, 0), nil
+		}
+	default:
+		return time.Time{}, fmt.Errorf("unsupported data type: %T", datetime)
+	}
 }
