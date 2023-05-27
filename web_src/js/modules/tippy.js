@@ -62,7 +62,7 @@ function attachTooltip(target, content = null) {
   // in which case it is undesireable to automatically hide it on click as
   // it would momentarily flash the tooltip out and in.
   const hasClipboardTarget = target.hasAttribute('data-clipboard-target');
-  const hideOnClick = hasClipboardTarget ? false : true;
+  const hideOnClick = !hasClipboardTarget;
 
   const props = {
     content,
