@@ -3,9 +3,7 @@
 	<a class="add-reaction muted">
 		{{svg "octicon-smiley"}}
 	</a>
-	<div class="menu">
-		<div class="header reactions-header">{{.ctxData.locale.Tr "repo.pick_reaction"}}</div>
-		<div class="divider"></div>
+	<div class="menu reactions-menu">
 		{{range $value := AllowedReactions}}
 			<a class="item reaction" title="{{$value}}" aria-label="{{$value}}" data-reaction-content="{{$value}}">{{ReactionToEmoji $value}}</a>
 		{{end}}

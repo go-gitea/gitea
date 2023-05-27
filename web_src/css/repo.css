@@ -2129,10 +2129,6 @@
   background: var(--color-secondary);
 }
 
-.reactions-header {
-  background: none !important; /* conflict from .repository .diff-file-box .header in files tab emoji dropdown */
-}
-
 .repository .segment.reactions.dropdown .menu,
 .repository .select-reaction.dropdown .menu {
   right: 0 !important;
@@ -2149,12 +2145,10 @@
 .repository .select-reaction.dropdown .menu > .item {
   float: left;
   margin: 4px;
-  font-size: 19px;
-  width: 30px;
-  height: 30px;
+  font-size: 20px;
+  width: 34px;
+  height: 34px;
   min-height: 0 !important;
-  left: 5px;
-  top: -2px;
   border-radius: 6px;
   display: flex !important;
   align-items: center;
