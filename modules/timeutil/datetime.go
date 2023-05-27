@@ -65,13 +65,13 @@ func ParseDateTimeGraceful(datetime any) (time.Time, error) {
 	case string:
 		if timestamp, err := strconv.ParseInt(val, 10, 64); err == nil {
 			return ParseDateTimeGraceful(timestamp)
-		} else {
-			t, err := time.Parse(time.RFC3339, val)
-			if err != nil {
-				return time.Time{}, err
-			}
-			return t, nil
 		}
+
+		t, err := time.Parse(time.RFC3339, val)
+		if err != nil {
+			return time.Time{}, err
+		}
+		return t, nil
 	case int64:
 		switch {
 		case val > 946684800000000: // 2999-12-31 00:00:00 in milliseconds
