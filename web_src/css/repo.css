@@ -2467,7 +2467,7 @@
   padding: 0.5rem 1rem;
   margin: 0 !important;
   position: relative;
-  color: var(--color-text-light-2);
+  color: var(--color-text);
   min-height: 41px;
   background-color: var(--color-box-header);
   display: flex;
@@ -2522,6 +2522,11 @@
 .comment-header-left > * + *,
 .comment-header-right > * + * {
   margin-left: 0.25rem;
+}
+
+.content-history-menu .octicon-triangle-down {
+  position: relative;
+  top: 1.5px;
 }
 
 .comment-body {
