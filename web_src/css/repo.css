@@ -413,6 +413,19 @@
   max-width: 600px !important;
 }
 
+.pdf-content {
+  width: 100%;
+  height: 600px;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdf-content:has(.pdf-fallback-button) {
+  height: 100px;
+}
+
 .repository.file.list .non-diff-file-content .plain-text {
   padding: 1em 2em;
 }
