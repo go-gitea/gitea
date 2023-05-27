@@ -43,7 +43,7 @@ func TestGitReflog(t *testing.T) {
 		GitConfig = oldGitConfig
 	}()
 
-	// default legacy reflog config
+	// default reflog config without legacy options
 	cfg, err := NewConfigProviderFromData(``)
 	assert.NoError(t, err)
 	loadGitFrom(cfg)
@@ -51,7 +51,7 @@ func TestGitReflog(t *testing.T) {
 	assert.EqualValues(t, "true", GitConfig.GetOption("core.logAllRefUpdates"))
 	assert.EqualValues(t, "90", GitConfig.GetOption("gc.reflogExpire"))
 
-	// custom reflog config
+	// custom reflog config by legacy options
 	cfg, err = NewConfigProviderFromData(`
 [git.reflog]
 ENABLED = false
