@@ -16,6 +16,7 @@
   --border-radius: 0.28571429rem;
   --opacity-disabled: 0.55;
   --height-loading: 16rem;
+  --tab-size: 4;
   /* base colors */
   --color-primary: #4183c4;
   --color-primary-contrast: #ffffff;
@@ -197,6 +198,7 @@
   --color-active-line: #fffbdd;
   accent-color: var(--color-accent);
   color-scheme: light;
+  tab-size: var(--tab-size);
 }
 
 :root * {

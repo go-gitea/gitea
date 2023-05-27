@@ -1,4 +1,18 @@
-/* This is https://github.com/sindresorhus/modern-normalize with the font-family rules removed */
+/*
+  This is copy of modern-normalize with these changes done:
+
+  - Remove font-family, we set our own
+  - Remove tab-size, we set our own
+  - Remove b and strong font-weight, we set our own
+  - Remove b,code,samp,pre font-size, we set our own
+*/
+
+/*! modern-normalize v2.0.0 | MIT License | https://github.com/sindresorhus/modern-normalize */
+
+/*
+Document
+========
+*/
 
 /**
 Use a better box model (opinionated).
@@ -13,8 +27,6 @@ Use a better box model (opinionated).
 html {
   line-height: 1.15; /* 1. Correct the line height in all browsers. */
   -webkit-text-size-adjust: 100%; /* 2. Prevent adjustments of font size after orientation changes in iOS. */
-  -moz-tab-size: 4; /* 3. Use a more readable tab size (opinionated). */
-  tab-size: 4; /* 3 */
 }
 
 /*
