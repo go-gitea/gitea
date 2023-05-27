@@ -5,7 +5,7 @@
 	</a>
 	<div class="menu reactions-menu">
 		{{range $value := AllowedReactions}}
-			<a class="item reaction" title="{{$value}}" aria-label="{{$value}}" data-reaction-content="{{$value}}">{{ReactionToEmoji $value}}</a>
+			<a class="item reaction" data-tooltip-content="{{$value}}" aria-label="{{$value}}" data-reaction-content="{{$value}}">{{ReactionToEmoji $value}}</a>
 		{{end}}
 	</div>
 </div>
