@@ -76,13 +76,11 @@ func TestParseDateTimeGraceful(t *testing.T) {
 		},
 		{
 			value:    int64(1622040867000),
-			expected: int64(-62135596800),
-			isFail:   true,
+			expected: int64(1622040867000),
 		},
 		{
 			value:    "1622040867000",
-			expected: int64(-62135596800),
-			isFail:   true,
+			expected: int64(1622040867000),
 		},
 		{
 			value:    0,
