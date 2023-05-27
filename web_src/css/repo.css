@@ -1724,6 +1724,10 @@
 .repository .diff-box .resolved-placeholder {
   display: flex;
   align-items: center;
+  font-size: 14px !important;
+  height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .repository .diff-box .resolved-placeholder .button {

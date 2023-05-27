@@ -15,11 +15,16 @@
 					{{if not $resolved}}
 						{{svg "octicon-alert-fill" 16 "icon gt-mr-2"}}
 					{{end}}
-					<a href="{{AppSubUrl}}{{$referenceUrl}}">{{$.locale.Tr "repo.issues.review.show_original_comment"}}</a>
-					<div class="ui basic label" data-tooltip-content="{{$.locale.Tr "repo.issues.review.outdated.tooltip"}}">{{$.locale.Tr "repo.issues.review.outdated"}}</div>
+					<div class="ui basic label small" data-tooltip-content="{{$.locale.Tr "repo.issues.review.outdated.tooltip"}}">{{$.locale.Tr "repo.issues.review.outdated"}}</div>
 				{{end}}
 			</div>
-			<div>
+			<div class="gt-df gt-ac gt-gap-3">
+				{{if $invalid}}
+				<a class="ui tiny labeled button gt-df gt-ac show-original" href="{{AppSubUrl}}{{$referenceUrl}}">
+					{{svg "octicon-comment" 16 "gt-mr-3"}}
+					{{$.locale.Tr "repo.issues.review.show_original_comment"}}
+				</a>
+				{{end}}
 				<button id="show-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="ui tiny labeled button show-outdated gt-df gt-ac{{if not $resolved}} gt-hidden{{end}}">
 					{{svg "octicon-unfold" 16 "gt-mr-3"}}
 					{{if $resolved}}
