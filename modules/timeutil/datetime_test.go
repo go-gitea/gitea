@@ -52,53 +52,53 @@ func TestParseDateTimeGraceful(t *testing.T) {
 	}{
 		{
 			value:    "2006-01-02T15:04:05Z",
-			expected: 1136214245,
+			expected: int64(1136214245),
 		},
 		{
 			value:    "2006-01-02T15:04:05.999Z",
-			expected: 1136214245,
+			expected: int64(1136214245),
 		},
 		{
 			value:    "2006-01-02T15:04:05-07:00",
-			expected: 1136239445,
+			expected: int64(1136239445),
 		},
 		{
 			value:    "2006-01-02T15:04:05.999-07:00",
-			expected: 1136239445,
+			expected: int64(1136239445),
 		},
 		{
-			value:    1136214245,
-			expected: 1136214245,
+			value:    int64(1136214245),
+			expected: int64(1136214245),
 		},
 		{
 			value:    "1136214245",
-			expected: 1136214245,
+			expected: int64(1136214245),
 		},
 		{
-			value:    1622040867000,
-			expected: 1622040867,
-		},
-		{
-			value:    "1622040867000",
-			expected: 1622040867,
+			value:    int64(1622040867000),
+			expected: int64(1622040867),
 		},
 		{
 			value:    "1622040867000",
-			expected: 1622040867,
+			expected: int64(1622040867),
+		},
+		{
+			value:    "1622040867000",
+			expected: int64(1622040867),
 		},
 		{
 			value:    0,
-			expected: -62135596800,
+			expected: int64(-62135596800),
 			isFail:   true,
 		},
 		{
 			value:    nil,
-			expected: -62135596800,
+			expected: int64(-62135596800),
 			isFail:   true,
 		},
 		{
 			value:    "",
-			expected: -62135596800,
+			expected: int64(-62135596800),
 			isFail:   true,
 		},
 	}
