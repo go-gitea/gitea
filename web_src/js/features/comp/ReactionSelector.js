@@ -31,14 +31,13 @@ export function initCompReactionSelector($parent) {
         react.remove();
       }
       if (!data.empty) {
-        react = $('<div class="ui attached segment reactions"></div>');
         const attachments = content.find('.segment.bottom:first');
+        react = $(data.html);
         if (attachments.length > 0) {
           react.insertBefore(attachments);
         } else {
           react.appendTo(content);
         }
-        react.html(data.html);
         react.find('.dropdown').dropdown();
         initCompReactionSelector(react);
       }
