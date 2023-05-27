@@ -15,7 +15,8 @@
 					{{if not $resolved}}
 						{{svg "octicon-alert-fill" 16 "icon gt-mr-2"}}
 					{{end}}
-					<div class="ui basic label" data-tooltip-content="{{$.locale.Tr "repo.issues.review.outdated.tooltip"}}">{{$.locale.Tr "repo.issues.review.outdated"}}</div> <a href="{{AppSubUrl}}{{$referenceUrl}}">{{$.locale.Tr "repo.issues.review.show_original_comment"}}</a>
+					<a href="{{AppSubUrl}}{{$referenceUrl}}">{{$.locale.Tr "repo.issues.review.show_original_comment"}}</a>
+					<div class="ui basic label" data-tooltip-content="{{$.locale.Tr "repo.issues.review.outdated.tooltip"}}">{{$.locale.Tr "repo.issues.review.outdated"}}</div>
 				{{end}}
 			</div>
 			<div>
