@@ -583,15 +583,7 @@ func CreateFile(ctx *context.APIContext) {
 	if filesResponse, err := createOrUpdateFiles(ctx, opts); err != nil {
 		handleCreateOrUpdateFileError(ctx, err)
 	} else {
-		content := &api.ContentsResponse{}
-		if len(filesResponse.Files) > 0 {
-			content = filesResponse.Files[0]
-		}
-		fileResponse := &api.FileResponse{
-			Content:      content,
-			Commit:       filesResponse.Commit,
-			Verification: filesResponse.Verification,
-		}
+		fileResponse := files_service.FilesResponseToSingle(filesResponse, 0)
 		ctx.JSON(http.StatusCreated, fileResponse)
 	}
 }
@@ -685,15 +677,7 @@ func UpdateFile(ctx *context.APIContext) {
 	if filesResponse, err := createOrUpdateFiles(ctx, opts); err != nil {
 		handleCreateOrUpdateFileError(ctx, err)
 	} else {
-		content := &api.ContentsResponse{}
-		if len(filesResponse.Files) > 0 {
-			content = filesResponse.Files[0]
-		}
-		fileResponse := &api.FileResponse{
-			Content:      content,
-			Commit:       filesResponse.Commit,
-			Verification: filesResponse.Verification,
-		}
+		fileResponse := files_service.FilesResponseToSingle(filesResponse, 0)
 		ctx.JSON(http.StatusOK, fileResponse)
 	}
 }
@@ -872,15 +856,7 @@ func DeleteFile(ctx *context.APIContext) {
 		}
 		ctx.Error(http.StatusInternalServerError, "DeleteFile", err)
 	} else {
-		content := &api.ContentsResponse{}
-		if len(filesResponse.Files) > 0 {
-			content = filesResponse.Files[0]
-		}
-		fileResponse := &api.FileResponse{
-			Content:      content,
-			Commit:       filesResponse.Commit,
-			Verification: filesResponse.Verification,
-		}
+		fileResponse := files_service.FilesResponseToSingle(filesResponse, 0)
 		ctx.JSON(http.StatusOK, fileResponse) // FIXME on APIv2: return http.StatusNoContent
 	}
 }

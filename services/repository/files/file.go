@@ -46,6 +46,20 @@ func GetFileResponseFromCommit(ctx context.Context, repo *repo_model.Repository,
 	return fileResponse, nil
 }
 
+// constructs a FileResponse with the file at the index from FilesResponse
+func FilesResponseToSingle(filesResponse *api.FilesResponse, index int) *api.FileResponse {
+	content := &api.ContentsResponse{}
+	if len(filesResponse.Files) > index {
+		content = filesResponse.Files[index]
+	}
+	fileResponse := &api.FileResponse{
+		Content:      content,
+		Commit:       filesResponse.Commit,
+		Verification: filesResponse.Verification,
+	}
+	return fileResponse
+}
+
 // GetFileCommitResponse Constructs a FileCommitResponse from a Commit object
 func GetFileCommitResponse(repo *repo_model.Repository, commit *git.Commit) (*api.FileCommitResponse, error) {
 	if repo == nil {
