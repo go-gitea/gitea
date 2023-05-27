@@ -253,6 +253,12 @@ func (a *Action) GetRepoName() string {
 	return a.Repo.Name
 }
 
+// GetRepoComposeMetas get the metas of the action repository.
+func (a *Action) GetRepoComposeMetas() map[string]string {
+	a.loadRepo(db.DefaultContext)
+	return a.Repo.ComposeMetas()
+}
+
 // ShortRepoName returns the name of the action repository
 // trimmed to max 33 chars.
 func (a *Action) ShortRepoName() string {
