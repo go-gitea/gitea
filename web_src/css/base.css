@@ -1764,6 +1764,12 @@ img.ui.avatar,
   border-radius: 0 !important;
 }
 
+/* undo fomantic uppercase tiny font on .menu > .header */
+.header-no-uppercase {
+  text-transform: none !important;
+  font-size: 14px !important;
+}
+
 .scrolling.menu .item.selected {
   font-weight: var(--font-weight-semibold) !important;
 }
