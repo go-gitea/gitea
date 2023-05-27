@@ -301,6 +301,8 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 			if err := t.RemoveFilesFromIndex(file.TreePath); err != nil {
 				return nil, err
 			}
+		default:
+			return nil, fmt.Errorf("Invalid file operation: %s %s, supported operations are create, update, delete", file.Operation, file.Options.treePath)
 		}
 	}
 

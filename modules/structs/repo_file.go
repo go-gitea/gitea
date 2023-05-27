@@ -66,6 +66,7 @@ func (o *UpdateFileOptions) Branch() string {
 
 // ChangeFileOperation for creating, updating or deleting a file
 type ChangeFileOperation struct {
+	// indicates what to do with the file
 	// required: true
 	// enum: create,update,delete
 	Operation string `json:"operation" binding:"Required"`
@@ -74,7 +75,7 @@ type ChangeFileOperation struct {
 	// content must be base64 encoded
 	// required: true
 	Content string `json:"content"`
-	// sha is the SHA for the file that already exists
+	// sha is the SHA for the file that already exists, required for update, delete
 	SHA string `json:"sha"`
 	// old path of the file to move
 	FromPath string `json:"from_path"`

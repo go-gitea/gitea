@@ -15961,6 +15961,7 @@
           "x-go-name": "FromPath"
         },
         "operation": {
+          "description": "indicates what to do with the file",
           "type": "string",
           "enum": [
             "create",
@@ -15975,7 +15976,7 @@
           "x-go-name": "Path"
         },
         "sha": {
-          "description": "sha is the SHA for the file that already exists",
+          "description": "sha is the SHA for the file that already exists, required for update, delete",
           "type": "string",
           "x-go-name": "SHA"
         }
