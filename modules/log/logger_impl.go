@@ -230,7 +230,7 @@ func (l *LoggerImpl) GetLevel() Level {
 
 func NewLoggerWithWriters(ctx context.Context, name string, writer ...EventWriter) *LoggerImpl {
 	l := &LoggerImpl{}
-	l.ctx, l.ctxCancel = newContext(ctx, "Logger: "+name)
+	l.ctx, l.ctxCancel = newProcessTypedContext(ctx, "Logger: "+name)
 	l.LevelLogger = BaseLoggerToGeneralLogger(l)
 	l.eventWriters = map[string]EventWriter{}
 	l.syncLevelInternal()

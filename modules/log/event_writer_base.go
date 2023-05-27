@@ -149,7 +149,7 @@ func eventWriterStartGo(ctx context.Context, w EventWriter, shared bool) {
 	if shared {
 		ctxDesc = "Logger: EventWriter (shared): " + w.GetWriterName()
 	}
-	writerCtx, writerCancel := newContext(ctx, ctxDesc)
+	writerCtx, writerCancel := newProcessTypedContext(ctx, ctxDesc)
 	go func() {
 		defer writerCancel()
 		defer close(w.Base().stopped)
