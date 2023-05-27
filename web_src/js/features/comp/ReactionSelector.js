@@ -10,7 +10,7 @@ export function initCompReactionSelector($parent) {
 
     const actionUrl = $(this).closest('[data-action-url]').attr('data-action-url');
     const reactionContent = $(this).attr('data-reaction-content');
-    const hasReacted = $(this).attr('data-has-reacted') === 'true';
+    const hasReacted = $(this).closest('.ui.segment.reactions').find(`a[data-reaction-content="${reactionContent}"]`).attr('data-has-reacted') === 'true';
 
     const res = await fetch(`${actionUrl}/${hasReacted ? 'unreact' : 'react'}`, {
       method: 'POST',
