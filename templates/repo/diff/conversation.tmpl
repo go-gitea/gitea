@@ -4,18 +4,17 @@
 {{$isNotPending := (not (eq (index .comments 0).Review.Type 0))}}
 {{$referenceUrl := printf "%s#%s" $.Issue.Link (index .comments 0).HashTag}}
 <div class="conversation-holder" data-path="{{(index .comments 0).TreePath}}" data-side="{{if lt (index .comments 0).Line 0}}left{{else}}right{{end}}" data-idx="{{(index .comments 0).UnsignedLine}}">
-	{{if or $invalid $resolved}}
+	{{if $resolved}}
 		<div class="ui attached header resolved-placeholder gt-df gt-ac gt-sb">
 			<div class="ui grey text gt-df gt-ac gt-fw gt-gap-2">
-				{{if $resolved}}
-					{{svg "octicon-check" 16 "icon gt-mr-2"}}
+				{{svg "octicon-check" 16 "icon gt-mr-2"}}
+				{{if $resolved}}					
 					<b>{{$resolveDoer.Name}}</b> {{$.locale.Tr "repo.issues.review.resolved_by"}}
 				{{end}}
 				{{if $invalid}}
-					{{if not $resolved}}
-						{{svg "octicon-alert-fill" 16 "icon gt-mr-2"}}
-					{{end}}
-					{{$.locale.Tr "repo.issues.review.outdated_description"}}
+					<span class="ui label basic small gt-ml-3" data-tooltip-content="{{$.locale.Tr "repo.issues.review.outdated_description"}}">
+						{{$.locale.Tr "repo.issues.review.outdated"}}
+					</span>
 				{{end}}
 			</div>
 			<div class="gt-df gt-ac gt-gap-3">

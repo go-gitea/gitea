@@ -2528,7 +2528,7 @@
   color: var(--color-primary);
 }
 
-.comment-header .actions a {
+.comment-header .action a {
   margin-right: 0 !important;
   padding: 0.5rem !important;
 }
