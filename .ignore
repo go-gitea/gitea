@@ -3,6 +3,5 @@
 /modules/options/bindata.go
 /modules/public/bindata.go
 /modules/templates/bindata.go
-/public/vendor/plugins
 /vendor
 node_modules
