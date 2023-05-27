@@ -59,7 +59,7 @@ function attachTooltip(target, content = null) {
   if (!content) return null;
 
   // when element has a clipboard target, we update the tooltip after copy
-  // in which case it is undesireable to automatically hide it on click as
+  // in which case it is undesirable to automatically hide it on click as
   // it would momentarily flash the tooltip out and in.
   const hasClipboardTarget = target.hasAttribute('data-clipboard-target');
   const hideOnClick = !hasClipboardTarget;
