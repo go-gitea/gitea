@@ -1,7 +1,7 @@
 ---
 date: "2023-04-27T15:00:00+08:00"
 title: "Act Runner"
-slug: "usage/actions/act-runner"
+slug: "act-runner"
 weight: 20
 draft: false
 toc: false

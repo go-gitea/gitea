@@ -97,6 +97,7 @@ func HTMLRenderer() *HTMLRender {
 }
 
 func ReloadHTMLTemplates() error {
+	log.Trace("Reloading HTML templates")
 	if err := htmlRender.CompileTemplates(); err != nil {
 		log.Error("Template error: %v\n%s", err, log.Stack(2))
 		return err
@@ -114,11 +115,11 @@ func initHTMLRenderer() {
 	htmlRender = &HTMLRender{}
 	if err := htmlRender.CompileTemplates(); err != nil {
 		p := &templateErrorPrettier{assets: AssetFS()}
-		wrapFatal(p.handleFuncNotDefinedError(err))
-		wrapFatal(p.handleUnexpectedOperandError(err))
-		wrapFatal(p.handleExpectedEndError(err))
-		wrapFatal(p.handleGenericTemplateError(err))
-		log.Fatal("HTMLRenderer CompileTemplates error: %v", err)
+		wrapTmplErrMsg(p.handleFuncNotDefinedError(err))
+		wrapTmplErrMsg(p.handleUnexpectedOperandError(err))
+		wrapTmplErrMsg(p.handleExpectedEndError(err))
+		wrapTmplErrMsg(p.handleGenericTemplateError(err))
+		wrapTmplErrMsg(fmt.Sprintf("CompileTemplates error: %v", err))
 	}
 
 	if !setting.IsProd {
@@ -128,11 +129,17 @@ func initHTMLRenderer() {
 	}
 }
 
-func wrapFatal(msg string) {
+func wrapTmplErrMsg(msg string) {
 	if msg == "" {
 		return
 	}
-	log.Fatal("Unable to compile templates, %s", msg)
+	if setting.IsProd {
+		// in prod mode, Gitea must have correct templates to run
+		log.Fatal("Gitea can't run with template errors: %s", msg)
+	} else {
+		// in dev mode, do not need to really exit, because the template errors could be fixed by developer soon and the templates get reloaded
+		log.Error("There are template errors but Gitea continues to run in dev mode: %s", msg)
+	}
 }
 
 type templateErrorPrettier struct {

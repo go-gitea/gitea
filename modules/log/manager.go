@@ -39,7 +39,7 @@ func (m *LoggerManager) GetLogger(name string) *LoggerImpl {
 
 	logger := m.loggers[name]
 	if logger == nil {
-		logger = NewLoggerWithWriters(m.ctx)
+		logger = NewLoggerWithWriters(m.ctx, name)
 		m.loggers[name] = logger
 		if name == DEFAULT {
 			m.defaultLogger.Store(logger)
@@ -137,6 +137,6 @@ func GetManager() *LoggerManager {
 
 func NewManager() *LoggerManager {
 	m := &LoggerManager{writers: map[string]EventWriter{}, loggers: map[string]*LoggerImpl{}}
-	m.ctx, m.ctxCancel = context.WithCancel(context.Background())
+	m.ctx, m.ctxCancel = newContext(context.Background(), "LoggerManager")
 	return m
 }

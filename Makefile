@@ -35,6 +35,7 @@ SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.4
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.6.0
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@latest
+ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@latest
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -199,6 +200,7 @@ help:
 	@echo " - deps-tools                       install tool dependencies"
 	@echo " - lint                             lint everything"
 	@echo " - lint-fix                         lint everything and fix issues"
+	@echo " - lint-actions                     lint action workflow files"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-frontend-fix                lint frontend files and fix issues"
 	@echo " - lint-backend                     lint backend files"
@@ -372,11 +374,11 @@ lint-js-fix: node_modules
 
 .PHONY: lint-css
 lint-css: node_modules
-	npx stylelint --color --max-warnings=0 web_src/css
+	npx stylelint --color --max-warnings=0 web_src/css web_src/js/components/*.vue
 
 .PHONY: lint-css-fix
 lint-css-fix: node_modules
-	npx stylelint --color --max-warnings=0 web_src/css --fix
+	npx stylelint --color --max-warnings=0 web_src/css web_src/js/components/*.vue --fix
 
 .PHONY: lint-swagger
 lint-swagger: node_modules
@@ -411,13 +413,17 @@ lint-go-vet:
 lint-editorconfig:
 	$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) templates .github/workflows
 
+.PHONY: lint-actions
+lint-actions:
+	$(GO) run $(ACTIONLINT_PACKAGE)
+
 .PHONY: watch
 watch:
-	bash build/watch.sh
+	@bash build/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
-	rm -rf $(WEBPACK_DEST_ENTRIES)
+	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --watch --progress
 
 .PHONY: watch-backend
@@ -908,6 +914,7 @@ deps-tools:
 	$(GO) install $(XGO_PACKAGE)
 	$(GO) install $(GO_LICENSES_PACKAGE)
 	$(GO) install $(GOVULNCHECK_PACKAGE)
+	$(GO) install $(ACTIONLINT_PACKAGE)
 
 node_modules: package-lock.json
 	npm install --no-save
