@@ -1,9 +1,9 @@
 /*
   This is copy of modern-normalize with these changes done:
 
-  - Remove font-family, we set our own
-  - Remove tab-size, we set our own
-  - Remove b and strong font-weight, we set our own
+  - Remove html font-family, we set our own
+  - Remove html tab-size, we set our own
+  - Remove b,strong font-weight, we set our own
   - Remove b,code,samp,pre font-size, we set our own
 */
 
