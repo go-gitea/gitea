@@ -47,7 +47,7 @@ func GetFileResponseFromCommit(ctx context.Context, repo *repo_model.Repository,
 }
 
 // constructs a FileResponse with the file at the index from FilesResponse
-func FilesResponseToSingle(filesResponse *api.FilesResponse, index int) *api.FileResponse {
+func GetFileResponseFromFilesResponse(filesResponse *api.FilesResponse, index int) *api.FileResponse {
 	content := &api.ContentsResponse{}
 	if len(filesResponse.Files) > index {
 		content = filesResponse.Files[index]

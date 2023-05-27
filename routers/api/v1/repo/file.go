@@ -583,7 +583,7 @@ func CreateFile(ctx *context.APIContext) {
 	if filesResponse, err := createOrUpdateFiles(ctx, opts); err != nil {
 		handleCreateOrUpdateFileError(ctx, err)
 	} else {
-		fileResponse := files_service.FilesResponseToSingle(filesResponse, 0)
+		fileResponse := files_service.GetFileResponseFromFilesResponse(filesResponse, 0)
 		ctx.JSON(http.StatusCreated, fileResponse)
 	}
 }
@@ -677,7 +677,7 @@ func UpdateFile(ctx *context.APIContext) {
 	if filesResponse, err := createOrUpdateFiles(ctx, opts); err != nil {
 		handleCreateOrUpdateFileError(ctx, err)
 	} else {
-		fileResponse := files_service.FilesResponseToSingle(filesResponse, 0)
+		fileResponse := files_service.GetFileResponseFromFilesResponse(filesResponse, 0)
 		ctx.JSON(http.StatusOK, fileResponse)
 	}
 }
@@ -856,7 +856,7 @@ func DeleteFile(ctx *context.APIContext) {
 		}
 		ctx.Error(http.StatusInternalServerError, "DeleteFile", err)
 	} else {
-		fileResponse := files_service.FilesResponseToSingle(filesResponse, 0)
+		fileResponse := files_service.GetFileResponseFromFilesResponse(filesResponse, 0)
 		ctx.JSON(http.StatusOK, fileResponse) // FIXME on APIv2: return http.StatusNoContent
 	}
 }
