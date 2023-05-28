@@ -56,12 +56,12 @@
 				</div>
 				<div class="field">
 					<label>{{.locale.Tr "settings.repo_and_org_access"}}</label>
-					<label style="cursor: pointer">
-						<input class="enable-system" type="radio" name="scope" value="{{$.AccessTokenScopePublicOnly}}" style="margin: 4px 5px 0 0">
+					<label class="gt-cursor-pointer">
+						<input class="enable-system gt-mt-2 gt-mr-2" type="radio" name="scope" value="{{$.AccessTokenScopePublicOnly}}">
 						{{.locale.Tr "settings.permissions_public_only"}}
 					</label>
-					<label style="cursor: pointer">
-						<input class="enable-system" type="radio" name="scope" value="" style="margin: 4px 5px 0 0" checked>
+					<label class="gt-cursor-pointer">
+						<input class="enable-system gt-mt-2 gt-mr-2" type="radio" name="scope" value="" checked>
 						{{.locale.Tr "settings.permissions_access_all"}}
 					</label>
 				</div>
@@ -81,7 +81,7 @@
 					<scoped-access-token-category category="repository"></scoped-access-token-category>
 					<scoped-access-token-category category="user"></scoped-access-token-category>
 				</details>
-				<div id="scoped-access-warning" class="ui warning message center" style="display: none">
+				<div id="scoped-access-warning" class="ui warning message center gt-hidden">
 					{{.locale.Tr "settings.at_least_one_permission"}}
 				</div>
 				<button id="scoped-access-submit" class="ui green button">
