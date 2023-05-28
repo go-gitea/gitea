@@ -42,6 +42,8 @@
   --color-primary-alpha-70: #4183c4b3;
   --color-primary-alpha-80: #4183c4cc;
   --color-primary-alpha-90: #4183c4e1;
+  --color-primary-hover: var(--color-primary-dark-1);
+  --color-primary-active: var(--color-primary-dark-2);
   --color-secondary: #dedede;
   --color-secondary-dark-1: #cecece;
   --color-secondary-dark-2: #bfbfbf;

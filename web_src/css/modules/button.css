@@ -118,12 +118,12 @@
 .ui.primary.buttons .button:hover,
 .ui.primary.button:focus,
 .ui.primary.buttons .button:focus {
-  background: var(--color-primary-dark-1);
+  background: var(--color-primary-hover);
 }
 
 .ui.primary.button:active,
 .ui.primary.buttons .button:active {
-  background: var(--color-primary-dark-2);
+  background: var(--color-primary-active);
 }
 
 .ui.basic.primary.buttons .button,
@@ -136,14 +136,14 @@
 .ui.basic.primary.button:hover,
 .ui.basic.primary.buttons .button:focus,
 .ui.basic.primary.button:focus {
-  color: var(--color-primary-dark-1);
-  border-color: var(--color-primary-dark-1);
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 
 .ui.basic.primary.buttons .button:active,
 .ui.basic.primary.button:active {
-  color: var(--color-primary-dark-2);
-  border-color: var(--color-primary-dark-2);
+  color: var(--color-primary-active);
+  border-color: var(--color-primary-active);
 }
 
 /* secondary */

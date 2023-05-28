@@ -83,10 +83,10 @@ export async function createMonaco(textarea, filename, editorOpts) {
     colors: {
       'editor.background': getProp('--color-code-bg'),
       'editor.foreground': getProp('--color-text'),
-      'editor.inactiveSelectionBackground': getProp('--color-primary-dark-4'),
+      'editor.inactiveSelectionBackground': getProp('--color-primary-light-4'),
       'editor.lineHighlightBackground': getProp('--color-editor-line-highlight'),
-      'editor.selectionBackground': getProp('--color-primary-dark-5'),
-      'editor.selectionForeground': getProp('--color-primary-dark-5'),
+      'editor.selectionBackground': getProp('--color-primary-light-3'),
+      'editor.selectionForeground': getProp('--color-primary-light-3'),
       'editorLineNumber.background': getProp('--color-code-bg'),
       'editorLineNumber.foreground': getProp('--color-secondary-dark-6'),
       'editorWidget.background': getProp('--color-body'),
