@@ -148,6 +148,28 @@
 
 /* secondary */
 
+.ui.secondary.labels .label,
+.ui.ui.ui.secondary.label,
+.ui.secondary.button,
+.ui.secondary.buttons .button {
+  background: var(--color-secondary);
+  color: var(--color-text);
+}
+
+.ui.secondary.button:hover,
+.ui.secondary.buttons .button:hover,
+.ui.secondary.button:focus,
+.ui.secondary.buttons .button:focus {
+  background: var(--color-secondary-dark-1);
+  color: var(--color-text);
+}
+
+.ui.secondary.button:active,
+.ui.secondary.buttons .button:active {
+  background: var(--color-secondary-dark-2);
+  color: var(--color-text);
+}
+
 .ui.basic.secondary.buttons .button,
 .ui.basic.secondary.button {
   color: var(--color-secondary-dark-6) !important;

@@ -58,6 +58,8 @@
   --color-secondary-alpha-70: #525767b3;
   --color-secondary-alpha-80: #525767cc;
   --color-secondary-alpha-90: #525767e1;
+  --color-secondary-hover: var(--color-secondary-light-1);
+  --color-secondary-active: var(--color-secondary-light-2);
   /* console colors */
   --color-console-fg: #ffffff;
   --color-console-bg: #262936;
