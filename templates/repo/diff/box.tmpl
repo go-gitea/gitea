@@ -115,8 +115,7 @@
 									{{end}}
 									{{if and $file.Mode $file.OldMode}}
 										<span class="gt-ml-4 gt-mono">{{$file.OldMode}} &rarr; {{$file.Mode}}</span>
-									{{end}}
-									{{if and $file.Mode (not $file.OldMode)}}
+									{{else if $file.Mode}}
 										<span class="gt-ml-4 gt-mono">0 &rarr; {{$file.Mode}}</span>
 									{{end}}
 								</div>
