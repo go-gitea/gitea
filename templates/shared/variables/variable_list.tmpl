@@ -15,12 +15,16 @@
 	{{if .Variables}}
 	<div class="ui key list">
 		{{range $i, $v := .Variables}}
-		<div class="item{{if gt $i 0}} gt-py-4{{end}}">
-			<div class="right floated content">
-				<i class="color-text-light-2 gt-mr-5">
+		<div class="item gt-df gt-ac gt-fw {{if gt $i 0}} gt-py-4{{end}}">
+			<div class="content gt-f1 gt-ellipsis">
+				<strong>{{$v.Name}}</strong>
+				<div class="print meta gt-ellipsis">{{$v.Data}}</div>
+			</div>
+			<div class="content">
+				<span class="color-text-light-2 gt-mr-5">
 					{{$.locale.Tr "settings.added_on" (DateTime "short" $v.CreatedUnix) | Safe}}
-				</i>
-				<button class="ui button button-ghost show-modal show-variable-edit-modal gt-mx-3"
+				</span>
+				<button class="ui button button-ghost show-modal show-variable-edit-modal gt-p-3"
 					data-is-new="false"
 					data-old-name="{{$v.Name}}"
 					data-old-value="{{$v.Data}}"
@@ -31,16 +35,12 @@
 				>
 					{{svg "octicon-pencil"}}
 				</button>
-				<button class="ui button button-ghost delete-button gt-mx-3"
+				<button class="ui button button-ghost delete-button gt-p-3"
 					data-url="{{$.Link}}/{{$v.ID}}/delete"
 					data-tooltip-content="{{$.locale.Tr "actions.variables.delete" $v.Name}}"
 				>
 					{{svg "octicon-trash"}}
 				</button>
-			</div>
-			<div class="content">
-				<strong>{{$v.Name}}</strong>
-				<div class="print meta">{{$v.Data}}</div>
 			</div>
 		</div>
 		{{end}}
