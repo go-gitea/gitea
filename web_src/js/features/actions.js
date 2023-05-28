@@ -10,17 +10,15 @@ export function initActionsVariables() {
     const form = $modal.find('form')[0];
     // clear input/textarea value
     $modal.find('input[name=name]').val('');
-    $modal.find('textarea[name=data]').val('');
+    $modal.find('textarea[name=value]').val('');
     // set dialog header
     const $header = $modal.find('#variable-edit-header');
     $header.text($btn.attr('data-modal-header'));
 
     if ($btn.attr('data-is-new') === 'false') {
       // edit variable dialog
-      const oldName = $btn.attr('data-old-name');
-      const oldValue = $btn.attr('data-old-value');
-      $modal.find('input[name=name]').val(oldName);
-      $modal.find('textarea[name=data]').val(oldValue);
+      $modal.find('input[name=name]').val($btn.attr('data-old-name'));
+      $modal.find('textarea[name=value]').val($btn.attr('data-old-value'));
     }
 
     $modal.find('.actions .ok.button').off('click').on('click', () => {
@@ -39,7 +37,7 @@ export function initActionsVariables() {
           },
           body: JSON.stringify({
             name: $modal.find('input[name=name]').val(),
-            data: $modal.find('textarea[name=data]').val(),
+            data: $modal.find('textarea[name=value]').val(),
           }),
         });
         const data = await res.json();

@@ -55,30 +55,28 @@
 	<div class="header">
 		<span id="variable-edit-header"></span>
 	</div>
-	<form class="ui form">
+	<form class="ui form ignore-dirty">
 		<div class="content">
 			{{.CsrfTokenHtml}}
 			<div class="field">
 				{{.locale.Tr "actions.variables.description"}}
 			</div>
 			<div class="field">
-				<label for="variable-title">{{.locale.Tr "actions.variables.name"}}</label>
+				<label for="modal-variable-name">{{.locale.Tr "actions.variables.name"}}</label>
 				<input autofocus required
 					name="name"
-					id="variable-title"
+					id="modal-variable-name"
 					value="{{.title}}"
 					pattern="^[a-zA-Z_][a-zA-Z0-9_]*$"
 					placeholder="{{.locale.Tr "secrets.creation.name_placeholder"}}"
-					data-ays-ignore="true"
 				>
 			</div>
 			<div class="field">
-				<label for="variable-content">{{.locale.Tr "actions.variables.value"}}</label>
+				<label for="modal-variable-value">{{.locale.Tr "actions.variables.value"}}</label>
 				<textarea required
-					name="data"
-					id="variable-content"
+					name="value"
+					id="modal-variable-value"
 					placeholder="{{.locale.Tr "secrets.creation.value_placeholder"}}"
-					data-ays-ignore="true"
 				></textarea>
 			</div>
 		</div>
