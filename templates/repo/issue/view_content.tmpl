@@ -27,7 +27,7 @@
 									{{svg (MigrationIcon .Repository.GetOriginalURLHostname)}}
 									{{.Issue.OriginalAuthor}}
 								</span>
-								<span class="text grey">
+								<span class="text grey muted-links">
 									{{.locale.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe}}
 								</span>
 								<span class="text migrate">
@@ -37,7 +37,7 @@
 								<a class="inline-timeline-avatar" href="{{.Issue.Poster.HomeLink}}">
 									{{avatar $.Context .Issue.Poster 24}}
 								</a>
-								<span class="text grey">
+								<span class="text grey muted-links">
 									{{template "shared/user/authorlink" .Issue.Poster}}
 									{{.locale.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe}}
 								</span>
@@ -78,9 +78,7 @@
 					</div>
 					{{$reactions := .Issue.Reactions.GroupByType}}
 					{{if $reactions}}
-						<div class="ui attached segment reactions" role="note">
-							{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
-						</div>
+						{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
 					{{end}}
 				</div>
 			</div>

@@ -374,3 +374,9 @@ type RepoTransfer struct {
 	Recipient *User   `json:"recipient"`
 	Teams     []*Team `json:"teams"`
 }
+
+// NewIssuePinsAllowed represents an API response that says if new Issue Pins are allowed
+type NewIssuePinsAllowed struct {
+	Issues       bool `json:"issues"`
+	PullRequests bool `json:"pull_requests"`
+}
