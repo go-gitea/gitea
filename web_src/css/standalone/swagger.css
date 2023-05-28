@@ -25,7 +25,7 @@ body {
 }
 
 .swagger-back-link:hover {
-  color: #3f89e0;
+  text-decoration: underline;
 }
 
 .swagger-back-link svg {
@@ -38,7 +38,7 @@ body {
   body {
     background: #1e1e1e;
   }
-  .swagger-ui {
+  .swagger-ui, .swagger-back-link {
       filter: invert(88%) hue-rotate(180deg);
   }
   .swagger-ui .microlight {
