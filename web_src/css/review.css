@@ -54,8 +54,7 @@
 }
 
 .show-outdated:hover,
-.hide-outdated:hover,
-.show-original:hover {
+.hide-outdated:hover {
   text-decoration: underline;
 }
 
