@@ -74,8 +74,8 @@ func TestAccessTokenScope_HasScope(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(string(test.in), func(t *testing.T) {
-			scope, err := test.in.HasScope(test.scope)
-			assert.Equal(t, test.out, scope)
+			hasScope, err := test.in.HasScope(test.scope)
+			assert.Equal(t, test.out, hasScope)
 			assert.Equal(t, test.err, err)
 		})
 	}
