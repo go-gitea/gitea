@@ -1065,17 +1065,14 @@ Default templates for project boards:
 - `PULL`: **300**: Git pull from internal repositories timeout seconds.
 - `GC`: **60**: Git repository GC timeout seconds.
 
-### Git - Reflog settings (`git.reflog`)
-
-- `ENABLED`: **true** Set to true to enable Git to write changes to reflogs in each repo.
-- `EXPIRATION`: **90** Reflog entry lifetime, in days. Entries are removed opportunistically by Git.
-
 ### Git - Config options (`git.config`)
 
 The key/value pairs in this section will be used as git config.
 This section only does "set" config, a removed config key from this section won't be removed from git config automatically. The format is `some.configKey = value`.
 
 - `diff.algorithm`: **histogram**
+- `core.logAllRefUpdates`: **true**
+- `gc.reflogExpire`: **90**
 
 ## Metrics (`metrics`)
 
