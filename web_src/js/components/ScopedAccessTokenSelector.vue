@@ -67,6 +67,7 @@
 <script>
 
 import {createApp} from 'vue';
+import {showElem} from '../utils/dom.js';
 
 const sfc = {
   props: {
@@ -135,7 +136,7 @@ export function initScopedAccessTokenCategories() {
       }
     }
     // no scopes selected, show validation error
-    document.getElementById('scoped-access-warning').style.display = 'block';
+    showElem(document.getElementById('scoped-access-warning'));
   });
 }
 
