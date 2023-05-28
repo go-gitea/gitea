@@ -22,7 +22,6 @@ var UI = struct {
 	GraphMaxCommitNum     int
 	CodeCommentLines      int
 	ReactionMaxUserNum    int
-	ThemeColorMetaTag     string
 	MaxDisplayFileSize    int64
 	ShowUserEmail         bool
 	DefaultShowFullName   bool
@@ -77,7 +76,6 @@ var UI = struct {
 	GraphMaxCommitNum:   100,
 	CodeCommentLines:    4,
 	ReactionMaxUserNum:  10,
-	ThemeColorMetaTag:   ``,
 	MaxDisplayFileSize:  8388608,
 	DefaultTheme:        `auto`,
 	Themes:              []string{`auto`, `gitea`, `arc-green`},
