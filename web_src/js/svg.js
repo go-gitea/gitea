@@ -3,7 +3,6 @@ import giteaDoubleChevronLeft from '../../public/img/svg/gitea-double-chevron-le
 import giteaDoubleChevronRight from '../../public/img/svg/gitea-double-chevron-right.svg';
 import giteaEmptyCheckbox from '../../public/img/svg/gitea-empty-checkbox.svg';
 import giteaExclamation from '../../public/img/svg/gitea-exclamation.svg';
-import octiconAlertFill from '../../public/img/svg/octicon-alert-fill.svg';
 import octiconArchive from '../../public/img/svg/octicon-archive.svg';
 import octiconArrowSwitch from '../../public/img/svg/octicon-arrow-switch.svg';
 import octiconBlocked from '../../public/img/svg/octicon-blocked.svg';
@@ -72,7 +71,6 @@ const svgs = {
   'gitea-double-chevron-right': giteaDoubleChevronRight,
   'gitea-empty-checkbox': giteaEmptyCheckbox,
   'gitea-exclamation': giteaExclamation,
-  'octicon-alert-fill': octiconAlertFill,
   'octicon-archive': octiconArchive,
   'octicon-arrow-switch': octiconArrowSwitch,
   'octicon-blocked': octiconBlocked,
