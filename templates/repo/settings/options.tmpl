@@ -70,11 +70,12 @@
 
 		{{/* These variables exist to make the logic in the Settings window easier to comprehend and are not used later on. */}}
 		{{$newMirrorsPartiallyEnabled := or (not .DisableNewPullMirrors) (not .DisableNewPushMirrors)}}
-		{{$showMirrorSettings := or $newMirrorsPartiallyEnabled .Repository.IsMirror}}
+		{{/* .Repository.IsMirror is not always reliable if the repository is not actively acting as a mirror because of errors. */}}
+		{{$showMirrorSettings := or $newMirrorsPartiallyEnabled .Repository.IsMirror .PullMirror .PushMirrors}}
 		{{$newMirrorsEntirelyEnabled := and (not .DisableNewPullMirrors) (not .DisableNewPushMirrors)}}
 		{{$onlyNewPushMirrorsEnabled := and (not .DisableNewPushMirrors) .DisableNewPullMirrors}}
 		{{$onlyNewPullMirrorsEnabled := and .DisableNewPushMirrors (not .DisableNewPullMirrors)}}
-		{{$modifyExistingPushMirror := or .Repository.IsMirror .PushMirrors}}
+		{{$existingPushMirror := or .Repository.IsMirror .PushMirrors}}
 		{{$modifyBrokenPullMirror := and .Repository.IsMirror (not .PullMirror)}}
 		{{$isWorkingPullMirror := .PullMirror}}
 
@@ -87,23 +88,23 @@
 					{{$.locale.Tr "repo.settings.mirror_settings.docs"}}
 					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pushing-to<ing-to-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.pull_mirror_instructions"}}
-					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.pulling_remote_title"}}</a><br>
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br>
 				{{else if $onlyNewPushMirrorsEnabled}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_pull_mirror.instructions"}}
-					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pushing-to-a-remote-repository">{{$.locale.Tr "settings.mirror_settings.docs.doc_link_title"}}</a>
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br>
 				{{else if $onlyNewPullMirrorsEnabled}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.instructions"}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.pull_mirror_warning"}}
 					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.info"}}
-					{{if $modifyExistingPushMirror}}
-						{{$.locale.Tr "repo.settings.mirror_settings.docs.can_still_modify"}}
+					{{if $existingPushMirror}}
+						{{$.locale.Tr "repo.settings.mirror_settings.docs.can_still_use"}}
 					{{end}}
 				{{else}}
-					{{$.locale.Tr "repo.settings.mirror_settings.docs.no_new_mirrors"}} {{$.locale.Tr "repo.settings.mirror_settings.docs.can_still_modify"}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.no_new_mirrors"}} {{$.locale.Tr "repo.settings.mirror_settings.docs.can_still_use"}}<br>
 				{{end}}
 				<table class="ui table">
-					{{if $modifyExistingPushMirror}}
+					{{if $existingPushMirror}}
 					<thead>
 						<tr>
 							<th style="width:40%">{{$.locale.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
