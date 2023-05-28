@@ -687,6 +687,8 @@ func (issue *Issue) HasOriginalAuthor() bool {
 	return issue.OriginalAuthor != "" && issue.OriginalAuthorID != 0
 }
 
+var ErrIssueMaxPinReached = util.NewInvalidArgumentErrorf("the max number of pinned issues has been readched")
+
 // IsPinned returns if a Issue is pinned
 func (issue *Issue) IsPinned() bool {
 	return issue.PinOrder != 0
@@ -707,7 +709,7 @@ func (issue *Issue) Pin(ctx context.Context, user *user_model.User) error {
 
 	// Check if the maximum allowed Pins reached
 	if maxPin >= setting.Repository.Issue.MaxPinned {
-		return util.NewInvalidArgumentErrorf("You have reached the max number of pinned Issues")
+		return ErrIssueMaxPinReached
 	}
 
 	_, err = db.GetEngine(ctx).Table("issue").
@@ -866,5 +868,5 @@ func IsNewPinAllowed(ctx context.Context, repoID int64, isPull bool) (bool, erro
 
 // IsErrIssueMaxPinReached returns if the error is, that the User can't pin more Issues
 func IsErrIssueMaxPinReached(err error) bool {
-	return err.Error() == "You have reached the max number of pinned Issues"
+	return err == ErrIssueMaxPinReached
 }

@@ -46,7 +46,7 @@ func PinIssue(ctx *context.APIContext) {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else if issues_model.IsErrIssueMaxPinReached(err) {
-			ctx.Error(http.StatusBadGateway, "MaxPinReached", err)
+			ctx.Error(http.StatusBadRequest, "MaxPinReached", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
@@ -57,11 +57,13 @@ func PinIssue(ctx *context.APIContext) {
 	err = issue.LoadRepo(ctx)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadRepo", err)
+		return
 	}
 
 	err = issue.Pin(ctx, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "PinIssue", err)
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)
@@ -110,11 +112,13 @@ func UnpinIssue(ctx *context.APIContext) {
 	err = issue.LoadRepo(ctx)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadRepo", err)
+		return
 	}
 
 	err = issue.Unpin(ctx, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UnpinIssue", err)
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)
@@ -168,6 +172,7 @@ func MoveIssuePin(ctx *context.APIContext) {
 	err = issue.MovePin(ctx, int(ctx.ParamsInt64(":position")))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "MovePin", err)
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)
@@ -196,11 +201,12 @@ func ListPinnedIssues(ctx *context.APIContext) {
 	//     "$ref": "#/responses/IssueList"
 	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo.Repository.ID, false)
 
-	if err == nil {
-		ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
-	} else {
+	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPinnedIssues", err)
+		return
 	}
+
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
 }
 
 // ListPinnedPullRequests returns a list of all pinned PRs
@@ -227,6 +233,7 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPinnedPullRequests", err)
+		return
 	}
 
 	apiPrs := make([]*api.PullRequest, len(issues))
