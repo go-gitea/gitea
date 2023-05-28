@@ -113,6 +113,12 @@
 									{{if $file.IsVendored}}
 										<span class="ui label gt-ml-3">{{$.locale.Tr "repo.diff.vendored"}}</span>
 									{{end}}
+									{{if and $file.Mode $file.OldMode}}
+										<span class="ui gt-ml-5 gt-mono">{{$.locale.Tr "repo.pulls.changed_file_mode" $file.OldMode $file.Mode}}</span>
+									{{end}}
+									{{if and $file.Mode (not $file.OldMode)}}
+										<span class="ui gt-ml-5 gt-mono">{{$.locale.Tr "repo.pulls.changed_file_mode" "0" $file.Mode}}</span>
+									{{end}}
 								</div>
 								<div class="diff-file-header-actions gt-df gt-ac">
 									{{if $showFileViewToggle}}
