@@ -2520,14 +2520,6 @@
   left: 7px;
 }
 
-.comment-header a {
-  color: var(--color-text);
-}
-
-.comment-header a:hover {
-  color: var(--color-primary);
-}
-
 .comment-header .actions a:not(.label) {
   padding: 0.5rem !important;
 }
