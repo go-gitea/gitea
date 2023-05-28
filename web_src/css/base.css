@@ -16,6 +16,7 @@
   --border-radius: 0.28571429rem;
   --opacity-disabled: 0.55;
   --height-loading: 16rem;
+  --tab-size: 4;
   /* base colors */
   --color-primary: #4183c4;
   --color-primary-contrast: #ffffff;
@@ -230,6 +231,7 @@ h6 {
 body {
   color: var(--color-text);
   background-color: var(--color-body);
+  tab-size: var(--tab-size);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
