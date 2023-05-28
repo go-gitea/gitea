@@ -41,6 +41,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	issue_service "code.gitea.io/gitea/services/issue"
+	"code.gitea.io/gitea/services/pull"
 
 	"github.com/nektos/act/pkg/model"
 )
@@ -361,6 +362,14 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if workFlowErr != nil {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
+	} else if util.SliceContains([]string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}, ctx.Repo.TreePath) {
+		if data, err := blob.GetBlobContent(); err == nil {
+			_, warnings := pull.GetCodeOwnersFromContent(ctx, data)
+			if len(warnings) > 0 {
+				ctx.Data["FileWarning"] = strings.Join(warnings, "\n")
+			}
+		}
+
 	}
 
 	isDisplayingSource := ctx.FormString("display") == "source"

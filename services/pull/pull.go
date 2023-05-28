@@ -125,14 +125,13 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 
 		_, _ = issue_service.CreateComment(ctx, ops)
 
-		if coRules, err := GetCodeOwners(ctx, repo, pr.BaseBranch); err == nil && len(coRules) > 0 {
+		if coRules, _, err := GetCodeOwners(ctx, repo, repo.DefaultBranch); err == nil && len(coRules) > 0 {
 			changedFiles, err := baseGitRepo.GetFilesChangedBetween(git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
 			if err != nil {
 				return err
 			}
 
 			uniqUsers := make(map[int64]*user_model.User)
-
 			for _, rule := range coRules {
 				for _, f := range changedFiles {
 					if (rule.Rule.MatchString(f) && !rule.Negative) || (!rule.Rule.MatchString(f) && rule.Negative) {
@@ -872,42 +871,55 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 // Return error on file system errors
 // We're trying to do the best we can when parsing a file.
 // Invalid lines are skipped. Non-existent users and groups too.
-func GetCodeOwners(ctx context.Context, repo *repo_model.Repository, branch string) ([]*CodeOwnerRule, error) {
+func GetCodeOwners(ctx context.Context, repo *repo_model.Repository, branch string) ([]*CodeOwnerRule, []string, error) {
 	files := []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer closer.Close()
 
 	if !gitRepo.IsBranchExist(branch) {
-		return nil, &git.ErrBranchNotExist{Name: branch}
+		return nil, nil, &git.ErrBranchNotExist{Name: branch}
 	}
 
-	var data []byte
+	commit, err := gitRepo.GetBranchCommit(branch)
+
+	var data string
 	for _, file := range files {
-		data, err = gitRepo.GetFileContent(branch, file)
-		if err == nil {
-			break
+		if blob, err := commit.GetBlobByPath(file); err == nil {
+			data, err = blob.GetBlobContent()
+			if err == nil {
+				break
+			}
 		}
 	}
 
+	rules, warnings := GetCodeOwnersFromContent(ctx, data)
+	return rules, warnings, nil
+}
+
+func GetCodeOwnersFromContent(ctx context.Context, data string) ([]*CodeOwnerRule, []string) {
 	if len(data) == 0 {
 		return nil, nil
 	}
 
 	rules := make([]*CodeOwnerRule, 0)
-	lines := strings.Split(string(data), "\n")
+	lines := strings.Split(data, "\n")
+	warnings := make([]string, 0)
 
-	for _, line := range lines {
+	for i, line := range lines {
 		tokens := tokenizeCodeOwnersLine(line)
 		if len(tokens) == 0 {
 			continue
 		} else if len(tokens) < 2 {
-			log.Info("Incorrect codeowner line: %s", line)
+			warnings = append(warnings, fmt.Sprintf("Line: %d: incorrect format", i+1))
 			continue
 		}
-		rule := parseCodeOwnersLine(ctx, tokens)
+		rule, wr := parseCodeOwnersLine(ctx, tokens)
+		for _, w := range wr {
+			warnings = append(warnings, fmt.Sprintf("Line: %d: %s", i+1, w))
+		}
 		if rule == nil {
 			continue
 		}
@@ -915,7 +927,7 @@ func GetCodeOwners(ctx context.Context, repo *repo_model.Repository, branch stri
 		rules = append(rules, rule)
 	}
 
-	return rules, nil
+	return rules, warnings
 }
 
 type CodeOwnerRule struct {
@@ -924,17 +936,19 @@ type CodeOwnerRule struct {
 	Users    []*user_model.User
 }
 
-func parseCodeOwnersLine(ctx context.Context, tokens []string) *CodeOwnerRule {
+func parseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, []string) {
 	var err error
 	rule := &CodeOwnerRule{
 		Users:    make([]*user_model.User, 0),
 		Negative: strings.HasPrefix(tokens[0], "!"),
 	}
 
+	warnings := make([]string, 0)
+
 	rule.Rule, err = regexp.Compile(fmt.Sprintf("^%s$", strings.TrimPrefix(tokens[0], "!")))
 	if err != nil {
-		log.Info("Incorrect codeowner regexp: %s, error: %s", tokens[0], err)
-		return nil
+		warnings = append(warnings, fmt.Sprintf("incorrect codeowner regexp: %s", err))
+		return nil, warnings
 	}
 
 	for _, user := range tokens[1:] {
@@ -944,7 +958,7 @@ func parseCodeOwnersLine(ctx context.Context, tokens []string) *CodeOwnerRule {
 		if strings.Contains(user, "/") {
 			s := strings.Split(user, "/")
 			if len(s) != 2 {
-				log.Info("Incorrect codeowner group: %s", user)
+				warnings = append(warnings, fmt.Sprintf("incorrect codeowner group: %s", user))
 				continue
 			}
 			orgName := s[0]
@@ -952,11 +966,13 @@ func parseCodeOwnersLine(ctx context.Context, tokens []string) *CodeOwnerRule {
 
 			org, err := org_model.GetOrgByName(ctx, orgName)
 			if err != nil {
-				log.Info("Incorrect codeowner org name: %s", user)
+				warnings = append(warnings, fmt.Sprintf("incorrect codeowner organization: %s", user))
+				continue
 			}
 			teams, err := org.LoadTeams()
 			if err != nil {
-				log.Info("Incorrect codeowner team name: %s", user)
+				warnings = append(warnings, fmt.Sprintf("incorrect codeowner team: %s", user))
+				continue
 			}
 
 			for _, team := range teams {
@@ -970,6 +986,7 @@ func parseCodeOwnersLine(ctx context.Context, tokens []string) *CodeOwnerRule {
 		} else {
 			u, err := user_model.GetUserByName(ctx, user)
 			if err != nil {
+				warnings = append(warnings, fmt.Sprintf("incorrect codeowner user: %s", user))
 				continue
 			}
 			rule.Users = append(rule.Users, u)
@@ -977,10 +994,11 @@ func parseCodeOwnersLine(ctx context.Context, tokens []string) *CodeOwnerRule {
 	}
 
 	if len(rule.Users) == 0 {
-		return nil
+		warnings = append(warnings, "no users matched")
+		return nil, warnings
 	}
 
-	return rule
+	return rule, warnings
 }
 
 func tokenizeCodeOwnersLine(line string) []string {

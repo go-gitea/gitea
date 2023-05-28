@@ -25,6 +25,11 @@ Gitea maintains code owner files. It looks for it in the following locations in 
 
 And stops at the first found file.
 
+File format: `<regexp rule> <@user or @org/team> [@user or @org/team]...`
+
+Regexp specified in golang Regex format.
+Regexp can start with `!` for negative rules - match all files except specified.
+
 Example file:
 
 ```
@@ -32,7 +37,7 @@ Example file:
 
 # Comment too
 # You can assigning code owning for users or teams
-frontend/src/.*\\.js @org1/team1 @org1/team2
+frontend/src/.*\\.js @org1/team1 @org1/team2 @user3
 
 # You can use negative pattern
 !frontend/src/.* @org1/team3 @user5
