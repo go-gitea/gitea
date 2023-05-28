@@ -504,8 +504,8 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader, ski
 		return diff, err
 	}
 
-	prepareValue := func(src string, prefix string) string {
-		return strings.TrimSpace(strings.TrimPrefix(src, prefix))
+	prepareValue := func(s, p string) string {
+		return strings.TrimSpace(strings.TrimPrefix(s, p))
 	}
 
 parsingLoop:
