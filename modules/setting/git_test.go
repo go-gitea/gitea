@@ -23,8 +23,6 @@ a.b = 1
 `)
 	assert.NoError(t, err)
 	loadGitFrom(cfg)
-
-	assert.Len(t, GitConfig.Options, 2)
 	assert.EqualValues(t, "1", GitConfig.Options["a.b"])
 	assert.EqualValues(t, "histogram", GitConfig.Options["diff.algorithm"])
 
@@ -34,7 +32,34 @@ diff.algorithm = other
 `)
 	assert.NoError(t, err)
 	loadGitFrom(cfg)
-
-	assert.Len(t, GitConfig.Options, 1)
 	assert.EqualValues(t, "other", GitConfig.Options["diff.algorithm"])
+}
+
+func TestGitReflog(t *testing.T) {
+	oldGit := Git
+	oldGitConfig := GitConfig
+	defer func() {
+		Git = oldGit
+		GitConfig = oldGitConfig
+	}()
+
+	// default reflog config without legacy options
+	cfg, err := NewConfigProviderFromData(``)
+	assert.NoError(t, err)
+	loadGitFrom(cfg)
+
+	assert.EqualValues(t, "true", GitConfig.GetOption("core.logAllRefUpdates"))
+	assert.EqualValues(t, "90", GitConfig.GetOption("gc.reflogExpire"))
+
+	// custom reflog config by legacy options
+	cfg, err = NewConfigProviderFromData(`
+[git.reflog]
+ENABLED = false
+EXPIRATION = 123
+`)
+	assert.NoError(t, err)
+	loadGitFrom(cfg)
+
+	assert.EqualValues(t, "false", GitConfig.GetOption("core.logAllRefUpdates"))
+	assert.EqualValues(t, "123", GitConfig.GetOption("gc.reflogExpire"))
 }
