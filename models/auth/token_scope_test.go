@@ -61,14 +61,38 @@ func TestAccessTokenScope_HasScope(t *testing.T) {
 
 	for _, scope := range []string{"activitypub", "admin", "misc", "notification", "organization", "package", "issue", "repository", "user"} {
 		tests = append(tests,
-			scopeTestHasScope{AccessTokenScope(fmt.Sprintf("read:%s", scope)), AccessTokenScope(fmt.Sprintf("read:%s", scope)), true, nil},
-			scopeTestHasScope{AccessTokenScope(fmt.Sprintf("write:%s", scope)), AccessTokenScope(fmt.Sprintf("write:%s", scope)), true, nil},
-			scopeTestHasScope{AccessTokenScope(fmt.Sprintf("delete:%s", scope)), AccessTokenScope(fmt.Sprintf("delete:%s", scope)), true, nil},
-			scopeTestHasScope{AccessTokenScope(fmt.Sprintf("write:%s", scope)), AccessTokenScope(fmt.Sprintf("read:%s", scope)), true, nil},
-			scopeTestHasScope{AccessTokenScope(fmt.Sprintf("delete:%s", scope)), AccessTokenScope(fmt.Sprintf("write:%s", scope)), true, nil},
-			scopeTestHasScope{AccessTokenScope(fmt.Sprintf("read:%s", scope)), AccessTokenScope(fmt.Sprintf("write:%s", scope)), false, nil},
-			scopeTestHasScope{AccessTokenScope(fmt.Sprintf("read:%s", scope)), AccessTokenScope(fmt.Sprintf("delete:%s", scope)), false, nil},
-			scopeTestHasScope{AccessTokenScope(fmt.Sprintf("write:%s", scope)), AccessTokenScope(fmt.Sprintf("delete:%s", scope)), false, nil},
+			scopeTestHasScope{
+				AccessTokenScope(fmt.Sprintf("read:%s", scope)),
+				AccessTokenScope(fmt.Sprintf("read:%s", scope)), true, nil,
+			},
+			scopeTestHasScope{
+				AccessTokenScope(fmt.Sprintf("write:%s", scope)),
+				AccessTokenScope(fmt.Sprintf("write:%s", scope)), true, nil,
+			},
+			scopeTestHasScope{
+				AccessTokenScope(fmt.Sprintf("delete:%s", scope)),
+				AccessTokenScope(fmt.Sprintf("delete:%s", scope)), true, nil,
+			},
+			scopeTestHasScope{
+				AccessTokenScope(fmt.Sprintf("write:%s", scope)),
+				AccessTokenScope(fmt.Sprintf("read:%s", scope)), true, nil,
+			},
+			scopeTestHasScope{
+				AccessTokenScope(fmt.Sprintf("delete:%s", scope)),
+				AccessTokenScope(fmt.Sprintf("write:%s", scope)), true, nil,
+			},
+			scopeTestHasScope{
+				AccessTokenScope(fmt.Sprintf("read:%s", scope)),
+				AccessTokenScope(fmt.Sprintf("write:%s", scope)), false, nil,
+			},
+			scopeTestHasScope{
+				AccessTokenScope(fmt.Sprintf("read:%s", scope)),
+				AccessTokenScope(fmt.Sprintf("delete:%s", scope)), false, nil,
+			},
+			scopeTestHasScope{
+				AccessTokenScope(fmt.Sprintf("write:%s", scope)),
+				AccessTokenScope(fmt.Sprintf("delete:%s", scope)), false, nil,
+			},
 		)
 	}
 
