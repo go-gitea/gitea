@@ -114,10 +114,10 @@
 										<span class="ui label gt-ml-3">{{$.locale.Tr "repo.diff.vendored"}}</span>
 									{{end}}
 									{{if and $file.Mode $file.OldMode}}
-										<span class="ui gt-ml-4 gt-mono">{{$file.OldMode}} &rarr; {{$file.Mode}}</span>
+										<span class="gt-ml-4 gt-mono">{{$file.OldMode}} &rarr; {{$file.Mode}}</span>
 									{{end}}
 									{{if and $file.Mode (not $file.OldMode)}}
-										<span class="ui gt-ml-4 gt-mono">0 &rarr; {{$file.Mode}}</span>
+										<span class="gt-ml-4 gt-mono">0 &rarr; {{$file.Mode}}</span>
 									{{end}}
 								</div>
 								<div class="diff-file-header-actions gt-df gt-ac">
