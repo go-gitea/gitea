@@ -73,7 +73,7 @@
 			{{else if .IsPlainText}}
 				<pre>{{if .FileContent}}{{.FileContent | Safe}}{{end}}</pre>
 			{{else if not .IsTextSource}}
-				<div class="view-raw ui center{{if .IsPDFFile}} gt-p-0{{end}}">
+				<div class="view-raw">
 					{{if .IsImageFile}}
 						<img src="{{$.RawFileLink}}">
 					{{else if .IsVideoFile}}
