@@ -12,7 +12,7 @@
 					<b>{{$resolveDoer.Name}}</b> {{$.locale.Tr "repo.issues.review.resolved_by"}}
 				{{end}}
 				{{if $invalid}}
-					<a href="{{AppSubUrl}}{{$referenceUrl}}" class="ui label basic small gt-ml-3" data-tooltip-content="{{$.locale.Tr "repo.issues.review.outdated_show_original"}}">
+					<a href="{{AppSubUrl}}{{$referenceUrl}}" class="ui label basic small gt-ml-3" data-tooltip-content="{{$.locale.Tr "repo.issues.review.outdated_description"}}">
 						{{$.locale.Tr "repo.issues.review.outdated"}}
 					</a>
 				{{end}}

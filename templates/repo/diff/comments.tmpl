@@ -33,7 +33,7 @@
 			<div class="comment-header-right actions gt-df gt-ac">
 				{{if .Invalidated}}
 					{{$referenceUrl := printf "%s#%s" $.Issue.Link .HashTag}}
-					<a href="{{AppSubUrl}}{{$referenceUrl}}" class="ui label basic small" data-tooltip-content="{{$.root.locale.Tr "repo.issues.review.outdated_show_original"}}">
+					<a href="{{AppSubUrl}}{{$referenceUrl}}" class="ui label basic small" data-tooltip-content="{{$.root.locale.Tr "repo.issues.review.outdated_description"}}">
 						{{$.root.locale.Tr "repo.issues.review.outdated"}}
 					</a>
 				{{end}}
