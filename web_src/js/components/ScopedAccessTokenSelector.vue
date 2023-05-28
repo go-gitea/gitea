@@ -144,7 +144,8 @@ export function initScopedAccessTokenCategories() {
 
 <style scoped>
 .scoped-access-token-category {
-  padding-bottom: 20px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 .checkbox-label {

@@ -69,6 +69,9 @@
 					<summary class="gt-pb-4 gt-pl-2">
 						{{.locale.Tr "settings.select_permissions"}}
 					</summary>
+					<div class="activity meta">
+						<i>{{.locale.Tr "settings.scoped_token_desc" | Safe}}</i>
+					</div>
 					<scoped-access-token-category category="activitypub"></scoped-access-token-category>
 					{{if .IsAdmin}}
 						<scoped-access-token-category category="admin"></scoped-access-token-category>
