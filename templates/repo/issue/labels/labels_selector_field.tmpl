@@ -36,7 +36,7 @@
 				{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}</a>
 			{{end}}
 		{{else}}
-			<div class="header header-no-uppercase">{{.locale.Tr "repo.issues.new.no_items"}}</div>
+			<div class="disabled item">{{.locale.Tr "repo.issues.new.no_items"}}</div>
 		{{end}}
 	</div>
 </div>

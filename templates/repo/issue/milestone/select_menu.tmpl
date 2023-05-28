@@ -7,7 +7,7 @@
 {{end}}
 <div class="no-select item">{{.locale.Tr "repo.issues.new.clear_milestone"}}</div>
 {{if and (not .OpenMilestones) (not .ClosedMilestones)}}
-	<div class="header header-no-uppercase">
+	<div class="disabled item">
 		{{.locale.Tr "repo.issues.new.no_items"}}
 	</div>
 {{else}}
