@@ -79,6 +79,10 @@ func TestAccessTokenScope_HasScope(t *testing.T) {
 			},
 			scopeTestHasScope{
 				AccessTokenScope(fmt.Sprintf("delete:%s", scope)),
+				AccessTokenScope(fmt.Sprintf("read:%s", scope)), true, nil,
+			},
+			scopeTestHasScope{
+				AccessTokenScope(fmt.Sprintf("delete:%s", scope)),
 				AccessTokenScope(fmt.Sprintf("write:%s", scope)), true, nil,
 			},
 			scopeTestHasScope{
