@@ -198,7 +198,6 @@
   --color-active-line: #fffbdd;
   accent-color: var(--color-accent);
   color-scheme: light;
-  tab-size: var(--tab-size);
 }
 
 :root * {
@@ -231,6 +230,7 @@ h6 {
 body {
   color: var(--color-text);
   background-color: var(--color-body);
+  tab-size: var(--tab-size);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
