@@ -1,6 +1,6 @@
 ---
 date: "2019-02-14T11:51:04+08:00"
-title: "横向对比 Gitea 与其它 Git 托管工具"
+title: "对比 Gitea 与其它 Git 托管工具"
 slug: "comparison"
 weight: 5
 toc: false
@@ -15,7 +15,7 @@ menu:
     identifier: "comparison"
 ---
 
-# 横向对比 Gitea 与其它 Git 托管工具
+# 对比 Gitea 与其它 Git 托管工具
 
 这里列出了 Gitea 与其它一些 Git 托管工具之间的异同，以便确认 Gitea 是否能够满足您的需求。
 

@@ -76,7 +76,7 @@ function showContentHistoryMenu(issueBaseUrl, $item, commentId) {
   const $headerLeft = $item.find('.comment-header-left');
   const menuHtml = `
   <div class="ui pointing dropdown top left content-history-menu" data-comment-id="${commentId}">
-    &bull; <a>${i18nTextEdited}${svg('octicon-triangle-down', 14, 'dropdown icon gt-ml-1 gt-mt-1')}</a>
+    &bull; <a class="muted">${i18nTextEdited}${svg('octicon-triangle-down', 14, 'dropdown icon gt-ml-1 gt-mt-1')}</a>
     <div class="menu">
     </div>
   </div>`;

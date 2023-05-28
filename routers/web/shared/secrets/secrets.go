@@ -5,6 +5,7 @@ package secrets
 
 import (
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
@@ -27,7 +28,15 @@ func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
 func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
 
-	s, err := secret_model.InsertEncryptedSecret(ctx, ownerID, repoID, form.Title, form.Content)
+	content := form.Content
+	// Since the content is from a form which is a textarea, the line endings are \r\n.
+	// It's a standard behavior of HTML.
+	// But we want to store them as \n like what GitHub does.
+	// And users are unlikely to really need to keep the \r.
+	// Other than this, we should respect the original content, even leading or trailing spaces.
+	content = strings.ReplaceAll(content, "\r\n", "\n")
+
+	s, err := secret_model.InsertEncryptedSecret(ctx, ownerID, repoID, form.Title, content)
 	if err != nil {
 		log.Error("InsertEncryptedSecret: %v", err)
 		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))

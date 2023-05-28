@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"strings"
@@ -59,7 +60,7 @@ func confirm() (bool, error) {
 func initDB(ctx context.Context) error {
 	setting.Init(&setting.Options{})
 	setting.LoadDBSetting()
-	setting.InitSQLLog(false)
+	setting.InitSQLLoggersForCli(log.INFO)
 
 	if setting.Database.Type == "" {
 		log.Fatal(`Database settings are missing from the configuration file: %q.
@@ -92,4 +93,18 @@ func installSignals() (context.Context, context.CancelFunc) {
 	}()
 
 	return ctx, cancel
+}
+
+func setupConsoleLogger(level log.Level, colorize bool, out io.Writer) {
+	if out != os.Stdout && out != os.Stderr {
+		panic("setupConsoleLogger can only be used with os.Stdout or os.Stderr")
+	}
+
+	writeMode := log.WriterMode{
+		Level:        level,
+		Colorize:     colorize,
+		WriterOption: log.WriterConsoleOption{Stderr: out == os.Stderr},
+	}
+	writer := log.NewEventWriterConsole("console-default", writeMode)
+	log.GetManager().GetLogger(log.DEFAULT).RemoveAllWriters().AddWriters(writer)
 }
