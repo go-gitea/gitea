@@ -22,10 +22,7 @@ export function initActionsVariables() {
     }
 
     $modal.find('.actions .ok.button').off('click').on('click', () => {
-      if (!form.checkValidity()) {
-        form.reportValidity();
-        return false;
-      }
+      if (!form.reportValidity()) return false;
 
       (async () => {
         const url = $(this).attr('data-base-action');
