@@ -221,7 +221,6 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SHOW_USER_EMAIL`: **true**: Whether the email of the user should be shown in the Explore Users page.
 - `THEMES`:  **auto,gitea,arc-green**: All available themes. Allow users select personalized themes.
   regardless of the value of `DEFAULT_THEME`.
-- `THEME_COLOR_META_TAG`: **\<empty\>**: Value of `theme-color` meta tag, used by some mobile browsers for chrome and out-of-viewport areas. Default is unset which uses body color.
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
     Values can be emoji alias (:smile:) or a unicode emoji.
@@ -1065,17 +1064,14 @@ Default templates for project boards:
 - `PULL`: **300**: Git pull from internal repositories timeout seconds.
 - `GC`: **60**: Git repository GC timeout seconds.
 
-### Git - Reflog settings (`git.reflog`)
-
-- `ENABLED`: **true** Set to true to enable Git to write changes to reflogs in each repo.
-- `EXPIRATION`: **90** Reflog entry lifetime, in days. Entries are removed opportunistically by Git.
-
 ### Git - Config options (`git.config`)
 
 The key/value pairs in this section will be used as git config.
 This section only does "set" config, a removed config key from this section won't be removed from git config automatically. The format is `some.configKey = value`.
 
 - `diff.algorithm`: **histogram**
+- `core.logAllRefUpdates`: **true**
+- `gc.reflogExpire`: **90**
 
 ## Metrics (`metrics`)
 

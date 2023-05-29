@@ -1,3 +1,4 @@
+@import "./modules/normalize.css";
 @import "./modules/animations.css";
 @import "./modules/tippy.css";
 @import "./modules/modal.css";
