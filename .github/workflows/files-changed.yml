@@ -3,15 +3,18 @@ name: files-changed
 on:
   workflow_call:
     outputs:
-      docs:
-        description: "whether docs files changed"
-        value: ${{ jobs.files-changed.outputs.docs }}
       backend:
         description: "whether backend files changed"
         value: ${{ jobs.files-changed.outputs.backend }}
       frontend:
         description: "whether frontend files changed"
         value: ${{ jobs.files-changed.outputs.frontend }}
+      docs:
+        description: "whether docs files changed"
+        value: ${{ jobs.files-changed.outputs.docs }}
+      actions:
+        description: "whether actions files changed"
+        value: ${{ jobs.files-changed.outputs.actions }}
 
 jobs:
   detect:
@@ -20,9 +23,10 @@ jobs:
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:
-      docs: ${{ steps.changes.outputs.docs }}
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
+      docs: ${{ steps.changes.outputs.docs }}
+      actions: ${{ steps.changes.outputs.actions }}
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
@@ -34,16 +38,13 @@ jobs:
               - "**/*.tmpl"
               - "go.mod"
               - "go.sum"
-
             frontend:
               - "**/*.js"
               - "web_src/**"
               - "package.json"
               - "package-lock.json"
-
             docs:
               - "**/*.md"
               - "docs/**"
-
             actions:
               - ".github/workflows/*"
