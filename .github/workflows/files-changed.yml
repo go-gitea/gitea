@@ -1,4 +1,4 @@
-name: files changed
+name: files-changed
 
 on:
   workflow_call:
@@ -14,7 +14,7 @@ on:
         value: ${{ jobs.files-changed.outputs.frontend }}
 
 jobs:
-  files-changed:
+  detect:
     name: detect which files changed
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -25,8 +25,22 @@ jobs:
       frontend: ${{ steps.changes.outputs.frontend }}
     steps:
       - uses: actions/checkout@v3
-      - name: Check for backend file changes
-        uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@v2
         id: changes
         with:
-          filters: .github/file-filters.yml
+          filters:
+            docs:
+              - "**/*.md"
+              - "docs/**"
+
+            backend:
+              - "**/*.go"
+              - "**/*.tmpl"
+              - "go.mod"
+              - "go.sum"
+
+            frontend:
+              - "**/*.js"
+              - "web_src/**"
+              - "package.json"
+              - "package-lock.json"
