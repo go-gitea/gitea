@@ -27,9 +27,9 @@ import (
 )
 
 const (
-	tplProjects           base.TplName = "repo/projects/list"
-	tplProjectsNew        base.TplName = "repo/projects/new"
-	tplProjectsView       base.TplName = "repo/projects/view"
+	tplProjects     base.TplName = "repo/projects/list"
+	tplProjectsNew  base.TplName = "repo/projects/new"
+	tplProjectsView base.TplName = "repo/projects/view"
 )
 
 // MustEnableProjects check if projects are enabled in settings
