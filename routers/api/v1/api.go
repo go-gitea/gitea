@@ -1387,7 +1387,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
-		}) // TODO token category
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 	}, sudo())
 
 	return m

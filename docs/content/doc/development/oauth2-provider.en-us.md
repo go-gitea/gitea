@@ -55,10 +55,10 @@ Gitea token scopes are as follows:
 | Name | Description |
 | ---- | ----------- |
 | **(no scope)** | Not supported. A scope is required even for public repositories. |
-| **activitypub** | |
-| &nbsp;&nbsp;&nbsp; **read:activitypub** |  |
-| &nbsp;&nbsp;&nbsp; **write:activitypub** |  |
-| &nbsp;&nbsp;&nbsp; **delete:activitypub** |  |
+| **activitypub** |`activitypub` API routes: ActivityPub related operations. |
+| &nbsp;&nbsp;&nbsp; **read:activitypub** | Grants read access for ActivityPub operations. |
+| &nbsp;&nbsp;&nbsp; **write:activitypub** | Grants read/write access for ActivityPub operations. |
+| &nbsp;&nbsp;&nbsp; **delete:activitypub** | Grants read/write/delete access for ActivityPub operations. Currently the same as `write:activitypub`. |
 | **admin** | `/admin/*` API routes: Site-wide administrative operations (hidden for non-admin accounts). |
 | &nbsp;&nbsp;&nbsp; **read:admin** | Grants read access for admin operations, such as getting cron jobs or registered user emails. |
 | &nbsp;&nbsp;&nbsp; **write:admin** | Grants read/write access for admin operations, such as running cron jobs or updating user accounts. |
