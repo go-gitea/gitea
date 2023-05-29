@@ -147,6 +147,7 @@ export default {
         this.isLoadingNewData = false;
         const {pageData} = window.config;
         this.diffEnd = pageData.diffFileInfo.diffEnd;
+        this.isIncomplete = pageData.diffFileInfo.isIncomplete;
       });
     },
   },
