@@ -72,8 +72,9 @@
   --color-secondary-alpha-70: #dededeb3;
   --color-secondary-alpha-80: #dededecc;
   --color-secondary-alpha-90: #dededee1;
-  --color-secondary-hover: var(--color-secondary-dark-1);
-  --color-secondary-active: var(--color-secondary-dark-2);
+  --color-secondary-button: var(--color-secondary-dark-4);
+  --color-secondary-hover: var(--color-secondary-dark-5);
+  --color-secondary-active: var(--color-secondary-dark-6);
   /* console colors - used for actions console and console files */
   --color-console-fg: #eeeff2;
   --color-console-fg-subtle: #959cab;
