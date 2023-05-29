@@ -127,6 +127,7 @@ func NewProject(ctx *context.Context) {
 	ctx.Data["BoardTypes"] = project_model.GetBoardConfig()
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
+	ctx.Data["CancelLink"] = ctx.Repo.Repository.Link() + "/projects"
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
 
@@ -136,10 +137,7 @@ func NewProjectPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 
 	if ctx.HasError() {
-		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
-		ctx.Data["BoardTypes"] = project_model.GetBoardConfig()
-		ctx.Data["CardTypes"] = project_model.GetCardConfig()
-		ctx.HTML(http.StatusOK, tplProjectsNew)
+		NewProject(ctx)
 		return
 	}
 
@@ -225,8 +223,7 @@ func EditProject(ctx *context.Context) {
 		} else {
 			ctx.ServerError("GetProjectByID", err)
 		}
-		return
-	}
+		return	}
 	if p.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound("", nil)
 		return
@@ -237,6 +234,7 @@ func EditProject(ctx *context.Context) {
 	ctx.Data["content"] = p.Description
 	ctx.Data["card_type"] = p.CardType
 	ctx.Data["redirect"] = ctx.FormString("redirect")
+	ctx.Data["CancelLink"] = fmt.Sprintf("%s/projects/%d", ctx.Repo.Repository.Link(), p.ID)
 
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
@@ -244,17 +242,20 @@ func EditProject(ctx *context.Context) {
 // EditProjectPost response for editing a project
 func EditProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateProjectForm)
+	projectID := ctx.ParamsInt64(":id")
+
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
+	ctx.Data["CancelLink"] = fmt.Sprintf("%s/projects/%d", ctx.Repo.Repository.Link(), projectID)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplProjectsNew)
 		return
 	}
 
-	p, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	p, err := project_model.GetProjectByID(ctx, projectID)
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
