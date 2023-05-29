@@ -16,6 +16,7 @@
   --border-radius: 0.28571429rem;
   --opacity-disabled: 0.55;
   --height-loading: 16rem;
+  --tab-size: 4;
   /* base colors */
   --color-primary: #4183c4;
   --color-primary-contrast: #ffffff;
@@ -165,8 +166,8 @@
   --color-light: #00000006;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
-  --color-hover: #0000000c;
-  --color-active: #00000014;
+  --color-hover: #00000014;
+  --color-active: #0000001e;
   --color-menu: #ffffff;
   --color-card: #ffffff;
   --color-markup-table-row: #00000008;
@@ -184,7 +185,8 @@
   --color-project-board-light-label: #a6aab5;
   --color-caret: var(--color-text-dark);
   --color-reaction-bg: #0000000a;
-  --color-reaction-active-bg: var(--color-primary-alpha-20);
+  --color-reaction-hover-bg: var(--color-primary-light-5);
+  --color-reaction-active-bg: var(--color-primary-light-6);
   --color-tooltip-text: #ffffff;
   --color-tooltip-bg: #000000f0;
   --color-header-bar: #ffffff;
@@ -229,6 +231,7 @@ h6 {
 body {
   color: var(--color-text);
   background-color: var(--color-body);
+  tab-size: var(--tab-size);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -894,6 +897,11 @@ a.label,
   background: var(--color-hover);
 }
 
+.ui.dropdown .menu > .item:active {
+  color: var(--color-text);
+  background: var(--color-active);
+}
+
 .ui.dropdown .menu .active.item {
   color: var(--color-text);
   background: var(--color-active);
@@ -1059,8 +1067,13 @@ a.label,
 }
 
 .ui.pointing.dropdown > .menu:not(.hidden)::after {
-  background: var(--color-box-body);
+  background: var(--color-menu);
   box-shadow: -1px -1px 0 0 var(--color-secondary);
+}
+
+.ui.pointing.upward.dropdown .menu::after,
+.ui.top.pointing.upward.dropdown .menu::after {
+  box-shadow: 1px 1px 0 0 var(--color-secondary);
 }
 
 .ui.comments .comment .text {

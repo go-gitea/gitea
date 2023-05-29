@@ -201,23 +201,6 @@ func InitFull(ctx context.Context) (err error) {
 	return syncGitConfig()
 }
 
-func enableReflogs() error {
-	if err := configSet("core.logAllRefUpdates", "true"); err != nil {
-		return err
-	}
-	err := configSet("gc.reflogExpire", fmt.Sprintf("%d", setting.Git.Reflog.Expiration))
-	return err
-}
-
-func disableReflogs() error {
-	if err := configUnsetAll("core.logAllRefUpdates", "true"); err != nil {
-		return err
-	} else if err := configUnsetAll("gc.reflogExpire", ""); err != nil {
-		return err
-	}
-	return nil
-}
-
 // syncGitConfig only modifies gitconfig, won't change global variables (otherwise there will be data-race problem)
 func syncGitConfig() (err error) {
 	if err = os.MkdirAll(HomeDir(), os.ModePerm); err != nil {
@@ -247,16 +230,6 @@ func syncGitConfig() (err error) {
 	// Set git some configurations - these must be set to these values for gitea to work correctly
 	if err := configSet("core.quotePath", "false"); err != nil {
 		return err
-	}
-
-	if setting.Git.Reflog.Enabled {
-		if err := enableReflogs(); err != nil {
-			return err
-		}
-	} else {
-		if err := disableReflogs(); err != nil {
-			return err
-		}
 	}
 
 	if CheckGitVersionAtLeast("2.10") == nil {
