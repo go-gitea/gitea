@@ -1,5 +1,6 @@
 @import "./modules/normalize.css";
 @import "./modules/animations.css";
+@import "./modules/button.css";
 @import "./modules/tippy.css";
 @import "./modules/modal.css";
 @import "./modules/breadcrumb.css";
