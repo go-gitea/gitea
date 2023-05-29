@@ -55,7 +55,7 @@ Gitea token scopes are as follows:
 | Name | Description |
 | ---- | ----------- |
 | **(no scope)** | Not supported. A scope is required even for public repositories. |
-| **activitypub** | ?? |
+| **activitypub** | |
 | &nbsp;&nbsp;&nbsp; **read:activitypub** |  |
 | &nbsp;&nbsp;&nbsp; **write:activitypub** |  |
 | &nbsp;&nbsp;&nbsp; **delete:activitypub** |  |
@@ -75,22 +75,22 @@ Gitea token scopes are as follows:
 | &nbsp;&nbsp;&nbsp; **read:notification** | Grants read access to user notifications, such as which notifications users are subscribed to and read new notifications. |
 | &nbsp;&nbsp;&nbsp; **write:notification** | Grants read/write access to user notifications, such as marking notifications as read. |
 | &nbsp;&nbsp;&nbsp; **delete:notification** | Grants read/write/delete access to user notifications. Currently the same as `write:notification`. |
-| **organization** |  |
-| &nbsp;&nbsp;&nbsp; **read:organization** |  |
-| &nbsp;&nbsp;&nbsp; **write:organization** |  |
-| &nbsp;&nbsp;&nbsp; **delete:organization** |  |
-| **package** |  |
-| &nbsp;&nbsp;&nbsp; **read:package** |  |
-| &nbsp;&nbsp;&nbsp; **write:package** |  |
-| &nbsp;&nbsp;&nbsp; **delete:package** |  |
-| **repository** |  |
-| &nbsp;&nbsp;&nbsp; **read:repository** |  |
-| &nbsp;&nbsp;&nbsp; **write:repository** |  |
-| &nbsp;&nbsp;&nbsp; **delete:repository** |  |
-| **user** |  |
-| &nbsp;&nbsp;&nbsp; **read:user** |  |
-| &nbsp;&nbsp;&nbsp; **write:user** |  |
-| &nbsp;&nbsp;&nbsp; **delete:user** |  |
+| **organization** | `orgs/*` and `teams/*` API routes: Organization and team managment operations. |
+| &nbsp;&nbsp;&nbsp; **read:organization** | Grants read access to org and team status, such as listing all orgs a user has visibility to, teams, and team memebers. |
+| &nbsp;&nbsp;&nbsp; **write:organization** | Grants read/write access to org and team status, such as creating and updating teams and updating org settings. |
+| &nbsp;&nbsp;&nbsp; **delete:organization** | Grants read/write/delete access to org and team status, such as deleting teams and orgs. |
+| **package** | `/packages/*` API routes: Packages operations |
+| &nbsp;&nbsp;&nbsp; **read:package** | Grants read access to package operations, such as reading and downloading available packages. |
+| &nbsp;&nbsp;&nbsp; **write:package** | Grants read/write access to package operations. Currently the same as `read:package`. |
+| &nbsp;&nbsp;&nbsp; **delete:package** | Grants read/write/delete access to package operations, such as deleting packages. |
+| **repository** | `/repos/*` API routes except `/repos/issues/*`: Repository file, pull-request, and release operations. |
+| &nbsp;&nbsp;&nbsp; **read:repository** | Grants read access to repository operations, such as getting repository files, releases, collaborators. |
+| &nbsp;&nbsp;&nbsp; **write:repository** | Grants read/write access to repository operations, such as getting updating repository files, creating pull requests, updating collaborators. |
+| &nbsp;&nbsp;&nbsp; **delete:repository** | Grants read/write/delete access to repository operations, such as getting deleting repository file, delete pull-request, removing collaborators. |
+| **user** | `/user/*` and `/users/*` API routes: User-related operations. |
+| &nbsp;&nbsp;&nbsp; **read:user** | Grants read access to user operations, such as getting user repo subscriptions and user settings. |
+| &nbsp;&nbsp;&nbsp; **write:user** | Grants read/write access to user operations, such as updating user repo subscriptions, followed users, and user settings. |
+| &nbsp;&nbsp;&nbsp; **delete:user** | Grants read/write/delete access to user operations, such as removing user repo subscriptions. |
 
 ## Client types
 
