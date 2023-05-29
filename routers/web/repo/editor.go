@@ -272,18 +272,27 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if _, err := files_service.CreateOrUpdateRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.UpdateRepoFileOptions{
+	operation := "update"
+	if isNewFile {
+		operation = "create"
+	}
+
+	if _, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
-		FromTreePath: ctx.Repo.TreePath,
-		TreePath:     form.TreePath,
 		Message:      message,
-		Content:      strings.ReplaceAll(form.Content, "\r", ""),
-		IsNewFile:    isNewFile,
-		Signoff:      form.Signoff,
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation:    operation,
+				FromTreePath: ctx.Repo.TreePath,
+				TreePath:     form.TreePath,
+				Content:      strings.ReplaceAll(form.Content, "\r", ""),
+			},
+		},
+		Signoff: form.Signoff,
 	}); err != nil {
-		// This is where we handle all the errors thrown by files_service.CreateOrUpdateRepoFile
+		// This is where we handle all the errors thrown by files_service.ChangeRepoFiles
 		if git.IsErrNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_editing_no_longer_exists", ctx.Repo.TreePath), tplEditFile, &form)
 		} else if git_model.IsErrLFSFileLocked(err) {
@@ -478,13 +487,18 @@ func DeleteFilePost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if _, err := files_service.DeleteRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.DeleteRepoFileOptions{
+	if _, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
-		TreePath:     ctx.Repo.TreePath,
-		Message:      message,
-		Signoff:      form.Signoff,
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation: "delete",
+				TreePath:  ctx.Repo.TreePath,
+			},
+		},
+		Message: message,
+		Signoff: form.Signoff,
 	}); err != nil {
 		// This is where we handle all the errors thrown by repofiles.DeleteRepoFile
 		if git.IsErrNotExist(err) || models.IsErrRepoFileDoesNotExist(err) {
