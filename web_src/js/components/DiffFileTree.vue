@@ -7,7 +7,7 @@
     <div class="ui list">
       <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item"/>
     </div>
-    <div v-if="hasMore" id="diff-too-many-files-stats" class="gt-pt-2">
+    <div v-if="isIncomplete" id="diff-too-many-files-stats" class="gt-pt-2">
       <span class="gt-mr-2">{{ tooManyFilesMessage }}</span><a :class="['ui', 'basic', 'tiny', 'button', isLoadingNewData === true ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ showMoreMessage }}</a>
     </div>
   </div>
@@ -34,14 +34,6 @@ export default {
     };
   },
   computed: {
-    hasMore: {
-      get() {
-        return this.isIncomplete;
-      },
-      set(newValue) {
-        this.isIncomplete = newValue;
-      }
-    },
     fileTree() {
       const result = [];
       for (const file of this.files) {
@@ -156,6 +148,7 @@ export default {
         this.isLoadingNewData = false;
         const {pageData} = window.config;
         this.diffEnd = pageData.diffFileInfo.diffEnd;
+        this.isIncomplete = pageData.diffFileInfo.isIncomplete;
       });
     },
   },
