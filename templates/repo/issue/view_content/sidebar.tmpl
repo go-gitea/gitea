@@ -10,7 +10,6 @@
 				{{end}}
 			</a>
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-				<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_reviewer_title"}}</div>
 				{{if .Reviewers}}
 					<div class="ui icon search input">
 						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
@@ -161,7 +160,6 @@
 				{{end}}
 			</a>
 			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
-				<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_project_title"}}</div>
 				{{if or .OpenProjects .ClosedProjects}}
 				<div class="ui icon search input">
 					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
@@ -216,7 +214,6 @@
 			{{end}}
 		</a>
 		<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
-			<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_assignees_title"}}</div>
 			<div class="ui icon search input">
 				<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 				<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignees"}}">
