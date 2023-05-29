@@ -137,6 +137,6 @@ func GetManager() *LoggerManager {
 
 func NewManager() *LoggerManager {
 	m := &LoggerManager{writers: map[string]EventWriter{}, loggers: map[string]*LoggerImpl{}}
-	m.ctx, m.ctxCancel = newContext(context.Background(), "LoggerManager")
+	m.ctx, m.ctxCancel = newProcessTypedContext(context.Background(), "LoggerManager")
 	return m
 }
