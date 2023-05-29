@@ -29,12 +29,6 @@
   color: inherit;
 }
 
-.ui.button.button-link:hover,
-.ui.button.button-link:focus,
-.ui.button.button-link:active {
-  background: transparent;
-}
-
 .page-content .ui.button {
   box-shadow: none !important;
 }
