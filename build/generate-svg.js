@@ -22,7 +22,7 @@ async function processFile(file, {prefix, fullName} = {}) {
   } else {
     name = parse(file).name;
     if (prefix) name = `${prefix}-${name}`;
-    if (prefix === 'octicon') name = name.replace(/-[0-9]+$/, ''); // chop of '-16' on octicons
+    if (prefix === 'octicon') name = name.replace(/-16$/, ''); // chop of '-16' on octicons
   }
 
   // Set the `xmlns` attribute so that the files are displayable in standalone documents
@@ -58,6 +58,7 @@ async function main() {
 
   await Promise.all([
     ...processFiles('node_modules/@primer/octicons/build/svg/*-16.svg', {prefix: 'octicon'}),
+    ...processFiles('node_modules/@primer/octicons/build/svg/*-24.svg', {prefix: 'octicon'}),
     ...processFiles('web_src/svg/*.svg'),
     ...processFiles('public/img/gitea.svg', {fullName: 'gitea-gitea'}),
   ]);
