@@ -37,6 +37,7 @@
     "minimatch": "9.0.1",
     "monaco-editor": "0.38.0",
     "monaco-editor-webpack-plugin": "7.0.1",
+    "pdfobject": "2.2.11",
     "pretty-ms": "8.0.0",
     "sortablejs": "1.15.0",
     "swagger-ui-dist": "4.19.0",
