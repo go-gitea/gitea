@@ -73,11 +73,11 @@
               <SvgIcon name="octicon-gear" :size="18"/>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
                 <a class="item" @click="toggleTimeDisplay('duration')">
-                  <span><SvgIcon v-show="timeVisible.showDuration" name="octicon-check"/></span>
+                  <span><SvgIcon v-show="timeVisible['log-time-duration']" name="octicon-check"/></span>
                   {{ locale.jobOptions.showLogduration }}
                 </a>
                 <a class="item" @click="toggleTimeDisplay('stamp')">
-                  <span><SvgIcon v-show="timeVisible.showStamp" name="octicon-check"/></span>
+                  <span><SvgIcon v-show="timeVisible['log-time-stamp']" name="octicon-check"/></span>
                   {{ locale.jobOptions.showTimeStamp }}
                 </a>
                 <div class="divider"/>
@@ -89,7 +89,7 @@
             </div>
           </div>
         </div>
-        <div class="job-step-container">
+        <div class="job-step-container" ref="steps">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="toggleStepLogs(i)" :class="currentJobStepsStates[i].expanded ? 'selected' : ''">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
@@ -149,8 +149,8 @@ const sfc = {
       menuVisible: false,
       isFullScreen: false,
       timeVisible: {
-        showStamp: false,
-        showDuration: false,
+        'log-time-stamp': false,
+        'log-time-duration': false,
       },
 
       // provided by backend
@@ -293,13 +293,13 @@ const sfc = {
       const date = new Date(parseFloat(line.timestamp * 1000));
       const timeStamp = date.toLocaleString(getCurrentLocale(), {timeZoneName: 'short'});
       logTimeStamp.textContent = timeStamp;
-      toggleElem(logTimeStamp, this.timeVisible.showStamp);
+      toggleElem(logTimeStamp, this.timeVisible['log-time-stamp']);
       // for "Show log duration"
       const logTimeDuration = document.createElement('span');
       logTimeDuration.className = 'log-time-duration';
       const duration = Math.floor(parseFloat(line.timestamp) - parseFloat(startTime));
       logTimeDuration.textContent = `${duration}s`;
-      toggleElem(logTimeDuration, this.timeVisible.showDuration);
+      toggleElem(logTimeDuration, this.timeVisible['log-time-duration']);
 
       const logMessage = document.createElement('span');
       logMessage.className = 'log-msg';
@@ -394,28 +394,18 @@ const sfc = {
 
     // show at most one of log duration and timestamp (can be both invisible)
     toggleTimeDisplay(type) {
-      if (type === 'stamp') {
-        this.timeVisible.showStamp = !this.timeVisible.showStamp;
-        for (const el of document.querySelectorAll('.log-time-stamp')) {
-          toggleElem(el, this.timeVisible.showStamp);
-        }
-        if (this.timeVisible.showStamp && this.timeVisible.showDuration) {
-          this.timeVisible.showDuration = false;
-          for (const el of document.querySelectorAll('.log-time-duration')) {
-            toggleElem(el, false);
-          }
-        }
-      } else {
-        this.timeVisible.showDuration = !this.timeVisible.showDuration;
-        for (const el of document.querySelectorAll('.log-time-duration')) {
-          toggleElem(el, this.timeVisible.showDuration);
-        }
-        if (this.timeVisible.showDuration && this.timeVisible.showStamp) {
-          this.timeVisible.showStamp = false;
-          for (const el of document.querySelectorAll('.log-time-stamp')) {
-            toggleElem(el, false);
-          }
-        }
+      const toToggleTypes = [];
+      const other = type == 'duration' ? 'stamp' : 'duration';
+      this.timeVisible[`log-time-${type}`] = !this.timeVisible[`log-time-${type}`];
+      toToggleTypes.push(type);
+      if (this.timeVisible[`log-time-${other}`]) {
+        this.timeVisible[`log-time-${other}`] = false
+        toToggleTypes.push(other);
+      }
+      for (toToggle of toToggleTypes) {
+        for (const el of this.$refs.steps.querySelectorAll(`.log-time-${toToggle}`)) {
+          toggleElem(el, this.timeVisible[`log-time-${toToggle}`]);
+        } 
       }
     },
 
