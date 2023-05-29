@@ -3084,6 +3084,11 @@ tbody.commit-list {
   word-break: break-all;
 }
 
+.diff-file-header {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+}
+
 .diff-file-box[data-folded="true"] .diff-file-body {
   display: none;
 }
