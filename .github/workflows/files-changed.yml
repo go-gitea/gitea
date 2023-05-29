@@ -29,10 +29,6 @@ jobs:
         id: changes
         with:
           filters:
-            docs:
-              - "**/*.md"
-              - "docs/**"
-
             backend:
               - "**/*.go"
               - "**/*.tmpl"
@@ -44,3 +40,10 @@ jobs:
               - "web_src/**"
               - "package.json"
               - "package-lock.json"
+
+            docs:
+              - "**/*.md"
+              - "docs/**"
+
+            actions:
+              - ".github/workflows/*"

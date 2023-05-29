@@ -131,3 +131,12 @@ jobs:
       - run: make deps-frontend
       - run: make lint-md
       - run: make docs # test if build could succeed
+
+  actions:
+    if: needs.files-changed.outputs.actions == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+      - run: make lint-actions
