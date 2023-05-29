@@ -1164,6 +1164,12 @@ img.ui.avatar,
   padding: 0 32px;
 }
 
+@media (max-width: 767px) {
+  .ui.container.fluid.padded {
+    padding: 0 8px;
+  }
+}
+
 .ui.form .ui.button {
   font-weight: var(--font-weight-normal);
 }
