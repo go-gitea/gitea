@@ -118,9 +118,6 @@ func NewFuncMap() template.FuncMap {
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
 		},
-		"ThemeColorMetaTag": func() string {
-			return setting.UI.ThemeColorMetaTag
-		},
 		"MetaAuthor": func() string {
 			return setting.UI.Meta.Author
 		},
