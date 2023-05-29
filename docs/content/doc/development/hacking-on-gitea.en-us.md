@@ -123,9 +123,8 @@ to the Gitea sources. Otherwise, changes can't be pushed.
 ## Building Gitea (Basic)
 
 Take a look at our
-<a href='{{< relref "doc/installation/from-source.en-us.md" >}}'>instructions</a>
-for <a href='{{< relref "doc/installation/from-source.en-us.md" >}}'>building
-from source</a>.
+[instructions]({{< relref "doc/installation/from-source.en-us.md" >}})
+for [building from source]({{< relref "doc/installation/from-source.en-us.md" >}}).
 
 The simplest recommended way to build from source is:
 
