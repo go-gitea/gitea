@@ -29,7 +29,8 @@
 }
 
 .markup pre.is-loading,
-.editor-loading.is-loading {
+.editor-loading.is-loading,
+.pdf-content.is-loading {
   height: var(--height-loading);
 }
 
