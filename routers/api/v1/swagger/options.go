@@ -117,6 +117,9 @@ type swaggerParameterBodies struct {
 	EditAttachmentOptions api.EditAttachmentOptions
 
 	// in:body
+	ChangeFilesOptions api.ChangeFilesOptions
+
+	// in:body
 	CreateFileOptions api.CreateFileOptions
 
 	// in:body
