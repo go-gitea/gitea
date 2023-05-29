@@ -72,7 +72,6 @@ func (r *ActionRunner) BelongsToOwnerType() types.OwnerType {
 		return types.OwnerTypeOrganization
 	}
 
-	return types.OwnerTypeIndividual
 	return types.OwnerTypeSystemGlobal
 }
 
