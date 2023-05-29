@@ -200,7 +200,7 @@ Older Linux distributions (such as Debian 7 and CentOS 6) may not be able to loa
 Gitea binary, usually producing an error such as `./gitea: /lib/x86_64-linux-gnu/libc.so.6:
 version 'GLIBC\_2.14' not found (required by ./gitea)`. This is due to the integrated
 SQLite support in the binaries provided by dl.gitea.com. In this situation, it is usually
-possible to [install from source]({{< relref "from-source.en-us.md" >}}), without including
+possible to [install from source]({{< relref "doc/installation/from-source.en-us.md" >}}), without including
 SQLite support.
 
 ### Running Gitea on another port
