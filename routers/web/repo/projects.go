@@ -223,7 +223,8 @@ func RenderEditProject(ctx *context.Context) {
 		} else {
 			ctx.ServerError("GetProjectByID", err)
 		}
-		return	}
+		return
+	}
 	if p.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound("", nil)
 		return
