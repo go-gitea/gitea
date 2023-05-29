@@ -596,7 +596,7 @@ func (m *webhookNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 	}
 
 	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{
-		Ref:          opts.RefFullName,
+		Ref:          opts.RefFullName.String(),
 		Before:       opts.OldCommitID,
 		After:        opts.NewCommitID,
 		CompareURL:   setting.AppURL + commits.CompareURL,
@@ -719,15 +719,43 @@ func (m *webhookNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 	}
 }
 
-func (m *webhookNotifier) NotifyCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
+func (m *webhookNotifier) NotifyPullReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+	if !issue.IsPull {
+		log.Warn("NotifyPullReviewRequest: issue is not a pull request: %v", issue.ID)
+		return
+	}
+	mode, _ := access_model.AccessLevelUnit(ctx, doer, issue.Repo, unit.TypePullRequests)
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		log.Error("LoadPullRequest failed: %v", err)
+		return
+	}
+	apiPullRequest := &api.PullRequestPayload{
+		Index:             issue.Index,
+		PullRequest:       convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+		RequestedReviewer: convert.ToUser(ctx, reviewer, nil),
+		Repository:        convert.ToRepo(ctx, issue.Repo, mode),
+		Sender:            convert.ToUser(ctx, doer, nil),
+	}
+	if isRequest {
+		apiPullRequest.Action = api.HookIssueReviewRequested
+	} else {
+		apiPullRequest.Action = api.HookIssueReviewRequestRemoved
+	}
+	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequestReviewRequest, apiPullRequest); err != nil {
+		log.Error("PrepareWebhooks [review_requested: %v]: %v", isRequest, err)
+		return
+	}
+}
+
+func (m *webhookNotifier) NotifyCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
 	apiPusher := convert.ToUser(ctx, pusher, nil)
 	apiRepo := convert.ToRepo(ctx, repo, perm.AccessModeNone)
-	refName := git.RefEndName(refFullName)
+	refName := refFullName.ShortName()
 
 	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventCreate, &api.CreatePayload{
-		Ref:     refName,
+		Ref:     refName, // FIXME: should it be a full ref name?
 		Sha:     refID,
-		RefType: refType,
+		RefType: refFullName.RefGroup(),
 		Repo:    apiRepo,
 		Sender:  apiPusher,
 	}); err != nil {
@@ -756,19 +784,19 @@ func (m *webhookNotifier) NotifyPullRequestSynchronized(ctx context.Context, doe
 	}
 }
 
-func (m *webhookNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (m *webhookNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 	apiPusher := convert.ToUser(ctx, pusher, nil)
 	apiRepo := convert.ToRepo(ctx, repo, perm.AccessModeNone)
-	refName := git.RefEndName(refFullName)
+	refName := refFullName.ShortName()
 
 	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventDelete, &api.DeletePayload{
-		Ref:        refName,
-		RefType:    refType,
+		Ref:        refName, // FIXME: should it be a full ref name?
+		RefType:    refFullName.RefGroup(),
 		PusherType: api.PusherTypeUser,
 		Repo:       apiRepo,
 		Sender:     apiPusher,
 	}); err != nil {
-		log.Error("PrepareWebhooks.(delete %s): %v", refType, err)
+		log.Error("PrepareWebhooks.(delete %s): %v", refFullName.RefGroup(), err)
 	}
 }
 
@@ -810,7 +838,7 @@ func (m *webhookNotifier) NotifySyncPushCommits(ctx context.Context, pusher *use
 	}
 
 	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{
-		Ref:          opts.RefFullName,
+		Ref:          opts.RefFullName.String(),
 		Before:       opts.OldCommitID,
 		After:        opts.NewCommitID,
 		CompareURL:   setting.AppURL + commits.CompareURL,
@@ -825,12 +853,12 @@ func (m *webhookNotifier) NotifySyncPushCommits(ctx context.Context, pusher *use
 	}
 }
 
-func (m *webhookNotifier) NotifySyncCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
-	m.NotifyCreateRef(ctx, pusher, repo, refType, refFullName, refID)
+func (m *webhookNotifier) NotifySyncCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
+	m.NotifyCreateRef(ctx, pusher, repo, refFullName, refID)
 }
 
-func (m *webhookNotifier) NotifySyncDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
-	m.NotifyDeleteRef(ctx, pusher, repo, refType, refFullName)
+func (m *webhookNotifier) NotifySyncDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
+	m.NotifyDeleteRef(ctx, pusher, repo, refFullName)
 }
 
 func (m *webhookNotifier) NotifyPackageCreate(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {

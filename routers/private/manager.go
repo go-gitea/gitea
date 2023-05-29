@@ -15,8 +15,21 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 )
+
+// ReloadTemplates reloads all the templates
+func ReloadTemplates(ctx *context.PrivateContext) {
+	err := templates.ReloadHTMLTemplates()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			UserMsg: fmt.Sprintf("Template error: %v", err),
+		})
+		return
+	}
+	ctx.PlainText(http.StatusOK, "success")
+}
 
 // FlushQueues flushes all the Queues
 func FlushQueues(ctx *context.PrivateContext) {
@@ -142,7 +155,7 @@ func AddLogger(ctx *context.PrivateContext) {
 		writerOption := log.WriterFileOption{}
 		fileName, _ := opts.Config["filename"].(string)
 		writerOption.FileName = setting.LogPrepareFilenameForWriter(fileName, opts.Writer+".log")
-		writerOption.LogRotate = opts.Config["rotate"].(bool)
+		writerOption.LogRotate, _ = opts.Config["rotate"].(bool)
 		maxSizeShift, _ := opts.Config["maxsize"].(int)
 		if maxSizeShift == 0 {
 			maxSizeShift = 28
