@@ -29,7 +29,6 @@ const (
 	tplProjects           base.TplName = "org/projects/list"
 	tplProjectsNew        base.TplName = "org/projects/new"
 	tplProjectsView       base.TplName = "org/projects/view"
-	tplGenericProjectsNew base.TplName = "user/project"
 )
 
 // MustEnableProjects check if projects are enabled in settings
