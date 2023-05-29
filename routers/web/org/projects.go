@@ -125,8 +125,8 @@ func canWriteProjects(ctx *context.Context) bool {
 	return ctx.Doer != nil && ctx.ContextUser.ID == ctx.Doer.ID
 }
 
-// NewProject render creating a project page
-func NewProject(ctx *context.Context) {
+// RenderNewProject render creating a project page
+func RenderNewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 	ctx.Data["BoardTypes"] = project_model.GetBoardConfig()
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
@@ -145,7 +145,7 @@ func NewProjectPost(ctx *context.Context) {
 	shared_user.RenderUserHeader(ctx)
 
 	if ctx.HasError() {
-		NewProject(ctx)
+		RenderNewProject(ctx)
 		return
 	}
 
@@ -224,8 +224,8 @@ func DeleteProject(ctx *context.Context) {
 	})
 }
 
-// EditProject allows a project to be edited
-func EditProject(ctx *context.Context) {
+// RenderEditProject allows a project to be edited
+func RenderEditProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["PageIsViewProjects"] = true
