@@ -5,16 +5,16 @@ on:
     outputs:
       backend:
         description: "whether backend files changed"
-        value: ${{ jobs.files-changed.outputs.backend }}
+        value: ${{ jobs.detect.outputs.backend }}
       frontend:
         description: "whether frontend files changed"
-        value: ${{ jobs.files-changed.outputs.frontend }}
+        value: ${{ jobs.detect.outputs.frontend }}
       docs:
         description: "whether docs files changed"
-        value: ${{ jobs.files-changed.outputs.docs }}
+        value: ${{ jobs.detect.outputs.docs }}
       actions:
         description: "whether actions files changed"
-        value: ${{ jobs.files-changed.outputs.actions }}
+        value: ${{ jobs.detect.outputs.actions }}
 
 jobs:
   detect:
@@ -32,19 +32,22 @@ jobs:
       - uses: dorny/paths-filter@v2
         id: changes
         with:
-          filters:
+          filters: |
             backend:
               - "**/*.go"
               - "**/*.tmpl"
               - "go.mod"
               - "go.sum"
+
             frontend:
               - "**/*.js"
               - "web_src/**"
               - "package.json"
               - "package-lock.json"
+
             docs:
               - "**/*.md"
               - "docs/**"
+
             actions:
               - ".github/workflows/*"
