@@ -135,7 +135,19 @@ func (r *indexerNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 }
 
 func (r *indexerNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
-	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
+	// opts.RefFullName may occasionally be set to just the branch name, like 'master', without
+	// the preceding 'refs/heads/` text, hence we match for both with and without the branch
+	// prefix
+	// e.g.
+	// remote: Enumerating objects: 1544, done.
+	// remote: Counting objects: 100% (1154/1154), done.
+	// remote: Compressing objects: 100% (155/155), done.
+	// remote: Total 1544 (delta 1022), reused 1078 (delta 996), pack-reused 390
+	// Receiving objects: 100% (1544/1544), 2.16 MiB | 13.15 MiB/s, done.
+	// Resolving deltas: 100% (1092/1092), completed with 439 local objects.
+	// From https://github.com/go-gitea/gitea
+	//    698188530..cf1a7b08e  main          -> origin/main
+	if setting.Indexer.RepoIndexerEnabled && (opts.RefFullName == git.BranchPrefix+repo.DefaultBranch || opts.RefFullName == repo.DefaultBranch) {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
 	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
