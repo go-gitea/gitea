@@ -936,9 +936,6 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
-				m.Combo("/notifications", reqToken()).
-					Get(notify.ListRepoNotifications).
-					Put(notify.ReadRepoNotifications)
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
 					m.Group("/{id}", func() {
@@ -1147,6 +1144,15 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Get("/new_pin_allowed", repo.AreNewIssuePinsAllowed)
 			}, repoAssignment())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
+
+		// Notifications (requires notifications scope)
+		m.Group("/repos", func() {
+			m.Group("/{username}/{reponame}", func() {
+				m.Combo("/notifications", reqToken()).
+					Get(notify.ListRepoNotifications).
+					Put(notify.ReadRepoNotifications)
+			}, repoAssignment())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
 
 		// Issue (requires issue scope)
 		m.Group("/repos", func() {
