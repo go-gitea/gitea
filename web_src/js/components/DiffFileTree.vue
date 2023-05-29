@@ -94,6 +94,7 @@ export default {
       // Merge folders with just a folder as children in order to
       // reduce the depth of our tree.
       mergeChildIfOnlyOneDir(result);
+      this.isIncomplete = pageData.diffFileInfo.isIncomplete;
       return result;
     }
   },
