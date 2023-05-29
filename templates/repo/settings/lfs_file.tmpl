@@ -19,7 +19,7 @@
 					{{else if .IsPlainText}}
 						<pre>{{if .FileContent}}{{.FileContent | Safe}}{{end}}</pre>
 					{{else if not .IsTextFile}}
-						<div class="view-raw ui center">
+						<div class="view-raw">
 							{{if .IsImageFile}}
 								<img src="{{$.RawFileLink}}">
 							{{else if .IsVideoFile}}
@@ -31,7 +31,7 @@
 									<strong>{{.locale.Tr "repo.audio_not_supported_in_browser"}}</strong>
 								</audio>
 							{{else if .IsPDFFile}}
-								<iframe width="100%" height="600px" src="{{AssetUrlPrefix}}/vendor/plugins/pdfjs/web/viewer.html?file={{$.RawFileLink}}"></iframe>
+								<div class="pdf-content is-loading" data-src="{{$.RawFileLink}}" data-fallback-button-text="{{.locale.Tr "diff.view_file"}}"></div>
 							{{else}}
 								<a href="{{$.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.locale.Tr "repo.file_view_raw"}}</a>
 							{{end}}
