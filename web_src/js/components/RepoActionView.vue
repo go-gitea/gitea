@@ -73,11 +73,11 @@
               <SvgIcon name="octicon-gear" :size="18"/>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
                 <a class="item" @click="toggleTimeDisplay('duration')">
-                  <span><SvgIcon v-show="timeVisible.duration" name="octicon-check"/></span>
+                  <span><SvgIcon v-show="timeVisible.showDuration" name="octicon-check"/></span>
                   {{ locale.jobOptions.showLogduration }}
                 </a>
                 <a class="item" @click="toggleTimeDisplay('stamp')">
-                  <span><SvgIcon v-show="timeVisible.stamp" name="octicon-check"/></span>
+                  <span><SvgIcon v-show="timeVisible.showStamp" name="octicon-check"/></span>
                   {{ locale.jobOptions.showTimeStamp }}
                 </a>
                 <div class="divider"/>
@@ -149,8 +149,8 @@ const sfc = {
       menuVisible: false,
       isFullScreen: false,
       timeVisible: {
-        'stamp': false,
-        'duration': false,
+        showStamp: false,
+        showDuration: false,
       },
 
       // provided by backend
@@ -293,13 +293,13 @@ const sfc = {
       const date = new Date(parseFloat(line.timestamp * 1000));
       const timeStamp = date.toLocaleString(getCurrentLocale(), {timeZoneName: 'short'});
       logTimeStamp.textContent = timeStamp;
-      toggleElem(logTimeStamp, this.timeVisible.stamp);
+      toggleElem(logTimeStamp, this.timeVisible.showStamp);
       // for "Show log duration"
       const logTimeDuration = document.createElement('span');
       logTimeDuration.className = 'log-time-duration';
       const duration = Math.floor(parseFloat(line.timestamp) - parseFloat(startTime));
       logTimeDuration.textContent = `${duration}s`;
-      toggleElem(logTimeDuration, this.timeVisible.duration);
+      toggleElem(logTimeDuration, this.timeVisible.showDuration);
 
       const logMessage = document.createElement('span');
       logMessage.className = 'log-msg';
@@ -392,18 +392,29 @@ const sfc = {
       if (this.menuVisible) this.menuVisible = false;
     },
 
+    // show at most one of log duration and timestamp (can be both invisible)
     toggleTimeDisplay(type) {
-      if (type !== 'duration' && type !== 'stamp') return;
-      const otherType = 'durationstamp'.replace(type, '');
-      this.timeVisible[type] = !this.timeVisible[type];
-      for (const el of document.querySelectorAll(`.log-time-${type}`)) {
-        toggleElem(el, this.timeVisible[type]);
-      }
-      // show at most one of log duration and timestamp (can be both invisible)
-      if (this.timeVisible[type] && this.timeVisible[otherType]) {
-        this.timeVisible[otherType] = false;
-        for (const el of document.querySelectorAll(`.log-time-${otherType}`)) {
-          toggleElem(el, false);
+      if (type === 'stamp') {
+        this.timeVisible.showStamp = !this.timeVisible.showStamp;
+        for (const el of document.querySelectorAll('.log-time-stamp')) {
+          toggleElem(el, this.timeVisible.showStamp);
+        }
+        if (this.timeVisible.showStamp && this.timeVisible.showDuration) {
+          this.timeVisible.showDuration = false;
+          for (const el of document.querySelectorAll('.log-time-duration')) {
+            toggleElem(el, false);
+          }
+        }
+      } else {
+        this.timeVisible.showDuration = !this.timeVisible.showDuration;
+        for (const el of document.querySelectorAll('.log-time-duration')) {
+          toggleElem(el, this.timeVisible.showDuration);
+        }
+        if (this.timeVisible.showDuration && this.timeVisible.showStamp) {
+          this.timeVisible.showStamp = false;
+          for (const el of document.querySelectorAll('.log-time-stamp')) {
+            toggleElem(el, false);
+          }
         }
       }
     },
