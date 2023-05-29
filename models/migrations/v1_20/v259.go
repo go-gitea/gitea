@@ -155,7 +155,7 @@ func localizedExtensions(ext, languageCode string) (localizedExts []string) {
 	return []string{lowerLangCode + ext, ext}
 }
 
-func detectLicense(file *git.TreeEntry) ([]string, error) {
+func detectLicenseByEntry(file *git.TreeEntry) ([]string, error) {
 	if file == nil {
 		return nil, nil
 	}
@@ -213,7 +213,7 @@ func AddRepositoryLicenses(x *xorm.Engine) error {
 			log.Error("Error whilst finding license file in [%d]%s/%s. Error: %v", repo.ID, repo.OwnerName, repo.Name, err)
 			return err
 		}
-		repo.Licenses, err = detectLicense(licenseFile)
+		repo.Licenses, err = detectLicenseByEntry(licenseFile)
 		if err != nil {
 			log.Error("Error whilst detecting license from %s in [%d]%s/%s. Error: %v", licenseFile.Name(), repo.ID, repo.OwnerName, repo.Name, err)
 			return err

@@ -6,6 +6,7 @@ package repository
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -180,6 +181,52 @@ Copyright (C) 2023 by Gitea teabot@gitea.io
 	}
 }
 
-func Test_UpdateRepoLicenses(t *testing.T) {
-	// TODO
+func Test_detectLicense(t *testing.T) {
+	type DetectLicenseTest struct {
+		name string
+		arg  []byte
+		want []string
+	}
+
+	tests := []DetectLicenseTest{
+		{
+			name: "empty",
+			arg:  []byte(""),
+			want: nil,
+		},
+		{
+			name: "no detected license",
+			arg:  []byte("Copyright (c) 2023 Gitea"),
+			want: nil,
+		},
+	}
+
+	LoadRepoConfig()
+	for _, licenseName := range Licenses {
+		license, err := getLicense(licenseName, &licenseValues{
+			Owner: "Gitea",
+			Email: "teabot@gitea.io",
+			Repo:  "gitea",
+			Year:  time.Now().Format("2006"),
+		})
+		assert.NoError(t, err)
+
+		tests = append(tests, DetectLicenseTest{
+			name: fmt.Sprintf("auto single license test: %s", licenseName),
+			arg:  license,
+			want: []string{licenseName},
+		})
+	}
+
+	tests = append(tests, DetectLicenseTest{
+		name: fmt.Sprintf("auto multiple license test: %s and %s", tests[2].want[0], tests[3].want[0]),
+		arg:  append(tests[2].arg, tests[3].arg...),
+		want: []string{tests[2].want[0], tests[3].want[0]},
+	})
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, detectLicense(tt.arg), "%s", tt.arg)
+		})
+	}
 }

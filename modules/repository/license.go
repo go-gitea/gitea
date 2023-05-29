@@ -132,7 +132,7 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, gitRep
 	if err != nil {
 		return fmt.Errorf("findLicenseFile: %w", err)
 	}
-	if repo.Licenses, err = detectLicense(licenseFile); err != nil {
+	if repo.Licenses, err = detectLicenseByEntry(licenseFile); err != nil {
 		return fmt.Errorf("checkLicenseFile: %w", err)
 	}
 	if err := repo_model.UpdateRepositoryCols(ctx, repo, "licenses"); err != nil {
@@ -189,25 +189,29 @@ func findLicenseFile(gitRepo *git.Repository, branchName string) (string, *git.T
 	return FindFileInEntries(util.FileTypeLicense, entries, "", "", false)
 }
 
-// detectLicense returns the licenses detected in the given file
-func detectLicense(file *git.TreeEntry) ([]string, error) {
+// detectLicenseByEntry returns the licenses detected by the given tree entry
+func detectLicenseByEntry(file *git.TreeEntry) ([]string, error) {
 	if file == nil {
 		return nil, nil
 	}
 
-	// Read license file content
 	blob := file.Blob()
 	contentBuf, err := blob.GetBlobAll()
 	if err != nil {
 		return nil, fmt.Errorf("GetBlobAll: %w", err)
 	}
+	return detectLicense(contentBuf), nil
+}
 
-	// check license
+func detectLicense(buf []byte) []string {
+	if len(buf) <= 0 {
+		return nil
+	}
+
 	var licenses []string
-	cov := licensecheck.Scan(contentBuf)
+	cov := licensecheck.Scan(buf)
 	for _, m := range cov.Match {
 		licenses = append(licenses, m.ID)
 	}
-
-	return licenses, nil
+	return licenses
 }
