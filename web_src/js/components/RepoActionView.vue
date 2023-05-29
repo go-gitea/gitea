@@ -311,9 +311,7 @@ const sfc = {
       return div;
     },
 
-    appendLogs(stepIndex, logLines) {
-      if (!logLines.length) return;
-      const startTime = logLines[0].timestamp;
+    appendLogs(stepIndex, logLines, startTime) {
       for (const line of logLines) {
         // TODO: group support: ##[group]GroupTitle , ##[endgroup]
         const el = this.getLogsContainer(stepIndex);
@@ -362,7 +360,7 @@ const sfc = {
         for (const logs of response.logs.stepsLog) {
           // save the cursor, it will be passed to backend next time
           this.currentJobStepsStates[logs.step].cursor = logs.cursor;
-          this.appendLogs(logs.step, logs.lines);
+          this.appendLogs(logs.step, logs.lines, logs.started);
         }
 
         if (this.run.done && this.intervalID) {
