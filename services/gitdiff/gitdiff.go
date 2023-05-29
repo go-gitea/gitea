@@ -609,8 +609,6 @@ parsingLoop:
 				if strings.HasSuffix(line, " 160000\n") {
 					curFile.IsSubmodule = true
 				}
-			case strings.HasPrefix(line, "new file mode "):
-				curFile.Mode = strings.TrimPrefix(line, "new file mode ")
 			case strings.HasPrefix(line, "rename from "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileRename
@@ -640,6 +638,9 @@ parsingLoop:
 			case strings.HasPrefix(line, "new file"):
 				curFile.Type = DiffFileAdd
 				curFile.IsCreated = true
+				if strings.HasPrefix(line, "new file mode ") {
+					curFile.Mode = prepareValue(line, "new file mode ")
+				}
 				if strings.HasSuffix(line, " 160000\n") {
 					curFile.IsSubmodule = true
 				}
