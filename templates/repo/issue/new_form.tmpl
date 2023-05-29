@@ -13,7 +13,7 @@
 					<div class="field">
 						<input name="title" id="issue_title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255" autocomplete="off">
 						{{if .PageIsComparePull}}
-							<div class="title_wip_desc" data-wip-prefixes="{{Json .PullRequestWorkInProgressPrefixes}}">{{.locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
+							<div class="title_wip_desc" data-wip-prefixes="{{JsonUtils.EncodeToString .PullRequestWorkInProgressPrefixes}}">{{.locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
 						{{end}}
 					</div>
 					{{if .Fields}}
@@ -24,17 +24,12 @@
 							{{else if eq .Type "markdown"}}
 								{{template "repo/issue/fields/markdown" dict "Context" $.Context "item" .}}
 							{{else if eq .Type "textarea"}}
-								{{template "repo/issue/fields/textarea" dict "Context" $.Context "item" .}}
+								{{template "repo/issue/fields/textarea" dict "Context" $.Context "item" . "root" $}}
 							{{else if eq .Type "dropdown"}}
 								{{template "repo/issue/fields/dropdown" dict "Context" $.Context "item" .}}
 							{{else if eq .Type "checkboxes"}}
 								{{template "repo/issue/fields/checkboxes" dict "Context" $.Context "item" .}}
 							{{end}}
-						{{end}}
-						{{if .IsAttachmentEnabled}}
-						<div class="field">
-							{{template "repo/upload" .}}
-						</div>
 						{{end}}
 					{{else}}
 						{{template "repo/issue/comment_tab" .}}
@@ -72,44 +67,7 @@
 					{{end}}
 				</span>
 				<div class="menu">
-					<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_milestone_title"}}</div>
-					{{if or .OpenMilestones .ClosedMilestones}}
-					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestones"}}">
-					</div>
-					{{end}}
-					<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_milestone"}}</div>
-					{{if and (not .OpenMilestones) (not .ClosedMilestones)}}
-						<div class="header" style="text-transform: none;font-size:14px;">
-							{{.locale.Tr "repo.issues.new.no_items"}}
-						</div>
-					{{else}}
-						{{if .OpenMilestones}}
-							<div class="divider"></div>
-							<div class="header">
-								{{.locale.Tr "repo.issues.new.open_milestone"}}
-							</div>
-							{{range .OpenMilestones}}
-								<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">
-									{{svg "octicon-milestone" 16 "gt-mr-2"}}
-									{{.Name}}
-								</a>
-							{{end}}
-						{{end}}
-						{{if .ClosedMilestones}}
-							<div class="divider"></div>
-							<div class="header">
-								{{.locale.Tr "repo.issues.new.closed_milestone"}}
-							</div>
-							{{range .ClosedMilestones}}
-								<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">
-									{{svg "octicon-milestone" 16 "gt-mr-2"}}
-									{{.Name}}
-								</a>
-							{{end}}
-						{{end}}
-					{{end}}
+					{{template "repo/issue/milestone/select_menu" .}}
 				</div>
 			</div>
 			<div class="ui select-milestone list">

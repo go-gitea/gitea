@@ -176,7 +176,7 @@ func ResetPasswdPost(ctx *context.Context) {
 	} else if !password.IsComplexEnough(passwd) {
 		ctx.Data["IsResetForm"] = true
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplResetPassword, nil)
+		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplResetPassword, nil)
 		return
 	} else if pwned, err := password.IsPwned(ctx, passwd); pwned || err != nil {
 		errMsg := ctx.Tr("auth.password_pwned")
@@ -305,7 +305,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	if !password.IsComplexEnough(form.Password) {
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplMustChangePassword, &form)
+		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplMustChangePassword, &form)
 		return
 	}
 	pwned, err := password.IsPwned(ctx, form.Password)

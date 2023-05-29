@@ -48,6 +48,6 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 			Err: err.Error(),
 		})
 	} else {
-		ctx.Status(http.StatusOK)
+		ctx.PlainText(http.StatusOK, "success")
 	}
 }

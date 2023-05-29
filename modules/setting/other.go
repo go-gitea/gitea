@@ -3,20 +3,25 @@
 
 package setting
 
-var (
-	// Other settings
-	ShowFooterBranding         bool
+import "code.gitea.io/gitea/modules/log"
+
+type OtherConfig struct {
 	ShowFooterVersion          bool
 	ShowFooterTemplateLoadTime bool
 	EnableFeed                 bool
 	EnableSitemap              bool
-)
+}
+
+var Other = OtherConfig{
+	ShowFooterVersion:          true,
+	ShowFooterTemplateLoadTime: true,
+	EnableSitemap:              true,
+	EnableFeed:                 true,
+}
 
 func loadOtherFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("other")
-	ShowFooterBranding = sec.Key("SHOW_FOOTER_BRANDING").MustBool(false)
-	ShowFooterVersion = sec.Key("SHOW_FOOTER_VERSION").MustBool(true)
-	ShowFooterTemplateLoadTime = sec.Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
-	EnableSitemap = sec.Key("ENABLE_SITEMAP").MustBool(true)
-	EnableFeed = sec.Key("ENABLE_FEED").MustBool(true)
+	if err := sec.MapTo(&Other); err != nil {
+		log.Fatal("Failed to map [other] settings: %v", err)
+	}
 }

@@ -5,6 +5,8 @@ slug: "install-from-package"
 weight: 20
 toc: false
 draft: false
+aliases:
+  - /zh-cn/install-from-package
 menu:
   sidebar:
     parent: "installation"
@@ -107,4 +109,4 @@ make install clean
 
 ## 需要帮助?
 
-如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "seek-help.zh-cn.md" >}})
+如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "support.zh-cn.md" >}})

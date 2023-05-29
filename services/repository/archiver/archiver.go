@@ -295,31 +295,25 @@ func ArchiveRepository(request *ArchiveRequest) (*repo_model.RepoArchiver, error
 	return doArchive(request)
 }
 
-var archiverQueue queue.UniqueQueue
+var archiverQueue *queue.WorkerPoolQueue[*ArchiveRequest]
 
-// Init initlize archive
+// Init initializes archiver
 func Init() error {
-	handler := func(data ...queue.Data) []queue.Data {
-		for _, datum := range data {
-			archiveReq, ok := datum.(*ArchiveRequest)
-			if !ok {
-				log.Error("Unable to process provided datum: %v - not possible to cast to IndexerData", datum)
-				continue
-			}
+	handler := func(items ...*ArchiveRequest) []*ArchiveRequest {
+		for _, archiveReq := range items {
 			log.Trace("ArchiverData Process: %#v", archiveReq)
 			if _, err := doArchive(archiveReq); err != nil {
-				log.Error("Archive %v failed: %v", datum, err)
+				log.Error("Archive %v failed: %v", archiveReq, err)
 			}
 		}
 		return nil
 	}
 
-	archiverQueue = queue.CreateUniqueQueue("repo-archive", handler, new(ArchiveRequest))
+	archiverQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "repo-archive", handler)
 	if archiverQueue == nil {
-		return errors.New("unable to create codes indexer queue")
+		return errors.New("unable to create repo-archive queue")
 	}
-
-	go graceful.GetManager().RunWithShutdownFns(archiverQueue.Run)
+	go graceful.GetManager().RunWithCancel(archiverQueue)
 
 	return nil
 }

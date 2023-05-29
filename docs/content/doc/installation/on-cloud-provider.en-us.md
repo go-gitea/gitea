@@ -5,6 +5,8 @@ slug: "install-on-cloud-provider"
 weight: 90
 toc: false
 draft: false
+aliases:
+  - /en-us/install-on-cloud-provider
 menu:
   sidebar:
     parent: "installation"

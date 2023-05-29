@@ -48,7 +48,7 @@ func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *u
 }
 
 func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issue, currentUser *user_model.User, review *Review) ([]*Comment, error) {
-	var comments []*Comment
+	var comments CommentList
 	if review == nil {
 		review = &Review{ID: 0}
 	}
@@ -68,7 +68,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		return nil, err
 	}
 
-	if err := CommentList(comments).LoadPosters(ctx); err != nil {
+	if err := comments.LoadPosters(ctx); err != nil {
 		return nil, err
 	}
 

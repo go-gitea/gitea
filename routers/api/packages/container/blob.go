@@ -27,10 +27,6 @@ var uploadVersionMutex sync.Mutex
 // saveAsPackageBlob creates a package blob from an upload
 // The uploaded blob gets stored in a special upload version to link them to the package/image
 func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pci *packages_service.PackageCreationInfo) (*packages_model.PackageBlob, error) {
-	if err := packages_service.CheckSizeQuotaExceeded(db.DefaultContext, pci.Creator, pci.Owner, packages_model.TypeContainer, hsr.Size()); err != nil {
-		return nil, err
-	}
-
 	pb := packages_service.NewPackageBlob(hsr)
 
 	exists := false
@@ -43,6 +39,10 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pci *packages_servi
 	}
 
 	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		if err := packages_service.CheckSizeQuotaExceeded(ctx, pci.Creator, pci.Owner, packages_model.TypeContainer, hsr.Size()); err != nil {
+			return err
+		}
+
 		pb, exists, err = packages_model.GetOrInsertBlob(ctx, pb)
 		if err != nil {
 			log.Error("Error inserting package blob: %v", err)

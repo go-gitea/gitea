@@ -152,7 +152,7 @@ func init() {
 			Query()
 		assert.NoError(t, err)
 
-		assert.EqualValues(t, label.int("NumIssues"), len(issueLabels), "Unexpected number of issue for label id: %d", label.int("ID"))
+		assert.Len(t, issueLabels, label.int("NumIssues"), "Unexpected number of issue for label id: %d", label.int("ID"))
 
 		issueIDs := make([]int, len(issueLabels))
 		for i, issueLabel := range issueLabels {

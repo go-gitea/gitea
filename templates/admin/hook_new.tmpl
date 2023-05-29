@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin settings new webhook">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin settings new webhook")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{if .PageIsAdminDefaultHooksNew}}
 				{{.locale.Tr "admin.defaulthooks.add_webhook"}}
@@ -55,5 +52,4 @@
 
 		{{template "repo/settings/webhook/history" .}}
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

@@ -36,10 +36,10 @@ func TestGetUserEmailsByNames(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// ignore none active user email
-	assert.Equal(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user9"}))
-	assert.Equal(t, []string{"user8@example.com", "user5@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user5"}))
+	assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user9"}))
+	assert.ElementsMatch(t, []string{"user8@example.com", "user5@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user5"}))
 
-	assert.Equal(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user7"}))
+	assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user7"}))
 }
 
 func TestCanCreateOrganization(t *testing.T) {
@@ -525,4 +525,22 @@ func TestIsUserVisibleToViewer(t *testing.T) {
 	test(user31, user29, false)
 	test(user31, user33, true)
 	test(user31, nil, false)
+}
+
+func Test_ValidateUser(t *testing.T) {
+	oldSetting := setting.Service.AllowedUserVisibilityModesSlice
+	defer func() {
+		setting.Service.AllowedUserVisibilityModesSlice = oldSetting
+	}()
+	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, false, true}
+	kases := map[*user_model.User]bool{
+		{ID: 1, Visibility: structs.VisibleTypePublic}:                            true,
+		{ID: 2, Visibility: structs.VisibleTypeLimited}:                           false,
+		{ID: 2, Visibility: structs.VisibleTypeLimited, Email: "invalid"}:         false,
+		{ID: 2, Visibility: structs.VisibleTypePrivate, Email: "valid@valid.com"}: true,
+	}
+	for kase, expected := range kases {
+		err := user_model.ValidateUser(kase)
+		assert.EqualValues(t, expected, err == nil, fmt.Sprintf("case: %+v", kase))
+	}
 }

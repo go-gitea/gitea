@@ -17,8 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/builder"
 )
 
 // Task represents a task
@@ -35,7 +33,7 @@ type Task struct {
 	StartTime      timeutil.TimeStamp
 	EndTime        timeutil.TimeStamp
 	PayloadContent string             `xorm:"TEXT"`
-	Message        string             `xorm:"TEXT"` // if task failed, saved the error reason
+	Message        string             `xorm:"TEXT"` // if task failed, saved the error reason, it could be a JSON string of TranslatableMessage or a plain message
 	Created        timeutil.TimeStamp `xorm:"created"`
 }
 
@@ -185,14 +183,6 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 	return &task, nil
 }
 
-// HasFinishedMigratingTask returns if a finished migration task exists for the repo.
-func HasFinishedMigratingTask(repoID int64) (bool, error) {
-	return db.GetEngine(db.DefaultContext).
-		Where("repo_id=? AND type=? AND status=?", repoID, structs.TaskTypeMigrateRepo, structs.TaskStatusFinished).
-		Table("task").
-		Exist()
-}
-
 // GetMigratingTaskByID returns the migrating task by repo's id
 func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, error) {
 	task := Task{
@@ -212,27 +202,6 @@ func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, e
 		return nil, nil, err
 	}
 	return &task, &opts, nil
-}
-
-// FindTaskOptions find all tasks
-type FindTaskOptions struct {
-	Status int
-}
-
-// ToConds generates conditions for database operation.
-func (opts FindTaskOptions) ToConds() builder.Cond {
-	cond := builder.NewCond()
-	if opts.Status >= 0 {
-		cond = cond.And(builder.Eq{"status": opts.Status})
-	}
-	return cond
-}
-
-// FindTasks find all tasks
-func FindTasks(opts FindTaskOptions) ([]*Task, error) {
-	tasks := make([]*Task, 0, 10)
-	err := db.GetEngine(db.DefaultContext).Where(opts.ToConds()).Find(&tasks)
-	return tasks, err
 }
 
 // CreateTask creates a task on database

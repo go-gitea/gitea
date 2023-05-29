@@ -1,25 +1,30 @@
 <template>
-  <div class="action-view-container">
+  <div class="ui container action-view-container">
     <div class="action-view-header">
-      <div class="action-info-summary gt-ac">
-        <ActionRunStatus :status="run.status" :size="20"/>
-        <div class="action-title">
-          {{ run.title }}
+      <div class="action-info-summary">
+        <div class="action-info-summary-title">
+          <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
+          <h2 class="action-info-summary-title-text">
+            {{ run.title }}
+          </h2>
         </div>
-        <button class="run_approve" @click="approveRun()" v-if="run.canApprove">
-          <i class="play circle outline icon"/>
+        <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
+          {{ locale.approve }}
         </button>
-        <button class="run_cancel" @click="cancelRun()" v-else-if="run.canCancel">
-          <i class="stop circle outline icon"/>
+        <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
+          {{ locale.cancel }}
+        </button>
+        <button class="ui basic small compact button secondary gt-mr-0" @click="rerun()" v-else-if="run.canRerun">
+          {{ locale.rerun_all }}
         </button>
       </div>
       <div class="action-commit-summary">
         {{ run.commit.localeCommit }}
         <a :href="run.commit.link">{{ run.commit.shortSHA }}</a>
-        &nbsp;<span class="ui label">
+        <span class="ui label" v-if="run.commit.shortSHA">
           <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
         </span>
-        &nbsp;{{ run.commit.localePushedBy }}
+        {{ run.commit.localePushedBy }}
         <a :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
       </div>
     </div>
@@ -27,37 +32,52 @@
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
+            <div class="job-brief-item" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id" @mouseleave="onHoverRerunIndex = -1">
               <a class="job-brief-link" :href="run.link+'/jobs/'+index">
-                <ActionRunStatus :status="job.status"/>
-                <span class="ui text gt-mx-3">{{ job.name }}</span>
+                <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
+                <span class="job-brief-name gt-mx-3 gt-ellipsis">{{ job.name }}</span>
               </a>
-              <span class="step-summary-duration">{{ job.duration }}</span>
-              <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
-                <SvgIcon name="octicon-sync" class="ui text black"/>
-              </button>
+              <span class="job-brief-info">
+                <span class="step-summary-duration">{{ job.duration }}</span>
+                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
+              </span>
             </div>
           </div>
+        </div>
+        <div class="job-artifacts" v-if="artifacts.length > 0">
+          <div class="job-artifacts-title">
+            {{ locale.artifactsTitle }}
+          </div>
+          <ul class="job-artifacts-list">
+            <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.id">
+              <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.id">
+                <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon" />{{ artifact.name }}
+              </a>
+            </li>
+          </ul>
         </div>
       </div>
 
       <div class="action-view-right">
         <div class="job-info-header">
-          <div class="job-info-header-title">
+          <h3 class="job-info-header-title">
             {{ currentJob.title }}
-          </div>
-          <div class="job-info-header-detail">
+          </h3>
+          <p class="job-info-header-detail">
             {{ currentJob.detail }}
-          </div>
+          </p>
         </div>
         <div class="job-step-container">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
-            <div class="job-step-summary" @click.stop="toggleStepLogs(i)">
-              <SvgIcon :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" class="gt-mr-3"/>
-
+            <div class="job-step-summary" @click.stop="toggleStepLogs(i)" :class="currentJobStepsStates[i].expanded ? 'selected' : ''">
+              <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
+                currentJobStepsStates[i].cursor === null means the log is loaded for the first time
+              -->
+              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
+              <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" class="gt-mr-3"/>
               <ActionRunStatus :status="jobStep.status" class="gt-mr-3"/>
 
-              <span class="step-summary-msg">{{ jobStep.summary }}</span>
+              <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
               <span class="step-summary-duration">{{ jobStep.duration }}</span>
             </div>
 
@@ -90,6 +110,7 @@ const sfc = {
     runIndex: String,
     jobIndex: String,
     actionsURL: String,
+    locale: Object,
   },
 
   data() {
@@ -98,6 +119,8 @@ const sfc = {
       loading: false,
       intervalID: null,
       currentJobStepsStates: [],
+      artifacts: [],
+      onHoverRerunIndex: -1,
 
       // provided by backend
       run: {
@@ -106,6 +129,7 @@ const sfc = {
         status: '',
         canCancel: false,
         canApprove: false,
+        canRerun: false,
         done: false,
         jobs: [
           // {
@@ -151,6 +175,15 @@ const sfc = {
     this.intervalID = setInterval(this.loadJob, 1000);
   },
 
+  unmounted() {
+    // clear the interval timer when the component is unmounted
+    // even our page is rendered once, not spa style
+    if (this.intervalID) {
+      clearInterval(this.intervalID);
+      this.intervalID = null;
+    }
+  },
+
   methods: {
     // get the active container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
     getLogsContainer(idx) {
@@ -170,8 +203,8 @@ const sfc = {
       const elJobLogList = document.createElement('div');
       elJobLogList.classList.add('job-log-list');
 
-      elJobLogGroup.appendChild(elJobLogGroupSummary);
-      elJobLogGroup.appendChild(elJobLogList);
+      elJobLogGroup.append(elJobLogGroupSummary);
+      elJobLogGroup.append(elJobLogList);
       el._stepLogsActiveContainer = elJobLogList;
     },
     // end a log group
@@ -193,6 +226,11 @@ const sfc = {
       await this.fetchPost(`${jobLink}/rerun`);
       window.location.href = jobLink;
     },
+    // rerun workflow
+    async rerun() {
+      await this.fetchPost(`${this.run.link}/rerun`);
+      window.location.href = this.run.link;
+    },
     // cancel a run
     cancelRun() {
       this.fetchPost(`${this.run.link}/cancel`);
@@ -209,15 +247,15 @@ const sfc = {
 
       const lineNumber = document.createElement('div');
       lineNumber.className = 'line-num';
-      lineNumber.innerText = line.index;
-      div.appendChild(lineNumber);
+      lineNumber.textContent = line.index;
+      div.append(lineNumber);
 
       // TODO: Support displaying time optionally
 
       const logMessage = document.createElement('div');
       logMessage.className = 'log-msg';
       logMessage.innerHTML = ansiLogToHTML(line.message);
-      div.appendChild(logMessage);
+      div.append(logMessage);
 
       return div;
     },
@@ -249,6 +287,11 @@ const sfc = {
       try {
         this.loading = true;
 
+        // refresh artifacts if upload-artifact step done
+        const resp = await this.fetchPost(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
+        const artifacts = await resp.json();
+        this.artifacts = artifacts['artifacts'] || [];
+
         const response = await this.fetchJob();
 
         // save the state to Vue data, then the UI will be updated
@@ -258,6 +301,7 @@ const sfc = {
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJob.steps.length; i++) {
           if (!this.currentJobStepsStates[i]) {
+            // initial states for job steps
             this.currentJobStepsStates[i] = {cursor: null, expanded: false};
           }
         }
@@ -277,6 +321,7 @@ const sfc = {
       }
     },
 
+
     fetchPost(url, body) {
       return fetch(url, {
         method: 'POST',
@@ -287,6 +332,10 @@ const sfc = {
         body,
       });
     },
+
+    isDone(status) {
+      return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
+    }
   },
 };
 
@@ -305,6 +354,23 @@ export function initRepositoryActionView() {
     runIndex: el.getAttribute('data-run-index'),
     jobIndex: el.getAttribute('data-job-index'),
     actionsURL: el.getAttribute('data-actions-url'),
+    locale: {
+      approve: el.getAttribute('data-locale-approve'),
+      cancel: el.getAttribute('data-locale-cancel'),
+      rerun: el.getAttribute('data-locale-rerun'),
+      artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
+      rerun_all: el.getAttribute('data-locale-rerun-all'),
+      status: {
+        unknown: el.getAttribute('data-locale-status-unknown'),
+        waiting: el.getAttribute('data-locale-status-waiting'),
+        running: el.getAttribute('data-locale-status-running'),
+        success: el.getAttribute('data-locale-status-success'),
+        failure: el.getAttribute('data-locale-status-failure'),
+        cancelled: el.getAttribute('data-locale-status-cancelled'),
+        skipped: el.getAttribute('data-locale-status-skipped'),
+        blocked: el.getAttribute('data-locale-status-blocked'),
+      }
+    }
   });
   view.mount(el);
 }
@@ -356,51 +422,42 @@ export function ansiLogToHTML(line) {
 <style scoped>
 .action-view-body {
   display: flex;
-  height: calc(100vh - 266px); /* fine tune this value to make the main view has full height */
+  gap: 12px;
 }
 
 /* ================ */
 /* action view header */
 
 .action-view-header {
-  margin: 0 20px 20px 20px;
-}
-
-.action-view-header .run_cancel {
-  border: none;
-  color: var(--color-red);
-  background-color: transparent;
-  outline: none;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.action-view-header .run_approve {
-  border: none;
-  color: var(--color-green);
-  background-color: transparent;
-  outline: none;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.action-view-header .run_cancel:hover,
-.action-view-header .run_approve:hover {
-  transform: scale(130%);
+  margin-top: 8px;
+  margin-bottom: 4px;
 }
 
 .action-info-summary {
-  font-size: 150%;
-  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.action-info-summary-title {
   display: flex;
 }
 
-.action-info-summary .action-title {
-  padding: 0 5px;
+.action-info-summary-title-text {
+  font-size: 20px;
+  margin: 0 0 0 5px;
+  flex: 1;
 }
 
 .action-commit-summary {
-  padding: 10px 10px;
+  display: flex;
+  gap: 5px;
+  margin: 5px 0 0 25px;
+}
+
+.action-view-left, .action-view-right {
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 
 /* ================ */
@@ -409,8 +466,10 @@ export function ansiLogToHTML(line) {
 .action-view-left {
   width: 30%;
   max-width: 400px;
-  overflow-y: scroll;
-  margin-left: 10px;
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  overflow-y: auto;
 }
 
 .job-group-section .job-group-summary {
@@ -418,42 +477,89 @@ export function ansiLogToHTML(line) {
   padding: 10px;
 }
 
-.job-group-section .job-brief-list .job-brief-item {
-  margin: 5px 0;
-  padding: 10px;
-  background: var(--color-info-bg);
-  border-radius: 5px;
-  text-decoration: none;
-  display: flex;
-  justify-items: center;
-  flex-wrap: nowrap;
+.job-artifacts-title {
+  font-size: 18px;
+  margin-top: 16px;
+  padding: 16px 10px 0 20px;
+  border-top: 1px solid var(--color-secondary);
 }
 
-.job-group-section .job-brief-list .job-brief-item .job-brief-rerun {
-  float: right;
-  border: none;
-  background-color: transparent;
-  outline: none;
+.job-artifacts-item {
+  margin: 5px 0;
+  padding: 6px;
+}
+
+.job-artifacts-list {
+  padding-left: 12px;
+  list-style: none;
+}
+
+.job-artifacts-icon {
+  padding-right: 3px;
+}
+
+.job-brief-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.job-brief-item {
+  padding: 10px;
+  border-radius: var(--border-radius);
+  text-decoration: none;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.job-brief-item:hover {
+  background-color: var(--color-hover);
+}
+
+.job-brief-item.selected {
+  font-weight: var(--font-weight-bold);
+  background-color: var(--color-active);
+}
+
+.job-brief-item:first-of-type {
+  margin-top: 0;
+}
+
+.job-brief-item .job-brief-rerun {
   cursor: pointer;
   transition: transform 0.2s;
 }
 
-.job-group-section .job-brief-list .job-brief-item .job-brief-rerun:hover {
+.job-brief-item .job-brief-rerun:hover {
   transform: scale(130%);
 }
 
-.job-group-section .job-brief-list .job-brief-item .job-brief-link {
-  flex-grow: 1;
+.job-brief-item .job-brief-link {
   display: flex;
+  width: 100%;
 }
 
-.job-group-section .job-brief-list .job-brief-item .job-brief-link span {
+.job-brief-item .job-brief-link span {
   display: flex;
   align-items: center;
 }
 
-.job-group-section .job-brief-list .job-brief-item:hover {
-  background-color: var(--color-secondary);
+.job-brief-item .job-brief-link .job-brief-name {
+  display: block;
+  width: 70%;
+  color: var(--color-text);
+}
+
+.job-brief-item .job-brief-link:hover {
+  text-decoration: none;
+}
+
+.job-brief-item .job-brief-info {
+  display: flex;
+  align-items: center;
+  width: 55px;
 }
 
 /* ================ */
@@ -461,33 +567,47 @@ export function ansiLogToHTML(line) {
 
 .action-view-right {
   flex: 1;
-  background-color: var(--color-console-bg);
-  color: var(--color-console-fg);
+  color: var(--color-secondary-dark-3);
   max-height: 100%;
-  margin-right: 10px;
+  width: 70%;
   display: flex;
   flex-direction: column;
 }
 
-.job-info-header .job-info-header-title {
-  font-size: 150%;
+.job-info-header {
   padding: 10px;
+  border-bottom: 1px solid var(--color-console-border);
+  background-color: var(--color-console-bg);
+  position: sticky;
+  top: 0;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  height: 60px;
+}
+
+.job-info-header .job-info-header-title {
+  color: var(--color-console-fg);
+  font-size: 16px;
+  margin: 0;
 }
 
 .job-info-header .job-info-header-detail {
-  padding: 0 10px 10px;
-  border-bottom: 1px solid var(--color-grey);
+  color: var(--color-secondary-dark-3);
+  font-size: 12px;
 }
 
 .job-step-container {
+  background-color: var(--color-console-bg);
   max-height: 100%;
-  overflow: auto;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .job-step-container .job-step-summary {
   cursor: pointer;
   padding: 5px 10px;
   display: flex;
+  align-items: center;
+  user-select: none;
+  border-radius: var(--border-radius);
 }
 
 .job-step-container .job-step-summary .step-summary-msg {
@@ -499,7 +619,30 @@ export function ansiLogToHTML(line) {
 }
 
 .job-step-container .job-step-summary:hover {
-  background-color: var(--color-black-light);
+  color: var(--color-console-fg);
+  background-color: var(--color-console-hover-bg);
+
+}
+
+.job-step-container .job-step-summary.selected {
+  color: var(--color-console-fg);
+  background-color: var(--color-console-active-bg);
+  position: sticky;
+  top: 60px;
+}
+
+@media (max-width: 768px) {
+  .action-view-body {
+    flex-direction: column;
+  }
+  .action-view-left, .action-view-right {
+    width: 100%;
+  }
+
+  .action-view-left {
+    max-width: none;
+    overflow-y: hidden;
+  }
 }
 </style>
 
@@ -520,17 +663,24 @@ export function ansiLogToHTML(line) {
 }
 
 .job-step-section .job-step-logs {
-  font-family: monospace, monospace;
+  font-family: var(--fonts-monospace);
+  margin: 8px 0;
+  font-size: 12px;
 }
 
 .job-step-section .job-step-logs .job-log-line {
   display: flex;
 }
 
+.job-step-section .job-step-logs .job-log-line:hover {
+  background-color: var(--color-console-hover-bg);
+}
+
 .job-step-section .job-step-logs .job-log-line .line-num {
   width: 48px;
   color: var(--color-grey-light);
   text-align: right;
+  user-select: none;
 }
 
 .job-step-section .job-step-logs .job-log-line .log-time {
@@ -546,7 +696,7 @@ export function ansiLogToHTML(line) {
   margin-left: 10px;
 }
 
-/* TODO: group support */
+/* TODO: group support
 
 .job-log-group {
 
@@ -556,5 +706,5 @@ export function ansiLogToHTML(line) {
 }
 .job-log-list {
 
-}
+} */
 </style>

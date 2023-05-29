@@ -172,10 +172,7 @@ func runDump(ctx *cli.Context) error {
 	outType := ctx.String("type")
 	if fileName == "-" {
 		file = os.Stdout
-		err := log.DelLogger("console")
-		if err != nil {
-			fatal("Deleting default logger failed. Can not write to stdout: %v", err)
-		}
+		setupConsoleLogger(log.FATAL, log.CanColorStderr, os.Stderr)
 	} else {
 		for _, suffix := range outputTypeEnum.Enum {
 			if strings.HasSuffix(fileName, "."+suffix) {
@@ -185,8 +182,7 @@ func runDump(ctx *cli.Context) error {
 		}
 		fileName += "." + outType
 	}
-	setting.InitProviderFromExistingFile()
-	setting.LoadCommonSettings()
+	setting.Init(&setting.Options{})
 
 	// make sure we are logging to the console no matter what the configuration tells us do to
 	// FIXME: don't use CfgProvider directly

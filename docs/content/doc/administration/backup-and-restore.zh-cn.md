@@ -1,10 +1,12 @@
 ---
 date: "2018-06-06T09:33:00+08:00"
-title: "使用：备份与恢复"
+title: "备份与恢复"
 slug: "backup-and-restore"
 weight: 11
 toc: false
 draft: false
+aliases:
+  - /zh-cn/backup-and-restore
 menu:
   sidebar:
     parent: "administration"

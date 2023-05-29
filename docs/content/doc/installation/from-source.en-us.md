@@ -5,6 +5,8 @@ slug: "install-from-source"
 weight: 30
 toc: false
 draft: false
+aliases:
+  - /en-us/install-from-source
 menu:
   sidebar:
     parent: "installation"
@@ -199,7 +201,7 @@ This can be combined with `CC`, `GOOS`, and `GOARCH` as above.
 A script to enable bash-completion can be found at [`contrib/autocompletion/bash_autocomplete`](https://raw.githubusercontent.com/go-gitea/gitea/main/contrib/autocompletion/bash_autocomplete). This should be altered as appropriate and can be `source` in your `.bashrc`
 or copied as `/usr/share/bash-completion/completions/gitea`.
 
-Similary a script for zsh-completion can be found at [`contrib/autocompletion/zsh_autocomplete`](https://raw.githubusercontent.com/go-gitea/gitea/main/contrib/autocompletion/zsh_autocomplete). This can be copied to `/usr/share/zsh/_gitea` or sourced within your
+Similarly, a script for zsh-completion can be found at [`contrib/autocompletion/zsh_autocomplete`](https://raw.githubusercontent.com/go-gitea/gitea/main/contrib/autocompletion/zsh_autocomplete). This can be copied to `/usr/share/zsh/_gitea` or sourced within your
 `.zshrc`.
 
 YMMV and these scripts may need further improvement.

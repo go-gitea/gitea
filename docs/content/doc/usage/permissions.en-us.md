@@ -5,6 +5,8 @@ slug: "permissions"
 weight: 14
 toc: false
 draft: false
+aliases:
+  - /en-us/permissions
 menu:
   sidebar:
     parent: "usage"

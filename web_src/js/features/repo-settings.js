@@ -1,6 +1,7 @@
 import $ from 'jquery';
+import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.js';
-import {initRepoCommonFilterSearchDropdown} from './repo-common.js';
+import {onInputDebounce, toggleElem} from '../utils/dom.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -33,7 +34,7 @@ export function initRepoSettingsCollaboration() {
           if ($item) {
             $dropdown.dropdown('set selected', $dropdown.attr('data-last-value'));
           } else {
-            $text.text('(N/A)'); // prevent from misleading users when the access mode is undefined
+            $text.text('(none)'); // prevent from misleading users when the access mode is undefined
           }
         }, 0);
       }
@@ -73,20 +74,35 @@ export function initRepoSettingGitHook() {
 }
 
 export function initRepoSettingBranches() {
-  // Branches
-  if ($('.repository.settings.branches').length > 0) {
-    initRepoCommonFilterSearchDropdown('.protected-branches .dropdown');
-    $('.enable-protection, .enable-whitelist, .enable-statuscheck').on('change', function () {
-      if (this.checked) {
-        $($(this).data('target')).removeClass('disabled');
-      } else {
-        $($(this).data('target')).addClass('disabled');
+  if (!$('.repository.settings.branches').length) return;
+  $('.toggle-target-enabled').on('change', function () {
+    const $target = $($(this).attr('data-target'));
+    $target.toggleClass('disabled', !this.checked);
+  });
+  $('.toggle-target-disabled').on('change', function () {
+    const $target = $($(this).attr('data-target'));
+    if (this.checked) $target.addClass('disabled'); // only disable, do not auto enable
+  });
+
+  // show the `Matched` mark for the status checks that match the pattern
+  const markMatchedStatusChecks = () => {
+    const patterns = (document.getElementById('status_check_contexts').value || '').split(/[\r\n]+/);
+    const validPatterns = patterns.map((item) => item.trim()).filter(Boolean);
+    const marks = document.getElementsByClassName('status-check-matched-mark');
+
+    for (const el of marks) {
+      let matched = false;
+      const statusCheck = el.getAttribute('data-status-check');
+      for (const pattern of validPatterns) {
+        if (minimatch(statusCheck, pattern)) {
+          matched = true;
+          break;
+        }
       }
-    });
-    $('.disable-whitelist').on('change', function () {
-      if (this.checked) {
-        $($(this).data('target')).addClass('disabled');
-      }
-    });
-  }
+
+      toggleElem(el, matched);
+    }
+  };
+  markMatchedStatusChecks();
+  document.getElementById('status_check_contexts').addEventListener('input', onInputDebounce(markMatchedStatusChecks));
 }

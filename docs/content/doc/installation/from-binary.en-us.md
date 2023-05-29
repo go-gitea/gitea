@@ -5,6 +5,8 @@ slug: "install-from-binary"
 weight: 15
 toc: false
 draft: false
+aliases:
+  - /en-us/install-from-binary
 menu:
   sidebar:
     parent: "installation"
@@ -78,6 +80,7 @@ git --version
 Create a user to run Gitea (e.g. `git`)
 
 ```sh
+# On Ubuntu/Debian:
 adduser \
    --system \
    --shell /bin/bash \
@@ -85,6 +88,17 @@ adduser \
    --group \
    --disabled-password \
    --home /home/git \
+   git
+
+# On Fedora/RHEL/CentOS:
+groupadd --system git
+adduser \
+   --system \
+   --shell /bin/bash \
+   --comment 'Git Version Control' \
+   --gid git \
+   --home-dir /home/git \
+   --create-home \
    git
 ```
 
@@ -145,7 +159,7 @@ After you complete the above steps, you can run Gitea two ways:
 
 ### 1. Creating a service file to start Gitea automatically (recommended)
 
-See how to create [Linux service]({{< relref "run-as-service-in-ubuntu.en-us.md" >}})
+See how to create [Linux service]({{< relref "doc/installation/run-as-service-in-ubuntu.en-us.md" >}})
 
 ### 2. Running from command-line/terminal
 

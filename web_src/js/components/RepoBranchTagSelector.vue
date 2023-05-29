@@ -1,6 +1,6 @@
 <template>
   <div class="ui floating filter dropdown custom">
-    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-m-0" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
       <span class="text gt-df gt-ac gt-mr-2">
         <template v-if="release">{{ textReleaseCompare }}</template>
         <template v-else>
@@ -39,6 +39,9 @@
       <div class="scrolling menu" ref="scrollContainer">
         <div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active === index}" @click="selectItem(item)" :ref="'listItem' + index">
           {{ item.name }}
+          <a v-if="enableFeed && mode === 'branches'" role="button" class="rss-icon ui compact right" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
+            <svg-icon name="octicon-rss" :size="14"/>
+          </a>
         </div>
         <div class="item" v-if="showCreateNewBranch" :class="{active: active === filteredItems.length}" :ref="'listItem' + filteredItems.length">
           <a href="#" @click="createNewBranch()">
@@ -291,3 +294,12 @@ export function initRepoBranchTagSelector(selector) {
 
 export default sfc; // activate IDE's Vue plugin
 </script>
+
+<style scoped>
+.menu .item a {
+  display: none; /* only show RSS icon on hover */
+}
+.menu .item:hover a {
+  display: inline-block;
+}
+</style>

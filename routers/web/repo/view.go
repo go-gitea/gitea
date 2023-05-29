@@ -24,6 +24,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/container"
@@ -39,6 +40,9 @@ import (
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
+	issue_service "code.gitea.io/gitea/services/issue"
+
+	"github.com/nektos/act/pkg/model"
 )
 
 const (
@@ -63,7 +67,7 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, try
 	// 1. Markdown files - with and without localisation - e.g. README.en-us.md or README.md
 	// 2. Txt files - e.g. README.txt
 	// 3. No extension - e.g. README
-	exts := append(localizedExtensions(".md", ctx.Language()), ".txt", "") // sorted by priority
+	exts := append(localizedExtensions(".md", ctx.Locale.Language()), ".txt", "") // sorted by priority
 	extCount := len(exts)
 	readmeFiles := make([]*git.TreeEntry, extCount+1)
 
@@ -343,10 +347,19 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if editorconfigErr != nil {
 			ctx.Data["FileError"] = strings.TrimSpace(editorconfigErr.Error())
 		}
-	} else if ctx.Repo.IsIssueConfig(ctx.Repo.TreePath) {
-		_, issueConfigErr := ctx.Repo.GetIssueConfig(ctx.Repo.TreePath, ctx.Repo.Commit)
+	} else if issue_service.IsTemplateConfig(ctx.Repo.TreePath) {
+		_, issueConfigErr := issue_service.GetTemplateConfig(ctx.Repo.GitRepo, ctx.Repo.TreePath, ctx.Repo.Commit)
 		if issueConfigErr != nil {
 			ctx.Data["FileError"] = strings.TrimSpace(issueConfigErr.Error())
+		}
+	} else if actions.IsWorkflow(ctx.Repo.TreePath) {
+		content, err := actions.GetContentFromEntry(entry)
+		if err != nil {
+			log.Error("actions.GetContentFromEntry: %v", err)
+		}
+		_, workFlowErr := model.ReadWorkflow(bytes.NewReader(content))
+		if workFlowErr != nil {
+			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
 	}
 
@@ -695,10 +708,17 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	if setting.EnableFeed {
+	if setting.Other.EnableFeed {
 		isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
 		if isFeed {
-			feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+			switch {
+			case ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType):
+				feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+			case ctx.Repo.TreePath == "":
+				feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
+			case ctx.Repo.TreePath != "":
+				feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
+			}
 			return
 		}
 	}
