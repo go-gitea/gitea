@@ -333,16 +333,6 @@
 
 				<div class="ui divider"></div>
 
-				<dt>{{.locale.Tr "admin.config.git_enable_reflogs"}}</dt>
-				<dd>{{if .Git.Reflog.Enabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-
-				{{if .Git.Reflog.Enabled}}
-					<dt>{{.locale.Tr "admin.config.git_reflog_expiry_time"}}</dt>
-					<dd>{{.locale.Tr "tool.days" .Git.Reflog.Expiration}}</dd>
-				{{end}}
-
-				<div class="ui divider"></div>
-
 				<dt>{{.locale.Tr "admin.config.git_migrate_timeout"}}</dt>
 				<dd>{{.Git.Timeout.Migrate}} {{.locale.Tr "tool.raw_seconds"}}</dd>
 				<dt>{{.locale.Tr "admin.config.git_mirror_timeout"}}</dt>
