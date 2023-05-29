@@ -1520,7 +1520,8 @@ img.ui.avatar,
 }
 
 @media (max-width: 767px) {
-  .not-mobile {
+  /* double selector so it wins over .gt-df etc */
+  .not-mobile.not-mobile {
     display: none !important;
   }
 }
