@@ -312,7 +312,6 @@ func (u *User) GenerateEmailActivateCode(email string) string {
 
 func searchUserFollowers(ctx context.Context, u, viewer *User) *xorm.Session {
 	return db.GetEngine(ctx).
-		Select("`user`.*").
 		Join("LEFT", "follow", "`user`.id=follow.user_id").
 		Where("follow.follow_id=?", u.ID).
 		And("`user`.type=?", UserTypeIndividual).
@@ -320,8 +319,7 @@ func searchUserFollowers(ctx context.Context, u, viewer *User) *xorm.Session {
 }
 
 func searchUserFollowing(ctx context.Context, u, viewer *User) *xorm.Session {
-	return db.GetEngine(db.DefaultContext).
-		Select("`user`.*").
+	return db.GetEngine(ctx).
 		Join("LEFT", "follow", "`user`.id=follow.follow_id").
 		Where("follow.user_id=?", u.ID).
 		And("`user`.type IN (?, ?)", UserTypeIndividual, UserTypeOrganization).
