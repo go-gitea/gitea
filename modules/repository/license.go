@@ -128,29 +128,15 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, gitRep
 		}
 	}
 
-	_, licenseFile, err := findLicenseFile(ctx, gitRepo, repo.DefaultBranch)
+	_, licenseFile, err := findLicenseFile(gitRepo, repo.DefaultBranch)
 	if err != nil {
 		return fmt.Errorf("findLicenseFile: %w", err)
 	}
-
-	if licenseFile != nil {
-		// Read license file content
-		blob := licenseFile.Blob()
-		contentBuf, err := blob.GetBlobAll()
-		if err != nil {
-			return fmt.Errorf("GetBlobAll: %w", err)
-		}
-
-		// check license
-		var licenses []string
-		cov := licensecheck.Scan(contentBuf)
-		for _, m := range cov.Match {
-			licenses = append(licenses, m.ID)
-		}
-		repo.Licenses = licenses
-		if err := repo_model.UpdateRepositoryCols(ctx, repo, "licenses"); err != nil {
-			return fmt.Errorf("UpdateRepositoryCols: %v", err)
-		}
+	if repo.Licenses, err = detectLicense(licenseFile); err != nil {
+		return fmt.Errorf("checkLicenseFile: %w", err)
+	}
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "licenses"); err != nil {
+		return fmt.Errorf("UpdateRepositoryCols: %v", err)
 	}
 
 	return nil
@@ -169,7 +155,7 @@ func GetLicenseFileName(ctx context.Context, repo *repo_model.Repository, gitRep
 		}
 	}
 
-	_, licenseFile, err := findLicenseFile(ctx, gitRepo, repo.DefaultBranch)
+	_, licenseFile, err := findLicenseFile(gitRepo, repo.DefaultBranch)
 	if err != nil {
 		return "", fmt.Errorf("findLicenseFile: %w", err)
 	}
@@ -181,7 +167,7 @@ func GetLicenseFileName(ctx context.Context, repo *repo_model.Repository, gitRep
 }
 
 // findLicenseFile returns the entry of license file in the repository if it exists
-func findLicenseFile(ctx context.Context, gitRepo *git.Repository, branchName string) (string, *git.TreeEntry, error) {
+func findLicenseFile(gitRepo *git.Repository, branchName string) (string, *git.TreeEntry, error) {
 	if branchName == "" {
 		return "", nil, nil
 	}
@@ -189,20 +175,39 @@ func findLicenseFile(ctx context.Context, gitRepo *git.Repository, branchName st
 		return "", nil, nil
 	}
 
-	commitID, err := gitRepo.GetBranchCommitID(branchName)
+	commit, err := gitRepo.GetBranchCommit(branchName)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			return "", nil, nil
 		}
-		return "", nil, fmt.Errorf("GetBranchCommitID: %w", err)
-	}
-	commit, err := gitRepo.GetCommit(commitID)
-	if err != nil {
-		return "", nil, fmt.Errorf("GetCommit: %w", err)
+		return "", nil, fmt.Errorf("GetBranchCommit: %w", err)
 	}
 	entries, err := commit.ListEntries()
 	if err != nil {
 		return "", nil, fmt.Errorf("ListEntries: %w", err)
 	}
 	return FindFileInEntries(util.FileTypeLicense, entries, "", "", false)
+}
+
+// detectLicense returns the licenses detected in the given file
+func detectLicense(file *git.TreeEntry) ([]string, error) {
+	if file == nil {
+		return nil, nil
+	}
+
+	// Read license file content
+	blob := file.Blob()
+	contentBuf, err := blob.GetBlobAll()
+	if err != nil {
+		return nil, fmt.Errorf("GetBlobAll: %w", err)
+	}
+
+	// check license
+	var licenses []string
+	cov := licensecheck.Scan(contentBuf)
+	for _, m := range cov.Match {
+		licenses = append(licenses, m.ID)
+	}
+
+	return licenses, nil
 }
