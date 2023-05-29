@@ -367,22 +367,30 @@ func TestConflictChecking(t *testing.T) {
 		assert.NotEmpty(t, baseRepo)
 
 		// create a commit on new branch.
-		_, err = files_service.CreateOrUpdateRepoFile(git.DefaultContext, baseRepo, user, &files_service.UpdateRepoFileOptions{
-			TreePath:  "important_file",
+		_, err = files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, user, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation: "create",
+					TreePath:  "important_file",
+					Content:   "Just a non-important file",
+				},
+			},
 			Message:   "Add a important file",
-			Content:   "Just a non-important file",
-			IsNewFile: true,
 			OldBranch: "main",
 			NewBranch: "important-secrets",
 		})
 		assert.NoError(t, err)
 
 		// create a commit on main branch.
-		_, err = files_service.CreateOrUpdateRepoFile(git.DefaultContext, baseRepo, user, &files_service.UpdateRepoFileOptions{
-			TreePath:  "important_file",
+		_, err = files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, user, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation: "create",
+					TreePath:  "important_file",
+					Content:   "Not the same content :P",
+				},
+			},
 			Message:   "Add a important file",
-			Content:   "Not the same content :P",
-			IsNewFile: true,
 			OldBranch: "main",
 			NewBranch: "main",
 		})
