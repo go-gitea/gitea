@@ -19,7 +19,7 @@ menu:
 
 ## Linux
 
-目前尚未發佈任何 Linux 套件，如果我們發佈了，會直接更新此網頁。在這之前請先參考[執行檔安裝]({{< relref "from-binary.zh-tw.md" >}})方式。
+目前尚未發佈任何 Linux 套件，如果我們發佈了，會直接更新此網頁。在這之前請先參考[執行檔安裝]({{< relref "doc/installation/from-binary.zh-tw.md" >}})方式。
 
 ## Windows
 
@@ -29,11 +29,11 @@ menu:
 choco install gitea
 ```
 
-也可以參考[執行檔安裝]({{< relref "from-binary.zh-tw.md" >}})方式。
+也可以參考[執行檔安裝]({{< relref "doc/installation/from-binary.zh-tw.md" >}})方式。
 
 ## macOS
 
-目前我們只支援透過 `brew` 來安裝套件。假如您尚未使用 [Homebrew](http://brew.sh/)，您就必須參考[執行檔安裝]({{< relref "from-binary.zh-tw.md" >}})方式。透過 `brew` 安裝 Gitea，您只需要執行底下指令:
+目前我們只支援透過 `brew` 來安裝套件。假如您尚未使用 [Homebrew](http://brew.sh/)，您就必須參考[執行檔安裝]({{< relref "doc/installation/from-binary.zh-tw.md" >}})方式。透過 `brew` 安裝 Gitea，您只需要執行底下指令:
 
 ```
 brew tap go-gitea/gitea
