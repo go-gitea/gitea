@@ -113,6 +113,11 @@
 									{{if $file.IsVendored}}
 										<span class="ui label gt-ml-3">{{$.locale.Tr "repo.diff.vendored"}}</span>
 									{{end}}
+									{{if and $file.Mode $file.OldMode}}
+										<span class="gt-ml-4 gt-mono">{{$file.OldMode}} &rarr; {{$file.Mode}}</span>
+									{{else if $file.Mode}}
+										<span class="gt-ml-4 gt-mono">{{$file.Mode}}</span>
+									{{end}}
 								</div>
 								<div class="diff-file-header-actions gt-df gt-ac">
 									{{if $showFileViewToggle}}
