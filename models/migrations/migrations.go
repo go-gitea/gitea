@@ -494,6 +494,8 @@ var migrations = []Migration{
 	// v257 -> v258
 	NewMigration("Add Actions Artifact table", v1_20.CreateActionArtifactTable),
 	// v258 -> v259
+	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
+	// v259 -> v290
 	NewMigration("Drop column NumFollowers and NumFollowing on User", v1_20.DropColumnNumFollowersAndNumFollowingOnUser),
 }
 
