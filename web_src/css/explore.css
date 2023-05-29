@@ -28,10 +28,6 @@
   word-break: break-all;
 }
 
-.ui.repository.list .item .ui.header .metas {
-  font-size: 14px;
-}
-
 .ui.repository.list .item .time {
   font-size: 12px;
 }
