@@ -93,7 +93,6 @@
 				{{end}}
 			</span>
 			<div class="menu">
-				<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_project_title"}}</div>
 				{{if or .OpenProjects .ClosedProjects}}
 				<div class="ui icon search input">
 					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
@@ -102,7 +101,7 @@
 				{{end}}
 				<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_projects"}}</div>
 				{{if and (not .OpenProjects) (not .ClosedProjects)}}
-					<div class="header" style="text-transform: none;font-size:14px;">
+					<div class="disabled item">
 						{{.locale.Tr "repo.issues.new.no_items"}}
 					</div>
 				{{else}}
@@ -152,7 +151,6 @@
 					{{end}}
 				</span>
 				<div class="filter menu" data-id="#assignee_ids">
-					<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_assignees_title"}}</div>
 					<div class="ui icon search input">
 						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignees"}}">
