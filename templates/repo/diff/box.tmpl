@@ -107,6 +107,7 @@
 										{{end}}
 									</div>
 									<span class="file gt-mono"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{$.locale.Tr "repo.stored_lfs"}}){{end}}</span>
+									<button class="ui button button-link gt-p-3" data-clipboard-text="{{$file.Name}}">{{svg "octicon-copy"}}</button>
 									{{if $file.IsGenerated}}
 										<span class="ui label gt-ml-3">{{$.locale.Tr "repo.diff.generated"}}</span>
 									{{end}}
