@@ -143,7 +143,7 @@ cp gitea /usr/local/bin/gitea
 
 ### 1. 创建服务自动启动 Gitea（推荐）
 
-学习创建 [Linux 服务]({{< relref "run-as-service-in-ubuntu.zh-cn.md" >}})
+学习创建 [Linux 服务]({{< relref "doc/installation/run-as-service-in-ubuntu.zh-cn.md" >}})
 
 ### 2. 通过命令行终端运行
 
@@ -175,4 +175,4 @@ GITEA_WORK_DIR=/var/lib/gitea/ /usr/local/bin/gitea web -c /etc/gitea/app.ini
 
 > 更多经验总结，请参考英文版 [Troubleshooting](/en-us/install-from-binary/#troubleshooting)
 
-如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "support.zh-cn.md" >}})
+如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "doc/help/support.zh-cn.md" >}})

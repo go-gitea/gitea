@@ -23,7 +23,7 @@ menu:
 
 ## macOS
 
-macOS 平台下当前我们仅支持通过 `brew` 来安装。如果你没有安装 [Homebrew](http://brew.sh/)，你也可以查看 [从二进制安装]({{< relref "from-binary.zh-cn.md" >}})。在你安装了 `brew` 之后， 你可以执行以下命令：
+macOS 平台下当前我们仅支持通过 `brew` 来安装。如果你没有安装 [Homebrew](http://brew.sh/)，你也可以查看 [从二进制安装]({{< relref "doc/installation/from-binary.zh-cn.md" >}})。在你安装了 `brew` 之后， 你可以执行以下命令：
 
 ```
 brew tap gitea/tap https://gitea.com/gitea/homebrew-gitea
@@ -77,7 +77,7 @@ OpenSUSE 构建服务为 [openSUSE 和 SLE](https://software.opensuse.org/downlo
 choco install gitea
 ```
 
-你也可以 [从二进制安装]({{< relref "from-binary.zh-cn.md" >}}) 。
+你也可以 [从二进制安装]({{< relref "doc/installation/from-binary.zh-cn.md" >}}) 。
 
 ## FreeBSD
 
@@ -109,4 +109,4 @@ make install clean
 
 ## 需要帮助?
 
-如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "support.zh-cn.md" >}})
+如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "doc/help/support.zh-cn.md" >}})
