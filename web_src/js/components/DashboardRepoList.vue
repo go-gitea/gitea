@@ -10,7 +10,7 @@
           {{ textMyRepos }}
           <span class="ui grey label gt-ml-3">{{ reposTotalCount }}</span>
         </div>
-        <a :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
+        <a class="gt-df gt-ac muted" :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
           <svg-icon name="octicon-plus"/>
           <span class="sr-only">{{ textNewRepo }}</span>
         </a>
@@ -70,18 +70,16 @@
       </div>
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
-          <li v-for="repo in repos" :key="repo.id">
-            <a class="repo-list-link muted gt-df gt-ac gt-sb" :href="repo.link">
-              <div class="item-name gt-df gt-ac gt-f1">
-                <svg-icon :name="repoIcon(repo)" :size="16" class-name="gt-mr-2"/>
-                <div class="text gt-font-semibold truncate gt-ml-1">{{ repo.full_name }}</div>
-                <span v-if="repo.archived">
-                  <svg-icon name="octicon-archive" :size="16" class-name="gt-ml-2"/>
-                </span>
+          <li class="gt-df gt-ac" v-for="repo in repos" :key="repo.id">
+            <a class="repo-list-link muted gt-df gt-ac gt-f1" :href="repo.link">
+              <svg-icon :name="repoIcon(repo)" :size="16" class-name="repo-list-icon"/>
+              <div class="text truncate">{{ repo.full_name }}</div>
+              <div v-if="repo.archived">
+                <svg-icon name="octicon-archive" :size="16"/>
               </div>
-              <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
-              <svg-icon v-if="repo.latest_commit_status_state" :name="statusIcon(repo.latest_commit_status_state)" :class-name="'commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
             </a>
+            <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
+            <svg-icon v-if="repo.latest_commit_status_state" :name="statusIcon(repo.latest_commit_status_state)" :class-name="'gt-ml-3 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
           </li>
         </ul>
         <div v-if="showMoreReposLink" class="center gt-py-3 gt-border-secondary-top">
@@ -121,27 +119,27 @@
           {{ textMyOrgs }}
           <span class="ui grey label gt-ml-3">{{ organizationsTotalCount }}</span>
         </div>
-        <a v-if="canCreateOrganization" :href="subUrl + '/org/create'" :data-tooltip-content="textNewOrg">
+        <a class="gt-df gt-ac muted" v-if="canCreateOrganization" :href="subUrl + '/org/create'" :data-tooltip-content="textNewOrg">
           <svg-icon name="octicon-plus"/>
           <span class="sr-only">{{ textNewOrg }}</span>
         </a>
       </h4>
       <div v-if="organizations.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
-          <li v-for="org in organizations" :key="org.name">
-            <a class="repo-list-link gt-df gt-ac gt-sb" :href="subUrl + '/' + encodeURIComponent(org.name)">
-              <div class="text truncate item-name gt-f1">
-                <svg-icon name="octicon-organization" :size="16" class-name="gt-mr-2"/>
-                <strong>{{ org.name }}</strong>
-                <span class="ui tiny basic label gt-ml-3" v-if="org.org_visibility !== 'public'">
+          <li class="gt-df gt-ac" v-for="org in organizations" :key="org.name">
+            <a class="repo-list-link muted gt-df gt-ac gt-f1" :href="subUrl + '/' + encodeURIComponent(org.name)">
+              <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
+              <div class="text truncate">{{ org.name }}</div>
+              <div><!-- div to prevent underline of label on hover -->
+                <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
                 </span>
               </div>
-              <div class="text light grey gt-df gt-ac">
-                {{ org.num_repos }}
-                <svg-icon name="octicon-repo" :size="16" class-name="gt-ml-2 gt-mt-1"/>
-              </div>
             </a>
+            <div class="text light grey gt-df gt-ac gt-ml-3">
+              {{ org.num_repos }}
+              <svg-icon name="octicon-repo" :size="16" class-name="gt-ml-2 gt-mt-1"/>
+            </div>
           </li>
         </ul>
       </div>
@@ -445,3 +443,41 @@ export function initDashboardRepoList() {
 export default sfc; // activate the IDE's Vue plugin
 
 </script>
+<style scoped>
+ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 0;
+}
+
+ul li {
+  padding: 0 10px;
+}
+
+ul li:not(:last-child) {
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.repo-list-link {
+  padding: 6px 0;
+  gap: 6px;
+  min-width: 0; /* for text truncation */
+}
+
+.repo-list-link .svg {
+  color: var(--color-text-light-2);
+}
+
+.repo-list-icon {
+  min-width: 16px;
+  margin-right: 2px;
+}
+
+/* octicon-mirror has no padding inside the SVG */
+.repo-list-icon.octicon-mirror {
+  width: 14px;
+  min-width: 14px;
+  margin-left: 1px;
+  margin-right: 3px;
+}
+</style>
