@@ -3097,10 +3097,6 @@ tbody.commit-list {
   border-radius: var(--border-radius) !important;
 }
 
-.diff-file-header-actions > * + * {
-  margin-left: 0.5rem !important;
-}
-
 .ui.attached.header.diff-file-header.sticky-2nd-row {
   position: sticky;
   top: 47px; /* match .repository .diff-detail-box */
@@ -3123,9 +3119,13 @@ tbody.commit-list {
   flex-shrink: 0;
 }
 
-.ui.attached.header.diff-file-header .diff-file-name {
+.diff-file-name {
   flex: auto;
   min-width: 100px;
+}
+
+.diff-file-name .ui.label {
+  margin-left: 0 !important;
 }
 
 .diff-stats-bar {

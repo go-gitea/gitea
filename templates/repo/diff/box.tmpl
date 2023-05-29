@@ -87,9 +87,10 @@
 						{{$isCsv := (call $.IsCsvFile $file)}}
 						{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
 						{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
+						{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.IsArchived)}}
 						<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} gt-mt-3" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
 							<h4 class="diff-file-header sticky-2nd-row ui top attached normal header gt-df gt-ac gt-sb">
-								<div class="diff-file-name gt-df gt-ac gt-mr-3">
+								<div class="diff-file-name gt-df gt-ac gt-gap-2">
 									<button class="fold-file ui button button-ghost gt-p-0 gt-mr-3{{if not $isExpandable}} gt-invisible{{end}}">
 										{{if $file.ShouldBeHidden}}
 											{{svg "octicon-chevron-right" 18}}
@@ -109,10 +110,10 @@
 									<span class="file gt-mono"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{$.locale.Tr "repo.stored_lfs"}}){{end}}</span>
 									<button class="ui button button-link gt-p-3" data-clipboard-text="{{$file.Name}}">{{svg "octicon-copy"}}</button>
 									{{if $file.IsGenerated}}
-										<span class="ui label gt-ml-2">{{$.locale.Tr "repo.diff.generated"}}</span>
+										<span class="ui label">{{$.locale.Tr "repo.diff.generated"}}</span>
 									{{end}}
 									{{if $file.IsVendored}}
-										<span class="ui label gt-ml-2">{{$.locale.Tr "repo.diff.vendored"}}</span>
+										<span class="ui label">{{$.locale.Tr "repo.diff.vendored"}}</span>
 									{{end}}
 									{{if and $file.Mode $file.OldMode}}
 										<span class="gt-ml-4 gt-mono">{{$file.OldMode}} &rarr; {{$file.Mode}}</span>
@@ -120,7 +121,7 @@
 										<span class="gt-ml-4 gt-mono">{{$file.Mode}}</span>
 									{{end}}
 								</div>
-								<div class="diff-file-header-actions gt-df gt-ac">
+								<div class="diff-file-header-actions gt-df gt-ac gt-gap-2">
 									{{if $showFileViewToggle}}
 										<div class="ui compact icon buttons">
 											<button class="ui tiny basic button file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{$.locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
@@ -129,6 +130,9 @@
 									{{end}}
 									{{if $file.IsProtected}}
 										<span class="ui basic label">{{$.locale.Tr "repo.diff.protected"}}</span>
+									{{end}}
+									{{if and $isReviewFile $file.HasChangedSinceLastReview}}
+										<span class="changed-since-last-review unselectable">{{$.locale.Tr "repo.pulls.has_changed_since_last_review"}}</span>
 									{{end}}
 									{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
 										<button class="ui basic tiny button unescape-button">{{$.locale.Tr "repo.unescape_control_characters"}}</button>
@@ -141,10 +145,7 @@
 											<a class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{$.locale.Tr "repo.diff.view_file"}}</a>
 										{{end}}
 									{{end}}
-									{{if and $.IsSigned $.PageIsPullFiles (not $.IsArchived)}}
-										{{if $file.HasChangedSinceLastReview}}
-											<span class="changed-since-last-review unselectable">{{$.locale.Tr "repo.pulls.has_changed_since_last_review"}}</span>
-										{{end}}
+									{{if $isReviewFile}}
 										<label data-link="{{$.Issue.Link}}/viewed-files" data-headcommit="{{$.PullHeadCommitID}}" class="viewed-file-form unselectable{{if $file.IsViewed}} viewed-file-checked-form{{end}}">
 											<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off"{{if $file.IsViewed}} checked{{end}}> {{$.locale.Tr "repo.pulls.has_viewed_file"}}
 										</label>
