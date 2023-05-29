@@ -5,7 +5,7 @@ on:
     outputs:
       backend:
         description: "whether backend files changed"
-        value: ${{ jobs.detect.outputs.backend }}
+        value: ${{ jobs.xdetect.outputs.backend }}
       frontend:
         description: "whether frontend files changed"
         value: ${{ jobs.detect.outputs.frontend }}
