@@ -357,15 +357,14 @@ func testPR(id int64) {
 		return
 	}
 
-	//if err := TestPatch(pr); err != nil {
-	//	log.Error("testPatch[%-v]: %v", pr, err)
-	//	pr.Status = issues_model.PullRequestStatusError
-	//	if err := pr.UpdateCols("status"); err != nil {
-	//		log.Error("update pr [%-v] status to PullRequestStatusError failed: %v", pr, err)
-	//	}
-	//	return
-	//}
-	TestPatch(pr)
+	if err := TestPatch(pr); err != nil {
+		log.Error("testPatch[%-v]: %v", pr, err)
+		pr.Status = issues_model.PullRequestStatusError
+		if err := pr.UpdateCols("status"); err != nil {
+			log.Error("update pr [%-v] status to PullRequestStatusError failed: %v", pr, err)
+		}
+		return
+	}
 	checkAndUpdateStatus(ctx, pr)
 }
 
