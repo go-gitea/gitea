@@ -29,6 +29,8 @@
   --color-primary-alpha-70: #87ab63b3;
   --color-primary-alpha-80: #87ab63cc;
   --color-primary-alpha-90: #87ab63e1;
+  --color-primary-hover: var(--color-primary-light-1);
+  --color-primary-active: var(--color-primary-light-2);
   --color-secondary: #525767;
   --color-secondary-dark-1: #5c6374;
   --color-secondary-dark-2: #666e81;
@@ -56,6 +58,8 @@
   --color-secondary-alpha-70: #525767b3;
   --color-secondary-alpha-80: #525767cc;
   --color-secondary-alpha-90: #525767e1;
+  --color-secondary-hover: var(--color-secondary-light-1);
+  --color-secondary-active: var(--color-secondary-light-2);
   /* console colors */
   --color-console-fg: #ffffff;
   --color-console-bg: #262936;
@@ -75,19 +79,45 @@
   --color-pink: #d22e8b;
   --color-brown: #a47252;
   --color-black: #2e323e;
-  /* light variants - produced via Sass scale-color(color, $lightness: -10%) */
-  --color-red-light: #c23636;
-  --color-orange-light: #b84f0b;
-  --color-yellow-light: #b88a03;
-  --color-olive-light: #839311;
-  --color-green-light: #7a9e55;
-  --color-teal-light: #00837c;
-  --color-blue-light: #347cb3;
-  --color-violet-light: #7b4edb;
-  --color-purple-light: #a742c9;
-  --color-pink-light: #be297d;
-  --color-brown-light: #94674a;
-  --color-black-light: #292d38;
+  /* light variants - produced via Sass scale-color(color, $lightness: +10%) */
+  --color-red-light: #d15a5a;
+  --color-orange-light: #f6a066;
+  --color-yellow-light: #eaaf03;
+  --color-olive-light: #abc016;
+  --color-green-light: #93b373;
+  --color-teal-light: #00b6ad;
+  --color-blue-light: #4e96cc;
+  --color-violet-light: #9b79e4;
+  --color-purple-light: #ba6ad5;
+  --color-pink-light: #d74397;
+  --color-brown-light: #b08061;
+  --color-black-light: #3f4555;
+  /* dark 1 variants - produced via Sass scale-color(color, $lightness: -10%) */
+  --color-red-dark-1: #c23636;
+  --color-orange-dark-1: #f38236;
+  --color-yellow-dark-1: #b88a03;
+  --color-olive-dark-1: #839311;
+  --color-green-dark-1: #7a9e55;
+  --color-teal-dark-1: #00837c;
+  --color-blue-dark-1: #347cb3;
+  --color-violet-dark-1: #7b4edb;
+  --color-purple-dark-1: #a742c9;
+  --color-pink-dark-1: #be297d;
+  --color-brown-dark-1: #94674a;
+  --color-black-dark-1: #292d38;
+  /* dark 2 variants - produced via Sass scale-color(color, $lightness: -20%) */
+  --color-red-dark-2: #ad3030;
+  --color-orange-dark-2: #f16e17;
+  --color-yellow-dark-2: #a37a02;
+  --color-olive-dark-2: #74820f;
+  --color-green-dark-2: #6c8c4c;
+  --color-teal-dark-2: #00746e;
+  --color-blue-dark-2: #2e6e9f;
+  --color-violet-dark-2: #6733d6;
+  --color-purple-dark-2: #9834b9;
+  --color-pink-dark-2: #a9246f;
+  --color-brown-dark-2: #835b42;
+  --color-black-dark-2: #252832;
   /* other colors */
   --color-grey: #505665;
   --color-grey-light: #a1a6b7;
