@@ -160,39 +160,3 @@
 .feeds .news:last-of-type .divider {
   display: none !important;
 }
-
-.feeds .list ul {
-  list-style: none;
-  margin: 0;
-  padding-left: 0;
-}
-
-.feeds .list ul li:not(:last-child) {
-  border-bottom: 1px solid var(--color-secondary);
-}
-
-.feeds .list ul li .repo-list-link {
-  padding: 6px 1em;
-  display: block;
-}
-
-.feeds .list ul li .repo-list-link .svg {
-  color: var(--color-text-light-2);
-}
-
-.feeds .list ul li .repo-list-link .star-num {
-  font-size: 12px;
-}
-
-.feeds .list #privateFilterCheckbox .svg {
-  color: var(--color-grey);
-  margin-right: 0.25rem;
-}
-
-.feeds .list .repo-owner-name-list .item-name {
-  min-width: 0;
-}
-
-.feeds .list .repo-owner-name-list .item-name svg {
-  min-width: 16px;
-}
