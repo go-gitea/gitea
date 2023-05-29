@@ -72,7 +72,7 @@ There is a [Gitea](https://chocolatey.org/packages/gitea) package for Windows by
 choco install gitea
 ```
 
-Or follow the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide.
+Or follow the [deployment from binary]({{< relref "doc/installation/from-binary.en-us.md" >}}) guide.
 
 ## macOS
 

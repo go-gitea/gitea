@@ -64,7 +64,7 @@ OpenSUSE 构建服务为 [openSUSE 和 SLE](https://software.opensuse.org/downlo
 choco install gitea
 ```
 
-你也可以 [从二进制安装]({{< relref "from-binary.zh-cn.md" >}}) 。
+你也可以 [从二进制安装]({{< relref "doc/installation/from-binary.zh-cn.md" >}}) 。
 
 ## macOS
 
