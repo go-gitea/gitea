@@ -269,13 +269,8 @@ func TestAPIDeniesPermissionBasedOnTokenScope(t *testing.T) {
 			"/api/v1/repos/user1/repo1/issues",
 			"GET",
 			[]permission{
-				// TODO: We should need this also.
-				// {
-				// 	auth_model.AccessTokenScopeCategoryIssue,
-				// 	auth_model.Read,
-				// },
 				{
-					auth_model.AccessTokenScopeCategoryRepository,
+					auth_model.AccessTokenScopeCategoryIssue,
 					auth_model.Read,
 				},
 			},

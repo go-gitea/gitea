@@ -25,7 +25,7 @@ func TestAPIModifyLabels(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeleteRepository)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeleteIssue)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/labels?token=%s", owner.Name, repo.Name, token)
 
 	// CreateLabel
@@ -97,7 +97,7 @@ func TestAPIAddIssueLabels(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels?token=%s",
 		repo.OwnerName, repo.Name, issue.Index, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueLabelsOption{
@@ -120,7 +120,7 @@ func TestAPIReplaceIssueLabels(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels?token=%s",
 		owner.Name, repo.Name, issue.Index, token)
 	req := NewRequestWithJSON(t, "PUT", urlStr, &api.IssueLabelsOption{
