@@ -106,9 +106,10 @@ type ViewJobStep struct {
 }
 
 type ViewStepLog struct {
-	Step   int                `json:"step"`
-	Cursor int64              `json:"cursor"`
-	Lines  []*ViewStepLogLine `json:"lines"`
+	Step    int                `json:"step"`
+	Cursor  int64              `json:"cursor"`
+	Lines   []*ViewStepLogLine `json:"lines"`
+	Started int64              `json:"started"`
 }
 
 type ViewStepLogLine struct {
@@ -241,9 +242,10 @@ func ViewPost(ctx *context_module.Context) {
 			}
 
 			resp.Logs.StepsLog = append(resp.Logs.StepsLog, &ViewStepLog{
-				Step:   cursor.Step,
-				Cursor: cursor.Cursor + int64(len(logLines)),
-				Lines:  logLines,
+				Step:    cursor.Step,
+				Cursor:  cursor.Cursor + int64(len(logLines)),
+				Lines:   logLines,
+				Started: int64(step.Started),
 			})
 		}
 	}
