@@ -1844,6 +1844,15 @@
   scroll-margin-top: 47px; /* match .repository .diff-detail-box */
 }
 
+.file.editor .diff-file-box {
+  border: none;
+}
+
+.file.editor .diff-file-box .ui.attached.table {
+  border: none;
+}
+
+
 @media (max-width: 991px) {
   .diff-file-box {
     scroll-margin-top: 77px; /* match .repository .diff-detail-box */
