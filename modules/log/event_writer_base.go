@@ -68,18 +68,16 @@ func (b *EventWriterBaseImpl) Run(ctx context.Context) {
 		}
 	}
 
-	for {
-		if b.GetPauseChan != nil {
-			pause := b.GetPauseChan()
-			if pause != nil {
-				select {
-				case <-pause:
-				case <-ctx.Done():
-					return
-				}
+	handlePaused := func() {
+		if pause := b.GetPauseChan(); pause != nil {
+			select {
+			case <-pause:
+			case <-ctx.Done():
 			}
 		}
+	}
 
+	for {
 		select {
 		case <-ctx.Done():
 			return
@@ -87,6 +85,8 @@ func (b *EventWriterBaseImpl) Run(ctx context.Context) {
 			if !ok {
 				return
 			}
+
+			handlePaused()
 
 			if exprRegexp != nil {
 				fileLineCaller := fmt.Sprintf("%s:%d:%s", event.Origin.Filename, event.Origin.Line, event.Origin.Caller)
@@ -149,7 +149,7 @@ func eventWriterStartGo(ctx context.Context, w EventWriter, shared bool) {
 	if shared {
 		ctxDesc = "Logger: EventWriter (shared): " + w.GetWriterName()
 	}
-	writerCtx, writerCancel := newContext(ctx, ctxDesc)
+	writerCtx, writerCancel := newProcessTypedContext(ctx, ctxDesc)
 	go func() {
 		defer writerCancel()
 		defer close(w.Base().stopped)

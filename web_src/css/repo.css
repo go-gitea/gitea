@@ -1085,7 +1085,7 @@
 
 .repository.view.issue .comment-list .comment-code-cloud .segment.reactions .ui.label {
   border: 1px solid;
-  padding: 6px 10px !important;
+  padding: 5px 8px !important;
   margin: 0 2px;
   border-radius: var(--border-radius);
   border-color: var(--color-secondary-dark-1) !important;
@@ -1093,6 +1093,11 @@
 
 .repository.view.issue .comment-list .comment-code-cloud .segment.reactions .ui.label.basic.primary {
   background-color: var(--color-reaction-active-bg) !important;
+  border-color: var(--color-primary-alpha-80) !important;
+}
+
+.repository.view.issue .comment-list .comment-code-cloud .segment.reactions .ui.label.basic.primary:hover {
+  background-color: var(--color-reaction-hover-bg) !important;
   border-color: var(--color-primary-alpha-80) !important;
 }
 
@@ -2133,7 +2138,7 @@
 .repository .select-reaction.dropdown .menu {
   right: 0 !important;
   left: auto !important;
-  min-width: 15em;
+  min-width: 170px;
 }
 
 .repository .segment.reactions.dropdown .menu > .header,
@@ -2144,25 +2149,15 @@
 .repository .segment.reactions.dropdown .menu > .item,
 .repository .select-reaction.dropdown .menu > .item {
   float: left;
-  padding: 0.25rem !important;
-  margin: 0.25rem;
-  font-size: 1.5em;
-  width: 39px;
-  left: 13px;
+  margin: 4px;
+  font-size: 20px;
+  width: 34px;
+  height: 34px;
+  min-height: 0 !important;
   border-radius: 6px;
-  display: flex;
-  justify-content: center;
+  display: flex !important;
   align-items: center;
-}
-
-.repository .segment.reactions.dropdown .menu > .item img.emoji,
-.repository .select-reaction.dropdown .menu > .item img.emoji {
-  margin-right: 0;
-}
-
-.repository .segment.reactions.dropdown .menu > .item:hover,
-.repository .select-reaction.dropdown .menu > .item:hover {
-  background: var(--color-primary);
+  justify-content: center;
 }
 
 .repository .segment.reactions {
@@ -2173,21 +2168,26 @@
   width: 100% !important;
   max-width: 100% !important;
   margin: 0 !important;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .repository .segment.reactions .ui.label {
   max-height: 40px;
-  padding: 10px 18px !important;
+  padding: 8px 16px !important;
   display: flex !important;
   align-items: center;
   border: 0;
   border-right: 1px solid;
   border-radius: 0;
   margin: 0;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: var(--font-weight-normal);
   border-color: var(--color-secondary) !important;
   background: var(--color-reaction-bg);
+}
+
+.repository .segment.reactions .ui.label:first-of-type {
+  border-bottom-left-radius: 3px;
 }
 
 .repository .segment.reactions .ui.label.disabled {
@@ -2195,13 +2195,14 @@
   opacity: 1;
 }
 
-.repository .segment.reactions .ui.label.basic {
+.repository .segment.reactions .ui.label.basic.primary {
   color: var(--color-primary) !important;
+  background-color: var(--color-reaction-active-bg) !important;
+  border-color: var(--color-secondary-dark-1) !important;
 }
 
-.repository .segment.reactions .ui.label.basic.primary {
-  background-color: var(--color-reaction-active-bg) !important;
-  border-color: var(--color-secondary) !important;
+.repository .segment.reactions .ui.label.basic:hover {
+  background-color: var(--color-reaction-hover-bg) !important;
 }
 
 .repository .segment.reactions .reaction-count {
@@ -2211,6 +2212,9 @@
 .repository .segment.reactions .select-reaction {
   display: flex;
   align-items: center;
+}
+
+.repository .segment.reactions .select-reaction a {
   padding: 0 14px;
 }
 
@@ -2469,7 +2473,7 @@
   padding: 0.5rem 1rem;
   margin: 0 !important;
   position: relative;
-  color: var(--color-text-light-2);
+  color: var(--color-text);
   min-height: 41px;
   background-color: var(--color-box-header);
   display: flex;
@@ -2516,14 +2520,6 @@
   left: 7px;
 }
 
-.comment-header a {
-  color: var(--color-text);
-}
-
-.comment-header a:hover {
-  color: var(--color-primary);
-}
-
 .comment-header .actions a {
   margin-right: 0 !important;
   padding: 0.5rem !important;
@@ -2532,6 +2528,11 @@
 .comment-header-left > * + *,
 .comment-header-right > * + * {
   margin-left: 0.25rem;
+}
+
+.content-history-menu .octicon-triangle-down {
+  position: relative;
+  top: 1.5px;
 }
 
 .comment-body {
