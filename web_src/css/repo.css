@@ -1733,6 +1733,11 @@
   margin-right: 0;
 }
 
+.repository .diff-box .header:not(.resolved-placeholder) .button:has(svg) {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
 .repository .diff-box .resolved-placeholder {
   display: flex;
   align-items: center;
