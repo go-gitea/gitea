@@ -398,7 +398,7 @@ const sfc = {
       const other = type == 'duration' ? 'stamp' : 'duration';
       this.timeVisible[`log-time-${type}`] = !this.timeVisible[`log-time-${type}`];
       toToggleTypes.push(type);
-      if (this.timeVisible[`log-time-${other}`]) {
+      if (this.timeVisible[`log-time-${type}`] && this.timeVisible[`log-time-${other}`]) {
         this.timeVisible[`log-time-${other}`] = false
         toToggleTypes.push(other);
       }
