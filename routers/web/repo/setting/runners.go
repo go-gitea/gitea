@@ -116,10 +116,7 @@ func Runners(ctx *context.Context) {
 	if rCtx.IsRepo {
 		opts.RepoID = rCtx.RepoID
 		opts.WithAvailable = true
-	} else if rCtx.IsOrg {
-		opts.OwnerID = rCtx.OwnerID
-		opts.WithAvailable = true
-	} else if rCtx.IsUser {
+	} else if rCtx.IsOrg || rCtx.IsUser {
 		opts.OwnerID = rCtx.OwnerID
 		opts.WithAvailable = true
 	}
