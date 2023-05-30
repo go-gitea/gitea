@@ -70,8 +70,8 @@
       </div>
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
-          <li class="gt-df gt-ac" v-for="repo, index in repos" :key="repo.id">
-            <a class="repo-list-link muted gt-df gt-ac gt-f1" :class="{'active': index === activeIndex}" :href="repo.link">
+          <li class="gt-df gt-ac" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
+            <a class="repo-list-link muted gt-df gt-ac gt-f1" :href="repo.link">
               <svg-icon :name="repoIcon(repo)" :size="16" class-name="repo-list-icon"/>
               <div class="text truncate">{{ repo.full_name }}</div>
               <div v-if="repo.archived">

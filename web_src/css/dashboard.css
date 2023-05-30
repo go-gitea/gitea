@@ -161,11 +161,11 @@
   display: none !important;
 }
 
-.feeds .list ul li .repo-list-link.active {
+.feeds .list ul li.active {
   background: var(--color-primary);
   color: var(--color-primary-contrast);
 }
 
-.feeds .list ul li .repo-list-link.active svg {
+.feeds .list ul li.active svg {
   color: inherit;
 }
