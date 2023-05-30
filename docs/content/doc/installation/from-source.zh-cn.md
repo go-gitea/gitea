@@ -103,7 +103,3 @@ GOOS=linux GOARCH=arm64 make build
 ```bash
 CC=aarch64-unknown-linux-gnu-gcc GOOS=linux GOARCH=arm64 TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
-
-## 需要帮助?
-
-如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "support.zh-cn.md" >}})
