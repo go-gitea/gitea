@@ -329,7 +329,7 @@ func searchUserFollowing(ctx context.Context, u, viewer *User) *xorm.Session {
 
 // GetUserFollowers returns range of user's followers.
 func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListOptions) ([]*User, int64, error) {
-	sess := searchUserFollowers(ctx, u, viewer)
+	sess := searchUserFollowers(ctx, u, viewer).Select("`user`.*")
 
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
@@ -346,7 +346,7 @@ func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListO
 
 // GetUserFollowing returns range of user's following.
 func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListOptions) ([]*User, int64, error) {
-	sess := searchUserFollowing(ctx, u, viewer)
+	sess := searchUserFollowing(ctx, u, viewer).Select("`user`.*")
 
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
