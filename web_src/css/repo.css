@@ -3419,14 +3419,6 @@ tbody.commit-list {
   background: var(--color-card);
 }
 
-.pinned-issue-card .meta a {
-  color: inherit;
-}
-
-.pinned-issue-card .meta a:hover {
-  color: var(--color-primary);
-}
-
 .pinned-issue-icon,
 .pinned-issue-unpin {
   margin-top: 1px;
