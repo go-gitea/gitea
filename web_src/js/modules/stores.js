@@ -1,5 +1,10 @@
 import {reactive} from 'vue';
 
-export const DiffTreeStore = reactive({
-  selectedItem: '',
-});
+let diffTreeStoreReactive;
+export function diffTreeStore() {
+  if (!diffTreeStoreReactive) {
+    diffTreeStoreReactive = reactive(window.config.pageData.diffFileInfo);
+    window.config.pageData.diffFileInfo = diffTreeStoreReactive;
+  }
+  return diffTreeStoreReactive;
+}
