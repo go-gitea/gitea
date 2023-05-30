@@ -553,7 +553,7 @@ a.label,
   color: var(--color-text-light-3);
 }
 
-.ui.menu .item::before {
+.ui.menu .item::before, .ui.vertical.menu .item::before {
   background: var(--color-secondary);
 }
 
@@ -603,6 +603,7 @@ a.label,
 .ui.dropdown .menu .active.item {
   color: var(--color-text);
   background: var(--color-active);
+  border-radius: 0;
   font-weight: var(--font-weight-normal);
 }
 
@@ -847,6 +848,7 @@ a.label,
 
 .ui.table > thead > tr > th {
   background: var(--color-box-header);
+  border-color: var(--color-secondary-alpha-50);
   color: var(--color-text);
 }
 

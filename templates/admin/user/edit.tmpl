@@ -166,7 +166,7 @@
 						<label>{{.locale.Tr "settings.lookup_avatar_by_mail"}}</label>
 					</div>
 				</div>
-				<div class="field {{if .Err_Gravatar}}error{{end}}">
+				<div class="field gt-pl-4 {{if .Err_Gravatar}}error{{end}}">
 					<label for="gravatar">Avatar {{.locale.Tr "email"}}</label>
 					<input id="gravatar" name="gravatar" value="{{.User.AvatarEmail}}">
 				</div>
@@ -179,7 +179,7 @@
 					</div>
 				</div>
 
-				<div class="inline field">
+				<div class="inline field gt-pl-4">
 					<label for="avatar">{{.locale.Tr "settings.choose_new_avatar"}}</label>
 					<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>
