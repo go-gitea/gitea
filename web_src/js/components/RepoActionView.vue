@@ -671,8 +671,6 @@ export function ansiLogToHTML(line) {
 
 .action-view-right .ui.button,
 .action-view-right .ui.button:focus {
-  background: transparent;
-  border: none;
   color: var(--color-console-fg-subtle);
 }
 
