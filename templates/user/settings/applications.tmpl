@@ -70,7 +70,7 @@
 						{{.locale.Tr "settings.select_permissions"}}
 					</summary>
 					<div class="activity meta">
-						<i>{{.locale.Tr "settings.scoped_token_desc" | Safe}}</i>
+						<i>{{$.locale.Tr "settings.scoped_token_desc" (printf `href="/api/swagger" target="_blank"`) (printf `href="https://docs.gitea.com/development/oauth2-provider#scopes" target="_blank"`) | Str2html}}</i>
 					</div>
 					<scoped-access-token-category category="activitypub"></scoped-access-token-category>
 					{{if .IsAdmin}}

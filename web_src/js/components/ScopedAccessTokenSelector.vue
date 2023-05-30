@@ -9,7 +9,7 @@
           type="checkbox"
           name="scope"
           :value="'delete:' + category"
-          @change="onCategoryInput"
+          @input="onCategoryInput"
         >
         {{ category }}
       </label>
@@ -25,7 +25,7 @@
             type="checkbox"
             name="scope"
             :value="'read:' + category"
-            @change="onIndividualInput"
+            @input="onIndividualInput"
           >
           read:{{ category }}
         </label>
@@ -40,7 +40,7 @@
             type="checkbox"
             name="scope"
             :value="'write:' + category"
-            @change="onIndividualInput"
+            @input="onIndividualInput"
           >
           write:{{ category }}
         </label>
@@ -55,7 +55,7 @@
             type="checkbox"
             name="scope"
             :value="'delete:' + category"
-            @change="onIndividualInput"
+            @input="onIndividualInput"
           >
           delete:{{ category }}
         </label>
