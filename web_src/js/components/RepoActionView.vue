@@ -206,7 +206,6 @@ const sfc = {
     // load job data and then auto-reload periodically
     this.loadJob();
     this.intervalID = setInterval(this.loadJob, 1000);
-
     document.body.addEventListener('click', this.closeDropdown);
   },
 
