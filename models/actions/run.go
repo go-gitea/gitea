@@ -68,11 +68,10 @@ func (c *taskIndexCache) Get() int64 {
 	return c.index
 }
 
-func (c *taskIndexCache) Increase(num int64) int64 {
+func (c *taskIndexCache) Increase(num int64) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.index += num
-	return c.index
 }
 
 func (c *taskIndexCache) Init() {
