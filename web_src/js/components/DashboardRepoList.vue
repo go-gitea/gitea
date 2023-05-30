@@ -215,7 +215,7 @@ const sfc = {
 
       subUrl: appSubUrl,
       ...pageData.dashboardRepoList,
-      activeIndex: 0,
+      activeIndex: -1, // don't select anything at load, first cursor down will select
     };
   },
 
