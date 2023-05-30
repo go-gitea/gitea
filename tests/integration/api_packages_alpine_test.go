@@ -59,7 +59,7 @@ Djfa/2q5bH4699v++uMAAAAAAAAAAAAAAAAAAAAAAHbgA/eXQh8AKAAA`
 	content, err := base64.StdEncoding.DecodeString(base64AlpinePackageContent)
 	assert.NoError(t, err)
 
-	branches := []string{"v3.16", "v3.17"}
+	branches := []string{"v3.16", "v3.17", "v3.18"}
 	repositories := []string{"main", "testing"}
 
 	rootURL := fmt.Sprintf("/api/packages/%s/alpine", user.Name)
