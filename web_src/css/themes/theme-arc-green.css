@@ -62,7 +62,7 @@
   --color-secondary-active: var(--color-secondary-light-2);
   /* console colors */
   --color-console-fg: #eeeff2;
-  --color-console-fg-secondary: #8990a1;
+  --color-console-fg-subtle: #8990a1;
   --color-console-bg: #262936;
   --color-console-border: #ffffff16;
   --color-console-hover-bg: #ffffff16;

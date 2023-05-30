@@ -662,7 +662,7 @@ export function ansiLogToHTML(line) {
 
 .action-view-right {
   flex: 1;
-  color: var(--color-console-fg-secondary);
+  color: var(--color-console-fg-subtle);
   max-height: 100%;
   width: 70%;
   display: flex;
@@ -672,7 +672,7 @@ export function ansiLogToHTML(line) {
 .action-view-right button {
   background: transparent;
   border: none;
-  color: var(--color-console-fg-secondary);
+  color: var(--color-console-fg-subtle);
 }
 
 .action-view-right button:hover {
@@ -746,7 +746,7 @@ export function ansiLogToHTML(line) {
 }
 
 .job-info-header .job-info-header-detail {
-  color: var(--color-console-fg-secondary);
+  color: var(--color-console-fg-subtle);
   font-size: 12px;
 }
 
