@@ -680,6 +680,8 @@ export function ansiLogToHTML(line) {
   color: var(--color-console-fg);
 }
 
+/* selectors here are intentionally exact to only match fullscreen */
+
 .full.height > .action-view-right {
   width: 100%;
   height: 100%;
@@ -687,11 +689,11 @@ export function ansiLogToHTML(line) {
   border-radius: 0;
 }
 
-.full.height .job-info-header {
+.full.height > .action-view-right > .job-info-header {
   border-radius: 0;
 }
 
-full.height > .action-view-right > .job-step-container {
+.full.height > .action-view-right > .job-step-container {
   height: calc(100% - 60px);
   border-radius: 0;
 }
