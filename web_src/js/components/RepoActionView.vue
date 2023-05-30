@@ -395,17 +395,17 @@ const sfc = {
     // show at most one of log duration and timestamp (can be both invisible)
     toggleTimeDisplay(type) {
       const toToggleTypes = [];
-      const other = type == 'duration' ? 'stamp' : 'duration';
+      const other = type === 'duration' ? 'stamp' : 'duration';
       this.timeVisible[`log-time-${type}`] = !this.timeVisible[`log-time-${type}`];
       toToggleTypes.push(type);
       if (this.timeVisible[`log-time-${type}`] && this.timeVisible[`log-time-${other}`]) {
-        this.timeVisible[`log-time-${other}`] = false
+        this.timeVisible[`log-time-${other}`] = false;
         toToggleTypes.push(other);
       }
-      for (toToggle of toToggleTypes) {
+      for (const toToggle of toToggleTypes) {
         for (const el of this.$refs.steps.querySelectorAll(`.log-time-${toToggle}`)) {
           toggleElem(el, this.timeVisible[`log-time-${toToggle}`]);
-        } 
+        }
       }
     },
 
