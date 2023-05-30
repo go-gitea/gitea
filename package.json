@@ -51,8 +51,6 @@
     "vue3-calendar-heatmap": "2.0.5",
     "webpack": "5.84.1",
     "webpack-cli": "5.1.1",
-    "workbox-routing": "6.6.0",
-    "workbox-strategies": "6.6.0",
     "wrap-ansi": "8.1.0"
   },
   "devDependencies": {
