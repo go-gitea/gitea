@@ -363,13 +363,13 @@ func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListO
 
 // GetUserFollowersCount returns count of user's followers.
 func GetUserFollowersCount(ctx context.Context, u, viewer *User) (int64, error) {
-	sess := searchUserFollowers(ctx, u, viewer)
+	sess := searchUserFollowers(ctx, u, viewer).Table("`user`")
 	return sess.Count()
 }
 
 // GetUserFollowingCount returns count of user's following.
 func GetUserFollowingCount(ctx context.Context, u, viewer *User) (int64, error) {
-	sess := searchUserFollowing(ctx, u, viewer)
+	sess := searchUserFollowing(ctx, u, viewer).Table("`user`")
 	return sess.Count()
 }
 
