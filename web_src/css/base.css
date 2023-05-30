@@ -76,11 +76,11 @@
   --color-secondary-active: var(--color-secondary-dark-2);
   /* console colors - used for actions console and console files */
   --color-console-fg: #eeeff2;
-  --color-console-fg-subtle: #8990a1;
+  --color-console-fg-subtle: #959cab;
   --color-console-bg: #262936;
-  --color-console-border: #ffffff16;
-  --color-console-hover-bg: #ffffff16;
-  --color-console-active-bg: #383c47;
+  --color-console-border: #383c47;
+  --color-console-hover-bg: #383c47;
+  --color-console-active-bg: #454a57;
   --color-console-menu-bg: #383c47;
   --color-console-menu-border: #5c6374;
   /* named colors */

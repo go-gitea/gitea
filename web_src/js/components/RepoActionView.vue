@@ -70,7 +70,7 @@
           </div>
           <div class="job-info-header-right">
             <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-              <button class="gt-p-3">
+              <button class="ui button button-ghost gt-p-3">
                 <SvgIcon name="octicon-gear" :size="18"/>
               </button>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
@@ -669,13 +669,20 @@ export function ansiLogToHTML(line) {
   flex-direction: column;
 }
 
-.action-view-right button {
+.action-view-right .ui.button,
+.action-view-right .ui.button:focus {
   background: transparent;
   border: none;
   color: var(--color-console-fg-subtle);
 }
 
-.action-view-right button:hover {
+.action-view-right .ui.button:hover {
+  background: var(--color-console-hover-bg);
+  color: var(--color-console-fg);
+}
+
+.action-view-right .ui.button:active {
+  background: var(--color-console-active-bg);
   color: var(--color-console-fg);
 }
 
