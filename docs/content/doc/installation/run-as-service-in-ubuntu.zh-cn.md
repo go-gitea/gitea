@@ -32,8 +32,30 @@ sudo vim /etc/systemd/system/gitea.service
 激活 gitea 并将它作为系统自启动服务：
 
 ```
+#开启开机自启动服务
 sudo systemctl enable gitea
+#启动服务
 sudo systemctl start gitea
+```
+如果需要查看已有的服务，可以使用:
+```
+sudo systemctl list-units
+```
+
+如果有些服务文件，虽然已经在服务文件的目录下，但是它不是热生效的，即不是说咱们把它放进去就能被识别、注册、启动的。它没有被 systemctl 的 start 或 enable 命令登记到Systemd，如果你需要的话，得自己做这个操作。
+如果想查看没被激活的服务文件怎么办呢？
+```
+sudo systemctl list-unit-files
+```
+
+如果我们修改了一个服务文件，可是Systemd不知道，因为它缓存了一份服务，所以需要重新载入，否则它还是使用旧的。这个行为类似于service nginx reload，在这里是：
+```
+sudo systemctl daemon-reload
+```
+
+最后，如果是删除服务文件的话，又不一样了，即使我们reload，Systemd已然可以使用自己缓存的服务文件，哪怕你用了daemon-reload更新。所以这时候要告诉Systemd，我们已经放弃不存在的服务文件了，让它也放弃自己缓存的那份：
+```
+systemctl reset-failed
 ```
 
 #### 使用 supervisor
