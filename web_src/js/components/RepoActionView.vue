@@ -51,7 +51,7 @@
           <ul class="job-artifacts-list">
             <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.id">
               <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.id">
-                <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon" />{{ artifact.name }}
+                <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon"/>{{ artifact.name }}
               </a>
             </li>
           </ul>
