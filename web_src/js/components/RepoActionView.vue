@@ -75,17 +75,17 @@
               </button>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
                 <a class="item" @click="toggleTimeDisplay('seconds')">
-                  <span><SvgIcon v-show="timeVisible['log-time-seconds']" name="octicon-check"/></span>
-                  {{ locale.jobOptions.showLogSeconds }}
+                  <i class="icon"><SvgIcon v-show="timeVisible['log-time-seconds']" name="octicon-check"/></i>
+                  {{ locale.showLogSeconds }}
                 </a>
                 <a class="item" @click="toggleTimeDisplay('stamp')">
-                  <span><SvgIcon v-show="timeVisible['log-time-stamp']" name="octicon-check"/></span>
-                  {{ locale.jobOptions.showTimeStamp }}
+                  <i class="icon"><SvgIcon v-show="timeVisible['log-time-stamp']" name="octicon-check"/></i>
+                  {{ locale.showTimeStamps }}
                 </a>
                 <div class="divider"/>
                 <a class="item" @click="toggleFullScreen()">
-                  <span><SvgIcon v-show="isFullScreen" name="octicon-check"/></span>
-                  {{ locale.jobOptions.showFullScreen }}
+                  <i class="icon"><SvgIcon v-show="isFullScreen" name="octicon-check"/></i>
+                  {{ locale.showFullScreen }}
                 </a>
               </div>
             </div>
@@ -453,6 +453,9 @@ export function initRepositoryActionView() {
       rerun: el.getAttribute('data-locale-rerun'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       rerun_all: el.getAttribute('data-locale-rerun-all'),
+      showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
+      showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
+      showFullScreen: el.getAttribute('data-locale-show-full-screen'),
       status: {
         unknown: el.getAttribute('data-locale-status-unknown'),
         waiting: el.getAttribute('data-locale-status-waiting'),
@@ -462,11 +465,6 @@ export function initRepositoryActionView() {
         cancelled: el.getAttribute('data-locale-status-cancelled'),
         skipped: el.getAttribute('data-locale-status-skipped'),
         blocked: el.getAttribute('data-locale-status-blocked'),
-      },
-      jobOptions: {
-        showTimeStamp: el.getAttribute('data-locale-show-timestamp'),
-        showFullScreen: el.getAttribute('data-locale-show-full-screen'),
-        showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
       },
     }
   });
