@@ -516,7 +516,8 @@ ul li:not(:last-child) {
   margin-right: 3px;
 }
 
-.feeds .list ul li.active {
+.feeds .list ul li.active,
+.feeds .list ul li.active a:hover {
   background: var(--color-primary);
   color: var(--color-primary-contrast);
 }
