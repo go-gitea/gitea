@@ -848,7 +848,7 @@ a.label,
 
 .ui.table > thead > tr > th {
   background: var(--color-box-header);
-  border-color: var(--color-secondary-alpha-50);
+  border-color: var(--color-secondary);
   color: var(--color-text);
 }
 
