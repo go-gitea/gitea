@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/google/go-github/v51/github"
+	"github.com/google/go-github/v52/github"
 	"golang.org/x/oauth2"
 )
 
