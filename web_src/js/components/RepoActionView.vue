@@ -72,9 +72,9 @@
             <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
               <SvgIcon name="octicon-gear" :size="18"/>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
-                <a class="item" @click="toggleTimeDisplay('duration')">
-                  <span><SvgIcon v-show="timeVisible['log-time-duration']" name="octicon-check"/></span>
-                  {{ locale.jobOptions.showLogduration }}
+                <a class="item" @click="toggleTimeDisplay('seconds')">
+                  <span><SvgIcon v-show="timeVisible['log-time-seconds']" name="octicon-check"/></span>
+                  {{ locale.jobOptions.showLogSeconds }}
                 </a>
                 <a class="item" @click="toggleTimeDisplay('stamp')">
                   <span><SvgIcon v-show="timeVisible['log-time-stamp']" name="octicon-check"/></span>
@@ -150,7 +150,7 @@ const sfc = {
       isFullScreen: false,
       timeVisible: {
         'log-time-stamp': false,
-        'log-time-duration': false,
+        'log-time-seconds': false,
       },
 
       // provided by backend
@@ -208,7 +208,7 @@ const sfc = {
     document.body.addEventListener('click', this.closeDropdown);
   },
 
-  beforeDestroy() {
+  beforeUnmount() {
     document.body.removeEventListener('click', this.closeDropdown);
   },
 
@@ -294,19 +294,19 @@ const sfc = {
       const timeStamp = date.toLocaleString(getCurrentLocale(), {timeZoneName: 'short'});
       logTimeStamp.textContent = timeStamp;
       toggleElem(logTimeStamp, this.timeVisible['log-time-stamp']);
-      // for "Show log duration"
-      const logTimeDuration = document.createElement('span');
-      logTimeDuration.className = 'log-time-duration';
-      const duration = Math.floor(parseFloat(line.timestamp) - parseFloat(startTime));
-      logTimeDuration.textContent = `${duration}s`;
-      toggleElem(logTimeDuration, this.timeVisible['log-time-duration']);
+      // for "Show seconds"
+      const logTimeSeconds = document.createElement('span');
+      logTimeSeconds.className = 'log-time-seconds';
+      const seconds = Math.floor(parseFloat(line.timestamp) - parseFloat(startTime));
+      logTimeSeconds.textContent = `${seconds}s`;
+      toggleElem(logTimeSeconds, this.timeVisible['log-time-seconds']);
 
       const logMessage = document.createElement('span');
       logMessage.className = 'log-msg';
       logMessage.innerHTML = ansiLogToHTML(line.message);
       div.append(logTimeStamp);
       div.append(logMessage);
-      div.append(logTimeDuration);
+      div.append(logTimeSeconds);
 
       return div;
     },
@@ -392,10 +392,10 @@ const sfc = {
       if (this.menuVisible) this.menuVisible = false;
     },
 
-    // show at most one of log duration and timestamp (can be both invisible)
+    // show at most one of log seconds and timestamp (can be both invisible)
     toggleTimeDisplay(type) {
       const toToggleTypes = [];
-      const other = type === 'duration' ? 'stamp' : 'duration';
+      const other = type === 'seconds' ? 'stamp' : 'seconds';
       this.timeVisible[`log-time-${type}`] = !this.timeVisible[`log-time-${type}`];
       toToggleTypes.push(type);
       if (this.timeVisible[`log-time-${type}`] && this.timeVisible[`log-time-${other}`]) {
@@ -464,7 +464,7 @@ export function initRepositoryActionView() {
       jobOptions: {
         showTimeStamp: el.getAttribute('data-locale-show-timestamp'),
         showFullScreen: el.getAttribute('data-locale-show-full-screen'),
-        showLogduration: el.getAttribute('data-locale-show-log-duration'),
+        showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
       },
     }
   });
@@ -792,8 +792,8 @@ export function ansiLogToHTML(line) {
   background-color: var(--color-console-hover-bg);
 }
 
-/* class names 'log-time-duration' and 'log-time-stamp' are used in the method toggleTimeDisplay */
-.job-log-line .line-num, .log-time-duration {
+/* class names 'log-time-seconds' and 'log-time-stamp' are used in the method toggleTimeDisplay */
+.job-log-line .line-num, .log-time-seconds {
   width: 48px;
   color: var(--color-grey-light);
   text-align: right;
