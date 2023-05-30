@@ -751,12 +751,6 @@ export function ansiLogToHTML(line) {
   font-size: 12px;
 }
 
-.action-job-menu .item span {
-  display: inline-block;
-  height: 16px;
-  width: 16px;
-}
-
 .job-step-container {
   background-color: var(--color-console-bg);
   max-height: 100%;
