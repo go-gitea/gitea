@@ -77,7 +77,7 @@ Or follow the [deployment from binary]({{< relref "doc/installation/from-binary.
 ## macOS
 
 Currently, the only supported method of installation on MacOS is [Homebrew](http://brew.sh/).
-Following the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide may work,
+Following the [deployment from binary]({{< relref "doc/installation/from-binary.en-us.md" >}}) guide may work,
 but is not supported. To install Gitea via `brew`:
 
 ```
