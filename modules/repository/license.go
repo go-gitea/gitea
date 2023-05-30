@@ -204,7 +204,7 @@ func detectLicenseByEntry(file *git.TreeEntry) ([]string, error) {
 }
 
 func detectLicense(buf []byte) []string {
-	if len(buf) <= 0 {
+	if len(buf) == 0 {
 		return nil
 	}
 
