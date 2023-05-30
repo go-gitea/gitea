@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"bufio"
 	"bytes"
 	gocontext "context"
 	"encoding/base64"
@@ -383,42 +384,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsDisplayingSource"] = isDisplayingSource
 	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
 
-	// Get codeowner information from the CODEOWNERS file
-	ctx.Data["HasCodeowners"] = false
-	gitRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
-	defer gitRepo.Close()
-	if err == nil {
-		commit, err := gitRepo.GetCommit(ctx.Repo.CommitID)
-		if err == nil {
-			codeownersContents, err := issue_service.GetCodeownersFileContents(ctx, commit, gitRepo)
-			if err == nil && codeownersContents != nil && len(codeownersContents) > 0 {
-				ownersNameOrEmail, teamOwnersFullName, err := issue_service.ParseCodeowners([]string{ctx.Repo.TreePath}, codeownersContents)
-				if err == nil {
-					codeowners := []string{}
-					for _, owner := range ownersNameOrEmail {
-						user, err := issue_service.GetUserByNameOrEmail(ctx, owner, ctx.Repo.Repository)
-						if err == nil {
-							if issue_service.UserHasWritePermissions(ctx, ctx.Repo.Repository, user) {
-								codeowners = append(codeowners, owner)
-							}
-						}
-					}
-					for _, teamOwner := range teamOwnersFullName {
-						team, err := issue_service.GetTeamFromFullName(ctx, teamOwner, ctx.Doer)
-						if err == nil && team != nil {
-							if issue_service.TeamHasWritePermissions(ctx, ctx.Repo.Repository, team) {
-								codeowners = append(codeowners, teamOwner)
-							}
-						}
-					}
-					if err == nil && len(codeowners) > 0 {
-						ctx.Data["HasCodeowners"] = true
-						ctx.Data["Codeowners"] = "Owned by " + strings.Join(codeowners, ", ") + " (CODEOWNERS)"
-					}
-				}
-			}
-		}
-	}
+	GetCodeownersOwnershipInfo(ctx)
 
 	isTextSource := fInfo.isTextFile || isDisplayingSource
 	ctx.Data["IsTextSource"] = isTextSource
@@ -620,47 +586,96 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
 
-	// If this is a CODEOWNERS file, validate its contents
 	ctx.Data["HasCodeownersValidationErrors"] = false
 	if entry.Name() == "CODEOWNERS" {
-		codeownersErrors := make(map[int]string)
-		var fileLines []string = ctx.Data["FileContent"].([]string)
-		for i, line := range fileLines {
-			_, _, currFileOwners := issue_service.ParseCodeownersLine(line)
-			isValid := true
-			if len(currFileOwners) > 0 {
-				isValid = issue_service.IsValidCodeownersLine(currFileOwners)
-			}
+		GetCodeownerValidationInfo(ctx)
+	}
+}
 
-			if isValid {
-				invalidAccessOwners := []string{}
-				individuals, teams := issue_service.SeparateOwnerAndTeam(currFileOwners)
-				for _, individual := range individuals {
-					user, err := issue_service.GetUserByNameOrEmail(ctx, individual, ctx.Repo.Repository)
-					if err != nil || user == nil || !issue_service.UserHasWritePermissions(ctx, ctx.Repo.Repository, user) {
-						invalidAccessOwners = append(invalidAccessOwners, individual)
-					}
-				}
-				for _, teamName := range teams {
-					team, err := issue_service.GetTeamFromFullName(ctx, teamName, ctx.Doer)
-					if err != nil || team == nil || !issue_service.TeamHasWritePermissions(ctx, ctx.Repo.Repository, team) {
-						invalidAccessOwners = append(invalidAccessOwners, teamName)
-					}
-				}
-				if len(invalidAccessOwners) > 0 {
-					if len(invalidAccessOwners) == 1 {
-						codeownersErrors[i+1] = "make sure " + invalidAccessOwners[0] + " exists and has write access to the repository"
-					} else {
-						codeownersErrors[i+1] = "make sure " + strings.Join(invalidAccessOwners, ", ") + " all exist and have write access to the repository"
-					}
-				}
-			} else {
-				codeownersErrors[i+1] = "make sure owners are formated like '@user' or '@org-name/team-name'"
-			}
+func GetCodeownerValidationInfo(ctx *context.Context) {
+	codeownersErrors := make(map[int]string)
+	var fileLines []string
+	contentsBytes, err := issue_service.GetCodeownersFileContents(ctx, ctx.Repo.Commit, ctx.Repo.GitRepo)
+	if err == nil {
+		scanner := bufio.NewScanner(strings.NewReader(string(contentsBytes)))
+		for scanner.Scan() {
+			fileLines = append(fileLines, scanner.Text())
 		}
-		if len(codeownersErrors) > 0 {
-			ctx.Data["HasCodeownersValidationErrors"] = true
-			ctx.Data["CodeownersValidationErrors"] = codeownersErrors
+	} // TODO: ERROR HANDLING THOUGH ALL THIS STUFF
+	// var fileLines []string = ctx.Data["FileContent"].([]string)
+	for i, line := range fileLines {
+		_, _, currFileOwners := issue_service.ParseCodeownersLine(line)
+		isValid := true
+		if len(currFileOwners) > 0 {
+			isValid = issue_service.IsValidCodeownersLine(currFileOwners)
+		}
+
+		if isValid {
+			invalidAccessOwners := []string{}
+			individuals, teams := issue_service.SeparateOwnerAndTeam(currFileOwners)
+			for _, individual := range individuals {
+				user, err := issue_service.GetUserByNameOrEmail(ctx, individual, ctx.Repo.Repository)
+				if err != nil || user == nil || !issue_service.UserHasWritePermissions(ctx, ctx.Repo.Repository, user) {
+					invalidAccessOwners = append(invalidAccessOwners, individual)
+				}
+			}
+			for _, teamName := range teams {
+				team, err := issue_service.GetTeamFromFullName(ctx, teamName, ctx.Doer)
+				if err != nil || team == nil || !issue_service.TeamHasWritePermissions(ctx, ctx.Repo.Repository, team) {
+					invalidAccessOwners = append(invalidAccessOwners, teamName)
+				}
+			}
+			if len(invalidAccessOwners) > 0 {
+				if len(invalidAccessOwners) == 1 {
+					codeownersErrors[i+1] = "make sure " + invalidAccessOwners[0] + " exists and has write access to the repository"
+				} else {
+					codeownersErrors[i+1] = "make sure " + strings.Join(invalidAccessOwners, ", ") + " all exist and have write access to the repository"
+				}
+			}
+		} else {
+			codeownersErrors[i+1] = "make sure owners are formated like '@user', 'user@email.com', or '@org-name/team-name'"
+		}
+	}
+	if len(codeownersErrors) > 0 {
+		ctx.Data["HasCodeownersValidationErrors"] = true
+		ctx.Data["CodeownersValidationErrors"] = codeownersErrors
+	}
+}
+
+func GetCodeownersOwnershipInfo(ctx *context.Context) {
+	ctx.Data["HasCodeowners"] = false
+	gitRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
+	defer gitRepo.Close()
+	if err == nil {
+		commit, err := gitRepo.GetCommit(ctx.Repo.CommitID)
+		if err == nil {
+			codeownersContents, err := issue_service.GetCodeownersFileContents(ctx, commit, gitRepo)
+			if err == nil && codeownersContents != nil && len(codeownersContents) > 0 {
+				ownersNameOrEmail, teamOwnersFullName, err := issue_service.ParseCodeowners([]string{ctx.Repo.TreePath}, codeownersContents)
+				if err == nil {
+					codeowners := []string{}
+					for _, owner := range ownersNameOrEmail {
+						user, err := issue_service.GetUserByNameOrEmail(ctx, owner, ctx.Repo.Repository)
+						if err == nil {
+							if issue_service.UserHasWritePermissions(ctx, ctx.Repo.Repository, user) {
+								codeowners = append(codeowners, owner)
+							}
+						}
+					}
+					for _, teamOwner := range teamOwnersFullName {
+						team, err := issue_service.GetTeamFromFullName(ctx, teamOwner, ctx.Doer)
+						if err == nil && team != nil {
+							if issue_service.TeamHasWritePermissions(ctx, ctx.Repo.Repository, team) {
+								codeowners = append(codeowners, teamOwner)
+							}
+						}
+					}
+					if err == nil && len(codeowners) > 0 {
+						ctx.Data["HasCodeowners"] = true
+						ctx.Data["Codeowners"] = "Owned by " + strings.Join(codeowners, ", ") + " (CODEOWNERS)"
+					}
+				}
+			}
 		}
 	}
 }

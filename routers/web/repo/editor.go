@@ -160,6 +160,8 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["Editorconfig"] = GetEditorConfig(ctx, treePath)
 
+	GetCodeownerValidationInfo(ctx)
+
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
 

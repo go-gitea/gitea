@@ -3,6 +3,18 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
+		{{- if .HasCodeownersValidationErrors}}
+			<div class="ui warning message">
+				<div class="text left">
+					{{"This CODEOWNERS file contains errors:"}}
+					<ul>
+						{{range $lineNum, $validationMessage := .CodeownersValidationErrors}}
+						<li>Error on line {{$lineNum}}: {{$validationMessage}}</li>
+						{{end}}
+					</ul>
+				</div>
+			</div>
+		{{end}}
 		<form class="ui edit form" method="post">
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="last_commit" value="{{.last_commit}}">
