@@ -68,7 +68,6 @@ func (r *ActionRunner) BelongsToOwnerType() types.OwnerType {
 	if r.RepoID != 0 {
 		return types.OwnerTypeRepository
 	}
-
 	if r.OwnerID != 0 {
 		if r.Owner.Type == user_model.UserTypeOrganization {
 			return types.OwnerTypeOrganization
@@ -76,7 +75,6 @@ func (r *ActionRunner) BelongsToOwnerType() types.OwnerType {
 			return types.OwnerTypeIndividual
 		}
 	}
-
 	return types.OwnerTypeSystemGlobal
 }
 
