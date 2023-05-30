@@ -669,6 +669,8 @@ export function ansiLogToHTML(line) {
   flex-direction: column;
 }
 
+/* begin fomantic button overrides */
+
 .action-view-right .ui.button,
 .action-view-right .ui.button:focus {
   background: transparent;
@@ -684,6 +686,10 @@ export function ansiLogToHTML(line) {
   background: var(--color-console-active-bg);
   color: var(--color-console-fg);
 }
+
+/* end fomantic button overrides */
+
+/* begin fomantic dropdown menu overrides */
 
 .action-view-right .ui.dropdown .menu {
   background: var(--color-console-menu-bg);
@@ -712,6 +718,8 @@ export function ansiLogToHTML(line) {
   background: var(--color-console-menu-bg);
   box-shadow: -1px -1px 0 0 var(--color-console-menu-border);
 }
+
+/* end fomantic dropdown menu overrides */
 
 /* selectors here are intentionally exact to only match fullscreen */
 
