@@ -515,4 +515,13 @@ ul li:not(:last-child) {
   margin-left: 1px;
   margin-right: 3px;
 }
+
+.feeds .list ul li.active {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.feeds .list ul li.active svg {
+  color: inherit;
+}
 </style>

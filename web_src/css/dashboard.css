@@ -160,12 +160,3 @@
 .feeds .news:last-of-type .divider {
   display: none !important;
 }
-
-.feeds .list ul li.active {
-  background: var(--color-primary);
-  color: var(--color-primary-contrast);
-}
-
-.feeds .list ul li.active svg {
-  color: inherit;
-}
