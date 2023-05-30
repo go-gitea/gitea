@@ -36,7 +36,7 @@ func IssuePinOrUnpin(ctx *context.Context) {
 
 // IssueUnpin unpins a Issue
 func IssueUnpin(ctx *context.Context) {
-	issue, err := issues_model.GetIssueByID(ctx, ctx.ParamsInt64(":id"))
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
 		log.Error(err.Error())
@@ -55,6 +55,7 @@ func IssueUnpin(ctx *context.Context) {
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
 		log.Error(err.Error())
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)

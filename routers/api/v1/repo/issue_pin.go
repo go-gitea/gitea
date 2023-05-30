@@ -200,7 +200,6 @@ func ListPinnedIssues(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
 	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo.Repository.ID, false)
-
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPinnedIssues", err)
 		return
