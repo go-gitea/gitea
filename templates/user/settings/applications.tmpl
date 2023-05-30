@@ -45,7 +45,7 @@
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_Name}}error{{end}}">
 					<label for="name">{{.locale.Tr "settings.token_name"}}</label>
-					<input id="name" name="name" value="{{.name}}" autofocus required>
+					<input id="name" name="name" value="{{.name}}" autofocus required maxlength="255">
 				</div>
 				<!--Temporarily disable-->
 				<details class="gt-hidden ui optional field">

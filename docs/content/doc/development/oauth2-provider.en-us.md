@@ -94,7 +94,7 @@ For public clients, a redirect URI of a loopback IP address such as `http://127.
 1. Redirect to user to the authorization endpoint in order to get their consent for accessing the resources:
 
    ```curl
-   https://[YOUR-GITEA-URL]/login/oauth/authorize?client_id=CLIENT_ID&redirect_uri=REDIRECT_URI& response_type=code&state=STATE
+   https://[YOUR-GITEA-URL]/login/oauth/authorize?client_id=CLIENT_ID&redirect_uri=REDIRECT_URI&response_type=code&state=STATE
    ```
 
    The `CLIENT_ID` can be obtained by registering an application in the settings. The `STATE` is a random string that will be send back to your application after the user authorizes. The `state` parameter is optional but should be used to prevent CSRF attacks.

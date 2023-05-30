@@ -90,6 +90,7 @@ var (
 		// Issue Setting
 		Issue struct {
 			LockReasons []string
+			MaxPinned   int
 		} `ini:"repository.issue"`
 
 		Release struct {
@@ -227,8 +228,10 @@ var (
 		// Issue settings
 		Issue: struct {
 			LockReasons []string
+			MaxPinned   int
 		}{
 			LockReasons: strings.Split("Too heated,Off-topic,Spam,Resolved", ","),
+			MaxPinned:   3,
 		},
 
 		Release: struct {
@@ -278,7 +281,6 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
 	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString(Repository.DefaultBranch)
 	RepoRootPath = sec.Key("ROOT").MustString(path.Join(AppDataPath, "gitea-repositories"))
-	forcePathSeparator(RepoRootPath)
 	if !filepath.IsAbs(RepoRootPath) {
 		RepoRootPath = filepath.Join(AppWorkPath, RepoRootPath)
 	} else {
