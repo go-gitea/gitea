@@ -53,6 +53,11 @@ func (ref *Reference) Commit() (*Commit, error) {
 	return ref.repo.getCommit(ref.Object)
 }
 
+// ShortName returns the short name of the reference
+func (ref *Reference) ShortName() string {
+	return RefName(ref.Name).ShortName()
+}
+
 // RefGroup returns the group type of the reference
 func (ref *Reference) RefGroup() string {
 	return RefName(ref.Name).RefGroup()
