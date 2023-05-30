@@ -26,6 +26,7 @@ import octiconEye from '../../public/img/svg/octicon-eye.svg';
 import octiconFile from '../../public/img/svg/octicon-file.svg';
 import octiconFileDirectoryFill from '../../public/img/svg/octicon-file-directory-fill.svg';
 import octiconFilter from '../../public/img/svg/octicon-filter.svg';
+import octiconGear from '../../public/img/svg/octicon-gear.svg';
 import octiconGitBranch from '../../public/img/svg/octicon-git-branch.svg';
 import octiconGitMerge from '../../public/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/img/svg/octicon-git-pull-request.svg';
@@ -65,7 +66,6 @@ import octiconTag from '../../public/img/svg/octicon-tag.svg';
 import octiconTriangleDown from '../../public/img/svg/octicon-triangle-down.svg';
 import octiconX from '../../public/img/svg/octicon-x.svg';
 import octiconXCircleFill from '../../public/img/svg/octicon-x-circle-fill.svg';
-import octiconGear from '../../public/img/svg/octicon-gear.svg';
 
 const svgs = {
   'gitea-double-chevron-left': giteaDoubleChevronLeft,
@@ -95,6 +95,7 @@ const svgs = {
   'octicon-file': octiconFile,
   'octicon-file-directory-fill': octiconFileDirectoryFill,
   'octicon-filter': octiconFilter,
+  'octicon-gear': octiconGear,
   'octicon-git-branch': octiconGitBranch,
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
@@ -134,7 +135,6 @@ const svgs = {
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
   'octicon-x-circle-fill': octiconXCircleFill,
-  'octicon-gear': octiconGear,
 };
 
 // TODO: use a more general approach to access SVG icons.
